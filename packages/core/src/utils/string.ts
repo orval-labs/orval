@@ -255,9 +255,24 @@ export function jsStringEscape(input: string) {
 /**
  * Deduplicates a TypeScript union type string.
  * Handles types like "A | B | B" → "A | B" and "null | null" → "null".
+ * Only splits on top-level | (not inside {} () [] <>).
  */
 export function dedupeUnionType(unionType: string): string {
-  const parts = unionType.split('|').map((part) => part.trim());
-  const unique = [...new Set(parts)];
-  return unique.join(' | ');
+  const parts: string[] = [];
+  let current = '';
+  let depth = 0;
+
+  for (const c of unionType) {
+    if ('{([<'.includes(c)) depth++;
+    if ('})]>'.includes(c)) depth--;
+    if (c === '|' && depth === 0) {
+      parts.push(current.trim());
+      current = '';
+    } else {
+      current += c;
+    }
+  }
+  if (current.trim()) parts.push(current.trim());
+
+  return [...new Set(parts)].join(' | ');
 }
