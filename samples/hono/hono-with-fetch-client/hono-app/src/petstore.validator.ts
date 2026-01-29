@@ -113,21 +113,26 @@ export const zValidator =
   ): MiddlewareHandler<E, P, V> =>
   async (c, next) => {
     if (target !== 'response') {
-      return zValidatorBase<
-        T,
-        keyof ValidationTargets,
-        E,
-        P,
-        In,
-        Out,
-        I,
-        V,
-        InferredValue
-      >(
-        target,
-        schema,
-        hook as Hook<InferredValue, E, P, keyof ValidationTargets, {}, T>,
-      )(c, next);
+      const baseTarget = target as keyof ValidationTargets;
+      const baseHook = hook
+        ? (
+            result: Parameters<
+              Hook<zInfer<T>, Env, string, keyof ValidationTargets, {}, T>
+            >[0],
+            ctx: Context<Env, string>,
+          ) =>
+            hook(
+              { ...result, target } as Parameters<typeof hook>[0],
+              ctx as unknown as Context<E, P>,
+            )
+        : undefined;
+      const validator = baseHook
+        ? zValidatorBase(baseTarget, schema, baseHook)
+        : zValidatorBase(baseTarget, schema);
+      return validator(
+        c as unknown as Context<Env, string>,
+        next,
+      ) as ReturnType<MiddlewareHandler<E, P, V>>;
     }
 
     await next();
