@@ -156,12 +156,46 @@ describe('generateAxiosHeader', () => {
       ...baseMockParams,
       isRequestOptions: true,
       isMutator: true,
+      isGlobalMutator: true,
       noFunction: false,
     });
 
     expect(header).toContain('type SecondParameter<T extends (...args: never)');
     expect(header).toContain('export const getPetsApi = () => {');
     expect(header).not.toContain('axiosInstance');
+  });
+
+  it('should not include axiosInstance when tags-level mutator is present', () => {
+    const header = generateAxiosHeader({
+      ...baseMockParams,
+      isRequestOptions: true,
+      isMutator: false,
+      isGlobalMutator: false,
+      noFunction: false,
+      verbOptions: {
+        getPets: {
+          mutator: { name: 'customInstance' },
+        } as never,
+      },
+    });
+
+    expect(header).toContain('export const getPetsApi = () => {');
+    expect(header).not.toContain('axiosInstance');
+    expect(header).not.toContain('AxiosInstance');
+  });
+
+  it('should not include axiosInstance when global mutator is present', () => {
+    const header = generateAxiosHeader({
+      ...baseMockParams,
+      isRequestOptions: false,
+      isMutator: false,
+      isGlobalMutator: true,
+      noFunction: false,
+    });
+
+    expect(header).toContain('export const getPetsApi = () => {');
+    expect(header).not.toContain('axiosInstance');
+    expect(header).not.toContain('AxiosInstance');
   });
 });
 

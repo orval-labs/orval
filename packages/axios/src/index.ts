@@ -225,12 +225,15 @@ export const generateAxiosTitle: ClientTitleBuilder = (title) => {
 };
 
 // Header for factory mode - axios is optional parameter with default value
+// When using mutator (global or tags-level), axiosInstance parameter is not needed
 export const generateAxiosHeader: ClientHeaderBuilder = ({
   title,
   isRequestOptions,
   isMutator,
+  isGlobalMutator,
   noFunction,
   output,
+  verbOptions,
 }) => {
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
     output.tsconfig,
@@ -239,13 +242,18 @@ export const generateAxiosHeader: ClientHeaderBuilder = ({
     ? 'axios'
     : 'axios.default';
 
+  // Check if any operation uses a mutator (either global or tags-level)
+  const hasAnyMutator =
+    isGlobalMutator ||
+    Object.values(verbOptions).some((verbOption) => !!verbOption.mutator);
+
   return `
 ${
   isRequestOptions && isMutator
     ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
     : ''
 }
-  ${noFunction ? '' : isMutator ? `export const ${title} = () => {\n` : `export const ${title} = (axiosInstance: AxiosInstance = ${axiosDefault}) => {\n`}`;
+  ${noFunction ? '' : hasAnyMutator ? `export const ${title} = () => {\n` : `export const ${title} = (axiosInstance: AxiosInstance = ${axiosDefault}) => {\n`}`;
 };
 
 export const generateAxiosFooter: ClientFooterBuilder = ({
