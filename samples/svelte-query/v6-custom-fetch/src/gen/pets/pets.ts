@@ -348,14 +348,11 @@ export const createCreatePets = <TError = Error, TContext = unknown>(
   { data: CreatePetsBodyItem[] },
   TContext
 > => {
-  const backupQueryClient = useQueryClient();
-  return createMutation(() => ({
-    ...getCreatePetsMutationOptions(
-      queryClient?.() ?? backupQueryClient,
-      options?.(),
-    ),
+  const backupQueryClient = useQueryClient(queryClient?.());
+  return createMutation(
+    () => ({ ...getCreatePetsMutationOptions(backupQueryClient, options?.()) }),
     queryClient,
-  }));
+  );
 };
 /**
  * @summary Update a pet
@@ -461,10 +458,10 @@ export const createUpdatePets = <TError = Error, TContext = unknown>(
   { data: NonReadonly<Pet> },
   TContext
 > => {
-  return createMutation(() => ({
-    ...getUpdatePetsMutationOptions(options?.()),
+  return createMutation(
+    () => ({ ...getUpdatePetsMutationOptions(options?.()) }),
     queryClient,
-  }));
+  );
 };
 /**
  * @summary Info for a specific pet
