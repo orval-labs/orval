@@ -1,7 +1,7 @@
 {
   "name": "swr-with-fetch-client",
   "private": true,
-  "version": "7.20.0",
+  "version": "7.21.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host",

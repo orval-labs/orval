@@ -1,6 +1,6 @@
 {
   "name": "@hono/composite-routes-with-tags-split",
-  "version": "7.20.0",
+  "version": "7.21.0",
   "private": true,
   "scripts": {
     "dev": "wrangler dev src/app.ts --ip 0.0.0.0",
