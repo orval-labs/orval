@@ -225,11 +225,13 @@ export function escape(str: string | null, char = "'") {
  * @param input String to escape
  */
 export function jsStringEscape(input: string) {
-  return input.replaceAll(/["'\\\n\r\u2028\u2029]/g, (character) => {
+  return input.replaceAll(/["'\\\n\r\u2028\u2029/*]/g, (character) => {
     switch (character) {
       case '"':
       case "'":
-      case '\\': {
+      case '\\':
+      case '/':
+      case '*': {
         return '\\' + character;
       }
       // Four possible LineTerminator characters need to be escaped:
