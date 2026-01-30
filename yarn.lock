@@ -18559,7 +18559,6 @@ __metadata:
     "@eslint/js": "catalog:"
     "@types/node": "catalog:"
     esbuild-plugin-alias: "npm:^0.2.1"
-    eslint: "catalog:"
     eslint-config-prettier: "npm:^10.1.8"
     eslint-config-turbo: "npm:^2.7.4"
     eslint-plugin-prettier: "npm:^5.5.4"
