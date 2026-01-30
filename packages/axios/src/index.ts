@@ -78,7 +78,9 @@ export const getAxiosFactoryDependencies: ClientDependenciesBuilder = (
         syntheticDefaultImport: true,
       },
       // Only include AxiosInstance if we're not using a mutator (global or tags)
-      ...(!hasGlobalMutator && !hasTagsMutator ? [{ name: 'AxiosInstance' }] : []),
+      ...(!hasGlobalMutator && !hasTagsMutator
+        ? [{ name: 'AxiosInstance' }]
+        : []),
       ...(hasGlobalMutator
         ? []
         : [{ name: 'AxiosRequestConfig' }, { name: 'AxiosResponse' }]),
