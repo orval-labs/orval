@@ -61,9 +61,13 @@ export const getAxiosDependencies: ClientDependenciesBuilder = (
 
 // Factory mode needs axios default import (for optional parameter default value)
 // plus AxiosInstance type for the parameter type
+// When using mutator, AxiosInstance is not needed as the mutator handles the axios instance
 export const getAxiosFactoryDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator,
   hasParamsSerializerOptions: boolean,
+  _packageJson,
+  _httpClient,
+  hasTagsMutator,
 ) => [
   {
     exports: [
@@ -73,7 +77,8 @@ export const getAxiosFactoryDependencies: ClientDependenciesBuilder = (
         values: true,
         syntheticDefaultImport: true,
       },
-      { name: 'AxiosInstance' },
+      // Only include AxiosInstance if we're not using a mutator (global or tags)
+      ...(!hasGlobalMutator && !hasTagsMutator ? [{ name: 'AxiosInstance' }] : []),
       ...(hasGlobalMutator
         ? []
         : [{ name: 'AxiosRequestConfig' }, { name: 'AxiosResponse' }]),
@@ -238,7 +243,7 @@ ${
     ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
     : ''
 }
-  ${noFunction ? '' : `export const ${title} = (axiosInstance: AxiosInstance = ${axiosDefault}) => {\n`}`;
+  ${noFunction ? '' : isMutator ? `export const ${title} = () => {\n` : `export const ${title} = (axiosInstance: AxiosInstance = ${axiosDefault}) => {\n`}`;
 };
 
 export const generateAxiosFooter: ClientFooterBuilder = ({

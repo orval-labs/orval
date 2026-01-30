@@ -55,7 +55,7 @@ describe('getAxiosFactoryDependencies (axios factory mode)', () => {
     expect(deps[0].exports).toContainEqual({ name: 'AxiosResponse' });
   });
 
-  it('should include axios runtime and AxiosInstance even when global mutator is present', () => {
+  it('should not include AxiosInstance when global mutator is present', () => {
     const deps = getAxiosFactoryDependencies(true, false);
 
     expect(deps).toHaveLength(1);
@@ -67,10 +67,36 @@ describe('getAxiosFactoryDependencies (axios factory mode)', () => {
       values: true,
       syntheticDefaultImport: true,
     });
-    expect(deps[0].exports).toContainEqual({ name: 'AxiosInstance' });
+    // Should NOT include AxiosInstance when global mutator is present
+    expect(deps[0].exports).not.toContainEqual({ name: 'AxiosInstance' });
     // Should NOT include other axios types when mutator is present
     expect(deps[0].exports).not.toContainEqual({ name: 'AxiosRequestConfig' });
     expect(deps[0].exports).not.toContainEqual({ name: 'AxiosResponse' });
+  });
+
+  it('should not include AxiosInstance when tags mutator is present', () => {
+    const deps = getAxiosFactoryDependencies(
+      false,
+      false,
+      undefined,
+      undefined,
+      true,
+    );
+
+    expect(deps).toHaveLength(1);
+    expect(deps[0].dependency).toBe('axios');
+    // Should have runtime axios import (for default parameter value)
+    expect(deps[0].exports).toContainEqual({
+      name: 'axios',
+      default: true,
+      values: true,
+      syntheticDefaultImport: true,
+    });
+    // Should NOT include AxiosInstance when tags mutator is present
+    expect(deps[0].exports).not.toContainEqual({ name: 'AxiosInstance' });
+    // Should still include other axios types since global mutator is not present
+    expect(deps[0].exports).toContainEqual({ name: 'AxiosRequestConfig' });
+    expect(deps[0].exports).toContainEqual({ name: 'AxiosResponse' });
   });
 
   it('should include qs dependency when params serializer is enabled', () => {
@@ -90,13 +116,22 @@ describe('generateAxiosHeader', () => {
     },
   } as never;
 
+  const baseMockParams = {
+    title: 'getPetsApi',
+    isGlobalMutator: false,
+    provideIn: false as const,
+    hasAwaitedType: false,
+    output: mockOutput,
+    verbOptions: {},
+    clientImplementation: '',
+  };
+
   it('should generate factory function with optional axios parameter when noFunction is false', () => {
     const header = generateAxiosHeader({
-      title: 'getPetsApi',
+      ...baseMockParams,
       isRequestOptions: true,
       isMutator: false,
       noFunction: false,
-      output: mockOutput,
     });
 
     expect(header).toContain(
@@ -106,11 +141,10 @@ describe('generateAxiosHeader', () => {
 
   it('should not generate factory function when noFunction is true (axios-functions mode)', () => {
     const header = generateAxiosHeader({
-      title: 'getPetsApi',
+      ...baseMockParams,
       isRequestOptions: true,
       isMutator: false,
       noFunction: true,
-      output: mockOutput,
     });
 
     expect(header).not.toContain('export const getPetsApi');
@@ -119,17 +153,15 @@ describe('generateAxiosHeader', () => {
 
   it('should include SecondParameter type when using mutator with request options', () => {
     const header = generateAxiosHeader({
-      title: 'getPetsApi',
+      ...baseMockParams,
       isRequestOptions: true,
       isMutator: true,
       noFunction: false,
-      output: mockOutput,
     });
 
     expect(header).toContain('type SecondParameter<T extends (...args: never)');
-    expect(header).toContain(
-      'export const getPetsApi = (axiosInstance: AxiosInstance = axios)',
-    );
+    expect(header).toContain('export const getPetsApi = () => {');
+    expect(header).not.toContain('axiosInstance');
   });
 });
 
