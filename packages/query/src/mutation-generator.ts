@@ -302,7 +302,7 @@ ${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
       ? ', queryClient?: QueryClient'
       : '';
 
-  const mutationImplementation = `${mutationOptionsFnName}(${hasInvalidation ? `queryClient${isReact(outputClient) || (isSvelte(outputClient) && !hasSvelteQueryV6) ? ' ?? backupQueryClient' : ''}${hasSvelteQueryV6 ? '?.() ?? backupQueryClient' : ''}, ` : ''}${
+  const mutationImplementation = `${mutationOptionsFnName}(${hasInvalidation ? (hasSvelteQueryV6 ? 'backupQueryClient, ' : `queryClient${isReact(outputClient) || isSvelte(outputClient) ? ' ?? backupQueryClient' : ''}, `) : ''}${
     isRequestOptions ? 'options' : 'mutationOptions'
   }${hasSvelteQueryV6 ? '?.()' : ''})`;
 
@@ -345,9 +345,9 @@ ${
       : `      const ${mutationOptionsVarName} = ${mutationImplementation};
 
       return ${operationPrefix}Mutation(() => ${mutationOptionsVarName});`
-    : `      ${(isReact(outputClient) || isSvelte(outputClient)) && hasInvalidation ? 'const backupQueryClient = useQueryClient();\n      ' : ''}return ${operationPrefix}Mutation(${
+    : `      ${(isReact(outputClient) || isSvelte(outputClient)) && hasInvalidation ? `const backupQueryClient = useQueryClient(${hasSvelteQueryV6 && optionalQueryClientArgument ? 'queryClient?.()' : ''});\n      ` : ''}return ${operationPrefix}Mutation(${
         hasSvelteQueryV6
-          ? `() => ({ ...${mutationImplementation}${optionalQueryClientArgument ? `, queryClient` : ''} })`
+          ? `() => ({ ...${mutationImplementation} })${optionalQueryClientArgument ? `, queryClient` : ''}`
           : isSvelte(outputClient)
             ? mutationImplementation
             : `${mutationImplementation}${optionalQueryClientArgument ? `, queryClient` : ''}`
