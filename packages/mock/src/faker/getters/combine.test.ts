@@ -271,7 +271,7 @@ describe('combineSchemasMock', () => {
     expect(result.includedProperties).toBeDefined();
   });
 
-  it('should return undefined value when array contains only references that already exist', () => {
+  it('should return empty arrayElement when oneOf contains only circular references', () => {
     const item: MockSchemaObject = {
       name: 'Test',
       oneOf: [{ $ref: '#/components/schemas/ExistingRef' }],
@@ -289,7 +289,7 @@ describe('combineSchemasMock', () => {
     });
 
     expect(result).toBeDefined();
-    expect(result.value).toBe('undefined');
+    expect(result.value).toBe('faker.helpers.arrayElement([])');
   });
 
   it('should collect imports from combined schemas', () => {
@@ -403,7 +403,7 @@ describe('combineSchemasMock', () => {
     expect(result.value).toContain('meow:');
   });
 
-  it('should still skip references in oneOf when they exist in existingReferencedProperties', () => {
+  it('should return empty arrayElement for oneOf with circular references', () => {
     const item: MockSchemaObject = {
       name: 'Pet',
       oneOf: [{ $ref: '#/components/schemas/Cat' }],
@@ -421,6 +421,6 @@ describe('combineSchemasMock', () => {
     });
 
     expect(result).toBeDefined();
-    expect(result.value).toBe('undefined');
+    expect(result.value).toBe('faker.helpers.arrayElement([])');
   });
 });
