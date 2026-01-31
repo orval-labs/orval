@@ -1,5 +1,7 @@
+import { isArray, isBoolean } from 'remeda';
+
 import type { ContextSpec, OpenApiSchemasObject } from '../types';
-import { pascal } from '../utils';
+import { getPropertySafe, isReference, pascal } from '../utils';
 import { getRefInfo } from './ref';
 
 export function resolveDiscriminators(
@@ -8,8 +10,18 @@ export function resolveDiscriminators(
 ): OpenApiSchemasObject {
   const transformedSchemas = schemas;
   for (const schema of Object.values(transformedSchemas)) {
-    if (typeof schema === 'boolean') {
+    if (isBoolean(schema)) {
       continue; // skip boolean schemas as we can't do anything meaningful with them
+    }
+
+    // Some specs incorrectly nest `oneOf` under `discriminator`.
+    // hoist it to the schema level so union generation still works.
+    const discriminator = schema.discriminator as
+      | { oneOf?: OpenApiSchemasObject[string][] }
+      | undefined;
+
+    if (!schema.oneOf && isArray(discriminator?.oneOf)) {
+      schema.oneOf = discriminator.oneOf;
     }
 
     if (schema.discriminator?.mapping) {
@@ -28,29 +40,43 @@ export function resolveDiscriminators(
           subTypeSchema = transformedSchemas[mappingValue];
         }
 
-        if (typeof subTypeSchema === 'boolean' || propertyName === undefined) {
+        if (isBoolean(subTypeSchema) || propertyName === undefined) {
           continue;
         }
 
         const property = subTypeSchema.properties?.[propertyName];
-        if (typeof property === 'boolean' || property === undefined) {
+        if (isBoolean(property)) {
           continue;
         }
 
+        const schemaProperty =
+          property && !isReference(property) ? property : undefined;
+
+        const enumProperty = schemaProperty
+          ? getPropertySafe(schemaProperty, 'enum')
+          : { hasProperty: false as const, value: undefined };
+
+        const enumValues: unknown[] | undefined =
+          enumProperty.hasProperty && Array.isArray(enumProperty.value)
+            ? enumProperty.value
+            : undefined;
+
+        const mergedEnumValues = (enumValues ?? [])
+          .filter((value) => value !== mappingKey)
+          .concat(mappingKey);
+
+        const mergedProperty = {
+          ...schemaProperty,
+          type: 'string',
+          enum: mergedEnumValues,
+        };
+
         subTypeSchema.properties = {
           ...subTypeSchema.properties,
-          [propertyName]: {
-            type: 'string',
-            enum: [
-              ...(property?.enum?.filter((value) => value !== mappingKey) ??
-                []),
-              mappingKey,
-            ],
-          },
+          [propertyName]: mergedProperty,
         };
         subTypeSchema.required = [
-          ...(subTypeSchema.required ?? []),
-          propertyName,
+          ...new Set([...(subTypeSchema.required ?? []), propertyName]),
         ];
       }
     }
