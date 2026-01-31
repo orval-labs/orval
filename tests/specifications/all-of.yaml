@@ -64,6 +64,22 @@ paths:
                 allOf:
                   - $ref: '#/components/schemas/PetRef'
                   - $ref: '#/components/schemas/PetDetail'
+  /items-with-nullable-required:
+    get:
+      operationId: getItemsWithNullableRequired
+      tags:
+        - pets
+      description: |-
+        Test allOf with nullable and required fields.
+      responses:
+        '200':
+          description: Items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ItemWithNullableRequired'
 
 components:
   schemas:
@@ -105,3 +121,19 @@ components:
           type: string
     PetRef:
       $ref: '#/components/schemas/Pet'
+
+    ItemWithNullableRequired:
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: string
+          required:
+            - id
+        - type: object
+          properties:
+            category:
+              nullable: true
+              type: string
+          required:
+            - category

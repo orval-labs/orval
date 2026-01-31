@@ -13,6 +13,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Node'
+  /node-with-required-child:
+    get:
+      summary: Node with required child
+      operationId: get-node-with-required-child
+      responses:
+        '200':
+          description: 'Node with required child'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeWithRequiredChild'
   /list:
     post:
       summary: Add list
@@ -62,3 +73,18 @@ components:
           type: string
         child:
           $ref: '#/components/schemas/Node'
+
+    NodeWithRequiredChild:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        child:
+          nullable: true
+          $ref: '#/components/schemas/NodeWithRequiredChild'
+      required:
+        - id
+        - name
+        - child
