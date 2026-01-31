@@ -1,27 +1,12 @@
 import basepath from 'node:path';
 
-import { isUrl } from './assertion';
+import { isFunction, isStringLike } from './assertion';
 import { getExtension } from './extension';
-import { getFileInfo } from './file';
 
 // override path to support windows paths
 // https://github.com/anodynos/upath/blob/master/source/code/upath.coffee
 type Path = typeof basepath;
 const path = {} as Path;
-
-const isFunction = (val: any) => typeof val == 'function';
-
-const isString = (val: any) => {
-  if (typeof val === 'string') {
-    return true;
-  }
-
-  if (typeof val === 'object' && val !== null) {
-    return Object.toString.call(val) == '[object String]';
-  }
-
-  return false;
-};
 
 for (const [propName, propValue] of Object.entries(basepath)) {
   if (isFunction(propValue)) {
@@ -29,12 +14,12 @@ for (const [propName, propValue] of Object.entries(basepath)) {
     path[propName] = ((propName) => {
       return (...args: any[]) => {
         args = args.map((p) => {
-          return isString(p) ? toUnix(p) : p;
+          return isStringLike(p) ? toUnix(p) : p;
         });
 
         // @ts-ignore
         const result = basepath[propName](...args);
-        return isString(result) ? toUnix(result) : result;
+        return isStringLike(result) ? toUnix(result) : result;
       };
     })(propName);
   } else {

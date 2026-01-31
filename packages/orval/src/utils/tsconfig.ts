@@ -1,4 +1,4 @@
-import { isObject, isString, isUndefined, type Tsconfig } from '@orval/core';
+import { isNullish, isObject, isString, type Tsconfig } from '@orval/core';
 import { findUp } from 'find-up';
 import fs from 'fs-extra';
 import { parse } from 'tsconfck';
@@ -9,7 +9,7 @@ export const loadTsconfig = async (
   tsconfig?: Tsconfig | string,
   workspace = process.cwd(),
 ): Promise<Tsconfig | undefined> => {
-  if (isUndefined(tsconfig)) {
+  if (isNullish(tsconfig)) {
     const configPath = await findUp(['tsconfig.json', 'jsconfig.json'], {
       cwd: workspace,
     });

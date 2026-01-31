@@ -7,7 +7,7 @@ import {
   type GetterQueryParam,
   OutputClient,
 } from '../types';
-import { isUndefined, pascal, sortByPriority } from '../utils';
+import { isNullish, pascal, sortByPriority } from '../utils';
 
 interface GetPropsOptions {
   body: GetterBody;
@@ -40,7 +40,7 @@ export function getProps({
     definition: getQueryParamDefinition(queryParams, context),
     implementation: getQueryParamDefinition(queryParams, context),
     default: false,
-    required: isUndefined(queryParams?.isOptional)
+    required: isNullish(queryParams?.isOptional)
       ? !context.output.allParamsOptional || context.output.optionsParamRequired
       : (!queryParams?.isOptional && !context.output.allParamsOptional) ||
         context.output.optionsParamRequired,
@@ -56,7 +56,7 @@ export function getProps({
       headers?.schema.name
     }`,
     default: false,
-    required: isUndefined(headers?.isOptional)
+    required: isNullish(headers?.isOptional)
       ? false
       : !headers?.isOptional || context.output.optionsParamRequired,
     type: GetterPropType.HEADER,
