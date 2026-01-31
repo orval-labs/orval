@@ -1,13 +1,7 @@
 import { keyword } from 'esutils';
+import { isNullish } from 'remeda';
 
-import {
-  isBoolean,
-  isFunction,
-  isNull,
-  isNumber,
-  isString,
-  isUndefined,
-} from './assertion';
+import { isBoolean, isFunction, isNumber, isString } from './assertion';
 
 /**
  * Converts data to a string representation suitable for code generation.
@@ -24,7 +18,7 @@ import {
 export function stringify(
   data?: string | any[] | Record<string, any>,
 ): string | undefined {
-  if (isUndefined(data) || isNull(data)) {
+  if (isNullish(data)) {
     return;
   }
 
