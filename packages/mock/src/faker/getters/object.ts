@@ -128,6 +128,8 @@ export function getMockObject({
             mockOptions?.required ??
             (Array.isArray(item.required) ? item.required : []).includes(key);
 
+          const hasNullable = 'nullable' in prop && prop.nullable === true;
+
           // Check to see if the property is a reference to an existing property
           // Fixes issue #910
           if (
@@ -160,7 +162,8 @@ export function getMockObject({
           const keyDefinition = getKey(key);
 
           if (!isRequired && !resolvedValue.overrided) {
-            return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, undefined])`;
+            const nullValue = hasNullable ? 'null' : 'undefined';
+            return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, ${nullValue}])`;
           }
 
           const isNullable =
