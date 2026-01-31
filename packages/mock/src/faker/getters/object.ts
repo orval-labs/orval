@@ -138,6 +138,10 @@ export function getMockObject({
               pascal(prop.$ref.split('/').pop() ?? ''),
             )
           ) {
+            if (isRequired) {
+              const keyDefinition = getKey(key);
+              return `${keyDefinition}: null`;
+            }
             return;
           }
 
