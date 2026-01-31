@@ -189,4 +189,14 @@ export default defineConfig({
       target: '../specifications/allof-shared-base.yaml',
     },
   },
+  circular: {
+    output: {
+      target: '../generated/mock/circular/endpoints.ts',
+      schemas: '../generated/mock/circular/model',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/circular.yaml',
+    },
+  },
 });
