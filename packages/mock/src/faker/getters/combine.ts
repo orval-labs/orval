@@ -70,7 +70,6 @@ export function combineSchemasMock({
   combineImports.push(...(itemResolvedValue?.imports ?? []));
   let containsOnlyPrimitiveValues = true;
 
-  // allOf の場合、すべての要素から required を収集
   const allRequiredFields: string[] = [];
   if (separator === 'allOf') {
     if (item.required) {
@@ -112,7 +111,6 @@ export function combineSchemasMock({
           isSchema(val) && val.required
             ? [...allRequiredFields, ...val.required]
             : allRequiredFields;
-        // 重複を除去
         val = { ...val, required: [...new Set(combinedRequired)] };
       }
 
