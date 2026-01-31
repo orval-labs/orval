@@ -32,7 +32,7 @@ export function isStringLike(val: any): val is string {
   }
 
   if (typeof val === 'object' && val !== null) {
-    return Object.toString.call(val) === '[object String]';
+    return Object.prototype.toString.call(val) === '[object String]';
   }
 
   return false;
