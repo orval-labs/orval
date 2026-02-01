@@ -6529,14 +6529,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sveltejs/adapter-auto@npm:^2.1.1":
-  version: 2.1.1
-  resolution: "@sveltejs/adapter-auto@npm:2.1.1"
-  dependencies:
-    import-meta-resolve: "npm:^4.0.0"
+"@sveltejs/adapter-auto@npm:^7.0.0":
+  version: 7.0.0
+  resolution: "@sveltejs/adapter-auto@npm:7.0.0"
   peerDependencies:
-    "@sveltejs/kit": ^1.0.0
-  checksum: 10c0/cf3bf339732c2567a1cb183914ad5c7cce19c91b3d74fee3da70b24d63eb73eb858c25f9fffe150c2ea607f28d5097c6995e298e87d7b4b9482067dc7233713f
+    "@sveltejs/kit": ^2.0.0
+  checksum: 10c0/928393d4e366a0094bec5e09c70e44c3c7b5f17687f1735f71eb305e1ae640c64cd9f7d8f80d8b31dcaa235ae2b07e0f021a9204b5cec895d5bd8035064c9195
   languageName: node
   linkType: hard
 
@@ -22951,7 +22949,7 @@ __metadata:
   resolution: "svelte-query-basic@workspace:samples/svelte-query/basic"
   dependencies:
     "@faker-js/faker": "npm:^10.2.0"
-    "@sveltejs/adapter-auto": "npm:^2.1.1"
+    "@sveltejs/adapter-auto": "npm:^7.0.0"
     "@sveltejs/kit": "npm:^1.30.4"
     "@tanstack/svelte-query": "npm:^4.41.0"
     "@typescript-eslint/eslint-plugin": "npm:^8.52.0"
