@@ -3565,6 +3565,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@hono/node-server@npm:^1.19.9":
+  version: 1.19.9
+  resolution: "@hono/node-server@npm:1.19.9"
+  peerDependencies:
+    hono: ^4
+  checksum: 10c0/de18c06b6b266dc45fe55fb82053bd1da8fe84939c49b6fbab4d2448b679d54ab5affbf8b15de9bead26f29b1755284d770aafb5ad14a8e4b3cfb4f79334554e
+  languageName: node
+  linkType: hard
+
 "@hono/zod-validator@npm:^0.7.3":
   version: 0.7.3
   resolution: "@hono/zod-validator@npm:0.7.3"
@@ -4803,6 +4812,38 @@ __metadata:
     zod:
       optional: false
   checksum: 10c0/ffc024398e1b7841fb1ff2dc540e2e84f4b97a2a4058ef48e58836ce6077321c536a3858e9155472b7933c4773975b375167815bd4d721c3ca1e92db62e9488c
+  languageName: node
+  linkType: hard
+
+"@modelcontextprotocol/sdk@npm:1.25.3":
+  version: 1.25.3
+  resolution: "@modelcontextprotocol/sdk@npm:1.25.3"
+  dependencies:
+    "@hono/node-server": "npm:^1.19.9"
+    ajv: "npm:^8.17.1"
+    ajv-formats: "npm:^3.0.1"
+    content-type: "npm:^1.0.5"
+    cors: "npm:^2.8.5"
+    cross-spawn: "npm:^7.0.5"
+    eventsource: "npm:^3.0.2"
+    eventsource-parser: "npm:^3.0.0"
+    express: "npm:^5.0.1"
+    express-rate-limit: "npm:^7.5.0"
+    jose: "npm:^6.1.1"
+    json-schema-typed: "npm:^8.0.2"
+    pkce-challenge: "npm:^5.0.0"
+    raw-body: "npm:^3.0.0"
+    zod: "npm:^3.25 || ^4.0"
+    zod-to-json-schema: "npm:^3.25.0"
+  peerDependencies:
+    "@cfworker/json-schema": ^4.1.1
+    zod: ^3.25 || ^4.0
+  peerDependenciesMeta:
+    "@cfworker/json-schema":
+      optional: true
+    zod:
+      optional: false
+  checksum: 10c0/0d2943450cab4c352376e5c0d888afe6129fcbf13d7b3b0c86c02094143e30b5f3f9380a27ecaa8f7007364793f9907494d8675bb0671727cf67eefa4e63c2df
   languageName: node
   linkType: hard
 
@@ -17136,7 +17177,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "mcp-petstore@workspace:samples/mcp/petstore"
   dependencies:
-    "@modelcontextprotocol/sdk": "npm:1.25.2"
+    "@modelcontextprotocol/sdk": "npm:1.25.3"
     "@types/node": "npm:^22.18.12"
     orval: "workspace:*"
     ts-node: "npm:^10.9.2"
@@ -18528,7 +18569,7 @@ __metadata:
     "@angular/core": "catalog:angular"
     "@faker-js/faker": "npm:^10.2.0"
     "@hono/zod-validator": "npm:^0.7.4"
-    "@modelcontextprotocol/sdk": "npm:1.25.2"
+    "@modelcontextprotocol/sdk": "npm:1.25.3"
     "@tanstack/react-query": "npm:~5.62.16"
     "@tanstack/svelte-query": "npm:^4.41.0"
     "@tanstack/vue-query": "npm:^5.92.7"
