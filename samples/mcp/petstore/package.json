@@ -9,7 +9,7 @@
     "generate-api": "orval"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.25.2",
+    "@modelcontextprotocol/sdk": "1.25.3",
     "zod": "^3.25.76"
   },
   "devDependencies": {
