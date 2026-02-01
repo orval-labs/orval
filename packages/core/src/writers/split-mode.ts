@@ -6,6 +6,7 @@ import {
   conventionName,
   getFileInfo,
   isFunction,
+  isString,
   isSyntheticDefaultImportsAllow,
   upath,
 } from '../utils';
@@ -50,7 +51,7 @@ export async function writeSplitMode({
       ? upath.relativeSafe(
           dirname,
           getFileInfo(
-            typeof output.schemas === 'string'
+            isString(output.schemas)
               ? output.schemas
               : output.schemas.path,
             { extension: output.fileExtension },

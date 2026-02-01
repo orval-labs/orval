@@ -27,15 +27,11 @@ export function isObject(x: any): x is Record<string, unknown> {
 }
 
 export function isStringLike(val: any): val is string {
-  if (typeof val === 'string') {
+  if (isString(val)) {
     return true;
   }
 
-  if (typeof val === 'object' && val !== null) {
-    return Object.prototype.toString.call(val) === '[object String]';
-  }
-
-  return false;
+  return Object.prototype.toString.call(val) === '[object String]';
 }
 
 export function isModule(x: any): x is Record<string, unknown> {

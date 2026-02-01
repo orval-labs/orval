@@ -3,6 +3,9 @@ import {
   EnumGeneration,
   escape,
   type GeneratorImport,
+  isBoolean,
+  isNumber,
+  isString,
   mergeDeep,
   type MockOptions,
   type OpenApiSchemaObject,
@@ -328,7 +331,14 @@ function getItemType(item: MockSchemaObject) {
   if (item.type) return item.type;
   if (!item.enum) return;
 
-  const uniqTypes = new Set(item.enum.map((value) => typeof value));
+  const uniqTypes = new Set(
+    item.enum.map((value) => {
+      if (isString(value)) return 'string';
+      if (isNumber(value)) return 'number';
+      if (isBoolean(value)) return 'boolean';
+      return 'other';
+    }),
+  );
   if (uniqTypes.size > 1) return;
 
   const type = [...uniqTypes.values()].at(0);
@@ -347,7 +357,7 @@ function getEnum(
   const joinedEnumValues = item.enum
     .filter((e) => e !== null) // TODO fix type, e can absolutely be null
     .map((e) =>
-      type === 'string' || (type === undefined && typeof e === 'string')
+      type === 'string' || (type === undefined && isString(e))
         ? `'${escape(e)}'`
         : e,
     )

@@ -6,6 +6,7 @@ import {
   conventionName,
   getFileInfo,
   isFunction,
+  isString,
   isSyntheticDefaultImportsAllow,
   kebab,
   upath,
@@ -54,7 +55,7 @@ export async function writeTagsMode({
           ? upath.relativeSafe(
               dirname,
               getFileInfo(
-                typeof output.schemas === 'string'
+                isString(output.schemas)
                   ? output.schemas
                   : output.schemas.path,
                 { extension: output.fileExtension },

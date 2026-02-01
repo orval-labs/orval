@@ -4,6 +4,7 @@ import {
   fixRegularSchemaImports,
   getFileInfo,
   getMockFileExtensionByTypeName,
+  isObject,
   isString,
   jsDoc,
   log,
@@ -295,7 +296,7 @@ export async function writeSpecs(
 
     if (output.schemas) {
       const schemasPath =
-        typeof output.schemas === 'string'
+        isString(output.schemas)
           ? output.schemas
           : output.schemas.path;
       imports.push(
@@ -354,7 +355,7 @@ export async function writeSpecs(
     ...(output.schemas
       ? [
           getFileInfo(
-            typeof output.schemas === 'string'
+            isString(output.schemas)
               ? output.schemas
               : output.schemas.path,
           ).dirname,
@@ -402,7 +403,7 @@ export async function writeSpecs(
     try {
       let config: Partial<TypeDocOptions> = {};
       let configPath: string | null = null;
-      if (typeof output.docs === 'object') {
+      if (isObject(output.docs)) {
         ({ configPath = null, ...config } = output.docs);
         if (configPath) {
           config.options = configPath;

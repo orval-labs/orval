@@ -8,7 +8,14 @@ import {
   type ScalarValue,
   SchemaType,
 } from '../types';
-import { escape, isBoolean, isReference, jsDoc, pascal } from '../utils';
+import {
+  escape,
+  isBoolean,
+  isReference,
+  isString,
+  jsDoc,
+  pascal,
+} from '../utils';
 import { combineSchemas } from './combine';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getKey } from './keys';
@@ -25,8 +32,8 @@ function getPropertyNamesEnum(item: OpenApiSchemaObject): string[] | undefined {
     'enum' in item.propertyNames &&
     Array.isArray(item.propertyNames.enum)
   ) {
-    return item.propertyNames.enum.filter(
-      (val): val is string => typeof val === 'string',
+    return item.propertyNames.enum.filter((val): val is string =>
+      isString(val),
     );
   }
   return undefined;
@@ -214,7 +221,7 @@ export function getObject({
 
         if (!hasConst) {
           constLiteral = undefined;
-        } else if (typeof constValue === 'string') {
+        } else if (isString(constValue)) {
           constLiteral = `'${escape(constValue)}'`;
         } else {
           constLiteral = JSON.stringify(constValue);

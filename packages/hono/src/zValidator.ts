@@ -2,6 +2,7 @@
 import type { ZodSafeParseResult as ZodSafeParseResult$1 } from 'zod/v4'
 import type { Context, Env, Input, MiddlewareHandler, TypedResponse, ValidationTargets } from 'hono'
 import { zValidator as zValidatorBase } from '@hono/zod-validator'
+import { isFunction } from '@orval/core'
 import * as v3 from 'zod/v3'
 import * as v4 from 'zod/v4/core'
 
@@ -120,12 +121,15 @@ export const zValidator =
           error: error as ZodError<T>
         }, c)
 
-        if (typeof hookResult === 'object' && hookResult != null) {
-          if (hookResult instanceof Response) {
-            c.res = new Response(hookResult.body, hookResult)
-          } else if ('response' in hookResult && hookResult.response instanceof Response) {
-            c.res = new Response(hookResult.response.body, hookResult.response)
-          }
+        if (hookResult instanceof Response) {
+          c.res = new Response(hookResult.body, hookResult)
+        } else if (
+          hookResult === Object(hookResult) &&
+          !isFunction(hookResult) &&
+          'response' in hookResult &&
+          hookResult.response instanceof Response
+        ) {
+          c.res = new Response(hookResult.response.body, hookResult.response)
         }
       }
 

@@ -5,6 +5,7 @@ import {
   type GeneratorOptions,
   type GeneratorVerbOptions,
   GetterPropType,
+  isString,
   type InvalidateTarget,
   OutputClient,
   type OutputClientFunc,
@@ -31,7 +32,7 @@ type NormalizedTarget = {
 };
 
 const normalizeTarget = (target: InvalidateTarget): NormalizedTarget =>
-  typeof target === 'string' ? { query: target } : target;
+  isString(target) ? { query: target } : target;
 
 const serializeTarget = (target: NormalizedTarget): string =>
   JSON.stringify({ query: target.query, params: target.params ?? [] });
