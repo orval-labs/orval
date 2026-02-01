@@ -2341,10 +2341,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@cloudflare/workers-types@npm:^4.20260116.0":
-  version: 4.20260116.0
-  resolution: "@cloudflare/workers-types@npm:4.20260116.0"
-  checksum: 10c0/36ea827e30aee7536de99bdcca790d88181fc1d6d901594b38cab80b9bf01b23add18d1bd3ef425772df8e6e6ce6dd0a3d9f821b6f5ad4d5cbc451908c5c24f4
+"@cloudflare/workers-types@npm:^4.20260131.0":
+  version: 4.20260131.0
+  resolution: "@cloudflare/workers-types@npm:4.20260131.0"
+  checksum: 10c0/6ace0ed2c5552dd04b9ef45fec83dd8d3ead16340daae5aa1ead8e6e613753823dd6e5b09d1e387316353f399ac87fd17a59562931108adfc24da4f2b1f296df
   languageName: node
   linkType: hard
 
@@ -3548,7 +3548,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@hono/composite-routes-with-tags-split@workspace:samples/hono/composite-routes-with-tags-split"
   dependencies:
-    "@cloudflare/workers-types": "npm:^4.20260116.0"
+    "@cloudflare/workers-types": "npm:^4.20260131.0"
     "@hono/zod-validator": "npm:^0.7.3"
     hono: "npm:^4.11.7"
     orval: "workspace:*"
@@ -14413,7 +14413,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "hono-app@workspace:samples/hono/hono-with-fetch-client/hono-app"
   dependencies:
-    "@cloudflare/workers-types": "npm:^4.20260116.0"
+    "@cloudflare/workers-types": "npm:^4.20260131.0"
     "@hono/zod-validator": "npm:^0.7.3"
     hono: "npm:^4.11.7"
     wrangler: "npm:^4.59.2"
@@ -14432,7 +14432,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "hono-with-zod@workspace:samples/hono/hono-with-zod"
   dependencies:
-    "@cloudflare/workers-types": "npm:^4.20260116.0"
+    "@cloudflare/workers-types": "npm:^4.20260131.0"
     "@hono/zod-validator": "npm:^0.7.3"
     hono: "npm:^4.11.7"
     orval: "workspace:*"
