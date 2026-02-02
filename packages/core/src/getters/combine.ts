@@ -1,4 +1,4 @@
-import { unique } from 'remeda';
+import { isNullish, unique } from 'remeda';
 
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import {
@@ -6,6 +6,7 @@ import {
   EnumGeneration,
   type GeneratorImport,
   type GeneratorSchema,
+  type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   type ScalarValue,
   SchemaType,
@@ -35,12 +36,77 @@ type CombinedData = {
 };
 
 type Separator = 'allOf' | 'anyOf' | 'oneOf';
+const mergeableAllOfKeys = new Set(['type', 'properties', 'required']);
+
+function isMergeableAllOfObject(schema: OpenApiSchemaObject): boolean {
+  // Must have properties to be worth merging
+  if (isNullish(schema.properties)) {
+    return false;
+  }
+
+  // Cannot merge if it contains nested composition
+  if (schema.allOf || schema.anyOf || schema.oneOf) {
+    return false;
+  }
+
+  // Only object types can be merged
+  if (!isNullish(schema.type) && schema.type !== 'object') {
+    return false;
+  }
+
+  // Only merge schemas with safe keys (type, properties, required)
+  return Object.keys(schema).every((key) => mergeableAllOfKeys.has(key));
+}
+
+function normalizeAllOfSchema(
+  schema: OpenApiSchemaObject,
+): OpenApiSchemaObject {
+  if (!schema.allOf) {
+    return schema;
+  }
+
+  let didMerge = false;
+  const mergedProperties = { ...schema.properties };
+  const mergedRequired = new Set(schema.required);
+  const remainingAllOf: (OpenApiSchemaObject | OpenApiReferenceObject)[] = [];
+
+  for (const subSchema of schema.allOf) {
+    if (isSchema(subSchema) && isMergeableAllOfObject(subSchema)) {
+      didMerge = true;
+      if (subSchema.properties) {
+        Object.assign(mergedProperties, subSchema.properties);
+      }
+      if (subSchema.required) {
+        for (const prop of subSchema.required) {
+          mergedRequired.add(prop);
+        }
+      }
+      continue;
+    }
+
+    remainingAllOf.push(subSchema);
+  }
+
+  if (!didMerge || remainingAllOf.length === 0) {
+    return schema;
+  }
+
+  return {
+    ...schema,
+    ...(Object.keys(mergedProperties).length > 0 && {
+      properties: mergedProperties,
+    }),
+    ...(mergedRequired.size > 0 && { required: [...mergedRequired] }),
+    ...(remainingAllOf.length > 0 && { allOf: remainingAllOf }),
+  };
+}
 
 interface CombineValuesOptions {
   resolvedData: CombinedData;
   resolvedValue?: ScalarValue;
   separator: Separator;
   context: ContextSpec;
+  parentSchema?: OpenApiSchemaObject;
 }
 
 function combineValues({
@@ -48,6 +114,7 @@ function combineValues({
   resolvedValue,
   separator,
   context,
+  parentSchema,
 }: CombineValuesOptions) {
   const isAllEnums = resolvedData.isEnum.every(Boolean);
 
@@ -89,6 +156,10 @@ function combineValues({
         !resolvedData.originalSchema.some(
           (schema) =>
             schema?.properties?.[prop] && schema.required?.includes(prop),
+        ) &&
+        !(
+          parentSchema?.properties?.[prop] &&
+          parentSchema.required?.includes(prop)
         ),
     );
     if (overrideRequiredProperties.length > 0) {
@@ -147,9 +218,21 @@ export function combineSchemas({
   nullable: string;
   formDataContext?: FormDataContext;
 }): ScalarValue {
-  const items = schema[separator] ?? [];
+  // Normalize allOf schemas by merging inline objects into parent (fixes #2458)
+  // Only applies when: using allOf, not in v7 compat mode, no sibling oneOf/anyOf
+  const canMergeInlineAllOf =
+    separator === 'allOf' &&
+    !context.output.override.aliasCombinedTypes &&
+    !schema.oneOf &&
+    !schema.anyOf;
 
-  const resolvedData: CombinedData[] = items.reduce<CombinedData>(
+  const normalizedSchema = canMergeInlineAllOf
+    ? normalizeAllOfSchema(schema)
+    : schema;
+
+  const items = normalizedSchema[separator] ?? [];
+
+  const resolvedData: CombinedData = items.reduce<CombinedData>(
     (acc, subSchema) => {
       // aliasCombinedTypes (v7 compat): create intermediate types like ResponseAnyOf
       // v8 default: propName stays undefined so combined types are inlined directly
@@ -283,13 +366,14 @@ export function combineSchemas({
 
   let resolvedValue: ScalarValue | undefined;
 
-  if (schema.properties) {
+  if (normalizedSchema.properties) {
     resolvedValue = getScalar({
       item: Object.fromEntries(
-        Object.entries(schema).filter(([key]) => key !== separator),
+        Object.entries(normalizedSchema).filter(([key]) => key !== separator),
       ),
       name,
       context,
+      formDataContext,
     });
   } else if (separator === 'allOf' && (schema.oneOf || schema.anyOf)) {
     // Handle sibling pattern: allOf + oneOf/anyOf at same level
@@ -309,6 +393,7 @@ export function combineSchemas({
     separator,
     resolvedValue,
     context,
+    parentSchema: normalizedSchema,
   });
 
   return {
@@ -326,9 +411,7 @@ export function combineSchemas({
     type: 'object' as SchemaType,
     isRef: false,
     hasReadonlyProps:
-      resolvedData?.hasReadonlyProps ||
-      resolvedValue?.hasReadonlyProps ||
-      false,
+      resolvedData.hasReadonlyProps || resolvedValue?.hasReadonlyProps || false,
     example: schema.example,
     examples: resolveExampleRefs(schema.examples, context),
   };
