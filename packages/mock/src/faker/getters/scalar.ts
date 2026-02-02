@@ -3,8 +3,6 @@ import {
   EnumGeneration,
   escape,
   type GeneratorImport,
-  isBoolean,
-  isNumber,
   isString,
   mergeDeep,
   type MockOptions,
@@ -331,14 +329,7 @@ function getItemType(item: MockSchemaObject) {
   if (item.type) return item.type;
   if (!item.enum) return;
 
-  const uniqTypes = new Set(
-    item.enum.map((value) => {
-      if (isString(value)) return 'string';
-      if (isNumber(value)) return 'number';
-      if (isBoolean(value)) return 'boolean';
-      return 'other';
-    }),
-  );
+  const uniqTypes = new Set(item.enum.map((value) => typeof value));
   if (uniqTypes.size > 1) return;
 
   const type = [...uniqTypes.values()].at(0);
