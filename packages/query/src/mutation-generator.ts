@@ -247,9 +247,9 @@ ${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
   };`
       : isReact(outputClient)
-        ? `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext) => {
+        ? `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
 ${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
-    mutationOptions?.onSuccess?.(data, variables, context);
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
   };`
         : isSvelte(outputClient)
           ? hasSvelteQueryV6
@@ -286,7 +286,7 @@ ${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
     mutationOptionsMutator
       ? 'customOptions'
       : hasInvalidation
-        ? '{ mutationFn, onSuccess, ...mutationOptions }'
+        ? '{ mutationFn, ...mutationOptions, onSuccess }'
         : '{ mutationFn, ...mutationOptions }'
   }}`;
 
