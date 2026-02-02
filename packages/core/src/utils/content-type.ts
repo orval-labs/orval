@@ -78,3 +78,50 @@ export function getFormDataFieldFileType(
 
   return undefined;
 }
+
+/**
+ * Filter configuration for content types
+ */
+export interface ContentTypeFilter {
+  include?: string[];
+  exclude?: string[];
+}
+
+/**
+ * Filters items by content type based on include/exclude rules
+ *
+ * @param items - Array of items with contentType property
+ * @param filter - Optional filter configuration
+ * @returns Filtered array
+ *
+ * @example
+ * ```ts
+ * const types = [
+ *   { contentType: 'application/json', value: '...' },
+ *   { contentType: 'text/xml', value: '...' }
+ * ];
+ *
+ * // Include only JSON
+ * filterByContentType(types, { include: ['application/json'] });
+ *
+ * // Exclude XML
+ * filterByContentType(types, { exclude: ['text/xml'] });
+ * ```
+ */
+export function filterByContentType<T extends { contentType: string }>(
+  items: T[],
+  filter?: ContentTypeFilter,
+): T[] {
+  if (!filter) {
+    return items;
+  }
+
+  return items.filter((item) => {
+    const shouldInclude =
+      !filter.include || filter.include.includes(item.contentType);
+
+    const shouldExclude = filter.exclude?.includes(item.contentType) ?? false;
+
+    return shouldInclude && !shouldExclude;
+  });
+}

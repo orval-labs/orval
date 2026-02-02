@@ -1,7 +1,4 @@
-import { isFunction } from './assertion';
-
-const isObject = (obj: unknown): obj is Record<string, unknown> =>
-  obj === Object(obj) && !isFunction(obj);
+import { isObject } from './assertion';
 
 export function mergeDeep<
   T extends Record<string, any>,
