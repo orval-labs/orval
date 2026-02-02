@@ -7,7 +7,7 @@ import type {
   OpenApiRequestBodyObject,
   OverrideOutputContentType,
 } from '../types';
-import { camel, isReference, sanitize } from '../utils';
+import { camel, filterByContentType, isReference, sanitize } from '../utils';
 import { getResReqTypes } from './res-req-types';
 
 interface GetBodyOptions {
@@ -29,22 +29,7 @@ export function getBody({
     context,
   );
 
-  const filteredBodyTypes = contentType
-    ? allBodyTypes.filter((type) => {
-        let include = true;
-        let exclude = false;
-
-        if (contentType.include) {
-          include = contentType.include.includes(type.contentType);
-        }
-
-        if (contentType.exclude) {
-          exclude = contentType.exclude.includes(type.contentType);
-        }
-
-        return include && !exclude;
-      })
-    : allBodyTypes;
+  const filteredBodyTypes = filterByContentType(allBodyTypes, contentType);
 
   const imports = filteredBodyTypes.flatMap(({ imports }) => imports);
   const schemas = filteredBodyTypes.flatMap(({ schemas }) => schemas);

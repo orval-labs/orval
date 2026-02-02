@@ -1,4 +1,4 @@
-const isObject = (obj: unknown) => obj && typeof obj === 'object';
+import { isObject } from './assertion';
 
 export function mergeDeep<
   T extends Record<string, any>,

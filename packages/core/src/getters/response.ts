@@ -5,7 +5,7 @@ import type {
   OverrideOutputContentType,
   ResReqTypesValue,
 } from '../types';
-import { dedupeUnionType } from '../utils';
+import { dedupeUnionType, filterByContentType } from '../utils';
 import { getResReqTypes } from './res-req-types';
 
 interface GetResponseOptions {
@@ -43,22 +43,7 @@ export function getResponse({
     (type) => `${type.key}-${type.value}`,
   );
 
-  const filteredTypes = contentType
-    ? types.filter((type) => {
-        let include = true;
-        let exclude = false;
-
-        if (contentType.include) {
-          include = contentType.include.includes(type.contentType);
-        }
-
-        if (contentType.exclude) {
-          exclude = contentType.exclude.includes(type.contentType);
-        }
-
-        return include && !exclude;
-      })
-    : types;
+  const filteredTypes = filterByContentType(types, contentType);
 
   const imports = filteredTypes.flatMap(({ imports }) => imports);
   const schemas = filteredTypes.flatMap(({ schemas }) => schemas);
