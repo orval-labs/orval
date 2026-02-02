@@ -13,7 +13,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260116.0",
+    "@cloudflare/workers-types": "^4.20260131.0",
     "orval": "workspace:*",
     "wrangler": "^4.59.2"
   }
