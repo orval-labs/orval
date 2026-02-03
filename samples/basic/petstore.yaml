@@ -109,7 +109,8 @@ paths:
           required: true
           description: The id of the pet to retrieve
           schema:
-            type: string
+            type: integer
+            format: int64
             x-brand: PetId
         - name: testId
           in: path
