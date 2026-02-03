@@ -114,10 +114,12 @@ export async function writeTagsMode({
         if (schemasPath && needSchema) {
           const schemasInline = generateModelsInline(builder.schemas);
           let schemasData = header;
+
           if (schemasInline.includes('Branded<')) {
             schemasData += getBrandedHelperType();
             schemasData += '\n';
           }
+
           schemasData += schemasInline;
 
           await fs.outputFile(schemasPath, schemasData);

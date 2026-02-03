@@ -16,7 +16,7 @@ import { overrideVarName } from '../getters';
 import { getMockScalar } from '../getters/scalar';
 
 /**
- * Apply branded type assertion to a mock value if the schema has x-brand and is a brandable type
+ * Apply branded type assertion to a mock value if the schema has x-brand and is a brandable type.
  */
 function maybeApplyBrandedMockType(
   scalar: MockDefinition,
@@ -27,12 +27,15 @@ function maybeApplyBrandedMockType(
     return scalar;
   }
 
-  const baseType =
-    schema.type === 'integer' ? 'number' : (schema.type as string);
+  // Add import for the branded type alias
+  const brandedImport: GeneratorImport = {
+    name: brandInfo.brandName,
+  };
 
   return {
     ...scalar,
-    value: `${scalar.value} as Branded<${baseType}, "${brandInfo.brandName}">`,
+    value: `${scalar.value} as ${brandInfo.brandName}`,
+    imports: [...scalar.imports, brandedImport],
   };
 }
 

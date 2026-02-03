@@ -773,6 +773,10 @@ export interface ContextSpec {
   spec: OpenApiDocument;
   parents?: string[];
   output: NormalizedOutputOptions;
+  /** Registry for collecting branded type definitions */
+  brandedTypes?: BrandedTypeRegistry;
+  /** Set of schema names for collision detection */
+  schemaNames?: Set<string>;
 }
 
 export interface GlobalOptions {
@@ -1154,6 +1158,17 @@ export type BrandInfo = {
   baseType: string;
 };
 
+export type BrandedTypeDefinition = {
+  /** The type alias name (e.g., 'PetId') */
+  name: string;
+  /** The base TypeScript type (e.g., 'number', 'string') */
+  baseType: string;
+  /** The brand string (e.g., 'PetId') */
+  brand: string;
+};
+
+export type BrandedTypeRegistry = Map<string, BrandedTypeDefinition>;
+
 export type ScalarValue = {
   value: string;
   useTypeAlias?: boolean;
@@ -1195,6 +1210,8 @@ export type WriteSpecBuilder = {
   info: OpenApiInfoObject;
   target: string;
   spec: OpenApiDocument;
+  /** Registry of branded type definitions (if enabled) */
+  brandedTypes?: BrandedTypeRegistry;
 };
 
 export type WriteModeProps = {

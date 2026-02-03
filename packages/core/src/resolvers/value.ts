@@ -1,7 +1,13 @@
-import { extractBrandInfo, getScalar, isBrandableType } from '../getters';
+import {
+  extractBrandInfo,
+  getScalar,
+  isBrandableType,
+  registerBrandedType,
+} from '../getters';
 import type { FormDataContext } from '../getters/object';
 import type {
   ContextSpec,
+  GeneratorImport,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
   ResolverValue,
@@ -81,9 +87,7 @@ export function resolveValue({
     formDataContext,
   });
 
-  if (context.output.override.generateBrandedTypes) {
-    scalar = maybeApplyBrandedType(scalar, schema);
-  }
+  scalar = maybeApplyBrandedType(scalar, schema, context);
 
   return {
     ...scalar,
@@ -93,12 +97,17 @@ export function resolveValue({
 }
 
 /**
- * Apply branding to a scalar value if the schema has x-brand and is a brandable type
+ * Apply branding to a scalar value if the schema has x-brand and is a brandable type.
  */
 function maybeApplyBrandedType(
   scalar: ScalarValue,
   schema: OpenApiSchemaObject,
+  context: ContextSpec,
 ): ScalarValue {
+  if (context.output.override.generateBrandedTypes) {
+    return scalar;
+  }
+
   const brandInfo = extractBrandInfo(schema);
 
   if (!brandInfo || !isBrandableType(scalar)) {
@@ -110,9 +119,25 @@ function maybeApplyBrandedType(
     ? scalar.value.slice(0, -' | null'.length)
     : scalar.value;
 
+  // Register the branded type in the registry
+  if (context.brandedTypes) {
+    registerBrandedType(
+      context.brandedTypes,
+      brandInfo.brandName,
+      baseValue,
+      context.schemaNames,
+    );
+  }
+
+  // Create import for the branded type alias
+  const brandedImport: GeneratorImport = {
+    name: brandInfo.brandName,
+  };
+
   const brandedScalar: ScalarValue = {
     ...scalar,
-    value: `Branded<${baseValue}, "${brandInfo.brandName}">${nullableSuffix}`,
+    value: `${brandInfo.brandName}${nullableSuffix}`,
+    imports: [...scalar.imports, brandedImport],
   };
 
   return brandedScalar;
