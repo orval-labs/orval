@@ -10,22 +10,19 @@ import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
 import type {
+  Email,
   Pet,
+  PetId,
   PetsArray,
   PetsNestedArray,
 } from './petstoreFromFileSpecWithBrandedTypes.schemas';
-
-type Branded<BaseType, Brand> = BaseType & { readonly __brand: Brand };
 
 export const getListPetsResponseMock = (): PetsArray =>
   Array.from(
     { length: faker.number.int({ min: 1, max: 20 }) },
     (_, i) => i + 1,
   ).map(() => ({
-    id: faker.number.int({ min: undefined, max: undefined }) as Branded<
-      number,
-      'PetId'
-    >,
+    id: faker.number.int({ min: undefined, max: undefined }) as PetId,
     name: faker.string.alpha({ length: { min: 0, max: 40 } }),
     age: faker.helpers.arrayElement([
       faker.number.int({ min: 0, max: 30 }),
@@ -39,14 +36,11 @@ export const getListPetsResponseMock = (): PetsArray =>
       undefined,
     ]),
     parentId: faker.helpers.arrayElement([
-      faker.number.int({ min: undefined, max: undefined }) as Branded<
-        number,
-        'PetId'
-      >,
+      faker.number.int({ min: undefined, max: undefined }) as PetId,
       undefined,
     ]),
     email: faker.helpers.arrayElement([
-      faker.internet.email() as Branded<string, 'Email'>,
+      faker.internet.email() as Email,
       undefined,
     ]),
     callingCode: faker.helpers.arrayElement([
@@ -70,10 +64,7 @@ export const getListPetsNestedArrayResponseMock = (
       { length: faker.number.int({ min: 1, max: 10 }) },
       (_, i) => i + 1,
     ).map(() => ({
-      id: faker.number.int({ min: undefined, max: undefined }) as Branded<
-        number,
-        'PetId'
-      >,
+      id: faker.number.int({ min: undefined, max: undefined }) as PetId,
       name: faker.string.alpha({ length: { min: 0, max: 40 } }),
       age: faker.helpers.arrayElement([
         faker.number.int({ min: 0, max: 30 }),
@@ -87,14 +78,11 @@ export const getListPetsNestedArrayResponseMock = (
         undefined,
       ]),
       parentId: faker.helpers.arrayElement([
-        faker.number.int({ min: undefined, max: undefined }) as Branded<
-          number,
-          'PetId'
-        >,
+        faker.number.int({ min: undefined, max: undefined }) as PetId,
         undefined,
       ]),
       email: faker.helpers.arrayElement([
-        faker.internet.email() as Branded<string, 'Email'>,
+        faker.internet.email() as Email,
         undefined,
       ]),
       callingCode: faker.helpers.arrayElement([
@@ -117,10 +105,7 @@ export const getListPetsNestedArrayResponseMock = (
 export const getShowPetByIdResponseMock = (
   overrideResponse: Partial<Pet> = {},
 ): Pet => ({
-  id: faker.number.int({ min: undefined, max: undefined }) as Branded<
-    number,
-    'PetId'
-  >,
+  id: faker.number.int({ min: undefined, max: undefined }) as PetId,
   name: faker.string.alpha({ length: { min: 0, max: 40 } }),
   age: faker.helpers.arrayElement([
     faker.number.int({ min: 0, max: 30 }),
@@ -134,14 +119,11 @@ export const getShowPetByIdResponseMock = (
     undefined,
   ]),
   parentId: faker.helpers.arrayElement([
-    faker.number.int({ min: undefined, max: undefined }) as Branded<
-      number,
-      'PetId'
-    >,
+    faker.number.int({ min: undefined, max: undefined }) as PetId,
     undefined,
   ]),
   email: faker.helpers.arrayElement([
-    faker.internet.email() as Branded<string, 'Email'>,
+    faker.internet.email() as Email,
     undefined,
   ]),
   callingCode: faker.helpers.arrayElement([

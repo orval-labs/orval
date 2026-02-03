@@ -12,11 +12,10 @@ import type {
   ListPetsNestedArrayParams,
   ListPetsParams,
   Pet,
+  PetId,
   PetsArray,
   PetsNestedArray,
 } from './petstoreFromFileSpecWithBrandedTypes.schemas';
-
-type Branded<BaseType, Brand> = BaseType & { readonly __brand: Brand };
 
 /**
  * @summary List all pets
@@ -58,7 +57,7 @@ export const listPetsNestedArray = (
  * @summary Info for a specific pet
  */
 export const showPetById = (
-  petId: Branded<string, 'PetId'>,
+  petId: PetId,
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Pet>> => {
   return axios.get(`/pets/${petId}`, options);

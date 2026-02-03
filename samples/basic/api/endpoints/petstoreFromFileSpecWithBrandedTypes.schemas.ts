@@ -6,6 +6,12 @@
  */
 type Branded<BaseType, Brand> = BaseType & { readonly __brand: Brand };
 
+export type PetId = Branded<number, 'PetId'>;
+
+export type Email = Branded<string, 'Email'>;
+
+export type ErrorCode = Branded<number, 'ErrorCode'>;
+
 export type PetCallingCode =
   (typeof PetCallingCode)[keyof typeof PetCallingCode];
 
@@ -22,7 +28,7 @@ export const PetCountry = {
 } as const;
 
 export interface Pet {
-  id: Branded<number, 'PetId'>;
+  id: PetId;
   /**
    * Name of pet
    * @minLength 0
@@ -40,8 +46,8 @@ export interface Pet {
    */
   tag?: string | null;
   /** The id of the parent pet */
-  parentId?: Branded<number, 'PetId'>;
-  email?: Branded<string, 'Email'>;
+  parentId?: PetId;
+  email?: Email;
   callingCode?: PetCallingCode;
   country?: PetCountry;
 }
@@ -57,7 +63,7 @@ export interface PetsNestedArray {
 export type PetsArray = Pet[];
 
 export interface Error {
-  code: Branded<number, 'ErrorCode'>;
+  code: ErrorCode;
   message: string;
 }
 

@@ -27,7 +27,6 @@ function maybeApplyBrandedMockType(
     return scalar;
   }
 
-  // Add import for the branded type alias
   const brandedImport: GeneratorImport = {
     name: brandInfo.brandName,
   };

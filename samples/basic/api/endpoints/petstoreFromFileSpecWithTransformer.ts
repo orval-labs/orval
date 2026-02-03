@@ -61,7 +61,7 @@ export const listPetsNestedArray = (
  * @summary Info for a specific pet
  */
 export const showPetById = (
-  petId: string,
+  petId: number,
   version: number = 1,
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Pet>> => {

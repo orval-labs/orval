@@ -119,7 +119,6 @@ function maybeApplyBrandedType(
     ? scalar.value.slice(0, -' | null'.length)
     : scalar.value;
 
-  // Register the branded type in the registry
   if (context.brandedTypes) {
     registerBrandedType(
       context.brandedTypes,
@@ -129,7 +128,6 @@ function maybeApplyBrandedType(
     );
   }
 
-  // Create import for the branded type alias
   const brandedImport: GeneratorImport = {
     name: brandInfo.brandName,
   };
