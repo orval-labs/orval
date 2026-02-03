@@ -490,8 +490,8 @@ export type OverrideOutput = {
    */
   useNullForOptional?: boolean;
   /**
-   * When enabled, generates branded types for properties with `x-*` format values.
-   * For example, `format: x-user-id` generates `type UserId = string & { readonly __brand: 'UserId' }`
+   * When enabled, generates branded types for properties with an `x-brand` extension.
+   * For example, `x-brand: UserId` generates `type UserId = string & { readonly __brand: 'UserId' }`
    * @default false
    */
   generateBrandedTypes?: boolean;
