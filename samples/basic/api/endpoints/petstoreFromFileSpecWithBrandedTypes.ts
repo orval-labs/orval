@@ -7,79 +7,16 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-export type PetCallingCode =
-  (typeof PetCallingCode)[keyof typeof PetCallingCode];
+import type {
+  CreatePetsBody,
+  ListPetsNestedArrayParams,
+  ListPetsParams,
+  Pet,
+  PetsArray,
+  PetsNestedArray,
+} from './petstoreFromFileSpecWithBrandedTypes.schemas';
 
-export const PetCallingCode = {
-  '+33': '+33',
-  '+420': '+420',
-} as const;
-
-export type PetCountry = (typeof PetCountry)[keyof typeof PetCountry];
-
-export const PetCountry = {
-  "People's_Republic_of_China": "People's Republic of China",
-  Uruguay: 'Uruguay',
-} as const;
-
-export interface Pet {
-  id: number;
-  /**
-   * Name of pet
-   * @minLength 0
-   * @maxLength 40
-   */
-  name: string;
-  /**
-   * @exclusiveMinimum 0
-   * @exclusiveMaximum 30
-   */
-  age?: number;
-  /**
-   * @nullable
-   * @pattern ^\\d{3}-\\d{2}-\\d{4}$
-   */
-  tag?: string | null;
-  /** The id of the parent pet */
-  parentId?: number;
-  email?: string;
-  callingCode?: PetCallingCode;
-  country?: PetCountry;
-}
-
-export interface PetsNestedArray {
-  data?: Pet[];
-}
-
-/**
- * @minItems 1
- * @maxItems 20
- */
-export type PetsArray = Pet[];
-
-export interface Error {
-  code: number;
-  message: string;
-}
-
-export type ListPetsParams = {
-  /**
-   * How many items to return at one time (max 100)
-   */
-  limit?: string;
-};
-
-export type CreatePetsBody = {
-  name: string;
-  tag: string;
-};
-
-export type ListPetsNestedArrayParams = {
-  /**
-   * How many items to return at one time (max 100)
-   */
-  limit?: string;
-};
+type Branded<BaseType, Brand> = BaseType & { readonly __brand: Brand };
 
 /**
  * @summary List all pets
@@ -121,7 +58,7 @@ export const listPetsNestedArray = (
  * @summary Info for a specific pet
  */
 export const showPetById = (
-  petId: string,
+  petId: Branded<string, 'PetId'>,
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Pet>> => {
   return axios.get(`/pets/${petId}`, options);

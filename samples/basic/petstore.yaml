@@ -110,6 +110,7 @@ paths:
           description: The id of the pet to retrieve
           schema:
             type: string
+            x-brand: PetId
         - name: testId
           in: path
           required: true
@@ -140,6 +141,7 @@ components:
         id:
           type: integer
           format: int64
+          x-brand: PetId
         name:
           type: string
           description: 'Name of pet'
@@ -156,9 +158,15 @@ components:
           type: string
           pattern: '^\\d{3}-\\d{2}-\\d{4}$'
           nullable: true
+        parentId:
+          type: integer
+          format: int64
+          x-brand: PetId
+          description: The id of the parent pet
         email:
           type: string
           format: email
+          x-brand: Email
         callingCode:
           type: string
           enum: ['+33', '+420', '+33'] # intentional duplicated value
@@ -189,5 +197,6 @@ components:
         code:
           type: integer
           format: int32
+          x-brand: ErrorCode
         message:
           type: string

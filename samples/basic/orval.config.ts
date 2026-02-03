@@ -7,6 +7,17 @@ export default defineConfig({
     input: './petstore.yaml',
     output: './api/endpoints/petstoreFromFileSpecWithConfig.ts',
   },
+  'petstore-file-branded': {
+    input: './petstore.yaml',
+    output: {
+      target: './api/endpoints/petstoreFromFileSpecWithBrandedTypes.ts',
+      mock: true,
+      mode: 'split',
+      override: {
+        generateBrandedTypes: true,
+      },
+    },
+  },
   'petstore-file-transfomer': {
     output: {
       target: './api/endpoints/petstoreFromFileSpecWithTransformer.ts',
