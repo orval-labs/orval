@@ -113,6 +113,12 @@ export type NormalizedOverrideOutput = {
    * @default false
    */
   useNullForOptional?: boolean;
+  /**
+   * When enabled, generates branded types for properties with `x-*` format values.
+   * For example, `format: x-user-id` generates `type UserId = string & { readonly __brand: 'UserId' }`
+   * @default false
+   */
+  generateBrandedTypes?: boolean;
 };
 
 export type NormalizedMutator = {
@@ -483,6 +489,12 @@ export type OverrideOutput = {
    * @default false
    */
   useNullForOptional?: boolean;
+  /**
+   * When enabled, generates branded types for properties with `x-*` format values.
+   * For example, `format: x-user-id` generates `type UserId = string & { readonly __brand: 'UserId' }`
+   * @default false
+   */
+  generateBrandedTypes?: boolean;
 };
 
 export type JsDocOptions = {
