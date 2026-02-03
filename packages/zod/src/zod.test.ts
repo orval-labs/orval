@@ -141,6 +141,14 @@ const additionalPropertiesSchema: OpenApiSchemaObject = {
   },
 };
 
+const additionalPropertiesMaxLengthSchema: OpenApiSchemaObject = {
+  type: 'object',
+  additionalProperties: {
+    type: 'string',
+    maxLength: 253,
+  },
+};
+
 describe('generateZodValidationSchemaDefinition`', () => {
   it('required', () => {
     const result = generateZodValidationSchemaDefinition(
@@ -308,6 +316,43 @@ describe('generateZodValidationSchemaDefinition`', () => {
       ],
       consts: [],
     });
+  });
+
+  it('additionalProperties with maxLength', () => {
+    const result = generateZodValidationSchemaDefinition(
+      additionalPropertiesMaxLengthSchema,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'additionalPropertiesMaxLength',
+      true,
+      false,
+      {
+        required: true,
+      },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('zod.record(zod.string(), zod.string().max(');
+    expect(parsed.consts).toContain('= 253;');
+    expect(parsed.consts).not.toContain(';,');
   });
 
   it('handles allOf with base type string', () => {
