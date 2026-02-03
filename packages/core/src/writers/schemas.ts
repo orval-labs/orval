@@ -8,6 +8,7 @@ import {
   NamingConvention,
 } from '../types';
 import { conventionName, upath } from '../utils';
+import { getBrandedHelperType } from './types';
 
 type CanonicalInfo = Pick<GeneratorImport, 'importPath' | 'name'>;
 
@@ -252,6 +253,12 @@ function getSchema({
   namingConvention = NamingConvention.CAMEL_CASE,
 }: GetSchemaOptions): string {
   let file = header;
+
+  if (model.includes('Branded<')) {
+    file += getBrandedHelperType();
+    file += '\n';
+  }
+
   file += generateImports({
     imports: imports.filter(
       (imp) =>

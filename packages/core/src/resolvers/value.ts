@@ -1,10 +1,16 @@
-import { getScalar } from '../getters';
+import {
+  applyBrandedType,
+  extractBrandInfo,
+  getScalar,
+  isBrandableType,
+} from '../getters';
 import type { FormDataContext } from '../getters/object';
 import type {
   ContextSpec,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
   ResolverValue,
+  ScalarValue,
   SchemaType,
 } from '../types';
 import { isReference } from '../utils';
@@ -73,16 +79,36 @@ export function resolveValue({
     };
   }
 
-  const scalar = getScalar({
+  let scalar = getScalar({
     item: schema,
     name,
     context,
     formDataContext,
   });
 
+  if (context.output.override.generateBrandedTypes) {
+    scalar = maybeApplyBrandedType(scalar, schema);
+  }
+
   return {
     ...scalar,
     originalSchema: schema,
     isRef: false,
   };
+}
+
+/**
+ * Apply branding to a scalar value if the schema has x-brand and is a brandable type
+ */
+function maybeApplyBrandedType(
+  scalar: ScalarValue,
+  schema: OpenApiSchemaObject,
+): ScalarValue {
+  const brandInfo = extractBrandInfo(schema);
+
+  if (!brandInfo || !isBrandableType(scalar)) {
+    return scalar;
+  }
+
+  return applyBrandedType(scalar, brandInfo);
 }

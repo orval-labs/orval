@@ -36,6 +36,6 @@ interface TypedResponse<T> extends Response {
 `;
 }
 
-export function getBrandedType() {
+export function getBrandedHelperType() {
   return `type Branded<BaseType, Brand> = BaseType & { readonly __brand: Brand };\n`;
 }

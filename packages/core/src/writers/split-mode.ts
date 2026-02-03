@@ -12,7 +12,11 @@ import {
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTarget } from './target';
-import { getOrvalGeneratedTypes, getTypedResponse } from './types';
+import {
+  getBrandedHelperType,
+  getOrvalGeneratedTypes,
+  getTypedResponse,
+} from './types';
 
 export async function writeSplitMode({
   builder,
@@ -104,7 +108,13 @@ export async function writeSplitMode({
       : upath.join(dirname, filename + '.schemas' + extension);
 
     if (schemasPath && needSchema) {
-      const schemasData = header + generateModelsInline(builder.schemas);
+      const schemasInline = generateModelsInline(builder.schemas);
+      let schemasData = header;
+      if (schemasInline.includes('Branded<')) {
+        schemasData += getBrandedHelperType();
+        schemasData += '\n';
+      }
+      schemasData += schemasInline;
 
       await fs.outputFile(
         upath.join(dirname, filename + '.schemas' + extension),
@@ -157,7 +167,18 @@ export async function writeSplitMode({
       implementationData += '\n';
     }
 
+    if (implementation.includes('Branded<')) {
+      implementationData += getBrandedHelperType();
+      implementationData += '\n';
+    }
+
     implementationData += `\n${implementation}`;
+
+    if (implementationMock.includes('Branded<')) {
+      mockData += getBrandedHelperType();
+      mockData += '\n';
+    }
+
     mockData += `\n${implementationMock}`;
 
     const implementationFilename =

@@ -12,7 +12,11 @@ import {
 } from '../utils';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTargetForTags } from './target-tags';
-import { getOrvalGeneratedTypes, getTypedResponse } from './types';
+import {
+  getBrandedHelperType,
+  getOrvalGeneratedTypes,
+  getTypedResponse,
+} from './types';
 
 export async function writeTagsMode({
   builder,
@@ -108,7 +112,13 @@ export async function writeTagsMode({
           : upath.join(dirname, filename + '.schemas' + extension);
 
         if (schemasPath && needSchema) {
-          const schemasData = header + generateModelsInline(builder.schemas);
+          const schemasInline = generateModelsInline(builder.schemas);
+          let schemasData = header;
+          if (schemasInline.includes('Branded<')) {
+            schemasData += getBrandedHelperType();
+            schemasData += '\n';
+          }
+          schemasData += schemasInline;
 
           await fs.outputFile(schemasPath, schemasData);
         }
@@ -148,6 +158,14 @@ export async function writeTagsMode({
 
         if (implementation.includes('TypedResponse<')) {
           data += getTypedResponse();
+          data += '\n';
+        }
+
+        if (
+          implementation.includes('Branded<') ||
+          implementationMock.includes('Branded<')
+        ) {
+          data += getBrandedHelperType();
           data += '\n';
         }
 

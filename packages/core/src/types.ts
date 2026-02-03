@@ -1149,6 +1149,11 @@ export const SchemaType = {
   unknown: 'unknown',
 };
 
+export type BrandInfo = {
+  brandName: string;
+  baseType: string;
+};
+
 export type ScalarValue = {
   value: string;
   useTypeAlias?: boolean;
