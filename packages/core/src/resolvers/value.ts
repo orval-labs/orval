@@ -1,9 +1,4 @@
-import {
-  applyBrandedType,
-  extractBrandInfo,
-  getScalar,
-  isBrandableType,
-} from '../getters';
+import { extractBrandInfo, getScalar, isBrandableType } from '../getters';
 import type { FormDataContext } from '../getters/object';
 import type {
   ContextSpec,
@@ -110,5 +105,15 @@ function maybeApplyBrandedType(
     return scalar;
   }
 
-  return applyBrandedType(scalar, brandInfo);
+  const nullableSuffix = scalar.value.endsWith(' | null') ? ' | null' : '';
+  const baseValue = nullableSuffix
+    ? scalar.value.slice(0, -' | null'.length)
+    : scalar.value;
+
+  const brandedScalar: ScalarValue = {
+    ...scalar,
+    value: `Branded<${baseValue}, "${brandInfo.brandName}">${nullableSuffix}`,
+  };
+
+  return brandedScalar;
 }

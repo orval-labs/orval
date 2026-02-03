@@ -57,23 +57,3 @@ export function isBrandableSchemaType(schema: OpenApiSchemaObject): boolean {
     schemaType as (typeof BRANDABLE_TYPES)[number],
   );
 }
-
-/**
- * Apply branding to a scalar value (for type definitions)
- */
-export function applyBrandedType(
-  scalarValue: ScalarValue,
-  brandInfo: BrandInfo,
-): ScalarValue {
-  const nullableSuffix = scalarValue.value.endsWith(' | null') ? ' | null' : '';
-  const baseValue = nullableSuffix
-    ? scalarValue.value.slice(0, -' | null'.length)
-    : scalarValue.value;
-
-  const brandedScalar: ScalarValue = {
-    ...scalarValue,
-    value: `Branded<${baseValue}, "${brandInfo.brandName}">${nullableSuffix}`,
-  };
-
-  return brandedScalar;
-}

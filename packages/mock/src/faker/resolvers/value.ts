@@ -27,8 +27,8 @@ function maybeApplyBrandedMockType(
     return scalar;
   }
 
-  const schemaType = schema.type;
-  const baseType = schemaType === 'integer' ? 'number' : (schemaType as string);
+  const baseType =
+    schema.type === 'integer' ? 'number' : (schema.type as string);
 
   return {
     ...scalar,
@@ -125,7 +125,7 @@ export function resolveMockValue({
       path: schema.path,
       isRef: true,
       required: [...(schemaRef?.required ?? []), ...(schema.required ?? [])],
-      ...(schema.nullable !== undefined ? { nullable: schema.nullable } : {}),
+      ...(schema.nullable === undefined ? {} : { nullable: schema.nullable }),
     };
 
     const newSeparator = newSchema.allOf
