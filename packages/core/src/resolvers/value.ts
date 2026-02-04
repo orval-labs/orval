@@ -1,7 +1,7 @@
 import {
   extractBrandName,
   getScalar,
-  isBrandableType,
+  isBrandableSchemaType,
   registerBrandedType,
 } from '../getters';
 import type { FormDataContext } from '../getters/object';
@@ -110,7 +110,7 @@ function maybeApplyBrandedType(
 
   const brandName = extractBrandName(schema);
 
-  if (!brandName || !isBrandableType(scalar)) {
+  if (!brandName || !isBrandableSchemaType(schema)) {
     return scalar;
   }
 

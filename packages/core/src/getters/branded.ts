@@ -2,7 +2,6 @@ import type {
   BrandedTypeDefinition,
   BrandedTypeRegistry,
   OpenApiSchemaObject,
-  ScalarValue,
 } from '../types';
 import { sanitize } from '../utils';
 
@@ -33,15 +32,6 @@ export function extractBrandName(
 }
 
 /**
- * Check if a scalar value type can be branded
- */
-export function isBrandableType(scalarValue: ScalarValue): boolean {
-  return BRANDABLE_TYPES.includes(
-    scalarValue.type as (typeof BRANDABLE_TYPES)[number],
-  );
-}
-
-/**
  * Check if a schema type can be branded
  */
 export function isBrandableSchemaType(schema: OpenApiSchemaObject): boolean {
@@ -49,6 +39,7 @@ export function isBrandableSchemaType(schema: OpenApiSchemaObject): boolean {
   if (!schemaType || Array.isArray(schemaType)) {
     return false;
   }
+
   return BRANDABLE_TYPES.includes(
     schemaType as (typeof BRANDABLE_TYPES)[number],
   );

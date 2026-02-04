@@ -23,6 +23,7 @@ function maybeApplyBrandedMockType(
   schema: MockSchemaObject,
 ): MockDefinition {
   const brandName = extractBrandName(schema);
+
   if (!brandName || !isBrandableSchemaType(schema)) {
     return scalar;
   }
