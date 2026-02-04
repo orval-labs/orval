@@ -111,36 +111,8 @@ export function registerBrandedType(
 }
 
 /**
- * Generate type alias definitions for all registered branded types
- */
-export function generateBrandedTypeDefinitions(
-  registry: BrandedTypeRegistry,
-): string {
-  if (registry.size === 0) {
-    return '';
-  }
-
-  const definitions = [...registry.values()]
-    .toSorted((a, b) => a.name.localeCompare(b.name))
-    .map(
-      ({ name, baseType, brand }) =>
-        `export type ${name} = Branded<${baseType}, "${brand}">;`,
-    )
-    .join('\n');
-
-  return definitions;
-}
-
-/**
  * Get the branded type helper definition
  */
 export function getBrandedHelperType(): string {
   return 'type Branded<BaseType, Brand> = BaseType & { readonly __brand: Brand };';
-}
-
-/**
- * Check if context has branded types feature enabled
- */
-export function isBrandedTypesEnabled(context: ContextSpec): boolean {
-  return context.output.override.generateBrandedTypes === true;
 }
