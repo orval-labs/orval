@@ -1,5 +1,5 @@
 import {
-  extractBrandInfo,
+  extractBrandName,
   getScalar,
   isBrandableType,
   registerBrandedType,
@@ -108,9 +108,9 @@ function maybeApplyBrandedType(
     return scalar;
   }
 
-  const brandInfo = extractBrandInfo(schema);
+  const brandName = extractBrandName(schema);
 
-  if (!brandInfo || !isBrandableType(scalar)) {
+  if (!brandName || !isBrandableType(scalar)) {
     return scalar;
   }
 
@@ -122,19 +122,19 @@ function maybeApplyBrandedType(
   if (context.brandedTypes) {
     registerBrandedType(
       context.brandedTypes,
-      brandInfo.brandName,
+      brandName,
       baseValue,
       context.schemaNames,
     );
   }
 
   const brandedImport: GeneratorImport = {
-    name: brandInfo.brandName,
+    name: brandName,
   };
 
   const brandedScalar: ScalarValue = {
     ...scalar,
-    value: `${brandInfo.brandName}${nullableSuffix}`,
+    value: `${brandName}${nullableSuffix}`,
     imports: [...scalar.imports, brandedImport],
   };
 

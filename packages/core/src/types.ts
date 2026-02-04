@@ -1153,11 +1153,6 @@ export const SchemaType = {
   unknown: 'unknown',
 };
 
-export type BrandInfo = {
-  brandName: string;
-  baseType: string;
-};
-
 export type BrandedTypeDefinition = {
   /** The type alias name (e.g., 'PetId') */
   name: string;

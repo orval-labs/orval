@@ -1,6 +1,6 @@
 import {
   type ContextSpec,
-  extractBrandInfo,
+  extractBrandName,
   type GeneratorImport,
   getRefInfo,
   isBrandableSchemaType,
@@ -22,18 +22,18 @@ function maybeApplyBrandedMockType(
   scalar: MockDefinition,
   schema: MockSchemaObject,
 ): MockDefinition {
-  const brandInfo = extractBrandInfo(schema);
-  if (!brandInfo || !isBrandableSchemaType(schema)) {
+  const brandName = extractBrandName(schema);
+  if (!brandName || !isBrandableSchemaType(schema)) {
     return scalar;
   }
 
   const brandedImport: GeneratorImport = {
-    name: brandInfo.brandName,
+    name: brandName,
   };
 
   return {
     ...scalar,
-    value: `${scalar.value} as ${brandInfo.brandName}`,
+    value: `${scalar.value} as ${brandName}`,
     imports: [...scalar.imports, brandedImport],
   };
 }

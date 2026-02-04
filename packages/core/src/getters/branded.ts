@@ -1,8 +1,6 @@
 import type {
   BrandedTypeDefinition,
   BrandedTypeRegistry,
-  BrandInfo,
-  ContextSpec,
   OpenApiSchemaObject,
   ScalarValue,
 } from '../types';
@@ -18,29 +16,20 @@ export const BRANDABLE_TYPES = [
 ] as const;
 
 /**
- * Extract and validate brand info from schema
+ * Extract and validate brand name from schema
  */
-export function extractBrandInfo(
+export function extractBrandName(
   schema: OpenApiSchemaObject,
-): BrandInfo | undefined {
+): string | undefined {
   const xBrand = schema['x-brand'];
   if (!xBrand || typeof xBrand !== 'string') {
     return undefined;
   }
 
-  const sanitizedBrand = sanitize(xBrand, {
+  return sanitize(xBrand, {
     es5keyword: true,
     es5IdentifierName: true,
   });
-
-  if (!sanitizedBrand) {
-    return undefined;
-  }
-
-  return {
-    brandName: sanitizedBrand,
-    baseType: '',
-  };
 }
 
 /**
