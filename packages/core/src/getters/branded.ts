@@ -85,7 +85,3 @@ export function registerBrandedType(
     });
   }
 }
-
-export function getBrandedHelperType(): string {
-  return 'type Branded<BaseType, Brand> = BaseType & { readonly __brand: Brand };';
-}
