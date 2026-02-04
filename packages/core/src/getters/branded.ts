@@ -22,10 +22,10 @@ export const BRANDABLE_TYPES = [
  */
 export function extractBrandInfo(
   schema: OpenApiSchemaObject,
-): BrandInfo | null {
+): BrandInfo | undefined {
   const xBrand = schema['x-brand'];
   if (!xBrand || typeof xBrand !== 'string') {
-    return null;
+    return undefined;
   }
 
   const sanitizedBrand = sanitize(xBrand, {
@@ -34,7 +34,7 @@ export function extractBrandInfo(
   });
 
   if (!sanitizedBrand) {
-    return null;
+    return undefined;
   }
 
   return {
