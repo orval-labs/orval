@@ -14,13 +14,11 @@ export const BRANDABLE_TYPES = [
   'integer',
 ] as const;
 
-/**
- * Extract and validate brand name from schema
- */
 export function extractBrandName(
   schema: OpenApiSchemaObject,
 ): string | undefined {
   const xBrand = schema['x-brand'];
+
   if (!xBrand || typeof xBrand !== 'string') {
     return undefined;
   }
@@ -36,6 +34,7 @@ export function extractBrandName(
  */
 export function isBrandableSchemaType(schema: OpenApiSchemaObject): boolean {
   const schemaType = schema.type;
+
   if (!schemaType || Array.isArray(schemaType)) {
     return false;
   }
@@ -63,7 +62,6 @@ export function registerBrandedType(
 ): void {
   const existing = registry.get(brandName);
 
-  // Check for base type conflict
   if (existing && existing.baseType !== baseType) {
     throw new Error(
       `Branded type conflict: "${brandName}" is used with different base types: ` +
@@ -72,7 +70,6 @@ export function registerBrandedType(
     );
   }
 
-  // Check for schema name collision
   if (schemaNames?.has(brandName)) {
     throw new Error(
       `Branded type name collision: "${brandName}" conflicts with an existing schema name. ` +
@@ -80,7 +77,6 @@ export function registerBrandedType(
     );
   }
 
-  // Register if not already present
   if (!existing) {
     registry.set(brandName, {
       name: brandName,
@@ -90,9 +86,6 @@ export function registerBrandedType(
   }
 }
 
-/**
- * Get the branded type helper definition
- */
 export function getBrandedHelperType(): string {
   return 'type Branded<BaseType, Brand> = BaseType & { readonly __brand: Brand };';
 }
