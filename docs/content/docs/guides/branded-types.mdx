@@ -36,7 +36,7 @@ export default defineConfig({
   petstore: {
     output: {
       override: {
-        generateBrandedTypes: true,
+        useBrandedTypes: true,
       },
     },
   },
@@ -77,59 +77,7 @@ The `x-brand` extension works with primitive types. Other types will be ignored:
 - `integer`
 - `boolean`
 
-## Compatibility with Other Options
-
-Branded types work seamlessly with other Orval type transformations:
-
-### With `useDates`
-
-When `useDates` is enabled, date strings are branded with `Date` as the base type:
-
-```yaml
-properties:
-  createdAt:
-    type: string
-    format: date-time
-    x-brand: Timestamp
-```
-
-```ts
-// Generated with useDates: true
-export type Timestamp = Branded<Date, 'Timestamp'>;
-```
-
-### With `useBigInt`
-
-When `useBigInt` is enabled, 64-bit integers are branded with `bigint` as the base type:
-
-```yaml
-properties:
-  transactionId:
-    type: integer
-    format: int64
-    x-brand: TransactionId
-```
-
-```ts
-// Generated with useBigInt: true
-export type TransactionId = Branded<bigint, 'TransactionId'>;
-```
-
-### Combined Example
-
-```ts title="orval.config.ts"
-export default defineConfig({
-  petstore: {
-    output: {
-      override: {
-        generateBrandedTypes: true,
-        useDates: true,
-        useBigInt: true,
-      },
-    },
-  },
-});
-```
+Also works with other Orval [type generation options](/docs/reference/configuration/output#type-generation-options) like `useDates` and `useBigInt`.
 
 ## Errors
 

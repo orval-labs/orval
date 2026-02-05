@@ -104,7 +104,7 @@ function maybeApplyBrandedType(
   schema: OpenApiSchemaObject,
   context: ContextSpec,
 ): ScalarValue {
-  if (!context.output.override.generateBrandedTypes) {
+  if (!context.output.override.useBrandedTypes) {
     return scalar;
   }
 

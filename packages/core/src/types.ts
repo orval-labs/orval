@@ -118,7 +118,7 @@ export type NormalizedOverrideOutput = {
    * For example, `x-brand: UserId` generates `type UserId = string & { readonly __brand: 'UserId' }`
    * @default false
    */
-  generateBrandedTypes?: boolean;
+  useBrandedTypes?: boolean;
 };
 
 export type NormalizedMutator = {
@@ -494,7 +494,7 @@ export type OverrideOutput = {
    * For example, `x-brand: UserId` generates `type UserId = string & { readonly __brand: 'UserId' }`
    * @default false
    */
-  generateBrandedTypes?: boolean;
+  useBrandedTypes?: boolean;
 };
 
 export type JsDocOptions = {

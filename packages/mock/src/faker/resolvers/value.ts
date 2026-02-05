@@ -186,7 +186,7 @@ export function resolveMockValue({
       scalar.imports.push({ name: newSchema.name });
     }
 
-    if (context.output.override.generateBrandedTypes) {
+    if (context.output.override.useBrandedTypes) {
       scalar = maybeApplyBrandedMockType(scalar, newSchema);
     }
 
@@ -209,7 +209,7 @@ export function resolveMockValue({
     allowOverride,
   });
 
-  if (context.output.override.generateBrandedTypes) {
+  if (context.output.override.useBrandedTypes) {
     scalar = maybeApplyBrandedMockType(scalar, schema);
   }
 

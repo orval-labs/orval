@@ -63,6 +63,12 @@ components:
           type: integer
           format: int64
           x-brand: UserId
+        # Test readOnly still functions
+        parentId:
+          type: integer
+          readOnly: true
+          format: int64
+          x-brand: UserId
         email:
           type: string
           format: email

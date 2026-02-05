@@ -35,7 +35,7 @@ export async function importOpenApi({
 
   // Create shared branded type registry and schema names set for collision detection
   const brandedTypes: BrandedTypeRegistry | undefined = output.override
-    .generateBrandedTypes
+    .useBrandedTypes
     ? createBrandedTypeRegistry()
     : undefined;
 

@@ -538,7 +538,7 @@ export default defineConfig({
       target: '../generated/default/branded-types/endpoints.ts',
       schemas: '../generated/default/branded-types/model',
       override: {
-        generateBrandedTypes: true,
+        useBrandedTypes: true,
       },
     },
   },
@@ -550,7 +550,7 @@ export default defineConfig({
       target: '../generated/default/branded-types-with-dates/endpoints.ts',
       schemas: '../generated/default/branded-types-with-dates/model',
       override: {
-        generateBrandedTypes: true,
+        useBrandedTypes: true,
         useDates: true,
       },
     },
@@ -563,7 +563,7 @@ export default defineConfig({
       target: '../generated/default/branded-types-with-bigint/endpoints.ts',
       schemas: '../generated/default/branded-types-with-bigint/model',
       override: {
-        generateBrandedTypes: true,
+        useBrandedTypes: true,
         useBigInt: true,
       },
     },
