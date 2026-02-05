@@ -68,6 +68,15 @@ id: faker.number.int() as PetId,
 email: faker.internet.email() as Email,
 ```
 
+## Zod
+
+When using Zod schemas, branded types are automatically generated using Zod's native `.brand()` method:
+
+```ts
+export const PetIdSchema = zod.number().brand<'PetId'>();
+export const EmailSchema = zod.string().brand<'Email'>();
+```
+
 ## Supported Types
 
 The `x-brand` extension works with primitive types. Other types will be ignored:
