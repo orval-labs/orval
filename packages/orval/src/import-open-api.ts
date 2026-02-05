@@ -67,12 +67,9 @@ export async function importOpenApi({
     } satisfies ContextSpec,
   });
 
-  // Generate branded type schemas if registry has entries
-  const brandedTypeSchemas = generateBrandedDefinition(brandedTypes);
-
   return {
     ...api,
-    schemas: [...brandedTypeSchemas, ...schemas, ...api.schemas],
+    schemas: [...schemas, ...api.schemas],
     target,
     // a valid spec will have info
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -166,7 +163,10 @@ function getApiSchemas({
     output.override.components.parameters.suffix,
   );
 
+  const brandedDefinition = generateBrandedDefinition(brandedTypes);
+
   const schemas = [
+    ...brandedDefinition,
     ...schemaDefinition,
     ...responseDefinition,
     ...swaggerResponseDefinition,
