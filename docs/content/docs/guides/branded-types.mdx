@@ -1,0 +1,112 @@
+---
+title: Branded Types
+description: Generate branded types from custom OpenAPI extensions
+---
+
+Branded types (also known as nominal types) add compile-time safety by making TypeScript distinguish between values that share the same primitive type. A `UserId` and `OrderId` might both be numbers, but with branding they become incompatible types. Learn more about branded types in this [article](https://www.learningtypescript.com/articles/branded-types) or [video](https://www.youtube.com/watch?v=Yz8ySbaeCf8).
+
+## OpenAPI Schema
+
+Add the custom `x-brand` extension to any primitive property. The `x-` prefix indicates a [specification extension](https://spec.openapis.org/oas/latest.html#specification-extensions), allowing custom metadata that Orval uses for code generation:
+
+```yaml
+components:
+  schemas:
+    Pet:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          x-brand: PetId
+        email:
+          type: string
+          format: email
+          x-brand: Email
+```
+
+**Note:** Brand names are sanitized to be valid TypeScript identifiers. Special characters are removed, ES5 keywords are prefixed with `_`, and names starting with numbers are prefixed with `N`.
+
+## Configuration
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        generateBrandedTypes: true,
+      },
+    },
+  },
+});
+```
+
+## Generated Output
+
+Orval creates a `Branded` helper type and generates distinct type aliases:
+
+```ts
+type Branded<BaseType, Brand> = BaseType & { readonly __brand: Brand };
+
+export type PetId = Branded<number, 'PetId'>;
+export type Email = Branded<string, 'Email'>;
+
+export interface Pet {
+  id: PetId;
+  email?: Email;
+}
+```
+
+## Supported Types
+
+The `x-brand` extension works with primitive types. Other types will be ignored:
+
+- `string`
+- `number`
+- `integer`
+- `boolean`
+
+## Errors
+
+Orval validates branded types and will throw an error in these cases:
+
+### Conflicting Base Types
+
+The same brand name cannot be used with different base types. Since both would generate a type called `PetId`, Orval cannot create both `Branded<number, 'PetId'>` and `Branded<string, 'PetId'>`.
+
+```yaml
+# This will error - PetId used as both integer and string
+properties:
+  id:
+    type: integer
+    x-brand: PetId
+  legacyId:
+    type: string
+    x-brand: PetId  # Error: different base type
+```
+
+**Fix:** Use unique brand names for different base types (`PetId` and `LegacyPetId`).
+
+### Schema Name Collision
+
+A brand name cannot match an existing schema name. Since both the schema and the branded type would generate a type called `PetId`, Orval cannot create both.
+
+```yaml
+components:
+  schemas:
+    PetId:  # Schema named "PetId"
+      type: object
+      properties:
+        value:
+          type: integer
+    Pet:
+      type: object
+      properties:
+        id:
+          type: integer
+          x-brand: PetId  # Error: conflicts with schema name
+```
+
+**Fix:** Rename either the schema or the `x-brand` value to avoid the collision.

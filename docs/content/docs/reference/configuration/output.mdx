@@ -541,6 +541,27 @@ export default defineConfig({
 });
 ```
 
+### generateBrandedTypes
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Generate branded (nominal) types for fields marked with `x-brand` in your OpenAPI spec:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        generateBrandedTypes: true,
+      },
+    },
+  },
+});
+```
+
+See the [Branded Types](/docs/guides/branded-types) guide for usage details.
+
 ---
 
 ## override.query
