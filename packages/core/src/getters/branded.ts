@@ -3,7 +3,7 @@ import type {
   BrandedTypeRegistry,
   OpenApiSchemaObject,
 } from '../types';
-import { sanitize } from '../utils';
+import { pascal, sanitize } from '../utils';
 
 // Types that can be branded (primitives only)
 // Includes 'integer' for OpenAPI schema compatibility (converted to 'number' in TypeScript)
@@ -23,7 +23,9 @@ export function extractBrandName(
     return undefined;
   }
 
-  return sanitize(xBrand, {
+  const pascalName = pascal(xBrand);
+
+  return sanitize(pascalName, {
     es5keyword: true,
     es5IdentifierName: true,
   });
