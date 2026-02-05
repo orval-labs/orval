@@ -14,7 +14,7 @@ export default defineConfig({
       mock: true,
       mode: 'split',
       override: {
-        generateBrandedTypes: true,
+        useBrandedTypes: true,
       },
     },
   },
