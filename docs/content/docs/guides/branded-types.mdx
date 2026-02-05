@@ -59,6 +59,15 @@ export interface Pet {
 }
 ```
 
+## Mocks
+
+Generated mocks use type assertions to satisfy branded types:
+
+```ts
+id: faker.number.int() as PetId,
+email: faker.internet.email() as Email,
+```
+
 ## Supported Types
 
 The `x-brand` extension works with primitive types. Other types will be ignored:
