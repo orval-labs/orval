@@ -122,15 +122,14 @@ export async function writeSplitTagsMode({
           : upath.join(dirname, filename + '.schemas' + extension);
 
         if (schemasPath && needSchema) {
-          const schemasInline = generateModelsInline(builder.schemas);
           let schemasData = header;
 
-          if (schemasInline.includes('Branded<')) {
+          if (builder.brandedTypes?.size) {
             schemasData += getBrandedHelperType();
             schemasData += '\n';
           }
 
-          schemasData += schemasInline;
+          schemasData += generateModelsInline(builder.schemas);
 
           await fs.outputFile(schemasPath, schemasData);
         }

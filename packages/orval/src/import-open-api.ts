@@ -67,9 +67,13 @@ export async function importOpenApi({
     } satisfies ContextSpec,
   });
 
+  // Generate branded type definitions AFTER all schemas have been processed
+  // (both component schemas and inline API schemas may register branded types)
+  const brandedDefinition = generateBrandedDefinition(brandedTypes);
+
   return {
     ...api,
-    schemas: [...schemas, ...api.schemas],
+    schemas: [...brandedDefinition, ...schemas, ...api.schemas],
     target,
     // a valid spec will have info
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -163,16 +167,11 @@ function getApiSchemas({
     output.override.components.parameters.suffix,
   );
 
-  const brandedDefinition = generateBrandedDefinition(brandedTypes);
-
-  const schemas = [
-    ...brandedDefinition,
+  return [
     ...schemaDefinition,
     ...responseDefinition,
     ...swaggerResponseDefinition,
     ...bodyDefinition,
     ...parameters,
   ];
-
-  return schemas;
 }

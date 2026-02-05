@@ -138,10 +138,7 @@ export async function writeSingleMode({
       data += '\n';
     }
 
-    if (
-      implementation.includes('Branded<') ||
-      implementationMock.includes('Branded<')
-    ) {
+    if (builder.brandedTypes?.size) {
       data += getBrandedHelperType();
       data += '\n';
     }
