@@ -3,10 +3,10 @@ import {
   type ContextSpec,
   createBrandedTypeRegistry,
   dynamicImport,
+  generateBrandedDefinition,
   generateComponentDefinition,
   generateParameterDefinition,
   generateSchemasDefinition,
-  type GeneratorSchema,
   type ImportOpenApi,
   type InputOptions,
   type NormalizedOutputOptions,
@@ -68,7 +68,7 @@ export async function importOpenApi({
   });
 
   // Generate branded type schemas if registry has entries
-  const brandedTypeSchemas = generateBrandedTypeSchemas(brandedTypes);
+  const brandedTypeSchemas = generateBrandedDefinition(brandedTypes);
 
   return {
     ...api,
@@ -80,33 +80,6 @@ export async function importOpenApi({
     spec: transformedOpenApi,
     brandedTypes,
   };
-}
-
-/**
- * Generate GeneratorSchema objects for branded type definitions.
- * Each branded type becomes its own schema for proper import handling.
- * The writers will detect `Branded<` in the model and add the helper type.
- */
-function generateBrandedTypeSchemas(
-  registry: BrandedTypeRegistry | undefined,
-): GeneratorSchema[] {
-  if (!registry || registry.size === 0) {
-    return [];
-  }
-
-  // Generate each branded type as a separate schema for proper import handling
-  const schemas: GeneratorSchema[] = [];
-
-  for (const [name, definition] of registry) {
-    schemas.push({
-      name,
-      model: `export type ${name} = Branded<${definition.baseType}, "${definition.brand}">;\n`,
-      imports: [],
-      dependencies: [],
-    });
-  }
-
-  return schemas;
 }
 
 async function applyTransformer(

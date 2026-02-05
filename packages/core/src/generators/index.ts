@@ -1,3 +1,4 @@
+export * from './branded-definition';
 export * from './component-definition';
 export * from './imports';
 export * from './models-inline';
