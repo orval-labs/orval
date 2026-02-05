@@ -198,4 +198,28 @@ describe('registerBrandedType', () => {
     expect(registry.get('Email')?.baseType).toBe('string');
     expect(registry.get('IsActive')?.baseType).toBe('boolean');
   });
+
+  it('should register branded type with Date base type (useDates)', () => {
+    const registry: BrandedTypeRegistry = new Map();
+
+    registerBrandedType(registry, 'CreatedAt', 'Date');
+
+    expect(registry.get('CreatedAt')).toEqual({
+      name: 'CreatedAt',
+      baseType: 'Date',
+      brand: 'CreatedAt',
+    });
+  });
+
+  it('should register branded type with bigint base type (useBigInt)', () => {
+    const registry: BrandedTypeRegistry = new Map();
+
+    registerBrandedType(registry, 'UserId', 'bigint');
+
+    expect(registry.get('UserId')).toEqual({
+      name: 'UserId',
+      baseType: 'bigint',
+      brand: 'UserId',
+    });
+  });
 });

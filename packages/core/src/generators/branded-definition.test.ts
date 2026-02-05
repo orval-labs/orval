@@ -71,4 +71,44 @@ describe('generateBrandedDefinition', () => {
       'export type IsActive = Branded<boolean, "IsActive">;\n',
     );
   });
+
+  it('should generate branded type with Date base type (useDates)', () => {
+    const registry: BrandedTypeRegistry = new Map([
+      [
+        'CreatedAt',
+        {
+          name: 'CreatedAt',
+          baseType: 'Date',
+          brand: 'CreatedAt',
+        },
+      ],
+    ]);
+
+    const result = generateBrandedDefinition(registry);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].model).toBe(
+      'export type CreatedAt = Branded<Date, "CreatedAt">;\n',
+    );
+  });
+
+  it('should generate branded type with bigint base type (useBigInt)', () => {
+    const registry: BrandedTypeRegistry = new Map([
+      [
+        'UserId',
+        {
+          name: 'UserId',
+          baseType: 'bigint',
+          brand: 'UserId',
+        },
+      ],
+    ]);
+
+    const result = generateBrandedDefinition(registry);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].model).toBe(
+      'export type UserId = Branded<bigint, "UserId">;\n',
+    );
+  });
 });

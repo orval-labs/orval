@@ -25,7 +25,7 @@ components:
           x-brand: Email
 ```
 
-**Note:** Brand names are sanitized to be valid TypeScript identifiers. Special characters are removed, ES5 keywords are prefixed with `_`, and names starting with numbers are prefixed with `N`.
+**Note:** Brand names are automatically converted to PascalCase and sanitized to be valid TypeScript identifiers. For example, `user_id` becomes `UserId`, and names starting with numbers are prefixed with `N`.
 
 ## Configuration
 
@@ -76,6 +76,60 @@ The `x-brand` extension works with primitive types. Other types will be ignored:
 - `number`
 - `integer`
 - `boolean`
+
+## Compatibility with Other Options
+
+Branded types work seamlessly with other Orval type transformations:
+
+### With `useDates`
+
+When `useDates` is enabled, date strings are branded with `Date` as the base type:
+
+```yaml
+properties:
+  createdAt:
+    type: string
+    format: date-time
+    x-brand: Timestamp
+```
+
+```ts
+// Generated with useDates: true
+export type Timestamp = Branded<Date, 'Timestamp'>;
+```
+
+### With `useBigInt`
+
+When `useBigInt` is enabled, 64-bit integers are branded with `bigint` as the base type:
+
+```yaml
+properties:
+  transactionId:
+    type: integer
+    format: int64
+    x-brand: TransactionId
+```
+
+```ts
+// Generated with useBigInt: true
+export type TransactionId = Branded<bigint, 'TransactionId'>;
+```
+
+### Combined Example
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        generateBrandedTypes: true,
+        useDates: true,
+        useBigInt: true,
+      },
+    },
+  },
+});
+```
 
 ## Errors
 

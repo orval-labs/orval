@@ -74,6 +74,26 @@ components:
           type: number
           format: double
           x-brand: Score
+        # date-time -> Branded<Date, 'CreatedAt'> when useDates is true
+        createdAt:
+          type: string
+          format: date-time
+          x-brand: CreatedAt
+        # date -> Branded<Date, 'BirthDate'> when useDates is true
+        birthDate:
+          type: string
+          format: date
+          x-brand: BirthDate
+        # uint64 -> Branded<bigint, 'Karma'> when useBigInt is true
+        karma:
+          type: integer
+          format: uint64
+          x-brand: Karma
+        # int32 -> Branded<number, 'Age'> (stays number even with useBigInt)
+        age:
+          type: integer
+          format: int32
+          x-brand: Age
 
     # Same brand used on multiple properties (same base type)
     Product:
