@@ -1,0 +1,201 @@
+openapi: 3.0.3
+info:
+  title: Branded Types
+  description: Test specification for branded type generation
+  version: 1.0.0
+paths:
+  /api/users/{userId}:
+    get:
+      summary: Get user by ID
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            x-brand: UserId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /api/products:
+    get:
+      summary: List products
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+  /api/orders:
+    post:
+      summary: Create order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrder'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+components:
+  schemas:
+    # Basic branded types for primitives
+    User:
+      type: object
+      required:
+        - id
+        - email
+      properties:
+        id:
+          type: integer
+          format: int64
+          x-brand: UserId
+        email:
+          type: string
+          format: email
+          x-brand: Email
+        isActive:
+          type: boolean
+          x-brand: IsActive
+        score:
+          type: number
+          format: double
+          x-brand: Score
+
+    # Same brand used on multiple properties (same base type)
+    Product:
+      type: object
+      required:
+        - id
+        - createdBy
+      properties:
+        id:
+          type: integer
+          x-brand: ProductId
+        name:
+          type: string
+        price:
+          type: number
+          x-brand: Price
+        createdBy:
+          type: integer
+          format: int64
+          x-brand: UserId
+        updatedBy:
+          type: integer
+          format: int64
+          x-brand: UserId
+
+    # Nested object with branded properties
+    Order:
+      type: object
+      required:
+        - id
+        - user
+        - items
+      properties:
+        id:
+          type: integer
+          x-brand: OrderId
+        user:
+          $ref: '#/components/schemas/User'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        totalPrice:
+          type: number
+          x-brand: Price
+
+    OrderItem:
+      type: object
+      required:
+        - productId
+        - quantity
+      properties:
+        productId:
+          type: integer
+          x-brand: ProductId
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+          x-brand: Price
+
+    # Array items with branded type
+    CreateOrder:
+      type: object
+      required:
+        - userId
+        - productIds
+      properties:
+        userId:
+          type: integer
+          format: int64
+          x-brand: UserId
+        productIds:
+          type: array
+          items:
+            type: integer
+            x-brand: ProductId
+
+    # Nullable branded type
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          x-brand: UserId
+        parentId:
+          type: integer
+          format: int64
+          x-brand: UserId
+          nullable: true
+        nickname:
+          type: string
+          x-brand: Nickname
+          nullable: true
+
+    # Brand names that need sanitization
+    SpecialCases:
+      type: object
+      properties:
+        classField:
+          type: string
+          x-brand: class
+        numberedField:
+          type: string
+          x-brand: 123Brand
+        hyphenatedField:
+          type: string
+          x-brand: my-brand
+
+    # Non-brandable types (x-brand should be ignored)
+    NonBrandable:
+      type: object
+      properties:
+        data:
+          type: object
+          x-brand: ShouldBeIgnored
+          properties:
+            value:
+              type: string
+        items:
+          type: array
+          x-brand: ShouldAlsoBeIgnored
+          items:
+            type: string
