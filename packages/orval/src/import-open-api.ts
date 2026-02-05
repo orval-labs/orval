@@ -38,7 +38,10 @@ export async function importOpenApi({
     .generateBrandedTypes
     ? createBrandedTypeRegistry()
     : undefined;
-  const schemaNames = collectSchemaNames(transformedOpenApi);
+
+  const schemaNames = new Set(
+    Object.keys(transformedOpenApi.components?.schemas ?? {}),
+  );
 
   const schemas = getApiSchemas({
     input,
@@ -104,21 +107,6 @@ function generateBrandedTypeSchemas(
   }
 
   return schemas;
-}
-
-/**
- * Collect all schema names from the OpenAPI spec for branded type collision detection
- */
-function collectSchemaNames(spec: OpenApiDocument): Set<string> {
-  const names = new Set<string>();
-
-  if (spec.components?.schemas) {
-    for (const name of Object.keys(spec.components.schemas)) {
-      names.add(name);
-    }
-  }
-
-  return names;
 }
 
 async function applyTransformer(
