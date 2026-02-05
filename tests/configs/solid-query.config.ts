@@ -167,4 +167,17 @@ export default defineConfig({
       },
     },
   },
+  'branded-types': {
+    output: {
+      target: '../generated/solid-query/branded-types/endpoints.ts',
+      schemas: '../generated/solid-query/branded-types/model',
+      client: 'solid-query',
+      override: {
+        useBrandedTypes: true,
+      },
+    },
+    input: {
+      target: '../specifications/branded-types.yaml',
+    },
+  },
 });

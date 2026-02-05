@@ -622,4 +622,17 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  'branded-types': {
+    output: {
+      target: '../generated/react-query/branded-types/endpoints.ts',
+      schemas: '../generated/react-query/branded-types/model',
+      client: 'react-query',
+      override: {
+        useBrandedTypes: true,
+      },
+    },
+    input: {
+      target: '../specifications/branded-types.yaml',
+    },
+  },
 });

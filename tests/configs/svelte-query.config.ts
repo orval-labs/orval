@@ -200,4 +200,17 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  'branded-types': {
+    output: {
+      target: '../generated/svelte-query/branded-types/endpoints.ts',
+      schemas: '../generated/svelte-query/branded-types/model',
+      client: 'svelte-query',
+      override: {
+        useBrandedTypes: true,
+      },
+    },
+    input: {
+      target: '../specifications/branded-types.yaml',
+    },
+  },
 });

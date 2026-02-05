@@ -22,6 +22,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+  /api/users/by-email/{email}:
+    get:
+      summary: Get user by email
+      parameters:
+        - name: email
+          in: path
+          required: true
+          schema:
+            type: string
+            format: email
+            x-brand: Email
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /api/products/{productId}:
+    get:
+      summary: Get product by ID
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+            x-brand: ProductId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
   /api/products:
     get:
       summary: List products
