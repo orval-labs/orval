@@ -195,10 +195,11 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
     packageJson?.devDependencies?.['@tanstack/react-query'] ??
     packageJson?.peerDependencies?.['@tanstack/react-query'];
 
+  const queryVersion = override?.query.version;
   const useReactQueryV3 =
-    override?.query.version === undefined
+    queryVersion === undefined
       ? hasReactQuery && !hasReactQueryV4
-      : override.query.version <= 3;
+      : queryVersion <= 3;
 
   return [
     ...(hasGlobalMutator || hasTagsMutator ? REACT_DEPENDENCIES : []),
