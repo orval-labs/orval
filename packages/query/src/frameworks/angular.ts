@@ -36,6 +36,8 @@ export const createAngularAdapter = ({
   hasQueryV5WithDataTagError: boolean;
   hasQueryV5WithInfiniteQueryOptionsError: boolean;
 }): FrameworkAdapterConfig => {
+  const prefix = 'Create';
+
   return {
     outputClient: OutputClient.ANGULAR_QUERY,
     hookPrefix: 'inject',
@@ -179,7 +181,7 @@ export const createAngularAdapter = ({
     },
 
     getQueryOptionsDefinitionPrefix(): string {
-      return 'Create';
+      return prefix;
     },
 
     generateQueryArguments({
@@ -199,7 +201,7 @@ export const createAngularAdapter = ({
         mutator,
         definitions,
         type,
-        prefix: 'Create',
+        prefix,
         hasQueryV5,
         hasQueryV5WithInfiniteQueryOptionsError,
         queryParams,
