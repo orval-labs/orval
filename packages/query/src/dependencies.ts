@@ -196,7 +196,7 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
     packageJson?.peerDependencies?.['@tanstack/react-query'];
 
   const useReactQueryV3 =
-    override.query.version === undefined
+    override?.query.version === undefined
       ? hasReactQuery && !hasReactQueryV4
       : override.query.version <= 3;
 
