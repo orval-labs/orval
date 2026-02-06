@@ -13,10 +13,7 @@ import {
 } from '@orval/core';
 import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
 
-import {
-  generateAxiosRequestFunction,
-  getQueryArgumentsRequestType,
-} from '../client';
+import { generateAxiosRequestFunction } from '../client';
 import type {
   FrameworkAdapterConfig,
   MutationHookBodyContext,
@@ -24,7 +21,7 @@ import type {
   QueryReturnStatementContext,
   QueryReturnTypeContext,
 } from '../framework-adapter';
-import { getQueryOptionsDefinition, QueryType } from '../query-options';
+import { QueryType } from '../query-options';
 import { vueUnRefParams, vueWrapTypeWithMaybeRef } from '../utils';
 
 export const createVueAdapter = ({
@@ -146,46 +143,6 @@ export const createVueAdapter = ({
 
   getQueryKeyPrefix(): string {
     return hasVueQueryV4 ? '' : 'queryOptions?.queryKey ?? ';
-  },
-
-  generateQueryArguments({
-    operationName,
-    definitions,
-    mutator,
-    isRequestOptions,
-    type,
-    queryParams,
-    queryParam,
-    initialData,
-    httpClient,
-  }): string {
-    const definition = getQueryOptionsDefinition({
-      operationName,
-      mutator,
-      definitions,
-      type,
-      prefix: 'Use',
-      hasQueryV5,
-      hasQueryV5WithInfiniteQueryOptionsError,
-      queryParams,
-      queryParam,
-      isReturnType: false,
-      initialData,
-    });
-
-    if (!isRequestOptions) {
-      return `${type ? 'queryOptions' : 'mutationOptions'}${
-        initialData === 'defined' ? '' : '?'
-      }: ${definition}`;
-    }
-
-    const requestType = getQueryArgumentsRequestType(httpClient, mutator);
-    const isQueryRequired = initialData === 'defined';
-    const optionsType = `{ ${
-      type ? 'query' : 'mutation'
-    }${isQueryRequired ? '' : '?'}:${definition}, ${requestType}}`;
-
-    return `options${isQueryRequired ? '' : '?'}: ${optionsType}\n`;
   },
 
   generateMutationImplementation({

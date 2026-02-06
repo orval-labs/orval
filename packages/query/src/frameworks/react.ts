@@ -7,10 +7,7 @@ import {
 } from '@orval/core';
 import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
 
-import {
-  generateAxiosRequestFunction,
-  getQueryArgumentsRequestType,
-} from '../client';
+import { generateAxiosRequestFunction } from '../client';
 import type {
   FrameworkAdapterConfig,
   MutationHookBodyContext,
@@ -19,7 +16,7 @@ import type {
   QueryReturnStatementContext,
   QueryReturnTypeContext,
 } from '../framework-adapter';
-import { getQueryOptionsDefinition, isSuspenseQuery } from '../query-options';
+import { isSuspenseQuery } from '../query-options';
 
 export const createReactAdapter = ({
   hasQueryV5,
@@ -66,46 +63,6 @@ export const createReactAdapter = ({
 
   shouldGenerateOverrideTypes(): boolean {
     return hasQueryV5;
-  },
-
-  generateQueryArguments({
-    operationName,
-    definitions,
-    mutator,
-    isRequestOptions,
-    type,
-    queryParams,
-    queryParam,
-    initialData,
-    httpClient,
-  }): string {
-    const definition = getQueryOptionsDefinition({
-      operationName,
-      mutator,
-      definitions,
-      type,
-      prefix: 'Use',
-      hasQueryV5,
-      hasQueryV5WithInfiniteQueryOptionsError,
-      queryParams,
-      queryParam,
-      isReturnType: false,
-      initialData,
-    });
-
-    if (!isRequestOptions) {
-      return `${type ? 'queryOptions' : 'mutationOptions'}${
-        initialData === 'defined' ? '' : '?'
-      }: ${definition}`;
-    }
-
-    const requestType = getQueryArgumentsRequestType(httpClient, mutator);
-    const isQueryRequired = initialData === 'defined';
-    const optionsType = `{ ${
-      type ? 'query' : 'mutation'
-    }${isQueryRequired ? '' : '?'}:${definition}, ${requestType}}`;
-
-    return `options${isQueryRequired ? '' : '?'}: ${optionsType}\n`;
   },
 
   generateMutationImplementation({

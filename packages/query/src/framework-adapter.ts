@@ -261,7 +261,8 @@ type DefaultableFields =
   | 'getInfiniteQueryHttpProps'
   | 'generateQueryInit'
   | 'generateQueryInvocationArgs'
-  | 'getOptionalQueryClientArgument';
+  | 'getOptionalQueryClientArgument'
+  | 'generateQueryArguments';
 
 /**
  * Adapter config type — adapters implement this. The factory fills in

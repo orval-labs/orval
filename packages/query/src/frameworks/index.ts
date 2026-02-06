@@ -11,6 +11,7 @@ import {
   toObjectString,
 } from '@orval/core';
 
+import { getQueryArgumentsRequestType } from '../client';
 import {
   isQueryV5,
   isQueryV5WithDataTagError,
@@ -23,6 +24,7 @@ import type {
   FrameworkAdapter,
   FrameworkAdapterConfig,
 } from '../framework-adapter';
+import { getQueryOptionsDefinition } from '../query-options';
 import { createAngularAdapter } from './angular';
 import { createReactAdapter } from './react';
 import { createSolidAdapter } from './solid';
@@ -103,6 +105,48 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => ({
 
   getOptionalQueryClientArgument() {
     return adapter.hasQueryV5 ? ', queryClient?: QueryClient' : '';
+  },
+
+  generateQueryArguments({
+    operationName,
+    definitions,
+    mutator,
+    isRequestOptions,
+    type,
+    queryParams,
+    queryParam,
+    initialData,
+    httpClient,
+  }) {
+    const prefix = adapter.getQueryOptionsDefinitionPrefix?.() ?? 'Use';
+    const definition = getQueryOptionsDefinition({
+      operationName,
+      mutator,
+      definitions,
+      type,
+      prefix,
+      hasQueryV5: adapter.hasQueryV5,
+      hasQueryV5WithInfiniteQueryOptionsError:
+        adapter.hasQueryV5WithInfiniteQueryOptionsError,
+      queryParams,
+      queryParam,
+      isReturnType: false,
+      initialData,
+    });
+
+    if (!isRequestOptions) {
+      return `${type ? 'queryOptions' : 'mutationOptions'}${
+        initialData === 'defined' ? '' : '?'
+      }: ${definition}`;
+    }
+
+    const requestType = getQueryArgumentsRequestType(httpClient, mutator);
+    const isQueryRequired = initialData === 'defined';
+    const optionsType = `{ ${
+      type ? 'query' : 'mutation'
+    }${isQueryRequired ? '' : '?'}:${definition}, ${requestType}}`;
+
+    return `options${isQueryRequired ? '' : '?'}: ${optionsType}\n`;
   },
 
   ...adapter,
