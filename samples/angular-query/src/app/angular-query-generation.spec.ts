@@ -15,6 +15,7 @@ import {
   getListPetsQueryOptions,
   injectListPets,
   getListPetsQueryKey,
+  uploadFormData,
 } from '../api/endpoints-no-transformer/pets/pets';
 
 import {
@@ -81,6 +82,13 @@ describe('Angular Query Generation - No Transformer (Native HttpClient)', () => 
     expect(options.queryKey).toBeDefined();
     expect(options.queryFn).toBeDefined();
     expect(typeof options.queryFn).toBe('function');
+  });
+
+  it('uploadFormData (native HttpClient) should pass formData to http.post, not the raw body', () => {
+    const fnSource = uploadFormData.toString();
+    expect(fnSource).toContain('new FormData()');
+    expect(fnSource).not.toMatch(/http\.post\([^)]*uploadFormDataBody/);
+    expect(fnSource).toMatch(/http\.post\([^,]+,\s*formData/);
   });
 });
 

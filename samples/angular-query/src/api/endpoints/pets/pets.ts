@@ -1098,7 +1098,7 @@ export const uploadFormData = (
   }
 
   const url = `/v${version}/pet/${petId}/uploadFormData`;
-  const request$ = http.post<void>(url, uploadFormDataBody);
+  const request$ = http.post<void>(url, formData);
   if (options?.signal) {
     return lastValueFrom(
       request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),

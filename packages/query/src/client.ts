@@ -188,9 +188,14 @@ export const generateAngularHttpRequestFunction = (
 
   // Build the HTTP method call
   let httpCall: string;
-  const bodyArg = body.definition
-    ? toObjectString([body], 'implementation').replace(/,\s*$/, '')
-    : '';
+  const bodyArg =
+    isFormData && body.formData
+      ? 'formData'
+      : isFormUrlEncoded && body.formUrlEncoded
+        ? 'formUrlEncoded'
+        : body.definition
+          ? toObjectString([body], 'implementation').replace(/,\s*$/, '')
+          : '';
 
   switch (verb) {
     case 'get':
