@@ -542,20 +542,7 @@ export default defineConfig({
       },
     },
   },
-  'branded-types-with-dates': {
-    input: {
-      target: '../specifications/branded-types.yaml',
-    },
-    output: {
-      target: '../generated/default/branded-types-with-dates/endpoints.ts',
-      schemas: '../generated/default/branded-types-with-dates/model',
-      override: {
-        useBrandedTypes: true,
-        useDates: true,
-      },
-    },
-  },
-  'branded-types-with-bigint': {
+  'branded-types-with-type-generation': {
     input: {
       target: '../specifications/branded-types.yaml',
     },
@@ -565,6 +552,20 @@ export default defineConfig({
       override: {
         useBrandedTypes: true,
         useBigInt: true,
+        useDates: true,
+      },
+    },
+  },
+  'branded-types-tags-split': {
+    input: {
+      target: '../specifications/branded-types.yaml',
+    },
+    output: {
+      target: '../generated/default/branded-types-tags-split/endpoints.ts',
+      schemas: '../generated/default/branded-types-tags-split/model',
+      mode: 'tags-split',
+      override: {
+        useBrandedTypes: true,
       },
     },
   },

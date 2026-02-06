@@ -397,4 +397,17 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  'branded-types': {
+    output: {
+      target: '../generated/fetch/branded-types/endpoints.ts',
+      schemas: '../generated/fetch/branded-types/model',
+      client: 'fetch',
+      override: {
+        useBrandedTypes: true,
+      },
+    },
+    input: {
+      target: '../specifications/branded-types.yaml',
+    },
+  },
 });
