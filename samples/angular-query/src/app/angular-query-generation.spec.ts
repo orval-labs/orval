@@ -24,6 +24,10 @@ import {
   getListPetsQueryKey as getListPetsQueryKeyCustom,
   ListPetsQueryError,
 } from '../api/endpoints-custom-instance/pets/pets';
+import {
+  uploadFormData as uploadFormDataCustom,
+  createPets as createPetsCustom,
+} from '../api/endpoints-custom-instance/pets/pets';
 
 // Note: responseType mutator is used by custom-instance, it receives http from generated code
 
@@ -239,5 +243,22 @@ describe('Angular Query Generation - Custom Instance (Custom Mutator)', () => {
 
     expect(query).toBeDefined();
     expect(query.status).toBeDefined();
+  });
+
+  it('uploadFormData (multipart/form-data) should NOT set Content-Type header in mutator config (#2845)', () => {
+    // Inspect the generated function source via toString().
+    // The browser must set Content-Type for multipart/form-data (to include the boundary).
+    // The generated mutator config must NOT explicitly set it.
+    const fnSource = uploadFormDataCustom.toString();
+    expect(fnSource).not.toContain('Content-Type');
+    expect(fnSource).not.toContain('multipart/form-data');
+    expect(fnSource).toContain('FormData');
+  });
+
+  it('createPets (application/json) should still set Content-Type header in mutator config', () => {
+    // application/json endpoints should still have Content-Type explicitly set
+    const fnSource = createPetsCustom.toString();
+    expect(fnSource).toContain('Content-Type');
+    expect(fnSource).toContain('application/json');
   });
 });
