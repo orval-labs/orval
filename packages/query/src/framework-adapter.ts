@@ -5,6 +5,7 @@ import type {
   GetterParams,
   GetterProp,
   GetterProps,
+  GetterQueryParam,
   OutputClient,
   OutputHttpClient,
 } from '@orval/core';
@@ -192,7 +193,7 @@ export interface FrameworkAdapter {
     mutator?: GeneratorMutator;
     isRequestOptions: boolean;
     type?: (typeof QueryType)[keyof typeof QueryType];
-    queryParams?: import('@orval/core').GetterQueryParam;
+    queryParams?: GetterQueryParam;
     queryParam?: string;
     initialData?: 'defined' | 'undefined';
     httpClient: OutputHttpClient;
@@ -233,7 +234,7 @@ export interface FrameworkAdapter {
 
   /** Map a prop to its representation in query properties (e.g., destructured for named path params or name) */
   getQueryPropertyForProp(
-    prop: import('@orval/core').GetterProp,
+    prop: GetterProp,
     body: { implementation: string },
   ): string;
 }
