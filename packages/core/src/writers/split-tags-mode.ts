@@ -185,17 +185,7 @@ export async function writeSplitTagsMode({
           implementationData += '\n';
         }
 
-        if (implementation.includes('Branded<')) {
-          implementationData += getBrandedHelperType();
-          implementationData += '\n';
-        }
-
         implementationData += `\n${implementation}`;
-
-        if (implementationMock.includes('Branded<')) {
-          mockData += getBrandedHelperType();
-          mockData += '\n';
-        }
 
         mockData += `\n${implementationMock}`;
 

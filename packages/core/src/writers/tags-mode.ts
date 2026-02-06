@@ -162,14 +162,6 @@ export async function writeTagsMode({
           data += '\n';
         }
 
-        if (
-          implementation.includes('Branded<') ||
-          implementationMock.includes('Branded<')
-        ) {
-          data += getBrandedHelperType();
-          data += '\n';
-        }
-
         data += implementation;
 
         if (output.mock) {

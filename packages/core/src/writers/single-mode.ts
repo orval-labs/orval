@@ -138,12 +138,11 @@ export async function writeSingleMode({
       data += '\n';
     }
 
-    if (builder.brandedTypes?.size) {
-      data += getBrandedHelperType();
-      data += '\n';
-    }
-
     if (!output.schemas && needSchema) {
+      if (builder.brandedTypes?.size) {
+        data += getBrandedHelperType();
+        data += '\n';
+      }
       data += generateModelsInline(builder.schemas);
     }
 
