@@ -333,6 +333,26 @@ export const getUploadFileMockHandler = (
   );
 };
 
+export const getUploadFormDataMockHandler = (
+  overrideResponse?:
+    | void
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0],
+      ) => Promise<void> | void),
+  options?: RequestHandlerOptions,
+) => {
+  return http.post(
+    '*/v:version/pet/:petId/uploadFormData',
+    async (info) => {
+      if (typeof overrideResponse === 'function') {
+        await overrideResponse(info);
+      }
+      return new HttpResponse(null, { status: 200 });
+    },
+    options,
+  );
+};
+
 export const getDownloadFileMockHandler = (
   overrideResponse?:
     | Blob
@@ -392,6 +412,7 @@ export const getPetsMock = () => [
   getPatchPetMockHandler(),
   getShowPetTextMockHandler(),
   getUploadFileMockHandler(),
+  getUploadFormDataMockHandler(),
   getDownloadFileMockHandler(),
   getHealthCheckMockHandler(),
 ];
