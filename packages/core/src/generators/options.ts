@@ -309,7 +309,11 @@ export function generateMutatorConfig({
     queryParams,
   );
 
-  const headerOptions = body.contentType
+  const ignoreContentTypes = ['multipart/form-data'];
+  const shouldSetContentType =
+    body.contentType && !ignoreContentTypes.includes(body.contentType);
+
+  const headerOptions = shouldSetContentType
     ? `,\n      headers: {'Content-Type': '${body.contentType}', ${
         headers ? '...headers' : ''
       }}`
