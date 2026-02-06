@@ -1,16 +1,9 @@
 import {
   type GeneratorOptions,
   type GeneratorVerbOptions,
-  getRouteAsArray,
-  type GetterParams,
-  type GetterProp,
-  type GetterProps,
-  GetterPropType,
-  isObject,
   OutputClient,
   OutputHttpClient,
   pascal,
-  toObjectString,
 } from '@orval/core';
 import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
 
@@ -19,12 +12,10 @@ import {
   getQueryArgumentsRequestType,
 } from '../client';
 import type {
-  FrameworkAdapter,
+  FrameworkAdapterConfig,
   MutationHookBodyContext,
   MutationOnSuccessContext,
   MutationReturnTypeContext,
-  QueryInitContext,
-  QueryInvocationContext,
   QueryReturnStatementContext,
   QueryReturnTypeContext,
 } from '../framework-adapter';
@@ -38,52 +29,12 @@ export const createReactAdapter = ({
   hasQueryV5: boolean;
   hasQueryV5WithDataTagError: boolean;
   hasQueryV5WithInfiniteQueryOptionsError: boolean;
-}): FrameworkAdapter => ({
+}): FrameworkAdapterConfig => ({
   outputClient: OutputClient.REACT_QUERY,
   hookPrefix: 'use',
-  isAngularHttp: false,
   hasQueryV5,
   hasQueryV5WithDataTagError,
   hasQueryV5WithInfiniteQueryOptionsError,
-
-  transformProps(props: GetterProps): GetterProps {
-    return props;
-  },
-
-  getHookPropsDefinitions(props: GetterProps): string {
-    return toObjectString(props, 'implementation');
-  },
-
-  shouldDestructureNamedPathParams(): boolean {
-    return true;
-  },
-
-  getHttpFunctionQueryProps(
-    queryProperties: string,
-    _httpClient: OutputHttpClient,
-  ): string {
-    return queryProperties;
-  },
-
-  getHttpFirstParam(): string {
-    return '';
-  },
-
-  getMutationHttpPrefix(): string {
-    return '';
-  },
-
-  getInfiniteQueryHttpProps(props: GetterProps, queryParam: string): string {
-    return props
-      .map((param) => {
-        if (param.type === GetterPropType.NAMED_PATH_PARAMS)
-          return param.destructured;
-        return param.name === 'params'
-          ? `{...params, '${queryParam}': pageParam || params?.['${queryParam}']}`
-          : param.name;
-      })
-      .join(',');
-  },
 
   getQueryReturnType({
     type,
@@ -113,67 +64,8 @@ export const createReactAdapter = ({
     return `return { ...${queryResultVarName}, queryKey: ${queryOptionsVarName}.queryKey };`;
   },
 
-  getQueryKeyRouteString(route: string, shouldSplitQueryKey: boolean): string {
-    if (shouldSplitQueryKey) {
-      return getRouteAsArray(route);
-    }
-    return `\`${route}\``;
-  },
-
-  shouldAnnotateQueryKey(): boolean {
-    return true;
-  },
-
-  getUnrefStatements(): string {
-    return '';
-  },
-
-  generateQueryInit({
-    queryOptionsFnName,
-    queryProperties,
-    isRequestOptions,
-  }: QueryInitContext): string {
-    const queryOptionsVarName = isRequestOptions ? 'queryOptions' : 'options';
-    return `const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
-      queryProperties ? ',' : ''
-    }${isRequestOptions ? 'options' : 'queryOptions'})`;
-  },
-
-  generateQueryInvocationArgs({
-    queryOptionsVarName,
-    optionalQueryClientArgument,
-  }: QueryInvocationContext): string {
-    return `${queryOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''}`;
-  },
-
-  getQueryInvocationSuffix(): string {
-    return '';
-  },
-
   shouldGenerateOverrideTypes(): boolean {
     return hasQueryV5;
-  },
-
-  getOptionalQueryClientArgument(): string {
-    return hasQueryV5 ? ', queryClient?: QueryClient' : '';
-  },
-
-  getQueryOptionsDefinitionPrefix(): string {
-    return 'Use';
-  },
-
-  generateEnabledOption(
-    params: GetterParams,
-    options?: object | boolean,
-  ): string {
-    if (!isObject(options) || !Object.hasOwn(options, 'enabled')) {
-      return `enabled: !!(${params.map(({ name }) => name).join(' && ')}),`;
-    }
-    return '';
-  },
-
-  getQueryKeyPrefix(): string {
-    return 'queryOptions?.queryKey ?? ';
   },
 
   generateQueryArguments({
@@ -251,10 +143,6 @@ ${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
     return `      ${hasInvalidation ? `const backupQueryClient = useQueryClient();\n      ` : ''}return ${operationPrefix}Mutation(${mutationImplementation}${optionalQueryClientArgument ? `, queryClient` : ''});`;
   },
 
-  getQueryType(type: string): string {
-    return type;
-  },
-
   generateRequestFunction(
     verbOptions: GeneratorVerbOptions,
     options: GeneratorOptions,
@@ -262,14 +150,5 @@ ${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
     return options.context.output.httpClient === OutputHttpClient.AXIOS
       ? generateAxiosRequestFunction(verbOptions, options, false)
       : generateFetchRequestFunction(verbOptions, options);
-  },
-
-  getQueryPropertyForProp(
-    prop: GetterProp,
-    body: { implementation: string },
-  ): string {
-    if (prop.type === GetterPropType.NAMED_PATH_PARAMS)
-      return prop.destructured;
-    return prop.type === GetterPropType.BODY ? body.implementation : prop.name;
   },
 });

@@ -6,6 +6,7 @@ import type {
   GetterProp,
   GetterProps,
   OutputClient,
+  OutputHttpClient,
 } from '@orval/core';
 
 import type { QueryType } from './query-options';
@@ -112,7 +113,7 @@ export interface FrameworkAdapter {
   /** Transform query properties for the HTTP function call (Vue: unref, Angular: prefix http) */
   getHttpFunctionQueryProps(
     queryProperties: string,
-    httpClient: import('@orval/core').OutputHttpClient,
+    httpClient: OutputHttpClient,
     hasMutator: boolean,
   ): string;
 
@@ -236,3 +237,34 @@ export interface FrameworkAdapter {
     body: { implementation: string },
   ): string;
 }
+
+/** Fields that have factory defaults in withDefaults(), so adapters only override what differs. */
+type DefaultableFields =
+  | 'isAngularHttp'
+  | 'getHttpFirstParam'
+  | 'getMutationHttpPrefix'
+  | 'getUnrefStatements'
+  | 'getQueryInvocationSuffix'
+  | 'transformProps'
+  | 'shouldDestructureNamedPathParams'
+  | 'shouldAnnotateQueryKey'
+  | 'shouldGenerateOverrideTypes'
+  | 'getHttpFunctionQueryProps'
+  | 'getQueryType'
+  | 'getQueryKeyPrefix'
+  | 'getQueryOptionsDefinitionPrefix'
+  | 'getHookPropsDefinitions'
+  | 'getQueryKeyRouteString'
+  | 'generateEnabledOption'
+  | 'getQueryPropertyForProp'
+  | 'getInfiniteQueryHttpProps'
+  | 'generateQueryInit'
+  | 'generateQueryInvocationArgs'
+  | 'getOptionalQueryClientArgument';
+
+/**
+ * Adapter config type — adapters implement this. The factory fills in
+ * defaults for DefaultableFields, so adapters only override what they need.
+ */
+export type FrameworkAdapterConfig = Omit<FrameworkAdapter, DefaultableFields> &
+  Partial<Pick<FrameworkAdapter, DefaultableFields>>;

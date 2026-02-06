@@ -2,13 +2,11 @@ import {
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
-  getRouteAsArray,
   type GetterParams,
-  type GetterProp,
   type GetterProps,
   GetterPropType,
-  isObject,
   OutputClient,
+  type OutputHttpClient,
   toObjectString,
 } from '@orval/core';
 
@@ -17,7 +15,7 @@ import {
   getQueryArgumentsRequestType,
 } from '../client';
 import type {
-  FrameworkAdapter,
+  FrameworkAdapterConfig,
   MutationHookBodyContext,
   MutationOnSuccessContext,
   MutationReturnTypeContext,
@@ -37,21 +35,14 @@ export const createAngularAdapter = ({
   hasQueryV5: boolean;
   hasQueryV5WithDataTagError: boolean;
   hasQueryV5WithInfiniteQueryOptionsError: boolean;
-}): FrameworkAdapter => {
-  // Always true for the Angular adapter (outputClient is ANGULAR_QUERY)
-  const _isAngularHttp = true;
-
+}): FrameworkAdapterConfig => {
   return {
     outputClient: OutputClient.ANGULAR_QUERY,
     hookPrefix: 'inject',
-    isAngularHttp: _isAngularHttp,
+    isAngularHttp: true,
     hasQueryV5,
     hasQueryV5WithDataTagError,
     hasQueryV5WithInfiniteQueryOptionsError,
-
-    transformProps(props: GetterProps): GetterProps {
-      return props;
-    },
 
     getHookPropsDefinitions(props: GetterProps): string {
       // Angular: allow params to be a getter function for reactive signal support
@@ -73,18 +64,14 @@ export const createAngularAdapter = ({
       );
     },
 
-    shouldDestructureNamedPathParams(): boolean {
-      return true;
-    },
-
     getHttpFunctionQueryProps(
       queryProperties: string,
-      _httpClient: import('@orval/core').OutputHttpClient,
+      _httpClient: OutputHttpClient,
       hasMutator: boolean,
     ): string {
-      // For Angular, prefix with http since request functions take HttpClient as first param
+      // Prefix with http since request functions take HttpClient as first param
       // Skip when custom mutator is used
-      if (_isAngularHttp && !hasMutator) {
+      if (!hasMutator) {
         return queryProperties ? `http, ${queryProperties}` : 'http';
       }
       return queryProperties;
@@ -105,9 +92,9 @@ export const createAngularAdapter = ({
         })
         .join(',');
 
-      // For Angular with infinite queries, prefix with http
+      // Prefix with http for infinite queries
       // Skip when custom mutator is used
-      if (_isAngularHttp && !hasMutator) {
+      if (!hasMutator) {
         result = result ? `http, ${result}` : 'http';
       }
 
@@ -115,14 +102,14 @@ export const createAngularAdapter = ({
     },
 
     getHttpFirstParam(mutator?: GeneratorMutator): string {
-      if (_isAngularHttp && (!mutator || mutator.hasSecondArg)) {
+      if (!mutator || mutator.hasSecondArg) {
         return 'http: HttpClient, ';
       }
       return '';
     },
 
     getMutationHttpPrefix(mutator?: GeneratorMutator): string {
-      if (_isAngularHttp && !mutator) {
+      if (!mutator) {
         return 'http, ';
       }
       return '';
@@ -153,23 +140,9 @@ export const createAngularAdapter = ({
       return `return ${queryResultVarName};`;
     },
 
-    getQueryKeyRouteString(
-      route: string,
-      shouldSplitQueryKey: boolean,
-    ): string {
-      if (shouldSplitQueryKey) {
-        return getRouteAsArray(route);
-      }
-      return `\`${route}\``;
-    },
-
     shouldAnnotateQueryKey(): boolean {
       // Angular skips DataTag annotation
       return false;
-    },
-
-    getUnrefStatements(): string {
-      return '';
     },
 
     generateQueryInit({ mutator }: QueryInitContext): string {
@@ -200,14 +173,6 @@ export const createAngularAdapter = ({
   }`;
     },
 
-    getQueryInvocationSuffix(): string {
-      return '';
-    },
-
-    shouldGenerateOverrideTypes(): boolean {
-      return false;
-    },
-
     getOptionalQueryClientArgument(): string {
       // Angular never has optional queryClient argument (it injects it)
       return '';
@@ -215,20 +180,6 @@ export const createAngularAdapter = ({
 
     getQueryOptionsDefinitionPrefix(): string {
       return 'Create';
-    },
-
-    generateEnabledOption(
-      params: GetterParams,
-      options?: object | boolean,
-    ): string {
-      if (!isObject(options) || !Object.hasOwn(options, 'enabled')) {
-        return `enabled: !!(${params.map(({ name }) => name).join(' && ')}),`;
-      }
-      return '';
-    },
-
-    getQueryKeyPrefix(): string {
-      return 'queryOptions?.queryKey ?? ';
     },
 
     generateQueryArguments({
@@ -314,7 +265,7 @@ ${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
       mutator,
       hasInvalidation,
     }: MutationHookBodyContext): string {
-      if (_isAngularHttp && (!mutator || mutator.hasSecondArg)) {
+      if (!mutator || mutator.hasSecondArg) {
         return `      const http = inject(HttpClient);${hasInvalidation ? '\n      const queryClient = inject(QueryClient);' : ''}
       const ${mutationOptionsVarName} = ${mutationOptionsFnName}(http${hasInvalidation ? ', queryClient' : ''}${isRequestOptions ? ', options' : ', mutationOptions'});
 
@@ -338,17 +289,6 @@ ${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
       options: GeneratorOptions,
     ): string {
       return generateAngularHttpRequestFunction(verbOptions, options);
-    },
-
-    getQueryPropertyForProp(
-      prop: GetterProp,
-      body: { implementation: string },
-    ): string {
-      if (prop.type === GetterPropType.NAMED_PATH_PARAMS)
-        return prop.destructured;
-      return prop.type === GetterPropType.BODY
-        ? body.implementation
-        : prop.name;
     },
   };
 };

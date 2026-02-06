@@ -10,7 +10,6 @@ import {
   OutputClient,
   OutputHttpClient,
   pascal,
-  toObjectString,
 } from '@orval/core';
 import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
 
@@ -19,11 +18,9 @@ import {
   getQueryArgumentsRequestType,
 } from '../client';
 import type {
-  FrameworkAdapter,
+  FrameworkAdapterConfig,
   MutationHookBodyContext,
   MutationReturnTypeContext,
-  QueryInitContext,
-  QueryInvocationContext,
   QueryReturnStatementContext,
   QueryReturnTypeContext,
 } from '../framework-adapter';
@@ -40,20 +37,15 @@ export const createVueAdapter = ({
   hasQueryV5: boolean;
   hasQueryV5WithDataTagError: boolean;
   hasQueryV5WithInfiniteQueryOptionsError: boolean;
-}): FrameworkAdapter => ({
+}): FrameworkAdapterConfig => ({
   outputClient: OutputClient.VUE_QUERY,
   hookPrefix: 'use',
-  isAngularHttp: false,
   hasQueryV5,
   hasQueryV5WithDataTagError,
   hasQueryV5WithInfiniteQueryOptionsError,
 
   transformProps(props: GetterProps): GetterProps {
     return vueWrapTypeWithMaybeRef(props);
-  },
-
-  getHookPropsDefinitions(props: GetterProps): string {
-    return toObjectString(props, 'implementation');
   },
 
   shouldDestructureNamedPathParams(): boolean {
@@ -73,14 +65,6 @@ export const createVueAdapter = ({
         .join(',');
     }
     return queryProperties;
-  },
-
-  getHttpFirstParam(): string {
-    return '';
-  },
-
-  getMutationHttpPrefix(): string {
-    return '';
   },
 
   getInfiniteQueryHttpProps(props: GetterProps, queryParam: string): string {
@@ -146,40 +130,6 @@ export const createVueAdapter = ({
     return vueUnRefParams(
       props.filter((prop) => prop.type === GetterPropType.NAMED_PATH_PARAMS),
     );
-  },
-
-  generateQueryInit({
-    queryOptionsFnName,
-    queryProperties,
-    isRequestOptions,
-  }: QueryInitContext): string {
-    const queryOptionsVarName = isRequestOptions ? 'queryOptions' : 'options';
-    return `const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
-      queryProperties ? ',' : ''
-    }${isRequestOptions ? 'options' : 'queryOptions'})`;
-  },
-
-  generateQueryInvocationArgs({
-    queryOptionsVarName,
-    optionalQueryClientArgument,
-  }: QueryInvocationContext): string {
-    return `${queryOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''}`;
-  },
-
-  getQueryInvocationSuffix(): string {
-    return '';
-  },
-
-  shouldGenerateOverrideTypes(): boolean {
-    return false;
-  },
-
-  getOptionalQueryClientArgument(): string {
-    return hasQueryV5 ? ', queryClient?: QueryClient' : '';
-  },
-
-  getQueryOptionsDefinitionPrefix(): string {
-    return 'Use';
   },
 
   generateEnabledOption(
@@ -262,10 +212,6 @@ export const createVueAdapter = ({
     optionalQueryClientArgument,
   }: MutationHookBodyContext): string {
     return `      return ${operationPrefix}Mutation(${mutationImplementation}${optionalQueryClientArgument ? `, queryClient` : ''});`;
-  },
-
-  getQueryType(type: string): string {
-    return type;
   },
 
   generateRequestFunction(
