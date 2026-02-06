@@ -39,6 +39,7 @@ export const createSolidAdapter = ({
 }): FrameworkAdapter => ({
   outputClient: OutputClient.SOLID_QUERY,
   hookPrefix: 'create',
+  isAngularHttp: false,
   hasQueryV5,
   hasQueryV5WithDataTagError,
   hasQueryV5WithInfiniteQueryOptionsError,
@@ -55,8 +56,19 @@ export const createSolidAdapter = ({
     return true;
   },
 
-  getHttpFunctionQueryProps(queryProperties: string): string {
+  getHttpFunctionQueryProps(
+    queryProperties: string,
+    _httpClient: OutputHttpClient,
+  ): string {
     return queryProperties;
+  },
+
+  getHttpFirstParam(): string {
+    return '';
+  },
+
+  getMutationHttpPrefix(): string {
+    return '';
   },
 
   getInfiniteQueryHttpProps(props: GetterProps, queryParam: string): string {

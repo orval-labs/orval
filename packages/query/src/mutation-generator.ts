@@ -6,7 +6,7 @@ import {
   type GeneratorVerbOptions,
   GetterPropType,
   type InvalidateTarget,
-  OutputHttpClient,
+  type OutputHttpClient,
   pascal,
 } from '@orval/core';
 
@@ -60,7 +60,6 @@ export interface MutationHookContext {
   isRequestOptions: boolean;
   httpClient: OutputHttpClient;
   doc: string;
-  isAngularHttp: boolean;
   adapter: FrameworkAdapter;
 }
 
@@ -70,7 +69,6 @@ export const generateMutationHook = async ({
   isRequestOptions,
   httpClient,
   doc,
-  isAngularHttp,
   adapter,
 }: MutationHookContext): Promise<{
   implementation: string;
@@ -182,10 +180,7 @@ export const generateMutationHook = async ({
 
   // For Angular, add http: HttpClient as FIRST param (required, before optional params)
   // This avoids TS1016 "required param cannot follow optional param"
-  const httpFirstParam =
-    isAngularHttp && (!mutator || mutator.hasSecondArg)
-      ? 'http: HttpClient, '
-      : '';
+  const httpFirstParam = adapter.getHttpFirstParam(mutator);
 
   // For Angular/React mutations with invalidation, add queryClient as second required param
   const queryClientParam = hasInvalidation ? 'queryClient: QueryClient, ' : '';
@@ -207,7 +202,7 @@ ${hooksOptionImplementation}
       }> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props ?? {};` : ''}
 
-          return  ${operationName}(${isAngularHttp && !mutator ? 'http, ' : ''}${properties}${
+          return  ${operationName}(${adapter.getMutationHttpPrefix(mutator)}${properties}${
             properties ? ',' : ''
           }${getMutationRequestArgs(isRequestOptions, httpClient, mutator)})
         }
@@ -272,7 +267,6 @@ ${
     mutationImplementation,
     mutationOptionsVarName,
     isRequestOptions,
-    isAngularHttp,
     mutator,
     hasInvalidation,
     optionalQueryClientArgument,

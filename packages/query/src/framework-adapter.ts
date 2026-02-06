@@ -6,7 +6,6 @@ import type {
   GetterProp,
   GetterProps,
   OutputClient,
-  OutputHttpClient,
 } from '@orval/core';
 
 import type { QueryType } from './query-options';
@@ -72,7 +71,6 @@ export interface MutationHookBodyContext {
   mutationImplementation: string;
   mutationOptionsVarName: string;
   isRequestOptions: boolean;
-  isAngularHttp: boolean;
   mutator?: GeneratorMutator;
   hasInvalidation: boolean;
   optionalQueryClientArgument: string;
@@ -88,6 +86,8 @@ export interface FrameworkAdapter {
   readonly outputClient: OutputClient;
   /** 'use' | 'inject' | 'create' */
   readonly hookPrefix: string;
+  /** Whether the Angular HttpClient is used (Angular adapter only) */
+  readonly isAngularHttp: boolean;
 
   // --- Feature Flags (resolved from packageJson + config) ---
   readonly hasQueryV5: boolean;
@@ -112,8 +112,7 @@ export interface FrameworkAdapter {
   /** Transform query properties for the HTTP function call (Vue: unref, Angular: prefix http) */
   getHttpFunctionQueryProps(
     queryProperties: string,
-    httpClient: OutputHttpClient,
-    isAngularHttp: boolean,
+    httpClient: import('@orval/core').OutputHttpClient,
     hasMutator: boolean,
   ): string;
 
@@ -121,9 +120,14 @@ export interface FrameworkAdapter {
   getInfiniteQueryHttpProps(
     props: GetterProps,
     queryParam: string,
-    isAngularHttp: boolean,
     hasMutator: boolean,
   ): string;
+
+  /** Angular: 'http: HttpClient, ' when isAngularHttp && (!mutator || mutator.hasSecondArg). Others: '' */
+  getHttpFirstParam(mutator?: GeneratorMutator): string;
+
+  /** Angular: 'http, ' when isAngularHttp && !mutator. Others: '' */
+  getMutationHttpPrefix(mutator?: GeneratorMutator): string;
 
   // --- Return Types ---
   getQueryReturnType(context: QueryReturnTypeContext): string;

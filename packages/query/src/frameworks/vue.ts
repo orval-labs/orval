@@ -43,6 +43,7 @@ export const createVueAdapter = ({
 }): FrameworkAdapter => ({
   outputClient: OutputClient.VUE_QUERY,
   hookPrefix: 'use',
+  isAngularHttp: false,
   hasQueryV5,
   hasQueryV5WithDataTagError,
   hasQueryV5WithInfiniteQueryOptionsError,
@@ -72,6 +73,14 @@ export const createVueAdapter = ({
         .join(',');
     }
     return queryProperties;
+  },
+
+  getHttpFirstParam(): string {
+    return '';
+  },
+
+  getMutationHttpPrefix(): string {
+    return '';
   },
 
   getInfiniteQueryHttpProps(props: GetterProps, queryParam: string): string {

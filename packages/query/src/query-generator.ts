@@ -11,9 +11,9 @@ import {
   type GetterQueryParam,
   type GetterResponse,
   jsDoc,
-  OutputClient,
+  type OutputClient,
   type OutputClientFunc,
-  OutputHttpClient,
+  type OutputHttpClient,
   pascal,
   toObjectString,
   Verbs,
@@ -197,23 +197,9 @@ const generateQueryImplementation = ({
 
   const hasInfiniteQueryParam = queryParam && queryParams?.schema.name;
 
-  const isAngularHttp =
-    adapter.outputClient === OutputClient.ANGULAR_QUERY ||
-    httpClient === OutputHttpClient.ANGULAR;
-
   const httpFunctionProps = queryParam
-    ? adapter.getInfiniteQueryHttpProps(
-        props,
-        queryParam,
-        isAngularHttp,
-        !!mutator,
-      )
-    : adapter.getHttpFunctionQueryProps(
-        queryProperties,
-        httpClient,
-        isAngularHttp,
-        !!mutator,
-      );
+    ? adapter.getInfiniteQueryHttpProps(props, queryParam, !!mutator)
+    : adapter.getHttpFunctionQueryProps(queryProperties, httpClient, !!mutator);
 
   const definedInitialDataReturnType = adapter.getQueryReturnType({
     type,
@@ -355,10 +341,7 @@ const generateQueryImplementation = ({
 
   // For Angular, add http: HttpClient as FIRST param (required, before optional params)
   // This avoids TS1016 "required param cannot follow optional param"
-  const httpFirstParam =
-    isAngularHttp && (!mutator || mutator.hasSecondArg)
-      ? 'http: HttpClient, '
-      : '';
+  const httpFirstParam = adapter.getHttpFirstParam(mutator);
 
   const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${httpFirstParam}${queryProps} ${queryArgumentsForOptions}) => {
 
@@ -559,9 +542,6 @@ export const generateQueryHook = async (
   const { hasQueryV5 } = adapter;
 
   const httpClient = context.output.httpClient;
-  const isAngularHttp =
-    adapter.outputClient === OutputClient.ANGULAR_QUERY ||
-    httpClient === OutputHttpClient.ANGULAR;
   const doc = jsDoc({ summary, deprecated });
 
   let implementation = '';
@@ -807,7 +787,6 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
       isRequestOptions,
       httpClient,
       doc,
-      isAngularHttp,
       adapter,
     });
 
