@@ -5,6 +5,8 @@ import {
   generateVerbImports,
   mergeDeep,
   type NormalizedOutputOptions,
+  OutputHttpClient,
+  OutputHttpClientInjection,
   type QueryOptions,
 } from '@orval/core';
 
@@ -27,6 +29,37 @@ export {
   getVueQueryDependencies,
 } from './dependencies';
 
+const getHttpClientInjectionHelpers = (params: Parameters<ClientHeaderBuilder>[0]): string => {
+  const isReactQueryMeta =
+    params.output.httpClientInjection === OutputHttpClientInjection.REACT_QUERY_META;
+  const isAxios = params.output.httpClient === OutputHttpClient.AXIOS;
+
+  if (!isReactQueryMeta || !isAxios) {
+    return '';
+  }
+
+  return `
+const getQueryAxiosInstance = (queryClient: QueryClient): AxiosInstance => {
+  try {
+    const instance = queryClient.getDefaultOptions()?.queries?.meta?.axiosInstance;
+    return (instance as AxiosInstance) ?? axios.default;
+  } catch {
+    return axios.default;
+  }
+};
+
+const getMutationAxiosInstance = (queryClient: QueryClient): AxiosInstance => {
+  try {
+    const instance = queryClient.getDefaultOptions()?.mutations?.meta?.axiosInstance;
+    return (instance as AxiosInstance) ?? axios.default;
+  } catch {
+    return axios.default;
+  }
+};
+
+`;
+};
+
 export const generateQueryHeader: ClientHeaderBuilder = (params) => {
   return `${
     params.hasAwaitedType
@@ -39,6 +72,7 @@ ${
     ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
     : ''
 }
+${getHttpClientInjectionHelpers(params)}
 ${getQueryHeader(params)}
 `;
 };

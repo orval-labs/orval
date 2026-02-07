@@ -128,6 +128,61 @@ export default defineConfig({
 });
 ```
 
+## Axios Instance Injection
+
+Use `httpClientInjection: 'reactQueryMeta'` to inject a configured axios instance at runtime via the QueryClient. This is useful when publishing generated code as an NPM package — consumers provide their own axios with interceptors, auth, and base URL.
+
+In your `orval.config.ts`:
+
+```ts
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+      httpClient: 'axios',
+      httpClientInjection: 'reactQueryMeta',
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+In your app entry point:
+
+```tsx
+import axios from 'axios';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useListPets } from './api/endpoints/petstore';
+
+const axiosInstance = axios.create({ baseURL: 'https://api.example.com' });
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { meta: { axiosInstance } },
+    mutations: { meta: { axiosInstance } },
+  },
+});
+
+function Pets() {
+  const { data } = useListPets();
+  return <ul>{data?.map((pet) => <li key={pet.id}>{pet.name}</li>)}</ul>;
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Pets />
+    </QueryClientProvider>
+  );
+}
+```
+
+The generated hooks are SSR-compatible — prefetch works out of the box with `dehydrate()`. See the [complete example](https://github.com/orval-labs/orval/blob/master/samples/react-query/queryclient-meta).
+
 ## Full Example
 
 See the [complete React Query example](https://github.com/orval-labs/orval/blob/master/samples/react-query/basic) on GitHub.

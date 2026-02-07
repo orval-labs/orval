@@ -89,6 +89,7 @@ export const generateClientImports: GeneratorClientImports = ({
             output.httpClient,
             hasTagsMutator,
             output.override,
+            output.httpClientInjection,
           ),
           ...imports,
         ]

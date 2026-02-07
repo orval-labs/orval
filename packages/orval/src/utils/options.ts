@@ -32,6 +32,7 @@ import {
   type OptionsExport,
   OutputClient,
   OutputHttpClient,
+  OutputHttpClientInjection,
   OutputMode,
   type OverrideOutput,
   PropertySortOrder,
@@ -132,7 +133,7 @@ export async function normalizeOptions(
     workspace,
   );
 
-  const { clean, prettier, client, httpClient, mode, biome } = globalOptions;
+  const { clean, prettier, client, httpClient, httpClientInjection, mode, biome } = globalOptions;
 
   const tsconfig = await loadTsconfig(
     outputOptions.tsconfig || globalOptions.tsconfig,
@@ -206,6 +207,10 @@ export async function normalizeOptions(
         ((outputOptions.client ?? client) === OutputClient.ANGULAR_QUERY
           ? OutputHttpClient.ANGULAR
           : OutputHttpClient.FETCH),
+      httpClientInjection:
+        outputOptions.httpClientInjection ??
+        httpClientInjection ??
+        OutputHttpClientInjection.NONE,
       mode: normalizeOutputMode(outputOptions.mode ?? mode),
       mock,
       clean: outputOptions.clean ?? clean ?? false,
@@ -403,6 +408,20 @@ export async function normalizeOptions(
 
   if (!normalizedOptions.output.target && !normalizedOptions.output.schemas) {
     throw new Error(chalk.red(`Config require an output target or schemas`));
+  }
+
+  // Validate that httpClientInjection: 'reactQueryMeta' is not used with custom mutator
+  if (
+    normalizedOptions.output.httpClientInjection ===
+      OutputHttpClientInjection.REACT_QUERY_META &&
+    normalizedOptions.output.override?.mutator
+  ) {
+    throw new Error(
+      chalk.red(
+        `httpClientInjection: "reactQueryMeta" is incompatible with custom mutator. ` +
+          `The mutator handles the HTTP client internally, so axios injection via QueryClient meta is not supported.`,
+      ),
+    );
   }
 
   return normalizedOptions;

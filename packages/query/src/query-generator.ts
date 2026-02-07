@@ -15,6 +15,7 @@ import {
   OutputClient,
   type OutputClientFunc,
   OutputHttpClient,
+  OutputHttpClientInjection,
   pascal,
   toObjectString,
   Verbs,
@@ -99,6 +100,7 @@ const generatePrefetch = ({
   queryOptionsFnName,
   queryProperties,
   isRequestOptions,
+  isReactQueryMeta,
 }: {
   operationName: string;
   mutator?: GeneratorMutator;
@@ -115,6 +117,7 @@ const generatePrefetch = ({
   queryOptionsFnName: string;
   queryProperties: string;
   isRequestOptions: boolean;
+  isReactQueryMeta?: boolean;
 }) => {
   const shouldGeneratePrefetch =
     usePrefetch &&
@@ -133,13 +136,17 @@ const generatePrefetch = ({
       : 'infinite-query';
   const prefetchFnName = camel(`prefetch-${prefetchType}`);
 
+  // For reactQueryMeta mode (without mutator), pass queryClient to queryOptionsFnName
+  const queryClientArg =
+    isReactQueryMeta && !mutator ? 'queryClient, ' : '';
+
   if (mutator?.isHook) {
     const prefetchVarName = camel(
       `use-prefetch-${operationName}-${prefetchType}`,
     );
     return `${doc}export const ${prefetchVarName} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(${queryProps} ${queryArguments}) => {
   const queryClient = useQueryClient();
-  const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
+  const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryClientArg}${queryProperties}${
     queryProperties ? ',' : ''
   }${isRequestOptions ? 'options' : 'queryOptions'})
   return useCallback(async (): Promise<QueryClient> => {
@@ -151,7 +158,7 @@ const generatePrefetch = ({
     const prefetchVarName = camel(`prefetch-${operationName}-${prefetchType}`);
     return `${doc}export const ${prefetchVarName} = async <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n queryClient: QueryClient, ${queryProps} ${queryArguments}\n  ): Promise<QueryClient> => {
 
-  const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
+  const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryClientArg}${queryProperties}${
     queryProperties ? ',' : ''
   }${isRequestOptions ? 'options' : 'queryOptions'})
 
@@ -191,6 +198,7 @@ const generateQueryImplementation = ({
   useQuery,
   useInfinite,
   useInvalidate,
+  isReactQueryMeta,
 }: {
   queryOption: {
     name: string;
@@ -226,6 +234,7 @@ const generateQueryImplementation = ({
   useQuery?: boolean;
   useInfinite?: boolean;
   useInvalidate?: boolean;
+  isReactQueryMeta?: boolean;
 }) => {
   // Check if API has a param named "signal" to avoid conflict with AbortSignal
   const hasSignalParam = props.some(
@@ -483,12 +492,16 @@ const generateQueryImplementation = ({
 
   // For Angular, add http: HttpClient as FIRST param (required, before optional params)
   // This avoids TS1016 "required param cannot follow optional param"
+  // For reactQueryMeta mode, add queryClient: QueryClient as FIRST param
   const httpFirstParam =
     isAngularHttp && (!mutator || mutator.hasSecondArg)
       ? 'http: HttpClient, '
       : '';
 
-  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${httpFirstParam}${queryProps} ${queryArgumentsForOptions}) => {
+  const queryClientFirstParam =
+    isReactQueryMeta && !mutator ? 'queryClient: QueryClient, ' : '';
+
+  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${httpFirstParam}${queryClientFirstParam}${queryProps} ${queryArgumentsForOptions}) => {
 
 ${hookOptions}
 
@@ -518,9 +531,18 @@ ${hookOptions}
       hasQueryV5 && hasInfiniteQueryParam
         ? `, QueryKey, ${queryParams.schema.name}['${queryParam}']`
         : ''
-    }> = (${queryFnArguments}) => ${operationName}(${httpFunctionProps}${
-      httpFunctionProps ? ', ' : ''
-    }${queryOptions});
+    }> = (${queryFnArguments}) => {${
+      isReactQueryMeta && !mutator
+        ? `
+      const axiosInstance = getQueryAxiosInstance(queryClient);
+      return ${operationName}(axiosInstance, ${httpFunctionProps}${
+          httpFunctionProps ? ', ' : ''
+        }${queryOptions});
+    }`
+        : ` return ${operationName}(${httpFunctionProps}${
+            httpFunctionProps ? ', ' : ''
+          }${queryOptions}); }`
+    }
 
       ${
         isVue(outputClient)
@@ -559,11 +581,16 @@ ${hookOptions}
     isAngular(outputClient),
     isSolid(outputClient),
   );
-  const optionalQueryClientArgument = hasSvelteQueryV6
-    ? `, queryClient?: () => QueryClient`
-    : hasQueryV5 && !isAngular(outputClient)
-      ? ', queryClient?: QueryClient'
-      : '';
+  // For reactQueryMeta mode (without mutator), we use useQueryClient() internally,
+  // so we don't add the optional queryClient parameter to avoid duplicate identifier
+  const optionalQueryClientArgument =
+    isReactQueryMeta && !mutator
+      ? ''
+      : hasSvelteQueryV6
+        ? `, queryClient?: () => QueryClient`
+        : hasQueryV5 && !isAngular(outputClient)
+          ? ', queryClient?: QueryClient'
+          : '';
 
   const queryHookName = camel(`${operationPrefix}-${name}`);
 
@@ -588,6 +615,7 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     queryProperties,
     isRequestOptions,
     doc,
+    isReactQueryMeta,
   });
 
   const shouldGenerateInvalidate =
@@ -629,9 +657,14 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${
         ? `const http = inject(HttpClient);`
         : isAngular(outputClient)
           ? ''
-          : `const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
-              queryProperties ? ',' : ''
-            }${isRequestOptions ? 'options' : 'queryOptions'})`
+          : isReactQueryMeta && !mutator
+            ? `const queryClient = useQueryClient();
+  const ${queryOptionsVarName} = ${queryOptionsFnName}(queryClient, ${queryProperties}${
+                queryProperties ? ',' : ''
+              }${isRequestOptions ? 'options' : 'queryOptions'})`
+            : `const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
+                queryProperties ? ',' : ''
+              }${isRequestOptions ? 'options' : 'queryOptions'})`
   }
 
   const ${queryResultVarName} = ${camel(
@@ -766,6 +799,10 @@ export const generateQueryHook = async (
   const httpClient = context.output.httpClient;
   const isAngularHttp =
     isAngular(outputClient) || httpClient === OutputHttpClient.ANGULAR;
+  const isReactQueryMeta =
+    context.output.httpClientInjection ===
+      OutputHttpClientInjection.REACT_QUERY_META &&
+    httpClient === OutputHttpClient.AXIOS;
   const doc = jsDoc({ summary, deprecated });
 
   let implementation = '';
@@ -1009,6 +1046,7 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
           useQuery: query.useQuery,
           useInfinite: query.useInfinite,
           useInvalidate: query.useInvalidate,
+          isReactQueryMeta,
         })
       );
     }, '')}
@@ -1036,6 +1074,7 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
       httpClient,
       doc,
       isAngularHttp,
+      isReactQueryMeta,
     });
 
     implementation += mutationResult.implementation;

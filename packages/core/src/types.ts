@@ -36,6 +36,7 @@ export type NormalizedOutputOptions = {
   override: NormalizedOverrideOutput;
   client: OutputClient | OutputClientFunc;
   httpClient: OutputHttpClient;
+  httpClientInjection: OutputHttpClientInjection;
   clean: boolean | string[];
   docs: boolean | OutputDocsOptions;
   prettier: boolean;
@@ -235,6 +236,7 @@ export type OutputOptions = {
   override?: OverrideOutput;
   client?: OutputClient | OutputClientFunc;
   httpClient?: OutputHttpClient;
+  httpClientInjection?: OutputHttpClientInjection;
   clean?: boolean | string[];
   docs?: boolean | OutputDocsOptions;
   prettier?: boolean;
@@ -296,6 +298,14 @@ export const OutputHttpClient = {
 
 export type OutputHttpClient =
   (typeof OutputHttpClient)[keyof typeof OutputHttpClient];
+
+export const OutputHttpClientInjection = {
+  NONE: 'none',
+  REACT_QUERY_META: 'reactQueryMeta',
+} as const;
+
+export type OutputHttpClientInjection =
+  (typeof OutputHttpClientInjection)[keyof typeof OutputHttpClientInjection];
 
 export const OutputMode = {
   SINGLE: 'single',
@@ -771,6 +781,7 @@ export interface GlobalOptions {
   mock?: boolean | GlobalMockOptions;
   client?: OutputClient;
   httpClient?: OutputHttpClient;
+  httpClientInjection?: OutputHttpClientInjection;
   mode?: OutputMode;
   tsconfig?: string | Tsconfig;
   packageJson?: string;
@@ -1002,6 +1013,7 @@ export type ClientDependenciesBuilder = (
   httpClient?: OutputHttpClient,
   hasTagsMutator?: boolean,
   override?: NormalizedOverrideOutput,
+  httpClientInjection?: OutputHttpClientInjection,
 ) => GeneratorDependency[];
 
 export type ClientMockGeneratorImplementation = {

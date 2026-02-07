@@ -73,6 +73,7 @@ export interface MutationHookContext {
   httpClient: OutputHttpClient;
   doc: string;
   isAngularHttp: boolean;
+  isReactQueryMeta?: boolean;
 }
 
 export const generateMutationHook = async ({
@@ -87,6 +88,7 @@ export const generateMutationHook = async ({
   httpClient,
   doc,
   isAngularHttp,
+  isReactQueryMeta,
 }: MutationHookContext): Promise<{
   implementation: string;
   mutators: GeneratorMutator[] | undefined;
@@ -214,11 +216,19 @@ export const generateMutationHook = async ({
       ? 'http: HttpClient, '
       : '';
 
-  // For Angular/React mutations with invalidation, add queryClient as second required param
-  const queryClientParam = hasInvalidation ? 'queryClient: QueryClient, ' : '';
+  // For reactQueryMeta mode (without mutator), add queryClient as first param
+  const queryClientFirstParam =
+    isReactQueryMeta && !mutator ? 'queryClient: QueryClient, ' : '';
+
+  // For Angular/React mutations with invalidation, add queryClient as required param
+  // (but only if not already added by reactQueryMeta)
+  const queryClientParam =
+    hasInvalidation && !(isReactQueryMeta && !mutator)
+      ? 'queryClient: QueryClient, '
+      : '';
 
   const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TError = ${errorType},
-    TContext = unknown>(${httpFirstParam}${queryClientParam}${mutationArgumentsForOptions}): ${mutationOptionFnReturnType} => {
+    TContext = unknown>(${httpFirstParam}${queryClientFirstParam}${queryClientParam}${mutationArgumentsForOptions}): ${mutationOptionFnReturnType} => {
 
 ${hooksOptionImplementation}
 
@@ -233,10 +243,16 @@ ${hooksOptionImplementation}
         definitions ? `{${definitions}}` : 'void'
       }> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props ?? {};` : ''}
-
-          return  ${operationName}(${isAngularHttp && !mutator ? 'http, ' : ''}${properties}${
-            properties ? ',' : ''
-          }${getMutationRequestArgs(isRequestOptions, httpClient, mutator)})
+          ${
+            isReactQueryMeta && !mutator
+              ? `const axiosInstance = getMutationAxiosInstance(queryClient);
+          return ${operationName}(axiosInstance, ${properties}${
+                  properties ? ',' : ''
+                }${getMutationRequestArgs(isRequestOptions, httpClient, mutator)})`
+              : `return  ${operationName}(${isAngularHttp && !mutator ? 'http, ' : ''}${properties}${
+                  properties ? ',' : ''
+                }${getMutationRequestArgs(isRequestOptions, httpClient, mutator)})`
+          }
         }
 
 ${
@@ -295,14 +311,35 @@ ${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
     isAngular(outputClient),
     isSolid(outputClient),
   );
-  const optionalQueryClientArgument = hasSvelteQueryV6
-    ? ', queryClient?: () => QueryClient'
-    : (hasQueryV5 || (isSvelte(outputClient) && hasInvalidation)) &&
-        !isAngular(outputClient)
-      ? ', queryClient?: QueryClient'
-      : '';
+  // For reactQueryMeta mode (without mutator), we use useQueryClient() internally,
+  // so we don't add the optional queryClient parameter to avoid duplicate identifier
+  const optionalQueryClientArgument =
+    isReactQueryMeta && !mutator
+      ? ''
+      : hasSvelteQueryV6
+        ? ', queryClient?: () => QueryClient'
+        : (hasQueryV5 || (isSvelte(outputClient) && hasInvalidation)) &&
+            !isAngular(outputClient)
+          ? ', queryClient?: QueryClient'
+          : '';
 
-  const mutationImplementation = `${mutationOptionsFnName}(${hasInvalidation ? (hasSvelteQueryV6 ? 'backupQueryClient, ' : `queryClient${isReact(outputClient) || isSvelte(outputClient) ? ' ?? backupQueryClient' : ''}, `) : ''}${
+  const getQueryClientArg = () => {
+    if (isReactQueryMeta && !mutator) {
+      return 'queryClient, ';
+    }
+    if (hasInvalidation) {
+      if (hasSvelteQueryV6) {
+        return 'backupQueryClient, ';
+      }
+      if (isReact(outputClient) || isSvelte(outputClient)) {
+        return 'queryClient ?? backupQueryClient, ';
+      }
+      return 'queryClient, ';
+    }
+    return '';
+  };
+
+  const mutationImplementation = `${mutationOptionsFnName}(${getQueryClientArg()}${
     isRequestOptions ? 'options' : 'mutationOptions'
   }${hasSvelteQueryV6 ? '?.()' : ''})`;
 
@@ -345,7 +382,13 @@ ${
       : `      const ${mutationOptionsVarName} = ${mutationImplementation};
 
       return ${operationPrefix}Mutation(() => ${mutationOptionsVarName});`
-    : `      ${(isReact(outputClient) || isSvelte(outputClient)) && hasInvalidation ? `const backupQueryClient = useQueryClient(${hasSvelteQueryV6 && optionalQueryClientArgument ? 'queryClient?.()' : ''});\n      ` : ''}return ${operationPrefix}Mutation(${
+    : `      ${
+        isReactQueryMeta && !mutator
+          ? 'const queryClient = useQueryClient();\n      '
+          : (isReact(outputClient) || isSvelte(outputClient)) && hasInvalidation
+            ? `const backupQueryClient = useQueryClient(${hasSvelteQueryV6 && optionalQueryClientArgument ? 'queryClient?.()' : ''});\n      `
+            : ''
+      }return ${operationPrefix}Mutation(${
         hasSvelteQueryV6
           ? `() => ({ ...${mutationImplementation} })${optionalQueryClientArgument ? `, queryClient` : ''}`
           : isSvelte(outputClient)
