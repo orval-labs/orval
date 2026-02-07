@@ -3,16 +3,12 @@ import {
   type GetterParams,
   type GetterQueryParam,
   isObject,
-  OutputClient,
-  type OutputClientFunc,
-  OutputHttpClient,
   pascal,
   stringify,
 } from '@orval/core';
 import { omitBy } from 'remeda';
 
-import { getQueryArgumentsRequestType } from './client';
-import { isVue } from './utils';
+import type { FrameworkAdapter } from './framework-adapter';
 
 type QueryType = 'infiniteQuery' | 'query';
 
@@ -32,12 +28,12 @@ export const generateQueryOptions = ({
   params,
   options,
   type,
-  outputClient,
+  adapter,
 }: {
   params: GetterParams;
   options?: object | boolean;
   type: QueryType;
-  outputClient: OutputClient | OutputClientFunc;
+  adapter?: FrameworkAdapter;
 }) => {
   if (options === false) {
     return '';
@@ -63,15 +59,13 @@ export const generateQueryOptions = ({
     return '...queryOptions';
   }
 
-  return `${
-    !isObject(options) || !Object.hasOwn(options, 'enabled')
-      ? isVue(outputClient)
-        ? `enabled: computed(() => !!(${params
-            .map(({ name }) => `unref(${name})`)
-            .join(' && ')})),`
-        : `enabled: !!(${params.map(({ name }) => name).join(' && ')}),`
-      : ''
-  }${queryConfig} ...queryOptions`;
+  const enabledOption = adapter
+    ? adapter.generateEnabledOption(params, options)
+    : !isObject(options) || !Object.hasOwn(options, 'enabled')
+      ? `enabled: !!(${params.map(({ name }) => name).join(' && ')}),`
+      : '';
+
+  return `${enabledOption}${queryConfig} ...queryOptions`;
 };
 
 export const isSuspenseQuery = (type: QueryType) => {
@@ -83,30 +77,28 @@ export const getQueryOptionsDefinition = ({
   mutator,
   definitions,
   type,
-  hasSvelteQueryV4,
+  prefix,
   hasQueryV5,
   hasQueryV5WithInfiniteQueryOptionsError,
   queryParams,
   queryParam,
   isReturnType,
   initialData,
-  isAngularClient,
 }: {
   operationName: string;
   mutator?: GeneratorMutator;
   definitions: string;
   type?: QueryType;
-  hasSvelteQueryV4: boolean;
+  /** 'Use' or 'Create' — from adapter.getQueryOptionsDefinitionPrefix() */
+  prefix: string;
   hasQueryV5: boolean;
   hasQueryV5WithInfiniteQueryOptionsError: boolean;
   queryParams?: GetterQueryParam;
   queryParam?: string;
   isReturnType: boolean;
   initialData?: 'defined' | 'undefined';
-  isAngularClient: boolean;
 }) => {
   const isMutatorHook = mutator?.isHook;
-  const prefix = !hasSvelteQueryV4 && !isAngularClient ? 'Use' : 'Create';
   const partialOptions = !isReturnType && hasQueryV5;
 
   if (type) {
@@ -154,81 +146,4 @@ export const getQueryOptionsDefinition = ({
       ? `ReturnType<typeof use${pascal(operationName)}Hook>`
       : `typeof ${operationName}`
   }>>, TError,${definitions ? `{${definitions}}` : 'void'}, TContext>`;
-};
-
-export const generateQueryArguments = ({
-  operationName,
-  definitions,
-  mutator,
-  isRequestOptions,
-  type,
-  hasSvelteQueryV4,
-  hasSvelteQueryV6,
-  hasQueryV5,
-  hasQueryV5WithInfiniteQueryOptionsError,
-  queryParams,
-  queryParam,
-  initialData,
-  httpClient,
-  isAngularClient,
-  forQueryOptions = false,
-  forAngularInject = false,
-}: {
-  operationName: string;
-  definitions: string;
-  mutator?: GeneratorMutator;
-  isRequestOptions: boolean;
-  type?: QueryType;
-  hasSvelteQueryV4: boolean;
-  hasSvelteQueryV6: boolean;
-  hasQueryV5: boolean;
-  hasQueryV5WithInfiniteQueryOptionsError: boolean;
-  queryParams?: GetterQueryParam;
-  queryParam?: string;
-  initialData?: 'defined' | 'undefined';
-  httpClient: OutputHttpClient;
-  isAngularClient: boolean;
-  /** When true, don't make options an Accessor for svelte-query v6 */
-  forQueryOptions?: boolean;
-  /** When true, wrap options type in getter alternative for Angular reactive support. */
-  forAngularInject?: boolean;
-}) => {
-  const definition = getQueryOptionsDefinition({
-    operationName,
-    mutator,
-    definitions,
-    type,
-    hasSvelteQueryV4,
-    hasQueryV5,
-    hasQueryV5WithInfiniteQueryOptionsError,
-    queryParams,
-    queryParam,
-    isReturnType: false,
-    initialData,
-    isAngularClient,
-  });
-
-  // Note: For Angular Query, http: HttpClient is added as the FIRST parameter
-  // directly in the query-generator.ts/mutation-generator.ts templates,
-  // not here, so that http comes before any optional params (avoiding TS1016).
-
-  if (!isRequestOptions) {
-    return `${type ? 'queryOptions' : 'mutationOptions'}${
-      initialData === 'defined' ? '' : '?'
-    }: ${definition}`;
-  }
-
-  const requestType = getQueryArgumentsRequestType(httpClient, mutator);
-
-  const isQueryRequired = initialData === 'defined';
-  const optionsType = `{ ${
-    type ? 'query' : 'mutation'
-  }${isQueryRequired ? '' : '?'}:${definition}, ${requestType}}`;
-
-  // For Angular inject* functions, allow options to be a getter for reactivity
-  if (forAngularInject) {
-    return `options${isQueryRequired ? '' : '?'}: ${optionsType} | (() => ${optionsType})\n`;
-  }
-
-  return `options${isQueryRequired ? '' : '?'}: ${hasSvelteQueryV6 && !forQueryOptions ? '() => ' : ''}${optionsType}\n`;
 };
