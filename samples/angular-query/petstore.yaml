@@ -289,6 +289,44 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /pet/{petId}/uploadFormData:
+    post:
+      tags:
+        - pets
+      summary: Upload a file via multipart form data.
+      description: Upload a file for a pet using multipart/form-data.
+      operationId: uploadFormData
+      parameters:
+        - name: petId
+          in: path
+          description: ID of pet to update
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                label:
+                  type: string
+      responses:
+        '200':
+          description: successful operation
+        '400':
+          description: Bad request
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /pet/{petId}/downloadImage:
     get:
       tags:

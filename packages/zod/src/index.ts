@@ -855,7 +855,11 @@ ${Object.entries(mergedProperties)
         .map((prop: any) => parseProperty(prop))
         .join('');
       const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
-      consts += args.consts;
+      if (typeof args.consts === 'string') {
+        consts += args.consts;
+      } else if (Array.isArray(args.consts)) {
+        consts += args.consts.join('\n');
+      }
       return `zod.record(zod.string(), ${valueWithZod})`;
     }
 
