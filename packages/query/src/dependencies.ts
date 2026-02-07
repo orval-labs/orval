@@ -3,10 +3,15 @@ import {
   compareVersions,
   type GeneratorDependency,
   OutputHttpClient,
+  OutputHttpClientInjection,
   type PackageJson,
 } from '@orval/core';
 
-import { ANGULAR_HTTP_DEPENDENCIES, AXIOS_DEPENDENCIES } from './client';
+import {
+  ANGULAR_HTTP_DEPENDENCIES,
+  AXIOS_DEPENDENCIES,
+  AXIOS_DEPENDENCIES_WITH_INSTANCE,
+} from './client';
 
 export const REACT_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -185,6 +190,7 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
   httpClient,
   hasTagsMutator,
   override,
+  httpClientInjection,
 ) => {
   const hasReactQuery =
     packageJson?.dependencies?.['react-query'] ??
@@ -196,15 +202,26 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
     packageJson?.peerDependencies?.['@tanstack/react-query'];
 
   const useReactQueryV3 =
-    override.query.version === undefined
+    override?.query.version === undefined
       ? hasReactQuery && !hasReactQueryV4
       : override.query.version <= 3;
 
+  const isReactQueryMeta =
+    httpClientInjection === OutputHttpClientInjection.REACT_QUERY_META;
+
+  // Use AXIOS_DEPENDENCIES_WITH_INSTANCE when reactQueryMeta mode is enabled
+  // to include AxiosInstance type for the helper functions
+  const getAxiosDeps = () => {
+    if (hasGlobalMutator) return [];
+    if (httpClient !== OutputHttpClient.AXIOS) return [];
+    return isReactQueryMeta
+      ? AXIOS_DEPENDENCIES_WITH_INSTANCE
+      : AXIOS_DEPENDENCIES;
+  };
+
   return [
     ...(hasGlobalMutator || hasTagsMutator ? REACT_DEPENDENCIES : []),
-    ...(!hasGlobalMutator && httpClient === OutputHttpClient.AXIOS
-      ? AXIOS_DEPENDENCIES
-      : []),
+    ...getAxiosDeps(),
     ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
     ...(useReactQueryV3
       ? REACT_QUERY_DEPENDENCIES_V3

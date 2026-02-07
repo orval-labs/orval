@@ -11,6 +11,7 @@ import {
   type GetterResponse,
   isSyntheticDefaultImportsAllow,
   OutputHttpClient,
+  OutputHttpClientInjection,
   pascal,
   toObjectString,
 } from '@orval/core';
@@ -35,6 +36,24 @@ export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
         values: true,
         syntheticDefaultImport: true,
       },
+      { name: 'AxiosRequestConfig' },
+      { name: 'AxiosResponse' },
+      { name: 'AxiosError' },
+    ],
+    dependency: 'axios',
+  },
+];
+
+export const AXIOS_DEPENDENCIES_WITH_INSTANCE: GeneratorDependency[] = [
+  {
+    exports: [
+      {
+        name: 'axios',
+        default: true,
+        values: true,
+        syntheticDefaultImport: true,
+      },
+      { name: 'AxiosInstance' },
       { name: 'AxiosRequestConfig' },
       { name: 'AxiosResponse' },
       { name: 'AxiosError' },
@@ -384,6 +403,10 @@ export const generateAxiosRequestFunction = (
     context.output.tsconfig,
   );
 
+  const isReactQueryMeta =
+    context.output.httpClientInjection ===
+    OutputHttpClientInjection.REACT_QUERY_META;
+
   const options = generateOptions({
     route,
     body,
@@ -410,14 +433,29 @@ export const generateAxiosRequestFunction = (
 
   const queryProps = toObjectString(props, 'implementation');
 
-  const httpRequestFunctionImplementation = `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${queryProps} ${optionsArgs} ): Promise<AxiosResponse<${
-    response.definition.success || 'unknown'
-  }>> => {
+  // For reactQueryMeta mode, add axiosInstance as first parameter
+  const axiosInstanceParam = isReactQueryMeta
+    ? 'axiosInstance: AxiosInstance,\n    '
+    : '';
+
+  // Use axiosInstance if provided, otherwise use global axios
+  const axiosRef = isReactQueryMeta
+    ? 'axiosInstance'
+    : `axios${isSyntheticDefaultImportsAllowed ? '' : '.default'}`;
+
+  // For reactQueryMeta mode, return response.data (serializable for SSR)
+  // instead of the full AxiosResponse (which contains non-serializable functions)
+  const returnType = isReactQueryMeta
+    ? response.definition.success || 'unknown'
+    : `AxiosResponse<${response.definition.success || 'unknown'}>`;
+  const returnStatement = isReactQueryMeta
+    ? `${axiosRef}.${verb}(${options}).then(res => res.data)`
+    : `${axiosRef}.${verb}(${options})`;
+
+  const httpRequestFunctionImplementation = `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${axiosInstanceParam}${queryProps} ${optionsArgs} ): Promise<${returnType}> => {
     ${isVue ? vueUnRefParams(props) : ''}
     ${bodyForm}
-    return axios${
-      isSyntheticDefaultImportsAllowed ? '' : '.default'
-    }.${verb}(${options});
+    return ${returnStatement};
   }
 `;
 

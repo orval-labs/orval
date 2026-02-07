@@ -77,6 +77,40 @@ export default defineConfig({
 });
 ```
 
+## httpClientInjection
+
+**Type:** `'none' | 'reactQueryMeta'`
+**Default:** `'none'`
+
+Controls how the HTTP client instance is provided to generated hooks. When set to `reactQueryMeta`, the generated hooks read the axios instance from `QueryClient.defaultOptions.meta.axiosInstance` at runtime, enabling SDK-style distribution where consumers inject their own configured instance.
+
+```ts
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+      httpClient: 'axios',
+      httpClientInjection: 'reactQueryMeta',
+    },
+  },
+});
+```
+
+Consumer setup:
+
+```ts
+const axiosInstance = axios.create({ baseURL: 'https://api.example.com' });
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { meta: { axiosInstance } },
+    mutations: { meta: { axiosInstance } },
+  },
+});
+```
+
+The generated hooks automatically resolve the instance via `useQueryClient()` inside `queryFn`/`mutationFn`. Falls back to default axios if not configured. Incompatible with custom `mutator`.
+
 ## schemas
 
 **Type:** `String`
