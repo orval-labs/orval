@@ -211,6 +211,19 @@ export default defineConfig({
       target: '../specifications/form-data.yaml',
     },
   },
+  'branded-types': {
+    output: {
+      target: '../generated/vue-query/branded-types/endpoints.ts',
+      schemas: '../generated/vue-query/branded-types/model',
+      client: 'vue-query',
+      override: {
+        useBrandedTypes: true,
+      },
+    },
+    input: {
+      target: '../specifications/branded-types.yaml',
+    },
+  },
   // Unsupported for now, see for context: https://github.com/orval-labs/orval/pull/931#issuecomment-1752355686
   // namedParameters: {
   //   output: {

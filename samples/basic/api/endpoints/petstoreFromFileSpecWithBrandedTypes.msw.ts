@@ -4,96 +4,45 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import axios from 'axios';
-import type { AxiosRequestConfig, AxiosResponse } from 'axios';
-
-import type {
-  CreatePetsBody,
-  ListPetsNestedArrayParams,
-  ListPetsParams,
-} from '../model';
-
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-import type { Pet, PetsArray, PetsNestedArray } from '../model';
-
-import listPetsMutator from '../mutator/response-type';
-/**
- * @summary List all pets
- */
-export const listPets = (params?: ListPetsParams, version: number = 1) => {
-  return listPetsMutator<PetsArray>({
-    url: `/v${version}/pets`,
-    method: 'GET',
-    params,
-  });
-};
-
-/**
- * @summary Create a pet
- */
-export const createPets = (
-  createPetsBody: CreatePetsBody,
-  version: number = 1,
-  options?: AxiosRequestConfig,
-): Promise<AxiosResponse<void>> => {
-  return axios.post(`/v${version}/pets`, createPetsBody, options);
-};
-
-/**
- * @summary List all pets as nested array
- */
-export const listPetsNestedArray = (
-  params?: ListPetsNestedArrayParams,
-  version: number = 1,
-  options?: AxiosRequestConfig,
-): Promise<AxiosResponse<PetsNestedArray>> => {
-  return axios.get(`/v${version}/pets-nested-array`, {
-    ...options,
-    params: { ...params, ...options?.params },
-  });
-};
-
-/**
- * @summary Info for a specific pet
- */
-export const showPetById = (
-  petId: number,
-  version: number = 1,
-  options?: AxiosRequestConfig,
-): Promise<AxiosResponse<Pet>> => {
-  return axios.get(`/v${version}/pets/${petId}`, options);
-};
-
-type AwaitedInput<T> = PromiseLike<T> | T;
-
-type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
-
-export type ListPetsResult = NonNullable<Awaited<ReturnType<typeof listPets>>>;
-export type CreatePetsResult = AxiosResponse<void>;
-export type ListPetsNestedArrayResult = AxiosResponse<PetsNestedArray>;
-export type ShowPetByIdResult = AxiosResponse<Pet>;
+import type {
+  Email,
+  Pet,
+  PetId,
+  PetsArray,
+  PetsNestedArray,
+} from './petstoreFromFileSpecWithBrandedTypes.schemas';
 
 export const getListPetsResponseMock = (): PetsArray =>
   Array.from(
     { length: faker.number.int({ min: 1, max: 20 }) },
     (_, i) => i + 1,
   ).map(() => ({
-    id: faker.number.int({ min: undefined, max: undefined }),
-    name: 'jon',
+    id: faker.number.int({ min: undefined, max: undefined }) as PetId,
+    name: faker.string.alpha({ length: { min: 0, max: 40 } }),
     age: faker.helpers.arrayElement([
       faker.number.int({ min: 0, max: 30 }),
       undefined,
     ]),
-    tag: faker.helpers.arrayElement(['jon', null]),
-    parentId: faker.helpers.arrayElement([
-      faker.number.int({ min: undefined, max: undefined }),
+    tag: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([
+        faker.helpers.fromRegExp('^\\d{3}-\\d{2}-\\d{4}$'),
+        null,
+      ]),
       undefined,
     ]),
-    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+    parentId: faker.helpers.arrayElement([
+      faker.number.int({ min: undefined, max: undefined }) as PetId,
+      undefined,
+    ]),
+    email: faker.helpers.arrayElement([
+      faker.internet.email() as Email,
+      undefined,
+    ]),
     callingCode: faker.helpers.arrayElement([
       faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
       undefined,
@@ -115,18 +64,27 @@ export const getListPetsNestedArrayResponseMock = (
       { length: faker.number.int({ min: 1, max: 10 }) },
       (_, i) => i + 1,
     ).map(() => ({
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: 'jon',
+      id: faker.number.int({ min: undefined, max: undefined }) as PetId,
+      name: faker.string.alpha({ length: { min: 0, max: 40 } }),
       age: faker.helpers.arrayElement([
         faker.number.int({ min: 0, max: 30 }),
         undefined,
       ]),
-      tag: faker.helpers.arrayElement(['jon', null]),
-      parentId: faker.helpers.arrayElement([
-        faker.number.int({ min: undefined, max: undefined }),
+      tag: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.helpers.fromRegExp('^\\d{3}-\\d{2}-\\d{4}$'),
+          null,
+        ]),
         undefined,
       ]),
-      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+      parentId: faker.helpers.arrayElement([
+        faker.number.int({ min: undefined, max: undefined }) as PetId,
+        undefined,
+      ]),
+      email: faker.helpers.arrayElement([
+        faker.internet.email() as Email,
+        undefined,
+      ]),
       callingCode: faker.helpers.arrayElement([
         faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
         undefined,
@@ -144,12 +102,43 @@ export const getListPetsNestedArrayResponseMock = (
   ...overrideResponse,
 });
 
-export const getShowPetByIdResponseMock = () =>
-  (() => ({
-    id: faker.number.int({ min: 1, max: 99 }),
-    name: faker.person.firstName(),
-    tag: faker.helpers.arrayElement([faker.word.sample(), undefined]),
-  }))();
+export const getShowPetByIdResponseMock = (
+  overrideResponse: Partial<Pet> = {},
+): Pet => ({
+  id: faker.number.int({ min: undefined, max: undefined }) as PetId,
+  name: faker.string.alpha({ length: { min: 0, max: 40 } }),
+  age: faker.helpers.arrayElement([
+    faker.number.int({ min: 0, max: 30 }),
+    undefined,
+  ]),
+  tag: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([
+      faker.helpers.fromRegExp('^\\d{3}-\\d{2}-\\d{4}$'),
+      null,
+    ]),
+    undefined,
+  ]),
+  parentId: faker.helpers.arrayElement([
+    faker.number.int({ min: undefined, max: undefined }) as PetId,
+    undefined,
+  ]),
+  email: faker.helpers.arrayElement([
+    faker.internet.email() as Email,
+    undefined,
+  ]),
+  callingCode: faker.helpers.arrayElement([
+    faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
+    undefined,
+  ]),
+  country: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([
+      "People's Republic of China",
+      'Uruguay',
+    ] as const),
+    undefined,
+  ]),
+  ...overrideResponse,
+});
 
 export const getListPetsMockHandler = (
   overrideResponse?:
@@ -160,7 +149,7 @@ export const getListPetsMockHandler = (
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
-    '*/v:version/pets',
+    '*/pets',
     async (info) => {
       return new HttpResponse(
         JSON.stringify(
@@ -186,7 +175,7 @@ export const getCreatePetsMockHandler = (
   options?: RequestHandlerOptions,
 ) => {
   return http.post(
-    '*/v:version/pets',
+    '*/pets',
     async (info) => {
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
@@ -206,7 +195,7 @@ export const getListPetsNestedArrayMockHandler = (
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
-    '*/v:version/pets-nested-array',
+    '*/pets-nested-array',
     async (info) => {
       return new HttpResponse(
         JSON.stringify(
@@ -232,7 +221,7 @@ export const getShowPetByIdMockHandler = (
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
-    '*/v:version/pets/:petId',
+    '*/pets/:petId',
     async (info) => {
       return new HttpResponse(
         JSON.stringify(

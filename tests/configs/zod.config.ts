@@ -236,4 +236,17 @@ export default defineConfig({
     },
     input: '../specifications/multiline-default.yaml',
   },
+  'branded-types': {
+    output: {
+      target: '../generated/zod/branded-types/endpoints.ts',
+      schemas: '../generated/zod/branded-types/model',
+      client: 'zod',
+      override: {
+        useBrandedTypes: true,
+      },
+    },
+    input: {
+      target: '../specifications/branded-types.yaml',
+    },
+  },
 });

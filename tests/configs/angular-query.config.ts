@@ -51,4 +51,21 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  'branded-types': {
+    output: {
+      target: '../generated/angular-query/branded-types/endpoints.ts',
+      schemas: '../generated/angular-query/branded-types/model',
+      client: 'angular-query',
+      httpClient: 'angular',
+      override: {
+        useBrandedTypes: true,
+        query: {
+          signal: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/branded-types.yaml',
+    },
+  },
 });

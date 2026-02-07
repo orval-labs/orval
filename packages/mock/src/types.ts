@@ -14,4 +14,5 @@ export type MockSchemaObject = Omit<OpenApiSchemaObject, 'enum'> & {
   path?: string;
   isRef?: boolean;
   enum?: string[];
+  brandedType?: string;
 };

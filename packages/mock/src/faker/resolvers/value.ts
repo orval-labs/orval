@@ -1,7 +1,9 @@
 import {
   type ContextSpec,
+  extractBrandName,
   type GeneratorImport,
   getRefInfo,
+  isBrandableSchemaType,
   isReference,
   type MockOptions,
   type OpenApiSchemaObject,
@@ -12,6 +14,30 @@ import { prop } from 'remeda';
 import type { MockDefinition, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
 import { getMockScalar } from '../getters/scalar';
+
+/**
+ * Apply branded type assertion to a mock value if the schema has x-brand and is a brandable type.
+ */
+function maybeApplyBrandedMockType(
+  scalar: MockDefinition,
+  schema: MockSchemaObject,
+): MockDefinition {
+  const brandName = extractBrandName(schema);
+
+  if (!brandName || !isBrandableSchemaType(schema)) {
+    return scalar;
+  }
+
+  const brandedImport: GeneratorImport = {
+    name: brandName,
+  };
+
+  return {
+    ...scalar,
+    value: `${scalar.value} as ${brandName}`,
+    imports: [...scalar.imports, brandedImport],
+  };
+}
 
 function isRegex(key: string) {
   return key.startsWith('/') && key.endsWith('/');
@@ -102,7 +128,7 @@ export function resolveMockValue({
       path: schema.path,
       isRef: true,
       required: [...(schemaRef?.required ?? []), ...(schema.required ?? [])],
-      ...(schema.nullable !== undefined ? { nullable: schema.nullable } : {}),
+      ...(schema.nullable === undefined ? {} : { nullable: schema.nullable }),
     };
 
     const newSeparator = newSchema.allOf
@@ -111,7 +137,7 @@ export function resolveMockValue({
         ? 'oneOf'
         : 'anyOf';
 
-    const scalar = getMockScalar({
+    let scalar = getMockScalar({
       item: newSchema,
       mockOptions,
       operationId,
@@ -160,13 +186,17 @@ export function resolveMockValue({
       scalar.imports.push({ name: newSchema.name });
     }
 
+    if (context.output.override.useBrandedTypes) {
+      scalar = maybeApplyBrandedMockType(scalar, newSchema);
+    }
+
     return {
       ...scalar,
       type: getType(newSchema),
     };
   }
 
-  const scalar = getMockScalar({
+  let scalar = getMockScalar({
     item: schema,
     mockOptions,
     operationId,
@@ -178,6 +208,11 @@ export function resolveMockValue({
     splitMockImplementations,
     allowOverride,
   });
+
+  if (context.output.override.useBrandedTypes) {
+    scalar = maybeApplyBrandedMockType(scalar, schema);
+  }
+
   return {
     ...scalar,
     type: getType(schema),

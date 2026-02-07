@@ -1,6 +1,9 @@
 import {
+  type BrandedTypeRegistry,
   type ContextSpec,
+  createBrandedTypeRegistry,
   dynamicImport,
+  generateBrandedDefinition,
   generateComponentDefinition,
   generateParameterDefinition,
   generateSchemasDefinition,
@@ -30,12 +33,24 @@ export async function importOpenApi({
     workspace,
   );
 
+  // Create shared branded type registry and schema names set for collision detection
+  const brandedTypes: BrandedTypeRegistry | undefined = output.override
+    .useBrandedTypes
+    ? createBrandedTypeRegistry()
+    : undefined;
+
+  const schemaNames = new Set(
+    Object.keys(transformedOpenApi.components?.schemas ?? {}),
+  );
+
   const schemas = getApiSchemas({
     input,
     output,
     target,
     workspace,
     spec: transformedOpenApi,
+    brandedTypes,
+    schemaNames,
   });
 
   const api = await getApiBuilder({
@@ -47,17 +62,24 @@ export async function importOpenApi({
       workspace,
       spec: transformedOpenApi,
       output,
+      brandedTypes,
+      schemaNames,
     } satisfies ContextSpec,
   });
 
+  // Generate branded type definitions AFTER all schemas have been processed
+  // (both component schemas and inline API schemas may register branded types)
+  const brandedDefinition = generateBrandedDefinition(brandedTypes);
+
   return {
     ...api,
-    schemas: [...schemas, ...api.schemas],
+    schemas: [...brandedDefinition, ...schemas, ...api.schemas],
     target,
     // a valid spec will have info
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     info: transformedOpenApi.info!,
     spec: transformedOpenApi,
+    brandedTypes,
   };
 }
 
@@ -90,6 +112,8 @@ interface GetApiSchemasOptions {
   workspace: string;
   target: string;
   spec: OpenApiDocument;
+  brandedTypes?: BrandedTypeRegistry;
+  schemaNames: Set<string>;
 }
 
 function getApiSchemas({
@@ -98,12 +122,16 @@ function getApiSchemas({
   target,
   workspace,
   spec,
+  brandedTypes,
+  schemaNames,
 }: GetApiSchemasOptions) {
   const context: ContextSpec = {
     target,
     workspace,
     spec,
     output,
+    brandedTypes,
+    schemaNames,
   };
 
   const schemaDefinition = generateSchemasDefinition(
@@ -139,13 +167,11 @@ function getApiSchemas({
     output.override.components.parameters.suffix,
   );
 
-  const schemas = [
+  return [
     ...schemaDefinition,
     ...responseDefinition,
     ...swaggerResponseDefinition,
     ...bodyDefinition,
     ...parameters,
   ];
-
-  return schemas;
 }

@@ -25,6 +25,8 @@ export interface Pet {
    * @pattern ^\\d{3}-\\d{2}-\\d{4}$
    */
   tag?: string | null;
+  /** The id of the parent pet */
+  parentId?: number;
   email?: string;
   callingCode?: PetCallingCode;
   country?: PetCountry;

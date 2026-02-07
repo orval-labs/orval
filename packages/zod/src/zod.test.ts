@@ -4506,3 +4506,325 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
 `);
   });
 });
+
+describe('branded types (x-brand extension)', () => {
+  const contextWithBranding = {
+    output: {
+      override: {
+        useDates: false,
+        useBrandedTypes: true,
+      },
+    },
+  } as ContextSpec;
+
+  const contextWithoutBranding = {
+    output: {
+      override: {
+        useDates: false,
+        useBrandedTypes: false,
+      },
+    },
+  } as ContextSpec;
+
+  it('generates brand for string type with x-brand', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      'x-brand': 'UserId',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      contextWithBranding,
+      'userId',
+      false,
+      false,
+      { required: true },
+    );
+
+    expect(result.functions).toContainEqual(['brand', "'UserId'"]);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      contextWithBranding,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe("zod.string().brand<'UserId'>()");
+  });
+
+  it('generates brand for number type with x-brand', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'integer',
+      'x-brand': 'PetId',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      contextWithBranding,
+      'petId',
+      false,
+      false,
+      { required: true },
+    );
+
+    expect(result.functions).toContainEqual(['brand', "'PetId'"]);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      contextWithBranding,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe("zod.number().brand<'PetId'>()");
+  });
+
+  it('generates brand for boolean type with x-brand', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'boolean',
+      'x-brand': 'IsActive',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      contextWithBranding,
+      'isActive',
+      false,
+      false,
+      { required: true },
+    );
+
+    expect(result.functions).toContainEqual(['brand', "'IsActive'"]);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      contextWithBranding,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe("zod.boolean().brand<'IsActive'>()");
+  });
+
+  it('does not add brand when useBrandedTypes is false', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      'x-brand': 'UserId',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      contextWithoutBranding,
+      'userId',
+      false,
+      false,
+      { required: true },
+    );
+
+    const hasBrand = result.functions.some(([fn]) => fn === 'brand');
+    expect(hasBrand).toBe(false);
+  });
+
+  it('does not add brand to non-brandable types (object)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      'x-brand': 'SomeObject',
+      properties: {
+        name: { type: 'string' },
+      },
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      contextWithBranding,
+      'someObject',
+      false,
+      false,
+      { required: true },
+    );
+
+    const hasBrand = result.functions.some(([fn]) => fn === 'brand');
+    expect(hasBrand).toBe(false);
+  });
+
+  it('does not add brand to array types', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'array',
+      'x-brand': 'SomeArray',
+      items: { type: 'string' },
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      contextWithBranding,
+      'someArray',
+      false,
+      false,
+      { required: true },
+    );
+
+    const hasBrand = result.functions.some(([fn]) => fn === 'brand');
+    expect(hasBrand).toBe(false);
+  });
+
+  it('places brand before nullable modifier', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      'x-brand': 'UserId',
+      nullable: true,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      contextWithBranding,
+      'userId',
+      false,
+      false,
+      { required: true },
+    );
+
+    const functionNames = result.functions.map(([fn]) => fn);
+    const brandIndex = functionNames.indexOf('brand');
+    const nullableIndex = functionNames.indexOf('nullable');
+
+    expect(brandIndex).toBeGreaterThan(-1);
+    expect(nullableIndex).toBeGreaterThan(-1);
+    expect(brandIndex).toBeLessThan(nullableIndex);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      contextWithBranding,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe("zod.string().brand<'UserId'>().nullable()");
+  });
+
+  it('places brand before optional modifier', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      'x-brand': 'UserId',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      contextWithBranding,
+      'userId',
+      false,
+      false,
+      { required: false },
+    );
+
+    const functionNames = result.functions.map(([fn]) => fn);
+    const brandIndex = functionNames.indexOf('brand');
+    const optionalIndex = functionNames.indexOf('optional');
+
+    expect(brandIndex).toBeGreaterThan(-1);
+    expect(optionalIndex).toBeGreaterThan(-1);
+    expect(brandIndex).toBeLessThan(optionalIndex);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      contextWithBranding,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe("zod.string().brand<'UserId'>().optional()");
+  });
+
+  it('places brand after validations', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      'x-brand': 'Email',
+      minLength: 1,
+      maxLength: 255,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      contextWithBranding,
+      'email',
+      false,
+      false,
+      { required: true },
+    );
+
+    const functionNames = result.functions.map(([fn]) => fn);
+    const brandIndex = functionNames.indexOf('brand');
+    const minIndex = functionNames.indexOf('min');
+    const maxIndex = functionNames.indexOf('max');
+
+    expect(brandIndex).toBeGreaterThan(minIndex);
+    expect(brandIndex).toBeGreaterThan(maxIndex);
+  });
+
+  it('places brand before description', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      'x-brand': 'UserId',
+      description: 'The user identifier',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      contextWithBranding,
+      'userId',
+      false,
+      false,
+      { required: true },
+    );
+
+    const functionNames = result.functions.map(([fn]) => fn);
+    const brandIndex = functionNames.indexOf('brand');
+    const describeIndex = functionNames.indexOf('describe');
+
+    expect(brandIndex).toBeGreaterThan(-1);
+    expect(describeIndex).toBeGreaterThan(-1);
+    expect(brandIndex).toBeLessThan(describeIndex);
+  });
+
+  it('does not add brand when x-brand is missing', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      contextWithBranding,
+      'userId',
+      false,
+      false,
+      { required: true },
+    );
+
+    const hasBrand = result.functions.some(([fn]) => fn === 'brand');
+    expect(hasBrand).toBe(false);
+  });
+
+  it('does not add brand when x-brand is not a string', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      'x-brand': 123,
+    } as unknown as OpenApiSchemaObject;
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      contextWithBranding,
+      'userId',
+      false,
+      false,
+      { required: true },
+    );
+
+    const hasBrand = result.functions.some(([fn]) => fn === 'brand');
+    expect(hasBrand).toBe(false);
+  });
+});

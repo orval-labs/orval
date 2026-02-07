@@ -387,6 +387,7 @@ export async function normalizeOptions(
         suppressReadonlyModifier:
           outputOptions.override?.suppressReadonlyModifier || false,
         aliasCombinedTypes: outputOptions.override?.aliasCombinedTypes ?? false,
+        useBrandedTypes: outputOptions.override?.useBrandedTypes ?? false,
       },
       allParamsOptional: outputOptions.allParamsOptional ?? false,
       urlEncodeParameters: outputOptions.urlEncodeParameters ?? false,

@@ -13,7 +13,11 @@ import {
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTargetForTags } from './target-tags';
-import { getOrvalGeneratedTypes, getTypedResponse } from './types';
+import {
+  getBrandedHelperType,
+  getOrvalGeneratedTypes,
+  getTypedResponse,
+} from './types';
 
 export async function writeSplitTagsMode({
   builder,
@@ -118,7 +122,14 @@ export async function writeSplitTagsMode({
           : upath.join(dirname, filename + '.schemas' + extension);
 
         if (schemasPath && needSchema) {
-          const schemasData = header + generateModelsInline(builder.schemas);
+          let schemasData = header;
+
+          if (builder.brandedTypes?.size) {
+            schemasData += getBrandedHelperType();
+            schemasData += '\n';
+          }
+
+          schemasData += generateModelsInline(builder.schemas);
 
           await fs.outputFile(schemasPath, schemasData);
         }
@@ -175,6 +186,7 @@ export async function writeSplitTagsMode({
         }
 
         implementationData += `\n${implementation}`;
+
         mockData += `\n${implementationMock}`;
 
         const implementationFilename =

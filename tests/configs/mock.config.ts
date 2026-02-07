@@ -199,4 +199,17 @@ export default defineConfig({
       target: '../specifications/circular.yaml',
     },
   },
+  'branded-types': {
+    output: {
+      target: '../generated/mock/branded-types/endpoints.ts',
+      schemas: '../generated/mock/branded-types/model',
+      mock: true,
+      override: {
+        useBrandedTypes: true,
+      },
+    },
+    input: {
+      target: '../specifications/branded-types.yaml',
+    },
+  },
 });

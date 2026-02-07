@@ -113,6 +113,12 @@ export type NormalizedOverrideOutput = {
    * @default false
    */
   useNullForOptional?: boolean;
+  /**
+   * When enabled, generates branded types for properties with an `x-brand` extension.
+   * For example, `x-brand: UserId` generates `type UserId = string & { readonly __brand: 'UserId' }`
+   * @default false
+   */
+  useBrandedTypes?: boolean;
 };
 
 export type NormalizedMutator = {
@@ -483,6 +489,12 @@ export type OverrideOutput = {
    * @default false
    */
   useNullForOptional?: boolean;
+  /**
+   * When enabled, generates branded types for properties with an `x-brand` extension.
+   * For example, `x-brand: UserId` generates `type UserId = string & { readonly __brand: 'UserId' }`
+   * @default false
+   */
+  useBrandedTypes?: boolean;
 };
 
 export type JsDocOptions = {
@@ -761,6 +773,10 @@ export interface ContextSpec {
   spec: OpenApiDocument;
   parents?: string[];
   output: NormalizedOutputOptions;
+  /** Registry for collecting branded type definitions */
+  brandedTypes?: BrandedTypeRegistry;
+  /** Set of schema names for collision detection */
+  schemaNames?: Set<string>;
 }
 
 export interface GlobalOptions {
@@ -1137,6 +1153,17 @@ export const SchemaType = {
   unknown: 'unknown',
 };
 
+export type BrandedTypeDefinition = {
+  /** The type alias name (e.g., 'PetId') */
+  name: string;
+  /** The base TypeScript type (e.g., 'number', 'string') */
+  baseType: string;
+  /** The brand string (e.g., 'PetId') */
+  brand: string;
+};
+
+export type BrandedTypeRegistry = Map<string, BrandedTypeDefinition>;
+
 export type ScalarValue = {
   value: string;
   useTypeAlias?: boolean;
@@ -1178,6 +1205,8 @@ export type WriteSpecBuilder = {
   info: OpenApiInfoObject;
   target: string;
   spec: OpenApiDocument;
+  /** Registry of branded type definitions (if enabled) */
+  brandedTypes?: BrandedTypeRegistry;
 };
 
 export type WriteModeProps = {

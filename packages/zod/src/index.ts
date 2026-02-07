@@ -4,6 +4,7 @@ import {
   type ClientGeneratorsBuilder,
   type ContextSpec,
   escape,
+  extractBrandName,
   generateMutator,
   type GeneratorDependency,
   type GeneratorMutator,
@@ -14,6 +15,7 @@ import {
   getPropertySafe,
   getRefInfo,
   isBoolean,
+  isBrandableSchemaType,
   isObject,
   isString,
   jsStringEscape,
@@ -699,6 +701,15 @@ export const generateZodValidationSchemaDefinition = (
     }
   }
 
+  // Add brand if x-brand extension is present and useBrandedTypes is enabled
+  if (context.output.override.useBrandedTypes) {
+    const brandName = extractBrandName(schema);
+
+    if (brandName && isBrandableSchemaType(schema)) {
+      functions.push(['brand', `'${brandName}'`]);
+    }
+  }
+
   if (!required && schema.default !== undefined) {
     functions.push(['default', defaultVarName]);
   } else if (!required && nullable) {
@@ -911,6 +922,11 @@ ${Object.entries(args)
     if (fn === 'rest') {
       return `.rest(zod${(args as ZodValidationSchemaDefinition).functions.map((prop) => parseProperty(prop))})`;
     }
+
+    if (fn === 'brand') {
+      return `.brand<${args}>()`;
+    }
+
     const shouldCoerceType =
       coerceTypes &&
       (Array.isArray(coerceTypes)

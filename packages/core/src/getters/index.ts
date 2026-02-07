@@ -1,5 +1,6 @@
 export * from './array';
 export * from './body';
+export * from './branded';
 export * from './combine';
 export * from './discriminators';
 export * from './enum';

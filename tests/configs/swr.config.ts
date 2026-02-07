@@ -384,4 +384,17 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  'branded-types': {
+    output: {
+      target: '../generated/swr/branded-types/endpoints.ts',
+      schemas: '../generated/swr/branded-types/model',
+      client: 'swr',
+      override: {
+        useBrandedTypes: true,
+      },
+    },
+    input: {
+      target: '../specifications/branded-types.yaml',
+    },
+  },
 });

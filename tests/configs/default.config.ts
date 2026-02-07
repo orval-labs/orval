@@ -530,4 +530,43 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  'branded-types': {
+    input: {
+      target: '../specifications/branded-types.yaml',
+    },
+    output: {
+      target: '../generated/default/branded-types/endpoints.ts',
+      schemas: '../generated/default/branded-types/model',
+      override: {
+        useBrandedTypes: true,
+      },
+    },
+  },
+  'branded-types-with-type-generation': {
+    input: {
+      target: '../specifications/branded-types.yaml',
+    },
+    output: {
+      target: '../generated/default/branded-types-with-bigint/endpoints.ts',
+      schemas: '../generated/default/branded-types-with-bigint/model',
+      override: {
+        useBrandedTypes: true,
+        useBigInt: true,
+        useDates: true,
+      },
+    },
+  },
+  'branded-types-tags-split': {
+    input: {
+      target: '../specifications/branded-types.yaml',
+    },
+    output: {
+      target: '../generated/default/branded-types-tags-split/endpoints.ts',
+      schemas: '../generated/default/branded-types-tags-split/model',
+      mode: 'tags-split',
+      override: {
+        useBrandedTypes: true,
+      },
+    },
+  },
 });

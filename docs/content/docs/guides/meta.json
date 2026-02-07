@@ -25,6 +25,7 @@
     "msw",
     "---Advanced---",
     "enums",
+    "branded-types",
     "stream-ndjson",
     "mcp"
   ]

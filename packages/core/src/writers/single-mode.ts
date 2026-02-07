@@ -11,7 +11,11 @@ import {
 } from '../utils';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTarget } from './target';
-import { getOrvalGeneratedTypes, getTypedResponse } from './types';
+import {
+  getBrandedHelperType,
+  getOrvalGeneratedTypes,
+  getTypedResponse,
+} from './types';
 
 export async function writeSingleMode({
   builder,
@@ -135,6 +139,10 @@ export async function writeSingleMode({
     }
 
     if (!output.schemas && needSchema) {
+      if (builder.brandedTypes?.size) {
+        data += getBrandedHelperType();
+        data += '\n';
+      }
       data += generateModelsInline(builder.schemas);
     }
 
