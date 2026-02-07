@@ -5,6 +5,7 @@ import {
   getParams,
   getProps,
   getQueryParams,
+  getRequestBodyContentTypes,
   getResponse,
 } from '../getters';
 import type {
@@ -29,6 +30,7 @@ import {
   isVerb,
   jsDoc,
   mergeDeep,
+  pascal,
   sanitize,
 } from '../utils';
 import { generateMutator } from './mutator';
@@ -42,6 +44,22 @@ export interface GenerateVerbOptionsParams {
   verbParameters?: OpenApiPathItemObject['parameters'];
   components?: OpenApiComponentsObject;
   context: ContextSpec;
+  contentType?: string;
+}
+
+/**
+ * Get a content-type specific suffix for operation names (#2812)
+ */
+function getContentTypeSuffix(contentType: string): string {
+  const contentTypeMap: Record<string, string> = {
+    'application/json': 'Json',
+    'multipart/form-data': 'FormData',
+    'application/x-www-form-urlencoded': 'UrlEncoded',
+    'application/xml': 'Xml',
+    'text/plain': 'Text',
+  };
+
+  return contentTypeMap[contentType] || pascal(contentType.replace(/[^a-zA-Z0-9]/g, '_'));
 }
 
 export async function generateVerbOptions({
@@ -52,6 +70,7 @@ export async function generateVerbOptions({
   pathRoute,
   verbParameters = [],
   context,
+  contentType,
 }: GenerateVerbOptionsParams): Promise<GeneratorVerbOptions> {
   const {
     responses,
@@ -72,29 +91,41 @@ export async function generateVerbOptions({
     {},
   );
 
-  const override = mergeDeep(
+  let override = mergeDeep(
     mergeDeep(output.override, overrideTag),
-    overrideOperation,
+    overrideOperation || {},
   );
+
+  // Store the original user-defined contentType filter for responses
+  const originalContentTypeFilter = override.contentType;
+
+  // If a specific contentType is provided, use it for filtering request body
+  const requestBodyContentTypeFilter = contentType
+    ? { include: [contentType] }
+    : override.contentType;
 
   const overrideOperationName =
     overrideOperation?.operationName ?? output.override.operationName;
-  const operationName = overrideOperationName
+  let operationName = overrideOperationName
     ? overrideOperationName(operation, route, verb)
     : sanitize(camel(operationId), { es5keyword: true });
 
+  if (contentType) {
+    operationName = operationName + 'With' + getContentTypeSuffix(contentType);
+  }
+
   const response = getResponse({
-    responses,
+    responses: responses!,
     operationName,
     context,
-    contentType: override.contentType,
+    contentType: originalContentTypeFilter,
   });
 
   const body = getBody({
     requestBody: requestBody!,
     operationName,
     context,
-    contentType: override.contentType,
+    contentType: requestBodyContentTypeFilter,
   });
 
   const parameters = getParameters({
@@ -241,17 +272,38 @@ export function generateVerbsOptions({
     _filteredVerbs(verbs, input.filters),
     async (acc, [verb, operation]: [string, OpenApiOperationObject]) => {
       if (isVerb(verb)) {
-        const verbOptions = await generateVerbOptions({
-          verb,
-          output,
-          verbParameters: verbs.parameters,
-          route,
-          pathRoute,
-          operation,
-          context,
-        });
+        const contentTypes = getRequestBodyContentTypes(operation.requestBody, context);
 
-        acc.push(verbOptions);
+        // If there are multiple content types, generate a separate operation for each
+        if (contentTypes.length > 1) {
+          for (const contentType of contentTypes) {
+            const verbOptions = await generateVerbOptions({
+              verb,
+              output,
+              verbParameters: verbs.parameters,
+              route,
+              pathRoute,
+              operation,
+              context,
+              contentType,
+            });
+
+            acc.push(verbOptions);
+          }
+        } else {
+          // Single or no content type - generate operation as before
+          const verbOptions = await generateVerbOptions({
+            verb,
+            output,
+            verbParameters: verbs.parameters,
+            route,
+            pathRoute,
+            operation,
+            context,
+          });
+
+          acc.push(verbOptions);
+        }
       }
 
       return acc;
@@ -275,7 +327,7 @@ export function _filteredVerbs(
     ([, operation]: [string, OpenApiOperationObject]) => {
       const operationTags = operation.tags ?? [];
 
-      const isMatch = operationTags.some((tag) =>
+      const isMatch = operationTags.some((tag: string) =>
         filterTags.some((filterTag) =>
           filterTag instanceof RegExp ? filterTag.test(tag) : filterTag === tag,
         ),
