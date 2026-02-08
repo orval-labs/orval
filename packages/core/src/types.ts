@@ -53,6 +53,7 @@ export type NormalizedOutputOptions = {
 };
 
 export type NormalizedParamsSerializerOptions = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   qs?: Record<string, any>;
 };
 
@@ -89,7 +90,7 @@ export type NormalizedOverrideOutput = {
   };
   hono: NormalizedHonoOptions;
   query: NormalizedQueryOptions;
-  angular: Required<AngularOptions>;
+  angular: NormalizedAngularOptions;
   swr: SwrOptions;
   zod: NormalizedZodOptions;
   fetch: NormalizedFetchOptions;
@@ -98,6 +99,7 @@ export type NormalizedOverrideOutput = {
     route: string,
     verb: Verbs,
   ) => string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   requestOptions: Record<string, any> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
@@ -133,7 +135,7 @@ export type NormalizedOperationOptions = {
   };
   contentType?: OverrideOutputContentType;
   query?: NormalizedQueryOptions;
-  angular?: Required<AngularOptions>;
+  angular?: NormalizedAngularOptions;
   swr?: SwrOptions;
   zod?: NormalizedZodOptions;
   operationName?: (
@@ -393,6 +395,7 @@ export type MutatorObject = {
 export type Mutator = string | MutatorObject;
 
 export type ParamsSerializerOptions = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   qs?: Record<string, any>;
 };
 
@@ -468,6 +471,7 @@ export type OverrideOutput = {
     verb: Verbs,
   ) => string;
   fetch?: FetchOptions;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   requestOptions?: Record<string, any> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
@@ -486,10 +490,12 @@ export type OverrideOutput = {
 };
 
 export type JsDocOptions = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filter?: (schema: Record<string, any>) => { key: string; value: string }[];
 };
 
 export type NormalizedJsDocOptions = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filter?: (schema: Record<string, any>) => { key: string; value: string }[];
 };
 
@@ -615,6 +621,7 @@ export type NormalizedQueryOptions = {
   useInfiniteQueryParam?: string;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   options?: any;
   queryKey?: NormalizedMutator;
   queryOptions?: NormalizedMutator;
@@ -638,6 +645,7 @@ export type QueryOptions = {
   useInfiniteQueryParam?: string;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   options?: any;
   queryKey?: Mutator;
   queryOptions?: Mutator;
@@ -655,6 +663,13 @@ export type QueryOptions = {
 export type AngularOptions = {
   provideIn?: 'root' | 'any' | boolean;
   client?: 'httpClient' | 'httpResource' | 'both';
+  runtimeValidation?: boolean;
+};
+
+export type NormalizedAngularOptions = {
+  provideIn: 'root' | 'any' | boolean;
+  client: 'httpClient' | 'httpResource' | 'both';
+  runtimeValidation: boolean;
 };
 
 export type SwrOptions = {
@@ -697,7 +712,7 @@ export type OperationOptions = {
     properties?: MockProperties;
   };
   query?: QueryOptions;
-  angular?: Required<AngularOptions>;
+  angular?: AngularOptions;
   swr?: SwrOptions;
   zod?: ZodOptions;
   operationName?: (
@@ -714,6 +729,7 @@ export type OperationOptions = {
 
 export type Hook = 'afterAllFilesWrite';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type HookFunction = (...args: any[]) => void | Promise<void>;
 
 export interface HookOption {
@@ -1148,7 +1164,9 @@ export type ScalarValue = {
   schemas: GeneratorSchema[];
   isRef: boolean;
   dependencies: string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   example?: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   examples?: Record<string, any>;
 };
 

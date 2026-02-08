@@ -306,6 +306,7 @@ const applySignalRoute = (
 interface ResourceRequest {
   readonly bodyForm: string;
   readonly request: string;
+  readonly isUrlOnly: boolean;
 }
 
 const buildResourceRequest = (
@@ -354,36 +355,111 @@ const buildResourceRequest = (
       : paramsAccess
     : undefined;
 
+  const isGet = verb === 'get';
+  const hasExtras = !isGet || !!bodyValue || !!paramsValue || !!headersAccess;
+  const isUrlOnly = !hasExtras && !bodyForm;
+
   const requestLines = [
     `url: \`${route}\``,
-    verb === 'get' ? undefined : `method: '${verb.toUpperCase()}'`,
+    isGet ? undefined : `method: '${verb.toUpperCase()}'`,
     bodyValue ? `body: ${bodyValue}` : undefined,
     paramsValue ? `params: ${paramsValue}` : undefined,
     headersAccess ? `headers: ${headersAccess}` : undefined,
   ].filter(Boolean);
 
-  const request = `({\n      ${requestLines.join(',\n      ')}\n    })`;
+  const request = isUrlOnly
+    ? `\`${route}\``
+    : `({\n      ${requestLines.join(',\n      ')}\n    })`;
 
   return {
     bodyForm,
     request,
+    isUrlOnly,
   };
+};
+
+const PRIMITIVE_TYPES = new Set([
+  'string',
+  'number',
+  'boolean',
+  'void',
+  'unknown',
+]);
+
+const escapeRegExp = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const getHttpResourceResponseImports = (
+  response: GeneratorVerbOptions['response'],
+): GeneratorImport[] => {
+  const successDefinition = response.definition.success ?? '';
+  if (!successDefinition) return [];
+
+  return response.imports.filter((imp) => {
+    const name = imp.alias ?? imp.name;
+    const pattern = new RegExp(`\\b${escapeRegExp(name)}\\b`, 'g');
+    return pattern.test(successDefinition);
+  });
+};
+
+const getHttpResourceVerbImports = (
+  verbOptions: GeneratorVerbOptions,
+): GeneratorImport[] => {
+  const { response, body, queryParams, props, headers, params } = verbOptions;
+
+  return [
+    ...getHttpResourceResponseImports(response),
+    ...body.imports,
+    ...props.flatMap((prop) =>
+      prop.type === GetterPropType.NAMED_PATH_PARAMS
+        ? [{ name: prop.schema.name }]
+        : [],
+    ),
+    ...(queryParams ? [{ name: queryParams.schema.name }] : []),
+    ...(headers ? [{ name: headers.schema.name }] : []),
+    ...params.flatMap<GeneratorImport>(({ imports }) => imports),
+  ];
 };
 
 const getParseOption = (
   response: {
     readonly imports: readonly { name: string; isZodSchema?: boolean }[];
+    readonly definition: { readonly success?: string };
   },
   factory: HttpResourceFactoryName,
+  output: NormalizedOutputOptions,
 ): string => {
   if (factory !== 'httpResource') return '';
+
+  // Explicit isZodSchema flag on imports (forward-compatible)
   const zodSchema = response.imports.find((imp) => imp.isZodSchema);
-  return zodSchema ? `, { parse: ${zodSchema.name}.parse }` : '';
+  if (zodSchema) return `, { parse: ${zodSchema.name}.parse }`;
+
+  // Check if runtime validation is disabled
+  if (!output.override.angular.runtimeValidation) return '';
+
+  // Auto-detect: when schemas.type === 'zod', use the response type as the schema name
+  const isZodSchemaOutput =
+    isObject(output.schemas) && output.schemas.type === 'zod';
+  if (!isZodSchemaOutput) return '';
+
+  const responseType = response.definition.success;
+  if (!responseType) return '';
+  if (PRIMITIVE_TYPES.has(responseType)) return '';
+
+  // Verify a matching import exists (the response type name resolves to a zod schema)
+  const hasMatchingImport = response.imports.some(
+    (imp) => imp.name === responseType,
+  );
+  if (!hasMatchingImport) return '';
+
+  return `, { parse: ${responseType}.parse }`;
 };
 
 const buildHttpResourceFunction = (
   verbOption: GeneratorVerbOptions,
   route: string,
+  output: NormalizedOutputOptions,
 ): string => {
   const { operationName, response, props, params, mutator } = verbOption;
 
@@ -416,8 +492,11 @@ const buildHttpResourceFunction = (
   const signalProps = buildSignalProps(props, params);
   const args = toObjectString(signalProps, 'implementation');
 
-  const { bodyForm, request } = buildResourceRequest(verbOption, signalRoute);
-  const parseOption = getParseOption(response, resourceFactory);
+  const { bodyForm, request, isUrlOnly } = buildResourceRequest(
+    verbOption,
+    signalRoute,
+  );
+  const parseOption = getParseOption(response, resourceFactory, output);
 
   // HttpClient-style mutators expect (config, httpClient) — incompatible with
   // standalone httpResource functions which have no HttpClient instance.
@@ -427,6 +506,16 @@ const buildHttpResourceFunction = (
   const returnExpression = isResourceCompatibleMutator
     ? `${mutator.name}(request)`
     : 'request';
+
+  if (isUrlOnly && !isResourceCompatibleMutator) {
+    return `/**
+ * @experimental httpResource is experimental (Angular v19.2+)
+ */
+export function ${resourceName}(${args}): HttpResourceRef<${dataType} | undefined> {
+  return ${resourceFactory}<${dataType}>(() => ${request}${parseOption});
+}
+`;
+  }
 
   return `/**
  * @experimental httpResource is experimental (Angular v19.2+)
@@ -498,7 +587,7 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
         verbOption.operationName,
         verbOption.route,
       );
-      return buildHttpResourceFunction(verbOption, fullRoute);
+      return buildHttpResourceFunction(verbOption, fullRoute, output);
     })
     .join('\n');
 
@@ -562,7 +651,7 @@ export const generateHttpResourceClient: ClientBuilder = (
   options,
 ) => {
   routeRegistry.set(verbOptions.operationName, options.route);
-  const imports = generateVerbImports(verbOptions);
+  const imports = getHttpResourceVerbImports(verbOptions);
 
   return { implementation: '\n', imports };
 };
@@ -588,7 +677,7 @@ const buildHttpResourceFile = (
         context.spec.servers,
         output.baseUrl,
       );
-      return buildHttpResourceFunction(verbOption, fullRoute);
+      return buildHttpResourceFunction(verbOption, fullRoute, output);
     })
     .join('\n');
 
@@ -675,7 +764,7 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
           getClientOverride(verbOption),
         ),
       )
-      .flatMap((verbOption) => generateVerbImports(verbOption)),
+      .flatMap((verbOption) => getHttpResourceVerbImports(verbOption)),
     relativeSchemasPath,
   );
 
