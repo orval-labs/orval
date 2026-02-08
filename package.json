@@ -32,6 +32,7 @@
     "test:ci": "CI=true yarn test && yarn test:cli && yarn test:samples",
     "lint": "turbo run lint --filter='./packages/*'",
     "lint:samples": "turbo run lint --filter='./samples/**'",
+    "lint:generated": "turbo run lint:generated --filter='./tests'",
     "dev": "turbo run dev --filter='./packages/*'",
     "clean": "rimraf .turbo",
     "clean:all": "yarn workspaces foreach -A run clean",
