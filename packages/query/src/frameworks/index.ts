@@ -118,6 +118,7 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => ({
     queryParam,
     initialData,
     httpClient,
+    hasInvalidation,
   }) {
     const prefix = adapter.getQueryOptionsDefinitionPrefix?.() ?? 'Use';
     const definition = getQueryOptionsDefinition({
@@ -143,9 +144,11 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => ({
 
     const requestType = getQueryArgumentsRequestType(httpClient, mutator);
     const isQueryRequired = initialData === 'defined';
+    const skipInvalidationProp =
+      !type && hasInvalidation ? 'skipInvalidation?: boolean, ' : '';
     const optionsType = `{ ${
       type ? 'query' : 'mutation'
-    }${isQueryRequired ? '' : '?'}:${definition}, ${requestType}}`;
+    }${isQueryRequired ? '' : '?'}:${definition}, ${skipInvalidationProp}${requestType}}`;
 
     return `options${isQueryRequired ? '' : '?'}: ${optionsType}\n`;
   },

@@ -169,6 +169,7 @@ export const createSvelteAdapter = ({
       initialData,
       httpClient,
       forQueryOptions = false,
+      hasInvalidation,
     }): string {
       const definition = getQueryOptionsDefinition({
         operationName,
@@ -192,9 +193,11 @@ export const createSvelteAdapter = ({
 
       const requestType = getQueryArgumentsRequestType(httpClient, mutator);
       const isQueryRequired = initialData === 'defined';
+      const skipInvalidationProp =
+        !type && hasInvalidation ? 'skipInvalidation?: boolean, ' : '';
       const optionsType = `{ ${
         type ? 'query' : 'mutation'
-      }${isQueryRequired ? '' : '?'}:${definition}, ${requestType}}`;
+      }${isQueryRequired ? '' : '?'}:${definition}, ${skipInvalidationProp}${requestType}}`;
 
       return `options${isQueryRequired ? '' : '?'}: ${hasSvelteQueryV6 && !forQueryOptions ? '() => ' : ''}${optionsType}\n`;
     },
@@ -221,17 +224,37 @@ export const createSvelteAdapter = ({
     generateMutationOnSuccess({
       operationName,
       definitions,
+      isRequestOptions,
       generateInvalidateCall,
       uniqueInvalidates,
     }: MutationOnSuccessContext): string {
+      const invalidateCalls = uniqueInvalidates
+        .map((t) => generateInvalidateCall(t))
+        .join('\n');
       if (hasSvelteQueryV6) {
+        if (isRequestOptions) {
+          return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
+    if (!options?.skipInvalidation) {
+${invalidateCalls}
+    }
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+  };`;
+        }
         return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
-${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
+${invalidateCalls}
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
   };`;
       }
+      if (isRequestOptions) {
+        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext | undefined) => {
+    if (!options?.skipInvalidation) {
+${invalidateCalls}
+    }
+    mutationOptions?.onSuccess?.(data, variables, context);
+  };`;
+      }
       return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext | undefined) => {
-${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
+${invalidateCalls}
     mutationOptions?.onSuccess?.(data, variables, context);
   };`;
     },

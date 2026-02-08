@@ -82,11 +82,23 @@ export const createReactAdapter = ({
   generateMutationOnSuccess({
     operationName,
     definitions,
+    isRequestOptions,
     generateInvalidateCall,
     uniqueInvalidates,
   }: MutationOnSuccessContext): string {
+    const invalidateCalls = uniqueInvalidates
+      .map((t) => generateInvalidateCall(t))
+      .join('\n');
+    if (isRequestOptions) {
+      return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext) => {
+    if (!options?.skipInvalidation) {
+${invalidateCalls}
+    }
+    mutationOptions?.onSuccess?.(data, variables, context);
+  };`;
+    }
     return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext) => {
-${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
+${invalidateCalls}
     mutationOptions?.onSuccess?.(data, variables, context);
   };`;
   },
