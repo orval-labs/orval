@@ -1,24 +1,29 @@
 import angular from '@orval/angular';
 import axios from '@orval/axios';
+import type {
+  AngularOptions,
+  ClientFileBuilder,
+  ClientGeneratorsBuilder,
+  ClientMockGeneratorBuilder,
+  ContextSpec,
+  GeneratorClientFooter,
+  GeneratorClientHeader,
+  GeneratorClientImports,
+  GeneratorClients,
+  GeneratorClientTitle,
+  GeneratorOperations,
+  GeneratorOptions,
+  GeneratorVerbOptions,
+  GeneratorVerbsOptions,
+  GlobalMockOptions,
+  NormalizedOutputOptions,
+  OutputClientFunc,
+} from '@orval/core';
 import {
   asyncReduce,
-  type ClientFileBuilder,
-  type ClientMockGeneratorBuilder,
-  type ContextSpec,
   generateDependencyImports,
-  type GeneratorClientFooter,
-  type GeneratorClientHeader,
-  type GeneratorClientImports,
-  type GeneratorClients,
-  type GeneratorClientTitle,
-  type GeneratorOperations,
-  type GeneratorOptions,
-  type GeneratorVerbOptions,
-  type GeneratorVerbsOptions,
   isFunction,
-  type NormalizedOutputOptions,
   OutputClient,
-  type OutputClientFunc,
   pascal,
 } from '@orval/core';
 import fetchClient from '@orval/fetch';
@@ -36,10 +41,13 @@ const getGeneratorClient = (
   outputClient: OutputClient | OutputClientFunc,
   output: NormalizedOutputOptions,
 ) => {
+  const angularBuilder = angular() as (
+    options?: AngularOptions,
+  ) => ClientGeneratorsBuilder;
   const GENERATOR_CLIENT: GeneratorClients = {
     axios: axios({ type: 'axios' })(),
     'axios-functions': axios({ type: 'axios-functions' })(),
-    angular: angular()(),
+    angular: angularBuilder(output.override.angular),
     'angular-query': query({ output, type: 'angular-query' })(),
     'react-query': query({ output, type: 'react-query' })(),
     'solid-start': solidStart()(),
@@ -56,10 +64,6 @@ const getGeneratorClient = (
   const generator = isFunction(outputClient)
     ? outputClient(GENERATOR_CLIENT)
     : GENERATOR_CLIENT[outputClient];
-
-  if (!generator) {
-    throw new Error(`Oups... 🍻. Client not found: ${outputClient}`);
-  }
 
   return generator;
 };
@@ -152,9 +156,9 @@ export const generateClientFooter: GeneratorClientFooter = ({
   let implementation: string;
   try {
     if (isFunction(outputClient)) {
-      implementation = (footer as (operationNames: any) => string)(
-        operationNames,
-      );
+      implementation = (
+        footer as unknown as (operationNames: string[]) => string
+      )(operationNames);
       // being here means that the previous call worked
       console.warn(
         '[WARN] Passing an array of strings for operations names to the footer function is deprecated and will be removed in a future major release. Please pass them in an object instead: { operationNames: string[] }.',
@@ -229,12 +233,10 @@ const generateMock = (
     return options.mock(verbOption, options);
   }
 
-  return mock.generateMock(
-    verbOption,
-    options as typeof options & {
-      mock: Exclude<(typeof options)['mock'], Function | undefined>;
-    },
-  );
+  return mock.generateMock(verbOption, {
+    ...options,
+    mock: options.mock as GlobalMockOptions,
+  });
 };
 
 export const generateOperations = (
@@ -263,8 +265,12 @@ export const generateOperations = (
 
       const generatedMock = generateMock(verbOption, options);
 
+      const hasImplementation = client.implementation.trim().length > 0;
+
       acc[verbOption.operationId] = {
-        implementation: verbOption.doc + client.implementation,
+        implementation: hasImplementation
+          ? verbOption.doc + client.implementation
+          : client.implementation,
         imports: client.imports,
         implementationMock: generatedMock.implementation,
         importsMock: generatedMock.imports,

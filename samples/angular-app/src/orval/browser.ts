@@ -1,6 +1,9 @@
 import { setupWorker } from 'msw/browser';
 import { http, HttpResponse, RequestHandler } from 'msw';
-import * as mocks from '../api/endpoints/index.msw';
+
+import * as httpClientMocks from '../api/http-client/index.msw';
+import * as httpResourceMocks from '../api/http-resource/index.msw';
+import * as httpResourceZodMocks from '../api/http-resource-zod/index.msw';
 
 // TODO: This is a temporary override for showPetById to handle Accept header content negotiation.
 // The MSW generator needs to be fixed to generate this logic automatically (see issue #2243).
@@ -22,7 +25,13 @@ const customShowPetByIdHandler = http.get(
   },
 );
 
-const generatedHandlers = Object.entries(mocks)
+const allMocks = {
+  ...httpClientMocks,
+  ...httpResourceMocks,
+  ...httpResourceZodMocks,
+};
+
+const generatedHandlers = Object.entries(allMocks)
   .filter(([name]) => name !== 'getShowPetByIdMockHandler')
   .flatMap(([, getMock]) => (getMock as () => RequestHandler[])());
 

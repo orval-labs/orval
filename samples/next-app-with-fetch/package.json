@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "generate-api": "orval",
     "format": "prettier --write ."
   },
@@ -17,6 +17,8 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/js": "^9.39.2",
     "@faker-js/faker": "^10.2.0",
     "@types/node": "^22.18.12",
     "@types/react": "^18.3.24",

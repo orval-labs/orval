@@ -1,13 +1,19 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
+import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { App } from './app';
+import { routes } from './app.routes';
 
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideZonelessChangeDetection(), provideHttpClient()],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideHttpClient(),
+        provideRouter(routes),
+      ],
     }).compileComponents();
   });
 
@@ -26,11 +32,11 @@ describe('App', () => {
     );
   });
 
-  it('should render pets', async () => {
+  it('should render navigation links', async () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelectorAll('p').length).toBeGreaterThanOrEqual(1);
+    expect(compiled.querySelectorAll('a').length).toBeGreaterThanOrEqual(3);
   });
 });

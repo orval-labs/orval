@@ -36,9 +36,13 @@ export async function generateSpec(
       );
     }
     if (options.output.schemas) {
+      const schemasPath =
+        typeof options.output.schemas === 'string'
+          ? options.output.schemas
+          : options.output.schemas.path;
       await removeFilesAndEmptyFolders(
         ['**/*', '!**/*.d.ts', ...extraPatterns],
-        getFileInfo(options.output.schemas).dirname,
+        getFileInfo(schemasPath).dirname,
       );
     }
     log(`${projectName} Cleaning output folder`);

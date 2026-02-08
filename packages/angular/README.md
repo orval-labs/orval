@@ -1,21 +1,20 @@
+# Orval Angular
+
 [![npm version](https://badge.fury.io/js/orval.svg)](https://badge.fury.io/js/orval)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![tests](https://github.com/orval-labs/orval/actions/workflows/tests.yaml/badge.svg)](https://github.com/orval-labs/orval/actions/workflows/tests.yaml)
 
-<p align="center">
-  <img src="./logo/orval-logo-horizontal.svg?raw=true" width="500" height="160" alt="orval - Restfull Client Generator" />
-</p>
-<h1 align="center">
-  Visit <a href="https://orval.dev" target="_blank">orval.dev</a> for docs, guides, API and beer!
-</h1>
+![orval - Restfull Client Generator](./logo/orval-logo-horizontal.svg?raw=true)
 
-### Code Generation
+Visit [orval.dev](https://orval.dev) for docs, guides, API and beer!
+
+## Code Generation
 
 `orval` generates type-safe JS clients (TypeScript) from any valid OpenAPI v3 or Swagger v2 specification, either in `yaml` or `json` formats.
 
 `Generate`, `valid`, `cache` and `mock` in your React, Vue, Svelte and Angular applications all with your OpenAPI specification.
 
-### Samples
+## Samples
 
 You can find below some samples
 
