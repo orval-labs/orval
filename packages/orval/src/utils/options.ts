@@ -368,6 +368,7 @@ export async function normalizeOptions(
         },
         angular: {
           provideIn: outputOptions.override?.angular?.provideIn ?? 'root',
+          client: outputOptions.override?.angular?.client ?? 'httpClient',
         },
         fetch: {
           includeHttpResponseReturnType:
@@ -475,6 +476,14 @@ function normalizeOperationsAndTags(
           key,
           {
             ...rest,
+            ...(rest.angular
+              ? {
+                  angular: {
+                    provideIn: rest.angular.provideIn ?? 'root',
+                    client: rest.angular.client ?? 'httpClient',
+                  },
+                }
+              : {}),
             ...(query
               ? {
                   query: normalizeQueryOptions(query, workspace, global.query),
