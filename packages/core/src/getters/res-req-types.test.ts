@@ -6,7 +6,9 @@ import type {
   OpenApiResponseObject,
   OpenApiSchemaObject,
 } from '../types';
-import { getResReqTypes, isBinaryContentType } from './res-req-types';
+import { isString } from '../utils';
+import { isBinaryContentType } from '../utils/content-type';
+import { getResReqTypes } from './res-req-types';
 
 // Simulates an OpenAPI schema with a readOnly property
 const schemaWithReadOnly: OpenApiSchemaObject = {
@@ -24,6 +26,12 @@ const context: ContextSpec = {
     override: {
       formData: { arrayHandling: 'serialize', disabled: false },
       enumGenerationType: 'const',
+      components: {
+        schemas: { suffix: '', itemSuffix: 'Item' },
+        responses: { suffix: '' },
+        parameters: { suffix: '' },
+        requestBodies: { suffix: 'RequestBody' },
+      },
     },
   },
   target: 'spec',
@@ -51,7 +59,7 @@ describe('getResReqTypes (formData, readOnly property)', () => {
     const types = getResReqTypes(reqBody, 'UploadBody', context);
     // Get the generated code for formData
     expect(types[0]).toBeDefined();
-    expect(typeof types[0].formData).toBe('string');
+    expect(isString(types[0].formData)).toBe(true);
     const formDataCode = types[0].formData!;
     // Verify that the readOnly property "id" is NOT present in the generated code
     expect(formDataCode).not.toContain('id');
@@ -183,111 +191,8 @@ describe('getResReqTypes (content type handling)', () => {
   });
 
   describe('FormData generation (comprehensive)', () => {
-    // One schema covering all content type combinations
-    const reqBody: [string, OpenApiRequestBodyObject][] = [
-      [
-        'requestBody',
-        {
-          content: {
-            'multipart/form-data': {
-              schema: {
-                type: 'object',
-                properties: {
-                  encBinary: { type: 'string' },
-                  encText: { type: 'string' },
-                  cmtBinary: { type: 'string', contentMediaType: 'image/png' },
-                  cmtText: {
-                    type: 'string',
-                    contentMediaType: 'application/xml',
-                  },
-                  encOverride: {
-                    type: 'string',
-                    contentMediaType: 'image/png',
-                  },
-                  formatBinary: { type: 'string', format: 'binary' },
-                  base64Field: {
-                    type: 'string',
-                    contentMediaType: 'image/png',
-                    contentEncoding: 'base64',
-                  },
-                  metadata: {
-                    type: 'object',
-                    properties: { name: { type: 'string' } },
-                  },
-                  wildcardFile: { type: 'string', contentMediaType: '*/*' },
-                },
-                required: [
-                  'encBinary',
-                  'encText',
-                  'cmtBinary',
-                  'cmtText',
-                  'encOverride',
-                  'formatBinary',
-                  'base64Field',
-                  'metadata',
-                  'wildcardFile',
-                ],
-              },
-              encoding: {
-                encBinary: { contentType: 'image/png' },
-                encText: { contentType: 'text/plain' },
-                encOverride: { contentType: 'text/csv' },
-                metadata: { contentType: 'application/json' },
-              },
-            },
-          },
-          required: true,
-        },
-      ],
-    ];
-
-    it('generates correct types and FormData for all content type combinations', () => {
-      const result = getResReqTypes(reqBody, 'Body', context)[0];
-
-      // The value should be the type alias name (not inline type)
-      // This ensures consistent behavior with resolveObject
-      expect(result.value).toBe('BodyRequestBody');
-
-      // The schema should contain the type definition with the inline type
-      // encBinary/cmtBinary/formatBinary/wildcardFile: Blob (binary)
-      // encText/cmtText/encOverride: Blob | string (text file)
-      // base64Field: string (contentEncoding means not a file)
-      // metadata: object (named type)
-      const bodySchema = result.schemas.find(
-        (s) => s.name === 'BodyRequestBody',
-      );
-      expect(bodySchema).toBeDefined();
-      expect(bodySchema?.model).toContain('export type BodyRequestBody = {');
-      expect(bodySchema?.model).toContain('encBinary: Blob;');
-      expect(bodySchema?.model).toContain('encText: Blob | string;');
-      expect(bodySchema?.model).toContain('cmtBinary: Blob;');
-      expect(bodySchema?.model).toContain('cmtText: Blob | string;');
-      expect(bodySchema?.model).toContain('encOverride: Blob | string;');
-      expect(bodySchema?.model).toContain('formatBinary: Blob;');
-      expect(bodySchema?.model).toContain('base64Field: string;');
-      expect(bodySchema?.model).toContain('metadata: BodyRequestBodyMetadata;');
-      expect(bodySchema?.model).toContain('wildcardFile: Blob;');
-
-      expect(result.formData).toBe(`const formData = new FormData();
-formData.append(\`encBinary\`, bodyRequestBody.encBinary);
-formData.append(\`encText\`, bodyRequestBody.encText instanceof Blob ? bodyRequestBody.encText : new Blob([bodyRequestBody.encText], { type: 'text/plain' }));
-formData.append(\`cmtBinary\`, bodyRequestBody.cmtBinary);
-formData.append(\`cmtText\`, bodyRequestBody.cmtText instanceof Blob ? bodyRequestBody.cmtText : new Blob([bodyRequestBody.cmtText], { type: 'application/xml' }));
-formData.append(\`encOverride\`, bodyRequestBody.encOverride instanceof Blob ? bodyRequestBody.encOverride : new Blob([bodyRequestBody.encOverride], { type: 'text/csv' }));
-formData.append(\`formatBinary\`, bodyRequestBody.formatBinary);
-formData.append(\`base64Field\`, bodyRequestBody.base64Field);
-formData.append(\`metadata\`, new Blob([JSON.stringify(bodyRequestBody.metadata)], { type: 'application/json' }));
-formData.append(\`wildcardFile\`, bodyRequestBody.wildcardFile);
-`);
-    });
-  });
-});
-
-// When requestBody schema uses $ref with file properties (contentMediaType),
-// formData variable should still use schema name, not operation-based name.
-describe('getResReqTypes (formData $ref with file properties)', () => {
-  it('uses schema name for formData variable', () => {
-    const ctx: ContextSpec = {
+    // Context with $ref schemas
+    const ctxWithSchemas: ContextSpec = {
       ...context,
       spec: {
         components: {
@@ -305,22 +210,283 @@ describe('getResReqTypes (formData $ref with file properties)', () => {
         },
       },
     };
+
+    // Comprehensive schema covering: encoding, contentMediaType, format binary,
+    // base64, object fields, wildcard, arrays, nested properties, $ref
     const reqBody: [string, OpenApiRequestBodyObject][] = [
       [
         'requestBody',
         {
           content: {
             'multipart/form-data': {
-              schema: { $ref: '#/components/schemas/FileUpload' },
+              schema: {
+                type: 'object',
+                properties: {
+                  // encoding.contentType → Blob (binary)
+                  encBinary: { type: 'string' },
+                  // encoding.contentType → Blob | string (text)
+                  encText: { type: 'string' },
+                  // contentMediaType → Blob (binary)
+                  cmtBinary: { type: 'string', contentMediaType: 'image/png' },
+                  // contentMediaType → Blob | string (text)
+                  cmtText: {
+                    type: 'string',
+                    contentMediaType: 'application/xml',
+                  },
+                  // encoding overrides contentMediaType: image/png → text/csv
+                  encOverride: {
+                    type: 'string',
+                    contentMediaType: 'image/png',
+                  },
+                  // format: binary → Blob
+                  formatBinary: { type: 'string', format: 'binary' },
+                  // contentEncoding means base64 string, not file
+                  base64Field: {
+                    type: 'string',
+                    contentMediaType: 'image/png',
+                    contentEncoding: 'base64',
+                  },
+                  // Object field with nested contentMediaType (should be ignored - JSON)
+                  metadata: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      // Nested contentMediaType should NOT make this Blob
+                      thumbnailData: {
+                        type: 'string',
+                        contentMediaType: 'image/png',
+                      },
+                    },
+                  },
+                  // wildcard → Blob
+                  wildcardFile: { type: 'string', contentMediaType: '*/*' },
+                  // Array of files → Blob[]
+                  photos: {
+                    type: 'array',
+                    items: {
+                      type: 'string',
+                      contentMediaType: 'application/octet-stream',
+                    },
+                  },
+                },
+                required: [
+                  'encBinary',
+                  'encText',
+                  'cmtBinary',
+                  'cmtText',
+                  'encOverride',
+                  'formatBinary',
+                  'base64Field',
+                  'metadata',
+                  'wildcardFile',
+                  'photos',
+                ],
+              },
+              encoding: {
+                encBinary: { contentType: 'image/png' },
+                encText: { contentType: 'text/plain' },
+                encOverride: { contentType: 'text/csv' },
+                metadata: { contentType: 'application/json' },
+              },
             },
           },
+          required: true,
         },
       ],
     ];
 
-    const result = getResReqTypes(reqBody, 'Upload', ctx)[0];
+    it('generates correct types for all content type combinations', () => {
+      const result = getResReqTypes(reqBody, 'Body', context)[0];
 
-    // Schema name 'FileUpload' → param 'fileUpload' (not 'uploadRequestBody')
-    expect(result.formData).toContain('fileUpload.file');
+      expect(result.value).toBe('BodyRequestBody');
+
+      const bodySchema = result.schemas.find(
+        (s) => s.name === 'BodyRequestBody',
+      );
+      expect(bodySchema).toBeDefined();
+      expect(bodySchema?.model).toContain('export type BodyRequestBody = {');
+
+      // Binary files → Blob
+      expect(bodySchema?.model).toContain('encBinary: Blob;');
+      expect(bodySchema?.model).toContain('cmtBinary: Blob;');
+      expect(bodySchema?.model).toContain('formatBinary: Blob;');
+      expect(bodySchema?.model).toContain('wildcardFile: Blob;');
+
+      // Text files → Blob | string
+      expect(bodySchema?.model).toContain('encText: Blob | string;');
+      expect(bodySchema?.model).toContain('cmtText: Blob | string;');
+      expect(bodySchema?.model).toContain('encOverride: Blob | string;'); // encoding precedence
+
+      // base64 encoded → string (not file)
+      expect(bodySchema?.model).toContain('base64Field: string;');
+
+      // Object field → named type
+      expect(bodySchema?.model).toContain('metadata: BodyRequestBodyMetadata;');
+
+      // Array of files → Blob[]
+      expect(bodySchema?.model).toContain('photos: Blob[];');
+
+      // Nested contentMediaType should be ignored (JSON serialization)
+      const metadataSchema = result.schemas.find(
+        (s) => s.name === 'BodyRequestBodyMetadata',
+      );
+      expect(metadataSchema?.model).toContain('thumbnailData?: string;');
+      expect(metadataSchema?.model).not.toContain('Blob');
+    });
+
+    it('generates correct FormData append code', () => {
+      const result = getResReqTypes(reqBody, 'Body', context)[0];
+
+      expect(result.formData).toBe(`const formData = new FormData();
+formData.append(\`encBinary\`, bodyRequestBody.encBinary);
+formData.append(\`encText\`, bodyRequestBody.encText instanceof Blob ? bodyRequestBody.encText : new Blob([bodyRequestBody.encText], { type: 'text/plain' }));
+formData.append(\`cmtBinary\`, bodyRequestBody.cmtBinary);
+formData.append(\`cmtText\`, bodyRequestBody.cmtText instanceof Blob ? bodyRequestBody.cmtText : new Blob([bodyRequestBody.cmtText], { type: 'application/xml' }));
+formData.append(\`encOverride\`, bodyRequestBody.encOverride instanceof Blob ? bodyRequestBody.encOverride : new Blob([bodyRequestBody.encOverride], { type: 'text/csv' }));
+formData.append(\`formatBinary\`, bodyRequestBody.formatBinary);
+formData.append(\`base64Field\`, bodyRequestBody.base64Field);
+formData.append(\`metadata\`, new Blob([JSON.stringify(bodyRequestBody.metadata)], { type: 'application/json' }));
+formData.append(\`wildcardFile\`, bodyRequestBody.wildcardFile);
+bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
+`);
+    });
+
+    it('$ref schema uses schema name for formData variable', () => {
+      const refReqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'multipart/form-data': {
+                schema: { $ref: '#/components/schemas/FileUpload' },
+              },
+            },
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(refReqBody, 'Upload', ctxWithSchemas)[0];
+
+      // Schema name 'FileUpload' → param 'fileUpload' (not 'uploadRequestBody')
+      expect(result.formData).toContain('fileUpload.file');
+    });
+  });
+
+  describe('FormData with schema composition (oneOf/anyOf/allOf)', () => {
+    // Covers: anyOf at root, nested oneOf, allOf with $ref (#2873)
+    it('anyOf at root with scalar, array, oneOf, and allOf branches', () => {
+      const ctx: ContextSpec = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              ClientUpdateDto: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      };
+
+      const reqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  anyOf: [
+                    {
+                      type: 'object',
+                      properties: {
+                        // Scalar file field
+                        avatar: {
+                          type: 'string',
+                          contentMediaType: 'image/png',
+                        },
+                        // Field that can be single file or array (nested oneOf)
+                        fileOrFiles: {
+                          oneOf: [
+                            { type: 'string', contentMediaType: 'image/png' },
+                            {
+                              type: 'array',
+                              items: {
+                                type: 'string',
+                                contentMediaType: 'image/png',
+                              },
+                            },
+                          ],
+                        },
+                        // Array of oneOf files
+                        mixedFiles: {
+                          type: 'array',
+                          items: {
+                            oneOf: [
+                              { type: 'string', contentMediaType: 'image/png' },
+                              {
+                                type: 'string',
+                                contentMediaType: 'application/pdf',
+                              },
+                            ],
+                          },
+                        },
+                      },
+                    },
+                    {
+                      type: 'object',
+                      properties: {
+                        // Array of files
+                        documents: {
+                          type: 'array',
+                          items: {
+                            type: 'string',
+                            contentMediaType: 'application/pdf',
+                          },
+                        },
+                      },
+                    },
+                    // allOf with $ref (#2873)
+                    {
+                      allOf: [
+                        { $ref: '#/components/schemas/ClientUpdateDto' },
+                        {
+                          type: 'object',
+                          properties: {
+                            logo: {
+                              type: 'string',
+                              contentMediaType: 'application/octet-stream',
+                            },
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(reqBody, 'Upload', ctx)[0];
+      const schema = result.schemas.find((s) => s.name === 'UploadRequestBody');
+
+      // Result references the schema type
+      expect(result.value).toBe('UploadRequestBody');
+
+      // File fields → Blob (not string)
+      expect(schema?.model).toContain('avatar?: Blob');
+      expect(schema?.model).toContain('fileOrFiles?: Blob | Blob[]');
+      expect(schema?.model).toContain('mixedFiles?: Blob[]'); // array of oneOf
+      expect(schema?.model).toContain('documents?: Blob[]');
+      expect(schema?.model).toContain('logo?: Blob'); // allOf branch (#2873)
+
+      // allOf with $ref: intersection type (not union)
+      expect(schema?.model).toContain('ClientUpdateDto & {');
+    });
   });
 });

@@ -3,11 +3,12 @@ import { resolveRef } from '../resolvers';
 import type {
   ContextSpec,
   GetterBody,
+  OpenApiOperationObject,
   OpenApiReferenceObject,
   OpenApiRequestBodyObject,
   OverrideOutputContentType,
 } from '../types';
-import { camel, isReference, sanitize } from '../utils';
+import { camel, filterByContentType, isReference, sanitize } from '../utils';
 import { getResReqTypes } from './res-req-types';
 
 interface GetBodyOptions {
@@ -15,6 +16,24 @@ interface GetBodyOptions {
   operationName: string;
   context: ContextSpec;
   contentType?: OverrideOutputContentType;
+}
+
+/**
+ * Extract all content types from a requestBody (#2812)
+ */
+export function getRequestBodyContentTypes(
+  requestBody: OpenApiOperationObject['requestBody'],
+  context: ContextSpec,
+): string[] {
+  if (!requestBody) {
+    return [];
+  }
+
+  const resolvedBody = isReference(requestBody)
+    ? resolveRef<OpenApiRequestBodyObject>(requestBody, context).schema
+    : requestBody;
+
+  return resolvedBody.content ? Object.keys(resolvedBody.content) : [];
 }
 
 export function getBody({
@@ -29,22 +48,7 @@ export function getBody({
     context,
   );
 
-  const filteredBodyTypes = contentType
-    ? allBodyTypes.filter((type) => {
-        let include = true;
-        let exclude = false;
-
-        if (contentType.include) {
-          include = contentType.include.includes(type.contentType);
-        }
-
-        if (contentType.exclude) {
-          exclude = contentType.exclude.includes(type.contentType);
-        }
-
-        return include && !exclude;
-      })
-    : allBodyTypes;
+  const filteredBodyTypes = filterByContentType(allBodyTypes, contentType);
 
   const imports = filteredBodyTypes.flatMap(({ imports }) => imports);
   const schemas = filteredBodyTypes.flatMap(({ schemas }) => schemas);

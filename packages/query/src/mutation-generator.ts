@@ -6,9 +6,8 @@ import {
   type GeneratorVerbOptions,
   GetterPropType,
   type InvalidateTarget,
-  OutputClient,
-  type OutputClientFunc,
-  OutputHttpClient,
+  isString,
+  type OutputHttpClient,
   pascal,
 } from '@orval/core';
 
@@ -17,13 +16,8 @@ import {
   getMutationRequestArgs,
   getQueryErrorType,
 } from './client';
-import { getFrameworkPrefix } from './query-generator';
-import {
-  generateQueryArguments,
-  getQueryOptionsDefinition,
-} from './query-options';
-import { generateMutatorReturnType } from './return-types';
-import { isAngular, isReact, isSolid, isSvelte } from './utils';
+import type { FrameworkAdapter } from './framework-adapter';
+import { getQueryOptionsDefinition } from './query-options';
 
 type NormalizedTarget = {
   query: string;
@@ -31,7 +25,7 @@ type NormalizedTarget = {
 };
 
 const normalizeTarget = (target: InvalidateTarget): NormalizedTarget =>
-  typeof target === 'string' ? { query: target } : target;
+  isString(target) ? { query: target } : target;
 
 const serializeTarget = (target: NormalizedTarget): string =>
   JSON.stringify({ query: target.query, params: target.params ?? [] });
@@ -64,29 +58,19 @@ const generateInvalidateCall = (target: NormalizedTarget): string => {
 export interface MutationHookContext {
   verbOptions: GeneratorVerbOptions;
   options: GeneratorOptions;
-  outputClient: OutputClient | OutputClientFunc;
-  hasQueryV5: boolean;
-  hasQueryV5WithInfiniteQueryOptionsError: boolean;
-  hasSvelteQueryV4: boolean;
-  hasSvelteQueryV6: boolean;
   isRequestOptions: boolean;
   httpClient: OutputHttpClient;
   doc: string;
-  isAngularHttp: boolean;
+  adapter: FrameworkAdapter;
 }
 
 export const generateMutationHook = async ({
   verbOptions,
   options,
-  outputClient,
-  hasQueryV5,
-  hasQueryV5WithInfiniteQueryOptionsError,
-  hasSvelteQueryV4,
-  hasSvelteQueryV6,
   isRequestOptions,
   httpClient,
   doc,
-  isAngularHttp,
+  adapter,
 }: MutationHookContext): Promise<{
   implementation: string;
   mutators: GeneratorMutator[] | undefined;
@@ -138,44 +122,32 @@ export const generateMutationHook = async ({
     ? `ReturnType<typeof use${pascal(operationName)}Hook>`
     : `typeof ${operationName}`;
 
-  const isAngularClient = isAngular(outputClient);
-
   const mutationOptionFnReturnType = getQueryOptionsDefinition({
     operationName,
     mutator,
     definitions,
-    hasSvelteQueryV4,
-    hasQueryV5,
-    hasQueryV5WithInfiniteQueryOptionsError,
+    prefix: adapter.getQueryOptionsDefinitionPrefix(),
+    hasQueryV5: adapter.hasQueryV5,
+    hasQueryV5WithInfiniteQueryOptionsError:
+      adapter.hasQueryV5WithInfiniteQueryOptionsError,
     isReturnType: true,
-    isAngularClient,
   });
 
-  const mutationArguments = generateQueryArguments({
+  const mutationArguments = adapter.generateQueryArguments({
     operationName,
     definitions,
     mutator,
     isRequestOptions,
-    hasSvelteQueryV4,
-    hasSvelteQueryV6,
-    hasQueryV5,
-    hasQueryV5WithInfiniteQueryOptionsError,
     httpClient,
-    isAngularClient,
   });
 
   // Separate arguments for getMutationOptions function (includes http: HttpClient param for Angular)
-  const mutationArgumentsForOptions = generateQueryArguments({
+  const mutationArgumentsForOptions = adapter.generateQueryArguments({
     operationName,
     definitions,
     mutator,
     isRequestOptions,
-    hasSvelteQueryV4,
-    hasSvelteQueryV6,
-    hasQueryV5,
-    hasQueryV5WithInfiniteQueryOptionsError,
     httpClient,
-    isAngularClient,
     forQueryOptions: true,
   });
 
@@ -203,16 +175,13 @@ export const generateMutationHook = async ({
     seenTargets.add(key);
     return true;
   });
+
   const hasInvalidation =
-    uniqueInvalidates.length > 0 &&
-    (isAngularClient || isReact(outputClient) || isSvelte(outputClient));
+    uniqueInvalidates.length > 0 && adapter.supportsMutationInvalidation();
 
   // For Angular, add http: HttpClient as FIRST param (required, before optional params)
   // This avoids TS1016 "required param cannot follow optional param"
-  const httpFirstParam =
-    isAngularHttp && (!mutator || mutator.hasSecondArg)
-      ? 'http: HttpClient, '
-      : '';
+  const httpFirstParam = adapter.getHttpFirstParam(mutator);
 
   // For Angular/React mutations with invalidation, add queryClient as second required param
   const queryClientParam = hasInvalidation ? 'queryClient: QueryClient, ' : '';
@@ -234,34 +203,19 @@ ${hooksOptionImplementation}
       }> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props ?? {};` : ''}
 
-          return  ${operationName}(${isAngularHttp && !mutator ? 'http, ' : ''}${properties}${
+          return  ${operationName}(${adapter.getMutationHttpPrefix(mutator)}${properties}${
             properties ? ',' : ''
           }${getMutationRequestArgs(isRequestOptions, httpClient, mutator)})
         }
 
 ${
   hasInvalidation
-    ? isAngular(outputClient)
-      ? `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
-${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
-    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
-  };`
-      : isReact(outputClient)
-        ? `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext) => {
-${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
-    mutationOptions?.onSuccess?.(data, variables, context);
-  };`
-        : isSvelte(outputClient)
-          ? hasSvelteQueryV6
-            ? `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
-${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
-    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
-  };`
-            : `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext | undefined) => {
-${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
-    mutationOptions?.onSuccess?.(data, variables, context);
-  };`
-          : ''
+    ? adapter.generateMutationOnSuccess({
+        operationName,
+        definitions,
+        generateInvalidateCall,
+        uniqueInvalidates,
+      })
     : ''
 }
 
@@ -290,23 +244,34 @@ ${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
         : '{ mutationFn, ...mutationOptions }'
   }}`;
 
-  const operationPrefix = getFrameworkPrefix(
-    hasSvelteQueryV4,
-    isAngular(outputClient),
-    isSolid(outputClient),
-  );
-  const optionalQueryClientArgument = hasSvelteQueryV6
-    ? ', queryClient?: () => QueryClient'
-    : (hasQueryV5 || (isSvelte(outputClient) && hasInvalidation)) &&
-        !isAngular(outputClient)
-      ? ', queryClient?: QueryClient'
-      : '';
+  const operationPrefix = adapter.hookPrefix;
 
-  const mutationImplementation = `${mutationOptionsFnName}(${hasInvalidation ? `queryClient${isReact(outputClient) || (isSvelte(outputClient) && !hasSvelteQueryV6) ? ' ?? backupQueryClient' : ''}${hasSvelteQueryV6 ? '?.() ?? backupQueryClient' : ''}, ` : ''}${
-    isRequestOptions ? 'options' : 'mutationOptions'
-  }${hasSvelteQueryV6 ? '?.()' : ''})`;
+  const optionalQueryClientArgument =
+    adapter.getOptionalQueryClientArgument(hasInvalidation);
+
+  const mutationImplementation = adapter.generateMutationImplementation({
+    mutationOptionsFnName,
+    hasInvalidation,
+    isRequestOptions,
+  });
 
   const mutationOptionsVarName = camel(`${operationName}-mutation-options`);
+
+  const mutationReturnType = adapter.getMutationReturnType({
+    dataType,
+    variableType: definitions ? `{${definitions}}` : 'void',
+  });
+
+  const mutationHookBody = adapter.generateMutationHookBody({
+    operationPrefix,
+    mutationOptionsFnName,
+    mutationImplementation,
+    mutationOptionsVarName,
+    isRequestOptions,
+    mutator,
+    hasInvalidation,
+    optionalQueryClientArgument,
+  });
 
   const implementation = `
 ${mutationOptionsFn}
@@ -328,31 +293,8 @@ ${mutationOptionsFn}
     ${doc}export const ${camel(
       `${operationPrefix}-${operationName}`,
     )} = <TError = ${errorType},
-    TContext = unknown>(${mutationArguments} ${optionalQueryClientArgument})${generateMutatorReturnType(
-      {
-        outputClient,
-        dataType,
-        variableType: definitions ? `{${definitions}}` : 'void',
-      },
-    )} => {
-${
-  isAngular(outputClient)
-    ? isAngularHttp && (!mutator || mutator.hasSecondArg)
-      ? `      const http = inject(HttpClient);${hasInvalidation ? '\n      const queryClient = inject(QueryClient);' : ''}
-      const ${mutationOptionsVarName} = ${mutationOptionsFnName}(http${hasInvalidation ? ', queryClient' : ''}${isRequestOptions ? ', options' : ', mutationOptions'});
-
-      return ${operationPrefix}Mutation(() => ${mutationOptionsVarName});`
-      : `      const ${mutationOptionsVarName} = ${mutationImplementation};
-
-      return ${operationPrefix}Mutation(() => ${mutationOptionsVarName});`
-    : `      ${(isReact(outputClient) || isSvelte(outputClient)) && hasInvalidation ? 'const backupQueryClient = useQueryClient();\n      ' : ''}return ${operationPrefix}Mutation(${
-        hasSvelteQueryV6
-          ? `() => ({ ...${mutationImplementation}${optionalQueryClientArgument ? `, queryClient` : ''} })`
-          : isSvelte(outputClient)
-            ? mutationImplementation
-            : `${mutationImplementation}${optionalQueryClientArgument ? `, queryClient` : ''}`
-      });`
-}
+    TContext = unknown>(${mutationArguments} ${optionalQueryClientArgument})${mutationReturnType} => {
+${mutationHookBody}
     }
     `;
 

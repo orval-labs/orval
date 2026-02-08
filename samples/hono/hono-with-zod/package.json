@@ -9,11 +9,11 @@
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.3",
-    "hono": "^4.11.4",
+    "hono": "^4.11.7",
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260116.0",
+    "@cloudflare/workers-types": "^4.20260131.0",
     "orval": "workspace:*",
     "wrangler": "^4.59.2"
   }

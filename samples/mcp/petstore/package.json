@@ -1,6 +1,6 @@
 {
   "name": "mcp-petstore",
-  "version": "8.1.0",
+  "version": "8.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,7 @@
     "generate-api": "orval"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.25.2",
+    "@modelcontextprotocol/sdk": "1.25.3",
     "zod": "^3.25.76"
   },
   "devDependencies": {

@@ -28,3 +28,4 @@ packages/hono/src/zValidator.ts
 # https://marketplace.visualstudio.com/items?itemName=unifiedjs.vscode-mdx#prettier
 *.mdx
 .github/ISSUE_TEMPLATE
+docs/public/llms.txt

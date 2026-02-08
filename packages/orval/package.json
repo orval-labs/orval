@@ -1,7 +1,7 @@
 {
   "name": "orval",
   "description": "A swagger client generator for typescript",
-  "version": "8.1.0",
+  "version": "8.2.0",
   "license": "MIT",
   "type": "module",
   "files": [
@@ -11,10 +11,9 @@
   ],
   "bin": "./dist/bin/orval.mjs",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.mts",
-      "default": "./dist/index.mjs"
-    }
+    ".": "./dist/index.mjs",
+    "./bin/orval": "./dist/bin/orval.mjs",
+    "./package.json": "./package.json"
   },
   "engines": {
     "node": ">=22.18.0"
@@ -100,5 +99,8 @@
     "typedoc": "^0.28.15",
     "typedoc-plugin-coverage": "^4.0.2",
     "typedoc-plugin-markdown": "^4.9.0"
-  }
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts"
 }

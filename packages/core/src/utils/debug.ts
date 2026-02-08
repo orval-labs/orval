@@ -1,5 +1,7 @@
 import debug from 'debug';
 
+import { isString } from './assertion';
+
 const filter = process.env.ORVAL_DEBUG_FILTER;
 const DEBUG = process.env.DEBUG;
 
@@ -13,7 +15,7 @@ export function createDebugger(
 ): debug.Debugger['log'] {
   const log = debug(ns);
   const { onlyWhenFocused } = options;
-  const focus = typeof onlyWhenFocused === 'string' ? onlyWhenFocused : ns;
+  const focus = isString(onlyWhenFocused) ? onlyWhenFocused : ns;
   return (msg: string, ...args: any[]) => {
     if (filter && !msg.includes(filter)) {
       return;

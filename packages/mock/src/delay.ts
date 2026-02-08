@@ -1,4 +1,10 @@
-import type { GlobalMockOptions, NormalizedOverrideOutput } from '@orval/core';
+import {
+  isBoolean,
+  isFunction,
+  isNumber,
+  type GlobalMockOptions,
+  type NormalizedOverrideOutput,
+} from '@orval/core';
 
 export const getDelay = (
   override?: NormalizedOverrideOutput,
@@ -8,16 +14,11 @@ export const getDelay = (
   const delayFunctionLazyExecute =
     override?.mock?.delayFunctionLazyExecute ??
     options?.delayFunctionLazyExecute;
-  switch (typeof overrideDelay) {
-    case 'function': {
-      return delayFunctionLazyExecute ? overrideDelay : overrideDelay();
-    }
-    case 'number':
-    case 'boolean': {
-      return overrideDelay;
-    }
-    default: {
-      return false;
-    }
+  if (isFunction(overrideDelay)) {
+    return delayFunctionLazyExecute ? overrideDelay : overrideDelay();
   }
+  if (isNumber(overrideDelay) || isBoolean(overrideDelay)) {
+    return overrideDelay;
+  }
+  return false;
 };

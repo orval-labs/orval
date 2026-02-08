@@ -15,7 +15,14 @@ import type {
   OpenApiSchemaObject,
   OpenApiSchemasObject,
 } from '../types';
-import { conventionName, isString, jsDoc, pascal, sanitize } from '../utils';
+import {
+  conventionName,
+  isBoolean,
+  isString,
+  jsDoc,
+  pascal,
+  sanitize,
+} from '../utils';
 import { generateInterface } from './interface';
 
 /**
@@ -166,7 +173,7 @@ function generateSchemaDefinitions(
     es5IdentifierName: true,
   });
 
-  if (typeof schema === 'boolean') {
+  if (isBoolean(schema)) {
     return [
       {
         name: sanitizedSchemaName,

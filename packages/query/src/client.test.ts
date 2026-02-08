@@ -114,6 +114,8 @@ describe('getQueryOptions', () => {
     bodyTypeName: undefined,
     path: '/path/to/mutator.ts',
     default: false,
+    hasErrorType: false,
+    errorTypeName: '',
   };
 
   describe('without mutator', () => {

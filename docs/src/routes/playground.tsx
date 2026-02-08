@@ -3,17 +3,17 @@ import { HomeLayout } from 'fumadocs-ui/layouts/home';
 
 import { Playground } from '@/components/playground/Playground';
 import { baseOptions } from '@/lib/layout.shared';
+import * as siteConfig from '../../site.config.json';
 
 export const Route = createFileRoute('/playground')({
   head: () => ({
     meta: [
       {
-        title: 'Playground - Orval',
+        title: siteConfig.playground.title,
       },
       {
         name: 'description',
-        content:
-          'Try Orval in your browser. Generate type-safe TypeScript clients from OpenAPI specifications instantly.',
+        content: siteConfig.playground.description,
       },
     ],
   }),

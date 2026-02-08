@@ -195,10 +195,11 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
     packageJson?.devDependencies?.['@tanstack/react-query'] ??
     packageJson?.peerDependencies?.['@tanstack/react-query'];
 
+  const queryVersion = override?.query.version;
   const useReactQueryV3 =
-    override.query.version === undefined
+    queryVersion === undefined
       ? hasReactQuery && !hasReactQueryV4
-      : override.query.version <= 3;
+      : queryVersion <= 3;
 
   return [
     ...(hasGlobalMutator || hasTagsMutator ? REACT_DEPENDENCIES : []),
@@ -281,29 +282,34 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-const SOLID_QUERY_DEPENDENCIES: GeneratorDependency[] = [
-  {
-    exports: [
-      { name: 'createQuery', values: true },
-      { name: 'createInfiniteQuery', values: true },
-      { name: 'createMutation', values: true },
-      { name: 'CreateQueryOptions' },
-      { name: 'CreateInfiniteQueryOptions' },
-      { name: 'CreateMutationOptions' },
-      { name: 'QueryFunction' },
-      { name: 'MutationFunction' },
-      { name: 'CreateQueryResult' },
-      { name: 'CreateInfiniteQueryResult' },
-      { name: 'QueryKey' },
-      { name: 'InfiniteData' },
-      { name: 'CreateMutationResult' },
-      { name: 'DataTag' },
-      { name: 'QueryClient' },
-      { name: 'InvalidateOptions' },
-    ],
-    dependency: '@tanstack/solid-query',
-  },
-];
+const getSolidQueryImports = (
+  prefix: 'use' | 'create',
+): GeneratorDependency[] => {
+  const capitalized = prefix === 'use' ? 'Use' : 'Create';
+  return [
+    {
+      exports: [
+        { name: `${prefix}Query`, values: true },
+        { name: `${prefix}InfiniteQuery`, values: true },
+        { name: `${prefix}Mutation`, values: true },
+        { name: `${capitalized}QueryOptions` },
+        { name: `${capitalized}InfiniteQueryOptions` },
+        { name: `${capitalized}MutationOptions` },
+        { name: 'QueryFunction' },
+        { name: 'MutationFunction' },
+        { name: `${capitalized}QueryResult` },
+        { name: `${capitalized}InfiniteQueryResult` },
+        { name: 'QueryKey' },
+        { name: 'InfiniteData' },
+        { name: `${capitalized}MutationResult` },
+        { name: 'DataTag' },
+        { name: 'QueryClient' },
+        { name: 'InvalidateOptions' },
+      ],
+      dependency: '@tanstack/solid-query',
+    },
+  ];
+};
 
 const ANGULAR_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -381,7 +387,9 @@ export const getSolidQueryDependencies: ClientDependenciesBuilder = (
       ? AXIOS_DEPENDENCIES
       : []),
     ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
-    ...SOLID_QUERY_DEPENDENCIES,
+    ...getSolidQueryImports(
+      isSolidQueryWithUsePrefix(packageJson) ? 'use' : 'create',
+    ),
   ];
 };
 
@@ -492,6 +500,21 @@ export const isQueryV5WithInfiniteQueryOptionsError = (
   const withoutRc = version.split('-')[0];
 
   return compareVersions(withoutRc, '5.80.0');
+};
+
+export const isSolidQueryWithUsePrefix = (
+  packageJson: PackageJson | undefined,
+) => {
+  const version = getPackageByQueryClient(packageJson, 'solid-query');
+
+  if (!version) {
+    return false;
+  }
+
+  const withoutRc = version.split('-')[0];
+
+  // https://github.com/TanStack/query/blob/v5.71.5/packages/solid-query/src/index.ts
+  return compareVersions(withoutRc, '5.71.5');
 };
 
 const getPackageByQueryClient = (

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { isString as isRemedaString } from 'remeda';
 
 // Mock modules before imports
 vi.mock('find-up', () => ({
@@ -22,7 +23,9 @@ vi.mock('js-yaml', () => ({
 
 vi.mock('@orval/core', () => ({
   dynamicImport: vi.fn(),
-  isString: (v: unknown) => typeof v === 'string',
+  isObject: (v: unknown) =>
+    Object.prototype.toString.call(v) === '[object Object]',
+  isString: isRemedaString,
   log: vi.fn(),
 }));
 

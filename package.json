@@ -1,7 +1,7 @@
 {
   "name": "orval-workspaces",
   "namespace": "@orval",
-  "version": "8.1.0",
+  "version": "8.2.0",
   "license": "MIT",
   "workspaces": [
     "packages/*",
@@ -30,7 +30,7 @@
     "test:cli": "yarn workspace orval-tests clean && yarn workspace orval-tests generate && yarn workspace orval-tests build",
     "test:samples": "turbo test --filter='./samples/**' --filter=!react-query-form-data --filter=!react-query-form-url-encoded --filter=!react-query-form-url-encoded-mutator --filter=!react-query-form-data-mutator --filter=!react-query-hook-mutator",
     "test:ci": "CI=true yarn test && yarn test:cli && yarn test:samples",
-    "lint": "turbo run lint --filter='./packages/*'",
+    "lint": "turbo run lint --filter='./packages/*' --filter=!@orval/mock --filter=!@orval/core --filter=!@orval/zod --filter=!orval --filter=!@orval/solid-start",
     "lint:samples": "turbo run lint --filter='./samples/**'",
     "dev": "turbo run dev --filter='./packages/*'",
     "clean": "rimraf .turbo",

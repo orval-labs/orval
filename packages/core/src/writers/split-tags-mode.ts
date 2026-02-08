@@ -6,6 +6,7 @@ import {
   conventionName,
   getFileInfo,
   isFunction,
+  isString,
   isSyntheticDefaultImportsAllow,
   pascal,
   upath,
@@ -68,9 +69,7 @@ export async function writeSplitTagsMode({
             upath.relativeSafe(
               dirname,
               getFileInfo(
-                typeof output.schemas === 'string'
-                  ? output.schemas
-                  : output.schemas.path,
+                isString(output.schemas) ? output.schemas : output.schemas.path,
                 { extension: output.fileExtension },
               ).dirname,
             )

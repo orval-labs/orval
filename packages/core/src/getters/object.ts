@@ -8,7 +8,14 @@ import {
   type ScalarValue,
   SchemaType,
 } from '../types';
-import { escape, isBoolean, isReference, jsDoc, pascal } from '../utils';
+import {
+  escape,
+  isBoolean,
+  isReference,
+  isString,
+  jsDoc,
+  pascal,
+} from '../utils';
 import { combineSchemas } from './combine';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getKey } from './keys';
@@ -25,8 +32,8 @@ function getPropertyNamesEnum(item: OpenApiSchemaObject): string[] | undefined {
     'enum' in item.propertyNames &&
     Array.isArray(item.propertyNames.enum)
   ) {
-    return item.propertyNames.enum.filter(
-      (val): val is string => typeof val === 'string',
+    return item.propertyNames.enum.filter((val): val is string =>
+      isString(val),
     );
   }
   return undefined;
@@ -57,16 +64,35 @@ function getPropertyNamesRecordType(
   return `Partial<Record<${keyType}, ${valueType}>>`;
 }
 
+/**
+ * Context for multipart/form-data type generation.
+ * Discriminated union with two states:
+ *
+ * 1. `{ atPart: false, encoding }` - At form-data root, before property iteration
+ *    - May traverse through allOf/anyOf/oneOf to reach properties
+ *    - Carries encoding map so getObject can look up `encoding[key]`
+ *
+ * 2. `{ atPart: true, partContentType }` - At a multipart part (top-level property)
+ *    - `partContentType` = Encoding Object's `contentType` for this part
+ *    - Used by getScalar for file type detection (precedence over contentMediaType)
+ *    - Arrays pass this through to items; combiners inside arrays also get context
+ *
+ * `undefined` means not in form-data context (or nested inside plain object field = JSON)
+ */
+export type FormDataContext =
+  | { atPart: false; encoding: Record<string, { contentType?: string }> }
+  | { atPart: true; partContentType?: string };
+
 interface GetObjectOptions {
   item: OpenApiSchemaObject;
   name?: string;
   context: ContextSpec;
   nullable: string;
   /**
-   * Override resolved values for properties at THIS level only.
-   * Not passed to nested schemas. Used by form-data for file type handling.
+   * Multipart/form-data context for file type handling.
+   * @see FormDataContext
    */
-  propertyOverrides?: Record<string, ScalarValue>;
+  formDataContext?: FormDataContext;
 }
 
 /**
@@ -79,7 +105,7 @@ export function getObject({
   name,
   context,
   nullable,
-  propertyOverrides,
+  formDataContext,
 }: GetObjectOptions): ScalarValue {
   if (isReference(item)) {
     const { name } = getRefInfo(item.$ref, context);
@@ -106,6 +132,7 @@ export function getObject({
       separator,
       context,
       nullable,
+      formDataContext,
     });
   }
 
@@ -162,14 +189,22 @@ export function getObject({
           propName = propName + 'Property';
         }
 
-        // Check for override first, fall back to standard resolution
-        const resolvedValue =
-          propertyOverrides?.[key] ??
-          resolveObject({
-            schema,
-            propName,
-            context,
-          });
+        // Transition multipart context: atPart: false → atPart: true
+        // Look up encoding[key].contentType and pass to property resolution
+        const propertyFormDataContext: FormDataContext | undefined =
+          formDataContext && !formDataContext.atPart
+            ? {
+                atPart: true,
+                partContentType: formDataContext.encoding[key]?.contentType,
+              }
+            : undefined;
+
+        const resolvedValue = resolveObject({
+          schema,
+          propName,
+          context,
+          formDataContext: propertyFormDataContext,
+        });
 
         const isReadOnly = item.readOnly || schema.readOnly;
         if (!index) {
@@ -186,7 +221,7 @@ export function getObject({
 
         if (!hasConst) {
           constLiteral = undefined;
-        } else if (typeof constValue === 'string') {
+        } else if (isString(constValue)) {
           constLiteral = `'${escape(constValue)}'`;
         } else {
           constLiteral = JSON.stringify(constValue);

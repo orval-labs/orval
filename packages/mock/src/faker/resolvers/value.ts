@@ -102,6 +102,7 @@ export function resolveMockValue({
       path: schema.path,
       isRef: true,
       required: [...(schemaRef?.required ?? []), ...(schema.required ?? [])],
+      ...(schema.nullable !== undefined ? { nullable: schema.nullable } : {}),
     };
 
     const newSeparator = newSchema.allOf

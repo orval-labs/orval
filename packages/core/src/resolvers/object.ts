@@ -1,4 +1,5 @@
 import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum';
+import type { FormDataContext } from '../getters/object';
 import type {
   ContextSpec,
   OpenApiReferenceObject,
@@ -14,6 +15,7 @@ interface ResolveOptions {
   propName?: string;
   combined?: boolean;
   context: ContextSpec;
+  formDataContext?: FormDataContext;
 }
 
 interface CreateTypeAliasOptions {
@@ -86,11 +88,13 @@ function resolveObjectOriginal({
   propName,
   combined = false,
   context,
+  formDataContext,
 }: ResolveOptions): ResolverValue {
   const resolvedValue = resolveValue({
     schema,
     name: propName,
     context,
+    formDataContext,
   });
 
   // Try to create a type alias for object types
@@ -148,12 +152,14 @@ export function resolveObject({
   propName,
   combined = false,
   context,
+  formDataContext,
 }: ResolveOptions): ResolverValue {
   const hashKey = JSON.stringify({
     schema,
     propName,
     combined,
     projectName: context.projectName ?? context.output.target,
+    formDataContext,
   });
 
   if (resolveObjectCacheMap.has(hashKey)) {
@@ -167,6 +173,7 @@ export function resolveObject({
     propName,
     combined,
     context,
+    formDataContext,
   });
 
   resolveObjectCacheMap.set(hashKey, result);

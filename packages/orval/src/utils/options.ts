@@ -12,9 +12,9 @@ import {
   type HooksOptions,
   isBoolean,
   isFunction,
+  isNullish,
   isObject,
   isString,
-  isUndefined,
   isUrl,
   type JsDocOptions,
   type Mutator,
@@ -146,7 +146,7 @@ export async function normalizeOptions(
 
   const mockOption = outputOptions.mock ?? globalOptions.mock;
   let mock: GlobalMockOptions | ClientMockBuilder | undefined;
-  if (typeof mockOption === 'boolean' && mockOption) {
+  if (isBoolean(mockOption) && mockOption) {
     mock = DEFAULT_MOCK_OPTIONS;
   } else if (isFunction(mockOption)) {
     mock = mockOption;
@@ -661,25 +661,25 @@ function normalizeQueryOptions(
   }
 
   return {
-    ...(isUndefined(queryOptions.usePrefetch)
+    ...(isNullish(queryOptions.usePrefetch)
       ? {}
       : { usePrefetch: queryOptions.usePrefetch }),
-    ...(isUndefined(queryOptions.useInvalidate)
+    ...(isNullish(queryOptions.useInvalidate)
       ? {}
       : { useInvalidate: queryOptions.useInvalidate }),
-    ...(isUndefined(queryOptions.useQuery)
+    ...(isNullish(queryOptions.useQuery)
       ? {}
       : { useQuery: queryOptions.useQuery }),
-    ...(isUndefined(queryOptions.useSuspenseQuery)
+    ...(isNullish(queryOptions.useSuspenseQuery)
       ? {}
       : { useSuspenseQuery: queryOptions.useSuspenseQuery }),
-    ...(isUndefined(queryOptions.useMutation)
+    ...(isNullish(queryOptions.useMutation)
       ? {}
       : { useMutation: queryOptions.useMutation }),
-    ...(isUndefined(queryOptions.useInfinite)
+    ...(isNullish(queryOptions.useInfinite)
       ? {}
       : { useInfinite: queryOptions.useInfinite }),
-    ...(isUndefined(queryOptions.useSuspenseInfiniteQuery)
+    ...(isNullish(queryOptions.useSuspenseInfiniteQuery)
       ? {}
       : { useSuspenseInfiniteQuery: queryOptions.useSuspenseInfiniteQuery }),
     ...(queryOptions.useInfiniteQueryParam
@@ -722,65 +722,63 @@ function normalizeQueryOptions(
           ),
         }
       : {}),
-    ...(isUndefined(globalOptions.shouldExportQueryKey)
+    ...(isNullish(globalOptions.shouldExportQueryKey)
       ? {}
       : {
           shouldExportQueryKey: globalOptions.shouldExportQueryKey,
         }),
-    ...(isUndefined(queryOptions.shouldExportQueryKey)
+    ...(isNullish(queryOptions.shouldExportQueryKey)
       ? {}
       : { shouldExportQueryKey: queryOptions.shouldExportQueryKey }),
-    ...(isUndefined(globalOptions.shouldExportHttpClient)
+    ...(isNullish(globalOptions.shouldExportHttpClient)
       ? {}
       : {
           shouldExportHttpClient: globalOptions.shouldExportHttpClient,
         }),
-    ...(isUndefined(queryOptions.shouldExportHttpClient)
+    ...(isNullish(queryOptions.shouldExportHttpClient)
       ? {}
       : { shouldExportHttpClient: queryOptions.shouldExportHttpClient }),
-    ...(isUndefined(globalOptions.shouldExportMutatorHooks)
+    ...(isNullish(globalOptions.shouldExportMutatorHooks)
       ? {}
       : {
           shouldExportMutatorHooks: globalOptions.shouldExportMutatorHooks,
         }),
-    ...(isUndefined(queryOptions.shouldExportMutatorHooks)
+    ...(isNullish(queryOptions.shouldExportMutatorHooks)
       ? {}
       : { shouldExportMutatorHooks: queryOptions.shouldExportMutatorHooks }),
-    ...(isUndefined(globalOptions.shouldSplitQueryKey)
+    ...(isNullish(globalOptions.shouldSplitQueryKey)
       ? {}
       : {
           shouldSplitQueryKey: globalOptions.shouldSplitQueryKey,
         }),
-    ...(isUndefined(queryOptions.shouldSplitQueryKey)
+    ...(isNullish(queryOptions.shouldSplitQueryKey)
       ? {}
       : { shouldSplitQueryKey: queryOptions.shouldSplitQueryKey }),
-    ...(isUndefined(globalOptions.signal)
+    ...(isNullish(globalOptions.signal)
       ? {}
       : {
           signal: globalOptions.signal,
         }),
-    ...(isUndefined(globalOptions.useOperationIdAsQueryKey)
+    ...(isNullish(globalOptions.useOperationIdAsQueryKey)
       ? {}
       : {
           useOperationIdAsQueryKey: globalOptions.useOperationIdAsQueryKey,
         }),
-    ...(isUndefined(queryOptions.useOperationIdAsQueryKey)
+    ...(isNullish(queryOptions.useOperationIdAsQueryKey)
       ? {}
       : { useOperationIdAsQueryKey: queryOptions.useOperationIdAsQueryKey }),
-    ...(isUndefined(globalOptions.signal)
+    ...(isNullish(globalOptions.signal)
       ? {}
       : {
           signal: globalOptions.signal,
         }),
-    ...(isUndefined(queryOptions.signal)
-      ? {}
-      : { signal: queryOptions.signal }),
-    ...(isUndefined(globalOptions.version)
+    ...(isNullish(queryOptions.signal) ? {} : { signal: queryOptions.signal }),
+    ...(isNullish(globalOptions.version)
       ? {}
       : {
           version: globalOptions.version,
         }),
-    ...(isUndefined(queryOptions.version)
+    ...(isNullish(queryOptions.version)
       ? {}
       : { version: queryOptions.version }),
     ...(queryOptions.mutationInvalidates

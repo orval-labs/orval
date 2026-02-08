@@ -70,6 +70,18 @@ export function combineSchemasMock({
   combineImports.push(...(itemResolvedValue?.imports ?? []));
   let containsOnlyPrimitiveValues = true;
 
+  const allRequiredFields: string[] = [];
+  if (separator === 'allOf') {
+    if (item.required) {
+      allRequiredFields.push(...item.required);
+    }
+    for (const val of item[separator] ?? []) {
+      if (isSchema(val) && val.required) {
+        allRequiredFields.push(...val.required);
+      }
+    }
+  }
+
   const value = (item[separator] ?? []).reduce(
     (acc, val, _, arr) => {
       const refName =
@@ -82,7 +94,8 @@ export function combineSchemasMock({
           ? refName &&
             (refName === item.name ||
               (existingReferencedProperties.includes(refName) && !item.isRef))
-          : refName && existingReferencedProperties.includes(refName);
+          : false;
+
       if (shouldSkipRef) {
         if (arr.length === 1) {
           return 'undefined';
@@ -93,11 +106,12 @@ export function combineSchemasMock({
 
       // the required fields in this schema need to be considered
       // in the sub schema under the allOf key
-      if (separator === 'allOf' && item.required) {
-        val =
+      if (separator === 'allOf' && allRequiredFields.length > 0) {
+        const combinedRequired =
           isSchema(val) && val.required
-            ? { ...val, required: [...item.required, ...val.required] }
-            : { ...val, required: item.required };
+            ? [...allRequiredFields, ...val.required]
+            : allRequiredFields;
+        val = { ...val, required: [...new Set(combinedRequired)] };
       }
 
       const resolvedValue = resolveMockValue({

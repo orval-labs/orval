@@ -1,13 +1,11 @@
 {
   "name": "@orval/axios",
-  "version": "8.1.0",
+  "version": "8.2.0",
   "license": "MIT",
   "type": "module",
   "exports": {
-    "import": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs"
-    }
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -31,5 +29,8 @@
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
-  }
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts"
 }

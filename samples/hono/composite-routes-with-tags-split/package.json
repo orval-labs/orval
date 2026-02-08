@@ -1,6 +1,6 @@
 {
   "name": "@hono/composite-routes-with-tags-split",
-  "version": "8.1.0",
+  "version": "8.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,10 +10,10 @@
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.3",
-    "hono": "^4.11.4"
+    "hono": "^4.11.7"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260116.0",
+    "@cloudflare/workers-types": "^4.20260131.0",
     "orval": "workspace:*",
     "wrangler": "^4.59.2"
   }

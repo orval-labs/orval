@@ -1,4 +1,4 @@
-import { log, logError } from '@orval/core';
+import { isBoolean, log, logError } from '@orval/core';
 
 /**
  * Start a file watcher and invoke an async callback on file changes.
@@ -26,8 +26,7 @@ export async function startWatcher(
 
   const ignored = ['**/{.git,node_modules}/**'];
 
-  const watchPaths =
-    typeof watchOptions === 'boolean' ? defaultTarget : watchOptions;
+  const watchPaths = isBoolean(watchOptions) ? defaultTarget : watchOptions;
 
   log(
     `Watching for changes in ${
