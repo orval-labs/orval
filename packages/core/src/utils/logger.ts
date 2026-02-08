@@ -2,6 +2,8 @@ import readline from 'node:readline';
 
 import chalk from 'chalk';
 
+import { isString } from './assertion';
+
 export const log = console.log;
 
 export function startMessage({
@@ -27,7 +29,7 @@ export function logError(err: unknown, tag?: string) {
       const causeMsg =
         err.cause instanceof Error
           ? err.cause.message
-          : typeof err.cause === 'string'
+          : isString(err.cause)
             ? err.cause
             : JSON.stringify(err.cause, undefined, 2);
       message += `\n  Cause: ${causeMsg}`;
