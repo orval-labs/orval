@@ -261,6 +261,7 @@ export const getCreatePetsMutationOptions = <
       { data: CreatePetsBodyItem[] },
       TContext
     >;
+    skipInvalidation?: boolean;
     request?: SecondParameter<typeof customFetch>;
   },
 ): CreateMutationOptions<
@@ -292,11 +293,13 @@ export const getCreatePetsMutationOptions = <
     variables: { data: CreatePetsBodyItem[] },
     context: TContext | undefined,
   ) => {
-    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    if (!options?.skipInvalidation) {
+      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    }
     mutationOptions?.onSuccess?.(data, variables, context);
   };
 
-  return { mutationFn, onSuccess, ...mutationOptions };
+  return { ...mutationOptions, mutationFn, onSuccess };
 };
 
 export type CreatePetsMutationResult = NonNullable<
@@ -316,6 +319,7 @@ export const createCreatePets = <TError = Error, TContext = unknown>(
       { data: CreatePetsBodyItem[] },
       TContext
     >;
+    skipInvalidation?: boolean;
     request?: SecondParameter<typeof customFetch>;
   },
   queryClient?: QueryClient,

@@ -331,6 +331,7 @@ export const getCreatePetsMutationOptions = <
       { data: CreatePetsBody; version?: number },
       TContext
     >;
+    skipInvalidation?: boolean;
     fetch?: RequestInit;
   },
 ): CreateMutationOptions<
@@ -363,11 +364,13 @@ export const getCreatePetsMutationOptions = <
     onMutateResult: TContext,
     context: MutationFunctionContext,
   ) => {
-    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    if (!options?.skipInvalidation) {
+      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    }
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
   };
 
-  return { mutationFn, onSuccess, ...mutationOptions };
+  return { ...mutationOptions, mutationFn, onSuccess };
 };
 
 export type CreatePetsMutationResult = NonNullable<
@@ -386,6 +389,7 @@ export const injectCreatePets = <TError = Error, TContext = unknown>(options?: {
     { data: CreatePetsBody; version?: number },
     TContext
   >;
+  skipInvalidation?: boolean;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof createPets>>,
@@ -558,6 +562,7 @@ export const getDeletePetMutationOptions = <TError = Error, TContext = unknown>(
       { petId: string; version?: number },
       TContext
     >;
+    skipInvalidation?: boolean;
     fetch?: RequestInit;
   },
 ): CreateMutationOptions<
@@ -590,14 +595,16 @@ export const getDeletePetMutationOptions = <TError = Error, TContext = unknown>(
     onMutateResult: TContext,
     context: MutationFunctionContext,
   ) => {
-    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
-    queryClient.invalidateQueries({
-      queryKey: getShowPetByIdQueryKey(variables.petId),
-    });
+    if (!options?.skipInvalidation) {
+      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+      queryClient.invalidateQueries({
+        queryKey: getShowPetByIdQueryKey(variables.petId),
+      });
+    }
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
   };
 
-  return { mutationFn, onSuccess, ...mutationOptions };
+  return { ...mutationOptions, mutationFn, onSuccess };
 };
 
 export type DeletePetMutationResult = NonNullable<
@@ -616,6 +623,7 @@ export const injectDeletePet = <TError = Error, TContext = unknown>(options?: {
     { petId: string; version?: number },
     TContext
   >;
+  skipInvalidation?: boolean;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof deletePet>>,
@@ -663,6 +671,7 @@ export const getUpdatePetMutationOptions = <TError = Error, TContext = unknown>(
       { petId: string; data: Pet; version?: number },
       TContext
     >;
+    skipInvalidation?: boolean;
     fetch?: RequestInit;
   },
 ): CreateMutationOptions<
@@ -695,14 +704,16 @@ export const getUpdatePetMutationOptions = <TError = Error, TContext = unknown>(
     onMutateResult: TContext,
     context: MutationFunctionContext,
   ) => {
-    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
-    queryClient.invalidateQueries({
-      queryKey: getShowPetByIdQueryKey(variables.petId),
-    });
+    if (!options?.skipInvalidation) {
+      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+      queryClient.invalidateQueries({
+        queryKey: getShowPetByIdQueryKey(variables.petId),
+      });
+    }
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
   };
 
-  return { mutationFn, onSuccess, ...mutationOptions };
+  return { ...mutationOptions, mutationFn, onSuccess };
 };
 
 export type UpdatePetMutationResult = NonNullable<
@@ -721,6 +732,7 @@ export const injectUpdatePet = <TError = Error, TContext = unknown>(options?: {
     { petId: string; data: Pet; version?: number },
     TContext
   >;
+  skipInvalidation?: boolean;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof updatePet>>,
@@ -768,6 +780,7 @@ export const getPatchPetMutationOptions = <TError = Error, TContext = unknown>(
       { petId: string; data: PatchPetBody; version?: number },
       TContext
     >;
+    skipInvalidation?: boolean;
     fetch?: RequestInit;
   },
 ): CreateMutationOptions<
@@ -800,14 +813,16 @@ export const getPatchPetMutationOptions = <TError = Error, TContext = unknown>(
     onMutateResult: TContext,
     context: MutationFunctionContext,
   ) => {
-    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
-    queryClient.invalidateQueries({
-      queryKey: getShowPetByIdQueryKey(variables.petId),
-    });
+    if (!options?.skipInvalidation) {
+      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+      queryClient.invalidateQueries({
+        queryKey: getShowPetByIdQueryKey(variables.petId),
+      });
+    }
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
   };
 
-  return { mutationFn, onSuccess, ...mutationOptions };
+  return { ...mutationOptions, mutationFn, onSuccess };
 };
 
 export type PatchPetMutationResult = NonNullable<
@@ -826,6 +841,7 @@ export const injectPatchPet = <TError = Error, TContext = unknown>(options?: {
     { petId: string; data: PatchPetBody; version?: number },
     TContext
   >;
+  skipInvalidation?: boolean;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof patchPet>>,
@@ -1003,6 +1019,7 @@ export const getUploadFileMutationOptions = <
       { petId: number; data: Blob; version?: number },
       TContext
     >;
+    skipInvalidation?: boolean;
     fetch?: RequestInit;
   },
 ): CreateMutationOptions<
@@ -1035,11 +1052,13 @@ export const getUploadFileMutationOptions = <
     onMutateResult: TContext,
     context: MutationFunctionContext,
   ) => {
-    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    if (!options?.skipInvalidation) {
+      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    }
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
   };
 
-  return { mutationFn, onSuccess, ...mutationOptions };
+  return { ...mutationOptions, mutationFn, onSuccess };
 };
 
 export type UploadFileMutationResult = NonNullable<
@@ -1061,6 +1080,7 @@ export const injectUploadFile = <
     { petId: number; data: Blob; version?: number },
     TContext
   >;
+  skipInvalidation?: boolean;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof uploadFile>>,
