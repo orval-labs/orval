@@ -16,3 +16,8 @@ node_modules
 .tanstack
 
 .source
+
+# Generated at build time by generate-md-pages plugin
+/public/llms.txt
+/public/llms-full.txt
+/public/docs/
