@@ -133,37 +133,6 @@ export const generateMutationHook = async ({
     isReturnType: true,
   });
 
-  const mutationArguments = adapter.generateQueryArguments({
-    operationName,
-    definitions,
-    mutator,
-    isRequestOptions,
-    httpClient,
-  });
-
-  // Separate arguments for getMutationOptions function (includes http: HttpClient param for Angular)
-  const mutationArgumentsForOptions = adapter.generateQueryArguments({
-    operationName,
-    definitions,
-    mutator,
-    isRequestOptions,
-    httpClient,
-    forQueryOptions: true,
-  });
-
-  const mutationOptionsFnName = camel(
-    mutationOptionsMutator || mutator?.isHook
-      ? `use-${operationName}-mutationOptions`
-      : `get-${operationName}-mutationOptions`,
-  );
-
-  const hooksOptionImplementation = getHooksOptionImplementation(
-    isRequestOptions,
-    httpClient,
-    camel(operationName),
-    mutator,
-  );
-
   const invalidatesConfig = (query.mutationInvalidates ?? [])
     .filter((rule) => rule.onMutations.includes(operationName))
     .flatMap((rule) => rule.invalidates)
@@ -178,6 +147,39 @@ export const generateMutationHook = async ({
 
   const hasInvalidation =
     uniqueInvalidates.length > 0 && adapter.supportsMutationInvalidation();
+
+  const mutationArguments = adapter.generateQueryArguments({
+    operationName,
+    definitions,
+    mutator,
+    isRequestOptions,
+    httpClient,
+    hasInvalidation,
+  });
+
+  // Separate arguments for getMutationOptions function (includes http: HttpClient param for Angular)
+  const mutationArgumentsForOptions = adapter.generateQueryArguments({
+    operationName,
+    definitions,
+    mutator,
+    isRequestOptions,
+    httpClient,
+    forQueryOptions: true,
+    hasInvalidation,
+  });
+
+  const mutationOptionsFnName = camel(
+    mutationOptionsMutator || mutator?.isHook
+      ? `use-${operationName}-mutationOptions`
+      : `get-${operationName}-mutationOptions`,
+  );
+
+  const hooksOptionImplementation = getHooksOptionImplementation(
+    isRequestOptions,
+    httpClient,
+    camel(operationName),
+    mutator,
+  );
 
   // For Angular, add http: HttpClient as FIRST param (required, before optional params)
   // This avoids TS1016 "required param cannot follow optional param"
@@ -213,6 +215,7 @@ ${
     ? adapter.generateMutationOnSuccess({
         operationName,
         definitions,
+        isRequestOptions,
         generateInvalidateCall,
         uniqueInvalidates,
       })
@@ -240,7 +243,7 @@ ${
     mutationOptionsMutator
       ? 'customOptions'
       : hasInvalidation
-        ? '{ mutationFn, onSuccess, ...mutationOptions }'
+        ? '{ ...mutationOptions, mutationFn, onSuccess }'
         : '{ mutationFn, ...mutationOptions }'
   }}`;
 

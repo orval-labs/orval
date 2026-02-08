@@ -215,6 +215,39 @@ export class PetListComponent {
 }
 ```
 
+### Composing with user callbacks
+
+When you provide your own `onSuccess`, both the auto-invalidation and your callback run:
+
+```ts
+deletePet = injectDeletePet({
+  mutation: {
+    onSuccess: () => this.snackbar.open('Pet deleted!'),
+  },
+  // invalidation still runs automatically before onSuccess
+});
+```
+
+### Skipping auto-invalidation
+
+Pass `skipInvalidation: true` to opt out of auto-invalidation at runtime — for example when you need to delay or conditionally run invalidation yourself:
+
+```ts
+deletePet = injectDeletePet({
+  mutation: {
+    onSuccess: (_data, variables) => {
+      // Custom delayed invalidation
+      setTimeout(() => {
+        this.queryClient.invalidateQueries({
+          queryKey: getListPetsQueryKey(),
+        });
+      }, 700);
+    },
+  },
+  skipInvalidation: true,
+});
+```
+
 ## Query Options
 
 Configure infinite queries and default options:
