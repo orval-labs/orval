@@ -65,6 +65,13 @@ const getGeneratorClient = (
     ? outputClient(GENERATOR_CLIENT)
     : GENERATOR_CLIENT[outputClient];
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive guard for custom OutputClientFunc returning unexpected values
+  if (!generator) {
+    throw new Error(
+      `Unknown output client provided to getGeneratorClient: ${String(outputClient)}`,
+    );
+  }
+
   return generator;
 };
 
