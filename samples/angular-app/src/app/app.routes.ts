@@ -12,5 +12,12 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./http-resource.page').then((module) => module.HttpResourcePage),
   },
+  {
+    path: 'http-resource-zod',
+    loadComponent: () =>
+      import('./http-resource-zod.page').then(
+        (module) => module.HttpResourceZodPage,
+      ),
+  },
   { path: '**', redirectTo: 'http-client' },
 ];

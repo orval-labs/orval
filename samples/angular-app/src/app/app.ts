@@ -15,6 +15,9 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
         <a routerLink="/http-resource" routerLinkActive="active"
           >httpResource</a
         >
+        <a routerLink="/http-resource-zod" routerLinkActive="active"
+          >httpResource + Zod</a
+        >
       </nav>
       <main>
         <router-outlet />
