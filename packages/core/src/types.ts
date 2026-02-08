@@ -654,6 +654,7 @@ export type QueryOptions = {
 
 export type AngularOptions = {
   provideIn?: 'root' | 'any' | boolean;
+  client?: 'httpClient' | 'httpResource' | 'both';
 };
 
 export type SwrOptions = {
