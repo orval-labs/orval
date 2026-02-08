@@ -4,6 +4,33 @@ import type { Plugin } from 'vite';
 
 const BASE_URL = 'https://orval.dev';
 
+const SEPARATOR_REGEX = /^---(?:\[[^\]]+])?(?<name>.+)---$/;
+
+const LLMS_HEADER = `# Orval
+
+> Orval generates type-safe TypeScript clients from OpenAPI v3 and Swagger v2 specifications. It produces HTTP request functions, React Query/Vue Query/SWR hooks, Angular services, Zod schemas, and MSW mock handlers — all fully typed.
+
+Orval takes any valid OpenAPI/Swagger specification (YAML or JSON) and generates production-ready code for your frontend. The default HTTP client uses the Fetch API, but you can configure any client including Axios. Orval supports multiple data-fetching libraries (React Query, Vue Query, Svelte Query, Solid Query, Angular Query, SWR) and frameworks (Angular, SolidStart, Hono).`;
+
+const LLMS_FOOTER = `## Optional
+
+- [GitHub Repository](https://github.com/orval-labs/orval): Source code, issues, and contributions
+- [Discord](https://discord.gg/6fC2sjDU7w): Community support and discussions
+- [Playground](https://orval.dev/playground): Interactive playground to try Orval in the browser
+- [OpenCollective](https://opencollective.com/orval): Sponsor the project`;
+
+interface PageMeta {
+  rel: string;
+  title: string;
+  description: string;
+  markdown: string;
+}
+
+interface MetaJson {
+  title?: string;
+  pages?: string[];
+}
+
 async function getFiles(dir: string): Promise<string[]> {
   const entries = await readdir(dir, { withFileTypes: true });
   const files: string[] = [];
@@ -38,11 +65,9 @@ function transformMdx(body: string): string {
   let calloutType = '';
 
   for (const line of lines) {
-    // Track code block boundaries
     if (line.trimStart().startsWith('```')) {
       if (!inCodeBlock) {
         inCodeBlock = true;
-        // Strip title attribute from code fences: ```ts title="file.ts" → ```ts
         const cleaned = line.replace(/^(\s*```\w*)\s+title="[^"]*"\s*$/, '$1');
         out.push(cleaned);
         continue;
@@ -53,7 +78,6 @@ function transformMdx(body: string): string {
       }
     }
 
-    // Inside code blocks: output verbatim
     if (inCodeBlock) {
       out.push(line);
       continue;
@@ -61,16 +85,10 @@ function transformMdx(body: string): string {
 
     const trimmed = line.trim();
 
-    // Remove <Cards> / </Cards>
     if (trimmed === '<Cards>' || trimmed === '</Cards>') continue;
-
-    // Remove <Tabs ...> / </Tabs>
     if (trimmed.startsWith('<Tabs ') || trimmed === '</Tabs>') continue;
-
-    // Remove <Tab ...> / </Tab>
     if (trimmed.startsWith('<Tab ') || trimmed === '</Tab>') continue;
 
-    // <Card> components → markdown links
     const cardMatch = trimmed.match(
       /^<Card\s+title="([^"]+)"\s+href="([^"]+)"(?:\s+description="([^"]+)")?\s*\/>$/,
     );
@@ -81,7 +99,6 @@ function transformMdx(body: string): string {
       continue;
     }
 
-    // <Callout type="...">
     const calloutMatch = trimmed.match(/^<Callout\s+type="(\w+)">$/);
     if (calloutMatch) {
       inCallout = true;
@@ -91,14 +108,12 @@ function transformMdx(body: string): string {
       continue;
     }
 
-    // </Callout>
     if (trimmed === '</Callout>') {
       inCallout = false;
       calloutType = '';
       continue;
     }
 
-    // Lines inside a callout get blockquoted
     if (inCallout) {
       out.push(line ? `> ${line.trim()}` : '>');
       continue;
@@ -110,73 +125,6 @@ function transformMdx(body: string): string {
   return out.join('\n');
 }
 
-type LlmsEntry = { section: string } | { page: string; label?: string };
-
-// Single source of truth for llms.txt structure, section groupings, and page order.
-// To add a new page: add a { page } entry under the right section.
-const LLMS_STRUCTURE: LlmsEntry[] = [
-  { section: 'Getting Started' },
-  { page: 'index.mdx', label: 'Overview' },
-  { page: 'installation.mdx' },
-  { page: 'quick-start.mdx' },
-  { page: 'guides/basics.mdx' },
-
-  { section: 'Guides — HTTP Clients' },
-  { page: 'guides/fetch.mdx' },
-  { page: 'guides/fetch-client.mdx' },
-  { page: 'guides/custom-client.mdx' },
-  { page: 'guides/custom-axios.mdx' },
-  { page: 'guides/set-base-url.mdx' },
-
-  { section: 'Guides — Data Fetching' },
-  { page: 'guides/react-query.mdx' },
-  { page: 'guides/vue-query.mdx' },
-  { page: 'guides/svelte-query.mdx' },
-  { page: 'guides/solid-query.mdx' },
-  { page: 'guides/angular-query.mdx' },
-  { page: 'guides/swr.mdx' },
-
-  { section: 'Guides — Frameworks' },
-  { page: 'guides/angular.mdx' },
-  { page: 'guides/solid-start.mdx' },
-  { page: 'guides/hono.mdx' },
-
-  { section: 'Guides — Validation & Mocking' },
-  { page: 'guides/zod.mdx' },
-  { page: 'guides/client-with-zod.mdx' },
-  { page: 'guides/msw.mdx' },
-
-  { section: 'Guides — Advanced' },
-  { page: 'guides/enums.mdx' },
-  { page: 'guides/stream-ndjson.mdx' },
-  { page: 'guides/mcp.mdx' },
-
-  { section: 'Reference' },
-  { page: 'reference/cli.mdx' },
-  { page: 'reference/integration.mdx' },
-  { page: 'reference/configuration/index.mdx' },
-  { page: 'reference/configuration/input.mdx' },
-  { page: 'reference/configuration/output.mdx' },
-  { page: 'reference/configuration/hooks.mdx' },
-  { page: 'reference/configuration/full-example.mdx' },
-
-  { section: 'Versions' },
-  { page: 'versions/v8.mdx' },
-];
-
-const LLMS_HEADER = `# Orval
-
-> Orval generates type-safe TypeScript clients from OpenAPI v3 and Swagger v2 specifications. It produces HTTP request functions, React Query/Vue Query/SWR hooks, Angular services, Zod schemas, and MSW mock handlers — all fully typed.
-
-Orval takes any valid OpenAPI/Swagger specification (YAML or JSON) and generates production-ready code for your frontend. The default HTTP client uses the Fetch API, but you can configure any client including Axios. Orval supports multiple data-fetching libraries (React Query, Vue Query, Svelte Query, Solid Query, Angular Query, SWR) and frameworks (Angular, SolidStart, Hono).`;
-
-const LLMS_FOOTER = `## Optional
-
-- [GitHub Repository](https://github.com/orval-labs/orval): Source code, issues, and contributions
-- [Discord](https://discord.gg/6fC2sjDU7w): Community support and discussions
-- [Playground](https://orval.dev/playground): Interactive playground to try Orval in the browser
-- [OpenCollective](https://opencollective.com/orval): Sponsor the project`;
-
 function mdUrl(rel: string): string {
   const name = basename(rel, '.mdx');
   const dir = dirname(rel);
@@ -185,12 +133,99 @@ function mdUrl(rel: string): string {
   return `${BASE_URL}/docs/${path}`;
 }
 
+async function readMeta(dir: string): Promise<MetaJson | null> {
+  try {
+    const content = await readFile(join(dir, 'meta.json'), 'utf-8');
+    return JSON.parse(content);
+  } catch {
+    return null;
+  }
+}
+
+// Walk meta.json tree to produce ordered pages and section headers
+interface LlmsEntry {
+  type: 'section' | 'page';
+  value: string; // section name or page rel path
+}
+
+async function walkMeta(
+  contentDir: string,
+  dir: string,
+  isRoot = false,
+): Promise<LlmsEntry[]> {
+  const meta = await readMeta(dir);
+  if (!meta?.pages) return [];
+
+  const entries: LlmsEntry[] = [];
+  const relDir = relative(contentDir, dir);
+
+  // At root level, separators label the pages/spread *above* them (Fumadocs convention).
+  // Buffer pages so we can emit the separator heading first.
+  // In subdirectories, separators label what follows — emit them directly.
+  let bufferedPages: LlmsEntry[] = [];
+
+  for (let i = 0; i < meta.pages.length; i++) {
+    const item = meta.pages[i];
+
+    // Separator: ---Name---
+    const sepMatch = SEPARATOR_REGEX.exec(item);
+    if (sepMatch) {
+      const name = sepMatch.groups?.name?.trim();
+
+      if (isRoot) {
+        // Root separators label pages above — skip if they follow a spread
+        const prevItem = i > 0 ? meta.pages[i - 1] : null;
+        if (prevItem?.startsWith('...')) continue;
+
+        if (name) {
+          entries.push({ type: 'section', value: name });
+          entries.push(...bufferedPages);
+          bufferedPages = [];
+        }
+      } else {
+        // Sub-directory separators label pages below
+        if (name) {
+          entries.push({ type: 'section', value: name });
+        }
+      }
+      continue;
+    }
+
+    // Spread: ...subdir
+    if (item.startsWith('...')) {
+      entries.push(...bufferedPages);
+      bufferedPages = [];
+
+      const subdir = item.slice(3);
+      const subdirPath = join(dir, subdir);
+      const subMeta = await readMeta(subdirPath);
+
+      if (subMeta?.title) {
+        entries.push({ type: 'section', value: subMeta.title });
+      }
+
+      const subEntries = await walkMeta(contentDir, subdirPath);
+      entries.push(...subEntries);
+      continue;
+    }
+
+    // Regular page
+    const rel = relDir ? `${relDir}/${item}.mdx` : `${item}.mdx`;
+    if (isRoot) {
+      bufferedPages.push({ type: 'page', value: rel });
+    } else {
+      entries.push({ type: 'page', value: rel });
+    }
+  }
+
+  entries.push(...bufferedPages);
+
+  return entries;
+}
+
 async function generate(contentDir: string, outputDir: string) {
   const files = await getFiles(contentDir);
-  const pagesByRel = new Map<
-    string,
-    { title: string; description: string; markdown: string }
-  >();
+  const pagesByRel = new Map<string, PageMeta>();
   let count = 0;
 
   for (const file of files) {
@@ -200,9 +235,8 @@ async function generate(contentDir: string, outputDir: string) {
     const markdown = transformMdx(body);
     const output = `# ${title}\n${markdown}`;
 
-    pagesByRel.set(rel, { title, description, markdown: output });
+    pagesByRel.set(rel, { rel, title, description, markdown: output });
 
-    // Write individual .md file
     const name = basename(rel, '.mdx');
     const dir = dirname(rel);
     const outName = name === 'index' ? 'index.html.md' : `${name}.md`;
@@ -213,31 +247,37 @@ async function generate(contentDir: string, outputDir: string) {
     count++;
   }
 
-  // Generate llms.txt
+  // Walk meta.json to get ordered entries with sections
+  const entries = await walkMeta(contentDir, contentDir, true);
+
+  // Build llms.txt
   const llmsLines: string[] = [
     LLMS_HEADER,
     '',
     `For the full documentation in a single file, see [llms-full.txt](${BASE_URL}/llms-full.txt).`,
-    '',
   ];
 
-  const pageOrder: string[] = [];
-  let isFirstSection = true;
+  const allOrdered: PageMeta[] = [];
+  let needsBlankLine = true;
 
-  for (const entry of LLMS_STRUCTURE) {
-    if ('section' in entry) {
-      if (!isFirstSection) llmsLines.push('');
-      isFirstSection = false;
-      llmsLines.push(`## ${entry.section}`, '');
+  for (const entry of entries) {
+    if (entry.type === 'section') {
+      llmsLines.push('', `## ${entry.value}`, '');
+      needsBlankLine = false;
     } else {
-      const meta = pagesByRel.get(entry.page);
-      if (!meta) continue;
-      pageOrder.push(entry.page);
-      const label = entry.label ?? meta.title;
-      const url = mdUrl(entry.page);
-      const line = meta.description
-        ? `- [${label}](${url}): ${meta.description}`
-        : `- [${label}](${url})`;
+      const page = pagesByRel.get(entry.value);
+      if (!page) continue;
+
+      if (needsBlankLine) {
+        llmsLines.push('');
+        needsBlankLine = false;
+      }
+
+      allOrdered.push(page);
+      const url = mdUrl(page.rel);
+      const line = page.description
+        ? `- [${page.title}](${url}): ${page.description}`
+        : `- [${page.title}](${url})`;
       llmsLines.push(line);
     }
   }
@@ -251,12 +291,8 @@ async function generate(contentDir: string, outputDir: string) {
   );
 
   // Generate llms-full.txt
-  const sections = pageOrder
-    .map((rel) => pagesByRel.get(rel)?.markdown)
-    .filter(Boolean)
-    .join('\n---\n\n');
-
-  const llmsFull = `${LLMS_HEADER}\n\n---\n\n${sections}`;
+  const fullSections = allOrdered.map((p) => p.markdown).join('\n---\n\n');
+  const llmsFull = `${LLMS_HEADER}\n\n---\n\n${fullSections}`;
   await writeFile(join(outputDir, '..', 'llms-full.txt'), llmsFull, 'utf-8');
 
   return count;
