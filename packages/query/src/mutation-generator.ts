@@ -5,8 +5,8 @@ import {
   type GeneratorOptions,
   type GeneratorVerbOptions,
   GetterPropType,
-  isString,
   type InvalidateTarget,
+  isString,
   type OutputHttpClient,
   pascal,
 } from '@orval/core';

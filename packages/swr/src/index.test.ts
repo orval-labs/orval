@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import { isFunction } from '@orval/core';
+import { describe, expect, it } from 'vitest';
 
 import { builder } from './index';
 
