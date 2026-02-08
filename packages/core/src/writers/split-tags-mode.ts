@@ -69,9 +69,7 @@ export async function writeSplitTagsMode({
             upath.relativeSafe(
               dirname,
               getFileInfo(
-                isString(output.schemas)
-                  ? output.schemas
-                  : output.schemas.path,
+                isString(output.schemas) ? output.schemas : output.schemas.path,
                 { extension: output.fileExtension },
               ).dirname,
             )

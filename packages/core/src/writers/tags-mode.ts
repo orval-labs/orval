@@ -55,9 +55,7 @@ export async function writeTagsMode({
           ? upath.relativeSafe(
               dirname,
               getFileInfo(
-                isString(output.schemas)
-                  ? output.schemas
-                  : output.schemas.path,
+                isString(output.schemas) ? output.schemas : output.schemas.path,
                 { extension: output.fileExtension },
               ).dirname,
             )

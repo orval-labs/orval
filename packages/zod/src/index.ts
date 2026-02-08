@@ -216,12 +216,10 @@ export const generateZodValidationSchemaDefinition = (
     'exclusiveMaximum' in schema ? schema.exclusiveMaximum : undefined;
 
   // Convert boolean to number if using OpenAPI 3.0 format
-  const exclusiveMin = isBoolean(exclusiveMinRaw) && exclusiveMinRaw
-    ? min
-    : exclusiveMinRaw;
-  const exclusiveMax = isBoolean(exclusiveMaxRaw) && exclusiveMaxRaw
-    ? max
-    : exclusiveMaxRaw;
+  const exclusiveMin =
+    isBoolean(exclusiveMinRaw) && exclusiveMinRaw ? min : exclusiveMinRaw;
+  const exclusiveMax =
+    isBoolean(exclusiveMaxRaw) && exclusiveMaxRaw ? max : exclusiveMaxRaw;
 
   const multipleOf = schema.multipleOf;
   const matches = schema.pattern ?? undefined;

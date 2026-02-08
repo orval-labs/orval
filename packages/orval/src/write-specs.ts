@@ -295,10 +295,9 @@ export async function writeSpecs(
       );
 
     if (output.schemas) {
-      const schemasPath =
-        isString(output.schemas)
-          ? output.schemas
-          : output.schemas.path;
+      const schemasPath = isString(output.schemas)
+        ? output.schemas
+        : output.schemas.path;
       imports.push(
         upath.relativeSafe(workspacePath, getFileInfo(schemasPath).dirname),
       );
@@ -355,9 +354,7 @@ export async function writeSpecs(
     ...(output.schemas
       ? [
           getFileInfo(
-            isString(output.schemas)
-              ? output.schemas
-              : output.schemas.path,
+            isString(output.schemas) ? output.schemas : output.schemas.path,
           ).dirname,
         ]
       : []),
