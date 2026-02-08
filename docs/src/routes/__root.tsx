@@ -51,6 +51,7 @@ export const Route = createRootRouteWithContext<{
         rel: 'stylesheet',
         href: 'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500&display=swap',
       },
+      { rel: 'help', type: 'text/plain', href: '/llms.txt' },
     ],
   }),
   component: RootComponent,
