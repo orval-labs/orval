@@ -22,6 +22,7 @@
     "generate:fetch": "orval --config ./configs/fetch.config.ts",
     "generate:mcp": "orval --config ./configs/mcp.config.ts",
     "generate:hono": "orval --config ./configs/hono.config.ts",
+    "lint:generated": "eslint --no-ignore generated",
     "build": "tsc",
     "clean": "rimraf .turbo dist generated",
     "nuke": "rimraf .turbo dist generated .yarn node_modules"

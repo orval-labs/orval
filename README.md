@@ -80,6 +80,14 @@ corepack enable
 
 - **`yarn build`** - Build the project and make changes available to the workspace. Run this after making code changes to compile TypeScript and prepare the project for use.
 
+### Lint Scripts
+
+- **`yarn lint`** - Run lint checks across all packages.
+
+- **`yarn lint:samples`** - Run lint checks inside the samples workspaces.
+
+- **`yarn lint:generated`** - Lint generated fixtures in `tests/generated`.
+
 ### Test Scripts
 
 - **`yarn test`** - Run unit tests in all packages.
@@ -97,9 +105,11 @@ A typical development workflow would be:
 1. Make your code changes
 2. Run `yarn build` to compile your changes
 3. Run `yarn test` to ensure unit tests pass
-4. Run `yarn update-samples` to regenerate sample outputs
-5. Run `yarn test:samples` to verify samples work correctly
-6. Run `yarn test:cli` to validate TypeScript compilation
+4. (Optional) Run `yarn lint` to validate packages
+5. (Optional) Run `yarn lint:samples` and `yarn lint:generated` to validate generated outputs
+6. Run `yarn update-samples` to regenerate sample outputs
+7. Run `yarn test:samples` to verify samples work correctly
+8. Run `yarn test:cli` to validate TypeScript compilation
 
 If you encounter issues or want to start completely fresh:
 
