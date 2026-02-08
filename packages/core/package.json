@@ -6,10 +6,8 @@
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.mts",
-      "default": "./dist/index.mjs"
-    }
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -47,5 +45,6 @@
     "globby": "16.1.0",
     "remeda": "^2.32.0",
     "typedoc": "^0.28.15"
-  }
+  },
+  "module": "./dist/index.mjs"
 }
