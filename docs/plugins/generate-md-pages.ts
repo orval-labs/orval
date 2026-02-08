@@ -43,10 +43,7 @@ function transformMdx(body: string): string {
       if (!inCodeBlock) {
         inCodeBlock = true;
         // Strip title attribute from code fences: ```ts title="file.ts" → ```ts
-        const cleaned = line.replace(
-          /^(\s*```\w*)\s+title="[^"]*"\s*$/,
-          '$1',
-        );
+        const cleaned = line.replace(/^(\s*```\w*)\s+title="[^"]*"\s*$/, '$1');
         out.push(cleaned);
         continue;
       } else {
@@ -80,9 +77,7 @@ function transformMdx(body: string): string {
     if (cardMatch) {
       const [, title, href, desc] = cardMatch;
       const url = href.startsWith('/') ? `${BASE_URL}${href}` : href;
-      out.push(
-        desc ? `- [${title}](${url}): ${desc}` : `- [${title}](${url})`,
-      );
+      out.push(desc ? `- [${title}](${url}): ${desc}` : `- [${title}](${url})`);
       continue;
     }
 
@@ -115,9 +110,7 @@ function transformMdx(body: string): string {
   return out.join('\n');
 }
 
-type LlmsEntry =
-  | { section: string }
-  | { page: string; label?: string };
+type LlmsEntry = { section: string } | { page: string; label?: string };
 
 // Single source of truth for llms.txt structure, section groupings, and page order.
 // To add a new page: add a { page } entry under the right section.
