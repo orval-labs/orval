@@ -27,9 +27,9 @@
     "@orval/fetch": "workspace:*"
   },
   "devDependencies": {
-    "eslint": "catalog:",
-    "rimraf": "catalog:",
-    "tsdown": "catalog:",
-    "vitest": "catalog:"
+    "eslint": "catalog:lint",
+    "rimraf": "catalog:tooling",
+    "tsdown": "catalog:tooling",
+    "vitest": "catalog:test"
   }
 }

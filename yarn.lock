@@ -3892,17 +3892,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@faker-js/faker@npm:10.3.0":
+  version: 10.3.0
+  resolution: "@faker-js/faker@npm:10.3.0"
+  checksum: 10c0/5a4688f8a040366bda83e6c7f144f9db9bef1d44f7c5b43fcee15c8def07463fcdcb572458b0d14072aca58c14321f1195e11d8664ce094266e29eb4d2a70ac4
+  languageName: node
+  linkType: hard
+
 "@faker-js/faker@npm:^10.2.0":
   version: 10.2.0
   resolution: "@faker-js/faker@npm:10.2.0"
   checksum: 10c0/72b5048ff32e90b2876560015e177f91b0625dafaaa43631302e413329105be331a1c126c8f7b0f95817cacd51c9222b58e62b6f09f5485522302e6103f19f09
-  languageName: node
-  linkType: hard
-
-"@faker-js/faker@npm:^10.3.0":
-  version: 10.3.0
-  resolution: "@faker-js/faker@npm:10.3.0"
-  checksum: 10c0/5a4688f8a040366bda83e6c7f144f9db9bef1d44f7c5b43fcee15c8def07463fcdcb572458b0d14072aca58c14321f1195e11d8664ce094266e29eb4d2a70ac4
   languageName: node
   linkType: hard
 
@@ -5903,10 +5903,10 @@ __metadata:
   resolution: "@orval/angular@workspace:packages/angular"
   dependencies:
     "@orval/core": "workspace:*"
-    eslint: "catalog:"
-    rimraf: "catalog:"
-    tsdown: "catalog:"
-    typescript: "catalog:"
+    eslint: "catalog:lint"
+    rimraf: "catalog:tooling"
+    tsdown: "catalog:tooling"
+    typescript: "catalog:tooling"
   languageName: unknown
   linkType: soft
 
@@ -5915,11 +5915,11 @@ __metadata:
   resolution: "@orval/axios@workspace:packages/axios"
   dependencies:
     "@orval/core": "workspace:*"
-    eslint: "catalog:"
-    rimraf: "catalog:"
-    tsdown: "catalog:"
-    typescript: "catalog:"
-    vitest: "catalog:"
+    eslint: "catalog:lint"
+    rimraf: "catalog:tooling"
+    tsdown: "catalog:tooling"
+    typescript: "catalog:tooling"
+    vitest: "catalog:test"
   languageName: unknown
   linkType: soft
 
@@ -5927,8 +5927,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@orval/core@workspace:packages/core"
   dependencies:
-    "@faker-js/faker": "npm:^10.2.0"
-    "@scalar/openapi-types": "catalog:"
+    "@faker-js/faker": "catalog:test"
+    "@scalar/openapi-types": "catalog:tooling"
     "@types/debug": "npm:^4.1.12"
     "@types/esutils": "npm:^2.0.2"
     "@types/fs-extra": "npm:^11.0.4"
@@ -5937,16 +5937,16 @@ __metadata:
     compare-versions: "npm:^6.1.1"
     debug: "npm:^4.4.3"
     esbuild: "npm:^0.27.2"
-    eslint: "catalog:"
+    eslint: "catalog:lint"
     esutils: "npm:2.0.3"
     fs-extra: "npm:^11.3.2"
     globby: "npm:16.1.0"
     remeda: "npm:^2.32.0"
-    rimraf: "catalog:"
-    tsdown: "catalog:"
+    rimraf: "catalog:tooling"
+    tsdown: "catalog:tooling"
     typedoc: "npm:^0.28.15"
-    typescript: "catalog:"
-    vitest: "catalog:"
+    typescript: "catalog:tooling"
+    vitest: "catalog:test"
   languageName: unknown
   linkType: soft
 
@@ -5955,11 +5955,11 @@ __metadata:
   resolution: "@orval/fetch@workspace:packages/fetch"
   dependencies:
     "@orval/core": "workspace:*"
-    "@scalar/openapi-types": "catalog:"
-    eslint: "catalog:"
-    rimraf: "catalog:"
-    tsdown: "catalog:"
-    typescript: "catalog:"
+    "@scalar/openapi-types": "catalog:tooling"
+    eslint: "catalog:lint"
+    rimraf: "catalog:tooling"
+    tsdown: "catalog:tooling"
+    typescript: "catalog:tooling"
   languageName: unknown
   linkType: soft
 
@@ -5971,12 +5971,12 @@ __metadata:
     "@orval/core": "workspace:*"
     "@orval/zod": "workspace:*"
     "@types/fs-extra": "npm:^11.0.4"
-    eslint: "catalog:"
+    eslint: "catalog:lint"
     fs-extra: "npm:^11.3.2"
     remeda: "npm:^2.32.0"
-    rimraf: "catalog:"
-    tsdown: "catalog:"
-    typescript: "catalog:"
+    rimraf: "catalog:tooling"
+    tsdown: "catalog:tooling"
+    typescript: "catalog:tooling"
   languageName: unknown
   linkType: soft
 
@@ -5987,10 +5987,10 @@ __metadata:
     "@orval/core": "workspace:*"
     "@orval/fetch": "workspace:*"
     "@orval/zod": "workspace:*"
-    eslint: "catalog:"
-    rimraf: "catalog:"
-    tsdown: "catalog:"
-    typescript: "catalog:"
+    eslint: "catalog:lint"
+    rimraf: "catalog:tooling"
+    tsdown: "catalog:tooling"
+    typescript: "catalog:tooling"
   languageName: unknown
   linkType: soft
 
@@ -5999,11 +5999,11 @@ __metadata:
   resolution: "@orval/mock@workspace:packages/mock"
   dependencies:
     "@orval/core": "workspace:*"
-    eslint: "catalog:"
-    rimraf: "catalog:"
-    tsdown: "catalog:"
-    typescript: "catalog:"
-    vitest: "catalog:"
+    eslint: "catalog:lint"
+    rimraf: "catalog:tooling"
+    tsdown: "catalog:tooling"
+    typescript: "catalog:tooling"
+    vitest: "catalog:test"
   languageName: unknown
   linkType: soft
 
@@ -6014,11 +6014,11 @@ __metadata:
     "@orval/core": "workspace:*"
     "@orval/fetch": "workspace:*"
     chalk: "npm:^5.6.2"
-    eslint: "catalog:"
+    eslint: "catalog:lint"
     remeda: "npm:^2.32.0"
-    rimraf: "catalog:"
-    tsdown: "catalog:"
-    vitest: "catalog:"
+    rimraf: "catalog:tooling"
+    tsdown: "catalog:tooling"
+    vitest: "catalog:test"
   languageName: unknown
   linkType: soft
 
@@ -6027,10 +6027,10 @@ __metadata:
   resolution: "@orval/solid-start@workspace:packages/solid-start"
   dependencies:
     "@orval/core": "workspace:*"
-    eslint: "catalog:"
-    rimraf: "catalog:"
-    tsdown: "catalog:"
-    typescript: "catalog:"
+    eslint: "catalog:lint"
+    rimraf: "catalog:tooling"
+    tsdown: "catalog:tooling"
+    typescript: "catalog:tooling"
   languageName: unknown
   linkType: soft
 
@@ -6040,10 +6040,10 @@ __metadata:
   dependencies:
     "@orval/core": "workspace:*"
     "@orval/fetch": "workspace:*"
-    eslint: "catalog:"
-    rimraf: "catalog:"
-    tsdown: "catalog:"
-    vitest: "catalog:"
+    eslint: "catalog:lint"
+    rimraf: "catalog:tooling"
+    tsdown: "catalog:tooling"
+    vitest: "catalog:test"
   languageName: unknown
   linkType: soft
 
@@ -6052,11 +6052,11 @@ __metadata:
   resolution: "@orval/zod@workspace:packages/zod"
   dependencies:
     "@orval/core": "workspace:*"
-    eslint: "catalog:"
+    eslint: "catalog:lint"
     remeda: "npm:^2.32.0"
-    rimraf: "catalog:"
-    tsdown: "catalog:"
-    vitest: "catalog:"
+    rimraf: "catalog:tooling"
+    tsdown: "catalog:tooling"
+    vitest: "catalog:test"
   languageName: unknown
   linkType: soft
 
@@ -7266,19 +7266,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/angular-query-experimental@npm:^5.62.7":
-  version: 5.90.16
-  resolution: "@tanstack/angular-query-experimental@npm:5.90.16"
+"@tanstack/angular-query-experimental@npm:5.62.7":
+  version: 5.62.7
+  resolution: "@tanstack/angular-query-experimental@npm:5.62.7"
   dependencies:
-    "@tanstack/query-core": "npm:5.90.12"
-    "@tanstack/query-devtools": "npm:5.91.1"
+    "@tanstack/query-core": "npm:5.62.7"
+    "@tanstack/query-devtools": "npm:5.61.4"
   peerDependencies:
     "@angular/common": ">=16.0.0"
     "@angular/core": ">=16.0.0"
-  dependenciesMeta:
-    "@tanstack/query-devtools":
-      optional: true
-  checksum: 10c0/0806c4b9b4bc1643c5189782e8e0ae203e986534a78dffa5a3eb3597f589960c70ca8a967ec97b975852848b5aafb2e7cabc059294a1473e068a5f444b79b4da
+  checksum: 10c0/85b5a13a22b8e7241558c69e63435ad3abf70bb018b051e085a65bcc17caabf0e800985b227c89cfbf0672e8b2be0d5fa8572cca5fe0816ac43b7a6004100086
   languageName: node
   linkType: hard
 
@@ -7305,10 +7302,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-core@npm:5.90.12":
-  version: 5.90.12
-  resolution: "@tanstack/query-core@npm:5.90.12"
-  checksum: 10c0/60d5dd23d7801118d6ef84a3d76e798aaf6eb851ee5227629a1dc798fa01ac9560580553413208fcc8a003fb12a89e83d6dd1f38ebc3bd9b6e8838cfaaa45fef
+"@tanstack/query-core@npm:5.62.7":
+  version: 5.62.7
+  resolution: "@tanstack/query-core@npm:5.62.7"
+  checksum: 10c0/d7aa83571b56e7bf1b608b8f56c90a9e9e759ba5a8899686182e8961c94432d1b6437b066a228765250498a3009623a30c5ca17b2714ddb30e2d727adea9aa0c
   languageName: node
   linkType: hard
 
@@ -7326,10 +7323,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-devtools@npm:5.91.1":
-  version: 5.91.1
-  resolution: "@tanstack/query-devtools@npm:5.91.1"
-  checksum: 10c0/856d85d249fd46a9f191a345f4446dcfb11a6b48d664f18f5bf480d0802fde5089ca7ae39e26e3445256a13f12f9b77b8639c33ad26c9d1e4b4c56a00fdb9b8c
+"@tanstack/query-devtools@npm:5.61.4":
+  version: 5.61.4
+  resolution: "@tanstack/query-devtools@npm:5.61.4"
+  checksum: 10c0/44886dbf92849d17729bf779a184a3fd304711d8ce8061c1deccc089a65d168ed8f0cf0da43b59a9a22a9afb7b25fba99de8af47fe44479ac3082d852dcaaf53
   languageName: node
   linkType: hard
 
@@ -8149,6 +8146,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@typescript-eslint/eslint-plugin@npm:8.54.0":
+  version: 8.54.0
+  resolution: "@typescript-eslint/eslint-plugin@npm:8.54.0"
+  dependencies:
+    "@eslint-community/regexpp": "npm:^4.12.2"
+    "@typescript-eslint/scope-manager": "npm:8.54.0"
+    "@typescript-eslint/type-utils": "npm:8.54.0"
+    "@typescript-eslint/utils": "npm:8.54.0"
+    "@typescript-eslint/visitor-keys": "npm:8.54.0"
+    ignore: "npm:^7.0.5"
+    natural-compare: "npm:^1.4.0"
+    ts-api-utils: "npm:^2.4.0"
+  peerDependencies:
+    "@typescript-eslint/parser": ^8.54.0
+    eslint: ^8.57.0 || ^9.0.0
+    typescript: ">=4.8.4 <6.0.0"
+  checksum: 10c0/e533c8285880b883e02a833f378597c2776e6b0c20a5935440e2a02c1c42f40069a8badcf6d581bb4ec35a6856a806c4b66674c1c15c33cd64cc6b9c0cdd1dad
+  languageName: node
+  linkType: hard
+
 "@typescript-eslint/eslint-plugin@npm:^5.5.0":
   version: 5.62.0
   resolution: "@typescript-eslint/eslint-plugin@npm:5.62.0"
@@ -8170,26 +8187,6 @@ __metadata:
     typescript:
       optional: true
   checksum: 10c0/3f40cb6bab5a2833c3544e4621b9fdacd8ea53420cadc1c63fac3b89cdf5c62be1e6b7bcf56976dede5db4c43830de298ced3db60b5494a3b961ca1b4bff9f2a
-  languageName: node
-  linkType: hard
-
-"@typescript-eslint/eslint-plugin@npm:^8.50.1, @typescript-eslint/eslint-plugin@npm:^8.54.0":
-  version: 8.54.0
-  resolution: "@typescript-eslint/eslint-plugin@npm:8.54.0"
-  dependencies:
-    "@eslint-community/regexpp": "npm:^4.12.2"
-    "@typescript-eslint/scope-manager": "npm:8.54.0"
-    "@typescript-eslint/type-utils": "npm:8.54.0"
-    "@typescript-eslint/utils": "npm:8.54.0"
-    "@typescript-eslint/visitor-keys": "npm:8.54.0"
-    ignore: "npm:^7.0.5"
-    natural-compare: "npm:^1.4.0"
-    ts-api-utils: "npm:^2.4.0"
-  peerDependencies:
-    "@typescript-eslint/parser": ^8.54.0
-    eslint: ^8.57.0 || ^9.0.0
-    typescript: ">=4.8.4 <6.0.0"
-  checksum: 10c0/e533c8285880b883e02a833f378597c2776e6b0c20a5935440e2a02c1c42f40069a8badcf6d581bb4ec35a6856a806c4b66674c1c15c33cd64cc6b9c0cdd1dad
   languageName: node
   linkType: hard
 
@@ -8256,6 +8253,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@typescript-eslint/parser@npm:8.54.0":
+  version: 8.54.0
+  resolution: "@typescript-eslint/parser@npm:8.54.0"
+  dependencies:
+    "@typescript-eslint/scope-manager": "npm:8.54.0"
+    "@typescript-eslint/types": "npm:8.54.0"
+    "@typescript-eslint/typescript-estree": "npm:8.54.0"
+    "@typescript-eslint/visitor-keys": "npm:8.54.0"
+    debug: "npm:^4.4.3"
+  peerDependencies:
+    eslint: ^8.57.0 || ^9.0.0
+    typescript: ">=4.8.4 <6.0.0"
+  checksum: 10c0/60a1cfe94bc23086f03701640f4d83d7e37b8f4d729011e0f029e5accf2b3d099c50938c0a798a399e86046279432ff663f33102ba4338c4c82f7acead2bcbac
+  languageName: node
+  linkType: hard
+
 "@typescript-eslint/parser@npm:^5.5.0":
   version: 5.62.0
   resolution: "@typescript-eslint/parser@npm:5.62.0"
@@ -8270,22 +8283,6 @@ __metadata:
     typescript:
       optional: true
   checksum: 10c0/315194b3bf39beb9bd16c190956c46beec64b8371e18d6bb72002108b250983eb1e186a01d34b77eb4045f4941acbb243b16155fbb46881105f65e37dc9e24d4
-  languageName: node
-  linkType: hard
-
-"@typescript-eslint/parser@npm:^8.54.0":
-  version: 8.54.0
-  resolution: "@typescript-eslint/parser@npm:8.54.0"
-  dependencies:
-    "@typescript-eslint/scope-manager": "npm:8.54.0"
-    "@typescript-eslint/types": "npm:8.54.0"
-    "@typescript-eslint/typescript-estree": "npm:8.54.0"
-    "@typescript-eslint/visitor-keys": "npm:8.54.0"
-    debug: "npm:^4.4.3"
-  peerDependencies:
-    eslint: ^8.57.0 || ^9.0.0
-    typescript: ">=4.8.4 <6.0.0"
-  checksum: 10c0/60a1cfe94bc23086f03701640f4d83d7e37b8f4d729011e0f029e5accf2b3d099c50938c0a798a399e86046279432ff663f33102ba4338c4c82f7acead2bcbac
   languageName: node
   linkType: hard
 
@@ -9750,18 +9747,19 @@ __metadata:
     "@angular/forms": "catalog:angular"
     "@angular/platform-browser": "catalog:angular"
     "@angular/router": "catalog:angular"
-    "@eslint/js": "npm:^9.39.2"
-    "@faker-js/faker": "npm:^10.3.0"
-    "@typescript-eslint/eslint-plugin": "npm:^8.54.0"
-    "@typescript-eslint/parser": "npm:^8.54.0"
-    eslint: "npm:^9.39.2"
-    msw: "npm:^2.12.9"
+    "@eslint/js": "catalog:lint"
+    "@faker-js/faker": "catalog:test"
+    "@typescript-eslint/eslint-plugin": "catalog:lint"
+    "@typescript-eslint/parser": "catalog:lint"
+    eslint: "catalog:lint"
+    msw: "catalog:test"
     orval: "workspace:*"
-    rimraf: "npm:^6.1.2"
-    rxjs: "npm:~7.8.2"
-    tslib: "npm:^2.8.1"
-    typescript: "npm:~5.9.3"
-    vitest: "npm:^4.0.18"
+    rimraf: "catalog:tooling"
+    rxjs: "catalog:angular"
+    tslib: "catalog:angular"
+    typescript: "catalog:tooling"
+    vitest: "catalog:test"
+    zod: "catalog:tooling"
   dependenciesMeta:
     msw:
       built: true
@@ -9786,19 +9784,19 @@ __metadata:
     "@angular/forms": "catalog:angular"
     "@angular/platform-browser": "catalog:angular"
     "@angular/router": "catalog:angular"
-    "@eslint/js": "npm:^9.39.2"
-    "@faker-js/faker": "npm:^10.2.0"
-    "@tanstack/angular-query-experimental": "npm:^5.62.7"
-    "@testing-library/angular": "npm:19.0.0"
-    "@typescript-eslint/eslint-plugin": "npm:^8.50.1"
-    "@typescript-eslint/parser": "npm:^8.50.1"
-    eslint: "npm:^9.39.2"
-    msw: "npm:^2.12.7"
+    "@eslint/js": "catalog:lint"
+    "@faker-js/faker": "catalog:test"
+    "@tanstack/angular-query-experimental": "catalog:angular"
+    "@testing-library/angular": "catalog:test"
+    "@typescript-eslint/eslint-plugin": "catalog:lint"
+    "@typescript-eslint/parser": "catalog:lint"
+    eslint: "catalog:lint"
+    msw: "catalog:test"
     orval: "link:../../packages/orval/dist"
-    rxjs: "npm:~7.8.2"
-    tslib: "npm:^2.8.1"
-    typescript: "npm:~5.9.3"
-    vitest: "npm:^4.0.16"
+    rxjs: "catalog:angular"
+    tslib: "catalog:angular"
+    typescript: "catalog:tooling"
+    vitest: "catalog:test"
   dependenciesMeta:
     msw:
       built: true
@@ -18436,6 +18434,39 @@ __metadata:
   languageName: node
   linkType: hard
 
+"msw@npm:2.12.9":
+  version: 2.12.9
+  resolution: "msw@npm:2.12.9"
+  dependencies:
+    "@inquirer/confirm": "npm:^5.0.0"
+    "@mswjs/interceptors": "npm:^0.41.2"
+    "@open-draft/deferred-promise": "npm:^2.2.0"
+    "@types/statuses": "npm:^2.0.6"
+    cookie: "npm:^1.0.2"
+    graphql: "npm:^16.12.0"
+    headers-polyfill: "npm:^4.0.2"
+    is-node-process: "npm:^1.2.0"
+    outvariant: "npm:^1.4.3"
+    path-to-regexp: "npm:^6.3.0"
+    picocolors: "npm:^1.1.1"
+    rettime: "npm:^0.10.1"
+    statuses: "npm:^2.0.2"
+    strict-event-emitter: "npm:^0.5.1"
+    tough-cookie: "npm:^6.0.0"
+    type-fest: "npm:^5.2.0"
+    until-async: "npm:^3.0.2"
+    yargs: "npm:^17.7.2"
+  peerDependencies:
+    typescript: ">= 4.8.x"
+  peerDependenciesMeta:
+    typescript:
+      optional: true
+  bin:
+    msw: cli/index.js
+  checksum: 10c0/4faf71a3d7011b6cb40366760770b47572b68fd259c62b2ac72f902019c1f3f662b05bd63acc7019ab6cf99775892a37cd2deb9500430bbbc8dc930e1a108328
+  languageName: node
+  linkType: hard
+
 "msw@npm:^2.12.7":
   version: 2.12.7
   resolution: "msw@npm:2.12.7"
@@ -18466,39 +18497,6 @@ __metadata:
   bin:
     msw: cli/index.js
   checksum: 10c0/e9100fe87dce5411d29392bba88ed1813acc6278991a3068c328ec671e5eb52d1e8ee451ee401c554eab08e04b78b84fcdf2c78f761287c6b43e844e91ce18dd
-  languageName: node
-  linkType: hard
-
-"msw@npm:^2.12.9":
-  version: 2.12.9
-  resolution: "msw@npm:2.12.9"
-  dependencies:
-    "@inquirer/confirm": "npm:^5.0.0"
-    "@mswjs/interceptors": "npm:^0.41.2"
-    "@open-draft/deferred-promise": "npm:^2.2.0"
-    "@types/statuses": "npm:^2.0.6"
-    cookie: "npm:^1.0.2"
-    graphql: "npm:^16.12.0"
-    headers-polyfill: "npm:^4.0.2"
-    is-node-process: "npm:^1.2.0"
-    outvariant: "npm:^1.4.3"
-    path-to-regexp: "npm:^6.3.0"
-    picocolors: "npm:^1.1.1"
-    rettime: "npm:^0.10.1"
-    statuses: "npm:^2.0.2"
-    strict-event-emitter: "npm:^0.5.1"
-    tough-cookie: "npm:^6.0.0"
-    type-fest: "npm:^5.2.0"
-    until-async: "npm:^3.0.2"
-    yargs: "npm:^17.7.2"
-  peerDependencies:
-    typescript: ">= 4.8.x"
-  peerDependenciesMeta:
-    typescript:
-      optional: true
-  bin:
-    msw: cli/index.js
-  checksum: 10c0/4faf71a3d7011b6cb40366760770b47572b68fd259c62b2ac72f902019c1f3f662b05bd63acc7019ab6cf99775892a37cd2deb9500430bbbc8dc930e1a108328
   languageName: node
   linkType: hard
 
@@ -19379,11 +19377,11 @@ __metadata:
     openapi3-ts: "npm:^4.5.0"
     orval: "workspace:*"
     react: "npm:^18.3.1"
-    rimraf: "catalog:"
+    rimraf: "catalog:tooling"
     rxjs: "npm:~7.8.2"
     svelte: "npm:^5.46.4"
     swr: "npm:^2.3.6"
-    typescript: "catalog:"
+    typescript: "catalog:tooling"
     vue: "npm:^3.5.26"
     zod: "npm:^3.25.76"
   languageName: unknown
@@ -19395,10 +19393,10 @@ __metadata:
   dependencies:
     "@commitlint/cli": "npm:^20.1.0"
     "@commitlint/config-conventional": "npm:^20.0.0"
-    "@eslint/js": "catalog:"
-    "@types/node": "catalog:"
+    "@eslint/js": "catalog:lint"
+    "@types/node": "catalog:tooling"
     esbuild-plugin-alias: "npm:^0.2.1"
-    eslint: "catalog:"
+    eslint: "catalog:lint"
     eslint-config-prettier: "npm:^10.1.8"
     eslint-config-turbo: "npm:^2.7.4"
     eslint-plugin-prettier: "npm:^5.5.4"
@@ -19407,12 +19405,12 @@ __metadata:
     globals: "npm:^17.0.0"
     husky: "npm:^9.1.7"
     lint-staged: "npm:^16.2.6"
-    prettier: "catalog:"
-    rimraf: "catalog:"
+    prettier: "catalog:lint"
+    rimraf: "catalog:tooling"
     turbo: "npm:^2.7.3"
-    typescript: "catalog:"
+    typescript: "catalog:tooling"
     typescript-eslint: "npm:^8.50.1"
-    vitest: "catalog:"
+    vitest: "catalog:test"
   languageName: unknown
   linkType: soft
 
@@ -19440,29 +19438,29 @@ __metadata:
     "@orval/zod": "workspace:*"
     "@scalar/json-magic": "npm:^0.8.8"
     "@scalar/openapi-parser": "npm:^0.23.9"
-    "@scalar/openapi-types": "catalog:"
+    "@scalar/openapi-types": "catalog:tooling"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/js-yaml": "npm:^4.0.9"
     chalk: "npm:^5.6.2"
     chokidar: "npm:^5.0.0"
     commander: "npm:^14.0.2"
     enquirer: "npm:^2.4.1"
-    eslint: "catalog:"
+    eslint: "catalog:lint"
     execa: "npm:^9.6.1"
     find-up: "npm:8.0.0"
     fs-extra: "npm:^11.3.2"
     jiti: "npm:^2.6.1"
     js-yaml: "npm:4.1.1"
     remeda: "npm:^2.32.0"
-    rimraf: "catalog:"
+    rimraf: "catalog:tooling"
     string-argv: "npm:^0.3.2"
     tsconfck: "npm:^3.1.6"
-    tsdown: "catalog:"
+    tsdown: "catalog:tooling"
     typedoc: "npm:^0.28.15"
     typedoc-plugin-coverage: "npm:^4.0.2"
     typedoc-plugin-markdown: "npm:^4.9.0"
-    typescript: "catalog:"
-    vitest: "catalog:"
+    typescript: "catalog:tooling"
+    vitest: "catalog:test"
   bin:
     orval: ./dist/bin/orval.mjs
   languageName: unknown
@@ -21938,7 +21936,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rimraf@npm:6.1.2, rimraf@npm:^6.1.2":
+"rimraf@npm:6.1.2":
   version: 6.1.2
   resolution: "rimraf@npm:6.1.2"
   dependencies:
@@ -24560,17 +24558,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"tslib@npm:2.8.1, tslib@npm:^2.0.3, tslib@npm:^2.1.0, tslib@npm:^2.3.0, tslib@npm:^2.3.1, tslib@npm:^2.4.0, tslib@npm:^2.8.0, tslib@npm:^2.8.1":
+  version: 2.8.1
+  resolution: "tslib@npm:2.8.1"
+  checksum: 10c0/9c4759110a19c53f992d9aae23aac5ced636e99887b51b9e61def52611732872ff7668757d4e4c61f19691e36f4da981cd9485e869b4a7408d689f6bf1f14e62
+  languageName: node
+  linkType: hard
+
 "tslib@npm:^1.8.1":
   version: 1.14.1
   resolution: "tslib@npm:1.14.1"
   checksum: 10c0/69ae09c49eea644bc5ebe1bca4fa4cc2c82b7b3e02f43b84bd891504edf66dbc6b2ec0eef31a957042de2269139e4acff911e6d186a258fb14069cd7f6febce2
-  languageName: node
-  linkType: hard
-
-"tslib@npm:^2.0.3, tslib@npm:^2.1.0, tslib@npm:^2.3.0, tslib@npm:^2.3.1, tslib@npm:^2.4.0, tslib@npm:^2.8.0, tslib@npm:^2.8.1":
-  version: 2.8.1
-  resolution: "tslib@npm:2.8.1"
-  checksum: 10c0/9c4759110a19c53f992d9aae23aac5ced636e99887b51b9e61def52611732872ff7668757d4e4c61f19691e36f4da981cd9485e869b4a7408d689f6bf1f14e62
   languageName: node
   linkType: hard
 
@@ -25581,66 +25579,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vitest@npm:4.0.16, vitest@npm:^4.0.16":
-  version: 4.0.16
-  resolution: "vitest@npm:4.0.16"
-  dependencies:
-    "@vitest/expect": "npm:4.0.16"
-    "@vitest/mocker": "npm:4.0.16"
-    "@vitest/pretty-format": "npm:4.0.16"
-    "@vitest/runner": "npm:4.0.16"
-    "@vitest/snapshot": "npm:4.0.16"
-    "@vitest/spy": "npm:4.0.16"
-    "@vitest/utils": "npm:4.0.16"
-    es-module-lexer: "npm:^1.7.0"
-    expect-type: "npm:^1.2.2"
-    magic-string: "npm:^0.30.21"
-    obug: "npm:^2.1.1"
-    pathe: "npm:^2.0.3"
-    picomatch: "npm:^4.0.3"
-    std-env: "npm:^3.10.0"
-    tinybench: "npm:^2.9.0"
-    tinyexec: "npm:^1.0.2"
-    tinyglobby: "npm:^0.2.15"
-    tinyrainbow: "npm:^3.0.3"
-    vite: "npm:^6.0.0 || ^7.0.0"
-    why-is-node-running: "npm:^2.3.0"
-  peerDependencies:
-    "@edge-runtime/vm": "*"
-    "@opentelemetry/api": ^1.9.0
-    "@types/node": ^20.0.0 || ^22.0.0 || >=24.0.0
-    "@vitest/browser-playwright": 4.0.16
-    "@vitest/browser-preview": 4.0.16
-    "@vitest/browser-webdriverio": 4.0.16
-    "@vitest/ui": 4.0.16
-    happy-dom: "*"
-    jsdom: "*"
-  peerDependenciesMeta:
-    "@edge-runtime/vm":
-      optional: true
-    "@opentelemetry/api":
-      optional: true
-    "@types/node":
-      optional: true
-    "@vitest/browser-playwright":
-      optional: true
-    "@vitest/browser-preview":
-      optional: true
-    "@vitest/browser-webdriverio":
-      optional: true
-    "@vitest/ui":
-      optional: true
-    happy-dom:
-      optional: true
-    jsdom:
-      optional: true
-  bin:
-    vitest: vitest.mjs
-  checksum: 10c0/b195c272198f7957c11186eb70ee78e2ec0f4524b4b5306ca8f05e41b3d84c6a4a15d02fca58d82f2b32ba61f610ae8a2a23d463a8336d7323e4832db5eef223
-  languageName: node
-  linkType: hard
-
-"vitest@npm:^4.0.18":
+"vitest@npm:4.0.18":
   version: 4.0.18
   resolution: "vitest@npm:4.0.18"
   dependencies:
@@ -25696,6 +25635,65 @@ __metadata:
   bin:
     vitest: vitest.mjs
   checksum: 10c0/b913cd32032c95f29ff08c931f4b4c6fd6d2da498908d6770952c561a1b8d75c62499a1f04cadf82fb89cc0f9a33f29fb5dfdb899f6dbb27686a9d91571be5fa
+  languageName: node
+  linkType: hard
+
+"vitest@npm:^4.0.16":
+  version: 4.0.16
+  resolution: "vitest@npm:4.0.16"
+  dependencies:
+    "@vitest/expect": "npm:4.0.16"
+    "@vitest/mocker": "npm:4.0.16"
+    "@vitest/pretty-format": "npm:4.0.16"
+    "@vitest/runner": "npm:4.0.16"
+    "@vitest/snapshot": "npm:4.0.16"
+    "@vitest/spy": "npm:4.0.16"
+    "@vitest/utils": "npm:4.0.16"
+    es-module-lexer: "npm:^1.7.0"
+    expect-type: "npm:^1.2.2"
+    magic-string: "npm:^0.30.21"
+    obug: "npm:^2.1.1"
+    pathe: "npm:^2.0.3"
+    picomatch: "npm:^4.0.3"
+    std-env: "npm:^3.10.0"
+    tinybench: "npm:^2.9.0"
+    tinyexec: "npm:^1.0.2"
+    tinyglobby: "npm:^0.2.15"
+    tinyrainbow: "npm:^3.0.3"
+    vite: "npm:^6.0.0 || ^7.0.0"
+    why-is-node-running: "npm:^2.3.0"
+  peerDependencies:
+    "@edge-runtime/vm": "*"
+    "@opentelemetry/api": ^1.9.0
+    "@types/node": ^20.0.0 || ^22.0.0 || >=24.0.0
+    "@vitest/browser-playwright": 4.0.16
+    "@vitest/browser-preview": 4.0.16
+    "@vitest/browser-webdriverio": 4.0.16
+    "@vitest/ui": 4.0.16
+    happy-dom: "*"
+    jsdom: "*"
+  peerDependenciesMeta:
+    "@edge-runtime/vm":
+      optional: true
+    "@opentelemetry/api":
+      optional: true
+    "@types/node":
+      optional: true
+    "@vitest/browser-playwright":
+      optional: true
+    "@vitest/browser-preview":
+      optional: true
+    "@vitest/browser-webdriverio":
+      optional: true
+    "@vitest/ui":
+      optional: true
+    happy-dom:
+      optional: true
+    jsdom:
+      optional: true
+  bin:
+    vitest: vitest.mjs
+  checksum: 10c0/b195c272198f7957c11186eb70ee78e2ec0f4524b4b5306ca8f05e41b3d84c6a4a15d02fca58d82f2b32ba61f610ae8a2a23d463a8336d7323e4832db5eef223
   languageName: node
   linkType: hard
 
@@ -26833,6 +26831,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"zod@npm:3.25.76, zod@npm:^3.25.76":
+  version: 3.25.76
+  resolution: "zod@npm:3.25.76"
+  checksum: 10c0/5718ec35e3c40b600316c5b4c5e4976f7fee68151bc8f8d90ec18a469be9571f072e1bbaace10f1e85cf8892ea12d90821b200e980ab46916a6166a4260a983c
+  languageName: node
+  linkType: hard
+
 "zod@npm:4.3.5, zod@npm:^3.25.0 || ^4.0.0":
   version: 4.3.5
   resolution: "zod@npm:4.3.5"
@@ -26844,13 +26849,6 @@ __metadata:
   version: 4.1.13
   resolution: "zod@npm:4.1.13"
   checksum: 10c0/d7e74e82dba81a91ffc3239cd85bc034abe193a28f7087a94ab258a3e48e9a7ca4141920cac979a0d781495b48fc547777394149f26be04c3dc642f58bbc3941
-  languageName: node
-  linkType: hard
-
-"zod@npm:^3.25.76":
-  version: 3.25.76
-  resolution: "zod@npm:3.25.76"
-  checksum: 10c0/5718ec35e3c40b600316c5b4c5e4976f7fee68151bc8f8d90ec18a469be9571f072e1bbaace10f1e85cf8892ea12d90821b200e980ab46916a6166a4260a983c
   languageName: node
   linkType: hard
 

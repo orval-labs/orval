@@ -21,8 +21,9 @@
     "@angular/forms": "catalog:angular",
     "@angular/platform-browser": "catalog:angular",
     "@angular/router": "catalog:angular",
-    "rxjs": "~7.8.2",
-    "tslib": "^2.8.1"
+    "rxjs": "catalog:angular",
+    "tslib": "catalog:angular",
+    "zod": "catalog:tooling"
   },
   "devDependencies": {
     "@angular-eslint/builder": "catalog:angular",
@@ -32,16 +33,16 @@
     "@angular/build": "catalog:angular",
     "@angular/cli": "catalog:angular",
     "@angular/compiler-cli": "catalog:angular",
-    "@eslint/js": "^9.39.2",
-    "@faker-js/faker": "^10.3.0",
-    "@typescript-eslint/eslint-plugin": "^8.54.0",
-    "@typescript-eslint/parser": "^8.54.0",
-    "eslint": "^9.39.2",
-    "msw": "^2.12.9",
+    "@eslint/js": "catalog:lint",
+    "@faker-js/faker": "catalog:test",
+    "@typescript-eslint/eslint-plugin": "catalog:lint",
+    "@typescript-eslint/parser": "catalog:lint",
+    "eslint": "catalog:lint",
+    "msw": "catalog:test",
     "orval": "workspace:*",
-    "rimraf": "^6.1.2",
-    "typescript": "~5.9.3",
-    "vitest": "^4.0.18"
+    "rimraf": "catalog:tooling",
+    "typescript": "catalog:tooling",
+    "vitest": "catalog:test"
   },
   "dependenciesMeta": {
     "msw": {

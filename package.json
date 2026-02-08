@@ -41,10 +41,10 @@
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
-    "@eslint/js": "catalog:",
-    "@types/node": "catalog:",
+    "@eslint/js": "catalog:lint",
+    "@types/node": "catalog:tooling",
     "esbuild-plugin-alias": "^0.2.1",
-    "eslint": "catalog:",
+    "eslint": "catalog:lint",
     "eslint-config-prettier": "^10.1.8",
     "eslint-config-turbo": "^2.7.4",
     "eslint-plugin-prettier": "^5.5.4",
@@ -53,12 +53,12 @@
     "globals": "^17.0.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.6",
-    "prettier": "catalog:",
-    "rimraf": "catalog:",
+    "prettier": "catalog:lint",
+    "rimraf": "catalog:tooling",
     "turbo": "^2.7.3",
-    "typescript": "catalog:",
+    "typescript": "catalog:tooling",
     "typescript-eslint": "^8.50.1",
-    "vitest": "catalog:"
+    "vitest": "catalog:test"
   },
   "volta": {
     "node": "24.13.0",
