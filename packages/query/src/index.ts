@@ -8,7 +8,7 @@ import {
   type QueryOptions,
 } from '@orval/core';
 
-import { generateQueryRequestFunction, getQueryHeader } from './client';
+import { getQueryHeader } from './client';
 import {
   getAngularQueryDependencies,
   getReactQueryDependencies,
@@ -16,8 +16,9 @@ import {
   getSvelteQueryDependencies,
   getVueQueryDependencies,
 } from './dependencies';
+import { createFrameworkAdapter } from './frameworks';
 import { generateQueryHook } from './query-generator';
-import { isVue, normalizeQueryOptions } from './utils';
+import { normalizeQueryOptions } from './utils';
 
 export {
   getAngularQueryDependencies,
@@ -48,14 +49,19 @@ export const generateQuery: ClientBuilder = async (
   options,
   outputClient,
 ) => {
+  const adapter = createFrameworkAdapter({
+    outputClient,
+    packageJson: options.context.output.packageJson,
+    queryVersion: verbOptions.override.query.version,
+  });
+
   const imports = generateVerbImports(verbOptions);
-  const functionImplementation = generateQueryRequestFunction(
+  const functionImplementation = adapter.generateRequestFunction(
     verbOptions,
     options,
-    isVue(outputClient),
   );
   const { implementation: hookImplementation, mutators } =
-    await generateQueryHook(verbOptions, options, outputClient);
+    await generateQueryHook(verbOptions, options, outputClient, adapter);
 
   return {
     implementation: `${functionImplementation}\n\n${hookImplementation}`,
