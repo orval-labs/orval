@@ -127,6 +127,7 @@ function generateDefinition(
     : mockImplementations;
 
   const delay = getDelay(override, isFunction(mock) ? undefined : mock);
+  const delayExpression = isFunction(delay) ? `(${delay.toString()})()` : delay;
   const infoParam = 'info';
   const overrideResponse = `overrideResponse !== undefined
     ? (typeof overrideResponse === "function" ? await overrideResponse(${infoParam}) : overrideResponse)
@@ -134,9 +135,7 @@ function generateDefinition(
   const handlerImplementation = `
 export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType}), options?: RequestHandlerOptions) => {
   return http.${verb}('${route}', async (${infoParam}) => {${
-    delay === false
-      ? ''
-      : `await delay(${isFunction(delay) ? `(${delay})()` : delay});`
+    delay === false ? '' : `await delay(${delayExpression});`
   }
   ${isReturnHttpResponse ? '' : `if (typeof overrideResponse === 'function') {await overrideResponse(info); }`}
     return new HttpResponse(${
