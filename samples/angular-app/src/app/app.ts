@@ -1,62 +1,27 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
-import { AsyncPipe } from '@angular/common';
-import { PetsService } from '../api/endpoints/pets/pets.service';
+import { Component, signal } from '@angular/core';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  imports: [AsyncPipe],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet],
   template: `
     <div class="App">
       <h1>Hello, {{ title() }}</h1>
       <header class="App-header">
         <img src="logo.svg" class="App-logo" alt="logo" />
-        @for (pet of pets$ | async; track pet) {
-          <p>{{ pet.name }}</p>
-        }
       </header>
-      <h2>Content Type Overload Tests (Issue #2243)</h2>
-      <p>Check browser console for test results</p>
+      <nav class="App-nav">
+        <a routerLink="/http-client" routerLinkActive="active">HttpClient</a>
+        <a routerLink="/http-resource" routerLinkActive="active"
+          >httpResource</a
+        >
+      </nav>
+      <main>
+        <router-outlet />
+      </main>
     </div>
   `,
 })
-export class App implements OnInit {
-  private readonly petService = inject(PetsService);
-  protected readonly pets$ = this.petService.listPets();
+export class App {
   protected readonly title = signal('angular-app');
-
-  ngOnInit() {
-    this.petService.showPetById('1', 'text/plain').subscribe({
-      next: (result) =>
-        console.log('[text/plain] Result:', result, '| Type:', typeof result),
-      error: (err) => console.error('[text/plain] Error:', err),
-    });
-
-    this.petService.showPetById('1', 'application/xml').subscribe({
-      next: (result) =>
-        console.log(
-          '[application/xml] Result:',
-          result,
-          '| Type:',
-          typeof result,
-        ),
-      error: (err) => console.error('[application/xml] Error:', err),
-    });
-
-    this.petService.showPetById('1', 'application/json').subscribe({
-      next: (result) =>
-        console.log(
-          '[application/json] Result:',
-          result,
-          '| Type:',
-          typeof result,
-        ),
-      error: (err) => console.error('[application/json] Error:', err),
-    });
-
-    this.petService.showPetById('1').subscribe({
-      next: (result) =>
-        console.log('[default] Result:', result, '| Type:', typeof result),
-      error: (err) => console.error('[default] Error:', err),
-    });
-  }
 }

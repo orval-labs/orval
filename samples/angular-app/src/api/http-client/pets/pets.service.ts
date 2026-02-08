@@ -49,6 +49,7 @@ interface HttpClientOptions {
   redirect?: RequestRedirect;
   referrer?: string;
   integrity?: string;
+  referrerPolicy?: ReferrerPolicy;
   transferCache?: { includeHeaders?: string[] } | boolean;
   timeout?: number;
 }
