@@ -21,13 +21,13 @@ import type { DeepNonNullable } from '@orval/core';
 
 import { Observable } from 'rxjs';
 
-import type {
+import {
   CreatePetsBody,
   ListPetsParams,
   Pet,
   Pets,
   SearchPetsParams,
-} from '../../model';
+} from '../../model-zod/index.zod';
 
 import paramsSerializerMutator from '../../../orval/mutator/custom-params-serializer';
 
@@ -38,13 +38,16 @@ export function searchPetsResource(
   params: Signal<DeepNonNullable<SearchPetsParams>>,
   version?: Signal<number>,
 ): HttpResourceRef<Pets | undefined> {
-  return httpResource<Pets>(() => {
-    const request = {
-      url: `/v${version?.() ?? 1}/search`,
-      params: params?.() ? paramsSerializerMutator(params()) : undefined,
-    };
-    return request;
-  });
+  return httpResource<Pets>(
+    () => {
+      const request = {
+        url: `/v${version?.() ?? 1}/search`,
+        params: params?.() ? paramsSerializerMutator(params()) : undefined,
+      };
+      return request;
+    },
+    { parse: Pets.parse },
+  );
 }
 
 /**
@@ -54,13 +57,16 @@ export function listPetsResource(
   params?: Signal<DeepNonNullable<ListPetsParams>>,
   version?: Signal<number>,
 ): HttpResourceRef<Pets | undefined> {
-  return httpResource<Pets>(() => {
-    const request = {
-      url: `/v${version?.() ?? 1}/pets`,
-      params: params?.() ? paramsSerializerMutator(params()) : undefined,
-    };
-    return request;
-  });
+  return httpResource<Pets>(
+    () => {
+      const request = {
+        url: `/v${version?.() ?? 1}/pets`,
+        params: params?.() ? paramsSerializerMutator(params()) : undefined,
+      };
+      return request;
+    },
+    { parse: Pets.parse },
+  );
 }
 
 /**
@@ -181,6 +187,14 @@ export class PetsService {
     );
   }
 }
+
+export type SearchPetsResourceResult = NonNullable<Pets>;
+export type ListPetsResourceResult = NonNullable<Pets>;
+export type ShowPetByIdResourceResult = NonNullable<string | Pet>;
+export type ShowPetTextResourceResult = NonNullable<string>;
+export type DownloadFileResourceResult = NonNullable<Blob>;
+export type CreatePetsClientResult = NonNullable<void>;
+export type UploadFileClientResult = NonNullable<void>;
 
 /**
  * Utility type for httpResource results with status tracking.

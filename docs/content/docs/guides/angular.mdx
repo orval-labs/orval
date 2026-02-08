@@ -1,9 +1,9 @@
 ---
 title: Angular
-description: Generate Angular services with HttpClient from OpenAPI
+description: Generate Angular services with HttpClient and httpResource functions from OpenAPI
 ---
 
-Generate fully typed Angular services using HttpClient from your OpenAPI specification.
+Generate fully typed Angular services using HttpClient or signal-first `httpResource` functions from your OpenAPI specification.
 
 ## Configuration
 
@@ -30,20 +30,111 @@ export default defineConfig({
 
 ## Generated Output
 
-The Angular client generates two classes:
+When using the default HttpClient output, the Angular client generates two classes:
 
 1. **Abstract class** — Contains the service definition
 2. **Service class** — Contains the implementation
 
-Add the service to your module's providers to use it:
+Register the service via DI (standalone or module-based apps both work):
 
-```ts title="app.module.ts"
+```ts title="app.config.ts"
+import { provideHttpClient } from '@angular/common/http';
+import { ApplicationConfig } from '@angular/core';
+
 import { PetstoreService } from './api/petstore';
 
-@NgModule({
-  providers: [PetstoreService],
-})
-export class AppModule {}
+export const appConfig: ApplicationConfig = {
+  providers: [provideHttpClient(), PetstoreService],
+};
+```
+
+If you use `httpResource`, Orval also generates signal-first resource functions
+for eligible operations while keeping HttpClient methods for requests that need
+explicit bodies or request options.
+
+## httpResource Output (Angular v19.2+)
+
+Enable the experimental `httpResource` client via `override.angular.client`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/http-resource/petstore.ts',
+      schemas: 'src/api/model',
+      client: 'angular',
+      override: {
+        angular: {
+          client: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+Generated resource functions use signals and return `HttpResourceRef<T>`:
+
+```ts title="pets.service.ts"
+export function showPetByIdResource(
+  petId: Signal<string>,
+): HttpResourceRef<Pet | undefined> {
+  return httpResource<Pet>(() => `/pets/${petId()}`);
+}
+```
+
+## httpResource + Zod Runtime Validation
+
+When `schemas.type` is set to `zod`, Orval automatically adds
+`{ parse: <ZodSchema>.parse }` for JSON responses in httpResource output. This
+validates responses at runtime before they reach your component.
+
+> [!NOTE]
+> Zod is a runtime dependency when you enable `schemas.type: 'zod'`.
+> Make sure your app installs `zod` (for example, `zod` in `dependencies`).
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/http-resource-zod/petstore.ts',
+      schemas: {
+        type: 'zod',
+        path: 'src/api/model-zod',
+      },
+      client: 'angular',
+      override: {
+        angular: {
+          client: 'httpResource',
+          runtimeValidation: true,
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+If you need to disable automatic Zod parsing, set `runtimeValidation: false`:
+
+```ts title="orval.config.ts"
+override: {
+  angular: {
+    client: 'httpResource',
+    runtimeValidation: false,
+  },
+},
 ```
 
 ## Setting the Backend URL

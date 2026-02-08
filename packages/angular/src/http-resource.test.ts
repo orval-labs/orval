@@ -23,13 +23,16 @@ import {
 type AngularOverride = {
   provideIn: 'root' | 'any' | boolean;
   client: 'httpClient' | 'httpResource' | 'both';
+  runtimeValidation: boolean;
 };
 
 const angularOverride = (
   client: AngularOverride['client'],
+  runtimeValidation = true,
 ): AngularOverride => ({
   provideIn: 'root',
   client,
+  runtimeValidation,
 });
 
 const createOutput = (
@@ -348,6 +351,26 @@ describe('angular httpResource generator', () => {
 
       expect(result.implementation.trim()).toBe('');
     });
+
+    it('filters response imports to success types only', async () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }, { name: 'Error' }],
+          definition: { success: 'Pet', errors: 'Error' },
+        }),
+      });
+
+      const result = await generateHttpResourceClient(
+        verbOption,
+        createGeneratorOptions({ route: '/api/pets/${petId}' }),
+        'angular',
+        createOutput(),
+      );
+
+      const importNames = result.imports.map((imp) => imp.name);
+      expect(importNames).toContain('Pet');
+      expect(importNames).not.toContain('Error');
+    });
   });
 
   // ─── Route registry fallback ──────────────────────────────────────
@@ -371,8 +394,8 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      // Should fall back to the verbOption.route
-      expect(header).toContain('url: `/pets/${petId()}`');
+      // Should fall back to the verbOption.route (URL-only form for simple GET)
+      expect(header).toContain('`/pets/${petId()}`');
     });
   });
 
@@ -398,7 +421,9 @@ describe('angular httpResource generator', () => {
       expect(header).toContain('export function getPetByIdResource');
       expect(header).toContain('petId: Signal<string>');
       expect(header).toContain('HttpResourceRef<Pet | undefined>');
-      expect(header).toContain('url: `/api/pets/${petId()}`');
+      // Simple GET with only path params uses the URL-only form
+      expect(header).toContain('`/api/pets/${petId()}`');
+      expect(header).not.toContain('url:');
     });
 
     it('includes @experimental JSDoc annotation', () => {
@@ -874,10 +899,164 @@ describe('angular httpResource generator', () => {
     });
   });
 
+  // ─── URL-only form for simple GETs ────────────────────────────────
+
+  describe('URL-only form', () => {
+    it('uses URL-only form for simple GET with only path params', () => {
+      const verbOption = createVerbOption();
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      // URL-only: no request object, no "const request"
+      expect(header).toContain(
+        'httpResource<Pet>(() => `/api/pets/${petId()}`)',
+      );
+      expect(header).not.toContain('const request');
+    });
+
+    it('uses request object form when query params are present', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          name: 'params',
+          definition: 'params: GetPetByIdParams',
+          implementation: 'params: GetPetByIdParams',
+          default: false,
+          required: false,
+          type: GetterPropType.QUERY_PARAM,
+        } as never,
+        props: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: false,
+            required: true,
+            type: GetterPropType.PARAM,
+          },
+          {
+            name: 'params',
+            definition: 'params: GetPetByIdParams',
+            implementation: 'params: GetPetByIdParams',
+            default: false,
+            required: false,
+            type: GetterPropType.QUERY_PARAM,
+          },
+        ],
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('url: `/api/pets/${petId()}`');
+      expect(header).toContain('params: params?.()');
+    });
+
+    it('uses request object form for POST verbs', () => {
+      const verbOption = createVerbOption({
+        operationId: 'searchPets',
+        operationName: 'searchPets',
+        verb: 'post',
+        route: '/pets/search',
+        pathRoute: '/pets/search',
+        body: {
+          implementation: 'searchPetsBody',
+          definition: 'SearchPetsBody',
+          imports: [],
+          schemas: [],
+          originalSchema: {} as never,
+          contentType: 'application/json',
+          formData: '',
+          formUrlEncoded: '',
+          isOptional: false,
+        },
+        props: [
+          {
+            name: 'searchPetsBody',
+            definition: 'searchPetsBody: SearchPetsBody',
+            implementation: 'searchPetsBody: SearchPetsBody',
+            default: false,
+            required: true,
+            type: GetterPropType.BODY,
+          },
+        ],
+        params: [],
+      });
+      routeRegistry.set('searchPets', '/api/pets/search');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { searchPets: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain("method: 'POST'");
+      expect(header).toContain('const request');
+    });
+
+    it('uses request object form when mutator is present', () => {
+      const verbOption = createVerbOption({
+        mutator: {
+          name: 'customHttpRequest',
+          path: './custom-http.ts',
+          default: false,
+          hasSecondArg: false,
+          hasThirdArg: false,
+        } as GeneratorMutator,
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      // Mutators need the request object to transform
+      expect(header).toContain('const request');
+      expect(header).toContain('return customHttpRequest(request)');
+    });
+  });
+
   // ─── Zod parse option ─────────────────────────────────────────────
 
   describe('zod parse option', () => {
-    it('includes parse option when Zod schema import exists', () => {
+    it('includes parse option when explicit isZodSchema flag is set', () => {
       const verbOption = createVerbOption({
         response: baseResponse({
           imports: [{ name: 'PetSchema', isZodSchema: true } as never],
@@ -897,6 +1076,228 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
+      expect(header).toContain('{ parse: PetSchema.parse }');
+    });
+
+    it('auto-detects zod parse when schemas.type is zod', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      });
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output,
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('{ parse: Pet.parse }');
+    });
+
+    it('does not add parse when schemas.type is not zod', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).not.toContain('parse');
+    });
+
+    it('does not add parse for primitive response types with zod', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'string', errors: 'Error' },
+          types: {
+            success: [createSuccessType('string', 'text/plain')],
+            errors: [],
+          },
+          contentTypes: ['text/plain'],
+          imports: [{ name: 'string' }],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      });
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output,
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).not.toContain('parse');
+    });
+
+    it('does not add parse for non-JSON response factories', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'Blob', errors: 'Error' },
+          types: {
+            success: [createSuccessType('Blob', 'image/png')],
+            errors: [],
+          },
+          contentTypes: ['image/png'],
+          isBlob: true,
+          imports: [{ name: 'Blob' }],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      });
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output,
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).not.toContain('parse');
+    });
+
+    it('does not add parse when response type has no matching import', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          // No imports — the response type doesn't resolve to a zod schema
+          imports: [],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      });
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output,
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).not.toContain('parse');
+    });
+
+    it('does not add parse when runtimeValidation is explicitly false', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+        override: {
+          ...createOutput().override,
+          angular: angularOverride('httpResource', false),
+        },
+      });
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output,
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).not.toContain('parse');
+    });
+
+    it('still adds parse with explicit isZodSchema even when runtimeValidation is false', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'PetSchema', isZodSchema: true } as never],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const output = createOutput({
+        override: {
+          ...createOutput().override,
+          angular: angularOverride('httpResource', false),
+        },
+      });
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output,
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      // Explicit isZodSchema flag bypasses the runtimeValidation toggle
       expect(header).toContain('{ parse: PetSchema.parse }');
     });
   });
