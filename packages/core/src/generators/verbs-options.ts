@@ -59,7 +59,10 @@ function getContentTypeSuffix(contentType: string): string {
     'text/plain': 'Text',
   };
 
-  return contentTypeMap[contentType] || pascal(contentType.replace(/[^a-zA-Z0-9]/g, '_'));
+  return (
+    contentTypeMap[contentType] ||
+    pascal(contentType.replace(/[^a-zA-Z0-9]/g, '_'))
+  );
 }
 
 export async function generateVerbOptions({
@@ -272,7 +275,10 @@ export function generateVerbsOptions({
     _filteredVerbs(verbs, input.filters),
     async (acc, [verb, operation]: [string, OpenApiOperationObject]) => {
       if (isVerb(verb)) {
-        const contentTypes = getRequestBodyContentTypes(operation.requestBody, context);
+        const contentTypes = getRequestBodyContentTypes(
+          operation.requestBody,
+          context,
+        );
 
         // If there are multiple content types, generate a separate operation for each
         if (contentTypes.length > 1) {
