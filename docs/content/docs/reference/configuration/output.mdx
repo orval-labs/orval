@@ -560,6 +560,7 @@ export default defineConfig({
           usePrefetch: true,
           useInvalidate: true,
           signal: true,
+          runtimeValidation: true,
           options: {
             staleTime: 10000,
           },
@@ -704,6 +705,13 @@ Use operation ID instead of route path for query keys.
 **Default:** Detected from package.json
 
 Force a specific version for generated hooks.
+
+### runtimeValidation
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Enable Zod runtime validation for Angular query responses. Requires `schemas: { type: 'zod' }`. When enabled, responses are validated via `Schema.parse()` in the RxJS pipeline. Skipped for primitive types and custom mutators.
 
 ---
 
