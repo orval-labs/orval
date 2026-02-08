@@ -26,10 +26,18 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@angular-eslint/builder": "20.3.0",
+    "@angular-eslint/eslint-plugin": "20.3.0",
+    "@angular-eslint/eslint-plugin-template": "20.3.0",
+    "@angular-eslint/template-parser": "20.3.0",
     "@angular/build": "catalog:angular",
     "@angular/cli": "catalog:angular",
     "@angular/compiler-cli": "catalog:angular",
+    "@eslint/js": "9.39.2",
     "@faker-js/faker": "^10.2.0",
+    "@typescript-eslint/eslint-plugin": "8.54.0",
+    "@typescript-eslint/parser": "8.54.0",
+    "eslint": "9.39.2",
     "msw": "^2.12.7",
     "orval": "workspace:*",
     "rimraf": "^6.1.2",
