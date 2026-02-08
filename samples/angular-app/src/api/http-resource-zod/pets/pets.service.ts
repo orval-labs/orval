@@ -100,7 +100,7 @@ export function downloadFileResource(
   petId: Signal<number>,
   version?: Signal<number>,
 ): HttpResourceRef<Blob | undefined> {
-  return httpResource.arrayBuffer<Blob>(
+  return httpResource.blob<Blob>(
     () => `/v${version?.() ?? 1}/pet/${petId()}/downloadImage`,
   );
 }

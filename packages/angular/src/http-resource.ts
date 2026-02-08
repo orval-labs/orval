@@ -9,7 +9,6 @@ import {
   generateDependencyImports,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorImports,
-  generateVerbImports,
   type GeneratorDependency,
   type GeneratorImport,
   type GeneratorMutator,
@@ -187,8 +186,8 @@ const getHttpResourceFactory = (
   dataType: string,
 ): HttpResourceFactoryName => {
   if (isResponseText(contentType, dataType)) return 'httpResource.text';
-  if (isResponseArrayBuffer(contentType)) return 'httpResource.arrayBuffer';
   if (isResponseBlob(contentType, response.isBlob)) return 'httpResource.blob';
+  if (isResponseArrayBuffer(contentType)) return 'httpResource.arrayBuffer';
   return 'httpResource';
 };
 
@@ -387,17 +386,17 @@ const PRIMITIVE_TYPES = new Set([
 ]);
 
 const escapeRegExp = (value: string): string =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
 const getHttpResourceResponseImports = (
   response: GeneratorVerbOptions['response'],
 ): GeneratorImport[] => {
-  const successDefinition = response.definition.success ?? '';
+  const successDefinition = response.definition.success;
   if (!successDefinition) return [];
 
   return response.imports.filter((imp) => {
     const name = imp.alias ?? imp.name;
-    const pattern = new RegExp(`\\b${escapeRegExp(name)}\\b`, 'g');
+    const pattern = new RegExp(String.raw`\b${escapeRegExp(name)}\b`, 'g');
     return pattern.test(successDefinition);
   });
 };
