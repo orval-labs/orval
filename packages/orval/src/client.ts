@@ -1,7 +1,6 @@
 import angular from '@orval/angular';
 import axios from '@orval/axios';
 import type {
-  AngularOptions,
   ClientFileBuilder,
   ClientGeneratorsBuilder,
   ClientMockGeneratorBuilder,
@@ -41,13 +40,10 @@ const getGeneratorClient = (
   outputClient: OutputClient | OutputClientFunc,
   output: NormalizedOutputOptions,
 ) => {
-  const angularBuilder = angular() as (
-    options?: AngularOptions,
-  ) => ClientGeneratorsBuilder;
   const GENERATOR_CLIENT: GeneratorClients = {
     axios: axios({ type: 'axios' })(),
     'axios-functions': axios({ type: 'axios-functions' })(),
-    angular: angularBuilder(output.override.angular),
+    angular: angular()(output.override.angular),
     'angular-query': query({ output, type: 'angular-query' })(),
     'react-query': query({ output, type: 'react-query' })(),
     'solid-start': solidStart()(),

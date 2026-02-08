@@ -1,7 +1,13 @@
 import { keyword } from 'esutils';
 import { isNullish } from 'remeda';
 
-import { isBoolean, isFunction, isNumber, isString } from './assertion';
+import {
+  isBoolean,
+  isFunction,
+  isNumber,
+  isObject,
+  isString,
+} from './assertion';
 
 /**
  * Converts data to a string representation suitable for code generation.
@@ -152,18 +158,19 @@ export function toObjectString<T>(props: T[], path?: keyof T) {
     return '';
   }
 
-  const arrayOfString =
-    typeof path === 'string'
-      ? props.map((prop) =>
-          path
-            .split('.')
-            .reduce(
-              (obj: any, key: string) =>
-                obj && typeof obj === 'object' ? obj[key] : undefined,
-              prop,
-            ),
-        )
-      : props;
+  const arrayOfString = isString(path)
+    ? props.map((prop) =>
+        path
+          .split('.')
+          .reduce(
+            (obj: any, key: string) =>
+              obj && (isObject(obj) || Array.isArray(obj))
+                ? obj[key]
+                : undefined,
+            prop,
+          ),
+      )
+    : props;
 
   return arrayOfString.join(',\n    ') + ',';
 }

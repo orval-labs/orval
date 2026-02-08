@@ -2,6 +2,7 @@ import {
   getListPetsInfiniteKeyLoader,
   useListPetsInfinite,
 } from '../generated/swr/petstore-override-swr/endpoints';
+import { isFunction, isNumber, isString } from '@orval/core';
 import {
   useListPets as useListPetsWithHeaders,
   useListPetsInfinite as useListPetsInfiniteWithHeaders,
@@ -117,7 +118,7 @@ export const testMutationFetcherSignature = () => {
   const fetcher = getCreatePetsMutationFetcher({ sort: 'name' }, headers);
 
   // Type check: fetcher should be a function
-  return typeof fetcher === 'function';
+  return isFunction(fetcher);
 };
 
 // Test that swrFn uses array destructuring for parameters
@@ -138,7 +139,7 @@ export const testSwrFnArrayDestructuring = () => {
     const _url: string = url;
     const _page: number = params.page;
 
-    return typeof _url === 'string' && typeof _page === 'number';
+    return isString(_url) && isNumber(_page);
   }
 
   return false;

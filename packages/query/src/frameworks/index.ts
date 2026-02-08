@@ -16,6 +16,7 @@ import {
   isQueryV5,
   isQueryV5WithDataTagError,
   isQueryV5WithInfiniteQueryOptionsError,
+  isSolidQueryWithUsePrefix,
   isSvelteQueryV3,
   isSvelteQueryV6,
   isVueQueryV3,
@@ -225,12 +226,14 @@ export const createFrameworkAdapter = ({
     }
 
     case OutputClientConst.SOLID_QUERY: {
+      const hasSolidQueryWithUsePrefix = isSolidQueryWithUsePrefix(packageJson);
       return withDefaults(
         createSolidAdapter({
           hasQueryV5: _hasQueryV5,
           hasQueryV5WithDataTagError: _hasQueryV5WithDataTagError,
           hasQueryV5WithInfiniteQueryOptionsError:
             _hasQueryV5WithInfiniteQueryOptionsError,
+          hasSolidQueryUsePrefix: hasSolidQueryWithUsePrefix,
         }),
       );
     }

@@ -146,7 +146,7 @@ export async function normalizeOptions(
 
   const mockOption = outputOptions.mock ?? globalOptions.mock;
   let mock: GlobalMockOptions | ClientMockBuilder | undefined;
-  if (typeof mockOption === 'boolean' && mockOption) {
+  if (isBoolean(mockOption) && mockOption) {
     mock = DEFAULT_MOCK_OPTIONS;
   } else if (isFunction(mockOption)) {
     mock = mockOption;

@@ -4,7 +4,7 @@ import type {
   BaseUrlFromSpec,
   OpenApiServerObject,
 } from '../types';
-import { camel, sanitize } from '../utils';
+import { camel, isString, sanitize } from '../utils';
 
 const TEMPLATE_TAG_IN_PATH_REGEX = /\/([\w]+)(?:\$\{)/g; // all dynamic parts of path
 
@@ -51,7 +51,7 @@ export function getFullRoute(
 ): string {
   const getBaseUrl = (): string => {
     if (!baseUrl) return '';
-    if (typeof baseUrl === 'string') return baseUrl;
+    if (isString(baseUrl)) return baseUrl;
     if (baseUrl.getBaseUrlFromSpecification) {
       if (!servers) {
         throw new Error(

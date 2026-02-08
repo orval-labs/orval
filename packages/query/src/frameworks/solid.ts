@@ -20,29 +20,41 @@ export const createSolidAdapter = ({
   hasQueryV5,
   hasQueryV5WithDataTagError,
   hasQueryV5WithInfiniteQueryOptionsError,
+  hasSolidQueryUsePrefix,
 }: {
   hasQueryV5: boolean;
   hasQueryV5WithDataTagError: boolean;
   hasQueryV5WithInfiniteQueryOptionsError: boolean;
+  hasSolidQueryUsePrefix: boolean;
 }): FrameworkAdapterConfig => ({
   outputClient: OutputClient.SOLID_QUERY,
-  hookPrefix: 'create',
+  hookPrefix: hasSolidQueryUsePrefix ? 'use' : 'create',
   hasQueryV5,
   hasQueryV5WithDataTagError,
   hasQueryV5WithInfiniteQueryOptionsError,
 
+  getQueryOptionsDefinitionPrefix(): string {
+    return hasSolidQueryUsePrefix ? 'Use' : 'Create';
+  },
+
   getQueryReturnType({ type }: QueryReturnTypeContext): string {
+    const prefix = hasSolidQueryUsePrefix ? 'Use' : 'Create';
+    const queryKeyType = hasQueryV5
+      ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>`
+      : 'QueryKey';
+
     if (type !== QueryType.INFINITE && type !== QueryType.SUSPENSE_INFINITE) {
-      return `CreateQueryResult<TData, TError> & { queryKey: ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'} }`;
+      return `${prefix}QueryResult<TData, TError> & { queryKey: ${queryKeyType} }`;
     }
-    return `CreateInfiniteQueryResult<TData, TError> & { queryKey: ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'} }`;
+    return `${prefix}InfiniteQueryResult<TData, TError> & { queryKey: ${queryKeyType} }`;
   },
 
   getMutationReturnType({
     dataType,
     variableType,
   }: MutationReturnTypeContext): string {
-    return `: CreateMutationResult<
+    const prefix = hasSolidQueryUsePrefix ? 'Use' : 'Create';
+    return `: ${prefix}MutationResult<
         Awaited<ReturnType<${dataType}>>,
         TError,
         ${variableType},

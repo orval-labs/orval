@@ -2,6 +2,7 @@ import {
   type ContextSpec,
   conventionName,
   type GeneratorVerbOptions,
+  isObject,
   type NamingConvention,
   type NormalizedOutputOptions,
   type OpenApiSchemaObject,
@@ -97,14 +98,12 @@ export async function writeZodSchemas(
 
       const isZodV4 =
         !!output.packageJson && isZodVersionV4(output.packageJson);
-      const strict =
-        typeof output.override?.zod?.strict === 'object'
-          ? (output.override.zod.strict.body ?? false)
-          : (output.override?.zod?.strict ?? false);
-      const coerce =
-        typeof output.override?.zod?.coerce === 'object'
-          ? (output.override.zod.coerce.body ?? false)
-          : (output.override?.zod?.coerce ?? false);
+      const strict = isObject(output.override?.zod?.strict)
+        ? (output.override.zod.strict.body ?? false)
+        : (output.override?.zod?.strict ?? false);
+      const coerce = isObject(output.override?.zod?.coerce)
+        ? (output.override.zod.coerce.body ?? false)
+        : (output.override?.zod?.coerce ?? false);
 
       // Dereference the schema to resolve $ref
       const dereferencedSchema = dereference(schemaObject, context);
@@ -170,14 +169,12 @@ export async function writeZodSchemasFromVerbs(
   }
 
   const isZodV4 = !!output.packageJson && isZodVersionV4(output.packageJson);
-  const strict =
-    typeof output.override?.zod?.strict === 'object'
-      ? (output.override.zod.strict.body ?? false)
-      : (output.override?.zod?.strict ?? false);
-  const coerce =
-    typeof output.override?.zod?.coerce === 'object'
-      ? (output.override.zod.coerce.body ?? false)
-      : (output.override?.zod?.coerce ?? false);
+  const strict = isObject(output.override?.zod?.strict)
+    ? (output.override.zod.strict.body ?? false)
+    : (output.override?.zod?.strict ?? false);
+  const coerce = isObject(output.override?.zod?.coerce)
+    ? (output.override.zod.coerce.body ?? false)
+    : (output.override?.zod?.coerce ?? false);
 
   const generateVerbsSchemas = verbOptionsArray.flatMap((verbOption) => {
     const operation = verbOption.originalOperation;
