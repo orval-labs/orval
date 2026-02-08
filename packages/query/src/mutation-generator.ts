@@ -6,6 +6,7 @@ import {
   type GeneratorVerbOptions,
   GetterPropType,
   type InvalidateTarget,
+  isString,
   type OutputHttpClient,
   pascal,
 } from '@orval/core';
@@ -24,7 +25,7 @@ type NormalizedTarget = {
 };
 
 const normalizeTarget = (target: InvalidateTarget): NormalizedTarget =>
-  typeof target === 'string' ? { query: target } : target;
+  isString(target) ? { query: target } : target;
 
 const serializeTarget = (target: NormalizedTarget): string =>
   JSON.stringify({ query: target.query, params: target.params ?? [] });

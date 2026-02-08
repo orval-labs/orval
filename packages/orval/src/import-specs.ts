@@ -1,4 +1,6 @@
 import {
+  isObject,
+  isString,
   type NormalizedOptions,
   type OpenApiDocument,
   type WriteSpecBuilder,
@@ -77,7 +79,7 @@ export function dereferenceExternalRef(data: object): object {
   function scrub(obj: unknown): unknown {
     if (obj === null || obj === undefined) return obj;
     if (Array.isArray(obj)) return obj.map((x) => scrub(x));
-    if (typeof obj === 'object') {
+    if (isObject(obj)) {
       const rec = obj as Record<string, unknown>;
       const out: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(rec)) {
@@ -94,15 +96,15 @@ export function dereferenceExternalRef(data: object): object {
       return obj;
     }
 
-    if (typeof obj === 'object') {
-      if (Array.isArray(obj)) {
-        return obj.map((element) => replaceRefs(element));
-      }
+    if (Array.isArray(obj)) {
+      return obj.map((element) => replaceRefs(element));
+    }
 
+    if (isObject(obj)) {
       const record = obj as Record<string, unknown>;
 
       // Check if this object is a $ref to x-ext
-      if ('$ref' in record && typeof record.$ref === 'string') {
+      if ('$ref' in record && isString(record.$ref)) {
         const refValue = record.$ref;
         if (refValue.startsWith('#/x-ext/')) {
           const pathStr = refValue.replace('#/x-ext/', '');
@@ -114,7 +116,7 @@ export function dereferenceExternalRef(data: object): object {
             for (const p of parts) {
               if (
                 refObj &&
-                typeof refObj === 'object' &&
+                (isObject(refObj) || Array.isArray(refObj)) &&
                 p in (refObj as Record<string, unknown>)
               ) {
                 refObj = (refObj as Record<string, unknown>)[p];

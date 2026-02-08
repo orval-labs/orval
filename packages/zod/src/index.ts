@@ -14,6 +14,7 @@ import {
   getPropertySafe,
   getRefInfo,
   isBoolean,
+  isNumber,
   isObject,
   isString,
   jsStringEscape,
@@ -185,10 +186,9 @@ export const generateZodValidationSchemaDefinition = (
   if (!schema) return { functions: [], consts: [] };
 
   const consts: string[] = [];
-  const constsCounter =
-    typeof constsUniqueCounter[name] === 'number'
-      ? constsUniqueCounter[name] + 1
-      : 0;
+  const constsCounter = isNumber(constsUniqueCounter[name])
+    ? constsUniqueCounter[name] + 1
+    : 0;
 
   const constsCounterValue = constsCounter
     ? pascal(getNumberWord(constsCounter))
@@ -217,13 +217,9 @@ export const generateZodValidationSchemaDefinition = (
 
   // Convert boolean to number if using OpenAPI 3.0 format
   const exclusiveMin =
-    typeof exclusiveMinRaw === 'boolean' && exclusiveMinRaw
-      ? min
-      : exclusiveMinRaw;
+    isBoolean(exclusiveMinRaw) && exclusiveMinRaw ? min : exclusiveMinRaw;
   const exclusiveMax =
-    typeof exclusiveMaxRaw === 'boolean' && exclusiveMaxRaw
-      ? max
-      : exclusiveMaxRaw;
+    isBoolean(exclusiveMaxRaw) && exclusiveMaxRaw ? max : exclusiveMaxRaw;
 
   const multipleOf = schema.multipleOf;
   const matches = schema.pattern ?? undefined;
@@ -329,8 +325,8 @@ export const generateZodValidationSchemaDefinition = (
           if (
             value === null ||
             value === undefined ||
-            typeof value === 'number' ||
-            typeof value === 'boolean'
+            isNumber(value) ||
+            isBoolean(value)
           )
             return `${key}: ${value}`;
         })
@@ -364,7 +360,7 @@ export const generateZodValidationSchemaDefinition = (
   }
 
   // Handle multi-type schemas (OpenAPI 3.1+ type arrays)
-  if (typeof type === 'object' && 'multiType' in type) {
+  if (isObject(type) && 'multiType' in type) {
     const types = type.multiType;
     functions.push([
       'oneOf',
@@ -770,11 +766,7 @@ export const parseZodValidationSchemaDefinition = (
 
           if (objectFunctionIndex !== -1) {
             const objectArgs = partSchema.functions[objectFunctionIndex][1];
-            if (
-              objectArgs &&
-              typeof objectArgs === 'object' &&
-              !Array.isArray(objectArgs)
-            ) {
+            if (isObject(objectArgs)) {
               // Merge properties (later schemas override earlier ones)
               Object.assign(
                 mergedProperties,
@@ -888,7 +880,7 @@ ${Object.entries(args)
       const value = args.functions
         .map((prop: any) => parseProperty(prop))
         .join('');
-      if (typeof args.consts === 'string') {
+      if (isString(args.consts)) {
         consts += args.consts;
       } else if (Array.isArray(args.consts)) {
         consts += args.consts.join('\n');
