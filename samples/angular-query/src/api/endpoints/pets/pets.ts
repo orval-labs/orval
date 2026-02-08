@@ -20,7 +20,6 @@ import type {
   CreateQueryResult,
   InvalidateOptions,
   MutationFunction,
-  MutationFunctionContext,
   QueryFunction,
 } from '@tanstack/angular-query-experimental';
 
@@ -361,10 +360,9 @@ export const getCreatePetsMutationOptions = <
     data: Awaited<ReturnType<typeof createPets>>,
     variables: { data: CreatePetsBody; version?: number },
     onMutateResult: TContext,
-    context: MutationFunctionContext,
   ) => {
     queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
-    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult);
   };
 
   return { mutationFn, onSuccess, ...mutationOptions };
@@ -588,13 +586,12 @@ export const getDeletePetMutationOptions = <TError = Error, TContext = unknown>(
     data: Awaited<ReturnType<typeof deletePet>>,
     variables: { petId: string; version?: number },
     onMutateResult: TContext,
-    context: MutationFunctionContext,
   ) => {
     queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
     queryClient.invalidateQueries({
       queryKey: getShowPetByIdQueryKey(variables.petId),
     });
-    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult);
   };
 
   return { mutationFn, onSuccess, ...mutationOptions };
@@ -693,13 +690,12 @@ export const getUpdatePetMutationOptions = <TError = Error, TContext = unknown>(
     data: Awaited<ReturnType<typeof updatePet>>,
     variables: { petId: string; data: Pet; version?: number },
     onMutateResult: TContext,
-    context: MutationFunctionContext,
   ) => {
     queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
     queryClient.invalidateQueries({
       queryKey: getShowPetByIdQueryKey(variables.petId),
     });
-    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult);
   };
 
   return { mutationFn, onSuccess, ...mutationOptions };
@@ -798,13 +794,12 @@ export const getPatchPetMutationOptions = <TError = Error, TContext = unknown>(
     data: Awaited<ReturnType<typeof patchPet>>,
     variables: { petId: string; data: PatchPetBody; version?: number },
     onMutateResult: TContext,
-    context: MutationFunctionContext,
   ) => {
     queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
     queryClient.invalidateQueries({
       queryKey: getShowPetByIdQueryKey(variables.petId),
     });
-    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult);
   };
 
   return { mutationFn, onSuccess, ...mutationOptions };
@@ -1033,10 +1028,9 @@ export const getUploadFileMutationOptions = <
     data: Awaited<ReturnType<typeof uploadFile>>,
     variables: { petId: number; data: Blob; version?: number },
     onMutateResult: TContext,
-    context: MutationFunctionContext,
   ) => {
     queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
-    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult);
   };
 
   return { mutationFn, onSuccess, ...mutationOptions };

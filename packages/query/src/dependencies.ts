@@ -332,7 +332,6 @@ const ANGULAR_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'DataTag' },
       { name: 'QueryClient', values: true },
       { name: 'InvalidateOptions' },
-      { name: 'MutationFunctionContext' },
     ],
     dependency: '@tanstack/angular-query-experimental',
   },
