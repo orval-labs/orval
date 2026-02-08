@@ -30,9 +30,9 @@
   "devDependencies": {
     "@hono/zod-validator": "^0.7.4",
     "@types/fs-extra": "^11.0.4",
-    "eslint": "catalog:",
-    "rimraf": "catalog:",
-    "tsdown": "catalog:",
-    "typescript": "catalog:"
+    "eslint": "catalog:lint",
+    "rimraf": "catalog:tooling",
+    "tsdown": "catalog:tooling",
+    "typescript": "catalog:tooling"
   }
 }
