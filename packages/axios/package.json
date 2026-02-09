@@ -26,10 +26,10 @@
     "@orval/core": "workspace:*"
   },
   "devDependencies": {
-    "eslint": "catalog:lint",
-    "rimraf": "catalog:tooling",
-    "tsdown": "catalog:tooling",
-    "typescript": "catalog:tooling",
-    "vitest": "catalog:test"
+    "eslint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

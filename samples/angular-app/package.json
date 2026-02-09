@@ -23,7 +23,7 @@
     "@angular/router": "catalog:angular",
     "rxjs": "catalog:angular",
     "tslib": "catalog:angular",
-    "zod": "catalog:tooling"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@angular-eslint/builder": "catalog:angular",
@@ -33,16 +33,18 @@
     "@angular/build": "catalog:angular",
     "@angular/cli": "catalog:angular",
     "@angular/compiler-cli": "catalog:angular",
-    "@eslint/js": "catalog:lint",
-    "@faker-js/faker": "catalog:test",
-    "@typescript-eslint/eslint-plugin": "catalog:lint",
-    "@typescript-eslint/parser": "catalog:lint",
-    "eslint": "catalog:lint",
-    "msw": "catalog:test",
+    "@eslint/js": "catalog:",
+    "@faker-js/faker": "^10.2.0",
+    "@typescript-eslint/eslint-plugin": "^8.52.0",
+    "@typescript-eslint/parser": "^8.52.0",
+    "@typescript-eslint/types": "^8.52.0",
+    "@typescript-eslint/utils": "^8.52.0",
+    "eslint": "catalog:",
+    "msw": "^2.12.7",
     "orval": "workspace:*",
-    "rimraf": "catalog:tooling",
-    "typescript": "catalog:tooling",
-    "vitest": "catalog:test"
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "dependenciesMeta": {
     "msw": {

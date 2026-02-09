@@ -27,9 +27,9 @@
     "remeda": "^2.32.0"
   },
   "devDependencies": {
-    "eslint": "catalog:lint",
-    "rimraf": "catalog:tooling",
-    "tsdown": "catalog:tooling",
-    "vitest": "catalog:test"
+    "eslint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "vitest": "catalog:"
   }
 }

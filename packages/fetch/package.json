@@ -23,12 +23,12 @@
   },
   "dependencies": {
     "@orval/core": "workspace:*",
-    "@scalar/openapi-types": "catalog:tooling"
+    "@scalar/openapi-types": "catalog:"
   },
   "devDependencies": {
-    "eslint": "catalog:lint",
-    "rimraf": "catalog:tooling",
-    "tsdown": "catalog:tooling",
-    "typescript": "catalog:tooling"
+    "eslint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
   }
 }

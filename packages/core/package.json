@@ -25,18 +25,18 @@
     "nuke": "rimraf .turbo dist node_modules"
   },
   "devDependencies": {
-    "@faker-js/faker": "catalog:test",
+    "@faker-js/faker": "^10.2.0",
     "@types/debug": "^4.1.12",
     "@types/esutils": "^2.0.2",
     "@types/fs-extra": "^11.0.4",
-    "eslint": "catalog:lint",
-    "rimraf": "catalog:tooling",
-    "tsdown": "catalog:tooling",
-    "typescript": "catalog:tooling",
-    "vitest": "catalog:test"
+    "eslint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "dependencies": {
-    "@scalar/openapi-types": "catalog:tooling",
+    "@scalar/openapi-types": "catalog:",
     "acorn": "^8.15.0",
     "chalk": "^5.6.2",
     "compare-versions": "^6.1.1",
