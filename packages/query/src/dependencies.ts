@@ -322,6 +322,7 @@ const ANGULAR_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'CreateQueryOptions' },
       { name: 'CreateInfiniteQueryOptions' },
       { name: 'CreateMutationOptions' },
+      { name: 'MutationFunctionContext' },
       { name: 'QueryFunction' },
       { name: 'MutationFunction' },
       { name: 'QueryKey' },

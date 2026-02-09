@@ -81,6 +81,7 @@ describe('mutationInvalidates feature', () => {
         undefined,
         { data: { name: 'New Pet', tag: 'dog' } },
         undefined as never,
+        undefined as never,
       );
 
       const queryState = queryClient.getQueryState(queryKey);
@@ -114,7 +115,12 @@ describe('mutationInvalidates feature', () => {
         getDeletePetMutationOptions(http, queryClient),
       );
 
-      options.onSuccess!(undefined, { petId: '123' }, undefined as never);
+      options.onSuccess!(
+        undefined,
+        { petId: '123' },
+        undefined as never,
+        undefined as never,
+      );
 
       expect(queryClient.getQueryState(listPetsKey)?.isInvalidated).toBe(true);
       expect(queryClient.getQueryState(showPetByIdKey)?.isInvalidated).toBe(
@@ -133,6 +139,7 @@ describe('mutationInvalidates feature', () => {
               _data: void,
               variables: { petId: string },
               _onMutateResult: unknown,
+              _context: unknown,
             ) => {
               userCallbackCalled = true;
               receivedVariables = variables;
@@ -141,7 +148,12 @@ describe('mutationInvalidates feature', () => {
         }),
       );
 
-      options.onSuccess!(undefined, { petId: '456' }, undefined as never);
+      options.onSuccess!(
+        undefined,
+        { petId: '456' },
+        undefined as never,
+        undefined as never,
+      );
 
       expect(userCallbackCalled).toBe(true);
       expect(receivedVariables).toEqual({ petId: '456' });
@@ -180,6 +192,7 @@ describe('mutationInvalidates feature', () => {
           petId: '789',
           data: { id: 789, name: 'Updated Pet', requiredNullableString: null },
         },
+        undefined as never,
         undefined as never,
       );
 
@@ -225,6 +238,7 @@ describe('mutationInvalidates feature', () => {
         },
         { petId: '999', data: { tag: 'patched' } },
         undefined as never,
+        undefined as never,
       );
 
       expect(queryClient.getQueryState(listPetsKey)?.isInvalidated).toBe(true);
@@ -246,7 +260,12 @@ describe('mutationInvalidates feature', () => {
         getDeletePetMutationOptions(http, queryClient),
       );
 
-      options.onSuccess!(undefined, { petId: '123' }, undefined as never);
+      options.onSuccess!(
+        undefined,
+        { petId: '123' },
+        undefined as never,
+        undefined as never,
+      );
 
       expect(queryClient.getQueryState(showPetById123)?.isInvalidated).toBe(
         true,
@@ -270,6 +289,7 @@ describe('mutationInvalidates feature', () => {
               data: void,
               variables: { data: { name: string; tag: string } },
               _onMutateResult: unknown,
+              _context: unknown,
             ) => {
               userCallbackCalled = true;
               receivedData = data;
@@ -281,7 +301,12 @@ describe('mutationInvalidates feature', () => {
 
       const mockVariables = { data: { name: 'Test Pet', tag: 'cat' } };
 
-      options.onSuccess!(undefined, mockVariables, undefined as never);
+      options.onSuccess!(
+        undefined,
+        mockVariables,
+        undefined as never,
+        undefined as never,
+      );
 
       expect(userCallbackCalled).toBe(true);
       expect(receivedData).toBe(undefined);
