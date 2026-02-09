@@ -21,8 +21,8 @@
     "@angular/forms": "catalog:angular",
     "@angular/platform-browser": "catalog:angular",
     "@angular/router": "catalog:angular",
-    "rxjs": "catalog:angular",
-    "tslib": "catalog:angular",
+    "rxjs": "catalog:tooling",
+    "tslib": "catalog:build-tools",
     "zod": "^3.25.76"
   },
   "devDependencies": {

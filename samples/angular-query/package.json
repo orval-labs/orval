@@ -20,8 +20,8 @@
     "@angular/platform-browser": "catalog:angular",
     "@angular/router": "catalog:angular",
     "@tanstack/angular-query-experimental": "^5.62.7",
-    "rxjs": "~7.8.2",
-    "tslib": "^2.8.1"
+    "rxjs": "catalog:tooling",
+    "tslib": "catalog:build-tools"
   },
   "devDependencies": {
     "@angular-eslint/builder": "catalog:angular",

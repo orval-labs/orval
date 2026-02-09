@@ -9692,8 +9692,8 @@ __metadata:
     msw: "npm:^2.12.7"
     orval: "workspace:*"
     rimraf: "catalog:"
-    rxjs: "catalog:angular"
-    tslib: "catalog:angular"
+    rxjs: "catalog:tooling"
+    tslib: "catalog:build-tools"
     typescript: "catalog:"
     vitest: "catalog:"
     zod: "npm:^3.25.76"
@@ -9733,8 +9733,8 @@ __metadata:
     eslint: "catalog:"
     msw: "npm:^2.12.7"
     orval: "link:../../packages/orval/dist"
-    rxjs: "npm:~7.8.2"
-    tslib: "npm:^2.8.1"
+    rxjs: "catalog:tooling"
+    tslib: "catalog:build-tools"
     typescript: "catalog:"
     vitest: "catalog:"
   dependenciesMeta:
@@ -19292,7 +19292,7 @@ __metadata:
     orval: "workspace:*"
     react: "npm:^18.3.1"
     rimraf: "catalog:"
-    rxjs: "npm:~7.8.2"
+    rxjs: "catalog:tooling"
     svelte: "npm:^5.46.4"
     swr: "npm:^2.3.6"
     typescript: "catalog:"
@@ -22129,7 +22129,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rxjs@npm:7.8.2, rxjs@npm:~7.8.2":
+"rxjs@npm:7.8.2":
   version: 7.8.2
   resolution: "rxjs@npm:7.8.2"
   dependencies:
