@@ -175,6 +175,14 @@ export interface FrameworkAdapter {
   /** 'Use' or 'Create' prefix for options definition types */
   getQueryOptionsDefinitionPrefix(): string;
 
+  /**
+   * Get the options type name for return types of getOptions functions.
+   * Solid: 'SolidQueryOptions' / 'SolidMutationOptions'. Others: use prefix + type.
+   */
+  getOptionsReturnTypeName?(
+    type: 'query' | 'infiniteQuery' | 'mutation',
+  ): string | undefined;
+
   /** Vue: computed() for enabled. Others: direct boolean. */
   generateEnabledOption(
     params: GetterParams,

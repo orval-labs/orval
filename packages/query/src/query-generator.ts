@@ -333,6 +333,7 @@ const generateQueryImplementation = ({
     queryParams,
     queryParam,
     isReturnType: true,
+    adapter,
   });
 
   const queryOptionsImp = generateQueryOptions({
@@ -564,8 +565,6 @@ export const generateQueryHook = async (
   const operationQueryOptions = operations[operationId]?.query;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
-
-  const { hasQueryV5 } = adapter;
 
   const httpClient = context.output.httpClient;
   const doc = jsDoc({ summary, deprecated });

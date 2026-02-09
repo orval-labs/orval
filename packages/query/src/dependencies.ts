@@ -295,6 +295,8 @@ const getSolidQueryImports = (
         { name: `${capitalized}QueryOptions` },
         { name: `${capitalized}InfiniteQueryOptions` },
         { name: `${capitalized}MutationOptions` },
+        { name: 'SolidQueryOptions' },
+        { name: 'SolidMutationOptions' },
         { name: 'QueryFunction' },
         { name: 'MutationFunction' },
         { name: `${capitalized}QueryResult` },

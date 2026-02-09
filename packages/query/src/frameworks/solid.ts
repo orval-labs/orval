@@ -3,7 +3,6 @@ import {
   type GeneratorVerbOptions,
   OutputClient,
   OutputHttpClient,
-  toObjectString,
 } from '@orval/core';
 import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
 
@@ -39,6 +38,18 @@ export const createSolidAdapter = ({
     return hasSolidQueryUsePrefix ? 'Use' : 'Create';
   },
 
+  getQueryKeyPrefix(): string {
+    // Solid Query v5 doesn't support accessing queryKey from queryOptions
+    // The queryKey must be generated directly from the params
+    return '';
+  },
+
+  shouldAnnotateQueryKey(): boolean {
+    // Solid Query works with accessor functions
+    // The queryKey is accessed from within the accessor, not annotated on the return type
+    return false;
+  },
+
   getQueryReturnType({ type }: QueryReturnTypeContext): string {
     const prefix = hasSolidQueryUsePrefix ? 'Use' : 'Create';
     const queryKeyType = hasQueryV5
@@ -68,8 +79,7 @@ export const createSolidAdapter = ({
     queryResultVarName,
     queryOptionsVarName,
   }: QueryReturnStatementContext): string {
-    // Don't spread the query result - it breaks Solid's store reactivity
-    // Instead, attach queryKey as a property
+    // Attach queryKey to the result for convenience
     return `${queryResultVarName}.queryKey = ${queryOptionsVarName}.queryKey; return ${queryResultVarName};`;
   },
 
