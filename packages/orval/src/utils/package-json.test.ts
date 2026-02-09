@@ -107,7 +107,7 @@ describe('loadPackageJson - catalog resolution', () => {
     it('should resolve named catalog from pnpm-workspace.yaml', async () => {
       const mockPkg = {
         devDependencies: {
-          jest: 'cataloging',
+          jest: 'catalog:testing',
         },
       };
 
@@ -192,7 +192,7 @@ describe('loadPackageJson - catalog resolution', () => {
     it('should resolve named catalog from root package.json', async () => {
       const mockPkg = {
         devDependencies: {
-          vitest: 'cataloging',
+          vitest: 'catalog:testing',
         },
       };
 
