@@ -3,6 +3,7 @@ import {
   type GeneratorVerbOptions,
   OutputClient,
   OutputHttpClient,
+  toObjectString,
 } from '@orval/core';
 import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
 
@@ -11,6 +12,7 @@ import type {
   FrameworkAdapterConfig,
   MutationHookBodyContext,
   MutationReturnTypeContext,
+  QueryInvocationContext,
   QueryReturnStatementContext,
   QueryReturnTypeContext,
 } from '../framework-adapter';
@@ -66,7 +68,23 @@ export const createSolidAdapter = ({
     queryResultVarName,
     queryOptionsVarName,
   }: QueryReturnStatementContext): string {
-    return `return { ...${queryResultVarName}, queryKey: ${queryOptionsVarName}.queryKey };`;
+    // Don't spread the query result - it breaks Solid's store reactivity
+    // Instead, attach queryKey as a property
+    return `${queryResultVarName}.queryKey = ${queryOptionsVarName}.queryKey; return ${queryResultVarName};`;
+  },
+
+  generateQueryInvocationArgs({
+    queryOptionsFnName,
+    queryProperties,
+    isRequestOptions,
+    optionalQueryClientArgument,
+  }: QueryInvocationContext): string {
+    // Solid Query requires options to be wrapped in an arrow function for reactivity
+    const optionsArg = isRequestOptions ? 'options' : 'queryOptions';
+    const args = queryProperties
+      ? `${queryProperties},${optionsArg}`
+      : optionsArg;
+    return `() => ${queryOptionsFnName}(${args})${optionalQueryClientArgument ? ', queryClient' : ''}`;
   },
 
   generateMutationImplementation({
@@ -92,7 +110,13 @@ export const createSolidAdapter = ({
     mutationImplementation,
     optionalQueryClientArgument,
   }: MutationHookBodyContext): string {
-    return `      return ${operationPrefix}Mutation(${mutationImplementation}${optionalQueryClientArgument ? `, queryClient` : ''});`;
+    // Solid Query mutations also need to be wrapped in accessor functions
+    return `      return ${operationPrefix}Mutation(() => ${mutationImplementation}${optionalQueryClientArgument ? `, queryClient` : ''});`;
+  },
+
+  getOptionalQueryClientArgument(): string {
+    // Solid Query expects queryClient to be an Accessor: () => QueryClient
+    return ', queryClient?: () => QueryClient';
   },
 
   generateRequestFunction(

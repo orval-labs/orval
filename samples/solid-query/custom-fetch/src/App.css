@@ -1,0 +1,46 @@
+main {
+  text-align: center;
+  padding: 2rem;
+}
+
+h1 {
+  color: #335d92;
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+}
+
+h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+  background: #f0f0f0;
+  border-radius: 4px;
+}
+
+button {
+  background-color: #335d92;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+button:hover {
+  background-color: #2a4a75;
+}
+
+button:active {
+  transform: scale(0.98);
+}
