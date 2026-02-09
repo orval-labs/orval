@@ -12,6 +12,7 @@ import {
   GetterPropType,
   isObject,
   type OpenApiParameterObject,
+  type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   pascal,
   resolveRef,
@@ -81,11 +82,49 @@ export const generateRequestFunction = (
   const parameters = spec?.[verb]?.parameters ?? [];
 
   const explodeParameters = parameters.filter((parameter) => {
-    const { schema } = resolveRef<OpenApiParameterObject>(parameter, context);
-    const schemaObject = schema.schema as OpenApiSchemaObject;
+    const { schema: parameterObject } = resolveRef<OpenApiParameterObject>(
+      parameter,
+      context,
+    );
+
+    if (!parameterObject.schema) {
+      return false;
+    }
+
+    const { schema: schemaObject } = resolveRef<OpenApiSchemaObject>(
+      parameterObject.schema,
+      context,
+    );
+
+    const isArrayLike =
+      schemaObject.type === 'array' ||
+      (
+        (schemaObject.oneOf as
+          | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+          | undefined) ?? []
+      ).some(
+        (s) =>
+          resolveRef<OpenApiSchemaObject>(s, context).schema.type === 'array',
+      ) ||
+      (
+        (schemaObject.anyOf as
+          | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+          | undefined) ?? []
+      ).some(
+        (s) =>
+          resolveRef<OpenApiSchemaObject>(s, context).schema.type === 'array',
+      ) ||
+      (
+        (schemaObject.allOf as
+          | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+          | undefined) ?? []
+      ).some(
+        (s) =>
+          resolveRef<OpenApiSchemaObject>(s, context).schema.type === 'array',
+      );
 
     return (
-      schema.in === 'query' && schemaObject.type === 'array' && schema.explode
+      parameterObject.in === 'query' && isArrayLike && parameterObject.explode
     );
   });
 
