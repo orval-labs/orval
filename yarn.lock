@@ -194,7 +194,6 @@ __metadata:
   checksum: 10c0/fbe181c67cd8c78df78e7f642c65a202cbc163db14fb2b77b6282215e1fe46633de5e2281fef37533cfe74c7cb1c1ace21ad4d40a1764aa97f3a102dcb152c33
   languageName: node
   linkType: hard
-
 "@angular-devkit/architect@npm:>= 0.2100.0 < 0.2200.0":
   version: 0.2101.3
   resolution: "@angular-devkit/architect@npm:0.2101.3"
@@ -225,7 +224,6 @@ __metadata:
   checksum: 10c0/e83820545dd6b80e009582ff2763d8907c0ccb12628b3aa0aa28a6d76ce5b740d08736fc0535a8f5bea1db45a2819fcab2c8524e48f3485bfd0085170048839f
   languageName: node
   linkType: hard
-
 "@angular-devkit/core@npm:21.1.3, @angular-devkit/core@npm:>= 21.0.0 < 22.0.0":
   version: 21.1.3
   resolution: "@angular-devkit/core@npm:21.1.3"
@@ -13735,7 +13733,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-scope@npm:^8.4.0":
+"eslint-scope@npm:^8.0.2, eslint-scope@npm:^8.4.0":
   version: 8.4.0
   resolution: "eslint-scope@npm:8.4.0"
   dependencies:

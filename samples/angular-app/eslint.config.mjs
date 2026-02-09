@@ -4,9 +4,20 @@ import angularTemplate from '@angular-eslint/eslint-plugin-template';
 import angularTemplateParser from '@angular-eslint/template-parser';
 import tseslint from 'typescript-eslint';
 
+<<<<<<< HEAD
 export default [
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
+=======
+const typescriptConfigs = tseslint.configs.recommended.map((config) => ({
+  ...config,
+  files: ['**/*.ts'],
+}));
+
+export default [
+  eslint.configs.recommended,
+  ...typescriptConfigs,
+>>>>>>> pr-angular-httpresource
   {
     files: ['**/*.ts'],
     languageOptions: {
@@ -36,4 +47,13 @@ export default [
       ...angularTemplate.configs.recommended.rules,
     },
   },
+<<<<<<< HEAD
+=======
+  {
+    files: ['src/api/**/*.ts', 'src/orval/mutator/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+>>>>>>> pr-angular-httpresource
 ];
