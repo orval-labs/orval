@@ -128,19 +128,19 @@ export async function normalizeOptions(
     : options.output;
 
   const outputWorkspace = normalizePath(
-    outputOptions.workspace || '',
+    outputOptions.workspace ?? '',
     workspace,
   );
 
   const { clean, prettier, client, httpClient, mode, biome } = globalOptions;
 
   const tsconfig = await loadTsconfig(
-    outputOptions.tsconfig || globalOptions.tsconfig,
+    outputOptions.tsconfig ?? globalOptions.tsconfig,
     workspace,
   );
 
   const packageJson = await loadPackageJson(
-    outputOptions.packageJson || globalOptions.packageJson,
+    outputOptions.packageJson ?? globalOptions.packageJson,
     workspace,
   );
 
@@ -195,8 +195,8 @@ export async function normalizeOptions(
         ? normalizePath(outputOptions.operationSchemas, outputWorkspace)
         : undefined,
       namingConvention:
-        outputOptions.namingConvention || NamingConvention.CAMEL_CASE,
-      fileExtension: outputOptions.fileExtension || defaultFileExtension,
+        outputOptions.namingConvention ?? NamingConvention.CAMEL_CASE,
+      fileExtension: outputOptions.fileExtension ?? defaultFileExtension,
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
       httpClient:
@@ -379,13 +379,13 @@ export async function normalizeOptions(
             outputOptions.override?.fetch?.runtimeValidation ?? false,
           ...outputOptions.override?.fetch,
         },
-        useDates: outputOptions.override?.useDates || false,
+        useDates: outputOptions.override?.useDates ?? false,
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
         enumGenerationType:
           outputOptions.override?.enumGenerationType ?? 'const',
         suppressReadonlyModifier:
-          outputOptions.override?.suppressReadonlyModifier || false,
+          outputOptions.override?.suppressReadonlyModifier ?? false,
         aliasCombinedTypes: outputOptions.override?.aliasCombinedTypes ?? false,
       },
       allParamsOptional: outputOptions.allParamsOptional ?? false,
@@ -420,7 +420,7 @@ function normalizeMutator(
     return {
       ...mutator,
       path: upath.resolve(workspace, mutator.path),
-      default: (mutator.default || !mutator.name) ?? false,
+      default: mutator.default ?? !mutator.name ?? false,
     };
   }
 

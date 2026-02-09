@@ -28,7 +28,7 @@ export const loadTsconfig = async (
       const tsconfig =
         config.referenced?.find(
           ({ tsconfigFile }) => tsconfigFile === normalizedPath,
-        )?.tsconfig || config.tsconfig;
+        )?.tsconfig ?? config.tsconfig;
 
       return tsconfig;
     }
