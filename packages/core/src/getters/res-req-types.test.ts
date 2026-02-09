@@ -6,6 +6,7 @@ import type {
   OpenApiResponseObject,
   OpenApiSchemaObject,
 } from '../types';
+import { isString } from '../utils';
 import { isBinaryContentType } from '../utils/content-type';
 import { getResReqTypes } from './res-req-types';
 
@@ -58,7 +59,7 @@ describe('getResReqTypes (formData, readOnly property)', () => {
     const types = getResReqTypes(reqBody, 'UploadBody', context);
     // Get the generated code for formData
     expect(types[0]).toBeDefined();
-    expect(typeof types[0].formData).toBe('string');
+    expect(isString(types[0].formData)).toBe(true);
     const formDataCode = types[0].formData!;
     // Verify that the readOnly property "id" is NOT present in the generated code
     expect(formDataCode).not.toContain('id');

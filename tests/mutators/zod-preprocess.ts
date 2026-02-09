@@ -1,5 +1,7 @@
+import { isObject } from '@orval/core';
+
 export const stripNill = (object: unknown) =>
-  !!object && typeof object === 'object' && !Array.isArray(object)
+  isObject(object)
     ? Object.fromEntries(
         Object.entries(object).filter(
           ([_, value]) => value !== null && value !== undefined,

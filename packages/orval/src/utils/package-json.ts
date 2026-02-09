@@ -1,4 +1,10 @@
-import { dynamicImport, isString, log, type PackageJson } from '@orval/core';
+import {
+  dynamicImport,
+  isObject,
+  isString,
+  log,
+  type PackageJson,
+} from '@orval/core';
 import chalk from 'chalk';
 import { findUp, findUpMultiple } from 'find-up';
 import fs from 'fs-extra';
@@ -39,8 +45,7 @@ export const loadPackageJson = async (
   return;
 };
 
-const isPackageJson = (obj: any): obj is PackageJson =>
-  typeof obj === 'object' && obj !== null;
+const isPackageJson = (obj: any): obj is PackageJson => isObject(obj);
 
 const hasCatalogReferences = (pkg: PackageJson): boolean => {
   return [

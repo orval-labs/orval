@@ -268,28 +268,28 @@ describe('generateAxiosOptions', () => {
 });
 
 describe('generateMutatorConfig', () => {
+  const minimalBody = {
+    originalSchema: {},
+    definition: '',
+    implementation: 'data',
+    default: false,
+    required: false,
+    formData: undefined,
+    formUrlEncoded: undefined,
+    contentType: 'application/json',
+  };
+
+  const minimalResponse = {
+    imports: [],
+    definition: { success: 'Pet', errors: 'unknown' },
+    isBlob: false,
+    types: { success: [], errors: [] },
+    contentTypes: ['application/json'],
+    schemas: [],
+    originalSchema: {},
+  };
+
   describe('hasSignalParam (API param named "signal")', () => {
-    const minimalBody = {
-      originalSchema: {},
-      definition: '',
-      implementation: 'data',
-      default: false,
-      required: false,
-      formData: undefined,
-      formUrlEncoded: undefined,
-      contentType: 'application/json',
-    };
-
-    const minimalResponse = {
-      imports: [],
-      definition: { success: 'Pet', errors: 'unknown' },
-      isBlob: false,
-      types: { success: [], errors: [] },
-      contentTypes: ['application/json'],
-      schemas: [],
-      originalSchema: {},
-    };
-
     it('should output "signal: querySignal" when hasSignalParam is true', () => {
       const result = generateMutatorConfig({
         route: '/api/test',
@@ -340,6 +340,96 @@ describe('generateMutatorConfig', () => {
         isExactOptionalPropertyTypes: true,
       });
       expect(result).toContain('...(querySignal ? { signal: querySignal }');
+    });
+  });
+
+  describe('Content-Type header handling', () => {
+    it('should set Content-Type header for application/json', () => {
+      const result = generateMutatorConfig({
+        route: '/api/test',
+        body: { ...minimalBody, contentType: 'application/json' },
+        headers: undefined,
+        queryParams: undefined,
+        response: minimalResponse,
+        verb: Verbs.POST,
+        isFormData: false,
+        isFormUrlEncoded: false,
+        hasSignal: false,
+        isExactOptionalPropertyTypes: false,
+      });
+      expect(result).toContain("'Content-Type': 'application/json'");
+    });
+
+    it('should not set Content-Type header for multipart/form-data', () => {
+      const result = generateMutatorConfig({
+        route: '/api/test',
+        body: { ...minimalBody, contentType: 'multipart/form-data' },
+        headers: undefined,
+        queryParams: undefined,
+        response: minimalResponse,
+        verb: Verbs.POST,
+        isFormData: true,
+        isFormUrlEncoded: false,
+        hasSignal: false,
+        isExactOptionalPropertyTypes: false,
+      });
+      expect(result).not.toContain('Content-Type');
+      expect(result).not.toContain('multipart/form-data');
+    });
+
+    it('should skip Content-Type but include headers for multipart/form-data with headers', () => {
+      const result = generateMutatorConfig({
+        route: '/api/test',
+        body: { ...minimalBody, contentType: 'multipart/form-data' },
+        headers: 'headers',
+        queryParams: undefined,
+        response: minimalResponse,
+        verb: Verbs.POST,
+        isFormData: true,
+        isFormUrlEncoded: false,
+        hasSignal: false,
+        isExactOptionalPropertyTypes: false,
+      });
+      expect(result).not.toContain('Content-Type');
+      expect(result).toContain('headers');
+    });
+
+    it('should set Content-Type header for application/x-www-form-urlencoded', () => {
+      const result = generateMutatorConfig({
+        route: '/api/test',
+        body: {
+          ...minimalBody,
+          contentType: 'application/x-www-form-urlencoded',
+        },
+        headers: undefined,
+        queryParams: undefined,
+        response: minimalResponse,
+        verb: Verbs.POST,
+        isFormData: false,
+        isFormUrlEncoded: true,
+        hasSignal: false,
+        isExactOptionalPropertyTypes: false,
+      });
+      expect(result).toContain(
+        "'Content-Type': 'application/x-www-form-urlencoded'",
+      );
+    });
+
+    it('should not include headers section when contentType is empty and no headers', () => {
+      const result = generateMutatorConfig({
+        route: '/api/test',
+        body: { ...minimalBody, contentType: '' },
+        headers: undefined,
+        queryParams: undefined,
+        response: minimalResponse,
+        verb: Verbs.POST,
+        isFormData: false,
+        isFormUrlEncoded: false,
+        hasSignal: false,
+        isExactOptionalPropertyTypes: false,
+      });
+      expect(result).not.toContain('headers');
+      expect(result).not.toContain('Content-Type');
     });
   });
 });

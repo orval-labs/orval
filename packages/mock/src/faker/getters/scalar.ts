@@ -3,6 +3,7 @@ import {
   EnumGeneration,
   escape,
   type GeneratorImport,
+  isString,
   mergeDeep,
   type MockOptions,
   type OpenApiSchemaObject,
@@ -347,7 +348,7 @@ function getEnum(
   const joinedEnumValues = item.enum
     .filter((e) => e !== null) // TODO fix type, e can absolutely be null
     .map((e) =>
-      type === 'string' || (type === undefined && typeof e === 'string')
+      type === 'string' || (type === undefined && isString(e))
         ? `'${escape(e)}'`
         : e,
     )

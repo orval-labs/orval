@@ -36,6 +36,7 @@ import type {
   Pet,
   Pets,
   SearchPetsParams,
+  UploadFormDataBody,
 } from '../../model';
 
 /**
@@ -330,6 +331,7 @@ export const getCreatePetsMutationOptions = <
       { data: CreatePetsBody; version?: number },
       TContext
     >;
+    skipInvalidation?: boolean;
     fetch?: RequestInit;
   },
 ): CreateMutationOptions<
@@ -362,11 +364,13 @@ export const getCreatePetsMutationOptions = <
     onMutateResult: TContext,
     context: MutationFunctionContext,
   ) => {
-    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    if (!options?.skipInvalidation) {
+      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    }
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
   };
 
-  return { mutationFn, onSuccess, ...mutationOptions };
+  return { ...mutationOptions, mutationFn, onSuccess };
 };
 
 export type CreatePetsMutationResult = NonNullable<
@@ -385,6 +389,7 @@ export const injectCreatePets = <TError = Error, TContext = unknown>(options?: {
     { data: CreatePetsBody; version?: number },
     TContext
   >;
+  skipInvalidation?: boolean;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof createPets>>,
@@ -557,6 +562,7 @@ export const getDeletePetMutationOptions = <TError = Error, TContext = unknown>(
       { petId: string; version?: number },
       TContext
     >;
+    skipInvalidation?: boolean;
     fetch?: RequestInit;
   },
 ): CreateMutationOptions<
@@ -589,14 +595,16 @@ export const getDeletePetMutationOptions = <TError = Error, TContext = unknown>(
     onMutateResult: TContext,
     context: MutationFunctionContext,
   ) => {
-    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
-    queryClient.invalidateQueries({
-      queryKey: getShowPetByIdQueryKey(variables.petId),
-    });
+    if (!options?.skipInvalidation) {
+      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+      queryClient.invalidateQueries({
+        queryKey: getShowPetByIdQueryKey(variables.petId),
+      });
+    }
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
   };
 
-  return { mutationFn, onSuccess, ...mutationOptions };
+  return { ...mutationOptions, mutationFn, onSuccess };
 };
 
 export type DeletePetMutationResult = NonNullable<
@@ -615,6 +623,7 @@ export const injectDeletePet = <TError = Error, TContext = unknown>(options?: {
     { petId: string; version?: number },
     TContext
   >;
+  skipInvalidation?: boolean;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof deletePet>>,
@@ -662,6 +671,7 @@ export const getUpdatePetMutationOptions = <TError = Error, TContext = unknown>(
       { petId: string; data: Pet; version?: number },
       TContext
     >;
+    skipInvalidation?: boolean;
     fetch?: RequestInit;
   },
 ): CreateMutationOptions<
@@ -694,14 +704,16 @@ export const getUpdatePetMutationOptions = <TError = Error, TContext = unknown>(
     onMutateResult: TContext,
     context: MutationFunctionContext,
   ) => {
-    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
-    queryClient.invalidateQueries({
-      queryKey: getShowPetByIdQueryKey(variables.petId),
-    });
+    if (!options?.skipInvalidation) {
+      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+      queryClient.invalidateQueries({
+        queryKey: getShowPetByIdQueryKey(variables.petId),
+      });
+    }
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
   };
 
-  return { mutationFn, onSuccess, ...mutationOptions };
+  return { ...mutationOptions, mutationFn, onSuccess };
 };
 
 export type UpdatePetMutationResult = NonNullable<
@@ -720,6 +732,7 @@ export const injectUpdatePet = <TError = Error, TContext = unknown>(options?: {
     { petId: string; data: Pet; version?: number },
     TContext
   >;
+  skipInvalidation?: boolean;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof updatePet>>,
@@ -767,6 +780,7 @@ export const getPatchPetMutationOptions = <TError = Error, TContext = unknown>(
       { petId: string; data: PatchPetBody; version?: number },
       TContext
     >;
+    skipInvalidation?: boolean;
     fetch?: RequestInit;
   },
 ): CreateMutationOptions<
@@ -799,14 +813,16 @@ export const getPatchPetMutationOptions = <TError = Error, TContext = unknown>(
     onMutateResult: TContext,
     context: MutationFunctionContext,
   ) => {
-    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
-    queryClient.invalidateQueries({
-      queryKey: getShowPetByIdQueryKey(variables.petId),
-    });
+    if (!options?.skipInvalidation) {
+      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+      queryClient.invalidateQueries({
+        queryKey: getShowPetByIdQueryKey(variables.petId),
+      });
+    }
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
   };
 
-  return { mutationFn, onSuccess, ...mutationOptions };
+  return { ...mutationOptions, mutationFn, onSuccess };
 };
 
 export type PatchPetMutationResult = NonNullable<
@@ -825,6 +841,7 @@ export const injectPatchPet = <TError = Error, TContext = unknown>(options?: {
     { petId: string; data: PatchPetBody; version?: number },
     TContext
   >;
+  skipInvalidation?: boolean;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof patchPet>>,
@@ -1002,6 +1019,7 @@ export const getUploadFileMutationOptions = <
       { petId: number; data: Blob; version?: number },
       TContext
     >;
+    skipInvalidation?: boolean;
     fetch?: RequestInit;
   },
 ): CreateMutationOptions<
@@ -1034,11 +1052,13 @@ export const getUploadFileMutationOptions = <
     onMutateResult: TContext,
     context: MutationFunctionContext,
   ) => {
-    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    if (!options?.skipInvalidation) {
+      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    }
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
   };
 
-  return { mutationFn, onSuccess, ...mutationOptions };
+  return { ...mutationOptions, mutationFn, onSuccess };
 };
 
 export type UploadFileMutationResult = NonNullable<
@@ -1060,6 +1080,7 @@ export const injectUploadFile = <
     { petId: number; data: Blob; version?: number },
     TContext
   >;
+  skipInvalidation?: boolean;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof uploadFile>>,
@@ -1076,6 +1097,110 @@ export const injectUploadFile = <
   );
 
   return injectMutation(() => uploadFileMutationOptions);
+};
+/**
+ * Upload a file for a pet using multipart/form-data.
+ * @summary Upload a file via multipart form data.
+ */
+export const uploadFormData = (
+  http: HttpClient,
+  petId: number,
+  uploadFormDataBody: UploadFormDataBody,
+  version: number = 1,
+  options?: { signal?: AbortSignal | null },
+): Promise<void> => {
+  const formData = new FormData();
+  if (uploadFormDataBody.file !== undefined) {
+    formData.append(`file`, uploadFormDataBody.file);
+  }
+  if (uploadFormDataBody.label !== undefined) {
+    formData.append(`label`, uploadFormDataBody.label);
+  }
+
+  const url = `/v${version}/pet/${petId}/uploadFormData`;
+  const request$ = http.post<void>(url, formData);
+  if (options?.signal) {
+    return lastValueFrom(
+      request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
+    );
+  }
+  return lastValueFrom(request$);
+};
+
+export const getUploadFormDataMutationOptions = <
+  TError = void | Error,
+  TContext = unknown,
+>(
+  http: HttpClient,
+  options?: {
+    mutation?: CreateMutationOptions<
+      Awaited<ReturnType<typeof uploadFormData>>,
+      TError,
+      { petId: number; data: UploadFormDataBody; version?: number },
+      TContext
+    >;
+    fetch?: RequestInit;
+  },
+): CreateMutationOptions<
+  Awaited<ReturnType<typeof uploadFormData>>,
+  TError,
+  { petId: number; data: UploadFormDataBody; version?: number },
+  TContext
+> => {
+  const mutationKey = ['uploadFormData'];
+  const { mutation: mutationOptions, fetch: fetchOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, fetch: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof uploadFormData>>,
+    { petId: number; data: UploadFormDataBody; version?: number }
+  > = (props) => {
+    const { petId, data, version } = props ?? {};
+
+    return uploadFormData(http, petId, data, version, fetchOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UploadFormDataMutationResult = NonNullable<
+  Awaited<ReturnType<typeof uploadFormData>>
+>;
+export type UploadFormDataMutationBody = UploadFormDataBody;
+export type UploadFormDataMutationError = void | Error;
+
+/**
+ * @summary Upload a file via multipart form data.
+ */
+export const injectUploadFormData = <
+  TError = void | Error,
+  TContext = unknown,
+>(options?: {
+  mutation?: CreateMutationOptions<
+    Awaited<ReturnType<typeof uploadFormData>>,
+    TError,
+    { petId: number; data: UploadFormDataBody; version?: number },
+    TContext
+  >;
+  fetch?: RequestInit;
+}): CreateMutationResult<
+  Awaited<ReturnType<typeof uploadFormData>>,
+  TError,
+  { petId: number; data: UploadFormDataBody; version?: number },
+  TContext
+> => {
+  const http = inject(HttpClient);
+  const uploadFormDataMutationOptions = getUploadFormDataMutationOptions(
+    http,
+    options,
+  );
+
+  return injectMutation(() => uploadFormDataMutationOptions);
 };
 /**
  * Download image of the pet.

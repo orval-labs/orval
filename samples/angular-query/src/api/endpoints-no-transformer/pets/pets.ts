@@ -33,6 +33,7 @@ import type {
   Pet,
   Pets,
   SearchPetsParams,
+  UploadFormDataBody,
 } from '../../model-no-transformer';
 
 /**
@@ -879,6 +880,109 @@ export const injectUploadFile = <
   const uploadFileMutationOptions = getUploadFileMutationOptions(http, options);
 
   return injectMutation(() => uploadFileMutationOptions);
+};
+/**
+ * Upload a file for a pet using multipart/form-data.
+ * @summary Upload a file via multipart form data.
+ */
+export const uploadFormData = (
+  http: HttpClient,
+  petId: number,
+  uploadFormDataBody: UploadFormDataBody,
+  options?: { signal?: AbortSignal | null },
+): Promise<void> => {
+  const formData = new FormData();
+  if (uploadFormDataBody.file !== undefined) {
+    formData.append(`file`, uploadFormDataBody.file);
+  }
+  if (uploadFormDataBody.label !== undefined) {
+    formData.append(`label`, uploadFormDataBody.label);
+  }
+
+  const url = `/pet/${petId}/uploadFormData`;
+  const request$ = http.post<void>(url, formData);
+  if (options?.signal) {
+    return lastValueFrom(
+      request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
+    );
+  }
+  return lastValueFrom(request$);
+};
+
+export const getUploadFormDataMutationOptions = <
+  TError = void | Error,
+  TContext = unknown,
+>(
+  http: HttpClient,
+  options?: {
+    mutation?: CreateMutationOptions<
+      Awaited<ReturnType<typeof uploadFormData>>,
+      TError,
+      { petId: number; data: UploadFormDataBody },
+      TContext
+    >;
+    fetch?: RequestInit;
+  },
+): CreateMutationOptions<
+  Awaited<ReturnType<typeof uploadFormData>>,
+  TError,
+  { petId: number; data: UploadFormDataBody },
+  TContext
+> => {
+  const mutationKey = ['uploadFormData'];
+  const { mutation: mutationOptions, fetch: fetchOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, fetch: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof uploadFormData>>,
+    { petId: number; data: UploadFormDataBody }
+  > = (props) => {
+    const { petId, data } = props ?? {};
+
+    return uploadFormData(http, petId, data, fetchOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UploadFormDataMutationResult = NonNullable<
+  Awaited<ReturnType<typeof uploadFormData>>
+>;
+export type UploadFormDataMutationBody = UploadFormDataBody;
+export type UploadFormDataMutationError = void | Error;
+
+/**
+ * @summary Upload a file via multipart form data.
+ */
+export const injectUploadFormData = <
+  TError = void | Error,
+  TContext = unknown,
+>(options?: {
+  mutation?: CreateMutationOptions<
+    Awaited<ReturnType<typeof uploadFormData>>,
+    TError,
+    { petId: number; data: UploadFormDataBody },
+    TContext
+  >;
+  fetch?: RequestInit;
+}): CreateMutationResult<
+  Awaited<ReturnType<typeof uploadFormData>>,
+  TError,
+  { petId: number; data: UploadFormDataBody },
+  TContext
+> => {
+  const http = inject(HttpClient);
+  const uploadFormDataMutationOptions = getUploadFormDataMutationOptions(
+    http,
+    options,
+  );
+
+  return injectMutation(() => uploadFormDataMutationOptions);
 };
 /**
  * Download image of the pet.

@@ -348,5 +348,70 @@ describe('mutationInvalidates feature', () => {
       expect(receivedData).toBe(undefined);
       expect(receivedVariables).toEqual(mockVariables);
     });
+
+    it('should run both invalidation and user onSuccess callback (composition)', () => {
+      const listPetsKey = getListPetsQueryKey();
+      queryClient.setQueryData(listPetsKey, [{ id: 1, name: 'Existing' }]);
+
+      let userCallbackCalled = false;
+
+      const options = TestBed.runInInjectionContext(() =>
+        getDeletePetMutationOptions(http, queryClient, {
+          mutation: {
+            onSuccess: () => {
+              userCallbackCalled = true;
+            },
+          },
+        }),
+      );
+
+      const mockContext: MutationFunctionContext = {
+        client: queryClient,
+        meta: undefined,
+      };
+
+      options.onSuccess!(
+        undefined,
+        { petId: '1' },
+        undefined as never,
+        mockContext,
+      );
+
+      expect(queryClient.getQueryState(listPetsKey)?.isInvalidated).toBe(true);
+      expect(userCallbackCalled).toBe(true);
+    });
+
+    it('should skip invalidation when skipInvalidation is true', () => {
+      const listPetsKey = getListPetsQueryKey();
+      queryClient.setQueryData(listPetsKey, [{ id: 1, name: 'Existing' }]);
+
+      let userCallbackCalled = false;
+
+      const options = TestBed.runInInjectionContext(() =>
+        getDeletePetMutationOptions(http, queryClient, {
+          mutation: {
+            onSuccess: () => {
+              userCallbackCalled = true;
+            },
+          },
+          skipInvalidation: true,
+        }),
+      );
+
+      const mockContext: MutationFunctionContext = {
+        client: queryClient,
+        meta: undefined,
+      };
+
+      options.onSuccess!(
+        undefined,
+        { petId: '1' },
+        undefined as never,
+        mockContext,
+      );
+
+      expect(queryClient.getQueryState(listPetsKey)?.isInvalidated).toBe(false);
+      expect(userCallbackCalled).toBe(true);
+    });
   });
 });

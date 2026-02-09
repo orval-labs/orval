@@ -627,6 +627,7 @@ export type NormalizedQueryOptions = {
   signal?: boolean;
   version?: 3 | 4 | 5;
   mutationInvalidates?: MutationInvalidatesConfig;
+  runtimeValidation?: boolean;
 };
 
 export type QueryOptions = {
@@ -650,6 +651,7 @@ export type QueryOptions = {
   signal?: boolean;
   version?: 3 | 4 | 5;
   mutationInvalidates?: MutationInvalidatesConfig;
+  runtimeValidation?: boolean;
 };
 
 export type AngularOptions = {
