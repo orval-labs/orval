@@ -784,6 +784,14 @@ function normalizeQueryOptions(
     ...(queryOptions.mutationInvalidates
       ? { mutationInvalidates: queryOptions.mutationInvalidates }
       : {}),
+    ...(isNullish(globalOptions.runtimeValidation)
+      ? {}
+      : {
+          runtimeValidation: globalOptions.runtimeValidation,
+        }),
+    ...(isNullish(queryOptions.runtimeValidation)
+      ? {}
+      : { runtimeValidation: queryOptions.runtimeValidation }),
   };
 }
 

@@ -111,4 +111,23 @@ export default defineConfig({
       },
     },
   },
+  petstoreZod: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/endpoints-zod',
+      schemas: { path: 'src/api/model-zod', type: 'zod' },
+      client: 'angular-query',
+      httpClient: 'angular',
+      clean: true,
+      override: {
+        query: {
+          signal: true,
+          runtimeValidation: true,
+        },
+      },
+    },
+    input: {
+      target: '../../tests/specifications/petstore.yaml',
+    },
+  },
 });

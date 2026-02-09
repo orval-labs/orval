@@ -301,6 +301,41 @@ export default defineConfig({
 });
 ```
 
+## Zod Runtime Validation
+
+When using Zod schemas, you can enable automatic runtime validation of HTTP responses. Orval will pipe each response through `Schema.parse()` inside the RxJS Observable pipeline before converting to a Promise:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'angular-query',
+      httpClient: 'angular',
+      schemas: { path: 'src/model', type: 'zod' },
+      override: {
+        query: {
+          runtimeValidation: true,
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+This generates:
+
+```ts
+const request$ = http.get<Pets>(url, { params: httpParams })
+  .pipe(map(data => Pets.parse(data)));
+```
+
+Validation is automatically skipped for primitive response types (`string`, `void`, etc.) and for operations using a custom mutator.
+
 ## Full Example
 
 See the [Angular Query sample](https://github.com/orval-labs/orval/tree/master/samples/angular-query) on GitHub.
