@@ -48,10 +48,18 @@ export function resolveValue({
       hasReadonlyProps = scalar.hasReadonlyProps;
     }
 
+    const isAnyOfNullable = schemaObject.anyOf?.some(
+      (anyOfItem) =>
+        !isReference(anyOfItem) &&
+        (anyOfItem.type === 'null' ||
+          (Array.isArray(anyOfItem.type) && anyOfItem.type.includes('null'))),
+    );
+
     const nullable =
       (Array.isArray(schemaObject.type) &&
         schemaObject.type.includes('null')) ||
-      schemaObject.nullable === true
+      schemaObject.nullable === true ||
+      isAnyOfNullable
         ? ' | null'
         : '';
 
