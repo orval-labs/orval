@@ -107,6 +107,7 @@ export async function writeSpecs(
           schemaPath,
           output.operationSchemas,
           output.namingConvention,
+          fileExtension,
         );
         fixRegularSchemaImports(
           regularSchemas,
@@ -114,6 +115,7 @@ export async function writeSpecs(
           schemaPath,
           output.operationSchemas,
           output.namingConvention,
+          fileExtension,
         );
 
         // Write regular schemas to schemas path
@@ -182,6 +184,7 @@ export async function writeSpecs(
             output.schemas.path,
             output.operationSchemas,
             output.namingConvention,
+            fileExtension,
           );
           fixRegularSchemaImports(
             regularSchemas,
@@ -189,6 +192,7 @@ export async function writeSpecs(
             output.schemas.path,
             output.operationSchemas,
             output.namingConvention,
+            fileExtension,
           );
 
           if (regularSchemas.length > 0) {
