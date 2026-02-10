@@ -81,7 +81,7 @@ export class PetsService {
   ): Observable<any> {
     return this.http.get<TData>(`/v${version}/search`, {
       ...options,
-      params: paramsSerializerMutator({ ...params, ...options?.params }),
+      params: options?.params ?? paramsSerializerMutator(params),
     });
   }
   /**

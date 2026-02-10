@@ -25,14 +25,12 @@ import { fromEvent, lastValueFrom } from 'rxjs';
 
 import { map, takeUntil } from 'rxjs/operators';
 
-import {
+import { Pet, PetWithTag, Pets } from '../../model-zod/index.zod';
+import type {
   CreatePetsBody,
   CreatePetsParams,
   Error,
   ListPetsParams,
-  Pet,
-  PetWithTag,
-  Pets,
 } from '../../model-zod/index.zod';
 
 /**
