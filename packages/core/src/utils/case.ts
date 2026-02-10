@@ -42,11 +42,11 @@ const deapostrophe = (s: string) => {
   return s.replace(regexps.apostrophe, '');
 };
 
-const up = String.prototype.toUpperCase;
-const low = String.prototype.toLowerCase;
+const up = (s: string) => s.toUpperCase();
+const low = (s: string) => s.toLowerCase();
 
 const fill = (s: string, fillWith: string, isDeapostrophe = false) => {
-  s = s.replace(regexps.fill, function (m, next) {
+  s = s.replace(regexps.fill, function (m: string, next: string) {
     return next ? fillWith + next : '';
   });
 
@@ -57,7 +57,7 @@ const fill = (s: string, fillWith: string, isDeapostrophe = false) => {
 };
 
 const decap = (s: string, char = 0) => {
-  return low.call(s.charAt(char)) + s.slice(char + 1);
+  return low(s.charAt(char)) + s.slice(char + 1);
 };
 
 const relax = (
@@ -72,7 +72,7 @@ const relax = (
 const prep = (s: string, isFill = false, isPascal = false, isUpper = false) => {
   // s is already typed as string, no coercion needed
   if (!isUpper && regexps.upper.test(s)) {
-    s = low.call(s);
+    s = low(s);
   }
   if (!isFill && !regexps.hole.test(s)) {
     // eslint-disable-next-line no-var
@@ -88,13 +88,13 @@ const prep = (s: string, isFill = false, isPascal = false, isUpper = false) => {
 };
 
 const lower = (s: string, fillWith: string, isDeapostrophe: boolean) => {
-  return fill(low.call(prep(s, !!fillWith)), fillWith, isDeapostrophe);
+  return fill(low(prep(s, !!fillWith)), fillWith, isDeapostrophe);
 };
 
 // Caches the previously converted strings to improve performance
 const pascalMemory: Record<string, string> = {};
 
-export function pascal(s: string = '') {
+export function pascal(s = '') {
   if (pascalMemory[s]) {
     return pascalMemory[s];
   }
@@ -102,7 +102,7 @@ export function pascal(s: string = '') {
   const isStartWithUnderscore = s.startsWith('_');
 
   if (regexps.upper.test(s)) {
-    s = low.call(s);
+    s = low(s);
   }
 
   const pascalString = (s.match(/[a-zA-Z0-9\u00C0-\u017F]+/g) ?? [])
@@ -118,7 +118,7 @@ export function pascal(s: string = '') {
   return pascalWithUnderscore;
 }
 
-export function camel(s: string = '') {
+export function camel(s = '') {
   const isStartWithUnderscore = s.startsWith('_');
   const camelString = decap(pascal(s), isStartWithUnderscore ? 1 : 0);
   return isStartWithUnderscore ? `_${camelString}` : camelString;
@@ -133,11 +133,7 @@ export function kebab(s: string) {
 }
 
 export function upper(s: string, fillWith: string, isDeapostrophe?: boolean) {
-  return fill(
-    up.call(prep(s, !!fillWith, false, true)),
-    fillWith,
-    isDeapostrophe,
-  );
+  return fill(up(prep(s, !!fillWith, false, true)), fillWith, isDeapostrophe);
 }
 
 export function conventionName(name: string, convention: NamingConvention) {

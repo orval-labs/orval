@@ -26,6 +26,7 @@ const path: Path = Object.fromEntries(
   ]),
 ) as unknown as Path;
 
+// eslint-disable-next-line @typescript-eslint/unbound-method -- path is rebuilt via Object.fromEntries with wrapPathFn; these are standalone functions, not bound methods
 const { join, resolve, extname, dirname, basename, isAbsolute } = path;
 export { basename, dirname, extname, isAbsolute, join, resolve };
 
