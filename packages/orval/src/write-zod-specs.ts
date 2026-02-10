@@ -4,6 +4,9 @@ import {
   type GeneratorVerbOptions,
   type NamingConvention,
   type NormalizedOutputOptions,
+  type OpenApiParameterObject,
+  type OpenApiReferenceObject,
+  type OpenApiRequestBodyObject,
   type OpenApiSchemaObject,
   pascal,
   upath,
@@ -54,7 +57,7 @@ async function writeZodSchemaIndex(
       const fileName = conventionName(schemaName, namingConvention);
       return `export * from './${fileName}${importFileExtension}';`;
     })
-    .sort()
+    .toSorted()
     .join('\n');
 
   const allExports = existingExports
@@ -63,7 +66,7 @@ async function writeZodSchemaIndex(
 
   const uniqueExports = [...new Set(allExports.split('\n'))]
     .filter((line) => line.trim())
-    .sort()
+    .toSorted()
     .join('\n');
 
   await fs.outputFile(indexPath, `${header}\n${uniqueExports}\n`);
@@ -170,22 +173,33 @@ export async function writeZodSchemasFromVerbs(
   const generateVerbsSchemas = verbOptionsArray.flatMap((verbOption) => {
     const operation = verbOption.originalOperation;
 
-    const bodySchema =
-      operation.requestBody && 'content' in operation.requestBody
-        ? operation.requestBody.content['application/json']?.schema
+    const requestBody = operation.requestBody as
+      | OpenApiRequestBodyObject
+      | OpenApiReferenceObject
+      | undefined;
+    const requestBodyContent =
+      requestBody && 'content' in requestBody
+        ? (requestBody as OpenApiRequestBodyObject).content
         : undefined;
+    const bodySchema = requestBodyContent?.['application/json']?.schema as
+      | OpenApiSchemaObject
+      | undefined;
 
     const bodySchemas = bodySchema
       ? [
           {
             name: `${pascal(verbOption.operationName)}Body`,
-            schema: dereference(bodySchema as OpenApiSchemaObject, context),
+            schema: dereference(bodySchema, context),
           },
         ]
       : [];
 
-    const queryParams = operation.parameters?.filter(
-      (p) => 'in' in p && p.in === 'query',
+    const parameters = operation.parameters as
+      | (OpenApiParameterObject | OpenApiReferenceObject)[]
+      | undefined;
+
+    const queryParams = parameters?.filter(
+      (p): p is OpenApiParameterObject => 'in' in p && p.in === 'query',
     );
 
     const queryParamsSchemas =
@@ -202,7 +216,7 @@ export async function writeZodSchemasFromVerbs(
                       p.name,
                       dereference(p.schema as OpenApiSchemaObject, context),
                     ]),
-                ),
+                ) as Record<string, OpenApiSchemaObject>,
                 required: queryParams
                   .filter((p) => p.required)
                   .map((p) => p.name),
@@ -211,8 +225,8 @@ export async function writeZodSchemasFromVerbs(
           ]
         : [];
 
-    const headerParams = operation.parameters?.filter(
-      (p) => 'in' in p && p.in === 'header',
+    const headerParams = parameters?.filter(
+      (p): p is OpenApiParameterObject => 'in' in p && p.in === 'header',
     );
 
     const headerParamsSchemas =
@@ -229,7 +243,7 @@ export async function writeZodSchemasFromVerbs(
                       p.name,
                       dereference(p.schema as OpenApiSchemaObject, context),
                     ]),
-                ),
+                ) as Record<string, OpenApiSchemaObject>,
                 required: headerParams
                   .filter((p) => p.required)
                   .map((p) => p.name),

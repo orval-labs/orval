@@ -37,7 +37,6 @@ import {
   PropertySortOrder,
   type QueryOptions,
   RefComponentSuffix,
-  type SchemaGenerationType,
   type SchemaOptions,
   upath,
 } from '@orval/core';
