@@ -45,7 +45,7 @@ export const loadPackageJson = async (
   return;
 };
 
-const isPackageJson = (obj: any): obj is PackageJson => isObject(obj);
+const isPackageJson = (obj: unknown): obj is PackageJson => isObject(obj);
 
 const hasCatalogReferences = (pkg: PackageJson): boolean => {
   return [
@@ -62,9 +62,12 @@ const loadPnpmWorkspaceCatalog = async (
   if (!filePath) return undefined;
   try {
     const file = await fs.readFile(filePath, 'utf8');
-    const data = yaml.load(file) as Record<string, any> | undefined;
+    const data = yaml.load(file) as Record<string, unknown> | undefined;
     if (!data?.catalog && !data?.catalogs) return undefined;
-    return { catalog: data.catalog, catalogs: data.catalogs };
+    return {
+      catalog: data.catalog as CatalogData['catalog'],
+      catalogs: data.catalogs as CatalogData['catalogs'],
+    };
   } catch {
     return undefined;
   }
@@ -77,9 +80,12 @@ const loadPackageJsonCatalog = async (
 
   for (const filePath of filePaths) {
     try {
-      const pkg = await fs.readJson(filePath);
-      if (pkg?.catalog || pkg?.catalogs) {
-        return { catalog: pkg.catalog, catalogs: pkg.catalogs };
+      const pkg = (await fs.readJson(filePath)) as Record<string, unknown>;
+      if (pkg.catalog || pkg.catalogs) {
+        return {
+          catalog: pkg.catalog as CatalogData['catalog'],
+          catalogs: pkg.catalogs as CatalogData['catalogs'],
+        };
       }
     } catch {
       // Continue to next file
@@ -95,9 +101,12 @@ const loadYarnrcCatalog = async (
   if (!filePath) return undefined;
   try {
     const file = await fs.readFile(filePath, 'utf8');
-    const data = yaml.load(file) as Record<string, any> | undefined;
+    const data = yaml.load(file) as Record<string, unknown> | undefined;
     if (!data?.catalog && !data?.catalogs) return undefined;
-    return { catalog: data.catalog, catalogs: data.catalogs };
+    return {
+      catalog: data.catalog as CatalogData['catalog'],
+      catalogs: data.catalogs as CatalogData['catalogs'],
+    };
   } catch {
     return undefined;
   }

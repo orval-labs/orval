@@ -14,18 +14,20 @@ export const request = <T>(
   return new Promise((resolve, reject) => {
     const req = https.request(urlOptions, (res) => {
       let body = '';
-      res.on('data', (chunk) => (body += chunk.toString()));
+      res.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
       res.on('error', reject);
       res.on('end', () => {
         const response = {
           status: res.statusCode,
           headers: res.headers,
-          body: JSON.parse(body),
+          body: JSON.parse(body) as T,
         };
         if (res.statusCode && res.statusCode >= 200 && res.statusCode <= 299) {
           resolve(response);
         } else {
-          reject(response);
+          reject(new Error(`Request failed with status ${res.statusCode}`));
         }
       });
     });

@@ -98,7 +98,7 @@ export type NormalizedOverrideOutput = {
     route: string,
     verb: Verbs,
   ) => string;
-  requestOptions: Record<string, any> | boolean;
+  requestOptions: Record<string, unknown> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
@@ -468,7 +468,7 @@ export type OverrideOutput = {
     verb: Verbs,
   ) => string;
   fetch?: FetchOptions;
-  requestOptions?: Record<string, any> | boolean;
+  requestOptions?: Record<string, unknown> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
@@ -615,7 +615,7 @@ export type NormalizedQueryOptions = {
   useInfiniteQueryParam?: string;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
-  options?: any;
+  options?: Record<string, unknown>;
   queryKey?: NormalizedMutator;
   queryOptions?: NormalizedMutator;
   mutationOptions?: NormalizedMutator;
@@ -639,7 +639,7 @@ export type QueryOptions = {
   useInfiniteQueryParam?: string;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
-  options?: any;
+  options?: Record<string, unknown>;
   queryKey?: Mutator;
   queryOptions?: Mutator;
   mutationOptions?: Mutator;

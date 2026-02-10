@@ -56,23 +56,23 @@ async function addOperationSchemasReExport(
   const exportLine = `export * from '${relativePath}';\n`;
 
   const indexExists = await fs.pathExists(schemaIndexPath);
-  if (!indexExists) {
+  if (indexExists) {
+    // Check if export already exists to prevent duplicates on re-runs
+    // Use regex to handle both single and double quotes
+    const existingContent = await fs.readFile(schemaIndexPath, 'utf8');
+    const exportPattern = new RegExp(
+      String.raw`export\s*\*\s*from\s*['"]${relativePath.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)}['"]`,
+    );
+    if (!exportPattern.test(existingContent)) {
+      await fs.appendFile(schemaIndexPath, exportLine);
+    }
+  } else {
     // Create index with header if file doesn't exist (no regular schemas case)
     const content =
       header && header.trim().length > 0
         ? `${header}\n${exportLine}`
         : exportLine;
     await fs.outputFile(schemaIndexPath, content);
-  } else {
-    // Check if export already exists to prevent duplicates on re-runs
-    // Use regex to handle both single and double quotes
-    const existingContent = await fs.readFile(schemaIndexPath, 'utf8');
-    const exportPattern = new RegExp(
-      `export\\s*\\*\\s*from\\s*['"]${relativePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]`,
-    );
-    if (!exportPattern.test(existingContent)) {
-      await fs.appendFile(schemaIndexPath, exportLine);
-    }
   }
 }
 
@@ -235,7 +235,8 @@ export async function writeSpecs(
             indexFiles: output.indexFiles,
           });
         }
-      } else if (schemaType === 'zod') {
+      } else {
+        // schemaType === 'zod'
         const fileExtension = '.zod.ts';
 
         await writeZodSchemas(
@@ -246,21 +247,19 @@ export async function writeSpecs(
           output,
         );
 
-        if (builder.verbOptions) {
-          await writeZodSchemasFromVerbs(
-            builder.verbOptions,
-            output.schemas.path,
-            fileExtension,
-            header,
+        await writeZodSchemasFromVerbs(
+          builder.verbOptions,
+          output.schemas.path,
+          fileExtension,
+          header,
+          output,
+          {
+            spec: builder.spec,
+            target: builder.target,
+            workspace,
             output,
-            {
-              spec: builder.spec,
-              target: builder.target,
-              workspace,
-              output,
-            },
-          );
-        }
+          },
+        );
       }
     }
   }
@@ -399,9 +398,9 @@ export async function writeSpecs(
   if (output.docs) {
     try {
       let config: Partial<TypeDocOptions> = {};
-      let configPath: string | null = null;
+      let configPath: string | undefined;
       if (isObject(output.docs)) {
-        ({ configPath = null, ...config } = output.docs);
+        ({ configPath, ...config } = output.docs);
         if (configPath) {
           config.options = configPath;
         }
@@ -457,7 +456,6 @@ function getWriteMode(mode: OutputMode) {
     case OutputMode.TAGS_SPLIT: {
       return writeSplitTagsMode;
     }
-    case OutputMode.SINGLE:
     default: {
       return writeSingleMode;
     }
