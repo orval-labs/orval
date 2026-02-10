@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![tests](https://github.com/orval-labs/orval/actions/workflows/tests.yaml/badge.svg)](https://github.com/orval-labs/orval/actions/workflows/tests.yaml)
 
-![orval - Restfull Client Generator](./logo/orval-logo-horizontal.svg?raw=true)
+![orval - Restful Client Generator](./logo/orval-logo-horizontal.svg?raw=true)
 
 Visit [orval.dev](https://orval.dev) for docs, guides, API and beer!
 
