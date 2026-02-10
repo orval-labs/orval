@@ -13,4 +13,4 @@ Some useful links:
  * OpenAPI spec version: 1.0.27-SNAPSHOT
  */
 
-export type GetInventory200 = { [key: string]: number };
+export type GetInventory200 = {[key: string]: number};

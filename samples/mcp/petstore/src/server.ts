@@ -13,9 +13,13 @@ Some useful links:
  * OpenAPI spec version: 1.0.27-SNAPSHOT
  */
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import {
+  McpServer
+} from '@modelcontextprotocol/sdk/server/mcp.js';
+  
+import {
+  StdioServerTransport
+} from '@modelcontextprotocol/sdk/server/stdio.js';  
 
 import {
   findPetsByStatusHandler,
@@ -29,7 +33,7 @@ import {
   loginUserHandler,
   logoutUserHandler,
   getUserByNameHandler,
-  deleteUserHandler,
+  deleteUserHandler
 } from './handlers';
 import {
   FindPetsByStatusQueryParams,
@@ -42,7 +46,7 @@ import {
   DeleteOrderParams,
   LoginUserQueryParams,
   GetUserByNameParams,
-  DeleteUserParams,
+  DeleteUserParams
 } from './tool-schemas.zod';
 
 const server = new McpServer({
@@ -50,31 +54,32 @@ const server = new McpServer({
   version: '1.0.0',
 });
 
+
 server.tool(
   'findPetsByStatus',
   'Finds Pets by status.',
   {
-    queryParams: FindPetsByStatusQueryParams,
+    queryParams: FindPetsByStatusQueryParams
   },
-  findPetsByStatusHandler,
+  findPetsByStatusHandler
 );
 
 server.tool(
   'findPetsByTags',
   'Finds Pets by tags.',
   {
-    queryParams: FindPetsByTagsQueryParams,
+    queryParams: FindPetsByTagsQueryParams
   },
-  findPetsByTagsHandler,
+  findPetsByTagsHandler
 );
 
 server.tool(
   'getPetById',
   'Find pet by ID.',
   {
-    pathParams: GetPetByIdParams,
+    pathParams: GetPetByIdParams
   },
-  getPetByIdHandler,
+  getPetByIdHandler
 );
 
 server.tool(
@@ -82,82 +87,79 @@ server.tool(
   'Updates a pet in the store with form data.',
   {
     pathParams: UpdatePetWithFormParams,
-    queryParams: UpdatePetWithFormQueryParams,
+    queryParams: UpdatePetWithFormQueryParams
   },
-  updatePetWithFormHandler,
+  updatePetWithFormHandler
 );
 
 server.tool(
   'deletePet',
   'Deletes a pet.',
   {
-    pathParams: DeletePetParams,
+    pathParams: DeletePetParams
   },
-  deletePetHandler,
+  deletePetHandler
 );
 
 server.tool(
   'getInventory',
   'Returns pet inventories by status.',
-  getInventoryHandler,
+  getInventoryHandler
 );
 
 server.tool(
   'getOrderById',
   'Find purchase order by ID.',
   {
-    pathParams: GetOrderByIdParams,
+    pathParams: GetOrderByIdParams
   },
-  getOrderByIdHandler,
+  getOrderByIdHandler
 );
 
 server.tool(
   'deleteOrder',
   'Delete purchase order by identifier.',
   {
-    pathParams: DeleteOrderParams,
+    pathParams: DeleteOrderParams
   },
-  deleteOrderHandler,
+  deleteOrderHandler
 );
 
 server.tool(
   'loginUser',
   'Logs user into the system.',
   {
-    queryParams: LoginUserQueryParams,
+    queryParams: LoginUserQueryParams
   },
-  loginUserHandler,
+  loginUserHandler
 );
 
 server.tool(
   'logoutUser',
   'Logs out current logged in user session.',
-  logoutUserHandler,
+  logoutUserHandler
 );
 
 server.tool(
   'getUserByName',
   'Get user by user name.',
   {
-    pathParams: GetUserByNameParams,
+    pathParams: GetUserByNameParams
   },
-  getUserByNameHandler,
+  getUserByNameHandler
 );
 
 server.tool(
   'deleteUser',
   'Delete user resource.',
   {
-    pathParams: DeleteUserParams,
+    pathParams: DeleteUserParams
   },
-  deleteUserHandler,
+  deleteUserHandler
 );
 
 const transport = new StdioServerTransport();
 
-server
-  .connect(transport)
-  .then(() => {
-    console.error('MCP server running on stdio');
-  })
-  .catch(console.error);
+server.connect(transport).then(() => {
+  console.error('MCP server running on stdio');
+}).catch(console.error);

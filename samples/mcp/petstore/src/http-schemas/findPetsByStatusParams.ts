@@ -14,8 +14,8 @@ Some useful links:
  */
 
 export type FindPetsByStatusParams = {
-  /**
-   * Status values that need to be considered for filter
-   */
-  status?: string;
+/**
+ * Status values that need to be considered for filter
+ */
+status?: string;
 };

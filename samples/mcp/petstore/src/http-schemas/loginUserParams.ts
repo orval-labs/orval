@@ -14,12 +14,12 @@ Some useful links:
  */
 
 export type LoginUserParams = {
-  /**
-   * The user name for login
-   */
-  username?: string;
-  /**
-   * The password for login in clear text
-   */
-  password?: string;
+/**
+ * The user name for login
+ */
+username?: string;
+/**
+ * The password for login in clear text
+ */
+password?: string;
 };

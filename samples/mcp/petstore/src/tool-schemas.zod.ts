@@ -15,190 +15,149 @@ Some useful links:
 import { z as zod } from 'zod';
 
 export const FindPetsByStatusQueryParams = zod.object({
-  status: zod
-    .string()
-    .optional()
-    .describe('Status values that need to be considered for filter'),
-});
+  "status": zod.string().optional().describe('Status values that need to be considered for filter')
+})
 
 export const FindPetsByStatusResponseItem = zod.object({
-  id: zod.number().optional(),
-  name: zod.string(),
-  category: zod
-    .object({
-      id: zod.number().optional(),
-      name: zod.string().optional(),
-    })
-    .optional(),
-  photoUrls: zod.array(zod.string()),
-  tags: zod
-    .array(
-      zod.object({
-        id: zod.number().optional(),
-        name: zod.string().optional(),
-      }),
-    )
-    .optional(),
-  status: zod
-    .enum(['available', 'pending', 'sold'])
-    .optional()
-    .describe('pet status in the store'),
-});
-export const FindPetsByStatusResponse = zod.array(FindPetsByStatusResponseItem);
+  "id": zod.number().optional(),
+  "name": zod.string(),
+  "category": zod.object({
+  "id": zod.number().optional(),
+  "name": zod.string().optional()
+}).optional(),
+  "photoUrls": zod.array(zod.string()),
+  "tags": zod.array(zod.object({
+  "id": zod.number().optional(),
+  "name": zod.string().optional()
+})).optional(),
+  "status": zod.enum(['available', 'pending', 'sold']).optional().describe('pet status in the store')
+})
+export const FindPetsByStatusResponse = zod.array(FindPetsByStatusResponseItem)
+
 
 export const FindPetsByTagsQueryParams = zod.object({
-  tags: zod.array(zod.string()).optional().describe('Tags to filter by'),
-});
+  "tags": zod.array(zod.string()).optional().describe('Tags to filter by')
+})
 
 export const FindPetsByTagsResponseItem = zod.object({
-  id: zod.number().optional(),
-  name: zod.string(),
-  category: zod
-    .object({
-      id: zod.number().optional(),
-      name: zod.string().optional(),
-    })
-    .optional(),
-  photoUrls: zod.array(zod.string()),
-  tags: zod
-    .array(
-      zod.object({
-        id: zod.number().optional(),
-        name: zod.string().optional(),
-      }),
-    )
-    .optional(),
-  status: zod
-    .enum(['available', 'pending', 'sold'])
-    .optional()
-    .describe('pet status in the store'),
-});
-export const FindPetsByTagsResponse = zod.array(FindPetsByTagsResponseItem);
+  "id": zod.number().optional(),
+  "name": zod.string(),
+  "category": zod.object({
+  "id": zod.number().optional(),
+  "name": zod.string().optional()
+}).optional(),
+  "photoUrls": zod.array(zod.string()),
+  "tags": zod.array(zod.object({
+  "id": zod.number().optional(),
+  "name": zod.string().optional()
+})).optional(),
+  "status": zod.enum(['available', 'pending', 'sold']).optional().describe('pet status in the store')
+})
+export const FindPetsByTagsResponse = zod.array(FindPetsByTagsResponseItem)
+
 
 export const GetPetByIdParams = zod.object({
-  petId: zod.number().describe('ID of pet to return'),
-});
+  "petId": zod.number().describe('ID of pet to return')
+})
 
 export const GetPetByIdResponse = zod.object({
-  id: zod.number().optional(),
-  name: zod.string(),
-  category: zod
-    .object({
-      id: zod.number().optional(),
-      name: zod.string().optional(),
-    })
-    .optional(),
-  photoUrls: zod.array(zod.string()),
-  tags: zod
-    .array(
-      zod.object({
-        id: zod.number().optional(),
-        name: zod.string().optional(),
-      }),
-    )
-    .optional(),
-  status: zod
-    .enum(['available', 'pending', 'sold'])
-    .optional()
-    .describe('pet status in the store'),
-});
+  "id": zod.number().optional(),
+  "name": zod.string(),
+  "category": zod.object({
+  "id": zod.number().optional(),
+  "name": zod.string().optional()
+}).optional(),
+  "photoUrls": zod.array(zod.string()),
+  "tags": zod.array(zod.object({
+  "id": zod.number().optional(),
+  "name": zod.string().optional()
+})).optional(),
+  "status": zod.enum(['available', 'pending', 'sold']).optional().describe('pet status in the store')
+})
+
 
 export const UpdatePetWithFormParams = zod.object({
-  petId: zod.number().describe('ID of pet that needs to be updated'),
-});
+  "petId": zod.number().describe('ID of pet that needs to be updated')
+})
 
 export const UpdatePetWithFormQueryParams = zod.object({
-  name: zod
-    .string()
-    .optional()
-    .describe('Name of pet that needs to be updated'),
-  status: zod
-    .string()
-    .optional()
-    .describe('Status of pet that needs to be updated'),
-});
+  "name": zod.string().optional().describe('Name of pet that needs to be updated'),
+  "status": zod.string().optional().describe('Status of pet that needs to be updated')
+})
 
 export const UpdatePetWithFormResponse = zod.object({
-  id: zod.number().optional(),
-  name: zod.string(),
-  category: zod
-    .object({
-      id: zod.number().optional(),
-      name: zod.string().optional(),
-    })
-    .optional(),
-  photoUrls: zod.array(zod.string()),
-  tags: zod
-    .array(
-      zod.object({
-        id: zod.number().optional(),
-        name: zod.string().optional(),
-      }),
-    )
-    .optional(),
-  status: zod
-    .enum(['available', 'pending', 'sold'])
-    .optional()
-    .describe('pet status in the store'),
-});
+  "id": zod.number().optional(),
+  "name": zod.string(),
+  "category": zod.object({
+  "id": zod.number().optional(),
+  "name": zod.string().optional()
+}).optional(),
+  "photoUrls": zod.array(zod.string()),
+  "tags": zod.array(zod.object({
+  "id": zod.number().optional(),
+  "name": zod.string().optional()
+})).optional(),
+  "status": zod.enum(['available', 'pending', 'sold']).optional().describe('pet status in the store')
+})
+
 
 export const DeletePetParams = zod.object({
-  petId: zod.number().describe('Pet id to delete'),
-});
+  "petId": zod.number().describe('Pet id to delete')
+})
 
 export const DeletePetHeader = zod.object({
-  api_key: zod.string().optional(),
-});
+  "api_key": zod.string().optional()
+})
 
-export const GetInventoryResponse = zod.record(zod.string(), zod.number());
+
+export const GetInventoryResponse = zod.record(zod.string(), zod.number())
+
 
 export const GetOrderByIdParams = zod.object({
-  orderId: zod.number().describe('ID of order that needs to be fetched'),
-});
+  "orderId": zod.number().describe('ID of order that needs to be fetched')
+})
 
 export const GetOrderByIdResponse = zod.object({
-  id: zod.number().optional(),
-  petId: zod.number().optional(),
-  quantity: zod.number().optional(),
-  shipDate: zod.string().datetime({}).optional(),
-  status: zod
-    .enum(['placed', 'approved', 'delivered'])
-    .optional()
-    .describe('Order Status'),
-  complete: zod.boolean().optional(),
-});
+  "id": zod.number().optional(),
+  "petId": zod.number().optional(),
+  "quantity": zod.number().optional(),
+  "shipDate": zod.string().datetime({}).optional(),
+  "status": zod.enum(['placed', 'approved', 'delivered']).optional().describe('Order Status'),
+  "complete": zod.boolean().optional()
+})
+
 
 export const DeleteOrderParams = zod.object({
-  orderId: zod.number().describe('ID of the order that needs to be deleted'),
-});
+  "orderId": zod.number().describe('ID of the order that needs to be deleted')
+})
+
 
 export const LoginUserQueryParams = zod.object({
-  username: zod.string().optional().describe('The user name for login'),
-  password: zod
-    .string()
-    .optional()
-    .describe('The password for login in clear text'),
-});
+  "username": zod.string().optional().describe('The user name for login'),
+  "password": zod.string().optional().describe('The password for login in clear text')
+})
 
-export const LoginUserResponse = zod.string();
+export const LoginUserResponse = zod.string()
+
+
 
 export const GetUserByNameParams = zod.object({
-  username: zod
-    .string()
-    .describe('The name that needs to be fetched. Use user1 for testing'),
-});
+  "username": zod.string().describe('The name that needs to be fetched. Use user1 for testing')
+})
 
 export const GetUserByNameResponse = zod.object({
-  id: zod.number().optional(),
-  username: zod.string().optional(),
-  firstName: zod.string().optional(),
-  lastName: zod.string().optional(),
-  email: zod.string().optional(),
-  password: zod.string().optional(),
-  phone: zod.string().optional(),
-  userStatus: zod.number().optional().describe('User Status'),
-});
+  "id": zod.number().optional(),
+  "username": zod.string().optional(),
+  "firstName": zod.string().optional(),
+  "lastName": zod.string().optional(),
+  "email": zod.string().optional(),
+  "password": zod.string().optional(),
+  "phone": zod.string().optional(),
+  "userStatus": zod.number().optional().describe('User Status')
+})
+
 
 export const DeleteUserParams = zod.object({
-  username: zod.string().describe('The name that needs to be deleted'),
-});
+  "username": zod.string().describe('The name that needs to be deleted')
+})
+
