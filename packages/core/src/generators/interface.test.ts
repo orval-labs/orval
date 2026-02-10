@@ -12,7 +12,7 @@ import { generateInterface } from './interface';
 describe('generateInterface', () => {
   const context: ContextSpec = {
     output: {
-      override: {},
+      override: { namingConvention: {} },
     },
     target: 'typescript',
     spec: {},

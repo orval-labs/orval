@@ -26,6 +26,7 @@ const context: ContextSpec = {
     override: {
       formData: { arrayHandling: 'serialize', disabled: false },
       enumGenerationType: 'const',
+      namingConvention: {},
       components: {
         schemas: { suffix: '', itemSuffix: 'Item' },
         responses: { suffix: '' },
