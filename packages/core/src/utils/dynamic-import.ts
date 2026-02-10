@@ -19,11 +19,13 @@ export async function dynamicImport<T>(
       // https://github.com/nodejs/node/issues/31710
       const fileUrl = pathToFileURL(filePath);
       const isJson = path.extname(fileUrl.href) === '.json';
-      const data = isJson
-        ? await import(fileUrl.href, { with: { type: 'json' } })
-        : await import(fileUrl.href);
+      const data = (
+        isJson
+          ? await import(fileUrl.href, { with: { type: 'json' } })
+          : await import(fileUrl.href)
+      ) as Record<string, unknown>;
       if (takeDefault && (isObject(data) || isModule(data)) && data.default) {
-        return (data as any).default as T;
+        return data.default as T;
       }
 
       return data as unknown as T;

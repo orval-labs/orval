@@ -22,7 +22,7 @@ import {
  * stringify({ a: 1, b: 'test' }) // returns "{ a: 1, b: 'test', }"
  */
 export function stringify(
-  data?: string | any[] | Record<string, any>,
+  data?: string | unknown[] | Record<string, unknown>,
 ): string | undefined {
   if (isNullish(data)) {
     return;
@@ -37,13 +37,15 @@ export function stringify(
   }
 
   if (Array.isArray(data)) {
-    return `[${data.map((item) => stringify(item)).join(', ')}]`;
+    return `[${data.map((item: unknown) => stringify(item as string | unknown[] | Record<string, unknown>)).join(', ')}]`;
   }
 
   const entries = Object.entries(data);
   let result = '';
   for (const [index, [key, value]] of entries.entries()) {
-    const strValue = stringify(value);
+    const strValue = stringify(
+      value as string | unknown[] | Record<string, unknown>,
+    );
     if (entries.length === 1) {
       result = `{ ${key}: ${strValue}, }`;
     } else if (!index) {
@@ -156,12 +158,15 @@ export function toObjectString<T>(props: T[], path?: keyof T) {
 
   const arrayOfString = isString(path)
     ? props.map((prop) => {
-        let obj: any = prop;
+        let obj: unknown = prop;
         for (const key of path.split('.')) {
-          obj =
-            obj && (isObject(obj) || Array.isArray(obj)) ? obj[key] : undefined;
+          if (obj && (isObject(obj) || Array.isArray(obj))) {
+            obj = (obj as Record<string, unknown>)[key];
+          } else {
+            obj = undefined;
+          }
         }
-        return obj;
+        return obj as string;
       })
     : props;
 

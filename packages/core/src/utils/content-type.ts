@@ -69,8 +69,10 @@ export function getFormDataFieldFileType(
     return undefined;
   }
 
-  const effectiveContentType =
-    partContentType ?? resolvedSchema.contentMediaType;
+  const contentMediaType = resolvedSchema.contentMediaType as
+    | string
+    | undefined;
+  const effectiveContentType = partContentType ?? contentMediaType;
 
   if (effectiveContentType) {
     return isBinaryContentType(effectiveContentType) ? 'binary' : 'text';
