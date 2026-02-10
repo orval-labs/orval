@@ -179,7 +179,7 @@ function generateSchemaDefinitions(
         name: sanitizedSchemaName,
         model: `export type ${sanitizedSchemaName} = ${schema ? 'any' : 'never'};\n`,
         imports: [],
-        schema: schema as any,
+        schema: schema as OpenApiSchemaObject,
       },
     ];
   }

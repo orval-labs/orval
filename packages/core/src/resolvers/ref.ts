@@ -92,17 +92,21 @@ function getSchema<
     return getSchema(schemaByRefPaths, context);
   }
 
-  let currentSchema = schemaByRefPaths || context.spec;
+  let currentSchema: OpenApiSchemaObject | OpenApiReferenceObject =
+    schemaByRefPaths || context.spec;
 
   // Handle OpenAPI 3.0 nullable property
+  // Bridge assertion: schema properties are `any` due to AnyOtherAttribute
   if ('nullable' in schema) {
-    currentSchema = { ...currentSchema, nullable: schema.nullable };
+    const nullable = schema.nullable as boolean | undefined;
+    currentSchema = { ...currentSchema, nullable } as typeof currentSchema;
   }
 
   // Handle OpenAPI 3.1 type array (e.g., type: ["object", "null"])
   // This preserves nullable information when using direct $ref with types array
   if ('type' in schema && Array.isArray(schema.type)) {
-    currentSchema = { ...currentSchema, type: schema.type };
+    const type = schema.type as string[];
+    currentSchema = { ...currentSchema, type } as typeof currentSchema;
   }
 
   return {
@@ -124,7 +128,8 @@ export function resolveExampleRefs(
     ? examples.map((example) => {
         if (isReference(example)) {
           const { schema } = resolveRef<OpenApiExampleObject>(example, context);
-          return schema.value;
+          // Bridge assertion: ExampleObject.value is typed as `any`
+          return schema.value as Example;
         }
         return example;
       })
@@ -132,10 +137,9 @@ export function resolveExampleRefs(
         const result: Record<string, unknown> = {};
         for (const [key, example] of Object.entries(examples)) {
           if (isReference(example)) {
-            result[key] = resolveRef<OpenApiExampleObject>(
-              example,
-              context,
-            ).schema.value;
+            // Bridge assertion: ExampleObject.value is typed as `any`
+            result[key] = resolveRef<OpenApiExampleObject>(example, context)
+              .schema.value as unknown;
           } else {
             result[key] = example;
           }

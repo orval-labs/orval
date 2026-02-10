@@ -79,11 +79,18 @@ export async function generateVerbOptions({
     responses,
     requestBody,
     parameters: operationParameters,
-    tags = [],
-    deprecated,
-    description,
-    summary,
+    tags: rawTags,
+    deprecated: rawDeprecated,
+    description: rawDescription,
+    summary: rawSummary,
   } = operation;
+
+  // Bridge assertions: OpenApiOperationObject has AnyOtherAttribute index signature
+  // which makes all destructured properties `any`. Assert to their declared types.
+  const tags = (rawTags ?? []) as string[];
+  const deprecated = rawDeprecated as boolean | undefined;
+  const description = rawDescription as string | undefined;
+  const summary = rawSummary as string | undefined;
   const operationId = getOperationId(operation, route, verb);
   const overrideOperation = output.override.operations[operationId];
   let overrideTag: NormalizedOperationOptions = {};
@@ -225,7 +232,7 @@ export async function generateVerbOptions({
     tags,
     route,
     pathRoute,
-    summary: operation.summary,
+    summary,
     operationId,
     operationName,
     response,
@@ -330,7 +337,8 @@ export function _filteredVerbs(
 
   return Object.entries(verbs).filter(
     ([, operation]: [string, OpenApiOperationObject]) => {
-      const operationTags = operation.tags ?? [];
+      // Bridge assertion: operation.tags is `any` due to AnyOtherAttribute
+      const operationTags = (operation.tags ?? []) as string[];
 
       const isMatch = operationTags.some((tag: string) =>
         filterTags.some((filterTag) =>
