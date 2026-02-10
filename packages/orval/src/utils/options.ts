@@ -253,7 +253,7 @@ export async function normalizeOptions(
         ),
         formUrlEncoded:
           (isBoolean(outputOptions.override?.formUrlEncoded)
-            ? outputOptions.override?.formUrlEncoded
+            ? outputOptions.override.formUrlEncoded
             : normalizeMutator(
                 outputWorkspace,
                 outputOptions.override?.formUrlEncoded,
@@ -266,7 +266,7 @@ export async function normalizeOptions(
           outputOptions.override?.header === false
             ? false
             : isFunction(outputOptions.override?.header)
-              ? outputOptions.override?.header!
+              ? outputOptions.override.header
               : getDefaultFilesHeader,
         requestOptions: outputOptions.override?.requestOptions ?? true,
         namingConvention: outputOptions.override?.namingConvention ?? {},
@@ -420,7 +420,7 @@ function normalizeMutator(
     return {
       ...mutator,
       path: upath.resolve(workspace, mutator.path),
-      default: mutator.default ?? !mutator.name ?? false,
+      default: mutator.default ?? !mutator.name,
     };
   }
 
@@ -546,10 +546,9 @@ function normalizeOperationsAndTags(
                           }
                         : {}),
                     },
-                    generateEachHttpStatus:
-                      zod?.generateEachHttpStatus ?? false,
-                    dateTimeOptions: zod?.dateTimeOptions ?? {},
-                    timeOptions: zod?.timeOptions ?? {},
+                    generateEachHttpStatus: zod.generateEachHttpStatus ?? false,
+                    dateTimeOptions: zod.dateTimeOptions ?? {},
+                    timeOptions: zod.timeOptions ?? {},
                   },
                 }
               : {}),
@@ -691,9 +690,9 @@ function normalizeQueryOptions(
           queryKey: globalOptions.queryKey,
         }
       : {}),
-    ...(queryOptions?.queryKey
+    ...(queryOptions.queryKey
       ? {
-          queryKey: normalizeMutator(outputWorkspace, queryOptions?.queryKey),
+          queryKey: normalizeMutator(outputWorkspace, queryOptions.queryKey),
         }
       : {}),
     ...(globalOptions.queryOptions
@@ -701,11 +700,11 @@ function normalizeQueryOptions(
           queryOptions: globalOptions.queryOptions,
         }
       : {}),
-    ...(queryOptions?.queryOptions
+    ...(queryOptions.queryOptions
       ? {
           queryOptions: normalizeMutator(
             outputWorkspace,
-            queryOptions?.queryOptions,
+            queryOptions.queryOptions,
           ),
         }
       : {}),
@@ -714,11 +713,11 @@ function normalizeQueryOptions(
           mutationOptions: globalOptions.mutationOptions,
         }
       : {}),
-    ...(queryOptions?.mutationOptions
+    ...(queryOptions.mutationOptions
       ? {
           mutationOptions: normalizeMutator(
             outputWorkspace,
-            queryOptions?.mutationOptions,
+            queryOptions.mutationOptions,
           ),
         }
       : {}),
