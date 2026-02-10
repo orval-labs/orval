@@ -237,7 +237,7 @@ export function getEnumUnionFromSchema(
 }
 
 const stripNullUnion = (value: string) =>
-  value.replace(/\s*\|\s*null/g, '').trim();
+  value.replaceAll(/\s*\|\s*null/g, '').trim();
 
 const isSpreadableEnumRef = (
   schema: OpenApiSchemaObject | undefined,

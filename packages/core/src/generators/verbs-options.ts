@@ -61,7 +61,7 @@ function getContentTypeSuffix(contentType: string): string {
 
   return (
     contentTypeMap[contentType] ||
-    pascal(contentType.replace(/[^a-zA-Z0-9]/g, '_'))
+    pascal(contentType.replaceAll(/[^a-zA-Z0-9]/g, '_'))
   );
 }
 
@@ -94,7 +94,7 @@ export async function generateVerbOptions({
     {},
   );
 
-  let override = mergeDeep(
+  const override = mergeDeep(
     mergeDeep(output.override, overrideTag),
     overrideOperation || {},
   );

@@ -101,10 +101,7 @@ export function sanitize(
   let newValue = value;
 
   if (!special) {
-    newValue = newValue.replaceAll(
-      /[!"`'#%&,:;<>=@{}~\$\(\)\*\+\/\\\?\[\]\^\|]/g,
-      '',
-    );
+    newValue = newValue.replaceAll(/[!"`'#%&,:;<>=@{}~$()*+/\\?[\]^|]/g, '');
   }
 
   if (whitespace !== true) {

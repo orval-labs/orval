@@ -44,7 +44,7 @@ export function createTypeAliasIfNeeded({
   // aliasCombinedTypes (v7 compat): match '|' and '&' so 'string | number' creates named type
   // v8 default: only match '{' so combined primitives are inlined
   const aliasPattern = context.output.override.aliasCombinedTypes
-    ? '{|&|\\|'
+    ? String.raw`{|&|\|`
     : '{';
   if (!new RegExp(aliasPattern).test(resolvedValue.value)) {
     return undefined;

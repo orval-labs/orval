@@ -27,6 +27,6 @@ export const VERBS_WITH_BODY = [
 ];
 
 export const URL_REGEX =
-  /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/;
+  /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w.-]+)+[\w\-._~:/?#[\]@!$&'()*+,;=.]+$/;
 
 export const TEMPLATE_TAG_REGEX = /\${(.+?)}/g; // For replace of 'thing' ${thing}
