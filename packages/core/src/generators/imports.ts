@@ -90,17 +90,18 @@ export function generateMutatorImports({
   implementation,
   oneMore,
 }: GenerateMutatorImportsOptions) {
-  const imports = uniqueWith(
+  let imports = '';
+  for (const mutator of uniqueWith(
     mutators,
     (a, b) => a.name === b.name && a.default === b.default,
-  ).reduce((acc, mutator) => {
+  )) {
     const path = `${oneMore ? '../' : ''}${mutator.path}`;
     const importDefault = mutator.default
       ? mutator.name
       : `{ ${mutator.name} }`;
 
-    acc += `import ${importDefault} from '${path}';`;
-    acc += '\n';
+    imports += `import ${importDefault} from '${path}';`;
+    imports += '\n';
 
     if (implementation && (mutator.hasErrorType || mutator.bodyTypeName)) {
       let errorImportName = '';
@@ -110,7 +111,7 @@ export function generateMutatorImports({
       if (
         mutator.hasErrorType &&
         implementation.includes(mutator.errorTypeName) &&
-        !acc.includes(`{ ${targetErrorImportName} `)
+        !imports.includes(`{ ${targetErrorImportName} `)
       ) {
         errorImportName = targetErrorImportName;
       }
@@ -122,21 +123,19 @@ export function generateMutatorImports({
       if (
         mutator.bodyTypeName &&
         implementation.includes(mutator.bodyTypeName) &&
-        !acc.includes(` ${targetBodyImportName} }`)
+        !imports.includes(` ${targetBodyImportName} }`)
       ) {
-        bodyImportName = targetBodyImportName!;
+        bodyImportName = targetBodyImportName ?? '';
       }
 
       if (bodyImportName || errorImportName) {
-        acc += `import type { ${errorImportName}${
+        imports += `import type { ${errorImportName}${
           errorImportName && bodyImportName ? ' , ' : ''
         }${bodyImportName} } from '${path}';`;
-        acc += '\n';
+        imports += '\n';
       }
     }
-
-    return acc;
-  }, '');
+  }
 
   return imports;
 }
@@ -237,33 +236,22 @@ export function addDependency({
     return;
   }
 
-  const groupedBySpecKey = toAdds.reduce<
-    Record<string, { types: GeneratorImport[]; values: GeneratorImport[] }>
-  >(
-    (acc, dep) => {
-      const key = 'default';
+  const groupedBySpecKey: Record<
+    string,
+    { types: GeneratorImport[]; values: GeneratorImport[] }
+  > = { default: { types: [], values: [] } };
+  for (const dep of toAdds) {
+    const key = 'default';
 
-      if (
-        dep.values &&
-        (isAllowSyntheticDefaultImports || !dep.syntheticDefaultImport)
-      ) {
-        acc[key] = {
-          ...acc[key],
-          values: [...acc[key].values, dep],
-        };
-
-        return acc;
-      }
-
-      acc[key] = {
-        ...acc[key],
-        types: [...acc[key].types, dep],
-      };
-
-      return acc;
-    },
-    { default: { types: [], values: [] } },
-  );
+    if (
+      dep.values &&
+      (isAllowSyntheticDefaultImports || !dep.syntheticDefaultImport)
+    ) {
+      groupedBySpecKey[key].values.push(dep);
+    } else {
+      groupedBySpecKey[key].types.push(dep);
+    }
+  }
 
   return (
     Object.entries(groupedBySpecKey)
@@ -330,10 +318,10 @@ export function generateDependencyImports(
         isAllowSyntheticDefaultImports,
       }),
     )
-    .filter(Boolean)
+    .filter((x): x is string => Boolean(x))
     .toSorted((a, b) => {
-      const aLib = getLibName(a!);
-      const bLib = getLibName(b!);
+      const aLib = getLibName(a);
+      const bLib = getLibName(b);
 
       if (aLib === bLib) {
         return 0;

@@ -145,7 +145,7 @@ export function generateAxiosOptions({
     value += paramsSerializer
       ? `\n        paramsSerializer: ${paramsSerializer.name},`
       : `\n        paramsSerializer: (params) => qs.stringify(params, ${JSON.stringify(
-          paramsSerializerOptions!.qs,
+          paramsSerializerOptions?.qs,
         )}),`;
   }
 
