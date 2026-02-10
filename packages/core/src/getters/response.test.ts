@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { ContextSpec, OpenApiResponsesObject } from '../types';
 import { getResponse } from './response';
 
-const context: ContextSpec = {
+const context = {
   output: {
     override: {
       formData: { arrayHandling: 'serialize', disabled: false },
@@ -15,7 +15,7 @@ const context: ContextSpec = {
   spec: {
     components: { schemas: {} },
   },
-};
+} as unknown as ContextSpec;
 
 describe('getResponse', () => {
   describe('multiple status codes with same schema', () => {
@@ -66,7 +66,7 @@ describe('getResponse', () => {
       const result = getResponse({
         responses,
         operationName: 'configurationControllerCreateSubscription',
-        context: context as any,
+        context,
       });
 
       expect(result.types.success).toHaveLength(2);
@@ -91,7 +91,7 @@ describe('getResponse', () => {
       const result = getResponse({
         responses: {},
         operationName: 'testOperation',
-        context: context as any,
+        context,
       });
 
       expect(result.definition.success).toBe('unknown');
@@ -128,7 +128,7 @@ describe('getResponse', () => {
       const result = getResponse({
         responses,
         operationName: 'createPets',
-        context: context as any,
+        context,
       });
 
       expect(result.definition.success).toBe('Pet');
@@ -171,7 +171,7 @@ describe('getResponse', () => {
       const result = getResponse({
         responses,
         operationName: 'listPets',
-        context: context as any,
+        context,
       });
 
       expect(result.definition.errors).toBe('Error');

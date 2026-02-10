@@ -527,9 +527,9 @@ export type ConstEnum = typeof ConstEnumValue;
 
   describe('duplicate union types', () => {
     it('should not produce duplicate null in nullable object types', () => {
-      const schema: OpenApiSchemaObject = {
-        type: ['object', 'null'] as any,
-      };
+      const schema = {
+        type: ['object', 'null'],
+      } as unknown as OpenApiSchemaObject;
 
       const result = generateInterface({
         name: 'NullableObject',
