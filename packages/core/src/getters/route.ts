@@ -37,11 +37,7 @@ export function getRoute(route: string) {
       continue;
     }
 
-    if (!path.includes('{')) {
-      result += `/${path}`;
-    } else {
-      result += `/${getRoutePath(path)}`;
-    }
+    result += path.includes('{') ? `/${getRoutePath(path)}` : `/${path}`;
   }
   return result;
 }

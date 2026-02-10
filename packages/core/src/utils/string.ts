@@ -33,7 +33,7 @@ export function stringify(
   }
 
   if (isNumber(data) || isBoolean(data) || isFunction(data)) {
-    return `${data}`;
+    return String(data);
   }
 
   if (Array.isArray(data)) {
@@ -160,11 +160,10 @@ export function toObjectString<T>(props: T[], path?: keyof T) {
     ? props.map((prop) => {
         let obj: unknown = prop;
         for (const key of path.split('.')) {
-          if (obj && (isObject(obj) || Array.isArray(obj))) {
-            obj = (obj as Record<string, unknown>)[key];
-          } else {
-            obj = undefined;
-          }
+          obj =
+            obj && (isObject(obj) || Array.isArray(obj))
+              ? (obj as Record<string, unknown>)[key]
+              : undefined;
         }
         return obj as string;
       })
@@ -196,6 +195,7 @@ const NUMBERS = {
  * getNumberWord(42) // returns "fourtwo"
  */
 export function getNumberWord(num: number) {
+  // eslint-disable-next-line @typescript-eslint/no-misused-spread -- digits 0-9 only, no unicode concerns
   const arrayOfNumber = [...num.toString()] as (keyof typeof NUMBERS)[];
   return arrayOfNumber.reduce((acc, n) => acc + NUMBERS[n], '');
 }

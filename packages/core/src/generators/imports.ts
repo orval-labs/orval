@@ -222,7 +222,6 @@ export function addDependency({
   exports,
   dependency,
   projectName,
-  hasSchemaDir,
   isAllowSyntheticDefaultImports,
 }: AddDependencyOptions) {
   const toAdds = exports.filter((e) => {
@@ -318,6 +317,7 @@ export function generateDependencyImports(
         isAllowSyntheticDefaultImports,
       }),
     )
+    // eslint-disable-next-line unicorn/prefer-native-coercion-functions -- type predicate (x is string) required for narrowing
     .filter((x): x is string => Boolean(x))
     .toSorted((a, b) => {
       const aLib = getLibName(a);

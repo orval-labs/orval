@@ -33,6 +33,8 @@ export async function dynamicImport<T>(
 
     return toImport as T;
   } catch (error) {
-    throw new Error(`Oups... 🍻. Path: ${toImport} => ${error}`);
+    throw new Error(
+      `Oups... 🍻. Path: ${String(toImport)} => ${String(error)}`,
+    );
   }
 }

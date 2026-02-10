@@ -1,5 +1,5 @@
 import type { ContextSpec, NormalizedOverrideOutput } from '../types';
-import { getFileInfo, isUrl, pascal, sanitize, upath } from '../utils';
+import { pascal, sanitize, upath } from '../utils';
 
 type RefComponent = 'schemas' | 'responses' | 'parameters' | 'requestBodies';
 
@@ -18,16 +18,6 @@ export const RefComponentSuffix: Record<RefComponent, string> = {
 };
 
 const regex = new RegExp('~1', 'g');
-
-const resolveUrl = (from: string, to: string): string => {
-  const resolvedUrl = new URL(to, new URL(from, 'resolve://'));
-  if (resolvedUrl.protocol === 'resolve:') {
-    // `from` is a relative URL.
-    const { pathname, search, hash } = resolvedUrl;
-    return pathname + search + hash;
-  }
-  return resolvedUrl.toString();
-};
 
 export interface RefInfo {
   name: string;
