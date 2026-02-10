@@ -16,7 +16,7 @@ export const getListPetsResponseMock = (): Pets =>
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
   ).map(() => ({
-    id: faker.number.int({ min: undefined, max: undefined }),
+    id: faker.number.int(),
     name: faker.string.alpha({ length: { min: 10, max: 20 } }),
     tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
   }));
@@ -24,7 +24,7 @@ export const getListPetsResponseMock = (): Pets =>
 export const getCreatePetsResponseMock = (
   overrideResponse: Partial<Pet> = {},
 ): Pet => ({
-  id: faker.number.int({ min: undefined, max: undefined }),
+  id: faker.number.int(),
   name: faker.string.alpha({ length: { min: 10, max: 20 } }),
   tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
   ...overrideResponse,
@@ -33,7 +33,7 @@ export const getCreatePetsResponseMock = (
 export const getUpdatePetsResponseMock = (
   overrideResponse: Partial<Pet> = {},
 ): Pet => ({
-  id: faker.number.int({ min: undefined, max: undefined }),
+  id: faker.number.int(),
   name: faker.string.alpha({ length: { min: 10, max: 20 } }),
   tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
   ...overrideResponse,
@@ -42,7 +42,7 @@ export const getUpdatePetsResponseMock = (
 export const getShowPetByIdResponseMock = (
   overrideResponse: Partial<Pet> = {},
 ): Pet => ({
-  id: faker.number.int({ min: undefined, max: undefined }),
+  id: faker.number.int(),
   name: faker.string.alpha({ length: { min: 10, max: 20 } }),
   tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
   ...overrideResponse,
@@ -59,15 +59,13 @@ export const getListPetsMockHandler = (
   return http.get(
     '*/pets',
     async (info) => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getListPetsResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getListPetsResponseMock(),
+        { status: 200 },
       );
     },
     options,
@@ -85,15 +83,13 @@ export const getCreatePetsMockHandler = (
   return http.post(
     '*/pets',
     async (info) => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getCreatePetsResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getCreatePetsResponseMock(),
+        { status: 200 },
       );
     },
     options,
@@ -111,15 +107,13 @@ export const getUpdatePetsMockHandler = (
   return http.put(
     '*/pets',
     async (info) => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getUpdatePetsResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getUpdatePetsResponseMock(),
+        { status: 200 },
       );
     },
     options,
@@ -137,15 +131,13 @@ export const getShowPetByIdMockHandler = (
   return http.get(
     '*/pets/:petId',
     async (info) => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getShowPetByIdResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getShowPetByIdResponseMock(),
+        { status: 200 },
       );
     },
     options,

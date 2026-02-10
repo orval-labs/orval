@@ -39,15 +39,13 @@ export const getListPetsMockHandler = (
   return http.get(
     '*/v:version/pets',
     async (info) => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getListPetsResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getListPetsResponseMock(),
+        { status: 200 },
       );
     },
     options,
@@ -68,6 +66,7 @@ export const getCreatePetsMockHandler = (
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
       }
+
       return new HttpResponse(null, { status: 201 });
     },
     options,
@@ -85,15 +84,13 @@ export const getShowPetByIdMockHandler = (
   return http.get(
     '*/v:version/pets/:petId',
     async (info) => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getShowPetByIdResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getShowPetByIdResponseMock(),
+        { status: 200 },
       );
     },
     options,
