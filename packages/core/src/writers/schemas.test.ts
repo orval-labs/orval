@@ -579,9 +579,7 @@ describe('fixRegularSchemaImports', () => {
   });
 
   it('should include custom file extension in import path', () => {
-    const regularSchemas = [
-      createSchemaWithImports('User', ['GetUserParams']),
-    ];
+    const regularSchemas = [createSchemaWithImports('User', ['GetUserParams'])];
     const operationSchemaNames = new Set(['GetUserParams']);
 
     fixRegularSchemaImports(
@@ -599,9 +597,7 @@ describe('fixRegularSchemaImports', () => {
   });
 
   it('should include non-.ts file extension in import path', () => {
-    const regularSchemas = [
-      createSchemaWithImports('User', ['GetUserParams']),
-    ];
+    const regularSchemas = [createSchemaWithImports('User', ['GetUserParams'])];
     const operationSchemaNames = new Set(['GetUserParams']);
 
     fixRegularSchemaImports(
