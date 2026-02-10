@@ -97,7 +97,7 @@ function sortSchemasByDependencies(
       }
 
     for (const imp of schema.imports) {
-      const dependencyName = imp.alias || imp.name;
+      const dependencyName = imp.alias ?? imp.name;
       if (dependencyName && schemaNames.has(dependencyName)) {
         dependencies.add(dependencyName);
       }

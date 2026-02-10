@@ -96,7 +96,7 @@ export async function generateVerbOptions({
 
   const override = mergeDeep(
     mergeDeep(output.override, overrideTag),
-    overrideOperation || {},
+    overrideOperation ?? {},
   );
 
   // Store the original user-defined contentType filter for responses

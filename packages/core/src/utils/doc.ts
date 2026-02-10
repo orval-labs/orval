@@ -51,7 +51,7 @@ export function jsDoc(
   const lines = (
     Array.isArray(description)
       ? description.filter((d) => !d.includes('eslint-disable'))
-      : [description || '']
+      : [description ?? '']
   ).map((line) => line.replaceAll(regex, replacement));
 
   const count = [

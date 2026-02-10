@@ -86,9 +86,7 @@ function getSchema<
       ) as OpenApiSchemaObject | OpenApiReferenceObject)
     : undefined;
 
-  if (!schemaByRefPaths) {
-    schemaByRefPaths = context.spec;
-  }
+  schemaByRefPaths ??= context.spec;
 
   if (isReference(schemaByRefPaths)) {
     return getSchema(schemaByRefPaths, context);

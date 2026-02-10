@@ -22,7 +22,7 @@ export function generateImportsForBuilder(
       : [{ exports: imports, dependency: relativeSchemasPath }];
   } else {
     return uniqueBy(imports, (x) => x.name).map((i) => {
-      const baseName = i.schemaName || i.name;
+      const baseName = i.schemaName ?? i.name;
       const name = conventionName(baseName, output.namingConvention);
       const suffix = isZodSchemaOutput ? '.zod' : '';
       const importExtension = output.fileExtension?.replace(/\.ts$/, '') || '';

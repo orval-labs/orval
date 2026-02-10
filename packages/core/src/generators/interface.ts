@@ -27,7 +27,7 @@ export function generateInterface({
   });
   const isEmptyObject = scalar.value === '{}';
   const shouldUseTypeAlias =
-    context?.output.override?.useTypeOverInterfaces || scalar.useTypeAlias;
+    context?.output.override?.useTypeOverInterfaces ?? scalar.useTypeAlias;
 
   let model = '';
 

@@ -269,8 +269,8 @@ function getSchema({
   file += generateImports({
     imports: imports.filter(
       (imp) =>
-        !model.includes(`type ${imp.alias || imp.name} =`) &&
-        !model.includes(`interface ${imp.alias || imp.name} {`),
+        !model.includes(`type ${imp.alias ?? imp.name} =`) &&
+        !model.includes(`interface ${imp.alias ?? imp.name} {`),
     ),
     target,
     namingConvention,
