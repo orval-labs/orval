@@ -208,7 +208,7 @@ export async function writeSplitTagsMode({
               tag,
               tag + '.' + getMockFileExtensionByTypeName(mockOption),
             );
-            fs.appendFile(
+            await fs.appendFile(
               indexFilePath,
               `export { get${pascal(tag)}Mock } from '${localMockPath}'\n`,
             );
@@ -222,7 +222,7 @@ export async function writeSplitTagsMode({
         ];
       } catch (error) {
         throw new Error(
-          `Oups... 🍻. An Error occurred while splitting tag ${tag} => ${error}`,
+          `Oups... 🍻. An Error occurred while splitting tag ${tag} => ${String(error)}`,
         );
       }
     }),

@@ -167,7 +167,7 @@ export async function writeTagsMode({
         return [implementationPath, ...(schemasPath ? [schemasPath] : [])];
       } catch (error) {
         throw new Error(
-          `Oups... 🍻. An Error occurred while writing tag ${tag} => ${error}`,
+          `Oups... 🍻. An Error occurred while writing tag ${tag} => ${String(error)}`,
         );
       }
     }),

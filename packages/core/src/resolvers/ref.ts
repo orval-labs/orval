@@ -12,6 +12,8 @@ import type {
 } from '../types';
 import { isReference } from '../utils';
 
+/* eslint-disable @typescript-eslint/no-unnecessary-type-parameters -- TSchema constrains return type for callers (e.g. resolveRef<OpenApiExampleObject>) */
+
 export function resolveRef<
   TSchema extends OpenApiComponentsObject = OpenApiComponentsObject,
 >(
@@ -115,6 +117,8 @@ function getSchema<
   };
 }
 
+/* eslint-enable @typescript-eslint/no-unnecessary-type-parameters */
+
 type Example = OpenApiExampleObject | OpenApiReferenceObject;
 type Examples = Example[] | Record<string, Example> | undefined;
 export function resolveExampleRefs(
@@ -136,13 +140,11 @@ export function resolveExampleRefs(
     : (() => {
         const result: Record<string, unknown> = {};
         for (const [key, example] of Object.entries(examples)) {
-          if (isReference(example)) {
-            // Bridge assertion: ExampleObject.value is typed as `any`
-            result[key] = resolveRef<OpenApiExampleObject>(example, context)
-              .schema.value as unknown;
-          } else {
-            result[key] = example;
-          }
+          // Bridge assertion: ExampleObject.value is typed as `any`
+          result[key] = isReference(example)
+            ? (resolveRef<OpenApiExampleObject>(example, context).schema
+                .value as unknown)
+            : example;
         }
         return result;
       })();

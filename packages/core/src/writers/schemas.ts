@@ -327,7 +327,7 @@ export async function writeSchema({
     );
   } catch (error) {
     throw new Error(
-      `Oups... 🍻. An Error occurred while writing schema ${name} => ${error}`,
+      `Oups... 🍻. An Error occurred while writing schema ${name} => ${String(error)}`,
     );
   }
 }
@@ -444,7 +444,7 @@ export async function writeSchemas({
       await fs.writeFile(schemaFilePath, fileContent, { encoding: 'utf8' });
     } catch (error) {
       throw new Error(
-        `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${error}`,
+        `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${String(error)}`,
       );
     }
   }
