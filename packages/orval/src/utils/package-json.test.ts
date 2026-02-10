@@ -67,7 +67,7 @@ describe('loadPackageJson - catalog resolution', () => {
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
       vi.mocked(fs.readFile).mockResolvedValue(
-        'catalog:\n  react: "^18.2.0"' as any,
+        Buffer.from('catalog:\n  react: "^18.2.0"'),
       );
       vi.mocked(yaml.load).mockReturnValue({
         catalog: { react: '^18.2.0' },
@@ -94,7 +94,7 @@ describe('loadPackageJson - catalog resolution', () => {
       });
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readFile).mockResolvedValue('' as any);
+      vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
       vi.mocked(yaml.load).mockReturnValue({
         catalog: { react: '^18.2.0' },
       });
@@ -120,7 +120,7 @@ describe('loadPackageJson - catalog resolution', () => {
       });
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readFile).mockResolvedValue('' as any);
+      vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
       vi.mocked(yaml.load).mockReturnValue({
         catalogs: {
           testing: { jest: '^29.0.0' },
@@ -148,7 +148,7 @@ describe('loadPackageJson - catalog resolution', () => {
       });
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readFile).mockResolvedValue('' as any);
+      vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
       vi.mocked(yaml.load).mockReturnValue({
         catalog: { react: '^18.2.0' },
       });
@@ -237,7 +237,7 @@ describe('loadPackageJson - catalog resolution', () => {
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
       vi.mocked(fs.readJson).mockResolvedValue({});
-      vi.mocked(fs.readFile).mockResolvedValue('' as any);
+      vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
       vi.mocked(yaml.load).mockReturnValue({
         catalog: { typescript: '5.9.3' },
       });
@@ -266,7 +266,7 @@ describe('loadPackageJson - catalog resolution', () => {
       vi.mocked(findUpMultiple).mockResolvedValue(['/workspace/package.json']);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readFile).mockResolvedValue('' as any);
+      vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
       vi.mocked(yaml.load).mockReturnValue({
         catalog: { react: '^18.0.0' },
       });
@@ -299,7 +299,7 @@ describe('loadPackageJson - catalog resolution', () => {
       vi.mocked(fs.readJson).mockResolvedValue({
         catalog: { react: '^19.0.0' },
       });
-      vi.mocked(fs.readFile).mockResolvedValue('' as any);
+      vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
       vi.mocked(yaml.load).mockReturnValue({
         catalog: { react: '^18.0.0' },
       });
@@ -378,7 +378,7 @@ describe('loadPackageJson - catalog resolution', () => {
       });
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readFile).mockResolvedValue('' as any);
+      vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
       vi.mocked(yaml.load).mockReturnValue({
         catalog: {
           react: '^18.2.0',
@@ -410,7 +410,7 @@ describe('loadPackageJson - catalog resolution', () => {
       });
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readFile).mockResolvedValue('' as any);
+      vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
       vi.mocked(yaml.load).mockReturnValue({
         catalogs: {
           testing: { vitest: '^2.0.0' },
@@ -441,7 +441,7 @@ describe('loadPackageJson - catalog resolution', () => {
       });
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readFile).mockResolvedValue('' as any);
+      vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
       vi.mocked(yaml.load).mockReturnValue({
         catalog: { react: '^18.0.0' },
       });
