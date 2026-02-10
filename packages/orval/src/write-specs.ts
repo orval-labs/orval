@@ -235,7 +235,8 @@ export async function writeSpecs(
             indexFiles: output.indexFiles,
           });
         }
-      } else if (schemaType === 'zod') {
+      } else {
+        // schemaType === 'zod'
         const fileExtension = '.zod.ts';
 
         await writeZodSchemas(
@@ -246,21 +247,19 @@ export async function writeSpecs(
           output,
         );
 
-        if (builder.verbOptions) {
-          await writeZodSchemasFromVerbs(
-            builder.verbOptions,
-            output.schemas.path,
-            fileExtension,
-            header,
+        await writeZodSchemasFromVerbs(
+          builder.verbOptions,
+          output.schemas.path,
+          fileExtension,
+          header,
+          output,
+          {
+            spec: builder.spec,
+            target: builder.target,
+            workspace,
             output,
-            {
-              spec: builder.spec,
-              target: builder.target,
-              workspace,
-              output,
-            },
-          );
-        }
+          },
+        );
       }
     }
   }

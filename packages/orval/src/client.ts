@@ -57,10 +57,6 @@ const getGeneratorClient = (
     ? outputClient(GENERATOR_CLIENT)
     : GENERATOR_CLIENT[outputClient];
 
-  if (!generator) {
-    throw new Error(`Oups... 🍻. Client not found: ${outputClient}`);
-  }
-
   return generator;
 };
 

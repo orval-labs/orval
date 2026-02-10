@@ -68,15 +68,13 @@ export async function getApiBuilder({
 
       const schemas = verbsOptions.reduce<GeneratorSchema[]>(
         (acc, { queryParams, headers, body, response, props }) => {
-          if (props) {
-            acc.push(
-              ...props.flatMap((param) =>
-                param.type === GetterPropType.NAMED_PATH_PARAMS
-                  ? param.schema
-                  : [],
-              ),
-            );
-          }
+          acc.push(
+            ...props.flatMap((param) =>
+              param.type === GetterPropType.NAMED_PATH_PARAMS
+                ? param.schema
+                : [],
+            ),
+          );
           if (queryParams) {
             acc.push(queryParams.schema, ...queryParams.deps);
           }
