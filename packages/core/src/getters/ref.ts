@@ -44,10 +44,10 @@ export function getRefInfo($ref: string, context: ContextSpec): RefInfo {
     const firstLevel = override[paths[0] as keyof NormalizedOverrideOutput];
     if (!firstLevel) return '';
 
-    const secondLevel = (firstLevel as Record<string, { suffix?: string }>)[
-      paths[1]
-    ];
-    return secondLevel.suffix ?? '';
+    const secondLevel = (
+      firstLevel as Record<string, { suffix?: string } | undefined>
+    )[paths[1]];
+    return secondLevel?.suffix ?? '';
   };
 
   const suffix = getOverrideSuffix(context.output.override, refPaths);

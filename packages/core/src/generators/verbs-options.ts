@@ -19,6 +19,7 @@ import type {
   OpenApiComponentsObject,
   OpenApiOperationObject,
   OpenApiPathItemObject,
+  OpenApiRequestBodyObject,
   Verbs,
 } from '../types';
 import {
@@ -130,12 +131,24 @@ export async function generateVerbOptions({
     contentType: originalContentTypeFilter,
   });
 
-  const body = getBody({
-    requestBody: requestBody ?? {},
-    operationName,
-    context,
-    contentType: requestBodyContentTypeFilter,
-  });
+  const body = requestBody
+    ? getBody({
+        requestBody,
+        operationName,
+        context,
+        contentType: requestBodyContentTypeFilter,
+      })
+    : {
+        originalSchema: {} as OpenApiRequestBodyObject,
+        definition: '',
+        implementation: '',
+        imports: [],
+        schemas: [],
+        formData: '',
+        formUrlEncoded: '',
+        contentType: '',
+        isOptional: false,
+      };
 
   const parameters = getParameters({
     parameters: [...verbParameters, ...(operationParameters ?? [])],
