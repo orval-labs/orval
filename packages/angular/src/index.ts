@@ -25,7 +25,7 @@ const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
     exports: [
       { name: 'HttpClient', values: true },
       { name: 'HttpHeaders' },
-      { name: 'HttpParams' },
+      { name: 'HttpParams', values: true },
       { name: 'HttpContext' },
       { name: 'HttpResponse', alias: 'AngularHttpResponse' }, // alias to prevent naming conflict with msw
       { name: 'HttpEvent' },

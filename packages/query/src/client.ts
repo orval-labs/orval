@@ -187,13 +187,18 @@ export const generateAngularHttpRequestFunction = (
     httpOptions.push('headers: new HttpHeaders(headers)');
   }
 
-  const isTextResponse = response.contentTypes.some(
+  const contentTypes = response.contentTypes.filter(Boolean);
+  const hasJsonResponse = contentTypes.some(
+    (contentType) =>
+      contentType.includes('json') || contentType.includes('+json'),
+  );
+  const hasTextResponse = contentTypes.some(
     (contentType) =>
       contentType.startsWith('text/') || contentType.includes('xml'),
   );
   const responseTypeOption = response.isBlob
     ? "'blob'"
-    : isTextResponse
+    : !hasJsonResponse && hasTextResponse
       ? "'text'"
       : undefined;
   if (responseTypeOption) {
