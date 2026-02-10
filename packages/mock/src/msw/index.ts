@@ -102,6 +102,16 @@ function generateDefinition(
 
   const isResponseOverridable = value.includes(overrideVarName);
   const isTextPlain = contentTypes.includes('text/plain');
+  const isBinaryResponse =
+    returnType === 'Blob' ||
+    contentTypes.some(
+      (ct) =>
+        ct === 'application/octet-stream' ||
+        ct === 'application/pdf' ||
+        ct.startsWith('image/') ||
+        ct.startsWith('audio/') ||
+        ct.startsWith('video/'),
+    );
   const isReturnHttpResponse = value && value !== 'undefined';
 
   const getResponseMockFunctionName = `${getResponseMockFunctionNameBase}${pascal(
@@ -118,12 +128,16 @@ function generateDefinition(
       ? `${addedSplitMockImplementations.join('\n\n')}\n\n`
       : '';
 
+  const mockReturnType = isBinaryResponse
+    ? returnType.replaceAll(/\bBlob\b/g, 'Record<string, unknown>')
+    : returnType;
+
   const mockImplementation = isReturnHttpResponse
     ? `${mockImplementations}export const ${getResponseMockFunctionName} = (${
         isResponseOverridable
-          ? `overrideResponse: Partial< ${returnType} > = {}`
+          ? `overrideResponse: Partial< ${mockReturnType} > = {}`
           : ''
-      })${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
+      })${mockData ? '' : `: ${mockReturnType}`} => (${value})\n\n`
     : mockImplementations;
 
   const delay = getDelay(override, isFunction(mock) ? undefined : mock);
@@ -131,28 +145,48 @@ function generateDefinition(
   const overrideResponse = `overrideResponse !== undefined
     ? (typeof overrideResponse === "function" ? await overrideResponse(${infoParam}) : overrideResponse)
     : ${getResponseMockFunctionName}()`;
+  const binaryOverrideResponse = `overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(${infoParam}) : overrideResponse)
+    : undefined`;
+
+  const statusCode = status === 'default' ? 200 : status.replace(/XX$/, '00');
+
+  let responseBody: string;
+  const responsePrelude = isBinaryResponse
+    ? `const binaryBody = ${binaryOverrideResponse};`
+    : isTextPlain
+      ? `const textBody = typeof ${overrideResponse} === 'string' ? ${overrideResponse} : JSON.stringify(${overrideResponse} ?? null);`
+      : '';
+  if (!isReturnHttpResponse) {
+    responseBody = `new HttpResponse(null,
+      { status: ${statusCode}
+      })`;
+  } else if (isBinaryResponse) {
+    responseBody = `HttpResponse.arrayBuffer(
+      binaryBody instanceof ArrayBuffer ? binaryBody : new ArrayBuffer(0),
+      { status: ${statusCode},
+        headers: { 'Content-Type': '${contentTypes.find((ct) => ct !== 'application/json') || 'application/octet-stream'}' }
+      })`;
+  } else if (isTextPlain) {
+    responseBody = `HttpResponse.text(textBody,
+      { status: ${statusCode}
+      })`;
+  } else {
+    responseBody = `HttpResponse.json(${overrideResponse},
+      { status: ${statusCode}
+      })`;
+  }
+
   const handlerImplementation = `
-export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType}), options?: RequestHandlerOptions) => {
+export const ${handlerName} = (overrideResponse?: ${mockReturnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${mockReturnType}> | ${mockReturnType}), options?: RequestHandlerOptions) => {
   return http.${verb}('${route}', async (${infoParam}) => {${
     delay === false
       ? ''
       : `await delay(${isFunction(delay) ? `(${delay})()` : delay});`
   }
   ${isReturnHttpResponse ? '' : `if (typeof overrideResponse === 'function') {await overrideResponse(info); }`}
-    return new HttpResponse(${
-      isReturnHttpResponse
-        ? isTextPlain
-          ? overrideResponse
-          : `JSON.stringify(${overrideResponse})`
-        : null
-    },
-      { status: ${status === 'default' ? 200 : status.replace(/XX$/, '00')},
-        ${
-          isReturnHttpResponse
-            ? `headers: { 'Content-Type': ${isTextPlain ? "'text/plain'" : "'application/json'"} }`
-            : ''
-        }
-      })
+  ${responsePrelude}
+    return ${responseBody}
   }, options)
 }\n`;
 
