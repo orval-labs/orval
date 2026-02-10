@@ -24,7 +24,7 @@ export function jsDoc(
   tryOneLine = false,
   context?: ContextSpec,
 ): string {
-  if (context?.output?.override?.jsDoc) {
+  if (context?.output.override.jsDoc) {
     const { filter } = context.output.override.jsDoc;
     if (filter) {
       return keyValuePairsToJsDoc(filter(schema));

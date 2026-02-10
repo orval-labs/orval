@@ -14,7 +14,7 @@ export function generateTarget(
   const operationNames = Object.values(builder.operations).map(
     ({ operationName }) => operationName,
   );
-  const isAngularClient = options?.client === OutputClient.ANGULAR;
+  const isAngularClient = options.client === OutputClient.ANGULAR;
 
   const titles = builder.title({
     outputClient: options.client,
@@ -92,7 +92,7 @@ export function generateTarget(
           acc.implementationMock.handlerName;
 
         const footer = builder.footer({
-          outputClient: options?.client,
+          outputClient: options.client,
           operationNames,
           hasMutator: acc.mutators.length > 0,
           hasAwaitedType,

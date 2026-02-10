@@ -70,7 +70,7 @@ const relax = (
 };
 
 const prep = (s: string, isFill = false, isPascal = false, isUpper = false) => {
-  s = s == undefined ? '' : s + ''; // force to string
+  // s is already typed as string, no coercion needed
   if (!isUpper && regexps.upper.test(s)) {
     s = low.call(s);
   }
@@ -94,18 +94,18 @@ const lower = (s: string, fillWith: string, isDeapostrophe: boolean) => {
 // Caches the previously converted strings to improve performance
 const pascalMemory: Record<string, string> = {};
 
-export function pascal(s: string) {
+export function pascal(s: string = '') {
   if (pascalMemory[s]) {
     return pascalMemory[s];
   }
 
-  const isStartWithUnderscore = s?.startsWith('_');
+  const isStartWithUnderscore = s.startsWith('_');
 
   if (regexps.upper.test(s)) {
     s = low.call(s);
   }
 
-  const pascalString = (s?.match(/[a-zA-Z0-9\u00C0-\u017F]+/g) ?? [])
+  const pascalString = (s.match(/[a-zA-Z0-9\u00C0-\u017F]+/g) ?? [])
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join('');
 
@@ -118,8 +118,8 @@ export function pascal(s: string) {
   return pascalWithUnderscore;
 }
 
-export function camel(s: string) {
-  const isStartWithUnderscore = s?.startsWith('_');
+export function camel(s: string = '') {
+  const isStartWithUnderscore = s.startsWith('_');
   const camelString = decap(pascal(s), isStartWithUnderscore ? 1 : 0);
   return isStartWithUnderscore ? `_${camelString}` : camelString;
 }

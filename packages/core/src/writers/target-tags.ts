@@ -20,9 +20,8 @@ function generateTargetTags(
   operation: GeneratorOperation,
 ): Record<string, GeneratorTargetFull> {
   const tag = kebab(operation.tags[0]);
-  const currentOperation = currentAcc[tag];
 
-  if (!currentOperation) {
+  if (!(tag in currentAcc)) {
     currentAcc[tag] = {
       imports: operation.imports,
       importsMock: operation.importsMock,
@@ -47,6 +46,7 @@ function generateTargetTags(
     return currentAcc;
   }
 
+  const currentOperation = currentAcc[tag];
   currentAcc[tag] = {
     implementation: currentOperation.implementation + operation.implementation,
     imports: [...currentOperation.imports, ...operation.imports],
@@ -136,7 +136,7 @@ export function generateTargetForTags(
             });
 
             const footer = builder.footer({
-              outputClient: options?.client,
+              outputClient: options.client,
               operationNames,
               hasMutator: !!target.mutators?.length,
               hasAwaitedType,

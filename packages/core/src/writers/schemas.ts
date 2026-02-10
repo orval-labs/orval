@@ -61,7 +61,7 @@ export function splitSchemasByType(schemas: GeneratorSchema[]): {
  * Removes `.ts` suffix since TypeScript doesn't need it in imports.
  */
 function getImportExtension(fileExtension: string): string {
-  return fileExtension?.replace(/\.ts$/, '') || '';
+  return fileExtension.replace(/\.ts$/, '') || '';
 }
 
 /**
