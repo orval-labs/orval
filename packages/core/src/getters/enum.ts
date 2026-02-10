@@ -14,30 +14,29 @@ import {
   sanitize,
 } from '../utils';
 
+/** Bridge type for enum values from AnyOtherAttribute-infected schema extensions */
+type SchemaEnumValue = string | number | boolean | null;
+
 export function getEnumNames(schemaObject: OpenApiSchemaObject | undefined) {
-  const names =
-    schemaObject?.['x-enumNames'] ??
+  const names = (schemaObject?.['x-enumNames'] ??
     schemaObject?.['x-enumnames'] ??
-    schemaObject?.['x-enum-varnames'];
+    schemaObject?.['x-enum-varnames']) as string[] | undefined;
 
   if (!names) return;
 
-  return (names as string[]).map((name: string) => jsStringEscape(name));
+  return names.map((name: string) => jsStringEscape(name));
 }
 
 export function getEnumDescriptions(
   schemaObject: OpenApiSchemaObject | undefined,
 ) {
-  const descriptions =
-    schemaObject?.['x-enumDescriptions'] ??
+  const descriptions = (schemaObject?.['x-enumDescriptions'] ??
     schemaObject?.['x-enumdescriptions'] ??
-    schemaObject?.['x-enum-descriptions'];
+    schemaObject?.['x-enum-descriptions']) as string[] | undefined;
 
   if (!descriptions) return;
 
-  return (descriptions as string[]).map((description: string) =>
-    jsStringEscape(description),
-  );
+  return descriptions.map((description: string) => jsStringEscape(description));
 }
 
 export function getEnum(
@@ -226,9 +225,10 @@ export function getEnumUnionFromSchema(
   schema: OpenApiSchemaObject | undefined,
 ) {
   if (!schema?.enum) return '';
-  return schema.enum
-    .filter((val) => val !== null)
-    .map((val) => (isString(val) ? `'${escape(val)}'` : `${val}`))
+  const schemaEnum = schema.enum as SchemaEnumValue[];
+  return schemaEnum
+    .filter((val): val is Exclude<SchemaEnumValue, null> => val !== null)
+    .map((val) => (isString(val) ? `'${escape(val)}'` : String(val)))
     .join(' | ');
 }
 
@@ -241,7 +241,7 @@ const isSpreadableEnumRef = (
 ) => {
   if (!schema?.enum || !refName) return false;
   if (!getEnumUnionFromSchema(schema)) return false;
-  const type = schema.type;
+  const type = schema.type as string | string[] | undefined;
   if (type === 'boolean' || (Array.isArray(type) && type.includes('boolean'))) {
     return false;
   }
@@ -268,8 +268,9 @@ export function getCombinedEnumValue(
     if (!schema) return false;
     if (schema.nullable === true) return true;
     if (Array.isArray(schema.type) && schema.type.includes('null')) return true;
+    const schemaEnum = schema.enum as SchemaEnumValue[] | undefined;
     // eslint-disable-next-line unicorn/no-null -- OpenAPI enum values include literal null
-    return schema.enum?.includes(null) ?? false;
+    return schemaEnum?.includes(null) ?? false;
   });
 
   const addValueImport = (name: string) => {

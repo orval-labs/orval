@@ -33,7 +33,7 @@ function getQueryParamsTypes(
     } = parameter as {
       name: string;
       required: boolean;
-      schema: OpenApiSchemaObject;
+      schema: OpenApiSchemaObject | undefined;
       content: OpenApiParameterObject['content'];
     };
 
@@ -45,7 +45,7 @@ function getQueryParamsTypes(
       es5IdentifierName: true,
     });
 
-    const schema = schemaParam ?? content['application/json']?.schema;
+    const schema = schemaParam ?? content?.['application/json']?.schema;
     if (!schema) {
       throw new Error(
         `Query parameter "${name}" has no schema or content definition`,
@@ -59,10 +59,27 @@ function getQueryParamsTypes(
     });
 
     const key = getKey(name);
+    // Bridge assertion: cast schema to jsDoc's expected parameter shape
+    // to avoid AnyOtherAttribute spreading error type
+    const schemaForDoc = schema as {
+      description?: string | string[];
+      deprecated?: boolean;
+      summary?: string;
+      minLength?: number;
+      maxLength?: number;
+      minimum?: number;
+      maximum?: number;
+      exclusiveMinimum?: number;
+      exclusiveMaximum?: number;
+      minItems?: number;
+      maxItems?: number;
+      type?: string | string[];
+      pattern?: string;
+    };
     const doc = jsDoc(
       {
         description: parameter.description,
-        ...schema,
+        ...schemaForDoc,
       },
       void 0,
       context,
