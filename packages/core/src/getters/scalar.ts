@@ -116,7 +116,7 @@ export function getScalar({
       return {
         value: value + nullable,
         ...rest,
-        dependencies: rest.dependencies ?? [],
+        dependencies: rest.dependencies,
       };
     }
 

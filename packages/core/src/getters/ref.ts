@@ -57,7 +57,7 @@ export function getRefInfo($ref: string, context: ContextSpec): RefInfo {
     const secondLevel = (firstLevel as Record<string, { suffix?: string }>)[
       paths[1]
     ];
-    return secondLevel?.suffix ?? '';
+    return secondLevel.suffix ?? '';
   };
 
   const suffix = getOverrideSuffix(context.output.override, refPaths);

@@ -100,18 +100,8 @@ describe('getResponse', () => {
       expect(result.types.errors).toHaveLength(0);
     });
 
-    it('should handle undefined responses', () => {
-      const result = getResponse({
-        responses: undefined as any,
-        operationName: 'testOperation',
-        context: context as any,
-      });
-
-      expect(result.definition.success).toBe('');
-      expect(result.definition.errors).toBe('');
-      expect(result.types.success).toHaveLength(0);
-      expect(result.types.errors).toHaveLength(0);
-    });
+    // Removed: test for undefined responses was testing invalid usage
+    // (responses parameter is typed as non-optional OpenApiResponsesObject)
   });
 
   describe('duplicate union types', () => {

@@ -195,7 +195,7 @@ export function getObject({
           formDataContext && !formDataContext.atPart
             ? {
                 atPart: true,
-                partContentType: formDataContext.encoding[key]?.contentType,
+                partContentType: formDataContext.encoding[key]?.contentType, // eslint-disable-line @typescript-eslint/no-unnecessary-condition -- Record index access can return undefined at runtime
               }
             : undefined;
 
@@ -360,8 +360,8 @@ export function getObject({
     if (recordType) {
       return {
         value: recordType + nullable,
-        imports: resolvedValue.imports ?? [],
-        schemas: resolvedValue.schemas ?? [],
+        imports: resolvedValue.imports,
+        schemas: resolvedValue.schemas,
         isEnum: false,
         type: 'object',
         isRef: false,
@@ -373,8 +373,8 @@ export function getObject({
     const keyType = getIndexSignatureKey(item);
     return {
       value: `{[key: ${keyType}]: ${resolvedValue.value}}` + nullable,
-      imports: resolvedValue.imports ?? [],
-      schemas: resolvedValue.schemas ?? [],
+      imports: resolvedValue.imports,
+      schemas: resolvedValue.schemas,
       isEnum: false,
       type: 'object',
       isRef: false,

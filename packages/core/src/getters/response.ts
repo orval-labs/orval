@@ -21,20 +21,6 @@ export function getResponse({
   context,
   contentType,
 }: GetResponseOptions): GetterResponse {
-  if (!responses) {
-    return {
-      imports: [],
-      definition: {
-        success: '',
-        errors: '',
-      },
-      isBlob: false,
-      types: { success: [], errors: [] },
-      schemas: [],
-      contentTypes: [],
-    };
-  }
-
   const types = getResReqTypes(
     Object.entries(responses),
     operationName,
