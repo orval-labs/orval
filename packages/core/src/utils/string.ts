@@ -37,7 +37,7 @@ export function stringify(
   }
 
   if (Array.isArray(data)) {
-    return `[${data.map(stringify).join(', ')}]`;
+    return `[${data.map((item) => stringify(item)).join(', ')}]`;
   }
 
   return Object.entries(data).reduce((acc, [key, value], index, arr) => {
@@ -195,7 +195,7 @@ const NUMBERS = {
  * getNumberWord(42) // returns "fourtwo"
  */
 export function getNumberWord(num: number) {
-  const arrayOfNumber = num.toString().split('') as (keyof typeof NUMBERS)[];
+  const arrayOfNumber = [...num.toString()] as (keyof typeof NUMBERS)[];
   return arrayOfNumber.reduce((acc, n) => acc + NUMBERS[n], '');
 }
 

@@ -1,7 +1,6 @@
 import { NamingConvention } from '../types';
 
-const unicodes = function (s: string, prefix: string) {
-  prefix = prefix || '';
+const unicodes = function (s: string, prefix = '') {
   return s
     .replaceAll(/(^|-)/g, String.raw`$1\u` + prefix)
     .replaceAll(',', String.raw`\u` + prefix);

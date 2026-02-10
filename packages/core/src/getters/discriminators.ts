@@ -61,9 +61,10 @@ export function resolveDiscriminators(
             ? enumProperty.value
             : undefined;
 
-        const mergedEnumValues = (enumValues ?? [])
-          .filter((value) => value !== mappingKey)
-          .concat(mappingKey);
+        const mergedEnumValues = [
+          ...(enumValues ?? []).filter((value) => value !== mappingKey),
+          mappingKey,
+        ];
 
         const mergedProperty = {
           ...schemaProperty,

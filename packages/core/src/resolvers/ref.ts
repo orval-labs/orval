@@ -94,7 +94,7 @@ function getSchema<
     return getSchema(schemaByRefPaths, context);
   }
 
-  let currentSchema = schemaByRefPaths ? schemaByRefPaths : context.spec;
+  let currentSchema = schemaByRefPaths || context.spec;
 
   // Handle OpenAPI 3.0 nullable property
   if ('nullable' in schema) {

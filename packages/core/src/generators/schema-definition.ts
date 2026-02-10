@@ -244,7 +244,7 @@ function generateSchemaDefinitions(
       }
 
       output += `${schema.model}\n`;
-      imports = imports.concat(schema.imports);
+      imports = [...imports, ...schema.imports];
       resolvedValue.dependencies.push(...(schema.dependencies ?? []));
 
       return false;

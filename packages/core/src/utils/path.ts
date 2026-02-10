@@ -9,23 +9,20 @@ type Path = typeof basepath;
 const path = {} as Path;
 
 for (const [propName, propValue] of Object.entries(basepath)) {
-  if (isFunction(propValue)) {
-    // @ts-ignore
-    path[propName] = ((propName) => {
-      return (...args: any[]) => {
-        args = args.map((p) => {
-          return isStringLike(p) ? toUnix(p) : p;
-        });
+  // @ts-ignore
+  path[propName] = isFunction(propValue)
+    ? ((propName) => {
+        return (...args: any[]) => {
+          args = args.map((p) => {
+            return isStringLike(p) ? toUnix(p) : p;
+          });
 
-        // @ts-ignore
-        const result = basepath[propName](...args);
-        return isStringLike(result) ? toUnix(result) : result;
-      };
-    })(propName);
-  } else {
-    // @ts-ignore
-    path[propName] = propValue;
-  }
+          // @ts-ignore
+          const result = basepath[propName](...args);
+          return isStringLike(result) ? toUnix(result) : result;
+        };
+      })(propName)
+    : propValue;
 }
 
 const { join, resolve, extname, dirname, basename, isAbsolute } = path;

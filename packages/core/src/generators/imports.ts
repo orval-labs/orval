@@ -328,7 +328,7 @@ export function generateDependencyImports(
       }),
     )
     .filter(Boolean)
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       const aLib = getLibName(a!);
       const bLib = getLibName(b!);
 

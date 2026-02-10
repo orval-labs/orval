@@ -272,6 +272,7 @@ export function getCombinedEnumValue(
     if (!schema) return false;
     if (schema.nullable === true) return true;
     if (Array.isArray(schema.type) && schema.type.includes('null')) return true;
+    // eslint-disable-next-line unicorn/no-null -- OpenAPI enum values include literal null
     return schema.enum?.includes(null) ?? false;
   });
 
