@@ -100,17 +100,18 @@ export function getEnumImplementation(
   // empty enum or null-only enum
   if (value === '') return '';
 
-  return [...new Set(value.split(' | '))].reduce((acc, val, index) => {
+  const uniqueValues = [...new Set(value.split(' | '))];
+  let result = '';
+  for (const [index, val] of uniqueValues.entries()) {
     const name = names?.[index];
     const description = descriptions?.[index];
     const comment = description ? `  /** ${description} */\n` : '';
 
     if (name) {
-      return (
-        acc +
+      result +=
         comment +
-        `  ${keyword.isIdentifierNameES5(name) ? name : `'${name}'`}: ${val},\n`
-      );
+        `  ${keyword.isIdentifierNameES5(name) ? name : `'${name}'`}: ${val},\n`;
+      continue;
     }
 
     let key = val.startsWith("'") ? val.slice(1, -1) : val;
@@ -134,12 +135,11 @@ export function getEnumImplementation(
       key = conventionName(key, enumNamingConvention);
     }
 
-    return (
-      acc +
+    result +=
       comment +
-      `  ${keyword.isIdentifierNameES5(key) ? key : `'${key}'`}: ${val},\n`
-    );
-  }, '');
+      `  ${keyword.isIdentifierNameES5(key) ? key : `'${key}'`}: ${val},\n`;
+  }
+  return result;
 }
 
 const getNativeEnum = (
@@ -161,13 +161,13 @@ const getNativeEnumItems = (
 ) => {
   if (value === '') return '';
 
-  return [...new Set(value.split(' | '))].reduce((acc, val, index) => {
+  const uniqueValues = [...new Set(value.split(' | '))];
+  let result = '';
+  for (const [index, val] of uniqueValues.entries()) {
     const name = names?.[index];
     if (name) {
-      return (
-        acc +
-        `  ${keyword.isIdentifierNameES5(name) ? name : `'${name}'`}= ${val},\n`
-      );
+      result += `  ${keyword.isIdentifierNameES5(name) ? name : `'${name}'`}= ${val},\n`;
+      continue;
     }
 
     let key = val.startsWith("'") ? val.slice(1, -1) : val;
@@ -191,11 +191,9 @@ const getNativeEnumItems = (
       key = conventionName(key, enumNamingConvention);
     }
 
-    return (
-      acc +
-      `  ${keyword.isIdentifierNameES5(key) ? key : `'${key}'`}= ${val},\n`
-    );
-  }, '');
+    result += `  ${keyword.isIdentifierNameES5(key) ? key : `'${key}'`}= ${val},\n`;
+  }
+  return result;
 };
 
 const toNumberKey = (value: string) => {

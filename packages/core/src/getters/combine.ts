@@ -174,14 +174,14 @@ function combineValues({
     values = []; // the list of values will be rebuilt to add missing properties (if exist) in subschemas
     for (let i = 0; i < resolvedData.values.length; i += 1) {
       const subSchema = resolvedData.originalSchema[i];
-      if (subSchema?.type !== 'object') {
+      if (subSchema?.type !== 'object' || !subSchema.properties) {
         values.push(resolvedData.values[i]);
         continue;
       }
 
       const missingProperties = unique(
         resolvedData.allProperties.filter(
-          (p) => !Object.keys(subSchema.properties!).includes(p),
+          (p) => !Object.keys(subSchema.properties).includes(p),
         ),
       );
       values.push(
@@ -232,81 +232,78 @@ export function combineSchemas({
 
   const items = normalizedSchema[separator] ?? [];
 
-  const resolvedData: CombinedData = items.reduce<CombinedData>(
-    (acc, subSchema) => {
-      // aliasCombinedTypes (v7 compat): create intermediate types like ResponseAnyOf
-      // v8 default: propName stays undefined so combined types are inlined directly
-      let propName: string | undefined;
-      if (context.output.override.aliasCombinedTypes) {
-        propName = name ? name + pascal(separator) : undefined;
-        if (propName && acc.schemas.length > 0) {
-          propName = propName + pascal(getNumberWord(acc.schemas.length + 1));
-        }
+  const resolvedData: CombinedData = {
+    values: [],
+    imports: [],
+    schemas: [],
+    isEnum: [], // check if only enums
+    isRef: [],
+    types: [],
+    dependencies: [],
+    originalSchema: [],
+    allProperties: [],
+    hasReadonlyProps: false,
+    example: schema.example,
+    examples: resolveExampleRefs(schema.examples, context),
+    requiredProperties: separator === 'allOf' ? (schema.required ?? []) : [],
+  };
+  for (const subSchema of items) {
+    // aliasCombinedTypes (v7 compat): create intermediate types like ResponseAnyOf
+    // v8 default: propName stays undefined so combined types are inlined directly
+    let propName: string | undefined;
+    if (context.output.override.aliasCombinedTypes) {
+      propName = name ? name + pascal(separator) : undefined;
+      if (propName && resolvedData.schemas.length > 0) {
+        propName =
+          propName + pascal(getNumberWord(resolvedData.schemas.length + 1));
       }
+    }
 
-      if (separator === 'allOf' && isSchema(subSchema) && subSchema.required) {
-        acc.requiredProperties.push(...subSchema.required);
-      }
+    if (separator === 'allOf' && isSchema(subSchema) && subSchema.required) {
+      resolvedData.requiredProperties.push(...subSchema.required);
+    }
 
-      const resolvedValue = resolveObject({
-        schema: subSchema,
-        propName,
-        combined: true,
-        context,
-        formDataContext,
-      });
+    const resolvedValue = resolveObject({
+      schema: subSchema,
+      propName,
+      combined: true,
+      context,
+      formDataContext,
+    });
 
-      const aliasedImports = getAliasedImports({
-        context,
-        name,
-        resolvedValue,
-      });
+    const aliasedImports = getAliasedImports({
+      context,
+      name,
+      resolvedValue,
+    });
 
-      const value = getImportAliasForRefOrValue({
-        context,
-        resolvedValue,
-        imports: aliasedImports,
-      });
+    const value = getImportAliasForRefOrValue({
+      context,
+      resolvedValue,
+      imports: aliasedImports,
+    });
 
-      acc.values.push(value);
-      acc.imports.push(...aliasedImports);
-      acc.schemas.push(...resolvedValue.schemas);
-      acc.dependencies.push(...resolvedValue.dependencies);
-      acc.isEnum.push(resolvedValue.isEnum);
-      acc.types.push(resolvedValue.type);
-      acc.isRef.push(resolvedValue.isRef);
-      acc.originalSchema.push(resolvedValue.originalSchema);
-      if (resolvedValue.hasReadonlyProps) {
-        acc.hasReadonlyProps = true;
-      }
+    resolvedData.values.push(value);
+    resolvedData.imports.push(...aliasedImports);
+    resolvedData.schemas.push(...resolvedValue.schemas);
+    resolvedData.dependencies.push(...resolvedValue.dependencies);
+    resolvedData.isEnum.push(resolvedValue.isEnum);
+    resolvedData.types.push(resolvedValue.type);
+    resolvedData.isRef.push(resolvedValue.isRef);
+    resolvedData.originalSchema.push(resolvedValue.originalSchema);
+    if (resolvedValue.hasReadonlyProps) {
+      resolvedData.hasReadonlyProps = true;
+    }
 
-      if (
-        resolvedValue.type === 'object' &&
-        resolvedValue.originalSchema.properties
-      ) {
-        acc.allProperties.push(
-          ...Object.keys(resolvedValue.originalSchema.properties),
-        );
-      }
-
-      return acc;
-    },
-    {
-      values: [],
-      imports: [],
-      schemas: [],
-      isEnum: [], // check if only enums
-      isRef: [],
-      types: [],
-      dependencies: [],
-      originalSchema: [],
-      allProperties: [],
-      hasReadonlyProps: false,
-      example: schema.example,
-      examples: resolveExampleRefs(schema.examples, context),
-      requiredProperties: separator === 'allOf' ? (schema.required ?? []) : [],
-    } as CombinedData,
-  );
+    if (
+      resolvedValue.type === 'object' &&
+      resolvedValue.originalSchema.properties
+    ) {
+      resolvedData.allProperties.push(
+        ...Object.keys(resolvedValue.originalSchema.properties),
+      );
+    }
+  }
 
   const isAllEnums = resolvedData.isEnum.every(Boolean);
   const isAvailableToGenerateCombinedEnum =
