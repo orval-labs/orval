@@ -2,6 +2,7 @@ import { resolveExampleRefs, resolveValue } from '../resolvers';
 import { resolveObject } from '../resolvers/object';
 import {
   type ContextSpec,
+  type GeneratorImport,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   PropertySortOrder,
@@ -29,12 +30,12 @@ function getPropertyNamesEnum(item: OpenApiSchemaObject): string[] | undefined {
   if (
     'propertyNames' in item &&
     item.propertyNames &&
-    'enum' in item.propertyNames &&
-    Array.isArray(item.propertyNames.enum)
+    'enum' in item.propertyNames
   ) {
-    return item.propertyNames.enum.filter((val): val is string =>
-      isString(val),
-    );
+    const propertyNames = item.propertyNames as { enum?: unknown[] };
+    if (Array.isArray(propertyNames.enum)) {
+      return propertyNames.enum.filter((val): val is string => isString(val));
+    }
   }
   return undefined;
 }
@@ -108,7 +109,7 @@ export function getObject({
   formDataContext,
 }: GetObjectOptions): ScalarValue {
   if (isReference(item)) {
-    const { name } = getRefInfo(item.$ref, context);
+    const { name } = getRefInfo(item.$ref as string, context);
     return {
       value: name + nullable,
       imports: [{ name }],
@@ -116,10 +117,15 @@ export function getObject({
       isEnum: false,
       type: 'object',
       isRef: true,
-      hasReadonlyProps: item.readOnly ?? false,
+      hasReadonlyProps: (item.readOnly as boolean | undefined) ?? false,
       dependencies: [name],
-      example: item.example,
-      examples: resolveExampleRefs(item.examples, context),
+      example: item.example as unknown,
+      examples: resolveExampleRefs(
+        item.examples as
+          | Record<string, OpenApiReferenceObject | { value?: unknown }>
+          | undefined,
+        context,
+      ),
     };
   }
 
@@ -137,12 +143,15 @@ export function getObject({
   }
 
   if (Array.isArray(item.type)) {
+    const typeArray = item.type as string[];
+    // Bridge: item is OpenApiSchemaObject which includes AnyOtherAttribute index signature.
+    // Spreading it directly would carry `any` into the result. Cast to break the chain.
+    const baseItem = item as OpenApiSchemaObject;
     return combineSchemas({
       schema: {
-        anyOf: item.type.map((type) => ({
-          ...item,
-          type,
-        })),
+        anyOf: typeArray.map(
+          (type) => ({ ...baseItem, type }) as OpenApiSchemaObject,
+        ),
       },
       name,
       separator: 'anyOf',
@@ -151,8 +160,14 @@ export function getObject({
     });
   }
 
-  if (item.properties && Object.entries(item.properties).length > 0) {
-    const entries = Object.entries(item.properties);
+  // Bridge assertion: item.properties is typed as { [name: string]: ReferenceObject | SchemaObject }
+  // but AnyOtherAttribute index signature infects all property access to return `any`
+  const itemProperties = item.properties as
+    | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+    | undefined;
+
+  if (itemProperties && Object.entries(itemProperties).length > 0) {
+    const entries = Object.entries(itemProperties);
     if (context.output.propertySortOrder === PropertySortOrder.ALPHABETICAL) {
       entries.sort((a, b) => {
         return a[0].localeCompare(b[0]);
@@ -169,12 +184,18 @@ export function getObject({
       hasReadonlyProps: false,
       useTypeAlias: false,
       dependencies: [],
-      example: item.example,
-      examples: resolveExampleRefs(item.examples, context),
+      example: item.example as unknown,
+      examples: resolveExampleRefs(
+        item.examples as
+          | Record<string, OpenApiReferenceObject | { value?: unknown }>
+          | undefined,
+        context,
+      ),
     };
+    const itemRequired = item.required as string[] | undefined;
     for (const [index, [key, schema]] of entries.entries()) {
       const isRequired = (
-        Array.isArray(item.required) ? item.required : []
+        Array.isArray(itemRequired) ? itemRequired : []
       ).includes(key);
 
       let propName = '';
@@ -214,7 +235,9 @@ export function getObject({
         formDataContext: propertyFormDataContext,
       });
 
-      const isReadOnly = item.readOnly ?? schema.readOnly;
+      const isReadOnly =
+        (item.readOnly as boolean | undefined) ??
+        ((schema as OpenApiSchemaObject).readOnly as boolean | undefined);
       if (!index) {
         acc.value += '{';
       }
@@ -225,7 +248,8 @@ export function getObject({
         acc.hasReadonlyProps = true;
       }
 
-      const constValue = 'const' in schema ? schema.const : undefined;
+      const constValue =
+        'const' in schema ? (schema.const as unknown) : undefined;
       const hasConst = constValue !== undefined;
       let constLiteral: string | undefined;
 
@@ -273,8 +297,15 @@ export function getObject({
       acc.dependencies.push(...resolvedValue.dependencies);
 
       if (entries.length - 1 === index) {
-        if (item.additionalProperties) {
-          if (isBoolean(item.additionalProperties)) {
+        // Bridge assertion: additionalProperties is boolean | ReferenceObject | SchemaObject
+        // but AnyOtherAttribute infects property access
+        const additionalProps = item.additionalProperties as
+          | boolean
+          | OpenApiSchemaObject
+          | OpenApiReferenceObject
+          | undefined;
+        if (additionalProps) {
+          if (isBoolean(additionalProps)) {
             const recordType = getPropertyNamesRecordType(item, 'unknown');
             if (recordType) {
               acc.value += '\n}';
@@ -286,7 +317,7 @@ export function getObject({
             }
           } else {
             const resolvedValue = resolveValue({
-              schema: item.additionalProperties,
+              schema: additionalProps,
               name,
               context,
             });
@@ -314,8 +345,15 @@ export function getObject({
     return acc;
   }
 
-  if (item.additionalProperties) {
-    if (isBoolean(item.additionalProperties)) {
+  // Bridge assertion: additionalProperties is boolean | ReferenceObject | SchemaObject
+  const outerAdditionalProps = item.additionalProperties as
+    | boolean
+    | OpenApiSchemaObject
+    | OpenApiReferenceObject
+    | undefined;
+  const readOnlyFlag = item.readOnly as boolean | undefined;
+  if (outerAdditionalProps) {
+    if (isBoolean(outerAdditionalProps)) {
       const recordType = getPropertyNamesRecordType(item, 'unknown');
       if (recordType) {
         return {
@@ -325,7 +363,7 @@ export function getObject({
           isEnum: false,
           type: 'object',
           isRef: false,
-          hasReadonlyProps: item.readOnly ?? false,
+          hasReadonlyProps: readOnlyFlag ?? false,
           useTypeAlias: true,
           dependencies: [],
         };
@@ -338,13 +376,13 @@ export function getObject({
         isEnum: false,
         type: 'object',
         isRef: false,
-        hasReadonlyProps: item.readOnly ?? false,
+        hasReadonlyProps: readOnlyFlag ?? false,
         useTypeAlias: false,
         dependencies: [],
       };
     }
     const resolvedValue = resolveValue({
-      schema: item.additionalProperties,
+      schema: outerAdditionalProps,
       name,
       context,
     });
@@ -376,16 +414,16 @@ export function getObject({
     };
   }
 
-  const itemWithConst = item;
-  if (itemWithConst.const) {
+  const constValue = item.const as string | undefined;
+  if (constValue) {
     return {
-      value: `'${itemWithConst.const}'`,
+      value: `'${constValue}'`,
       imports: [],
       schemas: [],
       isEnum: false,
       type: 'string',
       isRef: false,
-      hasReadonlyProps: item.readOnly ?? false,
+      hasReadonlyProps: readOnlyFlag ?? false,
       dependencies: [],
     };
   }
@@ -401,7 +439,7 @@ export function getObject({
       isEnum: false,
       type: 'object',
       isRef: false,
-      hasReadonlyProps: item.readOnly ?? false,
+      hasReadonlyProps: readOnlyFlag ?? false,
       useTypeAlias: true,
       dependencies: [],
     };
@@ -415,7 +453,7 @@ export function getObject({
     isEnum: false,
     type: 'object',
     isRef: false,
-    hasReadonlyProps: item.readOnly ?? false,
+    hasReadonlyProps: readOnlyFlag ?? false,
     useTypeAlias: false,
     dependencies: [],
   };

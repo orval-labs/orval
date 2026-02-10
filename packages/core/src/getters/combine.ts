@@ -33,6 +33,8 @@ type CombinedData = {
    */
   allProperties: string[];
   requiredProperties: string[];
+  example?: unknown;
+  examples?: Record<string, unknown> | unknown[];
 };
 
 type Separator = 'allOf' | 'anyOf' | 'oneOf';
@@ -61,23 +63,35 @@ function isMergeableAllOfObject(schema: OpenApiSchemaObject): boolean {
 function normalizeAllOfSchema(
   schema: OpenApiSchemaObject,
 ): OpenApiSchemaObject {
-  if (!schema.allOf) {
+  // Bridge assertions: AnyOtherAttribute infects all schema property access
+  const schemaAllOf = schema.allOf as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+  if (!schemaAllOf) {
     return schema;
   }
 
   let didMerge = false;
-  const mergedProperties = { ...schema.properties };
-  const mergedRequired = new Set(schema.required);
+  const schemaProperties = schema.properties as
+    | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+    | undefined;
+  const schemaRequired = schema.required as string[] | undefined;
+  const mergedProperties: Record<
+    string,
+    OpenApiSchemaObject | OpenApiReferenceObject
+  > = { ...schemaProperties };
+  const mergedRequired = new Set(schemaRequired);
   const remainingAllOf: (OpenApiSchemaObject | OpenApiReferenceObject)[] = [];
 
-  for (const subSchema of schema.allOf) {
+  for (const subSchema of schemaAllOf) {
     if (isSchema(subSchema) && isMergeableAllOfObject(subSchema)) {
       didMerge = true;
       if (subSchema.properties) {
         Object.assign(mergedProperties, subSchema.properties);
       }
-      if (subSchema.required) {
-        for (const prop of subSchema.required) {
+      const subRequired = subSchema.required as string[] | undefined;
+      if (subRequired) {
+        for (const prop of subRequired) {
           mergedRequired.add(prop);
         }
       }
@@ -98,7 +112,7 @@ function normalizeAllOfSchema(
     }),
     ...(mergedRequired.size > 0 && { required: [...mergedRequired] }),
     ...(remainingAllOf.length > 0 && { allOf: remainingAllOf }),
-  };
+  } as OpenApiSchemaObject;
 }
 
 interface CombineValuesOptions {
@@ -131,13 +145,19 @@ function combineValues({
       .map((v) => (v.includes(' | ') ? `(${v})` : v))
       .join(` & `);
     if (resolvedData.originalSchema.length > 0 && resolvedValue) {
+      // Bridge: discriminator is typed but AnyOtherAttribute infects access
+      type Discriminator = {
+        propertyName?: string;
+        mapping?: Record<string, string>;
+      };
       const discriminatedPropertySchemas = resolvedData.originalSchema.filter(
-        (s) =>
-          s?.discriminator &&
-          resolvedValue.value.includes(` ${s.discriminator.propertyName}:`),
+        (s) => {
+          const disc = s?.discriminator as Discriminator | undefined;
+          return disc && resolvedValue.value.includes(` ${disc.propertyName}:`);
+        },
       ) as OpenApiSchemaObject[];
       if (discriminatedPropertySchemas.length > 0) {
-        resolvedDataValue = `Omit<${resolvedDataValue}, '${discriminatedPropertySchemas.map((s) => s.discriminator?.propertyName).join("' | '")}'>`;
+        resolvedDataValue = `Omit<${resolvedDataValue}, '${discriminatedPropertySchemas.map((s) => (s.discriminator as Discriminator | undefined)?.propertyName).join("' | '")}'>`;
       }
     }
     // Also wrap resolvedValue if it contains union (sibling pattern: allOf + oneOf at same level)
@@ -153,14 +173,20 @@ function combineValues({
     // but there is no need to override properties that are already required
     const overrideRequiredProperties = resolvedData.requiredProperties.filter(
       (prop) =>
-        !resolvedData.originalSchema.some(
-          (schema) =>
-            schema?.properties?.[prop] && schema.required?.includes(prop),
-        ) &&
-        !(
-          parentSchema?.properties?.[prop] &&
-          parentSchema.required?.includes(prop)
-        ),
+        !resolvedData.originalSchema.some((schema) => {
+          const props = schema?.properties as
+            | Record<string, unknown>
+            | undefined;
+          const req = schema?.required as string[] | undefined;
+          return props?.[prop] && req?.includes(prop);
+        }) &&
+        !((): boolean => {
+          const parentProps = parentSchema?.properties as
+            | Record<string, unknown>
+            | undefined;
+          const parentReq = parentSchema?.required as string[] | undefined;
+          return !!(parentProps?.[prop] && parentReq?.includes(prop));
+        })(),
     );
     if (overrideRequiredProperties.length > 0) {
       return `${joined} & Required<Pick<${joined}, '${overrideRequiredProperties.join("' | '")}'>>`;
@@ -179,9 +205,10 @@ function combineValues({
         continue;
       }
 
+      const subSchemaProps = subSchema.properties as Record<string, unknown>;
       const missingProperties = unique(
         resolvedData.allProperties.filter(
-          (p) => !Object.keys(subSchema.properties).includes(p),
+          (p) => !Object.keys(subSchemaProps).includes(p),
         ),
       );
       values.push(
@@ -230,7 +257,11 @@ export function combineSchemas({
     ? normalizeAllOfSchema(schema)
     : schema;
 
-  const items = normalizedSchema[separator] ?? [];
+  // Bridge assertions: AnyOtherAttribute infects all schema property access
+  const items = (normalizedSchema[separator] ?? []) as (
+    | OpenApiSchemaObject
+    | OpenApiReferenceObject
+  )[];
 
   const resolvedData: CombinedData = {
     values: [],
@@ -243,9 +274,17 @@ export function combineSchemas({
     originalSchema: [],
     allProperties: [],
     hasReadonlyProps: false,
-    example: schema.example,
-    examples: resolveExampleRefs(schema.examples, context),
-    requiredProperties: separator === 'allOf' ? (schema.required ?? []) : [],
+    example: schema.example as unknown,
+    examples: resolveExampleRefs(
+      schema.examples as
+        | Record<string, OpenApiReferenceObject | { value?: unknown }>
+        | undefined,
+      context,
+    ),
+    requiredProperties:
+      separator === 'allOf'
+        ? ((schema.required as string[] | undefined) ?? [])
+        : [],
   };
   for (const subSchema of items) {
     // aliasCombinedTypes (v7 compat): create intermediate types like ResponseAnyOf
@@ -260,7 +299,7 @@ export function combineSchemas({
     }
 
     if (separator === 'allOf' && isSchema(subSchema) && subSchema.required) {
-      resolvedData.requiredProperties.push(...subSchema.required);
+      resolvedData.requiredProperties.push(...(subSchema.required as string[]));
     }
 
     const resolvedValue = resolveObject({
@@ -295,13 +334,12 @@ export function combineSchemas({
       resolvedData.hasReadonlyProps = true;
     }
 
-    if (
-      resolvedValue.type === 'object' &&
-      resolvedValue.originalSchema.properties
-    ) {
-      resolvedData.allProperties.push(
-        ...Object.keys(resolvedValue.originalSchema.properties),
-      );
+    // Bridge: originalSchema.properties is infected by AnyOtherAttribute
+    const originalProps = resolvedValue.originalSchema.properties as
+      | Record<string, unknown>
+      | undefined;
+    if (resolvedValue.type === 'object' && originalProps) {
+      resolvedData.allProperties.push(...Object.keys(originalProps));
     }
   }
 
@@ -358,8 +396,13 @@ export function combineSchemas({
       isRef: false,
       hasReadonlyProps: resolvedData.hasReadonlyProps,
       dependencies: resolvedData.dependencies,
-      example: schema.example,
-      examples: resolveExampleRefs(schema.examples, context),
+      example: schema.example as unknown,
+      examples: resolveExampleRefs(
+        schema.examples as
+          | Record<string, OpenApiReferenceObject | { value?: unknown }>
+          | undefined,
+        context,
+      ),
     };
   }
 
@@ -378,8 +421,11 @@ export function combineSchemas({
     // Handle sibling pattern: allOf + oneOf/anyOf at same level
     // e.g. { allOf: [A], oneOf: [B, C] } should produce A & (B | C)
     const siblingCombiner = schema.oneOf ? 'oneOf' : 'anyOf';
+    const siblingSchemas = schema[siblingCombiner] as
+      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+      | undefined;
     resolvedValue = combineSchemas({
-      schema: { [siblingCombiner]: schema[siblingCombiner] },
+      schema: { [siblingCombiner]: siblingSchemas },
       name,
       separator: siblingCombiner,
       context,
@@ -412,7 +458,12 @@ export function combineSchemas({
     hasReadonlyProps:
       resolvedData.hasReadonlyProps ||
       (resolvedValue?.hasReadonlyProps ?? false),
-    example: schema.example,
-    examples: resolveExampleRefs(schema.examples, context),
+    example: schema.example as unknown,
+    examples: resolveExampleRefs(
+      schema.examples as
+        | Record<string, OpenApiReferenceObject | { value?: unknown }>
+        | undefined,
+      context,
+    ),
   };
 }
