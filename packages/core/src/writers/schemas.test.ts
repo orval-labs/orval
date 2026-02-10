@@ -322,6 +322,7 @@ describe('fixCrossDirectoryImports', () => {
       './models',
       './models/params',
       NamingConvention.CAMEL_CASE,
+      '.ts',
     );
 
     expect(opSchemas[0].imports).toEqual([
@@ -340,6 +341,7 @@ describe('fixCrossDirectoryImports', () => {
       './src/models',
       './src/models/api/params',
       NamingConvention.CAMEL_CASE,
+      '.ts',
     );
 
     expect(opSchemas[0].imports[0].importPath).toBe('../../user');
@@ -355,6 +357,7 @@ describe('fixCrossDirectoryImports', () => {
       './models',
       './models/params',
       NamingConvention.PASCAL_CASE,
+      '.ts',
     );
 
     expect(opSchemas[0].imports[0].importPath).toBe('../UserInfo');
@@ -372,6 +375,7 @@ describe('fixCrossDirectoryImports', () => {
       './models',
       './models/params',
       NamingConvention.CAMEL_CASE,
+      '.ts',
     );
 
     expect(opSchemas[0].imports).toEqual([
@@ -393,6 +397,7 @@ describe('fixCrossDirectoryImports', () => {
       './models',
       './models/params',
       NamingConvention.CAMEL_CASE,
+      '.ts',
     );
 
     expect(opSchemas[0].imports).toEqual([
@@ -403,6 +408,43 @@ describe('fixCrossDirectoryImports', () => {
       { name: 'Post', importPath: '../post' },
       { name: 'Author' },
     ]);
+  });
+
+  it('should include custom file extension in import path', () => {
+    const opSchemas = [
+      createSchemaWithImports('GetUserParams', ['User', 'OtherParam']),
+    ];
+    const regularSchemaNames = new Set(['User']);
+
+    fixCrossDirectoryImports(
+      opSchemas,
+      regularSchemaNames,
+      './models',
+      './models/params',
+      NamingConvention.CAMEL_CASE,
+      '.gen.ts',
+    );
+
+    expect(opSchemas[0].imports).toEqual([
+      { name: 'User', importPath: '../user.gen' },
+      { name: 'OtherParam' },
+    ]);
+  });
+
+  it('should include non-.ts file extension in import path', () => {
+    const opSchemas = [createSchemaWithImports('GetUserParams', ['User'])];
+    const regularSchemaNames = new Set(['User']);
+
+    fixCrossDirectoryImports(
+      opSchemas,
+      regularSchemaNames,
+      './models',
+      './models/params',
+      NamingConvention.CAMEL_CASE,
+      '.mjs',
+    );
+
+    expect(opSchemas[0].imports[0].importPath).toBe('../user.mjs');
   });
 });
 
@@ -432,6 +474,7 @@ describe('fixRegularSchemaImports', () => {
       './models',
       './models/operations',
       NamingConvention.CAMEL_CASE,
+      '.ts',
     );
 
     expect(regularSchemas[0].imports).toEqual([
@@ -453,6 +496,7 @@ describe('fixRegularSchemaImports', () => {
       './src/models',
       './src/models/api/params',
       NamingConvention.CAMEL_CASE,
+      '.ts',
     );
 
     expect(regularSchemas[0].imports[0].importPath).toBe(
@@ -470,6 +514,7 @@ describe('fixRegularSchemaImports', () => {
       './models',
       './models/operations',
       NamingConvention.PASCAL_CASE,
+      '.ts',
     );
 
     expect(regularSchemas[0].imports[0].importPath).toBe(
@@ -489,6 +534,7 @@ describe('fixRegularSchemaImports', () => {
       './models',
       './models/operations',
       NamingConvention.CAMEL_CASE,
+      '.ts',
     );
 
     expect(regularSchemas[0].imports).toEqual([
@@ -516,6 +562,7 @@ describe('fixRegularSchemaImports', () => {
       './models',
       './models/operations',
       NamingConvention.CAMEL_CASE,
+      '.ts',
     );
 
     expect(regularSchemas[0].imports).toEqual([
@@ -529,6 +576,46 @@ describe('fixRegularSchemaImports', () => {
       { name: 'User' },
       { name: 'BatchRequestBody', importPath: './operations/batchRequestBody' },
     ]);
+  });
+
+  it('should include custom file extension in import path', () => {
+    const regularSchemas = [
+      createSchemaWithImports('User', ['GetUserParams']),
+    ];
+    const operationSchemaNames = new Set(['GetUserParams']);
+
+    fixRegularSchemaImports(
+      regularSchemas,
+      operationSchemaNames,
+      './models',
+      './models/operations',
+      NamingConvention.CAMEL_CASE,
+      '.gen.ts',
+    );
+
+    expect(regularSchemas[0].imports[0].importPath).toBe(
+      './operations/getUserParams.gen',
+    );
+  });
+
+  it('should include non-.ts file extension in import path', () => {
+    const regularSchemas = [
+      createSchemaWithImports('User', ['GetUserParams']),
+    ];
+    const operationSchemaNames = new Set(['GetUserParams']);
+
+    fixRegularSchemaImports(
+      regularSchemas,
+      operationSchemaNames,
+      './models',
+      './models/operations',
+      NamingConvention.CAMEL_CASE,
+      '.mjs',
+    );
+
+    expect(regularSchemas[0].imports[0].importPath).toBe(
+      './operations/getUserParams.mjs',
+    );
   });
 });
 
