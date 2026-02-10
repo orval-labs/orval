@@ -84,20 +84,22 @@ export function getParams({
       context,
     });
 
+    const originalSchema = resolvedValue.originalSchema;
+
     let paramType = resolvedValue.value;
     if (output.allParamsOptional) {
       paramType = `${paramType} | undefined | null`; // TODO: maybe check that `paramType` isn't already undefined or null
     }
 
     const definition = `${name}${
-      !required || resolvedValue.originalSchema!.default ? '?' : ''
+      !required || originalSchema?.default ? '?' : ''
     }: ${paramType}`;
 
     const implementation = `${name}${
-      !required && !resolvedValue.originalSchema!.default ? '?' : ''
+      !required && !originalSchema?.default ? '?' : ''
     }${
-      resolvedValue.originalSchema!.default
-        ? `: ${paramType} = ${stringify(resolvedValue.originalSchema!.default)}`
+      originalSchema?.default
+        ? `: ${paramType} = ${stringify(originalSchema.default)}`
         : `: ${paramType}` // FIXME: in Vue if we have `version: MaybeRef<number | undefined | null> = 1` and we don't pass version, the unref(version) will be `undefined` and not `1`, so we need to handle default value somewhere in implementation and not in the definition
     }`;
 
@@ -105,10 +107,10 @@ export function getParams({
       name,
       definition,
       implementation,
-      default: resolvedValue.originalSchema!.default,
+      default: originalSchema?.default,
       required,
       imports: resolvedValue.imports,
-      originalSchema: resolvedValue.originalSchema,
+      originalSchema,
     };
   });
 }

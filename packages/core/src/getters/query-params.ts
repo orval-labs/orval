@@ -45,7 +45,12 @@ function getQueryParamsTypes(
       es5IdentifierName: true,
     });
 
-    const schema = (schemaParam || content['application/json'].schema)!;
+    const schema = schemaParam ?? content['application/json']?.schema;
+    if (!schema) {
+      throw new Error(
+        `Query parameter "${name}" has no schema or content definition`,
+      );
+    }
 
     const resolvedValue = resolveValue({
       schema,
