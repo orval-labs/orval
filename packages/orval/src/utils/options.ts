@@ -596,31 +596,19 @@ function normalizeOutputMode(mode?: OutputMode): OutputMode {
 function normalizeHooks(hooks: HooksOptions): NormalizedHookOptions {
   const keys = Object.keys(hooks) as unknown as Hook[];
 
-  return keys.reduce<NormalizedHookOptions>((acc, key: Hook) => {
+  const result: NormalizedHookOptions = {};
+  for (const key of keys) {
     if (isString(hooks[key])) {
-      return {
-        ...acc,
-        [key]: [hooks[key]] as string[],
-      };
+      result[key] = [hooks[key]] as string[];
     } else if (Array.isArray(hooks[key])) {
-      return {
-        ...acc,
-        [key]: hooks[key] as string[],
-      };
+      result[key] = hooks[key] as string[];
     } else if (isFunction(hooks[key])) {
-      return {
-        ...acc,
-        [key]: [hooks[key]] as HookFunction[],
-      };
+      result[key] = [hooks[key]] as HookFunction[];
     } else if (isObject(hooks[key])) {
-      return {
-        ...acc,
-        [key]: [hooks[key]] as HookOption[],
-      };
+      result[key] = [hooks[key]] as HookOption[];
     }
-
-    return acc;
-  }, {});
+  }
+  return result;
 }
 
 function normalizeHonoOptions(
