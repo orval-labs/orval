@@ -1,5 +1,6 @@
 import {
   getFileInfo,
+  isString,
   log,
   type NormalizedOptions,
   removeFilesAndEmptyFolders,
@@ -36,10 +37,9 @@ export async function generateSpec(
       );
     }
     if (options.output.schemas) {
-      const schemasPath =
-        typeof options.output.schemas === 'string'
-          ? options.output.schemas
-          : options.output.schemas.path;
+      const schemasPath = isString(options.output.schemas)
+        ? options.output.schemas
+        : options.output.schemas.path;
       await removeFilesAndEmptyFolders(
         ['**/*', '!**/*.d.ts', ...extraPatterns],
         getFileInfo(schemasPath).dirname,

@@ -4,6 +4,7 @@ import type {
   AngularOptions,
   ClientFileBuilder,
   ClientGeneratorsBuilder,
+  ClientMockBuilder,
   ClientMockGeneratorBuilder,
   ContextSpec,
   GeneratorClientFooter,
@@ -15,7 +16,6 @@ import type {
   GeneratorOptions,
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
-  GlobalMockOptions,
   NormalizedOutputOptions,
   OutputClientFunc,
 } from '@orval/core';
@@ -240,10 +240,12 @@ const generateMock = (
     return options.mock(verbOption, options);
   }
 
-  return mock.generateMock(verbOption, {
-    ...options,
-    mock: options.mock as GlobalMockOptions,
-  });
+  return mock.generateMock(
+    verbOption,
+    options as typeof options & {
+      mock: Exclude<(typeof options)['mock'], ClientMockBuilder | undefined>;
+    },
+  );
 };
 
 export const generateOperations = (
@@ -274,7 +276,9 @@ export const generateOperations = (
 
       const hasImplementation = client.implementation.trim().length > 0;
 
-      acc[verbOption.operationId] = {
+      // Use operationName as key instead of operationId to support multiple
+      // content-type variants of the same operation (e.g., WithJson, WithFormData) #2812
+      acc[verbOption.operationName] = {
         implementation: hasImplementation
           ? verbOption.doc + client.implementation
           : client.implementation,

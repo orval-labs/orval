@@ -21,7 +21,8 @@
     "@angular/router": "catalog:angular",
     "@tanstack/angular-query-experimental": "^5.62.7",
     "rxjs": "catalog:tooling",
-    "tslib": "catalog:build-tools"
+    "tslib": "catalog:build-tools",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@angular-eslint/builder": "catalog:angular",

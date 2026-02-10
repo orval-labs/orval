@@ -100,7 +100,7 @@ export type NormalizedOverrideOutput = {
     verb: Verbs,
   ) => string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  requestOptions: Record<string, any> | boolean;
+  requestOptions: Record<string, unknown> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
@@ -472,7 +472,7 @@ export type OverrideOutput = {
   ) => string;
   fetch?: FetchOptions;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  requestOptions?: Record<string, any> | boolean;
+  requestOptions?: Record<string, unknown> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
@@ -622,7 +622,7 @@ export type NormalizedQueryOptions = {
   usePrefetch?: boolean;
   useInvalidate?: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  options?: any;
+  options?: Record<string, unknown>;
   queryKey?: NormalizedMutator;
   queryOptions?: NormalizedMutator;
   mutationOptions?: NormalizedMutator;
@@ -634,6 +634,7 @@ export type NormalizedQueryOptions = {
   signal?: boolean;
   version?: 3 | 4 | 5;
   mutationInvalidates?: MutationInvalidatesConfig;
+  runtimeValidation?: boolean;
 };
 
 export type QueryOptions = {
@@ -646,7 +647,7 @@ export type QueryOptions = {
   usePrefetch?: boolean;
   useInvalidate?: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  options?: any;
+  options?: Record<string, unknown>;
   queryKey?: Mutator;
   queryOptions?: Mutator;
   mutationOptions?: Mutator;
@@ -658,6 +659,7 @@ export type QueryOptions = {
   signal?: boolean;
   version?: 3 | 4 | 5;
   mutationInvalidates?: MutationInvalidatesConfig;
+  runtimeValidation?: boolean;
 };
 
 export type AngularOptions = {

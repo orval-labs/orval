@@ -560,6 +560,7 @@ export default defineConfig({
           usePrefetch: true,
           useInvalidate: true,
           signal: true,
+          runtimeValidation: true,
           options: {
             staleTime: 10000,
           },
@@ -610,7 +611,7 @@ Generate query invalidation helpers.
 
 **Type:** `Array`
 
-Automatically invalidate queries on mutation success (Angular Query & React Query only):
+Automatically invalidate queries on mutation success (Angular Query, React Query & Svelte Query):
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -636,6 +637,25 @@ export default defineConfig({
       },
     },
   },
+});
+```
+
+When a user provides their own `onSuccess` callback, both the auto-invalidation and the user callback run — the generated `onSuccess` composes them together. To opt out of auto-invalidation at runtime, pass `skipInvalidation: true`:
+
+```ts
+// Default: invalidation + user callback both run
+const deletePet = injectDeletePet({
+  mutation: { onSuccess: () => showToast('Deleted!') },
+});
+
+// Skip auto-invalidation and handle it manually
+const deletePet = injectDeletePet({
+  mutation: {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    },
+  },
+  skipInvalidation: true,
 });
 ```
 
@@ -685,6 +705,13 @@ Use operation ID instead of route path for query keys.
 **Default:** Detected from package.json
 
 Force a specific version for generated hooks.
+
+### runtimeValidation
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Enable Zod runtime validation for Angular query responses. Requires `schemas: { type: 'zod' }`. When enabled, responses are validated via `Schema.parse()` in the RxJS pipeline. Skipped for primitive types and custom mutators.
 
 ---
 

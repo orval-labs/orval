@@ -57,6 +57,7 @@ export interface QueryInvocationContext {
 export interface MutationOnSuccessContext {
   operationName: string;
   definitions: string;
+  isRequestOptions: boolean;
   generateInvalidateCall: (target: {
     query: string;
     params?: string[] | Record<string, string>;
@@ -198,6 +199,7 @@ export interface FrameworkAdapter {
     initialData?: 'defined' | 'undefined';
     httpClient: OutputHttpClient;
     forQueryOptions?: boolean;
+    hasInvalidation?: boolean;
   }): string;
 
   // --- Mutation Hook Generation ---

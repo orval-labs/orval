@@ -9,6 +9,7 @@ import {
   type GeneratorOptions,
   type GeneratorVerbOptions,
   type GetterResponse,
+  isObject,
   isSyntheticDefaultImportsAllow,
   OutputHttpClient,
   pascal,
@@ -62,7 +63,10 @@ export const ANGULAR_HTTP_DEPENDENCIES: GeneratorDependency[] = [
     dependency: 'rxjs',
   },
   {
-    exports: [{ name: 'takeUntil', values: true }],
+    exports: [
+      { name: 'takeUntil', values: true },
+      { name: 'map', values: true },
+    ],
     dependency: 'rxjs/operators',
   },
 ];
@@ -214,6 +218,29 @@ export const generateAngularHttpRequestFunction = (
       httpCall = `http.${verb}<${dataType}>(url, ${bodyArg || 'undefined'}${optionsStr})`;
       break;
     }
+  }
+
+  // Detect if Zod runtime validation should be applied
+  const responseType = response.definition.success;
+  const isPrimitiveType = [
+    'string',
+    'number',
+    'boolean',
+    'void',
+    'unknown',
+  ].includes(responseType);
+  const hasSchema = response.imports.some((imp) => imp.name === responseType);
+  const isZodOutput =
+    isObject(context.output.schemas) && context.output.schemas.type === 'zod';
+  const isValidateResponse =
+    override.query.runtimeValidation &&
+    isZodOutput &&
+    !isPrimitiveType &&
+    hasSchema;
+
+  // If validation is enabled, pipe through map(data => Schema.parse(data))
+  if (isValidateResponse) {
+    httpCall = `${httpCall}.pipe(map(data => ${responseType}.parse(data)))`;
   }
 
   // For Angular, we use takeUntil with fromEvent to handle AbortSignal cancellation

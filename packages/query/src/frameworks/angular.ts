@@ -195,6 +195,7 @@ export const createAngularAdapter = ({
       initialData,
       httpClient,
       forQueryOptions = false,
+      hasInvalidation,
     }): string {
       const definition = getQueryOptionsDefinition({
         operationName,
@@ -218,9 +219,11 @@ export const createAngularAdapter = ({
 
       const requestType = getQueryArgumentsRequestType(httpClient, mutator);
       const isQueryRequired = initialData === 'defined';
+      const skipInvalidationProp =
+        !type && hasInvalidation ? 'skipInvalidation?: boolean, ' : '';
       const optionsType = `{ ${
         type ? 'query' : 'mutation'
-      }${isQueryRequired ? '' : '?'}:${definition}, ${requestType}}`;
+      }${isQueryRequired ? '' : '?'}:${definition}, ${skipInvalidationProp}${requestType}}`;
 
       // For Angular inject* functions (query hooks, not queryOptions or mutations),
       // allow options to be a getter for reactivity.
@@ -250,11 +253,23 @@ export const createAngularAdapter = ({
     generateMutationOnSuccess({
       operationName,
       definitions,
+      isRequestOptions,
       generateInvalidateCall,
       uniqueInvalidates,
     }: MutationOnSuccessContext): string {
+      const invalidateCalls = uniqueInvalidates
+        .map((t) => generateInvalidateCall(t))
+        .join('\n');
+      if (isRequestOptions) {
+        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
+    if (!options?.skipInvalidation) {
+${invalidateCalls}
+    }
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+  };`;
+      }
       return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
-${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
+${invalidateCalls}
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
   };`;
     },

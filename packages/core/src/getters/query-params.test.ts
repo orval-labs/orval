@@ -150,4 +150,36 @@ describe('getQueryParams getter', () => {
       ].join('\n'),
     );
   });
+
+  it('queryParam with anyOf and null should be nullable and optional', () => {
+    const result = getQueryParams({
+      queryParams: [
+        {
+          parameter: {
+            name: 'affiliations',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  format: 'uuid',
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+            },
+          },
+          imports: [],
+        },
+      ],
+      operationName: '',
+      context,
+    });
+
+    expect(result?.schema.model.trim()).toBe(
+      `export type Params = {\naffiliations?: string | null;\n};`,
+    );
+  });
 });

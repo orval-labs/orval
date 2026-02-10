@@ -376,7 +376,9 @@ describe('dereferenceExternalRefs', () => {
       },
     };
 
-    const result = dereferenceExternalRef(input);
+    const result = dereferenceExternalRef(input) as {
+      components: { schemas: Record<string, unknown> };
+    };
 
     expect(result.components.schemas.Dog).toEqual({
       type: 'object',
@@ -419,7 +421,9 @@ describe('dereferenceExternalRefs', () => {
       },
     };
 
-    const result = dereferenceExternalRef(input);
+    const result = dereferenceExternalRef(input) as {
+      schema: { allOf: unknown[] };
+    };
 
     expect(result.schema.allOf[0]).toEqual({
       type: 'object',
@@ -583,7 +587,15 @@ describe('dereferenceExternalRefs', () => {
       },
     };
 
-    const result = dereferenceExternalRef(input);
+    type ResponseContent = {
+      content: Record<string, { schema: { oneOf: unknown[] } }>;
+    };
+    type PathOperation = {
+      responses: Record<string, ResponseContent>;
+    };
+    const result = dereferenceExternalRef(input) as {
+      paths: Record<string, Record<string, PathOperation>>;
+    };
 
     // post -> oneOf[0] should be the Pet schema with file inlined
     const postSchema =

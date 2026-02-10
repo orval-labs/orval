@@ -71,8 +71,10 @@ export async function importSpecs(
  * Instead it fetches them and puts them under x-ext, and changes the $ref to point to #x-ext/<name>.
  * This function dereferences those x-ext $ref's.
  */
-export function dereferenceExternalRef(data: object): object {
-  const extensions = data['x-ext'] ?? {};
+export function dereferenceExternalRef(
+  data: Record<string, unknown>,
+): Record<string, unknown> {
+  const extensions = (data['x-ext'] ?? {}) as Record<string, unknown>;
 
   const UNWANTED_KEYS = new Set(['$schema', '$id']);
 
