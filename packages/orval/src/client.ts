@@ -3,6 +3,7 @@ import axios from '@orval/axios';
 import {
   asyncReduce,
   type ClientFileBuilder,
+  type ClientMockBuilder,
   type ClientMockGeneratorBuilder,
   type ContextSpec,
   generateDependencyImports,
@@ -148,7 +149,7 @@ export const generateClientFooter: GeneratorClientFooter = ({
   let implementation: string;
   try {
     if (isFunction(outputClient)) {
-      implementation = (footer as (operationNames: any) => string)(
+      implementation = (footer as (operationNames: string[]) => string)(
         operationNames,
       );
       // being here means that the previous call worked
@@ -228,7 +229,7 @@ const generateMock = (
   return mock.generateMock(
     verbOption,
     options as typeof options & {
-      mock: Exclude<(typeof options)['mock'], Function | undefined>;
+      mock: Exclude<(typeof options)['mock'], ClientMockBuilder | undefined>;
     },
   );
 };

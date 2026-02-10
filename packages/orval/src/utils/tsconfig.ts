@@ -15,7 +15,7 @@ export const loadTsconfig = async (
     });
     if (configPath) {
       const config = await parse(configPath);
-      return config.tsconfig;
+      return config.tsconfig as Tsconfig;
     }
     return;
   }
@@ -25,10 +25,9 @@ export const loadTsconfig = async (
     if (fs.existsSync(normalizedPath)) {
       const config = await parse(normalizedPath);
 
-      const tsconfig =
-        config.referenced?.find(
-          ({ tsconfigFile }) => tsconfigFile === normalizedPath,
-        )?.tsconfig ?? config.tsconfig;
+      const tsconfig = (config.referenced?.find(
+        ({ tsconfigFile }) => tsconfigFile === normalizedPath,
+      )?.tsconfig ?? config.tsconfig) as Tsconfig;
 
       return tsconfig;
     }

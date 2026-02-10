@@ -398,9 +398,9 @@ export async function writeSpecs(
   if (output.docs) {
     try {
       let config: Partial<TypeDocOptions> = {};
-      let configPath: string | null = null;
+      let configPath: string | undefined;
       if (isObject(output.docs)) {
-        ({ configPath = null, ...config } = output.docs);
+        ({ configPath, ...config } = output.docs);
         if (configPath) {
           config.options = configPath;
         }
@@ -456,7 +456,6 @@ function getWriteMode(mode: OutputMode) {
     case OutputMode.TAGS_SPLIT: {
       return writeSplitTagsMode;
     }
-    case OutputMode.SINGLE:
     default: {
       return writeSingleMode;
     }
