@@ -4,12 +4,11 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import type {
   HttpContext,
   HttpEvent,
   HttpHeaders,
-  HttpParams,
   HttpResponse as AngularHttpResponse,
 } from '@angular/common/http';
 
