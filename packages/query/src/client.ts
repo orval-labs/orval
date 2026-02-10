@@ -187,11 +187,25 @@ export const generateAngularHttpRequestFunction = (
     httpOptions.push('headers: new HttpHeaders(headers)');
   }
 
+  const isTextResponse = response.contentTypes.some(
+    (contentType) =>
+      contentType.startsWith('text/') || contentType.includes('xml'),
+  );
+  const responseTypeOption = response.isBlob
+    ? "'blob'"
+    : isTextResponse
+      ? "'text'"
+      : undefined;
+  if (responseTypeOption) {
+    httpOptions.push(`responseType: ${responseTypeOption}`);
+  }
+
   const optionsStr =
     httpOptions.length > 0 ? `, { ${httpOptions.join(', ')} }` : '';
 
   // Build the HTTP method call
   let httpCall: string;
+  const httpGeneric = responseTypeOption ? '' : `<${dataType}>`;
   const bodyArg =
     isFormData && body.formData
       ? 'formData'
@@ -204,18 +218,18 @@ export const generateAngularHttpRequestFunction = (
   switch (verb) {
     case 'get':
     case 'head': {
-      httpCall = `http.${verb}<${dataType}>(url${optionsStr})`;
+      httpCall = `http.${verb}${httpGeneric}(url${optionsStr})`;
       break;
     }
     case 'delete': {
       httpCall = bodyArg
-        ? `http.${verb}<${dataType}>(url, { ${httpOptions.length > 0 ? httpOptions.join(', ') + ', ' : ''}body: ${bodyArg} })`
-        : `http.${verb}<${dataType}>(url${optionsStr})`;
+        ? `http.${verb}${httpGeneric}(url, { ${httpOptions.length > 0 ? httpOptions.join(', ') + ', ' : ''}body: ${bodyArg} })`
+        : `http.${verb}${httpGeneric}(url${optionsStr})`;
       break;
     }
     default: {
       // post, put, patch
-      httpCall = `http.${verb}<${dataType}>(url, ${bodyArg || 'undefined'}${optionsStr})`;
+      httpCall = `http.${verb}${httpGeneric}(url, ${bodyArg || 'undefined'}${optionsStr})`;
       break;
     }
   }

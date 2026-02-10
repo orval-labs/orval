@@ -268,7 +268,7 @@ ${
   const responseTypeImplementation = override.fetch
     .includeHttpResponseReturnType
     ? `${responseDataTypes.map((r) => r.value).join('\n\n')}
-    
+
 ${
   hasSuccess
     ? `export type ${successName} = (${responseDataTypes
@@ -444,8 +444,40 @@ export const fetchResponseTypeName = (
 };
 
 export const generateClient: ClientBuilder = (verbOptions, options) => {
-  const imports = generateVerbImports(verbOptions);
-  const functionImplementation = generateRequestFunction(verbOptions, options);
+  const isZodOutput =
+    typeof options.context.output.schemas === 'object' &&
+    options.context.output.schemas?.type === 'zod';
+  const responseType = verbOptions.response.definition.success;
+  const isPrimitiveResponse = [
+    'string',
+    'number',
+    'boolean',
+    'void',
+    'unknown',
+  ].includes(responseType);
+  const shouldUseRuntimeValidation =
+    verbOptions.override.fetch.runtimeValidation && isZodOutput;
+
+  const normalizedVerbOptions =
+    shouldUseRuntimeValidation &&
+    !isPrimitiveResponse &&
+    verbOptions.response.imports.some((imp) => imp.name === responseType)
+      ? {
+          ...verbOptions,
+          response: {
+            ...verbOptions.response,
+            imports: verbOptions.response.imports.map((imp) =>
+              imp.name === responseType ? { ...imp, values: true } : imp,
+            ),
+          },
+        }
+      : verbOptions;
+
+  const imports = generateVerbImports(normalizedVerbOptions);
+  const functionImplementation = generateRequestFunction(
+    normalizedVerbOptions,
+    options,
+  );
 
   return {
     implementation: `${functionImplementation}\n`,

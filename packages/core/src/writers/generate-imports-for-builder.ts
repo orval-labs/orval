@@ -11,30 +11,28 @@ export function generateImportsForBuilder(
   const isZodSchemaOutput =
     isObject(output.schemas) && output.schemas.type === 'zod';
 
-  if (!output.indexFiles) {
+  if (output.indexFiles) {
+    return isZodSchemaOutput
+      ? [
+          {
+            exports: imports,
+            dependency: upath.joinSafe(relativeSchemasPath, 'index.zod'),
+          },
+        ]
+      : [{ exports: imports, dependency: relativeSchemasPath }];
+  } else {
     return uniqueBy(imports, (x) => x.name).map((i) => {
       const baseName = i.schemaName || i.name;
       const name = conventionName(baseName, output.namingConvention);
       const suffix = isZodSchemaOutput ? '.zod' : '';
       const importExtension = output.fileExtension?.replace(/\.ts$/, '') || '';
       return {
-        exports: isZodSchemaOutput ? [{ ...i, values: true }] : [i],
+        exports: [i],
         dependency: upath.joinSafe(
           relativeSchemasPath,
           `${name}${suffix}${importExtension}`,
         ),
       };
     });
-  } else {
-    if (isZodSchemaOutput) {
-      return [
-        {
-          exports: imports.map((i) => ({ ...i, values: true })),
-          dependency: upath.joinSafe(relativeSchemasPath, 'index.zod'),
-        },
-      ];
-    } else {
-      return [{ exports: imports, dependency: relativeSchemasPath }];
-    }
   }
 }

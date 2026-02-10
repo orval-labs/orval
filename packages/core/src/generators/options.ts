@@ -90,7 +90,14 @@ export function generateAxiosOptions({
 
   if (!isRequestOptions) {
     if (queryParams) {
-      value += '\n        params,';
+      if (isAngular && paramsSerializer) {
+        value += `\n        params: ${paramsSerializer.name}(params),`;
+      } else if (isAngular) {
+        value +=
+          '\n        params: params ? new HttpParams({ fromObject: params as Record<string, string | number | boolean | readonly (string | number | boolean)[]> }) : undefined,';
+      } else {
+        value += '\n        params,';
+      }
     }
 
     if (headers) {
@@ -123,10 +130,12 @@ export function generateAxiosOptions({
     value += '\n    ...options,';
 
     if (queryParams) {
-      if (isVue) {
+      if (isAngular) {
+        value += paramsSerializer
+          ? `\n        params: options?.params ?? ${paramsSerializer.name}(params),`
+          : '\n        params: options?.params ?? (params ? new HttpParams({ fromObject: params as Record<string, string | number | boolean | readonly (string | number | boolean)[]> }) : undefined),';
+      } else if (isVue) {
         value += '\n        params: {...unref(params), ...options?.params},';
-      } else if (isAngular && paramsSerializer) {
-        value += `\n        params: ${paramsSerializer.name}({...params, ...options?.params}),`;
       } else {
         value += '\n        params: {...params, ...options?.params},';
       }

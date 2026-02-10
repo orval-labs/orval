@@ -33,6 +33,12 @@ export type ${schemaName} = zod.infer<typeof ${schemaName}>;
 `;
 }
 
+const isValidSchemaIdentifier = (name: string) =>
+  /^[A-Za-z_][A-Za-z0-9_]*$/.test(name);
+
+const isPrimitiveSchemaName = (name: string) =>
+  ['string', 'number', 'boolean', 'void', 'unknown', 'Blob'].includes(name);
+
 async function writeZodSchemaIndex(
   schemasPath: string,
   fileExtension: string,
@@ -252,7 +258,28 @@ export async function writeZodSchemasFromVerbs(
           ]
         : [];
 
-    return [...bodySchemas, ...queryParamsSchemas, ...headerParamsSchemas];
+    const responseSchemas = [
+      ...verbOption.response.types.success,
+      ...verbOption.response.types.errors,
+    ]
+      .filter(
+        (responseType) =>
+          responseType.originalSchema &&
+          !responseType.isRef &&
+          isValidSchemaIdentifier(responseType.value) &&
+          !isPrimitiveSchemaName(responseType.value),
+      )
+      .map((responseType) => ({
+        name: responseType.value,
+        schema: dereference(responseType.originalSchema!, context),
+      }));
+
+    return [
+      ...bodySchemas,
+      ...queryParamsSchemas,
+      ...headerParamsSchemas,
+      ...responseSchemas,
+    ];
   });
 
   await Promise.all(
