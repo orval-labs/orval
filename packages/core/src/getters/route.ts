@@ -31,17 +31,19 @@ const getRoutePath = (path: string): string => {
 export function getRoute(route: string) {
   const splittedRoute = route.split('/');
 
-  return splittedRoute.reduce((acc, path, i) => {
+  let result = '';
+  for (const [i, path] of splittedRoute.entries()) {
     if (!path && !i) {
-      return acc;
+      continue;
     }
 
     if (!path.includes('{')) {
-      return `${acc}/${path}`;
+      result += `/${path}`;
+    } else {
+      result += `/${getRoutePath(path)}`;
     }
-
-    return `${acc}/${getRoutePath(path)}`;
-  }, '');
+  }
+  return result;
 }
 
 export function getFullRoute(

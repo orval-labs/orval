@@ -10,14 +10,11 @@ export const generalJSTypes = [
   'blob',
 ];
 
-export const generalJSTypesWithArray = generalJSTypes.reduce<string[]>(
-  (acc, type) => {
-    acc.push(type, `Array<${type}>`, `${type}[]`);
-
-    return acc;
-  },
-  [],
-);
+export const generalJSTypesWithArray = generalJSTypes.flatMap((type) => [
+  type,
+  `Array<${type}>`,
+  `${type}[]`,
+]);
 
 export const VERBS_WITH_BODY = [
   Verbs.POST,

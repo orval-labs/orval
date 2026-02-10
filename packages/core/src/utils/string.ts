@@ -40,22 +40,21 @@ export function stringify(
     return `[${data.map((item) => stringify(item)).join(', ')}]`;
   }
 
-  return Object.entries(data).reduce((acc, [key, value], index, arr) => {
+  const entries = Object.entries(data);
+  let result = '';
+  for (const [index, [key, value]] of entries.entries()) {
     const strValue = stringify(value);
-    if (arr.length === 1) {
-      return `{ ${key}: ${strValue}, }`;
+    if (entries.length === 1) {
+      result = `{ ${key}: ${strValue}, }`;
+    } else if (!index) {
+      result = `{ ${key}: ${strValue}, `;
+    } else if (entries.length - 1 === index) {
+      result += `${key}: ${strValue}, }`;
+    } else {
+      result += `${key}: ${strValue}, `;
     }
-
-    if (!index) {
-      return `{ ${key}: ${strValue}, `;
-    }
-
-    if (arr.length - 1 === index) {
-      return acc + `${key}: ${strValue}, }`;
-    }
-
-    return acc + `${key}: ${strValue}, `;
-  }, '');
+  }
+  return result;
 }
 
 /**
@@ -156,17 +155,14 @@ export function toObjectString<T>(props: T[], path?: keyof T) {
   }
 
   const arrayOfString = isString(path)
-    ? props.map((prop) =>
-        path
-          .split('.')
-          .reduce(
-            (obj: any, key: string) =>
-              obj && (isObject(obj) || Array.isArray(obj))
-                ? obj[key]
-                : undefined,
-            prop,
-          ),
-      )
+    ? props.map((prop) => {
+        let obj: any = prop;
+        for (const key of path.split('.')) {
+          obj =
+            obj && (isObject(obj) || Array.isArray(obj)) ? obj[key] : undefined;
+        }
+        return obj;
+      })
     : props;
 
   return arrayOfString.join(',\n    ') + ',';

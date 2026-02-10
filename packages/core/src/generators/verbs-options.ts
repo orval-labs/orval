@@ -86,13 +86,12 @@ export async function generateVerbOptions({
   } = operation;
   const operationId = getOperationId(operation, route, verb);
   const overrideOperation = output.override.operations[operationId];
-  const overrideTag = Object.entries(
-    output.override.tags,
-  ).reduce<NormalizedOperationOptions>(
-    (acc, [tag, options]) =>
-      tags.includes(tag) && options ? mergeDeep(acc, options) : acc,
-    {},
-  );
+  let overrideTag: NormalizedOperationOptions = {};
+  for (const [tag, options] of Object.entries(output.override.tags)) {
+    if (tags.includes(tag) && options) {
+      overrideTag = mergeDeep(overrideTag, options);
+    }
+  }
 
   const override = mergeDeep(
     mergeDeep(output.override, overrideTag),
@@ -118,14 +117,14 @@ export async function generateVerbOptions({
   }
 
   const response = getResponse({
-    responses: responses!,
+    responses: responses ?? {},
     operationName,
     context,
     contentType: originalContentTypeFilter,
   });
 
   const body = getBody({
-    requestBody: requestBody!,
+    requestBody: requestBody ?? {},
     operationName,
     context,
     contentType: requestBodyContentTypeFilter,
@@ -154,7 +153,7 @@ export async function generateVerbOptions({
   const params = getParams({
     route,
     pathParams: parameters.path,
-    operationId: operationId!,
+    operationId: operationId,
     context,
     output,
   });

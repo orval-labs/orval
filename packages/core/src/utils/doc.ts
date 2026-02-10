@@ -68,7 +68,7 @@ export function jsDoc(
     maxItems?.toString(),
     isNullable ? 'null' : '',
     pattern,
-  ].reduce((acc, it) => (it ? acc + 1 : acc), 0);
+  ].filter(Boolean).length;
 
   if (!count) {
     return '';

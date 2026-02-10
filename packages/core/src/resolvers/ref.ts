@@ -128,15 +128,18 @@ export function resolveExampleRefs(
         }
         return example;
       })
-    : Object.entries(examples).reduce((acc, [key, example]) => {
-        let schema = example;
-        if (isReference(example)) {
-          schema = resolveRef<OpenApiExampleObject>(example, context).schema
-            .value;
+    : (() => {
+        const result: Record<string, unknown> = {};
+        for (const [key, example] of Object.entries(examples)) {
+          if (isReference(example)) {
+            result[key] = resolveRef<OpenApiExampleObject>(
+              example,
+              context,
+            ).schema.value;
+          } else {
+            result[key] = example;
+          }
         }
-        return {
-          ...acc,
-          [key]: schema,
-        };
-      }, {});
+        return result;
+      })();
 }
