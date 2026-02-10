@@ -27,7 +27,7 @@ export function generateInterface({
   });
   const isEmptyObject = scalar.value === '{}';
   const shouldUseTypeAlias =
-    context?.output.override?.useTypeOverInterfaces ?? scalar.useTypeAlias;
+    context.output.override.useTypeOverInterfaces ?? scalar.useTypeAlias;
 
   let model = '';
 
@@ -40,7 +40,6 @@ export function generateInterface({
 
   if (scalar.type === 'object' && !shouldUseTypeAlias) {
     if (
-      scalar.type === 'object' &&
       schema.properties &&
       Object.values(schema.properties).length > 0 &&
       Object.values(schema.properties).every((item) => 'const' in item)

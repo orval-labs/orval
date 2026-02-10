@@ -58,9 +58,7 @@ export function getEnum(
     );
   if (enumGenerationType === EnumGeneration.ENUM)
     return getNativeEnum(value, enumName, names, enumNamingConvention);
-  if (enumGenerationType === EnumGeneration.UNION)
-    return getUnion(value, enumName);
-  throw new Error(`Invalid enumGenerationType: ${enumGenerationType}`);
+  return getUnion(value, enumName);
 }
 
 const getTypeConstEnum = (

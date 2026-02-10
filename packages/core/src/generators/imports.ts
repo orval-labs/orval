@@ -239,35 +239,38 @@ export function addDependency({
 
   const groupedBySpecKey = toAdds.reduce<
     Record<string, { types: GeneratorImport[]; values: GeneratorImport[] }>
-  >((acc, dep) => {
-    const key = 'default';
+  >(
+    (acc, dep) => {
+      const key = 'default';
 
-    if (
-      dep.values &&
-      (isAllowSyntheticDefaultImports || !dep.syntheticDefaultImport)
-    ) {
+      if (
+        dep.values &&
+        (isAllowSyntheticDefaultImports || !dep.syntheticDefaultImport)
+      ) {
+        acc[key] = {
+          ...acc[key],
+          values: [...acc[key].values, dep],
+        };
+
+        return acc;
+      }
+
       acc[key] = {
         ...acc[key],
-        values: [...(acc[key]?.values ?? []), dep],
+        types: [...acc[key].types, dep],
       };
 
       return acc;
-    }
-
-    acc[key] = {
-      ...acc[key],
-      types: [...(acc[key]?.types ?? []), dep],
-    };
-
-    return acc;
-  }, {});
+    },
+    { default: { types: [], values: [] } },
+  );
 
   return (
     Object.entries(groupedBySpecKey)
       .map(([key, { values, types }]) => {
         let dep = '';
 
-        if (values) {
+        if (values.length > 0) {
           dep += generateDependency({
             deps: values,
             isAllowSyntheticDefaultImports,
@@ -278,9 +281,9 @@ export function addDependency({
           });
         }
 
-        if (types) {
+        if (types.length > 0) {
           let uniqueTypes = types;
-          if (values) {
+          if (values.length > 0) {
             uniqueTypes = types.filter(
               (t) => !values.some((v) => v.name === t.name),
             );

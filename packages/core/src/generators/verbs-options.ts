@@ -326,7 +326,7 @@ export function _filteredVerbs(
     return Object.entries(verbs);
   }
 
-  const filterTags = filters.tags || [];
+  const filterTags = filters.tags;
   const filterMode = filters.mode ?? 'include';
 
   return Object.entries(verbs).filter(
