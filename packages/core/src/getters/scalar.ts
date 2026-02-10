@@ -77,7 +77,7 @@ export function getScalar({
         schemas: [],
         imports: [],
         isRef: false,
-        hasReadonlyProps: item.readOnly || false,
+        hasReadonlyProps: item.readOnly ?? false,
         dependencies: [],
         example: item.example,
         examples: resolveExampleRefs(item.examples, context),
@@ -99,7 +99,7 @@ export function getScalar({
         schemas: [],
         imports: [],
         isRef: false,
-        hasReadonlyProps: item.readOnly || false,
+        hasReadonlyProps: item.readOnly ?? false,
         dependencies: [],
         example: item.example,
         examples: resolveExampleRefs(item.examples, context),
@@ -168,7 +168,7 @@ export function getScalar({
         imports: [],
         schemas: [],
         isRef: false,
-        hasReadonlyProps: item.readOnly || false,
+        hasReadonlyProps: item.readOnly ?? false,
         dependencies: [],
         example: item.example,
         examples: resolveExampleRefs(item.examples, context),
@@ -183,7 +183,7 @@ export function getScalar({
         imports: [],
         schemas: [],
         isRef: false,
-        hasReadonlyProps: item.readOnly || false,
+        hasReadonlyProps: item.readOnly ?? false,
         dependencies: [],
       };
     }
@@ -220,7 +220,7 @@ export function getScalar({
           imports: [],
           schemas: [],
           isRef: false,
-          hasReadonlyProps: item.readOnly || false,
+          hasReadonlyProps: item.readOnly ?? false,
           dependencies: [],
           example: item.example,
           examples: resolveExampleRefs(item.examples, context),
@@ -231,7 +231,7 @@ export function getScalar({
       // - atPart: false → always pass (navigating to properties)
       // - atPart: true + combiner → pass (combiner members are still the same part)
       // - atPart: true + plain object → don't pass (nested properties are JSON)
-      const hasCombiners = item.allOf || item.anyOf || item.oneOf;
+      const hasCombiners = item.allOf ?? item.anyOf ?? item.oneOf;
       const shouldPassContext =
         formDataContext?.atPart === false ||
         (formDataContext?.atPart && hasCombiners);

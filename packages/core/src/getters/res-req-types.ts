@@ -405,7 +405,7 @@ function getFormDataAdditionalImports({
     return [];
   }
 
-  const combinedSchemas = schema.oneOf || schema.anyOf;
+  const combinedSchemas = schema.oneOf ?? schema.anyOf;
 
   if (!combinedSchemas) {
     return [];
@@ -451,7 +451,7 @@ function getSchemaFormDataAndUrlEncoded({
     ? `const ${variableName} = new URLSearchParams();\n`
     : `const ${variableName} = new FormData();\n`;
 
-  const combinedSchemas = schema.oneOf || schema.anyOf || schema.allOf;
+  const combinedSchemas = schema.oneOf ?? schema.anyOf ?? schema.allOf;
   if (
     schema.type === 'object' ||
     (schema.type === undefined && combinedSchemas)
@@ -683,7 +683,7 @@ function resolveSchemaPropertiesToFormData({
 
       let existSubSchemaNullable = false;
       if (property.allOf || property.anyOf || property.oneOf) {
-        const combine = property.allOf || property.anyOf || property.oneOf;
+        const combine = property.allOf ?? property.anyOf ?? property.oneOf;
         const subSchemas = combine?.map((c) =>
           resolveObject({ schema: c, combined: true, context: context }),
         );

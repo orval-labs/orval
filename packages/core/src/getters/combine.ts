@@ -276,7 +276,9 @@ export function combineSchemas({
       acc.types.push(resolvedValue.type);
       acc.isRef.push(resolvedValue.isRef);
       acc.originalSchema.push(resolvedValue.originalSchema);
-      acc.hasReadonlyProps ||= resolvedValue.hasReadonlyProps;
+      if (resolvedValue.hasReadonlyProps) {
+        acc.hasReadonlyProps = true;
+      }
 
       if (
         resolvedValue.type === 'object' &&
@@ -411,7 +413,8 @@ export function combineSchemas({
     type: 'object' as SchemaType,
     isRef: false,
     hasReadonlyProps:
-      resolvedData.hasReadonlyProps || resolvedValue?.hasReadonlyProps || false,
+      resolvedData.hasReadonlyProps ||
+      (resolvedValue?.hasReadonlyProps ?? false),
     example: schema.example,
     examples: resolveExampleRefs(schema.examples, context),
   };

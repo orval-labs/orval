@@ -206,14 +206,16 @@ export function getObject({
           formDataContext: propertyFormDataContext,
         });
 
-        const isReadOnly = item.readOnly || schema.readOnly;
+        const isReadOnly = item.readOnly ?? schema.readOnly;
         if (!index) {
           acc.value += '{';
         }
 
         const doc = jsDoc(schema, true, context);
 
-        acc.hasReadonlyProps ||= isReadOnly || false;
+        if (isReadOnly ?? false) {
+          acc.hasReadonlyProps = true;
+        }
 
         const constValue = 'const' in schema ? schema.const : undefined;
         const hasConst = constValue !== undefined;
@@ -331,7 +333,7 @@ export function getObject({
           isEnum: false,
           type: 'object',
           isRef: false,
-          hasReadonlyProps: item.readOnly || false,
+          hasReadonlyProps: item.readOnly ?? false,
           useTypeAlias: true,
           dependencies: [],
         };
@@ -344,7 +346,7 @@ export function getObject({
         isEnum: false,
         type: 'object',
         isRef: false,
-        hasReadonlyProps: item.readOnly || false,
+        hasReadonlyProps: item.readOnly ?? false,
         useTypeAlias: false,
         dependencies: [],
       };
@@ -391,7 +393,7 @@ export function getObject({
       isEnum: false,
       type: 'string',
       isRef: false,
-      hasReadonlyProps: item.readOnly || false,
+      hasReadonlyProps: item.readOnly ?? false,
       dependencies: [],
     };
   }
@@ -407,7 +409,7 @@ export function getObject({
       isEnum: false,
       type: 'object',
       isRef: false,
-      hasReadonlyProps: item.readOnly || false,
+      hasReadonlyProps: item.readOnly ?? false,
       useTypeAlias: true,
       dependencies: [],
     };
@@ -421,7 +423,7 @@ export function getObject({
     isEnum: false,
     type: 'object',
     isRef: false,
-    hasReadonlyProps: item.readOnly || false,
+    hasReadonlyProps: item.readOnly ?? false,
     useTypeAlias: false,
     dependencies: [],
   };
