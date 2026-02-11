@@ -1,5 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { defineConfig } from 'orval';
+import transformer from './src/orval/transformer/add-version';
 
 export default defineConfig({
   petstore: {
@@ -8,7 +9,7 @@ export default defineConfig({
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
       client: 'angular',
-      mock: { indexMockFiles: true },
+      mock: { type: 'msw', indexMockFiles: true },
       tsconfig: './tsconfig.app.json',
       clean: true,
       override: {
@@ -47,7 +48,7 @@ export default defineConfig({
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'src/orval/transformer/add-version.js',
+        transformer,
       },
     },
   },

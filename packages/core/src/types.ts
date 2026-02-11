@@ -318,6 +318,14 @@ export const OutputMockType = {
 export type OutputMockType =
   (typeof OutputMockType)[keyof typeof OutputMockType];
 
+export type PreferredContentType =
+  | 'application/json'
+  | 'application/xml'
+  | 'text/plain'
+  | 'text/html'
+  | 'application/octet-stream'
+  | (string & {});
+
 export type GlobalMockOptions = {
   // This is the type of the mock that will be generated
   type: OutputMockType;
@@ -334,6 +342,9 @@ export type GlobalMockOptions = {
   baseUrl?: string;
   // This is used to set the locale of the faker library
   locale?: keyof typeof allLocales;
+  // Prefer a specific response content type when multiple are defined
+  // (falls back to the order in the OpenAPI spec when not set)
+  preferredContentType?: PreferredContentType;
   indexMockFiles?: boolean;
 };
 

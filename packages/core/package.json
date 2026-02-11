@@ -23,7 +23,7 @@
     "nuke": "rimraf .turbo dist node_modules"
   },
   "devDependencies": {
-    "@faker-js/faker": "^10.2.0",
+    "@faker-js/faker": "catalog:tooling",
     "@types/debug": "^4.1.12",
     "@types/esutils": "^2.0.2",
     "@types/fs-extra": "^11.0.4",
