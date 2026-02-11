@@ -408,6 +408,14 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 `;
   let customFetchResponseImplementation = `return ${mutator?.name}<${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}>(${fetchFnOptions});`;
 
+  const bodyForm = generateFormDataAndUrlEncodedFunction({
+    formData,
+    formUrlEncoded,
+    body,
+    isFormData,
+    isFormUrlEncoded,
+  });
+
   if (mutator?.isHook) {
     const hasDefaultName = !mutator.path.includes('#');
     const fetchExportName = hasDefaultName
@@ -418,16 +426,12 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       : `{${fetchExportName}}`;
     customFetchResponseImplementation = `
       const ${formattedDeconstructor} = ${mutator.name}();
-      return (${args}) => ${fetchExportName}(${fetchFnOptions});
+      return (${args}) => {
+        ${bodyForm}
+        return ${fetchExportName}(${fetchFnOptions});
+      }
   `;
   }
-  const bodyForm = generateFormDataAndUrlEncodedFunction({
-    formData,
-    formUrlEncoded,
-    body,
-    isFormData,
-    isFormUrlEncoded,
-  });
 
   const fetchImplementationBody = mutator
     ? customFetchResponseImplementation
@@ -439,7 +443,6 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   `;
   if (mutator?.isHook) {
     fetchImplementation = `export const use${pascal(operationName)}Hook = (): (${args}) => ${returnType} => {
-    ${bodyForm ? `  ${bodyForm}` : ''}
     ${fetchImplementationBody}}
   `;
   }
