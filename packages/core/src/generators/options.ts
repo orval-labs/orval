@@ -9,6 +9,42 @@ import {
 } from '../types';
 import { getIsBodyVerb, isObject, stringify } from '../utils';
 
+/**
+ * Filters query params for Angular's HttpClient.
+ *
+ * Why: Angular's HttpParams / HttpClient `params` type does not accept `null` or
+ * `undefined` values, and arrays must only contain string/number/boolean.
+ * Orval models often include nullable query params, so we remove nullish values
+ * (including nulls inside arrays) before passing params to HttpClient or a
+ * paramsSerializer to avoid runtime and type issues.
+ */
+const getAngularFilteredParamsExpression = (paramsExpression: string) =>
+  `(() => {
+  const filteredParams = {} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>;
+  for (const [key, value] of Object.entries(${paramsExpression})) {
+    if (Array.isArray(value)) {
+      const filtered = value.filter(
+        (item) =>
+          item != null &&
+          (typeof item === 'string' ||
+            typeof item === 'number' ||
+            typeof item === 'boolean'),
+      ) as ReadonlyArray<string | number | boolean>;
+      if (filtered.length) {
+        filteredParams[key] = filtered;
+      }
+    } else if (
+      value != null &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean')
+    ) {
+      filteredParams[key] = value as string | number | boolean;
+    }
+  }
+  return filteredParams;
+})()`;
+
 interface GenerateFormDataAndUrlEncodedFunctionOptions {
   body: GetterBody;
   formData?: GeneratorMutator;
@@ -90,7 +126,13 @@ export function generateAxiosOptions({
 
   if (!isRequestOptions) {
     if (queryParams) {
-      value += '\n        params,';
+      if (isAngular) {
+        value += paramsSerializer
+          ? `\n        params: ${paramsSerializer.name}(${getAngularFilteredParamsExpression('params')}),`
+          : `\n        params: ${getAngularFilteredParamsExpression('params')},`;
+      } else {
+        value += '\n        params,';
+      }
     }
 
     if (headers) {
@@ -126,7 +168,9 @@ export function generateAxiosOptions({
       if (isVue) {
         value += '\n        params: {...unref(params), ...options?.params},';
       } else if (isAngular && paramsSerializer) {
-        value += `\n        params: ${paramsSerializer.name}({...params, ...options?.params}),`;
+        value += `\n        params: ${paramsSerializer.name}(${getAngularFilteredParamsExpression('{...params, ...options?.params}')}),`;
+      } else if (isAngular) {
+        value += `\n        params: ${getAngularFilteredParamsExpression('{...params, ...options?.params}')},`;
       } else {
         value += '\n        params: {...params, ...options?.params},';
       }
@@ -142,10 +186,11 @@ export function generateAxiosOptions({
     queryParams &&
     (paramsSerializer || paramsSerializerOptions?.qs)
   ) {
+    const qsOptions = paramsSerializerOptions?.qs;
     value += paramsSerializer
       ? `\n        paramsSerializer: ${paramsSerializer.name},`
       : `\n        paramsSerializer: (params) => qs.stringify(params, ${JSON.stringify(
-          paramsSerializerOptions?.qs,
+          qsOptions,
         )}),`;
   }
 
@@ -251,6 +296,7 @@ export function generateBodyMutatorConfig(
 export function generateQueryParamsAxiosConfig(
   response: GetterResponse,
   isVue: boolean,
+  isAngular: boolean,
   queryParams?: GetterQueryParam,
 ) {
   if (!queryParams && !response.isBlob) {
@@ -260,7 +306,13 @@ export function generateQueryParamsAxiosConfig(
   let value = '';
 
   if (queryParams) {
-    value += isVue ? ',\n        params: unref(params)' : ',\n        params';
+    if (isVue) {
+      value += ',\n        params: unref(params)';
+    } else if (isAngular) {
+      value += `,\n        params: ${getAngularFilteredParamsExpression('params ?? {}')}`;
+    } else {
+      value += ',\n        params';
+    }
   }
 
   if (response.isBlob) {
@@ -283,6 +335,7 @@ interface GenerateMutatorConfigOptions {
   hasSignalParam?: boolean;
   isExactOptionalPropertyTypes: boolean;
   isVue?: boolean;
+  isAngular?: boolean;
 }
 
 export function generateMutatorConfig({
@@ -298,6 +351,7 @@ export function generateMutatorConfig({
   hasSignalParam = false,
   isExactOptionalPropertyTypes,
   isVue,
+  isAngular,
 }: GenerateMutatorConfigOptions) {
   const bodyOptions = getIsBodyVerb(verb)
     ? generateBodyMutatorConfig(body, isFormData, isFormUrlEncoded)
@@ -306,6 +360,7 @@ export function generateMutatorConfig({
   const queryParamsOptions = generateQueryParamsAxiosConfig(
     response,
     isVue ?? false,
+    isAngular ?? false,
     queryParams,
   );
 
