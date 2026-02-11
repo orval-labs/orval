@@ -589,7 +589,8 @@ export type InvalidateTarget =
   | string
   | {
       query: string;
-      params: string[] | Record<string, string>;
+      params?: string[] | Record<string, string>;
+      invalidateMode?: 'invalidate' | 'reset';
     };
 
 export type MutationInvalidatesRule = {

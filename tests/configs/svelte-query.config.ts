@@ -182,15 +182,15 @@ export default defineConfig({
               invalidates: ['listPets'],
             },
             {
-              onMutations: ['deletePet', 'updatePet', 'patchPet'],
+              onMutations: ['deletePetById'],
               invalidates: [
-                'listPets',
-                { query: 'showPetById', params: ['petId'] },
+                { query: 'listPets', invalidateMode: 'reset' },
+                {
+                  query: 'showPetById',
+                  params: ['petId'],
+                  invalidateMode: 'reset',
+                },
               ],
-            },
-            {
-              onMutations: ['uploadFile'],
-              invalidates: ['listPets'],
             },
           ],
         },

@@ -54,18 +54,18 @@ export interface QueryInvocationContext {
   optionalQueryClientArgument: string;
 }
 
+interface InvalidateTarget {
+  query: string;
+  params?: string[] | Record<string, string>;
+  invalidateMode: 'invalidate' | 'reset';
+}
+
 export interface MutationOnSuccessContext {
   operationName: string;
   definitions: string;
   isRequestOptions: boolean;
-  generateInvalidateCall: (target: {
-    query: string;
-    params?: string[] | Record<string, string>;
-  }) => string;
-  uniqueInvalidates: {
-    query: string;
-    params?: string[] | Record<string, string>;
-  }[];
+  generateInvalidateCall: (target: InvalidateTarget) => string;
+  uniqueInvalidates: InvalidateTarget[];
 }
 
 export interface MutationHookBodyContext {
