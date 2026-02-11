@@ -4,12 +4,11 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import type {
   HttpContext,
   HttpEvent,
   HttpHeaders,
-  HttpParams,
   HttpResponse as AngularHttpResponse,
 } from '@angular/common/http';
 
@@ -47,6 +46,7 @@ interface HttpClientOptions {
   redirect?: RequestRedirect;
   referrer?: string;
   integrity?: string;
+  referrerPolicy?: ReferrerPolicy;
   transferCache?: { includeHeaders?: string[] } | boolean;
   timeout?: number;
 }
@@ -196,13 +196,19 @@ export class PetsService {
   ): Observable<Pet>;
   showPetById(
     petId: string,
+    accept: 'application/json',
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<Pet>;
+  showPetById(
+    petId: string,
     accept?: string,
     version?: number,
     options?: HttpClientOptions,
-  ): Observable<string>;
+  ): Observable<Pet>;
   showPetById(
     petId: string,
-    accept: string = 'text/plain',
+    accept: string = 'application/json',
     version: number = 1,
     options?: HttpClientOptions,
   ): Observable<any> {

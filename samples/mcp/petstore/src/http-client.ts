@@ -66,7 +66,12 @@ export type HTTPStatusCodes =
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
 
-export type findPetsByStatusResponse200 = {
+export type findPetsByStatusResponse200ApplicationJson = {
+  data: Pet[];
+  status: 200;
+};
+
+export type findPetsByStatusResponse200ApplicationXml = {
   data: Pet[];
   status: 200;
 };
@@ -78,10 +83,13 @@ export type findPetsByStatusResponse400 = {
 
 export type findPetsByStatusResponseDefault = {
   data: void;
-  status: Exclude<HTTPStatusCodes, 200 | 400>;
+  status: Exclude<HTTPStatusCodes, 200 | 200 | 400>;
 };
 
-export type findPetsByStatusResponseSuccess = findPetsByStatusResponse200 & {
+export type findPetsByStatusResponseSuccess = (
+  | findPetsByStatusResponse200ApplicationJson
+  | findPetsByStatusResponse200ApplicationXml
+) & {
   headers: Headers;
 };
 export type findPetsByStatusResponseError = (
@@ -130,7 +138,12 @@ export const findPetsByStatus = async (
   } as findPetsByStatusResponse;
 };
 
-export type findPetsByTagsResponse200 = {
+export type findPetsByTagsResponse200ApplicationJson = {
+  data: Pet[];
+  status: 200;
+};
+
+export type findPetsByTagsResponse200ApplicationXml = {
   data: Pet[];
   status: 200;
 };
@@ -142,10 +155,13 @@ export type findPetsByTagsResponse400 = {
 
 export type findPetsByTagsResponseDefault = {
   data: void;
-  status: Exclude<HTTPStatusCodes, 200 | 400>;
+  status: Exclude<HTTPStatusCodes, 200 | 200 | 400>;
 };
 
-export type findPetsByTagsResponseSuccess = findPetsByTagsResponse200 & {
+export type findPetsByTagsResponseSuccess = (
+  | findPetsByTagsResponse200ApplicationJson
+  | findPetsByTagsResponse200ApplicationXml
+) & {
   headers: Headers;
 };
 export type findPetsByTagsResponseError = (
@@ -199,7 +215,12 @@ export const findPetsByTags = async (
   } as findPetsByTagsResponse;
 };
 
-export type getPetByIdResponse200 = {
+export type getPetByIdResponse200ApplicationJson = {
+  data: Pet;
+  status: 200;
+};
+
+export type getPetByIdResponse200ApplicationXml = {
   data: Pet;
   status: 200;
 };
@@ -216,10 +237,13 @@ export type getPetByIdResponse404 = {
 
 export type getPetByIdResponseDefault = {
   data: void;
-  status: Exclude<HTTPStatusCodes, 200 | 400 | 404>;
+  status: Exclude<HTTPStatusCodes, 200 | 200 | 400 | 404>;
 };
 
-export type getPetByIdResponseSuccess = getPetByIdResponse200 & {
+export type getPetByIdResponseSuccess = (
+  | getPetByIdResponse200ApplicationJson
+  | getPetByIdResponse200ApplicationXml
+) & {
   headers: Headers;
 };
 export type getPetByIdResponseError = (
@@ -257,7 +281,12 @@ export const getPetById = async (
   } as getPetByIdResponse;
 };
 
-export type updatePetWithFormResponse200 = {
+export type updatePetWithFormResponse200ApplicationJson = {
+  data: Pet;
+  status: 200;
+};
+
+export type updatePetWithFormResponse200ApplicationXml = {
   data: Pet;
   status: 200;
 };
@@ -269,10 +298,13 @@ export type updatePetWithFormResponse400 = {
 
 export type updatePetWithFormResponseDefault = {
   data: void;
-  status: Exclude<HTTPStatusCodes, 200 | 400>;
+  status: Exclude<HTTPStatusCodes, 200 | 200 | 400>;
 };
 
-export type updatePetWithFormResponseSuccess = updatePetWithFormResponse200 & {
+export type updatePetWithFormResponseSuccess = (
+  | updatePetWithFormResponse200ApplicationJson
+  | updatePetWithFormResponse200ApplicationXml
+) & {
   headers: Headers;
 };
 export type updatePetWithFormResponseError = (
@@ -420,7 +452,12 @@ export const getInventory = async (
   } as getInventoryResponse;
 };
 
-export type getOrderByIdResponse200 = {
+export type getOrderByIdResponse200ApplicationJson = {
+  data: Order;
+  status: 200;
+};
+
+export type getOrderByIdResponse200ApplicationXml = {
   data: Order;
   status: 200;
 };
@@ -437,10 +474,13 @@ export type getOrderByIdResponse404 = {
 
 export type getOrderByIdResponseDefault = {
   data: void;
-  status: Exclude<HTTPStatusCodes, 200 | 400 | 404>;
+  status: Exclude<HTTPStatusCodes, 200 | 200 | 400 | 404>;
 };
 
-export type getOrderByIdResponseSuccess = getOrderByIdResponse200 & {
+export type getOrderByIdResponseSuccess = (
+  | getOrderByIdResponse200ApplicationJson
+  | getOrderByIdResponse200ApplicationXml
+) & {
   headers: Headers;
 };
 export type getOrderByIdResponseError = (
@@ -536,7 +576,12 @@ export const deleteOrder = async (
   } as deleteOrderResponse;
 };
 
-export type loginUserResponse200 = {
+export type loginUserResponse200ApplicationXml = {
+  data: string;
+  status: 200;
+};
+
+export type loginUserResponse200ApplicationJson = {
   data: string;
   status: 200;
 };
@@ -548,10 +593,13 @@ export type loginUserResponse400 = {
 
 export type loginUserResponseDefault = {
   data: void;
-  status: Exclude<HTTPStatusCodes, 200 | 400>;
+  status: Exclude<HTTPStatusCodes, 200 | 200 | 400>;
 };
 
-export type loginUserResponseSuccess = loginUserResponse200 & {
+export type loginUserResponseSuccess = (
+  | loginUserResponse200ApplicationXml
+  | loginUserResponse200ApplicationJson
+) & {
   headers: Headers;
 };
 export type loginUserResponseError = (
@@ -643,7 +691,12 @@ export const logoutUser = async (
   } as logoutUserResponse;
 };
 
-export type getUserByNameResponse200 = {
+export type getUserByNameResponse200ApplicationJson = {
+  data: User;
+  status: 200;
+};
+
+export type getUserByNameResponse200ApplicationXml = {
   data: User;
   status: 200;
 };
@@ -660,10 +713,13 @@ export type getUserByNameResponse404 = {
 
 export type getUserByNameResponseDefault = {
   data: void;
-  status: Exclude<HTTPStatusCodes, 200 | 400 | 404>;
+  status: Exclude<HTTPStatusCodes, 200 | 200 | 400 | 404>;
 };
 
-export type getUserByNameResponseSuccess = getUserByNameResponse200 & {
+export type getUserByNameResponseSuccess = (
+  | getUserByNameResponse200ApplicationJson
+  | getUserByNameResponse200ApplicationXml
+) & {
   headers: Headers;
 };
 export type getUserByNameResponseError = (

@@ -36,28 +36,52 @@ export const getSearchPetsResponseMock = (): Pets =>
   }));
 
 export const getListPetsResponseMock = (): Pets =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() => ({
-    id: faker.number.int({ min: undefined, max: undefined }),
-    name: (() => faker.person.lastName())(),
-    tag: (() => faker.person.lastName())(),
-    requiredNullableString: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
+  faker.helpers.arrayElement([
+    Array.from(
+      { length: faker.number.int({ min: 1, max: 10 }) },
+      (_, i) => i + 1,
+    ).map(() => ({
+      id: faker.number.int({ min: undefined, max: undefined }),
+      name: (() => faker.person.lastName())(),
+      tag: (() => faker.person.lastName())(),
+      requiredNullableString: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
         null,
       ]),
-      null,
-    ]),
-    optionalNullableString: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
+      optionalNullableString: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
+        undefined,
+      ]),
+    })),
+    Array.from(
+      { length: faker.number.int({ min: 1, max: 10 }) },
+      (_, i) => i + 1,
+    ).map(() => ({
+      id: faker.number.int({ min: undefined, max: undefined }),
+      name: (() => faker.person.lastName())(),
+      tag: (() => faker.person.lastName())(),
+      requiredNullableString: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
         null,
       ]),
-      undefined,
-    ]),
-  }));
+      optionalNullableString: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
+        undefined,
+      ]),
+    })),
+  ]);
 
 export const getShowPetByIdResponseMock = () =>
   (() => ({

@@ -694,7 +694,7 @@ export const showPetText = (
   options?: { signal?: AbortSignal | null },
 ): Promise<string> => {
   const url = `/pets/${petId}/text`;
-  const request$ = http.get<string>(url);
+  const request$ = http.get(url, { responseType: 'text' });
   if (options?.signal) {
     return lastValueFrom(
       request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
@@ -1101,7 +1101,7 @@ export const healthCheck = (
   options?: { signal?: AbortSignal | null },
 ): Promise<string> => {
   const url = `/health`;
-  const request$ = http.get<string>(url);
+  const request$ = http.get(url, { responseType: 'text' });
   if (options?.signal) {
     return lastValueFrom(
       request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),

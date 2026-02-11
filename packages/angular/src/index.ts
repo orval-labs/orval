@@ -61,7 +61,9 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
   isMutator,
   isGlobalMutator,
   provideIn,
-}) => `
+}) => {
+  returnTypesToWrite.clear();
+  return `
 ${
   isRequestOptions && !isGlobalMutator
     ? `interface HttpClientOptions {
@@ -80,6 +82,7 @@ ${
   redirect?: RequestRedirect;
   referrer?: string;
   integrity?: string;
+  referrerPolicy?: ReferrerPolicy;
   transferCache?: {includeHeaders?: string[]} | boolean;
   timeout?: number;
 }`
@@ -107,6 +110,7 @@ ${
 export class ${title} {
   private readonly http = inject(HttpClient);
 `;
+};
 
 export const generateAngularFooter: ClientFooterBuilder = ({
   operationNames,
