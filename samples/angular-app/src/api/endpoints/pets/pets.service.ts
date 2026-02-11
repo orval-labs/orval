@@ -324,11 +324,3 @@ export class PetsService {
     });
   }
 }
-
-export type SearchPetsClientResult = NonNullable<Pets>;
-export type ListPetsClientResult = NonNullable<Pets>;
-export type CreatePetsClientResult = NonNullable<void>;
-export type ShowPetByIdClientResult = NonNullable<string | Pet>;
-export type ShowPetTextClientResult = NonNullable<string>;
-export type UploadFileClientResult = NonNullable<void>;
-export type DownloadFileClientResult = NonNullable<Blob>;

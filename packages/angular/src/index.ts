@@ -45,7 +45,7 @@ const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-const returnTypesToWrite = new Map<string, string>();
+type ReturnTypesToWrite = Map<string, string>;
 
 export const getAngularDependencies: ClientDependenciesBuilder = () =>
   ANGULAR_DEPENDENCIES;
@@ -55,15 +55,10 @@ export const generateAngularTitle: ClientTitleBuilder = (title) => {
   return `${pascal(sanTitle)}Service`;
 };
 
-export const generateAngularHeader: ClientHeaderBuilder = ({
-  title,
-  isRequestOptions,
-  isMutator,
-  isGlobalMutator,
-  provideIn,
-}) => {
-  returnTypesToWrite.clear();
-  return `
+const createAngularHeader =
+  (): ClientHeaderBuilder =>
+  ({ title, isRequestOptions, isMutator, isGlobalMutator, provideIn }) => {
+    return `
 ${
   isRequestOptions && !isGlobalMutator
     ? `interface HttpClientOptions {
@@ -102,34 +97,37 @@ ${
     : ''
 }
 
-@Injectable(${
-    provideIn
-      ? `{ providedIn: '${isBoolean(provideIn) ? 'root' : provideIn}' }`
-      : ''
-  })
+@Injectable(${provideIn ? `{ providedIn: '${isBoolean(provideIn) ? 'root' : provideIn}' }` : ''})
 export class ${title} {
   private readonly http = inject(HttpClient);
 `;
-};
+  };
 
-export const generateAngularFooter: ClientFooterBuilder = ({
-  operationNames,
-}) => {
-  let footer = '};\n\n';
+export const generateAngularHeader: ClientHeaderBuilder = (params) =>
+  createAngularHeader()(params);
 
-  for (const operationName of operationNames) {
-    if (returnTypesToWrite.has(operationName)) {
-      // Map.has ensures Map.get will not return undefined, but TS still complains
-      // bug https://github.com/microsoft/TypeScript/issues/13086
-      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-      footer += returnTypesToWrite.get(operationName) + '\n';
+const createAngularFooter =
+  (returnTypesToWrite: ReturnTypesToWrite): ClientFooterBuilder =>
+  ({ operationNames }) => {
+    let footer = '};\n\n';
+
+    for (const operationName of operationNames) {
+      if (returnTypesToWrite.has(operationName)) {
+        // Map.has ensures Map.get will not return undefined, but TS still complains
+        // bug https://github.com/microsoft/TypeScript/issues/13086
+        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+        footer += returnTypesToWrite.get(operationName) + '\n';
+      }
     }
-  }
 
-  return footer;
-};
+    return footer;
+  };
+
+export const generateAngularFooter: ClientFooterBuilder = (params) =>
+  createAngularFooter(new Map())(params);
 
 const generateImplementation = (
+  returnTypesToWrite: ReturnTypesToWrite,
   {
     headers,
     queryParams,
@@ -350,21 +348,34 @@ const generateImplementation = (
 `;
 };
 
-export const generateAngular: ClientBuilder = (verbOptions, options) => {
-  const imports = generateVerbImports(verbOptions);
-  const implementation = generateImplementation(verbOptions, options);
+const createAngularClient =
+  (returnTypesToWrite: ReturnTypesToWrite): ClientBuilder =>
+  (verbOptions, options) => {
+    const imports = generateVerbImports(verbOptions);
+    const implementation = generateImplementation(
+      returnTypesToWrite,
+      verbOptions,
+      options,
+    );
 
-  return { implementation, imports };
+    return { implementation, imports };
+  };
+
+export const generateAngular: ClientBuilder = (verbOptions, options) =>
+  createAngularClient(new Map())(verbOptions, options);
+
+const createAngularClientBuilder = (): ClientGeneratorsBuilder => {
+  const returnTypesToWrite = new Map<string, string>();
+
+  return {
+    client: createAngularClient(returnTypesToWrite),
+    header: createAngularHeader(returnTypesToWrite),
+    dependencies: getAngularDependencies,
+    footer: createAngularFooter(returnTypesToWrite),
+    title: generateAngularTitle,
+  };
 };
 
-const angularClientBuilder: ClientGeneratorsBuilder = {
-  client: generateAngular,
-  header: generateAngularHeader,
-  dependencies: getAngularDependencies,
-  footer: generateAngularFooter,
-  title: generateAngularTitle,
-};
-
-export const builder = () => () => angularClientBuilder;
+export const builder = () => () => createAngularClientBuilder();
 
 export default builder;
