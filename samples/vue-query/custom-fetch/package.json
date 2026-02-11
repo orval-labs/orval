@@ -15,7 +15,7 @@
     "vue": "^3.5.26"
   },
   "devDependencies": {
-    "@faker-js/faker": "^10.2.0",
+    "@faker-js/faker": "catalog:tooling",
     "@vitejs/plugin-vue": "^6.0.1",
     "orval": "workspace:*",
     "typescript": "~5.9.3",

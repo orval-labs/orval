@@ -29,7 +29,7 @@
   "devDependencies": {
     "@angular/common": "catalog:angular",
     "@angular/core": "catalog:angular",
-    "@faker-js/faker": "^10.2.0",
+    "@faker-js/faker": "catalog:tooling",
     "@hono/zod-validator": "^0.7.4",
     "@modelcontextprotocol/sdk": "1.25.3",
     "@tanstack/react-query": "~5.62.16",
@@ -38,7 +38,7 @@
     "@types/react": "18.3.24",
     "axios": "^1.13.2",
     "hono": "^4.11.7",
-    "msw": "^2.12.7",
+    "msw": "catalog:tooling",
     "npm-run-all": "^4.1.5",
     "openapi3-ts": "^4.5.0",
     "orval": "workspace:*",
