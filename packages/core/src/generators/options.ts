@@ -19,7 +19,7 @@ import { getIsBodyVerb, isObject, stringify } from '../utils';
  * paramsSerializer to avoid runtime and type issues.
  */
 const getAngularFilteredParamsExpression = (paramsExpression: string) =>
-  `Object.fromEntries(Object.entries(${paramsExpression}).reduce((acc, [key, value]) => { if (Array.isArray(value)) { const filtered = value.filter((item) => item != null); if (filtered.length) { acc.push([key, filtered]); } } else if (value != null) { acc.push([key, value]); } return acc; }, [] as [string, unknown][])) as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>`;
+  `Object.fromEntries<string | number | boolean | ReadonlyArray<string | number | boolean>>(Object.entries(${paramsExpression}).reduce((acc, [key, value]) => { if (Array.isArray(value)) { const filtered = value.filter((item) => item != null) as ReadonlyArray<string | number | boolean>; if (filtered.length) { acc.push([key, filtered]); } } else if (value != null) { acc.push([key, value as string | number | boolean]); } return acc; }, [] as [string, string | number | boolean | ReadonlyArray<string | number | boolean>][]))`;
 
 interface GenerateFormDataAndUrlEncodedFunctionOptions {
   body: GetterBody;

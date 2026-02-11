@@ -80,25 +80,34 @@ export class PetsService {
     return this.http.get<TData>(`/v${version}/search`, {
       ...options,
       params: paramsSerializerMutator(
-        Object.fromEntries(
+        Object.fromEntries<
+          string | number | boolean | ReadonlyArray<string | number | boolean>
+        >(
           Object.entries({ ...params, ...options?.params }).reduce(
             (acc, [key, value]) => {
               if (Array.isArray(value)) {
-                const filtered = value.filter((item) => item != null);
+                const filtered = value.filter(
+                  (item) => item != null,
+                ) as ReadonlyArray<string | number | boolean>;
                 if (filtered.length) {
                   acc.push([key, filtered]);
                 }
               } else if (value != null) {
-                acc.push([key, value]);
+                acc.push([key, value as string | number | boolean]);
               }
               return acc;
             },
-            [] as [string, unknown][],
+            [] as [
+              string,
+              (
+                | string
+                | number
+                | boolean
+                | ReadonlyArray<string | number | boolean>
+              ),
+            ][],
           ),
-        ) as Record<
-          string,
-          string | number | boolean | ReadonlyArray<string | number | boolean>
-        >,
+        ),
       ),
     });
   }
@@ -110,25 +119,34 @@ export class PetsService {
       {
         url: `/v${version}/pets`,
         method: 'GET',
-        params: Object.fromEntries(
+        params: Object.fromEntries<
+          string | number | boolean | ReadonlyArray<string | number | boolean>
+        >(
           Object.entries(params ?? {}).reduce(
             (acc, [key, value]) => {
               if (Array.isArray(value)) {
-                const filtered = value.filter((item) => item != null);
+                const filtered = value.filter(
+                  (item) => item != null,
+                ) as ReadonlyArray<string | number | boolean>;
                 if (filtered.length) {
                   acc.push([key, filtered]);
                 }
               } else if (value != null) {
-                acc.push([key, value]);
+                acc.push([key, value as string | number | boolean]);
               }
               return acc;
             },
-            [] as [string, unknown][],
+            [] as [
+              string,
+              (
+                | string
+                | number
+                | boolean
+                | ReadonlyArray<string | number | boolean>
+              ),
+            ][],
           ),
-        ) as Record<
-          string,
-          string | number | boolean | ReadonlyArray<string | number | boolean>
-        >,
+        ),
       },
       this.http,
     );
