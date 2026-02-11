@@ -288,7 +288,7 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).not.toContain('HttpResponse.json');
     });
 
-    it('should use HttpResponse.text for text/html responses', () => {
+    it('should use HttpResponse.html for text/html responses', () => {
       const htmlVerbOptions = {
         ...mockVerbOptions,
         response: {
@@ -301,11 +301,12 @@ describe('generateMSW', () => {
 
       const result = generateMSW(htmlVerbOptions, baseOptions);
 
-      expect(result.implementation.handler).toContain('HttpResponse.text');
+      expect(result.implementation.handler).toContain('HttpResponse.html');
       expect(result.implementation.handler).not.toContain('HttpResponse.json');
+      expect(result.implementation.handler).not.toContain('HttpResponse.text(');
     });
 
-    it('should use HttpResponse.text for application/xml responses', () => {
+    it('should use HttpResponse.xml for application/xml responses', () => {
       const xmlVerbOptions = {
         ...mockVerbOptions,
         response: {
@@ -318,11 +319,12 @@ describe('generateMSW', () => {
 
       const result = generateMSW(xmlVerbOptions, baseOptions);
 
-      expect(result.implementation.handler).toContain('HttpResponse.text');
+      expect(result.implementation.handler).toContain('HttpResponse.xml');
       expect(result.implementation.handler).not.toContain('HttpResponse.json');
+      expect(result.implementation.handler).not.toContain('HttpResponse.text(');
     });
 
-    it('should use HttpResponse.text for vendor +xml responses', () => {
+    it('should use HttpResponse.xml for vendor +xml responses', () => {
       const vendorXmlVerbOptions = {
         ...mockVerbOptions,
         response: {
@@ -335,8 +337,9 @@ describe('generateMSW', () => {
 
       const result = generateMSW(vendorXmlVerbOptions, baseOptions);
 
-      expect(result.implementation.handler).toContain('HttpResponse.text');
+      expect(result.implementation.handler).toContain('HttpResponse.xml');
       expect(result.implementation.handler).not.toContain('HttpResponse.json');
+      expect(result.implementation.handler).not.toContain('HttpResponse.text(');
     });
 
     it('should avoid undefined array min/max in general JS types', () => {
@@ -425,6 +428,115 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).toContain(
         'getGetUserResponseMock()',
       );
+    });
+
+    it('should use HttpResponse.text when text/plain comes before application/xml in mixed content types', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'string' },
+          types: { success: [{ key: '200', value: 'string' }] },
+          contentTypes: ['text/plain', 'application/xml', 'application/json'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, baseOptions);
+
+      // text/plain is the first text-like content type, so HttpResponse.text should be used
+      expect(result.implementation.handler).toContain('HttpResponse.text(');
+      expect(result.implementation.handler).not.toContain('HttpResponse.xml(');
+      expect(result.implementation.handler).not.toContain('HttpResponse.json(');
+    });
+
+    it('should use HttpResponse.xml when application/xml comes first in mixed content types', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'string' },
+          types: { success: [{ key: '200', value: 'string' }] },
+          contentTypes: ['application/xml', 'application/json'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, baseOptions);
+
+      // application/xml is the first text-like content type
+      expect(result.implementation.handler).toContain('HttpResponse.xml(');
+      expect(result.implementation.handler).not.toContain('HttpResponse.text(');
+      expect(result.implementation.handler).not.toContain('HttpResponse.json(');
+    });
+
+    it('should use HttpResponse.json when application/json is the only content type (no text-like)', () => {
+      const result = generate();
+
+      // Default mockVerbOptions has application/json only
+      expect(result.implementation.handler).not.toContain('HttpResponse.text(');
+      expect(result.implementation.handler).not.toContain('HttpResponse.xml(');
+      expect(result.implementation.handler).not.toContain('HttpResponse.html(');
+    });
+
+    it('should use text prelude (resolvedBody → textBody) for xml and html responses', () => {
+      const xmlVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'string' },
+          types: { success: [{ key: '200', value: 'string' }] },
+          contentTypes: ['application/xml'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(xmlVerbOptions, baseOptions);
+
+      // XML responses should still use the text prelude for string conversion
+      expect(result.implementation.handler).toContain('const resolvedBody =');
+      expect(result.implementation.handler).toContain('textBody');
+      expect(result.implementation.handler).toContain(
+        'HttpResponse.xml(textBody',
+      );
+    });
+
+    it('should accept RequestHandlerOptions in all handler types', () => {
+      // JSON handler
+      const jsonResult = generate();
+      expect(jsonResult.implementation.handler).toContain(
+        'options?: RequestHandlerOptions',
+      );
+      expect(jsonResult.implementation.handler).toContain('}, options)');
+
+      // Text handler
+      const textVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'string' },
+          types: { success: [{ key: '200', value: 'string' }] },
+          contentTypes: ['text/plain'],
+        },
+      } as GeneratorVerbOptions;
+      const textResult = generateMSW(textVerbOptions, baseOptions);
+      expect(textResult.implementation.handler).toContain(
+        'options?: RequestHandlerOptions',
+      );
+      expect(textResult.implementation.handler).toContain('}, options)');
+
+      // Binary handler
+      const blobVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'Blob' },
+          types: { success: [{ key: '200', value: 'Blob' }] },
+          contentTypes: ['application/octet-stream'],
+        },
+      } as GeneratorVerbOptions;
+      const blobResult = generateMSW(blobVerbOptions, baseOptions);
+      expect(blobResult.implementation.handler).toContain(
+        'options?: RequestHandlerOptions',
+      );
+      expect(blobResult.implementation.handler).toContain('}, options)');
     });
   });
 });
