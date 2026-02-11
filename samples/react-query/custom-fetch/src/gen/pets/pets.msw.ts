@@ -317,7 +317,7 @@ export const getListPetsMockHandler = (
 ) => {
   return http.get(
     '*/pets',
-    async (info) => {
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -341,7 +341,7 @@ export const getCreatePetsMockHandler = (
 ) => {
   return http.post(
     '*/pets',
-    async (info) => {
+    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -365,7 +365,7 @@ export const getUpdatePetsMockHandler = (
 ) => {
   return http.put(
     '*/pets',
-    async (info) => {
+    async (info: Parameters<Parameters<typeof http.put>[1]>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
@@ -389,7 +389,7 @@ export const getShowPetByIdMockHandler = (
 ) => {
   return http.get(
     '*/pets/:petId',
-    async (info) => {
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
