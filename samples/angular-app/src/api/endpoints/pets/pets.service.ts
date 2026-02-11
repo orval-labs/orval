@@ -205,10 +205,10 @@ export class PetsService {
     accept?: string,
     version?: number,
     options?: HttpClientOptions,
-  ): Observable<Pet>;
+  ): Observable<string>;
   showPetById(
     petId: string,
-    accept: string = 'application/json',
+    accept: string = 'text/plain',
     version: number = 1,
     options?: HttpClientOptions,
   ): Observable<any> {

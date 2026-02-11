@@ -103,10 +103,10 @@ ${
 }
 
 @Injectable(${
-  provideIn
-    ? `{ providedIn: '${isBoolean(provideIn) ? 'root' : provideIn}' }`
-    : ''
-})
+    provideIn
+      ? `{ providedIn: '${isBoolean(provideIn) ? 'root' : provideIn}' }`
+      : ''
+  })
 export class ${title} {
   private readonly http = inject(HttpClient);
 `;
@@ -239,7 +239,9 @@ const generateImplementation = (
 
   // For multiple content types, determine the default
   const defaultContentType = hasMultipleContentTypes
-    ? getDefaultContentType(uniqueContentTypes)
+    ? uniqueContentTypes.includes('text/plain')
+      ? 'text/plain'
+      : getDefaultContentType(uniqueContentTypes)
     : (uniqueContentTypes[0] ?? 'application/json');
   const defaultType = hasMultipleContentTypes
     ? successTypes.find((t) => t.contentType === defaultContentType)

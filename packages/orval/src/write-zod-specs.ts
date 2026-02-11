@@ -39,6 +39,18 @@ const isValidSchemaIdentifier = (name: string) =>
 const isPrimitiveSchemaName = (name: string) =>
   ['string', 'number', 'boolean', 'void', 'unknown', 'Blob'].includes(name);
 
+const dedupeSchemasByName = <T extends { name: string }>(schemas: T[]) => {
+  const uniqueSchemas = new Map<string, T>();
+
+  for (const schema of schemas) {
+    if (!uniqueSchemas.has(schema.name)) {
+      uniqueSchemas.set(schema.name, schema);
+    }
+  }
+
+  return [...uniqueSchemas.values()];
+};
+
 async function writeZodSchemaIndex(
   schemasPath: string,
   fileExtension: string,
@@ -274,16 +286,18 @@ export async function writeZodSchemasFromVerbs(
         schema: dereference(responseType.originalSchema!, context),
       }));
 
-    return [
+    return dedupeSchemasByName([
       ...bodySchemas,
       ...queryParamsSchemas,
       ...headerParamsSchemas,
       ...responseSchemas,
-    ];
+    ]);
   });
 
+  const uniqueVerbsSchemas = dedupeSchemasByName(generateVerbsSchemas);
+
   await Promise.all(
-    generateVerbsSchemas.map(async ({ name, schema }) => {
+    uniqueVerbsSchemas.map(async ({ name, schema }) => {
       const fileName = conventionName(name, output.namingConvention);
       const filePath = upath.join(schemasPath, `${fileName}${fileExtension}`);
 
@@ -320,8 +334,8 @@ export async function writeZodSchemasFromVerbs(
     }),
   );
 
-  if (output.indexFiles && generateVerbsSchemas.length > 0) {
-    const schemaNames = generateVerbsSchemas.map((s) => s.name);
+  if (output.indexFiles && uniqueVerbsSchemas.length > 0) {
+    const schemaNames = [...new Set(uniqueVerbsSchemas.map((s) => s.name))];
     await writeZodSchemaIndex(
       schemasPath,
       fileExtension,
