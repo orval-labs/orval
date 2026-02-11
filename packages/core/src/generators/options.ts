@@ -19,7 +19,31 @@ import { getIsBodyVerb, isObject, stringify } from '../utils';
  * paramsSerializer to avoid runtime and type issues.
  */
 const getAngularFilteredParamsExpression = (paramsExpression: string) =>
-  `Object.entries(${paramsExpression}).reduce((acc, [key, value]) => { if (Array.isArray(value)) { const filtered = value.filter((item) => item != null && (typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean')) as ReadonlyArray<string | number | boolean>; if (filtered.length) { acc[key] = filtered; } } else if (value != null && (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')) { acc[key] = value as string | number | boolean; } return acc; }, {} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>)`;
+  `(() => {
+  const filteredParams = {} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>;
+  for (const [key, value] of Object.entries(${paramsExpression})) {
+    if (Array.isArray(value)) {
+      const filtered = value.filter(
+        (item) =>
+          item != null &&
+          (typeof item === 'string' ||
+            typeof item === 'number' ||
+            typeof item === 'boolean'),
+      ) as ReadonlyArray<string | number | boolean>;
+      if (filtered.length) {
+        filteredParams[key] = filtered;
+      }
+    } else if (
+      value != null &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean')
+    ) {
+      filteredParams[key] = value as string | number | boolean;
+    }
+  }
+  return filteredParams;
+})()`;
 
 interface GenerateFormDataAndUrlEncodedFunctionOptions {
   body: GetterBody;

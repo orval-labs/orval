@@ -324,10 +324,10 @@ describe('generateAxiosOptions', () => {
       });
 
       expect(result).toContain(
-        'Object.entries({...params, ...options?.params}).reduce',
+        'for (const [key, value] of Object.entries({...params, ...options?.params}))',
       );
       expect(result).toContain(
-        '{} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
+        'const filteredParams = {} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
       );
       expect(result).toContain('Array.isArray(value)');
       expect(result).toContain("typeof item === 'string'");
@@ -349,10 +349,10 @@ describe('generateAxiosOptions', () => {
 
       expect(result).toContain('params: paramsSerializerMutator(');
       expect(result).toContain(
-        'Object.entries({...params, ...options?.params}).reduce',
+        'for (const [key, value] of Object.entries({...params, ...options?.params}))',
       );
       expect(result).toContain(
-        '{} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
+        'const filteredParams = {} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
       );
     });
 
@@ -370,9 +370,11 @@ describe('generateAxiosOptions', () => {
         paramsSerializerOptions: undefined,
       });
 
-      expect(result).toContain('params: Object.entries(params).reduce');
       expect(result).toContain(
-        '{} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
+        'for (const [key, value] of Object.entries(params))',
+      );
+      expect(result).toContain(
+        'const filteredParams = {} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
       );
     });
   });
@@ -460,9 +462,11 @@ describe('generateMutatorConfig', () => {
         isAngular: true,
       });
 
-      expect(result).toContain('params: Object.entries(params ?? {}).reduce');
       expect(result).toContain(
-        '{} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
+        'for (const [key, value] of Object.entries(params ?? {}))',
+      );
+      expect(result).toContain(
+        'const filteredParams = {} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
       );
       expect(result).toContain('Array.isArray(value)');
       expect(result).toContain("typeof item === 'string'");

@@ -80,34 +80,37 @@ export class PetsService {
     return this.http.get<TData>(`/v${version}/search`, {
       ...options,
       params: paramsSerializerMutator(
-        Object.fromEntries<
-          string | number | boolean | ReadonlyArray<string | number | boolean>
-        >(
-          Object.entries({ ...params, ...options?.params }).reduce(
-            (acc, [key, value]) => {
-              if (Array.isArray(value)) {
-                const filtered = value.filter(
-                  (item) => item != null,
-                ) as ReadonlyArray<string | number | boolean>;
-                if (filtered.length) {
-                  acc.push([key, filtered]);
-                }
-              } else if (value != null) {
-                acc.push([key, value as string | number | boolean]);
+        (() => {
+          const filteredParams = {} as Record<
+            string,
+            string | number | boolean | ReadonlyArray<string | number | boolean>
+          >;
+          for (const [key, value] of Object.entries({
+            ...params,
+            ...options?.params,
+          })) {
+            if (Array.isArray(value)) {
+              const filtered = value.filter(
+                (item) =>
+                  item != null &&
+                  (typeof item === 'string' ||
+                    typeof item === 'number' ||
+                    typeof item === 'boolean'),
+              ) as ReadonlyArray<string | number | boolean>;
+              if (filtered.length) {
+                filteredParams[key] = filtered;
               }
-              return acc;
-            },
-            [] as [
-              string,
-              (
-                | string
-                | number
-                | boolean
-                | ReadonlyArray<string | number | boolean>
-              ),
-            ][],
-          ),
-        ),
+            } else if (
+              value != null &&
+              (typeof value === 'string' ||
+                typeof value === 'number' ||
+                typeof value === 'boolean')
+            ) {
+              filteredParams[key] = value as string | number | boolean;
+            }
+          }
+          return filteredParams;
+        })(),
       ),
     });
   }
@@ -119,34 +122,34 @@ export class PetsService {
       {
         url: `/v${version}/pets`,
         method: 'GET',
-        params: Object.fromEntries<
-          string | number | boolean | ReadonlyArray<string | number | boolean>
-        >(
-          Object.entries(params ?? {}).reduce(
-            (acc, [key, value]) => {
-              if (Array.isArray(value)) {
-                const filtered = value.filter(
-                  (item) => item != null,
-                ) as ReadonlyArray<string | number | boolean>;
-                if (filtered.length) {
-                  acc.push([key, filtered]);
-                }
-              } else if (value != null) {
-                acc.push([key, value as string | number | boolean]);
+        params: (() => {
+          const filteredParams = {} as Record<
+            string,
+            string | number | boolean | ReadonlyArray<string | number | boolean>
+          >;
+          for (const [key, value] of Object.entries(params ?? {})) {
+            if (Array.isArray(value)) {
+              const filtered = value.filter(
+                (item) =>
+                  item != null &&
+                  (typeof item === 'string' ||
+                    typeof item === 'number' ||
+                    typeof item === 'boolean'),
+              ) as ReadonlyArray<string | number | boolean>;
+              if (filtered.length) {
+                filteredParams[key] = filtered;
               }
-              return acc;
-            },
-            [] as [
-              string,
-              (
-                | string
-                | number
-                | boolean
-                | ReadonlyArray<string | number | boolean>
-              ),
-            ][],
-          ),
-        ),
+            } else if (
+              value != null &&
+              (typeof value === 'string' ||
+                typeof value === 'number' ||
+                typeof value === 'boolean')
+            ) {
+              filteredParams[key] = value as string | number | boolean;
+            }
+          }
+          return filteredParams;
+        })(),
       },
       this.http,
     );
