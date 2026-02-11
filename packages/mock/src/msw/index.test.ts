@@ -430,6 +430,30 @@ describe('generateMSW', () => {
       );
     });
 
+    it('should honor preferredContentType for binary content headers', () => {
+      const blobVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'Blob' },
+          types: { success: [{ key: '200', value: 'Blob' }] },
+          contentTypes: ['application/octet-stream', 'image/png'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(blobVerbOptions, {
+        ...baseOptions,
+        mock: {
+          type: OutputMockType.MSW,
+          preferredContentType: 'image/png',
+        },
+      });
+
+      expect(result.implementation.handler).toContain(
+        "headers: { 'Content-Type': 'image/png' }",
+      );
+    });
+
     it('should use HttpResponse.text when text/plain comes before application/xml in mixed content types', () => {
       const mixedVerbOptions = {
         ...mockVerbOptions,
@@ -466,6 +490,53 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).toContain('HttpResponse.xml(');
       expect(result.implementation.handler).not.toContain('HttpResponse.text(');
       expect(result.implementation.handler).not.toContain('HttpResponse.json(');
+    });
+
+    it('should honor preferredContentType when selecting text vs json helpers', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'string' },
+          types: { success: [{ key: '200', value: 'string' }] },
+          contentTypes: ['application/xml', 'application/json'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        mock: {
+          type: OutputMockType.MSW,
+          preferredContentType: 'application/json',
+        },
+      });
+
+      expect(result.implementation.handler).toContain('HttpResponse.json(');
+      expect(result.implementation.handler).not.toContain('HttpResponse.xml(');
+      expect(result.implementation.handler).not.toContain('HttpResponse.text(');
+    });
+
+    it('should honor preferredContentType for text helpers when multiple text types exist', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'string' },
+          types: { success: [{ key: '200', value: 'string' }] },
+          contentTypes: ['text/plain', 'text/html'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        mock: {
+          type: OutputMockType.MSW,
+          preferredContentType: 'text/html',
+        },
+      });
+
+      expect(result.implementation.handler).toContain('HttpResponse.html(');
+      expect(result.implementation.handler).not.toContain('HttpResponse.text(');
     });
 
     it('should use HttpResponse.json when application/json is the only content type (no text-like)', () => {

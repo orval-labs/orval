@@ -83,7 +83,7 @@ export const getShowPetByIdMockHandler = (
 };
 ```
 
-Orval uses the content type from your OpenAPI spec to pick the right `HttpResponse` helper:
+Orval uses the content type from your OpenAPI spec to pick the right `HttpResponse` helper. If multiple content types are defined, you can set a preferred default; otherwise the spec order is used:
 
 | Content type | Response helper |
 |---|---|
@@ -93,6 +93,23 @@ Orval uses the content type from your OpenAPI spec to pick the right `HttpRespon
 | `text/plain`, other `text/*` | `HttpResponse.text()` |
 | `application/octet-stream`, `image/*`, etc. | `HttpResponse.arrayBuffer()` |
 | No body (204, etc.) | `new HttpResponse(null, { status })` |
+
+To prefer a specific content type when several are defined (for example, choose JSON over XML), set `mock.preferredContentType`:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mock: {
+        type: 'msw',
+        preferredContentType: 'application/json',
+      },
+    },
+  },
+});
+```
+
+`preferredContentType` accepts common MIME literals and any custom string (via a loose `(string & {})` fallback), so vendor-specific types are supported too.
 
 ### 3. Aggregated Handlers
 
@@ -232,7 +249,7 @@ export { server };
 
 The generated code follows [MSW best practices](https://mswjs.io/docs/best-practices):
 
-- **`HttpResponse` class** — uses `HttpResponse.json()`, `.xml()`, `.html()`, `.text()`, and `.arrayBuffer()` instead of raw `Response` constructors, as [recommended by MSW](https://mswjs.io/docs/api/http-response). The correct helper is chosen based on the first matching content type in your OpenAPI spec.
+- **`HttpResponse` class** — uses `HttpResponse.json()`, `.xml()`, `.html()`, `.text()`, and `.arrayBuffer()` instead of raw `Response` constructors, as [recommended by MSW](https://mswjs.io/docs/api/http-response). The helper is chosen based on `mock.preferredContentType` when set, otherwise the first matching content type in your OpenAPI spec.
 - **`delay()` function** — uses the standalone `delay()` import (not the legacy `ctx.delay`), configurable per-operation or globally.
 - **Handler structure** — each handler is a factory function returning `http.get/post/...()`, which can be spread into `setupServer()` or `setupWorker()`.
 - **Runtime overrides** — use [MSW's `server.use()`](https://mswjs.io/docs/best-practices/network-behavior-overrides) to override individual handlers in tests. The generated handler factories make this easy.

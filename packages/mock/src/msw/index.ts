@@ -101,21 +101,34 @@ function generateDefinition(
   }
 
   const isResponseOverridable = value.includes(overrideVarName);
-  const isTextResponse = contentTypes.some(
-    (ct) =>
-      ct.startsWith('text/') || ct === 'application/xml' || ct.endsWith('+xml'),
+  const isTextLikeContentType = (ct: string) =>
+    ct.startsWith('text/') || ct === 'application/xml' || ct.endsWith('+xml');
+  const isBinaryLikeContentType = (ct: string) =>
+    ct === 'application/octet-stream' ||
+    ct === 'application/pdf' ||
+    ct.startsWith('image/') ||
+    ct.startsWith('audio/') ||
+    ct.startsWith('video/') ||
+    ct.startsWith('font/');
+
+  const preferredContentType = isFunction(mock)
+    ? undefined
+    : (
+        mock as { preferredContentType?: string } | undefined
+      )?.preferredContentType?.toLowerCase();
+  const preferredContentTypeMatch = preferredContentType
+    ? contentTypes.find((ct) => ct.toLowerCase() === preferredContentType)
+    : undefined;
+  const contentTypesByPreference = preferredContentTypeMatch
+    ? [preferredContentTypeMatch]
+    : contentTypes;
+
+  const isTextResponse = contentTypesByPreference.some((ct) =>
+    isTextLikeContentType(ct),
   );
   const isBinaryResponse =
     returnType === 'Blob' ||
-    contentTypes.some(
-      (ct) =>
-        ct === 'application/octet-stream' ||
-        ct === 'application/pdf' ||
-        ct.startsWith('image/') ||
-        ct.startsWith('audio/') ||
-        ct.startsWith('video/') ||
-        ct.startsWith('font/'),
-    );
+    contentTypesByPreference.some((ct) => isBinaryLikeContentType(ct));
   const isReturnHttpResponse = value && value !== 'undefined';
 
   const getResponseMockFunctionName = `${getResponseMockFunctionNameBase}${pascal(
@@ -158,12 +171,11 @@ function generateDefinition(
 
   // Determine the preferred non-JSON content type for binary responses
   const binaryContentType =
-    contentTypes.find(
-      (ct) =>
-        ct !== 'application/json' &&
-        !ct.startsWith('text/') &&
-        ct !== 'application/xml',
-    ) || 'application/octet-stream';
+    (preferredContentTypeMatch &&
+    isBinaryLikeContentType(preferredContentTypeMatch)
+      ? preferredContentTypeMatch
+      : contentTypes.find((ct) => isBinaryLikeContentType(ct))) ??
+    'application/octet-stream';
 
   let responseBody: string;
   // Use a prelude to evaluate the override expression once into a temp variable
@@ -192,11 +204,8 @@ function generateDefinition(
     // MSW provides HttpResponse.xml() for application/xml and +xml,
     // HttpResponse.html() for text/html, and HttpResponse.text() for
     // all other text/* types.
-    const firstTextCt = contentTypes.find(
-      (ct) =>
-        ct.startsWith('text/') ||
-        ct === 'application/xml' ||
-        ct.endsWith('+xml'),
+    const firstTextCt = contentTypesByPreference.find((ct) =>
+      isTextLikeContentType(ct),
     );
     const textHelper =
       firstTextCt === 'application/xml' || firstTextCt?.endsWith('+xml')
@@ -220,7 +229,7 @@ export const ${handlerName} = (overrideResponse?: ${mockReturnType} | ((${infoPa
   return http.${verb}('${route}', async (${infoParam}: ${infoType}) => {${
     delay === false
       ? ''
-      : `await delay(${isFunction(delay) ? `(${delay})()` : delay});`
+      : `await delay(${isFunction(delay) ? `(${String(delay)})()` : String(delay)});`
   }
   ${isReturnHttpResponse ? '' : `if (typeof overrideResponse === 'function') {await overrideResponse(info); }`}
   ${responsePrelude}
