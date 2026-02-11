@@ -18,7 +18,6 @@ import {
   getListPetsQueryKey,
   getShowPetByIdQueryKey,
 } from '../api/endpoints/pets/pets';
-import type { MutationFunctionContext } from '@tanstack/angular-query-experimental';
 
 describe('mutationInvalidates feature', () => {
   let queryClient: QueryClient;
@@ -78,16 +77,11 @@ describe('mutationInvalidates feature', () => {
         getCreatePetsMutationOptions(http, queryClient),
       );
 
-      const mockContext: MutationFunctionContext = {
-        client: queryClient,
-        meta: undefined,
-      };
-
       options.onSuccess!(
         undefined,
         { data: { name: 'New Pet', tag: 'dog' } },
         undefined as never,
-        mockContext,
+        undefined as never,
       );
 
       const queryState = queryClient.getQueryState(queryKey);
@@ -121,16 +115,11 @@ describe('mutationInvalidates feature', () => {
         getDeletePetMutationOptions(http, queryClient),
       );
 
-      const mockContext: MutationFunctionContext = {
-        client: queryClient,
-        meta: undefined,
-      };
-
       options.onSuccess!(
         undefined,
         { petId: '123' },
         undefined as never,
-        mockContext,
+        undefined as never,
       );
 
       expect(queryClient.getQueryState(listPetsKey)?.isInvalidated).toBe(true);
@@ -159,16 +148,11 @@ describe('mutationInvalidates feature', () => {
         }),
       );
 
-      const mockContext: MutationFunctionContext = {
-        client: queryClient,
-        meta: undefined,
-      };
-
       options.onSuccess!(
         undefined,
         { petId: '456' },
         undefined as never,
-        mockContext,
+        undefined as never,
       );
 
       expect(userCallbackCalled).toBe(true);
@@ -202,11 +186,6 @@ describe('mutationInvalidates feature', () => {
         getUpdatePetMutationOptions(http, queryClient),
       );
 
-      const mockContext: MutationFunctionContext = {
-        client: queryClient,
-        meta: undefined,
-      };
-
       options.onSuccess!(
         { id: 789, name: 'Updated Pet', requiredNullableString: null },
         {
@@ -214,7 +193,7 @@ describe('mutationInvalidates feature', () => {
           data: { id: 789, name: 'Updated Pet', requiredNullableString: null },
         },
         undefined as never,
-        mockContext,
+        undefined as never,
       );
 
       expect(queryClient.getQueryState(listPetsKey)?.isInvalidated).toBe(true);
@@ -250,11 +229,6 @@ describe('mutationInvalidates feature', () => {
         getPatchPetMutationOptions(http, queryClient),
       );
 
-      const mockContext: MutationFunctionContext = {
-        client: queryClient,
-        meta: undefined,
-      };
-
       options.onSuccess!(
         {
           id: 999,
@@ -264,7 +238,7 @@ describe('mutationInvalidates feature', () => {
         },
         { petId: '999', data: { tag: 'patched' } },
         undefined as never,
-        mockContext,
+        undefined as never,
       );
 
       expect(queryClient.getQueryState(listPetsKey)?.isInvalidated).toBe(true);
@@ -286,16 +260,11 @@ describe('mutationInvalidates feature', () => {
         getDeletePetMutationOptions(http, queryClient),
       );
 
-      const mockContext: MutationFunctionContext = {
-        client: queryClient,
-        meta: undefined,
-      };
-
       options.onSuccess!(
         undefined,
         { petId: '123' },
         undefined as never,
-        mockContext,
+        undefined as never,
       );
 
       expect(queryClient.getQueryState(showPetById123)?.isInvalidated).toBe(
@@ -330,18 +299,13 @@ describe('mutationInvalidates feature', () => {
         }),
       );
 
-      const mockContext: MutationFunctionContext = {
-        client: queryClient,
-        meta: undefined,
-      };
-
       const mockVariables = { data: { name: 'Test Pet', tag: 'cat' } };
 
       options.onSuccess!(
         undefined,
         mockVariables,
         undefined as never,
-        mockContext,
+        undefined as never,
       );
 
       expect(userCallbackCalled).toBe(true);

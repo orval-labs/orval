@@ -22,6 +22,7 @@
     "generate:fetch": "orval --config ./configs/fetch.config.ts",
     "generate:mcp": "orval --config ./configs/mcp.config.ts",
     "generate:hono": "orval --config ./configs/hono.config.ts",
+    "lint:generated": "eslint --no-ignore generated",
     "build": "tsc",
     "clean": "rimraf .turbo dist generated",
     "nuke": "rimraf .turbo dist generated .yarn node_modules"
@@ -44,7 +45,7 @@
     "orval": "workspace:*",
     "react": "^18.3.1",
     "rimraf": "catalog:",
-    "rxjs": "~7.8.2",
+    "rxjs": "catalog:tooling",
     "svelte": "^5.46.4",
     "swr": "^2.3.6",
     "typescript": "catalog:",

@@ -20,20 +20,31 @@
     "@angular/platform-browser": "catalog:angular",
     "@angular/router": "catalog:angular",
     "@tanstack/angular-query-experimental": "^5.62.7",
-    "rxjs": "~7.8.2",
-    "tslib": "^2.8.1",
+    "rxjs": "catalog:tooling",
+    "tslib": "catalog:build-tools",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@angular-eslint/builder": "catalog:angular",
+    "@angular-eslint/eslint-plugin": "catalog:angular",
+    "@angular-eslint/eslint-plugin-template": "catalog:angular",
+    "@angular-eslint/template-parser": "catalog:angular",
     "@angular/build": "catalog:angular",
     "@angular/cli": "catalog:angular",
     "@angular/compiler-cli": "catalog:angular",
+    "@eslint/js": "catalog:",
     "@faker-js/faker": "^10.2.0",
-    "@testing-library/angular": "19.0.0",
+    "@testing-library/angular": "catalog:angular",
+    "@testing-library/dom": "^10.4.1",
+    "@typescript-eslint/eslint-plugin": "^8.52.0",
+    "@typescript-eslint/parser": "^8.50.1",
+    "@typescript-eslint/types": "^8.52.0",
+    "@typescript-eslint/utils": "^8.52.0",
+    "eslint": "catalog:",
     "msw": "^2.12.7",
     "orval": "link:../../packages/orval/dist",
-    "typescript": "~5.9.3",
-    "vitest": "^4.0.16"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "msw": {
     "workerDirectory": [
