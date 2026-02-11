@@ -1,3 +1,4 @@
+import { getSuccessResponseType } from '../getters/res-req-types';
 import {
   type GeneratorMutator,
   type GeneratorSchema,
@@ -150,22 +151,9 @@ export function generateAxiosOptions({
     !isObject(requestOptions) ||
     !Object.hasOwn(requestOptions, 'responseType')
   ) {
-    // Use success content types to determine responseType (not all contentTypes
-    // which include error responses that may have different content types)
-    const successContentTypes = response.types.success
-      .map((t) => t.contentType)
-      .filter(Boolean);
-    const hasTextResponse = successContentTypes.some(
-      (ct) => ct.startsWith('text/') || ct.includes('xml'),
-    );
-    const hasJsonResponse = successContentTypes.some(
-      (ct) => ct.includes('json') || ct.includes('+json'),
-    );
-
-    if (response.isBlob) {
-      value += `\n        responseType: 'blob',`;
-    } else if (!hasJsonResponse && hasTextResponse) {
-      value += `\n        responseType: 'text',`;
+    const successResponseType = getSuccessResponseType(response);
+    if (successResponseType) {
+      value += `\n        responseType: '${successResponseType}',`;
     }
   }
 

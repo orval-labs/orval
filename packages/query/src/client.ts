@@ -8,6 +8,7 @@ import {
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  getSuccessResponseType,
   type GetterResponse,
   isObject,
   isSyntheticDefaultImportsAllow,
@@ -190,22 +191,10 @@ export const generateAngularHttpRequestFunction = (
   // Use only success response content types to determine responseType
   // (response.contentTypes includes error responses which may be JSON and would
   // incorrectly prevent text/blob responseType from being set)
-  const successContentTypes = response.types.success
-    .map((t) => t.contentType)
-    .filter(Boolean);
-  const hasJsonResponse = successContentTypes.some(
-    (contentType) =>
-      contentType.includes('json') || contentType.includes('+json'),
-  );
-  const hasTextResponse = successContentTypes.some(
-    (contentType) =>
-      contentType.startsWith('text/') || contentType.includes('xml'),
-  );
-  const responseTypeOption = response.isBlob
-    ? "'blob'"
-    : !hasJsonResponse && hasTextResponse
-      ? "'text'"
-      : undefined;
+  const successResponseType = getSuccessResponseType(response);
+  const responseTypeOption = successResponseType
+    ? `'${successResponseType}'`
+    : undefined;
   if (responseTypeOption) {
     httpOptions.push(`responseType: ${responseTypeOption}`);
   }
