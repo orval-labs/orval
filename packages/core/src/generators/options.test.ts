@@ -324,13 +324,13 @@ describe('generateAxiosOptions', () => {
       });
 
       expect(result).toContain(
-        'Object.fromEntries<string | number | boolean | ReadonlyArray<string | number | boolean>>(Object.entries({...params, ...options?.params}).reduce',
+        'Object.entries({...params, ...options?.params}).reduce',
       );
       expect(result).toContain(
-        'Object.fromEntries<string | number | boolean | ReadonlyArray<string | number | boolean>>',
+        '{} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
       );
       expect(result).toContain('Array.isArray(value)');
-      expect(result).toContain('value.filter((item) => item != null)');
+      expect(result).toContain("typeof item === 'string'");
     });
 
     it('should apply filtering before paramsSerializer for Angular', () => {
@@ -349,10 +349,30 @@ describe('generateAxiosOptions', () => {
 
       expect(result).toContain('params: paramsSerializerMutator(');
       expect(result).toContain(
-        'Object.fromEntries<string | number | boolean | ReadonlyArray<string | number | boolean>>(Object.entries({...params, ...options?.params}).reduce',
+        'Object.entries({...params, ...options?.params}).reduce',
       );
       expect(result).toContain(
-        'Object.fromEntries<string | number | boolean | ReadonlyArray<string | number | boolean>>',
+        '{} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
+      );
+    });
+
+    it('should filter params for Angular when requestOptions is false', () => {
+      const result = generateAxiosOptions({
+        response: minimalResponse,
+        isExactOptionalPropertyTypes: false,
+        queryParams: minimalSchema,
+        headers: undefined,
+        requestOptions: false,
+        hasSignal: false,
+        isVue: false,
+        isAngular: true,
+        paramsSerializer: undefined,
+        paramsSerializerOptions: undefined,
+      });
+
+      expect(result).toContain('params: Object.entries(params).reduce');
+      expect(result).toContain(
+        '{} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
       );
     });
   });
@@ -440,14 +460,12 @@ describe('generateMutatorConfig', () => {
         isAngular: true,
       });
 
+      expect(result).toContain('params: Object.entries(params ?? {}).reduce');
       expect(result).toContain(
-        'params: Object.fromEntries<string | number | boolean | ReadonlyArray<string | number | boolean>>(Object.entries(params ?? {}).reduce',
-      );
-      expect(result).toContain(
-        'Object.fromEntries<string | number | boolean | ReadonlyArray<string | number | boolean>>',
+        '{} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
       );
       expect(result).toContain('Array.isArray(value)');
-      expect(result).toContain('value.filter((item) => item != null)');
+      expect(result).toContain("typeof item === 'string'");
     });
   });
 

@@ -19,7 +19,7 @@ import { getIsBodyVerb, isObject, stringify } from '../utils';
  * paramsSerializer to avoid runtime and type issues.
  */
 const getAngularFilteredParamsExpression = (paramsExpression: string) =>
-  `Object.fromEntries<string | number | boolean | ReadonlyArray<string | number | boolean>>(Object.entries(${paramsExpression}).reduce((acc, [key, value]) => { if (Array.isArray(value)) { const filtered = value.filter((item) => item != null) as ReadonlyArray<string | number | boolean>; if (filtered.length) { acc.push([key, filtered]); } } else if (value != null) { acc.push([key, value as string | number | boolean]); } return acc; }, [] as [string, string | number | boolean | ReadonlyArray<string | number | boolean>][]))`;
+  `Object.entries(${paramsExpression}).reduce((acc, [key, value]) => { if (Array.isArray(value)) { const filtered = value.filter((item) => item != null && (typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean')) as ReadonlyArray<string | number | boolean>; if (filtered.length) { acc[key] = filtered; } } else if (value != null && (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')) { acc[key] = value as string | number | boolean; } return acc; }, {} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>)`;
 
 interface GenerateFormDataAndUrlEncodedFunctionOptions {
   body: GetterBody;
@@ -102,7 +102,13 @@ export function generateAxiosOptions({
 
   if (!isRequestOptions) {
     if (queryParams) {
-      value += '\n        params,';
+      if (isAngular) {
+        value += paramsSerializer
+          ? `\n        params: ${paramsSerializer.name}(${getAngularFilteredParamsExpression('params')}),`
+          : `\n        params: ${getAngularFilteredParamsExpression('params')},`;
+      } else {
+        value += '\n        params,';
+      }
     }
 
     if (headers) {
