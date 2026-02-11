@@ -118,7 +118,7 @@ export function generateAxiosOptions({
 
   if (
     !isObject(requestOptions) ||
-    !Object.prototype.hasOwnProperty.call(requestOptions, 'responseType')
+    !Object.hasOwn(requestOptions, 'responseType')
   ) {
     if (response.isBlob) {
       value += `\n        responseType: 'blob',`;

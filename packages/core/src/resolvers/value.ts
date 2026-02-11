@@ -48,7 +48,11 @@ export function resolveValue({
       hasReadonlyProps = scalar.hasReadonlyProps;
     }
 
-    const isAnyOfNullable = schemaObject.anyOf?.some(
+    // Bridge assertion: schemaObject.anyOf is `any` due to AnyOtherAttribute
+    const anyOfItems = schemaObject.anyOf as
+      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+      | undefined;
+    const isAnyOfNullable = anyOfItems?.some(
       (anyOfItem) =>
         !isReference(anyOfItem) &&
         (anyOfItem.type === 'null' ||

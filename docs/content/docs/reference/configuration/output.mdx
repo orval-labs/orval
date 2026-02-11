@@ -611,7 +611,7 @@ Generate query invalidation helpers.
 
 **Type:** `Array`
 
-Automatically invalidate queries on mutation success (Angular Query, React Query & Svelte Query):
+Automatically invalidate or reset queries on mutation success (Angular Query, React Query & Svelte Query):
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -629,7 +629,7 @@ export default defineConfig({
               onMutations: ['deletePet', 'updatePet'],
               invalidates: [
                 'listPets',
-                { query: 'showPetById', params: ['petId'] },
+                { query: 'showPetById', params: ['petId'], invalidationMode: 'reset' },
               ],
             },
           ],

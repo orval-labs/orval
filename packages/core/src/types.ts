@@ -53,7 +53,7 @@ export type NormalizedOutputOptions = {
 };
 
 export type NormalizedParamsSerializerOptions = {
-  qs?: Record<string, any>;
+  qs?: Record<string, unknown>;
 };
 
 export type NormalizedOverrideOutput = {
@@ -393,7 +393,7 @@ export type MutatorObject = {
 export type Mutator = string | MutatorObject;
 
 export type ParamsSerializerOptions = {
-  qs?: Record<string, any>;
+  qs?: Record<string, unknown>;
 };
 
 export const FormDataArrayHandling = {
@@ -486,11 +486,15 @@ export type OverrideOutput = {
 };
 
 export type JsDocOptions = {
-  filter?: (schema: Record<string, any>) => { key: string; value: string }[];
+  filter?: (
+    schema: Record<string, unknown>,
+  ) => { key: string; value: string }[];
 };
 
 export type NormalizedJsDocOptions = {
-  filter?: (schema: Record<string, any>) => { key: string; value: string }[];
+  filter?: (
+    schema: Record<string, unknown>,
+  ) => { key: string; value: string }[];
 };
 
 export type OverrideOutputContentType = {
@@ -589,7 +593,8 @@ export type InvalidateTarget =
   | string
   | {
       query: string;
-      params: string[] | Record<string, string>;
+      params?: string[] | Record<string, string>;
+      invalidateMode?: 'invalidate' | 'reset';
     };
 
 export type MutationInvalidatesRule = {
@@ -715,7 +720,7 @@ export type OperationOptions = {
 
 export type Hook = 'afterAllFilesWrite';
 
-export type HookFunction = (...args: any[]) => void | Promise<void>;
+export type HookFunction = (...args: unknown[]) => void | Promise<void>;
 
 export interface HookOption {
   command: string | HookFunction;
@@ -1149,8 +1154,8 @@ export type ScalarValue = {
   schemas: GeneratorSchema[];
   isRef: boolean;
   dependencies: string[];
-  example?: any;
-  examples?: Record<string, any>;
+  example?: unknown;
+  examples?: Record<string, unknown>;
 };
 
 export type ResolverValue = ScalarValue & {

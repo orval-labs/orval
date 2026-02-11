@@ -41,7 +41,7 @@ export function getProps({
     default: false,
     required: isNullish(queryParams?.isOptional)
       ? !context.output.allParamsOptional || context.output.optionsParamRequired
-      : (!queryParams?.isOptional && !context.output.allParamsOptional) ||
+      : (!queryParams.isOptional && !context.output.allParamsOptional) ||
         context.output.optionsParamRequired,
     type: GetterPropType.QUERY_PARAM,
   };
@@ -57,7 +57,7 @@ export function getProps({
     default: false,
     required: isNullish(headers?.isOptional)
       ? false
-      : !headers?.isOptional || context.output.optionsParamRequired,
+      : !headers.isOptional || context.output.optionsParamRequired,
     type: GetterPropType.HEADER,
   };
 
