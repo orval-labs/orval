@@ -4,6 +4,7 @@ import type {
   ContextSpec,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
+  ResolverValue,
   ScalarValue,
 } from '../types';
 import { compareVersions } from '../utils';
@@ -27,19 +28,32 @@ export function getArray({
   context,
   formDataContext,
 }: GetArrayOptions): ScalarValue {
-  const schema31 = schema as OpenApiSchemaObject;
+  // Bridge assertions: extract typed values from AnyOtherAttribute-infected schema
+  const schemaPrefixItems = schema.prefixItems as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+  const schemaItems = schema.items as
+    | OpenApiSchemaObject
+    | OpenApiReferenceObject
+    | undefined;
+  const schemaExample = schema.example as unknown;
+  const schemaExamples = schema.examples as Parameters<
+    typeof resolveExampleRefs
+  >[0];
+
   const itemSuffix = context.output.override.components.schemas.itemSuffix;
-  if (schema31.prefixItems) {
-    const resolvedObjects = schema31.prefixItems.map((item, index) =>
-      resolveObject({
-        schema: item as OpenApiSchemaObject | OpenApiReferenceObject,
-        propName: name ? name + itemSuffix + index : undefined,
-        context,
-      }),
+  if (schemaPrefixItems) {
+    const resolvedObjects: ResolverValue[] = schemaPrefixItems.map(
+      (item, index) =>
+        resolveObject({
+          schema: item,
+          propName: name ? name + itemSuffix + String(index) : undefined,
+          context,
+        }),
     );
-    if (schema31.items) {
+    if (schemaItems) {
       const additional = resolveObject({
-        schema: schema31.items as OpenApiSchemaObject | OpenApiReferenceObject,
+        schema: schemaItems,
         propName: name ? name + itemSuffix + 'Additional' : undefined,
         context,
       });
@@ -57,13 +71,13 @@ export function getArray({
       schemas: resolvedObjects.flatMap((o) => o.schemas),
       dependencies: resolvedObjects.flatMap((o) => o.dependencies),
       hasReadonlyProps: resolvedObjects.some((o) => o.hasReadonlyProps),
-      example: schema.example,
-      examples: resolveExampleRefs(schema.examples, context),
+      example: schemaExample,
+      examples: resolveExampleRefs(schemaExamples, context),
     };
   }
-  if (schema.items) {
+  if (schemaItems) {
     const resolvedObject = resolveObject({
-      schema: schema.items,
+      schema: schemaItems,
       propName: name ? name + itemSuffix : undefined,
       context,
       formDataContext,
@@ -86,8 +100,8 @@ export function getArray({
       type: 'array',
       isRef: false,
       hasReadonlyProps: resolvedObject.hasReadonlyProps,
-      example: schema.example,
-      examples: resolveExampleRefs(schema.examples, context),
+      example: schemaExample,
+      examples: resolveExampleRefs(schemaExamples, context),
     };
   } else if (compareVersions(context.spec.openapi, '3.1', '>=')) {
     return {

@@ -25,6 +25,28 @@ import {
 import { getNumberWord } from '../utils/string';
 import type { FormDataContext } from './object';
 
+// Bridge assertion helpers for AnyOtherAttribute-infected schema properties.
+// OpenAPI SchemaObject includes `[key: string]: any` which infects all property access.
+// These helpers centralize the cast so it appears once rather than at each access site.
+const getSchemaType = (s: OpenApiSchemaObject) =>
+  s.type as string | string[] | undefined;
+const getSchemaCombined = (s: OpenApiSchemaObject) =>
+  (s.oneOf ?? s.anyOf ?? s.allOf) as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+const getSchemaOneOf = (s: OpenApiSchemaObject) =>
+  s.oneOf as (OpenApiSchemaObject | OpenApiReferenceObject)[] | undefined;
+const getSchemaAnyOf = (s: OpenApiSchemaObject) =>
+  s.anyOf as (OpenApiSchemaObject | OpenApiReferenceObject)[] | undefined;
+const getSchemaItems = (s: OpenApiSchemaObject) =>
+  s.items as OpenApiSchemaObject | OpenApiReferenceObject | undefined;
+const getSchemaRequired = (s: OpenApiSchemaObject) =>
+  s.required as string[] | undefined;
+const getSchemaProperties = (s: OpenApiSchemaObject) =>
+  s.properties as
+    | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+    | undefined;
+
 const formDataContentTypes = new Set(['multipart/form-data']);
 
 const formUrlEncodedContentTypes = new Set([
@@ -88,7 +110,7 @@ export function getResReqTypes(
   ) => unknown = (item) => item.value,
 ): ResReqTypesValue[] {
   const typesArray = responsesOrRequests
-    .filter(([_, res]) => Boolean(res))
+    .filter(([, res]) => Boolean(res))
     .map(([key, res]) => {
       if (isReference(res)) {
         const {
@@ -115,9 +137,14 @@ export function getResReqTypes(
               isEnum: false,
               isRef: true,
               hasReadonlyProps: false,
-              originalSchema: mediaType?.schema,
-              example: mediaType?.example,
-              examples: resolveExampleRefs(mediaType?.examples, context),
+              originalSchema: mediaType.schema,
+              example: mediaType.example as unknown,
+              examples: resolveExampleRefs(
+                mediaType.examples as
+                  | Record<string, OpenApiReferenceObject | { value?: unknown }>
+                  | undefined,
+                context,
+              ),
               key,
               contentType,
             },
@@ -228,7 +255,11 @@ export function getResReqTypes(
             const isFormUrlEncoded =
               formUrlEncodedContentTypes.has(contentType);
 
-            if ((!isFormData && !isFormUrlEncoded) || !effectivePropName) {
+            if (
+              (!isFormData && !isFormUrlEncoded) ||
+              !effectivePropName ||
+              !mediaType.schema
+            ) {
               return {
                 ...resolvedValue,
                 imports: resolvedValue.imports,
@@ -241,7 +272,7 @@ export function getResReqTypes(
             const formData = isFormData
               ? getSchemaFormDataAndUrlEncoded({
                   name: effectivePropName,
-                  schemaObject: mediaType.schema!,
+                  schemaObject: mediaType.schema,
                   context,
                   isRequestBodyOptional:
                     'required' in res && res.required === false,
@@ -253,7 +284,7 @@ export function getResReqTypes(
             const formUrlEncoded = isFormUrlEncoded
               ? getSchemaFormDataAndUrlEncoded({
                   name: effectivePropName,
-                  schemaObject: mediaType.schema!,
+                  schemaObject: mediaType.schema,
                   context,
                   isUrlEncoded: true,
                   isRequestBodyOptional:
@@ -264,7 +295,7 @@ export function getResReqTypes(
               : undefined;
 
             const additionalImports = getFormDataAdditionalImports({
-              schemaObject: mediaType.schema!,
+              schemaObject: mediaType.schema,
               context,
             });
             return {
@@ -273,8 +304,13 @@ export function getResReqTypes(
               formData,
               formUrlEncoded,
               contentType,
-              example: mediaType.example,
-              examples: resolveExampleRefs(mediaType.examples, context),
+              example: mediaType.example as unknown,
+              examples: resolveExampleRefs(
+                mediaType.examples as
+                  | Record<string, OpenApiReferenceObject | { value?: unknown }>
+                  | undefined,
+                context,
+              ),
             };
           },
         );
@@ -405,7 +441,7 @@ function getFormDataAdditionalImports({
     return [];
   }
 
-  const combinedSchemas = schema.oneOf || schema.anyOf;
+  const combinedSchemas = getSchemaOneOf(schema) ?? getSchemaAnyOf(schema);
 
   if (!combinedSchemas) {
     return [];
@@ -413,7 +449,8 @@ function getFormDataAdditionalImports({
 
   return combinedSchemas
     .map(
-      (schema) => resolveRef<OpenApiSchemaObject>(schema, context).imports[0],
+      (subSchema) =>
+        resolveRef<OpenApiSchemaObject>(subSchema, context).imports[0],
     )
     .filter(Boolean);
 }
@@ -451,18 +488,18 @@ function getSchemaFormDataAndUrlEncoded({
     ? `const ${variableName} = new URLSearchParams();\n`
     : `const ${variableName} = new FormData();\n`;
 
-  const combinedSchemas = schema.oneOf || schema.anyOf || schema.allOf;
+  const combinedSchemas = getSchemaCombined(schema);
   if (
     schema.type === 'object' ||
     (schema.type === undefined && combinedSchemas)
   ) {
     if (combinedSchemas) {
-      const shouldCast = !!schema.oneOf || !!schema.anyOf;
+      const shouldCast = !!getSchemaOneOf(schema) || !!getSchemaAnyOf(schema);
 
-      const combinedSchemasFormData = combinedSchemas!
-        .map((schema) => {
+      const combinedSchemasFormData = combinedSchemas
+        .map((subSchema) => {
           const { schema: combinedSchema, imports } =
-            resolveRef<OpenApiSchemaObject>(schema, context);
+            resolveRef<OpenApiSchemaObject>(subSchema, context);
 
           let newPropName = propName;
           let newPropDefinition = '';
@@ -511,9 +548,10 @@ function getSchemaFormDataAndUrlEncoded({
 
   if (schema.type === 'array') {
     let valueStr = 'value';
-    if (schema.items) {
+    const schemaItems = getSchemaItems(schema);
+    if (schemaItems) {
       const { schema: itemSchema } = resolveRef<OpenApiSchemaObject>(
-        schema.items,
+        schemaItems,
         context,
       );
       if (itemSchema.type === 'object' || itemSchema.type === 'array') {
@@ -562,174 +600,184 @@ function resolveSchemaPropertiesToFormData({
   depth = 0,
   encoding,
 }: ResolveSchemaPropertiesToFormDataOptions): string {
-  const formDataValues = Object.entries(schema.properties ?? {}).reduce(
-    (acc, [key, value]) => {
-      const { schema: property } = resolveRef<OpenApiSchemaObject>(
-        value,
-        context,
-      );
+  let formDataValues = '';
+  const schemaProps = getSchemaProperties(schema) ?? {};
+  for (const [key, value] of Object.entries(schemaProps)) {
+    const { schema: property } = resolveRef<OpenApiSchemaObject>(
+      value,
+      context,
+    );
 
-      // Skip readOnly properties for formData
-      if (property.readOnly) {
-        return acc;
-      }
+    // Skip readOnly properties for formData
+    if (property.readOnly) {
+      continue;
+    }
 
-      let formDataValue = '';
+    let formDataValue = '';
 
-      // Get encoding.contentType for this field (only at top level, depth === 0)
-      const fieldEncoding = depth === 0 ? encoding?.[key] : undefined;
-      const partContentType = fieldEncoding?.contentType;
+    // Get encoding.contentType for this field (only at top level, depth === 0)
+    const fieldEncoding = depth === 0 ? encoding?.[key] : undefined;
+    const partContentType = fieldEncoding?.contentType;
 
-      const formattedKeyPrefix = isRequestBodyOptional
-        ? keyword.isIdentifierNameES5(key)
-          ? '?'
-          : '?.'
-        : '';
-      const formattedKey = keyword.isIdentifierNameES5(key)
-        ? `.${key}`
-        : `['${key}']`;
+    const formattedKeyPrefix = isRequestBodyOptional
+      ? keyword.isIdentifierNameES5(key)
+        ? '?'
+        : '?.'
+      : '';
+    const formattedKey = keyword.isIdentifierNameES5(key)
+      ? `.${key}`
+      : `['${key}']`;
 
-      const valueKey = `${propName}${formattedKeyPrefix}${formattedKey}`;
-      const nonOptionalValueKey = `${propName}${formattedKey}`;
+    const valueKey = `${propName}${formattedKeyPrefix}${formattedKey}`;
+    const nonOptionalValueKey = `${propName}${formattedKey}`;
 
-      // Use shared file type detection (same logic as type generation)
-      const fileType = getFormDataFieldFileType(property, partContentType);
-      const effectiveContentType = partContentType ?? property.contentMediaType;
+    // Use shared file type detection (same logic as type generation)
+    const fileType = getFormDataFieldFileType(property, partContentType);
+    const effectiveContentType =
+      partContentType ?? (property.contentMediaType as string | undefined);
 
-      if (fileType === 'binary' || property.format === 'binary') {
-        // Binary: append directly (value is Blob)
-        formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey});\n`;
-      } else if (fileType === 'text') {
-        // Text file: value is Blob | string, check at runtime
-        formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey} instanceof Blob ? ${nonOptionalValueKey} : new Blob([${nonOptionalValueKey}], { type: '${effectiveContentType}' }));\n`;
-      } else if (property.type === 'object') {
-        formDataValue =
-          context.output.override.formData.arrayHandling ===
-          FormDataArrayHandling.EXPLODE
-            ? resolveSchemaPropertiesToFormData({
-                schema: property,
-                variableName,
-                propName: nonOptionalValueKey,
-                context,
-                isRequestBodyOptional,
-                keyPrefix: `${keyPrefix}${key}.`,
-                depth: depth + 1,
-                encoding,
-              })
-            : partContentType
-              ? `${variableName}.append(\`${keyPrefix}${key}\`, new Blob([JSON.stringify(${nonOptionalValueKey})], { type: '${partContentType}' }));\n`
-              : `${variableName}.append(\`${keyPrefix}${key}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
-      } else if (property.type === 'array') {
-        let valueStr = 'value';
-        let hasNonPrimitiveChild = false;
-        if (property.items) {
-          const { schema: itemSchema } = resolveRef<OpenApiSchemaObject>(
-            property.items,
-            context,
-          );
-          if (itemSchema.type === 'object' || itemSchema.type === 'array') {
-            if (
-              context.output.override.formData.arrayHandling ===
-              FormDataArrayHandling.EXPLODE
-            ) {
-              hasNonPrimitiveChild = true;
-              const resolvedValue = resolveSchemaPropertiesToFormData({
-                schema: itemSchema,
-                variableName,
-                propName: 'value',
-                context,
-                isRequestBodyOptional,
-                keyPrefix: `${keyPrefix}${key}[\${index${depth > 0 ? depth : ''}}].`,
-                depth: depth + 1,
-              });
-              formDataValue = `${valueKey}.forEach((value, index${depth > 0 ? depth : ''}) => {
+    if (fileType === 'binary' || property.format === 'binary') {
+      // Binary: append directly (value is Blob)
+      formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey});\n`;
+    } else if (fileType === 'text') {
+      // Text file: value is Blob | string, check at runtime
+      formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey} instanceof Blob ? ${nonOptionalValueKey} : new Blob([${nonOptionalValueKey}], { type: '${effectiveContentType}' }));\n`;
+    } else if (property.type === 'object') {
+      formDataValue =
+        context.output.override.formData.arrayHandling ===
+        FormDataArrayHandling.EXPLODE
+          ? resolveSchemaPropertiesToFormData({
+              schema: property,
+              variableName,
+              propName: nonOptionalValueKey,
+              context,
+              isRequestBodyOptional,
+              keyPrefix: `${keyPrefix}${key}.`,
+              depth: depth + 1,
+              encoding,
+            })
+          : partContentType
+            ? `${variableName}.append(\`${keyPrefix}${key}\`, new Blob([JSON.stringify(${nonOptionalValueKey})], { type: '${partContentType}' }));\n`
+            : `${variableName}.append(\`${keyPrefix}${key}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
+    } else if (property.type === 'array') {
+      let valueStr = 'value';
+      let hasNonPrimitiveChild = false;
+      const propertyItems = getSchemaItems(property);
+      if (propertyItems) {
+        const { schema: itemSchema } = resolveRef<OpenApiSchemaObject>(
+          propertyItems,
+          context,
+        );
+        if (itemSchema.type === 'object' || itemSchema.type === 'array') {
+          if (
+            context.output.override.formData.arrayHandling ===
+            FormDataArrayHandling.EXPLODE
+          ) {
+            hasNonPrimitiveChild = true;
+            const resolvedValue = resolveSchemaPropertiesToFormData({
+              schema: itemSchema,
+              variableName,
+              propName: 'value',
+              context,
+              isRequestBodyOptional,
+              keyPrefix: `${keyPrefix}${key}[\${index${depth > 0 ? depth : ''}}].`,
+              depth: depth + 1,
+            });
+            formDataValue = `${valueKey}.forEach((value, index${depth > 0 ? depth : ''}) => {
     ${resolvedValue}});\n`;
-            } else {
-              valueStr = 'JSON.stringify(value)';
-            }
-          } else if (
-            itemSchema.type === 'number' ||
-            itemSchema.type?.includes('number') ||
-            itemSchema.type === 'integer' ||
-            itemSchema.type?.includes('integer') ||
-            itemSchema.type === 'boolean' ||
-            itemSchema.type?.includes('boolean')
+          } else {
+            valueStr = 'JSON.stringify(value)';
+          }
+        } else {
+          const itemType = getSchemaType(itemSchema);
+          if (
+            itemType === 'number' ||
+            (Array.isArray(itemType) && itemType.includes('number')) ||
+            itemType === 'integer' ||
+            (Array.isArray(itemType) && itemType.includes('integer')) ||
+            itemType === 'boolean' ||
+            (Array.isArray(itemType) && itemType.includes('boolean'))
           ) {
             valueStr = 'value.toString()';
           }
         }
-        if (
-          context.output.override.formData.arrayHandling ===
-          FormDataArrayHandling.EXPLODE
-        ) {
-          if (!hasNonPrimitiveChild) {
-            formDataValue = `${valueKey}.forEach((value, index${depth > 0 ? depth : ''}) => ${variableName}.append(\`${keyPrefix}${key}[\${index${depth > 0 ? depth : ''}}]\`, ${valueStr}));\n`;
-          }
-        } else {
-          formDataValue = `${valueKey}.forEach(value => ${variableName}.append(\`${keyPrefix}${key}${context.output.override.formData.arrayHandling === FormDataArrayHandling.SERIALIZE_WITH_BRACKETS ? '[]' : ''}\`, ${valueStr}));\n`;
-        }
-      } else if (
-        property.type === 'number' ||
-        property.type?.includes('number') ||
-        property.type === 'integer' ||
-        property.type?.includes('integer') ||
-        property.type === 'boolean' ||
-        property.type?.includes('boolean')
+      }
+      if (
+        context.output.override.formData.arrayHandling ===
+        FormDataArrayHandling.EXPLODE
       ) {
-        formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey}.toString())\n`;
+        if (!hasNonPrimitiveChild) {
+          formDataValue = `${valueKey}.forEach((value, index${depth > 0 ? depth : ''}) => ${variableName}.append(\`${keyPrefix}${key}[\${index${depth > 0 ? depth : ''}}]\`, ${valueStr}));\n`;
+        }
       } else {
-        formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey});\n`;
+        formDataValue = `${valueKey}.forEach(value => ${variableName}.append(\`${keyPrefix}${key}${context.output.override.formData.arrayHandling === FormDataArrayHandling.SERIALIZE_WITH_BRACKETS ? '[]' : ''}\`, ${valueStr}));\n`;
       }
-
-      let existSubSchemaNullable = false;
-      if (property.allOf || property.anyOf || property.oneOf) {
-        const combine = property.allOf || property.anyOf || property.oneOf;
-        const subSchemas = combine?.map((c) =>
-          resolveObject({ schema: c, combined: true, context: context }),
+    } else if (
+      (() => {
+        const propType = getSchemaType(property);
+        return (
+          propType === 'number' ||
+          (Array.isArray(propType) && propType.includes('number')) ||
+          propType === 'integer' ||
+          (Array.isArray(propType) && propType.includes('integer')) ||
+          propType === 'boolean' ||
+          (Array.isArray(propType) && propType.includes('boolean'))
         );
-        if (
-          subSchemas?.some((subSchema) => {
-            return ['number', 'integer', 'boolean'].includes(subSchema.type);
-          })
-        ) {
-          formDataValue = `${variableName}.append(\`${key}\`, ${nonOptionalValueKey}.toString())\n`;
-        }
+      })()
+    ) {
+      formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey}.toString())\n`;
+    } else {
+      formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey});\n`;
+    }
 
-        if (
-          subSchemas?.some((subSchema) => {
-            return subSchema.type === 'null';
-          })
-        ) {
-          existSubSchemaNullable = true;
-        }
+    let existSubSchemaNullable = false;
+    const combine = getSchemaCombined(property);
+    if (combine) {
+      const subSchemas = combine.map((c) =>
+        resolveObject({ schema: c, combined: true, context: context }),
+      );
+      if (
+        subSchemas.some((subSchema) => {
+          return ['number', 'integer', 'boolean'].includes(subSchema.type);
+        })
+      ) {
+        formDataValue = `${variableName}.append(\`${key}\`, ${nonOptionalValueKey}.toString())\n`;
       }
-
-      const isRequired =
-        schema.required?.includes(key) && !isRequestBodyOptional;
 
       if (
-        property.nullable ||
-        property.type?.includes('null') ||
-        existSubSchemaNullable
+        subSchemas.some((subSchema) => {
+          return subSchema.type === 'null';
+        })
       ) {
-        if (isRequired) {
-          return acc + `if(${valueKey} !== null) {\n ${formDataValue} }\n`;
-        }
-
-        return (
-          acc +
-          `if(${valueKey} !== undefined && ${nonOptionalValueKey} !== null) {\n ${formDataValue} }\n`
-        );
+        existSubSchemaNullable = true;
       }
+    }
 
+    const schemaRequired = getSchemaRequired(schema);
+    const isRequired = schemaRequired?.includes(key) && !isRequestBodyOptional;
+
+    const propType = getSchemaType(property);
+    if (
+      property.nullable ||
+      (Array.isArray(propType) && propType.includes('null')) ||
+      existSubSchemaNullable
+    ) {
       if (isRequired) {
-        return acc + formDataValue;
+        formDataValues += `if(${valueKey} !== null) {\n ${formDataValue} }\n`;
+        continue;
       }
 
-      return acc + `if(${valueKey} !== undefined) {\n ${formDataValue} }\n`;
-    },
-    '',
-  );
+      formDataValues += `if(${valueKey} !== undefined && ${nonOptionalValueKey} !== null) {\n ${formDataValue} }\n`;
+      continue;
+    }
+
+    if (isRequired) {
+      formDataValues += formDataValue;
+      continue;
+    }
+
+    formDataValues += `if(${valueKey} !== undefined) {\n ${formDataValue} }\n`;
+  }
 
   return formDataValues;
 }

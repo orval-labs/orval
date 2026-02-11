@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { generateAxiosOptions, generateMutatorConfig } from './options';
 import { Verbs } from '../types';
+import { generateAxiosOptions, generateMutatorConfig } from './options';
 
 describe('generateAxiosOptions', () => {
   it('should return "...options"', () => {

@@ -7,7 +7,7 @@ import { getQueryParams } from './query-params';
 const context: ContextSpec = {
   spec: {},
   output: {
-    // @ts-expect-error
+    // @ts-expect-error -- partial mock: only override.useDates needed for test
     override: {
       useDates: true,
     },

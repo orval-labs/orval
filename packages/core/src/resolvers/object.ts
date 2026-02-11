@@ -44,7 +44,7 @@ export function createTypeAliasIfNeeded({
   // aliasCombinedTypes (v7 compat): match '|' and '&' so 'string | number' creates named type
   // v8 default: only match '{' so combined primitives are inlined
   const aliasPattern = context.output.override.aliasCombinedTypes
-    ? '{|&|\\|'
+    ? String.raw`{|&|\|`
     : '{';
   if (!new RegExp(aliasPattern).test(resolvedValue.value)) {
     return undefined;
@@ -111,14 +111,14 @@ function resolveObjectOriginal({
   }
 
   if (propName && resolvedValue.isEnum && !combined && !resolvedValue.isRef) {
-    const doc = jsDoc(resolvedValue.originalSchema ?? {});
+    const doc = jsDoc(resolvedValue.originalSchema);
     const enumValue = getEnum(
       resolvedValue.value,
       propName,
       getEnumNames(resolvedValue.originalSchema),
       context.output.override.enumGenerationType,
       getEnumDescriptions(resolvedValue.originalSchema),
-      context.output.override.namingConvention?.enum,
+      context.output.override.namingConvention.enum,
     );
 
     return {

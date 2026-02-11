@@ -22,6 +22,7 @@ describe('assertion testing', () => {
   it('checks for reference objects', () => {
     expect(isReference({ $ref: '#/components/schemas/User' })).toBeTruthy();
     expect(isReference({} as Record<string, unknown>)).toBeFalsy();
+    // eslint-disable-next-line unicorn/no-null -- testing null handling
     expect(isReference(null as unknown as object)).toBeFalsy();
   });
 
@@ -33,6 +34,7 @@ describe('assertion testing', () => {
   it('checks for plain objects', () => {
     expect(isObject({})).toBeTruthy();
     expect(isObject([])).toBeFalsy();
+    // eslint-disable-next-line unicorn/no-null -- testing null handling
     expect(isObject(null)).toBeFalsy();
   });
 
@@ -61,6 +63,7 @@ describe('assertion testing', () => {
     expect(isSchema({ anyOf: [] })).toBeTruthy();
     expect(isSchema({ properties: {} })).toBeTruthy();
     expect(isSchema({ type: 'not-a-schema' })).toBeFalsy();
+    // eslint-disable-next-line unicorn/no-null -- testing null handling
     expect(isSchema(null)).toBeFalsy();
   });
 
@@ -91,6 +94,7 @@ describe('assertion testing', () => {
         /* empty */
       }),
     ).toBeTruthy();
+    // eslint-disable-next-line unicorn/no-null -- testing null handling
     expect(isNullish(null)).toBeTruthy();
   });
 });

@@ -2,6 +2,7 @@ import { resolveExampleRefs, resolveValue } from '../resolvers';
 import { resolveObject } from '../resolvers/object';
 import {
   type ContextSpec,
+  type GeneratorImport,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   PropertySortOrder,
@@ -29,12 +30,12 @@ function getPropertyNamesEnum(item: OpenApiSchemaObject): string[] | undefined {
   if (
     'propertyNames' in item &&
     item.propertyNames &&
-    'enum' in item.propertyNames &&
-    Array.isArray(item.propertyNames.enum)
+    'enum' in item.propertyNames
   ) {
-    return item.propertyNames.enum.filter((val): val is string =>
-      isString(val),
-    );
+    const propertyNames = item.propertyNames as { enum?: unknown[] };
+    if (Array.isArray(propertyNames.enum)) {
+      return propertyNames.enum.filter((val): val is string => isString(val));
+    }
   }
   return undefined;
 }
@@ -108,7 +109,7 @@ export function getObject({
   formDataContext,
 }: GetObjectOptions): ScalarValue {
   if (isReference(item)) {
-    const { name } = getRefInfo(item.$ref, context);
+    const { name } = getRefInfo(item.$ref as string, context);
     return {
       value: name + nullable,
       imports: [{ name }],
@@ -116,10 +117,15 @@ export function getObject({
       isEnum: false,
       type: 'object',
       isRef: true,
-      hasReadonlyProps: item.readOnly ?? false,
+      hasReadonlyProps: (item.readOnly as boolean | undefined) ?? false,
       dependencies: [name],
-      example: item.example,
-      examples: resolveExampleRefs(item.examples, context),
+      example: item.example as unknown,
+      examples: resolveExampleRefs(
+        item.examples as
+          | Record<string, OpenApiReferenceObject | { value?: unknown }>
+          | undefined,
+        context,
+      ),
     };
   }
 
@@ -137,12 +143,15 @@ export function getObject({
   }
 
   if (Array.isArray(item.type)) {
+    const typeArray = item.type as string[];
+    // Bridge: item is OpenApiSchemaObject which includes AnyOtherAttribute index signature.
+    // Spreading it directly would carry `any` into the result. Cast to break the chain.
+    const baseItem = item as OpenApiSchemaObject;
     return combineSchemas({
       schema: {
-        anyOf: item.type.map((type) => ({
-          ...item,
-          type,
-        })),
+        anyOf: typeArray.map(
+          (type) => ({ ...baseItem, type }) as OpenApiSchemaObject,
+        ),
       },
       name,
       separator: 'anyOf',
@@ -151,177 +160,200 @@ export function getObject({
     });
   }
 
-  if (item.properties && Object.entries(item.properties).length > 0) {
-    const entries = Object.entries(item.properties);
+  // Bridge assertion: item.properties is typed as { [name: string]: ReferenceObject | SchemaObject }
+  // but AnyOtherAttribute index signature infects all property access to return `any`
+  const itemProperties = item.properties as
+    | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+    | undefined;
+
+  if (itemProperties && Object.entries(itemProperties).length > 0) {
+    const entries = Object.entries(itemProperties);
     if (context.output.propertySortOrder === PropertySortOrder.ALPHABETICAL) {
       entries.sort((a, b) => {
         return a[0].localeCompare(b[0]);
       });
     }
-    return entries.reduce(
-      (
-        acc,
-        [key, schema]: [string, OpenApiReferenceObject | OpenApiSchemaObject],
-        index,
-        arr,
-      ) => {
-        const isRequired = (
-          Array.isArray(item.required) ? item.required : []
-        ).includes(key);
+    const acc: ScalarValue = {
+      imports: [],
+      schemas: [],
+      value: '',
+      isEnum: false,
+      type: 'object' as SchemaType,
+      isRef: false,
+      schema: {},
+      hasReadonlyProps: false,
+      useTypeAlias: false,
+      dependencies: [],
+      example: item.example as unknown,
+      examples: resolveExampleRefs(
+        item.examples as
+          | Record<string, OpenApiReferenceObject | { value?: unknown }>
+          | undefined,
+        context,
+      ),
+    };
+    const itemRequired = item.required as string[] | undefined;
+    for (const [index, [key, schema]] of entries.entries()) {
+      const isRequired = (
+        Array.isArray(itemRequired) ? itemRequired : []
+      ).includes(key);
 
-        let propName = '';
+      let propName = '';
 
-        if (name) {
-          const isKeyStartWithUnderscore = key.startsWith('_');
+      if (name) {
+        const isKeyStartWithUnderscore = key.startsWith('_');
 
-          propName += pascal(
-            `${isKeyStartWithUnderscore ? '_' : ''}${name}_${key}`,
-          );
-        }
-
-        const allSpecSchemas = context.spec.components?.schemas ?? {};
-
-        const isNameAlreadyTaken = Object.keys(allSpecSchemas).some(
-          (schemaName) => pascal(schemaName) === propName,
+        propName += pascal(
+          `${isKeyStartWithUnderscore ? '_' : ''}${name}_${key}`,
         );
+      }
 
-        if (isNameAlreadyTaken) {
-          propName = propName + 'Property';
-        }
+      const allSpecSchemas = context.spec.components?.schemas ?? {};
 
-        // Transition multipart context: atPart: false → atPart: true
-        // Look up encoding[key].contentType and pass to property resolution
-        const propertyFormDataContext: FormDataContext | undefined =
-          formDataContext && !formDataContext.atPart
-            ? {
-                atPart: true,
-                partContentType: formDataContext.encoding[key]?.contentType,
-              }
-            : undefined;
+      const isNameAlreadyTaken = Object.keys(allSpecSchemas).some(
+        (schemaName) => pascal(schemaName) === propName,
+      );
 
-        const resolvedValue = resolveObject({
-          schema,
-          propName,
-          context,
-          formDataContext: propertyFormDataContext,
-        });
+      if (isNameAlreadyTaken) {
+        propName = propName + 'Property';
+      }
 
-        const isReadOnly = item.readOnly || schema.readOnly;
-        if (!index) {
-          acc.value += '{';
-        }
+      // Transition multipart context: atPart: false → atPart: true
+      // Look up encoding[key].contentType and pass to property resolution
+      const propertyFormDataContext: FormDataContext | undefined =
+        formDataContext && !formDataContext.atPart
+          ? {
+              atPart: true,
+              partContentType: formDataContext.encoding[key]?.contentType, // eslint-disable-line @typescript-eslint/no-unnecessary-condition -- Record index access can return undefined at runtime
+            }
+          : undefined;
 
-        const doc = jsDoc(schema, true, context);
+      const resolvedValue = resolveObject({
+        schema,
+        propName,
+        context,
+        formDataContext: propertyFormDataContext,
+      });
 
-        acc.hasReadonlyProps ||= isReadOnly || false;
+      const isReadOnly =
+        (item.readOnly as boolean | undefined) ??
+        ((schema as OpenApiSchemaObject).readOnly as boolean | undefined);
+      if (!index) {
+        acc.value += '{';
+      }
 
-        const constValue = 'const' in schema ? schema.const : undefined;
-        const hasConst = constValue !== undefined;
-        let constLiteral: string | undefined;
+      const doc = jsDoc(schema, true, context);
 
-        if (!hasConst) {
-          constLiteral = undefined;
-        } else if (isString(constValue)) {
-          constLiteral = `'${escape(constValue)}'`;
-        } else {
-          constLiteral = JSON.stringify(constValue);
-        }
+      if (isReadOnly ?? false) {
+        acc.hasReadonlyProps = true;
+      }
 
-        const needsValueImport =
-          hasConst && (resolvedValue.isEnum || resolvedValue.type === 'enum');
+      const constValue =
+        'const' in schema ? (schema.const as unknown) : undefined;
+      const hasConst = constValue !== undefined;
+      let constLiteral: string | undefined;
 
-        const aliasedImports: GeneratorImport[] = needsValueImport
-          ? resolvedValue.imports.map((imp) => ({ ...imp, isConstant: true }))
-          : hasConst
-            ? []
-            : getAliasedImports({ name, context, resolvedValue });
+      if (!hasConst) {
+        constLiteral = undefined;
+      } else if (isString(constValue)) {
+        constLiteral = `'${escape(constValue)}'`;
+      } else {
+        constLiteral = JSON.stringify(constValue);
+      }
 
-        if (aliasedImports.length > 0) {
-          acc.imports.push(...aliasedImports);
-        }
+      const needsValueImport =
+        hasConst && (resolvedValue.isEnum || resolvedValue.type === 'enum');
 
-        const alias = getImportAliasForRefOrValue({
-          context,
-          resolvedValue,
-          imports: aliasedImports,
-        });
+      const aliasedImports: GeneratorImport[] = needsValueImport
+        ? resolvedValue.imports.map((imp) => ({ ...imp, isConstant: true }))
+        : hasConst
+          ? []
+          : getAliasedImports({ name, context, resolvedValue });
 
-        const propValue = needsValueImport ? alias : (constLiteral ?? alias);
+      if (aliasedImports.length > 0) {
+        acc.imports.push(...aliasedImports);
+      }
 
-        const finalPropValue = isRequired
-          ? propValue
-          : context.output.override.useNullForOptional === true
-            ? `${propValue} | null`
-            : propValue;
+      const alias = getImportAliasForRefOrValue({
+        context,
+        resolvedValue,
+        imports: aliasedImports,
+      });
 
-        acc.value += `\n  ${doc ? `${doc}  ` : ''}${
-          isReadOnly && !context.output.override.suppressReadonlyModifier
-            ? 'readonly '
-            : ''
-        }${getKey(key)}${isRequired ? '' : '?'}: ${finalPropValue};`;
-        acc.schemas.push(...resolvedValue.schemas);
-        acc.dependencies.push(...resolvedValue.dependencies);
+      const propValue = needsValueImport ? alias : (constLiteral ?? alias);
 
-        if (arr.length - 1 === index) {
-          if (item.additionalProperties) {
-            if (isBoolean(item.additionalProperties)) {
-              const recordType = getPropertyNamesRecordType(item, 'unknown');
-              if (recordType) {
-                acc.value += '\n}';
-                acc.value += ` & ${recordType}`;
-                acc.useTypeAlias = true;
-              } else {
-                const keyType = getIndexSignatureKey(item);
-                acc.value += `\n  [key: ${keyType}]: unknown;\n }`;
-              }
+      const finalPropValue = isRequired
+        ? propValue
+        : context.output.override.useNullForOptional === true
+          ? `${propValue} | null`
+          : propValue;
+
+      acc.value += `\n  ${doc ? `${doc}  ` : ''}${
+        isReadOnly && !context.output.override.suppressReadonlyModifier
+          ? 'readonly '
+          : ''
+      }${getKey(key)}${isRequired ? '' : '?'}: ${finalPropValue};`;
+      acc.schemas.push(...resolvedValue.schemas);
+      acc.dependencies.push(...resolvedValue.dependencies);
+
+      if (entries.length - 1 === index) {
+        // Bridge assertion: additionalProperties is boolean | ReferenceObject | SchemaObject
+        // but AnyOtherAttribute infects property access
+        const additionalProps = item.additionalProperties as
+          | boolean
+          | OpenApiSchemaObject
+          | OpenApiReferenceObject
+          | undefined;
+        if (additionalProps) {
+          if (isBoolean(additionalProps)) {
+            const recordType = getPropertyNamesRecordType(item, 'unknown');
+            if (recordType) {
+              acc.value += '\n}';
+              acc.value += ` & ${recordType}`;
+              acc.useTypeAlias = true;
             } else {
-              const resolvedValue = resolveValue({
-                schema: item.additionalProperties,
-                name,
-                context,
-              });
-              const recordType = getPropertyNamesRecordType(
-                item,
-                resolvedValue.value,
-              );
-              if (recordType) {
-                acc.value += '\n}';
-                acc.value += ` & ${recordType}`;
-                acc.useTypeAlias = true;
-              } else {
-                const keyType = getIndexSignatureKey(item);
-                acc.value += `\n  [key: ${keyType}]: ${resolvedValue.value};\n}`;
-              }
-              acc.dependencies.push(...resolvedValue.dependencies);
+              const keyType = getIndexSignatureKey(item);
+              acc.value += `\n  [key: ${keyType}]: unknown;\n }`;
             }
           } else {
-            acc.value += '\n}';
+            const resolvedValue = resolveValue({
+              schema: additionalProps,
+              name,
+              context,
+            });
+            const recordType = getPropertyNamesRecordType(
+              item,
+              resolvedValue.value,
+            );
+            if (recordType) {
+              acc.value += '\n}';
+              acc.value += ` & ${recordType}`;
+              acc.useTypeAlias = true;
+            } else {
+              const keyType = getIndexSignatureKey(item);
+              acc.value += `\n  [key: ${keyType}]: ${resolvedValue.value};\n}`;
+            }
+            acc.dependencies.push(...resolvedValue.dependencies);
           }
-
-          acc.value += nullable;
+        } else {
+          acc.value += '\n}';
         }
 
-        return acc;
-      },
-      {
-        imports: [],
-        schemas: [],
-        value: '',
-        isEnum: false,
-        type: 'object' as SchemaType,
-        isRef: false,
-        schema: {},
-        hasReadonlyProps: false,
-        useTypeAlias: false,
-        dependencies: [],
-        example: item.example,
-        examples: resolveExampleRefs(item.examples, context),
-      } as ScalarValue,
-    );
+        acc.value += nullable;
+      }
+    }
+    return acc;
   }
 
-  if (item.additionalProperties) {
-    if (isBoolean(item.additionalProperties)) {
+  // Bridge assertion: additionalProperties is boolean | ReferenceObject | SchemaObject
+  const outerAdditionalProps = item.additionalProperties as
+    | boolean
+    | OpenApiSchemaObject
+    | OpenApiReferenceObject
+    | undefined;
+  const readOnlyFlag = item.readOnly as boolean | undefined;
+  if (outerAdditionalProps) {
+    if (isBoolean(outerAdditionalProps)) {
       const recordType = getPropertyNamesRecordType(item, 'unknown');
       if (recordType) {
         return {
@@ -331,7 +363,7 @@ export function getObject({
           isEnum: false,
           type: 'object',
           isRef: false,
-          hasReadonlyProps: item.readOnly || false,
+          hasReadonlyProps: readOnlyFlag ?? false,
           useTypeAlias: true,
           dependencies: [],
         };
@@ -344,13 +376,13 @@ export function getObject({
         isEnum: false,
         type: 'object',
         isRef: false,
-        hasReadonlyProps: item.readOnly || false,
+        hasReadonlyProps: readOnlyFlag ?? false,
         useTypeAlias: false,
         dependencies: [],
       };
     }
     const resolvedValue = resolveValue({
-      schema: item.additionalProperties,
+      schema: outerAdditionalProps,
       name,
       context,
     });
@@ -358,8 +390,8 @@ export function getObject({
     if (recordType) {
       return {
         value: recordType + nullable,
-        imports: resolvedValue.imports ?? [],
-        schemas: resolvedValue.schemas ?? [],
+        imports: resolvedValue.imports,
+        schemas: resolvedValue.schemas,
         isEnum: false,
         type: 'object',
         isRef: false,
@@ -371,8 +403,8 @@ export function getObject({
     const keyType = getIndexSignatureKey(item);
     return {
       value: `{[key: ${keyType}]: ${resolvedValue.value}}` + nullable,
-      imports: resolvedValue.imports ?? [],
-      schemas: resolvedValue.schemas ?? [],
+      imports: resolvedValue.imports,
+      schemas: resolvedValue.schemas,
       isEnum: false,
       type: 'object',
       isRef: false,
@@ -382,16 +414,16 @@ export function getObject({
     };
   }
 
-  const itemWithConst = item;
-  if (itemWithConst.const) {
+  const constValue = item.const as string | undefined;
+  if (constValue) {
     return {
-      value: `'${itemWithConst.const}'`,
+      value: `'${constValue}'`,
       imports: [],
       schemas: [],
       isEnum: false,
       type: 'string',
       isRef: false,
-      hasReadonlyProps: item.readOnly || false,
+      hasReadonlyProps: readOnlyFlag ?? false,
       dependencies: [],
     };
   }
@@ -407,7 +439,7 @@ export function getObject({
       isEnum: false,
       type: 'object',
       isRef: false,
-      hasReadonlyProps: item.readOnly || false,
+      hasReadonlyProps: readOnlyFlag ?? false,
       useTypeAlias: true,
       dependencies: [],
     };
@@ -421,7 +453,7 @@ export function getObject({
     isEnum: false,
     type: 'object',
     isRef: false,
-    hasReadonlyProps: item.readOnly || false,
+    hasReadonlyProps: readOnlyFlag ?? false,
     useTypeAlias: false,
     dependencies: [],
   };

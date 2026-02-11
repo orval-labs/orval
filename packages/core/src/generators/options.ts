@@ -106,7 +106,7 @@ export function generateAxiosOptions({
 
   if (
     !isObject(requestOptions) ||
-    !requestOptions.hasOwnProperty('responseType')
+    !Object.hasOwn(requestOptions, 'responseType')
   ) {
     if (response.isBlob) {
       value += `\n        responseType: 'blob',`;
@@ -145,7 +145,7 @@ export function generateAxiosOptions({
     value += paramsSerializer
       ? `\n        paramsSerializer: ${paramsSerializer.name},`
       : `\n        paramsSerializer: (params) => qs.stringify(params, ${JSON.stringify(
-          paramsSerializerOptions!.qs,
+          paramsSerializerOptions?.qs,
         )}),`;
   }
 

@@ -10,14 +10,11 @@ export const generalJSTypes = [
   'blob',
 ];
 
-export const generalJSTypesWithArray = generalJSTypes.reduce<string[]>(
-  (acc, type) => {
-    acc.push(type, `Array<${type}>`, `${type}[]`);
-
-    return acc;
-  },
-  [],
-);
+export const generalJSTypesWithArray = generalJSTypes.flatMap((type) => [
+  type,
+  `Array<${type}>`,
+  `${type}[]`,
+]);
 
 export const VERBS_WITH_BODY = [
   Verbs.POST,
@@ -27,6 +24,6 @@ export const VERBS_WITH_BODY = [
 ];
 
 export const URL_REGEX =
-  /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/;
+  /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w.-]+)+[\w\-._~:/?#[\]@!$&'()*+,;=.]+$/;
 
 export const TEMPLATE_TAG_REGEX = /\${(.+?)}/g; // For replace of 'thing' ${thing}

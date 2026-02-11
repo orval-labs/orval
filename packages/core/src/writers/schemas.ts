@@ -61,7 +61,7 @@ export function splitSchemasByType(schemas: GeneratorSchema[]): {
  * Removes `.ts` suffix since TypeScript doesn't need it in imports.
  */
 function getImportExtension(fileExtension: string): string {
-  return fileExtension?.replace(/\.ts$/, '') || '';
+  return fileExtension.replace(/\.ts$/, '') || '';
 }
 
 /**
@@ -269,8 +269,8 @@ function getSchema({
   file += generateImports({
     imports: imports.filter(
       (imp) =>
-        !model.includes(`type ${imp.alias || imp.name} =`) &&
-        !model.includes(`interface ${imp.alias || imp.name} {`),
+        !model.includes(`type ${imp.alias ?? imp.name} =`) &&
+        !model.includes(`interface ${imp.alias ?? imp.name} {`),
     ),
     target,
     namingConvention,
@@ -327,7 +327,7 @@ export async function writeSchema({
     );
   } catch (error) {
     throw new Error(
-      `Oups... 🍻. An Error occurred while writing schema ${name} => ${error}`,
+      `Oups... 🍻. An Error occurred while writing schema ${name} => ${String(error)}`,
     );
   }
 }
@@ -427,13 +427,13 @@ export async function writeSchemas({
         existingContent
           .match(/export\s+\*\s+from\s+['"][^'"]+['"]/g)
           ?.map((statement) => {
-            const match = statement.match(
-              /export\s+\*\s+from\s+['"]([^'"]+)['"]/,
+            const match = /export\s+\*\s+from\s+['"]([^'"]+)['"]/.exec(
+              statement,
             );
-            if (!match) return undefined;
+            if (!match) return;
             return `export * from '${match[1]}';`;
           })
-          .filter((statement): statement is string => Boolean(statement)) ?? [];
+          .filter(Boolean) ?? [];
 
       const exports = [...new Set([...existingExports, ...currentExports])]
         .toSorted((a, b) => a.localeCompare(b))
@@ -444,7 +444,7 @@ export async function writeSchemas({
       await fs.writeFile(schemaFilePath, fileContent, { encoding: 'utf8' });
     } catch (error) {
       throw new Error(
-        `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${error}`,
+        `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${String(error)}`,
       );
     }
   }
