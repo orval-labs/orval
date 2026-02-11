@@ -16,7 +16,11 @@ const transformer = (inputSchema) => ({
       ...acc,
       [`/v{version}${path}`]: Object.entries(pathItem ?? {}).reduce(
         (pathItemAcc, [verb, operation]) => {
-          if (!HTTP_VERBS.has(verb) || !operation || typeof operation !== 'object') {
+          if (
+            !HTTP_VERBS.has(verb) ||
+            !operation ||
+            typeof operation !== 'object'
+          ) {
             return { ...pathItemAcc, [verb]: operation };
           }
 

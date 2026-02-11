@@ -237,7 +237,8 @@ export async function writeZodSchemasFromVerbs(
                 ) as Record<string, OpenApiSchemaObject>,
                 required: queryParams
                   .filter((p) => p.required)
-                  .map((p) => p.name),
+                  .map((p) => p.name)
+                  .filter((name): name is string => name !== undefined),
               },
             },
           ]
@@ -264,7 +265,8 @@ export async function writeZodSchemasFromVerbs(
                 ) as Record<string, OpenApiSchemaObject>,
                 required: headerParams
                   .filter((p) => p.required)
-                  .map((p) => p.name),
+                  .map((p) => p.name)
+                  .filter((name): name is string => name !== undefined),
               },
             },
           ]
@@ -275,15 +277,19 @@ export async function writeZodSchemasFromVerbs(
       ...verbOption.response.types.errors,
     ]
       .filter(
-        (responseType) =>
-          responseType.originalSchema &&
+        (
+          responseType,
+        ): responseType is typeof responseType & {
+          originalSchema: OpenApiSchemaObject;
+        } =>
+          !!responseType.originalSchema &&
           !responseType.isRef &&
           isValidSchemaIdentifier(responseType.value) &&
           !isPrimitiveSchemaName(responseType.value),
       )
       .map((responseType) => ({
         name: responseType.value,
-        schema: dereference(responseType.originalSchema!, context),
+        schema: dereference(responseType.originalSchema, context),
       }));
 
     return dedupeSchemasByName([

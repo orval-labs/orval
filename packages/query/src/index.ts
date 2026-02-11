@@ -51,7 +51,7 @@ export const generateQuery: ClientBuilder = async (
 ) => {
   const isZodOutput =
     typeof options.context.output.schemas === 'object' &&
-    options.context.output.schemas?.type === 'zod';
+    options.context.output.schemas.type === 'zod';
   const responseType = verbOptions.response.definition.success;
   const isPrimitiveResponse = [
     'string',
