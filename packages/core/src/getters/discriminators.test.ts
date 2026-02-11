@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpec, OpenApiSchemasObject } from '../types';
+import type {
+  ContextSpec,
+  OpenApiReferenceObject,
+  OpenApiSchemaObject,
+  OpenApiSchemasObject,
+} from '../types';
 import { resolveDiscriminators } from './discriminators';
 
 const context: ContextSpec = {
@@ -37,8 +42,12 @@ describe('resolveDiscriminators getter', () => {
 
     const result = resolveDiscriminators(structuredClone(schemas), context);
     const catSchema = result.Cat as NonNullable<OpenApiSchemasObject[string]>;
+    // Bridge assertion: properties is `any` due to AnyOtherAttribute
+    const catProps = catSchema.properties as
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+      | undefined;
 
-    expect(catSchema.properties?.type).toMatchObject({
+    expect(catProps?.type).toMatchObject({
       type: 'string',
       enum: ['CAT'],
     });
@@ -72,14 +81,19 @@ describe('resolveDiscriminators getter', () => {
 
     const result = resolveDiscriminators(structuredClone(schemas), context);
     const catSchema = result.Cat as NonNullable<OpenApiSchemasObject[string]>;
+    // Bridge assertion: properties is `any` due to AnyOtherAttribute
+    const catProps = catSchema.properties as
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+      | undefined;
+    const typeProp = catProps?.type;
     const enumValues =
-      catSchema.properties?.type && 'enum' in catSchema.properties.type
-        ? catSchema.properties.type.enum
+      typeProp && 'enum' in typeProp
+        ? ((typeProp as OpenApiSchemaObject).enum as string[] | undefined)
         : undefined;
 
     expect(enumValues).toEqual(expect.arrayContaining(['CAT', 'DOG']));
-    if (catSchema.properties?.type && !('$ref' in catSchema.properties.type)) {
-      expect(catSchema.properties.type.description).toBe('animal type');
+    if (typeProp && !('$ref' in typeProp)) {
+      expect((typeProp as OpenApiSchemaObject).description).toBe('animal type');
     }
   });
 
@@ -110,11 +124,15 @@ describe('resolveDiscriminators getter', () => {
 
     const result = resolveDiscriminators(structuredClone(schemas), context);
     const catSchema = result.Cat as NonNullable<OpenApiSchemasObject[string]>;
-    const typeProperty = catSchema.properties?.type;
+    // Bridge assertion: properties is `any` due to AnyOtherAttribute
+    const catProps = catSchema.properties as
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+      | undefined;
+    const typeProperty = catProps?.type;
 
     expect(typeProperty).toBeDefined();
     if (typeProperty && !('$ref' in typeProperty)) {
-      expect(typeProperty.enum).toEqual(['CAT']);
+      expect((typeProperty as OpenApiSchemaObject).enum).toEqual(['CAT']);
     }
   });
 

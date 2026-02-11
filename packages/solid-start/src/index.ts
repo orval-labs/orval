@@ -29,10 +29,6 @@ const SOLID_START_DEPENDENCIES: GeneratorDependency[] = [
     ],
     dependency: '@solidjs/router',
   },
-  {
-    exports: [{ name: 'DeepNonNullable' }],
-    dependency: '@orval/core',
-  },
 ];
 
 export const getSolidStartDependencies: ClientDependenciesBuilder = () =>
@@ -40,7 +36,7 @@ export const getSolidStartDependencies: ClientDependenciesBuilder = () =>
 
 export const generateSolidStartTitle: ClientTitleBuilder = (title) => {
   const sanTitle = sanitize(title);
-  return `${pascal(sanTitle)}`;
+  return pascal(sanTitle);
 };
 
 export const generateSolidStartHeader: ClientHeaderBuilder = ({ title }) => `

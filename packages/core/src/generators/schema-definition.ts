@@ -97,7 +97,7 @@ function sortSchemasByDependencies(
       }
 
     for (const imp of schema.imports) {
-      const dependencyName = imp.alias || imp.name;
+      const dependencyName = imp.alias ?? imp.name;
       if (dependencyName && schemaNames.has(dependencyName)) {
         dependencies.add(dependencyName);
       }
@@ -179,7 +179,7 @@ function generateSchemaDefinitions(
         name: sanitizedSchemaName,
         model: `export type ${sanitizedSchemaName} = ${schema ? 'any' : 'never'};\n`,
         imports: [],
-        schema: schema as any,
+        schema: schema as OpenApiSchemaObject,
       },
     ];
   }
@@ -211,7 +211,7 @@ function generateSchemaDefinitions(
       getEnumNames(resolvedValue.originalSchema),
       context.output.override.enumGenerationType,
       getEnumDescriptions(resolvedValue.originalSchema),
-      context.output.override.namingConvention?.enum,
+      context.output.override.namingConvention.enum,
     );
   } else if (
     sanitizedSchemaName === resolvedValue.value &&
@@ -244,7 +244,7 @@ function generateSchemaDefinitions(
       }
 
       output += `${schema.model}\n`;
-      imports = imports.concat(schema.imports);
+      imports = [...imports, ...schema.imports];
       resolvedValue.dependencies.push(...(schema.dependencies ?? []));
 
       return false;

@@ -456,7 +456,7 @@ export default defineConfig({
               .map(([key, value]) => {
                 return {
                   key,
-                  value,
+                  value: String(value),
                 };
               })
               .sort((a, b) => {
