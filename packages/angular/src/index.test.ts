@@ -1,0 +1,98 @@
+import type {
+  GeneratorVerbOptions,
+  GetterBody,
+  GetterResponse,
+} from '@orval/core';
+import { Verbs } from '@orval/core';
+import { describe, expect, it } from 'vitest';
+
+import { generateAngular } from './index';
+
+describe('angular generator implementation signature', () => {
+  it('should restrict implementation signature observe to valid Angular observe modes', async () => {
+    const body: GetterBody = {
+      originalSchema: {},
+      imports: [],
+      definition: '',
+      implementation: '',
+      schemas: [],
+      formData: undefined,
+      formUrlEncoded: undefined,
+      contentType: 'application/json',
+      isOptional: true,
+    };
+
+    const response: GetterResponse = {
+      imports: [],
+      definition: {
+        success: 'Pet',
+        errors: 'unknown',
+      },
+      isBlob: false,
+      types: {
+        success: [
+          {
+            value: 'Pet',
+            isEnum: false,
+            type: 'object',
+            imports: [],
+            schemas: [],
+            isRef: false,
+            hasReadonlyProps: false,
+            dependencies: [],
+            example: undefined,
+            examples: undefined,
+            key: '200',
+            contentType: 'application/json',
+            originalSchema: {},
+          },
+        ],
+        errors: [],
+      },
+      contentTypes: ['application/json'],
+      schemas: [],
+      originalSchema: {},
+    };
+
+    const verbOptions = {
+      headers: undefined,
+      queryParams: undefined,
+      operationName: 'getPet',
+      response,
+      mutator: undefined,
+      body,
+      props: [],
+      params: [],
+      verb: Verbs.GET,
+      override: {
+        requestOptions: true,
+        formData: { disabled: true },
+        formUrlEncoded: false,
+        paramsSerializerOptions: undefined,
+      },
+      formData: undefined,
+      formUrlEncoded: undefined,
+      paramsSerializer: undefined,
+    } as unknown as GeneratorVerbOptions;
+
+    const { implementation } = await generateAngular(
+      verbOptions,
+      {
+        route: '/pet',
+        context: {
+          output: {
+            tsconfig: {
+              compilerOptions: {},
+            },
+          },
+        },
+      } as never,
+      'angular',
+    );
+
+    expect(implementation).toContain(
+      "options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' }",
+    );
+    expect(implementation).not.toContain('observe?: any');
+  });
+});

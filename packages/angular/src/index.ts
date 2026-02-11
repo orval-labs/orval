@@ -341,7 +341,9 @@ const generateImplementation = (
   return ` ${overloads}
   ${functionName}(
     ${toObjectString(props, 'implementation')} ${
-      isRequestOptions ? `options?: HttpClientOptions & { observe?: any }` : ''
+      isRequestOptions
+        ? `options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' }`
+        : ''
     }): Observable<any> {${bodyForm}
     return this.http.${verb}${isModelType ? '<TData>' : ''}(${options});
   }
@@ -350,7 +352,10 @@ const generateImplementation = (
 
 const createAngularClient =
   (returnTypesToWrite: ReturnTypesToWrite): ClientBuilder =>
-  (verbOptions, options) => {
+  (verbOptions, options, _outputClient, _output) => {
+    // Keep signature aligned with ClientBuilder without tripping TS noUnusedParameters
+    void _outputClient;
+    void _output;
     const imports = generateVerbImports(verbOptions);
     const implementation = generateImplementation(
       returnTypesToWrite,
@@ -361,15 +366,19 @@ const createAngularClient =
     return { implementation, imports };
   };
 
-export const generateAngular: ClientBuilder = (verbOptions, options) =>
-  createAngularClient(new Map())(verbOptions, options);
+export const generateAngular: ClientBuilder = (
+  verbOptions,
+  options,
+  outputClient,
+  output,
+) => createAngularClient(new Map())(verbOptions, options, outputClient, output);
 
 const createAngularClientBuilder = (): ClientGeneratorsBuilder => {
   const returnTypesToWrite = new Map<string, string>();
 
   return {
     client: createAngularClient(returnTypesToWrite),
-    header: createAngularHeader(returnTypesToWrite),
+    header: createAngularHeader(),
     dependencies: getAngularDependencies,
     footer: createAngularFooter(returnTypesToWrite),
     title: generateAngularTitle,
