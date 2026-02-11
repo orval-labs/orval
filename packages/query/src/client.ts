@@ -8,6 +8,7 @@ import {
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  getAngularFilteredParamsExpression,
   getSuccessResponseType,
   type GetterResponse,
   isObject,
@@ -174,8 +175,9 @@ export const generateAngularHttpRequestFunction = (
   // Build URL with query params - use httpParams to avoid shadowing the 'params' variable
   const hasQueryParams = queryParams?.schema.name;
   // The queryParams variable from function props is always named 'params'
+  const filteredParamsExpression = getAngularFilteredParamsExpression('params');
   const urlConstruction = hasQueryParams
-    ? `const httpParams = params ? new HttpParams({ fromObject: params as Record<string, string> }) : undefined;
+    ? `const httpParams = params ? new HttpParams({ fromObject: ${filteredParamsExpression} }) : undefined;
     const url = \`${route}\`;`
     : `const url = \`${route}\`;`;
 

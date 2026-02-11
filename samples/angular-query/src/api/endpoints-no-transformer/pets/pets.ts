@@ -45,7 +45,36 @@ export const searchPets = (
   options?: { signal?: AbortSignal | null },
 ): Promise<Pets> => {
   const httpParams = params
-    ? new HttpParams({ fromObject: params as Record<string, string> })
+    ? new HttpParams({
+        fromObject: (() => {
+          const filteredParams = {} as Record<
+            string,
+            string | number | boolean | ReadonlyArray<string | number | boolean>
+          >;
+          for (const [key, value] of Object.entries(params)) {
+            if (Array.isArray(value)) {
+              const filtered = value.filter(
+                (item) =>
+                  item != null &&
+                  (typeof item === 'string' ||
+                    typeof item === 'number' ||
+                    typeof item === 'boolean'),
+              ) as ReadonlyArray<string | number | boolean>;
+              if (filtered.length) {
+                filteredParams[key] = filtered;
+              }
+            } else if (
+              value != null &&
+              (typeof value === 'string' ||
+                typeof value === 'number' ||
+                typeof value === 'boolean')
+            ) {
+              filteredParams[key] = value as string | number | boolean;
+            }
+          }
+          return filteredParams;
+        })(),
+      })
     : undefined;
   const url = `/search`;
   const request$ = http.get<Pets>(url, { params: httpParams });
@@ -147,7 +176,36 @@ export const listPets = (
   options?: { signal?: AbortSignal | null },
 ): Promise<Pets> => {
   const httpParams = params
-    ? new HttpParams({ fromObject: params as Record<string, string> })
+    ? new HttpParams({
+        fromObject: (() => {
+          const filteredParams = {} as Record<
+            string,
+            string | number | boolean | ReadonlyArray<string | number | boolean>
+          >;
+          for (const [key, value] of Object.entries(params)) {
+            if (Array.isArray(value)) {
+              const filtered = value.filter(
+                (item) =>
+                  item != null &&
+                  (typeof item === 'string' ||
+                    typeof item === 'number' ||
+                    typeof item === 'boolean'),
+              ) as ReadonlyArray<string | number | boolean>;
+              if (filtered.length) {
+                filteredParams[key] = filtered;
+              }
+            } else if (
+              value != null &&
+              (typeof value === 'string' ||
+                typeof value === 'number' ||
+                typeof value === 'boolean')
+            ) {
+              filteredParams[key] = value as string | number | boolean;
+            }
+          }
+          return filteredParams;
+        })(),
+      })
     : undefined;
   const url = `/pets`;
   const request$ = http.get<Pets>(url, { params: httpParams });

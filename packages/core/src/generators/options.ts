@@ -19,7 +19,9 @@ import { getIsBodyVerb, isObject, stringify } from '../utils';
  * (including nulls inside arrays) before passing params to HttpClient or a
  * paramsSerializer to avoid runtime and type issues.
  */
-const getAngularFilteredParamsExpression = (paramsExpression: string) =>
+export const getAngularFilteredParamsExpression = (
+  paramsExpression: string,
+): string =>
   `(() => {
   const filteredParams = {} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>;
   for (const [key, value] of Object.entries(${paramsExpression})) {
