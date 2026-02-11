@@ -4,97 +4,106 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import {
-  HttpClient
-} from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 
-import {
-  inject
-} from '@angular/core';
+import { inject } from '@angular/core';
 
-import {
-  injectQuery
-} from '@tanstack/angular-query-experimental';
+import { injectQuery } from '@tanstack/angular-query-experimental';
 import type {
   CreateQueryOptions,
   CreateQueryResult,
-  QueryFunction
+  QueryFunction,
 } from '@tanstack/angular-query-experimental';
 
-import {
-  fromEvent,
-  lastValueFrom
-} from 'rxjs';
+import { fromEvent, lastValueFrom } from 'rxjs';
 
-import {
-  takeUntil
-} from 'rxjs/operators';
+import { takeUntil } from 'rxjs/operators';
 
-import {
-  Error
-} from '../../model-zod/index.zod';
-
-
-
-
+import { Error } from '../../model-zod/index.zod';
 
 /**
  * @summary health check
  */
 export const healthCheck = (
-    http: HttpClient,
-    options?: { signal?: AbortSignal | null }
-  ): Promise<string> => {
-    
-    const url = `/health`;
-    const request$ = http.get<string>(url);
-    if (options?.signal) {
-      return lastValueFrom(request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))));
-    }
-    return lastValueFrom(request$);
+  http: HttpClient,
+  options?: { signal?: AbortSignal | null },
+): Promise<string> => {
+  const url = `/health`;
+  const request$ = http.get<string>(url);
+  if (options?.signal) {
+    return lastValueFrom(
+      request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
+    );
   }
-
-
-
+  return lastValueFrom(request$);
+};
 
 export const getHealthCheckQueryKey = () => {
-    return [
-    `/health`
-    ] as const;
-    }
+  return [`/health`] as const;
+};
 
-    
-export const getHealthCheckQueryOptions = <TData = Awaited<ReturnType<typeof healthCheck>>, TError = Error>(http: HttpClient,  options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>>, fetch?: RequestInit}
+export const getHealthCheckQueryOptions = <
+  TData = Awaited<ReturnType<typeof healthCheck>>,
+  TError = Error,
+>(
+  http: HttpClient,
+  options?: {
+    query?: Partial<
+      CreateQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
+    >;
+    fetch?: RequestInit;
+  },
 ) => {
+  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getHealthCheckQueryKey();
 
-  const queryKey =  queryOptions?.queryKey ?? getHealthCheckQueryKey();
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = ({
+    signal,
+  }) => healthCheck(http, { signal, ...fetchOptions });
 
-  
+  return { queryKey, queryFn, ...queryOptions } as CreateQueryOptions<
+    Awaited<ReturnType<typeof healthCheck>>,
+    TError,
+    TData
+  >;
+};
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = ({ signal }) => healthCheck(http, { signal, ...fetchOptions });
-
-      
-
-      
-
-   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData> 
-}
-
-export type HealthCheckQueryResult = NonNullable<Awaited<ReturnType<typeof healthCheck>>>
-export type HealthCheckQueryError = Error
-
+export type HealthCheckQueryResult = NonNullable<
+  Awaited<ReturnType<typeof healthCheck>>
+>;
+export type HealthCheckQueryError = Error;
 
 /**
  * @summary health check
  */
 
-export function injectHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, TError = Error>(
-  options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>>, fetch?: RequestInit} | (() => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>>, fetch?: RequestInit})
-  
- ): CreateQueryResult<TData, TError> {
-
+export function injectHealthCheck<
+  TData = Awaited<ReturnType<typeof healthCheck>>,
+  TError = Error,
+>(
+  options?:
+    | {
+        query?: Partial<
+          CreateQueryOptions<
+            Awaited<ReturnType<typeof healthCheck>>,
+            TError,
+            TData
+          >
+        >;
+        fetch?: RequestInit;
+      }
+    | (() => {
+        query?: Partial<
+          CreateQueryOptions<
+            Awaited<ReturnType<typeof healthCheck>>,
+            TError,
+            TData
+          >
+        >;
+        fetch?: RequestInit;
+      }),
+): CreateQueryResult<TData, TError> {
   const http = inject(HttpClient);
 
   const query = injectQuery(() => {
@@ -105,7 +114,3 @@ export function injectHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>
 
   return query;
 }
-
-
-
-

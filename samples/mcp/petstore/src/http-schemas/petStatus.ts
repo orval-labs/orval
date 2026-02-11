@@ -16,8 +16,7 @@ Some useful links:
 /**
  * pet status in the store
  */
-export type PetStatus = typeof PetStatus[keyof typeof PetStatus];
-
+export type PetStatus = (typeof PetStatus)[keyof typeof PetStatus];
 
 export const PetStatus = {
   available: 'available',

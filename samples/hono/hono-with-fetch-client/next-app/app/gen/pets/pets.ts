@@ -9,209 +9,236 @@ import type {
   Error,
   ListPetsParams,
   Pet,
-  Pets
+  Pets,
 } from '.././models';
-
-
 
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;
 export type HTTPStatusCode3xx = 300 | 301 | 302 | 303 | 304 | 305 | 307 | 308;
-export type HTTPStatusCode4xx = 400 | 401 | 402 | 403 | 404 | 405 | 406 | 407 | 408 | 409 | 410 | 411 | 412 | 413 | 414 | 415 | 416 | 417 | 418 | 419 | 420 | 421 | 422 | 423 | 424 | 426 | 428 | 429 | 431 | 451;
+export type HTTPStatusCode4xx =
+  | 400
+  | 401
+  | 402
+  | 403
+  | 404
+  | 405
+  | 406
+  | 407
+  | 408
+  | 409
+  | 410
+  | 411
+  | 412
+  | 413
+  | 414
+  | 415
+  | 416
+  | 417
+  | 418
+  | 419
+  | 420
+  | 421
+  | 422
+  | 423
+  | 424
+  | 426
+  | 428
+  | 429
+  | 431
+  | 451;
 export type HTTPStatusCode5xx = 500 | 501 | 502 | 503 | 504 | 505 | 507 | 511;
-export type HTTPStatusCodes = HTTPStatusCode1xx | HTTPStatusCode2xx | HTTPStatusCode3xx | HTTPStatusCode4xx | HTTPStatusCode5xx;
+export type HTTPStatusCodes =
+  | HTTPStatusCode1xx
+  | HTTPStatusCode2xx
+  | HTTPStatusCode3xx
+  | HTTPStatusCode4xx
+  | HTTPStatusCode5xx;
 
 /**
  * @summary List all pets
  */
 export type listPetsResponse200 = {
-  data: Pets
-  status: 200
-}
-    
-export type listPetsResponseSuccess = (listPetsResponse200) & {
+  data: Pets;
+  status: 200;
+};
+
+export type listPetsResponseSuccess = listPetsResponse200 & {
   headers: Headers;
 };
-;
+export type listPetsResponse = listPetsResponseSuccess;
 
-export type listPetsResponse = (listPetsResponseSuccess)
-
-export const getListPetsUrl = (params?: ListPetsParams,) => {
+export const getListPetsUrl = (params?: ListPetsParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
+      normalizedParams.append(key, value === null ? 'null' : value.toString());
     }
   });
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `http://localhost:8787/pets?${stringifiedParams}` : `http://localhost:8787/pets`
-}
+  return stringifiedParams.length > 0
+    ? `http://localhost:8787/pets?${stringifiedParams}`
+    : `http://localhost:8787/pets`;
+};
 
-export const listPets = async (params?: ListPetsParams, options?: RequestInit): Promise<listPetsResponse> => {
-  
-  const res = await fetch(getListPetsUrl(params),
-  {      
+export const listPets = async (
+  params?: ListPetsParams,
+  options?: RequestInit,
+): Promise<listPetsResponse> => {
+  const res = await fetch(getListPetsUrl(params), {
     ...options,
-    method: 'GET'
-    
-    
-  }
-)
+    method: 'GET',
+  });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  
-  const data: listPetsResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as listPetsResponse
-}
 
+  const data: listPetsResponse['data'] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as listPetsResponse;
+};
 
 /**
  * @summary Create a pet
  */
 export type createPetsResponse200 = {
-  data: Pet
-  status: 200
-}
+  data: Pet;
+  status: 200;
+};
 
 export type createPetsResponseDefault = {
-  data: Error
-  status: Exclude<HTTPStatusCodes, 200>
-}
-    
-export type createPetsResponseSuccess = (createPetsResponse200) & {
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
+};
+
+export type createPetsResponseSuccess = createPetsResponse200 & {
   headers: Headers;
 };
-export type createPetsResponseError = (createPetsResponseDefault) & {
+export type createPetsResponseError = createPetsResponseDefault & {
   headers: Headers;
 };
 
-export type createPetsResponse = (createPetsResponseSuccess | createPetsResponseError)
+export type createPetsResponse =
+  | createPetsResponseSuccess
+  | createPetsResponseError;
 
 export const getCreatePetsUrl = () => {
+  return `http://localhost:8787/pets`;
+};
 
-
-  
-
-  return `http://localhost:8787/pets`
-}
-
-export const createPets = async (createPetsBodyItem: CreatePetsBodyItem[], options?: RequestInit): Promise<createPetsResponse> => {
-  
-  const res = await fetch(getCreatePetsUrl(),
-  {      
+export const createPets = async (
+  createPetsBodyItem: CreatePetsBodyItem[],
+  options?: RequestInit,
+): Promise<createPetsResponse> => {
+  const res = await fetch(getCreatePetsUrl(), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      createPetsBodyItem,)
-  }
-)
+    body: JSON.stringify(createPetsBodyItem),
+  });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  
-  const data: createPetsResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as createPetsResponse
-}
 
+  const data: createPetsResponse['data'] = body ? JSON.parse(body) : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as createPetsResponse;
+};
 
 /**
  * @summary Update a pet
  */
 export type updatePetsResponse200 = {
-  data: Pet
-  status: 200
-}
+  data: Pet;
+  status: 200;
+};
 
 export type updatePetsResponseDefault = {
-  data: Error
-  status: Exclude<HTTPStatusCodes, 200>
-}
-    
-export type updatePetsResponseSuccess = (updatePetsResponse200) & {
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
+};
+
+export type updatePetsResponseSuccess = updatePetsResponse200 & {
   headers: Headers;
 };
-export type updatePetsResponseError = (updatePetsResponseDefault) & {
+export type updatePetsResponseError = updatePetsResponseDefault & {
   headers: Headers;
 };
 
-export type updatePetsResponse = (updatePetsResponseSuccess | updatePetsResponseError)
+export type updatePetsResponse =
+  | updatePetsResponseSuccess
+  | updatePetsResponseError;
 
 export const getUpdatePetsUrl = () => {
+  return `http://localhost:8787/pets`;
+};
 
-
-  
-
-  return `http://localhost:8787/pets`
-}
-
-export const updatePets = async (pet: Pet, options?: RequestInit): Promise<updatePetsResponse> => {
-  
-  const res = await fetch(getUpdatePetsUrl(),
-  {      
+export const updatePets = async (
+  pet: Pet,
+  options?: RequestInit,
+): Promise<updatePetsResponse> => {
+  const res = await fetch(getUpdatePetsUrl(), {
     ...options,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      pet,)
-  }
-)
+    body: JSON.stringify(pet),
+  });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  
-  const data: updatePetsResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as updatePetsResponse
-}
 
+  const data: updatePetsResponse['data'] = body ? JSON.parse(body) : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as updatePetsResponse;
+};
 
 /**
  * @summary Info for a specific pet
  */
 export type showPetByIdResponse200 = {
-  data: Pet
-  status: 200
-}
+  data: Pet;
+  status: 200;
+};
 
 export type showPetByIdResponseDefault = {
-  data: Error
-  status: Exclude<HTTPStatusCodes, 200>
-}
-    
-export type showPetByIdResponseSuccess = (showPetByIdResponse200) & {
-  headers: Headers;
-};
-export type showPetByIdResponseError = (showPetByIdResponseDefault) & {
-  headers: Headers;
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
 };
 
-export type showPetByIdResponse = (showPetByIdResponseSuccess | showPetByIdResponseError)
+export type showPetByIdResponseSuccess = showPetByIdResponse200 & {
+  headers: Headers;
+};
+export type showPetByIdResponseError = showPetByIdResponseDefault & {
+  headers: Headers;
+};
 
-export const getShowPetByIdUrl = (petId: string,) => {
+export type showPetByIdResponse =
+  | showPetByIdResponseSuccess
+  | showPetByIdResponseError;
 
+export const getShowPetByIdUrl = (petId: string) => {
+  return `http://localhost:8787/pets/${petId}`;
+};
 
-  
-
-  return `http://localhost:8787/pets/${petId}`
-}
-
-export const showPetById = async (petId: string, options?: RequestInit): Promise<showPetByIdResponse> => {
-  
-  const res = await fetch(getShowPetByIdUrl(petId),
-  {      
+export const showPetById = async (
+  petId: string,
+  options?: RequestInit,
+): Promise<showPetByIdResponse> => {
+  const res = await fetch(getShowPetByIdUrl(petId), {
     ...options,
-    method: 'GET'
-    
-    
-  }
-)
+    method: 'GET',
+  });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  
-  const data: showPetByIdResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as showPetByIdResponse
-}
 
-
+  const data: showPetByIdResponse['data'] = body ? JSON.parse(body) : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as showPetByIdResponse;
+};

@@ -6,17 +6,17 @@
  */
 import { Hono } from 'hono';
 import {
- listPetsHandlers, 
- createPetsHandlers, 
- updatePetsHandlers, 
- showPetByIdHandlers
+  listPetsHandlers,
+  createPetsHandlers,
+  updatePetsHandlers,
+  showPetByIdHandlers,
 } from './endpoints/pets/pets.handlers';
 
-const app = new Hono()
+const app = new Hono();
 
-app.get('/pets',...listPetsHandlers);
-app.post('/pets',...createPetsHandlers);
-app.put('/pets',...updatePetsHandlers);
-app.get('/pets/:petId',...showPetByIdHandlers)
+app.get('/pets', ...listPetsHandlers);
+app.post('/pets', ...createPetsHandlers);
+app.put('/pets', ...updatePetsHandlers);
+app.get('/pets/:petId', ...showPetByIdHandlers);
 
-export default app
+export default app;

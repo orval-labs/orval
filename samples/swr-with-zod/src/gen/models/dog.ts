@@ -8,10 +8,12 @@ import type { Dachshund } from './dachshund';
 import type { DogType } from './dogType';
 import type { Labradoodle } from './labradoodle';
 
-export type Dog = (Labradoodle & {
-  barksPerMinute?: number;
-  type: DogType;
-}) | (Dachshund & {
-  barksPerMinute?: number;
-  type: DogType;
-});
+export type Dog =
+  | (Labradoodle & {
+      barksPerMinute?: number;
+      type: DogType;
+    })
+  | (Dachshund & {
+      barksPerMinute?: number;
+      type: DogType;
+    });

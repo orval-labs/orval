@@ -16,7 +16,7 @@ import {
   FindPetsByStatusParams,
   FindPetsByTagsParams,
   UpdatePetWithFormParams,
-  LoginUserParams
+  LoginUserParams,
 } from './http-schemas';
 
 import {
@@ -31,9 +31,9 @@ import {
   loginUser,
   logoutUser,
   getUserByName,
-  deleteUser
+  deleteUser,
 } from './http-client';
-  
+
 /**
  * Multiple status values can be provided with comma separated strings.
  * @summary Finds Pets by status.
@@ -41,7 +41,7 @@ import {
 
 export type findPetsByStatusArgs = {
   queryParams: FindPetsByStatusParams;
-}
+};
 
 export const findPetsByStatusHandler = async (args: findPetsByStatusArgs) => {
   const res = await findPetsByStatus(args.queryParams);
@@ -63,7 +63,7 @@ export const findPetsByStatusHandler = async (args: findPetsByStatusArgs) => {
 
 export type findPetsByTagsArgs = {
   queryParams: FindPetsByTagsParams;
-}
+};
 
 export const findPetsByTagsHandler = async (args: findPetsByTagsArgs) => {
   const res = await findPetsByTags(args.queryParams);
@@ -85,9 +85,9 @@ export const findPetsByTagsHandler = async (args: findPetsByTagsArgs) => {
 
 export type getPetByIdArgs = {
   pathParams: {
-    petId: number
+    petId: number;
   };
-}
+};
 
 export const getPetByIdHandler = async (args: getPetByIdArgs) => {
   const res = await getPetById(args.pathParams.petId);
@@ -109,10 +109,10 @@ export const getPetByIdHandler = async (args: getPetByIdArgs) => {
 
 export type updatePetWithFormArgs = {
   pathParams: {
-    petId: number
+    petId: number;
   };
   queryParams: UpdatePetWithFormParams;
-}
+};
 
 export const updatePetWithFormHandler = async (args: updatePetWithFormArgs) => {
   const res = await updatePetWithForm(args.pathParams.petId, args.queryParams);
@@ -134,9 +134,9 @@ export const updatePetWithFormHandler = async (args: updatePetWithFormArgs) => {
 
 export type deletePetArgs = {
   pathParams: {
-    petId: number
+    petId: number;
   };
-}
+};
 
 export const deletePetHandler = async (args: deletePetArgs) => {
   const res = await deletePet(args.pathParams.petId);
@@ -176,9 +176,9 @@ export const getInventoryHandler = async () => {
 
 export type getOrderByIdArgs = {
   pathParams: {
-    orderId: number
+    orderId: number;
   };
-}
+};
 
 export const getOrderByIdHandler = async (args: getOrderByIdArgs) => {
   const res = await getOrderById(args.pathParams.orderId);
@@ -200,9 +200,9 @@ export const getOrderByIdHandler = async (args: getOrderByIdArgs) => {
 
 export type deleteOrderArgs = {
   pathParams: {
-    orderId: number
+    orderId: number;
   };
-}
+};
 
 export const deleteOrderHandler = async (args: deleteOrderArgs) => {
   const res = await deleteOrder(args.pathParams.orderId);
@@ -224,7 +224,7 @@ export const deleteOrderHandler = async (args: deleteOrderArgs) => {
 
 export type loginUserArgs = {
   queryParams: LoginUserParams;
-}
+};
 
 export const loginUserHandler = async (args: loginUserArgs) => {
   const res = await loginUser(args.queryParams);
@@ -264,9 +264,9 @@ export const logoutUserHandler = async () => {
 
 export type getUserByNameArgs = {
   pathParams: {
-    username: string
+    username: string;
   };
-}
+};
 
 export const getUserByNameHandler = async (args: getUserByNameArgs) => {
   const res = await getUserByName(args.pathParams.username);
@@ -288,9 +288,9 @@ export const getUserByNameHandler = async (args: getUserByNameArgs) => {
 
 export type deleteUserArgs = {
   pathParams: {
-    username: string
+    username: string;
   };
-}
+};
 
 export const deleteUserHandler = async (args: deleteUserArgs) => {
   const res = await deleteUser(args.pathParams.username);

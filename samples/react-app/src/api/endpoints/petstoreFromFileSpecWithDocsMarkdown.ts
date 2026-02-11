@@ -5,10 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import axios from 'axios';
-import type {
-  AxiosRequestConfig,
-  AxiosResponse
-} from 'axios';
+import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 export interface Pet {
   id: number;
@@ -24,10 +21,10 @@ export interface Error {
 }
 
 export type ListPetsParams = {
-/**
- * How many items to return at one time (max 100)
- */
-limit?: string;
+  /**
+   * How many items to return at one time (max 100)
+   */
+  limit?: string;
 };
 
 export type CreatePetsBody = {
@@ -39,38 +36,35 @@ export type CreatePetsBody = {
  * @summary List all pets
  */
 export const listPets = (
-    params?: ListPetsParams, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<Pets>> => {
-    return axios.get(
-      `/pets`,{
+  params?: ListPetsParams,
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<Pets>> => {
+  return axios.get(`/pets`, {
     ...options,
-        params: {...params, ...options?.params},}
-    );
-  }
+    params: { ...params, ...options?.params },
+  });
+};
 
 /**
  * @summary Create a pet
  */
 export const createPets = (
-    createPetsBody: CreatePetsBody, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<void>> => {
-    return axios.post(
-      `/pets`,
-      createPetsBody,options
-    );
-  }
+  createPetsBody: CreatePetsBody,
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<void>> => {
+  return axios.post(`/pets`, createPetsBody, options);
+};
 
 /**
  * @summary Info for a specific pet
  */
 export const showPetById = (
-    petId: string, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<Pet>> => {
-    return axios.get(
-      `/pets/${petId}`,options
-    );
-  }
+  petId: string,
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<Pet>> => {
+  return axios.get(`/pets/${petId}`, options);
+};
 
-export type ListPetsResult = AxiosResponse<Pets>
-export type CreatePetsResult = AxiosResponse<void>
-export type ShowPetByIdResult = AxiosResponse<Pet>
+export type ListPetsResult = AxiosResponse<Pets>;
+export type CreatePetsResult = AxiosResponse<void>;
+export type ShowPetByIdResult = AxiosResponse<Pet>;

@@ -7,7 +7,7 @@
 import { z as zod } from 'zod';
 
 export const ListPetsHeaders = zod.object({
-  "X-EXAMPLE": zod.enum(['ONE', 'TWO', 'THREE'])
-})
+  'X-EXAMPLE': zod.enum(['ONE', 'TWO', 'THREE']),
+});
 
 export type ListPetsHeaders = zod.infer<typeof ListPetsHeaders>;

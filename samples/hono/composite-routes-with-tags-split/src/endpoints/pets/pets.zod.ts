@@ -7,51 +7,50 @@
 import { z as zod } from 'zod';
 
 export const ListPetsQueryParams = zod.object({
-  "limit": zod.string().optional().describe('How many items to return at one time (max 100)')
-})
+  limit: zod
+    .string()
+    .optional()
+    .describe('How many items to return at one time (max 100)'),
+});
 
 export const ListPetsResponseItem = zod.object({
-  "id": zod.number(),
-  "name": zod.string(),
-  "tag": zod.string()
-})
-export const ListPetsResponse = zod.array(ListPetsResponseItem)
-
+  id: zod.number(),
+  name: zod.string(),
+  tag: zod.string(),
+});
+export const ListPetsResponse = zod.array(ListPetsResponseItem);
 
 export const CreatePetsBodyItem = zod.object({
-  "name": zod.string(),
-  "tag": zod.string()
-})
-export const CreatePetsBody = zod.array(CreatePetsBodyItem)
+  name: zod.string(),
+  tag: zod.string(),
+});
+export const CreatePetsBody = zod.array(CreatePetsBodyItem);
 
 export const CreatePetsResponse = zod.object({
-  "id": zod.number(),
-  "name": zod.string(),
-  "tag": zod.string()
-})
-
+  id: zod.number(),
+  name: zod.string(),
+  tag: zod.string(),
+});
 
 export const UpdatePetsBody = zod.object({
-  "id": zod.number(),
-  "name": zod.string(),
-  "tag": zod.string()
-})
+  id: zod.number(),
+  name: zod.string(),
+  tag: zod.string(),
+});
 
 export const UpdatePetsResponse = zod.object({
-  "id": zod.number(),
-  "name": zod.string(),
-  "tag": zod.string()
-})
-
+  id: zod.number(),
+  name: zod.string(),
+  tag: zod.string(),
+});
 
 export const ShowPetByIdParams = zod.object({
-  "petId": zod.string().describe('The id of the pet to retrieve'),
-  "testId": zod.string().describe('The id of the pet to retrieve')
-})
+  petId: zod.string().describe('The id of the pet to retrieve'),
+  testId: zod.string().describe('The id of the pet to retrieve'),
+});
 
 export const ShowPetByIdResponse = zod.object({
-  "id": zod.number(),
-  "name": zod.string(),
-  "tag": zod.string()
-})
-
+  id: zod.number(),
+  name: zod.string(),
+  tag: zod.string(),
+});

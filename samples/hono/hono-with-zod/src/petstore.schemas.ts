@@ -4,24 +4,23 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-export type PetCallingCode = typeof PetCallingCode[keyof typeof PetCallingCode];
-
+export type PetCallingCode =
+  (typeof PetCallingCode)[keyof typeof PetCallingCode];
 
 export const PetCallingCode = {
   '+33': '+33',
   '+420': '+420',
 } as const;
 
-export type PetCountry = typeof PetCountry[keyof typeof PetCountry];
-
+export type PetCountry = (typeof PetCountry)[keyof typeof PetCountry];
 
 export const PetCountry = {
-  'People\'s_Republic_of_China': 'People\'s Republic of China',
+  "People's_Republic_of_China": "People's Republic of China",
   Uruguay: 'Uruguay',
 } as const;
 
-export type LabradoodleBreed = typeof LabradoodleBreed[keyof typeof LabradoodleBreed];
-
+export type LabradoodleBreed =
+  (typeof LabradoodleBreed)[keyof typeof LabradoodleBreed];
 
 export const LabradoodleBreed = {
   Labradoodle: 'Labradoodle',
@@ -32,8 +31,8 @@ export interface Labradoodle {
   breed: LabradoodleBreed;
 }
 
-export type DachshundBreed = typeof DachshundBreed[keyof typeof DachshundBreed];
-
+export type DachshundBreed =
+  (typeof DachshundBreed)[keyof typeof DachshundBreed];
 
 export const DachshundBreed = {
   Dachshund: 'Dachshund',
@@ -44,23 +43,23 @@ export interface Dachshund {
   breed: DachshundBreed;
 }
 
-export type DogType = typeof DogType[keyof typeof DogType];
-
+export type DogType = (typeof DogType)[keyof typeof DogType];
 
 export const DogType = {
   dog: 'dog',
 } as const;
 
-export type Dog = (Labradoodle & {
-  barksPerMinute?: number;
-  type: DogType;
-}) | (Dachshund & {
-  barksPerMinute?: number;
-  type: DogType;
-});
+export type Dog =
+  | (Labradoodle & {
+      barksPerMinute?: number;
+      type: DogType;
+    })
+  | (Dachshund & {
+      barksPerMinute?: number;
+      type: DogType;
+    });
 
-export type CatType = typeof CatType[keyof typeof CatType];
-
+export type CatType = (typeof CatType)[keyof typeof CatType];
 
 export const CatType = {
   cat: 'cat',
@@ -71,23 +70,25 @@ export interface Cat {
   type: CatType;
 }
 
-export type Pet = (Dog & {
-  '@id'?: string;
-  id: number;
-  name: string;
-  tag?: string;
-  email?: string;
-  callingCode?: PetCallingCode;
-  country?: PetCountry;
-}) | (Cat & {
-  '@id'?: string;
-  id: number;
-  name: string;
-  tag?: string;
-  email?: string;
-  callingCode?: PetCallingCode;
-  country?: PetCountry;
-});
+export type Pet =
+  | (Dog & {
+      '@id'?: string;
+      id: number;
+      name: string;
+      tag?: string;
+      email?: string;
+      callingCode?: PetCallingCode;
+      country?: PetCountry;
+    })
+  | (Cat & {
+      '@id'?: string;
+      id: number;
+      name: string;
+      tag?: string;
+      email?: string;
+      callingCode?: PetCallingCode;
+      country?: PetCountry;
+    });
 
 export type Pets = Pet[];
 
@@ -97,14 +98,13 @@ export interface Error {
 }
 
 export type ListPetsParams = {
-/**
- * How many items to return at one time (max 100)
- */
-limit?: string;
+  /**
+   * How many items to return at one time (max 100)
+   */
+  limit?: string;
 };
 
 export type CreatePetsBodyItem = {
   name: string;
   tag: string;
 };
-

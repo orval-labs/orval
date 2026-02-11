@@ -16,8 +16,7 @@ Some useful links:
 /**
  * Order Status
  */
-export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
-
+export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
 
 export const OrderStatus = {
   placed: 'placed',

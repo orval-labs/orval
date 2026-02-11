@@ -9,20 +9,22 @@ import type { Dog } from './dog';
 import type { PetCallingCode } from './petCallingCode';
 import type { PetCountry } from './petCountry';
 
-export type Pet = (Dog & {
-  '@id'?: string;
-  id: number;
-  name: string;
-  tag?: string;
-  email?: string;
-  callingCode?: PetCallingCode;
-  country?: PetCountry;
-}) | (Cat & {
-  '@id'?: string;
-  id: number;
-  name: string;
-  tag?: string;
-  email?: string;
-  callingCode?: PetCallingCode;
-  country?: PetCountry;
-});
+export type Pet =
+  | (Dog & {
+      '@id'?: string;
+      id: number;
+      name: string;
+      tag?: string;
+      email?: string;
+      callingCode?: PetCallingCode;
+      country?: PetCountry;
+    })
+  | (Cat & {
+      '@id'?: string;
+      id: number;
+      name: string;
+      tag?: string;
+      email?: string;
+      callingCode?: PetCallingCode;
+      country?: PetCountry;
+    });

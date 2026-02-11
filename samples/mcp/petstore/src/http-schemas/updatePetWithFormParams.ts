@@ -14,12 +14,12 @@ Some useful links:
  */
 
 export type UpdatePetWithFormParams = {
-/**
- * Name of pet that needs to be updated
- */
-name?: string;
-/**
- * Status of pet that needs to be updated
- */
-status?: string;
+  /**
+   * Name of pet that needs to be updated
+   */
+  name?: string;
+  /**
+   * Status of pet that needs to be updated
+   */
+  status?: string;
 };
