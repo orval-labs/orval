@@ -187,7 +187,24 @@ function generateDefinition(
         headers: { 'Content-Type': '${binaryContentType}' }
       })`;
   } else if (isTextResponse) {
-    responseBody = `HttpResponse.text(textBody,
+    // Pick the most specific MSW response helper based on the first
+    // text-like content type so the correct Content-Type header is set.
+    // MSW provides HttpResponse.xml() for application/xml and +xml,
+    // HttpResponse.html() for text/html, and HttpResponse.text() for
+    // all other text/* types.
+    const firstTextCt = contentTypes.find(
+      (ct) =>
+        ct.startsWith('text/') ||
+        ct === 'application/xml' ||
+        ct.endsWith('+xml'),
+    );
+    const textHelper =
+      firstTextCt === 'application/xml' || firstTextCt?.endsWith('+xml')
+        ? 'xml'
+        : firstTextCt === 'text/html'
+          ? 'html'
+          : 'text';
+    responseBody = `HttpResponse.${textHelper}(textBody,
       { status: ${statusCode}
       })`;
   } else {

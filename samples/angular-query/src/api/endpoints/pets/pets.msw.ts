@@ -209,7 +209,7 @@ export const getShowPetByIdMockHandler = (
         typeof resolvedBody === 'string'
           ? resolvedBody
           : JSON.stringify(resolvedBody ?? null);
-      return HttpResponse.text(textBody, { status: 200 });
+      return HttpResponse.xml(textBody, { status: 200 });
     },
     options,
   );
