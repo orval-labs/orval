@@ -43,10 +43,6 @@ const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
     exports: [{ name: 'Observable', values: true }],
     dependency: 'rxjs',
   },
-  {
-    exports: [{ name: 'DeepNonNullable' }],
-    dependency: '@orval/core',
-  },
 ];
 
 const returnTypesToWrite = new Map<string, string>();
@@ -180,6 +176,7 @@ const generateImplementation = (
       isFormUrlEncoded,
       hasSignal: false,
       isExactOptionalPropertyTypes,
+      isAngular: true,
     });
 
     const requestOptions = isRequestOptions

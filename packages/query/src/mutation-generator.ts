@@ -22,13 +22,20 @@ import { getQueryOptionsDefinition } from './query-options';
 type NormalizedTarget = {
   query: string;
   params?: string[] | Record<string, string>;
+  invalidateMode: 'invalidate' | 'reset';
 };
 
 const normalizeTarget = (target: InvalidateTarget): NormalizedTarget =>
-  isString(target) ? { query: target } : target;
+  isString(target)
+    ? { query: target, invalidateMode: 'invalidate' }
+    : { ...target, invalidateMode: target.invalidateMode ?? 'invalidate' };
 
 const serializeTarget = (target: NormalizedTarget): string =>
-  JSON.stringify({ query: target.query, params: target.params ?? [] });
+  JSON.stringify({
+    query: target.query,
+    params: target.params ?? [],
+    invalidateMode: target.invalidateMode,
+  });
 
 const generateVariableRef = (varName: string): string => {
   const parts = varName.split('.');
@@ -52,7 +59,7 @@ const generateParamArgs = (
 const generateInvalidateCall = (target: NormalizedTarget): string => {
   const queryKeyFn = camel(`get-${target.query}-query-key`);
   const args = target.params ? generateParamArgs(target.params) : '';
-  return `    queryClient.invalidateQueries({ queryKey: ${queryKeyFn}(${args}) });`;
+  return `    queryClient.${target.invalidateMode === 'reset' ? 'resetQueries' : 'invalidateQueries'}({ queryKey: ${queryKeyFn}(${args}) });`;
 };
 
 export interface MutationHookContext {

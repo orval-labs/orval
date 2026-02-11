@@ -34,13 +34,14 @@ export async function writeSplitTagsMode({
     output.tsconfig,
   );
 
-  const indexFilePath =
-    output.mock && !isFunction(output.mock) && output.mock.indexMockFiles
-      ? upath.join(
-          dirname,
-          'index.' + getMockFileExtensionByTypeName(output.mock!) + extension,
-        )
-      : undefined;
+  const mockOption =
+    output.mock && !isFunction(output.mock) ? output.mock : undefined;
+  const indexFilePath = mockOption?.indexMockFiles
+    ? upath.join(
+        dirname,
+        'index.' + getMockFileExtensionByTypeName(mockOption) + extension,
+      )
+    : undefined;
   if (indexFilePath) {
     await fs.outputFile(indexFilePath, '');
   }
@@ -201,13 +202,13 @@ export async function writeSplitTagsMode({
 
         if (mockPath) {
           await fs.outputFile(mockPath, mockData);
-          if (indexFilePath) {
+          if (indexFilePath && mockOption) {
             const localMockPath = upath.joinSafe(
               './',
               tag,
-              tag + '.' + getMockFileExtensionByTypeName(output.mock!),
+              tag + '.' + getMockFileExtensionByTypeName(mockOption),
             );
-            fs.appendFile(
+            await fs.appendFile(
               indexFilePath,
               `export { get${pascal(tag)}Mock } from '${localMockPath}'\n`,
             );
@@ -221,7 +222,7 @@ export async function writeSplitTagsMode({
         ];
       } catch (error) {
         throw new Error(
-          `Oups... 🍻. An Error occurred while splitting tag ${tag} => ${error}`,
+          `Oups... 🍻. An Error occurred while splitting tag ${tag} => ${String(error)}`,
         );
       }
     }),

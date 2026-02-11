@@ -15,19 +15,19 @@ export function generateImportsForBuilder(
     return isZodSchemaOutput
       ? [
           {
-            exports: imports,
+            exports: imports.map((i) => ({ ...i, values: true })),
             dependency: upath.joinSafe(relativeSchemasPath, 'index.zod'),
           },
         ]
       : [{ exports: imports, dependency: relativeSchemasPath }];
   } else {
     return uniqueBy(imports, (x) => x.name).map((i) => {
-      const baseName = i.schemaName || i.name;
+      const baseName = i.schemaName ?? i.name;
       const name = conventionName(baseName, output.namingConvention);
       const suffix = isZodSchemaOutput ? '.zod' : '';
-      const importExtension = output.fileExtension?.replace(/\.ts$/, '') || '';
+      const importExtension = output.fileExtension.replace(/\.ts$/, '') || '';
       return {
-        exports: [i],
+        exports: isZodSchemaOutput ? [{ ...i, values: true }] : [i],
         dependency: upath.joinSafe(
           relativeSchemasPath,
           `${name}${suffix}${importExtension}`,

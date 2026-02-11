@@ -26,6 +26,7 @@ const context: ContextSpec = {
     override: {
       formData: { arrayHandling: 'serialize', disabled: false },
       enumGenerationType: 'const',
+      namingConvention: {},
       components: {
         schemas: { suffix: '', itemSuffix: 'Item' },
         responses: { suffix: '' },
@@ -59,8 +60,11 @@ describe('getResReqTypes (formData, readOnly property)', () => {
     const types = getResReqTypes(reqBody, 'UploadBody', context);
     // Get the generated code for formData
     expect(types[0]).toBeDefined();
-    expect(isString(types[0].formData)).toBe(true);
-    const formDataCode = types[0].formData!;
+    const formData = types[0].formData;
+    if (!formData || !isString(formData)) {
+      throw new Error('Expected formData to be a defined string');
+    }
+    const formDataCode = formData;
     // Verify that the readOnly property "id" is NOT present in the generated code
     expect(formDataCode).not.toContain('id');
     // Verify that the non-readOnly fields are present

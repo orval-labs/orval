@@ -22,11 +22,11 @@ export function isDirectory(pathValue: string) {
   return !path.extname(pathValue);
 }
 
-export function isObject(x: any): x is Record<string, unknown> {
+export function isObject(x: unknown): x is Record<string, unknown> {
   return Object.prototype.toString.call(x) === '[object Object]';
 }
 
-export function isStringLike(val: any): val is string {
+export function isStringLike(val: unknown): val is string {
   if (isString(val)) {
     return true;
   }
@@ -34,12 +34,13 @@ export function isStringLike(val: any): val is string {
   return Object.prototype.toString.call(val) === '[object String]';
 }
 
-export function isModule(x: any): x is Record<string, unknown> {
+export function isModule(x: unknown): x is Record<string, unknown> {
   return Object.prototype.toString.call(x) === '[object Module]';
 }
 
-export function isNumeric(x: any): x is number {
-  return /^-?\d+$/.test(x);
+export function isNumeric(x: unknown): x is number {
+  if (typeof x === 'number') return Number.isInteger(x);
+  return isString(x) && /^-?\d+$/.test(x);
 }
 
 export function isSchema(x: unknown): x is OpenApiSchemaObject {

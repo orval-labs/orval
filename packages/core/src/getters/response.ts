@@ -21,20 +21,6 @@ export function getResponse({
   context,
   contentType,
 }: GetResponseOptions): GetterResponse {
-  if (!responses) {
-    return {
-      imports: [],
-      definition: {
-        success: '',
-        errors: '',
-      },
-      isBlob: false,
-      types: { success: [], errors: [] },
-      schemas: [],
-      contentTypes: [],
-    };
-  }
-
   const types = getResReqTypes(
     Object.entries(responses),
     operationName,
@@ -52,20 +38,17 @@ export function getResponse({
     ...new Set(filteredTypes.map(({ contentType }) => contentType)),
   ];
 
-  const groupedByStatus = filteredTypes.reduce<{
+  const groupedByStatus: {
     success: ResReqTypesValue[];
     errors: ResReqTypesValue[];
-  }>(
-    (acc, type) => {
-      if (type.key.startsWith('2')) {
-        acc.success.push(type);
-      } else {
-        acc.errors.push(type);
-      }
-      return acc;
-    },
-    { success: [], errors: [] },
-  );
+  } = { success: [], errors: [] };
+  for (const type of filteredTypes) {
+    if (type.key.startsWith('2')) {
+      groupedByStatus.success.push(type);
+    } else {
+      groupedByStatus.errors.push(type);
+    }
+  }
 
   const success = dedupeUnionType(
     groupedByStatus.success

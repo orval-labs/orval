@@ -12,6 +12,8 @@ import type {
 } from '../types';
 import { isReference } from '../utils';
 
+/* eslint-disable @typescript-eslint/no-unnecessary-type-parameters -- TSchema constrains return type for callers (e.g. resolveRef<OpenApiExampleObject>) */
+
 export function resolveRef<
   TSchema extends OpenApiComponentsObject = OpenApiComponentsObject,
 >(
@@ -86,25 +88,27 @@ function getSchema<
       ) as OpenApiSchemaObject | OpenApiReferenceObject)
     : undefined;
 
-  if (!schemaByRefPaths) {
-    schemaByRefPaths = context.spec;
-  }
+  schemaByRefPaths ??= context.spec;
 
   if (isReference(schemaByRefPaths)) {
     return getSchema(schemaByRefPaths, context);
   }
 
-  let currentSchema = schemaByRefPaths ? schemaByRefPaths : context.spec;
+  let currentSchema: OpenApiSchemaObject | OpenApiReferenceObject =
+    schemaByRefPaths || context.spec;
 
   // Handle OpenAPI 3.0 nullable property
+  // Bridge assertion: schema properties are `any` due to AnyOtherAttribute
   if ('nullable' in schema) {
-    currentSchema = { ...currentSchema, nullable: schema.nullable };
+    const nullable = schema.nullable as boolean | undefined;
+    currentSchema = { ...currentSchema, nullable } as typeof currentSchema;
   }
 
   // Handle OpenAPI 3.1 type array (e.g., type: ["object", "null"])
   // This preserves nullable information when using direct $ref with types array
   if ('type' in schema && Array.isArray(schema.type)) {
-    currentSchema = { ...currentSchema, type: schema.type };
+    const type = schema.type as string[];
+    currentSchema = { ...currentSchema, type } as typeof currentSchema;
   }
 
   return {
@@ -112,6 +116,8 @@ function getSchema<
     refInfo,
   };
 }
+
+/* eslint-enable @typescript-eslint/no-unnecessary-type-parameters */
 
 type Example = OpenApiExampleObject | OpenApiReferenceObject;
 type Examples = Example[] | Record<string, Example> | undefined;
@@ -126,19 +132,20 @@ export function resolveExampleRefs(
     ? examples.map((example) => {
         if (isReference(example)) {
           const { schema } = resolveRef<OpenApiExampleObject>(example, context);
-          return schema.value;
+          // Bridge assertion: ExampleObject.value is typed as `any`
+          return schema.value as Example;
         }
         return example;
       })
-    : Object.entries(examples).reduce((acc, [key, example]) => {
-        let schema = example;
-        if (isReference(example)) {
-          schema = resolveRef<OpenApiExampleObject>(example, context).schema
-            .value;
+    : (() => {
+        const result: Record<string, unknown> = {};
+        for (const [key, example] of Object.entries(examples)) {
+          // Bridge assertion: ExampleObject.value is typed as `any`
+          result[key] = isReference(example)
+            ? (resolveRef<OpenApiExampleObject>(example, context).schema
+                .value as unknown)
+            : example;
         }
-        return {
-          ...acc,
-          [key]: schema,
-        };
-      }, {});
+        return result;
+      })();
 }

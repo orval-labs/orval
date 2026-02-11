@@ -24,7 +24,7 @@ export function jsDoc(
   tryOneLine = false,
   context?: ContextSpec,
 ): string {
-  if (context?.output?.override?.jsDoc) {
+  if (context?.output.override.jsDoc) {
     const { filter } = context.output.override.jsDoc;
     if (filter) {
       return keyValuePairsToJsDoc(filter(schema));
@@ -51,7 +51,7 @@ export function jsDoc(
   const lines = (
     Array.isArray(description)
       ? description.filter((d) => !d.includes('eslint-disable'))
-      : [description || '']
+      : [description ?? '']
   ).map((line) => line.replaceAll(regex, replacement));
 
   const count = [
@@ -68,7 +68,7 @@ export function jsDoc(
     maxItems?.toString(),
     isNullable ? 'null' : '',
     pattern,
-  ].reduce((acc, it) => (it ? acc + 1 : acc), 0);
+  ].filter(Boolean).length;
 
   if (!count) {
     return '';

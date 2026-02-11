@@ -5,7 +5,6 @@ import {
   type GetterProps,
   GetterPropType,
   type GetterQueryParam,
-  OutputClient,
 } from '../types';
 import { isNullish, pascal, sortByPriority } from '../utils';
 
@@ -42,7 +41,7 @@ export function getProps({
     default: false,
     required: isNullish(queryParams?.isOptional)
       ? !context.output.allParamsOptional || context.output.optionsParamRequired
-      : (!queryParams?.isOptional && !context.output.allParamsOptional) ||
+      : (!queryParams.isOptional && !context.output.allParamsOptional) ||
         context.output.optionsParamRequired,
     type: GetterPropType.QUERY_PARAM,
   };
@@ -58,7 +57,7 @@ export function getProps({
     default: false,
     required: isNullish(headers?.isOptional)
       ? false
-      : !headers?.isOptional || context.output.optionsParamRequired,
+      : !headers.isOptional || context.output.optionsParamRequired,
     type: GetterPropType.HEADER,
   };
 
@@ -128,9 +127,6 @@ function getQueryParamDefinition(
   queryParams: GetterQueryParam | undefined,
   context: ContextSpec,
 ): string {
-  let paramType = queryParams?.schema.name;
-  if (OutputClient.ANGULAR === context.output.client) {
-    paramType = `DeepNonNullable<${paramType}>`;
-  }
+  const paramType = queryParams?.schema.name;
   return `params${(queryParams?.isOptional || context.output.allParamsOptional) && !context.output.optionsParamRequired ? '?' : ''}: ${paramType}`;
 }

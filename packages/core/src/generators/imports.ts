@@ -90,17 +90,18 @@ export function generateMutatorImports({
   implementation,
   oneMore,
 }: GenerateMutatorImportsOptions) {
-  const imports = uniqueWith(
+  let imports = '';
+  for (const mutator of uniqueWith(
     mutators,
     (a, b) => a.name === b.name && a.default === b.default,
-  ).reduce((acc, mutator) => {
+  )) {
     const path = `${oneMore ? '../' : ''}${mutator.path}`;
     const importDefault = mutator.default
       ? mutator.name
       : `{ ${mutator.name} }`;
 
-    acc += `import ${importDefault} from '${path}';`;
-    acc += '\n';
+    imports += `import ${importDefault} from '${path}';`;
+    imports += '\n';
 
     if (implementation && (mutator.hasErrorType || mutator.bodyTypeName)) {
       let errorImportName = '';
@@ -110,7 +111,7 @@ export function generateMutatorImports({
       if (
         mutator.hasErrorType &&
         implementation.includes(mutator.errorTypeName) &&
-        !acc.includes(`{ ${targetErrorImportName} `)
+        !imports.includes(`{ ${targetErrorImportName} `)
       ) {
         errorImportName = targetErrorImportName;
       }
@@ -122,21 +123,19 @@ export function generateMutatorImports({
       if (
         mutator.bodyTypeName &&
         implementation.includes(mutator.bodyTypeName) &&
-        !acc.includes(` ${targetBodyImportName} }`)
+        !imports.includes(` ${targetBodyImportName} }`)
       ) {
-        bodyImportName = targetBodyImportName!;
+        bodyImportName = targetBodyImportName ?? '';
       }
 
       if (bodyImportName || errorImportName) {
-        acc += `import type { ${errorImportName}${
+        imports += `import type { ${errorImportName}${
           errorImportName && bodyImportName ? ' , ' : ''
         }${bodyImportName} } from '${path}';`;
-        acc += '\n';
+        imports += '\n';
       }
     }
-
-    return acc;
-  }, '');
+  }
 
   return imports;
 }
@@ -223,7 +222,6 @@ export function addDependency({
   exports,
   dependency,
   projectName,
-  hasSchemaDir,
   isAllowSyntheticDefaultImports,
 }: AddDependencyOptions) {
   const toAdds = exports.filter((e) => {
@@ -237,37 +235,29 @@ export function addDependency({
     return;
   }
 
-  const groupedBySpecKey = toAdds.reduce<
-    Record<string, { types: GeneratorImport[]; values: GeneratorImport[] }>
-  >((acc, dep) => {
+  const groupedBySpecKey: Record<
+    string,
+    { types: GeneratorImport[]; values: GeneratorImport[] }
+  > = { default: { types: [], values: [] } };
+  for (const dep of toAdds) {
     const key = 'default';
 
     if (
       dep.values &&
       (isAllowSyntheticDefaultImports || !dep.syntheticDefaultImport)
     ) {
-      acc[key] = {
-        ...acc[key],
-        values: [...(acc[key]?.values ?? []), dep],
-      };
-
-      return acc;
+      groupedBySpecKey[key].values.push(dep);
+    } else {
+      groupedBySpecKey[key].types.push(dep);
     }
-
-    acc[key] = {
-      ...acc[key],
-      types: [...(acc[key]?.types ?? []), dep],
-    };
-
-    return acc;
-  }, {});
+  }
 
   return (
     Object.entries(groupedBySpecKey)
       .map(([key, { values, types }]) => {
         let dep = '';
 
-        if (values) {
+        if (values.length > 0) {
           dep += generateDependency({
             deps: values,
             isAllowSyntheticDefaultImports,
@@ -278,9 +268,9 @@ export function addDependency({
           });
         }
 
-        if (types) {
+        if (types.length > 0) {
           let uniqueTypes = types;
-          if (values) {
+          if (values.length > 0) {
             uniqueTypes = types.filter(
               (t) => !values.some((v) => v.name === t.name),
             );
@@ -327,10 +317,11 @@ export function generateDependencyImports(
         isAllowSyntheticDefaultImports,
       }),
     )
-    .filter(Boolean)
-    .sort((a, b) => {
-      const aLib = getLibName(a!);
-      const bLib = getLibName(b!);
+    // eslint-disable-next-line unicorn/prefer-native-coercion-functions -- type predicate (x is string) required for narrowing
+    .filter((x): x is string => Boolean(x))
+    .toSorted((a, b) => {
+      const aLib = getLibName(a);
+      const bLib = getLibName(b);
 
       if (aLib === bLib) {
         return 0;

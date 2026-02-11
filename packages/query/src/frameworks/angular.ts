@@ -2,7 +2,6 @@ import {
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
-  type GetterParams,
   type GetterProps,
   GetterPropType,
   OutputClient,

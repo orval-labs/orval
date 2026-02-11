@@ -33,7 +33,9 @@ export function getRequestBodyContentTypes(
     ? resolveRef<OpenApiRequestBodyObject>(requestBody, context).schema
     : requestBody;
 
-  return resolvedBody.content ? Object.keys(resolvedBody.content) : [];
+  // Bridge assertion: resolvedBody.content is typed but resolveRef propagates AnyOtherAttribute
+  const content = resolvedBody.content as Record<string, unknown> | undefined;
+  return content ? Object.keys(content) : [];
 }
 
 export function getBody({

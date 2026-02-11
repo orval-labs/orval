@@ -6,28 +6,27 @@ import { getExtension } from './extension';
 // override path to support windows paths
 // https://github.com/anodynos/upath/blob/master/source/code/upath.coffee
 type Path = typeof basepath;
-const path = {} as Path;
 
-for (const [propName, propValue] of Object.entries(basepath)) {
-  if (isFunction(propValue)) {
-    // @ts-ignore
-    path[propName] = ((propName) => {
-      return (...args: any[]) => {
-        args = args.map((p) => {
-          return isStringLike(p) ? toUnix(p) : p;
-        });
-
-        // @ts-ignore
-        const result = basepath[propName](...args);
-        return isStringLike(result) ? toUnix(result) : result;
-      };
-    })(propName);
-  } else {
-    // @ts-ignore
-    path[propName] = propValue;
-  }
+function wrapPathFn(
+  fn: (...args: string[]) => string,
+): (...args: string[]) => string {
+  return (...args: string[]) => {
+    const converted = args.map((p) => (isStringLike(p) ? toUnix(p) : p));
+    const result = fn(...converted);
+    return isStringLike(result) ? toUnix(result) : result;
+  };
 }
 
+const path: Path = Object.fromEntries(
+  Object.entries(basepath).map(([key, value]) => [
+    key,
+    isFunction(value)
+      ? wrapPathFn(value as (...args: string[]) => string)
+      : value,
+  ]),
+) as unknown as Path;
+
+// eslint-disable-next-line @typescript-eslint/unbound-method -- path is rebuilt via Object.fromEntries with wrapPathFn; these are standalone functions, not bound methods
 const { join, resolve, extname, dirname, basename, isAbsolute } = path;
 export { basename, dirname, extname, isAbsolute, join, resolve };
 
