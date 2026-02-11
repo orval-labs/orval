@@ -57,32 +57,59 @@ const pet = getShowPetByIdResponseMock({ name: 'Buddy' });
 
 ### 2. Request Handlers
 
-Functions that bind mock data to MSW handlers:
+Functions that bind mock data to [MSW](https://mswjs.io/) `http.*` handlers using the recommended [`HttpResponse`](https://mswjs.io/docs/api/http-response) class:
 
 ```ts
 import { HttpResponse, delay, http } from 'msw';
+import type { RequestHandlerOptions } from 'msw';
 
 export const getShowPetByIdMockHandler = (
-  overrideResponse?: Pet | ((info) => Promise<Pet> | Pet),
+  overrideResponse?:
+    | Pet
+    | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<Pet> | Pet),
+  options?: RequestHandlerOptions,
 ) => {
   return http.get('*/pets/:petId', async (info) => {
     await delay(1000);
-    return new HttpResponse(
-      JSON.stringify(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getShowPetByIdResponseMock(),
-      ),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      },
+    return HttpResponse.json(
+      overrideResponse !== undefined
+        ? typeof overrideResponse === 'function'
+          ? await overrideResponse(info)
+          : overrideResponse
+        : getShowPetByIdResponseMock(),
+      { status: 200 },
     );
-  });
+  }, options);
 };
 ```
+
+Orval uses the content type from your OpenAPI spec to pick the right `HttpResponse` helper. If multiple content types are defined, you can set a preferred default; otherwise the spec order is used:
+
+| Content type | Response helper |
+|---|---|
+| `application/json` | `HttpResponse.json()` |
+| `application/xml`, `*+xml` | [`HttpResponse.xml()`](https://mswjs.io/docs/api/http-response) |
+| `text/html` | [`HttpResponse.html()`](https://mswjs.io/docs/api/http-response) |
+| `text/plain`, other `text/*` | `HttpResponse.text()` |
+| `application/octet-stream`, `image/*`, etc. | `HttpResponse.arrayBuffer()` |
+| No body (204, etc.) | `new HttpResponse(null, { status })` |
+
+To prefer a specific content type when several are defined (for example, choose JSON over XML), set `mock.preferredContentType`:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mock: {
+        type: 'msw',
+        preferredContentType: 'application/json',
+      },
+    },
+  },
+});
+```
+
+`preferredContentType` accepts common MIME literals and any custom string (via a loose `(string & {})` fallback), so vendor-specific types are supported too.
 
 ### 3. Aggregated Handlers
 
@@ -100,6 +127,8 @@ export const getPetsMock = () => [
 
 ### Basic Setup
 
+Use the aggregated handler functions with MSW's [`setupServer`](https://mswjs.io/docs/api/setup-server) (Node.js) or [`setupWorker`](https://mswjs.io/docs/api/setup-worker) (browser):
+
 ```ts
 import { getPetsMock } from './api/petstore.msw';
 import { setupServer } from 'msw/node';
@@ -112,6 +141,8 @@ afterAll(() => server.close());
 ```
 
 ### Custom Response
+
+Pass static data directly:
 
 ```ts
 const showPetByIdMockHandler = getShowPetByIdMockHandler({
@@ -130,6 +161,34 @@ getShowPetByIdMockHandler(async (info) => {
   const petId = info.params.petId;
   return { id: Number(petId), name: `Pet ${petId}`, tag: 'dynamic' };
 });
+```
+
+### Override with `server.use()` (MSW best practice)
+
+Following the [MSW best practice for network behavior overrides](https://mswjs.io/docs/best-practices/network-behavior-overrides), use `server.use()` to override specific handlers in individual tests while keeping the default happy-path handlers:
+
+```ts
+import { http, HttpResponse } from 'msw';
+
+it('handles server error', () => {
+  server.use(
+    getShowPetByIdMockHandler(() => {
+      throw new HttpResponse(null, { status: 500 });
+    }),
+  );
+
+  // Test error UI...
+});
+```
+
+### Passing MSW `RequestHandlerOptions`
+
+Each generated handler accepts an optional second `options` parameter (e.g. `{ once: true }`):
+
+```ts
+server.use(
+  getShowPetByIdMockHandler(myOverride, { once: true }),
+);
 ```
 
 ### Testing with Vitest
@@ -152,6 +211,25 @@ const handlers = [
 expect(mockFn).toHaveBeenCalledWith('123');
 ```
 
+## Base URL
+
+By default, handlers use a wildcard `*` prefix (e.g. `*/pets/:petId`) so they match any host. To use a specific base URL, set `mock.baseUrl`:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mock: {
+        type: 'msw',
+        baseUrl: 'https://api.example.com',
+      },
+    },
+  },
+});
+```
+
+This produces handlers like `http.get('https://api.example.com/pets/:petId', ...)`, which aligns with MSW's recommendation to use [absolute URLs](https://mswjs.io/docs/http/intercepting-requests) for precise matching.
+
 ## Dynamic Imports
 
 Enable `indexMockFiles` to dynamically import all handlers:
@@ -166,3 +244,14 @@ const server = setupServer(...handlers);
 
 export { server };
 ```
+
+## MSW Best Practices
+
+The generated code follows [MSW best practices](https://mswjs.io/docs/best-practices):
+
+- **`HttpResponse` class** — uses `HttpResponse.json()`, `.xml()`, `.html()`, `.text()`, and `.arrayBuffer()` instead of raw `Response` constructors, as [recommended by MSW](https://mswjs.io/docs/api/http-response). The helper is chosen based on `mock.preferredContentType` when set, otherwise the first matching content type in your OpenAPI spec.
+- **`delay()` function** — uses the standalone `delay()` import (not the legacy `ctx.delay`), configurable per-operation or globally.
+- **Handler structure** — each handler is a factory function returning `http.get/post/...()`, which can be spread into `setupServer()` or `setupWorker()`.
+- **Runtime overrides** — use [MSW's `server.use()`](https://mswjs.io/docs/best-practices/network-behavior-overrides) to override individual handlers in tests. The generated handler factories make this easy.
+- **No query parameters in predicates** — path predicates never include query strings, per [MSW's guidance](https://mswjs.io/docs/http/intercepting-requests).
+- **Path parameters** — OpenAPI `{param}` is converted to MSW's `:param` syntax for correct matching.

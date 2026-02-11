@@ -28,9 +28,9 @@
     "@angular/build": "catalog:angular",
     "@angular/cli": "catalog:angular",
     "@angular/compiler-cli": "catalog:angular",
-    "@faker-js/faker": "^10.2.0",
+    "@faker-js/faker": "catalog:tooling",
     "@testing-library/angular": "19.0.0",
-    "msw": "^2.12.7",
+    "msw": "catalog:tooling",
     "orval": "link:../../packages/orval/dist",
     "typescript": "~5.9.3",
     "vitest": "^4.0.16"

@@ -16,7 +16,7 @@ export const getSearchPetsResponseMock = (): Pets =>
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
   ).map(() => ({
-    id: faker.number.int({ min: undefined, max: undefined }),
+    id: faker.number.int(),
     name: (() => faker.person.lastName())(),
     tag: (() => faker.person.lastName())(),
     requiredNullableString: faker.helpers.arrayElement([
@@ -40,7 +40,7 @@ export const getListPetsResponseMock = (): Pets =>
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
   ).map(() => ({
-    id: faker.number.int({ min: undefined, max: undefined }),
+    id: faker.number.int(),
     name: (() => faker.person.lastName())(),
     tag: (() => faker.person.lastName())(),
     requiredNullableString: faker.helpers.arrayElement([
@@ -69,7 +69,7 @@ export const getShowPetByIdResponseMock = () =>
 export const getUpdatePetResponseMock = (
   overrideResponse: Partial<Pet> = {},
 ): Pet => ({
-  id: faker.number.int({ min: undefined, max: undefined }),
+  id: faker.number.int(),
   name: (() => faker.person.lastName())(),
   tag: (() => faker.person.lastName())(),
   requiredNullableString: faker.helpers.arrayElement([
@@ -92,7 +92,7 @@ export const getUpdatePetResponseMock = (
 export const getPatchPetResponseMock = (
   overrideResponse: Partial<Pet> = {},
 ): Pet => ({
-  id: faker.number.int({ min: undefined, max: undefined }),
+  id: faker.number.int(),
   name: (() => faker.person.lastName())(),
   tag: (() => faker.person.lastName())(),
   requiredNullableString: faker.helpers.arrayElement([
@@ -114,8 +114,8 @@ export const getPatchPetResponseMock = (
 
 export const getShowPetTextResponseMock = (): string => faker.word.sample();
 
-export const getDownloadFileResponseMock = (): Blob =>
-  new Blob(faker.helpers.arrayElements(faker.word.words(10).split(' ')));
+export const getDownloadFileResponseMock = (): ArrayBuffer =>
+  new ArrayBuffer(faker.number.int({ min: 1, max: 64 }));
 
 export const getHealthCheckResponseMock = (): string => faker.word.sample();
 
@@ -129,16 +129,14 @@ export const getSearchPetsMockHandler = (
 ) => {
   return http.get(
     '*/v:version/search',
-    async (info) => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getSearchPetsResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getSearchPetsResponseMock(),
+        { status: 200 },
       );
     },
     options,
@@ -155,16 +153,14 @@ export const getListPetsMockHandler = (
 ) => {
   return http.get(
     '*/v:version/pets',
-    async (info) => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getListPetsResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getListPetsResponseMock(),
+        { status: 200 },
       );
     },
     options,
@@ -181,10 +177,11 @@ export const getCreatePetsMockHandler = (
 ) => {
   return http.post(
     '*/v:version/pets',
-    async (info) => {
+    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
       }
+
       return new HttpResponse(null, { status: 201 });
     },
     options,
@@ -201,17 +198,18 @@ export const getShowPetByIdMockHandler = (
 ) => {
   return http.get(
     '*/v:version/pets/:petId',
-    async (info) => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getShowPetByIdResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      );
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      const resolvedBody =
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getShowPetByIdResponseMock();
+      const textBody =
+        typeof resolvedBody === 'string'
+          ? resolvedBody
+          : JSON.stringify(resolvedBody ?? null);
+      return HttpResponse.xml(textBody, { status: 200 });
     },
     options,
   );
@@ -227,10 +225,11 @@ export const getDeletePetMockHandler = (
 ) => {
   return http.delete(
     '*/v:version/pets/:petId',
-    async (info) => {
+    async (info: Parameters<Parameters<typeof http.delete>[1]>[0]) => {
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
       }
+
       return new HttpResponse(null, { status: 204 });
     },
     options,
@@ -247,16 +246,14 @@ export const getUpdatePetMockHandler = (
 ) => {
   return http.put(
     '*/v:version/pets/:petId',
-    async (info) => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getUpdatePetResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
+    async (info: Parameters<Parameters<typeof http.put>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getUpdatePetResponseMock(),
+        { status: 200 },
       );
     },
     options,
@@ -273,16 +270,14 @@ export const getPatchPetMockHandler = (
 ) => {
   return http.patch(
     '*/v:version/pets/:petId',
-    async (info) => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getPatchPetResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
+    async (info: Parameters<Parameters<typeof http.patch>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getPatchPetResponseMock(),
+        { status: 200 },
       );
     },
     options,
@@ -299,15 +294,18 @@ export const getShowPetTextMockHandler = (
 ) => {
   return http.get(
     '*/v:version/pets/:petId/text',
-    async (info) => {
-      return new HttpResponse(
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      const resolvedBody =
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
             ? await overrideResponse(info)
             : overrideResponse
-          : getShowPetTextResponseMock(),
-        { status: 200, headers: { 'Content-Type': 'text/plain' } },
-      );
+          : getShowPetTextResponseMock();
+      const textBody =
+        typeof resolvedBody === 'string'
+          ? resolvedBody
+          : JSON.stringify(resolvedBody ?? null);
+      return HttpResponse.text(textBody, { status: 200 });
     },
     options,
   );
@@ -323,10 +321,11 @@ export const getUploadFileMockHandler = (
 ) => {
   return http.post(
     '*/v:version/pet/:petId/uploadImage',
-    async (info) => {
+    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
       }
+
       return new HttpResponse(null, { status: 200 });
     },
     options,
@@ -343,10 +342,11 @@ export const getUploadFormDataMockHandler = (
 ) => {
   return http.post(
     '*/v:version/pet/:petId/uploadFormData',
-    async (info) => {
+    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
       }
+
       return new HttpResponse(null, { status: 200 });
     },
     options,
@@ -355,24 +355,27 @@ export const getUploadFormDataMockHandler = (
 
 export const getDownloadFileMockHandler = (
   overrideResponse?:
-    | Blob
+    | ArrayBuffer
     | ((
         info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Blob> | Blob),
+      ) => Promise<ArrayBuffer> | ArrayBuffer),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/v:version/pet/:petId/downloadImage',
-    async (info) => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getDownloadFileResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      const binaryBody =
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getDownloadFileResponseMock();
+      return HttpResponse.arrayBuffer(
+        binaryBody instanceof ArrayBuffer ? binaryBody : new ArrayBuffer(0),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/octet-stream' },
+        },
       );
     },
     options,
@@ -389,15 +392,18 @@ export const getHealthCheckMockHandler = (
 ) => {
   return http.get(
     '*/v:version/health',
-    async (info) => {
-      return new HttpResponse(
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      const resolvedBody =
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
             ? await overrideResponse(info)
             : overrideResponse
-          : getHealthCheckResponseMock(),
-        { status: 200, headers: { 'Content-Type': 'text/plain' } },
-      );
+          : getHealthCheckResponseMock();
+      const textBody =
+        typeof resolvedBody === 'string'
+          ? resolvedBody
+          : JSON.stringify(resolvedBody ?? null);
+      return HttpResponse.text(textBody, { status: 200 });
     },
     options,
   );

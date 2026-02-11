@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable unicorn/no-null */
 import type { ContextSpec, OpenApiSchemaObjectType } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
@@ -57,7 +59,7 @@ describe('getMockScalar (int64 format handling)', () => {
 describe('getMockScalar (uint64 format handling)', () => {
   const baseArg = {
     item: {
-      type: 'integer' as SchemaObjectType,
+      type: 'integer' as OpenApiSchemaObjectType,
       format: 'uint64',
       minimum: 1,
       maximum: 100,
@@ -173,7 +175,7 @@ describe('getMockScalar (multipleOf handling)', () => {
   };
 
   it('should include multipleOf when defined for integer type with Faker v9', () => {
-    const integerType: SchemaObjectType = 'integer';
+    const integerType: OpenApiSchemaObjectType = 'integer';
     const result = getMockScalar({
       ...baseArg,
       item: {
@@ -192,7 +194,7 @@ describe('getMockScalar (multipleOf handling)', () => {
   });
 
   it('should not include multipleOf when undefined for integer type with Faker v9', () => {
-    const integerType: SchemaObjectType = 'integer';
+    const integerType: OpenApiSchemaObjectType = 'integer';
     const result = getMockScalar({
       ...baseArg,
       item: {
@@ -209,7 +211,7 @@ describe('getMockScalar (multipleOf handling)', () => {
   });
 
   it('should not include multipleOf for integer type with Faker v8', () => {
-    const integerType: SchemaObjectType = 'integer';
+    const integerType: OpenApiSchemaObjectType = 'integer';
     const result = getMockScalar({
       ...baseArg,
       item: {
@@ -226,7 +228,7 @@ describe('getMockScalar (multipleOf handling)', () => {
   });
 
   it('should include multipleOf for number type with Faker v9', () => {
-    const numberType: SchemaObjectType = 'number';
+    const numberType: OpenApiSchemaObjectType = 'number';
     const result = getMockScalar({
       ...baseArg,
       item: {
@@ -245,7 +247,7 @@ describe('getMockScalar (multipleOf handling)', () => {
   });
 
   it('should not include multipleOf when undefined for number type with Faker v9', () => {
-    const numberType: SchemaObjectType = 'number';
+    const numberType: OpenApiSchemaObjectType = 'number';
     const result = getMockScalar({
       ...baseArg,
       item: {
@@ -265,7 +267,7 @@ describe('getMockScalar (multipleOf handling)', () => {
   });
 
   it('should not include multipleOf for number type with Faker v8', () => {
-    const numberType: SchemaObjectType = 'number';
+    const numberType: OpenApiSchemaObjectType = 'number';
     const result = getMockScalar({
       ...baseArg,
       item: {
@@ -285,7 +287,7 @@ describe('getMockScalar (multipleOf handling)', () => {
   });
 
   it('should use fractionDigits when multipleOf is undefined for number type', () => {
-    const numberType: SchemaObjectType = 'number';
+    const numberType: OpenApiSchemaObjectType = 'number';
     const result = getMockScalar({
       ...baseArg,
       item: {
@@ -323,11 +325,153 @@ describe('getMockScalar (nested arrays handling)', () => {
       context: { output: { override: {} } } as ContextSpec,
       combine: { separator: 'anyOf' as const, includedProperties: [] },
     });
-    console.dir(result.value, { depth: null });
-
     // Should avoid putting Array.from in an object {
+    // Should NOT include min: undefined or max: undefined
     expect(result.value).toBe(
-      'Array.from({ length: faker.number.int({ min: undefined, max: undefined }) }, (_, i) => i + 1).map(() => (Array.from({ length: faker.number.int({ min: undefined, max: undefined }) }, (_, i) => i + 1).map(() => (faker.number.int({min: undefined, max: undefined})))))',
+      'Array.from({ length: faker.number.int() }, (_, i) => i + 1).map(() => (Array.from({ length: faker.number.int() }, (_, i) => i + 1).map(() => (faker.number.int()))))',
     );
+  });
+
+  it('should include min/max when arrayMin/arrayMax are provided', () => {
+    const result = getMockScalar({
+      item: {
+        type: 'array' as const,
+        name: 'coordinates',
+        items: { type: 'integer' },
+      },
+      imports: [],
+      operationId: 'test',
+      tags: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+      context: { output: { override: {} } } as ContextSpec,
+      mockOptions: { arrayMin: 1, arrayMax: 5 },
+    });
+
+    expect(result.value).toContain('faker.number.int({min: 1, max: 5})');
+  });
+});
+
+describe('getMockScalar (undefined filtering)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+    context: { output: { override: {} } } as ContextSpec,
+  };
+
+  it('should not include min/max when they are undefined for integer type', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'integer' as const,
+        name: 'test-item',
+      },
+    });
+
+    expect(result.value).toBe('faker.number.int()');
+    expect(result.value).not.toContain('undefined');
+  });
+
+  it('should include only min when max is undefined for integer type', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'integer' as const,
+        minimum: 0,
+        name: 'test-item',
+      },
+    });
+
+    expect(result.value).toBe('faker.number.int({min: 0})');
+  });
+
+  it('should not include min/max when they are undefined for number/float type', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'number' as const,
+        name: 'test-item',
+      },
+    });
+
+    expect(result.value).toBe('faker.number.float()');
+    expect(result.value).not.toContain('undefined');
+  });
+
+  it('should not include fractionDigits when it is undefined for number/float type', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'number' as const,
+        minimum: 0,
+        maximum: 100,
+        name: 'test-item',
+      },
+    });
+
+    expect(result.value).toBe('faker.number.float({min: 0, max: 100})');
+    expect(result.value).not.toContain('fractionDigits');
+    expect(result.value).not.toContain('undefined');
+  });
+
+  it('should not include min/max in string length when they are undefined', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        name: 'test-item',
+      },
+    });
+
+    expect(result.value).toBe('faker.string.alpha()');
+    expect(result.value).not.toContain('undefined');
+  });
+
+  it('should include string length constraints when provided', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        minLength: 5,
+        maxLength: 20,
+        name: 'test-item',
+      },
+    });
+
+    expect(result.value).toBe(
+      'faker.string.alpha({length: {min: 5, max: 20}})',
+    );
+  });
+});
+
+describe('getMockScalar (@-prefixed property names)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+    context: { output: { override: {} } } as ContextSpec,
+  };
+
+  it('should preserve @type as a quoted property key in mock objects', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        name: 'MyResource',
+        properties: {
+          '@type': { type: 'string' },
+          id: { type: 'integer' },
+        },
+        required: ['@type', 'id'],
+      },
+    });
+
+    // Property key should be quoted as '@type', not sanitized to '_type' or 'type'
+    expect(result.value).toContain("'@type'");
+    expect(result.value).not.toContain('_type');
   });
 });
