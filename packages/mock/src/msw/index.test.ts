@@ -183,10 +183,16 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).toContain(
         'application/octet-stream',
       );
-      // Mock function signature should use Record<string, unknown> instead of Blob
+      // Mock function signature should use ArrayBuffer instead of Blob
       expect(result.implementation.handler).not.toContain(
         'overrideResponse?: Blob',
       );
+      expect(result.implementation.handler).toContain(
+        'HttpResponse.arrayBuffer',
+      );
+      // The mock function should return an ArrayBuffer
+      expect(result.implementation.function).toContain('ArrayBuffer');
+      expect(result.implementation.function).not.toContain('Blob');
     });
 
     it('should handle image content types as binary', () => {
@@ -208,6 +214,61 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).toContain('image/png');
     });
 
+    it('should handle font content types as binary', () => {
+      const fontVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'Blob' },
+          types: {
+            success: [{ key: '200', value: 'Blob' }],
+          },
+          contentTypes: ['font/woff2'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(fontVerbOptions, baseOptions);
+
+      expect(result.implementation.handler).not.toContain('JSON.stringify');
+      expect(result.implementation.handler).toContain('font/woff2');
+      expect(result.implementation.handler).toContain(
+        'HttpResponse.arrayBuffer',
+      );
+    });
+
+    it('should handle application/pdf as binary', () => {
+      const pdfVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'Blob' },
+          types: {
+            success: [{ key: '200', value: 'Blob' }],
+          },
+          contentTypes: ['application/pdf'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(pdfVerbOptions, baseOptions);
+
+      expect(result.implementation.handler).not.toContain('JSON.stringify');
+      expect(result.implementation.handler).toContain('application/pdf');
+      expect(result.implementation.handler).toContain(
+        'HttpResponse.arrayBuffer',
+      );
+    });
+
+    it('should type the info parameter in the handler callback', () => {
+      const result = generate({
+        mock: { type: OutputMockType.MSW, delay: 100 },
+      });
+
+      // The handler callback's info param should be explicitly typed
+      expect(result.implementation.handler).toContain(
+        'async (info: Parameters<Parameters<typeof http.get>[1]>[0])',
+      );
+    });
+
     it('should use HttpResponse.text for text/plain responses', () => {
       const textVerbOptions = {
         ...mockVerbOptions,
@@ -224,6 +285,57 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).toContain('HttpResponse.text');
       expect(result.implementation.handler).toContain('textBody');
       expect(result.implementation.handler).toContain('JSON.stringify');
+      expect(result.implementation.handler).not.toContain('HttpResponse.json');
+    });
+
+    it('should use HttpResponse.text for text/html responses', () => {
+      const htmlVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'string' },
+          types: { success: [{ key: '200', value: 'string' }] },
+          contentTypes: ['text/html'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(htmlVerbOptions, baseOptions);
+
+      expect(result.implementation.handler).toContain('HttpResponse.text');
+      expect(result.implementation.handler).not.toContain('HttpResponse.json');
+    });
+
+    it('should use HttpResponse.text for application/xml responses', () => {
+      const xmlVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'string' },
+          types: { success: [{ key: '200', value: 'string' }] },
+          contentTypes: ['application/xml'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(xmlVerbOptions, baseOptions);
+
+      expect(result.implementation.handler).toContain('HttpResponse.text');
+      expect(result.implementation.handler).not.toContain('HttpResponse.json');
+    });
+
+    it('should use HttpResponse.text for vendor +xml responses', () => {
+      const vendorXmlVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'string' },
+          types: { success: [{ key: '200', value: 'string' }] },
+          contentTypes: ['application/vnd.api+xml'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(vendorXmlVerbOptions, baseOptions);
+
+      expect(result.implementation.handler).toContain('HttpResponse.text');
       expect(result.implementation.handler).not.toContain('HttpResponse.json');
     });
 
@@ -267,6 +379,51 @@ describe('generateMSW', () => {
 
       expect(result.implementation.function).toContain(
         'faker.number.int({min: 1, max: 3})',
+      );
+    });
+
+    it('should evaluate text response override expression once via temp variable', () => {
+      const textVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'string' },
+          types: { success: [{ key: '200', value: 'string' }] },
+          contentTypes: ['text/plain'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(textVerbOptions, baseOptions);
+
+      // The handler should assign the resolved response to a temp var
+      // and then use it, rather than inlining the await expression multiple times
+      expect(result.implementation.handler).toContain('const resolvedBody =');
+      expect(result.implementation.handler).toContain(
+        "typeof resolvedBody === 'string'",
+      );
+    });
+
+    it('should handle binary responses with ArrayBuffer fallback', () => {
+      const blobVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'Blob' },
+          types: { success: [{ key: '200', value: 'Blob' }] },
+          contentTypes: ['application/octet-stream'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(blobVerbOptions, baseOptions);
+
+      // Should use the mock function and fall back to empty ArrayBuffer
+      expect(result.implementation.handler).toContain(
+        'binaryBody instanceof ArrayBuffer',
+      );
+      expect(result.implementation.handler).toContain('new ArrayBuffer(0)');
+      // The binary handler should call the mock function as fallback
+      expect(result.implementation.handler).toContain(
+        'getGetUserResponseMock()',
       );
     });
   });
