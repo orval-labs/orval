@@ -130,9 +130,7 @@ describe('generateImportsForBuilder', () => {
 
       expect(result).toEqual([
         {
-          exports: [
-            { name: 'User', schemaName: undefined, values: true },
-          ],
+          exports: [{ name: 'User', schemaName: undefined, values: true }],
           dependency: '../models/user.zod.gen',
         },
       ]);
@@ -169,9 +167,7 @@ describe('generateImportsForBuilder', () => {
 
       expect(result).toEqual([
         {
-          exports: [
-            { name: 'User', schemaName: undefined, values: true },
-          ],
+          exports: [{ name: 'User', schemaName: undefined, values: true }],
           dependency: '../models/index.zod',
         },
       ]);

@@ -75,10 +75,10 @@ export class PetsService {
   searchPets<TData = Pets>(
     params: SearchPetsParams,
     version: number = 1,
-    options?: HttpClientOptions & { observe?: any },
+    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
   ): Observable<any> {
     return this.http.get<TData>(`/v${version}/search`, {
-      ...options,
+      ...(options as Omit<NonNullable<typeof options>, 'observe'>),
       params: paramsSerializerMutator(
         (() => {
           const filteredParams = {} as Record<
@@ -175,9 +175,13 @@ export class PetsService {
   createPets<TData = void>(
     createPetsBody: CreatePetsBody,
     version: number = 1,
-    options?: HttpClientOptions & { observe?: any },
+    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
   ): Observable<any> {
-    return this.http.post<TData>(`/v${version}/pets`, createPetsBody, options);
+    return this.http.post<TData>(
+      `/v${version}/pets`,
+      createPetsBody,
+      options as Omit<NonNullable<typeof options>, 'observe'>,
+    );
   }
   /**
    * @summary Info for a specific pet
@@ -253,11 +257,11 @@ export class PetsService {
   showPetText(
     petId: string,
     version: number = 1,
-    options?: HttpClientOptions & { observe?: any },
+    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
   ): Observable<any> {
     return this.http.get(`/v${version}/pets/${petId}/text`, {
       responseType: 'text',
-      ...options,
+      ...(options as Omit<NonNullable<typeof options>, 'observe'>),
     });
   }
   /**
@@ -286,12 +290,12 @@ export class PetsService {
     petId: number,
     uploadFileBody: Blob,
     version: number = 1,
-    options?: HttpClientOptions & { observe?: any },
+    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
   ): Observable<any> {
     return this.http.post<TData>(
       `/v${version}/pet/${petId}/uploadImage`,
       uploadFileBody,
-      options,
+      options as Omit<NonNullable<typeof options>, 'observe'>,
     );
   }
   /**
@@ -316,11 +320,11 @@ export class PetsService {
   downloadFile(
     petId: number,
     version: number = 1,
-    options?: HttpClientOptions & { observe?: any },
+    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
   ): Observable<any> {
     return this.http.get(`/v${version}/pet/${petId}/downloadImage`, {
       responseType: 'blob',
-      ...options,
+      ...(options as Omit<NonNullable<typeof options>, 'observe'>),
     });
   }
 }

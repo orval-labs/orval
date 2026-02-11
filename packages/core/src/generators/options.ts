@@ -115,7 +115,9 @@ export function generateAxiosOptions({
     response.definition.success !== 'string'
   ) {
     if (isRequestOptions) {
-      return 'options';
+      return isAngular
+        ? "(options as Omit<NonNullable<typeof options>, 'observe'>)"
+        : 'options';
     }
     if (hasSignal) {
       return isExactOptionalPropertyTypes
@@ -164,7 +166,9 @@ export function generateAxiosOptions({
   }
 
   if (isRequestOptions) {
-    value += '\n    ...options,';
+    value += isAngular
+      ? "\n    ...(options as Omit<NonNullable<typeof options>, 'observe'>),"
+      : '\n    ...options,';
 
     if (queryParams) {
       if (isVue) {
@@ -254,25 +258,33 @@ export function generateOptions({
     paramsSerializerOptions,
   });
 
-  const options = axiosOptions ? `{${axiosOptions}}` : '';
+  const isRawOptionsArgument =
+    axiosOptions === 'options' ||
+    (axiosOptions.startsWith('(') && axiosOptions.endsWith(')'));
+
+  const optionsArgument = axiosOptions
+    ? isRawOptionsArgument
+      ? axiosOptions
+      : `{${axiosOptions}}`
+    : '';
 
   if (verb === Verbs.DELETE) {
     if (!bodyOptions) {
-      return `\n      \`${route}\`,${
-        axiosOptions === 'options' ? axiosOptions : options
-      }\n    `;
+      return `\n      \`${route}\`,${optionsArgument}\n    `;
     }
+
+    const deleteBodyOptions = isRawOptionsArgument
+      ? `...${optionsArgument}`
+      : axiosOptions;
 
     return `\n      \`${route}\`,{${
       isAngular ? 'body' : 'data'
-    }:${bodyOptions} ${
-      axiosOptions === 'options' ? `...${axiosOptions}` : axiosOptions
-    }}\n    `;
+    }:${bodyOptions} ${axiosOptions ? deleteBodyOptions : ''}}\n    `;
   }
 
   return `\n      \`${route}\`,${
     getIsBodyVerb(verb) ? bodyOptions || 'undefined,' : ''
-  }${axiosOptions === 'options' ? axiosOptions : options}\n    `;
+  }${optionsArgument}\n    `;
 }
 
 export function generateBodyMutatorConfig(
