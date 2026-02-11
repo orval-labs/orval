@@ -148,6 +148,7 @@ export const handleResource = (
 
     expect(implementation).toBe(expectedImplementation);
   });
+
   it('should require all params when optionsParamRequired is true', async () => {
     const workspace = 'test';
     const normalizedOptions = await normalizeOptions(
@@ -293,6 +294,9 @@ describe('dereferenceExternalRefs', () => {
           name: 'MIT',
           url: 'https://opensource.org/licenses/MIT',
         },
+      },
+      components: {
+        schemas: {},
       },
       paths: {
         '/points': {
@@ -513,7 +517,7 @@ describe('dereferenceExternalRefs', () => {
     expect(result).not.toHaveProperty('x-ext');
   });
 
-  it('should dereference complex x-ext entries with internal paths', () => {
+  it('should dereference x-ext entry with internal paths', () => {
     const input = {
       openapi: '3.0.2',
       info: { version: '1.0.0', title: 'Swagger Petstore' },
@@ -527,27 +531,7 @@ describe('dereferenceExternalRefs', () => {
                 content: {
                   'application/json': {
                     schema: {
-                      oneOf: [
-                        { $ref: '#/x-ext/cefada3/components/schemas/Pet' },
-                      ],
-                    },
-                  },
-                },
-              },
-            },
-          },
-          get: {
-            responses: {
-              '200': {
-                description: 'All pets',
-                content: {
-                  'application/json': {
-                    schema: {
-                      oneOf: [
-                        {
-                          $ref: '#/x-ext/248c295/components/schemas/AnotherSchema',
-                        },
-                      ],
+                      $ref: '#/x-ext/cefada3/components/schemas/Pet',
                     },
                   },
                 },
@@ -557,17 +541,6 @@ describe('dereferenceExternalRefs', () => {
         },
       },
       'x-ext': {
-        '248c295': {
-          components: {
-            schemas: {
-              AnotherSchema: {
-                type: 'object',
-                required: ['id'],
-                properties: { id: { type: 'integer', format: 'int64' } },
-              },
-            },
-          },
-        },
         cefada3: {
           components: {
             schemas: {
@@ -576,9 +549,6 @@ describe('dereferenceExternalRefs', () => {
                 required: ['id'],
                 properties: {
                   id: { type: 'integer', format: 'int64' },
-                  file: {
-                    $ref: '#/x-ext/248c295/components/schemas/AnotherSchema',
-                  },
                 },
               },
             },
@@ -587,42 +557,172 @@ describe('dereferenceExternalRefs', () => {
       },
     };
 
-    type ResponseContent = {
-      content: Record<string, { schema: { oneOf: unknown[] } }>;
-    };
-    type PathOperation = {
-      responses: Record<string, ResponseContent>;
-    };
-    const result = dereferenceExternalRef(input) as {
-      paths: Record<string, Record<string, PathOperation>>;
-    };
+    const result = dereferenceExternalRef(input) as OpenApiDocument;
 
-    // post -> oneOf[0] should be the Pet schema with file inlined
-    const postSchema =
-      result.paths['/pets'].post.responses['200'].content['application/json']
-        .schema.oneOf[0];
-    expect(postSchema).toEqual({
-      type: 'object',
-      required: ['id'],
-      properties: {
-        id: { type: 'integer', format: 'int64' },
-        file: {
-          type: 'object',
-          required: ['id'],
-          properties: { id: { type: 'integer', format: 'int64' } },
+    // Schemas from external docs should be merged into components
+    expect(result.components?.schemas).toHaveProperty('Pet');
+    expect(result.paths?.['/pets']?.post?.responses?.['200']?.content).toEqual({
+      'application/json': {
+        schema: {
+          // updated from '#/x-ext/cefada3/components/schemas/Pet'
+          $ref: '#/components/schemas/Pet',
         },
       },
     });
 
-    // get -> oneOf[0] should be AnotherSchema directly
-    const getSchema =
-      result.paths['/pets'].get.responses['200'].content['application/json']
-        .schema.oneOf[0];
-    expect(getSchema).toEqual({
-      type: 'object',
-      required: ['id'],
-      properties: { id: { type: 'integer', format: 'int64' } },
-    });
+    expect(result).not.toHaveProperty('x-ext');
+  });
+
+  it('should dereference external doc schemas with internal refs', () => {
+    const input = {
+      openapi: '3.0.3',
+      info: { title: 'Demo', version: '0.0.0' },
+      paths: {},
+      components: {
+        schemas: {
+          ExternalSchema: {
+            $ref: '#/x-ext/external-doc/components/schemas/ExternalSchema',
+          },
+        },
+      },
+      'x-ext': {
+        'external-doc': {
+          openapi: '3.0.3',
+          info: { title: 'External API', version: '0.0.0' },
+          components: {
+            schemas: {
+              ExternalSchema: {
+                type: 'object',
+                required: ['version'],
+                allOf: [
+                  { $ref: '#/components/schemas/Version' },
+                  { $ref: '#/components/schemas/FirstValue' },
+                ],
+              },
+              Version: {
+                type: 'object',
+                properties: {
+                  version: { type: 'string' },
+                  timestamp: { type: 'string', format: 'date-time' },
+                },
+              },
+              FirstValue: {
+                type: 'object',
+                properties: {
+                  first: { type: 'number', format: 'double', example: 5.2 },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = dereferenceExternalRef(input) as OpenApiDocument;
+    const schemas = result.components?.schemas;
+
+    // --- Assert: All 3 schemas merged from external doc ---
+    expect(schemas).toHaveProperty('ExternalSchema');
+    expect(schemas).toHaveProperty('Version');
+    expect(schemas).toHaveProperty('FirstValue');
+
+    expect(schemas?.ExternalSchema).toEqual(
+      expect.objectContaining({
+        type: 'object',
+        required: ['version'],
+        allOf: [
+          expect.objectContaining({ $ref: '#/components/schemas/Version' }),
+          expect.objectContaining({ $ref: '#/components/schemas/FirstValue' }),
+        ],
+      }),
+    );
+
+    expect(result).not.toHaveProperty('x-ext');
+  });
+
+  it('should handle schema name collisions - add suffix to external schema', () => {
+    const input = {
+      openapi: '3.0.3',
+      info: { title: 'Demo', version: '0.0.0' },
+      paths: {},
+      components: {
+        schemas: {
+          // Main spec has its own User schema
+          User: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+            },
+          },
+        },
+      },
+      'x-ext': {
+        external: {
+          components: {
+            schemas: {
+              // External doc also has User, but different structure
+              User: {
+                type: 'object',
+                properties: {
+                  email: { type: 'string' },
+                  age: { type: 'number' },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = dereferenceExternalRef(input) as OpenApiDocument;
+
+    expect(result.components?.schemas).toHaveProperty('User_external');
+    expect(result).not.toHaveProperty('x-ext');
+  });
+
+  it('should handle schema collisions between multiple external docs', () => {
+    const input = {
+      openapi: '3.0.3',
+      info: { title: 'Demo', version: '0.0.0' },
+      paths: {},
+      'x-ext': {
+        'external-1': {
+          components: {
+            schemas: {
+              SharedSchema: {
+                type: 'object',
+                properties: {
+                  source: { type: 'string', enum: ['external-1'] },
+                },
+              },
+            },
+          },
+        },
+        'external-2': {
+          components: {
+            schemas: {
+              SharedSchema: {
+                type: 'object',
+                properties: {
+                  source: { type: 'string', enum: ['external-2'] },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = dereferenceExternalRef(input) as OpenApiDocument;
+
+    // First external doc's SharedSchema (no suffix - arrived first)
+    expect(result.components?.schemas).toHaveProperty('SharedSchema');
+
+    // Second external doc's SharedSchema (suffixed due to collision)
+    expect(result.components?.schemas).toHaveProperty(
+      'SharedSchema_external_2',
+    );
 
     expect(result).not.toHaveProperty('x-ext');
   });
