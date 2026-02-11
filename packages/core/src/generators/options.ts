@@ -9,6 +9,18 @@ import {
 } from '../types';
 import { getIsBodyVerb, isObject, stringify } from '../utils';
 
+/**
+ * Filters query params for Angular's HttpClient.
+ *
+ * Why: Angular's HttpParams / HttpClient `params` type does not accept `null` or
+ * `undefined` values, and arrays must only contain string/number/boolean.
+ * Orval models often include nullable query params, so we remove nullish values
+ * (including nulls inside arrays) before passing params to HttpClient or a
+ * paramsSerializer to avoid runtime and type issues.
+ */
+const getAngularFilteredParamsExpression = (paramsExpression: string) =>
+  `Object.fromEntries(Object.entries(${paramsExpression}).reduce((acc, [key, value]) => { if (Array.isArray(value)) { const filtered = value.filter((item) => item != null); if (filtered.length) { acc.push([key, filtered]); } } else if (value != null) { acc.push([key, value]); } return acc; }, [] as [string, unknown][])) as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>`;
+
 interface GenerateFormDataAndUrlEncodedFunctionOptions {
   body: GetterBody;
   formData?: GeneratorMutator;
@@ -106,7 +118,7 @@ export function generateAxiosOptions({
 
   if (
     !isObject(requestOptions) ||
-    !requestOptions.hasOwnProperty('responseType')
+    !Object.prototype.hasOwnProperty.call(requestOptions, 'responseType')
   ) {
     if (response.isBlob) {
       value += `\n        responseType: 'blob',`;
@@ -126,7 +138,9 @@ export function generateAxiosOptions({
       if (isVue) {
         value += '\n        params: {...unref(params), ...options?.params},';
       } else if (isAngular && paramsSerializer) {
-        value += `\n        params: ${paramsSerializer.name}({...params, ...options?.params}),`;
+        value += `\n        params: ${paramsSerializer.name}(${getAngularFilteredParamsExpression('{...params, ...options?.params}')}),`;
+      } else if (isAngular) {
+        value += `\n        params: ${getAngularFilteredParamsExpression('{...params, ...options?.params}')},`;
       } else {
         value += '\n        params: {...params, ...options?.params},';
       }
@@ -142,10 +156,11 @@ export function generateAxiosOptions({
     queryParams &&
     (paramsSerializer || paramsSerializerOptions?.qs)
   ) {
+    const qsOptions = paramsSerializerOptions?.qs;
     value += paramsSerializer
       ? `\n        paramsSerializer: ${paramsSerializer.name},`
       : `\n        paramsSerializer: (params) => qs.stringify(params, ${JSON.stringify(
-          paramsSerializerOptions!.qs,
+          qsOptions,
         )}),`;
   }
 
@@ -251,6 +266,7 @@ export function generateBodyMutatorConfig(
 export function generateQueryParamsAxiosConfig(
   response: GetterResponse,
   isVue: boolean,
+  isAngular: boolean,
   queryParams?: GetterQueryParam,
 ) {
   if (!queryParams && !response.isBlob) {
@@ -260,7 +276,13 @@ export function generateQueryParamsAxiosConfig(
   let value = '';
 
   if (queryParams) {
-    value += isVue ? ',\n        params: unref(params)' : ',\n        params';
+    if (isVue) {
+      value += ',\n        params: unref(params)';
+    } else if (isAngular) {
+      value += `,\n        params: ${getAngularFilteredParamsExpression('params ?? {}')}`;
+    } else {
+      value += ',\n        params';
+    }
   }
 
   if (response.isBlob) {
@@ -283,6 +305,7 @@ interface GenerateMutatorConfigOptions {
   hasSignalParam?: boolean;
   isExactOptionalPropertyTypes: boolean;
   isVue?: boolean;
+  isAngular?: boolean;
 }
 
 export function generateMutatorConfig({
@@ -298,6 +321,7 @@ export function generateMutatorConfig({
   hasSignalParam = false,
   isExactOptionalPropertyTypes,
   isVue,
+  isAngular,
 }: GenerateMutatorConfigOptions) {
   const bodyOptions = getIsBodyVerb(verb)
     ? generateBodyMutatorConfig(body, isFormData, isFormUrlEncoded)
@@ -306,6 +330,7 @@ export function generateMutatorConfig({
   const queryParamsOptions = generateQueryParamsAxiosConfig(
     response,
     isVue ?? false,
+    isAngular ?? false,
     queryParams,
   );
 

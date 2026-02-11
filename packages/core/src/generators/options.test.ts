@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { generateAxiosOptions, generateMutatorConfig } from './options';
 import { Verbs } from '../types';
+import { generateAxiosOptions, generateMutatorConfig } from './options';
 
 describe('generateAxiosOptions', () => {
   it('should return "...options"', () => {
@@ -265,6 +265,65 @@ describe('generateAxiosOptions', () => {
       expect(result).toBe('...(querySignal ? { signal: querySignal } : {})');
     });
   });
+
+  describe('Angular params filtering', () => {
+    const minimalResponse = {
+      imports: [],
+      definition: { success: 'Pet', errors: 'unknown' },
+      isBlob: false,
+      types: { success: [], errors: [] },
+      contentTypes: ['application/json'],
+      schemas: [],
+      originalSchema: {},
+    };
+
+    it('should filter null/undefined params (including array entries) for Angular', () => {
+      const result = generateAxiosOptions({
+        response: minimalResponse,
+        isExactOptionalPropertyTypes: false,
+        queryParams: {} as any,
+        headers: undefined,
+        requestOptions: true,
+        hasSignal: false,
+        isVue: false,
+        isAngular: true,
+        paramsSerializer: undefined,
+        paramsSerializerOptions: undefined,
+      });
+
+      expect(result).toContain(
+        'Object.fromEntries(Object.entries({...params, ...options?.params}).reduce',
+      );
+      expect(result).toContain(
+        'as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
+      );
+      expect(result).toContain('Array.isArray(value)');
+      expect(result).toContain('value.filter((item) => item != null)');
+    });
+
+    it('should apply filtering before paramsSerializer for Angular', () => {
+      const result = generateAxiosOptions({
+        response: minimalResponse,
+        isExactOptionalPropertyTypes: false,
+        queryParams: {} as any,
+        headers: undefined,
+        requestOptions: true,
+        hasSignal: false,
+        isVue: false,
+        isAngular: true,
+        paramsSerializer: { name: 'paramsSerializerMutator' } as any,
+        paramsSerializerOptions: undefined,
+      });
+
+      expect(result).toContain('params: paramsSerializerMutator(');
+      expect(result).toContain(
+        'Object.fromEntries(Object.entries({...params, ...options?.params}).reduce',
+      );
+      expect(result).toContain(
+        'as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
+      );
+    });
+  });
 });
 
 describe('generateMutatorConfig', () => {
@@ -338,8 +397,36 @@ describe('generateMutatorConfig', () => {
         hasSignal: true,
         hasSignalParam: true,
         isExactOptionalPropertyTypes: true,
+        isAngular: false,
       });
       expect(result).toContain('...(querySignal ? { signal: querySignal }');
+    });
+  });
+
+  describe('Angular params filtering', () => {
+    it('should filter null/undefined params (including array entries) for Angular mutators', () => {
+      const result = generateMutatorConfig({
+        route: '/api/test',
+        body: minimalBody,
+        headers: undefined,
+        queryParams: {} as any,
+        response: minimalResponse,
+        verb: Verbs.GET,
+        isFormData: false,
+        isFormUrlEncoded: false,
+        hasSignal: false,
+        isExactOptionalPropertyTypes: false,
+        isAngular: true,
+      });
+
+      expect(result).toContain(
+        'params: Object.fromEntries(Object.entries(params ?? {}).reduce',
+      );
+      expect(result).toContain(
+        'as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
+      );
+      expect(result).toContain('Array.isArray(value)');
+      expect(result).toContain('value.filter((item) => item != null)');
     });
   });
 
