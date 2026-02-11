@@ -269,7 +269,6 @@ export const generateAngularHttpRequestFunction = (
   }
 `;
 };
-
 export const generateAxiosRequestFunction = (
   {
     headers,

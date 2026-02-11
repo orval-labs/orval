@@ -307,8 +307,8 @@ export default defineConfig({
   },
   hookMutator: {
     output: {
-      target: '../generated/react-query/hook-mutator/endpoints.ts',
-      schemas: '../generated/react-query/hook-mutator/model',
+      target: '../generated/react-query/hook-mutator-axios/endpoints.ts',
+      schemas: '../generated/react-query/hook-mutator-axios/model',
       client: 'react-query',
       httpClient: 'axios',
       override: {
@@ -324,8 +324,8 @@ export default defineConfig({
   },
   hookMutatorWithExtension: {
     output: {
-      target: '../generated/react-query/hook-mutator/endpoints.ts',
-      schemas: '../generated/react-query/hook-mutator/model',
+      target: '../generated/react-query/hook-mutator-axios/endpoints.ts',
+      schemas: '../generated/react-query/hook-mutator-axios/model',
       client: 'react-query',
       httpClient: 'axios',
       override: {
@@ -343,9 +343,9 @@ export default defineConfig({
   hookMutatorWithSecondParameter: {
     output: {
       target:
-        '../generated/react-query/hook-mutator-with-second-parameter/endpoints.ts',
+        '../generated/react-query/hook-mutator-axios-with-second-parameter/endpoints.ts',
       schemas:
-        '../generated/react-query/hook-mutator-with-second-parameter/model',
+        '../generated/react-query/hook-mutator-axios-with-second-parameter/model',
       client: 'react-query',
       httpClient: 'axios',
       override: {
@@ -361,8 +361,8 @@ export default defineConfig({
   },
   tagHookMutator: {
     output: {
-      target: '../generated/react-query/tag-hook-mutator/endpoints.ts',
-      schemas: '../generated/react-query/tag-hook-mutator/model',
+      target: '../generated/react-query/tag-hook-mutator-axios/endpoints.ts',
+      schemas: '../generated/react-query/tag-hook-mutator-axios/model',
       client: 'react-query',
       httpClient: 'axios',
       override: {
@@ -589,8 +589,8 @@ export default defineConfig({
   usePrefetchWithHookMutator: {
     output: {
       target:
-        '../generated/react-query/use-prefetch-with-hook-mutator/endpoints.ts',
-      schemas: '../generated/react-query/use-prefetch-with-hook-mutator/model',
+        '../generated/react-query/use-prefetch-with-hook-mutator-axios/endpoints.ts',
+      schemas: '../generated/react-query/use-prefetch-with-hook-mutator-axios/model',
       client: 'react-query',
       httpClient: 'axios',
       override: {
