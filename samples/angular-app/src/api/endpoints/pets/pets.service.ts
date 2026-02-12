@@ -77,56 +77,54 @@ export class PetsService {
     version: number = 1,
     options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
+    const serializedParams = paramsSerializerMutator(
+      (() => {
+        const requiredNullableParamKeys = new Set<string>([
+          'requirednullableString',
+          'requirednullableStringTwo',
+        ]);
+        const filteredParams = {} as Record<
+          string,
+          string | number | boolean | null | Array<string | number | boolean>
+        >;
+        for (const [key, value] of Object.entries({
+          ...params,
+          ...options?.params,
+        })) {
+          if (Array.isArray(value)) {
+            const filtered = value.filter(
+              (item) =>
+                item != null &&
+                (typeof item === 'string' ||
+                  typeof item === 'number' ||
+                  typeof item === 'boolean'),
+            ) as Array<string | number | boolean>;
+            if (filtered.length) {
+              filteredParams[key] = filtered;
+            }
+          } else if (value === null && requiredNullableParamKeys.has(key)) {
+            filteredParams[key] = value;
+          } else if (
+            value != null &&
+            (typeof value === 'string' ||
+              typeof value === 'number' ||
+              typeof value === 'boolean')
+          ) {
+            filteredParams[key] = value as string | number | boolean;
+          }
+        }
+        return filteredParams as unknown as Record<
+          string,
+          string | number | boolean | Array<string | number | boolean>
+        >;
+      })(),
+    );
+
     if (options?.observe === 'events') {
       return this.http.get<TData>(`/v${version}/search`, {
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'events',
-        params: paramsSerializerMutator(
-          (() => {
-            const requiredNullableParamKeys = new Set<string>([
-              'requirednullableString',
-              'requirednullableStringTwo',
-            ]);
-            const filteredParams = {} as Record<
-              string,
-              | string
-              | number
-              | boolean
-              | null
-              | Array<string | number | boolean>
-            >;
-            for (const [key, value] of Object.entries({
-              ...params,
-              ...options?.params,
-            })) {
-              if (Array.isArray(value)) {
-                const filtered = value.filter(
-                  (item) =>
-                    item != null &&
-                    (typeof item === 'string' ||
-                      typeof item === 'number' ||
-                      typeof item === 'boolean'),
-                ) as Array<string | number | boolean>;
-                if (filtered.length) {
-                  filteredParams[key] = filtered;
-                }
-              } else if (value === null && requiredNullableParamKeys.has(key)) {
-                filteredParams[key] = value;
-              } else if (
-                value != null &&
-                (typeof value === 'string' ||
-                  typeof value === 'number' ||
-                  typeof value === 'boolean')
-              ) {
-                filteredParams[key] = value as string | number | boolean;
-              }
-            }
-            return filteredParams as unknown as Record<
-              string,
-              string | number | boolean | Array<string | number | boolean>
-            >;
-          })(),
-        ),
+        params: serializedParams,
       });
     }
 
@@ -134,100 +132,14 @@ export class PetsService {
       return this.http.get<TData>(`/v${version}/search`, {
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'response',
-        params: paramsSerializerMutator(
-          (() => {
-            const requiredNullableParamKeys = new Set<string>([
-              'requirednullableString',
-              'requirednullableStringTwo',
-            ]);
-            const filteredParams = {} as Record<
-              string,
-              | string
-              | number
-              | boolean
-              | null
-              | Array<string | number | boolean>
-            >;
-            for (const [key, value] of Object.entries({
-              ...params,
-              ...options?.params,
-            })) {
-              if (Array.isArray(value)) {
-                const filtered = value.filter(
-                  (item) =>
-                    item != null &&
-                    (typeof item === 'string' ||
-                      typeof item === 'number' ||
-                      typeof item === 'boolean'),
-                ) as Array<string | number | boolean>;
-                if (filtered.length) {
-                  filteredParams[key] = filtered;
-                }
-              } else if (value === null && requiredNullableParamKeys.has(key)) {
-                filteredParams[key] = value;
-              } else if (
-                value != null &&
-                (typeof value === 'string' ||
-                  typeof value === 'number' ||
-                  typeof value === 'boolean')
-              ) {
-                filteredParams[key] = value as string | number | boolean;
-              }
-            }
-            return filteredParams as unknown as Record<
-              string,
-              string | number | boolean | Array<string | number | boolean>
-            >;
-          })(),
-        ),
+        params: serializedParams,
       });
     }
 
     return this.http.get<TData>(`/v${version}/search`, {
       ...(options as Omit<NonNullable<typeof options>, 'observe'>),
       observe: 'body',
-      params: paramsSerializerMutator(
-        (() => {
-          const requiredNullableParamKeys = new Set<string>([
-            'requirednullableString',
-            'requirednullableStringTwo',
-          ]);
-          const filteredParams = {} as Record<
-            string,
-            string | number | boolean | null | Array<string | number | boolean>
-          >;
-          for (const [key, value] of Object.entries({
-            ...params,
-            ...options?.params,
-          })) {
-            if (Array.isArray(value)) {
-              const filtered = value.filter(
-                (item) =>
-                  item != null &&
-                  (typeof item === 'string' ||
-                    typeof item === 'number' ||
-                    typeof item === 'boolean'),
-              ) as Array<string | number | boolean>;
-              if (filtered.length) {
-                filteredParams[key] = filtered;
-              }
-            } else if (value === null && requiredNullableParamKeys.has(key)) {
-              filteredParams[key] = value;
-            } else if (
-              value != null &&
-              (typeof value === 'string' ||
-                typeof value === 'number' ||
-                typeof value === 'boolean')
-            ) {
-              filteredParams[key] = value as string | number | boolean;
-            }
-          }
-          return filteredParams as unknown as Record<
-            string,
-            string | number | boolean | Array<string | number | boolean>
-          >;
-        })(),
-      ),
+      params: serializedParams,
     });
   }
   /**
