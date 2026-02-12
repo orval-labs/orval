@@ -356,7 +356,7 @@ export function generateOptions({
 
   if (verb === Verbs.DELETE) {
     if (!bodyOptions) {
-      return `\n      \`${route}\`,${optionsArgument}\n    `;
+      return `\n      \`${route}\`${optionsArgument ? `,${optionsArgument}` : ''}\n    `;
     }
 
     const deleteBodyOptions = isRawOptionsArgument
@@ -368,9 +368,10 @@ export function generateOptions({
     }:${bodyOptions} ${axiosOptions ? deleteBodyOptions : ''}}\n    `;
   }
 
-  return `\n      \`${route}\`,${
-    getIsBodyVerb(verb) ? bodyOptions || 'undefined,' : ''
-  }${optionsArgument}\n    `;
+  const bodyOrOptions = getIsBodyVerb(verb) ? bodyOptions || 'undefined,' : '';
+  const separator = bodyOrOptions || optionsArgument ? ',' : '';
+
+  return `\n      \`${route}\`${separator}${bodyOrOptions}${optionsArgument}\n    `;
 }
 
 export function generateBodyMutatorConfig(
