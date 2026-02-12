@@ -2,6 +2,7 @@ import { compareVersions, type PackageJson } from '@orval/core';
 
 const getZodPackageVersion = (packageJson: PackageJson) => {
   return (
+    packageJson.resolvedVersions?.zod ??
     packageJson.dependencies?.zod ??
     packageJson.devDependencies?.zod ??
     packageJson.peerDependencies?.zod

@@ -20,4 +20,18 @@ describe('getRoute getter', () => {
       expect(getRouteMSW(input)).toBe(expected);
     });
   }
+
+  it('should use absolute base URL when provided', () => {
+    expect(getRouteMSW('/pets/{petId}', 'https://api.example.com')).toBe(
+      'https://api.example.com/pets/:petId',
+    );
+  });
+
+  it('should use wildcard when no base URL is provided', () => {
+    expect(getRouteMSW('/pets/{petId}')).toBe('*/pets/:petId');
+  });
+
+  it('should use empty string base URL when explicitly set', () => {
+    expect(getRouteMSW('/pets/{petId}', '')).toBe('/pets/:petId');
+  });
 });

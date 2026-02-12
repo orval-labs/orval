@@ -4,6 +4,7 @@ import {
   isString,
   log,
   type PackageJson,
+  resolveInstalledVersions,
 } from '@orval/core';
 import chalk from 'chalk';
 import { findUp, findUpMultiple } from 'find-up';
@@ -24,7 +25,10 @@ export const loadPackageJson = async (
       const pkg = await dynamicImport<unknown>(pkgPath, workspace);
 
       if (isPackageJson(pkg)) {
-        return await maybeReplaceCatalog(pkg, workspace);
+        return resolveAndAttachVersions(
+          await maybeReplaceCatalog(pkg, workspace),
+          workspace,
+        );
       } else {
         throw new Error('Invalid package.json file');
       }
@@ -37,7 +41,10 @@ export const loadPackageJson = async (
     const pkg = await dynamicImport<unknown>(normalizedPath);
 
     if (isPackageJson(pkg)) {
-      return await maybeReplaceCatalog(pkg, workspace);
+      return resolveAndAttachVersions(
+        await maybeReplaceCatalog(pkg, workspace),
+        workspace,
+      );
     } else {
       throw new Error(`Invalid package.json file: ${normalizedPath}`);
     }
@@ -46,6 +53,22 @@ export const loadPackageJson = async (
 };
 
 const isPackageJson = (obj: unknown): obj is PackageJson => isObject(obj);
+
+const resolveAndAttachVersions = (
+  pkg: PackageJson,
+  workspace: string,
+): PackageJson => {
+  const resolved = resolveInstalledVersions(pkg, workspace);
+  if (Object.keys(resolved).length > 0) {
+    pkg.resolvedVersions = resolved;
+    for (const [name, version] of Object.entries(resolved)) {
+      log(
+        `  ${chalk.cyan('Detected')} ${chalk.green(name)} ${chalk.cyan(`v${version}`)} ${chalk.dim('(from node_modules)')}`,
+      );
+    }
+  }
+  return pkg;
+};
 
 const hasCatalogReferences = (pkg: PackageJson): boolean => {
   return [

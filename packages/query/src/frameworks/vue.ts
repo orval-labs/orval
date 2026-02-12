@@ -29,17 +29,23 @@ export const createVueAdapter = ({
   hasQueryV5,
   hasQueryV5WithDataTagError,
   hasQueryV5WithInfiniteQueryOptionsError,
+  hasQueryV5WithMutationContextOnSuccess,
+  hasQueryV5WithRequiredContextOnSuccess,
 }: {
   hasVueQueryV4: boolean;
   hasQueryV5: boolean;
   hasQueryV5WithDataTagError: boolean;
   hasQueryV5WithInfiniteQueryOptionsError: boolean;
+  hasQueryV5WithMutationContextOnSuccess: boolean;
+  hasQueryV5WithRequiredContextOnSuccess: boolean;
 }): FrameworkAdapterConfig => ({
   outputClient: OutputClient.VUE_QUERY,
   hookPrefix: 'use',
   hasQueryV5,
   hasQueryV5WithDataTagError,
   hasQueryV5WithInfiniteQueryOptionsError,
+  hasQueryV5WithMutationContextOnSuccess,
+  hasQueryV5WithRequiredContextOnSuccess,
 
   transformProps(props: GetterProps): GetterProps {
     return vueWrapTypeWithMaybeRef(props);

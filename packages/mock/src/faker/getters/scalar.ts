@@ -1,3 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import {
   type ContextSpec,
   EnumGeneration,
@@ -52,13 +58,14 @@ export function getMockScalar({
   splitMockImplementations,
   allowOverride = false,
 }: GetMockScalarOptions): MockDefinition {
+  const safeMockOptions: MockOptions = mockOptions ?? {};
   // Add the property to the existing properties to validate on object recursion
   if (item.isRef) {
     existingReferencedProperties = [...existingReferencedProperties, item.name];
   }
 
   const operationProperty = resolveMockOverride(
-    mockOptions?.operations?.[operationId]?.properties,
+    safeMockOptions.operations?.[operationId]?.properties,
     item,
   );
 
@@ -66,15 +73,18 @@ export function getMockScalar({
     return operationProperty;
   }
 
-  const overrideTag = Object.entries(mockOptions?.tags ?? {})
-    .toSorted((a, b) => {
-      return a[0].localeCompare(b[0]);
-    })
-    .reduce(
-      (acc, [tag, options]) =>
-        tags.includes(tag) ? mergeDeep(acc, options) : acc,
-      {} as { properties: Record<string, unknown> },
-    );
+  let overrideTag: { properties: Record<string, unknown> } = {
+    properties: {},
+  };
+  const sortedTags = Object.entries(safeMockOptions.tags ?? {}).toSorted(
+    (a, b) => a[0].localeCompare(b[0]),
+  );
+  for (const [tag, options] of sortedTags) {
+    if (!tags.includes(tag)) {
+      continue;
+    }
+    overrideTag = mergeDeep(overrideTag, options);
+  }
 
   const tagProperty = resolveMockOverride(overrideTag.properties, item);
 
@@ -82,14 +92,15 @@ export function getMockScalar({
     return tagProperty;
   }
 
-  const property = resolveMockOverride(mockOptions?.properties, item);
+  const property = resolveMockOverride(safeMockOptions.properties, item);
 
   if (property) {
     return property;
   }
 
   if (
-    (context.output.override.mock?.useExamples || mockOptions?.useExamples) &&
+    (context.output.override.mock?.useExamples ||
+      safeMockOptions.useExamples) &&
     item.example !== undefined
   ) {
     return {
@@ -100,9 +111,14 @@ export function getMockScalar({
     };
   }
 
-  const ALL_FORMAT = {
+  const formatOverrides = safeMockOptions.format ?? {};
+  const ALL_FORMAT: Record<string, string> = {
     ...DEFAULT_FORMAT_MOCK,
-    ...mockOptions?.format,
+    ...Object.fromEntries(
+      Object.entries(formatOverrides).filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string',
+      ),
+    ),
   };
 
   const isNullable = Array.isArray(item.type) && item.type.includes('null');
@@ -135,13 +151,32 @@ export function getMockScalar({
         (item.format === 'int64' || item.format === 'uint64')
           ? 'bigInt'
           : 'int';
+      const numMin = (item.exclusiveMinimum ??
+        item.minimum ??
+        safeMockOptions.numberMin) as number | undefined;
+      const numMax = (item.exclusiveMaximum ??
+        item.maximum ??
+        safeMockOptions.numberMax) as number | undefined;
+      const intParts: string[] = [];
+      if (numMin !== undefined) intParts.push(`min: ${numMin}`);
+      if (numMax !== undefined) intParts.push(`max: ${numMax}`);
+      if (isFakerV9 && item.multipleOf !== undefined)
+        intParts.push(`multipleOf: ${item.multipleOf}`);
       let value = getNullable(
-        `faker.number.${intFunction}({min: ${item.exclusiveMinimum ?? item.minimum ?? mockOptions?.numberMin}, max: ${item.exclusiveMaximum ?? item.maximum ?? mockOptions?.numberMax}${isFakerV9 && item.multipleOf !== undefined ? `, multipleOf: ${item.multipleOf}` : ''}})`,
+        `faker.number.${intFunction}(${intParts.length > 0 ? `{${intParts.join(', ')}}` : ''})`,
         isNullable,
       );
       if (type === 'number') {
+        const floatParts: string[] = [];
+        if (numMin !== undefined) floatParts.push(`min: ${numMin}`);
+        if (numMax !== undefined) floatParts.push(`max: ${numMax}`);
+        if (isFakerV9 && item.multipleOf !== undefined) {
+          floatParts.push(`multipleOf: ${item.multipleOf}`);
+        } else if (safeMockOptions.fractionDigits !== undefined) {
+          floatParts.push(`fractionDigits: ${safeMockOptions.fractionDigits}`);
+        }
         value = getNullable(
-          `faker.number.float({min: ${item.exclusiveMinimum ?? item.minimum ?? mockOptions?.numberMin}, max: ${item.exclusiveMaximum ?? item.maximum ?? mockOptions?.numberMax}${isFakerV9 && item.multipleOf !== undefined ? `, multipleOf: ${item.multipleOf}` : `, fractionDigits: ${mockOptions?.fractionDigits}`}})`,
+          `faker.number.float(${floatParts.length > 0 ? `{${floatParts.join(', ')}}` : ''})`,
           isNullable,
         );
       }
@@ -232,11 +267,22 @@ export function getMockScalar({
         mapValue = `{${value}}`;
       }
 
+      const arrMin = (item.minItems ?? safeMockOptions.arrayMin) as
+        | number
+        | undefined;
+      const arrMax = (item.maxItems ?? safeMockOptions.arrayMax) as
+        | number
+        | undefined;
+      const arrParts: string[] = [];
+      if (arrMin !== undefined) arrParts.push(`min: ${arrMin}`);
+      if (arrMax !== undefined) arrParts.push(`max: ${arrMax}`);
+      const arrLengthArg =
+        arrParts.length > 0 ? `{${arrParts.join(', ')}}` : '';
+
       return {
         value:
-          `Array.from({ length: faker.number.int({ ` +
-          `min: ${item.minItems ?? mockOptions?.arrayMin}, ` +
-          `max: ${item.maxItems ?? mockOptions?.arrayMax} }) ` +
+          `Array.from({ length: faker.number.int(` +
+          `${arrLengthArg}) ` +
           `}, (_, i) => i + 1).map(() => (${mapValue}))`,
         imports: resolvedImports,
         name: item.name,
@@ -244,7 +290,17 @@ export function getMockScalar({
     }
 
     case 'string': {
-      const length = `{length: {min: ${item.minLength ?? mockOptions?.stringMin}, max: ${item.maxLength ?? mockOptions?.stringMax}}}`;
+      const strMin = (item.minLength ?? safeMockOptions.stringMin) as
+        | number
+        | undefined;
+      const strMax = (item.maxLength ?? safeMockOptions.stringMax) as
+        | number
+        | undefined;
+      const strLenParts: string[] = [];
+      if (strMin !== undefined) strLenParts.push(`min: ${strMin}`);
+      if (strMax !== undefined) strLenParts.push(`max: ${strMax}`);
+      const length =
+        strLenParts.length > 0 ? `{length: {${strLenParts.join(', ')}}}` : '';
       let value = `faker.string.alpha(${length})`;
       const stringImports: GeneratorImport[] = [];
 

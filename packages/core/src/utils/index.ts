@@ -16,6 +16,7 @@ export * from './logger';
 export * from './merge-deep';
 export * from './occurrence';
 export * as upath from './path';
+export * from './resolve-version';
 export * from './sort';
 export * from './string';
 export * from './tsconfig';
