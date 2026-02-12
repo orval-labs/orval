@@ -107,6 +107,8 @@ export class ${title} {
 export const generateAngularHeader: ClientHeaderBuilder = (params) =>
   createAngularHeader()(params);
 
+const standaloneFooterReturnTypesToWrite = new Map<string, string>();
+
 const createAngularFooter =
   (returnTypesToWrite: ReturnTypesToWrite): ClientFooterBuilder =>
   ({ operationNames }) => {
@@ -125,7 +127,7 @@ const createAngularFooter =
   };
 
 export const generateAngularFooter: ClientFooterBuilder = (params) =>
-  createAngularFooter(new Map())(params);
+  createAngularFooter(standaloneFooterReturnTypesToWrite)(params);
 
 const generateImplementation = (
   returnTypesToWrite: ReturnTypesToWrite,
