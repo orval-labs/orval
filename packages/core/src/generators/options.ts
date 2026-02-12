@@ -146,8 +146,8 @@ export function generateAxiosOptions({
     if (queryParams) {
       if (isAngular) {
         value += paramsSerializer
-          ? `\n        params: ${paramsSerializer.name}(${getAngularFilteredParamsExpression('params', requiredNullableQueryParamKeys)}),`
-          : `\n        params: ${getAngularFilteredParamsExpression('params', requiredNullableQueryParamKeys)},`;
+          ? `\n        params: ${paramsSerializer.name}(${getAngularFilteredParamsExpression('params ?? {}', requiredNullableQueryParamKeys)}),`
+          : `\n        params: ${getAngularFilteredParamsExpression('params ?? {}', requiredNullableQueryParamKeys)},`;
       } else {
         value += '\n        params,';
       }

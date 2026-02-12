@@ -378,7 +378,7 @@ describe('generateAxiosOptions', () => {
       });
 
       expect(result).toContain(
-        'for (const [key, value] of Object.entries(params))',
+        'for (const [key, value] of Object.entries(params ?? {}))',
       );
       expect(result).toContain(
         'const filteredParams = {} as Record<string, string | number | boolean | null | Array<string | number | boolean>>',
