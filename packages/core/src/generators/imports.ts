@@ -10,7 +10,7 @@ import {
 import { conventionName } from '../utils';
 
 interface GenerateImportsOptions {
-  imports: GeneratorImport[];
+  imports: readonly GeneratorImport[];
   target: string;
   namingConvention?: NamingConvention;
 }
@@ -25,7 +25,15 @@ export function generateImports({
 
   const normalized = uniqueWith(
     imports,
-    (a, b) => a.name === b.name && a.default === b.default,
+    (a, b) =>
+      a.name === b.name &&
+      a.default === b.default &&
+      a.alias === b.alias &&
+      a.values === b.values &&
+      a.isConstant === b.isConstant &&
+      a.namespaceImport === b.namespaceImport &&
+      a.syntheticDefaultImport === b.syntheticDefaultImport &&
+      a.importPath === b.importPath,
   ).map((imp) => ({
     ...imp,
     importPath:
@@ -142,7 +150,7 @@ export function generateMutatorImports({
 
 interface GenerateDependencyOptions {
   key: string;
-  deps: GeneratorImport[];
+  deps: readonly GeneratorImport[];
   dependency: string;
   projectName?: string;
   isAllowSyntheticDefaultImports: boolean;
@@ -210,7 +218,7 @@ function generateDependency({
 
 interface AddDependencyOptions {
   implementation: string;
-  exports: GeneratorImport[];
+  exports: readonly GeneratorImport[];
   dependency: string;
   projectName?: string;
   hasSchemaDir: boolean;
@@ -272,7 +280,11 @@ export function addDependency({
           let uniqueTypes = types;
           if (values.length > 0) {
             uniqueTypes = types.filter(
-              (t) => !values.some((v) => v.name === t.name),
+              (t) =>
+                !values.some(
+                  (v) =>
+                    v.name === t.name && (v.alias ?? '') === (t.alias ?? ''),
+                ),
             );
             dep += '\n';
           }
@@ -300,7 +312,7 @@ function getLibName(code: string) {
 export function generateDependencyImports(
   implementation: string,
   imports: {
-    exports: GeneratorImport[];
+    exports: readonly GeneratorImport[];
     dependency: string;
   }[],
   projectName: string | undefined,
@@ -345,7 +357,7 @@ export function generateVerbImports({
   headers,
   params,
 }: GeneratorVerbOptions): GeneratorImport[] {
-  return [
+  const imports: GeneratorImport[] = [
     ...response.imports,
     ...body.imports,
     ...props.flatMap((prop) =>
@@ -357,4 +369,20 @@ export function generateVerbImports({
     ...(headers ? [{ name: headers.schema.name }] : []),
     ...params.flatMap<GeneratorImport>(({ imports }) => imports),
   ];
+
+  // Zod schema named `Error` is a common collision with the global `Error` value.
+  // If we need it as a runtime value (e.g. `.parse()`), alias the value import to
+  // `ErrorSchema` while keeping the `Error` type available.
+  return imports.flatMap((imp) => {
+    if (imp.name !== 'Error' || !imp.values || imp.alias) {
+      return [imp];
+    }
+
+    return [
+      // Type-only import keeps `Error` usable as a type.
+      { ...imp, values: undefined },
+      // Value import is aliased to avoid shadowing `globalThis.Error`.
+      { ...imp, alias: 'ErrorSchema', values: true },
+    ];
+  });
 }
