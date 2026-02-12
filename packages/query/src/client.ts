@@ -29,7 +29,7 @@ import {
   vueWrapTypeWithMaybeRef,
 } from './utils';
 
-export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
+export const AXIOS_DEPENDENCIES = [
   {
     exports: [
       {
@@ -44,9 +44,9 @@ export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
     ],
     dependency: 'axios',
   },
-];
+] as const satisfies readonly GeneratorDependency[];
 
-export const ANGULAR_HTTP_DEPENDENCIES: GeneratorDependency[] = [
+export const ANGULAR_HTTP_DEPENDENCIES = [
   {
     exports: [
       { name: 'HttpClient', values: true },
@@ -71,7 +71,7 @@ export const ANGULAR_HTTP_DEPENDENCIES: GeneratorDependency[] = [
     ],
     dependency: 'rxjs/operators',
   },
-];
+] as const satisfies readonly GeneratorDependency[];
 
 export const generateQueryRequestFunction = (
   verbOptions: GeneratorVerbOptions,
@@ -255,7 +255,9 @@ export const generateAngularHttpRequestFunction = (
 
   // If validation is enabled, pipe through map(data => Schema.parse(data))
   if (isValidateResponse) {
-    httpCall = `${httpCall}.pipe(map(data => ${responseType}.parse(data)))`;
+    const schemaValueRef =
+      responseType === 'Error' ? 'ErrorSchema' : responseType;
+    httpCall = `${httpCall}.pipe(map(data => ${schemaValueRef}.parse(data)))`;
   }
 
   // For Angular, we use takeUntil with fromEvent to handle AbortSignal cancellation

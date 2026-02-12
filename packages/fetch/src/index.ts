@@ -234,6 +234,7 @@ ${
   const nonDefaultStatuses = allResponses
     .filter((r) => r.key !== 'default')
     .map((r) => getStatusCodeType(r.key));
+  const uniqueNonDefaultStatuses = [...new Set(nonDefaultStatuses)];
   const responseDataTypes = allResponses
     .map((r) =>
       allResponses.filter((r2) => r2.key === r.key).length > 1
@@ -251,8 +252,8 @@ ${
   ${isContentTypeNdJson(r.contentType) ? `stream: TypedResponse<${dataType}>` : `data: ${dataType}`}
   status: ${
     r.key === 'default'
-      ? nonDefaultStatuses.length > 0
-        ? `Exclude<HTTPStatusCodes, ${nonDefaultStatuses.join(' | ')}>`
+      ? uniqueNonDefaultStatuses.length > 0
+        ? `Exclude<HTTPStatusCodes, ${uniqueNonDefaultStatuses.join(' | ')}>`
         : 'number'
       : getStatusCodeType(r.key)
   }
@@ -381,6 +382,8 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   }
 `;
   const reviver = fetchReviver ? `, ${fetchReviver.name}` : '';
+  const schemaValueRef =
+    responseType === 'Error' ? 'ErrorSchema' : responseType;
   const throwOnErrorImplementation = `if (!${isNdJson ? 'stream' : 'res'}.ok) {
     ${isNdJson ? 'const body = [204, 205, 304].includes(stream.status) ? null : await stream.text();' : ''}
     const err: globalThis.Error & {info?: ${hasError ? `${errorName}${override.fetch.includeHttpResponseReturnType ? "['data']" : ''}` : 'any'}, status?: number} = new globalThis.Error();
@@ -401,7 +404,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   ${
     isValidateResponse
       ? `const parsedBody = body ? JSON.parse(body${reviver}) : {}
-  const data = ${responseType}.parse(parsedBody)`
+  const data = ${schemaValueRef}.parse(parsedBody)`
       : `const data: ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}`
   }
   ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : 'return data'}
