@@ -528,40 +528,48 @@ const getPackageByQueryClient = (
 ) => {
   switch (queryClient) {
     case 'react-query': {
+      const pkgName = '@tanstack/react-query';
       return (
-        packageJson?.dependencies?.['@tanstack/react-query'] ??
-        packageJson?.devDependencies?.['@tanstack/react-query'] ??
-        packageJson?.peerDependencies?.['@tanstack/react-query']
+        packageJson?.resolvedVersions?.[pkgName] ??
+        packageJson?.dependencies?.[pkgName] ??
+        packageJson?.devDependencies?.[pkgName] ??
+        packageJson?.peerDependencies?.[pkgName]
       );
     }
     case 'svelte-query': {
+      const pkgName = '@tanstack/svelte-query';
       return (
-        packageJson?.dependencies?.['@tanstack/svelte-query'] ??
-        packageJson?.devDependencies?.['@tanstack/svelte-query'] ??
-        packageJson?.peerDependencies?.['@tanstack/svelte-query']
+        packageJson?.resolvedVersions?.[pkgName] ??
+        packageJson?.dependencies?.[pkgName] ??
+        packageJson?.devDependencies?.[pkgName] ??
+        packageJson?.peerDependencies?.[pkgName]
       );
     }
     case 'vue-query': {
+      const pkgName = '@tanstack/vue-query';
       return (
-        packageJson?.dependencies?.['@tanstack/vue-query'] ??
-        packageJson?.devDependencies?.['@tanstack/vue-query'] ??
-        packageJson?.peerDependencies?.['@tanstack/vue-query']
+        packageJson?.resolvedVersions?.[pkgName] ??
+        packageJson?.dependencies?.[pkgName] ??
+        packageJson?.devDependencies?.[pkgName] ??
+        packageJson?.peerDependencies?.[pkgName]
       );
     }
     case 'angular-query': {
+      const pkgName = '@tanstack/angular-query-experimental';
       return (
-        packageJson?.dependencies?.['@tanstack/angular-query-experimental'] ??
-        packageJson?.devDependencies?.[
-          '@tanstack/angular-query-experimental'
-        ] ??
-        packageJson?.peerDependencies?.['@tanstack/angular-query-experimental']
+        packageJson?.resolvedVersions?.[pkgName] ??
+        packageJson?.dependencies?.[pkgName] ??
+        packageJson?.devDependencies?.[pkgName] ??
+        packageJson?.peerDependencies?.[pkgName]
       );
     }
     case 'solid-query': {
+      const pkgName = '@tanstack/solid-query';
       return (
-        packageJson?.dependencies?.['@tanstack/solid-query'] ??
-        packageJson?.devDependencies?.['@tanstack/solid-query'] ??
-        packageJson?.peerDependencies?.['@tanstack/solid-query']
+        packageJson?.resolvedVersions?.[pkgName] ??
+        packageJson?.dependencies?.[pkgName] ??
+        packageJson?.devDependencies?.[pkgName] ??
+        packageJson?.peerDependencies?.[pkgName]
       );
     }
   }
