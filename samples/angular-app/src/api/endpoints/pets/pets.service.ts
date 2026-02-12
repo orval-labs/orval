@@ -344,7 +344,7 @@ export class PetsService {
     accept?: string,
     version?: number,
     options?: HttpClientOptions,
-  ): Observable<string>;
+  ): Observable<Pet | string | Blob>;
   showPetById(
     petId: string,
     accept: string = 'text/plain',

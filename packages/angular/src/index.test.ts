@@ -223,7 +223,7 @@ describe('angular generator implementation signature', () => {
       "accept: 'application/json', options?: HttpClientOptions): Observable<Pet>;",
     );
     expect(implementation).toContain(
-      'accept?: string, options?: HttpClientOptions): Observable<string>;',
+      'accept?: string, options?: HttpClientOptions): Observable<Pet | string | Blob>;',
     );
     expect(implementation).toContain(
       'const headers = options?.headers instanceof HttpHeaders',

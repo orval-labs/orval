@@ -273,6 +273,22 @@ const generateImplementation = (
     defaultType?.value ?? dataType,
   );
 
+  const jsonSuccessValues = [
+    ...new Set(
+      successTypes
+        .filter(
+          ({ contentType }) =>
+            !!contentType &&
+            (contentType.includes('json') || contentType.includes('+json')),
+        )
+        .map(({ value }) => value),
+    ),
+  ];
+
+  const jsonReturnType =
+    jsonSuccessValues.length > 0 ? jsonSuccessValues.join(' | ') : 'unknown';
+  const multiImplementationReturnType = `Observable<${jsonReturnType} | string | Blob>`;
+
   const withObserveMode = (
     generatedOptions: string,
     observeMode: 'body' | 'events' | 'response',
@@ -337,7 +353,7 @@ const generateImplementation = (
     const allParams = [requiredPart, 'accept?: string', optionalPart]
       .filter(Boolean)
       .join(',\n    ');
-    contentTypeOverloads += `\n  ${operationName}(${allParams}, options?: HttpClientOptions): Observable<${defaultReturnType}>;`;
+    contentTypeOverloads += `\n  ${operationName}(${allParams}, options?: HttpClientOptions): ${multiImplementationReturnType};`;
   }
 
   const observeOverloads =
@@ -371,22 +387,6 @@ const generateImplementation = (
     ]
       .filter(Boolean)
       .join(',\n    ');
-
-    const jsonSuccessValues = [
-      ...new Set(
-        successTypes
-          .filter(
-            ({ contentType }) =>
-              !!contentType &&
-              (contentType.includes('json') || contentType.includes('+json')),
-          )
-          .map(({ value }) => value),
-      ),
-    ];
-
-    const jsonReturnType =
-      jsonSuccessValues.length > 0 ? jsonSuccessValues.join(' | ') : 'unknown';
-    const multiImplementationReturnType = `Observable<${jsonReturnType} | string | Blob>`;
 
     return ` ${overloads}
   ${operationName}(
