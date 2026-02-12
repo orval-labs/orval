@@ -175,7 +175,10 @@ export const generateAngularHttpRequestFunction = (
   // Build URL with query params - use httpParams to avoid shadowing the 'params' variable
   const hasQueryParams = queryParams?.schema.name;
   // The queryParams variable from function props is always named 'params'
-  const filteredParamsExpression = getAngularFilteredParamsExpression('params');
+  const filteredParamsExpression = getAngularFilteredParamsExpression(
+    'params',
+    queryParams?.requiredNullableKeys,
+  );
   const urlConstruction = hasQueryParams
     ? `const httpParams = params ? new HttpParams({ fromObject: ${filteredParamsExpression} }) : undefined;
     const url = \`${route}\`;`

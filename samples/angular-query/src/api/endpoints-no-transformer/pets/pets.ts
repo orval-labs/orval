@@ -47,7 +47,10 @@ export const searchPets = (
   const httpParams = params
     ? new HttpParams({
         fromObject: (() => {
-          const requiredNullableParamKeys = new Set<string>([]);
+          const requiredNullableParamKeys = new Set<string>([
+            'requirednullableString',
+            'requirednullableStringTwo',
+          ]);
           const filteredParams = {} as Record<
             string,
             string | number | boolean | null | Array<string | number | boolean>
