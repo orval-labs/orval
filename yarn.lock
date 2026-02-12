@@ -6851,19 +6851,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/angular-query-experimental@npm:^5.62.7":
-  version: 5.90.16
-  resolution: "@tanstack/angular-query-experimental@npm:5.90.16"
+"@tanstack/angular-query-experimental@npm:^5.90.16":
+  version: 5.90.25
+  resolution: "@tanstack/angular-query-experimental@npm:5.90.25"
   dependencies:
-    "@tanstack/query-core": "npm:5.90.12"
-    "@tanstack/query-devtools": "npm:5.91.1"
+    "@tanstack/query-core": "npm:5.90.20"
+    "@tanstack/query-devtools": "npm:5.93.0"
   peerDependencies:
     "@angular/common": ">=16.0.0"
     "@angular/core": ">=16.0.0"
   dependenciesMeta:
     "@tanstack/query-devtools":
       optional: true
-  checksum: 10c0/0806c4b9b4bc1643c5189782e8e0ae203e986534a78dffa5a3eb3597f589960c70ca8a967ec97b975852848b5aafb2e7cabc059294a1473e068a5f444b79b4da
+  checksum: 10c0/f3cb0aaa9b3f5284068f0337cecd1493e5da4a0ae588d1c1fe8b9748ae12336d13965d82bd58cfae752f624b2d2d4e8dca68dcaafd4034b7f28aeb31bfa1badc
   languageName: node
   linkType: hard
 
@@ -6890,13 +6890,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-core@npm:5.90.12":
-  version: 5.90.12
-  resolution: "@tanstack/query-core@npm:5.90.12"
-  checksum: 10c0/60d5dd23d7801118d6ef84a3d76e798aaf6eb851ee5227629a1dc798fa01ac9560580553413208fcc8a003fb12a89e83d6dd1f38ebc3bd9b6e8838cfaaa45fef
-  languageName: node
-  linkType: hard
-
 "@tanstack/query-core@npm:5.90.18":
   version: 5.90.18
   resolution: "@tanstack/query-core@npm:5.90.18"
@@ -6911,10 +6904,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-devtools@npm:5.91.1":
-  version: 5.91.1
-  resolution: "@tanstack/query-devtools@npm:5.91.1"
-  checksum: 10c0/856d85d249fd46a9f191a345f4446dcfb11a6b48d664f18f5bf480d0802fde5089ca7ae39e26e3445256a13f12f9b77b8639c33ad26c9d1e4b4c56a00fdb9b8c
+"@tanstack/query-core@npm:5.90.20":
+  version: 5.90.20
+  resolution: "@tanstack/query-core@npm:5.90.20"
+  checksum: 10c0/70637dfcecd5ed9d810629aa27f1632af8a4bcd083e75cf29408d058c32f8234704a3231ec280e2c4016ea0485b16124fdf70ab97793b5a7b670f43f7659e9fe
+  languageName: node
+  linkType: hard
+
+"@tanstack/query-devtools@npm:5.93.0":
+  version: 5.93.0
+  resolution: "@tanstack/query-devtools@npm:5.93.0"
+  checksum: 10c0/0024cef103f48c50f3932f6bfe5d77b4fde25be49d43486f8ef7ec7108d2c1bd999ebc7a46309f0504bf081daa7217b36637e9436d67f9a1599c89a385d078ee
   languageName: node
   linkType: hard
 
@@ -9131,7 +9131,7 @@ __metadata:
     "@angular/platform-browser": "catalog:angular"
     "@angular/router": "catalog:angular"
     "@faker-js/faker": "catalog:tooling"
-    "@tanstack/angular-query-experimental": "npm:^5.62.7"
+    "@tanstack/angular-query-experimental": "npm:^5.90.16"
     "@testing-library/angular": "npm:19.0.0"
     msw: "catalog:tooling"
     orval: "link:../../packages/orval/dist"
