@@ -282,9 +282,6 @@ const generateImplementation = (
       ? 'text/plain'
       : getDefaultContentType(uniqueContentTypes)
     : (uniqueContentTypes[0] ?? 'application/json');
-  const defaultType = hasMultipleContentTypes
-    ? successTypes.find((t) => t.contentType === defaultContentType)
-    : undefined;
   const getContentTypeReturnType = (
     contentType: string | undefined,
     value: string,
@@ -303,11 +300,6 @@ const generateImplementation = (
 
     return 'Blob';
   };
-
-  const defaultReturnType = getContentTypeReturnType(
-    defaultType?.contentType,
-    defaultType?.value ?? dataType,
-  );
 
   const jsonSuccessValues = [
     ...new Set(
