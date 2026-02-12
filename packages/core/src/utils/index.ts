@@ -18,4 +18,5 @@ export * from './occurrence';
 export * as upath from './path';
 export * from './sort';
 export * from './string';
+export * from './resolve-version';
 export * from './tsconfig';

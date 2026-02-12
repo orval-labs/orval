@@ -827,6 +827,7 @@ export interface PackageJson {
   peerDependencies?: Record<string, string>;
   catalog?: Record<string, string>;
   catalogs?: Record<string, Record<string, string>>;
+  resolvedVersions?: Record<string, string>;
 }
 
 export type GeneratorSchema = {
