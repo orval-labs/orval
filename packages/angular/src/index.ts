@@ -247,7 +247,29 @@ const generateImplementation = (
   const defaultType = hasMultipleContentTypes
     ? successTypes.find((t) => t.contentType === defaultContentType)
     : undefined;
-  const defaultReturnType = defaultType?.value ?? dataType;
+  const getContentTypeReturnType = (
+    contentType: string | undefined,
+    value: string,
+  ): string => {
+    if (!contentType) {
+      return value;
+    }
+
+    if (contentType.includes('json') || contentType.includes('+json')) {
+      return value;
+    }
+
+    if (contentType.startsWith('text/') || contentType.includes('xml')) {
+      return 'string';
+    }
+
+    return 'Blob';
+  };
+
+  const defaultReturnType = getContentTypeReturnType(
+    defaultType?.contentType,
+    defaultType?.value ?? dataType,
+  );
 
   const withObserveMode = (
     generatedOptions: string,
@@ -292,6 +314,7 @@ const generateImplementation = (
     contentTypeOverloads = successTypes
       .filter((t) => t.contentType)
       .map(({ contentType, value }) => {
+        const returnType = getContentTypeReturnType(contentType, value);
         const requiredPart = requiredProps
           .map((p) => p.definition)
           .join(',\n    ');
@@ -303,7 +326,7 @@ const generateImplementation = (
         const allParams = [requiredPart, acceptPart, optionalPart]
           .filter(Boolean)
           .join(',\n    ');
-        return `${operationName}(${allParams}, options?: HttpClientOptions): Observable<${value}>;`;
+        return `${operationName}(${allParams}, options?: HttpClientOptions): Observable<${returnType}>;`;
       })
       .join('\n  ');
 

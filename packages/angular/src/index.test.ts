@@ -101,4 +101,133 @@ describe('angular generator implementation signature', () => {
     expect(implementation).toContain("observe: 'body'");
     expect(implementation).not.toContain('Observable<any>');
   });
+
+  it('should emit content-type overloads aligned with runtime responseType branches', async () => {
+    const body: GetterBody = {
+      originalSchema: {},
+      imports: [],
+      definition: '',
+      implementation: '',
+      schemas: [],
+      formData: undefined,
+      formUrlEncoded: undefined,
+      contentType: 'application/json',
+      isOptional: true,
+    };
+
+    const response: GetterResponse = {
+      imports: [],
+      definition: {
+        success: 'Pet',
+        errors: 'unknown',
+      },
+      isBlob: false,
+      types: {
+        success: [
+          {
+            value: 'string',
+            isEnum: false,
+            type: 'string',
+            imports: [],
+            schemas: [],
+            isRef: false,
+            hasReadonlyProps: false,
+            dependencies: [],
+            example: undefined,
+            examples: undefined,
+            key: '200',
+            contentType: 'text/plain',
+            originalSchema: {},
+          },
+          {
+            value: 'Pet',
+            isEnum: false,
+            type: 'object',
+            imports: [],
+            schemas: [],
+            isRef: false,
+            hasReadonlyProps: false,
+            dependencies: [],
+            example: undefined,
+            examples: undefined,
+            key: '200',
+            contentType: 'application/xml',
+            originalSchema: {},
+          },
+          {
+            value: 'Pet',
+            isEnum: false,
+            type: 'object',
+            imports: [],
+            schemas: [],
+            isRef: false,
+            hasReadonlyProps: false,
+            dependencies: [],
+            example: undefined,
+            examples: undefined,
+            key: '200',
+            contentType: 'application/json',
+            originalSchema: {},
+          },
+        ],
+        errors: [],
+      },
+      contentTypes: ['text/plain', 'application/xml', 'application/json'],
+      schemas: [],
+      originalSchema: {},
+    };
+
+    const verbOptions = {
+      headers: undefined,
+      queryParams: undefined,
+      operationName: 'getPetByContentType',
+      response,
+      mutator: undefined,
+      body,
+      props: [],
+      params: [],
+      verb: Verbs.GET,
+      override: {
+        requestOptions: true,
+        formData: { disabled: true },
+        formUrlEncoded: false,
+        paramsSerializerOptions: undefined,
+      },
+      formData: undefined,
+      formUrlEncoded: undefined,
+      paramsSerializer: undefined,
+    } as unknown as GeneratorVerbOptions;
+
+    const { implementation } = await generateAngular(
+      verbOptions,
+      {
+        route: '/pet/{petId}',
+        context: {
+          output: {
+            tsconfig: {
+              compilerOptions: {},
+            },
+          },
+        },
+      } as never,
+      'angular',
+    );
+
+    expect(implementation).toContain(
+      "accept: 'text/plain', options?: HttpClientOptions): Observable<string>;",
+    );
+    expect(implementation).toContain(
+      "accept: 'application/xml', options?: HttpClientOptions): Observable<string>;",
+    );
+    expect(implementation).toContain(
+      "accept: 'application/json', options?: HttpClientOptions): Observable<Pet>;",
+    );
+    expect(implementation).toContain(
+      'accept?: string, options?: HttpClientOptions): Observable<string>;',
+    );
+    expect(implementation).not.toContain(
+      "accept: 'application/xml', options?: HttpClientOptions): Observable<Pet>;",
+    );
+    expect(implementation).not.toContain('Observable<any>');
+  });
 });

@@ -292,7 +292,7 @@ export class PetsService {
     accept: 'application/xml',
     version?: number,
     options?: HttpClientOptions,
-  ): Observable<Pet>;
+  ): Observable<string>;
   showPetById(
     petId: string,
     accept: 'application/json',
