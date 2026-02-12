@@ -29,7 +29,9 @@ const transformer = (inputSchema) => ({
             [verb]: {
               ...operation,
               parameters: [
-                ...(operation.parameters || []),
+                ...(operation.parameters || []).filter(
+                  (p) => !(p.name === 'version' && p.in === 'path')
+                ),
                 {
                   name: 'version',
                   in: 'path',
