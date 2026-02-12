@@ -20,12 +20,12 @@ import {
   toObjectString,
 } from '@orval/core';
 
-const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
+const ANGULAR_DEPENDENCIES = [
   {
     exports: [
       { name: 'HttpClient', values: true },
       { name: 'HttpHeaders' },
-      { name: 'HttpParams', values: true },
+      { name: 'HttpParams' },
       { name: 'HttpContext' },
       { name: 'HttpResponse', alias: 'AngularHttpResponse' }, // alias to prevent naming conflict with msw
       { name: 'HttpEvent' },
@@ -43,12 +43,13 @@ const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
     exports: [{ name: 'Observable', values: true }],
     dependency: 'rxjs',
   },
-];
+] as const satisfies readonly GeneratorDependency[];
 
 type ReturnTypesToWrite = Map<string, string>;
 
-export const getAngularDependencies: ClientDependenciesBuilder = () =>
-  ANGULAR_DEPENDENCIES;
+export const getAngularDependencies: ClientDependenciesBuilder = () => [
+  ...ANGULAR_DEPENDENCIES,
+];
 
 export const generateAngularTitle: ClientTitleBuilder = (title) => {
   const sanTitle = sanitize(title);
@@ -326,13 +327,13 @@ const generateImplementation = (
         ...options,
         responseType: 'text',
         headers: { Accept: accept, ...options?.headers },
-      }) as any;
+      }) as Observable<string>;
     } else {
       return this.http.${verb}(\`${route}\`, {
         ...options,
         responseType: 'blob',
         headers: { Accept: accept, ...options?.headers },
-      }) as any;
+      }) as Observable<Blob>;
     }
   }
 `;
@@ -385,6 +386,8 @@ const createAngularClientBuilder = (): ClientGeneratorsBuilder => {
   };
 };
 
-export const builder = () => () => createAngularClientBuilder();
+export const builder: () => () => ClientGeneratorsBuilder = () => {
+  return () => createAngularClientBuilder();
+};
 
 export default builder;
