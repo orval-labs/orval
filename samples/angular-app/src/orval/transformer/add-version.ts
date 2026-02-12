@@ -37,8 +37,8 @@ const transformer: InputTransformerFn = (inputSchema) => ({
               ...operation,
               parameters: [
                 ...(
-                  (operation as { parameters?: OperationParameter[] }).parameters ??
-                  []
+                  (operation as { parameters?: OperationParameter[] })
+                    .parameters ?? []
                 ).filter(
                   (p: OperationParameter) =>
                     !(p.name === 'version' && p.in === 'path'),
