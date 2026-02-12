@@ -67,7 +67,7 @@ ${
   context?: HttpContext;
   params?:
         | HttpParams
-        | Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>;
+      | Record<string, string | number | boolean | Array<string | number | boolean>>;
   reportProgress?: boolean;
   withCredentials?: boolean;
   credentials?: RequestCredentials;
@@ -210,7 +210,7 @@ const generateImplementation = (
   `;
   }
 
-  const options = generateOptions({
+  const optionsBase = {
     route,
     body,
     headers,
@@ -225,7 +225,9 @@ const generateImplementation = (
     isAngular: true,
     isExactOptionalPropertyTypes,
     hasSignal: false,
-  });
+  } as const;
+
+  const options = generateOptions(optionsBase);
 
   const propsDefinition = toObjectString(props, 'definition');
 
@@ -246,6 +248,35 @@ const generateImplementation = (
     ? successTypes.find((t) => t.contentType === defaultContentType)
     : undefined;
   const defaultReturnType = defaultType?.value ?? dataType;
+
+  const withObserveMode = (
+    generatedOptions: string,
+    observeMode: 'body' | 'events' | 'response',
+  ): string => {
+    const spreadPattern =
+      "...(options as Omit<NonNullable<typeof options>, 'observe'>),";
+
+    if (generatedOptions.includes(spreadPattern)) {
+      return generatedOptions.replace(
+        spreadPattern,
+        `${spreadPattern}\n        observe: '${observeMode}',`,
+      );
+    }
+
+    return generatedOptions.replace(
+      "(options as Omit<NonNullable<typeof options>, 'observe'>)",
+      `{ ...(options as Omit<NonNullable<typeof options>, 'observe'>), observe: '${observeMode}' }`,
+    );
+  };
+
+  const observeOptions =
+    isRequestOptions && !hasMultipleContentTypes
+      ? {
+          body: withObserveMode(options, 'body'),
+          events: withObserveMode(options, 'events'),
+          response: withObserveMode(options, 'response'),
+        }
+      : undefined;
 
   const isModelType = dataType !== 'Blob' && dataType !== 'string';
   let functionName = operationName;
@@ -339,6 +370,24 @@ const generateImplementation = (
 `;
   }
 
+  const observeImplementation = isRequestOptions
+    ? `if (options?.observe === 'events') {
+      return this.http.${verb}${isModelType ? '<TData>' : ''}(${
+        observeOptions?.events ?? options
+      });
+    }
+
+    if (options?.observe === 'response') {
+      return this.http.${verb}${isModelType ? '<TData>' : ''}(${
+        observeOptions?.response ?? options
+      });
+    }
+
+    return this.http.${verb}${isModelType ? '<TData>' : ''}(${
+      observeOptions?.body ?? options
+    });`
+    : `return this.http.${verb}${isModelType ? '<TData>' : ''}(${options});`;
+
   return ` ${overloads}
   ${functionName}(
     ${toObjectString(props, 'implementation')} ${
@@ -346,7 +395,7 @@ const generateImplementation = (
         ? `options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' }`
         : ''
     }): Observable<any> {${bodyForm}
-    return this.http.${verb}${isModelType ? '<TData>' : ''}(${options});
+    ${observeImplementation}
   }
 `;
 };

@@ -94,5 +94,10 @@ describe('angular generator implementation signature', () => {
       "options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' }",
     );
     expect(implementation).not.toContain('observe?: any');
+    expect(implementation).toContain("if (options?.observe === 'events')");
+    expect(implementation).toContain("if (options?.observe === 'response')");
+    expect(implementation).toContain("observe: 'events'");
+    expect(implementation).toContain("observe: 'response'");
+    expect(implementation).toContain("observe: 'body'");
   });
 });

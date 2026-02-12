@@ -23,7 +23,7 @@ export const getAngularFilteredParamsExpression = (
   paramsExpression: string,
 ): string =>
   `(() => {
-  const filteredParams = {} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>;
+  const filteredParams = {} as Record<string, string | number | boolean | Array<string | number | boolean>>;
   for (const [key, value] of Object.entries(${paramsExpression})) {
     if (Array.isArray(value)) {
       const filtered = value.filter(
@@ -32,7 +32,7 @@ export const getAngularFilteredParamsExpression = (
           (typeof item === 'string' ||
             typeof item === 'number' ||
             typeof item === 'boolean'),
-      ) as ReadonlyArray<string | number | boolean>;
+          ) as Array<string | number | boolean>;
       if (filtered.length) {
         filteredParams[key] = filtered;
       }
@@ -79,6 +79,7 @@ export function generateBodyOptions(
 interface GenerateAxiosOptions {
   response: GetterResponse;
   isExactOptionalPropertyTypes: boolean;
+  angularObserve?: 'body' | 'events' | 'response';
   queryParams?: GeneratorSchema;
   headers?: GeneratorSchema;
   requestOptions?: object | boolean;
@@ -93,6 +94,7 @@ interface GenerateAxiosOptions {
 export function generateAxiosOptions({
   response,
   isExactOptionalPropertyTypes,
+  angularObserve,
   queryParams,
   headers,
   requestOptions,
@@ -116,7 +118,12 @@ export function generateAxiosOptions({
   ) {
     if (isRequestOptions) {
       return isAngular
-        ? "(options as Omit<NonNullable<typeof options>, 'observe'>)"
+        ? angularObserve
+          ? `{
+        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+        observe: '${angularObserve}',
+      }`
+          : "(options as Omit<NonNullable<typeof options>, 'observe'>)"
         : 'options';
     }
     if (hasSignal) {
@@ -170,6 +177,10 @@ export function generateAxiosOptions({
       ? "\n    ...(options as Omit<NonNullable<typeof options>, 'observe'>),"
       : '\n    ...options,';
 
+    if (isAngular && angularObserve) {
+      value += `\n        observe: '${angularObserve}',`;
+    }
+
     if (queryParams) {
       if (isVue) {
         value += '\n        params: {...unref(params), ...options?.params},';
@@ -206,6 +217,7 @@ export function generateAxiosOptions({
 interface GenerateOptionsOptions {
   route: string;
   body: GetterBody;
+  angularObserve?: 'body' | 'events' | 'response';
   headers?: GetterQueryParam;
   queryParams?: GetterQueryParam;
   response: GetterResponse;
@@ -225,6 +237,7 @@ interface GenerateOptionsOptions {
 export function generateOptions({
   route,
   body,
+  angularObserve,
   headers,
   queryParams,
   response,
@@ -246,6 +259,7 @@ export function generateOptions({
 
   const axiosOptions = generateAxiosOptions({
     response,
+    angularObserve,
     queryParams: queryParams?.schema,
     headers: headers?.schema,
     requestOptions,
