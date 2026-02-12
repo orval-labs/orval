@@ -161,6 +161,7 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseMutationOptions' },
       { name: 'QueryFunction' },
       { name: 'MutationFunction' },
+      { name: 'MutationFunctionContext' },
       { name: 'UseQueryResult' },
       { name: 'DefinedUseQueryResult' },
       { name: 'UseSuspenseQueryResult' },
@@ -475,6 +476,46 @@ export const isQueryV5WithDataTagError = (
   const withoutRc = version.split('-')[0];
 
   return compareVersions(withoutRc, '5.62.0');
+};
+
+export const isQueryV5WithRequiredContextOnSuccess = (
+  packageJson: PackageJson | undefined,
+  queryClient:
+    | 'react-query'
+    | 'vue-query'
+    | 'svelte-query'
+    | 'angular-query'
+    | 'solid-query',
+) => {
+  const version = getPackageByQueryClient(packageJson, queryClient);
+
+  if (!version) {
+    return false;
+  }
+
+  const withoutRc = version.split('-')[0];
+
+  return compareVersions(withoutRc, '5.14.1');
+};
+
+export const isQueryV5WithMutationContextOnSuccess = (
+  packageJson: PackageJson | undefined,
+  queryClient:
+    | 'react-query'
+    | 'vue-query'
+    | 'svelte-query'
+    | 'angular-query'
+    | 'solid-query',
+) => {
+  const version = getPackageByQueryClient(packageJson, queryClient);
+
+  if (!version) {
+    return false;
+  }
+
+  const withoutRc = version.split('-')[0];
+
+  return compareVersions(withoutRc, '5.89.0');
 };
 
 export const isQueryV5WithInfiniteQueryOptionsError = (

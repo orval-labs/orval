@@ -96,6 +96,8 @@ export interface FrameworkAdapter {
   readonly hasQueryV5: boolean;
   readonly hasQueryV5WithDataTagError: boolean;
   readonly hasQueryV5WithInfiniteQueryOptionsError: boolean;
+  readonly hasQueryV5WithMutationContextOnSuccess: boolean;
+  readonly hasQueryV5WithRequiredContextOnSuccess: boolean;
 
   // --- Props Transformation ---
   /** Vue: wraps with MaybeRef. Others: identity. */

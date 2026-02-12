@@ -32,12 +32,16 @@ export const createSvelteAdapter = ({
   hasQueryV5,
   hasQueryV5WithDataTagError,
   hasQueryV5WithInfiniteQueryOptionsError,
+  hasQueryV5WithMutationContextOnSuccess,
+  hasQueryV5WithRequiredContextOnSuccess,
 }: {
   hasSvelteQueryV4: boolean;
   hasSvelteQueryV6: boolean;
   hasQueryV5: boolean;
   hasQueryV5WithDataTagError: boolean;
   hasQueryV5WithInfiniteQueryOptionsError: boolean;
+  hasQueryV5WithMutationContextOnSuccess: boolean;
+  hasQueryV5WithRequiredContextOnSuccess: boolean;
 }): FrameworkAdapterConfig => {
   const prefix = hasSvelteQueryV4 ? 'Create' : 'Use';
 
@@ -47,6 +51,8 @@ export const createSvelteAdapter = ({
     hasQueryV5,
     hasQueryV5WithDataTagError,
     hasQueryV5WithInfiniteQueryOptionsError,
+    hasQueryV5WithMutationContextOnSuccess,
+    hasQueryV5WithRequiredContextOnSuccess,
 
     getHookPropsDefinitions(props: GetterProps): string {
       if (hasSvelteQueryV6) {
@@ -246,14 +252,14 @@ ${invalidateCalls}
   };`;
       }
       if (isRequestOptions) {
-        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext | undefined) => {
+        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext${hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
     if (!options?.skipInvalidation) {
 ${invalidateCalls}
     }
     mutationOptions?.onSuccess?.(data, variables, context);
   };`;
       }
-      return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext | undefined) => {
+      return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext${hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
 ${invalidateCalls}
     mutationOptions?.onSuccess?.(data, variables, context);
   };`;

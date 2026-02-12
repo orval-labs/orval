@@ -20,11 +20,15 @@ export const createSolidAdapter = ({
   hasQueryV5,
   hasQueryV5WithDataTagError,
   hasQueryV5WithInfiniteQueryOptionsError,
+  hasQueryV5WithMutationContextOnSuccess,
+  hasQueryV5WithRequiredContextOnSuccess,
   hasSolidQueryUsePrefix,
 }: {
   hasQueryV5: boolean;
   hasQueryV5WithDataTagError: boolean;
   hasQueryV5WithInfiniteQueryOptionsError: boolean;
+  hasQueryV5WithMutationContextOnSuccess: boolean;
+  hasQueryV5WithRequiredContextOnSuccess: boolean;
   hasSolidQueryUsePrefix: boolean;
 }): FrameworkAdapterConfig => ({
   outputClient: OutputClient.SOLID_QUERY,
@@ -32,6 +36,8 @@ export const createSolidAdapter = ({
   hasQueryV5,
   hasQueryV5WithDataTagError,
   hasQueryV5WithInfiniteQueryOptionsError,
+  hasQueryV5WithMutationContextOnSuccess,
+  hasQueryV5WithRequiredContextOnSuccess,
 
   getQueryOptionsDefinitionPrefix(): string {
     return hasSolidQueryUsePrefix ? 'Use' : 'Create';

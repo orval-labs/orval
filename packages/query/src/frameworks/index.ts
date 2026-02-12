@@ -16,6 +16,8 @@ import {
   isQueryV5,
   isQueryV5WithDataTagError,
   isQueryV5WithInfiniteQueryOptionsError,
+  isQueryV5WithMutationContextOnSuccess,
+  isQueryV5WithRequiredContextOnSuccess,
   isSolidQueryWithUsePrefix,
   isSvelteQueryV3,
   isSvelteQueryV6,
@@ -186,6 +188,10 @@ export const createFrameworkAdapter = ({
   const _hasQueryV5WithInfiniteQueryOptionsError =
     queryVersion === 5 ||
     isQueryV5WithInfiniteQueryOptionsError(packageJson, clientType);
+  const _hasQueryV5WithMutationContextOnSuccess =
+    isQueryV5WithMutationContextOnSuccess(packageJson, clientType);
+  const _hasQueryV5WithRequiredContextOnSuccess =
+    isQueryV5WithRequiredContextOnSuccess(packageJson, clientType);
 
   switch (outputClient) {
     case OutputClientConst.VUE_QUERY: {
@@ -197,6 +203,10 @@ export const createFrameworkAdapter = ({
           hasQueryV5WithDataTagError: _hasQueryV5WithDataTagError,
           hasQueryV5WithInfiniteQueryOptionsError:
             _hasQueryV5WithInfiniteQueryOptionsError,
+          hasQueryV5WithMutationContextOnSuccess:
+            _hasQueryV5WithMutationContextOnSuccess,
+          hasQueryV5WithRequiredContextOnSuccess:
+            _hasQueryV5WithRequiredContextOnSuccess,
         }),
       );
     }
@@ -213,6 +223,10 @@ export const createFrameworkAdapter = ({
           hasQueryV5WithDataTagError: _hasQueryV5WithDataTagError,
           hasQueryV5WithInfiniteQueryOptionsError:
             _hasQueryV5WithInfiniteQueryOptionsError,
+          hasQueryV5WithMutationContextOnSuccess:
+            _hasQueryV5WithMutationContextOnSuccess,
+          hasQueryV5WithRequiredContextOnSuccess:
+            _hasQueryV5WithRequiredContextOnSuccess,
         }),
       );
     }
@@ -224,6 +238,10 @@ export const createFrameworkAdapter = ({
           hasQueryV5WithDataTagError: _hasQueryV5WithDataTagError,
           hasQueryV5WithInfiniteQueryOptionsError:
             _hasQueryV5WithInfiniteQueryOptionsError,
+          hasQueryV5WithMutationContextOnSuccess:
+            _hasQueryV5WithMutationContextOnSuccess,
+          hasQueryV5WithRequiredContextOnSuccess:
+            _hasQueryV5WithRequiredContextOnSuccess,
         }),
       );
     }
@@ -236,6 +254,10 @@ export const createFrameworkAdapter = ({
           hasQueryV5WithDataTagError: _hasQueryV5WithDataTagError,
           hasQueryV5WithInfiniteQueryOptionsError:
             _hasQueryV5WithInfiniteQueryOptionsError,
+          hasQueryV5WithMutationContextOnSuccess:
+            _hasQueryV5WithMutationContextOnSuccess,
+          hasQueryV5WithRequiredContextOnSuccess:
+            _hasQueryV5WithRequiredContextOnSuccess,
           hasSolidQueryUsePrefix: hasSolidQueryWithUsePrefix,
         }),
       );
@@ -249,6 +271,10 @@ export const createFrameworkAdapter = ({
           hasQueryV5WithDataTagError: _hasQueryV5WithDataTagError,
           hasQueryV5WithInfiniteQueryOptionsError:
             _hasQueryV5WithInfiniteQueryOptionsError,
+          hasQueryV5WithMutationContextOnSuccess:
+            _hasQueryV5WithMutationContextOnSuccess,
+          hasQueryV5WithRequiredContextOnSuccess:
+            _hasQueryV5WithRequiredContextOnSuccess,
         }),
       );
     }
