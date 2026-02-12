@@ -30,7 +30,7 @@ const transformer = (inputSchema) => ({
               ...operation,
               parameters: [
                 ...(operation.parameters || []).filter(
-                  (p) => !(p.name === 'version' && p.in === 'path')
+                  (p) => !(p.name === 'version' && p.in === 'path'),
                 ),
                 {
                   name: 'version',
