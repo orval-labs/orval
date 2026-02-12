@@ -216,4 +216,35 @@ describe('getQueryParams getter', () => {
 
     expect(result?.requiredNullableKeys).toEqual(['requiredNullableParam']);
   });
+
+  it('tracks required nullable keys when nullability comes from oneOf', () => {
+    const result = getQueryParams({
+      queryParams: [
+        {
+          parameter: {
+            name: 'requiredOneOfNullableParam',
+            in: 'query',
+            required: true,
+            schema: {
+              oneOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+            },
+          },
+          imports: [],
+        },
+      ],
+      operationName: '',
+      context,
+    });
+
+    expect(result?.requiredNullableKeys).toEqual([
+      'requiredOneOfNullableParam',
+    ]);
+  });
 });

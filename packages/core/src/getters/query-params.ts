@@ -21,6 +21,16 @@ type QueryParamsType = {
   originalSchema: OpenApiSchemaObject;
 };
 
+const isOpenApiSchemaObject = (
+  value: unknown,
+): value is OpenApiSchemaObject => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  return !('$ref' in value);
+};
+
 const isSchemaNullable = (schema: OpenApiSchemaObject): boolean => {
   if (schema.nullable === true) {
     return true;
@@ -34,10 +44,16 @@ const isSchemaNullable = (schema: OpenApiSchemaObject): boolean => {
     return true;
   }
 
-  const variants = [...(schema.oneOf ?? []), ...(schema.anyOf ?? [])];
+  const oneOfVariants = Array.isArray(schema.oneOf)
+    ? (schema.oneOf as unknown[])
+    : [];
+  const anyOfVariants = Array.isArray(schema.anyOf)
+    ? (schema.anyOf as unknown[])
+    : [];
+  const variants = [...oneOfVariants, ...anyOfVariants];
 
   return variants.some((variant) => {
-    if (!variant || '$ref' in variant) {
+    if (!isOpenApiSchemaObject(variant)) {
       return false;
     }
 
