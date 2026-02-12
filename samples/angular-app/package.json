@@ -8,6 +8,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "CI=true ng test --no-watch",
+    "test:snapshots": "vitest run --config vitest.config.ts",
     "lint": "ng lint",
     "generate-api": "orval",
     "clean": "rimraf .turbo dist .angular src/api",
