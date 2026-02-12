@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
+import type { PackageJson } from '../types';
 import {
   resolveInstalledVersion,
   resolveInstalledVersions,
 } from './resolve-version';
-import type { PackageJson } from '../types';
 
 const projectDir = process.cwd();
 
@@ -55,8 +55,8 @@ describe('resolveInstalledVersions', () => {
     expect(result).toHaveProperty('vitest');
     expect(result).toHaveProperty('remeda');
     expect(result).not.toHaveProperty('nonexistent-pkg-xyz');
-    expect(result['vitest']).toMatch(/^\d+\.\d+\.\d+/);
-    expect(result['remeda']).toMatch(/^\d+\.\d+\.\d+/);
+    expect(result.vitest).toMatch(/^\d+\.\d+\.\d+/);
+    expect(result.remeda).toMatch(/^\d+\.\d+\.\d+/);
   });
 
   it('returns empty object when no dependencies', () => {
@@ -72,7 +72,7 @@ describe('resolveInstalledVersions', () => {
     const result = resolveInstalledVersions(packageJson, projectDir);
     const keys = Object.keys(result).filter((k) => k === 'vitest');
     expect(keys).toHaveLength(1);
-    expect(result['vitest']).toMatch(/^\d+\.\d+\.\d+/);
+    expect(result.vitest).toMatch(/^\d+\.\d+\.\d+/);
   });
 });
 
@@ -83,6 +83,6 @@ describe('PackageJson type', () => {
       resolvedVersions: { vitest: '4.0.16' },
     };
     expect(pkg.resolvedVersions).toBeDefined();
-    expect(pkg.resolvedVersions!['vitest']).toBe('4.0.16');
+    expect(pkg.resolvedVersions?.vitest).toBe('4.0.16');
   });
 });

@@ -1,6 +1,7 @@
+import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { readFileSync, existsSync } from 'node:fs';
-import { dirname, join, parse } from 'node:path';
+import path from 'node:path';
+
 import type { PackageJson } from '../types';
 
 export function resolveInstalledVersion(
@@ -8,7 +9,7 @@ export function resolveInstalledVersion(
   fromDir: string,
 ): string | undefined {
   try {
-    const require = createRequire(join(fromDir, 'noop.js'));
+    const require = createRequire(path.join(fromDir, 'noop.js'));
     try {
       const pkg = require(`${packageName}/package.json`) as {
         version?: string;
@@ -22,9 +23,9 @@ export function resolveInstalledVersion(
           'ERR_PACKAGE_PATH_NOT_EXPORTED'
       ) {
         const entryPath = require.resolve(packageName);
-        let dir = dirname(entryPath);
-        while (dir !== parse(dir).root) {
-          const pkgPath = join(dir, 'package.json');
+        let dir = path.dirname(entryPath);
+        while (dir !== path.parse(dir).root) {
+          const pkgPath = path.join(dir, 'package.json');
           if (existsSync(pkgPath)) {
             const pkgData = JSON.parse(readFileSync(pkgPath, 'utf8')) as {
               name?: string;
@@ -34,7 +35,7 @@ export function resolveInstalledVersion(
               return pkgData.version;
             }
           }
-          dir = dirname(dir);
+          dir = path.dirname(dir);
         }
         return undefined;
       }
