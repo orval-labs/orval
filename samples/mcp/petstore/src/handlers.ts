@@ -41,10 +41,11 @@ import {
 
 export type findPetsByStatusArgs = {
   queryParams: FindPetsByStatusParams;
+  options?: RequestInit;
 };
 
 export const findPetsByStatusHandler = async (args: findPetsByStatusArgs) => {
-  const res = await findPetsByStatus(args.queryParams);
+  const res = await findPetsByStatus(args.queryParams, args.options);
 
   return {
     content: [
@@ -63,10 +64,11 @@ export const findPetsByStatusHandler = async (args: findPetsByStatusArgs) => {
 
 export type findPetsByTagsArgs = {
   queryParams: FindPetsByTagsParams;
+  options?: RequestInit;
 };
 
 export const findPetsByTagsHandler = async (args: findPetsByTagsArgs) => {
-  const res = await findPetsByTags(args.queryParams);
+  const res = await findPetsByTags(args.queryParams, args.options);
 
   return {
     content: [
@@ -87,10 +89,11 @@ export type getPetByIdArgs = {
   pathParams: {
     petId: number;
   };
+  options?: RequestInit;
 };
 
 export const getPetByIdHandler = async (args: getPetByIdArgs) => {
-  const res = await getPetById(args.pathParams.petId);
+  const res = await getPetById(args.pathParams.petId, args.options);
 
   return {
     content: [
@@ -112,10 +115,15 @@ export type updatePetWithFormArgs = {
     petId: number;
   };
   queryParams: UpdatePetWithFormParams;
+  options?: RequestInit;
 };
 
 export const updatePetWithFormHandler = async (args: updatePetWithFormArgs) => {
-  const res = await updatePetWithForm(args.pathParams.petId, args.queryParams);
+  const res = await updatePetWithForm(
+    args.pathParams.petId,
+    args.queryParams,
+    args.options,
+  );
 
   return {
     content: [
@@ -136,10 +144,11 @@ export type deletePetArgs = {
   pathParams: {
     petId: number;
   };
+  options?: RequestInit;
 };
 
 export const deletePetHandler = async (args: deletePetArgs) => {
-  const res = await deletePet(args.pathParams.petId);
+  const res = await deletePet(args.pathParams.petId, args.options);
 
   return {
     content: [
@@ -156,8 +165,12 @@ export const deletePetHandler = async (args: deletePetArgs) => {
  * @summary Returns pet inventories by status.
  */
 
-export const getInventoryHandler = async () => {
-  const res = await getInventory();
+export type getInventoryArgs = {
+  options?: RequestInit;
+};
+
+export const getInventoryHandler = async (args: getInventoryArgs) => {
+  const res = await getInventory(args.options);
 
   return {
     content: [
@@ -178,10 +191,11 @@ export type getOrderByIdArgs = {
   pathParams: {
     orderId: number;
   };
+  options?: RequestInit;
 };
 
 export const getOrderByIdHandler = async (args: getOrderByIdArgs) => {
-  const res = await getOrderById(args.pathParams.orderId);
+  const res = await getOrderById(args.pathParams.orderId, args.options);
 
   return {
     content: [
@@ -202,10 +216,11 @@ export type deleteOrderArgs = {
   pathParams: {
     orderId: number;
   };
+  options?: RequestInit;
 };
 
 export const deleteOrderHandler = async (args: deleteOrderArgs) => {
-  const res = await deleteOrder(args.pathParams.orderId);
+  const res = await deleteOrder(args.pathParams.orderId, args.options);
 
   return {
     content: [
@@ -224,10 +239,11 @@ export const deleteOrderHandler = async (args: deleteOrderArgs) => {
 
 export type loginUserArgs = {
   queryParams: LoginUserParams;
+  options?: RequestInit;
 };
 
 export const loginUserHandler = async (args: loginUserArgs) => {
-  const res = await loginUser(args.queryParams);
+  const res = await loginUser(args.queryParams, args.options);
 
   return {
     content: [
@@ -244,8 +260,12 @@ export const loginUserHandler = async (args: loginUserArgs) => {
  * @summary Logs out current logged in user session.
  */
 
-export const logoutUserHandler = async () => {
-  const res = await logoutUser();
+export type logoutUserArgs = {
+  options?: RequestInit;
+};
+
+export const logoutUserHandler = async (args: logoutUserArgs) => {
+  const res = await logoutUser(args.options);
 
   return {
     content: [
@@ -266,10 +286,11 @@ export type getUserByNameArgs = {
   pathParams: {
     username: string;
   };
+  options?: RequestInit;
 };
 
 export const getUserByNameHandler = async (args: getUserByNameArgs) => {
-  const res = await getUserByName(args.pathParams.username);
+  const res = await getUserByName(args.pathParams.username, args.options);
 
   return {
     content: [
@@ -290,10 +311,11 @@ export type deleteUserArgs = {
   pathParams: {
     username: string;
   };
+  options?: RequestInit;
 };
 
 export const deleteUserHandler = async (args: deleteUserArgs) => {
-  const res = await deleteUser(args.pathParams.username);
+  const res = await deleteUser(args.pathParams.username, args.options);
 
   return {
     content: [
