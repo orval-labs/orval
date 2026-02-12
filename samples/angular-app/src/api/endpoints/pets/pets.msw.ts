@@ -36,28 +36,52 @@ export const getSearchPetsResponseMock = (): Pets =>
   }));
 
 export const getListPetsResponseMock = (): Pets =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() => ({
-    id: faker.number.int(),
-    name: (() => faker.person.lastName())(),
-    tag: (() => faker.person.lastName())(),
-    requiredNullableString: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
+  faker.helpers.arrayElement([
+    Array.from(
+      { length: faker.number.int({ min: 1, max: 10 }) },
+      (_, i) => i + 1,
+    ).map(() => ({
+      id: faker.number.int(),
+      name: (() => faker.person.lastName())(),
+      tag: (() => faker.person.lastName())(),
+      requiredNullableString: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
         null,
       ]),
-      null,
-    ]),
-    optionalNullableString: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
+      optionalNullableString: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
+        undefined,
+      ]),
+    })),
+    Array.from(
+      { length: faker.number.int({ min: 1, max: 10 }) },
+      (_, i) => i + 1,
+    ).map(() => ({
+      id: faker.number.int(),
+      name: (() => faker.person.lastName())(),
+      tag: (() => faker.person.lastName())(),
+      requiredNullableString: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
         null,
       ]),
-      undefined,
-    ]),
-  }));
+      optionalNullableString: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
+        undefined,
+      ]),
+    })),
+  ]);
 
 export const getShowPetByIdResponseMock = () =>
   (() => ({
@@ -152,17 +176,14 @@ export const getShowPetByIdMockHandler = (
   return http.get(
     '*/v:version/pets/:petId',
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      const resolvedBody =
+      return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
             ? await overrideResponse(info)
             : overrideResponse
-          : getShowPetByIdResponseMock();
-      const textBody =
-        typeof resolvedBody === 'string'
-          ? resolvedBody
-          : JSON.stringify(resolvedBody ?? null);
-      return HttpResponse.text(textBody, { status: 200 });
+          : getShowPetByIdResponseMock(),
+        { status: 200 },
+      );
     },
     options,
   );
@@ -179,17 +200,14 @@ export const getShowPetTextMockHandler = (
   return http.get(
     '*/v:version/pets/:petId/text',
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      const resolvedBody =
+      return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
             ? await overrideResponse(info)
             : overrideResponse
-          : getShowPetTextResponseMock();
-      const textBody =
-        typeof resolvedBody === 'string'
-          ? resolvedBody
-          : JSON.stringify(resolvedBody ?? null);
-      return HttpResponse.text(textBody, { status: 200 });
+          : getShowPetTextResponseMock(),
+        { status: 200 },
+      );
     },
     options,
   );

@@ -5,7 +5,7 @@ import { conventionName, isObject, upath } from '../utils';
 
 export function generateImportsForBuilder(
   output: NormalizedOutputOptions,
-  imports: GeneratorImport[],
+  imports: readonly GeneratorImport[],
   relativeSchemasPath: string,
 ) {
   const isZodSchemaOutput =
@@ -15,7 +15,7 @@ export function generateImportsForBuilder(
     return isZodSchemaOutput
       ? [
           {
-            exports: imports.map((i) => ({ ...i, values: true })),
+            exports: imports,
             dependency: upath.joinSafe(relativeSchemasPath, 'index.zod'),
           },
         ]
@@ -27,7 +27,7 @@ export function generateImportsForBuilder(
       const suffix = isZodSchemaOutput ? '.zod' : '';
       const importExtension = output.fileExtension.replace(/\.ts$/, '') || '';
       return {
-        exports: isZodSchemaOutput ? [{ ...i, values: true }] : [i],
+        exports: [i],
         dependency: upath.joinSafe(
           relativeSchemasPath,
           `${name}${suffix}${importExtension}`,

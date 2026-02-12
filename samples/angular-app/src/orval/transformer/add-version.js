@@ -1,10 +1,3 @@
-import type { InputTransformerFn } from 'orval';
-
-type OperationParameter = {
-  name?: string;
-  in?: string;
-} & Record<string, unknown>;
-
 const HTTP_VERBS = new Set([
   'get',
   'put',
@@ -16,7 +9,7 @@ const HTTP_VERBS = new Set([
   'trace',
 ]);
 
-const transformer: InputTransformerFn = (inputSchema) => ({
+const transformer = (inputSchema) => ({
   ...inputSchema,
   paths: Object.entries(inputSchema.paths ?? {}).reduce(
     (acc, [path, pathItem]) => ({
@@ -36,12 +29,8 @@ const transformer: InputTransformerFn = (inputSchema) => ({
             [verb]: {
               ...operation,
               parameters: [
-                ...(
-                  (operation as { parameters?: OperationParameter[] })
-                    .parameters ?? []
-                ).filter(
-                  (p: OperationParameter) =>
-                    !(p.name === 'version' && p.in === 'path'),
+                ...(operation.parameters || []).filter(
+                  (p) => !(p.name === 'version' && p.in === 'path'),
                 ),
                 {
                   name: 'version',

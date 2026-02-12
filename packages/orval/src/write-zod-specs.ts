@@ -33,6 +33,24 @@ export type ${schemaName} = zod.infer<typeof ${schemaName}>;
 `;
 }
 
+const isValidSchemaIdentifier = (name: string) =>
+  /^[A-Za-z_][A-Za-z0-9_]*$/.test(name);
+
+const isPrimitiveSchemaName = (name: string) =>
+  ['string', 'number', 'boolean', 'void', 'unknown', 'Blob'].includes(name);
+
+const dedupeSchemasByName = <T extends { name: string }>(schemas: T[]) => {
+  const uniqueSchemas = new Map<string, T>();
+
+  for (const schema of schemas) {
+    if (!uniqueSchemas.has(schema.name)) {
+      uniqueSchemas.set(schema.name, schema);
+    }
+  }
+
+  return [...uniqueSchemas.values()];
+};
+
 async function writeZodSchemaIndex(
   schemasPath: string,
   fileExtension: string,
@@ -219,7 +237,8 @@ export async function writeZodSchemasFromVerbs(
                 ) as Record<string, OpenApiSchemaObject>,
                 required: queryParams
                   .filter((p) => p.required)
-                  .map((p) => p.name),
+                  .map((p) => p.name)
+                  .filter((name): name is string => name !== undefined),
               },
             },
           ]
@@ -246,17 +265,45 @@ export async function writeZodSchemasFromVerbs(
                 ) as Record<string, OpenApiSchemaObject>,
                 required: headerParams
                   .filter((p) => p.required)
-                  .map((p) => p.name),
+                  .map((p) => p.name)
+                  .filter((name): name is string => name !== undefined),
               },
             },
           ]
         : [];
 
-    return [...bodySchemas, ...queryParamsSchemas, ...headerParamsSchemas];
+    const responseSchemas = [
+      ...verbOption.response.types.success,
+      ...verbOption.response.types.errors,
+    ]
+      .filter(
+        (
+          responseType,
+        ): responseType is typeof responseType & {
+          originalSchema: OpenApiSchemaObject;
+        } =>
+          !!responseType.originalSchema &&
+          !responseType.isRef &&
+          isValidSchemaIdentifier(responseType.value) &&
+          !isPrimitiveSchemaName(responseType.value),
+      )
+      .map((responseType) => ({
+        name: responseType.value,
+        schema: dereference(responseType.originalSchema, context),
+      }));
+
+    return dedupeSchemasByName([
+      ...bodySchemas,
+      ...queryParamsSchemas,
+      ...headerParamsSchemas,
+      ...responseSchemas,
+    ]);
   });
 
+  const uniqueVerbsSchemas = dedupeSchemasByName(generateVerbsSchemas);
+
   await Promise.all(
-    generateVerbsSchemas.map(async ({ name, schema }) => {
+    uniqueVerbsSchemas.map(async ({ name, schema }) => {
       const fileName = conventionName(name, output.namingConvention);
       const filePath = upath.join(schemasPath, `${fileName}${fileExtension}`);
 
@@ -293,8 +340,8 @@ export async function writeZodSchemasFromVerbs(
     }),
   );
 
-  if (output.indexFiles && generateVerbsSchemas.length > 0) {
-    const schemaNames = generateVerbsSchemas.map((s) => s.name);
+  if (output.indexFiles && uniqueVerbsSchemas.length > 0) {
+    const schemaNames = [...new Set(uniqueVerbsSchemas.map((s) => s.name))];
     await writeZodSchemaIndex(
       schemasPath,
       fileExtension,

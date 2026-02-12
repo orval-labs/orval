@@ -465,7 +465,20 @@ describe('generateMSW', () => {
         },
       } as GeneratorVerbOptions;
 
-      const result = generateMSW(mixedVerbOptions, baseOptions);
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        override: {
+          ...baseOptions.override,
+          operations: {
+            ...baseOptions.override.operations,
+            getUser: {
+              mock: {
+                data: { id: 1, name: 'Milo' },
+              },
+            },
+          },
+        },
+      });
 
       // text/plain is the first text-like content type, so HttpResponse.text should be used
       expect(result.implementation.handler).toContain('HttpResponse.text(');
@@ -484,7 +497,20 @@ describe('generateMSW', () => {
         },
       } as GeneratorVerbOptions;
 
-      const result = generateMSW(mixedVerbOptions, baseOptions);
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        override: {
+          ...baseOptions.override,
+          operations: {
+            ...baseOptions.override.operations,
+            getUser: {
+              mock: {
+                data: { id: 1, name: 'Milo' },
+              },
+            },
+          },
+        },
+      });
 
       // application/xml is the first text-like content type
       expect(result.implementation.handler).toContain('HttpResponse.xml(');
@@ -514,6 +540,37 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).toContain('HttpResponse.json(');
       expect(result.implementation.handler).not.toContain('HttpResponse.xml(');
       expect(result.implementation.handler).not.toContain('HttpResponse.text(');
+    });
+
+    it('should prefer HttpResponse.json for structured return types when json and xml are both available', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'Pet' },
+          types: { success: [{ key: '200', value: 'Pet' }] },
+          contentTypes: ['application/xml', 'application/json'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        override: {
+          ...baseOptions.override,
+          operations: {
+            ...baseOptions.override.operations,
+            getUser: {
+              mock: {
+                data: { id: 1, name: 'Milo' },
+              },
+            },
+          },
+        },
+      });
+
+      expect(result.implementation.handler).toContain('HttpResponse.json(');
+      expect(result.implementation.handler).not.toContain('HttpResponse.xml(');
+      expect(result.implementation.handler).not.toContain('JSON.stringify');
     });
 
     it('should honor preferredContentType for text helpers when multiple text types exist', () => {
