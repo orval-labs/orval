@@ -466,12 +466,20 @@ const createAngularClient =
     return { implementation, imports };
   };
 
+const standaloneReturnTypesToWrite = new Map<string, string>();
+
 export const generateAngular: ClientBuilder = (
   verbOptions,
   options,
   outputClient,
   output,
-) => createAngularClient(new Map())(verbOptions, options, outputClient, output);
+) =>
+  createAngularClient(standaloneReturnTypesToWrite)(
+    verbOptions,
+    options,
+    outputClient,
+    output,
+  );
 
 const createAngularClientBuilder = (): ClientGeneratorsBuilder => {
   const returnTypesToWrite = new Map<string, string>();
