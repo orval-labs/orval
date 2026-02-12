@@ -4,10 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "generate-api": "orval"
+    "generate-api": "orval",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "yarn test:snapshots --update"
   },
   "devDependencies": {
     "orval": "workspace:*",
-    "prettier": "catalog:"
+    "prettier": "catalog:",
+    "vitest": "catalog:"
   }
 }

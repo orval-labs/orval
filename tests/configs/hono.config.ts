@@ -8,6 +8,8 @@ export default defineConfig({
       schemas: '../generated/hono/endpoint-parameters/schemas',
       mode: 'split',
       client: 'hono',
+      clean: true,
+      prettier: true,
     },
   },
   zodSchemaResponse: {
@@ -20,6 +22,8 @@ export default defineConfig({
       },
       mode: 'single',
       client: 'hono',
+      clean: true,
+      prettier: true,
     },
   },
   petstoreSingle: {
@@ -28,6 +32,8 @@ export default defineConfig({
       target: '../generated/hono/petstore-single/endpoints.ts',
       mode: 'single',
       client: 'hono',
+      clean: true,
+      prettier: true,
     },
   },
   petstoreSplit: {
@@ -36,6 +42,8 @@ export default defineConfig({
       target: '../generated/hono/petstore-split/endpoints.ts',
       mode: 'split',
       client: 'hono',
+      clean: true,
+      prettier: true,
     },
   },
   petstoreTags: {
@@ -44,6 +52,8 @@ export default defineConfig({
       target: '../generated/hono/petstore-tags/endpoints.ts',
       mode: 'tags',
       client: 'hono',
+      clean: true,
+      prettier: true,
     },
   },
   petstoreTagsSplit: {
@@ -52,6 +62,8 @@ export default defineConfig({
       target: '../generated/hono/petstore-tags-split/endpoints.ts',
       mode: 'tags-split',
       client: 'hono',
+      clean: true,
+      prettier: true,
     },
   },
 });

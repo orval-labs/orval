@@ -15,6 +15,8 @@ export default defineConfig({
           useInfiniteQueryParam: 'limit',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -33,6 +35,8 @@ export default defineConfig({
       mock: true,
       client: 'vue-query',
       httpClient: 'axios',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -46,6 +50,8 @@ export default defineConfig({
       mock: true,
       mode: 'tags-split',
       client: 'vue-query',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -59,6 +65,8 @@ export default defineConfig({
       mock: true,
       mode: 'split',
       client: 'vue-query',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -72,6 +80,8 @@ export default defineConfig({
       mock: true,
       mode: 'tags',
       client: 'vue-query',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -83,6 +93,8 @@ export default defineConfig({
       schemas: '../generated/vue-query/http-client-fetch/model',
       mode: 'tags-split',
       client: 'vue-query',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -101,6 +113,8 @@ export default defineConfig({
           includeHttpResponseReturnType: false,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -124,6 +138,8 @@ export default defineConfig({
           useInfiniteQueryParam: 'limit',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -146,6 +162,8 @@ export default defineConfig({
           name: 'customFetch',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -158,6 +176,8 @@ export default defineConfig({
       client: 'vue-query',
       mock: true,
       allParamsOptional: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -170,6 +190,8 @@ export default defineConfig({
       client: 'vue-query',
       mock: true,
       urlEncodeParameters: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -184,6 +206,8 @@ export default defineConfig({
       mock: true,
       allParamsOptional: true,
       urlEncodeParameters: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -196,6 +220,8 @@ export default defineConfig({
       schemas:
         '../generated/vue-query/http-client-fetch-with-multi-query-params/model',
       client: 'vue-query',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/multi-query-params.yaml',
@@ -206,6 +232,8 @@ export default defineConfig({
       target: '../generated/vue-query/form-data/endpoints.ts',
       schemas: '../generated/vue-query/form-data/model',
       client: 'vue-query',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/form-data.yaml',

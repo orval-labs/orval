@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "generate-api": "orval"
+    "generate-api": "orval",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "yarn test:snapshots --update"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -28,6 +30,7 @@
     "orval": "workspace:*",
     "prettier": "catalog:",
     "typescript": "~5.9.3",
-    "vite": "^7.2.2"
+    "vite": "^7.2.2",
+    "vitest": "catalog:"
   }
 }

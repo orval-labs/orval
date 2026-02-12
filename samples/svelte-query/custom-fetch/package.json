@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "generate-api": "orval",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "yarn test:snapshots --update",
     "test": "yarn run check"
   },
   "devDependencies": {
@@ -21,7 +23,8 @@
     "svelte-check": "^3.8.6",
     "tslib": "catalog:",
     "typescript": "~5.9.3",
-    "vite": "^7.2.2"
+    "vite": "^7.2.2",
+    "vitest": "catalog:"
   },
   "dependencies": {
     "@tanstack/svelte-query": "^4.41.0"

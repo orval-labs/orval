@@ -8,6 +8,8 @@ export default defineConfig({
       client: 'react-query',
       mock: true,
       headers: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -41,6 +43,8 @@ export default defineConfig({
           ],
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -55,6 +59,8 @@ export default defineConfig({
       },
       mock: true,
       client: 'react-query',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -72,6 +78,8 @@ export default defineConfig({
         useExamples: true,
       },
       headers: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/no-content-with-default.yaml',
@@ -84,6 +92,8 @@ export default defineConfig({
       mock: true,
       mode: 'tags-split',
       client: 'react-query',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -96,6 +106,8 @@ export default defineConfig({
       mock: true,
       mode: 'split',
       client: 'react-query',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -108,6 +120,8 @@ export default defineConfig({
       mock: true,
       mode: 'tags',
       client: 'react-query',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -123,6 +137,8 @@ export default defineConfig({
           shouldSplitQueryKey: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -141,6 +157,8 @@ export default defineConfig({
           },
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -157,6 +175,8 @@ export default defineConfig({
           forceSuccessResponse: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -175,6 +195,8 @@ export default defineConfig({
           includeHttpResponseReturnType: false,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -199,6 +221,8 @@ export default defineConfig({
           useInfiniteQueryParam: 'limit',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -226,6 +250,8 @@ export default defineConfig({
           useInfiniteQueryParam: 'limit',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -248,6 +274,8 @@ export default defineConfig({
           name: 'customFetch',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -271,6 +299,8 @@ export default defineConfig({
           useInfiniteQueryParam: 'limit',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -297,6 +327,8 @@ export default defineConfig({
           useInfiniteQueryParam: 'limit',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -317,6 +349,8 @@ export default defineConfig({
           name: 'useCustomInstance',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -324,8 +358,10 @@ export default defineConfig({
   },
   hookMutatorWithExtension: {
     output: {
-      target: '../generated/react-query/hook-mutator-axios/endpoints.ts',
-      schemas: '../generated/react-query/hook-mutator-axios/model',
+      target:
+        '../generated/react-query/hook-mutator-axios-with-extension/endpoints.ts',
+      schemas:
+        '../generated/react-query/hook-mutator-axios-with-extension/model',
       client: 'react-query',
       httpClient: 'axios',
       override: {
@@ -335,6 +371,8 @@ export default defineConfig({
           extension: '.js',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -354,6 +392,8 @@ export default defineConfig({
           name: 'useCustomInstance',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -375,6 +415,8 @@ export default defineConfig({
           },
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -393,6 +435,8 @@ export default defineConfig({
           name: 'customInstance',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/form-data.yaml',
@@ -411,6 +455,8 @@ export default defineConfig({
           name: 'useCustomInstance',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/form-data.yaml',
@@ -433,6 +479,8 @@ export default defineConfig({
           name: 'customFormData',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/form-data.yaml',
@@ -451,6 +499,8 @@ export default defineConfig({
           name: 'customInstance',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/form-url-encoded.yaml',
@@ -473,6 +523,8 @@ export default defineConfig({
           name: 'customFormUrlEncoded',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/form-url-encoded.yaml',
@@ -485,6 +537,8 @@ export default defineConfig({
       client: 'react-query',
       mode: 'split',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: '../specifications/import-from-subdirectory/petstore.yaml',
   },
@@ -497,6 +551,8 @@ export default defineConfig({
       override: {
         useDeprecatedOperations: false,
       },
+      clean: true,
+      prettier: true,
     },
     input: '../specifications/deprecated.yaml',
   },
@@ -512,6 +568,8 @@ export default defineConfig({
           arrayMax: 15,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -526,6 +584,8 @@ export default defineConfig({
         type: 'msw',
         delay: false,
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -538,6 +598,8 @@ export default defineConfig({
       client: 'react-query',
       mock: true,
       headers: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/polymorphic.yaml',
@@ -551,6 +613,8 @@ export default defineConfig({
       override: {
         useNamedParameters: true,
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -565,6 +629,8 @@ export default defineConfig({
       schemas: '../generated/react-query/special-characters/model',
       client: 'react-query',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/models-with-special-char.yaml',
@@ -573,14 +639,17 @@ export default defineConfig({
   usePrefetchWithFunctionMutator: {
     output: {
       target:
-        '../generated/react-query/use-prefetch-with-function/endpoints.ts',
-      schemas: '../generated/react-query/use-prefetch-with-function/model',
+        '../generated/react-query/use-prefetch-with-function-mutator/endpoints.ts',
+      schemas:
+        '../generated/react-query/use-prefetch-with-function-mutator/model',
       client: 'react-query',
       override: {
         query: {
           usePrefetch: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -603,6 +672,8 @@ export default defineConfig({
           usePrefetch: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -618,6 +689,8 @@ export default defineConfig({
           useInvalidate: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',

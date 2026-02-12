@@ -8,6 +8,8 @@
     "build": "vite build",
     "serve": "vite preview",
     "generate-api": "orval",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "yarn test:snapshots --update",
     "test": "tsc --noEmit"
   },
   "dependencies": {
@@ -21,6 +23,7 @@
     "prettier": "catalog:",
     "typescript": "~5.9.3",
     "vite": "^7.2.2",
+    "vitest": "catalog:",
     "vue-tsc": "^3.2.4"
   }
 }

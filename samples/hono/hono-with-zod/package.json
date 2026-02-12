@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "wrangler dev src/index.ts",
     "deploy": "wrangler deploy --minify src/index.ts",
-    "generate-api": "orval"
+    "generate-api": "orval",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "yarn test:snapshots --update"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.3",
@@ -16,6 +18,7 @@
     "@cloudflare/workers-types": "^4.20260131.0",
     "orval": "workspace:*",
     "prettier": "catalog:",
+    "vitest": "catalog:",
     "wrangler": "^4.59.2"
   }
 }

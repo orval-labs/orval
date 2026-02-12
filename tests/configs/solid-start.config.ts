@@ -7,6 +7,8 @@ export default defineConfig({
       schemas: '../generated/solid-start/petstore/model',
       client: 'solid-start',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -22,6 +24,8 @@ export default defineConfig({
       mock: true,
       mode: 'tags-split',
       client: 'solid-start',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -34,6 +38,8 @@ export default defineConfig({
       mock: true,
       mode: 'split',
       client: 'solid-start',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -46,6 +52,8 @@ export default defineConfig({
       mock: true,
       mode: 'tags',
       client: 'solid-start',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -63,6 +71,8 @@ export default defineConfig({
           name: 'customInstance',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -79,6 +89,8 @@ export default defineConfig({
       override: {
         useNamedParameters: true,
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',

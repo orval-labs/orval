@@ -9,6 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "generate-api": "orval",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "yarn test:snapshots --update",
     "format": "prettier --write ."
   },
   "dependencies": {
@@ -28,7 +30,8 @@
     "postcss": "8.5.6",
     "prettier": "catalog:",
     "tailwindcss": "^3.4.17",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "catalog:"
   },
   "dependenciesMeta": {
     "msw": {

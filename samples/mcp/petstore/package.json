@@ -6,7 +6,9 @@
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/server.ts",
-    "generate-api": "orval"
+    "generate-api": "orval",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "yarn test:snapshots --update"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.26.0",
@@ -17,6 +19,7 @@
     "orval": "workspace:*",
     "prettier": "catalog:",
     "ts-node": "^10.9.2",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "catalog:"
   }
 }

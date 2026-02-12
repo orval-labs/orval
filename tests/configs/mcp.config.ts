@@ -8,6 +8,8 @@ export default defineConfig({
       schemas: '../generated/mcp/single/http-schemas',
       mode: 'single',
       client: 'mcp',
+      clean: true,
+      prettier: true,
     },
   },
   zodSchemaResponse: {
@@ -20,6 +22,8 @@ export default defineConfig({
       },
       mode: 'single',
       client: 'mcp',
+      clean: true,
+      prettier: true,
     },
   },
 });

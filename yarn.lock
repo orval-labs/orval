@@ -3800,6 +3800,7 @@ __metadata:
     hono: "npm:^4.11.7"
     orval: "workspace:*"
     prettier: "catalog:"
+    vitest: "catalog:"
     wrangler: "npm:^4.59.2"
   languageName: unknown
   linkType: soft
@@ -8645,6 +8646,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@vitest/expect@npm:4.0.18":
+  version: 4.0.18
+  resolution: "@vitest/expect@npm:4.0.18"
+  dependencies:
+    "@standard-schema/spec": "npm:^1.0.0"
+    "@types/chai": "npm:^5.2.2"
+    "@vitest/spy": "npm:4.0.18"
+    "@vitest/utils": "npm:4.0.18"
+    chai: "npm:^6.2.1"
+    tinyrainbow: "npm:^3.0.3"
+  checksum: 10c0/123b0aa111682e82ec5289186df18037b1a1768700e468ee0f9879709aaa320cf790463c15c0d8ee10df92b402f4394baf5d27797e604d78e674766d87bcaadc
+  languageName: node
+  linkType: hard
+
 "@vitest/mocker@npm:4.0.16":
   version: 4.0.16
   resolution: "@vitest/mocker@npm:4.0.16"
@@ -8664,12 +8679,40 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@vitest/mocker@npm:4.0.18":
+  version: 4.0.18
+  resolution: "@vitest/mocker@npm:4.0.18"
+  dependencies:
+    "@vitest/spy": "npm:4.0.18"
+    estree-walker: "npm:^3.0.3"
+    magic-string: "npm:^0.30.21"
+  peerDependencies:
+    msw: ^2.4.9
+    vite: ^6.0.0 || ^7.0.0-0
+  peerDependenciesMeta:
+    msw:
+      optional: true
+    vite:
+      optional: true
+  checksum: 10c0/fb0a257e7e167759d4ad228d53fa7bad2267586459c4a62188f2043dd7163b4b02e1e496dc3c227837f776e7d73d6c4343613e89e7da379d9d30de8260f1ee4b
+  languageName: node
+  linkType: hard
+
 "@vitest/pretty-format@npm:4.0.16":
   version: 4.0.16
   resolution: "@vitest/pretty-format@npm:4.0.16"
   dependencies:
     tinyrainbow: "npm:^3.0.3"
   checksum: 10c0/11243e9c2d2d011ae23825c6b7464a4385a4a4efc4ceb28b7854bb9d73491f440b89d12f62c5c9737d26375cf9585b11bc20183d4dea4e983e79d5e162407eb9
+  languageName: node
+  linkType: hard
+
+"@vitest/pretty-format@npm:4.0.18":
+  version: 4.0.18
+  resolution: "@vitest/pretty-format@npm:4.0.18"
+  dependencies:
+    tinyrainbow: "npm:^3.0.3"
+  checksum: 10c0/0086b8c88eeca896d8e4b98fcdef452c8041a1b63eb9e85d3e0bcc96c8aa76d8e9e0b6990ebb0bb0a697c4ebab347e7735888b24f507dbff2742ddce7723fd94
   languageName: node
   linkType: hard
 
@@ -8680,6 +8723,16 @@ __metadata:
     "@vitest/utils": "npm:4.0.16"
     pathe: "npm:^2.0.3"
   checksum: 10c0/7f4614a9fe5e9f3683d30fb82d1489796c669df45fbc0beb22d39539e4b12ebef462062705545ca04391a0406af62088cbf1d613a812ecc9ea753a0edbfd5d26
+  languageName: node
+  linkType: hard
+
+"@vitest/runner@npm:4.0.18":
+  version: 4.0.18
+  resolution: "@vitest/runner@npm:4.0.18"
+  dependencies:
+    "@vitest/utils": "npm:4.0.18"
+    pathe: "npm:^2.0.3"
+  checksum: 10c0/fdb4afa411475133c05ba266c8092eaf1e56cbd5fb601f92ec6ccb9bab7ca52e06733ee8626599355cba4ee71cb3a8f28c84d3b69dc972e41047edc50229bc01
   languageName: node
   linkType: hard
 
@@ -8694,10 +8747,28 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@vitest/snapshot@npm:4.0.18":
+  version: 4.0.18
+  resolution: "@vitest/snapshot@npm:4.0.18"
+  dependencies:
+    "@vitest/pretty-format": "npm:4.0.18"
+    magic-string: "npm:^0.30.21"
+    pathe: "npm:^2.0.3"
+  checksum: 10c0/d3bfefa558db9a69a66886ace6575eb96903a5ba59f4d9a5d0fecb4acc2bb8dbb443ef409f5ac1475f2e1add30bd1d71280f98912da35e89c75829df9e84ea43
+  languageName: node
+  linkType: hard
+
 "@vitest/spy@npm:4.0.16":
   version: 4.0.16
   resolution: "@vitest/spy@npm:4.0.16"
   checksum: 10c0/2502918e703d60ef64854d0fa83ebf94da64b80e81b80c319568feee3d86069fd46e24880a768edba06c8caba13801e44005e17a0f16d9b389486f24d539f0bf
+  languageName: node
+  linkType: hard
+
+"@vitest/spy@npm:4.0.18":
+  version: 4.0.18
+  resolution: "@vitest/spy@npm:4.0.18"
+  checksum: 10c0/6de537890b3994fcadb8e8d8ac05942320ae184f071ec395d978a5fba7fa928cbb0c5de85af86a1c165706c466e840de8779eaff8c93450c511c7abaeb9b8a4e
   languageName: node
   linkType: hard
 
@@ -8708,6 +8779,16 @@ __metadata:
     "@vitest/pretty-format": "npm:4.0.16"
     tinyrainbow: "npm:^3.0.3"
   checksum: 10c0/bba35b4e102be03e106ced227809437573aa5c5f64d512301ca8de127dcb91cbedc11a2e823305f8ba82528c909c10510ec8c7e3d92b3d6d1c1aec33e143572a
+  languageName: node
+  linkType: hard
+
+"@vitest/utils@npm:4.0.18":
+  version: 4.0.18
+  resolution: "@vitest/utils@npm:4.0.18"
+  dependencies:
+    "@vitest/pretty-format": "npm:4.0.18"
+    tinyrainbow: "npm:^3.0.3"
+  checksum: 10c0/4a3c43c1421eb90f38576926496f6c80056167ba111e63f77cf118983902673737a1a38880b890d7c06ec0a12475024587344ee502b3c43093781533022f2aeb
   languageName: node
   linkType: hard
 
@@ -9373,7 +9454,7 @@ __metadata:
     rxjs: "catalog:angular"
     tslib: "catalog:"
     typescript: "npm:~5.9.3"
-    vitest: "npm:^4.0.16"
+    vitest: "catalog:"
     zod: "npm:^3.25.76"
   dependenciesMeta:
     msw:
@@ -10044,6 +10125,7 @@ __metadata:
     npm-run-all: "npm:^4.1.5"
     orval: "workspace:*"
     prettier: "catalog:"
+    vitest: "catalog:"
   dependenciesMeta:
     msw:
       built: true
@@ -14781,6 +14863,7 @@ __metadata:
   dependencies:
     orval: "workspace:*"
     prettier: "catalog:"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -14793,6 +14876,7 @@ __metadata:
     hono: "npm:^4.11.7"
     orval: "workspace:*"
     prettier: "catalog:"
+    vitest: "catalog:"
     wrangler: "npm:^4.59.2"
     zod: "npm:^3.25.76"
   languageName: unknown
@@ -17521,6 +17605,7 @@ __metadata:
     prettier: "catalog:"
     ts-node: "npm:^10.9.2"
     typescript: "npm:~5.9.3"
+    vitest: "catalog:"
     zod: "npm:^3.25.76"
   languageName: unknown
   linkType: soft
@@ -18228,6 +18313,7 @@ __metadata:
     react-dom: "npm:^18.3.1"
     tailwindcss: "npm:^3.4.17"
     typescript: "npm:~5.9.3"
+    vitest: "catalog:"
   dependenciesMeta:
     msw:
       built: true
@@ -18957,12 +19043,14 @@ __metadata:
     npm-run-all: "npm:^4.1.5"
     openapi3-ts: "npm:^4.5.0"
     orval: "workspace:*"
+    prettier: "catalog:"
     react: "npm:^18.3.1"
     rimraf: "catalog:"
     rxjs: "catalog:angular"
     svelte: "npm:^5.51.5"
     swr: "npm:^2.3.6"
     typescript: "catalog:"
+    vitest: "catalog:"
     vue: "npm:^3.5.26"
     zod: "npm:^3.25.76"
   languageName: unknown
@@ -20751,6 +20839,7 @@ __metadata:
     react-query: "npm:^3.39.3"
     react-scripts: "npm:^5.0.1"
     typescript: "npm:~5.9.3"
+    vitest: "catalog:"
   dependenciesMeta:
     msw:
       built: true
@@ -20847,6 +20936,7 @@ __metadata:
     react-dom: "npm:^18.3.1"
     react-scripts: "npm:^5.0.1"
     typescript: "npm:~5.9.3"
+    vitest: "catalog:"
   dependenciesMeta:
     msw:
       built: true
@@ -20873,6 +20963,7 @@ __metadata:
     react-dom: "npm:^18.3.1"
     typescript: "npm:~5.9.3"
     vite: "npm:^7.2.2"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -20886,6 +20977,7 @@ __metadata:
     prettier: "catalog:"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -20899,6 +20991,7 @@ __metadata:
     prettier: "catalog:"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -20912,6 +21005,7 @@ __metadata:
     prettier: "catalog:"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -20925,6 +21019,7 @@ __metadata:
     prettier: "catalog:"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -20938,6 +21033,7 @@ __metadata:
     prettier: "catalog:"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -20950,6 +21046,7 @@ __metadata:
     prettier: "catalog:"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -23447,6 +23544,7 @@ __metadata:
     tslib: "catalog:"
     typescript: "npm:~5.9.3"
     vite: "npm:^7.2.2"
+    vitest: "catalog:"
   dependenciesMeta:
     msw:
       built: true
@@ -23468,6 +23566,7 @@ __metadata:
     tslib: "catalog:"
     typescript: "npm:~5.9.3"
     vite: "npm:^7.2.2"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -23487,6 +23586,7 @@ __metadata:
     tslib: "catalog:"
     typescript: "npm:~5.9.3"
     vite: "npm:^7.2.2"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -23578,6 +23678,7 @@ __metadata:
     react-scripts: "npm:^5.0.1"
     swr: "npm:^2.3.6"
     typescript: "npm:~5.9.3"
+    vitest: "catalog:"
   dependenciesMeta:
     msw:
       built: true
@@ -23604,6 +23705,7 @@ __metadata:
     swr: "npm:^2.3.6"
     typescript: "npm:~5.9.3"
     vite: "npm:^7.2.2"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -23627,6 +23729,7 @@ __metadata:
     swr: "npm:^2.3.6"
     typescript: "npm:~5.9.3"
     vite: "npm:^7.2.2"
+    vitest: "catalog:"
     zod: "npm:^3.25.76"
   languageName: unknown
   linkType: soft
@@ -25215,7 +25318,66 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vitest@npm:4.0.16, vitest@npm:^4.0.16":
+"vitest@npm:4.0.18":
+  version: 4.0.18
+  resolution: "vitest@npm:4.0.18"
+  dependencies:
+    "@vitest/expect": "npm:4.0.18"
+    "@vitest/mocker": "npm:4.0.18"
+    "@vitest/pretty-format": "npm:4.0.18"
+    "@vitest/runner": "npm:4.0.18"
+    "@vitest/snapshot": "npm:4.0.18"
+    "@vitest/spy": "npm:4.0.18"
+    "@vitest/utils": "npm:4.0.18"
+    es-module-lexer: "npm:^1.7.0"
+    expect-type: "npm:^1.2.2"
+    magic-string: "npm:^0.30.21"
+    obug: "npm:^2.1.1"
+    pathe: "npm:^2.0.3"
+    picomatch: "npm:^4.0.3"
+    std-env: "npm:^3.10.0"
+    tinybench: "npm:^2.9.0"
+    tinyexec: "npm:^1.0.2"
+    tinyglobby: "npm:^0.2.15"
+    tinyrainbow: "npm:^3.0.3"
+    vite: "npm:^6.0.0 || ^7.0.0"
+    why-is-node-running: "npm:^2.3.0"
+  peerDependencies:
+    "@edge-runtime/vm": "*"
+    "@opentelemetry/api": ^1.9.0
+    "@types/node": ^20.0.0 || ^22.0.0 || >=24.0.0
+    "@vitest/browser-playwright": 4.0.18
+    "@vitest/browser-preview": 4.0.18
+    "@vitest/browser-webdriverio": 4.0.18
+    "@vitest/ui": 4.0.18
+    happy-dom: "*"
+    jsdom: "*"
+  peerDependenciesMeta:
+    "@edge-runtime/vm":
+      optional: true
+    "@opentelemetry/api":
+      optional: true
+    "@types/node":
+      optional: true
+    "@vitest/browser-playwright":
+      optional: true
+    "@vitest/browser-preview":
+      optional: true
+    "@vitest/browser-webdriverio":
+      optional: true
+    "@vitest/ui":
+      optional: true
+    happy-dom:
+      optional: true
+    jsdom:
+      optional: true
+  bin:
+    vitest: vitest.mjs
+  checksum: 10c0/b913cd32032c95f29ff08c931f4b4c6fd6d2da498908d6770952c561a1b8d75c62499a1f04cadf82fb89cc0f9a33f29fb5dfdb899f6dbb27686a9d91571be5fa
+  languageName: node
+  linkType: hard
+
+"vitest@npm:^4.0.16":
   version: 4.0.16
   resolution: "vitest@npm:4.0.16"
   dependencies:
@@ -25321,7 +25483,7 @@ __metadata:
     tsd: "npm:^0.33.0"
     typescript: "npm:~5.9.3"
     vite: "npm:^7.2.2"
-    vitest: "npm:^4.0.16"
+    vitest: "catalog:"
     vue: "npm:^3.5.26"
     vue-tsc: "npm:^3.2.4"
   dependenciesMeta:
@@ -25341,6 +25503,7 @@ __metadata:
     prettier: "catalog:"
     typescript: "npm:~5.9.3"
     vite: "npm:^7.2.2"
+    vitest: "catalog:"
     vue: "npm:^3.5.26"
     vue-tsc: "npm:^3.2.4"
   languageName: unknown
