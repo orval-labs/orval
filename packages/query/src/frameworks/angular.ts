@@ -16,7 +16,6 @@ import {
 import type {
   FrameworkAdapterConfig,
   MutationHookBodyContext,
-  MutationOnSuccessContext,
   MutationReturnTypeContext,
   QueryInitContext,
   QueryInvocationContext,
@@ -253,30 +252,6 @@ export const createAngularAdapter = ({
 
     supportsMutationInvalidation(): boolean {
       return true;
-    },
-
-    generateMutationOnSuccess({
-      operationName,
-      definitions,
-      isRequestOptions,
-      generateInvalidateCall,
-      uniqueInvalidates,
-    }: MutationOnSuccessContext): string {
-      const invalidateCalls = uniqueInvalidates
-        .map((t) => generateInvalidateCall(t))
-        .join('\n');
-      if (isRequestOptions) {
-        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
-    if (!options?.skipInvalidation) {
-${invalidateCalls}
-    }
-    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
-  };`;
-      }
-      return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
-${invalidateCalls}
-    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
-  };`;
     },
 
     generateMutationHookBody({

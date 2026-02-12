@@ -266,7 +266,8 @@ type DefaultableFields =
   | 'generateQueryInit'
   | 'generateQueryInvocationArgs'
   | 'getOptionalQueryClientArgument'
-  | 'generateQueryArguments';
+  | 'generateQueryArguments'
+  | 'generateMutationOnSuccess';
 
 /**
  * Adapter config type — adapters implement this. The factory fills in

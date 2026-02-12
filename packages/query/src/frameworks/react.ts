@@ -11,7 +11,6 @@ import { generateAxiosRequestFunction } from '../client';
 import type {
   FrameworkAdapterConfig,
   MutationHookBodyContext,
-  MutationOnSuccessContext,
   MutationReturnTypeContext,
   QueryReturnStatementContext,
   QueryReturnTypeContext,
@@ -83,45 +82,6 @@ export const createReactAdapter = ({
 
   supportsMutationInvalidation(): boolean {
     return true;
-  },
-
-  generateMutationOnSuccess({
-    operationName,
-    definitions,
-    isRequestOptions,
-    generateInvalidateCall,
-    uniqueInvalidates,
-  }: MutationOnSuccessContext): string {
-    const invalidateCalls = uniqueInvalidates
-      .map((t) => generateInvalidateCall(t))
-      .join('\n');
-    if (hasQueryV5WithMutationContextOnSuccess) {
-      if (isRequestOptions) {
-        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
-        if (!options?.skipInvalidation) {
-    ${invalidateCalls}
-        }
-        mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
-      };`;
-      }
-      return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
-    ${invalidateCalls}
-        mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
-      };`;
-    } else {
-      if (isRequestOptions) {
-        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext${hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
-        if (!options?.skipInvalidation) {
-    ${invalidateCalls}
-        }
-        mutationOptions?.onSuccess?.(data, variables, context);
-      };`;
-      }
-      return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext${hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
-    ${invalidateCalls}
-        mutationOptions?.onSuccess?.(data, variables, context);
-      };`;
-    }
   },
 
   generateMutationHookBody({

@@ -26,6 +26,7 @@ import {
 import type {
   FrameworkAdapter,
   FrameworkAdapterConfig,
+  MutationOnSuccessContext,
 } from '../framework-adapter';
 import { getQueryOptionsDefinition } from '../query-options';
 import { createAngularAdapter } from './angular';
@@ -155,6 +156,44 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => ({
     return `options${isQueryRequired ? '' : '?'}: ${optionsType}\n`;
   },
 
+  generateMutationOnSuccess({
+    operationName,
+    definitions,
+    isRequestOptions,
+    generateInvalidateCall,
+    uniqueInvalidates,
+  }: MutationOnSuccessContext): string {
+    const invalidateCalls = uniqueInvalidates
+      .map((t) => generateInvalidateCall(t))
+      .join('\n');
+    if (adapter.hasQueryV5WithMutationContextOnSuccess) {
+      if (isRequestOptions) {
+        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
+        if (!options?.skipInvalidation) {
+    ${invalidateCalls}
+        }
+        mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+      };`;
+      }
+      return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
+    ${invalidateCalls}
+        mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+      };`;
+    } else {
+      if (isRequestOptions) {
+        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext${adapter.hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
+        if (!options?.skipInvalidation) {
+    ${invalidateCalls}
+        }
+        mutationOptions?.onSuccess?.(data, variables, context);
+      };`;
+      }
+      return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext${adapter.hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
+    ${invalidateCalls}
+        mutationOptions?.onSuccess?.(data, variables, context);
+      };`;
+    }
+  },
   ...adapter,
 });
 
