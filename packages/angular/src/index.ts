@@ -13,6 +13,8 @@ import {
   type GeneratorDependency,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  getAngularFilteredParamsCallExpression,
+  getAngularFilteredParamsHelperBody,
   getDefaultContentType,
   isBoolean,
   pascal,
@@ -58,7 +60,19 @@ export const generateAngularTitle: ClientTitleBuilder = (title) => {
 
 const createAngularHeader =
   (): ClientHeaderBuilder =>
-  ({ title, isRequestOptions, isMutator, isGlobalMutator, provideIn }) => {
+  ({
+    title,
+    isRequestOptions,
+    isMutator,
+    isGlobalMutator,
+    provideIn,
+    verbOptions,
+    tag,
+  }) => {
+    const relevantVerbs = tag
+      ? Object.values(verbOptions).filter((v) => v.tags.includes(tag as string))
+      : Object.values(verbOptions);
+    const hasQueryParams = relevantVerbs.some((v) => v.queryParams);
     return `
 ${
   isRequestOptions && !isGlobalMutator
@@ -80,8 +94,9 @@ ${
   integrity?: string;
   referrerPolicy?: ReferrerPolicy;
   transferCache?: {includeHeaders?: string[]} | boolean;
-  timeout?: number;
-}`
+}
+
+${hasQueryParams ? getAngularFilteredParamsHelperBody() : ''}`
     : ''
 }
 
@@ -229,8 +244,6 @@ const generateImplementation = (
     hasSignal: false,
   } as const;
 
-  const options = generateOptions(optionsBase);
-
   const propsDefinition = toObjectString(props, 'definition');
 
   // Check for multiple content types in success responses
@@ -239,6 +252,29 @@ const generateImplementation = (
     ...new Set(successTypes.map((t) => t.contentType).filter(Boolean)),
   ];
   const hasMultipleContentTypes = uniqueContentTypes.length > 1;
+
+  // When observe branching is active AND there are query params, extract
+  // the params computation to a local const to avoid duplicating it in
+  // every observe branch.
+  const needsObserveBranching = isRequestOptions && !hasMultipleContentTypes;
+  const angularParamsRef =
+    needsObserveBranching && queryParams ? 'filteredParams' : undefined;
+
+  let paramsDeclaration = '';
+  if (angularParamsRef && queryParams) {
+    const callExpr = getAngularFilteredParamsCallExpression(
+      '{...params, ...options?.params}',
+      queryParams.requiredNullableKeys ?? [],
+    );
+    paramsDeclaration = paramsSerializer
+      ? `const ${angularParamsRef} = ${paramsSerializer.name}(${callExpr});\n\n    `
+      : `const ${angularParamsRef} = ${callExpr};\n\n    `;
+  }
+
+  const options = generateOptions({
+    ...optionsBase,
+    ...(angularParamsRef ? { angularParamsRef } : {}),
+  });
 
   // For multiple content types, determine the default
   const defaultContentType = hasMultipleContentTypes
@@ -309,14 +345,13 @@ const generateImplementation = (
     );
   };
 
-  const observeOptions =
-    isRequestOptions && !hasMultipleContentTypes
-      ? {
-          body: withObserveMode(options, 'body'),
-          events: withObserveMode(options, 'events'),
-          response: withObserveMode(options, 'response'),
-        }
-      : undefined;
+  const observeOptions = needsObserveBranching
+    ? {
+        body: withObserveMode(options, 'body'),
+        events: withObserveMode(options, 'events'),
+        response: withObserveMode(options, 'response'),
+      }
+    : undefined;
 
   const isModelType = dataType !== 'Blob' && dataType !== 'string';
   let functionName = operationName;
@@ -421,7 +456,7 @@ const generateImplementation = (
   }
 
   const observeImplementation = isRequestOptions
-    ? `if (options?.observe === 'events') {
+    ? `${paramsDeclaration}if (options?.observe === 'events') {
       return this.http.${verb}${isModelType ? '<TData>' : ''}(${
         observeOptions?.events ?? options
       });

@@ -18,6 +18,10 @@ import { getIsBodyVerb, isObject, stringify } from '../utils';
  * Orval models often include nullable query params, so we remove nullish values
  * (including nulls inside arrays) before passing params to HttpClient or a
  * paramsSerializer to avoid runtime and type issues.
+ *
+ * Returns an inline IIFE expression. For paths that benefit from a shared helper
+ * (e.g. observe-mode branches), prefer getAngularFilteredParamsCallExpression +
+ * getAngularFilteredParamsHelperBody instead.
  */
 export const getAngularFilteredParamsExpression = (
   paramsExpression: string,
@@ -52,6 +56,52 @@ export const getAngularFilteredParamsExpression = (
   return filteredParams as unknown as Record<string, string | number | boolean | Array<string | number | boolean>>;
 })()`;
 
+/**
+ * Returns the body of a standalone `filterParams` helper function
+ * to be emitted once in the generated file header, replacing the
+ * inline IIFE that was previously duplicated in every method.
+ */
+export const getAngularFilteredParamsHelperBody = (): string =>
+  `function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: Set<string> = new Set(),
+): Record<string, string | number | boolean | Array<string | number | boolean>> {
+  const filteredParams: Record<string, string | number | boolean | null | Array<string | number | boolean>> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) {
+      const filtered = value.filter(
+        (item) =>
+          item != null &&
+          (typeof item === 'string' ||
+            typeof item === 'number' ||
+            typeof item === 'boolean'),
+      ) as Array<string | number | boolean>;
+      if (filtered.length) {
+        filteredParams[key] = filtered;
+      }
+    } else if (value === null && requiredNullableKeys.has(key)) {
+      filteredParams[key] = value;
+    } else if (
+      value != null &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean')
+    ) {
+      filteredParams[key] = value as string | number | boolean;
+    }
+  }
+  return filteredParams as Record<string, string | number | boolean | Array<string | number | boolean>>;
+}`;
+
+/**
+ * Returns a call expression to the `filterParams` helper function.
+ */
+export const getAngularFilteredParamsCallExpression = (
+  paramsExpression: string,
+  requiredNullableParamKeys: string[] = [],
+): string =>
+  `filterParams(${paramsExpression}, new Set<string>(${JSON.stringify(requiredNullableParamKeys)}))`;
+
 interface GenerateFormDataAndUrlEncodedFunctionOptions {
   body: GetterBody;
   formData?: GeneratorMutator;
@@ -84,6 +134,7 @@ interface GenerateAxiosOptions {
   response: GetterResponse;
   isExactOptionalPropertyTypes: boolean;
   angularObserve?: 'body' | 'events' | 'response';
+  angularParamsRef?: string;
   requiredNullableQueryParamKeys?: string[];
   queryParams?: GeneratorSchema;
   headers?: GeneratorSchema;
@@ -100,6 +151,7 @@ export function generateAxiosOptions({
   response,
   isExactOptionalPropertyTypes,
   angularObserve,
+  angularParamsRef,
   requiredNullableQueryParamKeys,
   queryParams,
   headers,
@@ -145,9 +197,13 @@ export function generateAxiosOptions({
   if (!isRequestOptions) {
     if (queryParams) {
       if (isAngular) {
+        const iifeExpr = getAngularFilteredParamsExpression(
+          'params ?? {}',
+          requiredNullableQueryParamKeys,
+        );
         value += paramsSerializer
-          ? `\n        params: ${paramsSerializer.name}(${getAngularFilteredParamsExpression('params ?? {}', requiredNullableQueryParamKeys)}),`
-          : `\n        params: ${getAngularFilteredParamsExpression('params ?? {}', requiredNullableQueryParamKeys)},`;
+          ? `\n        params: ${paramsSerializer.name}(${iifeExpr}),`
+          : `\n        params: ${iifeExpr},`;
       } else {
         value += '\n        params,';
       }
@@ -190,10 +246,16 @@ export function generateAxiosOptions({
     if (queryParams) {
       if (isVue) {
         value += '\n        params: {...unref(params), ...options?.params},';
+      } else if (isAngular && angularParamsRef) {
+        value += `\n        params: ${angularParamsRef},`;
       } else if (isAngular && paramsSerializer) {
-        value += `\n        params: ${paramsSerializer.name}(${getAngularFilteredParamsExpression('{...params, ...options?.params}', requiredNullableQueryParamKeys)}),`;
+        const callExpr = getAngularFilteredParamsCallExpression(
+          '{...params, ...options?.params}',
+          requiredNullableQueryParamKeys,
+        );
+        value += `\n        params: ${paramsSerializer.name}(${callExpr}),`;
       } else if (isAngular) {
-        value += `\n        params: ${getAngularFilteredParamsExpression('{...params, ...options?.params}', requiredNullableQueryParamKeys)},`;
+        value += `\n        params: ${getAngularFilteredParamsCallExpression('{...params, ...options?.params}', requiredNullableQueryParamKeys)},`;
       } else {
         value += '\n        params: {...params, ...options?.params},';
       }
@@ -224,6 +286,7 @@ interface GenerateOptionsOptions {
   route: string;
   body: GetterBody;
   angularObserve?: 'body' | 'events' | 'response';
+  angularParamsRef?: string;
   headers?: GetterQueryParam;
   queryParams?: GetterQueryParam;
   response: GetterResponse;
@@ -244,6 +307,7 @@ export function generateOptions({
   route,
   body,
   angularObserve,
+  angularParamsRef,
   headers,
   queryParams,
   response,
@@ -266,6 +330,7 @@ export function generateOptions({
   const axiosOptions = generateAxiosOptions({
     response,
     angularObserve,
+    angularParamsRef,
     requiredNullableQueryParamKeys: queryParams?.requiredNullableKeys,
     queryParams: queryParams?.schema,
     headers: headers?.schema,

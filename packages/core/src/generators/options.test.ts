@@ -324,13 +324,9 @@ describe('generateAxiosOptions', () => {
       });
 
       expect(result).toContain(
-        'for (const [key, value] of Object.entries({...params, ...options?.params}))',
+        'params: filterParams({...params, ...options?.params}',
       );
-      expect(result).toContain(
-        'const filteredParams = {} as Record<string, string | number | boolean | null | Array<string | number | boolean>>',
-      );
-      expect(result).toContain('Array.isArray(value)');
-      expect(result).toContain("typeof item === 'string'");
+      expect(result).toContain('new Set<string>([])');
     });
 
     it('should apply filtering before paramsSerializer for Angular', () => {
@@ -348,19 +344,9 @@ describe('generateAxiosOptions', () => {
         paramsSerializerOptions: undefined,
       });
 
-      expect(result).toContain('params: paramsSerializerMutator(');
-      expect(result).toContain(
-        'for (const [key, value] of Object.entries({...params, ...options?.params}))',
-      );
-      expect(result).toContain(
-        'const filteredParams = {} as Record<string, string | number | boolean | null | Array<string | number | boolean>>',
-      );
-      expect(result).toContain(
-        'const requiredNullableParamKeys = new Set<string>(["requiredNullableParam"])',
-      );
-      expect(result).toContain(
-        'value === null && requiredNullableParamKeys.has(key)',
-      );
+      expect(result).toContain('params: paramsSerializerMutator(filterParams(');
+      expect(result).toContain('{...params, ...options?.params}');
+      expect(result).toContain('new Set<string>(["requiredNullableParam"])');
     });
 
     it('should filter params for Angular when requestOptions is false', () => {

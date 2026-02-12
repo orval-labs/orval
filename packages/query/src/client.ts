@@ -8,7 +8,8 @@ import {
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
-  getAngularFilteredParamsExpression,
+  getAngularFilteredParamsCallExpression,
+  getAngularFilteredParamsHelperBody,
   getSuccessResponseType,
   type GetterResponse,
   isObject,
@@ -175,7 +176,7 @@ export const generateAngularHttpRequestFunction = (
   // Build URL with query params - use httpParams to avoid shadowing the 'params' variable
   const hasQueryParams = queryParams?.schema.name;
   // The queryParams variable from function props is always named 'params'
-  const filteredParamsExpression = getAngularFilteredParamsExpression(
+  const filteredParamsExpression = getAngularFilteredParamsCallExpression(
     'params',
     queryParams?.requiredNullableKeys,
   );
@@ -739,7 +740,16 @@ export const getHttpFunctionQueryProps = (
 };
 
 export const getQueryHeader: ClientHeaderBuilder = (params) => {
-  return params.output.httpClient === OutputHttpClient.FETCH
-    ? generateFetchHeader(params)
-    : '';
+  if (params.output.httpClient === OutputHttpClient.FETCH) {
+    return generateFetchHeader(params);
+  }
+
+  if (params.output.httpClient === OutputHttpClient.ANGULAR) {
+    const hasQueryParams = Object.values(params.verbOptions).some(
+      (v) => v.queryParams,
+    );
+    return hasQueryParams ? getAngularFilteredParamsHelperBody() : '';
+  }
+
+  return '';
 };

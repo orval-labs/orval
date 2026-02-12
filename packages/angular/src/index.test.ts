@@ -347,12 +347,10 @@ describe('angular generator implementation signature', () => {
       'angular',
     );
 
-    expect(implementation).toContain(
-      'const requiredNullableParamKeys = new Set',
-    );
+    expect(implementation).toContain('filterParams(');
     expect(implementation).toContain('"requiredNullableParam"');
     expect(implementation).toContain(
-      'value === null && requiredNullableParamKeys.has(key)',
+      'const filteredParams = paramsSerializerMutator(filterParams(',
     );
   });
 });

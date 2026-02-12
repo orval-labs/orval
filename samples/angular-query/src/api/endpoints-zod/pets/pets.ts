@@ -33,6 +33,45 @@ import type {
   ListPetsParams,
 } from '../../model-zod/index.zod';
 
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: Set<string> = new Set(),
+): Record<
+  string,
+  string | number | boolean | Array<string | number | boolean>
+> {
+  const filteredParams: Record<
+    string,
+    string | number | boolean | null | Array<string | number | boolean>
+  > = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) {
+      const filtered = value.filter(
+        (item) =>
+          item != null &&
+          (typeof item === 'string' ||
+            typeof item === 'number' ||
+            typeof item === 'boolean'),
+      ) as Array<string | number | boolean>;
+      if (filtered.length) {
+        filteredParams[key] = filtered;
+      }
+    } else if (value === null && requiredNullableKeys.has(key)) {
+      filteredParams[key] = value;
+    } else if (
+      value != null &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean')
+    ) {
+      filteredParams[key] = value as string | number | boolean;
+    }
+  }
+  return filteredParams as Record<
+    string,
+    string | number | boolean | Array<string | number | boolean>
+  >;
+}
 /**
  * @summary List all pets
  */
@@ -42,42 +81,7 @@ export const listPets = (
   options?: { signal?: AbortSignal | null },
 ): Promise<Pets> => {
   const httpParams = params
-    ? new HttpParams({
-        fromObject: (() => {
-          const requiredNullableParamKeys = new Set<string>([]);
-          const filteredParams = {} as Record<
-            string,
-            string | number | boolean | null | Array<string | number | boolean>
-          >;
-          for (const [key, value] of Object.entries(params)) {
-            if (Array.isArray(value)) {
-              const filtered = value.filter(
-                (item) =>
-                  item != null &&
-                  (typeof item === 'string' ||
-                    typeof item === 'number' ||
-                    typeof item === 'boolean'),
-              ) as Array<string | number | boolean>;
-              if (filtered.length) {
-                filteredParams[key] = filtered;
-              }
-            } else if (value === null && requiredNullableParamKeys.has(key)) {
-              filteredParams[key] = value;
-            } else if (
-              value != null &&
-              (typeof value === 'string' ||
-                typeof value === 'number' ||
-                typeof value === 'boolean')
-            ) {
-              filteredParams[key] = value as string | number | boolean;
-            }
-          }
-          return filteredParams as unknown as Record<
-            string,
-            string | number | boolean | Array<string | number | boolean>
-          >;
-        })(),
-      })
+    ? new HttpParams({ fromObject: filterParams(params, new Set<string>([])) })
     : undefined;
   const url = `/pets`;
   const request$ = http
@@ -182,42 +186,7 @@ export const createPets = (
   options?: { signal?: AbortSignal | null },
 ): Promise<Pet> => {
   const httpParams = params
-    ? new HttpParams({
-        fromObject: (() => {
-          const requiredNullableParamKeys = new Set<string>([]);
-          const filteredParams = {} as Record<
-            string,
-            string | number | boolean | null | Array<string | number | boolean>
-          >;
-          for (const [key, value] of Object.entries(params)) {
-            if (Array.isArray(value)) {
-              const filtered = value.filter(
-                (item) =>
-                  item != null &&
-                  (typeof item === 'string' ||
-                    typeof item === 'number' ||
-                    typeof item === 'boolean'),
-              ) as Array<string | number | boolean>;
-              if (filtered.length) {
-                filteredParams[key] = filtered;
-              }
-            } else if (value === null && requiredNullableParamKeys.has(key)) {
-              filteredParams[key] = value;
-            } else if (
-              value != null &&
-              (typeof value === 'string' ||
-                typeof value === 'number' ||
-                typeof value === 'boolean')
-            ) {
-              filteredParams[key] = value as string | number | boolean;
-            }
-          }
-          return filteredParams as unknown as Record<
-            string,
-            string | number | boolean | Array<string | number | boolean>
-          >;
-        })(),
-      })
+    ? new HttpParams({ fromObject: filterParams(params, new Set<string>([])) })
     : undefined;
   const url = `/pets`;
   const request$ = http
