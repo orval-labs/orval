@@ -61,6 +61,41 @@ describe('isZodVersionV4', () => {
   });
 });
 
+describe('isZodVersionV4 with resolvedVersions', () => {
+  it('should prefer resolvedVersions over dependencies', () => {
+    const packageJson = {
+      dependencies: {
+        zod: '3.24.3',
+      },
+      resolvedVersions: {
+        zod: '4.0.0',
+      },
+    };
+
+    expect(isZodVersionV4(packageJson)).toBe(true);
+  });
+
+  it('should return true when only resolvedVersions is present', () => {
+    const packageJson = {
+      resolvedVersions: {
+        zod: '4.1.0',
+      },
+    };
+
+    expect(isZodVersionV4(packageJson)).toBe(true);
+  });
+
+  it('should fall back to dependencies when resolvedVersions is absent', () => {
+    const packageJson = {
+      dependencies: {
+        zod: '3.24.3',
+      },
+    };
+
+    expect(isZodVersionV4(packageJson)).toBe(false);
+  });
+});
+
 describe('getZodDateFormat', () => {
   it('should return "iso.date" when isZodV4 is true', () => {
     expect(getZodDateFormat(true)).toBe('iso.date');
