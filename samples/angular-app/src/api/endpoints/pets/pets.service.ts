@@ -4,11 +4,12 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import type {
   HttpContext,
   HttpEvent,
   HttpHeaders,
+  HttpParams,
   HttpResponse as AngularHttpResponse,
 } from '@angular/common/http';
 
@@ -227,13 +228,13 @@ export class PetsService {
         ...options,
         responseType: 'text',
         headers: { Accept: accept, ...options?.headers },
-      }) as any;
+      }) as Observable<string>;
     } else {
       return this.http.get(`/v${version}/pets/${petId}`, {
         ...options,
         responseType: 'blob',
         headers: { Accept: accept, ...options?.headers },
-      }) as any;
+      }) as Observable<Blob>;
     }
   }
   /**

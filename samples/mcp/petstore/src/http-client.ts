@@ -83,7 +83,7 @@ export type findPetsByStatusResponse400 = {
 
 export type findPetsByStatusResponseDefault = {
   data: void;
-  status: Exclude<HTTPStatusCodes, 200 | 200 | 400>;
+  status: Exclude<HTTPStatusCodes, 200 | 400>;
 };
 
 export type findPetsByStatusResponseSuccess = (
@@ -155,7 +155,7 @@ export type findPetsByTagsResponse400 = {
 
 export type findPetsByTagsResponseDefault = {
   data: void;
-  status: Exclude<HTTPStatusCodes, 200 | 200 | 400>;
+  status: Exclude<HTTPStatusCodes, 200 | 400>;
 };
 
 export type findPetsByTagsResponseSuccess = (
@@ -237,7 +237,7 @@ export type getPetByIdResponse404 = {
 
 export type getPetByIdResponseDefault = {
   data: void;
-  status: Exclude<HTTPStatusCodes, 200 | 200 | 400 | 404>;
+  status: Exclude<HTTPStatusCodes, 200 | 400 | 404>;
 };
 
 export type getPetByIdResponseSuccess = (
@@ -298,7 +298,7 @@ export type updatePetWithFormResponse400 = {
 
 export type updatePetWithFormResponseDefault = {
   data: void;
-  status: Exclude<HTTPStatusCodes, 200 | 200 | 400>;
+  status: Exclude<HTTPStatusCodes, 200 | 400>;
 };
 
 export type updatePetWithFormResponseSuccess = (
@@ -474,7 +474,7 @@ export type getOrderByIdResponse404 = {
 
 export type getOrderByIdResponseDefault = {
   data: void;
-  status: Exclude<HTTPStatusCodes, 200 | 200 | 400 | 404>;
+  status: Exclude<HTTPStatusCodes, 200 | 400 | 404>;
 };
 
 export type getOrderByIdResponseSuccess = (
@@ -593,7 +593,7 @@ export type loginUserResponse400 = {
 
 export type loginUserResponseDefault = {
   data: void;
-  status: Exclude<HTTPStatusCodes, 200 | 200 | 400>;
+  status: Exclude<HTTPStatusCodes, 200 | 400>;
 };
 
 export type loginUserResponseSuccess = (
@@ -713,7 +713,7 @@ export type getUserByNameResponse404 = {
 
 export type getUserByNameResponseDefault = {
   data: void;
-  status: Exclude<HTTPStatusCodes, 200 | 200 | 400 | 404>;
+  status: Exclude<HTTPStatusCodes, 200 | 400 | 404>;
 };
 
 export type getUserByNameResponseSuccess = (
