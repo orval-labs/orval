@@ -130,17 +130,14 @@ export const getListPetsMockHandler = (
   return http.get(
     '*/v:version/pets',
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      const resolvedBody =
+      return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
             ? await overrideResponse(info)
             : overrideResponse
-          : getListPetsResponseMock();
-      const textBody =
-        typeof resolvedBody === 'string'
-          ? resolvedBody
-          : JSON.stringify(resolvedBody ?? null);
-      return HttpResponse.xml(textBody, { status: 200 });
+          : getListPetsResponseMock(),
+        { status: 200 },
+      );
     },
     options,
   );
@@ -179,17 +176,14 @@ export const getShowPetByIdMockHandler = (
   return http.get(
     '*/v:version/pets/:petId',
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      const resolvedBody =
+      return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
             ? await overrideResponse(info)
             : overrideResponse
-          : getShowPetByIdResponseMock();
-      const textBody =
-        typeof resolvedBody === 'string'
-          ? resolvedBody
-          : JSON.stringify(resolvedBody ?? null);
-      return HttpResponse.text(textBody, { status: 200 });
+          : getShowPetByIdResponseMock(),
+        { status: 200 },
+      );
     },
     options,
   );
@@ -206,17 +200,14 @@ export const getShowPetTextMockHandler = (
   return http.get(
     '*/v:version/pets/:petId/text',
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      const resolvedBody =
+      return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
             ? await overrideResponse(info)
             : overrideResponse
-          : getShowPetTextResponseMock();
-      const textBody =
-        typeof resolvedBody === 'string'
-          ? resolvedBody
-          : JSON.stringify(resolvedBody ?? null);
-      return HttpResponse.text(textBody, { status: 200 });
+          : getShowPetTextResponseMock(),
+        { status: 200 },
+      );
     },
     options,
   );
