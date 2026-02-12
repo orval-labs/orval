@@ -99,5 +99,6 @@ describe('angular generator implementation signature', () => {
     expect(implementation).toContain("observe: 'events'");
     expect(implementation).toContain("observe: 'response'");
     expect(implementation).toContain("observe: 'body'");
+    expect(implementation).not.toContain('Observable<any>');
   });
 });

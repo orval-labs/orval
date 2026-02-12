@@ -35,7 +35,7 @@ interface HttpClientOptions {
     | HttpParams
     | Record<
         string,
-        string | number | boolean | ReadonlyArray<string | number | boolean>
+        string | number | boolean | Array<string | number | boolean>
       >;
   reportProgress?: boolean;
   withCredentials?: boolean;
@@ -77,14 +77,95 @@ export class PetsService {
     params: SearchPetsParams,
     version: number = 1,
     options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
-  ): Observable<any> {
+  ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
+    if (options?.observe === 'events') {
+      return this.http.get<TData>(`/v${version}/search`, {
+        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+        observe: 'events',
+        params: paramsSerializerMutator(
+          (() => {
+            const filteredParams = {} as Record<
+              string,
+              string | number | boolean | Array<string | number | boolean>
+            >;
+            for (const [key, value] of Object.entries({
+              ...params,
+              ...options?.params,
+            })) {
+              if (Array.isArray(value)) {
+                const filtered = value.filter(
+                  (item) =>
+                    item != null &&
+                    (typeof item === 'string' ||
+                      typeof item === 'number' ||
+                      typeof item === 'boolean'),
+                ) as Array<string | number | boolean>;
+                if (filtered.length) {
+                  filteredParams[key] = filtered;
+                }
+              } else if (
+                value != null &&
+                (typeof value === 'string' ||
+                  typeof value === 'number' ||
+                  typeof value === 'boolean')
+              ) {
+                filteredParams[key] = value as string | number | boolean;
+              }
+            }
+            return filteredParams;
+          })(),
+        ),
+      });
+    }
+
+    if (options?.observe === 'response') {
+      return this.http.get<TData>(`/v${version}/search`, {
+        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+        observe: 'response',
+        params: paramsSerializerMutator(
+          (() => {
+            const filteredParams = {} as Record<
+              string,
+              string | number | boolean | Array<string | number | boolean>
+            >;
+            for (const [key, value] of Object.entries({
+              ...params,
+              ...options?.params,
+            })) {
+              if (Array.isArray(value)) {
+                const filtered = value.filter(
+                  (item) =>
+                    item != null &&
+                    (typeof item === 'string' ||
+                      typeof item === 'number' ||
+                      typeof item === 'boolean'),
+                ) as Array<string | number | boolean>;
+                if (filtered.length) {
+                  filteredParams[key] = filtered;
+                }
+              } else if (
+                value != null &&
+                (typeof value === 'string' ||
+                  typeof value === 'number' ||
+                  typeof value === 'boolean')
+              ) {
+                filteredParams[key] = value as string | number | boolean;
+              }
+            }
+            return filteredParams;
+          })(),
+        ),
+      });
+    }
+
     return this.http.get<TData>(`/v${version}/search`, {
       ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+      observe: 'body',
       params: paramsSerializerMutator(
         (() => {
           const filteredParams = {} as Record<
             string,
-            string | number | boolean | ReadonlyArray<string | number | boolean>
+            string | number | boolean | Array<string | number | boolean>
           >;
           for (const [key, value] of Object.entries({
             ...params,
@@ -97,7 +178,7 @@ export class PetsService {
                   (typeof item === 'string' ||
                     typeof item === 'number' ||
                     typeof item === 'boolean'),
-              ) as ReadonlyArray<string | number | boolean>;
+              ) as Array<string | number | boolean>;
               if (filtered.length) {
                 filteredParams[key] = filtered;
               }
@@ -126,7 +207,7 @@ export class PetsService {
         params: (() => {
           const filteredParams = {} as Record<
             string,
-            string | number | boolean | ReadonlyArray<string | number | boolean>
+            string | number | boolean | Array<string | number | boolean>
           >;
           for (const [key, value] of Object.entries(params ?? {})) {
             if (Array.isArray(value)) {
@@ -136,7 +217,7 @@ export class PetsService {
                   (typeof item === 'string' ||
                     typeof item === 'number' ||
                     typeof item === 'boolean'),
-              ) as ReadonlyArray<string | number | boolean>;
+              ) as Array<string | number | boolean>;
               if (filtered.length) {
                 filteredParams[key] = filtered;
               }
@@ -177,12 +258,25 @@ export class PetsService {
     createPetsBody: CreatePetsBody,
     version: number = 1,
     options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
-  ): Observable<any> {
-    return this.http.post<TData>(
-      `/v${version}/pets`,
-      createPetsBody,
-      options as Omit<NonNullable<typeof options>, 'observe'>,
-    );
+  ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
+    if (options?.observe === 'events') {
+      return this.http.post<TData>(`/v${version}/pets`, createPetsBody, {
+        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+        observe: 'events',
+      });
+    }
+
+    if (options?.observe === 'response') {
+      return this.http.post<TData>(`/v${version}/pets`, createPetsBody, {
+        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+        observe: 'response',
+      });
+    }
+
+    return this.http.post<TData>(`/v${version}/pets`, createPetsBody, {
+      ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+      observe: 'body',
+    });
   }
   /**
    * @summary Info for a specific pet
@@ -216,9 +310,9 @@ export class PetsService {
     accept: string = 'text/plain',
     version: number = 1,
     options?: HttpClientOptions,
-  ): Observable<any> {
+  ): Observable<Pet | string | Blob> {
     if (accept.includes('json') || accept.includes('+json')) {
-      return this.http.get<any>(`/v${version}/pets/${petId}`, {
+      return this.http.get<Pet>(`/v${version}/pets/${petId}`, {
         ...options,
         responseType: 'json',
         headers: { Accept: accept, ...options?.headers },
@@ -259,10 +353,27 @@ export class PetsService {
     petId: string,
     version: number = 1,
     options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
-  ): Observable<any> {
+  ): Observable<string | HttpEvent<string> | AngularHttpResponse<string>> {
+    if (options?.observe === 'events') {
+      return this.http.get(`/v${version}/pets/${petId}/text`, {
+        responseType: 'text',
+        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+        observe: 'events',
+      });
+    }
+
+    if (options?.observe === 'response') {
+      return this.http.get(`/v${version}/pets/${petId}/text`, {
+        responseType: 'text',
+        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+        observe: 'response',
+      });
+    }
+
     return this.http.get(`/v${version}/pets/${petId}/text`, {
       responseType: 'text',
       ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+      observe: 'body',
     });
   }
   /**
@@ -292,11 +403,36 @@ export class PetsService {
     uploadFileBody: Blob,
     version: number = 1,
     options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
-  ): Observable<any> {
+  ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
+    if (options?.observe === 'events') {
+      return this.http.post<TData>(
+        `/v${version}/pet/${petId}/uploadImage`,
+        uploadFileBody,
+        {
+          ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+          observe: 'events',
+        },
+      );
+    }
+
+    if (options?.observe === 'response') {
+      return this.http.post<TData>(
+        `/v${version}/pet/${petId}/uploadImage`,
+        uploadFileBody,
+        {
+          ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+          observe: 'response',
+        },
+      );
+    }
+
     return this.http.post<TData>(
       `/v${version}/pet/${petId}/uploadImage`,
       uploadFileBody,
-      options as Omit<NonNullable<typeof options>, 'observe'>,
+      {
+        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+        observe: 'body',
+      },
     );
   }
   /**
@@ -322,10 +458,27 @@ export class PetsService {
     petId: number,
     version: number = 1,
     options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
-  ): Observable<any> {
+  ): Observable<Blob | HttpEvent<Blob> | AngularHttpResponse<Blob>> {
+    if (options?.observe === 'events') {
+      return this.http.get(`/v${version}/pet/${petId}/downloadImage`, {
+        responseType: 'blob',
+        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+        observe: 'events',
+      });
+    }
+
+    if (options?.observe === 'response') {
+      return this.http.get(`/v${version}/pet/${petId}/downloadImage`, {
+        responseType: 'blob',
+        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+        observe: 'response',
+      });
+    }
+
     return this.http.get(`/v${version}/pet/${petId}/downloadImage`, {
       responseType: 'blob',
       ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+      observe: 'body',
     });
   }
 }

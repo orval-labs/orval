@@ -324,6 +324,11 @@ const generateImplementation = (
 
   const overloads = contentTypeOverloads || observeOverloads;
 
+  const observableDataType = isModelType ? 'TData' : dataType;
+  const singleImplementationReturnType = isRequestOptions
+    ? `Observable<${observableDataType} | HttpEvent<${observableDataType}> | AngularHttpResponse<${observableDataType}>>`
+    : `Observable<${observableDataType}>`;
+
   if (hasMultipleContentTypes) {
     const requiredProps = props.filter((p) => p.required && !p.default);
     const optionalProps = props.filter((p) => !p.required || p.default);
@@ -342,13 +347,29 @@ const generateImplementation = (
       .filter(Boolean)
       .join(',\n    ');
 
+    const jsonSuccessValues = [
+      ...new Set(
+        successTypes
+          .filter(
+            ({ contentType }) =>
+              !!contentType &&
+              (contentType.includes('json') || contentType.includes('+json')),
+          )
+          .map(({ value }) => value),
+      ),
+    ];
+
+    const jsonReturnType =
+      jsonSuccessValues.length > 0 ? jsonSuccessValues.join(' | ') : 'unknown';
+    const multiImplementationReturnType = `Observable<${jsonReturnType} | string | Blob>`;
+
     return ` ${overloads}
   ${operationName}(
     ${allParams},
     ${isRequestOptions ? 'options?: HttpClientOptions' : ''}
-  ): Observable<any> {${bodyForm}
+  ): ${multiImplementationReturnType} {${bodyForm}
     if (accept.includes('json') || accept.includes('+json')) {
-      return this.http.${verb}<any>(\`${route}\`, {
+      return this.http.${verb}<${jsonReturnType}>(\`${route}\`, {
         ...options,
         responseType: 'json',
         headers: { Accept: accept, ...options?.headers },
@@ -394,7 +415,7 @@ const generateImplementation = (
       isRequestOptions
         ? `options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' }`
         : ''
-    }): Observable<any> {${bodyForm}
+    }): ${singleImplementationReturnType} {${bodyForm}
     ${observeImplementation}
   }
 `;

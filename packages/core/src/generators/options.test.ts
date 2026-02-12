@@ -327,7 +327,7 @@ describe('generateAxiosOptions', () => {
         'for (const [key, value] of Object.entries({...params, ...options?.params}))',
       );
       expect(result).toContain(
-        'const filteredParams = {} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
+        'const filteredParams = {} as Record<string, string | number | boolean | Array<string | number | boolean>>',
       );
       expect(result).toContain('Array.isArray(value)');
       expect(result).toContain("typeof item === 'string'");
@@ -352,7 +352,7 @@ describe('generateAxiosOptions', () => {
         'for (const [key, value] of Object.entries({...params, ...options?.params}))',
       );
       expect(result).toContain(
-        'const filteredParams = {} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
+        'const filteredParams = {} as Record<string, string | number | boolean | Array<string | number | boolean>>',
       );
     });
 
@@ -374,7 +374,7 @@ describe('generateAxiosOptions', () => {
         'for (const [key, value] of Object.entries(params))',
       );
       expect(result).toContain(
-        'const filteredParams = {} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
+        'const filteredParams = {} as Record<string, string | number | boolean | Array<string | number | boolean>>',
       );
     });
   });
@@ -466,7 +466,7 @@ describe('generateMutatorConfig', () => {
         'for (const [key, value] of Object.entries(params ?? {}))',
       );
       expect(result).toContain(
-        'const filteredParams = {} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
+        'const filteredParams = {} as Record<string, string | number | boolean | Array<string | number | boolean>>',
       );
       expect(result).toContain('Array.isArray(value)');
       expect(result).toContain("typeof item === 'string'");

@@ -46,7 +46,7 @@ export const listPets = (
         fromObject: (() => {
           const filteredParams = {} as Record<
             string,
-            string | number | boolean | ReadonlyArray<string | number | boolean>
+            string | number | boolean | Array<string | number | boolean>
           >;
           for (const [key, value] of Object.entries(params)) {
             if (Array.isArray(value)) {
@@ -56,7 +56,7 @@ export const listPets = (
                   (typeof item === 'string' ||
                     typeof item === 'number' ||
                     typeof item === 'boolean'),
-              ) as ReadonlyArray<string | number | boolean>;
+              ) as Array<string | number | boolean>;
               if (filtered.length) {
                 filteredParams[key] = filtered;
               }
@@ -180,7 +180,7 @@ export const createPets = (
         fromObject: (() => {
           const filteredParams = {} as Record<
             string,
-            string | number | boolean | ReadonlyArray<string | number | boolean>
+            string | number | boolean | Array<string | number | boolean>
           >;
           for (const [key, value] of Object.entries(params)) {
             if (Array.isArray(value)) {
@@ -190,7 +190,7 @@ export const createPets = (
                   (typeof item === 'string' ||
                     typeof item === 'number' ||
                     typeof item === 'boolean'),
-              ) as ReadonlyArray<string | number | boolean>;
+              ) as Array<string | number | boolean>;
               if (filtered.length) {
                 filteredParams[key] = filtered;
               }
