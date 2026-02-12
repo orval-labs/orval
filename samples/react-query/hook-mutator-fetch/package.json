@@ -8,7 +8,7 @@
     "test": "tsc --noEmit endpoints.ts"
   },
   "dependencies": {
-    "@faker-js/faker": "^10.2.0",
+    "@faker-js/faker": "catalog:tooling",
     "react": "^18.3.1",
     "react-query": "^3.39.3"
   },
