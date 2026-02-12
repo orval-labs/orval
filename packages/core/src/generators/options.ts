@@ -21,9 +21,11 @@ import { getIsBodyVerb, isObject, stringify } from '../utils';
  */
 export const getAngularFilteredParamsExpression = (
   paramsExpression: string,
+  requiredNullableParamKeys: string[] = [],
 ): string =>
   `(() => {
-  const filteredParams = {} as Record<string, string | number | boolean | Array<string | number | boolean>>;
+  const requiredNullableParamKeys = new Set<string>(${JSON.stringify(requiredNullableParamKeys)});
+  const filteredParams = {} as Record<string, string | number | boolean | null | Array<string | number | boolean>>;
   for (const [key, value] of Object.entries(${paramsExpression})) {
     if (Array.isArray(value)) {
       const filtered = value.filter(
@@ -36,6 +38,8 @@ export const getAngularFilteredParamsExpression = (
       if (filtered.length) {
         filteredParams[key] = filtered;
       }
+    } else if (value === null && requiredNullableParamKeys.has(key)) {
+      filteredParams[key] = value;
     } else if (
       value != null &&
       (typeof value === 'string' ||
@@ -45,7 +49,7 @@ export const getAngularFilteredParamsExpression = (
       filteredParams[key] = value as string | number | boolean;
     }
   }
-  return filteredParams;
+  return filteredParams as unknown as Record<string, string | number | boolean | Array<string | number | boolean>>;
 })()`;
 
 interface GenerateFormDataAndUrlEncodedFunctionOptions {
@@ -80,6 +84,7 @@ interface GenerateAxiosOptions {
   response: GetterResponse;
   isExactOptionalPropertyTypes: boolean;
   angularObserve?: 'body' | 'events' | 'response';
+  requiredNullableQueryParamKeys?: string[];
   queryParams?: GeneratorSchema;
   headers?: GeneratorSchema;
   requestOptions?: object | boolean;
@@ -95,6 +100,7 @@ export function generateAxiosOptions({
   response,
   isExactOptionalPropertyTypes,
   angularObserve,
+  requiredNullableQueryParamKeys,
   queryParams,
   headers,
   requestOptions,
@@ -140,8 +146,8 @@ export function generateAxiosOptions({
     if (queryParams) {
       if (isAngular) {
         value += paramsSerializer
-          ? `\n        params: ${paramsSerializer.name}(${getAngularFilteredParamsExpression('params')}),`
-          : `\n        params: ${getAngularFilteredParamsExpression('params')},`;
+          ? `\n        params: ${paramsSerializer.name}(${getAngularFilteredParamsExpression('params', requiredNullableQueryParamKeys)}),`
+          : `\n        params: ${getAngularFilteredParamsExpression('params', requiredNullableQueryParamKeys)},`;
       } else {
         value += '\n        params,';
       }
@@ -185,9 +191,9 @@ export function generateAxiosOptions({
       if (isVue) {
         value += '\n        params: {...unref(params), ...options?.params},';
       } else if (isAngular && paramsSerializer) {
-        value += `\n        params: ${paramsSerializer.name}(${getAngularFilteredParamsExpression('{...params, ...options?.params}')}),`;
+        value += `\n        params: ${paramsSerializer.name}(${getAngularFilteredParamsExpression('{...params, ...options?.params}', requiredNullableQueryParamKeys)}),`;
       } else if (isAngular) {
-        value += `\n        params: ${getAngularFilteredParamsExpression('{...params, ...options?.params}')},`;
+        value += `\n        params: ${getAngularFilteredParamsExpression('{...params, ...options?.params}', requiredNullableQueryParamKeys)},`;
       } else {
         value += '\n        params: {...params, ...options?.params},';
       }
@@ -260,6 +266,7 @@ export function generateOptions({
   const axiosOptions = generateAxiosOptions({
     response,
     angularObserve,
+    requiredNullableQueryParamKeys: queryParams?.requiredNullableKeys,
     queryParams: queryParams?.schema,
     headers: headers?.schema,
     requestOptions,
@@ -325,6 +332,7 @@ export function generateQueryParamsAxiosConfig(
   response: GetterResponse,
   isVue: boolean,
   isAngular: boolean,
+  requiredNullableQueryParamKeys?: string[],
   queryParams?: GetterQueryParam,
 ) {
   if (!queryParams && !response.isBlob) {
@@ -337,7 +345,7 @@ export function generateQueryParamsAxiosConfig(
     if (isVue) {
       value += ',\n        params: unref(params)';
     } else if (isAngular) {
-      value += `,\n        params: ${getAngularFilteredParamsExpression('params ?? {}')}`;
+      value += `,\n        params: ${getAngularFilteredParamsExpression('params ?? {}', requiredNullableQueryParamKeys)}`;
     } else {
       value += ',\n        params';
     }
@@ -389,6 +397,7 @@ export function generateMutatorConfig({
     response,
     isVue ?? false,
     isAngular ?? false,
+    queryParams?.requiredNullableKeys,
     queryParams,
   );
 

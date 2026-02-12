@@ -13,10 +13,36 @@ import { getEnum, getEnumDescriptions, getEnumNames } from './enum';
 import { getKey } from './keys';
 
 type QueryParamsType = {
+  name: string;
+  required: boolean;
   definition: string;
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
   originalSchema: OpenApiSchemaObject;
+};
+
+const isSchemaNullable = (schema: OpenApiSchemaObject): boolean => {
+  if (schema.nullable === true) {
+    return true;
+  }
+
+  if (schema.type === 'null') {
+    return true;
+  }
+
+  if (Array.isArray(schema.type) && schema.type.includes('null')) {
+    return true;
+  }
+
+  const variants = [...(schema.oneOf ?? []), ...(schema.anyOf ?? [])];
+
+  return variants.some((variant) => {
+    if (!variant || '$ref' in variant) {
+      return false;
+    }
+
+    return isSchemaNullable(variant);
+  });
 };
 
 function getQueryParamsTypes(
@@ -87,6 +113,8 @@ function getQueryParamsTypes(
 
     if (parameterImports.length > 0) {
       return {
+        name,
+        required,
         definition: `${doc}${key}${!required || schema.default ? '?' : ''}: ${
           parameterImports[0].name
         };`,
@@ -108,6 +136,8 @@ function getQueryParamsTypes(
       );
 
       return {
+        name,
+        required,
         definition: `${doc}${key}${
           !required || schema.default ? '?' : ''
         }: ${enumName};`,
@@ -125,6 +155,8 @@ function getQueryParamsTypes(
     }: ${resolvedValue.value};`;
 
     return {
+      name,
+      required,
       definition,
       imports: resolvedValue.imports,
       schemas: resolvedValue.schemas,
@@ -156,6 +188,12 @@ export function getQueryParams({
 
   const type = types.map(({ definition }) => definition).join('\n');
   const allOptional = queryParams.every(({ parameter }) => !parameter.required);
+  const requiredNullableKeys = types
+    .filter(
+      ({ required, originalSchema }) =>
+        required && isSchemaNullable(originalSchema),
+    )
+    .map(({ name }) => name);
 
   const schema = {
     name,
@@ -167,5 +205,6 @@ export function getQueryParams({
     schema,
     deps: schemas,
     isOptional: allOptional,
+    requiredNullableKeys,
   };
 }

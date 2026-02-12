@@ -225,9 +225,134 @@ describe('angular generator implementation signature', () => {
     expect(implementation).toContain(
       'accept?: string, options?: HttpClientOptions): Observable<string>;',
     );
+    expect(implementation).toContain(
+      'const headers = options?.headers instanceof HttpHeaders',
+    );
+    expect(implementation).toContain("options.headers.set('Accept', accept)");
+    expect(implementation).toContain(
+      '{ ...(options?.headers ?? {}), Accept: accept }',
+    );
     expect(implementation).not.toContain(
       "accept: 'application/xml', options?: HttpClientOptions): Observable<Pet>;",
     );
     expect(implementation).not.toContain('Observable<any>');
+  });
+
+  it('should preserve required nullable query params in angular filtering expression', async () => {
+    const body: GetterBody = {
+      originalSchema: {},
+      imports: [],
+      definition: '',
+      implementation: '',
+      schemas: [],
+      formData: undefined,
+      formUrlEncoded: undefined,
+      contentType: 'application/json',
+      isOptional: true,
+    };
+
+    const response: GetterResponse = {
+      imports: [],
+      definition: {
+        success: 'Pet',
+        errors: 'unknown',
+      },
+      isBlob: false,
+      types: {
+        success: [
+          {
+            value: 'Pet',
+            isEnum: false,
+            type: 'object',
+            imports: [],
+            schemas: [],
+            isRef: false,
+            hasReadonlyProps: false,
+            dependencies: [],
+            example: undefined,
+            examples: undefined,
+            key: '200',
+            contentType: 'application/json',
+            originalSchema: {},
+          },
+        ],
+        errors: [],
+      },
+      contentTypes: ['application/json'],
+      schemas: [],
+      originalSchema: {},
+    };
+
+    const verbOptions = {
+      headers: undefined,
+      queryParams: {
+        schema: {
+          name: 'SearchParams',
+          model:
+            'export type SearchParams = { requiredNullableParam: string | null; optionalParam?: string; };',
+          imports: [],
+        },
+        deps: [],
+        isOptional: false,
+        requiredNullableKeys: ['requiredNullableParam'],
+      },
+      operationName: 'searchPets',
+      response,
+      mutator: undefined,
+      body,
+      props: [
+        {
+          name: 'params',
+          definition: 'params: SearchParams,',
+          implementation: 'params: SearchParams,',
+          default: false,
+          required: true,
+          type: 'queryParam',
+        },
+      ],
+      params: [],
+      verb: Verbs.GET,
+      override: {
+        requestOptions: true,
+        formData: { disabled: true },
+        formUrlEncoded: false,
+        paramsSerializerOptions: undefined,
+      },
+      formData: undefined,
+      formUrlEncoded: undefined,
+      paramsSerializer: {
+        name: 'paramsSerializerMutator',
+        path: './paramsSerializerMutator',
+        default: true,
+        hasErrorType: false,
+        errorTypeName: 'unknown',
+        hasSecondArg: false,
+        hasThirdArg: false,
+        isHook: false,
+      },
+    } as unknown as GeneratorVerbOptions;
+
+    const { implementation } = await generateAngular(
+      verbOptions,
+      {
+        route: '/search',
+        context: {
+          output: {
+            tsconfig: {
+              compilerOptions: {},
+            },
+          },
+        },
+      } as never,
+      'angular',
+    );
+
+    expect(implementation).toContain(
+      'const requiredNullableParamKeys = new Set',
+    );
+    expect(implementation).toContain('"requiredNullableParam"');
+    expect(implementation).toContain(
+      'value === null && requiredNullableParamKeys.has(key)',
+    );
   });
 });

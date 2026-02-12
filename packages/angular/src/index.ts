@@ -24,7 +24,7 @@ const ANGULAR_DEPENDENCIES = [
   {
     exports: [
       { name: 'HttpClient', values: true },
-      { name: 'HttpHeaders' },
+      { name: 'HttpHeaders', values: true },
       { name: 'HttpParams' },
       { name: 'HttpContext' },
       { name: 'HttpResponse', alias: 'AngularHttpResponse' }, // alias to prevent naming conflict with msw
@@ -391,23 +391,27 @@ const generateImplementation = (
     ${allParams},
     ${isRequestOptions ? 'options?: HttpClientOptions' : ''}
   ): ${multiImplementationReturnType} {${bodyForm}
+    const headers = options?.headers instanceof HttpHeaders
+      ? options.headers.set('Accept', accept)
+      : { ...(options?.headers ?? {}), Accept: accept };
+
     if (accept.includes('json') || accept.includes('+json')) {
       return this.http.${verb}<${jsonReturnType}>(\`${route}\`, {
         ...options,
         responseType: 'json',
-        headers: { Accept: accept, ...options?.headers },
+        headers,
       });
     } else if (accept.startsWith('text/') || accept.includes('xml')) {
       return this.http.${verb}(\`${route}\`, {
         ...options,
         responseType: 'text',
-        headers: { Accept: accept, ...options?.headers },
+        headers,
       }) as Observable<string>;
     } else {
       return this.http.${verb}(\`${route}\`, {
         ...options,
         responseType: 'blob',
-        headers: { Accept: accept, ...options?.headers },
+        headers,
       }) as Observable<Blob>;
     }
   }

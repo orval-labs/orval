@@ -1098,6 +1098,7 @@ export type GetterQueryParam = {
   schema: GeneratorSchema;
   deps: GeneratorSchema[];
   isOptional: boolean;
+  requiredNullableKeys?: string[];
   originalSchema?: OpenApiSchemaObject;
 };
 

@@ -327,7 +327,7 @@ describe('generateAxiosOptions', () => {
         'for (const [key, value] of Object.entries({...params, ...options?.params}))',
       );
       expect(result).toContain(
-        'const filteredParams = {} as Record<string, string | number | boolean | Array<string | number | boolean>>',
+        'const filteredParams = {} as Record<string, string | number | boolean | null | Array<string | number | boolean>>',
       );
       expect(result).toContain('Array.isArray(value)');
       expect(result).toContain("typeof item === 'string'");
@@ -338,6 +338,7 @@ describe('generateAxiosOptions', () => {
         response: minimalResponse,
         isExactOptionalPropertyTypes: false,
         queryParams: minimalSchema,
+        requiredNullableQueryParamKeys: ['requiredNullableParam'],
         headers: undefined,
         requestOptions: true,
         hasSignal: false,
@@ -352,7 +353,13 @@ describe('generateAxiosOptions', () => {
         'for (const [key, value] of Object.entries({...params, ...options?.params}))',
       );
       expect(result).toContain(
-        'const filteredParams = {} as Record<string, string | number | boolean | Array<string | number | boolean>>',
+        'const filteredParams = {} as Record<string, string | number | boolean | null | Array<string | number | boolean>>',
+      );
+      expect(result).toContain(
+        'const requiredNullableParamKeys = new Set<string>(["requiredNullableParam"])',
+      );
+      expect(result).toContain(
+        'value === null && requiredNullableParamKeys.has(key)',
       );
     });
 
@@ -374,7 +381,7 @@ describe('generateAxiosOptions', () => {
         'for (const [key, value] of Object.entries(params))',
       );
       expect(result).toContain(
-        'const filteredParams = {} as Record<string, string | number | boolean | Array<string | number | boolean>>',
+        'const filteredParams = {} as Record<string, string | number | boolean | null | Array<string | number | boolean>>',
       );
     });
   });
@@ -466,7 +473,7 @@ describe('generateMutatorConfig', () => {
         'for (const [key, value] of Object.entries(params ?? {}))',
       );
       expect(result).toContain(
-        'const filteredParams = {} as Record<string, string | number | boolean | Array<string | number | boolean>>',
+        'const filteredParams = {} as Record<string, string | number | boolean | null | Array<string | number | boolean>>',
       );
       expect(result).toContain('Array.isArray(value)');
       expect(result).toContain("typeof item === 'string'");

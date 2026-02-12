@@ -4,11 +4,10 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import type {
   HttpContext,
   HttpEvent,
-  HttpHeaders,
   HttpParams,
   HttpResponse as AngularHttpResponse,
 } from '@angular/common/http';
@@ -84,9 +83,17 @@ export class PetsService {
         observe: 'events',
         params: paramsSerializerMutator(
           (() => {
+            const requiredNullableParamKeys = new Set<string>([
+              'requirednullableString',
+              'requirednullableStringTwo',
+            ]);
             const filteredParams = {} as Record<
               string,
-              string | number | boolean | Array<string | number | boolean>
+              | string
+              | number
+              | boolean
+              | null
+              | Array<string | number | boolean>
             >;
             for (const [key, value] of Object.entries({
               ...params,
@@ -103,6 +110,8 @@ export class PetsService {
                 if (filtered.length) {
                   filteredParams[key] = filtered;
                 }
+              } else if (value === null && requiredNullableParamKeys.has(key)) {
+                filteredParams[key] = value;
               } else if (
                 value != null &&
                 (typeof value === 'string' ||
@@ -112,7 +121,10 @@ export class PetsService {
                 filteredParams[key] = value as string | number | boolean;
               }
             }
-            return filteredParams;
+            return filteredParams as unknown as Record<
+              string,
+              string | number | boolean | Array<string | number | boolean>
+            >;
           })(),
         ),
       });
@@ -124,9 +136,17 @@ export class PetsService {
         observe: 'response',
         params: paramsSerializerMutator(
           (() => {
+            const requiredNullableParamKeys = new Set<string>([
+              'requirednullableString',
+              'requirednullableStringTwo',
+            ]);
             const filteredParams = {} as Record<
               string,
-              string | number | boolean | Array<string | number | boolean>
+              | string
+              | number
+              | boolean
+              | null
+              | Array<string | number | boolean>
             >;
             for (const [key, value] of Object.entries({
               ...params,
@@ -143,6 +163,8 @@ export class PetsService {
                 if (filtered.length) {
                   filteredParams[key] = filtered;
                 }
+              } else if (value === null && requiredNullableParamKeys.has(key)) {
+                filteredParams[key] = value;
               } else if (
                 value != null &&
                 (typeof value === 'string' ||
@@ -152,7 +174,10 @@ export class PetsService {
                 filteredParams[key] = value as string | number | boolean;
               }
             }
-            return filteredParams;
+            return filteredParams as unknown as Record<
+              string,
+              string | number | boolean | Array<string | number | boolean>
+            >;
           })(),
         ),
       });
@@ -163,9 +188,13 @@ export class PetsService {
       observe: 'body',
       params: paramsSerializerMutator(
         (() => {
+          const requiredNullableParamKeys = new Set<string>([
+            'requirednullableString',
+            'requirednullableStringTwo',
+          ]);
           const filteredParams = {} as Record<
             string,
-            string | number | boolean | Array<string | number | boolean>
+            string | number | boolean | null | Array<string | number | boolean>
           >;
           for (const [key, value] of Object.entries({
             ...params,
@@ -182,6 +211,8 @@ export class PetsService {
               if (filtered.length) {
                 filteredParams[key] = filtered;
               }
+            } else if (value === null && requiredNullableParamKeys.has(key)) {
+              filteredParams[key] = value;
             } else if (
               value != null &&
               (typeof value === 'string' ||
@@ -191,7 +222,10 @@ export class PetsService {
               filteredParams[key] = value as string | number | boolean;
             }
           }
-          return filteredParams;
+          return filteredParams as unknown as Record<
+            string,
+            string | number | boolean | Array<string | number | boolean>
+          >;
         })(),
       ),
     });
@@ -205,9 +239,10 @@ export class PetsService {
         url: `/v${version}/pets`,
         method: 'GET',
         params: (() => {
+          const requiredNullableParamKeys = new Set<string>([]);
           const filteredParams = {} as Record<
             string,
-            string | number | boolean | Array<string | number | boolean>
+            string | number | boolean | null | Array<string | number | boolean>
           >;
           for (const [key, value] of Object.entries(params ?? {})) {
             if (Array.isArray(value)) {
@@ -221,6 +256,8 @@ export class PetsService {
               if (filtered.length) {
                 filteredParams[key] = filtered;
               }
+            } else if (value === null && requiredNullableParamKeys.has(key)) {
+              filteredParams[key] = value;
             } else if (
               value != null &&
               (typeof value === 'string' ||
@@ -230,7 +267,10 @@ export class PetsService {
               filteredParams[key] = value as string | number | boolean;
             }
           }
-          return filteredParams;
+          return filteredParams as unknown as Record<
+            string,
+            string | number | boolean | Array<string | number | boolean>
+          >;
         })(),
       },
       this.http,
@@ -311,23 +351,28 @@ export class PetsService {
     version: number = 1,
     options?: HttpClientOptions,
   ): Observable<Pet | string | Blob> {
+    const headers =
+      options?.headers instanceof HttpHeaders
+        ? options.headers.set('Accept', accept)
+        : { ...(options?.headers ?? {}), Accept: accept };
+
     if (accept.includes('json') || accept.includes('+json')) {
       return this.http.get<Pet>(`/v${version}/pets/${petId}`, {
         ...options,
         responseType: 'json',
-        headers: { Accept: accept, ...options?.headers },
+        headers,
       });
     } else if (accept.startsWith('text/') || accept.includes('xml')) {
       return this.http.get(`/v${version}/pets/${petId}`, {
         ...options,
         responseType: 'text',
-        headers: { Accept: accept, ...options?.headers },
+        headers,
       }) as Observable<string>;
     } else {
       return this.http.get(`/v${version}/pets/${petId}`, {
         ...options,
         responseType: 'blob',
-        headers: { Accept: accept, ...options?.headers },
+        headers,
       }) as Observable<Blob>;
     }
   }

@@ -51,9 +51,10 @@ export const searchPets = (
   const httpParams = params
     ? new HttpParams({
         fromObject: (() => {
+          const requiredNullableParamKeys = new Set<string>([]);
           const filteredParams = {} as Record<
             string,
-            string | number | boolean | Array<string | number | boolean>
+            string | number | boolean | null | Array<string | number | boolean>
           >;
           for (const [key, value] of Object.entries(params)) {
             if (Array.isArray(value)) {
@@ -67,6 +68,8 @@ export const searchPets = (
               if (filtered.length) {
                 filteredParams[key] = filtered;
               }
+            } else if (value === null && requiredNullableParamKeys.has(key)) {
+              filteredParams[key] = value;
             } else if (
               value != null &&
               (typeof value === 'string' ||
@@ -76,7 +79,10 @@ export const searchPets = (
               filteredParams[key] = value as string | number | boolean;
             }
           }
-          return filteredParams;
+          return filteredParams as unknown as Record<
+            string,
+            string | number | boolean | Array<string | number | boolean>
+          >;
         })(),
       })
     : undefined;
@@ -212,9 +218,10 @@ export const listPets = (
   const httpParams = params
     ? new HttpParams({
         fromObject: (() => {
+          const requiredNullableParamKeys = new Set<string>([]);
           const filteredParams = {} as Record<
             string,
-            string | number | boolean | Array<string | number | boolean>
+            string | number | boolean | null | Array<string | number | boolean>
           >;
           for (const [key, value] of Object.entries(params)) {
             if (Array.isArray(value)) {
@@ -228,6 +235,8 @@ export const listPets = (
               if (filtered.length) {
                 filteredParams[key] = filtered;
               }
+            } else if (value === null && requiredNullableParamKeys.has(key)) {
+              filteredParams[key] = value;
             } else if (
               value != null &&
               (typeof value === 'string' ||
@@ -237,7 +246,10 @@ export const listPets = (
               filteredParams[key] = value as string | number | boolean;
             }
           }
-          return filteredParams;
+          return filteredParams as unknown as Record<
+            string,
+            string | number | boolean | Array<string | number | boolean>
+          >;
         })(),
       })
     : undefined;
