@@ -1,6 +1,7 @@
 import {
   camel,
   generateMutator,
+  type GeneratorImport,
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
@@ -806,6 +807,8 @@ ${queryKeyFns}`;
         : undefined;
   }
 
+  let imports: GeneratorImport[] = [];
+
   if (isMutation) {
     const mutationResult = await generateMutationHook({
       verbOptions: { ...verbOptions, props },
@@ -820,10 +823,12 @@ ${queryKeyFns}`;
     mutators = mutationResult.mutators
       ? [...(mutators ?? []), ...mutationResult.mutators]
       : mutators;
+    imports = mutationResult.imports;
   }
 
   return {
     implementation,
     mutators,
+    imports,
   };
 };

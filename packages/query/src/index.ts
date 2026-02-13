@@ -89,17 +89,20 @@ export const generateQuery: ClientBuilder = async (
     normalizedVerbOptions,
     options,
   );
-  const { implementation: hookImplementation, mutators } =
-    await generateQueryHook(
-      normalizedVerbOptions,
-      options,
-      outputClient,
-      adapter,
-    );
+  const {
+    implementation: hookImplementation,
+    imports: hookImports,
+    mutators,
+  } = await generateQueryHook(
+    normalizedVerbOptions,
+    options,
+    outputClient,
+    adapter,
+  );
 
   return {
     implementation: `${functionImplementation}\n\n${hookImplementation}`,
-    imports,
+    imports: [...imports, ...hookImports],
     mutators,
   };
 };

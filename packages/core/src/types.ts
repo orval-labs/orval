@@ -606,6 +606,7 @@ export type InvalidateTarget =
       query: string;
       params?: string[] | Record<string, string>;
       invalidateMode?: 'invalidate' | 'reset';
+      file?: string;
     };
 
 export type MutationInvalidatesRule = {
