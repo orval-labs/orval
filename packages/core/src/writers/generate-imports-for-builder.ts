@@ -34,8 +34,7 @@ export function generateImportsForBuilder(
       imports.filter((i) => !i.importPath),
       (x) => x.name,
     ).map((i) => {
-      const baseName = i.schemaName ?? i.name;
-      const name = conventionName(baseName, output.namingConvention);
+      const name = conventionName(i.name, output.namingConvention);
       const suffix = isZodSchemaOutput ? '.zod' : '';
       const importExtension = output.fileExtension.replace(/\.ts$/, '') || '';
       return {
