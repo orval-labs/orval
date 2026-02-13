@@ -630,6 +630,7 @@ export default defineConfig({
               invalidates: [
                 'listPets',
                 { query: 'showPetById', params: ['petId'], invalidationMode: 'reset' },
+                { query: 'adminPets', file: './admin' },
               ],
             },
           ],

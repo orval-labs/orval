@@ -1,6 +1,7 @@
 import {
   camel,
   generateMutator,
+  type GeneratorImport,
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
@@ -23,6 +24,7 @@ type NormalizedTarget = {
   query: string;
   params?: string[] | Record<string, string>;
   invalidateMode: 'invalidate' | 'reset';
+  file?: string;
 };
 
 const normalizeTarget = (target: InvalidateTarget): NormalizedTarget =>
@@ -35,6 +37,7 @@ const serializeTarget = (target: NormalizedTarget): string =>
     query: target.query,
     params: target.params ?? [],
     invalidateMode: target.invalidateMode,
+    file: target.file ?? '',
   });
 
 const generateVariableRef = (varName: string): string => {
@@ -81,6 +84,7 @@ export const generateMutationHook = async ({
 }: MutationHookContext): Promise<{
   implementation: string;
   mutators: GeneratorMutator[] | undefined;
+  imports: GeneratorImport[];
 }> => {
   const {
     operationName,
@@ -312,8 +316,19 @@ ${mutationHookBody}
     ? [mutationOptionsMutator]
     : undefined;
 
+  const imports: GeneratorImport[] = hasInvalidation
+    ? uniqueInvalidates
+        .filter((i) => !!i.file)
+        .map<GeneratorImport>((i) => ({
+          name: camel(`get-${i.query}-query-key`),
+          importPath: i.file,
+          values: true,
+        }))
+    : [];
+
   return {
     implementation,
     mutators,
+    imports,
   };
 };
