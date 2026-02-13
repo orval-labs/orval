@@ -156,6 +156,17 @@ function generateDefinition(
     mockReturnType === 'string' || mockReturnType.includes('string');
   const shouldPreferJsonResponse = hasJsonContentType && !hasStringReturnType;
 
+  // When the return type is a union containing both string and structured types
+  // (e.g. `string | Pet`) AND both text-like and JSON content types are available,
+  // we need runtime branching to pick the correct HttpResponse helper based on
+  // the actual resolved value type. Without this, objects would be JSON.stringify'd
+  // and served under a text/xml Content-Type, which is semantically incorrect.
+  const needsRuntimeContentTypeSwitch =
+    isTextResponse &&
+    hasJsonContentType &&
+    hasStringReturnType &&
+    mockReturnType !== 'string';
+
   const mockImplementation = isReturnHttpResponse
     ? `${mockImplementations}export const ${getResponseMockFunctionName} = (${
         isResponseOverridable
@@ -184,15 +195,32 @@ function generateDefinition(
       : contentTypes.find((ct) => isBinaryLikeContentType(ct))) ??
     'application/octet-stream';
 
+  // Pick the most specific MSW response helper based on the first
+  // text-like content type so the correct Content-Type header is set.
+  // MSW provides HttpResponse.xml() for application/xml and +xml,
+  // HttpResponse.html() for text/html, and HttpResponse.text() for
+  // all other text/* types.
+  const firstTextCt = contentTypesByPreference.find((ct) =>
+    isTextLikeContentType(ct),
+  );
+  const textHelper =
+    firstTextCt === 'application/xml' || firstTextCt?.endsWith('+xml')
+      ? 'xml'
+      : firstTextCt === 'text/html'
+        ? 'html'
+        : 'text';
+
   let responseBody: string;
   // Use a prelude to evaluate the override expression once into a temp variable
   // (the expression contains `await` so must not be duplicated)
   const responsePrelude = isBinaryResponse
     ? `const binaryBody = ${binaryResolvedExpr};`
-    : isTextResponse && !shouldPreferJsonResponse
-      ? `const resolvedBody = ${resolvedResponseExpr};
+    : needsRuntimeContentTypeSwitch
+      ? `const resolvedBody = ${resolvedResponseExpr};`
+      : isTextResponse && !shouldPreferJsonResponse
+        ? `const resolvedBody = ${resolvedResponseExpr};
     const textBody = typeof resolvedBody === 'string' ? resolvedBody : JSON.stringify(resolvedBody ?? null);`
-      : '';
+        : '';
   if (!isReturnHttpResponse) {
     responseBody = `new HttpResponse(null,
       { status: ${statusCode}
@@ -205,21 +233,14 @@ function generateDefinition(
       { status: ${statusCode},
         headers: { 'Content-Type': '${binaryContentType}' }
       })`;
+  } else if (needsRuntimeContentTypeSwitch) {
+    // Runtime branching: when the resolved value is a string, use the
+    // appropriate text helper; otherwise fall back to HttpResponse.json()
+    // so objects are never JSON.stringify'd under a text/xml Content-Type.
+    responseBody = `typeof resolvedBody === 'string'
+      ? HttpResponse.${textHelper}(resolvedBody, { status: ${statusCode} })
+      : HttpResponse.json(resolvedBody, { status: ${statusCode} })`;
   } else if (isTextResponse && !shouldPreferJsonResponse) {
-    // Pick the most specific MSW response helper based on the first
-    // text-like content type so the correct Content-Type header is set.
-    // MSW provides HttpResponse.xml() for application/xml and +xml,
-    // HttpResponse.html() for text/html, and HttpResponse.text() for
-    // all other text/* types.
-    const firstTextCt = contentTypesByPreference.find((ct) =>
-      isTextLikeContentType(ct),
-    );
-    const textHelper =
-      firstTextCt === 'application/xml' || firstTextCt?.endsWith('+xml')
-        ? 'xml'
-        : firstTextCt === 'text/html'
-          ? 'html'
-          : 'text';
     responseBody = `HttpResponse.${textHelper}(textBody,
       { status: ${statusCode}
       })`;
