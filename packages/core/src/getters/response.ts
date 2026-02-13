@@ -26,7 +26,7 @@ export function getResponse({
     operationName,
     context,
     'void',
-    (type) => `${type.key}-${type.value}`,
+    (type) => `${type.key}-${type.value}-${type.contentType}`,
   );
 
   const filteredTypes = filterByContentType(types, contentType);

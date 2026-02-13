@@ -39,6 +39,45 @@ import type {
   UploadFormDataBody,
 } from '../../model';
 
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: Set<string> = new Set(),
+): Record<
+  string,
+  string | number | boolean | Array<string | number | boolean>
+> {
+  const filteredParams: Record<
+    string,
+    string | number | boolean | null | Array<string | number | boolean>
+  > = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) {
+      const filtered = value.filter(
+        (item) =>
+          item != null &&
+          (typeof item === 'string' ||
+            typeof item === 'number' ||
+            typeof item === 'boolean'),
+      ) as Array<string | number | boolean>;
+      if (filtered.length) {
+        filteredParams[key] = filtered;
+      }
+    } else if (value === null && requiredNullableKeys.has(key)) {
+      filteredParams[key] = value;
+    } else if (
+      value != null &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean')
+    ) {
+      filteredParams[key] = value as string | number | boolean;
+    }
+  }
+  return filteredParams as Record<
+    string,
+    string | number | boolean | Array<string | number | boolean>
+  >;
+}
 /**
  * @summary search by query params
  */
@@ -49,7 +88,15 @@ export const searchPets = (
   options?: { signal?: AbortSignal | null },
 ): Promise<Pets> => {
   const httpParams = params
-    ? new HttpParams({ fromObject: params as Record<string, string> })
+    ? new HttpParams({
+        fromObject: filterParams(
+          params,
+          new Set<string>([
+            'requirednullableString',
+            'requirednullableStringTwo',
+          ]),
+        ),
+      })
     : undefined;
   const url = `/v${version}/search`;
   const request$ = http.get<Pets>(url, { params: httpParams });
@@ -181,7 +228,7 @@ export const listPets = (
   options?: { signal?: AbortSignal | null },
 ): Promise<Pets> => {
   const httpParams = params
-    ? new HttpParams({ fromObject: params as Record<string, string> })
+    ? new HttpParams({ fromObject: filterParams(params, new Set<string>([])) })
     : undefined;
   const url = `/v${version}/pets`;
   const request$ = http.get<Pets>(url, { params: httpParams });
@@ -869,7 +916,7 @@ export const showPetText = (
   options?: { signal?: AbortSignal | null },
 ): Promise<string> => {
   const url = `/v${version}/pets/${petId}/text`;
-  const request$ = http.get<string>(url);
+  const request$ = http.get(url, { responseType: 'text' });
   if (options?.signal) {
     return lastValueFrom(
       request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
@@ -1213,7 +1260,7 @@ export const downloadFile = (
   options?: { signal?: AbortSignal | null },
 ): Promise<Blob> => {
   const url = `/v${version}/pet/${petId}/downloadImage`;
-  const request$ = http.get<Blob>(url);
+  const request$ = http.get(url, { responseType: 'blob' });
   if (options?.signal) {
     return lastValueFrom(
       request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
@@ -1342,7 +1389,7 @@ export const healthCheck = (
   options?: { signal?: AbortSignal | null },
 ): Promise<string> => {
   const url = `/v${version}/health`;
-  const request$ = http.get<string>(url);
+  const request$ = http.get(url, { responseType: 'text' });
   if (options?.signal) {
     return lastValueFrom(
       request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),

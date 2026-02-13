@@ -149,6 +149,13 @@ function generateDefinition(
     ? returnType.replaceAll(/\bBlob\b/g, 'ArrayBuffer')
     : returnType;
 
+  const hasJsonContentType = contentTypesByPreference.some(
+    (ct) => ct.includes('json') || ct.includes('+json'),
+  );
+  const hasStringReturnType =
+    mockReturnType === 'string' || mockReturnType.includes('string');
+  const shouldPreferJsonResponse = hasJsonContentType && !hasStringReturnType;
+
   const mockImplementation = isReturnHttpResponse
     ? `${mockImplementations}export const ${getResponseMockFunctionName} = (${
         isResponseOverridable
@@ -182,7 +189,7 @@ function generateDefinition(
   // (the expression contains `await` so must not be duplicated)
   const responsePrelude = isBinaryResponse
     ? `const binaryBody = ${binaryResolvedExpr};`
-    : isTextResponse
+    : isTextResponse && !shouldPreferJsonResponse
       ? `const resolvedBody = ${resolvedResponseExpr};
     const textBody = typeof resolvedBody === 'string' ? resolvedBody : JSON.stringify(resolvedBody ?? null);`
       : '';
@@ -198,7 +205,7 @@ function generateDefinition(
       { status: ${statusCode},
         headers: { 'Content-Type': '${binaryContentType}' }
       })`;
-  } else if (isTextResponse) {
+  } else if (isTextResponse && !shouldPreferJsonResponse) {
     // Pick the most specific MSW response helper based on the first
     // text-like content type so the correct Content-Type header is set.
     // MSW provides HttpResponse.xml() for application/xml and +xml,

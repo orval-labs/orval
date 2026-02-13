@@ -839,21 +839,21 @@ export type GeneratorSchema = {
 };
 
 export type GeneratorImport = {
-  name: string;
-  schemaName?: string;
-  isZodSchema?: boolean;
-  isConstant?: boolean;
-  alias?: string;
-  default?: boolean;
-  values?: boolean;
-  syntheticDefaultImport?: boolean;
-  namespaceImport?: boolean;
-  importPath?: string;
+  readonly name: string;
+  readonly schemaName?: string;
+  readonly isZodSchema?: boolean;
+  readonly isConstant?: boolean;
+  readonly alias?: string;
+  readonly default?: boolean;
+  readonly values?: boolean;
+  readonly syntheticDefaultImport?: boolean;
+  readonly namespaceImport?: boolean;
+  readonly importPath?: string;
 };
 
 export type GeneratorDependency = {
-  exports: GeneratorImport[];
-  dependency: string;
+  readonly exports: readonly GeneratorImport[];
+  readonly dependency: string;
 };
 
 export type GeneratorApiResponse = {
@@ -1021,7 +1021,7 @@ export type ClientDependenciesBuilder = (
   httpClient?: OutputHttpClient,
   hasTagsMutator?: boolean,
   override?: NormalizedOverrideOutput,
-) => GeneratorDependency[];
+) => readonly GeneratorDependency[];
 
 export type ClientMockGeneratorImplementation = {
   function: string;
@@ -1099,6 +1099,7 @@ export type GetterQueryParam = {
   schema: GeneratorSchema;
   deps: GeneratorSchema[];
   isOptional: boolean;
+  requiredNullableKeys?: string[];
   originalSchema?: OpenApiSchemaObject;
 };
 

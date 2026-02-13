@@ -8,6 +8,9 @@ import {
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  getAngularFilteredParamsCallExpression,
+  getAngularFilteredParamsHelperBody,
+  getSuccessResponseType,
   type GetterResponse,
   isObject,
   isSyntheticDefaultImportsAllow,
@@ -27,7 +30,7 @@ import {
   vueWrapTypeWithMaybeRef,
 } from './utils';
 
-export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
+export const AXIOS_DEPENDENCIES = [
   {
     exports: [
       {
@@ -42,9 +45,9 @@ export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
     ],
     dependency: 'axios',
   },
-];
+] as const satisfies readonly GeneratorDependency[];
 
-export const ANGULAR_HTTP_DEPENDENCIES: GeneratorDependency[] = [
+export const ANGULAR_HTTP_DEPENDENCIES = [
   {
     exports: [
       { name: 'HttpClient', values: true },
@@ -69,7 +72,7 @@ export const ANGULAR_HTTP_DEPENDENCIES: GeneratorDependency[] = [
     ],
     dependency: 'rxjs/operators',
   },
-];
+] as const satisfies readonly GeneratorDependency[];
 
 export const generateQueryRequestFunction = (
   verbOptions: GeneratorVerbOptions,
@@ -173,8 +176,12 @@ export const generateAngularHttpRequestFunction = (
   // Build URL with query params - use httpParams to avoid shadowing the 'params' variable
   const hasQueryParams = queryParams?.schema.name;
   // The queryParams variable from function props is always named 'params'
+  const filteredParamsExpression = getAngularFilteredParamsCallExpression(
+    'params',
+    queryParams?.requiredNullableKeys,
+  );
   const urlConstruction = hasQueryParams
-    ? `const httpParams = params ? new HttpParams({ fromObject: params as Record<string, string> }) : undefined;
+    ? `const httpParams = params ? new HttpParams({ fromObject: ${filteredParamsExpression} }) : undefined;
     const url = \`${route}\`;`
     : `const url = \`${route}\`;`;
 
@@ -187,11 +194,23 @@ export const generateAngularHttpRequestFunction = (
     httpOptions.push('headers: new HttpHeaders(headers)');
   }
 
+  // Use only success response content types to determine responseType
+  // (response.contentTypes includes error responses which may be JSON and would
+  // incorrectly prevent text/blob responseType from being set)
+  const successResponseType = getSuccessResponseType(response);
+  const responseTypeOption = successResponseType
+    ? `'${successResponseType}'`
+    : undefined;
+  if (responseTypeOption) {
+    httpOptions.push(`responseType: ${responseTypeOption}`);
+  }
+
   const optionsStr =
     httpOptions.length > 0 ? `, { ${httpOptions.join(', ')} }` : '';
 
   // Build the HTTP method call
   let httpCall: string;
+  const httpGeneric = responseTypeOption ? '' : `<${dataType}>`;
   const bodyArg =
     isFormData && body.formData
       ? 'formData'
@@ -204,18 +223,18 @@ export const generateAngularHttpRequestFunction = (
   switch (verb) {
     case 'get':
     case 'head': {
-      httpCall = `http.${verb}<${dataType}>(url${optionsStr})`;
+      httpCall = `http.${verb}${httpGeneric}(url${optionsStr})`;
       break;
     }
     case 'delete': {
       httpCall = bodyArg
-        ? `http.${verb}<${dataType}>(url, { ${httpOptions.length > 0 ? httpOptions.join(', ') + ', ' : ''}body: ${bodyArg} })`
-        : `http.${verb}<${dataType}>(url${optionsStr})`;
+        ? `http.${verb}${httpGeneric}(url, { ${httpOptions.length > 0 ? httpOptions.join(', ') + ', ' : ''}body: ${bodyArg} })`
+        : `http.${verb}${httpGeneric}(url${optionsStr})`;
       break;
     }
     default: {
       // post, put, patch
-      httpCall = `http.${verb}<${dataType}>(url, ${bodyArg || 'undefined'}${optionsStr})`;
+      httpCall = `http.${verb}${httpGeneric}(url, ${bodyArg || 'undefined'}${optionsStr})`;
       break;
     }
   }
@@ -240,7 +259,9 @@ export const generateAngularHttpRequestFunction = (
 
   // If validation is enabled, pipe through map(data => Schema.parse(data))
   if (isValidateResponse) {
-    httpCall = `${httpCall}.pipe(map(data => ${responseType}.parse(data)))`;
+    const schemaValueRef =
+      responseType === 'Error' ? 'ErrorSchema' : responseType;
+    httpCall = `${httpCall}.pipe(map(data => ${schemaValueRef}.parse(data)))`;
   }
 
   // For Angular, we use takeUntil with fromEvent to handle AbortSignal cancellation
@@ -719,7 +740,16 @@ export const getHttpFunctionQueryProps = (
 };
 
 export const getQueryHeader: ClientHeaderBuilder = (params) => {
-  return params.output.httpClient === OutputHttpClient.FETCH
-    ? generateFetchHeader(params)
-    : '';
+  if (params.output.httpClient === OutputHttpClient.FETCH) {
+    return generateFetchHeader(params);
+  }
+
+  if (params.output.httpClient === OutputHttpClient.ANGULAR) {
+    const hasQueryParams = Object.values(params.verbOptions).some(
+      (v) => v.queryParams,
+    );
+    return hasQueryParams ? getAngularFilteredParamsHelperBody() : '';
+  }
+
+  return '';
 };
