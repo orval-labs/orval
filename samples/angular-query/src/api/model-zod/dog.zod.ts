@@ -6,22 +6,15 @@
  */
 import { z as zod } from 'zod';
 
-export const Dog = zod
-  .union([
-    zod.object({
-      cuteness: zod.number(),
-      breed: zod.enum(['Labradoodle']),
-    }),
-    zod.object({
-      length: zod.number(),
-      breed: zod.enum(['Dachshund']),
-    }),
-  ])
-  .and(
-    zod.object({
-      barksPerMinute: zod.number().optional(),
-      type: zod.enum(['dog']),
-    }),
-  );
+export const Dog = zod.union([zod.object({
+  "cuteness": zod.number(),
+  "breed": zod.enum(['Labradoodle'])
+}),zod.object({
+  "length": zod.number(),
+  "breed": zod.enum(['Dachshund'])
+})]).and(zod.object({
+  "barksPerMinute": zod.number().optional(),
+  "type": zod.enum(['dog'])
+}))
 
 export type Dog = zod.infer<typeof Dog>;

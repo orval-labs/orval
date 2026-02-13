@@ -7,8 +7,8 @@
 import { z as zod } from 'zod';
 
 export const Error = zod.object({
-  code: zod.number(),
-  message: zod.string(),
-});
+  "code": zod.number(),
+  "message": zod.string()
+})
 
 export type Error = zod.infer<typeof Error>;

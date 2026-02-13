@@ -7,8 +7,8 @@
 import { z as zod } from 'zod';
 
 export const CreatePetsBody = zod.object({
-  name: zod.string(),
-  tag: zod.string(),
-});
+  "name": zod.string(),
+  "tag": zod.string()
+})
 
 export type CreatePetsBody = zod.infer<typeof CreatePetsBody>;

@@ -7,8 +7,8 @@
 import { z as zod } from 'zod';
 
 export const CreatePetsParams = zod.object({
-  limit: zod.string().optional(),
-  sort: zod.enum(['name', '-name', 'email', '-email']),
-});
+  "limit": zod.string().optional(),
+  "sort": zod.enum(['name', '-name', 'email', '-email'])
+})
 
 export type CreatePetsParams = zod.infer<typeof CreatePetsParams>;

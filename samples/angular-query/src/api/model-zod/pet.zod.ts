@@ -6,40 +6,26 @@
  */
 import { z as zod } from 'zod';
 
-export const Pet = zod
-  .union([
-    zod
-      .union([
-        zod.object({
-          cuteness: zod.number(),
-          breed: zod.enum(['Labradoodle']),
-        }),
-        zod.object({
-          length: zod.number(),
-          breed: zod.enum(['Dachshund']),
-        }),
-      ])
-      .and(
-        zod.object({
-          barksPerMinute: zod.number().optional(),
-          type: zod.enum(['dog']),
-        }),
-      ),
-    zod.object({
-      petsRequested: zod.number().optional(),
-      type: zod.enum(['cat']),
-    }),
-  ])
-  .and(
-    zod.object({
-      '@id': zod.string().optional(),
-      id: zod.number(),
-      name: zod.string(),
-      tag: zod.string().optional(),
-      email: zod.email().optional(),
-      callingCode: zod.enum(['+33', '+420', '+33']).optional(),
-      country: zod.enum(["People's Republic of China", 'Uruguay']).optional(),
-    }),
-  );
+export const Pet = zod.union([zod.union([zod.object({
+  "cuteness": zod.number(),
+  "breed": zod.enum(['Labradoodle'])
+}),zod.object({
+  "length": zod.number(),
+  "breed": zod.enum(['Dachshund'])
+})]).and(zod.object({
+  "barksPerMinute": zod.number().optional(),
+  "type": zod.enum(['dog'])
+})),zod.object({
+  "petsRequested": zod.number().optional(),
+  "type": zod.enum(['cat'])
+})]).and(zod.object({
+  "@id": zod.string().optional(),
+  "id": zod.number(),
+  "name": zod.string(),
+  "tag": zod.string().optional(),
+  "email": zod.email().optional(),
+  "callingCode": zod.enum(['+33', '+420', '+33']).optional(),
+  "country": zod.enum(['People\'s Republic of China', 'Uruguay']).optional()
+}))
 
 export type Pet = zod.infer<typeof Pet>;
