@@ -199,4 +199,17 @@ export default defineConfig({
       target: '../specifications/circular.yaml',
     },
   },
+  mswMixedContentUnion: {
+    output: {
+      target: '../generated/mock/msw-mixed-content-union/endpoints.ts',
+      schemas: '../generated/mock/msw-mixed-content-union/model',
+      client: 'axios',
+      mock: {
+        type: 'msw',
+      },
+    },
+    input: {
+      target: '../specifications/msw-mixed-content-union.yaml',
+    },
+  },
 });

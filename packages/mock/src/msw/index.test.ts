@@ -857,5 +857,65 @@ describe('generateMSW', () => {
         "typeof resolvedBody === 'string'",
       );
     });
+
+    it('Test G: should generate runtime branching for text/html + json with union return type string | Pet', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'string | Pet' },
+          types: { success: [{ key: '200', value: 'string | Pet' }] },
+          contentTypes: ['text/html', 'application/json'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        override: {
+          ...baseOptions.override,
+          operations: {
+            ...baseOptions.override.operations,
+            getUser: { mock: { data: { id: 1, name: 'Milo' } } },
+          },
+        },
+      });
+
+      expect(result.implementation.handler).toContain(
+        "typeof resolvedBody === 'string'",
+      );
+      expect(result.implementation.handler).toContain('HttpResponse.html(');
+      expect(result.implementation.handler).toContain('HttpResponse.json(');
+      expect(result.implementation.handler).not.toContain('JSON.stringify');
+    });
+
+    it('Test H: should generate runtime branching for vendor +xml + json with union return type string | Pet', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'string | Pet' },
+          types: { success: [{ key: '200', value: 'string | Pet' }] },
+          contentTypes: ['application/vnd.orval+xml', 'application/json'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        override: {
+          ...baseOptions.override,
+          operations: {
+            ...baseOptions.override.operations,
+            getUser: { mock: { data: { id: 1, name: 'Milo' } } },
+          },
+        },
+      });
+
+      expect(result.implementation.handler).toContain(
+        "typeof resolvedBody === 'string'",
+      );
+      expect(result.implementation.handler).toContain('HttpResponse.xml(');
+      expect(result.implementation.handler).toContain('HttpResponse.json(');
+      expect(result.implementation.handler).not.toContain('JSON.stringify');
+    });
   });
 });
