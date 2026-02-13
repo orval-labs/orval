@@ -1,4 +1,14 @@
-import type { InputTransformerFn } from 'orval';
+type Operation = {
+  parameters?: unknown[];
+  [key: string]: unknown;
+};
+
+type OpenApiDocument = {
+  paths?: Record<string, Record<string, Operation | undefined> | undefined>;
+  [key: string]: unknown;
+};
+
+type InputTransformerFn = (spec: OpenApiDocument) => OpenApiDocument;
 
 type OperationParameter = {
   name?: string;
@@ -31,17 +41,19 @@ const transformer: InputTransformerFn = (inputSchema) => ({
             return { ...pathItemAcc, [verb]: operation };
           }
 
+          const safeParameters = (operation as { parameters?: unknown })
+            .parameters;
+          const operationParameters = Array.isArray(safeParameters)
+            ? (safeParameters as OperationParameter[])
+            : [];
+
           return {
             ...pathItemAcc,
             [verb]: {
               ...operation,
               parameters: [
-                ...(
-                  (operation as { parameters?: OperationParameter[] })
-                    .parameters ?? []
-                ).filter(
-                  (p: OperationParameter) =>
-                    !(p.name === 'version' && p.in === 'path'),
+                ...operationParameters.filter(
+                  (p) => !(p.name === 'version' && p.in === 'path'),
                 ),
                 {
                   name: 'version',

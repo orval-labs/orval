@@ -21,8 +21,8 @@
     "@angular/forms": "catalog:angular",
     "@angular/platform-browser": "catalog:angular",
     "@angular/router": "catalog:angular",
-    "rxjs": "~7.8.2",
-    "tslib": "^2.8.1"
+    "rxjs": "catalog:angular",
+    "tslib": "catalog:"
   },
   "devDependencies": {
     "@angular/build": "catalog:angular",
