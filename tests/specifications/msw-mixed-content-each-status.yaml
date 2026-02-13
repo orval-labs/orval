@@ -1,36 +1,42 @@
 openapi: 3.0.0
 info:
-  title: MSW Mixed Content Union Regression
+  title: MSW Mixed Content Each-Status Regression
   version: 1.0.0
 paths:
-  /mixed-content:
+  /mixed-content-each-status:
     get:
-      summary: Mixed text/xml/json response contract
-      operationId: getMixedContent
+      summary: Mixed media responses across status codes
+      operationId: getMixedContentEachStatus
       tags:
         - mixed
       responses:
         '200':
-          description: Mixed content response
+          description: Plain text success
           content:
             text/plain:
               schema:
                 type: string
-              example: plain-mixed-payload
+              example: text-success
+        '201':
+          description: XML success
+          content:
             application/xml:
               schema:
                 $ref: '#/components/schemas/Pet'
               example:
-                id: 7
-                name: xml-pet
-                tag: xml
+                id: 301
+                name: xml-created
+                tag: created
+        '202':
+          description: JSON success
+          content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Pet'
               example:
-                id: 8
-                name: json-pet
-                tag: json
+                id: 302
+                name: json-accepted
+                tag: accepted
         default:
           description: unexpected error
           content:

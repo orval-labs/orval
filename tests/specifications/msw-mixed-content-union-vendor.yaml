@@ -1,36 +1,29 @@
 openapi: 3.0.0
 info:
-  title: MSW Mixed Content Union Regression
+  title: MSW Mixed Vendor Media Regression
   version: 1.0.0
 paths:
-  /mixed-content:
+  /mixed-content-vendor:
     get:
-      summary: Mixed text/xml/json response contract
-      operationId: getMixedContent
+      summary: Mixed vendor +xml and +json response contract
+      operationId: getMixedContentVendor
       tags:
         - mixed
       responses:
         '200':
-          description: Mixed content response
+          description: Mixed vendor content response
           content:
-            text/plain:
+            application/vnd.orval+xml:
               schema:
                 type: string
-              example: plain-mixed-payload
-            application/xml:
+              example: vendor-xml-string
+            application/vnd.orval+json:
               schema:
                 $ref: '#/components/schemas/Pet'
               example:
-                id: 7
-                name: xml-pet
-                tag: xml
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Pet'
-              example:
-                id: 8
-                name: json-pet
-                tag: json
+                id: 11
+                name: vendor-json-pet
+                tag: vendor
         default:
           description: unexpected error
           content:
