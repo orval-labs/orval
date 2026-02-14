@@ -105,3 +105,6 @@ tests/generated
 .turbo
 .next
 .planning
+
+# Ignore the skills folder
+.github/skills
