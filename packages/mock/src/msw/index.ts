@@ -104,12 +104,12 @@ function generateDefinition(
   const isTextLikeContentType = (ct: string) =>
     ct.startsWith('text/') || ct === 'application/xml' || ct.endsWith('+xml');
   const isTypeExactlyString = (typeExpr: string) =>
-    typeExpr.trim().replace(/^\(+|\)+$/g, '') === 'string';
+    typeExpr.trim().replaceAll(/^\(+|\)+$/g, '') === 'string';
   const isUnionContainingString = (typeExpr: string) =>
     typeExpr
       .split('|')
-      .map((part) => part.trim().replace(/^\(+|\)+$/g, ''))
-      .some((part) => part === 'string');
+      .map((part) => part.trim().replaceAll(/^\(+|\)+$/g, ''))
+      .includes('string');
   const isBinaryLikeContentType = (ct: string) =>
     ct === 'application/octet-stream' ||
     ct === 'application/pdf' ||
@@ -130,9 +130,18 @@ function generateDefinition(
     ? [preferredContentTypeMatch]
     : contentTypes;
 
-  const isTextResponse = contentTypesByPreference.some((ct) =>
+  const hasTextLikeContentType = contentTypes.some((ct) =>
     isTextLikeContentType(ct),
   );
+  const isExactlyStringReturnType = isTypeExactlyString(returnType);
+
+  // Keep text helpers for exact string success return types whenever a text-like
+  // media type is available in the declared content types. This prevents a
+  // preferredContentType that matches an error media type from forcing
+  // HttpResponse.json() for text/plain success responses.
+  const isTextResponse =
+    (isExactlyStringReturnType && hasTextLikeContentType) ||
+    contentTypesByPreference.some((ct) => isTextLikeContentType(ct));
   const isBinaryResponse =
     returnType === 'Blob' ||
     contentTypesByPreference.some((ct) => isBinaryLikeContentType(ct));
@@ -205,9 +214,14 @@ function generateDefinition(
   // MSW provides HttpResponse.xml() for application/xml and +xml,
   // HttpResponse.html() for text/html, and HttpResponse.text() for
   // all other text/* types.
-  const firstTextCt = contentTypesByPreference.find((ct) =>
-    isTextLikeContentType(ct),
-  );
+  const shouldIgnorePreferredForTextHelper =
+    isExactlyStringReturnType &&
+    !!preferredContentTypeMatch &&
+    !isTextLikeContentType(preferredContentTypeMatch) &&
+    hasTextLikeContentType;
+  const firstTextCt = shouldIgnorePreferredForTextHelper
+    ? contentTypes.find((ct) => isTextLikeContentType(ct))
+    : contentTypesByPreference.find((ct) => isTextLikeContentType(ct));
   const textHelper =
     firstTextCt === 'application/xml' || firstTextCt?.endsWith('+xml')
       ? 'xml'

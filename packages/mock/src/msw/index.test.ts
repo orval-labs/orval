@@ -518,7 +518,7 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).not.toContain('HttpResponse.json(');
     });
 
-    it('should honor preferredContentType when selecting text vs json helpers', () => {
+    it('should keep text helper for exact string return types even when preferredContentType is application/json', () => {
       const mixedVerbOptions = {
         ...mockVerbOptions,
         response: {
@@ -537,8 +537,8 @@ describe('generateMSW', () => {
         },
       });
 
-      expect(result.implementation.handler).toContain('HttpResponse.json(');
-      expect(result.implementation.handler).not.toContain('HttpResponse.xml(');
+      expect(result.implementation.handler).toContain('HttpResponse.xml(');
+      expect(result.implementation.handler).not.toContain('HttpResponse.json(');
       expect(result.implementation.handler).not.toContain('HttpResponse.text(');
     });
 
@@ -817,6 +817,30 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).toContain('textBody');
       expect(result.implementation.handler).not.toContain('HttpResponse.json(');
       // Uses static textBody prelude, not runtime branching
+      expect(result.implementation.handler).toContain('const textBody =');
+    });
+
+    it('Test E2: should keep text/plain helper when preferredContentType is json and return type is string', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'string' },
+          types: { success: [{ key: '200', value: 'string' }] },
+          contentTypes: ['text/plain', 'application/json'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        mock: {
+          type: OutputMockType.MSW,
+          preferredContentType: 'application/json',
+        },
+      });
+
+      expect(result.implementation.handler).toContain('HttpResponse.text(');
+      expect(result.implementation.handler).not.toContain('HttpResponse.json(');
       expect(result.implementation.handler).toContain('const textBody =');
     });
 
