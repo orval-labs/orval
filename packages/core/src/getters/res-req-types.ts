@@ -7,6 +7,7 @@ import {
   type ContextSpec,
   FormDataArrayHandling,
   type GeneratorImport,
+  type GetterResponse,
   type OpenApiEncodingObject,
   type OpenApiMediaTypeObject,
   type OpenApiReferenceObject,
@@ -368,6 +369,37 @@ export function getResReqTypes(
  * Maps to Angular HttpClient's responseType, Axios responseType, and Fetch response methods.
  */
 export type ResponseTypeCategory = 'json' | 'text' | 'blob' | 'arraybuffer';
+
+/**
+ * Determine the responseType option based on success content types only.
+ * This avoids error-response content types influencing the responseType.
+ */
+export function getSuccessResponseType(
+  response: GetterResponse,
+): 'blob' | 'text' | undefined {
+  const successContentTypes = response.types.success
+    .map((t) => t.contentType)
+    .filter(Boolean) as string[];
+
+  if (response.isBlob) {
+    return 'blob' as const;
+  }
+
+  const hasJsonResponse = successContentTypes.some(
+    (contentType) =>
+      contentType.includes('json') || contentType.includes('+json'),
+  );
+  const hasTextResponse = successContentTypes.some(
+    (contentType) =>
+      contentType.startsWith('text/') || contentType.includes('xml'),
+  );
+
+  if (!hasJsonResponse && hasTextResponse) {
+    return 'text' as const;
+  }
+
+  return undefined;
+}
 
 /**
  * Determine the response type category for a given content type.

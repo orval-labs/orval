@@ -13,6 +13,8 @@ import {
   type GeneratorDependency,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  getAngularFilteredParamsCallExpression,
+  getAngularFilteredParamsHelperBody,
   getDefaultContentType,
   isBoolean,
   pascal,
@@ -20,11 +22,11 @@ import {
   toObjectString,
 } from '@orval/core';
 
-const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
+const ANGULAR_DEPENDENCIES = [
   {
     exports: [
       { name: 'HttpClient', values: true },
-      { name: 'HttpHeaders' },
+      { name: 'HttpHeaders', values: true },
       { name: 'HttpParams' },
       { name: 'HttpContext' },
       { name: 'HttpResponse', alias: 'AngularHttpResponse' }, // alias to prevent naming conflict with msw
@@ -43,25 +45,35 @@ const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
     exports: [{ name: 'Observable', values: true }],
     dependency: 'rxjs',
   },
+] as const satisfies readonly GeneratorDependency[];
+
+type ReturnTypesToWrite = Map<string, string>;
+
+export const getAngularDependencies: ClientDependenciesBuilder = () => [
+  ...ANGULAR_DEPENDENCIES,
 ];
-
-const returnTypesToWrite = new Map<string, string>();
-
-export const getAngularDependencies: ClientDependenciesBuilder = () =>
-  ANGULAR_DEPENDENCIES;
 
 export const generateAngularTitle: ClientTitleBuilder = (title) => {
   const sanTitle = sanitize(title);
   return `${pascal(sanTitle)}Service`;
 };
 
-export const generateAngularHeader: ClientHeaderBuilder = ({
-  title,
-  isRequestOptions,
-  isMutator,
-  isGlobalMutator,
-  provideIn,
-}) => `
+const createAngularHeader =
+  (): ClientHeaderBuilder =>
+  ({
+    title,
+    isRequestOptions,
+    isMutator,
+    isGlobalMutator,
+    provideIn,
+    verbOptions,
+    tag,
+  }) => {
+    const relevantVerbs = tag
+      ? Object.values(verbOptions).filter((v) => v.tags.includes(tag as string))
+      : Object.values(verbOptions);
+    const hasQueryParams = relevantVerbs.some((v) => v.queryParams);
+    return `
 ${
   isRequestOptions && !isGlobalMutator
     ? `interface HttpClientOptions {
@@ -69,7 +81,7 @@ ${
   context?: HttpContext;
   params?:
         | HttpParams
-        | Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>;
+      | Record<string, string | number | boolean | Array<string | number | boolean>>;
   reportProgress?: boolean;
   withCredentials?: boolean;
   credentials?: RequestCredentials;
@@ -80,9 +92,11 @@ ${
   redirect?: RequestRedirect;
   referrer?: string;
   integrity?: string;
+  referrerPolicy?: ReferrerPolicy;
   transferCache?: {includeHeaders?: string[]} | boolean;
-  timeout?: number;
-}`
+}
+
+${hasQueryParams ? getAngularFilteredParamsHelperBody() : ''}`
     : ''
 }
 
@@ -99,33 +113,39 @@ ${
     : ''
 }
 
-@Injectable(${
-  provideIn
-    ? `{ providedIn: '${isBoolean(provideIn) ? 'root' : provideIn}' }`
-    : ''
-})
+@Injectable(${provideIn ? `{ providedIn: '${isBoolean(provideIn) ? 'root' : provideIn}' }` : ''})
 export class ${title} {
   private readonly http = inject(HttpClient);
 `;
+  };
 
-export const generateAngularFooter: ClientFooterBuilder = ({
-  operationNames,
-}) => {
-  let footer = '};\n\n';
+export const generateAngularHeader: ClientHeaderBuilder = (params) =>
+  createAngularHeader()(params);
 
-  for (const operationName of operationNames) {
-    if (returnTypesToWrite.has(operationName)) {
-      // Map.has ensures Map.get will not return undefined, but TS still complains
-      // bug https://github.com/microsoft/TypeScript/issues/13086
-      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-      footer += returnTypesToWrite.get(operationName) + '\n';
+const standaloneFooterReturnTypesToWrite = new Map<string, string>();
+
+const createAngularFooter =
+  (returnTypesToWrite: ReturnTypesToWrite): ClientFooterBuilder =>
+  ({ operationNames }) => {
+    let footer = '};\n\n';
+
+    for (const operationName of operationNames) {
+      if (returnTypesToWrite.has(operationName)) {
+        // Map.has ensures Map.get will not return undefined, but TS still complains
+        // bug https://github.com/microsoft/TypeScript/issues/13086
+        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+        footer += returnTypesToWrite.get(operationName) + '\n';
+      }
     }
-  }
 
-  return footer;
-};
+    return footer;
+  };
+
+export const generateAngularFooter: ClientFooterBuilder = (params) =>
+  createAngularFooter(standaloneFooterReturnTypesToWrite)(params);
 
 const generateImplementation = (
+  returnTypesToWrite: ReturnTypesToWrite,
   {
     headers,
     queryParams,
@@ -207,7 +227,7 @@ const generateImplementation = (
   `;
   }
 
-  const options = generateOptions({
+  const optionsBase = {
     route,
     body,
     headers,
@@ -222,7 +242,7 @@ const generateImplementation = (
     isAngular: true,
     isExactOptionalPropertyTypes,
     hasSignal: false,
-  });
+  } as const;
 
   const propsDefinition = toObjectString(props, 'definition');
 
@@ -233,14 +253,97 @@ const generateImplementation = (
   ];
   const hasMultipleContentTypes = uniqueContentTypes.length > 1;
 
+  // When observe branching is active AND there are query params, extract
+  // the params computation to a local const to avoid duplicating it in
+  // every observe branch.
+  const needsObserveBranching = isRequestOptions && !hasMultipleContentTypes;
+  const angularParamsRef =
+    needsObserveBranching && queryParams ? 'filteredParams' : undefined;
+
+  let paramsDeclaration = '';
+  if (angularParamsRef && queryParams) {
+    const callExpr = getAngularFilteredParamsCallExpression(
+      '{...params, ...options?.params}',
+      queryParams.requiredNullableKeys ?? [],
+    );
+    paramsDeclaration = paramsSerializer
+      ? `const ${angularParamsRef} = ${paramsSerializer.name}(${callExpr});\n\n    `
+      : `const ${angularParamsRef} = ${callExpr};\n\n    `;
+  }
+
+  const options = generateOptions({
+    ...optionsBase,
+    ...(angularParamsRef ? { angularParamsRef } : {}),
+  });
+
   // For multiple content types, determine the default
   const defaultContentType = hasMultipleContentTypes
-    ? getDefaultContentType(uniqueContentTypes)
+    ? uniqueContentTypes.includes('text/plain')
+      ? 'text/plain'
+      : getDefaultContentType(uniqueContentTypes)
     : (uniqueContentTypes[0] ?? 'application/json');
-  const defaultType = hasMultipleContentTypes
-    ? successTypes.find((t) => t.contentType === defaultContentType)
+  const getContentTypeReturnType = (
+    contentType: string | undefined,
+    value: string,
+  ): string => {
+    if (!contentType) {
+      return value;
+    }
+
+    if (contentType.includes('json') || contentType.includes('+json')) {
+      return value;
+    }
+
+    if (contentType.startsWith('text/') || contentType.includes('xml')) {
+      return 'string';
+    }
+
+    return 'Blob';
+  };
+
+  const jsonSuccessValues = [
+    ...new Set(
+      successTypes
+        .filter(
+          ({ contentType }) =>
+            !!contentType &&
+            (contentType.includes('json') || contentType.includes('+json')),
+        )
+        .map(({ value }) => value),
+    ),
+  ];
+
+  const jsonReturnType =
+    jsonSuccessValues.length > 0 ? jsonSuccessValues.join(' | ') : 'unknown';
+  const multiImplementationReturnType = `Observable<${jsonReturnType} | string | Blob>`;
+
+  const withObserveMode = (
+    generatedOptions: string,
+    observeMode: 'body' | 'events' | 'response',
+  ): string => {
+    const spreadPattern =
+      "...(options as Omit<NonNullable<typeof options>, 'observe'>),";
+
+    if (generatedOptions.includes(spreadPattern)) {
+      return generatedOptions.replace(
+        spreadPattern,
+        `${spreadPattern}\n        observe: '${observeMode}',`,
+      );
+    }
+
+    return generatedOptions.replace(
+      "(options as Omit<NonNullable<typeof options>, 'observe'>)",
+      `{ ...(options as Omit<NonNullable<typeof options>, 'observe'>), observe: '${observeMode}' }`,
+    );
+  };
+
+  const observeOptions = needsObserveBranching
+    ? {
+        body: withObserveMode(options, 'body'),
+        events: withObserveMode(options, 'events'),
+        response: withObserveMode(options, 'response'),
+      }
     : undefined;
-  const defaultReturnType = defaultType?.value ?? dataType;
 
   const isModelType = dataType !== 'Blob' && dataType !== 'string';
   let functionName = operationName;
@@ -256,6 +359,7 @@ const generateImplementation = (
     contentTypeOverloads = successTypes
       .filter((t) => t.contentType)
       .map(({ contentType, value }) => {
+        const returnType = getContentTypeReturnType(contentType, value);
         const requiredPart = requiredProps
           .map((p) => p.definition)
           .join(',\n    ');
@@ -267,7 +371,7 @@ const generateImplementation = (
         const allParams = [requiredPart, acceptPart, optionalPart]
           .filter(Boolean)
           .join(',\n    ');
-        return `${operationName}(${allParams}, options?: HttpClientOptions): Observable<${value}>;`;
+        return `${operationName}(${allParams}, options?: HttpClientOptions): Observable<${returnType}>;`;
       })
       .join('\n  ');
 
@@ -276,7 +380,7 @@ const generateImplementation = (
     const allParams = [requiredPart, 'accept?: string', optionalPart]
       .filter(Boolean)
       .join(',\n    ');
-    contentTypeOverloads += `\n  ${operationName}(${allParams}, options?: HttpClientOptions): Observable<${defaultReturnType}>;`;
+    contentTypeOverloads += `\n  ${operationName}(${allParams}, options?: HttpClientOptions): ${multiImplementationReturnType};`;
   }
 
   const observeOverloads =
@@ -287,6 +391,11 @@ const generateImplementation = (
       : '';
 
   const overloads = contentTypeOverloads || observeOverloads;
+
+  const observableDataType = isModelType ? 'TData' : dataType;
+  const singleImplementationReturnType = isRequestOptions
+    ? `Observable<${observableDataType} | HttpEvent<${observableDataType}> | AngularHttpResponse<${observableDataType}>>`
+    : `Observable<${observableDataType}>`;
 
   if (hasMultipleContentTypes) {
     const requiredProps = props.filter((p) => p.required && !p.default);
@@ -310,55 +419,109 @@ const generateImplementation = (
   ${operationName}(
     ${allParams},
     ${isRequestOptions ? 'options?: HttpClientOptions' : ''}
-  ): Observable<any> {${bodyForm}
+  ): ${multiImplementationReturnType} {${bodyForm}
+    const headers = options?.headers instanceof HttpHeaders
+      ? options.headers.set('Accept', accept)
+      : { ...(options?.headers ?? {}), Accept: accept };
+
     if (accept.includes('json') || accept.includes('+json')) {
-      return this.http.${verb}<any>(\`${route}\`, {
+      return this.http.${verb}<${jsonReturnType}>(\`${route}\`, {
         ...options,
         responseType: 'json',
-        headers: { Accept: accept, ...options?.headers },
+        headers,
       });
     } else if (accept.startsWith('text/') || accept.includes('xml')) {
       return this.http.${verb}(\`${route}\`, {
         ...options,
         responseType: 'text',
-        headers: { Accept: accept, ...options?.headers },
-      }) as any;
+        headers,
+      }) as Observable<string>;
     } else {
       return this.http.${verb}(\`${route}\`, {
         ...options,
         responseType: 'blob',
-        headers: { Accept: accept, ...options?.headers },
-      }) as any;
+        headers,
+      }) as Observable<Blob>;
     }
   }
 `;
   }
 
+  const observeImplementation = isRequestOptions
+    ? `${paramsDeclaration}if (options?.observe === 'events') {
+      return this.http.${verb}${isModelType ? '<TData>' : ''}(${
+        observeOptions?.events ?? options
+      });
+    }
+
+    if (options?.observe === 'response') {
+      return this.http.${verb}${isModelType ? '<TData>' : ''}(${
+        observeOptions?.response ?? options
+      });
+    }
+
+    return this.http.${verb}${isModelType ? '<TData>' : ''}(${
+      observeOptions?.body ?? options
+    });`
+    : `return this.http.${verb}${isModelType ? '<TData>' : ''}(${options});`;
+
   return ` ${overloads}
   ${functionName}(
     ${toObjectString(props, 'implementation')} ${
-      isRequestOptions ? `options?: HttpClientOptions & { observe?: any }` : ''
-    }): Observable<any> {${bodyForm}
-    return this.http.${verb}${isModelType ? '<TData>' : ''}(${options});
+      isRequestOptions
+        ? `options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' }`
+        : ''
+    }): ${singleImplementationReturnType} {${bodyForm}
+    ${observeImplementation}
   }
 `;
 };
 
-export const generateAngular: ClientBuilder = (verbOptions, options) => {
-  const imports = generateVerbImports(verbOptions);
-  const implementation = generateImplementation(verbOptions, options);
+const createAngularClient =
+  (returnTypesToWrite: ReturnTypesToWrite): ClientBuilder =>
+  (verbOptions, options, _outputClient, _output) => {
+    // Keep signature aligned with ClientBuilder without tripping TS noUnusedParameters
+    void _outputClient;
+    void _output;
+    const imports = generateVerbImports(verbOptions);
+    const implementation = generateImplementation(
+      returnTypesToWrite,
+      verbOptions,
+      options,
+    );
 
-  return { implementation, imports };
+    return { implementation, imports };
+  };
+
+const standaloneReturnTypesToWrite = new Map<string, string>();
+
+export const generateAngular: ClientBuilder = (
+  verbOptions,
+  options,
+  outputClient,
+  output,
+) =>
+  createAngularClient(standaloneReturnTypesToWrite)(
+    verbOptions,
+    options,
+    outputClient,
+    output,
+  );
+
+const createAngularClientBuilder = (): ClientGeneratorsBuilder => {
+  const returnTypesToWrite = new Map<string, string>();
+
+  return {
+    client: createAngularClient(returnTypesToWrite),
+    header: createAngularHeader(),
+    dependencies: getAngularDependencies,
+    footer: createAngularFooter(returnTypesToWrite),
+    title: generateAngularTitle,
+  };
 };
 
-const angularClientBuilder: ClientGeneratorsBuilder = {
-  client: generateAngular,
-  header: generateAngularHeader,
-  dependencies: getAngularDependencies,
-  footer: generateAngularFooter,
-  title: generateAngularTitle,
+export const builder: () => () => ClientGeneratorsBuilder = () => {
+  return () => createAngularClientBuilder();
 };
-
-export const builder = () => () => angularClientBuilder;
 
 export default builder;

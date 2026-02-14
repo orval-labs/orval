@@ -1,3 +1,4 @@
+import { getSuccessResponseType } from '../getters/res-req-types';
 import {
   type GeneratorMutator,
   type GeneratorSchema,
@@ -17,10 +18,18 @@ import { getIsBodyVerb, isObject, stringify } from '../utils';
  * Orval models often include nullable query params, so we remove nullish values
  * (including nulls inside arrays) before passing params to HttpClient or a
  * paramsSerializer to avoid runtime and type issues.
+ *
+ * Returns an inline IIFE expression. For paths that benefit from a shared helper
+ * (e.g. observe-mode branches), prefer getAngularFilteredParamsCallExpression +
+ * getAngularFilteredParamsHelperBody instead.
  */
-const getAngularFilteredParamsExpression = (paramsExpression: string) =>
+export const getAngularFilteredParamsExpression = (
+  paramsExpression: string,
+  requiredNullableParamKeys: string[] = [],
+): string =>
   `(() => {
-  const filteredParams = {} as Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>;
+  const requiredNullableParamKeys = new Set<string>(${JSON.stringify(requiredNullableParamKeys)});
+  const filteredParams = {} as Record<string, string | number | boolean | null | Array<string | number | boolean>>;
   for (const [key, value] of Object.entries(${paramsExpression})) {
     if (Array.isArray(value)) {
       const filtered = value.filter(
@@ -29,10 +38,12 @@ const getAngularFilteredParamsExpression = (paramsExpression: string) =>
           (typeof item === 'string' ||
             typeof item === 'number' ||
             typeof item === 'boolean'),
-      ) as ReadonlyArray<string | number | boolean>;
+          ) as Array<string | number | boolean>;
       if (filtered.length) {
         filteredParams[key] = filtered;
       }
+    } else if (value === null && requiredNullableParamKeys.has(key)) {
+      filteredParams[key] = value;
     } else if (
       value != null &&
       (typeof value === 'string' ||
@@ -42,8 +53,54 @@ const getAngularFilteredParamsExpression = (paramsExpression: string) =>
       filteredParams[key] = value as string | number | boolean;
     }
   }
-  return filteredParams;
+  return filteredParams as unknown as Record<string, string | number | boolean | Array<string | number | boolean>>;
 })()`;
+
+/**
+ * Returns the body of a standalone `filterParams` helper function
+ * to be emitted once in the generated file header, replacing the
+ * inline IIFE that was previously duplicated in every method.
+ */
+export const getAngularFilteredParamsHelperBody = (): string =>
+  `function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: Set<string> = new Set(),
+): Record<string, string | number | boolean | Array<string | number | boolean>> {
+  const filteredParams: Record<string, string | number | boolean | null | Array<string | number | boolean>> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) {
+      const filtered = value.filter(
+        (item) =>
+          item != null &&
+          (typeof item === 'string' ||
+            typeof item === 'number' ||
+            typeof item === 'boolean'),
+      ) as Array<string | number | boolean>;
+      if (filtered.length) {
+        filteredParams[key] = filtered;
+      }
+    } else if (value === null && requiredNullableKeys.has(key)) {
+      filteredParams[key] = value;
+    } else if (
+      value != null &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean')
+    ) {
+      filteredParams[key] = value as string | number | boolean;
+    }
+  }
+  return filteredParams as Record<string, string | number | boolean | Array<string | number | boolean>>;
+}`;
+
+/**
+ * Returns a call expression to the `filterParams` helper function.
+ */
+export const getAngularFilteredParamsCallExpression = (
+  paramsExpression: string,
+  requiredNullableParamKeys: string[] = [],
+): string =>
+  `filterParams(${paramsExpression}, new Set<string>(${JSON.stringify(requiredNullableParamKeys)}))`;
 
 interface GenerateFormDataAndUrlEncodedFunctionOptions {
   body: GetterBody;
@@ -76,6 +133,9 @@ export function generateBodyOptions(
 interface GenerateAxiosOptions {
   response: GetterResponse;
   isExactOptionalPropertyTypes: boolean;
+  angularObserve?: 'body' | 'events' | 'response';
+  angularParamsRef?: string;
+  requiredNullableQueryParamKeys?: string[];
   queryParams?: GeneratorSchema;
   headers?: GeneratorSchema;
   requestOptions?: object | boolean;
@@ -90,6 +150,9 @@ interface GenerateAxiosOptions {
 export function generateAxiosOptions({
   response,
   isExactOptionalPropertyTypes,
+  angularObserve,
+  angularParamsRef,
+  requiredNullableQueryParamKeys,
   queryParams,
   headers,
   requestOptions,
@@ -112,7 +175,14 @@ export function generateAxiosOptions({
     response.definition.success !== 'string'
   ) {
     if (isRequestOptions) {
-      return 'options';
+      return isAngular
+        ? angularObserve
+          ? `{
+        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+        observe: '${angularObserve}',
+      }`
+          : "(options as Omit<NonNullable<typeof options>, 'observe'>)"
+        : 'options';
     }
     if (hasSignal) {
       return isExactOptionalPropertyTypes
@@ -127,9 +197,13 @@ export function generateAxiosOptions({
   if (!isRequestOptions) {
     if (queryParams) {
       if (isAngular) {
+        const iifeExpr = getAngularFilteredParamsExpression(
+          'params ?? {}',
+          requiredNullableQueryParamKeys,
+        );
         value += paramsSerializer
-          ? `\n        params: ${paramsSerializer.name}(${getAngularFilteredParamsExpression('params')}),`
-          : `\n        params: ${getAngularFilteredParamsExpression('params')},`;
+          ? `\n        params: ${paramsSerializer.name}(${iifeExpr}),`
+          : `\n        params: ${iifeExpr},`;
       } else {
         value += '\n        params,';
       }
@@ -150,10 +224,9 @@ export function generateAxiosOptions({
     !isObject(requestOptions) ||
     !Object.hasOwn(requestOptions, 'responseType')
   ) {
-    if (response.isBlob) {
-      value += `\n        responseType: 'blob',`;
-    } else if (response.contentTypes.at(0) === 'text/plain') {
-      value += `\n        responseType: 'text',`;
+    const successResponseType = getSuccessResponseType(response);
+    if (successResponseType) {
+      value += `\n        responseType: '${successResponseType}',`;
     }
   }
 
@@ -162,15 +235,27 @@ export function generateAxiosOptions({
   }
 
   if (isRequestOptions) {
-    value += '\n    ...options,';
+    value += isAngular
+      ? "\n    ...(options as Omit<NonNullable<typeof options>, 'observe'>),"
+      : '\n    ...options,';
+
+    if (isAngular && angularObserve) {
+      value += `\n        observe: '${angularObserve}',`;
+    }
 
     if (queryParams) {
       if (isVue) {
         value += '\n        params: {...unref(params), ...options?.params},';
+      } else if (isAngular && angularParamsRef) {
+        value += `\n        params: ${angularParamsRef},`;
       } else if (isAngular && paramsSerializer) {
-        value += `\n        params: ${paramsSerializer.name}(${getAngularFilteredParamsExpression('{...params, ...options?.params}')}),`;
+        const callExpr = getAngularFilteredParamsCallExpression(
+          '{...params, ...options?.params}',
+          requiredNullableQueryParamKeys,
+        );
+        value += `\n        params: ${paramsSerializer.name}(${callExpr}),`;
       } else if (isAngular) {
-        value += `\n        params: ${getAngularFilteredParamsExpression('{...params, ...options?.params}')},`;
+        value += `\n        params: ${getAngularFilteredParamsCallExpression('{...params, ...options?.params}', requiredNullableQueryParamKeys)},`;
       } else {
         value += '\n        params: {...params, ...options?.params},';
       }
@@ -200,6 +285,8 @@ export function generateAxiosOptions({
 interface GenerateOptionsOptions {
   route: string;
   body: GetterBody;
+  angularObserve?: 'body' | 'events' | 'response';
+  angularParamsRef?: string;
   headers?: GetterQueryParam;
   queryParams?: GetterQueryParam;
   response: GetterResponse;
@@ -219,6 +306,8 @@ interface GenerateOptionsOptions {
 export function generateOptions({
   route,
   body,
+  angularObserve,
+  angularParamsRef,
   headers,
   queryParams,
   response,
@@ -240,6 +329,9 @@ export function generateOptions({
 
   const axiosOptions = generateAxiosOptions({
     response,
+    angularObserve,
+    angularParamsRef,
+    requiredNullableQueryParamKeys: queryParams?.requiredNullableKeys,
     queryParams: queryParams?.schema,
     headers: headers?.schema,
     requestOptions,
@@ -252,25 +344,34 @@ export function generateOptions({
     paramsSerializerOptions,
   });
 
-  const options = axiosOptions ? `{${axiosOptions}}` : '';
+  const isRawOptionsArgument =
+    axiosOptions === 'options' ||
+    (axiosOptions.startsWith('(') && axiosOptions.endsWith(')'));
+
+  const optionsArgument = axiosOptions
+    ? isRawOptionsArgument
+      ? axiosOptions
+      : `{${axiosOptions}}`
+    : '';
 
   if (verb === Verbs.DELETE) {
     if (!bodyOptions) {
-      return `\n      \`${route}\`,${
-        axiosOptions === 'options' ? axiosOptions : options
-      }\n    `;
+      return `\n      \`${route}\`${optionsArgument ? `,${optionsArgument}` : ''}\n    `;
     }
+
+    const deleteBodyOptions = isRawOptionsArgument
+      ? `...${optionsArgument}`
+      : axiosOptions;
 
     return `\n      \`${route}\`,{${
       isAngular ? 'body' : 'data'
-    }:${bodyOptions} ${
-      axiosOptions === 'options' ? `...${axiosOptions}` : axiosOptions
-    }}\n    `;
+    }:${bodyOptions} ${axiosOptions ? deleteBodyOptions : ''}}\n    `;
   }
 
-  return `\n      \`${route}\`,${
-    getIsBodyVerb(verb) ? bodyOptions || 'undefined,' : ''
-  }${axiosOptions === 'options' ? axiosOptions : options}\n    `;
+  const bodyOrOptions = getIsBodyVerb(verb) ? bodyOptions || 'undefined,' : '';
+  const separator = bodyOrOptions || optionsArgument ? ',' : '';
+
+  return `\n      \`${route}\`${separator}${bodyOrOptions}${optionsArgument}\n    `;
 }
 
 export function generateBodyMutatorConfig(
@@ -297,6 +398,7 @@ export function generateQueryParamsAxiosConfig(
   response: GetterResponse,
   isVue: boolean,
   isAngular: boolean,
+  requiredNullableQueryParamKeys?: string[],
   queryParams?: GetterQueryParam,
 ) {
   if (!queryParams && !response.isBlob) {
@@ -309,7 +411,7 @@ export function generateQueryParamsAxiosConfig(
     if (isVue) {
       value += ',\n        params: unref(params)';
     } else if (isAngular) {
-      value += `,\n        params: ${getAngularFilteredParamsExpression('params ?? {}')}`;
+      value += `,\n        params: ${getAngularFilteredParamsExpression('params ?? {}', requiredNullableQueryParamKeys)}`;
     } else {
       value += ',\n        params';
     }
@@ -361,6 +463,7 @@ export function generateMutatorConfig({
     response,
     isVue ?? false,
     isAngular ?? false,
+    queryParams?.requiredNullableKeys,
     queryParams,
   );
 

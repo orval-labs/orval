@@ -16,6 +16,7 @@
     "build": "tsdown --config-loader unrun",
     "dev": "tsdown --config-loader unrun --watch src",
     "lint": "eslint .",
+    "test": "vitest",
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
   },
@@ -26,7 +27,8 @@
     "eslint": "catalog:",
     "rimraf": "catalog:",
     "tsdown": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",

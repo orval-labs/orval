@@ -1,20 +1,3 @@
-type Operation = {
-  parameters?: unknown[];
-  [key: string]: unknown;
-};
-
-type OpenApiDocument = {
-  paths?: Record<string, Record<string, Operation | undefined> | undefined>;
-  [key: string]: unknown;
-};
-
-type InputTransformerFn = (spec: OpenApiDocument) => OpenApiDocument;
-
-type OperationParameter = {
-  name?: string;
-  in?: string;
-} & Record<string, unknown>;
-
 const HTTP_VERBS = new Set([
   'get',
   'put',
@@ -26,7 +9,7 @@ const HTTP_VERBS = new Set([
   'trace',
 ]);
 
-const transformer: InputTransformerFn = (inputSchema) => ({
+const transformer = (inputSchema) => ({
   ...inputSchema,
   paths: Object.entries(inputSchema.paths ?? {}).reduce(
     (acc, [path, pathItem]) => ({
@@ -41,18 +24,12 @@ const transformer: InputTransformerFn = (inputSchema) => ({
             return { ...pathItemAcc, [verb]: operation };
           }
 
-          const safeParameters = (operation as { parameters?: unknown })
-            .parameters;
-          const operationParameters = Array.isArray(safeParameters)
-            ? (safeParameters as OperationParameter[])
-            : [];
-
           return {
             ...pathItemAcc,
             [verb]: {
               ...operation,
               parameters: [
-                ...operationParameters.filter(
+                ...(operation.parameters || []).filter(
                   (p) => !(p.name === 'version' && p.in === 'path'),
                 ),
                 {

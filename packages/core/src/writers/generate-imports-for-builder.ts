@@ -5,29 +5,41 @@ import { conventionName, isObject, upath } from '../utils';
 
 export function generateImportsForBuilder(
   output: NormalizedOutputOptions,
-  imports: GeneratorImport[],
+  imports: readonly GeneratorImport[],
   relativeSchemasPath: string,
 ) {
   const isZodSchemaOutput =
     isObject(output.schemas) && output.schemas.type === 'zod';
 
+  let schemaImports: {
+    exports: readonly GeneratorImport[];
+    dependency: string;
+  }[] = [];
   if (output.indexFiles) {
-    return isZodSchemaOutput
+    schemaImports = isZodSchemaOutput
       ? [
           {
-            exports: imports.map((i) => ({ ...i, values: true })),
+            exports: imports.filter((i) => !i.importPath),
             dependency: upath.joinSafe(relativeSchemasPath, 'index.zod'),
           },
         ]
-      : [{ exports: imports, dependency: relativeSchemasPath }];
+      : [
+          {
+            exports: imports.filter((i) => !i.importPath),
+            dependency: relativeSchemasPath,
+          },
+        ];
   } else {
-    return uniqueBy(imports, (x) => x.name).map((i) => {
+    schemaImports = uniqueBy(
+      imports.filter((i) => !i.importPath),
+      (x) => x.name,
+    ).map((i) => {
       const baseName = i.schemaName ?? i.name;
       const name = conventionName(baseName, output.namingConvention);
       const suffix = isZodSchemaOutput ? '.zod' : '';
       const importExtension = output.fileExtension.replace(/\.ts$/, '') || '';
       return {
-        exports: isZodSchemaOutput ? [{ ...i, values: true }] : [i],
+        exports: [i],
         dependency: upath.joinSafe(
           relativeSchemasPath,
           `${name}${suffix}${importExtension}`,
@@ -35,4 +47,16 @@ export function generateImportsForBuilder(
       };
     });
   }
+
+  const otherImports = uniqueBy(
+    imports.filter((i) => !!i.importPath),
+    (x) => x.name + (x.importPath ?? ''),
+  ).map((i) => {
+    return {
+      exports: [i],
+      dependency: i.importPath,
+    };
+  });
+
+  return [...schemaImports, ...otherImports];
 }

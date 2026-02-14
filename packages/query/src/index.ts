@@ -49,23 +49,60 @@ export const generateQuery: ClientBuilder = async (
   options,
   outputClient,
 ) => {
+  const isZodOutput =
+    typeof options.context.output.schemas === 'object' &&
+    options.context.output.schemas.type === 'zod';
+  const responseType = verbOptions.response.definition.success;
+  const isPrimitiveResponse = [
+    'string',
+    'number',
+    'boolean',
+    'void',
+    'unknown',
+  ].includes(responseType);
+  const shouldUseRuntimeValidation =
+    verbOptions.override.query.runtimeValidation && isZodOutput;
+
+  const normalizedVerbOptions =
+    shouldUseRuntimeValidation &&
+    !isPrimitiveResponse &&
+    verbOptions.response.imports.some((imp) => imp.name === responseType)
+      ? {
+          ...verbOptions,
+          response: {
+            ...verbOptions.response,
+            imports: verbOptions.response.imports.map((imp) =>
+              imp.name === responseType ? { ...imp, values: true } : imp,
+            ),
+          },
+        }
+      : verbOptions;
+
   const adapter = createFrameworkAdapter({
     outputClient,
     packageJson: options.context.output.packageJson,
-    queryVersion: verbOptions.override.query.version,
+    queryVersion: normalizedVerbOptions.override.query.version,
   });
 
-  const imports = generateVerbImports(verbOptions);
+  const imports = generateVerbImports(normalizedVerbOptions);
   const functionImplementation = adapter.generateRequestFunction(
-    verbOptions,
+    normalizedVerbOptions,
     options,
   );
-  const { implementation: hookImplementation, mutators } =
-    await generateQueryHook(verbOptions, options, outputClient, adapter);
+  const {
+    implementation: hookImplementation,
+    imports: hookImports,
+    mutators,
+  } = await generateQueryHook(
+    normalizedVerbOptions,
+    options,
+    outputClient,
+    adapter,
+  );
 
   return {
     implementation: `${functionImplementation}\n\n${hookImplementation}`,
-    imports,
+    imports: [...imports, ...hookImports],
     mutators,
   };
 };
