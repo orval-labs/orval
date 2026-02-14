@@ -409,7 +409,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   }
   ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : 'return data'}
 `;
-  const customFetchResponseImplementation = `return ${mutator?.name}<${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}>(${fetchFnOptions});`;
+  let customFetchResponseImplementation = `return ${mutator?.name}<${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}>(${fetchFnOptions});`;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -419,21 +419,42 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     isFormUrlEncoded,
   });
 
+  if (mutator?.isHook) {
+    const hasDefaultName = !mutator.path.includes('#');
+    const fetchExportName = hasDefaultName
+      ? 'customFetcher'
+      : mutator.path.split('#')[1];
+    const formattedDeconstructor = hasDefaultName
+      ? `customFetcher`
+      : `{${fetchExportName}}`;
+    customFetchResponseImplementation = `
+      const ${formattedDeconstructor} = ${mutator.name}();
+      return (${args}) => {
+        ${bodyForm}
+        return ${fetchExportName}(${fetchFnOptions});
+      }
+  `;
+  }
+
   const fetchImplementationBody = mutator
     ? customFetchResponseImplementation
     : fetchResponseImplementation;
 
-  const fetchImplementation = `export const ${operationName} = async (${args}): ${returnType} => {
+  let fetchImplementation = `export const ${operationName} = async (${args}): ${returnType} => {
   ${bodyForm ? `  ${bodyForm}` : ''}
   ${fetchImplementationBody}}
-`;
+  `;
+  if (mutator?.isHook) {
+    fetchImplementation = `export const use${pascal(operationName)}Hook = (): (${args}) => ${returnType} => {
+    ${fetchImplementationBody}}
+  `;
+  }
 
-  const implementation =
+  return (
     responseTypeImplementation +
     `${getUrlFnImplementation}\n` +
-    `${fetchImplementation}\n`;
-
-  return implementation;
+    `${fetchImplementation}\n`
+  );
 };
 
 export const fetchResponseTypeName = (
