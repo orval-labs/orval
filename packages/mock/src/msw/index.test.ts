@@ -792,7 +792,7 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).toContain('HttpResponse.text(');
       expect(result.implementation.handler).toContain('textBody');
       expect(result.implementation.handler).not.toContain('HttpResponse.json(');
-      // No runtime typeof resolvedBody check (uses static textBody prelude instead)
+      // No runtime content-type switch branch is used; static text prelude computes textBody
       expect(result.implementation.handler).toContain('const resolvedBody =');
       expect(result.implementation.handler).toContain('const textBody =');
     });
@@ -916,6 +916,130 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).toContain('HttpResponse.xml(');
       expect(result.implementation.handler).toContain('HttpResponse.json(');
       expect(result.implementation.handler).not.toContain('JSON.stringify');
+    });
+
+    it('Test I: should still select first text-like helper even when json appears first in content types', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'string | Pet' },
+          types: { success: [{ key: '200', value: 'string | Pet' }] },
+          contentTypes: ['application/json', 'application/xml'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        override: {
+          ...baseOptions.override,
+          operations: {
+            ...baseOptions.override.operations,
+            getUser: { mock: { data: { id: 1, name: 'Milo' } } },
+          },
+        },
+      });
+
+      expect(result.implementation.handler).toContain(
+        "typeof resolvedBody === 'string'",
+      );
+      expect(result.implementation.handler).toContain('HttpResponse.xml(');
+      expect(result.implementation.handler).toContain('HttpResponse.json(');
+      expect(result.implementation.handler).not.toContain('JSON.stringify');
+    });
+
+    it('Test J: should use static text path when preferredContentType is text/plain for union return type', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'string | Pet' },
+          types: { success: [{ key: '200', value: 'string | Pet' }] },
+          contentTypes: ['text/plain', 'application/json'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        mock: {
+          type: OutputMockType.MSW,
+          preferredContentType: 'text/plain',
+        },
+        override: {
+          ...baseOptions.override,
+          operations: {
+            ...baseOptions.override.operations,
+            getUser: { mock: { data: { id: 1, name: 'Milo' } } },
+          },
+        },
+      });
+
+      expect(result.implementation.handler).toContain('HttpResponse.text(');
+      expect(result.implementation.handler).toContain('const textBody =');
+      expect(result.implementation.handler).not.toContain('HttpResponse.json(');
+      expect(result.implementation.handler).not.toContain(
+        "typeof resolvedBody === 'string'\n      ? HttpResponse",
+      );
+    });
+
+    it('Test K: should generate runtime branching for vendor +xml + vendor +json with union return type string | Pet', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'string | Pet' },
+          types: { success: [{ key: '200', value: 'string | Pet' }] },
+          contentTypes: ['application/vnd.orval+xml', 'application/vnd.orval+json'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        override: {
+          ...baseOptions.override,
+          operations: {
+            ...baseOptions.override.operations,
+            getUser: { mock: { data: { id: 1, name: 'Milo' } } },
+          },
+        },
+      });
+
+      expect(result.implementation.handler).toContain(
+        "typeof resolvedBody === 'string'",
+      );
+      expect(result.implementation.handler).toContain('HttpResponse.xml(');
+      expect(result.implementation.handler).toContain('HttpResponse.json(');
+      expect(result.implementation.handler).not.toContain('JSON.stringify');
+    });
+
+    it('Test L: should not treat type names containing "string" as string return types', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'StringPayload | Pet' },
+          types: { success: [{ key: '200', value: 'StringPayload | Pet' }] },
+          contentTypes: ['application/xml', 'application/json'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        override: {
+          ...baseOptions.override,
+          operations: {
+            ...baseOptions.override.operations,
+            getUser: { mock: { data: { id: 1, name: 'Milo' } } },
+          },
+        },
+      });
+
+      // Since StringPayload is not the primitive `string`, this should prefer JSON for structured data
+      expect(result.implementation.handler).toContain('HttpResponse.json(');
+      expect(result.implementation.handler).not.toContain('HttpResponse.xml(');
+      expect(result.implementation.handler).not.toContain(
+        "typeof resolvedBody === 'string'\n      ? HttpResponse",
+      );
     });
   });
 });

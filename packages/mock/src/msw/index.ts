@@ -103,6 +103,13 @@ function generateDefinition(
   const isResponseOverridable = value.includes(overrideVarName);
   const isTextLikeContentType = (ct: string) =>
     ct.startsWith('text/') || ct === 'application/xml' || ct.endsWith('+xml');
+  const isTypeExactlyString = (typeExpr: string) =>
+    typeExpr.trim().replace(/^\(+|\)+$/g, '') === 'string';
+  const isUnionContainingString = (typeExpr: string) =>
+    typeExpr
+      .split('|')
+      .map((part) => part.trim().replace(/^\(+|\)+$/g, ''))
+      .some((part) => part === 'string');
   const isBinaryLikeContentType = (ct: string) =>
     ct === 'application/octet-stream' ||
     ct === 'application/pdf' ||
@@ -153,14 +160,16 @@ function generateDefinition(
     (ct) => ct.includes('json') || ct.includes('+json'),
   );
   const hasStringReturnType =
-    mockReturnType === 'string' || mockReturnType.includes('string');
+    isTypeExactlyString(mockReturnType) ||
+    isUnionContainingString(mockReturnType);
   const shouldPreferJsonResponse = hasJsonContentType && !hasStringReturnType;
 
   // When the return type is a union containing both string and structured types
   // (e.g. `string | Pet`) AND both text-like and JSON content types are available,
   // we need runtime branching to pick the correct HttpResponse helper based on
-  // the actual resolved value type. Without this, objects would be JSON.stringify'd
-  // and served under a text/xml Content-Type, which is semantically incorrect.
+  // the actual resolved value type. Without this, objects could be JSON.stringify'd
+  // and served under a text-like Content-Type (e.g. xml/html/plain), which is
+  // semantically incorrect for structured JSON data.
   const needsRuntimeContentTypeSwitch =
     isTextResponse &&
     hasJsonContentType &&
@@ -182,10 +191,6 @@ function generateDefinition(
     : ${getResponseMockFunctionName}()`;
 
   const statusCode = status === 'default' ? 200 : status.replace(/XX$/, '00');
-
-  const binaryResolvedExpr = `overrideResponse !== undefined
-    ? (typeof overrideResponse === "function" ? await overrideResponse(${infoParam}) : overrideResponse)
-    : ${getResponseMockFunctionName}()`;
 
   // Determine the preferred non-JSON content type for binary responses
   const binaryContentType =
@@ -213,14 +218,15 @@ function generateDefinition(
   let responseBody: string;
   // Use a prelude to evaluate the override expression once into a temp variable
   // (the expression contains `await` so must not be duplicated)
-  const responsePrelude = isBinaryResponse
-    ? `const binaryBody = ${binaryResolvedExpr};`
-    : needsRuntimeContentTypeSwitch
-      ? `const resolvedBody = ${resolvedResponseExpr};`
-      : isTextResponse && !shouldPreferJsonResponse
-        ? `const resolvedBody = ${resolvedResponseExpr};
-    const textBody = typeof resolvedBody === 'string' ? resolvedBody : JSON.stringify(resolvedBody ?? null);`
-        : '';
+  let responsePrelude = '';
+  if (isBinaryResponse) {
+    responsePrelude = `const binaryBody = ${resolvedResponseExpr};`;
+  } else if (needsRuntimeContentTypeSwitch) {
+    responsePrelude = `const resolvedBody = ${resolvedResponseExpr};`;
+  } else if (isTextResponse && !shouldPreferJsonResponse) {
+    responsePrelude = `const resolvedBody = ${resolvedResponseExpr};
+    const textBody = typeof resolvedBody === 'string' ? resolvedBody : JSON.stringify(resolvedBody ?? null);`;
+  }
   if (!isReturnHttpResponse) {
     responseBody = `new HttpResponse(null,
       { status: ${statusCode}
