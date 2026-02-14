@@ -989,7 +989,10 @@ describe('generateMSW', () => {
           ...mockVerbOptions.response,
           definition: { success: 'string | Pet' },
           types: { success: [{ key: '200', value: 'string | Pet' }] },
-          contentTypes: ['application/vnd.orval+xml', 'application/vnd.orval+json'],
+          contentTypes: [
+            'application/vnd.orval+xml',
+            'application/vnd.orval+json',
+          ],
         },
       } as GeneratorVerbOptions;
 
