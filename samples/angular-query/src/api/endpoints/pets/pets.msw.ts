@@ -91,7 +91,7 @@ export const getShowPetByIdResponseMock = () =>
   }))();
 
 export const getUpdatePetResponseMock = (
-  overrideResponse: Partial<Pet> = {},
+  overrideResponse: Partial<Extract<Pet, object>> = {},
 ): Pet => ({
   id: faker.number.int(),
   name: (() => faker.person.lastName())(),
@@ -114,7 +114,7 @@ export const getUpdatePetResponseMock = (
 });
 
 export const getPatchPetResponseMock = (
-  overrideResponse: Partial<Pet> = {},
+  overrideResponse: Partial<Extract<Pet, object>> = {},
 ): Pet => ({
   id: faker.number.int(),
   name: (() => faker.person.lastName())(),

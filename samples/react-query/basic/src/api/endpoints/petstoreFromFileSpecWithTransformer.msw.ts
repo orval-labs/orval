@@ -38,7 +38,7 @@ export const getListPetsResponseMock = (): PetsArray =>
   }));
 
 export const getListPetsNestedArrayResponseMock = (
-  overrideResponse: Partial<PetsNestedArray> = {},
+  overrideResponse: Partial<Extract<PetsNestedArray, object>> = {},
 ): PetsNestedArray => ({
   data: faker.helpers.arrayElement([
     Array.from(

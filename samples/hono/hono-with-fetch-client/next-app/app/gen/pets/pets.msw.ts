@@ -22,7 +22,7 @@ export const getListPetsResponseMock = (): Pets =>
   }));
 
 export const getCreatePetsResponseMock = (
-  overrideResponse: Partial<Pet> = {},
+  overrideResponse: Partial<Extract<Pet, object>> = {},
 ): Pet => ({
   id: faker.number.int(),
   name: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -31,7 +31,7 @@ export const getCreatePetsResponseMock = (
 });
 
 export const getUpdatePetsResponseMock = (
-  overrideResponse: Partial<Pet> = {},
+  overrideResponse: Partial<Extract<Pet, object>> = {},
 ): Pet => ({
   id: faker.number.int(),
   name: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -40,7 +40,7 @@ export const getUpdatePetsResponseMock = (
 });
 
 export const getShowPetByIdResponseMock = (
-  overrideResponse: Partial<Pet> = {},
+  overrideResponse: Partial<Extract<Pet, object>> = {},
 ): Pet => ({
   id: faker.number.int(),
   name: faker.string.alpha({ length: { min: 10, max: 20 } }),

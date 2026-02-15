@@ -171,6 +171,7 @@ function generateDefinition(
   const hasStringReturnType =
     isTypeExactlyString(mockReturnType) ||
     isUnionContainingString(mockReturnType);
+  const overrideResponseType = `Partial<Extract<${mockReturnType}, object>>`;
   const shouldPreferJsonResponse = hasJsonContentType && !hasStringReturnType;
 
   // When the return type is a union containing both string and structured types
@@ -188,7 +189,7 @@ function generateDefinition(
   const mockImplementation = isReturnHttpResponse
     ? `${mockImplementations}export const ${getResponseMockFunctionName} = (${
         isResponseOverridable
-          ? `overrideResponse: Partial< ${mockReturnType} > = {}`
+          ? `overrideResponse: ${overrideResponseType} = {}`
           : ''
       })${mockData ? '' : `: ${mockReturnType}`} => (${value})\n\n`
     : mockImplementations;

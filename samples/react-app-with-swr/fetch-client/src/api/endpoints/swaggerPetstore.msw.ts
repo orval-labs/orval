@@ -30,7 +30,7 @@ export const getListPetsResponseMock = (): Pets =>
   }));
 
 export const getCreatePetsResponseMock = (
-  overrideResponse: Partial<Pet> = {},
+  overrideResponse: Partial<Extract<Pet, object>> = {},
 ): Pet => ({
   '@id': faker.helpers.arrayElement([
     faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -47,7 +47,7 @@ export const getCreatePetsResponseMock = (
 });
 
 export const getShowPetByIdResponseMock = (
-  overrideResponse: Partial<Pet> = {},
+  overrideResponse: Partial<Extract<Pet, object>> = {},
 ): Pet => ({
   '@id': faker.helpers.arrayElement([
     faker.string.alpha({ length: { min: 10, max: 20 } }),

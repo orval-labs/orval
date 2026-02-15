@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import type {
   GeneratorOptions,
   GeneratorVerbOptions,
@@ -1067,6 +1069,28 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).not.toContain(
         "typeof resolvedBody === 'string'\n      ? HttpResponse",
       );
+    });
+
+    it('Test M: generated mixed-content union fixtures should keep object-only override typing', () => {
+      const fixturePaths = [
+        '../../../../tests/generated/mock/msw-mixed-content-union/endpoints.ts',
+        '../../../../tests/generated/mock/msw-mixed-content-union-preferred-json/endpoints.ts',
+        '../../../../tests/generated/mock/msw-mixed-content-union-vendor/endpoints.ts',
+        '../../../../tests/generated/mock/msw-mixed-content-union-each-status/endpoints.ts',
+      ];
+
+      const expectedSignature =
+        'overrideResponse: Partial<Extract<string | Pet, object>> = {}';
+      const legacySignature = 'overrideResponse: Partial< string | Pet > = {}';
+
+      for (const relativePath of fixturePaths) {
+        const content = readFileSync(new URL(relativePath, import.meta.url), {
+          encoding: 'utf8',
+        });
+
+        expect(content).toContain(expectedSignature);
+        expect(content).not.toContain(legacySignature);
+      }
     });
   });
 });
