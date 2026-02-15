@@ -28,7 +28,7 @@ export const getListPetsResponseMock = (): Pets =>
   }));
 
 export const getCreatePetsResponseMock = (
-  overrideResponse: Partial<Pet> = {},
+  overrideResponse: Partial<Extract<Pet, object>> = {},
 ): Pet => ({
   id: faker.number.int(),
   name: (() => faker.person.lastName())(),

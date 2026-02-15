@@ -38,7 +38,7 @@ export const Pets = zod.array(
         name: zod.string(),
         tag: zod.string().optional(),
         email: zod.email().optional(),
-        callingCode: zod.enum(['+33', '+420', '+33']).optional(),
+        callingCode: zod.enum(['+33', '+420']).optional(),
         country: zod.enum(["People's Republic of China", 'Uruguay']).optional(),
       }),
     ),

@@ -91,7 +91,7 @@ export const getShowPetByIdResponseMock = () =>
   }))();
 
 export const getUpdatePetResponseMock = (
-  overrideResponse: Partial<Pet> = {},
+  overrideResponse: Partial<Extract<Pet, object>> = {},
 ): Pet => ({
   id: faker.number.int(),
   name: (() => faker.person.lastName())(),
@@ -114,7 +114,7 @@ export const getUpdatePetResponseMock = (
 });
 
 export const getPatchPetResponseMock = (
-  overrideResponse: Partial<Pet> = {},
+  overrideResponse: Partial<Extract<Pet, object>> = {},
 ): Pet => ({
   id: faker.number.int(),
   name: (() => faker.person.lastName())(),
@@ -316,14 +316,17 @@ export const getShowPetTextMockHandler = (
   return http.get(
     '*/v:version/pets/:petId/text',
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
+      const resolvedBody =
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
             ? await overrideResponse(info)
             : overrideResponse
-          : getShowPetTextResponseMock(),
-        { status: 200 },
-      );
+          : getShowPetTextResponseMock();
+      const textBody =
+        typeof resolvedBody === 'string'
+          ? resolvedBody
+          : JSON.stringify(resolvedBody ?? null);
+      return HttpResponse.text(textBody, { status: 200 });
     },
     options,
   );
@@ -411,14 +414,17 @@ export const getHealthCheckMockHandler = (
   return http.get(
     '*/v:version/health',
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
+      const resolvedBody =
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
             ? await overrideResponse(info)
             : overrideResponse
-          : getHealthCheckResponseMock(),
-        { status: 200 },
-      );
+          : getHealthCheckResponseMock();
+      const textBody =
+        typeof resolvedBody === 'string'
+          ? resolvedBody
+          : JSON.stringify(resolvedBody ?? null);
+      return HttpResponse.text(textBody, { status: 200 });
     },
     options,
   );

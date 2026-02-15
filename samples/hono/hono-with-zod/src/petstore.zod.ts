@@ -56,7 +56,7 @@ export const ListPetsResponseItem = zod.preprocess(
           name: zod.string(),
           tag: zod.string().optional(),
           email: zod.string().email().optional(),
-          callingCode: zod.enum(['+33', '+420', '+33']).optional(),
+          callingCode: zod.enum(['+33', '+420']).optional(),
           country: zod
             .enum(["People's Republic of China", 'Uruguay'])
             .optional(),
@@ -114,7 +114,7 @@ export const CreatePetsResponse = zod.preprocess(
           name: zod.string(),
           tag: zod.string().optional(),
           email: zod.string().email().optional(),
-          callingCode: zod.enum(['+33', '+420', '+33']).optional(),
+          callingCode: zod.enum(['+33', '+420']).optional(),
           country: zod
             .enum(["People's Republic of China", 'Uruguay'])
             .optional(),
@@ -154,7 +154,7 @@ export const UpdatePetsBody = zod
       name: zod.string(),
       tag: zod.string().optional(),
       email: zod.string().email().optional(),
-      callingCode: zod.enum(['+33', '+420', '+33']).optional(),
+      callingCode: zod.enum(['+33', '+420']).optional(),
       country: zod.enum(["People's Republic of China", 'Uruguay']).optional(),
     }),
   );
@@ -201,7 +201,7 @@ export const UpdatePetsResponse = zod.preprocess(
           name: zod.string(),
           tag: zod.string().optional(),
           email: zod.string().email().optional(),
-          callingCode: zod.enum(['+33', '+420', '+33']).optional(),
+          callingCode: zod.enum(['+33', '+420']).optional(),
           country: zod
             .enum(["People's Republic of China", 'Uruguay'])
             .optional(),
@@ -257,7 +257,7 @@ export const ShowPetByIdResponse = zod.preprocess(
           name: zod.string(),
           tag: zod.string().optional(),
           email: zod.string().email().optional(),
-          callingCode: zod.enum(['+33', '+420', '+33']).optional(),
+          callingCode: zod.enum(['+33', '+420']).optional(),
           country: zod
             .enum(["People's Republic of China", 'Uruguay'])
             .optional(),

@@ -677,15 +677,17 @@ export const generateZodValidationSchemaDefinition = (
   }
 
   if (schema.enum) {
-    if (schema.enum.every((value) => isString(value))) {
+    const uniqueEnumValues = unique(schema.enum);
+
+    if (uniqueEnumValues.every((value) => isString(value))) {
       functions.push([
         'enum',
-        `[${schema.enum.map((value) => `'${escape(value)}'`).join(', ')}]`,
+        `[${uniqueEnumValues.map((value) => `'${escape(value)}'`).join(', ')}]`,
       ]);
     } else {
       functions.push([
         'oneOf',
-        schema.enum.map((value) => ({
+        uniqueEnumValues.map((value) => ({
           functions: [
             ['literal', isString(value) ? `'${escape(value)}'` : value],
           ],

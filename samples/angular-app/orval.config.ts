@@ -9,15 +9,9 @@ export default defineConfig({
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
       client: 'angular',
-      /**
-       * Workaround for mixed JSON/XML mock payload mismatch.
-       *
-       * See: https://github.com/orval-labs/orval/issues/2950
-       */
       mock: {
         type: 'msw',
         indexMockFiles: true,
-        preferredContentType: 'application/json',
       },
       tsconfig: './tsconfig.app.json',
       clean: true,

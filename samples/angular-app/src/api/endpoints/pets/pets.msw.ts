@@ -176,14 +176,15 @@ export const getShowPetByIdMockHandler = (
   return http.get(
     '*/v:version/pets/:petId',
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
+      const resolvedBody =
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
             ? await overrideResponse(info)
             : overrideResponse
-          : getShowPetByIdResponseMock(),
-        { status: 200 },
-      );
+          : getShowPetByIdResponseMock();
+      return typeof resolvedBody === 'string'
+        ? HttpResponse.text(resolvedBody, { status: 200 })
+        : HttpResponse.json(resolvedBody, { status: 200 });
     },
     options,
   );
@@ -200,14 +201,17 @@ export const getShowPetTextMockHandler = (
   return http.get(
     '*/v:version/pets/:petId/text',
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
+      const resolvedBody =
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
             ? await overrideResponse(info)
             : overrideResponse
-          : getShowPetTextResponseMock(),
-        { status: 200 },
-      );
+          : getShowPetTextResponseMock();
+      const textBody =
+        typeof resolvedBody === 'string'
+          ? resolvedBody
+          : JSON.stringify(resolvedBody ?? null);
+      return HttpResponse.text(textBody, { status: 200 });
     },
     options,
   );

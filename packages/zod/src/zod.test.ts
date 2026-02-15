@@ -1297,6 +1297,39 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(parsed.zod).toBe("zod.enum(['cat', 'dog']).optional()");
     });
 
+    it('deduplicates duplicate values in string enums', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'string',
+        enum: ['+33', '+420', '+33'],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumStringDuplicate',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['enum', "['+33', '+420']"],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe("zod.enum(['+33', '+420']).optional()");
+    });
+
     it('generates an enum for a number', () => {
       const schema: OpenApiSchemaObject = {
         type: 'number',

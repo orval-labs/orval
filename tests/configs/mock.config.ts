@@ -199,4 +199,60 @@ export default defineConfig({
       target: '../specifications/circular.yaml',
     },
   },
+  mswMixedContentUnion: {
+    output: {
+      target: '../generated/mock/msw-mixed-content-union/endpoints.ts',
+      schemas: '../generated/mock/msw-mixed-content-union/model',
+      client: 'axios',
+      mock: {
+        type: 'msw',
+      },
+    },
+    input: {
+      target: '../specifications/msw-mixed-content-union.yaml',
+    },
+  },
+  mswMixedContentUnionPreferredJson: {
+    output: {
+      target:
+        '../generated/mock/msw-mixed-content-union-preferred-json/endpoints.ts',
+      schemas: '../generated/mock/msw-mixed-content-union-preferred-json/model',
+      client: 'axios',
+      mock: {
+        type: 'msw',
+        preferredContentType: 'application/json',
+      },
+    },
+    input: {
+      target: '../specifications/msw-mixed-content-union.yaml',
+    },
+  },
+  mswMixedContentUnionEachHttpStatus: {
+    output: {
+      target:
+        '../generated/mock/msw-mixed-content-union-each-status/endpoints.ts',
+      schemas: '../generated/mock/msw-mixed-content-union-each-status/model',
+      client: 'axios',
+      mock: {
+        type: 'msw',
+        generateEachHttpStatus: true,
+      },
+    },
+    input: {
+      target: '../specifications/msw-mixed-content-each-status.yaml',
+    },
+  },
+  mswMixedContentUnionVendor: {
+    output: {
+      target: '../generated/mock/msw-mixed-content-union-vendor/endpoints.ts',
+      schemas: '../generated/mock/msw-mixed-content-union-vendor/model',
+      client: 'axios',
+      mock: {
+        type: 'msw',
+      },
+    },
+    input: {
+      target: '../specifications/msw-mixed-content-union-vendor.yaml',
+    },
+  },
 });
