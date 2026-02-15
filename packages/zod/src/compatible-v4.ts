@@ -53,3 +53,7 @@ export const getParameterFunctions = (
 export const getObjectFunctionName = (isZodV4: boolean, strict: boolean) => {
   return isZodV4 && strict ? 'strictObject' : 'object';
 };
+
+export const getLooseObjectFunctionName = (isZodV4: boolean) => {
+  return isZodV4 ? 'looseObject' : 'object';
+};
