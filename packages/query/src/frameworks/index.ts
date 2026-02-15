@@ -53,6 +53,8 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => ({
   shouldDestructureNamedPathParams: () => true,
   shouldAnnotateQueryKey: () => true,
   shouldGenerateOverrideTypes: () => false,
+  shouldCastQueryResult: () => true,
+  shouldCastQueryOptions: () => true,
 
   // --- String defaults ---
   getQueryKeyPrefix: () => 'queryOptions?.queryKey ?? ',

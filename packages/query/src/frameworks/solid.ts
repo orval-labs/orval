@@ -66,6 +66,18 @@ export const createSolidAdapter = ({
     return false;
   },
 
+  shouldCastQueryResult(): boolean {
+    // Solid Query should not cast the query result because it breaks TypeScript's
+    // ability to discriminate between overloads based on initialData
+    return false;
+  },
+
+  shouldCastQueryOptions(): boolean {
+    // Solid Query should not cast the query options return type because it prevents
+    // TypeScript from properly discriminating between defined and undefined initialData
+    return false;
+  },
+
   getQueryReturnType({ type }: QueryReturnTypeContext): string {
     const prefix = hasSolidQueryUsePrefix ? 'Use' : 'Create';
     const queryKeyType = hasQueryV5
@@ -95,8 +107,9 @@ export const createSolidAdapter = ({
     queryResultVarName,
     queryOptionsVarName,
   }: QueryReturnStatementContext): string {
-    // Attach queryKey to the result for convenience
-    return `${queryResultVarName}.queryKey = ${queryOptionsVarName}.queryKey; return ${queryResultVarName};`;
+    // Use Object.assign to attach queryKey to the result and cast to any to satisfy TypeScript
+    // The type is properly enforced by the function signature
+    return `return Object.assign(${queryResultVarName}, { queryKey: ${queryOptionsVarName}.queryKey }) as any;`;
   },
 
   generateQueryInvocationArgs({

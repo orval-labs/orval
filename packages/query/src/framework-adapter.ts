@@ -170,6 +170,12 @@ export interface FrameworkAdapter {
   /** React v5 only: true to emit overload type declarations. */
   shouldGenerateOverrideTypes(): boolean;
 
+  /** Whether to cast the query result with 'as returnType'. Solid Query needs this to be false for proper type inference. */
+  shouldCastQueryResult?(): boolean;
+
+  /** Whether to cast the query options return type. Solid Query needs this to be false for proper initialData discrimination. */
+  shouldCastQueryOptions?(): boolean;
+
   /** queryClient?: QueryClient vs queryClient?: () => QueryClient vs '' */
   getOptionalQueryClientArgument(hasInvalidation?: boolean): string;
 
@@ -262,6 +268,8 @@ type DefaultableFields =
   | 'shouldDestructureNamedPathParams'
   | 'shouldAnnotateQueryKey'
   | 'shouldGenerateOverrideTypes'
+  | 'shouldCastQueryResult'
+  | 'shouldCastQueryOptions'
   | 'getHttpFunctionQueryProps'
   | 'getQueryType'
   | 'getQueryKeyPrefix'
