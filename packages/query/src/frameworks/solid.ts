@@ -38,6 +38,16 @@ export const createSolidAdapter = ({
     return hasSolidQueryUsePrefix ? 'Use' : 'Create';
   },
 
+  getOptionsReturnTypeName(
+    type: 'query' | 'infiniteQuery' | 'mutation',
+  ): string | undefined {
+    // Solid Query uses SolidQueryOptions for queries, SolidInfiniteQueryOptions for infinite queries,
+    // and SolidMutationOptions for mutations (these are accessors)
+    if (type === 'mutation') return 'SolidMutationOptions';
+    if (type === 'infiniteQuery') return 'SolidInfiniteQueryOptions';
+    return 'SolidQueryOptions';
+  },
+
   getQueryKeyPrefix(): string {
     // Solid Query v5 doesn't support accessing queryKey from queryOptions
     // The queryKey must be generated directly from the params
