@@ -1,6 +1,7 @@
 import {
   camel,
   generateMutator,
+  type GeneratorImport,
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
@@ -694,11 +695,10 @@ export const generateQueryHook = async (
         self.findIndex((t) => t.queryKeyFnName === obj.queryKeyFnName),
     );
 
-    implementation += `
-${
-  queryKeyMutator
-    ? ''
-    : uniqueQueryOptionsByKeys.reduce((acc, queryOption) => {
+    let queryKeyFns = '';
+
+    if (!queryKeyMutator) {
+      for (const queryOption of uniqueQueryOptionsByKeys) {
         const makeOptionalParam = (impl: string) => {
           if (impl.includes('=')) return impl;
           return impl.replace(/^(\w+):\s*/, '$1?: ');
@@ -741,7 +741,7 @@ ${
           .join(', ');
 
         // Note: do not unref() params in Vue - this will make key lose reactivity
-        const queryKeyFn = `
+        queryKeyFns += `
 ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.queryKeyFnName} = (${queryKeyProps}) => {
     return [
     ${[
@@ -758,42 +758,45 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
     ] as const;
     }
 `;
-        return acc + queryKeyFn;
-      }, '')
-}`;
+      }
+    }
 
     implementation += `
-    ${queries.reduce((acc, queryOption) => {
-      return (
-        acc +
-        generateQueryImplementation({
-          queryOption,
-          operationName,
-          queryProperties,
-          queryKeyProperties,
-          params,
-          props,
-          mutator,
-          isRequestOptions,
-          queryParams,
-          response,
-          httpClient,
-          isExactOptionalPropertyTypes,
-          hasSignal: getHasSignal({
-            overrideQuerySignal: override.query.signal,
-          }),
-          queryOptionsMutator,
-          queryKeyMutator,
-          route,
-          doc,
-          usePrefetch: query.usePrefetch,
-          useQuery: query.useQuery,
-          useInfinite: query.useInfinite,
-          useInvalidate: query.useInvalidate,
-          adapter,
-        })
-      );
-    }, '')}
+${queryKeyFns}`;
+
+    let queryImplementations = '';
+
+    for (const queryOption of queries) {
+      queryImplementations += generateQueryImplementation({
+        queryOption,
+        operationName,
+        queryProperties,
+        queryKeyProperties,
+        params,
+        props,
+        mutator,
+        isRequestOptions,
+        queryParams,
+        response,
+        httpClient,
+        isExactOptionalPropertyTypes,
+        hasSignal: getHasSignal({
+          overrideQuerySignal: override.query.signal,
+        }),
+        queryOptionsMutator,
+        queryKeyMutator,
+        route,
+        doc,
+        usePrefetch: query.usePrefetch,
+        useQuery: query.useQuery,
+        useInfinite: query.useInfinite,
+        useInvalidate: query.useInvalidate,
+        adapter,
+      });
+    }
+
+    implementation += `
+    ${queryImplementations}
 `;
 
     mutators =
@@ -804,6 +807,8 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
           ]
         : undefined;
   }
+
+  let imports: GeneratorImport[] = [];
 
   if (isMutation) {
     const mutationResult = await generateMutationHook({
@@ -819,10 +824,12 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
     mutators = mutationResult.mutators
       ? [...(mutators ?? []), ...mutationResult.mutators]
       : mutators;
+    imports = mutationResult.imports;
   }
 
   return {
     implementation,
     mutators,
+    imports,
   };
 };

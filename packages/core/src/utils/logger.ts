@@ -113,7 +113,9 @@ export function createLogger(
   const clear =
     allowClearScreen && process.stdout.isTTY && !process.env.CI
       ? clearScreen
-      : () => {};
+      : () => {
+          /* noop */
+        };
 
   function output(type: LogType, msg: string, options: LogOptions = {}) {
     if (thresh >= LogLevels[type]) {

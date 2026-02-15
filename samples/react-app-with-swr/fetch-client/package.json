@@ -1,7 +1,7 @@
 {
   "name": "swr-with-fetch-client",
   "private": true,
-  "version": "8.2.0",
+  "version": "8.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -16,7 +16,7 @@
     "swr": "^2.3.6"
   },
   "devDependencies": {
-    "@faker-js/faker": "^10.2.0",
+    "@faker-js/faker": "catalog:tooling",
     "@types/react": "^18.3.24",
     "@types/react-dom": "^18.3.7",
     "@typescript-eslint/eslint-plugin": "^8.52.0",

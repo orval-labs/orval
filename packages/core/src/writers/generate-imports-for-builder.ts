@@ -5,36 +5,58 @@ import { conventionName, isObject, upath } from '../utils';
 
 export function generateImportsForBuilder(
   output: NormalizedOutputOptions,
-  imports: GeneratorImport[],
+  imports: readonly GeneratorImport[],
   relativeSchemasPath: string,
 ) {
   const isZodSchemaOutput =
     isObject(output.schemas) && output.schemas.type === 'zod';
 
-  if (!output.indexFiles) {
-    return uniqueBy(imports, (x) => x.name).map((i) => {
-      const baseName = i.schemaName || i.name;
+  let schemaImports: {
+    exports: readonly GeneratorImport[];
+    dependency: string;
+  }[] = [];
+  if (output.indexFiles) {
+    schemaImports = isZodSchemaOutput
+      ? [
+          {
+            exports: imports.filter((i) => !i.importPath),
+            dependency: upath.joinSafe(relativeSchemasPath, 'index.zod'),
+          },
+        ]
+      : [
+          {
+            exports: imports.filter((i) => !i.importPath),
+            dependency: relativeSchemasPath,
+          },
+        ];
+  } else {
+    schemaImports = uniqueBy(
+      imports.filter((i) => !i.importPath),
+      (x) => x.name,
+    ).map((i) => {
+      const baseName = i.schemaName ?? i.name;
       const name = conventionName(baseName, output.namingConvention);
       const suffix = isZodSchemaOutput ? '.zod' : '';
-      const importExtension = output.fileExtension?.replace(/\.ts$/, '') || '';
+      const importExtension = output.fileExtension.replace(/\.ts$/, '') || '';
       return {
-        exports: isZodSchemaOutput ? [{ ...i, values: true }] : [i],
+        exports: [i],
         dependency: upath.joinSafe(
           relativeSchemasPath,
           `${name}${suffix}${importExtension}`,
         ),
       };
     });
-  } else {
-    if (isZodSchemaOutput) {
-      return [
-        {
-          exports: imports.map((i) => ({ ...i, values: true })),
-          dependency: upath.joinSafe(relativeSchemasPath, 'index.zod'),
-        },
-      ];
-    } else {
-      return [{ exports: imports, dependency: relativeSchemasPath }];
-    }
   }
+
+  const otherImports = uniqueBy(
+    imports.filter((i) => !!i.importPath),
+    (x) => x.name + (x.importPath ?? ''),
+  ).map((i) => {
+    return {
+      exports: [i],
+      dependency: i.importPath,
+    };
+  });
+
+  return [...schemaImports, ...otherImports];
 }

@@ -4,6 +4,7 @@ import {
   isString,
   log,
   type PackageJson,
+  resolveInstalledVersions,
 } from '@orval/core';
 import chalk from 'chalk';
 import { findUp, findUpMultiple } from 'find-up';
@@ -24,7 +25,10 @@ export const loadPackageJson = async (
       const pkg = await dynamicImport<unknown>(pkgPath, workspace);
 
       if (isPackageJson(pkg)) {
-        return await maybeReplaceCatalog(pkg, workspace);
+        return resolveAndAttachVersions(
+          await maybeReplaceCatalog(pkg, workspace),
+          workspace,
+        );
       } else {
         throw new Error('Invalid package.json file');
       }
@@ -37,7 +41,10 @@ export const loadPackageJson = async (
     const pkg = await dynamicImport<unknown>(normalizedPath);
 
     if (isPackageJson(pkg)) {
-      return await maybeReplaceCatalog(pkg, workspace);
+      return resolveAndAttachVersions(
+        await maybeReplaceCatalog(pkg, workspace),
+        workspace,
+      );
     } else {
       throw new Error(`Invalid package.json file: ${normalizedPath}`);
     }
@@ -45,7 +52,23 @@ export const loadPackageJson = async (
   return;
 };
 
-const isPackageJson = (obj: any): obj is PackageJson => isObject(obj);
+const isPackageJson = (obj: unknown): obj is PackageJson => isObject(obj);
+
+const resolveAndAttachVersions = (
+  pkg: PackageJson,
+  workspace: string,
+): PackageJson => {
+  const resolved = resolveInstalledVersions(pkg, workspace);
+  if (Object.keys(resolved).length > 0) {
+    pkg.resolvedVersions = resolved;
+    for (const [name, version] of Object.entries(resolved)) {
+      log(
+        `  ${chalk.cyan('Detected')} ${chalk.green(name)} ${chalk.cyan(`v${version}`)} ${chalk.dim('(from node_modules)')}`,
+      );
+    }
+  }
+  return pkg;
+};
 
 const hasCatalogReferences = (pkg: PackageJson): boolean => {
   return [
@@ -62,9 +85,12 @@ const loadPnpmWorkspaceCatalog = async (
   if (!filePath) return undefined;
   try {
     const file = await fs.readFile(filePath, 'utf8');
-    const data = yaml.load(file) as Record<string, any> | undefined;
+    const data = yaml.load(file) as Record<string, unknown> | undefined;
     if (!data?.catalog && !data?.catalogs) return undefined;
-    return { catalog: data.catalog, catalogs: data.catalogs };
+    return {
+      catalog: data.catalog as CatalogData['catalog'],
+      catalogs: data.catalogs as CatalogData['catalogs'],
+    };
   } catch {
     return undefined;
   }
@@ -77,9 +103,12 @@ const loadPackageJsonCatalog = async (
 
   for (const filePath of filePaths) {
     try {
-      const pkg = await fs.readJson(filePath);
-      if (pkg?.catalog || pkg?.catalogs) {
-        return { catalog: pkg.catalog, catalogs: pkg.catalogs };
+      const pkg = (await fs.readJson(filePath)) as Record<string, unknown>;
+      if (pkg.catalog || pkg.catalogs) {
+        return {
+          catalog: pkg.catalog as CatalogData['catalog'],
+          catalogs: pkg.catalogs as CatalogData['catalogs'],
+        };
       }
     } catch {
       // Continue to next file
@@ -95,9 +124,12 @@ const loadYarnrcCatalog = async (
   if (!filePath) return undefined;
   try {
     const file = await fs.readFile(filePath, 'utf8');
-    const data = yaml.load(file) as Record<string, any> | undefined;
+    const data = yaml.load(file) as Record<string, unknown> | undefined;
     if (!data?.catalog && !data?.catalogs) return undefined;
-    return { catalog: data.catalog, catalogs: data.catalogs };
+    return {
+      catalog: data.catalog as CatalogData['catalog'],
+      catalogs: data.catalogs as CatalogData['catalogs'],
+    };
   } catch {
     return undefined;
   }

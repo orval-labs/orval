@@ -2,9 +2,11 @@ import {
   type ContextSpec,
   conventionName,
   type GeneratorVerbOptions,
-  isObject,
   type NamingConvention,
   type NormalizedOutputOptions,
+  type OpenApiParameterObject,
+  type OpenApiReferenceObject,
+  type OpenApiRequestBodyObject,
   type OpenApiSchemaObject,
   pascal,
   upath,
@@ -31,6 +33,24 @@ export type ${schemaName} = zod.infer<typeof ${schemaName}>;
 `;
 }
 
+const isValidSchemaIdentifier = (name: string) =>
+  /^[A-Za-z_][A-Za-z0-9_]*$/.test(name);
+
+const isPrimitiveSchemaName = (name: string) =>
+  ['string', 'number', 'boolean', 'void', 'unknown', 'Blob'].includes(name);
+
+const dedupeSchemasByName = <T extends { name: string }>(schemas: T[]) => {
+  const uniqueSchemas = new Map<string, T>();
+
+  for (const schema of schemas) {
+    if (!uniqueSchemas.has(schema.name)) {
+      uniqueSchemas.set(schema.name, schema);
+    }
+  }
+
+  return [...uniqueSchemas.values()];
+};
+
 async function writeZodSchemaIndex(
   schemasPath: string,
   fileExtension: string,
@@ -55,7 +75,7 @@ async function writeZodSchemaIndex(
       const fileName = conventionName(schemaName, namingConvention);
       return `export * from './${fileName}${importFileExtension}';`;
     })
-    .sort()
+    .toSorted()
     .join('\n');
 
   const allExports = existingExports
@@ -64,7 +84,7 @@ async function writeZodSchemaIndex(
 
   const uniqueExports = [...new Set(allExports.split('\n'))]
     .filter((line) => line.trim())
-    .sort()
+    .toSorted()
     .join('\n');
 
   await fs.outputFile(indexPath, `${header}\n${uniqueExports}\n`);
@@ -98,12 +118,8 @@ export async function writeZodSchemas(
 
       const isZodV4 =
         !!output.packageJson && isZodVersionV4(output.packageJson);
-      const strict = isObject(output.override?.zod?.strict)
-        ? (output.override.zod.strict.body ?? false)
-        : (output.override?.zod?.strict ?? false);
-      const coerce = isObject(output.override?.zod?.coerce)
-        ? (output.override.zod.coerce.body ?? false)
-        : (output.override?.zod?.coerce ?? false);
+      const strict = output.override.zod.strict.body;
+      const coerce = output.override.zod.coerce.body;
 
       // Dereference the schema to resolve $ref
       const dereferencedSchema = dereference(schemaObject, context);
@@ -169,32 +185,39 @@ export async function writeZodSchemasFromVerbs(
   }
 
   const isZodV4 = !!output.packageJson && isZodVersionV4(output.packageJson);
-  const strict = isObject(output.override?.zod?.strict)
-    ? (output.override.zod.strict.body ?? false)
-    : (output.override?.zod?.strict ?? false);
-  const coerce = isObject(output.override?.zod?.coerce)
-    ? (output.override.zod.coerce.body ?? false)
-    : (output.override?.zod?.coerce ?? false);
+  const strict = output.override.zod.strict.body;
+  const coerce = output.override.zod.coerce.body;
 
   const generateVerbsSchemas = verbOptionsArray.flatMap((verbOption) => {
     const operation = verbOption.originalOperation;
 
-    const bodySchema =
-      operation.requestBody && 'content' in operation.requestBody
-        ? operation.requestBody.content['application/json']?.schema
+    const requestBody = operation.requestBody as
+      | OpenApiRequestBodyObject
+      | OpenApiReferenceObject
+      | undefined;
+    const requestBodyContent =
+      requestBody && 'content' in requestBody
+        ? (requestBody as OpenApiRequestBodyObject).content
         : undefined;
+    const bodySchema = requestBodyContent?.['application/json']?.schema as
+      | OpenApiSchemaObject
+      | undefined;
 
     const bodySchemas = bodySchema
       ? [
           {
             name: `${pascal(verbOption.operationName)}Body`,
-            schema: dereference(bodySchema as OpenApiSchemaObject, context),
+            schema: dereference(bodySchema, context),
           },
         ]
       : [];
 
-    const queryParams = operation.parameters?.filter(
-      (p) => 'in' in p && p.in === 'query',
+    const parameters = operation.parameters as
+      | (OpenApiParameterObject | OpenApiReferenceObject)[]
+      | undefined;
+
+    const queryParams = parameters?.filter(
+      (p): p is OpenApiParameterObject => 'in' in p && p.in === 'query',
     );
 
     const queryParamsSchemas =
@@ -211,17 +234,18 @@ export async function writeZodSchemasFromVerbs(
                       p.name,
                       dereference(p.schema as OpenApiSchemaObject, context),
                     ]),
-                ),
+                ) as Record<string, OpenApiSchemaObject>,
                 required: queryParams
                   .filter((p) => p.required)
-                  .map((p) => p.name),
+                  .map((p) => p.name)
+                  .filter((name): name is string => name !== undefined),
               },
             },
           ]
         : [];
 
-    const headerParams = operation.parameters?.filter(
-      (p) => 'in' in p && p.in === 'header',
+    const headerParams = parameters?.filter(
+      (p): p is OpenApiParameterObject => 'in' in p && p.in === 'header',
     );
 
     const headerParamsSchemas =
@@ -238,20 +262,48 @@ export async function writeZodSchemasFromVerbs(
                       p.name,
                       dereference(p.schema as OpenApiSchemaObject, context),
                     ]),
-                ),
+                ) as Record<string, OpenApiSchemaObject>,
                 required: headerParams
                   .filter((p) => p.required)
-                  .map((p) => p.name),
+                  .map((p) => p.name)
+                  .filter((name): name is string => name !== undefined),
               },
             },
           ]
         : [];
 
-    return [...bodySchemas, ...queryParamsSchemas, ...headerParamsSchemas];
+    const responseSchemas = [
+      ...verbOption.response.types.success,
+      ...verbOption.response.types.errors,
+    ]
+      .filter(
+        (
+          responseType,
+        ): responseType is typeof responseType & {
+          originalSchema: OpenApiSchemaObject;
+        } =>
+          !!responseType.originalSchema &&
+          !responseType.isRef &&
+          isValidSchemaIdentifier(responseType.value) &&
+          !isPrimitiveSchemaName(responseType.value),
+      )
+      .map((responseType) => ({
+        name: responseType.value,
+        schema: dereference(responseType.originalSchema, context),
+      }));
+
+    return dedupeSchemasByName([
+      ...bodySchemas,
+      ...queryParamsSchemas,
+      ...headerParamsSchemas,
+      ...responseSchemas,
+    ]);
   });
 
+  const uniqueVerbsSchemas = dedupeSchemasByName(generateVerbsSchemas);
+
   await Promise.all(
-    generateVerbsSchemas.map(async ({ name, schema }) => {
+    uniqueVerbsSchemas.map(async ({ name, schema }) => {
       const fileName = conventionName(name, output.namingConvention);
       const filePath = upath.join(schemasPath, `${fileName}${fileExtension}`);
 
@@ -288,8 +340,8 @@ export async function writeZodSchemasFromVerbs(
     }),
   );
 
-  if (output.indexFiles && generateVerbsSchemas.length > 0) {
-    const schemaNames = generateVerbsSchemas.map((s) => s.name);
+  if (output.indexFiles && uniqueVerbsSchemas.length > 0) {
+    const schemaNames = [...new Set(uniqueVerbsSchemas.map((s) => s.name))];
     await writeZodSchemaIndex(
       schemasPath,
       fileExtension,

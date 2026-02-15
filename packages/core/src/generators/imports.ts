@@ -10,7 +10,7 @@ import {
 import { conventionName } from '../utils';
 
 interface GenerateImportsOptions {
-  imports: GeneratorImport[];
+  imports: readonly GeneratorImport[];
   target: string;
   namingConvention?: NamingConvention;
 }
@@ -25,7 +25,15 @@ export function generateImports({
 
   const normalized = uniqueWith(
     imports,
-    (a, b) => a.name === b.name && a.default === b.default,
+    (a, b) =>
+      a.name === b.name &&
+      a.default === b.default &&
+      a.alias === b.alias &&
+      a.values === b.values &&
+      a.isConstant === b.isConstant &&
+      a.namespaceImport === b.namespaceImport &&
+      a.syntheticDefaultImport === b.syntheticDefaultImport &&
+      a.importPath === b.importPath,
   ).map((imp) => ({
     ...imp,
     importPath:
@@ -90,17 +98,18 @@ export function generateMutatorImports({
   implementation,
   oneMore,
 }: GenerateMutatorImportsOptions) {
-  const imports = uniqueWith(
+  let imports = '';
+  for (const mutator of uniqueWith(
     mutators,
     (a, b) => a.name === b.name && a.default === b.default,
-  ).reduce((acc, mutator) => {
+  )) {
     const path = `${oneMore ? '../' : ''}${mutator.path}`;
     const importDefault = mutator.default
       ? mutator.name
       : `{ ${mutator.name} }`;
 
-    acc += `import ${importDefault} from '${path}';`;
-    acc += '\n';
+    imports += `import ${importDefault} from '${path}';`;
+    imports += '\n';
 
     if (implementation && (mutator.hasErrorType || mutator.bodyTypeName)) {
       let errorImportName = '';
@@ -110,7 +119,7 @@ export function generateMutatorImports({
       if (
         mutator.hasErrorType &&
         implementation.includes(mutator.errorTypeName) &&
-        !acc.includes(`{ ${targetErrorImportName} `)
+        !imports.includes(`{ ${targetErrorImportName} `)
       ) {
         errorImportName = targetErrorImportName;
       }
@@ -122,28 +131,26 @@ export function generateMutatorImports({
       if (
         mutator.bodyTypeName &&
         implementation.includes(mutator.bodyTypeName) &&
-        !acc.includes(` ${targetBodyImportName} }`)
+        !imports.includes(` ${targetBodyImportName} }`)
       ) {
-        bodyImportName = targetBodyImportName!;
+        bodyImportName = targetBodyImportName ?? '';
       }
 
       if (bodyImportName || errorImportName) {
-        acc += `import type { ${errorImportName}${
+        imports += `import type { ${errorImportName}${
           errorImportName && bodyImportName ? ' , ' : ''
         }${bodyImportName} } from '${path}';`;
-        acc += '\n';
+        imports += '\n';
       }
     }
-
-    return acc;
-  }, '');
+  }
 
   return imports;
 }
 
 interface GenerateDependencyOptions {
   key: string;
-  deps: GeneratorImport[];
+  deps: readonly GeneratorImport[];
   dependency: string;
   projectName?: string;
   isAllowSyntheticDefaultImports: boolean;
@@ -211,7 +218,7 @@ function generateDependency({
 
 interface AddDependencyOptions {
   implementation: string;
-  exports: GeneratorImport[];
+  exports: readonly GeneratorImport[];
   dependency: string;
   projectName?: string;
   hasSchemaDir: boolean;
@@ -223,7 +230,6 @@ export function addDependency({
   exports,
   dependency,
   projectName,
-  hasSchemaDir,
   isAllowSyntheticDefaultImports,
 }: AddDependencyOptions) {
   const toAdds = exports.filter((e) => {
@@ -237,37 +243,29 @@ export function addDependency({
     return;
   }
 
-  const groupedBySpecKey = toAdds.reduce<
-    Record<string, { types: GeneratorImport[]; values: GeneratorImport[] }>
-  >((acc, dep) => {
+  const groupedBySpecKey: Record<
+    string,
+    { types: GeneratorImport[]; values: GeneratorImport[] }
+  > = { default: { types: [], values: [] } };
+  for (const dep of toAdds) {
     const key = 'default';
 
     if (
       dep.values &&
       (isAllowSyntheticDefaultImports || !dep.syntheticDefaultImport)
     ) {
-      acc[key] = {
-        ...acc[key],
-        values: [...(acc[key]?.values ?? []), dep],
-      };
-
-      return acc;
+      groupedBySpecKey[key].values.push(dep);
+    } else {
+      groupedBySpecKey[key].types.push(dep);
     }
-
-    acc[key] = {
-      ...acc[key],
-      types: [...(acc[key]?.types ?? []), dep],
-    };
-
-    return acc;
-  }, {});
+  }
 
   return (
     Object.entries(groupedBySpecKey)
       .map(([key, { values, types }]) => {
         let dep = '';
 
-        if (values) {
+        if (values.length > 0) {
           dep += generateDependency({
             deps: values,
             isAllowSyntheticDefaultImports,
@@ -278,11 +276,15 @@ export function addDependency({
           });
         }
 
-        if (types) {
+        if (types.length > 0) {
           let uniqueTypes = types;
-          if (values) {
+          if (values.length > 0) {
             uniqueTypes = types.filter(
-              (t) => !values.some((v) => v.name === t.name),
+              (t) =>
+                !values.some(
+                  (v) =>
+                    v.name === t.name && (v.alias ?? '') === (t.alias ?? ''),
+                ),
             );
             dep += '\n';
           }
@@ -310,7 +312,7 @@ function getLibName(code: string) {
 export function generateDependencyImports(
   implementation: string,
   imports: {
-    exports: GeneratorImport[];
+    exports: readonly GeneratorImport[];
     dependency: string;
   }[],
   projectName: string | undefined,
@@ -327,10 +329,11 @@ export function generateDependencyImports(
         isAllowSyntheticDefaultImports,
       }),
     )
-    .filter(Boolean)
-    .sort((a, b) => {
-      const aLib = getLibName(a!);
-      const bLib = getLibName(b!);
+    // eslint-disable-next-line unicorn/prefer-native-coercion-functions -- type predicate (x is string) required for narrowing
+    .filter((x): x is string => Boolean(x))
+    .toSorted((a, b) => {
+      const aLib = getLibName(a);
+      const bLib = getLibName(b);
 
       if (aLib === bLib) {
         return 0;
@@ -354,7 +357,7 @@ export function generateVerbImports({
   headers,
   params,
 }: GeneratorVerbOptions): GeneratorImport[] {
-  return [
+  const imports: GeneratorImport[] = [
     ...response.imports,
     ...body.imports,
     ...props.flatMap((prop) =>
@@ -366,4 +369,20 @@ export function generateVerbImports({
     ...(headers ? [{ name: headers.schema.name }] : []),
     ...params.flatMap<GeneratorImport>(({ imports }) => imports),
   ];
+
+  // Zod schema named `Error` is a common collision with the global `Error` value.
+  // If we need it as a runtime value (e.g. `.parse()`), alias the value import to
+  // `ErrorSchema` while keeping the `Error` type available.
+  return imports.flatMap((imp) => {
+    if (imp.name !== 'Error' || !imp.values || imp.alias) {
+      return [imp];
+    }
+
+    return [
+      // Type-only import keeps `Error` usable as a type.
+      { ...imp, values: undefined },
+      // Value import is aliased to avoid shadowing `globalThis.Error`.
+      { ...imp, alias: 'ErrorSchema', values: true },
+    ];
+  });
 }

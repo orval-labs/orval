@@ -49,7 +49,15 @@ export default defineConfig({
       schemas: 'src/api/model',
       client: 'angular-query',
       httpClient: 'angular',
-      mock: true,
+      /**
+       * Workaround for mixed JSON/XML mock payload mismatch.
+       *
+       * See: https://github.com/orval-labs/orval/issues/2950
+       */
+      mock: {
+        type: 'msw',
+        preferredContentType: 'application/json',
+      },
       tsconfig: './tsconfig.app.json',
       clean: true,
       override: {

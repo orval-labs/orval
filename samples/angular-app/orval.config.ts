@@ -1,5 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { defineConfig } from 'orval';
+import transformer from './src/orval/transformer/add-version';
 
 export default defineConfig({
   petstore: {
@@ -8,7 +9,16 @@ export default defineConfig({
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
       client: 'angular',
-      mock: { indexMockFiles: true },
+      /**
+       * Workaround for mixed JSON/XML mock payload mismatch.
+       *
+       * See: https://github.com/orval-labs/orval/issues/2950
+       */
+      mock: {
+        type: 'msw',
+        indexMockFiles: true,
+        preferredContentType: 'application/json',
+      },
       tsconfig: './tsconfig.app.json',
       clean: true,
       override: {
@@ -47,7 +57,7 @@ export default defineConfig({
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'src/orval/transformer/add-version.ts',
+        transformer,
       },
     },
   },

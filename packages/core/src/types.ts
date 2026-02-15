@@ -53,7 +53,7 @@ export type NormalizedOutputOptions = {
 };
 
 export type NormalizedParamsSerializerOptions = {
-  qs?: Record<string, any>;
+  qs?: Record<string, unknown>;
 };
 
 export type NormalizedOverrideOutput = {
@@ -98,7 +98,7 @@ export type NormalizedOverrideOutput = {
     route: string,
     verb: Verbs,
   ) => string;
-  requestOptions: Record<string, any> | boolean;
+  requestOptions: Record<string, unknown> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
@@ -318,6 +318,14 @@ export const OutputMockType = {
 export type OutputMockType =
   (typeof OutputMockType)[keyof typeof OutputMockType];
 
+export type PreferredContentType =
+  | 'application/json'
+  | 'application/xml'
+  | 'text/plain'
+  | 'text/html'
+  | 'application/octet-stream'
+  | (string & {});
+
 export type GlobalMockOptions = {
   // This is the type of the mock that will be generated
   type: OutputMockType;
@@ -334,6 +342,9 @@ export type GlobalMockOptions = {
   baseUrl?: string;
   // This is used to set the locale of the faker library
   locale?: keyof typeof allLocales;
+  // Prefer a specific response content type when multiple are defined
+  // (falls back to the order in the OpenAPI spec when not set)
+  preferredContentType?: PreferredContentType;
   indexMockFiles?: boolean;
 };
 
@@ -393,7 +404,7 @@ export type MutatorObject = {
 export type Mutator = string | MutatorObject;
 
 export type ParamsSerializerOptions = {
-  qs?: Record<string, any>;
+  qs?: Record<string, unknown>;
 };
 
 export const FormDataArrayHandling = {
@@ -468,7 +479,7 @@ export type OverrideOutput = {
     verb: Verbs,
   ) => string;
   fetch?: FetchOptions;
-  requestOptions?: Record<string, any> | boolean;
+  requestOptions?: Record<string, unknown> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
@@ -486,11 +497,15 @@ export type OverrideOutput = {
 };
 
 export type JsDocOptions = {
-  filter?: (schema: Record<string, any>) => { key: string; value: string }[];
+  filter?: (
+    schema: Record<string, unknown>,
+  ) => { key: string; value: string }[];
 };
 
 export type NormalizedJsDocOptions = {
-  filter?: (schema: Record<string, any>) => { key: string; value: string }[];
+  filter?: (
+    schema: Record<string, unknown>,
+  ) => { key: string; value: string }[];
 };
 
 export type OverrideOutputContentType = {
@@ -589,7 +604,9 @@ export type InvalidateTarget =
   | string
   | {
       query: string;
-      params: string[] | Record<string, string>;
+      params?: string[] | Record<string, string>;
+      invalidateMode?: 'invalidate' | 'reset';
+      file?: string;
     };
 
 export type MutationInvalidatesRule = {
@@ -615,7 +632,7 @@ export type NormalizedQueryOptions = {
   useInfiniteQueryParam?: string;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
-  options?: any;
+  options?: Record<string, unknown>;
   queryKey?: NormalizedMutator;
   queryOptions?: NormalizedMutator;
   mutationOptions?: NormalizedMutator;
@@ -639,7 +656,7 @@ export type QueryOptions = {
   useInfiniteQueryParam?: string;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
-  options?: any;
+  options?: Record<string, unknown>;
   queryKey?: Mutator;
   queryOptions?: Mutator;
   mutationOptions?: Mutator;
@@ -715,7 +732,7 @@ export type OperationOptions = {
 
 export type Hook = 'afterAllFilesWrite';
 
-export type HookFunction = (...args: any[]) => void | Promise<void>;
+export type HookFunction = (...args: unknown[]) => void | Promise<void>;
 
 export interface HookOption {
   command: string | HookFunction;
@@ -811,6 +828,7 @@ export interface PackageJson {
   peerDependencies?: Record<string, string>;
   catalog?: Record<string, string>;
   catalogs?: Record<string, Record<string, string>>;
+  resolvedVersions?: Record<string, string>;
 }
 
 export type GeneratorSchema = {
@@ -822,21 +840,21 @@ export type GeneratorSchema = {
 };
 
 export type GeneratorImport = {
-  name: string;
-  schemaName?: string;
-  isZodSchema?: boolean;
-  isConstant?: boolean;
-  alias?: string;
-  default?: boolean;
-  values?: boolean;
-  syntheticDefaultImport?: boolean;
-  namespaceImport?: boolean;
-  importPath?: string;
+  readonly name: string;
+  readonly schemaName?: string;
+  readonly isZodSchema?: boolean;
+  readonly isConstant?: boolean;
+  readonly alias?: string;
+  readonly default?: boolean;
+  readonly values?: boolean;
+  readonly syntheticDefaultImport?: boolean;
+  readonly namespaceImport?: boolean;
+  readonly importPath?: string;
 };
 
 export type GeneratorDependency = {
-  exports: GeneratorImport[];
-  dependency: string;
+  readonly exports: readonly GeneratorImport[];
+  readonly dependency: string;
 };
 
 export type GeneratorApiResponse = {
@@ -1004,7 +1022,7 @@ export type ClientDependenciesBuilder = (
   httpClient?: OutputHttpClient,
   hasTagsMutator?: boolean,
   override?: NormalizedOverrideOutput,
-) => GeneratorDependency[];
+) => readonly GeneratorDependency[];
 
 export type ClientMockGeneratorImplementation = {
   function: string;
@@ -1082,6 +1100,7 @@ export type GetterQueryParam = {
   schema: GeneratorSchema;
   deps: GeneratorSchema[];
   isOptional: boolean;
+  requiredNullableKeys?: string[];
   originalSchema?: OpenApiSchemaObject;
 };
 
@@ -1149,8 +1168,8 @@ export type ScalarValue = {
   schemas: GeneratorSchema[];
   isRef: boolean;
   dependencies: string[];
-  example?: any;
-  examples?: Record<string, any>;
+  example?: unknown;
+  examples?: Record<string, unknown>;
 };
 
 export type ResolverValue = ScalarValue & {

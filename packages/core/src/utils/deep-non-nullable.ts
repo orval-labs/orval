@@ -1,4 +1,4 @@
-export type DeepNonNullable<T> = T extends Function
+export type DeepNonNullable<T> = T extends (...args: never[]) => unknown
   ? T
   : T extends readonly (infer U)[]
     ? DeepNonNullable<NonNullable<U>>[]

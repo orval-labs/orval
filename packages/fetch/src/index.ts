@@ -12,6 +12,7 @@ import {
   GetterPropType,
   isObject,
   type OpenApiParameterObject,
+  type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   pascal,
   resolveRef,
@@ -81,11 +82,49 @@ export const generateRequestFunction = (
   const parameters = spec?.[verb]?.parameters ?? [];
 
   const explodeParameters = parameters.filter((parameter) => {
-    const { schema } = resolveRef<OpenApiParameterObject>(parameter, context);
-    const schemaObject = schema.schema as OpenApiSchemaObject;
+    const { schema: parameterObject } = resolveRef<OpenApiParameterObject>(
+      parameter,
+      context,
+    );
+
+    if (!parameterObject.schema) {
+      return false;
+    }
+
+    const { schema: schemaObject } = resolveRef<OpenApiSchemaObject>(
+      parameterObject.schema,
+      context,
+    );
+
+    const isArrayLike =
+      schemaObject.type === 'array' ||
+      (
+        (schemaObject.oneOf as
+          | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+          | undefined) ?? []
+      ).some(
+        (s) =>
+          resolveRef<OpenApiSchemaObject>(s, context).schema.type === 'array',
+      ) ||
+      (
+        (schemaObject.anyOf as
+          | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+          | undefined) ?? []
+      ).some(
+        (s) =>
+          resolveRef<OpenApiSchemaObject>(s, context).schema.type === 'array',
+      ) ||
+      (
+        (schemaObject.allOf as
+          | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+          | undefined) ?? []
+      ).some(
+        (s) =>
+          resolveRef<OpenApiSchemaObject>(s, context).schema.type === 'array',
+      );
 
     return (
-      schema.in === 'query' && schemaObject.type === 'array' && schema.explode
+      parameterObject.in === 'query' && isArrayLike && parameterObject.explode
     );
   });
 
@@ -195,6 +234,7 @@ ${
   const nonDefaultStatuses = allResponses
     .filter((r) => r.key !== 'default')
     .map((r) => getStatusCodeType(r.key));
+  const uniqueNonDefaultStatuses = [...new Set(nonDefaultStatuses)];
   const responseDataTypes = allResponses
     .map((r) =>
       allResponses.filter((r2) => r2.key === r.key).length > 1
@@ -212,8 +252,8 @@ ${
   ${isContentTypeNdJson(r.contentType) ? `stream: TypedResponse<${dataType}>` : `data: ${dataType}`}
   status: ${
     r.key === 'default'
-      ? nonDefaultStatuses.length > 0
-        ? `Exclude<HTTPStatusCodes, ${nonDefaultStatuses.join(' | ')}>`
+      ? uniqueNonDefaultStatuses.length > 0
+        ? `Exclude<HTTPStatusCodes, ${uniqueNonDefaultStatuses.join(' | ')}>`
         : 'number'
       : getStatusCodeType(r.key)
   }
@@ -229,7 +269,7 @@ ${
   const responseTypeImplementation = override.fetch
     .includeHttpResponseReturnType
     ? `${responseDataTypes.map((r) => r.value).join('\n\n')}
-    
+
 ${
   hasSuccess
     ? `export type ${successName} = (${responseDataTypes
@@ -342,6 +382,8 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   }
 `;
   const reviver = fetchReviver ? `, ${fetchReviver.name}` : '';
+  const schemaValueRef =
+    responseType === 'Error' ? 'ErrorSchema' : responseType;
   const throwOnErrorImplementation = `if (!${isNdJson ? 'stream' : 'res'}.ok) {
     ${isNdJson ? 'const body = [204, 205, 304].includes(stream.status) ? null : await stream.text();' : ''}
     const err: globalThis.Error & {info?: ${hasError ? `${errorName}${override.fetch.includeHttpResponseReturnType ? "['data']" : ''}` : 'any'}, status?: number} = new globalThis.Error();
@@ -362,7 +404,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   ${
     isValidateResponse
       ? `const parsedBody = body ? JSON.parse(body${reviver}) : {}
-  const data = ${responseType}.parse(parsedBody)`
+  const data = ${schemaValueRef}.parse(parsedBody)`
       : `const data: ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}`
   }
   ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : 'return data'}
@@ -405,8 +447,40 @@ export const fetchResponseTypeName = (
 };
 
 export const generateClient: ClientBuilder = (verbOptions, options) => {
-  const imports = generateVerbImports(verbOptions);
-  const functionImplementation = generateRequestFunction(verbOptions, options);
+  const isZodOutput =
+    typeof options.context.output.schemas === 'object' &&
+    options.context.output.schemas.type === 'zod';
+  const responseType = verbOptions.response.definition.success;
+  const isPrimitiveResponse = [
+    'string',
+    'number',
+    'boolean',
+    'void',
+    'unknown',
+  ].includes(responseType);
+  const shouldUseRuntimeValidation =
+    verbOptions.override.fetch.runtimeValidation && isZodOutput;
+
+  const normalizedVerbOptions =
+    shouldUseRuntimeValidation &&
+    !isPrimitiveResponse &&
+    verbOptions.response.imports.some((imp) => imp.name === responseType)
+      ? {
+          ...verbOptions,
+          response: {
+            ...verbOptions.response,
+            imports: verbOptions.response.imports.map((imp) =>
+              imp.name === responseType ? { ...imp, values: true } : imp,
+            ),
+          },
+        }
+      : verbOptions;
+
+  const imports = generateVerbImports(normalizedVerbOptions);
+  const functionImplementation = generateRequestFunction(
+    normalizedVerbOptions,
+    options,
+  );
 
   return {
     implementation: `${functionImplementation}\n`,

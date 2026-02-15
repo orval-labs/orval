@@ -29,10 +29,6 @@ const SOLID_START_DEPENDENCIES: GeneratorDependency[] = [
     ],
     dependency: '@solidjs/router',
   },
-  {
-    exports: [{ name: 'DeepNonNullable' }],
-    dependency: '@orval/core',
-  },
 ];
 
 export const getSolidStartDependencies: ClientDependenciesBuilder = () =>

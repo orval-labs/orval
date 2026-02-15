@@ -54,18 +54,18 @@ export interface QueryInvocationContext {
   optionalQueryClientArgument: string;
 }
 
+interface InvalidateTarget {
+  query: string;
+  params?: string[] | Record<string, string>;
+  invalidateMode: 'invalidate' | 'reset';
+}
+
 export interface MutationOnSuccessContext {
   operationName: string;
   definitions: string;
   isRequestOptions: boolean;
-  generateInvalidateCall: (target: {
-    query: string;
-    params?: string[] | Record<string, string>;
-  }) => string;
-  uniqueInvalidates: {
-    query: string;
-    params?: string[] | Record<string, string>;
-  }[];
+  generateInvalidateCall: (target: InvalidateTarget) => string;
+  uniqueInvalidates: InvalidateTarget[];
 }
 
 export interface MutationHookBodyContext {
@@ -96,6 +96,8 @@ export interface FrameworkAdapter {
   readonly hasQueryV5: boolean;
   readonly hasQueryV5WithDataTagError: boolean;
   readonly hasQueryV5WithInfiniteQueryOptionsError: boolean;
+  readonly hasQueryV5WithMutationContextOnSuccess: boolean;
+  readonly hasQueryV5WithRequiredContextOnSuccess: boolean;
 
   // --- Props Transformation ---
   /** Vue: wraps with MaybeRef. Others: identity. */
@@ -272,7 +274,8 @@ type DefaultableFields =
   | 'generateQueryInit'
   | 'generateQueryInvocationArgs'
   | 'getOptionalQueryClientArgument'
-  | 'generateQueryArguments';
+  | 'generateQueryArguments'
+  | 'generateMutationOnSuccess';
 
 /**
  * Adapter config type — adapters implement this. The factory fills in

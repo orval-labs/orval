@@ -19,6 +19,7 @@ import type {
   OpenApiComponentsObject,
   OpenApiOperationObject,
   OpenApiPathItemObject,
+  OpenApiRequestBodyObject,
   Verbs,
 } from '../types';
 import {
@@ -61,7 +62,7 @@ function getContentTypeSuffix(contentType: string): string {
 
   return (
     contentTypeMap[contentType] ||
-    pascal(contentType.replace(/[^a-zA-Z0-9]/g, '_'))
+    pascal(contentType.replaceAll(/[^a-zA-Z0-9]/g, '_'))
   );
 }
 
@@ -79,24 +80,30 @@ export async function generateVerbOptions({
     responses,
     requestBody,
     parameters: operationParameters,
-    tags = [],
-    deprecated,
-    description,
-    summary,
+    tags: rawTags,
+    deprecated: rawDeprecated,
+    description: rawDescription,
+    summary: rawSummary,
   } = operation;
+
+  // Bridge assertions: OpenApiOperationObject has AnyOtherAttribute index signature
+  // which makes all destructured properties `any`. Assert to their declared types.
+  const tags = (rawTags ?? []) as string[];
+  const deprecated = rawDeprecated as boolean | undefined;
+  const description = rawDescription as string | undefined;
+  const summary = rawSummary as string | undefined;
   const operationId = getOperationId(operation, route, verb);
   const overrideOperation = output.override.operations[operationId];
-  const overrideTag = Object.entries(
-    output.override.tags,
-  ).reduce<NormalizedOperationOptions>(
-    (acc, [tag, options]) =>
-      tags.includes(tag) && options ? mergeDeep(acc, options) : acc,
-    {},
-  );
+  let overrideTag: NormalizedOperationOptions = {};
+  for (const [tag, options] of Object.entries(output.override.tags)) {
+    if (tags.includes(tag) && options) {
+      overrideTag = mergeDeep(overrideTag, options);
+    }
+  }
 
-  let override = mergeDeep(
+  const override = mergeDeep(
     mergeDeep(output.override, overrideTag),
-    overrideOperation || {},
+    overrideOperation ?? {},
   );
 
   // Store the original user-defined contentType filter for responses
@@ -118,18 +125,30 @@ export async function generateVerbOptions({
   }
 
   const response = getResponse({
-    responses: responses!,
+    responses: responses ?? {},
     operationName,
     context,
     contentType: originalContentTypeFilter,
   });
 
-  const body = getBody({
-    requestBody: requestBody!,
-    operationName,
-    context,
-    contentType: requestBodyContentTypeFilter,
-  });
+  const body = requestBody
+    ? getBody({
+        requestBody,
+        operationName,
+        context,
+        contentType: requestBodyContentTypeFilter,
+      })
+    : {
+        originalSchema: {} as OpenApiRequestBodyObject,
+        definition: '',
+        implementation: '',
+        imports: [],
+        schemas: [],
+        formData: '',
+        formUrlEncoded: '',
+        contentType: '',
+        isOptional: false,
+      };
 
   const parameters = getParameters({
     parameters: [...verbParameters, ...(operationParameters ?? [])],
@@ -154,7 +173,7 @@ export async function generateVerbOptions({
   const params = getParams({
     route,
     pathParams: parameters.path,
-    operationId: operationId!,
+    operationId: operationId,
     context,
     output,
   });
@@ -226,7 +245,7 @@ export async function generateVerbOptions({
     tags,
     route,
     pathRoute,
-    summary: operation.summary,
+    summary,
     operationId,
     operationName,
     response,
@@ -326,12 +345,13 @@ export function _filteredVerbs(
     return Object.entries(verbs);
   }
 
-  const filterTags = filters.tags || [];
+  const filterTags = filters.tags;
   const filterMode = filters.mode ?? 'include';
 
   return Object.entries(verbs).filter(
     ([, operation]: [string, OpenApiOperationObject]) => {
-      const operationTags = operation.tags ?? [];
+      // Bridge assertion: operation.tags is `any` due to AnyOtherAttribute
+      const operationTags = (operation.tags ?? []) as string[];
 
       const isMatch = operationTags.some((tag: string) =>
         filterTags.some((filterTag) =>

@@ -1,6 +1,6 @@
 {
   "name": "basic",
-  "version": "8.2.0",
+  "version": "8.3.0",
   "description": "",
   "private": true,
   "type": "module",
@@ -18,8 +18,8 @@
     "orval": "workspace:*"
   },
   "dependencies": {
-    "@faker-js/faker": "^10.2.0",
-    "axios": "^1.13.2",
+    "@faker-js/faker": "catalog:tooling",
+    "axios": "^1.13.5",
     "msw": "^2.12.7"
   },
   "dependenciesMeta": {

@@ -57,6 +57,14 @@ export function splitSchemasByType(schemas: GeneratorSchema[]): {
 }
 
 /**
+ * Get the import extension from a file extension.
+ * Removes `.ts` suffix since TypeScript doesn't need it in imports.
+ */
+function getImportExtension(fileExtension: string): string {
+  return fileExtension.replace(/\.ts$/, '') || '';
+}
+
+/**
  * Fix cross-directory imports when schemas reference other schemas in a different directory.
  * Updates import paths to use correct relative paths between directories.
  */
@@ -66,8 +74,10 @@ function fixSchemaImports(
   fromPath: string,
   toPath: string,
   namingConvention: NamingConvention,
+  fileExtension: string,
 ): void {
   const relativePath = upath.relativeSafe(fromPath, toPath);
+  const importExtension = getImportExtension(fileExtension);
 
   for (const schema of schemas) {
     schema.imports = schema.imports.map((imp) => {
@@ -75,7 +85,7 @@ function fixSchemaImports(
         const fileName = conventionName(imp.name, namingConvention);
         return {
           ...imp,
-          importPath: upath.joinSafe(relativePath, fileName),
+          importPath: upath.joinSafe(relativePath, fileName) + importExtension,
         };
       }
       return imp;
@@ -92,6 +102,7 @@ export function fixCrossDirectoryImports(
   schemaPath: string,
   operationSchemaPath: string,
   namingConvention: NamingConvention,
+  fileExtension: string,
 ): void {
   fixSchemaImports(
     operationSchemas,
@@ -99,6 +110,7 @@ export function fixCrossDirectoryImports(
     operationSchemaPath,
     schemaPath,
     namingConvention,
+    fileExtension,
   );
 }
 
@@ -111,6 +123,7 @@ export function fixRegularSchemaImports(
   schemaPath: string,
   operationSchemaPath: string,
   namingConvention: NamingConvention,
+  fileExtension: string,
 ): void {
   fixSchemaImports(
     regularSchemas,
@@ -118,6 +131,7 @@ export function fixRegularSchemaImports(
     schemaPath,
     operationSchemaPath,
     namingConvention,
+    fileExtension,
   );
 }
 
@@ -255,8 +269,8 @@ function getSchema({
   file += generateImports({
     imports: imports.filter(
       (imp) =>
-        !model.includes(`type ${imp.alias || imp.name} =`) &&
-        !model.includes(`interface ${imp.alias || imp.name} {`),
+        !model.includes(`type ${imp.alias ?? imp.name} =`) &&
+        !model.includes(`interface ${imp.alias ?? imp.name} {`),
     ),
     target,
     namingConvention,
@@ -313,7 +327,7 @@ export async function writeSchema({
     );
   } catch (error) {
     throw new Error(
-      `Oups... 🍻. An Error occurred while writing schema ${name} => ${error}`,
+      `Oups... 🍻. An Error occurred while writing schema ${name} => ${String(error)}`,
     );
   }
 }
@@ -413,13 +427,13 @@ export async function writeSchemas({
         existingContent
           .match(/export\s+\*\s+from\s+['"][^'"]+['"]/g)
           ?.map((statement) => {
-            const match = statement.match(
-              /export\s+\*\s+from\s+['"]([^'"]+)['"]/,
+            const match = /export\s+\*\s+from\s+['"]([^'"]+)['"]/.exec(
+              statement,
             );
-            if (!match) return undefined;
+            if (!match) return;
             return `export * from '${match[1]}';`;
           })
-          .filter((statement): statement is string => Boolean(statement)) ?? [];
+          .filter(Boolean) ?? [];
 
       const exports = [...new Set([...existingExports, ...currentExports])]
         .toSorted((a, b) => a.localeCompare(b))
@@ -430,7 +444,7 @@ export async function writeSchemas({
       await fs.writeFile(schemaFilePath, fileContent, { encoding: 'utf8' });
     } catch (error) {
       throw new Error(
-        `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${error}`,
+        `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${String(error)}`,
       );
     }
   }

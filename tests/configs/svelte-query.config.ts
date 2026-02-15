@@ -182,15 +182,53 @@ export default defineConfig({
               invalidates: ['listPets'],
             },
             {
-              onMutations: ['deletePet', 'updatePet', 'patchPet'],
+              onMutations: ['deletePetById'],
+              invalidates: [
+                { query: 'listPets', invalidateMode: 'reset' },
+                {
+                  query: 'showPetById',
+                  params: ['petId'],
+                  invalidateMode: 'reset',
+                },
+              ],
+            },
+          ],
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  invalidatesOtherFile: {
+    output: {
+      target: '../generated/svelte-query/invalidates-other-file',
+      schemas: '../generated/svelte-query/invalidates-other-file/model',
+      client: 'svelte-query',
+      mode: 'tags',
+      mock: true,
+      headers: true,
+      override: {
+        query: {
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
               invalidates: [
                 'listPets',
-                { query: 'showPetById', params: ['petId'] },
+                { query: 'healthCheck', file: './health' },
               ],
             },
             {
-              onMutations: ['uploadFile'],
-              invalidates: ['listPets'],
+              onMutations: ['deletePetById'],
+              invalidates: [
+                { query: 'listPets', invalidateMode: 'reset' },
+                { query: 'healthCheck', file: './health' },
+                {
+                  query: 'showPetById',
+                  params: ['petId'],
+                  invalidateMode: 'reset',
+                },
+              ],
             },
           ],
         },

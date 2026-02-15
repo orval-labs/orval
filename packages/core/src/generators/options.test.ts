@@ -1,7 +1,67 @@
 import { describe, expect, it } from 'vitest';
 
+import {
+  type GeneratorMutator,
+  type GeneratorSchema,
+  type GetterBody,
+  type GetterQueryParam,
+  type ResReqTypesValue,
+  Verbs,
+} from '../types';
 import { generateAxiosOptions, generateMutatorConfig } from './options';
-import { Verbs } from '../types';
+
+const minimalSchema: GeneratorSchema = {
+  name: 'TestSchema',
+  model: 'TestSchema',
+  imports: [],
+};
+
+const minimalQueryParam: GetterQueryParam = {
+  schema: minimalSchema,
+  deps: [],
+  isOptional: false,
+};
+
+const minimalBody: GetterBody = {
+  originalSchema: {},
+  imports: [],
+  definition: '',
+  implementation: 'data',
+  schemas: [],
+  formData: undefined,
+  formUrlEncoded: undefined,
+  contentType: 'application/json',
+  isOptional: false,
+};
+
+const minimalParamsSerializer: GeneratorMutator = {
+  name: 'paramsSerializerMutator',
+  path: './paramsSerializerMutator',
+  default: false,
+  hasErrorType: false,
+  errorTypeName: '',
+  hasSecondArg: false,
+  hasThirdArg: false,
+  isHook: false,
+};
+
+const buildScalarValue = (
+  overrides: Partial<ResReqTypesValue>,
+): ResReqTypesValue => ({
+  value: 'string',
+  isEnum: false,
+  type: 'string',
+  imports: [],
+  schemas: [],
+  isRef: false,
+  hasReadonlyProps: false,
+  dependencies: [],
+  example: undefined,
+  examples: undefined,
+  key: '200',
+  contentType: 'application/json',
+  ...overrides,
+});
 
 describe('generateAxiosOptions', () => {
   it('should return "...options"', () => {
@@ -15,23 +75,12 @@ describe('generateAxiosOptions', () => {
         isBlob: false,
         types: {
           success: [
-            {
-              value: 'string',
-              isEnum: false,
-              type: 'string',
-              imports: [],
-              schemas: [],
-              isRef: false,
-              hasReadonlyProps: false,
-              example: undefined,
-              examples: undefined,
+            buildScalarValue({
               originalSchema: {
                 type: 'string',
                 format: 'uuid',
               },
-              contentType: 'application/json',
-              key: '200',
-            },
+            }),
           ],
           errors: [],
         },
@@ -79,17 +128,15 @@ describe('generateAxiosOptions', () => {
         isBlob: false,
         types: {
           success: [
-            {
+            buildScalarValue({
               value: 'Pet',
+              type: 'object',
               imports: [
                 {
                   name: 'Pet',
                   schemaName: 'Pet',
                 },
               ],
-              type: 'object',
-              schemas: [],
-              isEnum: false,
               originalSchema: {
                 type: 'object',
                 required: ['id', 'name'],
@@ -113,13 +160,8 @@ describe('generateAxiosOptions', () => {
                   },
                 },
               },
-              hasReadonlyProps: false,
               isRef: true,
-              contentType: 'application/json',
-              example: undefined,
-              examples: undefined,
-              key: '200',
-            },
+            }),
           ],
           errors: [],
         },
@@ -161,23 +203,13 @@ describe('generateAxiosOptions', () => {
         isBlob: false,
         types: {
           success: [
-            {
-              value: 'string',
-              isEnum: false,
-              type: 'string',
-              imports: [],
-              schemas: [],
-              isRef: false,
-              hasReadonlyProps: false,
-              example: undefined,
-              examples: undefined,
+            buildScalarValue({
+              contentType: 'text/plain',
               originalSchema: {
                 type: 'string',
                 format: 'uuid',
               },
-              contentType: 'text/plain',
-              key: '200',
-            },
+            }),
           ],
           errors: [],
         },
@@ -265,20 +297,83 @@ describe('generateAxiosOptions', () => {
       expect(result).toBe('...(querySignal ? { signal: querySignal } : {})');
     });
   });
+
+  describe('Angular params filtering', () => {
+    const minimalResponse = {
+      imports: [],
+      definition: { success: 'Pet', errors: 'unknown' },
+      isBlob: false,
+      types: { success: [], errors: [] },
+      contentTypes: ['application/json'],
+      schemas: [],
+      originalSchema: {},
+    };
+
+    it('should filter null/undefined params (including array entries) for Angular', () => {
+      const result = generateAxiosOptions({
+        response: minimalResponse,
+        isExactOptionalPropertyTypes: false,
+        queryParams: minimalSchema,
+        headers: undefined,
+        requestOptions: true,
+        hasSignal: false,
+        isVue: false,
+        isAngular: true,
+        paramsSerializer: undefined,
+        paramsSerializerOptions: undefined,
+      });
+
+      expect(result).toContain(
+        'params: filterParams({...params, ...options?.params}',
+      );
+      expect(result).toContain('new Set<string>([])');
+    });
+
+    it('should apply filtering before paramsSerializer for Angular', () => {
+      const result = generateAxiosOptions({
+        response: minimalResponse,
+        isExactOptionalPropertyTypes: false,
+        queryParams: minimalSchema,
+        requiredNullableQueryParamKeys: ['requiredNullableParam'],
+        headers: undefined,
+        requestOptions: true,
+        hasSignal: false,
+        isVue: false,
+        isAngular: true,
+        paramsSerializer: minimalParamsSerializer,
+        paramsSerializerOptions: undefined,
+      });
+
+      expect(result).toContain('params: paramsSerializerMutator(filterParams(');
+      expect(result).toContain('{...params, ...options?.params}');
+      expect(result).toContain('new Set<string>(["requiredNullableParam"])');
+    });
+
+    it('should filter params for Angular when requestOptions is false', () => {
+      const result = generateAxiosOptions({
+        response: minimalResponse,
+        isExactOptionalPropertyTypes: false,
+        queryParams: minimalSchema,
+        headers: undefined,
+        requestOptions: false,
+        hasSignal: false,
+        isVue: false,
+        isAngular: true,
+        paramsSerializer: undefined,
+        paramsSerializerOptions: undefined,
+      });
+
+      expect(result).toContain(
+        'for (const [key, value] of Object.entries(params ?? {}))',
+      );
+      expect(result).toContain(
+        'const filteredParams = {} as Record<string, string | number | boolean | null | Array<string | number | boolean>>',
+      );
+    });
+  });
 });
 
 describe('generateMutatorConfig', () => {
-  const minimalBody = {
-    originalSchema: {},
-    definition: '',
-    implementation: 'data',
-    default: false,
-    required: false,
-    formData: undefined,
-    formUrlEncoded: undefined,
-    contentType: 'application/json',
-  };
-
   const minimalResponse = {
     imports: [],
     definition: { success: 'Pet', errors: 'unknown' },
@@ -338,8 +433,36 @@ describe('generateMutatorConfig', () => {
         hasSignal: true,
         hasSignalParam: true,
         isExactOptionalPropertyTypes: true,
+        isAngular: false,
       });
       expect(result).toContain('...(querySignal ? { signal: querySignal }');
+    });
+  });
+
+  describe('Angular params filtering', () => {
+    it('should filter null/undefined params (including array entries) for Angular mutators', () => {
+      const result = generateMutatorConfig({
+        route: '/api/test',
+        body: minimalBody,
+        headers: undefined,
+        queryParams: minimalQueryParam,
+        response: minimalResponse,
+        verb: Verbs.GET,
+        isFormData: false,
+        isFormUrlEncoded: false,
+        hasSignal: false,
+        isExactOptionalPropertyTypes: false,
+        isAngular: true,
+      });
+
+      expect(result).toContain(
+        'for (const [key, value] of Object.entries(params ?? {}))',
+      );
+      expect(result).toContain(
+        'const filteredParams = {} as Record<string, string | number | boolean | null | Array<string | number | boolean>>',
+      );
+      expect(result).toContain('Array.isArray(value)');
+      expect(result).toContain("typeof item === 'string'");
     });
   });
 
@@ -381,7 +504,7 @@ describe('generateMutatorConfig', () => {
       const result = generateMutatorConfig({
         route: '/api/test',
         body: { ...minimalBody, contentType: 'multipart/form-data' },
-        headers: 'headers',
+        headers: minimalQueryParam,
         queryParams: undefined,
         response: minimalResponse,
         verb: Verbs.POST,

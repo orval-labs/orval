@@ -98,10 +98,11 @@ A typical development workflow would be:
 
 1. Make your code changes
 2. Run `yarn build` to compile your changes
-3. Run `yarn test` to ensure unit tests pass
-4. Run `yarn update-samples` to regenerate sample outputs
-5. Run `yarn test:samples` to verify samples work correctly
-6. Run `yarn test:cli` to validate TypeScript compilation
+3. Run `yarn lint` to catch lint issues early
+4. Run `yarn test:ci` to ensure unit tests pass
+5. Run `yarn update-samples` to regenerate sample outputs
+6. Run `yarn test:samples` to verify samples work correctly
+7. Run `yarn test:cli` to validate TypeScript compilation
 
 If you encounter issues or want to start completely fresh:
 

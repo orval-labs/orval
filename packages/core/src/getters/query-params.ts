@@ -13,10 +13,52 @@ import { getEnum, getEnumDescriptions, getEnumNames } from './enum';
 import { getKey } from './keys';
 
 type QueryParamsType = {
+  name: string;
+  required: boolean;
   definition: string;
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
   originalSchema: OpenApiSchemaObject;
+};
+
+const isOpenApiSchemaObject = (
+  value: unknown,
+): value is OpenApiSchemaObject => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  return !('$ref' in value);
+};
+
+const isSchemaNullable = (schema: OpenApiSchemaObject): boolean => {
+  if (schema.nullable === true) {
+    return true;
+  }
+
+  if (schema.type === 'null') {
+    return true;
+  }
+
+  if (Array.isArray(schema.type) && schema.type.includes('null')) {
+    return true;
+  }
+
+  const oneOfVariants = Array.isArray(schema.oneOf)
+    ? (schema.oneOf as unknown[])
+    : [];
+  const anyOfVariants = Array.isArray(schema.anyOf)
+    ? (schema.anyOf as unknown[])
+    : [];
+  const variants = [...oneOfVariants, ...anyOfVariants];
+
+  return variants.some((variant) => {
+    if (!isOpenApiSchemaObject(variant)) {
+      return false;
+    }
+
+    return isSchemaNullable(variant);
+  });
 };
 
 function getQueryParamsTypes(
@@ -33,7 +75,7 @@ function getQueryParamsTypes(
     } = parameter as {
       name: string;
       required: boolean;
-      schema: OpenApiSchemaObject;
+      schema: OpenApiSchemaObject | undefined;
       content: OpenApiParameterObject['content'];
     };
 
@@ -45,7 +87,12 @@ function getQueryParamsTypes(
       es5IdentifierName: true,
     });
 
-    const schema = (schemaParam || content['application/json'].schema)!;
+    const schema = schemaParam ?? content?.['application/json']?.schema;
+    if (!schema) {
+      throw new Error(
+        `Query parameter "${name}" has no schema or content definition`,
+      );
+    }
 
     const resolvedValue = resolveValue({
       schema,
@@ -54,10 +101,27 @@ function getQueryParamsTypes(
     });
 
     const key = getKey(name);
+    // Bridge assertion: cast schema to jsDoc's expected parameter shape
+    // to avoid AnyOtherAttribute spreading error type
+    const schemaForDoc = schema as {
+      description?: string | string[];
+      deprecated?: boolean;
+      summary?: string;
+      minLength?: number;
+      maxLength?: number;
+      minimum?: number;
+      maximum?: number;
+      exclusiveMinimum?: number;
+      exclusiveMaximum?: number;
+      minItems?: number;
+      maxItems?: number;
+      type?: string | string[];
+      pattern?: string;
+    };
     const doc = jsDoc(
       {
         description: parameter.description,
-        ...schema,
+        ...schemaForDoc,
       },
       void 0,
       context,
@@ -65,6 +129,8 @@ function getQueryParamsTypes(
 
     if (parameterImports.length > 0) {
       return {
+        name,
+        required,
         definition: `${doc}${key}${!required || schema.default ? '?' : ''}: ${
           parameterImports[0].name
         };`,
@@ -82,10 +148,12 @@ function getQueryParamsTypes(
         getEnumNames(resolvedValue.originalSchema),
         context.output.override.enumGenerationType,
         getEnumDescriptions(resolvedValue.originalSchema),
-        context.output.override.namingConvention?.enum,
+        context.output.override.namingConvention.enum,
       );
 
       return {
+        name,
+        required,
         definition: `${doc}${key}${
           !required || schema.default ? '?' : ''
         }: ${enumName};`,
@@ -103,6 +171,8 @@ function getQueryParamsTypes(
     }: ${resolvedValue.value};`;
 
     return {
+      name,
+      required,
       definition,
       imports: resolvedValue.imports,
       schemas: resolvedValue.schemas,
@@ -134,6 +204,12 @@ export function getQueryParams({
 
   const type = types.map(({ definition }) => definition).join('\n');
   const allOptional = queryParams.every(({ parameter }) => !parameter.required);
+  const requiredNullableKeys = types
+    .filter(
+      ({ required, originalSchema }) =>
+        required && isSchemaNullable(originalSchema),
+    )
+    .map(({ name }) => name);
 
   const schema = {
     name,
@@ -145,5 +221,6 @@ export function getQueryParams({
     schema,
     deps: schemas,
     isOptional: allOptional,
+    requiredNullableKeys,
   };
 }

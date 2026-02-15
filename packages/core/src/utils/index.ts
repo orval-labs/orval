@@ -1,8 +1,8 @@
 export * from './assertion';
 export * from './async-reduce';
 export * from './case';
-export * from './content-type';
 export * from './compare-version';
+export * from './content-type';
 export * from './debug';
 export * from './deep-non-nullable';
 export * from './doc';
@@ -16,6 +16,7 @@ export * from './logger';
 export * from './merge-deep';
 export * from './occurrence';
 export * as upath from './path';
+export * from './resolve-version';
 export * from './sort';
 export * from './string';
 export * from './tsconfig';
