@@ -1,0 +1,30 @@
+{
+  "name": "solid-query-custom-fetch",
+  "version": "8.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --host",
+    "build": "vite build",
+    "preview": "vite preview",
+    "generate-api": "orval",
+    "test": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^10.2.0",
+    "orval": "workspace:*",
+    "typescript": "~5.9.3",
+    "vite": "^7.2.2",
+    "vite-plugin-solid": "^2.11.10"
+  },
+  "dependencies": {
+    "@tanstack/solid-query": "^5.90.21",
+    "msw": "^2.12.7",
+    "solid-js": "^1.9.11"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  }
+}
