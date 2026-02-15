@@ -22,7 +22,8 @@
     "generate:fetch": "orval --config ./configs/fetch.config.ts",
     "generate:mcp": "orval --config ./configs/mcp.config.ts",
     "generate:hono": "orval --config ./configs/hono.config.ts",
-    "build": "tsc",
+    "build": "tsc && yarn verify:mock-generated",
+    "verify:mock-generated": "node ./scripts/verify-mock-generated.mjs",
     "clean": "rimraf .turbo dist generated",
     "nuke": "rimraf .turbo dist generated .yarn node_modules"
   },
