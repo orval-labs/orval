@@ -20,16 +20,33 @@ import {
 } from '@orval/zod';
 import fs from 'fs-extra';
 
+type ZodSchemaFileEntry = {
+  schemaName: string;
+  consts: string;
+  zodExpression: string;
+};
+
+type ZodSchemaFileToWrite = ZodSchemaFileEntry & {
+  filePath: string;
+};
+
 function generateZodSchemaFileContent(
   header: string,
-  schemaName: string,
-  zodContent: string,
+  schemas: ZodSchemaFileEntry[],
 ): string {
+  const schemaContent = schemas
+    .map(({ schemaName, consts, zodExpression }) => {
+      const schemaConsts = consts ? `${consts}\n` : '';
+
+      return `${schemaConsts}export const ${schemaName} = ${zodExpression}
+
+export type ${schemaName} = zod.infer<typeof ${schemaName}>;`;
+    })
+    .join('\n\n');
+
   return `${header}import { z as zod } from 'zod';
 
-export const ${schemaName} = ${zodContent}
-
-export type ${schemaName} = zod.infer<typeof ${schemaName}>;
+${schemaContent}
 `;
 }
 
@@ -49,6 +66,25 @@ const dedupeSchemasByName = <T extends { name: string }>(schemas: T[]) => {
   }
 
   return [...uniqueSchemas.values()];
+};
+
+const groupSchemasByFilePath = <T extends { filePath: string }>(
+  schemas: T[],
+) => {
+  const grouped = new Map<string, T[]>();
+
+  for (const schema of schemas) {
+    const key = schema.filePath.toLowerCase();
+    const existingGroup = grouped.get(key);
+
+    if (existingGroup) {
+      existingGroup.push(schema);
+    } else {
+      grouped.set(key, [schema]);
+    }
+  }
+
+  return [...grouped.values()];
 };
 
 async function writeZodSchemaIndex(
@@ -98,67 +134,69 @@ export async function writeZodSchemas(
   output: NormalizedOutputOptions,
 ) {
   const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
+  const schemasToWrite: ZodSchemaFileToWrite[] = [];
+  const isZodV4 = !!output.packageJson && isZodVersionV4(output.packageJson);
+  const strict = output.override.zod.strict.body;
+  const coerce = output.override.zod.coerce.body;
 
-  await Promise.all(
-    schemasWithOpenApiDef.map(async (generatorSchema) => {
-      const { name, schema: schemaObject } = generatorSchema;
+  for (const generatorSchema of schemasWithOpenApiDef) {
+    const { name, schema: schemaObject } = generatorSchema;
 
-      if (!schemaObject) {
-        return;
-      }
+    if (!schemaObject) {
+      continue;
+    }
 
-      const fileName = conventionName(name, output.namingConvention);
-      const filePath = upath.join(schemasPath, `${fileName}${fileExtension}`);
-      const context: ContextSpec = {
-        spec: builder.spec,
-        target: builder.target,
-        workspace: '',
-        output,
-      };
+    const fileName = conventionName(name, output.namingConvention);
+    const filePath = upath.join(schemasPath, `${fileName}${fileExtension}`);
+    const context: ContextSpec = {
+      spec: builder.spec,
+      target: builder.target,
+      workspace: '',
+      output,
+    };
 
-      const isZodV4 =
-        !!output.packageJson && isZodVersionV4(output.packageJson);
-      const strict = output.override.zod.strict.body;
-      const coerce = output.override.zod.coerce.body;
+    // Dereference the schema to resolve $ref
+    const dereferencedSchema = dereference(schemaObject, context);
 
-      // Dereference the schema to resolve $ref
-      const dereferencedSchema = dereference(schemaObject, context);
+    const zodDefinition = generateZodValidationSchemaDefinition(
+      dereferencedSchema,
+      context,
+      name,
+      strict,
+      isZodV4,
+      {
+        required: true,
+      },
+    );
 
-      const zodDefinition = generateZodValidationSchemaDefinition(
-        dereferencedSchema,
-        context,
-        name,
-        strict,
-        isZodV4,
-        {
-          required: true,
-        },
-      );
+    const parsedZodDefinition = parseZodValidationSchemaDefinition(
+      zodDefinition,
+      context,
+      coerce,
+      strict,
+      isZodV4,
+    );
 
-      const parsedZodDefinition = parseZodValidationSchemaDefinition(
-        zodDefinition,
-        context,
-        coerce,
-        strict,
-        isZodV4,
-      );
+    schemasToWrite.push({
+      schemaName: name,
+      filePath,
+      consts: parsedZodDefinition.consts,
+      zodExpression: parsedZodDefinition.zod,
+    });
+  }
 
-      const zodContent = parsedZodDefinition.consts
-        ? `${parsedZodDefinition.consts}\n${parsedZodDefinition.zod}`
-        : parsedZodDefinition.zod;
+  const groupedSchemasToWrite = groupSchemasByFilePath(schemasToWrite);
 
-      const fileContent = generateZodSchemaFileContent(
-        header,
-        name,
-        zodContent,
-      );
+  for (const schemaGroup of groupedSchemasToWrite) {
+    const fileContent = generateZodSchemaFileContent(header, schemaGroup);
 
-      await fs.outputFile(filePath, fileContent);
-    }),
-  );
+    await fs.outputFile(schemaGroup[0].filePath, fileContent);
+  }
 
   if (output.indexFiles) {
-    const schemaNames = schemasWithOpenApiDef.map((schema) => schema.name);
+    const schemaNames = groupedSchemasToWrite.map(
+      (schemaGroup) => schemaGroup[0].schemaName,
+    );
     await writeZodSchemaIndex(
       schemasPath,
       fileExtension,
@@ -301,47 +339,51 @@ export async function writeZodSchemasFromVerbs(
   });
 
   const uniqueVerbsSchemas = dedupeSchemasByName(generateVerbsSchemas);
+  const schemasToWrite: ZodSchemaFileToWrite[] = [];
 
-  await Promise.all(
-    uniqueVerbsSchemas.map(async ({ name, schema }) => {
-      const fileName = conventionName(name, output.namingConvention);
-      const filePath = upath.join(schemasPath, `${fileName}${fileExtension}`);
+  for (const { name, schema } of uniqueVerbsSchemas) {
+    const fileName = conventionName(name, output.namingConvention);
+    const filePath = upath.join(schemasPath, `${fileName}${fileExtension}`);
 
-      const zodDefinition = generateZodValidationSchemaDefinition(
-        schema,
-        context,
-        name,
-        strict,
-        isZodV4,
-        {
-          required: true,
-        },
-      );
+    const zodDefinition = generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      name,
+      strict,
+      isZodV4,
+      {
+        required: true,
+      },
+    );
 
-      const parsedZodDefinition = parseZodValidationSchemaDefinition(
-        zodDefinition,
-        context,
-        coerce,
-        strict,
-        isZodV4,
-      );
+    const parsedZodDefinition = parseZodValidationSchemaDefinition(
+      zodDefinition,
+      context,
+      coerce,
+      strict,
+      isZodV4,
+    );
 
-      const zodContent = parsedZodDefinition.consts
-        ? `${parsedZodDefinition.consts}\n${parsedZodDefinition.zod}`
-        : parsedZodDefinition.zod;
+    schemasToWrite.push({
+      schemaName: name,
+      filePath,
+      consts: parsedZodDefinition.consts,
+      zodExpression: parsedZodDefinition.zod,
+    });
+  }
 
-      const fileContent = generateZodSchemaFileContent(
-        header,
-        name,
-        zodContent,
-      );
+  const groupedSchemasToWrite = groupSchemasByFilePath(schemasToWrite);
 
-      await fs.outputFile(filePath, fileContent);
-    }),
-  );
+  for (const schemaGroup of groupedSchemasToWrite) {
+    const fileContent = generateZodSchemaFileContent(header, schemaGroup);
+
+    await fs.outputFile(schemaGroup[0].filePath, fileContent);
+  }
 
   if (output.indexFiles && uniqueVerbsSchemas.length > 0) {
-    const schemaNames = [...new Set(uniqueVerbsSchemas.map((s) => s.name))];
+    const schemaNames = groupedSchemasToWrite.map(
+      (schemaGroup) => schemaGroup[0].schemaName,
+    );
     await writeZodSchemaIndex(
       schemasPath,
       fileExtension,

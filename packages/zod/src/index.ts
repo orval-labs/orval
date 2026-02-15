@@ -31,6 +31,7 @@ import {
 import { unique } from 'remeda';
 
 import {
+  getLooseObjectFunctionName,
   getObjectFunctionName,
   getParameterFunctions,
   getZodDateFormat,
@@ -553,17 +554,30 @@ export const generateZodValidationSchemaDefinition = (
         break;
       }
       default: {
-        if (schema.properties) {
+        const hasProperties = !!schema.properties;
+        const properties = schema.properties ?? {};
+        const hasDefinedProperties = Object.keys(properties).length > 0;
+        const hasAdditionalPropertiesSchema =
+          !!schema.additionalProperties &&
+          !isBoolean(schema.additionalProperties);
+
+        const shouldUseLooseObject =
+          type === 'object' &&
+          !hasDefinedProperties &&
+          schema.additionalProperties === undefined &&
+          !hasAdditionalPropertiesSchema;
+
+        if (hasProperties && hasDefinedProperties) {
           const objectType = getObjectFunctionName(isZodV4, strict);
 
           functions.push([
             objectType,
-            Object.keys(schema.properties)
+            Object.keys(properties)
               .map((key) => ({
                 [key]:
                   rules?.propertyOverrides?.[key] ??
                   generateZodValidationSchemaDefinition(
-                    schema.properties?.[key] as OpenApiSchemaObject | undefined,
+                    properties[key] as OpenApiSchemaObject | undefined,
                     context,
                     camel(`${name}-${key}`),
                     strict,
@@ -576,6 +590,18 @@ export const generateZodValidationSchemaDefinition = (
 
           if (strict && !isZodV4) {
             functions.push(['strict', undefined]);
+          }
+
+          break;
+        }
+
+        if (shouldUseLooseObject) {
+          const looseObjectType = getLooseObjectFunctionName(isZodV4);
+
+          functions.push([looseObjectType, {}]);
+
+          if (!isZodV4) {
+            functions.push(['passthrough', undefined]);
           }
 
           break;
@@ -863,10 +889,15 @@ ${Object.entries(mergedProperties)
       return `zod.record(zod.string(), ${valueWithZod})`;
     }
 
-    if (fn === 'object' || fn === 'strictObject') {
-      const objectType = getObjectFunctionName(isZodV4, strict);
+    if (fn === 'object' || fn === 'strictObject' || fn === 'looseObject') {
+      const objectType =
+        fn === 'looseObject'
+          ? isZodV4
+            ? 'looseObject'
+            : 'object'
+          : getObjectFunctionName(isZodV4, strict);
 
-      return `zod.${objectType}({
+      const parsedObject = `zod.${objectType}({
 ${Object.entries(args)
   .map(([key, schema]) => {
     const value = (schema as ZodValidationSchemaDefinition).functions
@@ -877,7 +908,18 @@ ${Object.entries(args)
   })
   .join(',\n')}
 })`;
+
+      if (fn === 'looseObject' && !isZodV4) {
+        return `${parsedObject}.passthrough()`;
+      }
+
+      return parsedObject;
     }
+
+    if (fn === 'passthrough') {
+      return '.passthrough()';
+    }
+
     if (fn === 'array') {
       const value = args.functions
         .map((prop: any) => parseProperty(prop))

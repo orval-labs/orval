@@ -4539,3 +4539,124 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
 `);
   });
 });
+
+describe('zod split mode regressions', () => {
+  const context: ContextSpec = {
+    output: {
+      override: {
+        useDates: false,
+      },
+    },
+  } as ContextSpec;
+
+  it('preserves @ prefixed property keys', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        '@type': {
+          type: 'string',
+        },
+      },
+      required: ['@type'],
+    };
+
+    const definition = generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      'atTypeSchema',
+      false,
+      false,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      definition,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('"@type": zod.string()');
+    expect(parsed.zod).not.toContain('"_type"');
+  });
+
+  it('uses passthrough object for generic object schemas in zod v3', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+    };
+
+    const definition = generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      'genericObjectV3',
+      true,
+      false,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      definition,
+      context,
+      false,
+      true,
+      false,
+    );
+
+    expect(parsed.zod).toBe('zod.object({\n\n}).passthrough()');
+    expect(parsed.zod).not.toContain('strictObject({');
+    expect(parsed.zod).not.toContain('.strict()');
+  });
+
+  it('uses looseObject for generic object schemas in zod v4', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+    };
+
+    const definition = generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      'genericObjectV4',
+      true,
+      true,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      definition,
+      context,
+      false,
+      true,
+      true,
+    );
+
+    expect(parsed.zod).toBe('zod.looseObject({\n\n})');
+    expect(parsed.zod).not.toContain('strictObject({');
+  });
+
+  it('keeps strict object when additionalProperties is false', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      additionalProperties: false,
+    };
+
+    const definition = generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      'genericObjectStrict',
+      true,
+      true,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      definition,
+      context,
+      false,
+      true,
+      true,
+    );
+
+    expect(parsed.zod).toBe('zod.strictObject({\n\n})');
+  });
+});
