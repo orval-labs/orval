@@ -20899,7 +20899,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-query-hook-mutator-fetch@workspace:samples/react-query/hook-mutator-fetch"
   dependencies:
-    "@faker-js/faker": "npm:^10.2.0"
+    "@faker-js/faker": "catalog:tooling"
     orval: "workspace:*"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
