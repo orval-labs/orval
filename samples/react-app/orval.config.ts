@@ -55,6 +55,7 @@ export default defineConfig({
     input: './petstore.yaml',
     output: {
       target: 'src/api/endpoints/petstoreFromFileSpecWithDocsMarkdown.ts',
+      prettier: true,
       docs: {
         out: './docs-markdown',
         disableSources: true,
@@ -65,6 +66,7 @@ export default defineConfig({
     input: './petstore.yaml',
     output: {
       target: 'src/api/endpoints/petstoreFromFileSpecWithDocsHtml.ts',
+      prettier: true,
       docs: {
         theme: 'default',
         out: './docs-html',
@@ -76,6 +78,7 @@ export default defineConfig({
     input: './petstore.yaml',
     output: {
       target: 'src/api/endpoints/petstoreFromFileSpecWithDocsHtmlPlugin.ts',
+      prettier: true,
       docs: {
         theme: 'default',
         out: './docs-html-plugin',
