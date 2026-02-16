@@ -702,7 +702,7 @@ export const generateZodValidationSchemaDefinition = (
     functions.push(['regex', `${name}RegExp${constsCounterValue}`]);
   }
 
-  if (schema.enum) {
+  if (schema.enum && type !== 'array') {
     const uniqueEnumValues = unique(schema.enum);
 
     if (uniqueEnumValues.every((value) => isString(value))) {

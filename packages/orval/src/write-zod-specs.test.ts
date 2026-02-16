@@ -170,4 +170,49 @@ describe('write-zod-specs regressions', () => {
 
     await fs.remove(root);
   });
+
+  it('writes default const before schema export in split output (#2801)', async () => {
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
+    const schemasPath = path.join(root, 'schemas');
+
+    const builder = {
+      spec: {},
+      target: '',
+      schemas: [
+        {
+          name: 'DefaultedSchema',
+          schema: {
+            type: 'string',
+            default: 'hello',
+          },
+        },
+      ],
+    };
+
+    await writeZodSchemas(
+      builder,
+      schemasPath,
+      '.ts',
+      '',
+      createOutputOptions(),
+    );
+
+    const filePath = path.join(schemasPath, 'DefaultedSchema.ts');
+    const fileContent = await fs.readFile(filePath, 'utf8');
+
+    expect(fileContent).toContain(
+      'export const DefaultedSchemaDefault = `hello`;',
+    );
+    expect(fileContent).toContain(
+      'export const DefaultedSchema = zod.string()',
+    );
+    expect(
+      fileContent.indexOf('export const DefaultedSchemaDefault = `hello`;'),
+    ).toBeLessThan(fileContent.indexOf('export const DefaultedSchema ='));
+    expect(fileContent).not.toContain(
+      'export const DefaultedSchema = export const',
+    );
+
+    await fs.remove(root);
+  });
 });
