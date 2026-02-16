@@ -590,7 +590,8 @@ export default defineConfig({
     output: {
       target:
         '../generated/react-query/use-prefetch-with-hook-mutator-axios/endpoints.ts',
-      schemas: '../generated/react-query/use-prefetch-with-hook-mutator-axios/model',
+      schemas:
+        '../generated/react-query/use-prefetch-with-hook-mutator-axios/model',
       client: 'react-query',
       httpClient: 'axios',
       override: {
