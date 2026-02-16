@@ -1,7 +1,7 @@
 {
   "name": "swr-with-zod",
   "private": true,
-  "version": "8.3.0",
+  "version": "8.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite  --host",

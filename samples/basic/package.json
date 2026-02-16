@@ -1,6 +1,6 @@
 {
   "name": "basic",
-  "version": "8.3.0",
+  "version": "8.4.0",
   "description": "",
   "private": true,
   "type": "module",
@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@faker-js/faker": "catalog:tooling",
-    "axios": "^1.13.2",
+    "axios": "^1.13.5",
     "msw": "^2.12.7"
   },
   "dependenciesMeta": {

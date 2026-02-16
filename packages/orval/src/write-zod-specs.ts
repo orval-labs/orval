@@ -1,7 +1,6 @@
 import {
   type ContextSpec,
   conventionName,
-  type GeneratorVerbOptions,
   type NamingConvention,
   type NormalizedOutputOptions,
   type OpenApiParameterObject,
@@ -10,7 +9,7 @@ import {
   type OpenApiSchemaObject,
   pascal,
   upath,
-  type WriteSpecBuilder,
+  type ZodCoerceType,
 } from '@orval/core';
 import {
   dereference,
@@ -20,16 +19,96 @@ import {
 } from '@orval/zod';
 import fs from 'fs-extra';
 
+type ZodSchemaFileEntry = {
+  schemaName: string;
+  consts: string;
+  zodExpression: string;
+};
+
+type ZodSchemaFileToWrite = ZodSchemaFileEntry & {
+  filePath: string;
+};
+
+type WriteZodOutputOptions = {
+  namingConvention: NamingConvention;
+  indexFiles: boolean;
+  packageJson?: NormalizedOutputOptions['packageJson'];
+  override: {
+    zod: {
+      strict: {
+        body: boolean;
+      };
+      coerce: {
+        body: boolean | ZodCoerceType[];
+      };
+    };
+  };
+};
+
+type WriteZodSchemasInput = {
+  spec: ContextSpec['spec'];
+  target: string;
+  schemas: {
+    name: string;
+    schema?: OpenApiSchemaObject | OpenApiReferenceObject;
+  }[];
+};
+
+type WriteZodVerbResponseType = {
+  value: string;
+  isRef?: boolean;
+  originalSchema?: OpenApiSchemaObject;
+};
+
+type WriteZodSchemasFromVerbsInput = Record<
+  string,
+  {
+    operationName: string;
+    originalOperation: {
+      requestBody?: OpenApiRequestBodyObject | OpenApiReferenceObject;
+      parameters?: (OpenApiParameterObject | OpenApiReferenceObject)[];
+    };
+    response: {
+      types: {
+        success: WriteZodVerbResponseType[];
+        errors: WriteZodVerbResponseType[];
+      };
+    };
+  }
+>;
+
+type WriteZodSchemasFromVerbsContext = {
+  output: {
+    override: {
+      useDates?: boolean;
+      zod: {
+        dateTimeOptions?: Record<string, unknown>;
+        timeOptions?: Record<string, unknown>;
+      };
+    };
+  };
+  spec: ContextSpec['spec'];
+  target: string;
+  workspace: string;
+};
+
 function generateZodSchemaFileContent(
   header: string,
-  schemaName: string,
-  zodContent: string,
+  schemas: ZodSchemaFileEntry[],
 ): string {
+  const schemaContent = schemas
+    .map(({ schemaName, consts, zodExpression }) => {
+      const schemaConsts = consts ? `${consts}\n` : '';
+
+      return `${schemaConsts}export const ${schemaName} = ${zodExpression}
+
+export type ${schemaName} = zod.infer<typeof ${schemaName}>;`;
+    })
+    .join('\n\n');
+
   return `${header}import { z as zod } from 'zod';
 
-export const ${schemaName} = ${zodContent}
-
-export type ${schemaName} = zod.infer<typeof ${schemaName}>;
+${schemaContent}
 `;
 }
 
@@ -49,6 +128,31 @@ const dedupeSchemasByName = <T extends { name: string }>(schemas: T[]) => {
   }
 
   return [...uniqueSchemas.values()];
+};
+
+const groupSchemasByFilePath = <T extends { filePath: string }>(
+  schemas: T[],
+) => {
+  const grouped = new Map<string, T[]>();
+
+  for (const schema of schemas) {
+    const key = schema.filePath.toLowerCase();
+    const existingGroup = grouped.get(key);
+
+    if (existingGroup) {
+      existingGroup.push(schema);
+    } else {
+      grouped.set(key, [schema]);
+    }
+  }
+
+  const sortedGroups = [...grouped.values()].map((group) =>
+    [...group].toSorted((a, b) => a.filePath.localeCompare(b.filePath)),
+  );
+
+  return sortedGroups.toSorted((a, b) =>
+    a[0].filePath.localeCompare(b[0].filePath),
+  );
 };
 
 async function writeZodSchemaIndex(
@@ -91,74 +195,76 @@ async function writeZodSchemaIndex(
 }
 
 export async function writeZodSchemas(
-  builder: WriteSpecBuilder,
+  builder: WriteZodSchemasInput,
   schemasPath: string,
   fileExtension: string,
   header: string,
-  output: NormalizedOutputOptions,
+  output: WriteZodOutputOptions,
 ) {
   const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
+  const schemasToWrite: ZodSchemaFileToWrite[] = [];
+  const isZodV4 = !!output.packageJson && isZodVersionV4(output.packageJson);
+  const strict = output.override.zod.strict.body;
+  const coerce = output.override.zod.coerce.body;
 
-  await Promise.all(
-    schemasWithOpenApiDef.map(async (generatorSchema) => {
-      const { name, schema: schemaObject } = generatorSchema;
+  for (const generatorSchema of schemasWithOpenApiDef) {
+    const { name, schema: schemaObject } = generatorSchema;
 
-      if (!schemaObject) {
-        return;
-      }
+    if (!schemaObject) {
+      continue;
+    }
 
-      const fileName = conventionName(name, output.namingConvention);
-      const filePath = upath.join(schemasPath, `${fileName}${fileExtension}`);
-      const context: ContextSpec = {
-        spec: builder.spec,
-        target: builder.target,
-        workspace: '',
-        output,
-      };
+    const fileName = conventionName(name, output.namingConvention);
+    const filePath = upath.join(schemasPath, `${fileName}${fileExtension}`);
+    const context: ContextSpec = {
+      spec: builder.spec,
+      target: builder.target,
+      workspace: '',
+      output: output as ContextSpec['output'],
+    };
 
-      const isZodV4 =
-        !!output.packageJson && isZodVersionV4(output.packageJson);
-      const strict = output.override.zod.strict.body;
-      const coerce = output.override.zod.coerce.body;
+    // Dereference the schema to resolve $ref
+    const dereferencedSchema = dereference(schemaObject, context);
 
-      // Dereference the schema to resolve $ref
-      const dereferencedSchema = dereference(schemaObject, context);
+    const zodDefinition = generateZodValidationSchemaDefinition(
+      dereferencedSchema,
+      context,
+      name,
+      strict,
+      isZodV4,
+      {
+        required: true,
+      },
+    );
 
-      const zodDefinition = generateZodValidationSchemaDefinition(
-        dereferencedSchema,
-        context,
-        name,
-        strict,
-        isZodV4,
-        {
-          required: true,
-        },
-      );
+    const parsedZodDefinition = parseZodValidationSchemaDefinition(
+      zodDefinition,
+      context,
+      coerce,
+      strict,
+      isZodV4,
+    );
 
-      const parsedZodDefinition = parseZodValidationSchemaDefinition(
-        zodDefinition,
-        context,
-        coerce,
-        strict,
-        isZodV4,
-      );
+    schemasToWrite.push({
+      schemaName: name,
+      filePath,
+      consts: parsedZodDefinition.consts,
+      zodExpression: parsedZodDefinition.zod,
+    });
+  }
 
-      const zodContent = parsedZodDefinition.consts
-        ? `${parsedZodDefinition.consts}\n${parsedZodDefinition.zod}`
-        : parsedZodDefinition.zod;
+  const groupedSchemasToWrite = groupSchemasByFilePath(schemasToWrite);
 
-      const fileContent = generateZodSchemaFileContent(
-        header,
-        name,
-        zodContent,
-      );
+  for (const schemaGroup of groupedSchemasToWrite) {
+    const fileContent = generateZodSchemaFileContent(header, schemaGroup);
 
-      await fs.outputFile(filePath, fileContent);
-    }),
-  );
+    await fs.outputFile(schemaGroup[0].filePath, fileContent);
+  }
 
   if (output.indexFiles) {
-    const schemaNames = schemasWithOpenApiDef.map((schema) => schema.name);
+    const schemaNames = groupedSchemasToWrite.map(
+      (schemaGroup) => schemaGroup[0].schemaName,
+    );
     await writeZodSchemaIndex(
       schemasPath,
       fileExtension,
@@ -171,13 +277,14 @@ export async function writeZodSchemas(
 }
 
 export async function writeZodSchemasFromVerbs(
-  verbOptions: Record<string, GeneratorVerbOptions>,
+  verbOptions: WriteZodSchemasFromVerbsInput,
   schemasPath: string,
   fileExtension: string,
   header: string,
-  output: NormalizedOutputOptions,
-  context: ContextSpec,
+  output: WriteZodOutputOptions,
+  context: WriteZodSchemasFromVerbsContext,
 ) {
+  const zodContext = context as ContextSpec;
   const verbOptionsArray = Object.values(verbOptions);
 
   if (verbOptionsArray.length === 0) {
@@ -207,14 +314,12 @@ export async function writeZodSchemasFromVerbs(
       ? [
           {
             name: `${pascal(verbOption.operationName)}Body`,
-            schema: dereference(bodySchema, context),
+            schema: dereference(bodySchema, zodContext),
           },
         ]
       : [];
 
-    const parameters = operation.parameters as
-      | (OpenApiParameterObject | OpenApiReferenceObject)[]
-      | undefined;
+    const parameters = operation.parameters;
 
     const queryParams = parameters?.filter(
       (p): p is OpenApiParameterObject => 'in' in p && p.in === 'query',
@@ -232,7 +337,7 @@ export async function writeZodSchemasFromVerbs(
                     .filter((p) => 'schema' in p && p.schema)
                     .map((p) => [
                       p.name,
-                      dereference(p.schema as OpenApiSchemaObject, context),
+                      dereference(p.schema as OpenApiSchemaObject, zodContext),
                     ]),
                 ) as Record<string, OpenApiSchemaObject>,
                 required: queryParams
@@ -260,7 +365,7 @@ export async function writeZodSchemasFromVerbs(
                     .filter((p) => 'schema' in p && p.schema)
                     .map((p) => [
                       p.name,
-                      dereference(p.schema as OpenApiSchemaObject, context),
+                      dereference(p.schema as OpenApiSchemaObject, zodContext),
                     ]),
                 ) as Record<string, OpenApiSchemaObject>,
                 required: headerParams
@@ -289,7 +394,7 @@ export async function writeZodSchemasFromVerbs(
       )
       .map((responseType) => ({
         name: responseType.value,
-        schema: dereference(responseType.originalSchema, context),
+        schema: dereference(responseType.originalSchema, zodContext),
       }));
 
     return dedupeSchemasByName([
@@ -301,47 +406,51 @@ export async function writeZodSchemasFromVerbs(
   });
 
   const uniqueVerbsSchemas = dedupeSchemasByName(generateVerbsSchemas);
+  const schemasToWrite: ZodSchemaFileToWrite[] = [];
 
-  await Promise.all(
-    uniqueVerbsSchemas.map(async ({ name, schema }) => {
-      const fileName = conventionName(name, output.namingConvention);
-      const filePath = upath.join(schemasPath, `${fileName}${fileExtension}`);
+  for (const { name, schema } of uniqueVerbsSchemas) {
+    const fileName = conventionName(name, output.namingConvention);
+    const filePath = upath.join(schemasPath, `${fileName}${fileExtension}`);
 
-      const zodDefinition = generateZodValidationSchemaDefinition(
-        schema,
-        context,
-        name,
-        strict,
-        isZodV4,
-        {
-          required: true,
-        },
-      );
+    const zodDefinition = generateZodValidationSchemaDefinition(
+      schema,
+      zodContext,
+      name,
+      strict,
+      isZodV4,
+      {
+        required: true,
+      },
+    );
 
-      const parsedZodDefinition = parseZodValidationSchemaDefinition(
-        zodDefinition,
-        context,
-        coerce,
-        strict,
-        isZodV4,
-      );
+    const parsedZodDefinition = parseZodValidationSchemaDefinition(
+      zodDefinition,
+      zodContext,
+      coerce,
+      strict,
+      isZodV4,
+    );
 
-      const zodContent = parsedZodDefinition.consts
-        ? `${parsedZodDefinition.consts}\n${parsedZodDefinition.zod}`
-        : parsedZodDefinition.zod;
+    schemasToWrite.push({
+      schemaName: name,
+      filePath,
+      consts: parsedZodDefinition.consts,
+      zodExpression: parsedZodDefinition.zod,
+    });
+  }
 
-      const fileContent = generateZodSchemaFileContent(
-        header,
-        name,
-        zodContent,
-      );
+  const groupedSchemasToWrite = groupSchemasByFilePath(schemasToWrite);
 
-      await fs.outputFile(filePath, fileContent);
-    }),
-  );
+  for (const schemaGroup of groupedSchemasToWrite) {
+    const fileContent = generateZodSchemaFileContent(header, schemaGroup);
+
+    await fs.outputFile(schemaGroup[0].filePath, fileContent);
+  }
 
   if (output.indexFiles && uniqueVerbsSchemas.length > 0) {
-    const schemaNames = [...new Set(uniqueVerbsSchemas.map((s) => s.name))];
+    const schemaNames = groupedSchemasToWrite.map(
+      (schemaGroup) => schemaGroup[0].schemaName,
+    );
     await writeZodSchemaIndex(
       schemasPath,
       fileExtension,

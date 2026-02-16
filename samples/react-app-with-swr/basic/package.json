@@ -1,6 +1,6 @@
 {
   "name": "swr-basic",
-  "version": "8.3.0",
+  "version": "8.4.0",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -8,7 +8,7 @@
     "@types/node": "^22.18.12",
     "@types/react": "^18.3.24",
     "@types/react-dom": "^18.3.7",
-    "axios": "^1.13.2",
+    "axios": "^1.13.5",
     "msw": "catalog:tooling",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

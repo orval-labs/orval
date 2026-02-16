@@ -84,6 +84,8 @@ corepack enable
 
 - **`yarn test`** - Run unit tests in all packages.
 
+- **`yarn test:ci`** - Run the CI-equivalent checks locally (`lint`, package tests, `test:cli`, and `test:samples`).
+
 - **`yarn update-samples`** - Generate sample outputs using the newly built version of Orval. This regenerates the sample code based on the current build.
 
 - **`yarn test:samples`** - Run tests in the samples directory using the newly generated output from `update-samples`.
@@ -97,10 +99,12 @@ A typical development workflow would be:
 1. Make your code changes
 2. Run `yarn build` to compile your changes
 3. Run `yarn lint` to catch lint issues early
-4. Run `yarn test:ci` to ensure unit tests pass
+4. Run `yarn test` to run unit tests in packages
 5. Run `yarn update-samples` to regenerate sample outputs
 6. Run `yarn test:samples` to verify samples work correctly
 7. Run `yarn test:cli` to validate TypeScript compilation
+
+Or, as a shortcut after `yarn build` and `yarn update-samples`, run `yarn test:ci` to execute the full local CI-equivalent validation (`lint`, package tests, `test:cli`, and `test:samples`) in one command.
 
 If you encounter issues or want to start completely fresh:
 

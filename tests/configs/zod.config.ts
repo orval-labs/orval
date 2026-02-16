@@ -236,4 +236,18 @@ export default defineConfig({
     },
     input: '../specifications/multiline-default.yaml',
   },
+  pattern: {
+    output: {
+      target: '../generated/zod/pattern.ts',
+      client: 'zod',
+    },
+    input: '../specifications/pattern.yaml',
+  },
+  'pattern-and-format': {
+    output: {
+      target: '../generated/zod/pattern-and-format.ts',
+      client: 'zod',
+    },
+    input: '../specifications/pattern-and-format.yaml',
+  },
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  getLooseObjectFunctionName,
   getObjectFunctionName,
   getParameterFunctions,
   getZodDateFormat,
@@ -196,5 +197,17 @@ describe('getObjectFunctionName', () => {
         expect(result).toBe('object');
       });
     });
+  });
+});
+
+describe('getLooseObjectFunctionName', () => {
+  it('should return "looseObject" when isZodV4 is true', () => {
+    const result = getLooseObjectFunctionName(true);
+    expect(result).toBe('looseObject');
+  });
+
+  it('should return "object" when isZodV4 is false', () => {
+    const result = getLooseObjectFunctionName(false);
+    expect(result).toBe('object');
   });
 });

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type {
   ContextSpec,
+  OpenApiReferenceObject,
   OpenApiRequestBodyObject,
   OpenApiResponseObject,
   OpenApiSchemaObject,
@@ -492,5 +493,35 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
       // allOf with $ref: intersection type (not union)
       expect(schema?.model).toContain('ClientUpdateDto & {');
     });
+  });
+});
+
+describe('getResReqTypes ($ref response without content)', () => {
+  it('should not crash when a $ref response has no content property', () => {
+    const ctxWithResponses: ContextSpec = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {},
+          responses: {
+            OK: {
+              description: 'OK',
+            },
+          },
+        },
+      },
+    };
+
+    const responses: [
+      string,
+      OpenApiReferenceObject | OpenApiResponseObject,
+    ][] = [['200', { $ref: '#/components/responses/OK' }]];
+
+    const result = getResReqTypes(responses, 'Response', ctxWithResponses);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].value).toBe('Ok');
+    expect(result[0].isRef).toBe(true);
+    expect(result[0].originalSchema).toBeUndefined();
   });
 });
