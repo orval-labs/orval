@@ -1,7 +1,6 @@
 import {
   type ContextSpec,
   conventionName,
-  type GeneratorVerbOptions,
   type NamingConvention,
   type NormalizedOutputOptions,
   type OpenApiParameterObject,
@@ -10,7 +9,6 @@ import {
   type OpenApiSchemaObject,
   pascal,
   upath,
-  type WriteSpecBuilder,
 } from '@orval/core';
 import {
   dereference,
@@ -28,6 +26,69 @@ type ZodSchemaFileEntry = {
 
 type ZodSchemaFileToWrite = ZodSchemaFileEntry & {
   filePath: string;
+};
+
+type WriteZodOutputOptions = {
+  namingConvention: NamingConvention;
+  indexFiles: boolean;
+  packageJson?: NormalizedOutputOptions['packageJson'];
+  override: {
+    zod: {
+      strict: {
+        body: boolean;
+      };
+      coerce: {
+        body: boolean | unknown[];
+      };
+    };
+  };
+};
+
+type WriteZodSchemasInput = {
+  spec: ContextSpec['spec'];
+  target: string;
+  schemas: {
+    name: string;
+    schema?: OpenApiSchemaObject | OpenApiReferenceObject;
+  }[];
+};
+
+type WriteZodVerbResponseType = {
+  value: string;
+  isRef?: boolean;
+  originalSchema?: OpenApiSchemaObject;
+};
+
+type WriteZodSchemasFromVerbsInput = Record<
+  string,
+  {
+    operationName: string;
+    originalOperation: {
+      requestBody?: OpenApiRequestBodyObject | OpenApiReferenceObject;
+      parameters?: (OpenApiParameterObject | OpenApiReferenceObject)[];
+    };
+    response: {
+      types: {
+        success: WriteZodVerbResponseType[];
+        errors: WriteZodVerbResponseType[];
+      };
+    };
+  }
+>;
+
+type WriteZodSchemasFromVerbsContext = {
+  output: {
+    override: {
+      useDates?: boolean;
+      zod: {
+        dateTimeOptions?: Record<string, unknown>;
+        timeOptions?: Record<string, unknown>;
+      };
+    };
+  };
+  spec: ContextSpec['spec'];
+  target: string;
+  workspace: string;
 };
 
 function generateZodSchemaFileContent(
@@ -127,11 +188,11 @@ async function writeZodSchemaIndex(
 }
 
 export async function writeZodSchemas(
-  builder: WriteSpecBuilder,
+  builder: WriteZodSchemasInput,
   schemasPath: string,
   fileExtension: string,
   header: string,
-  output: NormalizedOutputOptions,
+  output: WriteZodOutputOptions,
 ) {
   const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
   const schemasToWrite: ZodSchemaFileToWrite[] = [];
@@ -209,13 +270,14 @@ export async function writeZodSchemas(
 }
 
 export async function writeZodSchemasFromVerbs(
-  verbOptions: Record<string, GeneratorVerbOptions>,
+  verbOptions: WriteZodSchemasFromVerbsInput,
   schemasPath: string,
   fileExtension: string,
   header: string,
-  output: NormalizedOutputOptions,
-  context: ContextSpec,
+  output: WriteZodOutputOptions,
+  context: WriteZodSchemasFromVerbsContext,
 ) {
+  const zodContext = context as ContextSpec;
   const verbOptionsArray = Object.values(verbOptions);
 
   if (verbOptionsArray.length === 0) {
@@ -245,14 +307,12 @@ export async function writeZodSchemasFromVerbs(
       ? [
           {
             name: `${pascal(verbOption.operationName)}Body`,
-            schema: dereference(bodySchema, context),
+            schema: dereference(bodySchema, zodContext),
           },
         ]
       : [];
 
-    const parameters = operation.parameters as
-      | (OpenApiParameterObject | OpenApiReferenceObject)[]
-      | undefined;
+    const parameters = operation.parameters;
 
     const queryParams = parameters?.filter(
       (p): p is OpenApiParameterObject => 'in' in p && p.in === 'query',
@@ -270,7 +330,7 @@ export async function writeZodSchemasFromVerbs(
                     .filter((p) => 'schema' in p && p.schema)
                     .map((p) => [
                       p.name,
-                      dereference(p.schema as OpenApiSchemaObject, context),
+                      dereference(p.schema as OpenApiSchemaObject, zodContext),
                     ]),
                 ) as Record<string, OpenApiSchemaObject>,
                 required: queryParams
@@ -298,7 +358,7 @@ export async function writeZodSchemasFromVerbs(
                     .filter((p) => 'schema' in p && p.schema)
                     .map((p) => [
                       p.name,
-                      dereference(p.schema as OpenApiSchemaObject, context),
+                      dereference(p.schema as OpenApiSchemaObject, zodContext),
                     ]),
                 ) as Record<string, OpenApiSchemaObject>,
                 required: headerParams
@@ -327,7 +387,7 @@ export async function writeZodSchemasFromVerbs(
       )
       .map((responseType) => ({
         name: responseType.value,
-        schema: dereference(responseType.originalSchema, context),
+        schema: dereference(responseType.originalSchema, zodContext),
       }));
 
     return dedupeSchemasByName([
@@ -347,7 +407,7 @@ export async function writeZodSchemasFromVerbs(
 
     const zodDefinition = generateZodValidationSchemaDefinition(
       schema,
-      context,
+      zodContext,
       name,
       strict,
       isZodV4,
@@ -358,7 +418,7 @@ export async function writeZodSchemasFromVerbs(
 
     const parsedZodDefinition = parseZodValidationSchemaDefinition(
       zodDefinition,
-      context,
+      zodContext,
       coerce,
       strict,
       isZodV4,

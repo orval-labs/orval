@@ -54,6 +54,13 @@ export const getObjectFunctionName = (isZodV4: boolean, strict: boolean) => {
   return isZodV4 && strict ? 'strictObject' : 'object';
 };
 
+/**
+ * Returns the object constructor to use for open/generic objects.
+ *
+ * - Zod v4 supports `zod.looseObject({...})` directly.
+ * - Zod v3 falls back to `zod.object({...})` and is finalized with
+ *   `.passthrough()` during parsing.
+ */
 export const getLooseObjectFunctionName = (isZodV4: boolean) => {
   return isZodV4 ? 'looseObject' : 'object';
 };

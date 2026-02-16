@@ -42,8 +42,7 @@ export const PetWithTag = zod.object({
         callingCode: zod.enum(['+33', '+420']).optional(),
         country: zod.enum(["People's Republic of China", 'Uruguay']).optional(),
       }),
-    )
-    .nullable(),
+    ),
 });
 
 export type PetWithTag = zod.infer<typeof PetWithTag>;

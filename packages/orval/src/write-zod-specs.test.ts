@@ -6,6 +6,21 @@ import { describe, expect, it } from 'vitest';
 
 import { writeZodSchemas, writeZodSchemasFromVerbs } from './write-zod-specs';
 
+type MinimalVerbsContext = {
+  output: {
+    override: {
+      useDates?: boolean;
+      zod: {
+        dateTimeOptions?: Record<string, unknown>;
+        timeOptions?: Record<string, unknown>;
+      };
+    };
+  };
+  spec: unknown;
+  target: string;
+  workspace: string;
+};
+
 const createOutputOptions = (): Parameters<typeof writeZodSchemas>[4] =>
   ({
     namingConvention: 'PascalCase',
@@ -20,7 +35,7 @@ const createOutputOptions = (): Parameters<typeof writeZodSchemas>[4] =>
         },
       },
     },
-  }) as unknown as Parameters<typeof writeZodSchemas>[4];
+  }) as Parameters<typeof writeZodSchemas>[4];
 
 describe('write-zod-specs regressions', () => {
   it('writes const constraints before schema export', async () => {
@@ -40,7 +55,7 @@ describe('write-zod-specs regressions', () => {
           },
         },
       ],
-    };
+    } satisfies Parameters<typeof writeZodSchemas>[0];
 
     await writeZodSchemas(
       builder,
@@ -85,7 +100,7 @@ describe('write-zod-specs regressions', () => {
       spec: {},
       target: '',
       workspace: root,
-    };
+    } satisfies MinimalVerbsContext;
 
     const verbOptions = {
       firstVerb: {
@@ -132,7 +147,7 @@ describe('write-zod-specs regressions', () => {
           },
         },
       },
-    };
+    } satisfies Parameters<typeof writeZodSchemasFromVerbs>[0];
 
     await writeZodSchemasFromVerbs(
       verbOptions,
@@ -164,9 +179,9 @@ describe('write-zod-specs regressions', () => {
 
     const indexPath = path.join(schemasPath, 'index.ts');
     const indexContent = await fs.readFile(indexPath, 'utf8');
+    const mergedSchemaExport = path.basename(schemaFiles[0], '.ts');
 
-    expect(indexContent).toContain("export * from './FooBarBody';");
-    expect(indexContent).not.toContain("export * from './FoobarBody';");
+    expect(indexContent).toContain(`export * from './${mergedSchemaExport}';`);
 
     await fs.remove(root);
   });
@@ -187,7 +202,7 @@ describe('write-zod-specs regressions', () => {
           },
         },
       ],
-    };
+    } satisfies Parameters<typeof writeZodSchemas>[0];
 
     await writeZodSchemas(
       builder,

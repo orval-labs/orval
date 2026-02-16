@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, unicorn/no-array-reduce */
+
 import {
   camel,
   type ClientBuilder,
@@ -71,13 +73,20 @@ const possibleSchemaTypes = new Set([
   'array',
 ]);
 
-const resolveZodType = (schema: OpenApiSchemaObject) => {
-  const schemaTypeValue = schema.type;
+type ResolvedZodType =
+  | string
+  | {
+      multiType: string[];
+    };
+
+const resolveZodType = (schema: OpenApiSchemaObject): ResolvedZodType => {
+  const schemaTypeValue = schema.type as unknown;
 
   // Handle array of types (OpenAPI 3.1+)
   if (Array.isArray(schemaTypeValue)) {
     // Filter out 'null' type as it's handled separately via nullable
     const nonNullTypes = schemaTypeValue
+      .filter((t): t is string => isString(t))
       .filter((t) => t !== 'null' && possibleSchemaTypes.has(t))
       .map((t) => (t === 'integer' ? 'number' : t));
 
@@ -98,7 +107,7 @@ const resolveZodType = (schema: OpenApiSchemaObject) => {
   }
 
   // Handle single type value
-  const type = schemaTypeValue;
+  const type = isString(schemaTypeValue) ? schemaTypeValue : undefined;
 
   // TODO: if "prefixItems" exists and type is "array", then generate a "tuple"
   if (schema.type === 'array' && 'prefixItems' in schema) {
@@ -127,7 +136,7 @@ const COERCIBLE_TYPES = new Set([
 ]);
 
 export type ZodValidationSchemaDefinition = {
-  functions: [string, any][];
+  functions: [string, unknown][];
   consts: string[];
 };
 
@@ -136,21 +145,24 @@ const minAndMaxTypes = new Set(['number', 'string', 'array']);
 const removeReadOnlyProperties = (
   schema: OpenApiSchemaObject,
 ): OpenApiSchemaObject => {
-  if (schema.properties) {
+  if (schema.properties && isObject(schema.properties)) {
+    const filteredProperties: Record<string, OpenApiSchemaObject> = {};
+
+    for (const [key, value] of Object.entries(schema.properties)) {
+      if (isObject(value) && 'readOnly' in value && value.readOnly) {
+        continue;
+      }
+      filteredProperties[key] = value as OpenApiSchemaObject;
+    }
+
     return {
-      ...schema,
-      properties: Object.entries(schema.properties).reduce<
-        Record<string, OpenApiSchemaObject>
-      >((acc, [key, value]) => {
-        if ('readOnly' in value && value.readOnly) return acc;
-        acc[key] = value as OpenApiSchemaObject;
-        return acc;
-      }, {}),
+      ...(schema as Record<string, unknown>),
+      properties: filteredProperties,
     };
   }
-  if (schema.items && 'properties' in schema.items) {
+  if (schema.items && isObject(schema.items) && 'properties' in schema.items) {
     return {
-      ...schema,
+      ...(schema as Record<string, unknown>),
       items: removeReadOnlyProperties(schema.items as OpenApiSchemaObject),
     };
   }
@@ -197,7 +209,7 @@ export const generateZodValidationSchemaDefinition = (
 
   constsUniqueCounter[name] = constsCounter;
 
-  const functions: [string, any][] = [];
+  const functions: [string, unknown][] = [];
   const type = resolveZodType(schema);
   const required = rules?.required ?? false;
   const nullable =
@@ -307,7 +319,6 @@ export const generateZodValidationSchemaDefinition = (
 
     if (isDateType) {
       // OpenApiSchemaObject defines default as 'any'
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       defaultValue = `new Date("${escape(schema.default)}")`;
     } else if (isObject(schema.default)) {
       const entries = Object.entries(schema.default)
@@ -335,7 +346,6 @@ export const generateZodValidationSchemaDefinition = (
       defaultValue = `{ ${entries} }`;
     } else {
       // OpenApiSchemaObject defines default as 'any'
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const rawStringified = stringify(schema.default);
       defaultValue =
         rawStringified === undefined
@@ -367,7 +377,10 @@ export const generateZodValidationSchemaDefinition = (
       'oneOf',
       types.map((t) =>
         generateZodValidationSchemaDefinition(
-          { ...schema, type: t },
+          {
+            ...(schema as Record<string, unknown>),
+            type: t,
+          } as OpenApiSchemaObject,
           context,
           name,
           strict,
@@ -408,11 +421,17 @@ export const generateZodValidationSchemaDefinition = (
          */
         if ('prefixItems' in schema) {
           const schema31 = schema as OpenApiSchemaObject;
+          const prefixItems = Array.isArray(schema31.prefixItems)
+            ? (schema31.prefixItems as (
+                | OpenApiSchemaObject
+                | OpenApiReferenceObject
+              )[])
+            : [];
 
-          if (schema31.prefixItems && schema31.prefixItems.length > 0) {
+          if (prefixItems.length > 0) {
             functions.push([
               'tuple',
-              schema31.prefixItems.map((item, idx) =>
+              prefixItems.map((item, idx) =>
                 generateZodValidationSchemaDefinition(
                   dereference(
                     item as OpenApiSchemaObject | OpenApiReferenceObject,
@@ -431,7 +450,7 @@ export const generateZodValidationSchemaDefinition = (
 
             if (
               schema.items &&
-              (max ?? Number.POSITIVE_INFINITY) > schema31.prefixItems.length
+              (max ?? Number.POSITIVE_INFINITY) > prefixItems.length
             ) {
               // only add zod.rest() if number of tuple elements can exceed provided prefixItems:
               functions.push([
@@ -561,6 +580,9 @@ export const generateZodValidationSchemaDefinition = (
           !!schema.additionalProperties &&
           !isBoolean(schema.additionalProperties);
 
+        // A plain `type: object` without explicit properties/additionalProperties
+        // represents an open dictionary-like object in OpenAPI and should not be
+        // generated as a strict object.
         const shouldUseLooseObject =
           type === 'object' &&
           !hasDefinedProperties &&
@@ -638,7 +660,7 @@ export const generateZodValidationSchemaDefinition = (
     }
   }
 
-  if (minAndMaxTypes.has(type)) {
+  if (isString(type) && minAndMaxTypes.has(type)) {
     // Handle minimum constraints: exclusiveMinimum (>.gt()) takes priority over minimum (.min())
     // Check if exclusive flag was set (boolean format in OpenAPI 3.0) or a different value (OpenAPI 3.1)
     const shouldUseExclusiveMin = exclusiveMinRaw !== undefined;
@@ -702,6 +724,8 @@ export const generateZodValidationSchemaDefinition = (
     functions.push(['regex', `${name}RegExp${constsCounterValue}`]);
   }
 
+  // Array item enums are handled by the nested item schema. Guard parent-array
+  // enum emission to avoid generating invalid trailing `.enum(...)` chains.
   if (schema.enum && type !== 'array') {
     const uniqueEnumValues = unique(schema.enum);
 
@@ -754,7 +778,19 @@ export const parseZodValidationSchemaDefinition = (
 
   let consts = '';
 
-  const parseProperty = (property: [string, any]): string => {
+  const formatFunctionArgs = (value: unknown): string => {
+    if (value === undefined) return '';
+    if (value === null) return 'null';
+    if (isString(value)) return value;
+    if (Array.isArray(value)) return stringify(value) ?? '';
+    if (isObject(value)) {
+      return stringify(value as Record<string, unknown>) ?? '';
+    }
+    if (isNumber(value) || isBoolean(value)) return `${value}`;
+    return '';
+  };
+
+  const parseProperty = (property: [string, unknown]): string => {
     const [fn, args = ''] = property;
 
     // File | string for text contentMediaType/encoding (user can pass string, runtime wraps in Blob)
@@ -850,19 +886,20 @@ ${Object.entries(mergedProperties)
       return acc;
     }
     if (fn === 'oneOf' || fn === 'anyOf') {
+      const unionArgs = args as ZodValidationSchemaDefinition[];
       // Can't use zod.union() with a single item
-      if (args.length === 1) {
-        return args[0].functions
-          .map((prop: any) => parseProperty(prop))
+      if (unionArgs.length === 1) {
+        return unionArgs[0].functions
+          .map((prop: [string, unknown]) => parseProperty(prop))
           .join('');
       }
 
-      const union = args.map(
+      const union = unionArgs.map(
         ({
           functions,
           consts: argConsts,
         }: {
-          functions: [string, any][];
+          functions: [string, unknown][];
           consts: string[];
         }) => {
           const value = functions.map((prop) => parseProperty(prop)).join('');
@@ -873,23 +910,23 @@ ${Object.entries(mergedProperties)
         },
       );
 
-      return `.union([${union}])`;
+      return `.union([${union.join(',')}])`;
     }
 
     if (fn === 'additionalProperties') {
-      const value = args.functions
-        .map((prop: any) => parseProperty(prop))
+      const additionalPropertiesArgs = args as ZodValidationSchemaDefinition;
+      const value = additionalPropertiesArgs.functions
+        .map((prop: [string, unknown]) => parseProperty(prop))
         .join('');
       const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
-      if (typeof args.consts === 'string') {
-        consts += args.consts;
-      } else if (Array.isArray(args.consts)) {
-        consts += args.consts.join('\n');
+      if (Array.isArray(additionalPropertiesArgs.consts)) {
+        consts += additionalPropertiesArgs.consts.join('\n');
       }
       return `zod.record(zod.string(), ${valueWithZod})`;
     }
 
     if (fn === 'object' || fn === 'strictObject' || fn === 'looseObject') {
+      const objectArgs = args as Record<string, ZodValidationSchemaDefinition>;
       const objectType =
         fn === 'looseObject'
           ? isZodV4
@@ -898,7 +935,7 @@ ${Object.entries(mergedProperties)
           : getObjectFunctionName(isZodV4, strict);
 
       const parsedObject = `zod.${objectType}({
-${Object.entries(args)
+${Object.entries(objectArgs)
   .map(([key, schema]) => {
     const value = (schema as ZodValidationSchemaDefinition).functions
       .map((prop) => parseProperty(prop))
@@ -921,13 +958,14 @@ ${Object.entries(args)
     }
 
     if (fn === 'array') {
-      const value = args.functions
-        .map((prop: any) => parseProperty(prop))
+      const arrayArgs = args as ZodValidationSchemaDefinition;
+      const value = arrayArgs.functions
+        .map((prop: [string, unknown]) => parseProperty(prop))
         .join('');
-      if (isString(args.consts)) {
-        consts += args.consts;
-      } else if (Array.isArray(args.consts)) {
-        consts += args.consts.join('\n');
+      if (isString(arrayArgs.consts)) {
+        consts += arrayArgs.consts;
+      } else if (Array.isArray(arrayArgs.consts)) {
+        consts += arrayArgs.consts.join('\n');
       }
       return `.array(${value.startsWith('.') ? 'zod' : ''}${value})`;
     }
@@ -945,7 +983,9 @@ ${Object.entries(args)
         .join(',\n')}])`;
     }
     if (fn === 'rest') {
-      return `.rest(zod${(args as ZodValidationSchemaDefinition).functions.map((prop) => parseProperty(prop))})`;
+      return `.rest(zod${(args as ZodValidationSchemaDefinition).functions
+        .map((prop) => parseProperty(prop))
+        .join('')})`;
     }
     const shouldCoerceType =
       coerceTypes &&
@@ -957,10 +997,10 @@ ${Object.entries(args)
       (fn !== 'date' && shouldCoerceType) ||
       (fn === 'date' && shouldCoerceType && context.output.override.useDates)
     ) {
-      return `.coerce.${fn}(${args})`;
+      return `.coerce.${fn}(${formatFunctionArgs(args)})`;
     }
 
-    return `.${fn}(${args})`;
+    return `.${fn}(${formatFunctionArgs(args)})`;
   };
 
   consts += input.consts.join('\n');
@@ -1006,10 +1046,16 @@ export const dereference = (
       : undefined),
   };
 
-  const { schema: resolvedSchema } = resolveRef<OpenApiSchemaObject>(
-    schema,
-    childContext,
-  );
+  const resolvedSchema: OpenApiSchemaObject | undefined =
+    '$ref' in schema
+      ? (context.spec.components?.schemas?.[
+          getRefInfo(schema.$ref, context).name
+        ] as OpenApiSchemaObject | undefined)
+      : schema;
+
+  if (!resolvedSchema) {
+    return {};
+  }
 
   const resolvedContext = childContext;
 
@@ -1287,6 +1333,9 @@ export const parseParameters = ({
       if (!parameter.schema) {
         return acc;
       }
+      if (!parameter.in || !parameter.name) {
+        return acc;
+      }
 
       const schema = dereference(parameter.schema, context);
       schema.description = parameter.description;
@@ -1436,7 +1485,7 @@ const generateZodRoute = async (
   const responses = (
     context.output.override.zod.generateEachHttpStatus
       ? Object.entries(spec[verb]?.responses ?? {})
-      : [['', spec[verb]?.responses[200]]]
+      : [['', spec[verb]?.responses?.[200]]]
   ) as [string, OpenApiResponseObject | OpenApiReferenceObject][];
   const parsedResponses = responses.map(([code, response]) =>
     parseBodyAndResponse({
