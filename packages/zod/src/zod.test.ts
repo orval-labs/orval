@@ -6,6 +6,7 @@ import type {
 import { describe, expect, it } from 'vitest';
 
 import {
+  dereference,
   generateZod,
   generateZodValidationSchemaDefinition,
   parseZodValidationSchemaDefinition,
@@ -1667,6 +1668,93 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(parsed.zod).toBe(
         "zod.array(zod.enum(['A', 'B', 'C'])).default([`A`])",
       );
+    });
+
+    it('does not append trailing enum chain for arrays with enum items and constraints (#2765)', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'array',
+        items: {
+          type: 'string',
+          enum: ['A', 'B', 'C'],
+        },
+        minItems: 2,
+        uniqueItems: true,
+        // Guardrail for resolved-schema edge shapes where enum can end up on parent arrays.
+        enum: ['A', 'B', 'C'],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumArrayWithConstraints',
+        false,
+        false,
+        { required: true },
+      );
+
+      expect(result.functions.map(([fn]) => fn)).not.toContain('enum');
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+
+      expect(parsed.zod).toContain("zod.array(zod.enum(['A', 'B', 'C']))");
+      expect(parsed.zod).toContain('.min(');
+      expect(parsed.zod).not.toContain(').enum(');
+      expect(parsed.zod).not.toMatch(/\.array\([^)]*\)\.min\([^)]*\)\.enum\(/);
+    });
+
+    it('does not append trailing enum chain for dereferenced array enum schemas (#2765)', () => {
+      const dereferenceContext = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              EnumArray: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                  enum: ['X', 'Y'],
+                },
+                minItems: 1,
+                enum: ['X', 'Y'],
+              },
+            },
+          },
+        },
+      } as ContextSpec;
+
+      const resolvedSchema = dereference(
+        { $ref: '#/components/schemas/EnumArray' },
+        dereferenceContext,
+      );
+
+      const result = generateZodValidationSchemaDefinition(
+        resolvedSchema,
+        dereferenceContext,
+        'resolvedEnumArraySchema',
+        false,
+        false,
+        { required: true },
+      );
+
+      expect(result.functions.map(([fn]) => fn)).not.toContain('enum');
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        dereferenceContext,
+        false,
+        false,
+        false,
+      );
+
+      expect(parsed.zod).toContain("zod.array(zod.enum(['X', 'Y']))");
+      expect(parsed.zod).not.toContain(').enum(');
+      expect(parsed.zod).not.toMatch(/\.array\([^)]*\)\.min\([^)]*\)\.enum\(/);
     });
   });
   describe('number handling', () => {

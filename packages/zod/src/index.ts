@@ -711,7 +711,7 @@ export const generateZodValidationSchemaDefinition = (
     }
   }
 
-  if (schema.enum) {
+  if (schema.enum && type !== 'array') {
     const uniqueEnumValues = unique(schema.enum);
 
     if (uniqueEnumValues.every((value) => isString(value))) {
