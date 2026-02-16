@@ -75,9 +75,8 @@ const generateImplementation = (
     override,
     formData,
     formUrlEncoded,
-    paramsSerializer,
   }: GeneratorVerbOptions,
-  { route, context }: GeneratorOptions,
+  { route }: GeneratorOptions,
 ) => {
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
@@ -102,14 +101,18 @@ const generateImplementation = (
           )
         : toObjectString(props, 'implementation');
 
-    // Build query params string
-    const queryParamsCode = queryParams
-      ? `const queryString = new URLSearchParams(params as any).toString();
-    const url = queryString ? \`${route}?\${queryString}\` : \`${route}\`;`
-      : `const url = \`${route}\`;`;
+    // Build config object for mutator
+    const configParts: string[] = [
+      `url: \`${route}\``,
+      `method: '${verb.toUpperCase()}'`,
+    ];
 
-    // Build fetch options using Fetch API signature
-    const fetchMethodOption = `method: '${verb.toUpperCase()}'`;
+    // Add params for query parameters
+    if (queryParams) {
+      configParts.push('params');
+    }
+
+    // Add headers
     const ignoreContentTypes = ['multipart/form-data'];
     const overrideHeaders =
       isObject(override.requestOptions) && override.requestOptions.headers
@@ -126,49 +129,41 @@ const generateImplementation = (
       ...(headers ? ['...headers'] : []),
     ];
 
-    const fetchHeadersOption =
-      headersToAdd.length > 0 ? `headers: { ${headersToAdd.join(',')} }` : '';
+    if (headersToAdd.length > 0) {
+      configParts.push(`headers: { ${headersToAdd.join(',')} }`);
+    }
 
+    // Add body/data for mutations
     const requestBodyParams = generateBodyOptions(
       body,
       isFormData,
       isFormUrlEncoded,
     );
-    const fetchBodyOption = requestBodyParams
-      ? (isFormData && body.formData) ||
-        (isFormUrlEncoded && body.formUrlEncoded) ||
-        body.contentType === 'text/plain'
-        ? `body: ${requestBodyParams}`
-        : `body: JSON.stringify(${requestBodyParams})`
-      : '';
+    if (requestBodyParams) {
+      if (
+        (isFormData && body.formData) ||
+        (isFormUrlEncoded && body.formUrlEncoded)
+      ) {
+        configParts.push(`data: ${requestBodyParams}`);
+      } else {
+        configParts.push(`data: ${requestBodyParams}`);
+      }
+    }
 
-    const fetchOptions = `{
-      ${fetchMethodOption}${fetchHeadersOption ? ',' : ''}
-      ${fetchHeadersOption}${fetchBodyOption ? ',' : ''}
-      ${fetchBodyOption}
+    const axiosConfig = `{
+      ${configParts.join(',\n      ')}
     }`;
 
-    if (isGetVerb) {
-      // Use query for GET requests
-      return `  ${operationName}: query(async (${propsImplementation}) => {${bodyForm}
-    ${queryParamsCode}
-    return ${mutator.name}<${dataType}>(
-      url,
-      ${fetchOptions}
-    );
+    // Use query for GET requests, action for mutations
+    return isGetVerb
+      ? `  ${operationName}: query(async (${propsImplementation}) => {${bodyForm}
+    return ${mutator.name}<${dataType}>(${axiosConfig});
+  }, "${operationName}"),
+`
+      : `  ${operationName}: action(async (${propsImplementation}) => {${bodyForm}
+    return ${mutator.name}<${dataType}>(${axiosConfig});
   }, "${operationName}"),
 `;
-    } else {
-      // Use action for mutations
-      return `  ${operationName}: action(async (${propsImplementation}) => {${bodyForm}
-    ${queryParamsCode}
-    return ${mutator.name}<${dataType}>(
-      url,
-      ${fetchOptions}
-    );
-  }, "${operationName}"),
-`;
-    }
   }
 
   const propsImplementation = toObjectString(props, 'implementation');
@@ -191,9 +186,9 @@ const generateImplementation = (
       body: JSON.stringify(${body.implementation})`
       : '';
 
-  if (isGetVerb) {
-    // Use query for GET requests
-    return `  ${operationName}: query(async (${propsImplementation}) => {${bodyForm}
+  // Use query for GET requests, action for mutations (POST, PUT, PATCH, DELETE)
+  return isGetVerb
+    ? `  ${operationName}: query(async (${propsImplementation}) => {${bodyForm}
     ${queryParamsCode}
     const response = await fetch(url, {
       method: '${verb.toUpperCase()}',
@@ -204,10 +199,8 @@ const generateImplementation = (
     }
     return response.json() as Promise<${dataType}>;
   }, "${operationName}"),
-`;
-  } else {
-    // Use action for mutations (POST, PUT, PATCH, DELETE)
-    return `  ${operationName}: action(async (${propsImplementation}) => {${bodyForm}
+`
+    : `  ${operationName}: action(async (${propsImplementation}) => {${bodyForm}
     ${queryParamsCode}
     const response = await fetch(url, {
       method: '${verb.toUpperCase()}',
@@ -219,7 +212,6 @@ const generateImplementation = (
     return response.json() as Promise<${dataType}>;
   }, "${operationName}"),
 `;
-  }
 };
 
 export const generateSolidStart: ClientBuilder = (verbOptions, options) => {

@@ -45,6 +45,8 @@ You can find some samples below:
 - [react query](https://github.com/orval-labs/orval/tree/master/samples/react-query)
 - [svelte query](https://github.com/orval-labs/orval/tree/master/samples/svelte-query)
 - [vue query](https://github.com/orval-labs/orval/tree/master/samples/vue-query)
+- [solid query](https://github.com/orval-labs/orval/tree/master/samples/solid-query)
+- [solid start](https://github.com/orval-labs/orval/tree/master/samples/solid-start)
 - [react app with swr](https://github.com/orval-labs/orval/tree/master/samples/react-app-with-swr)
 - [angular app](https://github.com/orval-labs/orval/tree/master/samples/angular-app)
 - [angular query](https://github.com/orval-labs/orval/tree/master/samples/angular-query)

@@ -84,6 +84,7 @@ export const getQueryOptionsDefinition = ({
   queryParam,
   isReturnType,
   initialData,
+  adapter,
 }: {
   operationName: string;
   mutator?: GeneratorMutator;
@@ -97,6 +98,7 @@ export const getQueryOptionsDefinition = ({
   queryParam?: string;
   isReturnType: boolean;
   initialData?: 'defined' | 'undefined';
+  adapter?: FrameworkAdapter;
 }) => {
   const isMutatorHook = mutator?.isHook;
   const partialOptions = !isReturnType && hasQueryV5;
@@ -126,24 +128,59 @@ export const getQueryOptionsDefinition = ({
         > , 'initialData'
       >`
         : '';
-    const optionType = `${prefix}${pascal(type)}Options<${funcReturnType}, TError, TData${
-      hasQueryV5 &&
-      (type === QueryType.INFINITE || type === QueryType.SUSPENSE_INFINITE) &&
-      queryParam &&
-      queryParams
-        ? hasQueryV5WithInfiniteQueryOptionsError
-          ? `, QueryKey, ${queryParams.schema.name}['${queryParam}']`
-          : `, ${funcReturnType}, QueryKey, ${queryParams.schema.name}['${queryParam}']`
-        : ''
-    }>`;
+
+    // Use adapter's custom options type name for return types if available
+    const optionsTypeName =
+      isReturnType && adapter?.getOptionsReturnTypeName
+        ? adapter.getOptionsReturnTypeName(
+            type === QueryType.INFINITE || type === QueryType.SUSPENSE_INFINITE
+              ? 'infiniteQuery'
+              : 'query',
+          )
+        : undefined;
+
+    const optionType = optionsTypeName
+      ? `${optionsTypeName}<${funcReturnType}, TError, TData${
+          hasQueryV5 &&
+          (type === QueryType.INFINITE ||
+            type === QueryType.SUSPENSE_INFINITE) &&
+          queryParam &&
+          queryParams
+            ? `, QueryKey, ${queryParams.schema.name}['${queryParam}']`
+            : ''
+        }>`
+      : `${prefix}${pascal(type)}Options<${funcReturnType}, TError, TData${
+          hasQueryV5 &&
+          (type === QueryType.INFINITE ||
+            type === QueryType.SUSPENSE_INFINITE) &&
+          queryParam &&
+          queryParams
+            ? hasQueryV5WithInfiniteQueryOptionsError
+              ? `, QueryKey, ${queryParams.schema.name}['${queryParam}']`
+              : `, ${funcReturnType}, QueryKey, ${queryParams.schema.name}['${queryParam}']`
+            : ''
+        }>`;
+
     return `${partialOptions ? 'Partial<' : ''}${optionType}${
       partialOptions ? '>' : ''
     }${optionTypeInitialDataPostfix}`;
   }
 
-  return `${prefix}MutationOptions<Awaited<ReturnType<${
-    isMutatorHook
-      ? `ReturnType<typeof use${pascal(operationName)}Hook>`
-      : `typeof ${operationName}`
-  }>>, TError,${definitions ? `{${definitions}}` : 'void'}, TContext>`;
+  // Mutation options
+  const mutationOptionsTypeName =
+    isReturnType && adapter?.getOptionsReturnTypeName
+      ? adapter.getOptionsReturnTypeName('mutation')
+      : undefined;
+
+  return mutationOptionsTypeName
+    ? `${mutationOptionsTypeName}<Awaited<ReturnType<${
+        isMutatorHook
+          ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+          : `typeof ${operationName}`
+      }>>, TError,${definitions ? `{${definitions}}` : 'void'}, TContext>`
+    : `${prefix}MutationOptions<Awaited<ReturnType<${
+        isMutatorHook
+          ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+          : `typeof ${operationName}`
+      }>>, TError,${definitions ? `{${definitions}}` : 'void'}, TContext>`;
 };

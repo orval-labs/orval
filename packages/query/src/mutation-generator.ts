@@ -142,6 +142,7 @@ export const generateMutationHook = async ({
     hasQueryV5WithInfiniteQueryOptionsError:
       adapter.hasQueryV5WithInfiniteQueryOptionsError,
     isReturnType: true,
+    adapter,
   });
 
   const invalidatesConfig = (query.mutationInvalidates ?? [])
