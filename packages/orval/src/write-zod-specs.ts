@@ -84,7 +84,13 @@ const groupSchemasByFilePath = <T extends { filePath: string }>(
     }
   }
 
-  return [...grouped.values()];
+  const sortedGroups = [...grouped.values()].map((group) =>
+    group.slice().sort((a, b) => a.filePath.localeCompare(b.filePath)),
+  );
+
+  return sortedGroups.sort((a, b) =>
+    a[0].filePath.localeCompare(b[0].filePath),
+  );
 };
 
 async function writeZodSchemaIndex(
