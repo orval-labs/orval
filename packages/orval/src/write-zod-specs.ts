@@ -85,11 +85,11 @@ const groupSchemasByFilePath = <T extends { filePath: string }>(
   }
 
   const sortedGroups = [...grouped.values()].map((group) =>
-    [...group].toSorted((a, b) => a.filePath.localeCompare(b.filePath))
+    [...group].toSorted((a, b) => a.filePath.localeCompare(b.filePath)),
   );
 
   return sortedGroups.toSorted((a, b) =>
-    a[0].filePath.localeCompare(b[0].filePath)
+    a[0].filePath.localeCompare(b[0].filePath),
   );
 };
 
