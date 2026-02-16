@@ -51,6 +51,8 @@ export const MyEnum = {
   /** Represents the fourth value */
   Four: 4,
 } as const;
+
+export type MyEnum = typeof MyEnum[keyof typeof MyEnum];
 ```
 
 ## Supported Extensions
