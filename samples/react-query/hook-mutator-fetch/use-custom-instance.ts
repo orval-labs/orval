@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 
 export function useGetBaseUrl() {
-  const [baseUrl] = useState('')
+  const [baseUrl] = useState('');
   return baseUrl;
 }
 
