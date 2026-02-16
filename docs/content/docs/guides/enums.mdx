@@ -1,11 +1,13 @@
 ---
-title: Enum Names
-description: Generate named enums from OpenAPI extensions
+title: Enum Extensions
+description: Generate enums with custom names and descriptions from OpenAPI extensions
 ---
 
-Use OpenAPI extensions to generate enums with meaningful names instead of numeric values.
+Use OpenAPI extensions to generate enums with meaningful names and descriptions.
 
 ## OpenAPI Schema
+
+Use `x-enumNames` to assign meaningful names to enum members, and `x-enumDescriptions` to add JSDoc comments that appear in IDE tooltips.
 
 ```yaml
 openapi: '3.1.0'
@@ -29,23 +31,44 @@ components:
             - Two
             - Three
             - Four
+          x-enumDescriptions:
+            - Represents the first value
+            - Represents the second value
+            - Represents the third value
+            - Represents the fourth value
 ```
 
 ## Generated Output
 
 ```ts
 export const MyEnum = {
+  /** Represents the first value */
   One: 1,
+  /** Represents the second value */
   Two: 2,
+  /** Represents the third value */
   Three: 3,
+  /** Represents the fourth value */
   Four: 4,
 } as const;
 ```
 
 ## Supported Extensions
 
-Orval recognizes these extensions for enum names:
+Orval recognizes the following extensions:
+
+**Enum names:**
 
 - `x-enumNames`
 - `x-enumnames`
 - `x-enum-varnames`
+
+**Enum descriptions:**
+
+- `x-enumDescriptions`
+- `x-enumdescriptions`
+- `x-enum-descriptions`
+
+<Callout type="info">
+Enum descriptions are only supported when [`enumGenerationType`](/docs/reference/configuration/output#enumgenerationtype) is set to `const` (default). They are not applied when using `enum` or `union`.
+</Callout>
