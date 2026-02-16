@@ -20886,12 +20886,23 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"react-query-hook-mutator@workspace:samples/react-query/hook-mutator":
+"react-query-hook-mutator-axios@workspace:samples/react-query/hook-mutator-axios":
   version: 0.0.0-use.local
-  resolution: "react-query-hook-mutator@workspace:samples/react-query/hook-mutator"
+  resolution: "react-query-hook-mutator-axios@workspace:samples/react-query/hook-mutator-axios"
   dependencies:
     "@faker-js/faker": "catalog:tooling"
     axios: "npm:^1.13.5"
+    orval: "workspace:*"
+    react: "npm:^18.3.1"
+    react-query: "npm:^3.39.3"
+  languageName: unknown
+  linkType: soft
+
+"react-query-hook-mutator-fetch@workspace:samples/react-query/hook-mutator-fetch":
+  version: 0.0.0-use.local
+  resolution: "react-query-hook-mutator-fetch@workspace:samples/react-query/hook-mutator-fetch"
+  dependencies:
+    "@faker-js/faker": "catalog:tooling"
     orval: "workspace:*"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
