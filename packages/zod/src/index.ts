@@ -519,6 +519,8 @@ export const generateZodValidationSchemaDefinition = (
           ) {
             if ('const' in schema) {
               functions.push(['literal', `"${schema.const}"`]);
+            } else if (schema.pattern && schema.format) {
+              break;
             } else {
               functions.push([type as string, undefined]);
             }
@@ -721,7 +723,14 @@ export const generateZodValidationSchemaDefinition = (
     consts.push(
       `export const ${name}RegExp${constsCounterValue} = ${regexp};\n`,
     );
-    functions.push(['regex', `${name}RegExp${constsCounterValue}`]);
+    if (schema.format && isZodV4) {
+      functions.push([
+        'stringFormat',
+        [`'${escape(schema.format)}'`, `${name}RegExp${constsCounterValue}`],
+      ]);
+    } else {
+      functions.push(['regex', `${name}RegExp${constsCounterValue}`]);
+    }
   }
 
   // Array item enums are handled by the nested item schema. Guard parent-array

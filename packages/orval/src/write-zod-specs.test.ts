@@ -20,7 +20,6 @@ type MinimalVerbsContext = {
   target: string;
   workspace: string;
 };
-
 const createOutputOptions = (): Parameters<typeof writeZodSchemas>[4] =>
   ({
     namingConvention: 'PascalCase',

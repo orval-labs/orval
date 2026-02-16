@@ -9,6 +9,7 @@ import {
   type OpenApiSchemaObject,
   pascal,
   upath,
+  type ZodCoerceType,
 } from '@orval/core';
 import {
   dereference,
@@ -38,7 +39,7 @@ type WriteZodOutputOptions = {
         body: boolean;
       };
       coerce: {
-        body: boolean | unknown[];
+        body: boolean | ZodCoerceType[];
       };
     };
   };
@@ -145,7 +146,13 @@ const groupSchemasByFilePath = <T extends { filePath: string }>(
     }
   }
 
-  return [...grouped.values()];
+  const sortedGroups = [...grouped.values()].map((group) =>
+    [...group].toSorted((a, b) => a.filePath.localeCompare(b.filePath)),
+  );
+
+  return sortedGroups.toSorted((a, b) =>
+    a[0].filePath.localeCompare(b[0].filePath),
+  );
 };
 
 async function writeZodSchemaIndex(
@@ -213,7 +220,7 @@ export async function writeZodSchemas(
       spec: builder.spec,
       target: builder.target,
       workspace: '',
-      output,
+      output: output as ContextSpec['output'],
     };
 
     // Dereference the schema to resolve $ref

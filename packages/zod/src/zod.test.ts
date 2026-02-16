@@ -835,6 +835,98 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).toContain('describe');
   });
 
+  it('generates stringFormat when format and pattern is defined in v4', () => {
+    const stringWithPatternAndFormat: OpenApiSchemaObject = {
+      type: 'string',
+      pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+      format: 'my-guid',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      stringWithPatternAndFormat,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'test',
+      true, // strict mode enabled
+      true, // Zod v4
+      {
+        required: true,
+      },
+    );
+
+    expect(result.functions[0][0]).toBe('stringFormat');
+    expect(result.consts[0]).toContain(
+      '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      true,
+      true,
+      false,
+    );
+
+    expect(parsed.zod).toContain('my-guid');
+  });
+
+  it('generates string when format and pattern is defined in v3', () => {
+    const stringWithPatternAndFormat: OpenApiSchemaObject = {
+      type: 'string',
+      pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+      format: 'my-guid',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      stringWithPatternAndFormat,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'test',
+      true, // strict mode enabled
+      false,
+      {
+        required: true,
+      },
+    );
+
+    expect(result.functions[0][0]).toBe('string');
+    expect(result.consts[0]).toContain(
+      '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      true,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).not.toContain("'my-guid'");
+  });
+
   describe('description handling', () => {
     const context: ContextSpec = {
       output: {
