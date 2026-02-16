@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
-
 import type {
   ContextSpec,
   GeneratorOptions,
@@ -15,6 +12,8 @@ import {
   parseZodValidationSchemaDefinition,
   type ZodValidationSchemaDefinition,
 } from '.';
+
+const testOutput = {} as unknown as Parameters<typeof generateZod>[2];
 
 const record: ZodValidationSchemaDefinition = {
   functions: [
@@ -879,6 +878,8 @@ describe('generateZodValidationSchemaDefinition`', () => {
     );
 
     expect(parsed.zod).toContain('my-guid');
+    expect(parsed.zod).toContain('.stringFormat(');
+    expect(parsed.zod).not.toContain('.stringFormat([');
   });
 
   it('generates string when format and pattern is defined in v3', () => {
@@ -1965,7 +1966,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           type: 'number',
           minimum: 10,
           exclusiveMinimum: true,
-        } as OpenApiSchemaObject;
+        } as unknown as OpenApiSchemaObject;
 
         const result = generateZodValidationSchemaDefinition(
           schema,
@@ -2005,7 +2006,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           type: 'number',
           maximum: 100,
           exclusiveMaximum: true,
-        } as OpenApiSchemaObject;
+        } as unknown as OpenApiSchemaObject;
 
         const result = generateZodValidationSchemaDefinition(
           schema,
@@ -2047,7 +2048,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           maximum: 100,
           exclusiveMinimum: true,
           exclusiveMaximum: true,
-        } as OpenApiSchemaObject;
+        } as unknown as OpenApiSchemaObject;
 
         const result = generateZodValidationSchemaDefinition(
           schema,
@@ -2173,7 +2174,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 });
 
-const basicApiSchema: GeneratorOptions = {
+const basicApiSchema = {
   pathRoute: '/cats',
   context: {
     spec: {
@@ -2250,7 +2251,7 @@ const basicApiSchema: GeneratorOptions = {
       },
     },
   },
-};
+} as unknown as GeneratorOptions;
 describe('generatePartOfSchemaGenerateZod', () => {
   it('Default Config', async () => {
     const result = await generateZod(
@@ -2286,9 +2287,9 @@ describe('generatePartOfSchemaGenerateZod', () => {
             timeOptions: {},
           },
         },
-      },
+      } as unknown as Parameters<typeof generateZod>[0],
       basicApiSchema,
-      {},
+      testOutput,
     );
 
     expect(result.implementation).toBe(
@@ -2330,9 +2331,9 @@ describe('generatePartOfSchemaGenerateZod', () => {
             timeOptions: {},
           },
         },
-      },
+      } as unknown as Parameters<typeof generateZod>[0],
       basicApiSchema,
-      {},
+      testOutput,
     );
     expect(result.implementation).toBe(
       'export const TestResponse = zod.object({\n  "name": zod.string().optional()\n})\n\n',
@@ -2373,9 +2374,9 @@ describe('generatePartOfSchemaGenerateZod', () => {
             timeOptions: {},
           },
         },
-      },
+      } as unknown as Parameters<typeof generateZod>[0],
       basicApiSchema,
-      {},
+      testOutput,
     );
     expect(result.implementation).toBe(
       'export const TestBody = zod.object({\n  "name": zod.string().optional()\n})\n\n',
@@ -2416,9 +2417,9 @@ describe('generatePartOfSchemaGenerateZod', () => {
             timeOptions: {},
           },
         },
-      },
+      } as unknown as Parameters<typeof generateZod>[0],
       basicApiSchema,
-      {},
+      testOutput,
     );
     expect(result.implementation).toBe(
       'export const TestQueryParams = zod.object({\n  "page": zod.number().optional()\n})\n\n',
@@ -2459,9 +2460,9 @@ describe('generatePartOfSchemaGenerateZod', () => {
             timeOptions: {},
           },
         },
-      },
+      } as unknown as Parameters<typeof generateZod>[0],
       basicApiSchema,
-      {},
+      testOutput,
     );
     expect(result.implementation).toBe(
       'export const TestParams = zod.object({\n  "id": zod.string()\n})\n\n',
@@ -2502,9 +2503,9 @@ describe('generatePartOfSchemaGenerateZod', () => {
             timeOptions: {},
           },
         },
-      },
+      } as unknown as Parameters<typeof generateZod>[0],
       basicApiSchema,
-      {},
+      testOutput,
     );
     expect(result.implementation).toBe(
       'export const TestHeader = zod.object({\n  "x-header": zod.string()\n})\n\n',
@@ -2610,7 +2611,7 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
   });
 });
 
-const formDataSchema: GeneratorOptions = {
+const formDataSchema = {
   pathRoute: '/cats',
   context: {
     spec: {
@@ -2665,7 +2666,7 @@ const formDataSchema: GeneratorOptions = {
       },
     },
   },
-};
+} as unknown as GeneratorOptions;
 
 describe('generateFormData', () => {
   it('Only generate request body', async () => {
@@ -2702,9 +2703,9 @@ describe('generateFormData', () => {
             timeOptions: {},
           },
         },
-      },
+      } as unknown as Parameters<typeof generateZod>[0],
       formDataSchema,
-      {},
+      testOutput,
     );
     expect(result.implementation).toBe(
       'export const TestBody = zod.object({\n  "name": zod.string().optional(),\n  "catImage": zod.instanceof(File).optional()\n})\n\n',
@@ -2712,7 +2713,7 @@ describe('generateFormData', () => {
   });
 });
 
-const schemaWithRefProperty: GeneratorOptions = {
+const schemaWithRefProperty = {
   pathRoute: '/cats',
   context: {
     spec: {
@@ -2758,7 +2759,7 @@ const schemaWithRefProperty: GeneratorOptions = {
       },
     },
   },
-};
+} as unknown as GeneratorOptions;
 
 describe('generateZodWithEdgeCases', () => {
   it('correctly handles $ref as a property name', async () => {
@@ -2795,9 +2796,9 @@ describe('generateZodWithEdgeCases', () => {
             timeOptions: {},
           },
         },
-      },
+      } as unknown as Parameters<typeof generateZod>[0],
       schemaWithRefProperty,
-      {},
+      testOutput,
     );
 
     expect(result.implementation).toBe(
@@ -2806,7 +2807,7 @@ describe('generateZodWithEdgeCases', () => {
   });
 });
 
-const schemaWithLiteralProperty: GeneratorOptions = {
+const schemaWithLiteralProperty = {
   pathRoute: '/cats',
   context: {
     spec: {
@@ -2850,7 +2851,7 @@ const schemaWithLiteralProperty: GeneratorOptions = {
       },
     },
   },
-};
+} as unknown as GeneratorOptions;
 
 describe('generateZodWithLiteralProperty', () => {
   it('correctly handles literal as a property name', async () => {
@@ -2887,9 +2888,9 @@ describe('generateZodWithLiteralProperty', () => {
             timeOptions: {},
           },
         },
-      },
+      } as unknown as Parameters<typeof generateZod>[0],
       schemaWithLiteralProperty,
-      {},
+      testOutput,
     );
 
     expect(result.implementation).toBe(
@@ -4553,7 +4554,7 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
   };
 
   it('media key precedence: application/json ignores contentMediaType', async () => {
-    const schema: GeneratorOptions = {
+    const schema = {
       pathRoute: '/upload',
       context: {
         spec: {
@@ -4592,16 +4593,16 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
         },
         output: { override: { zod: { generateEachHttpStatus: false } } },
       },
-    };
+    } as unknown as GeneratorOptions;
     const result = await generateZod(
       {
         pathRoute: '/upload',
         verb: 'post',
         operationName: 'upload',
         override: zodOverride,
-      },
+      } as unknown as Parameters<typeof generateZod>[0],
       schema,
-      {},
+      testOutput,
     );
     // contentMediaType: 'image/png' should be IGNORED because media key is application/json
     expect(result.implementation).toContain('"ignored": zod.string()');
@@ -4610,7 +4611,7 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
 
   it('multipart/form-data: comprehensive content type handling', async () => {
     // Matches type gen test structure in res-req-types.test.ts
-    const schema: GeneratorOptions = {
+    const schema = {
       pathRoute: '/upload-form',
       context: {
         spec: {
@@ -4683,16 +4684,16 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
         },
         output: { override: { zod: { generateEachHttpStatus: false } } },
       },
-    };
+    } as unknown as GeneratorOptions;
     const result = await generateZod(
       {
         pathRoute: '/upload-form',
         verb: 'post',
         operationName: 'uploadForm',
         override: zodOverride,
-      },
+      } as unknown as Parameters<typeof generateZod>[0],
       schema,
-      {},
+      testOutput,
     );
     // encBinary: encoding image/png → File
     // encText: encoding text/plain → File | string
@@ -4759,6 +4760,54 @@ describe('zod split mode regressions', () => {
 
     expect(parsed.zod).toContain('"@type": zod.string()');
     expect(parsed.zod).not.toContain('"_type"');
+  });
+
+  it('preserves nullable sibling fields on dereferenced refs', () => {
+    const dereferenceContext = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            RefPet: {
+              type: 'object',
+              properties: {
+                name: {
+                  type: 'string',
+                },
+              },
+              required: ['name'],
+            },
+          },
+        },
+      },
+    } as ContextSpec;
+
+    const resolvedSchema = dereference(
+      {
+        $ref: '#/components/schemas/RefPet',
+        nullable: true,
+      } as unknown as OpenApiSchemaObject,
+      dereferenceContext,
+    );
+
+    const definition = generateZodValidationSchemaDefinition(
+      resolvedSchema,
+      dereferenceContext,
+      'refPetSchema',
+      false,
+      false,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      definition,
+      dereferenceContext,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('.nullable()');
   });
 
   it('uses passthrough object for generic object schemas in zod v3', () => {

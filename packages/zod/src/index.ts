@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, unicorn/no-array-reduce */
+/* eslint-disable unicorn/no-array-reduce */
 
 import {
   camel,
@@ -178,6 +178,8 @@ type DateTimeOptions = {
 type TimeOptions = {
   precision?: -1 | 0 | 1 | 2 | 3;
 };
+
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 
 export const generateZodValidationSchemaDefinition = (
   schema: OpenApiSchemaObject | undefined,
@@ -791,7 +793,9 @@ export const parseZodValidationSchemaDefinition = (
     if (value === undefined) return '';
     if (value === null) return 'null';
     if (isString(value)) return value;
-    if (Array.isArray(value)) return stringify(value) ?? '';
+    if (Array.isArray(value)) {
+      return value.map((item) => formatFunctionArgs(item)).join(', ');
+    }
     if (isObject(value)) {
       return stringify(value as Record<string, unknown>) ?? '';
     }
@@ -1029,9 +1033,12 @@ ${Object.entries(objectArgs)
   return { zod, consts };
 };
 
-const dereferenceScalar = (value: any, context: ContextSpec): unknown => {
+const dereferenceScalar = (value: unknown, context: ContextSpec): unknown => {
   if (isObject(value)) {
-    return dereference(value, context);
+    return dereference(
+      value as OpenApiSchemaObject | OpenApiReferenceObject,
+      context,
+    );
   } else if (Array.isArray(value)) {
     return value.map((item) => dereferenceScalar(item, context));
   } else {
@@ -1057,9 +1064,26 @@ export const dereference = (
 
   const resolvedSchema: OpenApiSchemaObject | undefined =
     '$ref' in schema
-      ? (context.spec.components?.schemas?.[
-          getRefInfo(schema.$ref, context).name
-        ] as OpenApiSchemaObject | undefined)
+      ? (() => {
+          const referencedSchema = context.spec.components?.schemas?.[
+            getRefInfo(schema.$ref, context).name
+          ] as OpenApiSchemaObject | undefined;
+
+          if (!referencedSchema || !isObject(referencedSchema)) {
+            return;
+          }
+
+          const siblingProperties = Object.fromEntries(
+            Object.entries(schema as Record<string, unknown>).filter(
+              ([key]) => key !== '$ref',
+            ),
+          );
+
+          return {
+            ...(referencedSchema as Record<string, unknown>),
+            ...siblingProperties,
+          } as OpenApiSchemaObject;
+        })()
       : schema;
 
   if (!resolvedSchema) {
@@ -1068,25 +1092,28 @@ export const dereference = (
 
   const resolvedContext = childContext;
 
-  return Object.entries(resolvedSchema).reduce<any>((acc, [key, value]) => {
-    if (key === 'properties' && isObject(value)) {
-      acc[key] = Object.entries(value).reduce<
-        Record<string, OpenApiSchemaObject>
-      >((props, [propKey, propSchema]) => {
-        props[propKey] = dereference(
-          propSchema as OpenApiSchemaObject | OpenApiReferenceObject,
-          resolvedContext,
-        );
-        return props;
-      }, {});
-    } else if (key === 'default' || key === 'example' || key === 'examples') {
-      acc[key] = value;
-    } else {
-      acc[key] = dereferenceScalar(value, resolvedContext);
-    }
+  return Object.entries(resolvedSchema).reduce<Record<string, unknown>>(
+    (acc, [key, value]) => {
+      if (key === 'properties' && isObject(value)) {
+        acc[key] = Object.entries(value).reduce<
+          Record<string, OpenApiSchemaObject>
+        >((props, [propKey, propSchema]) => {
+          props[propKey] = dereference(
+            propSchema as OpenApiSchemaObject | OpenApiReferenceObject,
+            resolvedContext,
+          );
+          return props;
+        }, {});
+      } else if (key === 'default' || key === 'example' || key === 'examples') {
+        acc[key] = value;
+      } else {
+        acc[key] = dereferenceScalar(value, resolvedContext);
+      }
 
-    return acc;
-  }, {});
+      return acc;
+    },
+    {},
+  ) as OpenApiSchemaObject;
 };
 
 /**
@@ -1279,6 +1306,8 @@ const parseBodyAndResponse = ({
   };
 };
 
+/* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+
 export const parseParameters = ({
   data,
   context,
@@ -1330,7 +1359,7 @@ export const parseParameters = ({
   const defintionsByParameters = data.reduce<
     Record<
       'headers' | 'queryParams' | 'params',
-      Record<string, { functions: [string, any][]; consts: string[] }>
+      Record<string, { functions: [string, unknown][]; consts: string[] }>
     >
   >(
     (acc, val) => {
