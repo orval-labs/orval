@@ -9,7 +9,7 @@ servers:
 paths:
   /search:
     get:
-      summary: search by query params
+      summary: Search pets by query params
       operationId: searchPets
       tags:
         - pets
@@ -32,6 +32,24 @@ paths:
           schema:
             type: string
             nullable: true
+        - name: status
+          in: query
+          required: false
+          description: Filter by adoption status
+          schema:
+            type: string
+            enum:
+              - available
+              - pending
+              - sold
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of results to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
       responses:
         '200':
           description: A paged array of pets
@@ -101,8 +119,26 @@ paths:
               properties:
                 name:
                   type: string
+                  minLength: 1
+                  maxLength: 100
+                  description: Name of the pet
                 tag:
                   type: string
+                  minLength: 1
+                  maxLength: 50
+                  description: Classification tag
+                email:
+                  type: string
+                  format: email
+                  description: Owner contact email
+                status:
+                  type: string
+                  enum:
+                    - available
+                    - pending
+                    - sold
+                  default: available
+                  description: Initial adoption status
       responses:
         '201':
           description: Null response
@@ -161,7 +197,7 @@ paths:
                 $ref: '#/components/schemas/Error'
   /pets/{petId}/text:
     get:
-      summary: Info for a specific pet
+      summary: Info for a specific pet as plain text
       operationId: showPetText
       tags:
         - pets
@@ -265,10 +301,47 @@ components:
         id:
           type: integer
           format: int64
+          minimum: 1
+          description: Unique identifier for the pet
         name:
           type: string
+          minLength: 1
+          maxLength: 100
+          description: Name of the pet
         tag:
           type: string
+          minLength: 1
+          maxLength: 50
+          description: Optional classification tag
+        email:
+          type: string
+          format: email
+          description: Owner contact email
+        status:
+          type: string
+          enum:
+            - available
+            - pending
+            - sold
+          default: available
+          description: Current adoption status
+        age:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 30
+          description: Age of the pet in years
+        rating:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 5
+          multipleOf: 0.5
+          description: Average customer rating
+        phone:
+          type: string
+          pattern: '^\+?[1-9]\d{1,14}$'
+          description: Contact phone in E.164 format
         requiredNullableString:
           type: string
           nullable: true
@@ -277,6 +350,7 @@ components:
           nullable: true
     Pets:
       type: array
+      maxItems: 100
       items:
         $ref: '#/components/schemas/Pet'
     Error:
@@ -288,5 +362,10 @@ components:
         code:
           type: integer
           format: int32
+          minimum: 100
+          maximum: 600
+          description: HTTP-like error code
         message:
           type: string
+          minLength: 1
+          description: Human-readable error message

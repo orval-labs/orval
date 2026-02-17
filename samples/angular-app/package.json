@@ -22,7 +22,8 @@
     "@angular/platform-browser": "catalog:angular",
     "@angular/router": "catalog:angular",
     "rxjs": "catalog:angular",
-    "tslib": "catalog:"
+    "tslib": "catalog:",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@angular/build": "catalog:angular",

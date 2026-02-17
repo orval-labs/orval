@@ -1,10 +1,11 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { AsyncPipe } from '@angular/common';
 import { PetsService } from '../api/endpoints/pets/pets.service';
 
 @Component({
   selector: 'app-root',
   imports: [AsyncPipe],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="App">
       <h1>Hello, {{ title() }}</h1>
