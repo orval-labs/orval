@@ -64,10 +64,10 @@ describe('ZodValidationDemo', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h2')?.textContent).toContain(
-      'Zod Runtime Validation Demo',
+    expect(compiled.querySelector('h1')?.textContent).toContain(
+      'Runtime Validation',
     );
-    expect(compiled.querySelectorAll('section').length).toBe(4);
+    expect(compiled.querySelectorAll('.panel').length).toBe(4);
 
     flushPendingGetRequests();
   });
@@ -108,7 +108,7 @@ describe('ZodValidationDemo', () => {
     await fixture.whenStable();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const listItems = compiled.querySelectorAll('section:first-of-type li');
+    const listItems = compiled.querySelectorAll('.panel:first-child li');
     expect(listItems.length).toBe(2);
     expect(listItems[0].textContent).toContain('Rex');
     expect(listItems[1].textContent).toContain('Felix');

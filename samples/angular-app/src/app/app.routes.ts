@@ -1,8 +1,10 @@
 import { Routes } from '@angular/router';
-import { AppHome } from './app';
-import { ZodValidationDemo } from './zod-validation-demo';
 
 export const routes: Routes = [
-  { path: '', component: AppHome },
-  { path: 'zod-demo', component: ZodValidationDemo },
+  {
+    path: '',
+    loadComponent: () =>
+      import('./pets-store.page').then((m) => m.PetsStorePage),
+  },
+  { path: 'zod-demo', loadComponent: () => import('./zod-validation-demo').then(m => m.ZodValidationDemo) },
 ];

@@ -1,17 +1,63 @@
-.App {
-  text-align: center;
+/* ------------------------------------------------------------------ */
+/* Void Terminal — global reset & CSS custom properties                */
+/* ------------------------------------------------------------------ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-.App-header {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: black;
+:root {
+  /* Palette */
+  --bg:          #07080c;
+  --surface:     #0f1117;
+  --surface-2:   #161820;
+  --border:      #1e2130;
+  --border-2:    #2a2d40;
+
+  /* Accent — electric teal */
+  --accent:      oklch(0.80 0.14 195);
+  --accent-dim:  oklch(0.80 0.14 195 / 0.12);
+  --accent-glow: oklch(0.80 0.14 195 / 0.25);
+
+  /* Status */
+  --success:     oklch(0.75 0.16 148);
+  --success-dim: oklch(0.75 0.16 148 / 0.12);
+  --error:       oklch(0.68 0.22 22);
+  --error-dim:   oklch(0.68 0.22 22 / 0.12);
+  --warning:     oklch(0.82 0.18 80);
+
+  /* Typography */
+  --font-display: 'Syne', sans-serif;
+  --font-sans:    'DM Sans', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+
+  /* Text */
+  --text:        #d1d5e0;
+  --text-2:      #8892a4;
+  --text-3:      #4a5168;
+
+  color-scheme: dark;
 }
 
-.App-logo {
-  width: 100%;
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+::selection {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }

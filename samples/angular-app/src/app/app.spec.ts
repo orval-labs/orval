@@ -2,35 +2,33 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
-import { AppHome } from './app';
+import { PetsStorePage } from './pets-store.page';
 import { AppShell } from './app.shell';
 import { routes } from './app.routes';
 
-describe('App', () => {
+describe('PetsStorePage', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [AppHome],
+      imports: [PetsStorePage],
       providers: [provideZonelessChangeDetection(), provideHttpClient()],
     }).compileComponents();
   });
 
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(AppHome);
+  it('should create the page', () => {
+    const fixture = TestBed.createComponent(PetsStorePage);
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
   });
 
   it('should render title', () => {
-    const fixture = TestBed.createComponent(AppHome);
+    const fixture = TestBed.createComponent(PetsStorePage);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain(
-      'Hello, angular-app',
-    );
+    expect(compiled.querySelector('h1')?.textContent).toContain('Pet Store');
   });
 
   it('should render pets', async () => {
-    const fixture = TestBed.createComponent(AppHome);
+    const fixture = TestBed.createComponent(PetsStorePage);
     fixture.detectChanges();
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
@@ -63,8 +61,8 @@ describe('AppShell', () => {
     expect(nav).toBeTruthy();
     const links = nav!.querySelectorAll('a');
     expect(links.length).toBe(2);
-    expect(links[0].textContent).toContain('Pets Demo');
-    expect(links[1].textContent).toContain('Zod Validation Demo');
+    expect(links[0].textContent).toContain('Pet Store');
+    expect(links[1].textContent).toContain('Zod Validation');
   });
 
   it('should have a router outlet', () => {
