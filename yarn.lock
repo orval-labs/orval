@@ -3799,6 +3799,7 @@ __metadata:
     "@hono/zod-validator": "npm:^0.7.3"
     hono: "npm:^4.11.7"
     orval: "workspace:*"
+    prettier: "catalog:"
     wrangler: "npm:^4.59.2"
   languageName: unknown
   linkType: soft
@@ -9353,6 +9354,7 @@ __metadata:
     "@faker-js/faker": "catalog:tooling"
     msw: "catalog:tooling"
     orval: "workspace:*"
+    prettier: "catalog:"
     rimraf: "npm:^6.1.2"
     rxjs: "catalog:angular"
     tslib: "catalog:"
@@ -9384,6 +9386,7 @@ __metadata:
     "@testing-library/angular": "npm:19.0.0"
     msw: "catalog:tooling"
     orval: "link:../../packages/orval/dist"
+    prettier: "catalog:"
     rxjs: "catalog:angular"
     tslib: "catalog:"
     typescript: "npm:~5.9.3"
@@ -10026,6 +10029,7 @@ __metadata:
     msw: "npm:^2.12.7"
     npm-run-all: "npm:^4.1.5"
     orval: "workspace:*"
+    prettier: "catalog:"
   dependenciesMeta:
     msw:
       built: true
@@ -14755,6 +14759,7 @@ __metadata:
   resolution: "hono-with-fetch-client@workspace:samples/hono/hono-with-fetch-client"
   dependencies:
     orval: "workspace:*"
+    prettier: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -14766,6 +14771,7 @@ __metadata:
     "@hono/zod-validator": "npm:^0.7.3"
     hono: "npm:^4.11.7"
     orval: "workspace:*"
+    prettier: "catalog:"
     wrangler: "npm:^4.59.2"
     zod: "npm:^3.25.76"
   languageName: unknown
@@ -17491,6 +17497,7 @@ __metadata:
     "@modelcontextprotocol/sdk": "npm:1.26.0"
     "@types/node": "npm:^22.18.12"
     orval: "workspace:*"
+    prettier: "catalog:"
     ts-node: "npm:^10.9.2"
     typescript: "npm:~5.9.3"
     zod: "npm:^3.25.76"
@@ -18195,6 +18202,7 @@ __metadata:
     next: "npm:14.2.35"
     orval: "workspace:*"
     postcss: "npm:8.5.6"
+    prettier: "catalog:"
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
     tailwindcss: "npm:^3.4.17"
@@ -19013,6 +19021,11 @@ __metadata:
     typedoc-plugin-markdown: "npm:^4.9.0"
     typescript: "catalog:"
     vitest: "catalog:"
+  peerDependencies:
+    prettier: ">=3.0.0"
+  peerDependenciesMeta:
+    prettier:
+      optional: true
   bin:
     orval: ./dist/bin/orval.mjs
   languageName: unknown
@@ -20711,6 +20724,7 @@ __metadata:
     axios: "npm:^1.13.5"
     msw: "catalog:tooling"
     orval: "workspace:*"
+    prettier: "catalog:"
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
@@ -20807,6 +20821,7 @@ __metadata:
     axios: "npm:^1.13.5"
     msw: "catalog:tooling"
     orval: "workspace:*"
+    prettier: "catalog:"
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
     react-scripts: "npm:^5.0.1"
@@ -20832,6 +20847,7 @@ __metadata:
     eslint-plugin-react-hooks: "npm:^4.6.2"
     eslint-plugin-react-refresh: "npm:^0.4.24"
     orval: "workspace:*"
+    prettier: "catalog:"
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
     typescript: "npm:~5.9.3"
@@ -20846,6 +20862,7 @@ __metadata:
     "@faker-js/faker": "catalog:tooling"
     axios: "npm:^1.13.5"
     orval: "workspace:*"
+    prettier: "catalog:"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
   languageName: unknown
@@ -20858,6 +20875,7 @@ __metadata:
     "@faker-js/faker": "catalog:tooling"
     axios: "npm:^1.13.5"
     orval: "workspace:*"
+    prettier: "catalog:"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
   languageName: unknown
@@ -20870,6 +20888,7 @@ __metadata:
     "@faker-js/faker": "catalog:tooling"
     axios: "npm:^1.13.5"
     orval: "workspace:*"
+    prettier: "catalog:"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
   languageName: unknown
@@ -20882,6 +20901,7 @@ __metadata:
     "@faker-js/faker": "catalog:tooling"
     axios: "npm:^1.13.5"
     orval: "workspace:*"
+    prettier: "catalog:"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
   languageName: unknown
@@ -20894,6 +20914,7 @@ __metadata:
     "@faker-js/faker": "catalog:tooling"
     axios: "npm:^1.13.5"
     orval: "workspace:*"
+    prettier: "catalog:"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
   languageName: unknown
@@ -20905,6 +20926,7 @@ __metadata:
   dependencies:
     "@faker-js/faker": "catalog:tooling"
     orval: "workspace:*"
+    prettier: "catalog:"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
   languageName: unknown
@@ -23386,6 +23408,7 @@ __metadata:
     eslint-plugin-svelte3: "npm:^4.0.0"
     msw: "catalog:tooling"
     orval: "workspace:*"
+    prettier: "catalog:"
     svelte: "npm:^5.46.4"
     svelte-check: "npm:^3.8.6"
     tslib: "catalog:"
@@ -23406,6 +23429,7 @@ __metadata:
     "@tanstack/svelte-query": "npm:^4.41.0"
     "@tsconfig/svelte": "npm:^5.0.6"
     orval: "workspace:*"
+    prettier: "catalog:"
     svelte: "npm:^5.46.4"
     svelte-check: "npm:^3.8.6"
     tslib: "catalog:"
@@ -23424,6 +23448,7 @@ __metadata:
     "@tanstack/svelte-query": "npm:^6.0.17"
     "@tsconfig/svelte": "npm:^5.0.6"
     orval: "workspace:*"
+    prettier: "catalog:"
     svelte: "npm:^5.46.4"
     svelte-check: "npm:^3.8.6"
     tslib: "catalog:"
@@ -23513,6 +23538,7 @@ __metadata:
     axios: "npm:^1.13.5"
     msw: "catalog:tooling"
     orval: "workspace:*"
+    prettier: "catalog:"
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
     react-scripts: "npm:^5.0.1"
@@ -23538,6 +23564,7 @@ __metadata:
     eslint-plugin-react-hooks: "npm:^4.6.2"
     eslint-plugin-react-refresh: "npm:^0.4.24"
     orval: "workspace:*"
+    prettier: "catalog:"
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
     swr: "npm:^2.3.6"
@@ -23560,6 +23587,7 @@ __metadata:
     eslint-plugin-react-hooks: "npm:^4.6.2"
     eslint-plugin-react-refresh: "npm:^0.4.24"
     orval: "workspace:*"
+    prettier: "catalog:"
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
     swr: "npm:^2.3.6"
@@ -25226,6 +25254,7 @@ __metadata:
     jsdom: "npm:^27.1.0"
     msw: "catalog:tooling"
     orval: "workspace:*"
+    prettier: "catalog:"
     tsd: "npm:^0.33.0"
     typescript: "npm:~5.9.3"
     vite: "npm:^7.2.2"
@@ -25246,6 +25275,7 @@ __metadata:
     "@tanstack/vue-query": "npm:^5.92.7"
     "@vitejs/plugin-vue": "npm:^6.0.1"
     orval: "workspace:*"
+    prettier: "catalog:"
     typescript: "npm:~5.9.3"
     vite: "npm:^7.2.2"
     vue: "npm:^3.5.26"

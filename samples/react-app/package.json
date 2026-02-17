@@ -38,7 +38,8 @@
   },
   "devDependencies": {
     "msw": "catalog:tooling",
-    "orval": "workspace:*"
+    "orval": "workspace:*",
+    "prettier": "catalog:"
   },
   "dependenciesMeta": {
     "msw": {

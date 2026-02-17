@@ -24,7 +24,7 @@
     "format:samples": "prettier --write samples",
     "prepare": "husky",
     "commitlint": "commitlint",
-    "update-samples": "turbo run generate-api && yarn format:samples",
+    "update-samples": "turbo run generate-api",
     "build": "turbo build --filter='./packages/*'",
     "test": "turbo test --filter='./packages/*'",
     "test:cli": "yarn workspace orval-tests clean && yarn workspace orval-tests generate && yarn workspace orval-tests build",
