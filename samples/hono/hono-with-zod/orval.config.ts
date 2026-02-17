@@ -6,6 +6,7 @@ export default defineConfig({
       mode: 'split',
       target: 'src/petstore.ts',
       client: 'hono',
+      prettier: true,
       override: {
         hono: {
           handlers: 'src/handlers',

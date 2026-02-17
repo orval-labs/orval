@@ -10,7 +10,7 @@ export default defineConfig({
       client: 'hono',
       target: 'src/endpoints',
       schemas: 'src/schemas',
-      clean: true,
+      prettier: true,
       override: {
         hono: {
           compositeRoute: 'src/routes.ts',

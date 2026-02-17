@@ -228,5 +228,8 @@ export async function writeSplitTagsMode({
     }),
   );
 
-  return generatedFilePathsArray.flat();
+  return [
+    ...(indexFilePath ? [indexFilePath] : []),
+    ...generatedFilePathsArray.flat(),
+  ];
 }

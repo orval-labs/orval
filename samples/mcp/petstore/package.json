@@ -15,6 +15,7 @@
   "devDependencies": {
     "@types/node": "^22.18.12",
     "orval": "workspace:*",
+    "prettier": "catalog:",
     "ts-node": "^10.9.2",
     "typescript": "~5.9.3"
   }

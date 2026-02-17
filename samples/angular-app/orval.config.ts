@@ -15,6 +15,7 @@ export default defineConfig({
       },
       tsconfig: './tsconfig.app.json',
       clean: true,
+      prettier: true,
       override: {
         paramsSerializer: 'src/orval/mutator/custom-params-serializer.ts',
         operations: {
