@@ -367,6 +367,8 @@ export async function normalizeOptions(
         },
         angular: {
           provideIn: outputOptions.override?.angular?.provideIn ?? 'root',
+          runtimeValidation:
+            outputOptions.override?.angular?.runtimeValidation ?? false,
         },
         fetch: {
           includeHttpResponseReturnType:

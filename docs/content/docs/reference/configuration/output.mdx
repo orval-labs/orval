@@ -857,12 +857,27 @@ export default defineConfig({
       override: {
         angular: {
           provideIn: 'root', // 'root' | 'any' | '' | false
+          runtimeValidation: true, // enable Zod schema validation
         },
       },
     },
   },
 });
 ```
+
+### provideIn
+
+**Type:** `'root' | 'any' | boolean`
+**Default:** `'root'`
+
+Controls the Angular `@Injectable({ providedIn })` scope for generated services.
+
+### runtimeValidation
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Enable Zod runtime validation for Angular HttpClient responses. Requires `schemas: { type: 'zod' }`. When enabled, responses are validated via `Schema.parse()` in the RxJS pipeline. Only applies to JSON body responses — skipped for primitive types, `events`/`response` observe modes, and custom mutators.
 
 ---
 
@@ -944,6 +959,13 @@ Throw on error responses instead of returning them.
 **Type:** `String | Object`
 
 Custom JSON reviver function (useful for date parsing).
+
+### runtimeValidation
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Enable Zod runtime validation for fetch client responses. Requires `schemas: { type: 'zod' }`. When enabled, JSON responses are validated via `Schema.parse()` before being returned.
 
 ---
 

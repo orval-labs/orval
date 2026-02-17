@@ -8,6 +8,95 @@ import { describe, expect, it } from 'vitest';
 
 import { generateAngular } from './index';
 
+// Shared test fixtures
+const makeBody = (overrides?: Partial<GetterBody>): GetterBody => ({
+  originalSchema: {},
+  imports: [],
+  definition: '',
+  implementation: '',
+  schemas: [],
+  formData: undefined,
+  formUrlEncoded: undefined,
+  contentType: 'application/json',
+  isOptional: true,
+  ...overrides,
+});
+
+const makeResponse = (overrides?: Partial<GetterResponse>): GetterResponse => ({
+  imports: [{ name: 'Pet', schemaName: 'Pet', values: false }],
+  definition: {
+    success: 'Pet',
+    errors: 'unknown',
+  },
+  isBlob: false,
+  types: {
+    success: [
+      {
+        value: 'Pet',
+        isEnum: false,
+        type: 'object',
+        imports: [],
+        schemas: [],
+        isRef: false,
+        hasReadonlyProps: false,
+        dependencies: [],
+        example: undefined,
+        examples: undefined,
+        key: '200',
+        contentType: 'application/json',
+        originalSchema: {},
+      },
+    ],
+    errors: [],
+  },
+  contentTypes: ['application/json'],
+  schemas: [],
+  originalSchema: {},
+  ...overrides,
+});
+
+const makeVerbOptions = (
+  overrides?: Partial<GeneratorVerbOptions>,
+): GeneratorVerbOptions =>
+  ({
+    headers: undefined,
+    queryParams: undefined,
+    operationName: 'getPet',
+    response: makeResponse(),
+    mutator: undefined,
+    body: makeBody(),
+    props: [],
+    params: [],
+    verb: Verbs.GET,
+    override: {
+      requestOptions: true,
+      formData: { disabled: true },
+      formUrlEncoded: false,
+      paramsSerializerOptions: undefined,
+      angular: { provideIn: 'root', runtimeValidation: false },
+    },
+    formData: undefined,
+    formUrlEncoded: undefined,
+    paramsSerializer: undefined,
+    tags: [],
+    ...overrides,
+  }) as unknown as GeneratorVerbOptions;
+
+const makeOptions = (
+  schemasType?: string,
+) =>
+  ({
+    route: '/pet',
+    context: {
+      output: {
+        tsconfig: {
+          compilerOptions: {},
+        },
+        schemas: schemasType ? { type: schemasType } : undefined,
+      },
+    },
+  }) as never;
+
 describe('angular generator implementation signature', () => {
   it('should restrict implementation signature observe to valid Angular observe modes', async () => {
     const body: GetterBody = {
@@ -351,6 +440,444 @@ describe('angular generator implementation signature', () => {
     expect(implementation).toContain('"requiredNullableParam"');
     expect(implementation).toContain(
       'const filteredParams = paramsSerializerMutator(filterParams(',
+    );
+  });
+});
+
+describe('angular runtime validation (runtimeValidation + zod)', () => {
+  it('should apply .parse() validation pipe on body observe mode', async () => {
+    const verbOptions = makeVerbOptions({
+      override: {
+        requestOptions: true,
+        formData: { disabled: true },
+        formUrlEncoded: false,
+        paramsSerializerOptions: undefined,
+        angular: { provideIn: 'root', runtimeValidation: true },
+      } as unknown as GeneratorVerbOptions['override'],
+    });
+
+    const { implementation } = await generateAngular(
+      verbOptions,
+      makeOptions('zod'),
+      'angular',
+    );
+
+    // Body branch should have .pipe(map(data => Pet.parse(data) as TData))
+    expect(implementation).toContain('.pipe(map(data => Pet.parse(data) as TData))');
+  });
+
+  it('should NOT apply .parse() on events or response observe modes', async () => {
+    const verbOptions = makeVerbOptions({
+      override: {
+        requestOptions: true,
+        formData: { disabled: true },
+        formUrlEncoded: false,
+        paramsSerializerOptions: undefined,
+        angular: { provideIn: 'root', runtimeValidation: true },
+      } as unknown as GeneratorVerbOptions['override'],
+    });
+
+    const { implementation } = await generateAngular(
+      verbOptions,
+      makeOptions('zod'),
+      'angular',
+    );
+
+    // events & response branches must NOT have .parse()
+    const lines = implementation.split('\n');
+    for (const line of lines) {
+      if (line.includes("observe === 'events'") || line.includes("observe === 'response'")) {
+        // The return statement for events/response is on the next line(s)
+        continue;
+      }
+      if (line.includes("observe: 'events'") || line.includes("observe: 'response'")) {
+        expect(line).not.toContain('.parse(');
+      }
+    }
+  });
+
+  it('should NOT apply .parse() for primitive response types', async () => {
+    const verbOptions = makeVerbOptions({
+      response: makeResponse({
+        imports: [],
+        definition: { success: 'string', errors: 'unknown' },
+        types: {
+          success: [
+            {
+              value: 'string',
+              isEnum: false,
+              type: 'string',
+              imports: [],
+              schemas: [],
+              isRef: false,
+              hasReadonlyProps: false,
+              dependencies: [],
+              example: undefined,
+              examples: undefined,
+              key: '200',
+              contentType: 'application/json',
+              originalSchema: {},
+            },
+          ],
+          errors: [],
+        },
+      }),
+      override: {
+        requestOptions: true,
+        formData: { disabled: true },
+        formUrlEncoded: false,
+        paramsSerializerOptions: undefined,
+        angular: { provideIn: 'root', runtimeValidation: true },
+      } as unknown as GeneratorVerbOptions['override'],
+    });
+
+    const { implementation } = await generateAngular(
+      verbOptions,
+      makeOptions('zod'),
+      'angular',
+    );
+
+    expect(implementation).not.toContain('.parse(');
+    expect(implementation).not.toContain('.pipe(map(');
+  });
+
+  it('should NOT apply .parse() for void response types', async () => {
+    const verbOptions = makeVerbOptions({
+      response: makeResponse({
+        imports: [],
+        definition: { success: 'void', errors: 'unknown' },
+        types: { success: [], errors: [] },
+      }),
+      override: {
+        requestOptions: true,
+        formData: { disabled: true },
+        formUrlEncoded: false,
+        paramsSerializerOptions: undefined,
+        angular: { provideIn: 'root', runtimeValidation: true },
+      } as unknown as GeneratorVerbOptions['override'],
+    });
+
+    const { implementation } = await generateAngular(
+      verbOptions,
+      makeOptions('zod'),
+      'angular',
+    );
+
+    expect(implementation).not.toContain('.parse(');
+  });
+
+  it('should NOT apply .parse() when schemas output is not zod', async () => {
+    const verbOptions = makeVerbOptions({
+      override: {
+        requestOptions: true,
+        formData: { disabled: true },
+        formUrlEncoded: false,
+        paramsSerializerOptions: undefined,
+        angular: { provideIn: 'root', runtimeValidation: true },
+      } as unknown as GeneratorVerbOptions['override'],
+    });
+
+    const { implementation } = await generateAngular(
+      verbOptions,
+      makeOptions(undefined), // no zod schema type
+      'angular',
+    );
+
+    expect(implementation).not.toContain('.parse(');
+  });
+
+  it('should NOT apply .parse() when runtimeValidation is false', async () => {
+    const verbOptions = makeVerbOptions({
+      override: {
+        requestOptions: true,
+        formData: { disabled: true },
+        formUrlEncoded: false,
+        paramsSerializerOptions: undefined,
+        angular: { provideIn: 'root', runtimeValidation: false },
+      } as unknown as GeneratorVerbOptions['override'],
+    });
+
+    const { implementation } = await generateAngular(
+      verbOptions,
+      makeOptions('zod'),
+      'angular',
+    );
+
+    expect(implementation).not.toContain('.parse(');
+  });
+
+  it('should NOT apply .parse() when using a custom mutator', async () => {
+    const verbOptions = makeVerbOptions({
+      mutator: {
+        name: 'customMutator',
+        path: './custom-mutator',
+        default: true,
+        hasErrorType: false,
+        errorTypeName: 'unknown',
+        hasSecondArg: false,
+        hasThirdArg: false,
+        isHook: false,
+      } as unknown as GeneratorVerbOptions['mutator'],
+      override: {
+        requestOptions: true,
+        formData: { disabled: true },
+        formUrlEncoded: false,
+        paramsSerializerOptions: undefined,
+        angular: { provideIn: 'root', runtimeValidation: true },
+      } as unknown as GeneratorVerbOptions['override'],
+    });
+
+    const { implementation } = await generateAngular(
+      verbOptions,
+      makeOptions('zod'),
+      'angular',
+    );
+
+    // Mutator path returns from the mutator directly, no .parse()
+    expect(implementation).not.toContain('.parse(');
+    expect(implementation).toContain('customMutator');
+  });
+
+  it('should use ErrorSchema alias when response type is Error', async () => {
+    const verbOptions = makeVerbOptions({
+      response: makeResponse({
+        imports: [{ name: 'Error', schemaName: 'Error', values: false }],
+        definition: { success: 'Error', errors: 'unknown' },
+        types: {
+          success: [
+            {
+              value: 'Error',
+              isEnum: false,
+              type: 'object',
+              imports: [],
+              schemas: [],
+              isRef: false,
+              hasReadonlyProps: false,
+              dependencies: [],
+              example: undefined,
+              examples: undefined,
+              key: '200',
+              contentType: 'application/json',
+              originalSchema: {},
+            },
+          ],
+          errors: [],
+        },
+      }),
+      override: {
+        requestOptions: true,
+        formData: { disabled: true },
+        formUrlEncoded: false,
+        paramsSerializerOptions: undefined,
+        angular: { provideIn: 'root', runtimeValidation: true },
+      } as unknown as GeneratorVerbOptions['override'],
+    });
+
+    const { implementation } = await generateAngular(
+      verbOptions,
+      makeOptions('zod'),
+      'angular',
+    );
+
+    expect(implementation).toContain('ErrorSchema.parse(data) as TData');
+    expect(implementation).not.toContain('Error.parse(data)');
+  });
+
+  it('should promote schema imports to value imports when validation is active', async () => {
+    const verbOptions = makeVerbOptions({
+      override: {
+        requestOptions: true,
+        formData: { disabled: true },
+        formUrlEncoded: false,
+        paramsSerializerOptions: undefined,
+        angular: { provideIn: 'root', runtimeValidation: true },
+      } as unknown as GeneratorVerbOptions['override'],
+    });
+
+    const { imports } = await generateAngular(
+      verbOptions,
+      makeOptions('zod'),
+      'angular',
+    );
+
+    // The Pet import should be promoted to a value import (values: true)
+    const petImport = imports.find((imp) => imp.name === 'Pet');
+    expect(petImport).toBeDefined();
+    expect(petImport?.values).toBe(true);
+  });
+
+  it('should NOT promote schema imports when validation is inactive', async () => {
+    const verbOptions = makeVerbOptions({
+      override: {
+        requestOptions: true,
+        formData: { disabled: true },
+        formUrlEncoded: false,
+        paramsSerializerOptions: undefined,
+        angular: { provideIn: 'root', runtimeValidation: false },
+      } as unknown as GeneratorVerbOptions['override'],
+    });
+
+    const { imports } = await generateAngular(
+      verbOptions,
+      makeOptions('zod'),
+      'angular',
+    );
+
+    // The Pet import should NOT be promoted to a value import
+    const petImport = imports.find((imp) => imp.name === 'Pet');
+    if (petImport) {
+      expect(petImport.values).toBeFalsy();
+    }
+  });
+
+  it('should apply .parse() on JSON branch in multi-content-type responses', async () => {
+    const verbOptions = makeVerbOptions({
+      response: makeResponse({
+        imports: [{ name: 'Pet', schemaName: 'Pet', values: false }],
+        definition: { success: 'Pet', errors: 'unknown' },
+        types: {
+          success: [
+            {
+              value: 'string',
+              isEnum: false,
+              type: 'string',
+              imports: [],
+              schemas: [],
+              isRef: false,
+              hasReadonlyProps: false,
+              dependencies: [],
+              example: undefined,
+              examples: undefined,
+              key: '200',
+              contentType: 'text/plain',
+              originalSchema: {},
+            },
+            {
+              value: 'Pet',
+              isEnum: false,
+              type: 'object',
+              imports: [],
+              schemas: [],
+              isRef: false,
+              hasReadonlyProps: false,
+              dependencies: [],
+              example: undefined,
+              examples: undefined,
+              key: '200',
+              contentType: 'application/json',
+              originalSchema: {},
+            },
+          ],
+          errors: [],
+        },
+        contentTypes: ['text/plain', 'application/json'],
+      }),
+      override: {
+        requestOptions: true,
+        formData: { disabled: true },
+        formUrlEncoded: false,
+        paramsSerializerOptions: undefined,
+        angular: { provideIn: 'root', runtimeValidation: true },
+      } as unknown as GeneratorVerbOptions['override'],
+    });
+
+    const { implementation } = await generateAngular(
+      verbOptions,
+      makeOptions('zod'),
+      'angular',
+    );
+
+    // JSON branch should have validation
+    expect(implementation).toContain('.pipe(map(data => Pet.parse(data)))');
+    // Text/blob branches should NOT have validation
+    const textBranchMatch = implementation.match(
+      /responseType: 'text'[\s\S]*?Observable<string>/,
+    );
+    if (textBranchMatch) {
+      expect(textBranchMatch[0]).not.toContain('.parse(');
+    }
+  });
+
+  it('should apply .parse() on JSON branch when primary content type is non-JSON', async () => {
+    // When the primary content type is text/plain, definition.success is
+    // 'string' (primitive). The JSON branch still returns Pet and needs
+    // validation.
+    const verbOptions = makeVerbOptions({
+      response: makeResponse({
+        imports: [{ name: 'Pet', schemaName: 'Pet', values: false }],
+        definition: { success: 'string', errors: 'unknown' },
+        types: {
+          success: [
+            {
+              value: 'string',
+              isEnum: false,
+              type: 'string',
+              imports: [],
+              schemas: [],
+              isRef: false,
+              hasReadonlyProps: false,
+              dependencies: [],
+              example: undefined,
+              examples: undefined,
+              key: '200',
+              contentType: 'text/plain',
+              originalSchema: {},
+            },
+            {
+              value: 'string',
+              isEnum: false,
+              type: 'string',
+              imports: [],
+              schemas: [],
+              isRef: false,
+              hasReadonlyProps: false,
+              dependencies: [],
+              example: undefined,
+              examples: undefined,
+              key: '200',
+              contentType: 'application/xml',
+              originalSchema: {},
+            },
+            {
+              value: 'Pet',
+              isEnum: false,
+              type: 'object',
+              imports: [],
+              schemas: [],
+              isRef: false,
+              hasReadonlyProps: false,
+              dependencies: [],
+              example: undefined,
+              examples: undefined,
+              key: '200',
+              contentType: 'application/json',
+              originalSchema: {},
+            },
+          ],
+          errors: [],
+        },
+        contentTypes: ['text/plain', 'application/xml', 'application/json'],
+      }),
+      override: {
+        requestOptions: true,
+        formData: { disabled: true },
+        formUrlEncoded: false,
+        paramsSerializerOptions: undefined,
+        angular: { provideIn: 'root', runtimeValidation: true },
+      } as unknown as GeneratorVerbOptions['override'],
+    });
+
+    const { implementation, imports } = await generateAngular(
+      verbOptions,
+      makeOptions('zod'),
+      'angular',
+    );
+
+    // JSON branch should have validation even though primary type is string
+    expect(implementation).toContain('.pipe(map(data => Pet.parse(data)))');
+    // Pet import should be promoted to a value import for .parse()
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'Pet', values: true }),
     );
   });
 });

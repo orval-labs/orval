@@ -673,6 +673,7 @@ export type QueryOptions = {
 
 export type AngularOptions = {
   provideIn?: 'root' | 'any' | boolean;
+  runtimeValidation?: boolean;
 };
 
 export type SwrOptions = {
