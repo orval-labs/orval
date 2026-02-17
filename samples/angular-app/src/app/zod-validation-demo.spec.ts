@@ -10,6 +10,32 @@ import { ZodValidationDemo } from './zod-validation-demo';
 describe('ZodValidationDemo', () => {
   let httpMock: HttpTestingController;
 
+  const validPet = {
+    id: 1,
+    name: 'Buddy',
+    tag: 'dog',
+    requiredNullableString: null,
+  };
+
+  const flushPendingGetRequests = () => {
+    httpMock
+      .match(() => true)
+      .forEach((req) => {
+        if (req.cancelled || req.request.method !== 'GET') {
+          return;
+        }
+
+        if (req.request.url.includes('/search')) {
+          req.flush([validPet]);
+          return;
+        }
+
+        if (req.request.url.includes('/pets/')) {
+          req.flush(validPet);
+        }
+      });
+  };
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ZodValidationDemo],
@@ -31,9 +57,6 @@ describe('ZodValidationDemo', () => {
     const fixture = TestBed.createComponent(ZodValidationDemo);
     const component = fixture.componentInstance;
     expect(component).toBeTruthy();
-
-    // Flush all pending HTTP requests from ngOnInit
-    httpMock.match(() => true);
   });
 
   it('should render the demo sections', () => {
@@ -46,8 +69,7 @@ describe('ZodValidationDemo', () => {
     );
     expect(compiled.querySelectorAll('section').length).toBe(4);
 
-    // Flush pending requests
-    httpMock.match(() => true);
+    flushPendingGetRequests();
   });
 
   it('should display pets from validated searchPets response', async () => {
@@ -106,18 +128,7 @@ describe('ZodValidationDemo', () => {
       requiredNullableString: null,
     });
 
-    // Flush all other pending requests
-    httpMock
-      .match(() => true)
-      .forEach((req) => {
-        if (!req.cancelled) {
-          req.flush(
-            Array.isArray([])
-              ? []
-              : { id: 1, name: 'a', requiredNullableString: null },
-          );
-        }
-      });
+    flushPendingGetRequests();
 
     fixture.detectChanges();
     await fixture.whenStable();
@@ -132,22 +143,7 @@ describe('ZodValidationDemo', () => {
     const fixture = TestBed.createComponent(ZodValidationDemo);
     fixture.detectChanges();
 
-    // Flush ngOnInit requests
-    httpMock
-      .match(() => true)
-      .forEach((req) => {
-        if (!req.cancelled) {
-          try {
-            req.flush(
-              req.request.url.includes('/search')
-                ? [{ id: 1, name: 'a', requiredNullableString: null }]
-                : { id: 1, name: 'a', requiredNullableString: null },
-            );
-          } catch {
-            // ignore
-          }
-        }
-      });
+    flushPendingGetRequests();
 
     // Click the Create Pet button
     const button = fixture.nativeElement.querySelector(

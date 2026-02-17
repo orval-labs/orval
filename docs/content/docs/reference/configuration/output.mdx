@@ -969,6 +969,19 @@ Enable Zod runtime validation for fetch client responses. Requires `schemas: { t
 
 ---
 
+## Runtime validation support matrix
+
+`runtimeValidation` support differs by client family and mutator usage:
+
+| Client | Config key | Status | Notes |
+|--------|------------|--------|-------|
+| `angular` | `override.angular.runtimeValidation` | ✅ | Validates JSON body responses via `Schema.parse()`; skips primitive/`void`, `observe: 'events'/'response'`, and custom mutator paths |
+| `angular-query` | `override.query.runtimeValidation` | ✅ | Validates eligible responses via `Schema.parse()` in RxJS pipeline; skips primitive/`void` and custom mutator paths |
+| `fetch` | `override.fetch.runtimeValidation` | ✅ | Validates JSON responses via `Schema.parse()` |
+| any client with custom mutator | varies | ⚠️ | Runtime validation may be bypassed depending on mutator path and signature (see [#2858](https://github.com/orval-labs/orval/issues/2858)) |
+
+---
+
 ## override.mock
 
 Mock generation overrides:

@@ -14,7 +14,7 @@ import type {
 
 import { Injectable, inject } from '@angular/core';
 
-import { Observable, map } from 'rxjs';
+import { Observable } from 'rxjs';
 
 import { Pet, Pets } from '../../model-zod/index.zod';
 import type {
@@ -22,6 +22,8 @@ import type {
   ListPetsParams,
   SearchPetsParams,
 } from '../../model-zod/index.zod';
+
+import { map } from 'rxjs';
 
 interface HttpClientOptions {
   headers?: HttpHeaders | Record<string, string | string[]>;

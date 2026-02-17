@@ -418,6 +418,28 @@ describe('angular generator implementation signature', () => {
 });
 
 describe('angular runtime validation (runtimeValidation + zod)', () => {
+  const getObserveBranch = (
+    implementation: string,
+    mode: 'events' | 'response',
+  ) => {
+    const start = implementation.indexOf(`if (options?.observe === '${mode}')`);
+
+    if (start === -1) {
+      return '';
+    }
+
+    const tail = implementation.slice(start);
+    const endMatch =
+      mode === 'events'
+        ? /\n\s*if \(options\?\.observe === 'response'\)/.exec(tail)
+        : /\n\s*\n\s*return this\.http/.exec(tail);
+    const end = endMatch?.index === undefined ? -1 : start + endMatch.index;
+
+    return end === -1
+      ? implementation.slice(start)
+      : implementation.slice(start, end);
+  };
+
   it('should apply .parse() validation pipe on body observe mode', async () => {
     const verbOptions = makeVerbOptions({
       override: makeOverride(true),
@@ -446,23 +468,18 @@ describe('angular runtime validation (runtimeValidation + zod)', () => {
       'angular',
     );
 
-    // events & response branches must NOT have .parse()
-    const lines = implementation.split('\n');
-    for (const line of lines) {
-      if (
-        line.includes("observe === 'events'") ||
-        line.includes("observe === 'response'")
-      ) {
-        // The return statement for events/response is on the next line(s)
-        continue;
-      }
-      if (
-        line.includes("observe: 'events'") ||
-        line.includes("observe: 'response'")
-      ) {
-        expect(line).not.toContain('.parse(');
-      }
-    }
+    const eventsBranch = getObserveBranch(implementation, 'events');
+    const responseBranch = getObserveBranch(implementation, 'response');
+
+    expect(eventsBranch).toContain("observe: 'events'");
+    expect(responseBranch).toContain("observe: 'response'");
+    expect(eventsBranch).not.toContain('.parse(');
+    expect(responseBranch).not.toContain('.parse(');
+
+    // Body branch should still validate.
+    expect(implementation).toContain(
+      '.pipe(map(data => Pet.parse(data) as TData))',
+    );
   });
 
   it('should NOT apply .parse() for primitive response types', async () => {
@@ -817,6 +834,92 @@ describe('angular runtime validation (runtimeValidation + zod)', () => {
     // Pet import should be promoted to a value import for .parse()
     expect(imports).toContainEqual(
       expect.objectContaining({ name: 'Pet', values: true }),
+    );
+  });
+
+  it('should NOT emit JSON branch .parse() when multiple JSON schema candidates exist', async () => {
+    const verbOptions = makeVerbOptions({
+      response: makeResponse({
+        imports: [
+          { name: 'Cat', schemaName: 'Cat', values: false },
+          { name: 'Dog', schemaName: 'Dog', values: false },
+        ],
+        definition: { success: 'string', errors: 'unknown' },
+        types: {
+          success: [
+            {
+              value: 'string',
+              isEnum: false,
+              type: 'string',
+              imports: [],
+              schemas: [],
+              isRef: false,
+              hasReadonlyProps: false,
+              dependencies: [],
+              example: undefined,
+              examples: undefined,
+              key: '200',
+              contentType: 'text/plain',
+              originalSchema: {},
+            },
+            {
+              value: 'Cat',
+              isEnum: false,
+              type: 'object',
+              imports: [],
+              schemas: [],
+              isRef: false,
+              hasReadonlyProps: false,
+              dependencies: [],
+              example: undefined,
+              examples: undefined,
+              key: '200',
+              contentType: 'application/json',
+              originalSchema: {},
+            },
+            {
+              value: 'Dog',
+              isEnum: false,
+              type: 'object',
+              imports: [],
+              schemas: [],
+              isRef: false,
+              hasReadonlyProps: false,
+              dependencies: [],
+              example: undefined,
+              examples: undefined,
+              key: '200',
+              contentType: 'application/vnd.api+json',
+              originalSchema: {},
+            },
+          ],
+          errors: [],
+        },
+        contentTypes: [
+          'text/plain',
+          'application/json',
+          'application/vnd.api+json',
+        ],
+      }),
+      override: makeOverride(true),
+    });
+
+    const { implementation, imports } = await generateAngular(
+      verbOptions,
+      makeOptions('zod'),
+      'angular',
+    );
+
+    expect(implementation).toContain(
+      "accept.includes('json') || accept.includes('+json')",
+    );
+    expect(implementation).not.toContain('.pipe(map(data => Cat.parse(data)))');
+    expect(implementation).not.toContain('.pipe(map(data => Dog.parse(data)))');
+    expect(imports).not.toContainEqual(
+      expect.objectContaining({ name: 'Cat', values: true }),
+    );
+    expect(imports).not.toContainEqual(
+      expect.objectContaining({ name: 'Dog', values: true }),
     );
   });
 });

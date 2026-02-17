@@ -124,6 +124,15 @@ getPet<TData = Pet>(options?: HttpClientOptions & { observe?: 'body' }): Observa
 - Custom mutator paths
 - Non-JSON content types (text, blob)
 
+### Support Matrix
+
+| Client | Config key | Runtime validation |
+|--------|------------|--------------------|
+| `angular` | `override.angular.runtimeValidation` | ✅ Supported |
+| `angular-query` | `override.query.runtimeValidation` | ✅ Supported |
+| `fetch` | `override.fetch.runtimeValidation` | ✅ Supported |
+| custom mutator paths | varies | ⚠️ See [#2858](https://github.com/orval-labs/orval/issues/2858) |
+
 ### Error Handling
 
 When validation fails, Zod throws a `ZodError`. You can handle this in your services or with an Angular error interceptor:
