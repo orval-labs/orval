@@ -7,7 +7,7 @@ vi.mock('@orval/core', () => ({
 }));
 
 vi.mock('./generate-spec', () => ({
-  generateSpec: vi.fn().mockResolvedValue(undefined),
+  generateSpec: vi.fn(),
 }));
 
 vi.mock('./utils/config', () => ({
