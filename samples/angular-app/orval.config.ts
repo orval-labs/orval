@@ -68,6 +68,7 @@ export default defineConfig({
       },
       tsconfig: './tsconfig.app.json',
       clean: true,
+      prettier: true,
       override: {
         angular: {
           runtimeValidation: true,
