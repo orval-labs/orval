@@ -27,6 +27,7 @@ vi.mock('@orval/core', () => ({
     Object.prototype.toString.call(v) === '[object Object]',
   isString: isRemedaString,
   log: vi.fn(),
+  logVerbose: vi.fn(),
   resolveInstalledVersions: vi.fn().mockReturnValue({}),
 }));
 
@@ -34,16 +35,22 @@ vi.mock('./options', () => ({
   normalizePath: (p: string) => p,
 }));
 
-import { dynamicImport, log, resolveInstalledVersions } from '@orval/core';
+import {
+  dynamicImport,
+  log,
+  logVerbose,
+  resolveInstalledVersions,
+} from '@orval/core';
 import { findUp, findUpMultiple } from 'find-up';
 import fs from 'fs-extra';
 import yaml from 'js-yaml';
 
-import { loadPackageJson } from './package-json';
+import { _resetResolvedCache, loadPackageJson } from './package-json';
 
 describe('loadPackageJson - catalog resolution', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    _resetResolvedCache();
     vi.mocked(resolveInstalledVersions).mockReturnValue({});
   });
 
@@ -648,6 +655,7 @@ describe('loadPackageJson - catalog resolution', () => {
 describe('loadPackageJson - version resolution', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    _resetResolvedCache();
   });
 
   afterEach(() => {
@@ -709,7 +717,7 @@ describe('loadPackageJson - version resolution', () => {
     expect(result?.resolvedVersions).toBeUndefined();
   });
 
-  it('should log each resolved version', async () => {
+  it('should verbose-log each resolved version', async () => {
     const mockPkg = {
       dependencies: {
         '@tanstack/react-query': '^5.0.0',
@@ -728,11 +736,64 @@ describe('loadPackageJson - version resolution', () => {
 
     await loadPackageJson();
 
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Detected'));
-    expect(log).toHaveBeenCalledWith(
+    expect(logVerbose).toHaveBeenCalledWith(
+      expect.stringContaining('Detected'),
+    );
+    expect(logVerbose).toHaveBeenCalledWith(
       expect.stringContaining('@tanstack/react-query'),
     );
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('v5.90.1'));
+    expect(logVerbose).toHaveBeenCalledWith(expect.stringContaining('v5.90.1'));
+    expect(log).not.toHaveBeenCalledWith(expect.stringContaining('Detected'));
+  });
+
+  it('should resolve versions only once per package.json path (caching)', async () => {
+    const mockPkg = {
+      dependencies: { react: '^18.0.0' },
+    };
+
+    vi.mocked(findUp).mockImplementation((name) => {
+      if (Array.isArray(name) && name.includes('package.json'))
+        return '/cached-workspace/package.json';
+      return;
+    });
+    vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
+    vi.mocked(resolveInstalledVersions).mockReturnValue({
+      react: '18.3.1',
+    });
+
+    const result1 = await loadPackageJson(undefined, '/cached-workspace');
+    const result2 = await loadPackageJson(undefined, '/cached-workspace');
+
+    expect(resolveInstalledVersions).toHaveBeenCalledTimes(1);
+    expect(result1?.resolvedVersions).toEqual({ react: '18.3.1' });
+    expect(result2?.resolvedVersions).toEqual({ react: '18.3.1' });
+  });
+
+  it('should not reuse cached versions across different package.json files in the same workspace', async () => {
+    const pkgA = {
+      dependencies: { react: '^18.0.0' },
+    };
+    const pkgB = {
+      dependencies: { vue: '^3.0.0' },
+    };
+
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(dynamicImport).mockImplementation((path) => {
+      if (path === 'apps/app-a/package.json') return pkgA;
+      return pkgB;
+    });
+    vi.mocked(resolveInstalledVersions).mockImplementation((pkg) => {
+      if (pkg === pkgA) return { react: '18.3.1' };
+      if (pkg === pkgB) return { vue: '3.5.13' };
+      return {};
+    });
+
+    const resultA = await loadPackageJson('apps/app-a/package.json', '/repo');
+    const resultB = await loadPackageJson('apps/app-b/package.json', '/repo');
+
+    expect(resolveInstalledVersions).toHaveBeenCalledTimes(2);
+    expect(resultA?.resolvedVersions).toEqual({ react: '18.3.1' });
+    expect(resultB?.resolvedVersions).toEqual({ vue: '3.5.13' });
   });
 
   it('should pass workspace directory to resolveInstalledVersions', async () => {

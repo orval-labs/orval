@@ -6,6 +6,20 @@ import { isString } from './assertion';
 
 export const log = console.log;
 
+let _verbose = false;
+
+export function setVerbose(v: boolean) {
+  _verbose = v;
+}
+
+export function isVerbose(): boolean {
+  return _verbose;
+}
+
+export const logVerbose: typeof console.log = (...args) => {
+  if (_verbose) log(...args);
+};
+
 export function startMessage({
   name,
   version,

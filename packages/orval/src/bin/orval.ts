@@ -9,6 +9,7 @@ import {
   logError,
   OutputClient,
   OutputMode,
+  setVerbose,
   startMessage,
 } from '@orval/core';
 
@@ -74,7 +75,12 @@ cli
   .option('--prettier', 'Prettier generated files')
   .option('--biome', 'biome generated files')
   .option('--tsconfig <path>', 'path to your tsconfig file')
+  .option('--verbose', 'Enable verbose logging')
   .action(async (options) => {
+    if (options.verbose) {
+      setVerbose(true);
+    }
+
     log(orvalMessage);
 
     if (isString(options.input) && isString(options.output)) {
