@@ -796,6 +796,7 @@ export interface GlobalOptions {
   packageJson?: string;
   input?: string;
   output?: string;
+  verbose?: boolean;
 }
 
 export interface Tsconfig {
