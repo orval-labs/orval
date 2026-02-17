@@ -313,10 +313,12 @@ const generateImplementation = (
       : `const ${angularParamsRef} = ${callExpr};\n\n    `;
   }
 
-  const options = generateOptions({
+  const optionsInput = {
     ...optionsBase,
     ...(angularParamsRef ? { angularParamsRef } : {}),
-  });
+  } as const;
+
+  const options = generateOptions(optionsInput);
 
   // For multiple content types, determine the default
   const defaultContentType = hasMultipleContentTypes
@@ -383,31 +385,14 @@ const generateImplementation = (
 
   const multiImplementationReturnType = `Observable<${jsonReturnType} | string | Blob>`;
 
-  const withObserveMode = (
-    generatedOptions: string,
-    observeMode: 'body' | 'events' | 'response',
-  ): string => {
-    const spreadPattern =
-      "...(options as Omit<NonNullable<typeof options>, 'observe'>),";
-
-    if (generatedOptions.includes(spreadPattern)) {
-      return generatedOptions.replace(
-        spreadPattern,
-        `${spreadPattern}\n        observe: '${observeMode}',`,
-      );
-    }
-
-    return generatedOptions.replace(
-      "(options as Omit<NonNullable<typeof options>, 'observe'>)",
-      `{ ...(options as Omit<NonNullable<typeof options>, 'observe'>), observe: '${observeMode}' }`,
-    );
-  };
-
   const observeOptions = needsObserveBranching
     ? {
-        body: withObserveMode(options, 'body'),
-        events: withObserveMode(options, 'events'),
-        response: withObserveMode(options, 'response'),
+        body: generateOptions({ ...optionsInput, angularObserve: 'body' }),
+        events: generateOptions({ ...optionsInput, angularObserve: 'events' }),
+        response: generateOptions({
+          ...optionsInput,
+          angularObserve: 'response',
+        }),
       }
     : undefined;
 

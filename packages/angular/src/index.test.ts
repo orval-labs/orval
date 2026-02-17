@@ -415,6 +415,57 @@ describe('angular generator implementation signature', () => {
       'const filteredParams = paramsSerializerMutator(filterParams(',
     );
   });
+
+  it('should preserve filteredParams across body/events/response observe branches', async () => {
+    const verbOptions = makeVerbOptions({
+      queryParams: {
+        schema: {
+          name: 'SearchParams',
+          model:
+            'export type SearchParams = { requiredNullableParam: string | null; optionalParam?: string; };',
+          imports: [],
+        },
+        deps: [],
+        isOptional: false,
+        requiredNullableKeys: ['requiredNullableParam'],
+      },
+      operationName: 'searchPets',
+      props: [
+        {
+          name: 'params',
+          definition: 'params: SearchParams,',
+          implementation: 'params: SearchParams,',
+          default: false,
+          required: true,
+          type: 'queryParam',
+        },
+      ],
+    });
+
+    const { implementation } = await generateAngular(
+      verbOptions,
+      {
+        route: '/search',
+        context: {
+          output: {
+            tsconfig: {
+              compilerOptions: {},
+            },
+          },
+        },
+      } as AngularGeneratorOptions,
+      'angular',
+    );
+
+    expect(implementation).toContain('const filteredParams = filterParams(');
+    expect(implementation).toContain("if (options?.observe === 'events')");
+    expect(implementation).toContain("if (options?.observe === 'response')");
+
+    const filteredParamsMatches = implementation.match(
+      /params: filteredParams/g,
+    );
+    expect(filteredParamsMatches?.length).toBe(3);
+  });
 });
 
 describe('angular runtime validation (runtimeValidation + zod)', () => {
