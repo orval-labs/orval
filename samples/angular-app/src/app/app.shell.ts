@@ -149,7 +149,9 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
       font-size: 0.875rem;
       font-weight: 500;
       cursor: pointer;
-      transition: color 0.2s ease, background 0.2s ease;
+      transition:
+        color 0.2s ease,
+        background 0.2s ease;
       border: 1px solid transparent;
 
       &:hover {

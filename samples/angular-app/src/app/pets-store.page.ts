@@ -17,11 +17,19 @@ import { PetsService } from '../api/endpoints/pets/pets.service';
       <div class="page-header">
         <div class="page-header-inner">
           <div class="logo-glow">
-            <img ngSrc="logo.svg" width="40" height="40" priority alt="Orval logo" />
+            <img
+              ngSrc="logo.svg"
+              width="40"
+              height="40"
+              priority
+              alt="Orval logo"
+            />
           </div>
           <div>
             <h1 class="page-title">{{ title() }}</h1>
-            <p class="page-sub">Browse pets from the default generated Angular client</p>
+            <p class="page-sub">
+              Browse pets from the default generated Angular client
+            </p>
           </div>
         </div>
       </div>
@@ -33,7 +41,10 @@ import { PetsService } from '../api/endpoints/pets/pets.service';
               <div class="pet-card-header">
                 <span class="pet-card-id">#{{ pet.id }}</span>
                 @if (pet.status) {
-                  <span class="status-dot" [class]="'status-' + pet.status"></span>
+                  <span
+                    class="status-dot"
+                    [class]="'status-' + pet.status"
+                  ></span>
                 }
               </div>
               <h2 class="pet-card-name">{{ pet.name }}</h2>
@@ -54,7 +65,10 @@ import { PetsService } from '../api/endpoints/pets/pets.service';
 
       <div class="devnote">
         <span class="devnote-badge">DEV</span>
-        <span>Content type overload tests (issue #2243) — check browser console for text/xml/json/default response shapes.</span>
+        <span
+          >Content type overload tests (issue #2243) — check browser console for
+          text/xml/json/default response shapes.</span
+        >
       </div>
     </div>
   `,
@@ -125,7 +139,10 @@ import { PetsService } from '../api/endpoints/pets/pets.service';
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 16px;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+      transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        transform 0.2s ease;
       animation: cardIn 0.3s ease backwards;
       cursor: default;
 
@@ -136,16 +153,36 @@ import { PetsService } from '../api/endpoints/pets/pets.service';
       }
     }
 
-    .pet-card:nth-child(1)  { animation-delay: 0.05s; }
-    .pet-card:nth-child(2)  { animation-delay: 0.10s; }
-    .pet-card:nth-child(3)  { animation-delay: 0.15s; }
-    .pet-card:nth-child(4)  { animation-delay: 0.20s; }
-    .pet-card:nth-child(5)  { animation-delay: 0.25s; }
-    .pet-card:nth-child(6)  { animation-delay: 0.30s; }
-    .pet-card:nth-child(7)  { animation-delay: 0.35s; }
-    .pet-card:nth-child(8)  { animation-delay: 0.40s; }
-    .pet-card:nth-child(9)  { animation-delay: 0.45s; }
-    .pet-card:nth-child(10) { animation-delay: 0.50s; }
+    .pet-card:nth-child(1) {
+      animation-delay: 0.05s;
+    }
+    .pet-card:nth-child(2) {
+      animation-delay: 0.1s;
+    }
+    .pet-card:nth-child(3) {
+      animation-delay: 0.15s;
+    }
+    .pet-card:nth-child(4) {
+      animation-delay: 0.2s;
+    }
+    .pet-card:nth-child(5) {
+      animation-delay: 0.25s;
+    }
+    .pet-card:nth-child(6) {
+      animation-delay: 0.3s;
+    }
+    .pet-card:nth-child(7) {
+      animation-delay: 0.35s;
+    }
+    .pet-card:nth-child(8) {
+      animation-delay: 0.4s;
+    }
+    .pet-card:nth-child(9) {
+      animation-delay: 0.45s;
+    }
+    .pet-card:nth-child(10) {
+      animation-delay: 0.5s;
+    }
 
     .pet-card-header {
       display: flex;
@@ -166,9 +203,17 @@ import { PetsService } from '../api/endpoints/pets/pets.service';
       border-radius: 50%;
       background: var(--text-3);
 
-      &.status-available { background: var(--success); box-shadow: 0 0 6px var(--success); }
-      &.status-pending   { background: var(--warning); box-shadow: 0 0 6px var(--warning); }
-      &.status-sold      { background: var(--text-3); }
+      &.status-available {
+        background: var(--success);
+        box-shadow: 0 0 6px var(--success);
+      }
+      &.status-pending {
+        background: var(--warning);
+        box-shadow: 0 0 6px var(--warning);
+      }
+      &.status-sold {
+        background: var(--text-3);
+      }
     }
 
     .pet-card-name {
@@ -208,8 +253,12 @@ import { PetsService } from '../api/endpoints/pets/pets.service';
       animation: pulse 1.2s ease-in-out infinite;
       opacity: 0.6;
 
-      &:nth-child(2) { animation-delay: 0.2s; }
-      &:nth-child(3) { animation-delay: 0.4s; }
+      &:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      &:nth-child(3) {
+        animation-delay: 0.4s;
+      }
     }
 
     /* ── Dev note ── */
@@ -241,13 +290,26 @@ import { PetsService } from '../api/endpoints/pets/pets.service';
 
     /* ── Animations ── */
     @keyframes cardIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     @keyframes pulse {
-      0%, 100% { opacity: 0.3; transform: scale(0.8); }
-      50%       { opacity: 1;   transform: scale(1.2); }
+      0%,
+      100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.2);
+      }
     }
 
     @media (max-width: 480px) {

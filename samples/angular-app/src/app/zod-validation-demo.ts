@@ -33,24 +33,35 @@ import type { Pets } from '../api/model-zod/index.zod';
           <span class="badge">ZOD</span>
         </div>
         <p class="page-desc">
-          Services generated with <code>runtimeValidation: true</code> pipe every JSON response
-          body through <code>Schema.parse()</code> — invalid data throws a
-          <code>ZodError</code> before reaching your component.
+          Services generated with <code>runtimeValidation: true</code> pipe
+          every JSON response body through <code>Schema.parse()</code> — invalid
+          data throws a <code>ZodError</code> before reaching your component.
         </p>
       </div>
 
       <div class="panels">
-
         <!-- Section 1 -->
         <div class="panel">
           <div class="panel-header">
             <span class="panel-num">01</span>
             <span class="panel-title">searchPets()</span>
-            <span class="panel-badge" [class.badge-error]="searchError()" [class.badge-ok]="!searchError() && searchPets().length">
-              {{ searchError() ? 'ZodError' : (!searchError() && searchPets().length ? 'valid' : '…') }}
+            <span
+              class="panel-badge"
+              [class.badge-error]="searchError()"
+              [class.badge-ok]="!searchError() && searchPets().length"
+            >
+              {{
+                searchError()
+                  ? 'ZodError'
+                  : !searchError() && searchPets().length
+                    ? 'valid'
+                    : '…'
+              }}
             </span>
           </div>
-          <div class="panel-meta">Response validated via <code>Pets.parse(data)</code></div>
+          <div class="panel-meta">
+            Response validated via <code>Pets.parse(data)</code>
+          </div>
           <div class="panel-body">
             @if (searchError()) {
               <div class="result-error" role="alert">
@@ -85,11 +96,23 @@ import type { Pets } from '../api/model-zod/index.zod';
           <div class="panel-header">
             <span class="panel-num">02</span>
             <span class="panel-title">showPetById()</span>
-            <span class="panel-badge" [class.badge-error]="showPetError()" [class.badge-ok]="!showPetError() && singlePet()">
-              {{ showPetError() ? 'ZodError' : (!showPetError() && singlePet() ? 'valid' : '…') }}
+            <span
+              class="panel-badge"
+              [class.badge-error]="showPetError()"
+              [class.badge-ok]="!showPetError() && singlePet()"
+            >
+              {{
+                showPetError()
+                  ? 'ZodError'
+                  : !showPetError() && singlePet()
+                    ? 'valid'
+                    : '…'
+              }}
             </span>
           </div>
-          <div class="panel-meta">Multi-content-type — JSON branch runs <code>Pet.parse(data)</code></div>
+          <div class="panel-meta">
+            Multi-content-type — JSON branch runs <code>Pet.parse(data)</code>
+          </div>
           <div class="panel-body">
             @if (showPetError()) {
               <div class="result-error" role="alert">
@@ -116,9 +139,16 @@ import type { Pets } from '../api/model-zod/index.zod';
             <span class="panel-title">createPets()</span>
             <span class="panel-badge badge-neutral">void</span>
           </div>
-          <div class="panel-meta">Response is <code>void</code> — <code>.parse()</code> is correctly skipped</div>
+          <div class="panel-meta">
+            Response is <code>void</code> — <code>.parse()</code> is correctly
+            skipped
+          </div>
           <div class="panel-body">
-            <button class="btn" (click)="createPet()" [disabled]="createLoading()">
+            <button
+              class="btn"
+              (click)="createPet()"
+              [disabled]="createLoading()"
+            >
               <span class="btn-icon">{{ createLoading() ? '⟳' : '↗' }}</span>
               {{ createLoading() ? 'Creating…' : 'Create Pet' }}
             </button>
@@ -129,7 +159,9 @@ import type { Pets } from '../api/model-zod/index.zod';
                 [class.result-err]="!createResult()!.success"
                 role="alert"
               >
-                {{ createResult()!.success ? '✓' : '✕' }}&nbsp;{{ createResult()!.message }}
+                {{ createResult()!.success ? '✓' : '✕' }}&nbsp;{{
+                  createResult()!.message
+                }}
               </div>
             }
           </div>
@@ -143,13 +175,19 @@ import type { Pets } from '../api/model-zod/index.zod';
             <span class="panel-badge badge-neutral">3 requests</span>
           </div>
           <div class="panel-meta">
-            Only <code>body</code> mode validates — <code>events</code> &amp; <code>response</code> skip <code>.parse()</code>
+            Only <code>body</code> mode validates — <code>events</code> &amp;
+            <code>response</code> skip <code>.parse()</code>
           </div>
           <div class="panel-body">
             @if (observeResults().length) {
               <div class="observe-grid" role="list">
                 @for (result of observeResults(); track $index) {
-                  <div class="observe-row" role="listitem" [class.observe-error]="result.status.startsWith('❌')" [class.observe-ok]="result.status.startsWith('✅')">
+                  <div
+                    class="observe-row"
+                    role="listitem"
+                    [class.observe-error]="result.status.startsWith('❌')"
+                    [class.observe-ok]="result.status.startsWith('✅')"
+                  >
                     <code class="observe-mode">{{ result.mode }}</code>
                     <span class="observe-status">{{ result.status }}</span>
                   </div>
@@ -165,7 +203,6 @@ import type { Pets } from '../api/model-zod/index.zod';
             }
           </div>
         </div>
-
       </div>
     </div>
   `,
@@ -236,7 +273,9 @@ import type { Pets } from '../api/model-zod/index.zod';
       border: 1px solid var(--border);
       border-radius: 10px;
       overflow: hidden;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
 
       &:hover {
         border-color: var(--border-2);
@@ -416,8 +455,12 @@ import type { Pets } from '../api/model-zod/index.zod';
       animation: pulse 1.2s ease-in-out infinite;
       opacity: 0.6;
 
-      &:nth-child(2) { animation-delay: 0.2s; }
-      &:nth-child(3) { animation-delay: 0.4s; }
+      &:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      &:nth-child(3) {
+        animation-delay: 0.4s;
+      }
     }
 
     /* ── Create pet button ── */
@@ -434,7 +477,10 @@ import type { Pets } from '../api/model-zod/index.zod';
       font-size: 0.875rem;
       font-weight: 500;
       cursor: pointer;
-      transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
 
       &:hover:not(:disabled) {
         background: var(--accent-dim);
@@ -528,18 +574,37 @@ import type { Pets } from '../api/model-zod/index.zod';
 
     /* ── Animations ── */
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     @keyframes slideIn {
-      from { opacity: 0; transform: translateX(-6px); }
-      to   { opacity: 1; transform: translateX(0); }
+      from {
+        opacity: 0;
+        transform: translateX(-6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
     }
 
     @keyframes pulse {
-      0%, 100% { opacity: 0.3; transform: scale(0.8); }
-      50%       { opacity: 1;   transform: scale(1.2); }
+      0%,
+      100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.2);
+      }
     }
 
     @media (max-width: 640px) {
@@ -591,8 +656,8 @@ export class ZodValidationDemo implements OnInit {
         },
       })
       .subscribe({
-      next: (pets) => this.searchPets.set(pets),
-      error: (err) => this.searchError.set(this.formatZodError(err)),
+        next: (pets) => this.searchPets.set(pets),
+        error: (err) => this.searchError.set(this.formatZodError(err)),
       });
   }
 
