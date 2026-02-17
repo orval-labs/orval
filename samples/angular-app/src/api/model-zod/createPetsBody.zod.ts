@@ -12,21 +12,10 @@ export const createPetsBodyTagMax = 50;
 
 export const createPetsBodyStatusDefault = `available`;
 export const CreatePetsBody = zod.object({
-  name: zod
-    .string()
-    .min(1)
-    .max(createPetsBodyNameMax)
-    .describe('Name of the pet'),
-  tag: zod
-    .string()
-    .min(1)
-    .max(createPetsBodyTagMax)
-    .describe('Classification tag'),
-  email: zod.string().email().optional().describe('Owner contact email'),
-  status: zod
-    .enum(['available', 'pending', 'sold'])
-    .default(createPetsBodyStatusDefault)
-    .describe('Initial adoption status'),
-});
+  "name": zod.string().min(1).max(createPetsBodyNameMax).describe('Name of the pet'),
+  "tag": zod.string().min(1).max(createPetsBodyTagMax).describe('Classification tag'),
+  "email": zod.string().email().optional().describe('Owner contact email'),
+  "status": zod.enum(['available', 'pending', 'sold']).default(createPetsBodyStatusDefault).describe('Initial adoption status')
+})
 
 export type CreatePetsBody = zod.input<typeof CreatePetsBody>;

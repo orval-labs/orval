@@ -6,6 +6,7 @@
  */
 import { z as zod } from 'zod';
 
+
 export const petNameMax = 100;
 
 export const petTagMax = 50;
@@ -21,39 +22,16 @@ export const petRatingMultipleOf = 0.5;
 export const petPhoneRegExp = new RegExp('^\\+?[1-9]\\d{1,14}$');
 
 export const Pet = zod.object({
-  id: zod.number().min(1).describe('Unique identifier for the pet'),
-  name: zod.string().min(1).max(petNameMax).describe('Name of the pet'),
-  tag: zod
-    .string()
-    .min(1)
-    .max(petTagMax)
-    .optional()
-    .describe('Optional classification tag'),
-  email: zod.string().email().optional().describe('Owner contact email'),
-  status: zod
-    .enum(['available', 'pending', 'sold'])
-    .default(petStatusDefault)
-    .describe('Current adoption status'),
-  age: zod
-    .number()
-    .min(petAgeMin)
-    .max(petAgeMax)
-    .optional()
-    .describe('Age of the pet in years'),
-  rating: zod
-    .number()
-    .min(petRatingMin)
-    .max(petRatingMax)
-    .multipleOf(petRatingMultipleOf)
-    .optional()
-    .describe('Average customer rating'),
-  phone: zod
-    .string()
-    .regex(petPhoneRegExp)
-    .optional()
-    .describe('Contact phone in E.164 format'),
-  requiredNullableString: zod.string().nullable(),
-  optionalNullableString: zod.string().nullish(),
-});
+  "id": zod.number().min(1).describe('Unique identifier for the pet'),
+  "name": zod.string().min(1).max(petNameMax).describe('Name of the pet'),
+  "tag": zod.string().min(1).max(petTagMax).optional().describe('Optional classification tag'),
+  "email": zod.string().email().optional().describe('Owner contact email'),
+  "status": zod.enum(['available', 'pending', 'sold']).default(petStatusDefault).describe('Current adoption status'),
+  "age": zod.number().min(petAgeMin).max(petAgeMax).optional().describe('Age of the pet in years'),
+  "rating": zod.number().min(petRatingMin).max(petRatingMax).multipleOf(petRatingMultipleOf).optional().describe('Average customer rating'),
+  "phone": zod.string().regex(petPhoneRegExp).optional().describe('Contact phone in E.164 format'),
+  "requiredNullableString": zod.string().nullable(),
+  "optionalNullableString": zod.string().nullish()
+})
 
 export type Pet = zod.input<typeof Pet>;
