@@ -2,26 +2,26 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
-import { App } from './app';
+import { AppHome } from './app';
 import { AppShell } from './app.shell';
 import { routes } from './app.routes';
 
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [App],
+      imports: [AppHome],
       providers: [provideZonelessChangeDetection(), provideHttpClient()],
     }).compileComponents();
   });
 
   it('should create the app', () => {
-    const fixture = TestBed.createComponent(App);
+    const fixture = TestBed.createComponent(AppHome);
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
   });
 
   it('should render title', () => {
-    const fixture = TestBed.createComponent(App);
+    const fixture = TestBed.createComponent(AppHome);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('h1')?.textContent).toContain(
@@ -30,7 +30,7 @@ describe('App', () => {
   });
 
   it('should render pets', async () => {
-    const fixture = TestBed.createComponent(App);
+    const fixture = TestBed.createComponent(AppHome);
     fixture.detectChanges();
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;

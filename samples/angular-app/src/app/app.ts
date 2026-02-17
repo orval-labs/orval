@@ -9,7 +9,7 @@ import { AsyncPipe } from '@angular/common';
 import { PetsService } from '../api/endpoints/pets/pets.service';
 
 @Component({
-  selector: 'app-root',
+  selector: 'app-home',
   imports: [AsyncPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -26,7 +26,7 @@ import { PetsService } from '../api/endpoints/pets/pets.service';
     </div>
   `,
 })
-export class App implements OnInit {
+export class AppHome implements OnInit {
   private readonly petService = inject(PetsService);
   protected readonly pets$ = this.petService.listPets();
   protected readonly title = signal('angular-app');
