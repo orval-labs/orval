@@ -11,6 +11,7 @@ export default defineConfig({
       target: 'next-app/app/gen/',
       schemas: 'next-app/app/gen/models',
       clean: true,
+      prettier: true,
       baseUrl: 'http://localhost:8787',
       mock: true,
     },
@@ -23,6 +24,7 @@ export default defineConfig({
       mode: 'split',
       client: 'hono',
       target: 'hono-app/src/petstore.ts',
+      prettier: true,
       override: {
         hono: {
           handlers: 'hono-app/src/handlers',

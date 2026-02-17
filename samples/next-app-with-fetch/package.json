@@ -26,6 +26,7 @@
     "msw": "catalog:tooling",
     "orval": "workspace:*",
     "postcss": "8.5.6",
+    "prettier": "catalog:",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.9.3"
   },

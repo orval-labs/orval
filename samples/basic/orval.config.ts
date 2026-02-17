@@ -5,12 +5,16 @@ import transformer from './api/transformer/add-version.js';
 export default defineConfig({
   'petstore-file': {
     input: './petstore.yaml',
-    output: './api/endpoints/petstoreFromFileSpecWithConfig.ts',
+    output: {
+      target: './api/endpoints/petstoreFromFileSpecWithConfig.ts',
+      prettier: true,
+    },
   },
   'petstore-file-transfomer': {
     output: {
       target: './api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: './api/model',
+      prettier: true,
       mock: true,
       override: {
         operations: {

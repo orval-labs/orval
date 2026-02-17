@@ -9,6 +9,7 @@ export default defineConfig({
       client: 'svelte-query',
       baseUrl: 'http://localhost:8000',
       mock: true,
+      clean: true,
       prettier: true,
       override: {
         mutator: {

@@ -12,6 +12,7 @@ export default defineConfig({
       target: 'src/handlers.ts',
       schemas: 'src/http-schemas',
       clean: true,
+      prettier: true,
     },
   },
 });
