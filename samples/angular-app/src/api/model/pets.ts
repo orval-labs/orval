@@ -6,4 +6,7 @@
  */
 import type { Pet } from './pet';
 
+/**
+ * @maxItems 100
+ */
 export type Pets = Pet[];

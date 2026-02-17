@@ -6,8 +6,11 @@
  */
 
 export * from './createPetsBody';
+export * from './createPetsBodyStatus';
 export * from './error';
 export * from './listPetsParams';
 export * from './pet';
 export * from './pets';
+export * from './petStatus';
 export * from './searchPetsParams';
+export * from './searchPetsStatus';
