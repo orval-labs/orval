@@ -165,8 +165,7 @@ export function getMockObject({
 
           const keyDefinition = getKey(key);
 
-          const hasDefault =
-            'default' in prop && prop.default !== undefined;
+          const hasDefault = 'default' in prop && prop.default !== undefined;
 
           if (!isRequired && !resolvedValue.overrided && !hasDefault) {
             const nullValue = hasNullable ? 'null' : 'undefined';

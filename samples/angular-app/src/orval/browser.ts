@@ -31,7 +31,11 @@ const zodHandlers = Object.entries(zodMocks).flatMap(([, getMock]) =>
   (getMock as () => RequestHandler[])(),
 );
 
-const handlers = [customShowPetByIdHandler, ...generatedHandlers, ...zodHandlers];
+const handlers = [
+  customShowPetByIdHandler,
+  ...generatedHandlers,
+  ...zodHandlers,
+];
 const worker = setupWorker(...handlers);
 
 export { worker };

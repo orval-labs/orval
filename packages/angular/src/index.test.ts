@@ -82,9 +82,7 @@ const makeVerbOptions = (
     ...overrides,
   }) as unknown as GeneratorVerbOptions;
 
-const makeOptions = (
-  schemasType?: string,
-) =>
+const makeOptions = (schemasType?: string) =>
   ({
     route: '/pet',
     context: {
@@ -463,7 +461,9 @@ describe('angular runtime validation (runtimeValidation + zod)', () => {
     );
 
     // Body branch should have .pipe(map(data => Pet.parse(data) as TData))
-    expect(implementation).toContain('.pipe(map(data => Pet.parse(data) as TData))');
+    expect(implementation).toContain(
+      '.pipe(map(data => Pet.parse(data) as TData))',
+    );
   });
 
   it('should NOT apply .parse() on events or response observe modes', async () => {
@@ -486,11 +486,17 @@ describe('angular runtime validation (runtimeValidation + zod)', () => {
     // events & response branches must NOT have .parse()
     const lines = implementation.split('\n');
     for (const line of lines) {
-      if (line.includes("observe === 'events'") || line.includes("observe === 'response'")) {
+      if (
+        line.includes("observe === 'events'") ||
+        line.includes("observe === 'response'")
+      ) {
         // The return statement for events/response is on the next line(s)
         continue;
       }
-      if (line.includes("observe: 'events'") || line.includes("observe: 'response'")) {
+      if (
+        line.includes("observe: 'events'") ||
+        line.includes("observe: 'response'")
+      ) {
         expect(line).not.toContain('.parse(');
       }
     }

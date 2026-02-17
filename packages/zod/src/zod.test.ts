@@ -1317,6 +1317,46 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'export const testDateDefaultDefault = new Date("2025-01-01");',
       );
     });
+
+    it('separates sibling export const declarations with newlines', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'object',
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['available', 'pending', 'sold'],
+            default: 'available',
+          },
+          age: {
+            type: 'number',
+            minimum: 0,
+            maximum: 30,
+          },
+        },
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'pet',
+        false,
+        false,
+        { required: true },
+      );
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+
+      expect(parsed.consts).toMatch(
+        /export const petStatusDefault = `available`;\nexport const petAgeMin = 0;/,
+      );
+      expect(parsed.consts).toContain('export const petAgeMax = 30;');
+    });
   });
 
   describe('enum handling', () => {

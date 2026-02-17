@@ -91,11 +91,13 @@ I’d implement exactly this scope for #2945:
      - Zod schemas output (`schemas.type === 'zod'`)
      - non-primitive/void response
      - response schema import exists
-  - implement through a small local validation helper seam (still Zod-only for now)
-   - skip mutator path (existing behavior pattern)
-   - skip non-body observe (`events` / `response`)
-   - for multi-content responses, only validate JSON branch
-   - keep `Error` alias safeguard (`ErrorSchema`) when needed
+
+- implement through a small local validation helper seam (still Zod-only for now)
+- skip mutator path (existing behavior pattern)
+- skip non-body observe (`events` / `response`)
+- for multi-content responses, only validate JSON branch
+- keep `Error` alias safeguard (`ErrorSchema`) when needed
+
 4. Ensure schema import promotion to value import when parse is needed (same pattern used in fetch/query client builders).
 5. Add focused tests in `packages/angular/src/index.test.ts`:
    - parses on body mode
@@ -115,6 +117,7 @@ Short answer: **not in the same PR**, but yes to a roadmap.
 - **Keep separate**: custom mutator schema-pass-through (#2858) should remain a dedicated feature decision.
 
 So I’d recommend:
+
 - PR A: `angular` parity + docs matrix
 - PR B: cross-query runtimeValidation unification (if desired by maintainers)
 - PR C: optional Standard Schema support layer (vendor-neutral runtime validation), with docs for Zod/Valibot interoperability and explicit sync/async behavior

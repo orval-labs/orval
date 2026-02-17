@@ -371,8 +371,7 @@ const generateImplementation = (
         (imp) => imp.name === jsonType,
       );
       if (!jsonIsPrimitive && jsonHasSchema) {
-        const jsonSchemaRef =
-          jsonType === 'Error' ? 'ErrorSchema' : jsonType;
+        const jsonSchemaRef = jsonType === 'Error' ? 'ErrorSchema' : jsonType;
         jsonValidationPipe = `.pipe(map(data => ${jsonSchemaRef}.parse(data)))`;
       }
     }
@@ -591,9 +590,7 @@ const createAngularClient =
       // returns Pet which needs .parse()).
       const successTypes = result.response.types.success;
       const uniqueContentTypes = [
-        ...new Set(
-          successTypes.map((t) => t.contentType).filter(Boolean),
-        ),
+        ...new Set(successTypes.map((t) => t.contentType).filter(Boolean)),
       ];
       if (uniqueContentTypes.length > 1) {
         const jsonSchemaNames = [

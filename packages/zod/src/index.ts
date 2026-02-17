@@ -789,6 +789,22 @@ export const parseZodValidationSchemaDefinition = (
 
   let consts = '';
 
+  const appendConstsChunk = (chunk: string) => {
+    if (!chunk) {
+      return;
+    }
+
+    if (
+      consts.length > 0 &&
+      !consts.endsWith('\n') &&
+      !chunk.startsWith('\n')
+    ) {
+      consts += '\n';
+    }
+
+    consts += chunk;
+  };
+
   const formatFunctionArgs = (value: unknown): string => {
     if (value === undefined) return '';
     if (value === null) return 'null';
@@ -854,7 +870,7 @@ export const parseZodValidationSchemaDefinition = (
         }
 
         if (allConsts.length > 0) {
-          consts += allConsts;
+          appendConstsChunk(allConsts);
         }
 
         // Generate merged object
@@ -863,7 +879,7 @@ export const parseZodValidationSchemaDefinition = (
 ${Object.entries(mergedProperties)
   .map(([key, schema]) => {
     const value = schema.functions.map((prop) => parseProperty(prop)).join('');
-    consts += schema.consts.join('\n');
+    appendConstsChunk(schema.consts.join('\n'));
     return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
   })
   .join(',\n')}
@@ -886,7 +902,7 @@ ${Object.entries(mergedProperties)
         const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
 
         if (partSchema.consts.length > 0) {
-          consts += partSchema.consts.join('\n');
+          appendConstsChunk(partSchema.consts.join('\n'));
         }
 
         if (acc.length === 0) {
@@ -918,7 +934,7 @@ ${Object.entries(mergedProperties)
           const value = functions.map((prop) => parseProperty(prop)).join('');
           const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
           // consts are missing here
-          consts += argConsts.join('\n');
+          appendConstsChunk(argConsts.join('\n'));
           return valueWithZod;
         },
       );
@@ -933,7 +949,7 @@ ${Object.entries(mergedProperties)
         .join('');
       const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
       if (Array.isArray(additionalPropertiesArgs.consts)) {
-        consts += additionalPropertiesArgs.consts.join('\n');
+        appendConstsChunk(additionalPropertiesArgs.consts.join('\n'));
       }
       return `zod.record(zod.string(), ${valueWithZod})`;
     }
@@ -953,7 +969,9 @@ ${Object.entries(objectArgs)
     const value = (schema as ZodValidationSchemaDefinition).functions
       .map((prop) => parseProperty(prop))
       .join('');
-    consts += (schema as ZodValidationSchemaDefinition).consts.join('\n');
+    appendConstsChunk(
+      (schema as ZodValidationSchemaDefinition).consts.join('\n'),
+    );
     return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
   })
   .join(',\n')}
@@ -976,9 +994,9 @@ ${Object.entries(objectArgs)
         .map((prop: [string, unknown]) => parseProperty(prop))
         .join('');
       if (isString(arrayArgs.consts)) {
-        consts += arrayArgs.consts;
+        appendConstsChunk(arrayArgs.consts);
       } else if (Array.isArray(arrayArgs.consts)) {
-        consts += arrayArgs.consts.join('\n');
+        appendConstsChunk(arrayArgs.consts.join('\n'));
       }
       return `.array(${value.startsWith('.') ? 'zod' : ''}${value})`;
     }
@@ -1016,7 +1034,7 @@ ${Object.entries(objectArgs)
     return `.${fn}(${formatFunctionArgs(args)})`;
   };
 
-  consts += input.consts.join('\n');
+  appendConstsChunk(input.consts.join('\n'));
 
   const schema = input.functions.map((prop) => parseProperty(prop)).join('');
   const value = preprocess

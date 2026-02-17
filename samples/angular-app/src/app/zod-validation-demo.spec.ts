@@ -55,9 +55,7 @@ describe('ZodValidationDemo', () => {
     fixture.detectChanges();
 
     // Find all requests to /search and respond to them
-    const searchRequests = httpMock.match((req) =>
-      req.url.includes('/search'),
-    );
+    const searchRequests = httpMock.match((req) => req.url.includes('/search'));
     expect(searchRequests.length).toBeGreaterThanOrEqual(1);
 
     // Respond to the first (body) request with valid data
@@ -109,13 +107,17 @@ describe('ZodValidationDemo', () => {
     });
 
     // Flush all other pending requests
-    httpMock.match(() => true).forEach((req) => {
-      if (!req.cancelled) {
-        req.flush(
-          Array.isArray([]) ? [] : { id: 1, name: 'a', requiredNullableString: null },
-        );
-      }
-    });
+    httpMock
+      .match(() => true)
+      .forEach((req) => {
+        if (!req.cancelled) {
+          req.flush(
+            Array.isArray([])
+              ? []
+              : { id: 1, name: 'a', requiredNullableString: null },
+          );
+        }
+      });
 
     fixture.detectChanges();
     await fixture.whenStable();
@@ -131,19 +133,21 @@ describe('ZodValidationDemo', () => {
     fixture.detectChanges();
 
     // Flush ngOnInit requests
-    httpMock.match(() => true).forEach((req) => {
-      if (!req.cancelled) {
-        try {
-          req.flush(
-            req.request.url.includes('/search')
-              ? [{ id: 1, name: 'a', requiredNullableString: null }]
-              : { id: 1, name: 'a', requiredNullableString: null },
-          );
-        } catch {
-          // ignore
+    httpMock
+      .match(() => true)
+      .forEach((req) => {
+        if (!req.cancelled) {
+          try {
+            req.flush(
+              req.request.url.includes('/search')
+                ? [{ id: 1, name: 'a', requiredNullableString: null }]
+                : { id: 1, name: 'a', requiredNullableString: null },
+            );
+          } catch {
+            // ignore
+          }
         }
-      }
-    });
+      });
 
     // Click the Create Pet button
     const button = fixture.nativeElement.querySelector(

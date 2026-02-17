@@ -7,7 +7,7 @@
 import { z as zod } from 'zod';
 
 export const ListPetsParams = zod.object({
-  "limit": zod.string().optional()
-})
+  limit: zod.string().optional(),
+});
 
 export type ListPetsParams = zod.input<typeof ListPetsParams>;

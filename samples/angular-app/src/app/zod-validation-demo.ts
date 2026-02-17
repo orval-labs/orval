@@ -1,4 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { PetsService as ZodPetsService } from '../api/endpoints-zod/pets/pets.service';
 
@@ -78,7 +84,10 @@ import { PetsService as ZodPetsService } from '../api/endpoints-zod/pets/pets.se
         </p>
         <button (click)="createPet()">Create Pet</button>
         @if (createResult()) {
-          <div [class.success]="createResult()!.success" [class.error]="!createResult()!.success">
+          <div
+            [class.success]="createResult()!.success"
+            [class.error]="!createResult()!.success"
+          >
             {{ createResult()!.message }}
           </div>
         }
@@ -94,7 +103,8 @@ import { PetsService as ZodPetsService } from '../api/endpoints-zod/pets/pets.se
           <ul>
             @for (result of observeResults(); track $index) {
               <li>
-                <code>{{ result.mode }}</code>:
+                <code>{{ result.mode }}</code
+                >:
                 {{ result.status }}
               </li>
             }

@@ -9358,6 +9358,7 @@ __metadata:
     tslib: "catalog:"
     typescript: "npm:~5.9.3"
     vitest: "npm:^4.0.16"
+    zod: "npm:^3.25.76"
   dependenciesMeta:
     msw:
       built: true
