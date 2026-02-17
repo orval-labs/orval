@@ -10,4 +10,4 @@ export const CreatePetsHeaders = zod.object({
   'X-EXAMPLE': zod.enum(['ONE', 'TWO', 'THREE']),
 });
 
-export type CreatePetsHeaders = zod.infer<typeof CreatePetsHeaders>;
+export type CreatePetsHeaders = zod.input<typeof CreatePetsHeaders>;

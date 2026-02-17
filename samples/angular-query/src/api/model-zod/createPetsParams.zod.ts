@@ -11,4 +11,4 @@ export const CreatePetsParams = zod.object({
   sort: zod.enum(['name', '-name', 'email', '-email']),
 });
 
-export type CreatePetsParams = zod.infer<typeof CreatePetsParams>;
+export type CreatePetsParams = zod.input<typeof CreatePetsParams>;

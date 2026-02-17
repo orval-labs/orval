@@ -44,4 +44,4 @@ export const Pets = zod.array(
     ),
 );
 
-export type Pets = zod.infer<typeof Pets>;
+export type Pets = zod.input<typeof Pets>;

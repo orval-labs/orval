@@ -6,9 +6,8 @@
  */
 import { z as zod } from 'zod';
 
-export const Error = zod.object({
-  code: zod.number(),
-  message: zod.string(),
+export const ListPetsParams = zod.object({
+  limit: zod.string().optional(),
 });
 
-export type Error = zod.input<typeof Error>;
+export type ListPetsParams = zod.input<typeof ListPetsParams>;

@@ -56,4 +56,27 @@ export default defineConfig({
       },
     },
   },
+  petstoreZod: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/endpoints-zod',
+      schemas: { path: 'src/api/model-zod', type: 'zod' },
+      client: 'angular',
+      mock: {
+        type: 'msw',
+        indexMockFiles: true,
+      },
+      tsconfig: './tsconfig.app.json',
+      clean: true,
+      prettier: true,
+      override: {
+        angular: {
+          runtimeValidation: true,
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
 });

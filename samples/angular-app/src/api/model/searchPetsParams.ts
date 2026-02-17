@@ -4,6 +4,7 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
+import type { SearchPetsStatus } from './searchPetsStatus';
 
 export type SearchPetsParams = {
   /**
@@ -18,4 +19,14 @@ export type SearchPetsParams = {
    * @nullable
    */
   nonRequirednullableString?: string | null;
+  /**
+   * Filter by adoption status
+   */
+  status?: SearchPetsStatus;
+  /**
+   * Maximum number of results to return
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
 };

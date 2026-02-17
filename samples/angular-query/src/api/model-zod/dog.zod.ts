@@ -24,4 +24,4 @@ export const Dog = zod
     }),
   );
 
-export type Dog = zod.infer<typeof Dog>;
+export type Dog = zod.input<typeof Dog>;

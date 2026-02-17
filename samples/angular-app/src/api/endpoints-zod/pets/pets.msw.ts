@@ -9,7 +9,7 @@ import { faker } from '@faker-js/faker';
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-import type { Pet, Pets } from '../../model';
+import type { Pet, Pets } from '../../model-zod/index.zod';
 
 export const getSearchPetsResponseMock = (): Pets =>
   Array.from(
@@ -17,8 +17,11 @@ export const getSearchPetsResponseMock = (): Pets =>
     (_, i) => i + 1,
   ).map(() => ({
     id: faker.number.int({ min: 1 }),
-    name: (() => faker.person.lastName())(),
-    tag: (() => faker.person.lastName())(),
+    name: faker.string.alpha({ length: { min: 1, max: 100 } }),
+    tag: faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 1, max: 50 } }),
+      undefined,
+    ]),
     email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
     status: faker.helpers.arrayElement([
       'available',
@@ -60,8 +63,11 @@ export const getListPetsResponseMock = (): Pets =>
       (_, i) => i + 1,
     ).map(() => ({
       id: faker.number.int({ min: 1 }),
-      name: (() => faker.person.lastName())(),
-      tag: (() => faker.person.lastName())(),
+      name: faker.string.alpha({ length: { min: 1, max: 100 } }),
+      tag: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 1, max: 50 } }),
+        undefined,
+      ]),
       email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
       status: faker.helpers.arrayElement([
         'available',
@@ -100,8 +106,11 @@ export const getListPetsResponseMock = (): Pets =>
       (_, i) => i + 1,
     ).map(() => ({
       id: faker.number.int({ min: 1 }),
-      name: (() => faker.person.lastName())(),
-      tag: (() => faker.person.lastName())(),
+      name: faker.string.alpha({ length: { min: 1, max: 100 } }),
+      tag: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 1, max: 50 } }),
+        undefined,
+      ]),
       email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
       status: faker.helpers.arrayElement([
         'available',
@@ -137,12 +146,94 @@ export const getListPetsResponseMock = (): Pets =>
     })),
   ]);
 
-export const getShowPetByIdResponseMock = () =>
-  (() => ({
-    id: faker.number.int({ min: 1, max: 99 }),
-    name: faker.person.firstName(),
-    tag: faker.helpers.arrayElement([faker.word.sample(), undefined]),
-  }))();
+export const getShowPetByIdResponseMock = (
+  overrideResponse: Partial<Extract<string | Pet, object>> = {},
+): string | Pet =>
+  faker.helpers.arrayElement([
+    faker.word.sample(),
+    {
+      id: faker.number.int({ min: 1 }),
+      name: faker.string.alpha({ length: { min: 1, max: 100 } }),
+      tag: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 1, max: 50 } }),
+        undefined,
+      ]),
+      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+      status: faker.helpers.arrayElement([
+        'available',
+        'pending',
+        'sold',
+      ] as const),
+      age: faker.helpers.arrayElement([
+        faker.number.int({ min: 0, max: 30 }),
+        undefined,
+      ]),
+      rating: faker.helpers.arrayElement([
+        faker.number.float({ min: 0, max: 5, multipleOf: 0.5 }),
+        undefined,
+      ]),
+      phone: faker.helpers.arrayElement([
+        faker.helpers.fromRegExp('^\+?[1-9]\d{1,14}$'),
+        undefined,
+      ]),
+      requiredNullableString: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
+        null,
+      ]),
+      optionalNullableString: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
+        undefined,
+      ]),
+      ...overrideResponse,
+    },
+    {
+      id: faker.number.int({ min: 1 }),
+      name: faker.string.alpha({ length: { min: 1, max: 100 } }),
+      tag: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 1, max: 50 } }),
+        undefined,
+      ]),
+      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+      status: faker.helpers.arrayElement([
+        'available',
+        'pending',
+        'sold',
+      ] as const),
+      age: faker.helpers.arrayElement([
+        faker.number.int({ min: 0, max: 30 }),
+        undefined,
+      ]),
+      rating: faker.helpers.arrayElement([
+        faker.number.float({ min: 0, max: 5, multipleOf: 0.5 }),
+        undefined,
+      ]),
+      phone: faker.helpers.arrayElement([
+        faker.helpers.fromRegExp('^\+?[1-9]\d{1,14}$'),
+        undefined,
+      ]),
+      requiredNullableString: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
+        null,
+      ]),
+      optionalNullableString: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
+        undefined,
+      ]),
+      ...overrideResponse,
+    },
+  ]);
 
 export const getShowPetTextResponseMock = (): string => faker.word.sample();
 
@@ -158,7 +249,7 @@ export const getSearchPetsMockHandler = (
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
-    '*/v:version/search',
+    '*/search',
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
@@ -182,7 +273,7 @@ export const getListPetsMockHandler = (
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
-    '*/v:version/pets',
+    '*/pets',
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
       return HttpResponse.json(
         overrideResponse !== undefined
@@ -206,7 +297,7 @@ export const getCreatePetsMockHandler = (
   options?: RequestHandlerOptions,
 ) => {
   return http.post(
-    '*/v:version/pets',
+    '*/pets',
     async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
@@ -228,7 +319,7 @@ export const getShowPetByIdMockHandler = (
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
-    '*/v:version/pets/:petId',
+    '*/pets/:petId',
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
       const resolvedBody =
         overrideResponse !== undefined
@@ -253,7 +344,7 @@ export const getShowPetTextMockHandler = (
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
-    '*/v:version/pets/:petId/text',
+    '*/pets/:petId/text',
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
       const resolvedBody =
         overrideResponse !== undefined
@@ -280,7 +371,7 @@ export const getUploadFileMockHandler = (
   options?: RequestHandlerOptions,
 ) => {
   return http.post(
-    '*/v:version/pet/:petId/uploadImage',
+    '*/pet/:petId/uploadImage',
     async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
       if (typeof overrideResponse === 'function') {
         await overrideResponse(info);
@@ -301,7 +392,7 @@ export const getDownloadFileMockHandler = (
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
-    '*/v:version/pet/:petId/downloadImage',
+    '*/pet/:petId/downloadImage',
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
       const binaryBody =
         overrideResponse !== undefined

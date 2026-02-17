@@ -69,6 +69,85 @@ export class ApiInterceptor implements HttpInterceptor {
 }
 ```
 
+## Zod Runtime Validation
+
+You can enable runtime response validation using Zod schemas. This validates every HTTP response through `Schema.parse()` in the RxJS pipeline, catching type mismatches at runtime.
+
+### Setup
+
+1. Set `schemas` to generate Zod schemas
+2. Enable `runtimeValidation` in the angular override
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: {
+        type: 'zod',
+        target: 'src/api/schemas',
+      },
+      client: 'angular',
+      override: {
+        angular: {
+          runtimeValidation: true,
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+### How It Works
+
+When enabled, generated service methods pipe body responses through the Zod schema's `.parse()` method:
+
+```ts
+// Generated code (simplified)
+getPet<TData = Pet>(options?: HttpClientOptions & { observe?: 'body' }): Observable<TData> {
+  return this.http.get<TData>(`/pet`, { observe: 'body' }).pipe(map(data => Pet.parse(data)));
+}
+```
+
+**Validation applies to:**
+- JSON body responses with model types
+
+**Validation is skipped for:**
+- Primitive types (`string`, `number`, `boolean`, `void`, `unknown`)
+- `events` and `response` observe modes (`HttpEvent<T>`, `HttpResponse<T>`)
+- Custom mutator paths
+- Non-JSON content types (text, blob)
+
+### Support Matrix
+
+| Client | Config key | Runtime validation |
+|--------|------------|--------------------|
+| `angular` | `override.angular.runtimeValidation` | ✅ Supported |
+| `angular-query` | `override.query.runtimeValidation` | ✅ Supported |
+| `fetch` | `override.fetch.runtimeValidation` | ✅ Supported |
+| custom mutator paths | varies | ⚠️ See [#2858](https://github.com/orval-labs/orval/issues/2858) |
+
+### Error Handling
+
+When validation fails, Zod throws a `ZodError`. You can handle this in your services or with an Angular error interceptor:
+
+```ts
+this.petService.getPet().subscribe({
+  next: (pet) => console.log('Validated pet:', pet),
+  error: (err) => {
+    if (err.name === 'ZodError') {
+      console.error('Response validation failed:', err.issues);
+    }
+  },
+});
+```
+
 ## Full Example
 
 See the [complete Angular example](https://github.com/orval-labs/orval/tree/master/samples/angular-app) on GitHub.

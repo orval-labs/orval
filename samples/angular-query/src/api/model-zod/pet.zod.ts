@@ -42,4 +42,4 @@ export const Pet = zod
     }),
   );
 
-export type Pet = zod.infer<typeof Pet>;
+export type Pet = zod.input<typeof Pet>;
