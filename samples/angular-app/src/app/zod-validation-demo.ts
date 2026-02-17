@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { JsonPipe } from '@angular/common';
 import { PetsService as ZodPetsService } from '../api/endpoints-zod/pets/pets.service';
+import type { Pets } from '../api/model-zod/index.zod';
 
 /**
  * Demo component showing Zod runtime validation with Angular HttpClient services.
@@ -192,9 +193,7 @@ import { PetsService as ZodPetsService } from '../api/endpoints-zod/pets/pets.se
 export class ZodValidationDemo implements OnInit {
   private readonly petsService = inject(ZodPetsService);
 
-  protected readonly searchPets = signal<
-    Array<{ id: number; name: string; tag?: string }>
-  >([]);
+  protected readonly searchPets = signal<Pets>([]);
   protected readonly searchError = signal<string | null>(null);
 
   protected readonly singlePet = signal<Record<string, unknown> | null>(null);
@@ -217,7 +216,7 @@ export class ZodValidationDemo implements OnInit {
         requirednullableStringTwo: 'test',
       })
       .subscribe({
-        next: (pets) => this.searchPets.set(pets as never),
+        next: (pets) => this.searchPets.set(pets),
         error: (err) =>
           this.searchError.set(
             err.name === 'ZodError'

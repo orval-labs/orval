@@ -42,13 +42,31 @@ const ANGULAR_DEPENDENCIES = [
     dependency: '@angular/core',
   },
   {
-    exports: [
-      { name: 'Observable', values: true },
-      { name: 'map', values: true },
-    ],
+    exports: [{ name: 'Observable', values: true }],
     dependency: 'rxjs',
   },
 ] as const satisfies readonly GeneratorDependency[];
+
+const PRIMITIVE_RESPONSE_TYPES = [
+  'string',
+  'number',
+  'boolean',
+  'void',
+  'unknown',
+] as const;
+
+const isPrimitiveResponseType = (typeName: string | undefined): boolean =>
+  typeName != undefined &&
+  (PRIMITIVE_RESPONSE_TYPES as readonly string[]).includes(typeName);
+
+const hasSchemaImport = (
+  imports: readonly { name: string }[],
+  typeName: string | undefined,
+): boolean =>
+  typeName != undefined && imports.some((imp) => imp.name === typeName);
+
+const getSchemaValueRef = (typeName: string): string =>
+  typeName === 'Error' ? 'ErrorSchema' : typeName;
 
 type ReturnTypesToWrite = Map<string, string>;
 
@@ -181,28 +199,23 @@ const generateImplementation = (
   const dataType = response.definition.success || 'unknown';
 
   // Detect if Zod runtime validation should be applied
-  const isPrimitiveType = [
-    'string',
-    'number',
-    'boolean',
-    'void',
-    'unknown',
-  ].includes(dataType);
-  const hasSchema = response.imports.some((imp) => imp.name === dataType);
+  const isPrimitiveType = isPrimitiveResponseType(dataType);
+  const hasSchema = hasSchemaImport(response.imports, dataType);
   const isZodOutput =
     typeof context.output.schemas === 'object' &&
     context.output.schemas.type === 'zod';
-  const isValidateResponse =
-    override.angular?.runtimeValidation &&
+  const shouldValidateResponse =
+    override.angular.runtimeValidation &&
     isZodOutput &&
     !isPrimitiveType &&
     hasSchema;
-  const schemaValueRef =
-    isValidateResponse && dataType === 'Error' ? 'ErrorSchema' : dataType;
+  const schemaValueRef = shouldValidateResponse
+    ? getSchemaValueRef(dataType)
+    : dataType;
   // The observe-mode branches use <TData> generics, so cast the parse
   // result to keep TypeScript happy.  The multi-content-type branch uses
   // concrete types and does not need the cast (see jsonValidationPipe).
-  const validationPipe = isValidateResponse
+  const validationPipe = shouldValidateResponse
     ? `.pipe(map(data => ${schemaValueRef}.parse(data) as TData))`
     : '';
 
@@ -349,31 +362,22 @@ const generateImplementation = (
   // (e.g., 'string' when text/plain is the first content type) but the JSON
   // branch still needs validation against its own schema.  Multi-content-type
   // branches use concrete return types (not <TData>), so no generic cast.
-  let jsonValidationPipe = isValidateResponse
+  let jsonValidationPipe = shouldValidateResponse
     ? `.pipe(map(data => ${schemaValueRef}.parse(data)))`
     : '';
   if (
     hasMultipleContentTypes &&
-    !isValidateResponse &&
-    override.angular?.runtimeValidation &&
-    isZodOutput
+    !shouldValidateResponse &&
+    override.angular.runtimeValidation &&
+    isZodOutput &&
+    jsonSuccessValues.length === 1
   ) {
-    if (jsonSuccessValues.length === 1) {
-      const jsonType = jsonSuccessValues[0];
-      const jsonIsPrimitive = [
-        'string',
-        'number',
-        'boolean',
-        'void',
-        'unknown',
-      ].includes(jsonType);
-      const jsonHasSchema = response.imports.some(
-        (imp) => imp.name === jsonType,
-      );
-      if (!jsonIsPrimitive && jsonHasSchema) {
-        const jsonSchemaRef = jsonType === 'Error' ? 'ErrorSchema' : jsonType;
-        jsonValidationPipe = `.pipe(map(data => ${jsonSchemaRef}.parse(data)))`;
-      }
+    const jsonType = jsonSuccessValues[0];
+    const jsonIsPrimitive = isPrimitiveResponseType(jsonType);
+    const jsonHasSchema = hasSchemaImport(response.imports, jsonType);
+    if (!jsonIsPrimitive && jsonHasSchema) {
+      const jsonSchemaRef = getSchemaValueRef(jsonType);
+      jsonValidationPipe = `.pipe(map(data => ${jsonSchemaRef}.parse(data)))`;
     }
   }
 
@@ -551,15 +555,9 @@ const createAngularClient =
       typeof options.context.output.schemas === 'object' &&
       options.context.output.schemas.type === 'zod';
     const responseType = verbOptions.response.definition.success;
-    const isPrimitiveResponse = [
-      'string',
-      'number',
-      'boolean',
-      'void',
-      'unknown',
-    ].includes(responseType);
+    const isPrimitiveResponse = isPrimitiveResponseType(responseType);
     const shouldUseRuntimeValidation =
-      verbOptions.override.angular?.runtimeValidation && isZodOutput;
+      verbOptions.override.angular.runtimeValidation && isZodOutput;
 
     // Promote schema import from type-only to value import when runtime
     // validation is active, so the generated code can call Schema.parse()
@@ -571,7 +569,7 @@ const createAngularClient =
       // Promote the primary response schema
       if (
         !isPrimitiveResponse &&
-        result.response.imports.some((imp) => imp.name === responseType)
+        hasSchemaImport(result.response.imports, responseType)
       ) {
         result = {
           ...result,
@@ -607,16 +605,10 @@ const createAngularClient =
         ];
         if (jsonSchemaNames.length === 1) {
           const jsonType = jsonSchemaNames[0];
-          const jsonIsPrimitive = [
-            'string',
-            'number',
-            'boolean',
-            'void',
-            'unknown',
-          ].includes(jsonType);
+          const jsonIsPrimitive = isPrimitiveResponseType(jsonType);
           if (
             !jsonIsPrimitive &&
-            result.response.imports.some((imp) => imp.name === jsonType)
+            hasSchemaImport(result.response.imports, jsonType)
           ) {
             result = {
               ...result,
@@ -634,12 +626,18 @@ const createAngularClient =
       return result;
     })();
 
-    const imports = generateVerbImports(normalizedVerbOptions);
     const implementation = generateImplementation(
       returnTypesToWrite,
       normalizedVerbOptions,
       options,
     );
+
+    const imports = [
+      ...generateVerbImports(normalizedVerbOptions),
+      ...(implementation.includes('.pipe(map(')
+        ? [{ name: 'map', values: true, importPath: 'rxjs' }]
+        : []),
+    ];
 
     return { implementation, imports };
   };

@@ -3,10 +3,12 @@ import type {
   GetterBody,
   GetterResponse,
 } from '@orval/core';
-import { Verbs } from '@orval/core';
+import { FormDataArrayHandling, Verbs } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
 import { generateAngular } from './index';
+
+type AngularGeneratorOptions = Parameters<typeof generateAngular>[1];
 
 // Shared test fixtures
 const makeBody = (overrides?: Partial<GetterBody>): GetterBody => ({
@@ -57,8 +59,8 @@ const makeResponse = (overrides?: Partial<GetterResponse>): GetterResponse => ({
 
 const makeVerbOptions = (
   overrides?: Partial<GeneratorVerbOptions>,
-): GeneratorVerbOptions =>
-  ({
+): GeneratorVerbOptions => {
+  const baseVerbOptions = {
     headers: undefined,
     queryParams: undefined,
     operationName: 'getPet',
@@ -70,19 +72,41 @@ const makeVerbOptions = (
     verb: Verbs.GET,
     override: {
       requestOptions: true,
-      formData: { disabled: true },
+      formData: {
+        disabled: true,
+        arrayHandling: FormDataArrayHandling.SERIALIZE,
+      },
       formUrlEncoded: false,
       paramsSerializerOptions: undefined,
       angular: { provideIn: 'root', runtimeValidation: false },
-    },
+    } as GeneratorVerbOptions['override'],
     formData: undefined,
     formUrlEncoded: undefined,
     paramsSerializer: undefined,
     tags: [],
-    ...overrides,
-  }) as unknown as GeneratorVerbOptions;
+  };
 
-const makeOptions = (schemasType?: string) =>
+  return {
+    ...baseVerbOptions,
+    ...overrides,
+  } as GeneratorVerbOptions;
+};
+
+const makeOverride = (
+  runtimeValidation: boolean,
+): GeneratorVerbOptions['override'] =>
+  ({
+    requestOptions: true,
+    formData: {
+      disabled: true,
+      arrayHandling: FormDataArrayHandling.SERIALIZE,
+    },
+    formUrlEncoded: false,
+    paramsSerializerOptions: undefined,
+    angular: { provideIn: 'root', runtimeValidation },
+  }) as GeneratorVerbOptions['override'];
+
+const makeOptions = (schemasType?: string): AngularGeneratorOptions =>
   ({
     route: '/pet',
     context: {
@@ -93,7 +117,7 @@ const makeOptions = (schemasType?: string) =>
         schemas: schemasType ? { type: schemasType } : undefined,
       },
     },
-  }) as never;
+  }) as AngularGeneratorOptions;
 
 describe('angular generator implementation signature', () => {
   it('should restrict implementation signature observe to valid Angular observe modes', async () => {
@@ -141,39 +165,15 @@ describe('angular generator implementation signature', () => {
       originalSchema: {},
     };
 
-    const verbOptions = {
-      headers: undefined,
-      queryParams: undefined,
-      operationName: 'getPet',
+    const verbOptions = makeVerbOptions({
       response,
-      mutator: undefined,
       body,
-      props: [],
-      params: [],
-      verb: Verbs.GET,
-      override: {
-        requestOptions: true,
-        formData: { disabled: true },
-        formUrlEncoded: false,
-        paramsSerializerOptions: undefined,
-      },
-      formData: undefined,
-      formUrlEncoded: undefined,
-      paramsSerializer: undefined,
-    } as unknown as GeneratorVerbOptions;
+      override: makeOverride(false),
+    });
 
     const { implementation } = await generateAngular(
       verbOptions,
-      {
-        route: '/pet',
-        context: {
-          output: {
-            tsconfig: {
-              compilerOptions: {},
-            },
-          },
-        },
-      } as never,
+      makeOptions(),
       'angular',
     );
 
@@ -264,26 +264,12 @@ describe('angular generator implementation signature', () => {
       originalSchema: {},
     };
 
-    const verbOptions = {
-      headers: undefined,
-      queryParams: undefined,
+    const verbOptions = makeVerbOptions({
       operationName: 'getPetByContentType',
       response,
-      mutator: undefined,
       body,
-      props: [],
-      params: [],
-      verb: Verbs.GET,
-      override: {
-        requestOptions: true,
-        formData: { disabled: true },
-        formUrlEncoded: false,
-        paramsSerializerOptions: undefined,
-      },
-      formData: undefined,
-      formUrlEncoded: undefined,
-      paramsSerializer: undefined,
-    } as unknown as GeneratorVerbOptions;
+      override: makeOverride(false),
+    });
 
     const { implementation } = await generateAngular(
       verbOptions,
@@ -296,7 +282,7 @@ describe('angular generator implementation signature', () => {
             },
           },
         },
-      } as never,
+      } as AngularGeneratorOptions,
       'angular',
     );
 
@@ -370,8 +356,7 @@ describe('angular generator implementation signature', () => {
       originalSchema: {},
     };
 
-    const verbOptions = {
-      headers: undefined,
+    const verbOptions = makeVerbOptions({
       queryParams: {
         schema: {
           name: 'SearchParams',
@@ -385,7 +370,6 @@ describe('angular generator implementation signature', () => {
       },
       operationName: 'searchPets',
       response,
-      mutator: undefined,
       body,
       props: [
         {
@@ -397,16 +381,6 @@ describe('angular generator implementation signature', () => {
           type: 'queryParam',
         },
       ],
-      params: [],
-      verb: Verbs.GET,
-      override: {
-        requestOptions: true,
-        formData: { disabled: true },
-        formUrlEncoded: false,
-        paramsSerializerOptions: undefined,
-      },
-      formData: undefined,
-      formUrlEncoded: undefined,
       paramsSerializer: {
         name: 'paramsSerializerMutator',
         path: './paramsSerializerMutator',
@@ -417,7 +391,8 @@ describe('angular generator implementation signature', () => {
         hasThirdArg: false,
         isHook: false,
       },
-    } as unknown as GeneratorVerbOptions;
+      override: makeOverride(false),
+    });
 
     const { implementation } = await generateAngular(
       verbOptions,
@@ -430,7 +405,7 @@ describe('angular generator implementation signature', () => {
             },
           },
         },
-      } as never,
+      } as AngularGeneratorOptions,
       'angular',
     );
 
@@ -445,13 +420,7 @@ describe('angular generator implementation signature', () => {
 describe('angular runtime validation (runtimeValidation + zod)', () => {
   it('should apply .parse() validation pipe on body observe mode', async () => {
     const verbOptions = makeVerbOptions({
-      override: {
-        requestOptions: true,
-        formData: { disabled: true },
-        formUrlEncoded: false,
-        paramsSerializerOptions: undefined,
-        angular: { provideIn: 'root', runtimeValidation: true },
-      } as unknown as GeneratorVerbOptions['override'],
+      override: makeOverride(true),
     });
 
     const { implementation } = await generateAngular(
@@ -468,13 +437,7 @@ describe('angular runtime validation (runtimeValidation + zod)', () => {
 
   it('should NOT apply .parse() on events or response observe modes', async () => {
     const verbOptions = makeVerbOptions({
-      override: {
-        requestOptions: true,
-        formData: { disabled: true },
-        formUrlEncoded: false,
-        paramsSerializerOptions: undefined,
-        angular: { provideIn: 'root', runtimeValidation: true },
-      } as unknown as GeneratorVerbOptions['override'],
+      override: makeOverride(true),
     });
 
     const { implementation } = await generateAngular(
@@ -528,13 +491,7 @@ describe('angular runtime validation (runtimeValidation + zod)', () => {
           errors: [],
         },
       }),
-      override: {
-        requestOptions: true,
-        formData: { disabled: true },
-        formUrlEncoded: false,
-        paramsSerializerOptions: undefined,
-        angular: { provideIn: 'root', runtimeValidation: true },
-      } as unknown as GeneratorVerbOptions['override'],
+      override: makeOverride(true),
     });
 
     const { implementation } = await generateAngular(
@@ -554,13 +511,7 @@ describe('angular runtime validation (runtimeValidation + zod)', () => {
         definition: { success: 'void', errors: 'unknown' },
         types: { success: [], errors: [] },
       }),
-      override: {
-        requestOptions: true,
-        formData: { disabled: true },
-        formUrlEncoded: false,
-        paramsSerializerOptions: undefined,
-        angular: { provideIn: 'root', runtimeValidation: true },
-      } as unknown as GeneratorVerbOptions['override'],
+      override: makeOverride(true),
     });
 
     const { implementation } = await generateAngular(
@@ -574,18 +525,12 @@ describe('angular runtime validation (runtimeValidation + zod)', () => {
 
   it('should NOT apply .parse() when schemas output is not zod', async () => {
     const verbOptions = makeVerbOptions({
-      override: {
-        requestOptions: true,
-        formData: { disabled: true },
-        formUrlEncoded: false,
-        paramsSerializerOptions: undefined,
-        angular: { provideIn: 'root', runtimeValidation: true },
-      } as unknown as GeneratorVerbOptions['override'],
+      override: makeOverride(true),
     });
 
     const { implementation } = await generateAngular(
       verbOptions,
-      makeOptions(undefined), // no zod schema type
+      makeOptions(), // no zod schema type
       'angular',
     );
 
@@ -594,13 +539,7 @@ describe('angular runtime validation (runtimeValidation + zod)', () => {
 
   it('should NOT apply .parse() when runtimeValidation is false', async () => {
     const verbOptions = makeVerbOptions({
-      override: {
-        requestOptions: true,
-        formData: { disabled: true },
-        formUrlEncoded: false,
-        paramsSerializerOptions: undefined,
-        angular: { provideIn: 'root', runtimeValidation: false },
-      } as unknown as GeneratorVerbOptions['override'],
+      override: makeOverride(false),
     });
 
     const { implementation } = await generateAngular(
@@ -612,25 +551,50 @@ describe('angular runtime validation (runtimeValidation + zod)', () => {
     expect(implementation).not.toContain('.parse(');
   });
 
+  it('should import rxjs map only when validation pipe is emitted', async () => {
+    const { imports: withValidationImports } = await generateAngular(
+      makeVerbOptions({ override: makeOverride(true) }),
+      makeOptions('zod'),
+      'angular',
+    );
+
+    expect(withValidationImports).toContainEqual(
+      expect.objectContaining({
+        name: 'map',
+        values: true,
+        importPath: 'rxjs',
+      }),
+    );
+
+    const { imports: withoutValidationImports } = await generateAngular(
+      makeVerbOptions({ override: makeOverride(false) }),
+      makeOptions('zod'),
+      'angular',
+    );
+
+    expect(withoutValidationImports).not.toContainEqual(
+      expect.objectContaining({
+        name: 'map',
+        importPath: 'rxjs',
+      }),
+    );
+  });
+
   it('should NOT apply .parse() when using a custom mutator', async () => {
+    const customMutator: NonNullable<GeneratorVerbOptions['mutator']> = {
+      name: 'customMutator',
+      path: './custom-mutator',
+      default: true,
+      hasErrorType: false,
+      errorTypeName: 'unknown',
+      hasSecondArg: false,
+      hasThirdArg: false,
+      isHook: false,
+    };
+
     const verbOptions = makeVerbOptions({
-      mutator: {
-        name: 'customMutator',
-        path: './custom-mutator',
-        default: true,
-        hasErrorType: false,
-        errorTypeName: 'unknown',
-        hasSecondArg: false,
-        hasThirdArg: false,
-        isHook: false,
-      } as unknown as GeneratorVerbOptions['mutator'],
-      override: {
-        requestOptions: true,
-        formData: { disabled: true },
-        formUrlEncoded: false,
-        paramsSerializerOptions: undefined,
-        angular: { provideIn: 'root', runtimeValidation: true },
-      } as unknown as GeneratorVerbOptions['override'],
+      mutator: customMutator,
+      override: makeOverride(true),
     });
 
     const { implementation } = await generateAngular(
@@ -670,13 +634,7 @@ describe('angular runtime validation (runtimeValidation + zod)', () => {
           errors: [],
         },
       }),
-      override: {
-        requestOptions: true,
-        formData: { disabled: true },
-        formUrlEncoded: false,
-        paramsSerializerOptions: undefined,
-        angular: { provideIn: 'root', runtimeValidation: true },
-      } as unknown as GeneratorVerbOptions['override'],
+      override: makeOverride(true),
     });
 
     const { implementation } = await generateAngular(
@@ -691,13 +649,7 @@ describe('angular runtime validation (runtimeValidation + zod)', () => {
 
   it('should promote schema imports to value imports when validation is active', async () => {
     const verbOptions = makeVerbOptions({
-      override: {
-        requestOptions: true,
-        formData: { disabled: true },
-        formUrlEncoded: false,
-        paramsSerializerOptions: undefined,
-        angular: { provideIn: 'root', runtimeValidation: true },
-      } as unknown as GeneratorVerbOptions['override'],
+      override: makeOverride(true),
     });
 
     const { imports } = await generateAngular(
@@ -714,13 +666,7 @@ describe('angular runtime validation (runtimeValidation + zod)', () => {
 
   it('should NOT promote schema imports when validation is inactive', async () => {
     const verbOptions = makeVerbOptions({
-      override: {
-        requestOptions: true,
-        formData: { disabled: true },
-        formUrlEncoded: false,
-        paramsSerializerOptions: undefined,
-        angular: { provideIn: 'root', runtimeValidation: false },
-      } as unknown as GeneratorVerbOptions['override'],
+      override: makeOverride(false),
     });
 
     const { imports } = await generateAngular(
@@ -778,13 +724,7 @@ describe('angular runtime validation (runtimeValidation + zod)', () => {
         },
         contentTypes: ['text/plain', 'application/json'],
       }),
-      override: {
-        requestOptions: true,
-        formData: { disabled: true },
-        formUrlEncoded: false,
-        paramsSerializerOptions: undefined,
-        angular: { provideIn: 'root', runtimeValidation: true },
-      } as unknown as GeneratorVerbOptions['override'],
+      override: makeOverride(true),
     });
 
     const { implementation } = await generateAngular(
@@ -796,9 +736,8 @@ describe('angular runtime validation (runtimeValidation + zod)', () => {
     // JSON branch should have validation
     expect(implementation).toContain('.pipe(map(data => Pet.parse(data)))');
     // Text/blob branches should NOT have validation
-    const textBranchMatch = implementation.match(
-      /responseType: 'text'[\s\S]*?Observable<string>/,
-    );
+    const textBranchMatch =
+      /responseType: 'text'[\s\S]*?Observable<string>/.exec(implementation);
     if (textBranchMatch) {
       expect(textBranchMatch[0]).not.toContain('.parse(');
     }
@@ -864,13 +803,7 @@ describe('angular runtime validation (runtimeValidation + zod)', () => {
         },
         contentTypes: ['text/plain', 'application/xml', 'application/json'],
       }),
-      override: {
-        requestOptions: true,
-        formData: { disabled: true },
-        formUrlEncoded: false,
-        paramsSerializerOptions: undefined,
-        angular: { provideIn: 'root', runtimeValidation: true },
-      } as unknown as GeneratorVerbOptions['override'],
+      override: makeOverride(true),
     });
 
     const { implementation, imports } = await generateAngular(
