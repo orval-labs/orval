@@ -44,12 +44,12 @@ output: {
 }
 ```
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `handlers` | `string` | — | Directory for per-operation handler files. One file per operation. |
-| `compositeRoute` | `string` | `''` (disabled) | Path for combined routes file. Used with `tags-split` mode. |
-| `validator` | `boolean \| 'hono'` | `true` | `true` = orval's custom zValidator with response validation; `'hono'` = `@hono/zod-validator` directly (no response validation); `false` = no validators |
-| `validatorOutputPath` | `string` | `''` (auto) | Custom output path for the generated validator file |
+| Option                | Type                | Default         | Description                                                                                                                                              |
+| --------------------- | ------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `handlers`            | `string`            | —               | Directory for per-operation handler files. One file per operation.                                                                                       |
+| `compositeRoute`      | `string`            | `''` (disabled) | Path for combined routes file. Used with `tags-split` mode.                                                                                              |
+| `validator`           | `boolean \| 'hono'` | `true`          | `true` = orval's custom zValidator with response validation; `'hono'` = `@hono/zod-validator` directly (no response validation); `false` = no validators |
+| `validatorOutputPath` | `string`            | `''` (auto)     | Custom output path for the generated validator file                                                                                                      |
 
 ## Generated File Structure
 
@@ -225,10 +225,11 @@ A `NonReadonly<T>` utility type is emitted only when schema types contain readon
 Orval's custom `zValidator` extends `@hono/zod-validator` with a `response` target:
 
 ```ts
-zValidator('response', responseSchema)
+zValidator('response', responseSchema);
 ```
 
 Response validation behavior (when `validator: true`):
+
 - Runs as post-middleware (calls `await next()` first)
 - Only validates HTTP 200 responses with `Content-Type: application/json`
 - Uses `safeParseAsync` — supports Zod v3 and v4
@@ -327,14 +328,14 @@ export const stripNill = (object: unknown) =>
 
 ## Zod Schema Naming Conventions
 
-| Type | Pattern | Example |
-|---|---|---|
-| Query params | `{PascalName}QueryParams` | `ListPetsQueryParams` |
-| Path params | `{PascalName}Params` | `ShowPetByIdParams` |
-| Request headers | `{PascalName}Header` | `ListPetsHeader` |
-| Request body | `{PascalName}Body` | `CreatePetsBody` |
-| Array body items | `{PascalName}BodyItem` | `CreatePetsBodyItem` |
-| Response | `{PascalName}Response` | `ListPetsResponse` |
+| Type             | Pattern                   | Example               |
+| ---------------- | ------------------------- | --------------------- |
+| Query params     | `{PascalName}QueryParams` | `ListPetsQueryParams` |
+| Path params      | `{PascalName}Params`      | `ShowPetByIdParams`   |
+| Request headers  | `{PascalName}Header`      | `ListPetsHeader`      |
+| Request body     | `{PascalName}Body`        | `CreatePetsBody`      |
+| Array body items | `{PascalName}BodyItem`    | `CreatePetsBodyItem`  |
+| Response         | `{PascalName}Response`    | `ListPetsResponse`    |
 
 ## Full Examples
 

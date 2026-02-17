@@ -41,11 +41,14 @@ export const AXIOS_INSTANCE = Axios.create({
 });
 
 // Request interceptor — token injection
-AXIOS_INSTANCE.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-}, (error) => Promise.reject(error));
+AXIOS_INSTANCE.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
 
 // Response interceptor — error handling
 AXIOS_INSTANCE.interceptors.response.use(

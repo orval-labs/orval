@@ -24,17 +24,21 @@ export const getShowPetByIdMockHandler = (
   overrideResponse?: Pet | ((info: RequestHandlerOptions) => Promise<Pet>),
   options?: RequestHandlerOptions,
 ) => {
-  return http.get('*/pets/:petId', async (info) => {
-    await delay(1000);
-    return HttpResponse.json(
-      overrideResponse !== undefined
-        ? typeof overrideResponse === 'function'
-          ? await overrideResponse(info)
-          : overrideResponse
-        : getShowPetByIdResponseMock(),
-      { status: 200 },
-    );
-  }, options);
+  return http.get(
+    '*/pets/:petId',
+    async (info) => {
+      await delay(1000);
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getShowPetByIdResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
 };
 
 export const getShowPetByIdResponseMock = (
@@ -49,19 +53,22 @@ export const getShowPetByIdResponseMock = (
 
 Content-type aware responses — MSW handlers automatically use the correct helper:
 
-| Content type | Response helper |
-|---|---|
-| `application/json` | `HttpResponse.json()` |
-| `application/xml`, `*+xml` | `HttpResponse.xml()` |
-| `text/html` | `HttpResponse.html()` |
-| `text/plain`, other `text/*` | `HttpResponse.text()` |
-| `application/octet-stream`, `image/*` | `HttpResponse.arrayBuffer()` |
-| No body (204, etc.) | `new HttpResponse(null, { status })` |
+| Content type                          | Response helper                      |
+| ------------------------------------- | ------------------------------------ |
+| `application/json`                    | `HttpResponse.json()`                |
+| `application/xml`, `*+xml`            | `HttpResponse.xml()`                 |
+| `text/html`                           | `HttpResponse.html()`                |
+| `text/plain`, other `text/*`          | `HttpResponse.text()`                |
+| `application/octet-stream`, `image/*` | `HttpResponse.arrayBuffer()`         |
+| No body (204, etc.)                   | `new HttpResponse(null, { status })` |
 
 ## Test Setup with Vitest
 
 ```ts
-import { getListPetsMockHandler, getShowPetByIdMockHandler } from './api/petstore.msw';
+import {
+  getListPetsMockHandler,
+  getShowPetByIdMockHandler,
+} from './api/petstore.msw';
 import { setupServer } from 'msw/node';
 
 const server = setupServer(...getListPetsMockHandler());

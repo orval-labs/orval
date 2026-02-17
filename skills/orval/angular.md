@@ -113,8 +113,9 @@ output: {
 Generated code pipes through Zod:
 
 ```ts
-const request$ = http.get<Pets>(url, { params: httpParams })
-  .pipe(map(data => Pets.parse(data)));
+const request$ = http
+  .get<Pets>(url, { params: httpParams })
+  .pipe(map((data) => Pets.parse(data)));
 ```
 
 ## Angular (HttpClient)
@@ -161,9 +162,20 @@ export interface ExtendedServerErrorResponse<Error> extends HttpErrorResponse {
 export type ErrorType<Error> = ExtendedServerErrorResponse<Error>;
 
 export const responseType = <Result>(
-  { url, method, params, data, signal, responseType }: {
-    url: string; method: string; params?: any; data?: any;
-    headers?: any; signal?: AbortSignal;
+  {
+    url,
+    method,
+    params,
+    data,
+    signal,
+    responseType,
+  }: {
+    url: string;
+    method: string;
+    params?: any;
+    data?: any;
+    headers?: any;
+    signal?: AbortSignal;
     responseType?: 'arraybuffer' | 'blob' | 'json' | 'text';
   },
   http?: HttpClient,
@@ -171,7 +183,8 @@ export const responseType = <Result>(
   if (!http) throw new Error('HttpClient is required.');
   return lastValueFrom(
     http.request<Result>(method, url, {
-      params, body: data,
+      params,
+      body: data,
       responseType: (responseType ?? 'json') as 'json',
     }),
   );

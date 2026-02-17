@@ -36,7 +36,7 @@ export default defineConfig({
     output: {
       client: 'zod',
       target: 'src/api/endpoints',
-      fileExtension: '.zod.ts',  // Avoid filename conflicts
+      fileExtension: '.zod.ts', // Avoid filename conflicts
     },
   },
 });

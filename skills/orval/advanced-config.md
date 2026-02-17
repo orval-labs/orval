@@ -73,7 +73,7 @@ export const MyEnum = {
   Pending: 3,
 } as const;
 
-export type MyEnum = typeof MyEnum[keyof typeof MyEnum];
+export type MyEnum = (typeof MyEnum)[keyof typeof MyEnum];
 ```
 
 Supported extension variants: `x-enumNames`, `x-enumnames`, `x-enum-varnames` for names; `x-enumDescriptions`, `x-enumdescriptions`, `x-enum-descriptions` for descriptions.
@@ -284,7 +284,10 @@ export default defineConfig({
               data: () => ({
                 id: faker.number.int({ min: 1, max: 99 }),
                 name: faker.person.firstName(),
-                tag: faker.helpers.arrayElement([faker.word.sample(), undefined]),
+                tag: faker.helpers.arrayElement([
+                  faker.word.sample(),
+                  undefined,
+                ]),
               }),
             },
           },

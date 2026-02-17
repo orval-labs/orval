@@ -73,7 +73,7 @@ function PetDetails(props: { petId: string }) {
 <form action={SwaggerPetstore.createPets} method="post">
   <input name="name" required />
   <button type="submit">Create Pet</button>
-</form>
+</form>;
 
 // Or programmatically
 function DeletePetButton(props: { petId: string }) {

@@ -50,22 +50,22 @@ npx orval --watch
 
 ### Client Selection Guide
 
-| Use Case | Client | httpClient | Notes |
-|----------|--------|------------|-------|
-| React with server state | `react-query` | `fetch` or `axios` | TanStack Query hooks |
-| Vue 3 with server state | `vue-query` | `fetch` or `axios` | TanStack Query for Vue |
-| Svelte with server state | `svelte-query` | `fetch` or `axios` | TanStack Query for Svelte |
-| SolidJS standalone app | `solid-query` | `fetch` or `axios` | TanStack Query for Solid |
-| SolidStart full-stack | `solid-start` | native fetch | Uses `query()`/`action()` primitives |
-| Angular with signals | `angular-query` | `angular` | Injectable functions, signal reactivity |
-| Angular traditional | `angular` | — | HttpClient services |
-| React with SWR | `swr` | `fetch` or `axios` | Vercel SWR hooks |
-| Lightweight / Edge | `fetch` | — | Zero dependencies, works everywhere |
-| Node.js / existing Axios | `axios-functions` | — | Factory functions (default) |
-| Axios with DI | `axios` | — | Injectable Axios instance |
-| Validation only | `zod` | — | Zod schemas, no HTTP client |
-| Backend API server | `hono` | — | Hono handlers with Zod validation |
-| AI agent tools | `mcp` | — | Model Context Protocol servers |
+| Use Case                 | Client            | httpClient         | Notes                                   |
+| ------------------------ | ----------------- | ------------------ | --------------------------------------- |
+| React with server state  | `react-query`     | `fetch` or `axios` | TanStack Query hooks                    |
+| Vue 3 with server state  | `vue-query`       | `fetch` or `axios` | TanStack Query for Vue                  |
+| Svelte with server state | `svelte-query`    | `fetch` or `axios` | TanStack Query for Svelte               |
+| SolidJS standalone app   | `solid-query`     | `fetch` or `axios` | TanStack Query for Solid                |
+| SolidStart full-stack    | `solid-start`     | native fetch       | Uses `query()`/`action()` primitives    |
+| Angular with signals     | `angular-query`   | `angular`          | Injectable functions, signal reactivity |
+| Angular traditional      | `angular`         | —                  | HttpClient services                     |
+| React with SWR           | `swr`             | `fetch` or `axios` | Vercel SWR hooks                        |
+| Lightweight / Edge       | `fetch`           | —                  | Zero dependencies, works everywhere     |
+| Node.js / existing Axios | `axios-functions` | —                  | Factory functions (default)             |
+| Axios with DI            | `axios`           | —                  | Injectable Axios instance               |
+| Validation only          | `zod`             | —                  | Zod schemas, no HTTP client             |
+| Backend API server       | `hono`            | —                  | Hono handlers with Zod validation       |
+| AI agent tools           | `mcp`             | —                  | Model Context Protocol servers          |
 
 ### Mode Selection Guide
 
@@ -203,17 +203,17 @@ input: {
 
 When the user's question involves a specific topic below, read the corresponding file from this skill's directory.
 
-| Topic | File | Load when user asks about... |
-|-------|------|-----|
-| TanStack Query / SWR | [tanstack-query.md](tanstack-query.md) | React Query, Vue Query, Svelte Query, Solid Query, SWR, query hooks, invalidation, infinite queries, suspense, prefetch |
-| Angular | [angular.md](angular.md) | Angular Query, Angular HttpClient, signals, inject functions, Angular services, providedIn |
-| SolidStart | [solid-start.md](solid-start.md) | SolidStart, @solidjs/router, query(), action(), createAsync, revalidate |
-| Custom HTTP / Auth | [custom-http-clients.md](custom-http-clients.md) | Custom mutator, authentication, tokens, interceptors, custom fetch/axios, baseURL, hook-based mutator |
-| Zod Validation | [zod-validation.md](zod-validation.md) | Zod schemas, validation, runtime validation, coerce, strict, preprocess |
-| Mocking / MSW | [mocking-msw.md](mocking-msw.md) | MSW mocks, testing, test setup, faker, Vitest, mock handlers, useExamples |
-| Hono Server | [hono.md](hono.md) | Hono handlers, zValidator, composite routes, context types, server-side generation |
-| Advanced Config | [advanced-config.md](advanced-config.md) | Type generation, enums, per-operation overrides, FormData, JSDoc, params serializer, full example |
-| Tooling / Workflow | [tooling-workflow.md](tooling-workflow.md) | Programmatic API, transformers, hooks, NDJSON streaming, MCP, afterAllFilesWrite |
+| Topic                | File                                             | Load when user asks about...                                                                                            |
+| -------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| TanStack Query / SWR | [tanstack-query.md](tanstack-query.md)           | React Query, Vue Query, Svelte Query, Solid Query, SWR, query hooks, invalidation, infinite queries, suspense, prefetch |
+| Angular              | [angular.md](angular.md)                         | Angular Query, Angular HttpClient, signals, inject functions, Angular services, providedIn                              |
+| SolidStart           | [solid-start.md](solid-start.md)                 | SolidStart, @solidjs/router, query(), action(), createAsync, revalidate                                                 |
+| Custom HTTP / Auth   | [custom-http-clients.md](custom-http-clients.md) | Custom mutator, authentication, tokens, interceptors, custom fetch/axios, baseURL, hook-based mutator                   |
+| Zod Validation       | [zod-validation.md](zod-validation.md)           | Zod schemas, validation, runtime validation, coerce, strict, preprocess                                                 |
+| Mocking / MSW        | [mocking-msw.md](mocking-msw.md)                 | MSW mocks, testing, test setup, faker, Vitest, mock handlers, useExamples                                               |
+| Hono Server          | [hono.md](hono.md)                               | Hono handlers, zValidator, composite routes, context types, server-side generation                                      |
+| Advanced Config      | [advanced-config.md](advanced-config.md)         | Type generation, enums, per-operation overrides, FormData, JSDoc, params serializer, full example                       |
+| Tooling / Workflow   | [tooling-workflow.md](tooling-workflow.md)       | Programmatic API, transformers, hooks, NDJSON streaming, MCP, afterAllFilesWrite                                        |
 
 ## OpenAPI Specification Best Practices
 

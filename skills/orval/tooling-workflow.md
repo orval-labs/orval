@@ -15,6 +15,7 @@ output: {
 ```
 
 Generated files:
+
 - `src/http-schemas/` — TypeScript types
 - `src/handlers.ts` — Handler functions returning MCP format
 - `src/http-client.ts` — Generated fetch client
@@ -57,7 +58,11 @@ export const stream = async (
     method: 'GET',
     headers: { Accept: 'application/x-ndjson', ...options?.headers },
   });
-  return { status: stream.status, stream, headers: stream.headers } as streamResponse;
+  return {
+    status: stream.status,
+    stream,
+    headers: stream.headers,
+  } as streamResponse;
 };
 ```
 
