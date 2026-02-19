@@ -214,6 +214,7 @@ export const generateZodValidationSchemaDefinition = (
   const functions: [string, unknown][] = [];
   const type = resolveZodType(schema);
   const required = rules?.required ?? false;
+  const hasDefault = schema.default !== undefined;
   const nullable =
     // changing to ?? here changes behavior - so don't
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
@@ -758,14 +759,16 @@ export const generateZodValidationSchemaDefinition = (
     }
   }
 
-  if (!required && schema.default !== undefined) {
-    functions.push(['default', defaultVarName]);
-  } else if (!required && nullable) {
+  if (!required && nullable) {
     functions.push(['nullish', undefined]);
   } else if (nullable) {
     functions.push(['nullable', undefined]);
-  } else if (!required) {
+  } else if (!required && !hasDefault) {
     functions.push(['optional', undefined]);
+  }
+
+  if (hasDefault) {
+    functions.push(['default', defaultVarName]);
   }
 
   if (schema.description) {

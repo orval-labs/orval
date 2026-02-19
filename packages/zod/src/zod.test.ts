@@ -1020,6 +1020,78 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
     });
 
+    it('generates a default value for a required string schema', () => {
+      const schemaWithDefault: OpenApiSchemaObject = {
+        type: 'string',
+        default: 'hello',
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithDefault,
+        context,
+        'testStringDefaultRequired',
+        false,
+        false,
+        { required: true },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['string', undefined],
+          ['default', 'testStringDefaultRequiredDefault'],
+        ],
+        consts: ['export const testStringDefaultRequiredDefault = `hello`;'],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe(
+        'zod.string().default(testStringDefaultRequiredDefault)',
+      );
+    });
+
+    it('generates nullish + default for a non-required nullable schema with default', () => {
+      const schemaWithNullableDefault: OpenApiSchemaObject = {
+        type: 'string',
+        nullable: true,
+        default: 'hello',
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithNullableDefault,
+        context,
+        'testStringNullableDefault',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['string', undefined],
+          ['nullish', undefined],
+          ['default', 'testStringNullableDefaultDefault'],
+        ],
+        consts: ['export const testStringNullableDefaultDefault = `hello`;'],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe(
+        'zod.string().nullish().default(testStringNullableDefaultDefault)',
+      );
+    });
+
     it('generates a default value for a number schema', () => {
       const schemaWithNumberDefault: OpenApiSchemaObject = {
         type: 'number',
@@ -2896,6 +2968,131 @@ describe('generateZodWithLiteralProperty', () => {
     expect(result.implementation).toBe(
       'export const TestBody = zod.object({\n  "type": zod.literal("WILD").optional()\n})\n\n',
     );
+  });
+});
+
+const schemaWithRequiredDefaults = {
+  pathRoute: '/gizmo',
+  context: {
+    spec: {
+      openapi: '3.1.0',
+      info: {
+        version: '1.0.0',
+        title: 'GIZMO',
+      },
+      paths: {
+        '/gizmo': {
+          get: {
+            operationId: 'getGizmo',
+            responses: {
+              '200': {
+                content: {
+                  'application/json': {
+                    schema: {
+                      $ref: '#/components/schemas/Gizmo',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      components: {
+        schemas: {
+          Gizmo: {
+            type: 'object',
+            required: ['booleanFlag', 'number'],
+            properties: {
+              booleanFlag: {
+                type: 'boolean',
+                default: false,
+              },
+              number: {
+                type: 'number',
+                default: 10.11,
+              },
+              integer: {
+                type: 'integer',
+                default: 10,
+              },
+              nullableString: {
+                type: 'string',
+                nullable: true,
+                default: 'hello',
+              },
+            },
+          },
+        },
+      },
+    },
+    output: {
+      override: {
+        zod: {
+          generateEachHttpStatus: false,
+        },
+      },
+    },
+  },
+} as unknown as GeneratorOptions;
+
+describe('generateZod required defaults regression (#2987)', () => {
+  it('keeps default values for required response properties', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/gizmo',
+        verb: 'get',
+        operationName: 'getGizmo',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: false,
+              body: false,
+              response: true,
+              query: false,
+              header: false,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      schemaWithRequiredDefaults,
+      testOutput,
+    );
+
+    expect(result.implementation).toMatch(
+      /"booleanFlag": zod\.boolean\(\)\.default\(getGizmoResponseBooleanFlagDefault\)/,
+    );
+    expect(result.implementation).toMatch(
+      /"number": zod\.number\(\)\.default\(getGizmoResponseNumberDefault\)/,
+    );
+    expect(result.implementation).toMatch(
+      /"integer": zod\.number\(\)\.default\(getGizmoResponseIntegerDefault\)/,
+    );
+    expect(result.implementation).toMatch(
+      /"nullableString": zod\.string\(\)\.nullish\(\)\.default\(getGizmoResponseNullableStringDefault\)/,
+    );
+
+    expect(result.implementation).not.toContain(
+      '"booleanFlag": zod.boolean(),',
+    );
+    expect(result.implementation).not.toContain('"number": zod.number(),');
   });
 });
 

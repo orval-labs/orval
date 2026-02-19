@@ -250,4 +250,11 @@ export default defineConfig({
     },
     input: '../specifications/pattern-and-format.yaml',
   },
+  'required-default-values': {
+    output: {
+      target: '../generated/zod/required-default-values.ts',
+      client: 'zod',
+    },
+    input: '../specifications/zod-required-default-values.yaml',
+  },
 });
