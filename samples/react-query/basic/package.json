@@ -9,7 +9,7 @@
     "@types/node": "^22.18.12",
     "@types/react": "^18.3.24",
     "@types/react-dom": "^18.3.7",
-    "ajv": "^8.17.1",
+    "ajv": "^8.18.0",
     "axios": "^1.13.5",
     "msw": "catalog:tooling",
     "react": "^18.3.1",
