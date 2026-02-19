@@ -1,0 +1,36 @@
+openapi: 3.1.0
+info:
+  title: Zod required default values regression
+  version: 1.0.0
+paths:
+  /gizmo:
+    get:
+      operationId: getGizmo
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Gizmo'
+components:
+  schemas:
+    Gizmo:
+      type: object
+      required:
+        - booleanFlag
+        - number
+      properties:
+        booleanFlag:
+          type: boolean
+          default: false
+        number:
+          type: number
+          default: 10.11
+        integer:
+          type: integer
+          default: 10
+        nullableString:
+          type: string
+          nullable: true
+          default: hello
