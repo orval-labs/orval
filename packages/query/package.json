@@ -1,6 +1,6 @@
 {
   "name": "@orval/query",
-  "version": "8.4.0",
+  "version": "8.4.1",
   "license": "MIT",
   "type": "module",
   "exports": {
