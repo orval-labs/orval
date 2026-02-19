@@ -17,7 +17,7 @@
     "@tsconfig/svelte": "^5.0.6",
     "orval": "workspace:*",
     "prettier": "catalog:",
-    "svelte": "^5.46.4",
+    "svelte": "^5.51.5",
     "svelte-check": "^3.8.6",
     "tslib": "catalog:",
     "typescript": "~5.9.3",

@@ -7881,7 +7881,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/trusted-types@npm:^2.0.2":
+"@types/trusted-types@npm:^2.0.2, @types/trusted-types@npm:^2.0.7":
   version: 2.0.7
   resolution: "@types/trusted-types@npm:2.0.7"
   checksum: 10c0/4c4855f10de7c6c135e0d32ce462419d8abbbc33713b31d294596c0cc34ae1fa6112a2f9da729c8f7a20707782b0d69da3b1f8df6645b0366d08825ca1522e0c
@@ -11845,10 +11845,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"devalue@npm:^5.6.2":
-  version: 5.6.2
-  resolution: "devalue@npm:5.6.2"
-  checksum: 10c0/654f257ec525a2d3f35c941bfbb361148bc65ced060710969fbaa1c45abf1c9d7c4fcb77310bf8d2fb73c34cf60bad10710e7bf5b15643bbc082518ea04cb00b
+"devalue@npm:^5.6.3":
+  version: 5.6.3
+  resolution: "devalue@npm:5.6.3"
+  checksum: 10c0/701fbe57b9b8b71cf5f9e706a6c977cffadd5083298e442d460e82f04480b8c5656aa3c6eb36aed33b387f4266aed6abd2143cd91e94f96931302225d14789ba
   languageName: node
   linkType: hard
 
@@ -13526,12 +13526,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"esrap@npm:^2.2.1":
-  version: 2.2.1
-  resolution: "esrap@npm:2.2.1"
+"esrap@npm:^2.2.2":
+  version: 2.2.3
+  resolution: "esrap@npm:2.2.3"
   dependencies:
     "@jridgewell/sourcemap-codec": "npm:^1.4.15"
-  checksum: 10c0/bd351c19b6827b69c73f86d9e5bb20fa890911c8e9aaa0581e61a38211346498e8bf4a1ac58811e9306ddbb13cd395db89e0b5302702aba121e8aaf880006f68
+  checksum: 10c0/6eda59f9968e52b9b150dec0cb8acf2f42fef62b16918cefb64d25e5aeaa969cf44ca2a6260b14994cb7e5ac2e78ab8170158339901ab0e913c52f780891ab95
   languageName: node
   linkType: hard
 
@@ -18951,7 +18951,7 @@ __metadata:
     react: "npm:^18.3.1"
     rimraf: "catalog:"
     rxjs: "catalog:angular"
-    svelte: "npm:^5.46.4"
+    svelte: "npm:^5.51.5"
     swr: "npm:^2.3.6"
     typescript: "catalog:"
     vue: "npm:^3.5.26"
@@ -23421,7 +23421,7 @@ __metadata:
     msw: "catalog:tooling"
     orval: "workspace:*"
     prettier: "catalog:"
-    svelte: "npm:^5.46.4"
+    svelte: "npm:^5.51.5"
     svelte-check: "npm:^3.8.6"
     tslib: "catalog:"
     typescript: "npm:~5.9.3"
@@ -23442,7 +23442,7 @@ __metadata:
     "@tsconfig/svelte": "npm:^5.0.6"
     orval: "workspace:*"
     prettier: "catalog:"
-    svelte: "npm:^5.46.4"
+    svelte: "npm:^5.51.5"
     svelte-check: "npm:^3.8.6"
     tslib: "catalog:"
     typescript: "npm:~5.9.3"
@@ -23461,7 +23461,7 @@ __metadata:
     "@tsconfig/svelte": "npm:^5.0.6"
     orval: "workspace:*"
     prettier: "catalog:"
-    svelte: "npm:^5.46.4"
+    svelte: "npm:^5.51.5"
     svelte-check: "npm:^3.8.6"
     tslib: "catalog:"
     typescript: "npm:~5.9.3"
@@ -23469,26 +23469,27 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"svelte@npm:^5.46.4":
-  version: 5.46.4
-  resolution: "svelte@npm:5.46.4"
+"svelte@npm:^5.51.5":
+  version: 5.53.0
+  resolution: "svelte@npm:5.53.0"
   dependencies:
     "@jridgewell/remapping": "npm:^2.3.4"
     "@jridgewell/sourcemap-codec": "npm:^1.5.0"
     "@sveltejs/acorn-typescript": "npm:^1.0.5"
     "@types/estree": "npm:^1.0.5"
+    "@types/trusted-types": "npm:^2.0.7"
     acorn: "npm:^8.12.1"
     aria-query: "npm:^5.3.1"
     axobject-query: "npm:^4.1.0"
     clsx: "npm:^2.1.1"
-    devalue: "npm:^5.6.2"
+    devalue: "npm:^5.6.3"
     esm-env: "npm:^1.2.1"
-    esrap: "npm:^2.2.1"
+    esrap: "npm:^2.2.2"
     is-reference: "npm:^3.0.3"
     locate-character: "npm:^3.0.0"
     magic-string: "npm:^0.30.11"
     zimmerframe: "npm:^1.1.2"
-  checksum: 10c0/be108e9a0213223ea45967043f774b6448afa615b0f360b3b94d492bc0145854e8930a97a65cea8533234c2cf1f4f664f80b736402fb634fdba4c3eea2e52fd7
+  checksum: 10c0/e4f3beacef162c8a8740da830410c986ac654bb199c83023e85ce2f66c8d73aa1498fd814ae6fc7cf34182f90e6f8192e48280b92112a20ccba464bd5f362cca
   languageName: node
   linkType: hard
 
