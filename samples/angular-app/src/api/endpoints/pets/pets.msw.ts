@@ -13,12 +13,30 @@ import type { Pet, Pets } from '../../model';
 
 export const getSearchPetsResponseMock = (): Pets =>
   Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
+    { length: faker.number.int({ min: 1, max: 100 }) },
     (_, i) => i + 1,
   ).map(() => ({
-    id: faker.number.int(),
+    id: faker.number.int({ min: 1 }),
     name: (() => faker.person.lastName())(),
     tag: (() => faker.person.lastName())(),
+    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+    status: faker.helpers.arrayElement([
+      'available',
+      'pending',
+      'sold',
+    ] as const),
+    age: faker.helpers.arrayElement([
+      faker.number.int({ min: 0, max: 30 }),
+      undefined,
+    ]),
+    rating: faker.helpers.arrayElement([
+      faker.number.float({ min: 0, max: 5, multipleOf: 0.5 }),
+      undefined,
+    ]),
+    phone: faker.helpers.arrayElement([
+      faker.helpers.fromRegExp('^\+?[1-9]\d{1,14}$'),
+      undefined,
+    ]),
     requiredNullableString: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
         faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -38,12 +56,30 @@ export const getSearchPetsResponseMock = (): Pets =>
 export const getListPetsResponseMock = (): Pets =>
   faker.helpers.arrayElement([
     Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
+      { length: faker.number.int({ min: 1, max: 100 }) },
       (_, i) => i + 1,
     ).map(() => ({
-      id: faker.number.int(),
+      id: faker.number.int({ min: 1 }),
       name: (() => faker.person.lastName())(),
       tag: (() => faker.person.lastName())(),
+      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+      status: faker.helpers.arrayElement([
+        'available',
+        'pending',
+        'sold',
+      ] as const),
+      age: faker.helpers.arrayElement([
+        faker.number.int({ min: 0, max: 30 }),
+        undefined,
+      ]),
+      rating: faker.helpers.arrayElement([
+        faker.number.float({ min: 0, max: 5, multipleOf: 0.5 }),
+        undefined,
+      ]),
+      phone: faker.helpers.arrayElement([
+        faker.helpers.fromRegExp('^\+?[1-9]\d{1,14}$'),
+        undefined,
+      ]),
       requiredNullableString: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
           faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -60,12 +96,30 @@ export const getListPetsResponseMock = (): Pets =>
       ]),
     })),
     Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
+      { length: faker.number.int({ min: 1, max: 100 }) },
       (_, i) => i + 1,
     ).map(() => ({
-      id: faker.number.int(),
+      id: faker.number.int({ min: 1 }),
       name: (() => faker.person.lastName())(),
       tag: (() => faker.person.lastName())(),
+      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+      status: faker.helpers.arrayElement([
+        'available',
+        'pending',
+        'sold',
+      ] as const),
+      age: faker.helpers.arrayElement([
+        faker.number.int({ min: 0, max: 30 }),
+        undefined,
+      ]),
+      rating: faker.helpers.arrayElement([
+        faker.number.float({ min: 0, max: 5, multipleOf: 0.5 }),
+        undefined,
+      ]),
+      phone: faker.helpers.arrayElement([
+        faker.helpers.fromRegExp('^\+?[1-9]\d{1,14}$'),
+        undefined,
+      ]),
       requiredNullableString: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
           faker.string.alpha({ length: { min: 10, max: 20 } }),

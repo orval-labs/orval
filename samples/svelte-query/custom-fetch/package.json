@@ -16,6 +16,7 @@
     "@sveltejs/vite-plugin-svelte": "^5.1.1",
     "@tsconfig/svelte": "^5.0.6",
     "orval": "workspace:*",
+    "prettier": "catalog:",
     "svelte": "^5.46.4",
     "svelte-check": "^3.8.6",
     "tslib": "catalog:",

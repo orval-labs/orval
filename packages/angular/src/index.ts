@@ -47,6 +47,27 @@ const ANGULAR_DEPENDENCIES = [
   },
 ] as const satisfies readonly GeneratorDependency[];
 
+const PRIMITIVE_RESPONSE_TYPES = [
+  'string',
+  'number',
+  'boolean',
+  'void',
+  'unknown',
+] as const;
+
+const isPrimitiveResponseType = (typeName: string | undefined): boolean =>
+  typeName != undefined &&
+  (PRIMITIVE_RESPONSE_TYPES as readonly string[]).includes(typeName);
+
+const hasSchemaImport = (
+  imports: readonly { name: string }[],
+  typeName: string | undefined,
+): boolean =>
+  typeName != undefined && imports.some((imp) => imp.name === typeName);
+
+const getSchemaValueRef = (typeName: string): string =>
+  typeName === 'Error' ? 'ErrorSchema' : typeName;
+
 type ReturnTypesToWrite = Map<string, string>;
 
 export const getAngularDependencies: ClientDependenciesBuilder = () => [
@@ -77,23 +98,23 @@ const createAngularHeader =
 ${
   isRequestOptions && !isGlobalMutator
     ? `interface HttpClientOptions {
-  headers?: HttpHeaders | Record<string, string | string[]>;
-  context?: HttpContext;
-  params?:
+  readonly headers?: HttpHeaders | Record<string, string | string[]>;
+  readonly context?: HttpContext;
+  readonly params?:
         | HttpParams
       | Record<string, string | number | boolean | Array<string | number | boolean>>;
-  reportProgress?: boolean;
-  withCredentials?: boolean;
-  credentials?: RequestCredentials;
-  keepalive?: boolean;
-  priority?: RequestPriority;
-  cache?: RequestCache;
-  mode?: RequestMode;
-  redirect?: RequestRedirect;
-  referrer?: string;
-  integrity?: string;
-  referrerPolicy?: ReferrerPolicy;
-  transferCache?: {includeHeaders?: string[]} | boolean;
+  readonly reportProgress?: boolean;
+  readonly withCredentials?: boolean;
+  readonly credentials?: RequestCredentials;
+  readonly keepalive?: boolean;
+  readonly priority?: RequestPriority;
+  readonly cache?: RequestCache;
+  readonly mode?: RequestMode;
+  readonly redirect?: RequestRedirect;
+  readonly referrer?: string;
+  readonly integrity?: string;
+  readonly referrerPolicy?: ReferrerPolicy;
+  readonly transferCache?: {includeHeaders?: string[]} | boolean;
 }
 
 ${hasQueryParams ? getAngularFilteredParamsHelperBody() : ''}`
@@ -127,7 +148,7 @@ const standaloneFooterReturnTypesToWrite = new Map<string, string>();
 const createAngularFooter =
   (returnTypesToWrite: ReturnTypesToWrite): ClientFooterBuilder =>
   ({ operationNames }) => {
-    let footer = '};\n\n';
+    let footer = '}\n\n';
 
     for (const operationName of operationNames) {
       if (returnTypesToWrite.has(operationName)) {
@@ -176,6 +197,27 @@ const generateImplementation = (
   });
 
   const dataType = response.definition.success || 'unknown';
+
+  // Detect if Zod runtime validation should be applied
+  const isPrimitiveType = isPrimitiveResponseType(dataType);
+  const hasSchema = hasSchemaImport(response.imports, dataType);
+  const isZodOutput =
+    typeof context.output.schemas === 'object' &&
+    context.output.schemas.type === 'zod';
+  const shouldValidateResponse =
+    override.angular.runtimeValidation &&
+    isZodOutput &&
+    !isPrimitiveType &&
+    hasSchema;
+  const schemaValueRef = shouldValidateResponse
+    ? getSchemaValueRef(dataType)
+    : dataType;
+  // The observe-mode branches use <TData> generics, so cast the parse
+  // result to keep TypeScript happy.  The multi-content-type branch uses
+  // concrete types and does not need the cast (see jsonValidationPipe).
+  const validationPipe = shouldValidateResponse
+    ? `.pipe(map(data => ${schemaValueRef}.parse(data) as TData))`
+    : '';
 
   returnTypesToWrite.set(
     operationName,
@@ -271,10 +313,12 @@ const generateImplementation = (
       : `const ${angularParamsRef} = ${callExpr};\n\n    `;
   }
 
-  const options = generateOptions({
+  const optionsInput = {
     ...optionsBase,
     ...(angularParamsRef ? { angularParamsRef } : {}),
-  });
+  } as const;
+
+  const options = generateOptions(optionsInput);
 
   // For multiple content types, determine the default
   const defaultContentType = hasMultipleContentTypes
@@ -315,33 +359,40 @@ const generateImplementation = (
 
   const jsonReturnType =
     jsonSuccessValues.length > 0 ? jsonSuccessValues.join(' | ') : 'unknown';
-  const multiImplementationReturnType = `Observable<${jsonReturnType} | string | Blob>`;
 
-  const withObserveMode = (
-    generatedOptions: string,
-    observeMode: 'body' | 'events' | 'response',
-  ): string => {
-    const spreadPattern =
-      "...(options as Omit<NonNullable<typeof options>, 'observe'>),";
-
-    if (generatedOptions.includes(spreadPattern)) {
-      return generatedOptions.replace(
-        spreadPattern,
-        `${spreadPattern}\n        observe: '${observeMode}',`,
-      );
+  // For multi-content-type operations the overall dataType may be primitive
+  // (e.g., 'string' when text/plain is the first content type) but the JSON
+  // branch still needs validation against its own schema.  Multi-content-type
+  // branches use concrete return types (not <TData>), so no generic cast.
+  let jsonValidationPipe = shouldValidateResponse
+    ? `.pipe(map(data => ${schemaValueRef}.parse(data)))`
+    : '';
+  if (
+    hasMultipleContentTypes &&
+    !shouldValidateResponse &&
+    override.angular.runtimeValidation &&
+    isZodOutput &&
+    jsonSuccessValues.length === 1
+  ) {
+    const jsonType = jsonSuccessValues[0];
+    const jsonIsPrimitive = isPrimitiveResponseType(jsonType);
+    const jsonHasSchema = hasSchemaImport(response.imports, jsonType);
+    if (!jsonIsPrimitive && jsonHasSchema) {
+      const jsonSchemaRef = getSchemaValueRef(jsonType);
+      jsonValidationPipe = `.pipe(map(data => ${jsonSchemaRef}.parse(data)))`;
     }
+  }
 
-    return generatedOptions.replace(
-      "(options as Omit<NonNullable<typeof options>, 'observe'>)",
-      `{ ...(options as Omit<NonNullable<typeof options>, 'observe'>), observe: '${observeMode}' }`,
-    );
-  };
+  const multiImplementationReturnType = `Observable<${jsonReturnType} | string | Blob>`;
 
   const observeOptions = needsObserveBranching
     ? {
-        body: withObserveMode(options, 'body'),
-        events: withObserveMode(options, 'events'),
-        response: withObserveMode(options, 'response'),
+        body: generateOptions({ ...optionsInput, angularObserve: 'body' }),
+        events: generateOptions({ ...optionsInput, angularObserve: 'events' }),
+        response: generateOptions({
+          ...optionsInput,
+          angularObserve: 'response',
+        }),
       }
     : undefined;
 
@@ -429,7 +480,7 @@ const generateImplementation = (
         ...options,
         responseType: 'json',
         headers,
-      });
+      })${jsonValidationPipe};
     } else if (accept.startsWith('text/') || accept.includes('xml')) {
       return this.http.${verb}(\`${route}\`, {
         ...options,
@@ -462,8 +513,8 @@ const generateImplementation = (
 
     return this.http.${verb}${isModelType ? '<TData>' : ''}(${
       observeOptions?.body ?? options
-    });`
-    : `return this.http.${verb}${isModelType ? '<TData>' : ''}(${options});`;
+    })${validationPipe};`
+    : `return this.http.${verb}${isModelType ? '<TData>' : ''}(${options})${validationPipe};`;
 
   return ` ${overloads}
   ${functionName}(
@@ -483,12 +534,95 @@ const createAngularClient =
     // Keep signature aligned with ClientBuilder without tripping TS noUnusedParameters
     void _outputClient;
     void _output;
-    const imports = generateVerbImports(verbOptions);
+
+    // Detect if Zod runtime validation should be applied
+    const isZodOutput =
+      typeof options.context.output.schemas === 'object' &&
+      options.context.output.schemas.type === 'zod';
+    const responseType = verbOptions.response.definition.success;
+    const isPrimitiveResponse = isPrimitiveResponseType(responseType);
+    const shouldUseRuntimeValidation =
+      verbOptions.override.angular.runtimeValidation && isZodOutput;
+
+    // Promote schema import from type-only to value import when runtime
+    // validation is active, so the generated code can call Schema.parse()
+    const normalizedVerbOptions = (() => {
+      if (!shouldUseRuntimeValidation) return verbOptions;
+
+      let result = verbOptions;
+
+      // Promote the primary response schema
+      if (
+        !isPrimitiveResponse &&
+        hasSchemaImport(result.response.imports, responseType)
+      ) {
+        result = {
+          ...result,
+          response: {
+            ...result.response,
+            imports: result.response.imports.map((imp) =>
+              imp.name === responseType ? { ...imp, values: true } : imp,
+            ),
+          },
+        };
+      }
+
+      // For multi-content-type operations, also promote the JSON-specific
+      // schema even when the primary content type is non-JSON (e.g.,
+      // showPetById where text/plain is the default but application/json
+      // returns Pet which needs .parse()).
+      const successTypes = result.response.types.success;
+      const uniqueContentTypes = [
+        ...new Set(successTypes.map((t) => t.contentType).filter(Boolean)),
+      ];
+      if (uniqueContentTypes.length > 1) {
+        const jsonSchemaNames = [
+          ...new Set(
+            successTypes
+              .filter(
+                ({ contentType }) =>
+                  !!contentType &&
+                  (contentType.includes('json') ||
+                    contentType.includes('+json')),
+              )
+              .map(({ value }) => value),
+          ),
+        ];
+        if (jsonSchemaNames.length === 1) {
+          const jsonType = jsonSchemaNames[0];
+          const jsonIsPrimitive = isPrimitiveResponseType(jsonType);
+          if (
+            !jsonIsPrimitive &&
+            hasSchemaImport(result.response.imports, jsonType)
+          ) {
+            result = {
+              ...result,
+              response: {
+                ...result.response,
+                imports: result.response.imports.map((imp) =>
+                  imp.name === jsonType ? { ...imp, values: true } : imp,
+                ),
+              },
+            };
+          }
+        }
+      }
+
+      return result;
+    })();
+
     const implementation = generateImplementation(
       returnTypesToWrite,
-      verbOptions,
+      normalizedVerbOptions,
       options,
     );
+
+    const imports = [
+      ...generateVerbImports(normalizedVerbOptions),
+      ...(implementation.includes('.pipe(map(')
+        ? [{ name: 'map', values: true, importPath: 'rxjs' }]
+        : []),
+    ];
 
     return { implementation, imports };
   };

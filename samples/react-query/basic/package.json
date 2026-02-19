@@ -18,7 +18,8 @@
     "typescript": "~5.9.3"
   },
   "devDependencies": {
-    "orval": "workspace:*"
+    "orval": "workspace:*",
+    "prettier": "catalog:"
   },
   "dependenciesMeta": {
     "msw": {

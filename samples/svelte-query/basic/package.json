@@ -27,6 +27,7 @@
     "eslint-plugin-svelte3": "^4.0.0",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
+    "prettier": "catalog:",
     "svelte": "^5.46.4",
     "svelte-check": "^3.8.6",
     "tslib": "catalog:",

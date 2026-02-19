@@ -1,14 +1,4 @@
-type Operation = {
-  parameters?: unknown[];
-  [key: string]: unknown;
-};
-
-type OpenApiDocument = {
-  paths?: Record<string, Record<string, Operation | undefined> | undefined>;
-  [key: string]: unknown;
-};
-
-type InputTransformerFn = (spec: OpenApiDocument) => OpenApiDocument;
+import { InputTransformerFn } from '@orval/core';
 
 type OperationParameter = {
   name?: string;

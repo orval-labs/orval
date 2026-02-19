@@ -673,6 +673,7 @@ export type QueryOptions = {
 
 export type AngularOptions = {
   provideIn?: 'root' | 'any' | boolean;
+  runtimeValidation?: boolean;
 };
 
 export type SwrOptions = {
@@ -795,6 +796,7 @@ export interface GlobalOptions {
   packageJson?: string;
   input?: string;
   output?: string;
+  verbose?: boolean;
 }
 
 export interface Tsconfig {

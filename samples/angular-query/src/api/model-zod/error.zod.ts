@@ -11,4 +11,4 @@ export const Error = zod.object({
   message: zod.string(),
 });
 
-export type Error = zod.infer<typeof Error>;
+export type Error = zod.input<typeof Error>;

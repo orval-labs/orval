@@ -23,6 +23,7 @@
     "jsdom": "^27.1.0",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
+    "prettier": "catalog:",
     "tsd": "^0.33.0",
     "typescript": "~5.9.3",
     "vite": "^7.2.2",

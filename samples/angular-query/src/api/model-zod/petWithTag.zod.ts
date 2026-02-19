@@ -46,4 +46,4 @@ export const PetWithTag = zod.object({
     .nullable(),
 });
 
-export type PetWithTag = zod.infer<typeof PetWithTag>;
+export type PetWithTag = zod.input<typeof PetWithTag>;

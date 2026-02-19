@@ -28,26 +28,26 @@ import listPetsMutator from '../../../orval/mutator/response-type';
 import paramsSerializerMutator from '../../../orval/mutator/custom-params-serializer';
 
 interface HttpClientOptions {
-  headers?: HttpHeaders | Record<string, string | string[]>;
-  context?: HttpContext;
-  params?:
+  readonly headers?: HttpHeaders | Record<string, string | string[]>;
+  readonly context?: HttpContext;
+  readonly params?:
     | HttpParams
     | Record<
         string,
         string | number | boolean | Array<string | number | boolean>
       >;
-  reportProgress?: boolean;
-  withCredentials?: boolean;
-  credentials?: RequestCredentials;
-  keepalive?: boolean;
-  priority?: RequestPriority;
-  cache?: RequestCache;
-  mode?: RequestMode;
-  redirect?: RequestRedirect;
-  referrer?: string;
-  integrity?: string;
-  referrerPolicy?: ReferrerPolicy;
-  transferCache?: { includeHeaders?: string[] } | boolean;
+  readonly reportProgress?: boolean;
+  readonly withCredentials?: boolean;
+  readonly credentials?: RequestCredentials;
+  readonly keepalive?: boolean;
+  readonly priority?: RequestPriority;
+  readonly cache?: RequestCache;
+  readonly mode?: RequestMode;
+  readonly redirect?: RequestRedirect;
+  readonly referrer?: string;
+  readonly integrity?: string;
+  readonly referrerPolicy?: ReferrerPolicy;
+  readonly transferCache?: { includeHeaders?: string[] } | boolean;
 }
 
 function filterParams(
@@ -94,7 +94,7 @@ function filterParams(
 export class PetsService {
   private readonly http = inject(HttpClient);
   /**
-   * @summary search by query params
+   * @summary Search pets by query params
    */
   searchPets<TData = Pets>(
     params: SearchPetsParams,
@@ -295,7 +295,7 @@ export class PetsService {
     }
   }
   /**
-   * @summary Info for a specific pet
+   * @summary Info for a specific pet as plain text
    */
   showPetText(
     petId: string,

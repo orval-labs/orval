@@ -7,7 +7,7 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "CI=true ng test --no-watch",
+    "test": "ng test --no-watch",
     "lint": "ng lint",
     "generate-api": "orval",
     "clean": "rimraf .turbo dist .angular src/api",
@@ -22,7 +22,8 @@
     "@angular/platform-browser": "catalog:angular",
     "@angular/router": "catalog:angular",
     "rxjs": "catalog:angular",
-    "tslib": "catalog:"
+    "tslib": "catalog:",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@angular/build": "catalog:angular",
@@ -31,6 +32,7 @@
     "@faker-js/faker": "catalog:tooling",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
+    "prettier": "catalog:",
     "rimraf": "^6.1.2",
     "typescript": "~5.9.3",
     "vitest": "^4.0.16"

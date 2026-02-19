@@ -4,8 +4,23 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
+import type { CreatePetsBodyStatus } from './createPetsBodyStatus';
 
 export type CreatePetsBody = {
+  /**
+   * Name of the pet
+   * @minLength 1
+   * @maxLength 100
+   */
   name: string;
+  /**
+   * Classification tag
+   * @minLength 1
+   * @maxLength 50
+   */
   tag: string;
+  /** Owner contact email */
+  email?: string;
+  /** Initial adoption status */
+  status?: CreatePetsBodyStatus;
 };
