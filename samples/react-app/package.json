@@ -7,7 +7,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "eject": "react-scripts eject",
-    "generate-api": "orval"
+    "generate-api": "orval",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "yarn test:snapshots --update"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -39,7 +41,8 @@
   "devDependencies": {
     "msw": "catalog:tooling",
     "orval": "workspace:*",
-    "prettier": "catalog:"
+    "prettier": "catalog:",
+    "vitest": "catalog:"
   },
   "dependenciesMeta": {
     "msw": {

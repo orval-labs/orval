@@ -19,7 +19,8 @@
   },
   "devDependencies": {
     "orval": "workspace:*",
-    "prettier": "catalog:"
+    "prettier": "catalog:",
+    "vitest": "catalog:"
   },
   "dependenciesMeta": {
     "msw": {
@@ -34,6 +35,8 @@
     "build": "react-scripts build",
     "eject": "react-scripts eject",
     "generate-api": "orval",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "yarn test:snapshots --update",
     "test": "tsc --noEmit"
   },
   "eslintConfig": {

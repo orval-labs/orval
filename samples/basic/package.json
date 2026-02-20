@@ -7,6 +7,8 @@
   "main": "index.html",
   "scripts": {
     "generate-api": "orval",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "yarn test:snapshots --update",
     "example": "run-p 'example:*'",
     "example:basic": "orval --input ./petstore.yaml --output ./api/endpoints/petstoreFromFileSpec.ts",
     "example:config": "orval"
@@ -16,7 +18,8 @@
   "devDependencies": {
     "npm-run-all": "^4.1.5",
     "orval": "workspace:*",
-    "prettier": "catalog:"
+    "prettier": "catalog:",
+    "vitest": "catalog:"
   },
   "dependencies": {
     "@faker-js/faker": "catalog:tooling",

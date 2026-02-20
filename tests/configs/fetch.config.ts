@@ -7,6 +7,8 @@ export default defineConfig({
       schemas: '../generated/fetch/petstore/model',
       mock: true,
       client: 'fetch',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -27,6 +29,8 @@ export default defineConfig({
           forceSuccessResponse: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -38,6 +42,8 @@ export default defineConfig({
       schemas: '../generated/fetch/multi-arguments/model',
       mock: true,
       client: 'fetch',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -50,6 +56,8 @@ export default defineConfig({
       mock: true,
       mode: 'tags-split',
       client: 'fetch',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -62,6 +70,8 @@ export default defineConfig({
       mock: true,
       mode: 'split',
       client: 'fetch',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -74,6 +84,8 @@ export default defineConfig({
       mock: true,
       mode: 'tags',
       client: 'fetch',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -90,6 +102,8 @@ export default defineConfig({
           includeHttpResponseReturnType: false,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -103,6 +117,8 @@ export default defineConfig({
       override: {
         useNamedParameters: true,
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -114,6 +130,8 @@ export default defineConfig({
       schemas: '../generated/fetch/headers/model',
       client: 'fetch',
       headers: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -125,6 +143,8 @@ export default defineConfig({
       schemas: '../generated/fetch/form-data-optional-request/model',
       client: 'fetch',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/form-data-optional-request.yaml',
@@ -145,6 +165,8 @@ export default defineConfig({
           name: 'customFetch',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/form-data-optional-request.yaml',
@@ -159,6 +181,8 @@ export default defineConfig({
       schemas: '../generated/fetch/form-url-encoded/model',
       client: 'fetch',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/form-url-encoded.yaml',
@@ -177,6 +201,8 @@ export default defineConfig({
           name: 'customFetch',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/form-url-encoded.yaml',
@@ -187,6 +213,8 @@ export default defineConfig({
       target: '../generated/fetch/parameters/endpoints.ts',
       schemas: '../generated/fetch/parameters/model',
       client: 'fetch',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/parameters.yaml',
@@ -197,6 +225,8 @@ export default defineConfig({
       target: '../generated/fetch/importFromSubdirectory/endpoints.ts',
       schemas: '../generated/fetch/importFromSubdirectory/model',
       client: 'fetch',
+      clean: true,
+      prettier: true,
     },
     input: '../specifications/import-from-subdirectory/petstore.yaml',
   },
@@ -204,6 +234,8 @@ export default defineConfig({
     output: {
       target: '../generated/fetch/default-only-response/endpoints.ts',
       client: 'fetch',
+      clean: true,
+      prettier: true,
     },
     input: '../specifications/default-response.yaml',
   },
@@ -212,6 +244,8 @@ export default defineConfig({
       target: '../generated/fetch/empty-response/endpoints.ts',
       schemas: '../generated/fetch/empty-response/model',
       client: 'fetch',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/empty-response.yaml',
@@ -222,6 +256,8 @@ export default defineConfig({
       target: '../generated/fetch/stream/endpoints.ts',
       schemas: '../generated/fetch/stream/model',
       client: 'fetch',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/stream.yaml',
@@ -241,6 +277,8 @@ export default defineConfig({
           },
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -256,6 +294,8 @@ export default defineConfig({
       override: {
         useDates: true,
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/parameters.yaml',
@@ -271,6 +311,8 @@ export default defineConfig({
           forceSuccessResponse: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -289,6 +331,8 @@ export default defineConfig({
           },
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -307,6 +351,8 @@ export default defineConfig({
           runtimeValidation: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -327,6 +373,8 @@ export default defineConfig({
           runtimeValidation: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -346,6 +394,8 @@ export default defineConfig({
           runtimeValidation: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -365,6 +415,8 @@ export default defineConfig({
           runtimeValidation: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -375,6 +427,8 @@ export default defineConfig({
       target: '../generated/fetch/wildcard-responses/endpoints.ts',
       schemas: '../generated/fetch/wildcard-responses/model',
       client: 'fetch',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/wildcard-responses.yaml',
@@ -392,6 +446,8 @@ export default defineConfig({
           external: ['*.scss'],
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',

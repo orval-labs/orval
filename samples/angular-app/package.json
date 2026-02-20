@@ -8,6 +8,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test --no-watch",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "yarn test:snapshots --update",
     "lint": "ng lint",
     "generate-api": "orval",
     "clean": "rimraf .turbo dist .angular src/api",
@@ -35,7 +37,7 @@
     "prettier": "catalog:",
     "rimraf": "^6.1.2",
     "typescript": "~5.9.3",
-    "vitest": "^4.0.16"
+    "vitest": "catalog:"
   },
   "dependenciesMeta": {
     "msw": {

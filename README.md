@@ -90,6 +90,10 @@ corepack enable
 
 - **`yarn test:samples`** - Run tests in the samples directory using the newly generated output from `update-samples`.
 
+- **`yarn test:snapshots`** - Run snapshot tests to verify generated sample outputs match the committed snapshots. Fails if any generated file differs from its snapshot.
+
+- **`yarn test:snapshots:update`** - Regenerate snapshot files to match the current generated output. Run this after `yarn update-samples` when the generated output has intentionally changed.
+
 - **`yarn test:cli`** - Test that the generated output (not samples) is valid TypeScript. This validates the TypeScript compilation of the generated code.
 
 ### Development Workflow
@@ -101,8 +105,11 @@ A typical development workflow would be:
 3. Run `yarn lint` to catch lint issues early
 4. Run `yarn test` to run unit tests in packages
 5. Run `yarn update-samples` to regenerate sample outputs
-6. Run `yarn test:samples` to verify samples work correctly
-7. Run `yarn test:cli` to validate TypeScript compilation
+6. Run `yarn test:snapshots` to verify generated output matches snapshots
+7. Run `yarn test:samples` to verify samples work correctly
+8. Run `yarn test:cli` to validate TypeScript compilation
+
+If step 6 fails because the generated output has intentionally changed, run `yarn test:snapshots:update` to update the snapshots.
 
 Or, as a shortcut after `yarn build` and `yarn update-samples`, run `yarn test:ci` to execute the full local CI-equivalent validation (`lint`, package tests, `test:cli`, and `test:samples`) in one command.
 

@@ -29,3 +29,6 @@ packages/hono/src/zValidator.ts
 *.mdx
 .github/ISSUE_TEMPLATE
 docs/public/llms.txt
+
+# vitest snapshots
+**/__snapshots__/**

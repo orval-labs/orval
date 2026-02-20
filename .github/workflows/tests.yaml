@@ -36,10 +36,8 @@ jobs:
       - name: lint
         # not all packages pass linting yet - ongoing work
         run: yarn lint
-      - name: samples up to date
-        uses: nickcharlton/diff-check@v1.0.0
-        with:
-          command: yarn update-samples
+      - name: snapshot tests
+        run: yarn test:snapshots
       - name: formatting
         run: yarn format:check
       - name: unit tests

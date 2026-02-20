@@ -7,6 +7,8 @@ export default defineConfig({
       schemas: '../generated/angular/petstore/model',
       client: 'angular',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -24,6 +26,8 @@ export default defineConfig({
       },
       mock: true,
       client: 'angular',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -36,6 +40,8 @@ export default defineConfig({
       client: 'angular',
       mode: 'tags-split',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -51,6 +57,8 @@ export default defineConfig({
       client: 'angular',
       mode: 'split',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -66,6 +74,8 @@ export default defineConfig({
       client: 'angular',
       mode: 'tags',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -83,6 +93,8 @@ export default defineConfig({
       override: {
         mutator: '../mutators/custom-client-angular.ts',
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -99,6 +111,8 @@ export default defineConfig({
       override: {
         useNamedParameters: true,
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
