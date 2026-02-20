@@ -16,6 +16,7 @@
   "author": "Victor Bury",
   "license": "ISC",
   "devDependencies": {
+    "msw": "catalog:tooling",
     "npm-run-all2": "catalog:",
     "orval": "workspace:*",
     "prettier": "catalog:",
@@ -23,8 +24,7 @@
   },
   "dependencies": {
     "@faker-js/faker": "catalog:tooling",
-    "axios": "^1.13.5",
-    "msw": "^2.12.7"
+    "axios": "catalog:axios"
   },
   "dependenciesMeta": {
     "msw": {

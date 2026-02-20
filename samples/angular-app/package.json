@@ -25,7 +25,7 @@
     "@angular/router": "catalog:angular",
     "rxjs": "catalog:angular",
     "tslib": "catalog:",
-    "zod": "^3.25.76"
+    "zod": "catalog:zod3"
   },
   "devDependencies": {
     "@angular/build": "catalog:angular",
@@ -35,8 +35,8 @@
     "msw": "catalog:tooling",
     "orval": "workspace:*",
     "prettier": "catalog:",
-    "rimraf": "^6.1.2",
-    "typescript": "~5.9.3",
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
     "vitest": "catalog:"
   },
   "dependenciesMeta": {

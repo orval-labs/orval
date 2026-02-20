@@ -19,11 +19,11 @@
     "@tsconfig/svelte": "^5.0.6",
     "orval": "workspace:*",
     "prettier": "catalog:",
-    "svelte": "^5.51.5",
-    "svelte-check": "^3.8.6",
+    "svelte": "catalog:svelte",
+    "svelte-check": "catalog:svelte",
     "tslib": "catalog:",
-    "typescript": "~5.9.3",
-    "vite": "^7.2.2",
+    "typescript": "catalog:",
+    "vite": "catalog:",
     "vitest": "catalog:"
   },
   "dependencies": {

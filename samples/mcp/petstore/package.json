@@ -11,15 +11,15 @@
     "test:snapshots:update": "yarn test:snapshots --update"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.26.0",
-    "zod": "^3.25.76"
+    "@modelcontextprotocol/sdk": "catalog:mcp",
+    "zod": "catalog:zod3"
   },
   "devDependencies": {
-    "@types/node": "^22.18.12",
+    "@types/node": "catalog:",
     "orval": "workspace:*",
     "prettier": "catalog:",
     "ts-node": "^10.9.2",
-    "typescript": "~5.9.3",
+    "typescript": "catalog:",
     "vitest": "catalog:"
   }
 }

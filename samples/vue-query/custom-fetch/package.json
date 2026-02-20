@@ -13,17 +13,17 @@
     "test": "tsc --noEmit"
   },
   "dependencies": {
-    "@tanstack/vue-query": "^5.92.7",
-    "vue": "^3.5.26"
+    "@tanstack/vue-query": "catalog:vue",
+    "vue": "catalog:vue"
   },
   "devDependencies": {
     "@faker-js/faker": "catalog:tooling",
     "@vitejs/plugin-vue": "^6.0.1",
     "orval": "workspace:*",
     "prettier": "catalog:",
-    "typescript": "~5.9.3",
-    "vite": "^7.2.2",
+    "typescript": "catalog:",
+    "vite": "catalog:",
     "vitest": "catalog:",
-    "vue-tsc": "^3.2.4"
+    "vue-tsc": "catalog:vue"
   }
 }
