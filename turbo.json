@@ -12,7 +12,8 @@
     },
     "lint": {
       // linting will fail if the packages are not built
-      "dependsOn": ["build"]
+      "dependsOn": ["build"],
+      "cache": false
     },
     "test": {
       "outputs": []

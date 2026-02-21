@@ -175,6 +175,7 @@ export async function writeTagsMode({
       } catch (error) {
         throw new Error(
           `Oups... 🍻. An Error occurred while writing tag ${tag} => ${String(error)}`,
+          { cause: error },
         );
       }
     }),

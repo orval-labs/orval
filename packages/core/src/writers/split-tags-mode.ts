@@ -216,6 +216,7 @@ export async function writeSplitTagsMode({
       } catch (error) {
         throw new Error(
           `Oups... 🍻. An Error occurred while splitting tag ${tag} => ${String(error)}`,
+          { cause: error },
         );
       }
     }),

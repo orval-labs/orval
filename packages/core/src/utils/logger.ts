@@ -34,7 +34,7 @@ export function startMessage({
 }
 
 export function logError(err: unknown, tag?: string) {
-  let message = '';
+  let message;
 
   if (err instanceof Error) {
     message = (err.message || err.stack) ?? 'Unknown error';

@@ -193,6 +193,7 @@ export async function writeSplitMode({
   } catch (error) {
     throw new Error(
       `Oups... 🍻. An Error occurred while splitting => ${String(error)}`,
+      { cause: error },
     );
   }
 }

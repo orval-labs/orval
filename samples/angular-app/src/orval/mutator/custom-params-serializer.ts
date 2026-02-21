@@ -8,7 +8,12 @@ type AngularHttpParams =
     >
   | undefined;
 
-export default function (params: Record<string, any>): AngularHttpParams {
+export default function (
+  params: Record<
+    string,
+    string | number | boolean | readonly (string | number | boolean)[]
+  >,
+): AngularHttpParams {
   // do your implementation to transform the params
 
   return params;
