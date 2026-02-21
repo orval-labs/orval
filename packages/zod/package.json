@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@orval/core": "workspace:*",
-    "remeda": "^2.32.0"
+    "remeda": "^2.33.6"
   },
   "devDependencies": {
     "eslint": "catalog:",

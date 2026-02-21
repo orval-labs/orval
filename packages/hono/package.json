@@ -23,7 +23,7 @@
     "@orval/core": "workspace:*",
     "@orval/zod": "workspace:*",
     "fs-extra": "^11.3.2",
-    "remeda": "^2.32.0"
+    "remeda": "^2.33.6"
   },
   "devDependencies": {
     "@hono/zod-validator": "catalog:hono",
