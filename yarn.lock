@@ -18808,15 +18808,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"openapi3-ts@npm:^4.5.0":
-  version: 4.5.0
-  resolution: "openapi3-ts@npm:4.5.0"
-  dependencies:
-    yaml: "npm:^2.8.0"
-  checksum: 10c0/97de2d24e9ceffb89e1388e137e4a6e17ee57a02dce0c938a5e98b1338ac72b31e8b2ce8dd28945ad43fae8bee2a145892cb548ba5ae60b0930f1b6b79b0747d
-  languageName: node
-  linkType: hard
-
 "optionator@npm:^0.9.3":
   version: 0.9.4
   resolution: "optionator@npm:0.9.4"
@@ -18872,7 +18863,6 @@ __metadata:
     hono: "catalog:hono"
     msw: "catalog:tooling"
     npm-run-all2: "catalog:"
-    openapi3-ts: "npm:^4.5.0"
     orval: "workspace:*"
     prettier: "catalog:"
     react: "catalog:react"

@@ -43,7 +43,6 @@
     "hono": "catalog:hono",
     "msw": "catalog:tooling",
     "npm-run-all2": "catalog:",
-    "openapi3-ts": "^4.5.0",
     "orval": "workspace:*",
     "prettier": "catalog:",
     "react": "catalog:react",
