@@ -46,5 +46,13 @@
     "remeda": "^2.33.6",
     "typedoc": "^0.28.15"
   },
+  "peerDependencies": {
+    "@faker-js/faker": ">=10"
+  },
+  "peerDependenciesMeta": {
+    "@faker-js/faker": {
+      "optional": true
+    }
+  },
   "module": "./dist/index.mjs"
 }

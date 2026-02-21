@@ -5751,6 +5751,11 @@ __metadata:
     typedoc: "npm:^0.28.15"
     typescript: "catalog:"
     vitest: "catalog:"
+  peerDependencies:
+    "@faker-js/faker": ">=10"
+  peerDependenciesMeta:
+    "@faker-js/faker":
+      optional: true
   languageName: unknown
   linkType: soft
 
