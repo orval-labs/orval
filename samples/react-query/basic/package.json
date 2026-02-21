@@ -5,17 +5,17 @@
   "type": "module",
   "dependencies": {
     "@faker-js/faker": "catalog:tooling",
-    "@tanstack/react-query": "~5.62.16",
-    "@types/node": "^22.18.12",
-    "@types/react": "^18.3.24",
+    "@tanstack/react-query": "catalog:react",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:react",
     "@types/react-dom": "^18.3.7",
     "ajv": "^8.18.0",
-    "axios": "^1.13.5",
+    "axios": "catalog:axios",
     "msw": "catalog:tooling",
-    "react": "^18.3.1",
+    "react": "catalog:react",
     "react-dom": "^18.3.1",
     "react-scripts": "^5.0.1",
-    "typescript": "~5.9.3"
+    "typescript": "catalog:"
   },
   "devDependencies": {
     "orval": "workspace:*",

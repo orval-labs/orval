@@ -3796,8 +3796,8 @@ __metadata:
   resolution: "@hono/composite-routes-with-tags-split@workspace:samples/hono/composite-routes-with-tags-split"
   dependencies:
     "@cloudflare/workers-types": "npm:^4.20260131.0"
-    "@hono/zod-validator": "npm:^0.7.3"
-    hono: "npm:^4.11.7"
+    "@hono/zod-validator": "catalog:hono"
+    hono: "catalog:hono"
     orval: "workspace:*"
     prettier: "catalog:"
     vitest: "catalog:"
@@ -3814,23 +3814,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hono/zod-validator@npm:^0.7.3":
-  version: 0.7.3
-  resolution: "@hono/zod-validator@npm:0.7.3"
+"@hono/zod-validator@npm:0.7.6":
+  version: 0.7.6
+  resolution: "@hono/zod-validator@npm:0.7.6"
   peerDependencies:
     hono: ">=3.9.0"
     zod: ^3.25.0 || ^4.0.0
-  checksum: 10c0/6f928b22b4a9ee0096b889f635dd7ed4e3be2f2161108cbd4e404a0b83812508005724387a0f45394d04525b1b3399b04292c395a6fea99f07d7bd4153207535
-  languageName: node
-  linkType: hard
-
-"@hono/zod-validator@npm:^0.7.4":
-  version: 0.7.4
-  resolution: "@hono/zod-validator@npm:0.7.4"
-  peerDependencies:
-    hono: ">=3.9.0"
-    zod: ^3.25.0 || ^4.0.0
-  checksum: 10c0/c5b24eaee784f75cb85342e9c927d6ea961d0a2161ecda75942de8a7094b9133d8142a8f5fcd511bf9be56d336e953dc6e968b1e7706ccf0af00399a4a41c7cd
+  checksum: 10c0/4fbbf0ac85bbb59c2beec09c42696fbe601bc495c977f0456139ba4d563f12eaadf34ed00a0d5790a10b8cf674c5420fe84e86f8b44759fc6bbf8cd80bbd0523
   languageName: node
   linkType: hard
 
@@ -5145,20 +5135,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mswjs/interceptors@npm:^0.40.0":
-  version: 0.40.0
-  resolution: "@mswjs/interceptors@npm:0.40.0"
-  dependencies:
-    "@open-draft/deferred-promise": "npm:^2.2.0"
-    "@open-draft/logger": "npm:^0.3.0"
-    "@open-draft/until": "npm:^2.0.0"
-    is-node-process: "npm:^1.2.0"
-    outvariant: "npm:^1.4.3"
-    strict-event-emitter: "npm:^0.5.1"
-  checksum: 10c0/4500f17b65910b2633182fdb15a81ccb6ccd4488a8c45bc2f7acdaaff4621c3cce5362e6b59ddc4fa28d315d0efb0608fd1f0d536bc5345141f8ac03fd7fab22
-  languageName: node
-  linkType: hard
-
 "@mswjs/interceptors@npm:^0.41.2":
   version: 0.41.2
   resolution: "@mswjs/interceptors@npm:0.41.2"
@@ -5795,7 +5771,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@orval/hono@workspace:packages/hono"
   dependencies:
-    "@hono/zod-validator": "npm:^0.7.4"
+    "@hono/zod-validator": "catalog:hono"
     "@orval/core": "workspace:*"
     "@orval/zod": "workspace:*"
     "@types/fs-extra": "npm:^11.0.4"
@@ -7163,7 +7139,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/react-query@npm:~5.62.16":
+"@tanstack/react-query@npm:5.62.16":
   version: 5.62.16
   resolution: "@tanstack/react-query@npm:5.62.16"
   dependencies:
@@ -7174,7 +7150,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/svelte-query@npm:^4.41.0":
+"@tanstack/svelte-query@npm:4.41.0":
   version: 4.41.0
   resolution: "@tanstack/svelte-query@npm:4.41.0"
   dependencies:
@@ -7196,7 +7172,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/vue-query@npm:^5.92.7":
+"@tanstack/vue-query@npm:5.92.7":
   version: 5.92.7
   resolution: "@tanstack/vue-query@npm:5.92.7"
   dependencies:
@@ -7724,7 +7700,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:22.18.12, @types/node@npm:^22.18.12":
+"@types/node@npm:22.18.12":
   version: 22.18.12
   resolution: "@types/node@npm:22.18.12"
   dependencies:
@@ -7798,7 +7774,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:18.3.24, @types/react@npm:^18.3.24":
+"@types/react@npm:18.3.24":
   version: 18.3.24
   resolution: "@types/react@npm:18.3.24"
   dependencies:
@@ -8632,20 +8608,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vitest/expect@npm:4.0.16":
-  version: 4.0.16
-  resolution: "@vitest/expect@npm:4.0.16"
-  dependencies:
-    "@standard-schema/spec": "npm:^1.0.0"
-    "@types/chai": "npm:^5.2.2"
-    "@vitest/spy": "npm:4.0.16"
-    "@vitest/utils": "npm:4.0.16"
-    chai: "npm:^6.2.1"
-    tinyrainbow: "npm:^3.0.3"
-  checksum: 10c0/add4dde3548b6f65b6d7d364607713f9db258642add248a23805fa1172e48d76a7822080249efb882120b408772684569b2e78581ed3d5f282e215d7f21be183
-  languageName: node
-  linkType: hard
-
 "@vitest/expect@npm:4.0.18":
   version: 4.0.18
   resolution: "@vitest/expect@npm:4.0.18"
@@ -8657,25 +8619,6 @@ __metadata:
     chai: "npm:^6.2.1"
     tinyrainbow: "npm:^3.0.3"
   checksum: 10c0/123b0aa111682e82ec5289186df18037b1a1768700e468ee0f9879709aaa320cf790463c15c0d8ee10df92b402f4394baf5d27797e604d78e674766d87bcaadc
-  languageName: node
-  linkType: hard
-
-"@vitest/mocker@npm:4.0.16":
-  version: 4.0.16
-  resolution: "@vitest/mocker@npm:4.0.16"
-  dependencies:
-    "@vitest/spy": "npm:4.0.16"
-    estree-walker: "npm:^3.0.3"
-    magic-string: "npm:^0.30.21"
-  peerDependencies:
-    msw: ^2.4.9
-    vite: ^6.0.0 || ^7.0.0-0
-  peerDependenciesMeta:
-    msw:
-      optional: true
-    vite:
-      optional: true
-  checksum: 10c0/cf4469a4745e3cdd46e8ee4e20aa04369e7f985d40175d974d3a6f6d331bf9d8610f9638c5a18f7ff59a30ff04b19f4b823457b4c79142186fe463fa4cee80c5
   languageName: node
   linkType: hard
 
@@ -8698,31 +8641,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vitest/pretty-format@npm:4.0.16":
-  version: 4.0.16
-  resolution: "@vitest/pretty-format@npm:4.0.16"
-  dependencies:
-    tinyrainbow: "npm:^3.0.3"
-  checksum: 10c0/11243e9c2d2d011ae23825c6b7464a4385a4a4efc4ceb28b7854bb9d73491f440b89d12f62c5c9737d26375cf9585b11bc20183d4dea4e983e79d5e162407eb9
-  languageName: node
-  linkType: hard
-
 "@vitest/pretty-format@npm:4.0.18":
   version: 4.0.18
   resolution: "@vitest/pretty-format@npm:4.0.18"
   dependencies:
     tinyrainbow: "npm:^3.0.3"
   checksum: 10c0/0086b8c88eeca896d8e4b98fcdef452c8041a1b63eb9e85d3e0bcc96c8aa76d8e9e0b6990ebb0bb0a697c4ebab347e7735888b24f507dbff2742ddce7723fd94
-  languageName: node
-  linkType: hard
-
-"@vitest/runner@npm:4.0.16":
-  version: 4.0.16
-  resolution: "@vitest/runner@npm:4.0.16"
-  dependencies:
-    "@vitest/utils": "npm:4.0.16"
-    pathe: "npm:^2.0.3"
-  checksum: 10c0/7f4614a9fe5e9f3683d30fb82d1489796c669df45fbc0beb22d39539e4b12ebef462062705545ca04391a0406af62088cbf1d613a812ecc9ea753a0edbfd5d26
   languageName: node
   linkType: hard
 
@@ -8733,17 +8657,6 @@ __metadata:
     "@vitest/utils": "npm:4.0.18"
     pathe: "npm:^2.0.3"
   checksum: 10c0/fdb4afa411475133c05ba266c8092eaf1e56cbd5fb601f92ec6ccb9bab7ca52e06733ee8626599355cba4ee71cb3a8f28c84d3b69dc972e41047edc50229bc01
-  languageName: node
-  linkType: hard
-
-"@vitest/snapshot@npm:4.0.16":
-  version: 4.0.16
-  resolution: "@vitest/snapshot@npm:4.0.16"
-  dependencies:
-    "@vitest/pretty-format": "npm:4.0.16"
-    magic-string: "npm:^0.30.21"
-    pathe: "npm:^2.0.3"
-  checksum: 10c0/4fa63ffa4f30c909078210a1edcb059dbfa3ec3deaebb8f93637f65a7efae9a2d7714129bae0cf615512a683e925cf31f281fc4cb02f1fdc4c72f68ce21ca11f
   languageName: node
   linkType: hard
 
@@ -8758,27 +8671,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vitest/spy@npm:4.0.16":
-  version: 4.0.16
-  resolution: "@vitest/spy@npm:4.0.16"
-  checksum: 10c0/2502918e703d60ef64854d0fa83ebf94da64b80e81b80c319568feee3d86069fd46e24880a768edba06c8caba13801e44005e17a0f16d9b389486f24d539f0bf
-  languageName: node
-  linkType: hard
-
 "@vitest/spy@npm:4.0.18":
   version: 4.0.18
   resolution: "@vitest/spy@npm:4.0.18"
   checksum: 10c0/6de537890b3994fcadb8e8d8ac05942320ae184f071ec395d978a5fba7fa928cbb0c5de85af86a1c165706c466e840de8779eaff8c93450c511c7abaeb9b8a4e
-  languageName: node
-  linkType: hard
-
-"@vitest/utils@npm:4.0.16":
-  version: 4.0.16
-  resolution: "@vitest/utils@npm:4.0.16"
-  dependencies:
-    "@vitest/pretty-format": "npm:4.0.16"
-    tinyrainbow: "npm:^3.0.3"
-  checksum: 10c0/bba35b4e102be03e106ced227809437573aa5c5f64d512301ca8de127dcb91cbedc11a2e823305f8ba82528c909c10510ec8c7e3d92b3d6d1c1aec33e143572a
   languageName: node
   linkType: hard
 
@@ -9450,12 +9346,12 @@ __metadata:
     msw: "catalog:tooling"
     orval: "workspace:*"
     prettier: "catalog:"
-    rimraf: "npm:^6.1.2"
+    rimraf: "catalog:"
     rxjs: "catalog:angular"
     tslib: "catalog:"
-    typescript: "npm:~5.9.3"
+    typescript: "catalog:"
     vitest: "catalog:"
-    zod: "npm:^3.25.76"
+    zod: "catalog:zod3"
   dependenciesMeta:
     msw:
       built: true
@@ -9484,8 +9380,8 @@ __metadata:
     prettier: "catalog:"
     rxjs: "catalog:angular"
     tslib: "catalog:"
-    typescript: "npm:~5.9.3"
-    vitest: "npm:^4.0.16"
+    typescript: "catalog:"
+    vitest: "catalog:"
     zod: "npm:^4.3.6"
   dependenciesMeta:
     msw:
@@ -9889,7 +9785,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:^1.13.5":
+"axios@npm:1.13.5":
   version: 1.13.5
   resolution: "axios@npm:1.13.5"
   dependencies:
@@ -10120,8 +10016,8 @@ __metadata:
   resolution: "basic@workspace:samples/basic"
   dependencies:
     "@faker-js/faker": "catalog:tooling"
-    axios: "npm:^1.13.5"
-    msw: "npm:^2.12.7"
+    axios: "catalog:axios"
+    msw: "catalog:tooling"
     npm-run-all2: "catalog:"
     orval: "workspace:*"
     prettier: "catalog:"
@@ -13449,7 +13345,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:9.39.2, eslint@npm:^9.39.2":
+"eslint@npm:9.39.2":
   version: 9.39.2
   resolution: "eslint@npm:9.39.2"
   dependencies:
@@ -14838,8 +14734,8 @@ __metadata:
   resolution: "hono-app@workspace:samples/hono/hono-with-fetch-client/hono-app"
   dependencies:
     "@cloudflare/workers-types": "npm:^4.20260131.0"
-    "@hono/zod-validator": "npm:^0.7.3"
-    hono: "npm:^4.11.7"
+    "@hono/zod-validator": "catalog:hono"
+    hono: "catalog:hono"
     wrangler: "npm:^4.59.2"
   languageName: unknown
   linkType: soft
@@ -14859,27 +14755,20 @@ __metadata:
   resolution: "hono-with-zod@workspace:samples/hono/hono-with-zod"
   dependencies:
     "@cloudflare/workers-types": "npm:^4.20260131.0"
-    "@hono/zod-validator": "npm:^0.7.3"
-    hono: "npm:^4.11.7"
+    "@hono/zod-validator": "catalog:hono"
+    hono: "catalog:hono"
     orval: "workspace:*"
     prettier: "catalog:"
     vitest: "catalog:"
     wrangler: "npm:^4.59.2"
-    zod: "npm:^3.25.76"
+    zod: "catalog:zod3"
   languageName: unknown
   linkType: soft
 
-"hono@npm:^4.11.4":
+"hono@npm:4.11.9, hono@npm:^4.11.4":
   version: 4.11.9
   resolution: "hono@npm:4.11.9"
   checksum: 10c0/fe396a8e1a61755adb7afe8ce8e0935a6423a5680ec62f4fd3577c5c5a9236dec390dc28fef6b9742e067b5d9c53ddb3aa511b3359bf87dcc2105dae751f1242
-  languageName: node
-  linkType: hard
-
-"hono@npm:^4.11.7":
-  version: 4.11.7
-  resolution: "hono@npm:4.11.7"
-  checksum: 10c0/c7cde1779c9352fc6aacb242af009f280f4d89315cf95135d08df5c680f845fcfb1c3c1a650ec15e1d1c2d0af26fdc87b745bb3c471c5045d88c247a7bd2aae4
   languageName: node
   linkType: hard
 
@@ -17574,14 +17463,14 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "mcp-petstore@workspace:samples/mcp/petstore"
   dependencies:
-    "@modelcontextprotocol/sdk": "npm:1.26.0"
-    "@types/node": "npm:^22.18.12"
+    "@modelcontextprotocol/sdk": "catalog:mcp"
+    "@types/node": "catalog:"
     orval: "workspace:*"
     prettier: "catalog:"
     ts-node: "npm:^10.9.2"
-    typescript: "npm:~5.9.3"
+    typescript: "catalog:"
     vitest: "catalog:"
-    zod: "npm:^3.25.76"
+    zod: "catalog:zod3"
   languageName: unknown
   linkType: soft
 
@@ -18123,39 +18012,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"msw@npm:^2.12.7":
-  version: 2.12.7
-  resolution: "msw@npm:2.12.7"
-  dependencies:
-    "@inquirer/confirm": "npm:^5.0.0"
-    "@mswjs/interceptors": "npm:^0.40.0"
-    "@open-draft/deferred-promise": "npm:^2.2.0"
-    "@types/statuses": "npm:^2.0.6"
-    cookie: "npm:^1.0.2"
-    graphql: "npm:^16.12.0"
-    headers-polyfill: "npm:^4.0.2"
-    is-node-process: "npm:^1.2.0"
-    outvariant: "npm:^1.4.3"
-    path-to-regexp: "npm:^6.3.0"
-    picocolors: "npm:^1.1.1"
-    rettime: "npm:^0.7.0"
-    statuses: "npm:^2.0.2"
-    strict-event-emitter: "npm:^0.5.1"
-    tough-cookie: "npm:^6.0.0"
-    type-fest: "npm:^5.2.0"
-    until-async: "npm:^3.0.2"
-    yargs: "npm:^17.7.2"
-  peerDependencies:
-    typescript: ">= 4.8.x"
-  peerDependenciesMeta:
-    typescript:
-      optional: true
-  bin:
-    msw: cli/index.js
-  checksum: 10c0/e9100fe87dce5411d29392bba88ed1813acc6278991a3068c328ec671e5eb52d1e8ee451ee401c554eab08e04b78b84fcdf2c78f761287c6b43e844e91ce18dd
-  languageName: node
-  linkType: hard
-
 "muggle-string@npm:^0.4.1":
   version: 0.4.1
   resolution: "muggle-string@npm:0.4.1"
@@ -18274,20 +18130,20 @@ __metadata:
   resolution: "next-app-with-fetch@workspace:samples/next-app-with-fetch"
   dependencies:
     "@faker-js/faker": "catalog:tooling"
-    "@types/node": "npm:^22.18.12"
-    "@types/react": "npm:^18.3.24"
+    "@types/node": "catalog:"
+    "@types/react": "catalog:react"
     "@types/react-dom": "npm:^18.3.7"
-    eslint: "npm:^9.39.2"
+    eslint: "catalog:"
     eslint-config-next: "npm:16.1.2"
     msw: "catalog:tooling"
     next: "npm:14.2.35"
     orval: "workspace:*"
     postcss: "npm:8.5.6"
     prettier: "catalog:"
-    react: "npm:^18.3.1"
+    react: "catalog:react"
     react-dom: "npm:^18.3.1"
     tailwindcss: "npm:^3.4.17"
-    typescript: "npm:~5.9.3"
+    typescript: "catalog:"
     vitest: "catalog:"
   dependenciesMeta:
     msw:
@@ -18300,15 +18156,15 @@ __metadata:
   resolution: "next-app@workspace:samples/hono/hono-with-fetch-client/next-app"
   dependencies:
     "@faker-js/faker": "catalog:tooling"
-    "@types/node": "npm:^22.18.12"
-    "@types/react": "npm:^18.3.24"
+    "@types/node": "catalog:"
+    "@types/react": "catalog:react"
     "@types/react-dom": "npm:^18.3.7"
     next: "npm:^15.5.7"
     postcss: "npm:8.5.6"
-    react: "npm:^18.3.1"
+    react: "catalog:react"
     react-dom: "npm:^18.3.1"
     tailwindcss: "npm:^3.4.17"
-    typescript: "npm:~5.9.3"
+    typescript: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -19006,28 +18862,28 @@ __metadata:
     "@angular/common": "catalog:angular"
     "@angular/core": "catalog:angular"
     "@faker-js/faker": "catalog:tooling"
-    "@hono/zod-validator": "npm:^0.7.4"
-    "@modelcontextprotocol/sdk": "npm:1.26.0"
-    "@tanstack/react-query": "npm:~5.62.16"
-    "@tanstack/svelte-query": "npm:^4.41.0"
-    "@tanstack/vue-query": "npm:^5.92.7"
-    "@types/react": "npm:18.3.24"
-    axios: "npm:^1.13.5"
-    hono: "npm:^4.11.7"
+    "@hono/zod-validator": "catalog:hono"
+    "@modelcontextprotocol/sdk": "catalog:mcp"
+    "@tanstack/react-query": "catalog:react"
+    "@tanstack/svelte-query": "catalog:svelte"
+    "@tanstack/vue-query": "catalog:vue"
+    "@types/react": "catalog:react"
+    axios: "catalog:axios"
+    hono: "catalog:hono"
     msw: "catalog:tooling"
     npm-run-all2: "catalog:"
     openapi3-ts: "npm:^4.5.0"
     orval: "workspace:*"
     prettier: "catalog:"
-    react: "npm:^18.3.1"
+    react: "catalog:react"
     rimraf: "catalog:"
     rxjs: "catalog:angular"
-    svelte: "npm:^5.51.5"
-    swr: "npm:^2.3.6"
+    svelte: "catalog:svelte"
+    swr: "catalog:swr"
     typescript: "catalog:"
     vitest: "catalog:"
-    vue: "npm:^3.5.26"
-    zod: "npm:^3.25.76"
+    vue: "catalog:vue"
+    zod: "catalog:zod3"
   languageName: unknown
   linkType: soft
 
@@ -20754,18 +20610,18 @@ __metadata:
   resolution: "react-app@workspace:samples/react-app"
   dependencies:
     "@faker-js/faker": "catalog:tooling"
-    "@types/node": "npm:^22.18.12"
-    "@types/react": "npm:^18.3.24"
+    "@types/node": "catalog:"
+    "@types/react": "catalog:react"
     "@types/react-dom": "npm:^18.3.7"
-    axios: "npm:^1.13.5"
+    axios: "catalog:axios"
     msw: "catalog:tooling"
     orval: "workspace:*"
     prettier: "catalog:"
-    react: "npm:^18.3.1"
+    react: "catalog:react"
     react-dom: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
     react-scripts: "npm:^5.0.1"
-    typescript: "npm:~5.9.3"
+    typescript: "catalog:"
     vitest: "catalog:"
   dependenciesMeta:
     msw:
@@ -20850,19 +20706,19 @@ __metadata:
   resolution: "react-query-basic@workspace:samples/react-query/basic"
   dependencies:
     "@faker-js/faker": "catalog:tooling"
-    "@tanstack/react-query": "npm:~5.62.16"
-    "@types/node": "npm:^22.18.12"
-    "@types/react": "npm:^18.3.24"
+    "@tanstack/react-query": "catalog:react"
+    "@types/node": "catalog:"
+    "@types/react": "catalog:react"
     "@types/react-dom": "npm:^18.3.7"
     ajv: "npm:^8.18.0"
-    axios: "npm:^1.13.5"
+    axios: "catalog:axios"
     msw: "catalog:tooling"
     orval: "workspace:*"
     prettier: "catalog:"
-    react: "npm:^18.3.1"
+    react: "catalog:react"
     react-dom: "npm:^18.3.1"
     react-scripts: "npm:^5.0.1"
-    typescript: "npm:~5.9.3"
+    typescript: "catalog:"
     vitest: "catalog:"
   dependenciesMeta:
     msw:
@@ -20875,21 +20731,21 @@ __metadata:
   resolution: "react-query-custom-fetch@workspace:samples/react-query/custom-fetch"
   dependencies:
     "@faker-js/faker": "catalog:tooling"
-    "@tanstack/react-query": "npm:~5.62.16"
-    "@types/react": "npm:^18.3.24"
+    "@tanstack/react-query": "catalog:react"
+    "@types/react": "catalog:react"
     "@types/react-dom": "npm:^18.3.7"
     "@typescript-eslint/eslint-plugin": "npm:^8.52.0"
     "@typescript-eslint/parser": "npm:^8.50.1"
     "@vitejs/plugin-react": "npm:^5.1.2"
-    eslint: "npm:^9.39.2"
+    eslint: "catalog:"
     eslint-plugin-react-hooks: "npm:^4.6.2"
     eslint-plugin-react-refresh: "npm:^0.4.24"
     orval: "workspace:*"
     prettier: "catalog:"
-    react: "npm:^18.3.1"
+    react: "catalog:react"
     react-dom: "npm:^18.3.1"
-    typescript: "npm:~5.9.3"
-    vite: "npm:^7.2.2"
+    typescript: "catalog:"
+    vite: "catalog:"
     vitest: "catalog:"
   languageName: unknown
   linkType: soft
@@ -20899,10 +20755,10 @@ __metadata:
   resolution: "react-query-form-data-mutator@workspace:samples/react-query/form-data-mutator"
   dependencies:
     "@faker-js/faker": "catalog:tooling"
-    axios: "npm:^1.13.5"
+    axios: "catalog:axios"
     orval: "workspace:*"
     prettier: "catalog:"
-    react: "npm:^18.3.1"
+    react: "catalog:react"
     react-query: "npm:^3.39.3"
     vitest: "catalog:"
   languageName: unknown
@@ -20913,10 +20769,10 @@ __metadata:
   resolution: "react-query-form-data@workspace:samples/react-query/form-data"
   dependencies:
     "@faker-js/faker": "catalog:tooling"
-    axios: "npm:^1.13.5"
+    axios: "catalog:axios"
     orval: "workspace:*"
     prettier: "catalog:"
-    react: "npm:^18.3.1"
+    react: "catalog:react"
     react-query: "npm:^3.39.3"
     vitest: "catalog:"
   languageName: unknown
@@ -20927,10 +20783,10 @@ __metadata:
   resolution: "react-query-form-url-encoded-mutator@workspace:samples/react-query/form-url-encoded-mutator"
   dependencies:
     "@faker-js/faker": "catalog:tooling"
-    axios: "npm:^1.13.5"
+    axios: "catalog:axios"
     orval: "workspace:*"
     prettier: "catalog:"
-    react: "npm:^18.3.1"
+    react: "catalog:react"
     react-query: "npm:^3.39.3"
     vitest: "catalog:"
   languageName: unknown
@@ -20941,10 +20797,10 @@ __metadata:
   resolution: "react-query-form-url-encoded@workspace:samples/react-query/form-url-encoded"
   dependencies:
     "@faker-js/faker": "catalog:tooling"
-    axios: "npm:^1.13.5"
+    axios: "catalog:axios"
     orval: "workspace:*"
     prettier: "catalog:"
-    react: "npm:^18.3.1"
+    react: "catalog:react"
     react-query: "npm:^3.39.3"
     vitest: "catalog:"
   languageName: unknown
@@ -20955,10 +20811,10 @@ __metadata:
   resolution: "react-query-hook-mutator-axios@workspace:samples/react-query/hook-mutator-axios"
   dependencies:
     "@faker-js/faker": "catalog:tooling"
-    axios: "npm:^1.13.5"
+    axios: "catalog:axios"
     orval: "workspace:*"
     prettier: "catalog:"
-    react: "npm:^18.3.1"
+    react: "catalog:react"
     react-query: "npm:^3.39.3"
     vitest: "catalog:"
   languageName: unknown
@@ -20971,7 +20827,7 @@ __metadata:
     "@faker-js/faker": "catalog:tooling"
     orval: "workspace:*"
     prettier: "catalog:"
-    react: "npm:^18.3.1"
+    react: "catalog:react"
     react-query: "npm:^3.39.3"
     vitest: "catalog:"
   languageName: unknown
@@ -21076,7 +20932,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react@npm:^18.3.1":
+"react@npm:18.3.1":
   version: 18.3.1
   resolution: "react@npm:18.3.1"
   dependencies:
@@ -21538,13 +21394,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rettime@npm:^0.7.0":
-  version: 0.7.0
-  resolution: "rettime@npm:0.7.0"
-  checksum: 10c0/1460539d49415c37e46884bf1db7a5da974b239c1bd6976e1cf076fad169067dc8f55cd2572aec504433162f3627b6d8123eea977d110476258045d620bd051b
-  languageName: node
-  linkType: hard
-
 "reusify@npm:^1.0.4":
   version: 1.1.0
   resolution: "reusify@npm:1.1.0"
@@ -21570,7 +21419,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rimraf@npm:6.1.2, rimraf@npm:^6.1.2":
+"rimraf@npm:6.1.2":
   version: 6.1.2
   resolution: "rimraf@npm:6.1.2"
   dependencies:
@@ -23348,7 +23197,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"svelte-check@npm:^3.8.6":
+"svelte-check@npm:3.8.6":
   version: 3.8.6
   resolution: "svelte-check@npm:3.8.6"
   dependencies:
@@ -23428,20 +23277,20 @@ __metadata:
     "@faker-js/faker": "catalog:tooling"
     "@sveltejs/adapter-auto": "npm:^2.1.1"
     "@sveltejs/kit": "npm:^1.30.4"
-    "@tanstack/svelte-query": "npm:^4.41.0"
+    "@tanstack/svelte-query": "catalog:svelte"
     "@typescript-eslint/eslint-plugin": "npm:^8.52.0"
     "@typescript-eslint/parser": "npm:^8.50.1"
-    axios: "npm:^1.13.5"
-    eslint: "npm:^9.39.2"
+    axios: "catalog:axios"
+    eslint: "catalog:"
     eslint-plugin-svelte3: "npm:^4.0.0"
     msw: "catalog:tooling"
     orval: "workspace:*"
     prettier: "catalog:"
-    svelte: "npm:^5.51.5"
-    svelte-check: "npm:^3.8.6"
+    svelte: "catalog:svelte"
+    svelte-check: "catalog:svelte"
     tslib: "catalog:"
-    typescript: "npm:~5.9.3"
-    vite: "npm:^7.2.2"
+    typescript: "catalog:"
+    vite: "catalog:"
     vitest: "catalog:"
   dependenciesMeta:
     msw:
@@ -23455,15 +23304,15 @@ __metadata:
   dependencies:
     "@faker-js/faker": "catalog:tooling"
     "@sveltejs/vite-plugin-svelte": "npm:^5.1.1"
-    "@tanstack/svelte-query": "npm:^4.41.0"
+    "@tanstack/svelte-query": "catalog:svelte"
     "@tsconfig/svelte": "npm:^5.0.6"
     orval: "workspace:*"
     prettier: "catalog:"
-    svelte: "npm:^5.51.5"
-    svelte-check: "npm:^3.8.6"
+    svelte: "catalog:svelte"
+    svelte-check: "catalog:svelte"
     tslib: "catalog:"
-    typescript: "npm:~5.9.3"
-    vite: "npm:^7.2.2"
+    typescript: "catalog:"
+    vite: "catalog:"
     vitest: "catalog:"
   languageName: unknown
   linkType: soft
@@ -23479,16 +23328,16 @@ __metadata:
     "@tsconfig/svelte": "npm:^5.0.6"
     orval: "workspace:*"
     prettier: "catalog:"
-    svelte: "npm:^5.51.5"
-    svelte-check: "npm:^3.8.6"
+    svelte: "catalog:svelte"
+    svelte-check: "catalog:svelte"
     tslib: "catalog:"
-    typescript: "npm:~5.9.3"
-    vite: "npm:^7.2.2"
+    typescript: "catalog:"
+    vite: "catalog:"
     vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
-"svelte@npm:^5.51.5":
+"svelte@npm:5.53.0":
   version: 5.53.0
   resolution: "svelte@npm:5.53.0"
   dependencies:
@@ -23564,18 +23413,18 @@ __metadata:
   resolution: "swr-basic@workspace:samples/react-app-with-swr/basic"
   dependencies:
     "@faker-js/faker": "catalog:tooling"
-    "@types/node": "npm:^22.18.12"
-    "@types/react": "npm:^18.3.24"
+    "@types/node": "catalog:"
+    "@types/react": "catalog:react"
     "@types/react-dom": "npm:^18.3.7"
-    axios: "npm:^1.13.5"
+    axios: "catalog:axios"
     msw: "catalog:tooling"
     orval: "workspace:*"
     prettier: "catalog:"
-    react: "npm:^18.3.1"
+    react: "catalog:react"
     react-dom: "npm:^18.3.1"
     react-scripts: "npm:^5.0.1"
-    swr: "npm:^2.3.6"
-    typescript: "npm:~5.9.3"
+    swr: "catalog:swr"
+    typescript: "catalog:"
     vitest: "catalog:"
   dependenciesMeta:
     msw:
@@ -23588,21 +23437,21 @@ __metadata:
   resolution: "swr-with-fetch-client@workspace:samples/react-app-with-swr/fetch-client"
   dependencies:
     "@faker-js/faker": "catalog:tooling"
-    "@types/react": "npm:^18.3.24"
+    "@types/react": "catalog:react"
     "@types/react-dom": "npm:^18.3.7"
     "@typescript-eslint/eslint-plugin": "npm:^8.52.0"
     "@typescript-eslint/parser": "npm:^8.50.1"
     "@vitejs/plugin-react": "npm:^5.1.2"
-    eslint: "npm:^9.39.2"
+    eslint: "catalog:"
     eslint-plugin-react-hooks: "npm:^4.6.2"
     eslint-plugin-react-refresh: "npm:^0.4.24"
     orval: "workspace:*"
     prettier: "catalog:"
-    react: "npm:^18.3.1"
+    react: "catalog:react"
     react-dom: "npm:^18.3.1"
-    swr: "npm:^2.3.6"
-    typescript: "npm:~5.9.3"
-    vite: "npm:^7.2.2"
+    swr: "catalog:swr"
+    typescript: "catalog:"
+    vite: "catalog:"
     vitest: "catalog:"
   languageName: unknown
   linkType: soft
@@ -23612,27 +23461,27 @@ __metadata:
   resolution: "swr-with-zod@workspace:samples/swr-with-zod"
   dependencies:
     "@faker-js/faker": "catalog:tooling"
-    "@types/react": "npm:^18.3.24"
+    "@types/react": "catalog:react"
     "@types/react-dom": "npm:^18.3.7"
     "@typescript-eslint/eslint-plugin": "npm:^8.52.0"
     "@typescript-eslint/parser": "npm:^8.50.1"
     "@vitejs/plugin-react": "npm:^5.1.2"
-    eslint: "npm:^9.39.2"
+    eslint: "catalog:"
     eslint-plugin-react-hooks: "npm:^4.6.2"
     eslint-plugin-react-refresh: "npm:^0.4.24"
     orval: "workspace:*"
     prettier: "catalog:"
-    react: "npm:^18.3.1"
+    react: "catalog:react"
     react-dom: "npm:^18.3.1"
-    swr: "npm:^2.3.6"
-    typescript: "npm:~5.9.3"
-    vite: "npm:^7.2.2"
+    swr: "catalog:swr"
+    typescript: "catalog:"
+    vite: "catalog:"
     vitest: "catalog:"
-    zod: "npm:^3.25.76"
+    zod: "catalog:zod3"
   languageName: unknown
   linkType: soft
 
-"swr@npm:^2.3.6":
+"swr@npm:2.3.6":
   version: 2.3.6
   resolution: "swr@npm:2.3.6"
   dependencies:
@@ -24533,7 +24382,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:5.9.3, typescript@npm:~5.9.3":
+"typescript@npm:5.9.3":
   version: 5.9.3
   resolution: "typescript@npm:5.9.3"
   bin:
@@ -24553,7 +24402,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A~5.9.3#optional!builtin<compat/typescript>":
+"typescript@patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>":
   version: 5.9.3
   resolution: "typescript@patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"
   bin:
@@ -25027,6 +24876,61 @@ __metadata:
   languageName: node
   linkType: hard
 
+"vite@npm:7.2.2":
+  version: 7.2.2
+  resolution: "vite@npm:7.2.2"
+  dependencies:
+    esbuild: "npm:^0.25.0"
+    fdir: "npm:^6.5.0"
+    fsevents: "npm:~2.3.3"
+    picomatch: "npm:^4.0.3"
+    postcss: "npm:^8.5.6"
+    rollup: "npm:^4.43.0"
+    tinyglobby: "npm:^0.2.15"
+  peerDependencies:
+    "@types/node": ^20.19.0 || >=22.12.0
+    jiti: ">=1.21.0"
+    less: ^4.0.0
+    lightningcss: ^1.21.0
+    sass: ^1.70.0
+    sass-embedded: ^1.70.0
+    stylus: ">=0.54.8"
+    sugarss: ^5.0.0
+    terser: ^5.16.0
+    tsx: ^4.8.1
+    yaml: ^2.4.2
+  dependenciesMeta:
+    fsevents:
+      optional: true
+  peerDependenciesMeta:
+    "@types/node":
+      optional: true
+    jiti:
+      optional: true
+    less:
+      optional: true
+    lightningcss:
+      optional: true
+    sass:
+      optional: true
+    sass-embedded:
+      optional: true
+    stylus:
+      optional: true
+    sugarss:
+      optional: true
+    terser:
+      optional: true
+    tsx:
+      optional: true
+    yaml:
+      optional: true
+  bin:
+    vite: bin/vite.js
+  checksum: 10c0/9c76ee441f8dbec645ddaecc28d1f9cf35670ffa91cff69af7b1d5081545331603f0b1289d437b2fa8dc43cdc77b4d96b5bd9c9aed66310f490cb1a06f9c814c
+  languageName: node
+  linkType: hard
+
 "vite@npm:7.3.0":
   version: 7.3.0
   resolution: "vite@npm:7.3.0"
@@ -25137,61 +25041,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:^7.2.2":
-  version: 7.2.2
-  resolution: "vite@npm:7.2.2"
-  dependencies:
-    esbuild: "npm:^0.25.0"
-    fdir: "npm:^6.5.0"
-    fsevents: "npm:~2.3.3"
-    picomatch: "npm:^4.0.3"
-    postcss: "npm:^8.5.6"
-    rollup: "npm:^4.43.0"
-    tinyglobby: "npm:^0.2.15"
-  peerDependencies:
-    "@types/node": ^20.19.0 || >=22.12.0
-    jiti: ">=1.21.0"
-    less: ^4.0.0
-    lightningcss: ^1.21.0
-    sass: ^1.70.0
-    sass-embedded: ^1.70.0
-    stylus: ">=0.54.8"
-    sugarss: ^5.0.0
-    terser: ^5.16.0
-    tsx: ^4.8.1
-    yaml: ^2.4.2
-  dependenciesMeta:
-    fsevents:
-      optional: true
-  peerDependenciesMeta:
-    "@types/node":
-      optional: true
-    jiti:
-      optional: true
-    less:
-      optional: true
-    lightningcss:
-      optional: true
-    sass:
-      optional: true
-    sass-embedded:
-      optional: true
-    stylus:
-      optional: true
-    sugarss:
-      optional: true
-    terser:
-      optional: true
-    tsx:
-      optional: true
-    yaml:
-      optional: true
-  bin:
-    vite: bin/vite.js
-  checksum: 10c0/9c76ee441f8dbec645ddaecc28d1f9cf35670ffa91cff69af7b1d5081545331603f0b1289d437b2fa8dc43cdc77b4d96b5bd9c9aed66310f490cb1a06f9c814c
-  languageName: node
-  linkType: hard
-
 "vitefu@npm:^0.2.4":
   version: 0.2.5
   resolution: "vitefu@npm:0.2.5"
@@ -25275,65 +25124,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vitest@npm:^4.0.16":
-  version: 4.0.16
-  resolution: "vitest@npm:4.0.16"
-  dependencies:
-    "@vitest/expect": "npm:4.0.16"
-    "@vitest/mocker": "npm:4.0.16"
-    "@vitest/pretty-format": "npm:4.0.16"
-    "@vitest/runner": "npm:4.0.16"
-    "@vitest/snapshot": "npm:4.0.16"
-    "@vitest/spy": "npm:4.0.16"
-    "@vitest/utils": "npm:4.0.16"
-    es-module-lexer: "npm:^1.7.0"
-    expect-type: "npm:^1.2.2"
-    magic-string: "npm:^0.30.21"
-    obug: "npm:^2.1.1"
-    pathe: "npm:^2.0.3"
-    picomatch: "npm:^4.0.3"
-    std-env: "npm:^3.10.0"
-    tinybench: "npm:^2.9.0"
-    tinyexec: "npm:^1.0.2"
-    tinyglobby: "npm:^0.2.15"
-    tinyrainbow: "npm:^3.0.3"
-    vite: "npm:^6.0.0 || ^7.0.0"
-    why-is-node-running: "npm:^2.3.0"
-  peerDependencies:
-    "@edge-runtime/vm": "*"
-    "@opentelemetry/api": ^1.9.0
-    "@types/node": ^20.0.0 || ^22.0.0 || >=24.0.0
-    "@vitest/browser-playwright": 4.0.16
-    "@vitest/browser-preview": 4.0.16
-    "@vitest/browser-webdriverio": 4.0.16
-    "@vitest/ui": 4.0.16
-    happy-dom: "*"
-    jsdom: "*"
-  peerDependenciesMeta:
-    "@edge-runtime/vm":
-      optional: true
-    "@opentelemetry/api":
-      optional: true
-    "@types/node":
-      optional: true
-    "@vitest/browser-playwright":
-      optional: true
-    "@vitest/browser-preview":
-      optional: true
-    "@vitest/browser-webdriverio":
-      optional: true
-    "@vitest/ui":
-      optional: true
-    happy-dom:
-      optional: true
-    jsdom:
-      optional: true
-  bin:
-    vitest: vitest.mjs
-  checksum: 10c0/b195c272198f7957c11186eb70ee78e2ec0f4524b4b5306ca8f05e41b3d84c6a4a15d02fca58d82f2b32ba61f610ae8a2a23d463a8336d7323e4832db5eef223
-  languageName: node
-  linkType: hard
-
 "vscode-uri@npm:^3.0.8":
   version: 3.1.0
   resolution: "vscode-uri@npm:3.1.0"
@@ -25369,21 +25159,21 @@ __metadata:
   resolution: "vue-query-basic@workspace:samples/vue-query/vue-query-basic"
   dependencies:
     "@faker-js/faker": "catalog:tooling"
-    "@tanstack/vue-query": "npm:^5.92.7"
+    "@tanstack/vue-query": "catalog:vue"
     "@testing-library/vue": "npm:^8.1.0"
     "@vitejs/plugin-vue": "npm:^6.0.1"
     "@vue/compiler-sfc": "npm:^3.5.26"
-    axios: "npm:^1.13.5"
+    axios: "catalog:axios"
     jsdom: "npm:^27.1.0"
     msw: "catalog:tooling"
     orval: "workspace:*"
     prettier: "catalog:"
     tsd: "npm:^0.33.0"
-    typescript: "npm:~5.9.3"
-    vite: "npm:^7.2.2"
+    typescript: "catalog:"
+    vite: "catalog:"
     vitest: "catalog:"
-    vue: "npm:^3.5.26"
-    vue-tsc: "npm:^3.2.4"
+    vue: "catalog:vue"
+    vue-tsc: "catalog:vue"
   dependenciesMeta:
     msw:
       built: true
@@ -25395,19 +25185,19 @@ __metadata:
   resolution: "vue-query-custom-fetch@workspace:samples/vue-query/custom-fetch"
   dependencies:
     "@faker-js/faker": "catalog:tooling"
-    "@tanstack/vue-query": "npm:^5.92.7"
+    "@tanstack/vue-query": "catalog:vue"
     "@vitejs/plugin-vue": "npm:^6.0.1"
     orval: "workspace:*"
     prettier: "catalog:"
-    typescript: "npm:~5.9.3"
-    vite: "npm:^7.2.2"
+    typescript: "catalog:"
+    vite: "catalog:"
     vitest: "catalog:"
-    vue: "npm:^3.5.26"
-    vue-tsc: "npm:^3.2.4"
+    vue: "catalog:vue"
+    vue-tsc: "catalog:vue"
   languageName: unknown
   linkType: soft
 
-"vue-tsc@npm:^3.2.4":
+"vue-tsc@npm:3.2.4":
   version: 3.2.4
   resolution: "vue-tsc@npm:3.2.4"
   dependencies:
@@ -25421,7 +25211,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vue@npm:^3.5.26":
+"vue@npm:3.5.26":
   version: 3.5.26
   resolution: "vue@npm:3.5.26"
   dependencies:
@@ -26471,6 +26261,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"zod@npm:3.25.76, zod@npm:^3.25.76":
+  version: 3.25.76
+  resolution: "zod@npm:3.25.76"
+  checksum: 10c0/5718ec35e3c40b600316c5b4c5e4976f7fee68151bc8f8d90ec18a469be9571f072e1bbaace10f1e85cf8892ea12d90821b200e980ab46916a6166a4260a983c
+  languageName: node
+  linkType: hard
+
 "zod@npm:4.3.5, zod@npm:^3.25.0 || ^4.0.0":
   version: 4.3.5
   resolution: "zod@npm:4.3.5"
@@ -26482,13 +26279,6 @@ __metadata:
   version: 4.1.13
   resolution: "zod@npm:4.1.13"
   checksum: 10c0/d7e74e82dba81a91ffc3239cd85bc034abe193a28f7087a94ab258a3e48e9a7ca4141920cac979a0d781495b48fc547777394149f26be04c3dc642f58bbc3941
-  languageName: node
-  linkType: hard
-
-"zod@npm:^3.25.76":
-  version: 3.25.76
-  resolution: "zod@npm:3.25.76"
-  checksum: 10c0/5718ec35e3c40b600316c5b4c5e4976f7fee68151bc8f8d90ec18a469be9571f072e1bbaace10f1e85cf8892ea12d90821b200e980ab46916a6166a4260a983c
   languageName: node
   linkType: hard
 

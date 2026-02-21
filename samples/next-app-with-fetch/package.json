@@ -15,22 +15,22 @@
   },
   "dependencies": {
     "next": "14.2.35",
-    "react": "^18.3.1",
+    "react": "catalog:react",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@faker-js/faker": "catalog:tooling",
-    "@types/node": "^22.18.12",
-    "@types/react": "^18.3.24",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:react",
     "@types/react-dom": "^18.3.7",
-    "eslint": "^9.39.2",
+    "eslint": "catalog:",
     "eslint-config-next": "16.1.2",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
     "postcss": "8.5.6",
     "prettier": "catalog:",
     "tailwindcss": "^3.4.17",
-    "typescript": "~5.9.3",
+    "typescript": "catalog:",
     "vitest": "catalog:"
   },
   "dependenciesMeta": {

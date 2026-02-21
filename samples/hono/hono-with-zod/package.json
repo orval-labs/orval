@@ -10,9 +10,9 @@
     "test:snapshots:update": "yarn test:snapshots --update"
   },
   "dependencies": {
-    "@hono/zod-validator": "^0.7.3",
-    "hono": "^4.11.7",
-    "zod": "^3.25.76"
+    "@hono/zod-validator": "catalog:hono",
+    "hono": "catalog:hono",
+    "zod": "catalog:zod3"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260131.0",

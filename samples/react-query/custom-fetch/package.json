@@ -14,24 +14,24 @@
     "test": "tsc --noEmit"
   },
   "dependencies": {
-    "@tanstack/react-query": "~5.62.16",
-    "react": "^18.3.1",
+    "@tanstack/react-query": "catalog:react",
+    "react": "catalog:react",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@faker-js/faker": "catalog:tooling",
-    "@types/react": "^18.3.24",
+    "@types/react": "catalog:react",
     "@types/react-dom": "^18.3.7",
     "@typescript-eslint/eslint-plugin": "^8.52.0",
     "@typescript-eslint/parser": "^8.50.1",
     "@vitejs/plugin-react": "^5.1.2",
-    "eslint": "^9.39.2",
+    "eslint": "catalog:",
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-refresh": "^0.4.24",
     "orval": "workspace:*",
     "prettier": "catalog:",
-    "typescript": "~5.9.3",
-    "vite": "^7.2.2",
+    "typescript": "catalog:",
+    "vite": "catalog:",
     "vitest": "catalog:"
   }
 }

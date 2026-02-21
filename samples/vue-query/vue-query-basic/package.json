@@ -14,9 +14,9 @@
   },
   "dependencies": {
     "@faker-js/faker": "catalog:tooling",
-    "@tanstack/vue-query": "^5.92.7",
-    "axios": "^1.13.5",
-    "vue": "^3.5.26"
+    "@tanstack/vue-query": "catalog:vue",
+    "axios": "catalog:axios",
+    "vue": "catalog:vue"
   },
   "devDependencies": {
     "@testing-library/vue": "^8.1.0",
@@ -27,10 +27,10 @@
     "orval": "workspace:*",
     "prettier": "catalog:",
     "tsd": "^0.33.0",
-    "typescript": "~5.9.3",
-    "vite": "^7.2.2",
+    "typescript": "catalog:",
+    "vite": "catalog:",
     "vitest": "catalog:",
-    "vue-tsc": "^3.2.4"
+    "vue-tsc": "catalog:vue"
   },
   "dependenciesMeta": {
     "msw": {
