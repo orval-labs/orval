@@ -10,6 +10,7 @@ import {
   type HookFunction,
   type HookOption,
   type HooksOptions,
+  type InputTransformerFn,
   isBoolean,
   isFunction,
   isNullish,
@@ -53,6 +54,16 @@ import { loadTsconfig } from './tsconfig';
  */
 export function defineConfig(options: ConfigExternal): ConfigExternal {
   return options;
+}
+
+/**
+ * Type helper to make it easier to write input transformers.
+ * accepts a direct {@link InputTransformerFn} function.
+ */
+export function defineTransformer(
+  transformer: InputTransformerFn,
+): InputTransformerFn {
+  return transformer;
 }
 
 function createFormData(

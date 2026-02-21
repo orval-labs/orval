@@ -41,7 +41,21 @@ export default defineConfig({
 });
 ```
 
-The transformer function receives an [`OpenAPIObject`](https://github.com/metadevpro/openapi3-ts/blob/master/src/model/openapi30.ts#L12) and should return a transformed `OpenAPIObject`. See [example transformer](https://github.com/orval-labs/orval/blob/master/samples/basic/api/transformer/add-version.js).
+The transformer function receives an `OpenApiDocument` and should return a transformed `OpenApiDocument`. You can use the `defineTransformer` helper from `orval` for type inference.
+
+```ts title="transformer.ts"
+import { defineTransformer } from 'orval';
+
+export default defineTransformer((inputSchema) => ({
+  ...inputSchema,
+  info: {
+    ...inputSchema.info,
+    title: `${inputSchema.info?.title} - Custom`,
+  },
+}));
+```
+
+See [example transformer](https://github.com/orval-labs/orval/blob/master/samples/basic/api/transformer/add-version.js).
 
 ## filters
 

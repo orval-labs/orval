@@ -1,14 +1,6 @@
-/**
- * @import { OpenAPIObject } from 'openapi3-ts/oas30'
- */
+import { defineTransformer } from 'orval';
 
-/**
- * Transformer function for orval.
- *
- * @param {OpenAPIObject} schema
- * @return {OpenAPIObject}
- */
-export default (inputSchema) => ({
+export default defineTransformer((inputSchema) => ({
   ...inputSchema,
   paths: Object.fromEntries(
     Object.entries(inputSchema.paths).map(([path, pathItem]) => [
@@ -35,4 +27,4 @@ export default (inputSchema) => ({
       ),
     ]),
   ),
-});
+}));
