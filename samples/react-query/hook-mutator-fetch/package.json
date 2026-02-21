@@ -1,6 +1,6 @@
 {
   "name": "react-query-hook-mutator-fetch",
-  "version": "8.4.1",
+  "version": "8.4.2",
   "private": true,
   "type": "module",
   "scripts": {

@@ -1,6 +1,6 @@
 {
   "name": "@orval/hono",
-  "version": "8.4.1",
+  "version": "8.4.2",
   "license": "MIT",
   "type": "module",
   "exports": {
