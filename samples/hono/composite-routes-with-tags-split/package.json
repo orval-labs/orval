@@ -1,6 +1,6 @@
 {
   "name": "@hono/composite-routes-with-tags-split",
-  "version": "8.4.1",
+  "version": "8.4.2",
   "private": true,
   "type": "module",
   "scripts": {
