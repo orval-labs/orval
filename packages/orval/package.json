@@ -93,7 +93,7 @@
     "fs-extra": "^11.3.2",
     "jiti": "^2.6.1",
     "js-yaml": "4.1.1",
-    "remeda": "^2.32.0",
+    "remeda": "^2.33.6",
     "string-argv": "^0.3.2",
     "tsconfck": "^3.1.6",
     "typedoc": "^0.28.15",

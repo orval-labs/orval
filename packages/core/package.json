@@ -43,7 +43,7 @@
     "esutils": "2.0.3",
     "fs-extra": "^11.3.2",
     "globby": "16.1.0",
-    "remeda": "^2.32.0",
+    "remeda": "^2.33.6",
     "typedoc": "^0.28.15"
   },
   "module": "./dist/index.mjs"

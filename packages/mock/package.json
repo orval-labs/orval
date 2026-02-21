@@ -21,7 +21,8 @@
     "nuke": "rimraf .turbo dist node_modules"
   },
   "dependencies": {
-    "@orval/core": "workspace:*"
+    "@orval/core": "workspace:*",
+    "remeda": "^2.33.6"
   },
   "devDependencies": {
     "eslint": "catalog:",
