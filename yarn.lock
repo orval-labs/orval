@@ -9480,7 +9480,7 @@ __metadata:
     "@tanstack/angular-query-experimental": "npm:^5.90.16"
     "@testing-library/angular": "npm:19.0.0"
     msw: "catalog:tooling"
-    orval: "link:../../packages/orval/dist"
+    orval: "workspace:*"
     prettier: "catalog:"
     rxjs: "catalog:angular"
     tslib: "catalog:"
@@ -19081,12 +19081,6 @@ __metadata:
     typescript-eslint: "npm:^8.50.1"
     vitest: "catalog:"
   languageName: unknown
-  linkType: soft
-
-"orval@link:../../packages/orval/dist::locator=angular-query%40workspace%3Asamples%2Fangular-query":
-  version: 0.0.0-use.local
-  resolution: "orval@link:../../packages/orval/dist::locator=angular-query%40workspace%3Asamples%2Fangular-query"
-  languageName: node
   linkType: soft
 
 "orval@workspace:*, orval@workspace:packages/orval":
