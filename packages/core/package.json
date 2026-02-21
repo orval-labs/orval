@@ -3,7 +3,6 @@
   "version": "8.4.2",
   "license": "MIT",
   "type": "module",
-  "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "exports": {
     ".": "./dist/index.mjs",
@@ -39,7 +38,7 @@
     "chalk": "^5.6.2",
     "compare-versions": "^6.1.1",
     "debug": "^4.4.3",
-    "esbuild": "^0.27.2",
+    "esbuild": "^0.27.3",
     "esutils": "2.0.3",
     "fs-extra": "^11.3.2",
     "globby": "16.1.0",
@@ -53,6 +52,5 @@
     "@faker-js/faker": {
       "optional": true
     }
-  },
-  "module": "./dist/index.mjs"
+  }
 }

@@ -56,7 +56,7 @@
     "lint-staged": "^16.2.6",
     "prettier": "catalog:",
     "rimraf": "catalog:",
-    "turbo": "^2.7.3",
+    "turbo": "^2.8.10",
     "typescript": "catalog:",
     "typescript-eslint": "^8.50.1",
     "vitest": "catalog:"
