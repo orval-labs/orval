@@ -25,9 +25,13 @@
     "generate-api": {
       "dependsOn": ["orval#build"]
     },
+    "orval-tests#generate-api": {
+      "dependsOn": ["orval#build"],
+      "outputs": ["generated/**"]
+    },
     "test:snapshots": {
       "dependsOn": ["generate-api"],
-      "outputs": []
+      "outputs": ["__snapshots__/**"]
     },
     "test:snapshots:update": {
       "dependsOn": ["generate-api"],
