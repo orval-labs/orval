@@ -46,8 +46,10 @@ export async function writeSplitTagsMode({
     await fs.outputFile(indexFilePath, '');
   }
 
+  const tagEntries = Object.entries(target);
+
   const generatedFilePathsArray = await Promise.all(
-    Object.entries(target).map(async ([tag, target]) => {
+    tagEntries.map(async ([tag, target]) => {
       try {
         const {
           imports,
@@ -202,17 +204,6 @@ export async function writeSplitTagsMode({
 
         if (mockPath) {
           await fs.outputFile(mockPath, mockData);
-          if (indexFilePath && mockOption) {
-            const localMockPath = upath.joinSafe(
-              './',
-              tag,
-              tag + '.' + getMockFileExtensionByTypeName(mockOption),
-            );
-            await fs.appendFile(
-              indexFilePath,
-              `export { get${pascal(tag)}Mock } from '${localMockPath}'\n`,
-            );
-          }
         }
 
         return [
@@ -227,6 +218,21 @@ export async function writeSplitTagsMode({
       }
     }),
   );
+
+  // Write mock index file after Promise.all to ensure deterministic export order.
+  if (indexFilePath && mockOption) {
+    const indexContent = tagEntries
+      .map(([tag]) => {
+        const localMockPath = upath.joinSafe(
+          './',
+          tag,
+          tag + '.' + getMockFileExtensionByTypeName(mockOption),
+        );
+        return `export { get${pascal(tag)}Mock } from '${localMockPath}'\n`;
+      })
+      .join('');
+    await fs.appendFile(indexFilePath, indexContent);
+  }
 
   return [
     ...(indexFilePath ? [indexFilePath] : []),
