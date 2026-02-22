@@ -75,9 +75,8 @@ const generateImplementation = (
     override,
     formData,
     formUrlEncoded,
-    paramsSerializer,
   }: GeneratorVerbOptions,
-  { route, context }: GeneratorOptions,
+  { route }: GeneratorOptions,
 ) => {
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
@@ -148,9 +147,9 @@ const generateImplementation = (
       ${fetchBodyOption}
     }`;
 
-    if (isGetVerb) {
-      // Use query for GET requests
-      return `  ${operationName}: query(async (${propsImplementation}) => {${bodyForm}
+    const functionName = isGetVerb ? 'query' : 'action';
+
+    return `  ${operationName}: ${functionName}(async (${propsImplementation}) => {${bodyForm}
     ${queryParamsCode}
     return ${mutator.name}<${dataType}>(
       url,
@@ -158,17 +157,6 @@ const generateImplementation = (
     );
   }, "${operationName}"),
 `;
-    } else {
-      // Use action for mutations
-      return `  ${operationName}: action(async (${propsImplementation}) => {${bodyForm}
-    ${queryParamsCode}
-    return ${mutator.name}<${dataType}>(
-      url,
-      ${fetchOptions}
-    );
-  }, "${operationName}"),
-`;
-    }
   }
 
   const propsImplementation = toObjectString(props, 'implementation');
@@ -191,13 +179,14 @@ const generateImplementation = (
       body: JSON.stringify(${body.implementation})`
       : '';
 
-  if (isGetVerb) {
-    // Use query for GET requests
-    return `  ${operationName}: query(async (${propsImplementation}) => {${bodyForm}
+  const functionName = isGetVerb ? 'query' : 'action';
+  const fetchBodyPart = isGetVerb ? '' : bodyCode;
+
+  return `  ${operationName}: ${functionName}(async (${propsImplementation}) => {${bodyForm}
     ${queryParamsCode}
     const response = await fetch(url, {
       method: '${verb.toUpperCase()}',
-      ${headersCode}
+      ${headersCode}${fetchBodyPart}
     });
     if (!response.ok) {
       throw new Error(\`HTTP error! status: \${response.status}\`);
@@ -205,21 +194,6 @@ const generateImplementation = (
     return response.json() as Promise<${dataType}>;
   }, "${operationName}"),
 `;
-  } else {
-    // Use action for mutations (POST, PUT, PATCH, DELETE)
-    return `  ${operationName}: action(async (${propsImplementation}) => {${bodyForm}
-    ${queryParamsCode}
-    const response = await fetch(url, {
-      method: '${verb.toUpperCase()}',
-      ${headersCode}${bodyCode}
-    });
-    if (!response.ok) {
-      throw new Error(\`HTTP error! status: \${response.status}\`);
-    }
-    return response.json() as Promise<${dataType}>;
-  }, "${operationName}"),
-`;
-  }
 };
 
 export const generateSolidStart: ClientBuilder = (verbOptions, options) => {
