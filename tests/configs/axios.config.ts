@@ -7,6 +7,8 @@ export default defineConfig({
       schemas: '../generated/axios/petstore/model',
       mock: true,
       client: 'axios',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -24,6 +26,8 @@ export default defineConfig({
       },
       mock: true,
       client: 'axios',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -38,6 +42,8 @@ export default defineConfig({
       override: {
         mutator: '../mutators/custom-client.ts',
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -55,6 +61,8 @@ export default defineConfig({
       override: {
         mutator: '../mutators/multi-arguments.ts',
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -70,6 +78,8 @@ export default defineConfig({
       mock: true,
       mode: 'tags-split',
       client: 'axios',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -85,6 +95,8 @@ export default defineConfig({
       mock: true,
       mode: 'split',
       client: 'axios',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -100,6 +112,8 @@ export default defineConfig({
       mock: true,
       mode: 'tags',
       client: 'axios',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -116,6 +130,8 @@ export default defineConfig({
       override: {
         useNamedParameters: true,
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',

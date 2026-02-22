@@ -12,6 +12,8 @@ export default defineConfig({
           signal: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -29,6 +31,8 @@ export default defineConfig({
           signal: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -46,6 +50,8 @@ export default defineConfig({
           signal: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',

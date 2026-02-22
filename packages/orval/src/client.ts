@@ -260,9 +260,7 @@ export const generateOperations = (
 
       const generatedMock = generateMock(verbOption, options);
 
-      // Use operationName as key instead of operationId to support multiple
-      // content-type variants of the same operation (e.g., WithJson, WithFormData) #2812
-      acc[verbOption.operationName] = {
+      acc[verbOption.operationId] = {
         implementation: verbOption.doc + client.implementation,
         imports: client.imports,
         implementationMock: generatedMock.implementation,

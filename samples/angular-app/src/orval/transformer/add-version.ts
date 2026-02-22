@@ -1,14 +1,4 @@
-type Operation = {
-  parameters?: unknown[];
-  [key: string]: unknown;
-};
-
-type OpenApiDocument = {
-  paths?: Record<string, Record<string, Operation | undefined> | undefined>;
-  [key: string]: unknown;
-};
-
-type InputTransformerFn = (spec: OpenApiDocument) => OpenApiDocument;
+import { defineTransformer } from 'orval';
 
 type OperationParameter = {
   name?: string;
@@ -26,7 +16,7 @@ const HTTP_VERBS = new Set([
   'trace',
 ]);
 
-const transformer: InputTransformerFn = (inputSchema) => ({
+export default defineTransformer((inputSchema) => ({
   ...inputSchema,
   paths: Object.entries(inputSchema.paths ?? {}).reduce(
     (acc, [path, pathItem]) => ({
@@ -73,6 +63,4 @@ const transformer: InputTransformerFn = (inputSchema) => ({
     }),
     {},
   ),
-});
-
-export default transformer;
+}));

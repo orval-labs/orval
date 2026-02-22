@@ -11,6 +11,10 @@ export { MY_CONST, ANOTHER_CONST };
 export default defineConfig({
   api: {
     input: '../specifications/multi-files/api.yaml',
-    output: '../generated/multi-files/api/endpoints.ts',
+    output: {
+      target: '../generated/multi-files/api/endpoints.ts',
+      clean: true,
+      prettier: true,
+    },
   },
 });

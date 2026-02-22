@@ -1,13 +1,15 @@
 {
   "name": "angular-app",
-  "version": "8.3.0",
+  "version": "8.4.2",
   "type": "module",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "CI=true ng test --no-watch",
+    "test": "ng test --no-watch",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "yarn test:snapshots --update",
     "lint": "ng lint",
     "generate-api": "orval",
     "clean": "rimraf .turbo dist .angular src/api",
@@ -22,7 +24,8 @@
     "@angular/platform-browser": "catalog:angular",
     "@angular/router": "catalog:angular",
     "rxjs": "catalog:angular",
-    "tslib": "catalog:"
+    "tslib": "catalog:",
+    "zod": "catalog:zod3"
   },
   "devDependencies": {
     "@angular/build": "catalog:angular",
@@ -31,9 +34,10 @@
     "@faker-js/faker": "catalog:tooling",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
-    "rimraf": "^6.1.2",
-    "typescript": "~5.9.3",
-    "vitest": "^4.0.16"
+    "prettier": "catalog:",
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "dependenciesMeta": {
     "msw": {

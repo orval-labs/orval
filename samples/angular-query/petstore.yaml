@@ -132,9 +132,17 @@ paths:
             application/xml:
               schema:
                 $ref: '#/components/schemas/Pet'
+              example:
+                id: 201
+                name: xml-pet
+                tag: xml
             application/json:
               schema:
                 $ref: '#/components/schemas/Pet'
+              example:
+                id: 202
+                name: json-pet
+                tag: json
         default:
           description: unexpected error
           content:
@@ -249,6 +257,7 @@ paths:
             text/plain:
               schema:
                 type: string
+              example: plain-text-only-pet
         default:
           description: unexpected error
           content:

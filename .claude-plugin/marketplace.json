@@ -1,0 +1,11 @@
+{
+  "name": "orval",
+  "description": "Orval's official plugin for Claude Code",
+  "plugins": {
+    "orval": {
+      "name": "orval",
+      "source": "./skills/orval",
+      "description": "Generate type-safe API clients, TanStack Query/SWR hooks, Zod schemas, MSW mocks, Hono server handlers, and MCP servers from OpenAPI specs"
+    }
+  }
+}

@@ -154,13 +154,9 @@ const generateImplementation = (
       ${configParts.join(',\n      ')}
     }`;
 
-    // Use query for GET requests, action for mutations
-    return isGetVerb
-      ? `  ${operationName}: query(async (${propsImplementation}) => {${bodyForm}
-    return ${mutator.name}<${dataType}>(${axiosConfig});
-  }, "${operationName}"),
-`
-      : `  ${operationName}: action(async (${propsImplementation}) => {${bodyForm}
+    const functionName = isGetVerb ? 'query' : 'action';
+
+    return `  ${operationName}: ${functionName}(async (${propsImplementation}) => {${bodyForm}
     return ${mutator.name}<${dataType}>(${axiosConfig});
   }, "${operationName}"),
 `;
@@ -186,25 +182,14 @@ const generateImplementation = (
       body: JSON.stringify(${body.implementation})`
       : '';
 
-  // Use query for GET requests, action for mutations (POST, PUT, PATCH, DELETE)
-  return isGetVerb
-    ? `  ${operationName}: query(async (${propsImplementation}) => {${bodyForm}
+  const functionName = isGetVerb ? 'query' : 'action';
+  const fetchBodyPart = isGetVerb ? '' : bodyCode;
+
+  return `  ${operationName}: ${functionName}(async (${propsImplementation}) => {${bodyForm}
     ${queryParamsCode}
     const response = await fetch(url, {
       method: '${verb.toUpperCase()}',
-      ${headersCode}
-    });
-    if (!response.ok) {
-      throw new Error(\`HTTP error! status: \${response.status}\`);
-    }
-    return response.json() as Promise<${dataType}>;
-  }, "${operationName}"),
-`
-    : `  ${operationName}: action(async (${propsImplementation}) => {${bodyForm}
-    ${queryParamsCode}
-    const response = await fetch(url, {
-      method: '${verb.toUpperCase()}',
-      ${headersCode}${bodyCode}
+      ${headersCode}${fetchBodyPart}
     });
     if (!response.ok) {
       throw new Error(\`HTTP error! status: \${response.status}\`);

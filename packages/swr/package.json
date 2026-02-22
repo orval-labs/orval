@@ -1,8 +1,9 @@
 {
   "name": "@orval/swr",
-  "version": "8.3.0",
+  "version": "8.4.2",
   "license": "MIT",
   "type": "module",
+  "types": "./dist/index.d.mts",
   "exports": {
     ".": "./dist/index.mjs",
     "./package.json": "./package.json"
@@ -29,8 +30,5 @@
     "rimraf": "catalog:",
     "tsdown": "catalog:",
     "vitest": "catalog:"
-  },
-  "main": "./dist/index.mjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.mts"
+  }
 }

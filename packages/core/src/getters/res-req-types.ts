@@ -122,8 +122,28 @@ export function getResReqTypes(
           context,
         );
 
-        const [contentType, mediaType] =
-          Object.entries(bodySchema.content ?? {})[0] ?? [];
+        const firstEntry = Object.entries(bodySchema.content ?? {}).at(0);
+
+        if (!firstEntry) {
+          return [
+            {
+              value: name,
+              imports: [{ name, schemaName }],
+              schemas: [],
+              type: 'unknown',
+              isEnum: false,
+              isRef: true,
+              hasReadonlyProps: false,
+              originalSchema: undefined,
+              example: undefined,
+              examples: undefined,
+              key,
+              contentType: undefined,
+            },
+          ] as ResReqTypesValue[];
+        }
+
+        const [contentType, mediaType] = firstEntry;
 
         const isFormData = formDataContentTypes.has(contentType);
         const isFormUrlEncoded = formUrlEncodedContentTypes.has(contentType);

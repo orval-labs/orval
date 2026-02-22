@@ -1,0 +1,26 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Pattern and Format
+paths:
+  /example:
+    get:
+      summary: Example
+      responses:
+        '200':
+          description: 'Example'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Node'
+components:
+  schemas:
+    Node:
+      type: object
+      required:
+        - guid
+      properties:
+        guid:
+          type: string
+          format: 'my-guid'
+          pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'

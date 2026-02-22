@@ -1,7 +1,7 @@
 {
   "name": "react-query-custom-fetch",
   "private": true,
-  "version": "8.3.0",
+  "version": "8.4.2",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -9,25 +9,29 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "generate-api": "orval",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "yarn test:snapshots --update",
     "test": "tsc --noEmit"
   },
   "dependencies": {
-    "@tanstack/react-query": "~5.62.16",
-    "react": "^18.3.1",
+    "@tanstack/react-query": "catalog:react",
+    "react": "catalog:react",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@faker-js/faker": "catalog:tooling",
-    "@types/react": "^18.3.24",
+    "@types/react": "catalog:react",
     "@types/react-dom": "^18.3.7",
     "@typescript-eslint/eslint-plugin": "^8.52.0",
     "@typescript-eslint/parser": "^8.50.1",
     "@vitejs/plugin-react": "^5.1.2",
-    "eslint": "^9.39.2",
+    "eslint": "catalog:",
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-refresh": "^0.4.24",
     "orval": "workspace:*",
-    "typescript": "~5.9.3",
-    "vite": "^7.2.2"
+    "prettier": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
   }
 }

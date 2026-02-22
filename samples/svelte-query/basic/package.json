@@ -1,6 +1,6 @@
 {
   "name": "svelte-query-basic",
-  "version": "8.3.0",
+  "version": "8.4.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,6 +12,8 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint": "eslint .",
     "generate-api": "svelte-kit sync && orval",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "yarn test:snapshots --update",
     "test": "yarn check"
   },
   "scriptsComments": {
@@ -23,19 +25,21 @@
     "@sveltejs/kit": "^1.30.4",
     "@typescript-eslint/eslint-plugin": "^8.52.0",
     "@typescript-eslint/parser": "^8.50.1",
-    "eslint": "^9.39.2",
+    "eslint": "catalog:",
     "eslint-plugin-svelte3": "^4.0.0",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
-    "svelte": "^5.46.4",
-    "svelte-check": "^3.8.6",
+    "prettier": "catalog:",
+    "svelte": "catalog:svelte",
+    "svelte-check": "catalog:svelte",
     "tslib": "catalog:",
-    "typescript": "~5.9.3",
-    "vite": "^7.2.2"
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
   },
   "dependencies": {
-    "@tanstack/svelte-query": "^4.41.0",
-    "axios": "^1.13.5"
+    "@tanstack/svelte-query": "catalog:svelte",
+    "axios": "catalog:axios"
   },
   "dependenciesMeta": {
     "msw": {

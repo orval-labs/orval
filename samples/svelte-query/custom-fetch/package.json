@@ -1,7 +1,7 @@
 {
   "name": "svelte-query-custom-fetch",
   "private": true,
-  "version": "8.3.0",
+  "version": "8.4.2",
   "type": "module",
   "scripts": {
     "dev": "vite  --host",
@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "generate-api": "orval",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "yarn test:snapshots --update",
     "test": "yarn run check"
   },
   "devDependencies": {
@@ -16,13 +18,15 @@
     "@sveltejs/vite-plugin-svelte": "^5.1.1",
     "@tsconfig/svelte": "^5.0.6",
     "orval": "workspace:*",
-    "svelte": "^5.46.4",
-    "svelte-check": "^3.8.6",
+    "prettier": "catalog:",
+    "svelte": "catalog:svelte",
+    "svelte-check": "catalog:svelte",
     "tslib": "catalog:",
-    "typescript": "~5.9.3",
-    "vite": "^7.2.2"
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
   },
   "dependencies": {
-    "@tanstack/svelte-query": "^4.41.0"
+    "@tanstack/svelte-query": "catalog:svelte"
   }
 }

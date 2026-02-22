@@ -26,6 +26,7 @@ import fs from 'fs-extra';
 import { unique } from 'remeda';
 import type { TypeDocOptions } from 'typedoc';
 
+import { formatWithPrettier } from './formatters/prettier';
 import { executeHook } from './utils';
 import { writeZodSchemas, writeZodSchemasFromVerbs } from './write-zod-specs';
 
@@ -376,15 +377,7 @@ export async function writeSpecs(
   }
 
   if (output.prettier) {
-    try {
-      await execa('prettier', ['--write', ...paths]);
-    } catch {
-      log(
-        chalk.yellow(
-          `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Globally installed prettier not found`,
-        ),
-      );
-    }
+    await formatWithPrettier(paths, projectTitle);
   }
 
   if (output.biome) {
@@ -432,7 +425,12 @@ export async function writeSpecs(
       }
       const project = await app.convert();
       if (project) {
-        await app.generateDocs(project, app.options.getValue('out') as string);
+        const outputPath = app.options.getValue('out');
+        await app.generateDocs(project, outputPath);
+
+        if (output.prettier) {
+          await formatWithPrettier([outputPath], projectTitle);
+        }
       } else {
         throw new Error('TypeDoc not initialized');
       }

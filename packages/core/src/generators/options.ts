@@ -344,9 +344,12 @@ export function generateOptions({
     paramsSerializerOptions,
   });
 
+  const trimmedAxiosOptions = axiosOptions.trim();
   const isRawOptionsArgument =
-    axiosOptions === 'options' ||
-    (axiosOptions.startsWith('(') && axiosOptions.endsWith(')'));
+    trimmedAxiosOptions === 'options' ||
+    (trimmedAxiosOptions.startsWith('(') &&
+      trimmedAxiosOptions.endsWith(')')) ||
+    (trimmedAxiosOptions.startsWith('{') && trimmedAxiosOptions.endsWith('}'));
 
   const optionsArgument = axiosOptions
     ? isRawOptionsArgument

@@ -1,7 +1,7 @@
 {
   "name": "orval",
   "description": "A swagger client generator for typescript",
-  "version": "8.3.0",
+  "version": "8.4.2",
   "license": "MIT",
   "type": "module",
   "files": [
@@ -10,6 +10,7 @@
     "!dist/**/*.d.mts.map"
   ],
   "bin": "./dist/bin/orval.mjs",
+  "types": "./dist/index.d.mts",
   "exports": {
     ".": "./dist/index.mjs",
     "./bin/orval": "./dist/bin/orval.mjs",
@@ -52,21 +53,11 @@
   },
   "scripts": {
     "build": "tsdown --config-loader unrun",
-    "dev": "tsdown --config-loader unrun --watch src --onSuccess 'yarn generate-api'",
+    "dev": "tsdown --config-loader unrun --watch src",
     "lint": "eslint .",
-    "generate-api": "orval --config ../../samples/react-query/basic/orval.config.ts",
     "test": "vitest",
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
-  },
-  "devDependencies": {
-    "@types/fs-extra": "^11.0.4",
-    "@types/js-yaml": "^4.0.9",
-    "eslint": "catalog:",
-    "rimraf": "catalog:",
-    "tsdown": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
   },
   "dependencies": {
     "@commander-js/extra-typings": "^14.0.0",
@@ -81,8 +72,8 @@
     "@orval/solid-start": "workspace:*",
     "@orval/swr": "workspace:*",
     "@orval/zod": "workspace:*",
-    "@scalar/json-magic": "^0.8.8",
-    "@scalar/openapi-parser": "^0.23.9",
+    "@scalar/json-magic": "^0.11.4",
+    "@scalar/openapi-parser": "^0.24.13",
     "@scalar/openapi-types": "catalog:",
     "chalk": "^5.6.2",
     "chokidar": "^5.0.0",
@@ -93,14 +84,28 @@
     "fs-extra": "^11.3.2",
     "jiti": "^2.6.1",
     "js-yaml": "4.1.1",
-    "remeda": "^2.32.0",
+    "remeda": "^2.33.6",
     "string-argv": "^0.3.2",
     "tsconfck": "^3.1.6",
     "typedoc": "^0.28.15",
     "typedoc-plugin-coverage": "^4.0.2",
     "typedoc-plugin-markdown": "^4.9.0"
   },
-  "main": "./dist/index.mjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.mts"
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/js-yaml": "^4.0.9",
+    "eslint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "prettier": ">=3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "prettier": {
+      "optional": true
+    }
+  }
 }

@@ -1,0 +1,68 @@
+openapi: 3.0.0
+info:
+  title: MSW Mixed Content Union Regression
+  version: 1.0.0
+paths:
+  /mixed-content:
+    get:
+      summary: Mixed text/xml/json response contract
+      operationId: getMixedContent
+      tags:
+        - mixed
+      responses:
+        '200':
+          description: Mixed content response
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: plain-mixed-payload
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Pet'
+              example:
+                id: 7
+                name: xml-pet
+                tag: xml
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+              example:
+                id: 8
+                name: json-pet
+                tag: json
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 500
+                message: unexpected error
+components:
+  schemas:
+    Pet:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        tag:
+          type: string
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string

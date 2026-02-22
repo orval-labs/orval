@@ -1,0 +1,58 @@
+name: PR checks
+
+on:
+  pull_request:
+    branches:
+      - 'master'
+      - 'next'
+
+permissions:
+  contents: read
+
+jobs:
+  pr-checks:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node-version: [22.x]
+    steps:
+      - uses: actions/checkout@v6
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          # disable setup-node@v5's caching to be able to setup yarn
+          # https://github.com/actions/setup-node/issues/1357
+          package-manager-cache: false
+      - name: Enable corepack
+        run: corepack enable
+      # until setup-node have better support for corepack we have to setup yarn in 2 steps
+      # https://github.com/actions/setup-node/issues/531
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          # yarn is now installed so we can enable caching
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Check formatting
+        run: yarn format:check
+
+      - name: Build packages
+        run: yarn build
+
+      - name: Lint packages
+        run: yarn lint
+
+      - name: Test packages
+        run: yarn test
+
+      - name: Verify snapshot
+        # this step also runs the generate-api task
+        run: yarn test:snapshots
+
+      - name: Verify generated code can build
+        run: yarn workspace orval-tests build

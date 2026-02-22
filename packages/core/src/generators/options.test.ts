@@ -8,7 +8,11 @@ import {
   type ResReqTypesValue,
   Verbs,
 } from '../types';
-import { generateAxiosOptions, generateMutatorConfig } from './options';
+import {
+  generateAxiosOptions,
+  generateMutatorConfig,
+  generateOptions,
+} from './options';
 
 const minimalSchema: GeneratorSchema = {
   name: 'TestSchema',
@@ -554,5 +558,36 @@ describe('generateMutatorConfig', () => {
       expect(result).not.toContain('headers');
       expect(result).not.toContain('Content-Type');
     });
+  });
+});
+
+describe('generateOptions', () => {
+  it('should not double-wrap Angular observe object literal options for body verbs', () => {
+    const result = generateOptions({
+      route: '/pets',
+      body: minimalBody,
+      response: {
+        imports: [],
+        definition: { success: 'Pet', errors: 'unknown' },
+        isBlob: false,
+        types: { success: [], errors: [] },
+        contentTypes: ['application/json'],
+        schemas: [],
+        originalSchema: {},
+      },
+      verb: Verbs.POST,
+      requestOptions: true,
+      isFormData: false,
+      isFormUrlEncoded: false,
+      isAngular: true,
+      angularObserve: 'events',
+      isExactOptionalPropertyTypes: false,
+      hasSignal: false,
+    });
+
+    expect(result).toContain('data,');
+    expect(result).toContain("observe: 'events'");
+    expect(result).not.toContain(',{{');
+    expect(result).not.toContain('{\n      data,{{');
   });
 });
