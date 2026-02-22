@@ -12,12 +12,9 @@
     "dev": {
       "cache": false
     },
-    // https://turborepo.com/docs/crafting-your-repository/configuring-tasks#dependent-tasks-that-can-be-run-in-parallel
-    "transit": {
-      "dependsOn": ["^transit"]
-    },
     "lint": {
-      "dependsOn": ["transit"]
+      // linting will fail if the packages are not built
+      "dependsOn": ["build"]
     },
     "test": {
       "outputs": []

@@ -70,8 +70,6 @@ This project uses [Yarn](https://yarnpkg.com/) for package management and buildi
 
 - **`yarn test`** - Run unit tests in all packages.
 
-- **`yarn test:ci`** - Run the CI-equivalent checks locally (`lint`, package tests, `test:cli`, and `test:samples`).
-
 - **`yarn update-samples`** - Generate sample outputs using the newly built version of Orval. This regenerates the sample code based on the current build.
 
 - **`yarn test:samples`** - Run tests in the samples directory using the newly generated output from `update-samples`.
