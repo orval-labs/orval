@@ -10,6 +10,7 @@
     "!dist/**/*.d.mts.map"
   ],
   "bin": "./dist/bin/orval.mjs",
+  "types": "./dist/index.d.mts",
   "exports": {
     ".": "./dist/index.mjs",
     "./bin/orval": "./dist/bin/orval.mjs",
@@ -52,21 +53,11 @@
   },
   "scripts": {
     "build": "tsdown --config-loader unrun",
-    "dev": "tsdown --config-loader unrun --watch src --onSuccess 'yarn generate-api'",
+    "dev": "tsdown --config-loader unrun --watch src",
     "lint": "eslint .",
-    "generate-api": "orval --config ../../samples/react-query/hook-mutator-fetch/orval.config.ts",
     "test": "vitest",
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
-  },
-  "devDependencies": {
-    "@types/fs-extra": "^11.0.4",
-    "@types/js-yaml": "^4.0.9",
-    "eslint": "catalog:",
-    "rimraf": "catalog:",
-    "tsdown": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
   },
   "dependencies": {
     "@commander-js/extra-typings": "^14.0.0",
@@ -100,6 +91,15 @@
     "typedoc-plugin-coverage": "^4.0.2",
     "typedoc-plugin-markdown": "^4.9.0"
   },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/js-yaml": "^4.0.9",
+    "eslint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
   "peerDependencies": {
     "prettier": ">=3.0.0"
   },
@@ -107,6 +107,5 @@
     "prettier": {
       "optional": true
     }
-  },
-  "types": "./dist/index.d.mts"
+  }
 }

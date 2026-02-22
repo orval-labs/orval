@@ -3,6 +3,7 @@
   "version": "8.4.2",
   "license": "MIT",
   "type": "module",
+  "types": "./dist/index.d.mts",
   "exports": {
     ".": "./dist/index.mjs",
     "./package.json": "./package.json"
@@ -16,6 +17,7 @@
     "build": "tsdown --config-loader unrun",
     "dev": "tsdown --config-loader unrun --watch src",
     "lint": "eslint .",
+    "test": "vitest",
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
   },
@@ -28,7 +30,7 @@
     "eslint": "catalog:",
     "rimraf": "catalog:",
     "tsdown": "catalog:",
-    "typescript": "catalog:"
-  },
-  "types": "./dist/index.d.mts"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
 }

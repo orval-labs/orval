@@ -21,17 +21,6 @@
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
   },
-  "devDependencies": {
-    "@faker-js/faker": "catalog:tooling",
-    "@types/debug": "^4.1.12",
-    "@types/esutils": "^2.0.2",
-    "@types/fs-extra": "^11.0.4",
-    "eslint": "catalog:",
-    "rimraf": "catalog:",
-    "tsdown": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
-  },
   "dependencies": {
     "@scalar/openapi-types": "catalog:",
     "acorn": "^8.15.0",
@@ -44,6 +33,17 @@
     "globby": "16.1.0",
     "remeda": "^2.33.6",
     "typedoc": "^0.28.15"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "catalog:tooling",
+    "@types/debug": "^4.1.12",
+    "@types/esutils": "^2.0.2",
+    "@types/fs-extra": "^11.0.4",
+    "eslint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "peerDependencies": {
     "@faker-js/faker": ">=10"
