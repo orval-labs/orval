@@ -422,13 +422,13 @@ ${hookOptions}
        ? 'customOptions'
        : `{ queryKey, queryFn, ${queryOptionsImp}}`
    }${
-     adapter.shouldCastQueryOptions?.() !== false
-       ? ` as ${queryOptionFnReturnType} ${
+     adapter.shouldCastQueryOptions?.() === false
+       ? ''
+       : ` as ${queryOptionFnReturnType} ${
            adapter.shouldAnnotateQueryKey()
              ? `& { queryKey: ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'} }`
              : ''
          }`
-       : ''
    }
 }`;
   const operationPrefix = adapter.hookPrefix;
@@ -508,7 +508,7 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${a
 
   const ${queryResultVarName} = ${camel(
     `${operationPrefix}-${adapter.getQueryType(type)}`,
-  )}(${queryInvocationArgs}${queryInvocationSuffix})${adapter.shouldCastQueryResult?.() !== false ? ` as ${returnType}` : ''};
+  )}(${queryInvocationArgs}${queryInvocationSuffix})${adapter.shouldCastQueryResult?.() === false ? '' : ` as ${returnType}`};
 
   ${adapter.getQueryReturnStatement({
     hasQueryV5,
