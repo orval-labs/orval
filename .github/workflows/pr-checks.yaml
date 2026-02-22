@@ -1,15 +1,16 @@
-name: tests
+name: PR checks
 
 on:
   pull_request:
     branches:
       - 'master'
       - 'next'
+
 permissions:
   contents: read
 
 jobs:
-  tests:
+  pr-checks:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -29,16 +30,29 @@ jobs:
       # until setup-node have better support for corepack we have to setup yarn in 2 steps
       # https://github.com/actions/setup-node/issues/531
       - uses: actions/setup-node@v6
-      - name: install
-        run: yarn
-      - name: build
-        run: yarn build
-      - name: lint
-        # not all packages pass linting yet - ongoing work
-        run: yarn lint
-      - name: snapshot tests
-        run: yarn test:snapshots
-      - name: formatting
+        with:
+          node-version: ${{ matrix.node-version }}
+          # yarn is now installed so we can enable caching
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Check formatting
         run: yarn format:check
-      - name: unit tests
-        run: yarn test:ci
+
+      - name: Build packages
+        run: yarn build
+
+      - name: Lint packages
+        run: yarn lint
+
+      - name: Test packages
+        run: yarn test
+
+      - name: Verify snapshot
+        # this step also runs the generate-api task
+        run: yarn test:snapshots
+
+      - name: Verify generated code can build
+        run: yarn workspace orval-tests build
