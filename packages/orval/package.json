@@ -12,8 +12,14 @@
   "bin": "./dist/bin/orval.mjs",
   "types": "./dist/index.d.mts",
   "exports": {
-    ".": "./src/index.ts",
-    "./bin/orval": "./src/bin/orval.ts",
+    ".": {
+      "development": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./bin/orval": {
+      "development": "./src/bin/orval.ts",
+      "default": "./dist/bin/orval.mjs"
+    },
     "./package.json": "./package.json"
   },
   "engines": {
