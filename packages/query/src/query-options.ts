@@ -8,7 +8,7 @@ import {
 } from '@orval/core';
 import { omitBy } from 'remeda';
 
-import type { FrameworkAdapter } from './framework-adapter';
+import type { FrameworkAdapter } from './framework-adapter.ts';
 
 type QueryType = 'infiniteQuery' | 'query';
 

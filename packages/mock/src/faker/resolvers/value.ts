@@ -9,9 +9,9 @@ import {
 } from '@orval/core';
 import { prop } from 'remeda';
 
-import type { MockDefinition, MockSchemaObject } from '../../types';
-import { overrideVarName } from '../getters';
-import { getMockScalar } from '../getters/scalar';
+import type { MockDefinition, MockSchemaObject } from '../../types.ts';
+import { overrideVarName } from '../getters/index.ts';
+import { getMockScalar } from '../getters/scalar.ts';
 
 function isRegex(key: string) {
   return key.startsWith('/') && key.endsWith('/');

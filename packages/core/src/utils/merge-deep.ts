@@ -1,4 +1,4 @@
-import { isObject } from './assertion';
+import { isObject } from './assertion.ts';
 
 export function mergeDeep<
   T extends Record<string, unknown>,

@@ -1,14 +1,14 @@
-import { getScalar } from '../getters';
-import type { FormDataContext } from '../getters/object';
+import { getScalar } from '../getters/index.ts';
+import type { FormDataContext } from '../getters/object.ts';
 import type {
   ContextSpec,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
   ResolverValue,
   SchemaType,
-} from '../types';
-import { isReference } from '../utils';
-import { resolveRef } from './ref';
+} from '../types.ts';
+import { isReference } from '../utils/index.ts';
+import { resolveRef } from './ref.ts';
 
 interface ResolveValueOptions {
   schema: OpenApiSchemaObject | OpenApiReferenceObject;

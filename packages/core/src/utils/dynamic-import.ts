@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { isModule, isObject, isString } from './assertion';
+import { isModule, isObject, isString } from './assertion.ts';
 
 export async function dynamicImport<T>(
   toImport: T | string,

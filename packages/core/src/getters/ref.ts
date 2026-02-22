@@ -1,5 +1,5 @@
-import type { ContextSpec, NormalizedOverrideOutput } from '../types';
-import { pascal, sanitize, upath } from '../utils';
+import type { ContextSpec, NormalizedOverrideOutput } from '../types.ts';
+import { pascal, sanitize, upath } from '../utils/index.ts';
 
 type RefComponent = 'schemas' | 'responses' | 'parameters' | 'requestBodies';
 

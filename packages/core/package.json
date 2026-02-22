@@ -3,9 +3,8 @@
   "version": "8.4.2",
   "license": "MIT",
   "type": "module",
-  "types": "./dist/index.d.mts",
   "exports": {
-    ".": "./dist/index.mjs",
+    ".": "./src/index.ts",
     "./package.json": "./package.json"
   },
   "files": [
@@ -13,6 +12,12 @@
     "!dist/**/*.d.ts.map",
     "!dist/**/*.d.mts.map"
   ],
+  "publishConfig": {
+    "exports": {
+      ".": "./dist/index.mjs",
+      "./package.json": "./package.json"
+    }
+  },
   "scripts": {
     "build": "tsdown --config-loader unrun",
     "dev": "tsdown --config-loader unrun --watch src",

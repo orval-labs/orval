@@ -1,4 +1,4 @@
-import { NamingConvention } from '../types';
+import { NamingConvention } from '../types.ts';
 
 const unicodes = function (s: string, prefix = '') {
   return s

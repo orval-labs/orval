@@ -8,17 +8,17 @@ import {
   type QueryOptions,
 } from '@orval/core';
 
-import { getQueryHeader } from './client';
+import { getQueryHeader } from './client.ts';
 import {
   getAngularQueryDependencies,
   getReactQueryDependencies,
   getSolidQueryDependencies,
   getSvelteQueryDependencies,
   getVueQueryDependencies,
-} from './dependencies';
-import { createFrameworkAdapter } from './frameworks';
-import { generateQueryHook } from './query-generator';
-import { normalizeQueryOptions } from './utils';
+} from './dependencies.ts';
+import { createFrameworkAdapter } from './frameworks/index.ts';
+import { generateQueryHook } from './query-generator.ts';
+import { normalizeQueryOptions } from './utils.ts';
 
 export {
   getAngularQueryDependencies,
@@ -26,7 +26,7 @@ export {
   getSolidQueryDependencies,
   getSvelteQueryDependencies,
   getVueQueryDependencies,
-} from './dependencies';
+} from './dependencies.ts';
 
 export const generateQueryHeader: ClientHeaderBuilder = (params) => {
   return `${

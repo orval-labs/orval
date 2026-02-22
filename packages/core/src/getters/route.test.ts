@@ -4,8 +4,8 @@ import type {
   BaseUrlFromConstant,
   BaseUrlFromSpec,
   OpenApiServerObject,
-} from '../types';
-import { getFullRoute, getRoute, getRouteAsArray } from './route';
+} from '../types.ts';
+import { getFullRoute, getRoute, getRouteAsArray } from './route.ts';
 
 describe('getRoute getter', () => {
   for (const [input, expected] of [

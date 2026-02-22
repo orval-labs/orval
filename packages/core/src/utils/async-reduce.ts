@@ -1,4 +1,4 @@
-import { isFunction } from './assertion';
+import { isFunction } from './assertion.ts';
 
 export async function asyncReduce<IterationItem, AccValue>(
   array: IterationItem[],

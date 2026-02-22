@@ -8,7 +8,7 @@ import type {
   GeneratorMutatorParsingInfo,
   Tsconfig,
   TsConfigTarget,
-} from '../types';
+} from '../types.ts';
 
 export async function getMutatorInfo(
   filePath: string,

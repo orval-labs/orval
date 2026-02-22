@@ -1,8 +1,8 @@
 import { keyword } from 'esutils';
 import { uniqueBy } from 'remeda';
 
-import { resolveObject } from '../resolvers/object';
-import { resolveExampleRefs, resolveRef } from '../resolvers/ref';
+import { resolveObject } from '../resolvers/object.ts';
+import { resolveExampleRefs, resolveRef } from '../resolvers/ref.ts';
 import {
   type ContextSpec,
   FormDataArrayHandling,
@@ -15,16 +15,16 @@ import {
   type OpenApiResponseObject,
   type OpenApiSchemaObject,
   type ResReqTypesValue,
-} from '../types';
-import { camel } from '../utils';
-import { isReference } from '../utils/assertion';
-import { pascal } from '../utils/case';
+} from '../types.ts';
+import { isReference } from '../utils/assertion.ts';
+import { pascal } from '../utils/case.ts';
 import {
   getFormDataFieldFileType,
   isBinaryContentType,
-} from '../utils/content-type';
-import { getNumberWord } from '../utils/string';
-import type { FormDataContext } from './object';
+} from '../utils/content-type.ts';
+import { camel } from '../utils/index.ts';
+import { getNumberWord } from '../utils/string.ts';
+import type { FormDataContext } from './object.ts';
 
 // Bridge assertion helpers for AnyOtherAttribute-infected schema properties.
 // OpenAPI SchemaObject includes `[key: string]: any` which infects all property access.

@@ -7,7 +7,7 @@ import {
   isNumber,
   isObject,
   isString,
-} from './assertion';
+} from './assertion.ts';
 
 /**
  * Converts data to a string representation suitable for code generation.

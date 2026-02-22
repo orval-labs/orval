@@ -40,7 +40,7 @@ import {
   getZodDateTimeFormat,
   getZodTimeFormat,
   isZodVersionV4,
-} from './compatible-v4';
+} from './compatible-v4.ts';
 
 const ZOD_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -1750,6 +1750,6 @@ const zodClientBuilder: ClientGeneratorsBuilder = {
 
 export const builder = () => () => zodClientBuilder;
 
-export { isZodVersionV4 } from './compatible-v4';
+export { isZodVersionV4 } from './compatible-v4.ts';
 
 export default builder;

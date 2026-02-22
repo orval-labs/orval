@@ -1,13 +1,13 @@
 import { entries, isEmptyish } from 'remeda';
 
-import { resolveObject, resolveRef } from '../resolvers';
+import { resolveObject, resolveRef } from '../resolvers/index.ts';
 import type {
   ContextSpec,
   GeneratorSchema,
   OpenApiComponentsObject,
   OpenApiParameterObject,
-} from '../types';
-import { jsDoc, pascal, sanitize } from '../utils';
+} from '../types.ts';
+import { jsDoc, pascal, sanitize } from '../utils/index.ts';
 
 export function generateParameterDefinition(
   parameters: OpenApiComponentsObject['parameters'] = {},

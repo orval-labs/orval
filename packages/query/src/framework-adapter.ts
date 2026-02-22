@@ -10,7 +10,7 @@ import type {
   OutputHttpClient,
 } from '@orval/core';
 
-import type { QueryType } from './query-options';
+import type { QueryType } from './query-options.ts';
 
 // --- Context types for adapter methods ---
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import type { GeneratorImport, NormalizedOutputOptions } from '../types';
-import { NamingConvention } from '../types';
-import { generateImportsForBuilder } from './generate-imports-for-builder';
+import type { GeneratorImport, NormalizedOutputOptions } from '../types.ts';
+import { NamingConvention } from '../types.ts';
+import { generateImportsForBuilder } from './generate-imports-for-builder.ts';
 
 describe('generateImportsForBuilder', () => {
   const createMockOutput = (

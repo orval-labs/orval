@@ -13,11 +13,11 @@ import {
   startMessage,
 } from '@orval/core';
 
-import pkg from '../../package.json';
-import { generateSpec } from '../generate-spec';
-import { findConfigFile, loadConfigFile } from '../utils/config';
-import { normalizeOptions } from '../utils/options';
-import { startWatcher } from '../utils/watcher';
+import pkg from '../../package.json' with { type: 'json' };
+import { generateSpec } from '../generate-spec.ts';
+import { findConfigFile, loadConfigFile } from '../utils/config.ts';
+import { normalizeOptions } from '../utils/options.ts';
+import { startWatcher } from '../utils/watcher.ts';
 
 const orvalMessage = startMessage({
   name: pkg.name,

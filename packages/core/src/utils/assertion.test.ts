@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { SchemaType, Verbs } from '../types';
+import { SchemaType, Verbs } from '../types.ts';
 import {
   isBoolean,
   isDirectory,
@@ -16,7 +16,7 @@ import {
   isStringLike,
   isUrl,
   isVerb,
-} from './assertion';
+} from './assertion.ts';
 
 describe('assertion testing', () => {
   it('checks for reference objects', () => {

@@ -1,4 +1,4 @@
-import type { GeneratorSchema } from '../types';
+import type { GeneratorSchema } from '../types.ts';
 
 export function generateModelInline(acc: string, model: string): string {
   return acc + `${model}\n`;

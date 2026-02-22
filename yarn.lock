@@ -19035,7 +19035,7 @@ __metadata:
     prettier:
       optional: true
   bin:
-    orval: ./dist/bin/orval.mjs
+    orval: ./src/bin/orval.ts
   languageName: unknown
   linkType: soft
 

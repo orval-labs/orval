@@ -7,8 +7,8 @@ import {
   pascal,
 } from '@orval/core';
 
-import type { MockDefinition, MockSchemaObject } from '../../types';
-import { resolveMockValue } from '../resolvers';
+import type { MockDefinition, MockSchemaObject } from '../../types.ts';
+import { resolveMockValue } from '../resolvers/index.ts';
 
 interface CombineSchemasMockOptions {
   item: MockSchemaObject;

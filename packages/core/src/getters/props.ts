@@ -5,8 +5,8 @@ import {
   type GetterProps,
   GetterPropType,
   type GetterQueryParam,
-} from '../types';
-import { isNullish, pascal, sortByPriority } from '../utils';
+} from '../types.ts';
+import { isNullish, pascal, sortByPriority } from '../utils/index.ts';
 
 interface GetPropsOptions {
   body: GetterBody;

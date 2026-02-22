@@ -6,7 +6,7 @@ import {
   getHttpFunctionQueryProps,
   getQueryOptions,
   getSignalDefinition,
-} from './client';
+} from './client.ts';
 
 describe('getHttpFunctionQueryProps', () => {
   describe('without mutator (native Angular)', () => {
