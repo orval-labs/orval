@@ -644,4 +644,18 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  issue2998: {
+    output: {
+      target: '../generated/default/issue-2998/endpoints.ts',
+      schemas: '../generated/default/issue-2998/model',
+      client: 'angular',
+      mode: 'tags-split',
+      mock: true,
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/issue-2998.yaml',
+    },
+  },
 });

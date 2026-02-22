@@ -1,0 +1,279 @@
+openapi: '3.1.0'
+info:
+  title: API Backend (Minimal Test Case)
+  description: Minimal OpenAPI spec for testing Orval code generation
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/requests/{referenceId}:
+    get:
+      tags: ['Requests']
+      summary: Get a request by reference ID
+      operationId: findByReferenceId
+      parameters:
+        - name: referenceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestDTO'
+  /api/requests:
+    get:
+      tags: ['Requests']
+      summary: List requests
+      operationId: findRequests
+      parameters:
+        - name: referenceIds
+          in: query
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: types
+          in: query
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+        - name: tagIds
+          in: query
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: integer
+              format: int64
+        - name: page
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+        - name: size
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+        - name: sort
+          in: query
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageDTORequestDTO'
+    post:
+      tags: ['Requests']
+      summary: Create a request
+      operationId: createRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestDTO'
+        required: true
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestDTO'
+  /api/{module}/{referenceId}/documents:
+    get:
+      tags: ['Documents']
+      summary: Get documents
+      operationId: getDocuments
+      parameters:
+        - name: module
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: ['requests', 'procedures']
+        - name: referenceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentCollectionDTO'
+  /api/{module}/{referenceId}/documents/{category}:
+    post:
+      tags: ['Documents']
+      summary: Add document to collection
+      operationId: addDocument
+      parameters:
+        - name: module
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: ['requests', 'procedures']
+        - name: referenceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: category
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: ['category_a', 'category_b', 'category_c']
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required: ['file']
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentCollectionDTO'
+components:
+  schemas:
+    RequestDTO:
+      type: object
+      properties:
+        prefix:
+          type: string
+        referenceId:
+          type: string
+        referenceYear:
+          type: integer
+          format: int32
+        date:
+          type: string
+          format: date
+        parties:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartyDTO'
+        reasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReasonDTO'
+      required:
+        - prefix
+        - referenceYear
+        - date
+    PartyDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        person:
+          $ref: '#/components/schemas/PersonDTO'
+    PersonDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        searchName:
+          type: string
+        lastName:
+          type: string
+        firstName:
+          type: string
+    ReasonDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        period:
+          type: string
+        typeNumber:
+          type: string
+    DocumentCollectionDTO:
+      type: object
+      properties:
+        referenceId:
+          type: string
+        path:
+          type: string
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentCategoryDTO'
+    DocumentCategoryDTO:
+      type: object
+      properties:
+        name:
+          type: string
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentDTO'
+    DocumentDTO:
+      type: object
+      properties:
+        name:
+          type: string
+        link:
+          type: string
+    PageDTORequestDTO:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/RequestDTO'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        number:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32

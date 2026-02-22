@@ -1,4 +1,5 @@
 import {
+  camel,
   type ClientBuilder,
   type ClientDependenciesBuilder,
   type ClientFooterBuilder,
@@ -90,8 +91,11 @@ const createAngularHeader =
     verbOptions,
     tag,
   }) => {
-    const relevantVerbs = tag
-      ? Object.values(verbOptions).filter((v) => v.tags.includes(tag as string))
+    const stringTag = tag as string | undefined;
+    const relevantVerbs = stringTag
+      ? Object.values(verbOptions).filter((v) =>
+          v.tags.some((t) => camel(t) === camel(stringTag)),
+        )
       : Object.values(verbOptions);
     const hasQueryParams = relevantVerbs.some((v) => v.queryParams);
     return `
