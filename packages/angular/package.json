@@ -3,6 +3,7 @@
   "version": "8.4.2",
   "license": "MIT",
   "type": "module",
+  "types": "./dist/index.d.mts",
   "exports": {
     ".": "./dist/index.mjs",
     "./package.json": "./package.json"
@@ -29,6 +30,5 @@
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
-  },
-  "types": "./dist/index.d.mts"
+  }
 }

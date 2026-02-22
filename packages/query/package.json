@@ -3,6 +3,7 @@
   "version": "8.4.2",
   "license": "MIT",
   "type": "module",
+  "types": "./dist/index.d.mts",
   "exports": {
     ".": "./dist/index.mjs",
     "./package.json": "./package.json"
@@ -31,6 +32,5 @@
     "rimraf": "catalog:",
     "tsdown": "catalog:",
     "vitest": "catalog:"
-  },
-  "types": "./dist/index.d.mts"
+  }
 }
