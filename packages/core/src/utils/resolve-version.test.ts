@@ -27,10 +27,7 @@ describe('resolveInstalledVersion', () => {
   });
 
   it('resolves scoped package', () => {
-    const version = resolveInstalledVersion(
-      '@tanstack/react-query',
-      projectDir,
-    );
+    const version = resolveInstalledVersion('@faker-js/faker', projectDir);
     expect(version).toBeDefined();
     expect(version).toMatch(/^\d+\.\d+\.\d+/);
   });
