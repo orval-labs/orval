@@ -5,7 +5,7 @@
   "type": "module",
   "types": "./dist/index.d.mts",
   "exports": {
-    ".": "./dist/index.mjs",
+    ".": "./src/index.ts",
     "./package.json": "./package.json"
   },
   "files": [
@@ -30,5 +30,11 @@
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": "./dist/index.mjs",
+      "./package.json": "./package.json"
+    }
   }
 }

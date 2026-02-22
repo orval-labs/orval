@@ -5,7 +5,7 @@
   "type": "module",
   "types": "./dist/index.d.mts",
   "exports": {
-    ".": "./dist/index.mjs",
+    ".": "./src/index.ts",
     "./package.json": "./package.json"
   },
   "files": [
@@ -51,6 +51,12 @@
   "peerDependenciesMeta": {
     "@faker-js/faker": {
       "optional": true
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": "./dist/index.mjs",
+      "./package.json": "./package.json"
     }
   }
 }
