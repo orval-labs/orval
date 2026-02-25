@@ -1,6 +1,6 @@
 {
   "name": "@orval/angular",
-  "version": "8.4.2",
+  "version": "8.5.0",
   "license": "MIT",
   "type": "module",
   "types": "./dist/index.d.mts",
