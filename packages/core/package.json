@@ -24,7 +24,6 @@
   "dependencies": {
     "@scalar/openapi-types": "catalog:",
     "acorn": "^8.15.0",
-    "chalk": "^5.6.2",
     "compare-versions": "^6.1.1",
     "debug": "^4.4.3",
     "esbuild": "^0.27.3",

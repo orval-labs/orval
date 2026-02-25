@@ -75,7 +75,6 @@
     "@scalar/json-magic": "^0.11.4",
     "@scalar/openapi-parser": "^0.24.13",
     "@scalar/openapi-types": "catalog:",
-    "chalk": "^5.6.2",
     "chokidar": "^5.0.0",
     "commander": "^14.0.2",
     "enquirer": "^2.4.1",

@@ -1,3 +1,5 @@
+import { styleText } from 'node:util';
+
 import {
   type ClientMockBuilder,
   type ConfigExternal,
@@ -42,7 +44,6 @@ import {
   upath,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
-import chalk from 'chalk';
 
 import pkg from '../../package.json';
 import { loadPackageJson } from './package-json';
@@ -122,11 +123,11 @@ export async function normalizeOptions(
     : optionsExport);
 
   if (!options.input) {
-    throw new Error(chalk.red(`Config require an input`));
+    throw new Error(styleText('red', `Config require an input`));
   }
 
   if (!options.output) {
-    throw new Error(chalk.red(`Config require an output`));
+    throw new Error(styleText('red', `Config require an output`));
   }
 
   const inputOptions = isString(options.input)
@@ -410,11 +411,13 @@ export async function normalizeOptions(
   };
 
   if (!normalizedOptions.input.target) {
-    throw new Error(chalk.red(`Config require an input target`));
+    throw new Error(styleText('red', `Config require an input target`));
   }
 
   if (!normalizedOptions.output.target && !normalizedOptions.output.schemas) {
-    throw new Error(chalk.red(`Config require an output target or schemas`));
+    throw new Error(
+      styleText('red', `Config require an output target or schemas`),
+    );
   }
 
   return normalizedOptions;
@@ -426,7 +429,7 @@ function normalizeMutator(
 ): NormalizedMutator | undefined {
   if (isObject(mutator)) {
     if (!mutator.path) {
-      throw new Error(chalk.red(`Mutator need a path`));
+      throw new Error(styleText('red', `Mutator need a path`));
     }
 
     return {
@@ -599,7 +602,9 @@ function normalizeOutputMode(mode?: OutputMode): OutputMode {
   }
 
   if (!Object.values(OutputMode).includes(mode)) {
-    createLogger().warn(chalk.yellow(`Unknown the provided mode => ${mode}`));
+    createLogger().warn(
+      styleText('yellow', `Unknown the provided mode => ${mode}`),
+    );
     return OutputMode.SINGLE;
   }
 

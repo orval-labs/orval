@@ -1,3 +1,5 @@
+import { styleText } from 'node:util';
+
 import {
   createSuccessMessage,
   fixCrossDirectoryImports,
@@ -20,7 +22,6 @@ import {
   writeSplitTagsMode,
   writeTagsMode,
 } from '@orval/core';
-import chalk from 'chalk';
 import { execa, ExecaError } from 'execa';
 import fs from 'fs-extra';
 import { unique } from 'remeda';
@@ -388,7 +389,7 @@ export async function writeSpecs(
       if (error instanceof ExecaError && error.exitCode === 1)
         message = error.message;
 
-      log(chalk.yellow(message));
+      log(styleText('yellow', message));
     }
   }
 
@@ -440,7 +441,7 @@ export async function writeSpecs(
           ? error.message
           : `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Unable to generate docs`;
 
-      log(chalk.yellow(message));
+      log(styleText('yellow', message));
     }
   }
 

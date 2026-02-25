@@ -6098,7 +6098,6 @@ __metadata:
     "@types/esutils": "npm:^2.0.2"
     "@types/fs-extra": "npm:^11.0.4"
     acorn: "npm:^8.15.0"
-    chalk: "npm:^5.6.2"
     compare-versions: "npm:^6.1.1"
     debug: "npm:^4.4.3"
     esbuild: "npm:^0.27.3"
@@ -6187,7 +6186,6 @@ __metadata:
   dependencies:
     "@orval/core": "workspace:*"
     "@orval/fetch": "workspace:*"
-    chalk: "npm:^5.6.2"
     eslint: "catalog:"
     remeda: "npm:^2.33.6"
     rimraf: "catalog:"
@@ -21405,7 +21403,6 @@ __metadata:
     "@scalar/openapi-types": "catalog:"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/js-yaml": "npm:^4.0.9"
-    chalk: "npm:^5.6.2"
     chokidar: "npm:^5.0.0"
     commander: "npm:^14.0.2"
     enquirer: "npm:^2.4.1"

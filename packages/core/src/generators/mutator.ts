@@ -1,6 +1,6 @@
 import path from 'node:path';
+import { styleText } from 'node:util';
 
-import chalk from 'chalk';
 import fs from 'fs-extra';
 
 import type { GeneratorMutator, NormalizedMutator, Tsconfig } from '../types';
@@ -44,7 +44,10 @@ export async function generateMutator({
 
   if (mutatorInfoName === undefined) {
     throw new Error(
-      chalk.red(`Mutator ${importPath} must have a named or default export.`),
+      styleText(
+        'red',
+        `Mutator ${importPath} must have a named or default export.`,
+      ),
     );
   }
 
@@ -77,7 +80,8 @@ export async function generateMutator({
 
   if (!mutatorInfo) {
     throw new Error(
-      chalk.red(
+      styleText(
+        'red',
         `Your mutator file doesn't have the ${mutatorInfoName} exported function`,
       ),
     );
