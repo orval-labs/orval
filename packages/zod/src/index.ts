@@ -508,6 +508,18 @@ export const generateZodValidationSchemaDefinition = (
           break;
         }
 
+        // The @scalar/openapi-parser upgrader converts format: binary to
+        // contentMediaType: application/octet-stream when upgrading
+        // Swagger 2.0 / OAS 3.0 → OAS 3.1. Treat it the same as
+        // format: binary so $ref-based model types generate File validation.
+        if (
+          schema.contentMediaType === 'application/octet-stream' &&
+          !schema.contentEncoding
+        ) {
+          functions.push(['instanceof', 'File']);
+          break;
+        }
+
         if (isZodV4) {
           if (
             ![

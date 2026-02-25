@@ -5154,3 +5154,60 @@ describe('zod split mode regressions', () => {
     expect(parsed.zod).not.toContain('looseObject({');
   });
 });
+
+describe('generateZodValidationSchemaDefinition (contentMediaType: application/octet-stream)', () => {
+  it('contentMediaType: application/octet-stream → instanceof File', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      contentMediaType: 'application/octet-stream',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      true,
+      false,
+      { required: true },
+    );
+
+    expect(result).toEqual({
+      functions: [['instanceof', 'File']],
+      consts: [],
+    });
+  });
+
+  it('contentEncoding: base64 with contentMediaType: application/octet-stream → string', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      contentMediaType: 'application/octet-stream',
+      contentEncoding: 'base64',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      true,
+      false,
+      { required: true },
+    );
+
+    expect(result).toEqual({
+      functions: [['string', undefined]],
+      consts: [],
+    });
+  });
+});
