@@ -105,6 +105,8 @@ function mergeExternalSchemas(
 ): Record<string, Record<string, string>> {
   const schemaNameMappings: Record<string, Record<string, string>> = {};
 
+  if (Object.keys(extensions).length === 0) return schemaNameMappings;
+
   data.components ??= {};
   const mainComponents = data.components as Record<string, unknown>;
   mainComponents.schemas ??= {};
