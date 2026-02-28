@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { styleText } from 'node:util';
 
 import {
@@ -12,6 +13,7 @@ import {
   type HookFunction,
   type HookOption,
   type HooksOptions,
+  type InputOptions,
   type InputTransformerFn,
   isBoolean,
   isFunction,
@@ -130,9 +132,10 @@ export async function normalizeOptions(
     throw new Error(styleText('red', `Config require an output`));
   }
 
-  const inputOptions = isString(options.input)
-    ? { target: options.input }
-    : options.input;
+  const inputOptions: InputOptions =
+    isString(options.input) || Array.isArray(options.input)
+      ? { target: options.input }
+      : options.input;
 
   const outputOptions = isString(options.output)
     ? { target: options.output }
@@ -183,11 +186,23 @@ export async function normalizeOptions(
     ...normalizeQueryOptions(outputOptions.override?.query, workspace),
   };
 
+  let resolvedInputTarget;
+  if (globalOptions.input) {
+    resolvedInputTarget = Array.isArray(globalOptions.input)
+      ? await resolveFirstValidTarget(globalOptions.input, process.cwd())
+      : normalizePathOrUrl(globalOptions.input, process.cwd());
+  } else if (Array.isArray(inputOptions.target)) {
+    resolvedInputTarget = await resolveFirstValidTarget(
+      inputOptions.target,
+      workspace,
+    );
+  } else {
+    resolvedInputTarget = normalizePathOrUrl(inputOptions.target, workspace);
+  }
+
   const normalizedOptions: NormalizedOptions = {
     input: {
-      target: globalOptions.input
-        ? normalizePathOrUrl(globalOptions.input, process.cwd())
-        : normalizePathOrUrl(inputOptions.target, workspace),
+      target: resolvedInputTarget,
       override: {
         transformer: normalizePath(
           inputOptions.override?.transformer,
@@ -447,6 +462,32 @@ function normalizeMutator(
   }
 
   return mutator;
+}
+
+async function resolveFirstValidTarget(
+  targets: string[],
+  workspace: string,
+): Promise<string> {
+  for (const target of targets) {
+    if (isUrl(target)) {
+      try {
+        const response = await fetch(target, { method: 'HEAD' });
+        if (response.ok) return target;
+      } catch {
+        continue;
+      }
+    } else {
+      const resolved = upath.resolve(workspace, target);
+      if (existsSync(resolved)) return resolved;
+    }
+  }
+
+  throw new Error(
+    styleText(
+      'red',
+      `None of the input targets could be resolved:\n${targets.map((t) => `  - ${t}`).join('\n')}`,
+    ),
+  );
 }
 
 function normalizePathOrUrl<T>(path: T, workspace: string) {

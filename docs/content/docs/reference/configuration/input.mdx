@@ -7,6 +7,8 @@ description: Input configuration options
 
 Path or URL to your OpenAPI specification.
 
+**Type:** `string | string[] | OpenApiDocument | Record<string, unknown>`
+
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
 
@@ -15,6 +17,38 @@ export default defineConfig({
     input: {
       target: './petstore.yaml',
     },
+  },
+});
+```
+
+You can also pass an array of targets. Orval will try each target in order and use the first one that resolves successfully (file exists on disk or URL is reachable). This is useful for fallback scenarios, such as preferring a local spec file when available while falling back to a remote URL.
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: [
+        './local-petstore.yaml',
+        'https://petstore.swagger.io/v2/swagger.json',
+      ],
+    },
+  },
+});
+```
+
+The shorthand `input` property supports arrays as well:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: [
+      './local-petstore.yaml',
+      'https://petstore.swagger.io/v2/swagger.json',
+    ],
   },
 });
 ```

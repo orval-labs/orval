@@ -4,7 +4,7 @@ import type { TypeDocOptions } from 'typedoc';
 
 export interface Options {
   output?: string | OutputOptions;
-  input?: string | InputOptions;
+  input?: string | string[] | InputOptions;
   hooks?: Partial<HooksOptions>;
 }
 
@@ -258,7 +258,7 @@ export type InputFiltersOptions = {
 };
 
 export type InputOptions = {
-  target: string | Record<string, unknown> | OpenApiDocument;
+  target: string | string[] | Record<string, unknown> | OpenApiDocument;
   override?: OverrideInput;
   filters?: InputFiltersOptions;
   parserOptions?: {
@@ -794,7 +794,7 @@ export interface GlobalOptions {
   mode?: OutputMode;
   tsconfig?: string | Tsconfig;
   packageJson?: string;
-  input?: string;
+  input?: string | string[];
   output?: string;
   verbose?: boolean;
 }
