@@ -1,4 +1,5 @@
-import { existsSync } from 'node:fs';
+import { access } from 'node:fs/promises';
+import { clearTimeout, setTimeout } from 'node:timers';
 import { styleText } from 'node:util';
 
 import {
@@ -189,12 +190,17 @@ export async function normalizeOptions(
   let resolvedInputTarget;
   if (globalOptions.input) {
     resolvedInputTarget = Array.isArray(globalOptions.input)
-      ? await resolveFirstValidTarget(globalOptions.input, process.cwd())
+      ? await resolveFirstValidTarget(
+          globalOptions.input,
+          process.cwd(),
+          inputOptions.parserOptions,
+        )
       : normalizePathOrUrl(globalOptions.input, process.cwd());
   } else if (Array.isArray(inputOptions.target)) {
     resolvedInputTarget = await resolveFirstValidTarget(
       inputOptions.target,
       workspace,
+      inputOptions.parserOptions,
     );
   } else {
     resolvedInputTarget = normalizePathOrUrl(inputOptions.target, workspace);
@@ -464,21 +470,53 @@ function normalizeMutator(
   return mutator;
 }
 
+const TARGET_RESOLVE_TIMEOUT_MS = 500;
+
 async function resolveFirstValidTarget(
   targets: string[],
   workspace: string,
+  parserOptions?: InputOptions['parserOptions'],
 ): Promise<string> {
   for (const target of targets) {
     if (isUrl(target)) {
       try {
-        const response = await fetch(target, { method: 'HEAD' });
-        if (response.ok) return target;
+        const headers = getHeadersForUrl(target, parserOptions?.headers);
+        const controller = new AbortController();
+        const timer = setTimeout(() => {
+          controller.abort();
+        }, TARGET_RESOLVE_TIMEOUT_MS);
+
+        try {
+          const response = await fetch(target, {
+            method: 'HEAD',
+            headers,
+            signal: controller.signal,
+          });
+
+          if (response.ok) return target;
+
+          if (response.status === 405 || response.status === 501) {
+            const getResponse = await fetch(target, {
+              method: 'GET',
+              headers,
+              signal: controller.signal,
+            });
+            if (getResponse.ok) return target;
+          }
+        } finally {
+          clearTimeout(timer);
+        }
       } catch {
         continue;
       }
     } else {
       const resolved = upath.resolve(workspace, target);
-      if (existsSync(resolved)) return resolved;
+      try {
+        await access(resolved);
+        return resolved;
+      } catch {
+        continue;
+      }
     }
   }
 
@@ -488,6 +526,26 @@ async function resolveFirstValidTarget(
       `None of the input targets could be resolved:\n${targets.map((t) => `  - ${t}`).join('\n')}`,
     ),
   );
+}
+
+function getHeadersForUrl(
+  url: string,
+  headersConfig?: NonNullable<InputOptions['parserOptions']>['headers'],
+): Record<string, string> {
+  if (!headersConfig) return {};
+
+  const { hostname } = new URL(url);
+  const matched: Record<string, string> = {};
+
+  for (const entry of headersConfig) {
+    if (
+      entry.domains.some((d) => hostname === d || hostname.endsWith(`.${d}`))
+    ) {
+      Object.assign(matched, entry.headers);
+    }
+  }
+
+  return matched;
 }
 
 function normalizePathOrUrl<T>(path: T, workspace: string) {
