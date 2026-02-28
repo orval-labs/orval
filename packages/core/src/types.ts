@@ -1256,10 +1256,7 @@ export type GeneratorClientFooter = (data: {
 export type GeneratorClientImports = (data: {
   client: OutputClient | OutputClientFunc;
   implementation: string;
-  imports: {
-    exports: GeneratorImport[];
-    dependency: string;
-  }[];
+  imports: readonly GeneratorDependency[];
   projectName?: string;
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;
@@ -1272,10 +1269,7 @@ export type GeneratorClientImports = (data: {
 
 export type GenerateMockImports = (data: {
   implementation: string;
-  imports: {
-    exports: GeneratorImport[];
-    dependency: string;
-  }[];
+  imports: readonly GeneratorDependency[];
   projectName?: string;
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;

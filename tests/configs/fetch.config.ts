@@ -272,7 +272,7 @@ export default defineConfig({
       override: {
         fetch: {
           jsonReviver: {
-            path: 'mutators/custom-reviver.ts',
+            path: '../mutators/custom-reviver.ts',
             default: true,
           },
         },

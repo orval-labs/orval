@@ -17,7 +17,7 @@ import { Injectable, inject } from '@angular/core';
 
 import { Observable } from 'rxjs';
 
-import type { AddDocumentBody, DocumentCollectionDTO } from '.././model';
+import type { AddDocumentBody, DocumentCollectionDTO } from '../model';
 
 interface HttpClientOptions {
   readonly headers?: HttpHeaders | Record<string, string | string[]>;

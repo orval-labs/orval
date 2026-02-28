@@ -23,7 +23,7 @@ import type {
   Pet,
   PetWithTag,
   Pets,
-} from '.././model';
+} from '../model';
 
 interface HttpClientOptions {
   readonly headers?: HttpHeaders | Record<string, string | string[]>;

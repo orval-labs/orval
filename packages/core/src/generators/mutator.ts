@@ -1,4 +1,3 @@
-import path from 'node:path';
 import { styleText } from 'node:util';
 
 import fs from 'fs-extra';
@@ -10,13 +9,8 @@ import { getMutatorInfo } from './mutator-info';
 export const BODY_TYPE_NAME = 'BodyType';
 
 const getImport = (output: string, mutator: NormalizedMutator) => {
-  const outputFileInfo = getFileInfo(output);
-  const mutatorFileInfo = getFileInfo(mutator.path);
-  const { pathWithoutExtension } = getFileInfo(
-    upath.relativeSafe(outputFileInfo.dirname, mutatorFileInfo.path),
-  );
-
-  return `${pathWithoutExtension}${mutator.extension ?? ''}`;
+  const outputFile = getFileInfo(output).path;
+  return `${upath.getRelativeImportPath(outputFile, mutator.path)}${mutator.extension ?? ''}`;
 };
 
 interface GenerateMutatorOptions {
@@ -71,7 +65,7 @@ export async function generateMutator({
     : BODY_TYPE_NAME;
 
   const mutatorInfo = await getMutatorInfo(importPath, {
-    root: path.resolve(workspace),
+    root: workspace,
     namedExport: mutatorInfoName,
     alias: mutator.alias,
     external: mutator.external,

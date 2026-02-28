@@ -14,7 +14,7 @@ import type {
   Pet,
   PetWithTag,
   Pets,
-} from '.././model';
+} from '../model';
 
 export const getPets = (axiosInstance: AxiosInstance = axios) => {
   /**

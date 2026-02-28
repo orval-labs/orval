@@ -18,7 +18,7 @@ import type {
   Pet,
   PetWithTag,
   Pets,
-} from '.././model';
+} from '../model';
 
 /**
  * @summary List all pets

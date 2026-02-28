@@ -4,7 +4,7 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import type { Error } from '.././model';
+import type { Error } from '../model';
 
 import fetchReviverMutator from '../../../../mutators/custom-reviver';
 

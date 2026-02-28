@@ -12,7 +12,7 @@ import type {
   Pet,
   PetWithTag,
   Pets,
-} from '.././model';
+} from '../model';
 
 import fetchReviverMutator from '../../../../mutators/custom-reviver';
 

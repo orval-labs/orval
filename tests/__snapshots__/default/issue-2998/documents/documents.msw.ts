@@ -10,7 +10,7 @@ import { faker } from '@faker-js/faker';
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-import type { DocumentCollectionDTO } from '.././model';
+import type { DocumentCollectionDTO } from '../model';
 
 export const getGetDocumentsResponseMock = (
   overrideResponse: Partial<Extract<DocumentCollectionDTO, object>> = {},

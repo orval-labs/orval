@@ -21,7 +21,7 @@ import type {
   FindRequestsParams,
   PageDTORequestDTO,
   RequestDTO,
-} from '.././model';
+} from '../model';
 
 interface HttpClientOptions {
   readonly headers?: HttpHeaders | Record<string, string | string[]>;

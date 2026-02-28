@@ -7,7 +7,7 @@
 import useSwr from 'swr';
 import type { Key, SWRConfiguration } from 'swr';
 
-import type { Error } from '.././model';
+import type { Error } from '../model';
 
 /**
  * @summary health check

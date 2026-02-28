@@ -1,3 +1,4 @@
+import nodePath from 'node:path';
 import { styleText } from 'node:util';
 
 import {
@@ -12,7 +13,6 @@ import {
   type OutputClientFunc,
   type QueryOptions,
   TEMPLATE_TAG_REGEX,
-  upath,
 } from '@orval/core';
 
 export const normalizeQueryOptions = (
@@ -78,14 +78,14 @@ const normalizeMutator = (
 
     return {
       ...mutator,
-      path: upath.resolve(workspace, mutator.path),
+      path: nodePath.resolve(workspace, mutator.path),
       default: mutator.default ?? !mutator.name,
     };
   }
 
   if (isString(mutator)) {
     return {
-      path: upath.resolve(workspace, mutator),
+      path: nodePath.resolve(workspace, mutator),
       default: true,
     };
   }

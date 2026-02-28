@@ -1,4 +1,5 @@
 import { access } from 'node:fs/promises';
+import nodePath from 'node:path';
 import { clearTimeout, setTimeout } from 'node:timers';
 import { styleText } from 'node:util';
 
@@ -44,7 +45,6 @@ import {
   type QueryOptions,
   RefComponentSuffix,
   type SchemaOptions,
-  upath,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
 
@@ -412,6 +412,14 @@ export async function normalizeOptions(
           runtimeValidation:
             outputOptions.override?.fetch?.runtimeValidation ?? false,
           ...outputOptions.override?.fetch,
+          ...(outputOptions.override?.fetch?.jsonReviver
+            ? {
+                jsonReviver: normalizeMutator(
+                  outputWorkspace,
+                  outputOptions.override.fetch.jsonReviver,
+                ),
+              }
+            : {}),
         },
         useDates: outputOptions.override?.useDates ?? false,
         useDeprecatedOperations:
@@ -455,14 +463,14 @@ function normalizeMutator(
 
     return {
       ...mutator,
-      path: upath.resolve(workspace, mutator.path),
+      path: nodePath.resolve(workspace, mutator.path),
       default: mutator.default ?? !mutator.name,
     };
   }
 
   if (isString(mutator)) {
     return {
-      path: upath.resolve(workspace, mutator),
+      path: nodePath.resolve(workspace, mutator),
       default: true,
     };
   }
@@ -510,7 +518,7 @@ async function resolveFirstValidTarget(
         continue;
       }
     } else {
-      const resolved = upath.resolve(workspace, target);
+      const resolved = nodePath.resolve(workspace, target);
       try {
         await access(resolved);
         return resolved;
@@ -560,7 +568,7 @@ export function normalizePath<T>(path: T, workspace: string) {
   if (!isString(path)) {
     return path;
   }
-  return upath.resolve(workspace, path);
+  return nodePath.resolve(workspace, path);
 }
 
 function normalizeOperationsAndTags(
@@ -734,12 +742,14 @@ function normalizeHonoOptions(
 ): NormalizedHonoOptions {
   return {
     ...(hono.handlers
-      ? { handlers: upath.resolve(workspace, hono.handlers) }
+      ? { handlers: nodePath.resolve(workspace, hono.handlers) }
       : {}),
-    compositeRoute: hono.compositeRoute ?? '',
+    compositeRoute: hono.compositeRoute
+      ? nodePath.resolve(workspace, hono.compositeRoute)
+      : '',
     validator: hono.validator ?? true,
     validatorOutputPath: hono.validatorOutputPath
-      ? upath.resolve(workspace, hono.validatorOutputPath)
+      ? nodePath.resolve(workspace, hono.validatorOutputPath)
       : '',
   };
 }

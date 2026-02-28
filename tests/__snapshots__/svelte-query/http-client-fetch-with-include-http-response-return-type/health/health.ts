@@ -12,7 +12,7 @@ import type {
   QueryKey,
 } from '@tanstack/svelte-query';
 
-import type { Error } from '.././model';
+import type { Error } from '../model';
 
 /**
  * @summary health check

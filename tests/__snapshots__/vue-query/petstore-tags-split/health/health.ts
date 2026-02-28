@@ -19,7 +19,7 @@ import type { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import { unref } from 'vue';
 
-import type { Error } from '.././model';
+import type { Error } from '../model';
 
 /**
  * @summary health check

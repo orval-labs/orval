@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import fs from 'fs-extra';
 
 import { generateModelsInline, generateMutatorImports } from '../generators';
@@ -37,7 +39,7 @@ export async function writeSplitTagsMode({
   const mockOption =
     output.mock && !isFunction(output.mock) ? output.mock : undefined;
   const indexFilePath = mockOption?.indexMockFiles
-    ? upath.join(
+    ? path.join(
         dirname,
         'index.' + getMockFileExtensionByTypeName(mockOption) + extension,
       )
@@ -67,10 +69,10 @@ export async function writeSplitTagsMode({
         let implementationData = header;
         let mockData = header;
 
+        const importerPath = path.join(dirname, tag, tag + extension);
         const relativeSchemasPath = output.schemas
-          ? '../' +
-            upath.relativeSafe(
-              dirname,
+          ? upath.getRelativeImportPath(
+              importerPath,
               getFileInfo(
                 isString(output.schemas) ? output.schemas : output.schemas.path,
                 { extension: output.fileExtension },
@@ -117,7 +119,7 @@ export async function writeSplitTagsMode({
 
         const schemasPath = output.schemas
           ? undefined
-          : upath.join(dirname, filename + '.schemas' + extension);
+          : path.join(dirname, filename + '.schemas' + extension);
 
         if (schemasPath && needSchema) {
           const schemasData = header + generateModelsInline(builder.schemas);
@@ -184,7 +186,7 @@ export async function writeSplitTagsMode({
           (OutputClient.ANGULAR === output.client ? '.service' : '') +
           extension;
 
-        const implementationPath = upath.join(
+        const implementationPath = path.join(
           dirname,
           tag,
           implementationFilename,
@@ -192,7 +194,7 @@ export async function writeSplitTagsMode({
         await fs.outputFile(implementationPath, implementationData);
 
         const mockPath = output.mock
-          ? upath.join(
+          ? path.join(
               dirname,
               tag,
               tag +

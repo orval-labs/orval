@@ -17,7 +17,7 @@ import type {
   UseQueryResult,
 } from '@tanstack/react-query';
 
-import type { Error } from '.././model';
+import type { Error } from '../model';
 
 /**
  * @summary health check

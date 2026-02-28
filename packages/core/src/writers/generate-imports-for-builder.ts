@@ -1,20 +1,21 @@
 import { uniqueBy } from 'remeda';
 
-import type { GeneratorImport, NormalizedOutputOptions } from '../types';
+import type {
+  GeneratorDependency,
+  GeneratorImport,
+  NormalizedOutputOptions,
+} from '../types';
 import { conventionName, isObject, upath } from '../utils';
 
 export function generateImportsForBuilder(
   output: NormalizedOutputOptions,
   imports: readonly GeneratorImport[],
   relativeSchemasPath: string,
-) {
+): GeneratorDependency[] {
   const isZodSchemaOutput =
     isObject(output.schemas) && output.schemas.type === 'zod';
 
-  let schemaImports: {
-    exports: readonly GeneratorImport[];
-    dependency: string;
-  }[] = [];
+  let schemaImports: GeneratorDependency[] = [];
   if (output.indexFiles) {
     schemaImports = isZodSchemaOutput
       ? [
@@ -51,10 +52,10 @@ export function generateImportsForBuilder(
   const otherImports = uniqueBy(
     imports.filter((i) => !!i.importPath),
     (x) => x.name + (x.importPath ?? ''),
-  ).map((i) => {
+  ).map<GeneratorDependency>((i) => {
     return {
       exports: [i],
-      dependency: i.importPath,
+      dependency: i.importPath ?? '',
     };
   });
 

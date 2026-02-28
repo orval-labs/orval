@@ -9,7 +9,7 @@ import { faker } from '@faker-js/faker';
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-import type { Cat, Dachshund, Dog, Labradoodle, Pet, Pets } from '.././models';
+import type { Cat, Dachshund, Dog, Labradoodle, Pet, Pets } from '../models';
 
 export const getListPetsResponseLabradoodleMock = (
   overrideResponse: Partial<Labradoodle> = {},

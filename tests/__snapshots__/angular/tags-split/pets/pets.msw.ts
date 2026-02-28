@@ -17,7 +17,7 @@ import type {
   Pet,
   PetWithTag,
   Pets,
-} from '.././model';
+} from '../model';
 
 export const getListPetsResponseLabradoodleMock = (
   overrideResponse: Partial<Labradoodle> = {},

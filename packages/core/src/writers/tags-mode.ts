@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import fs from 'fs-extra';
 
 import { generateModelsInline, generateMutatorImports } from '../generators';
@@ -22,7 +24,12 @@ export async function writeTagsMode({
   header,
   needSchema,
 }: WriteModeProps): Promise<string[]> {
-  const { filename, dirname, extension } = getFileInfo(output.target, {
+  const {
+    path: targetPath,
+    filename,
+    dirname,
+    extension,
+  } = getFileInfo(output.target, {
     backupFilename: conventionName(builder.info.title, output.namingConvention),
     extension: output.fileExtension,
   });
@@ -52,8 +59,8 @@ export async function writeTagsMode({
         let data = header;
 
         const schemasPathRelative = output.schemas
-          ? upath.relativeSafe(
-              dirname,
+          ? upath.getRelativeImportPath(
+              targetPath,
               getFileInfo(
                 isString(output.schemas) ? output.schemas : output.schemas.path,
                 { extension: output.fileExtension },
@@ -104,7 +111,7 @@ export async function writeTagsMode({
 
         const schemasPath = output.schemas
           ? undefined
-          : upath.join(dirname, filename + '.schemas' + extension);
+          : path.join(dirname, filename + '.schemas' + extension);
 
         if (schemasPath && needSchema) {
           const schemasData = header + generateModelsInline(builder.schemas);
@@ -158,7 +165,7 @@ export async function writeTagsMode({
           data += implementationMock;
         }
 
-        const implementationPath = upath.join(
+        const implementationPath = path.join(
           dirname,
           `${kebab(tag)}${extension}`,
         );

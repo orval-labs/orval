@@ -28,7 +28,7 @@ import type {
   ListPetsParams,
   Pet,
   Pets,
-} from '.././models';
+} from '../models';
 
 import { customFetch } from '../../custom-fetch';
 

@@ -9,7 +9,7 @@ import { faker } from '@faker-js/faker';
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-import type { Pet, Pets } from '.././models';
+import type { Pet, Pets } from '../models';
 
 export const getListPetsResponseMock = (): Pets =>
   Array.from(

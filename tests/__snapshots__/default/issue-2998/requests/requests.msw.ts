@@ -10,7 +10,7 @@ import { faker } from '@faker-js/faker';
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-import type { PageDTORequestDTO, RequestDTO } from '.././model';
+import type { PageDTORequestDTO, RequestDTO } from '../model';
 
 export const getFindByReferenceIdResponseMock = (
   overrideResponse: Partial<Extract<RequestDTO, object>> = {},
