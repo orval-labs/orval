@@ -470,7 +470,7 @@ function normalizeMutator(
   return mutator;
 }
 
-const TARGET_RESOLVE_TIMEOUT_MS = 500;
+const TARGET_RESOLVE_TIMEOUT_MS = 5_000;
 
 async function resolveFirstValidTarget(
   targets: string[],
