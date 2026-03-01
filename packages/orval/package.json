@@ -72,7 +72,7 @@
     "@orval/solid-start": "workspace:*",
     "@orval/swr": "workspace:*",
     "@orval/zod": "workspace:*",
-    "@scalar/json-magic": "^0.11.4",
+    "@scalar/json-magic": "^0.11.5",
     "@scalar/openapi-parser": "^0.24.13",
     "@scalar/openapi-types": "catalog:",
     "chokidar": "^5.0.0",

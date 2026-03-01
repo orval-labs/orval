@@ -7393,7 +7393,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@scalar/json-magic@npm:0.11.4, @scalar/json-magic@npm:^0.11.4":
+"@scalar/helpers@npm:0.2.16":
+  version: 0.2.16
+  resolution: "@scalar/helpers@npm:0.2.16"
+  checksum: 10c0/dd3bf4da93e6024034ce9433f28e8561415067016df1065b3f3e89fb928b71672ec435c2b640588189ca11a49811b094f5d334e42eb6ed4daa6148f18ba6d03e
+  languageName: node
+  linkType: hard
+
+"@scalar/json-magic@npm:0.11.4":
   version: 0.11.4
   resolution: "@scalar/json-magic@npm:0.11.4"
   dependencies:
@@ -7401,6 +7408,17 @@ __metadata:
     pathe: "npm:^2.0.3"
     yaml: "npm:^2.8.0"
   checksum: 10c0/6cead7e2ae1168bf08686956260951838aef11ba8f403acfc9fa64e7f348af388a3d647c236b5ad4f56dfb68747a9bed0767402800f847b68275858268e159bc
+  languageName: node
+  linkType: hard
+
+"@scalar/json-magic@npm:^0.11.5":
+  version: 0.11.5
+  resolution: "@scalar/json-magic@npm:0.11.5"
+  dependencies:
+    "@scalar/helpers": "npm:0.2.16"
+    pathe: "npm:^2.0.3"
+    yaml: "npm:^2.8.0"
+  checksum: 10c0/41d51ee5fc86259e4f844fdc63c775e76f1825c89cc561dc29feccb1d301b075b67e8ae5a5350adc17ca2fec7ab619553065d6055dc06294fcbdeffce062f22e
   languageName: node
   linkType: hard
 
@@ -21398,7 +21416,7 @@ __metadata:
     "@orval/solid-start": "workspace:*"
     "@orval/swr": "workspace:*"
     "@orval/zod": "workspace:*"
-    "@scalar/json-magic": "npm:^0.11.4"
+    "@scalar/json-magic": "npm:^0.11.5"
     "@scalar/openapi-parser": "npm:^0.24.13"
     "@scalar/openapi-types": "catalog:"
     "@types/fs-extra": "npm:^11.0.4"
