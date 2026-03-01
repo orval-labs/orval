@@ -283,7 +283,7 @@ function getSchema({
 }
 
 function getPath(path: string, name: string, fileExtension: string): string {
-  return nodePath.join(path, `/${name}${fileExtension}`);
+  return nodePath.join(path, `${name}${fileExtension}`);
 }
 
 export function writeModelInline(acc: string, model: string): string {
@@ -401,7 +401,7 @@ export async function writeSchemas({
   }
 
   if (indexFiles) {
-    const schemaFilePath = nodePath.join(schemaPath, `/index${fileExtension}`);
+    const schemaFilePath = nodePath.join(schemaPath, `index${fileExtension}`);
     await fs.ensureFile(schemaFilePath);
 
     // Ensure separate files are used for parallel schema writing.

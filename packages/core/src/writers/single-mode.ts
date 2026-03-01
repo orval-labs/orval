@@ -22,7 +22,7 @@ export async function writeSingleMode({
   needSchema,
 }: WriteModeProps): Promise<string[]> {
   try {
-    const { path, dirname } = getFileInfo(output.target, {
+    const { path } = getFileInfo(output.target, {
       backupFilename: conventionName(
         builder.info.title,
         output.namingConvention,

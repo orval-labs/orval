@@ -117,10 +117,10 @@ export function getRelativeImportPath(
   }
 
   if (!includeFileExtension) {
-    posixPath = posixPath.replace(
-      new RegExp(`${basepath.extname(posixPath)}$`),
-      '',
-    );
+    const ext = basepath.extname(posixPath);
+    if (ext && posixPath.endsWith(ext)) {
+      posixPath = posixPath.slice(0, -ext.length);
+    }
   }
 
   return posixPath;

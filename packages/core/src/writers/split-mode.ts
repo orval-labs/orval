@@ -112,10 +112,7 @@ export async function writeSplitMode({
     if (schemasPath && needSchema) {
       const schemasData = header + generateModelsInline(builder.schemas);
 
-      await fs.outputFile(
-        path.join(dirname, filename + '.schemas' + extension),
-        schemasData,
-      );
+      await fs.outputFile(schemasPath, schemasData);
     }
 
     if (mutators) {
@@ -172,10 +169,7 @@ export async function writeSplitMode({
       extension;
 
     const implementationPath = path.join(dirname, implementationFilename);
-    await fs.outputFile(
-      path.join(dirname, implementationFilename),
-      implementationData,
-    );
+    await fs.outputFile(implementationPath, implementationData);
 
     const mockPath = output.mock
       ? path.join(

@@ -50,12 +50,14 @@ export function generateImportsForBuilder(
   }
 
   const otherImports = uniqueBy(
-    imports.filter((i) => !!i.importPath),
-    (x) => x.name + (x.importPath ?? ''),
+    imports.filter(
+      (i): i is GeneratorImport & { importPath: string } => !!i.importPath,
+    ),
+    (x) => x.name + x.importPath,
   ).map<GeneratorDependency>((i) => {
     return {
       exports: [i],
-      dependency: i.importPath ?? '',
+      dependency: i.importPath,
     };
   });
 
