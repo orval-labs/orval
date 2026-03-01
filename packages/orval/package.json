@@ -9,12 +9,21 @@
     "!dist/**/*.d.ts.map",
     "!dist/**/*.d.mts.map"
   ],
-  "bin": "./dist/bin/orval.mjs",
-  "types": "./dist/index.d.mts",
+  "bin": "./src/bin/orval.ts",
   "exports": {
-    ".": "./dist/index.mjs",
-    "./bin/orval": "./dist/bin/orval.mjs",
+    ".": "./src/index.ts",
+    "./bin/orval": "./src/bin/orval.ts",
     "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "bin": {
+      "orval": "./dist/bin/orval.mjs"
+    },
+    "exports": {
+      ".": "./dist/index.mjs",
+      "./bin/orval": "./dist/bin/orval.mjs",
+      "./package.json": "./package.json"
+    }
   },
   "engines": {
     "node": ">=22.18.0"

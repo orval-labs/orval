@@ -1,5 +1,5 @@
-import { resolveExampleRefs, resolveValue } from '../resolvers';
-import { resolveObject } from '../resolvers/object';
+import { resolveExampleRefs, resolveValue } from '../resolvers/index.ts';
+import { resolveObject } from '../resolvers/object.ts';
 import {
   type ContextSpec,
   type GeneratorImport,
@@ -8,7 +8,7 @@ import {
   PropertySortOrder,
   type ScalarValue,
   SchemaType,
-} from '../types';
+} from '../types.ts';
 import {
   escape,
   isBoolean,
@@ -16,11 +16,11 @@ import {
   isString,
   jsDoc,
   pascal,
-} from '../utils';
-import { combineSchemas } from './combine';
-import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
-import { getKey } from './keys';
-import { getRefInfo } from './ref';
+} from '../utils/index.ts';
+import { combineSchemas } from './combine.ts';
+import { getAliasedImports, getImportAliasForRefOrValue } from './imports.ts';
+import { getKey } from './keys.ts';
+import { getRefInfo } from './ref.ts';
 
 /**
  * Extract enum values from propertyNames schema (OpenAPI 3.1)

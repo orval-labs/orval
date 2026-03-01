@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpec, OpenApiResponsesObject } from '../types';
-import { getResponse } from './response';
+import type { ContextSpec, OpenApiResponsesObject } from '../types.ts';
+import { getResponse } from './response.ts';
 
 const context = {
   output: {

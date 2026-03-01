@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { OpenApiOperationObject } from '../types';
-import { getOperationId } from './operation';
+import type { OpenApiOperationObject } from '../types.ts';
+import { getOperationId } from './operation.ts';
 
 describe('getOperationId getter', () => {
   for (const [input, expected] of [

@@ -27,7 +27,7 @@ vi.mock('./utils/watcher', () => ({
 
 import { setVerbose } from '@orval/core';
 
-import { generate } from './generate';
+import { generate } from './generate.ts';
 
 describe('generate - verbose handling', () => {
   beforeEach(() => {

@@ -6,15 +6,15 @@ import {
   getEnumDescriptions,
   getEnumNames,
   resolveDiscriminators,
-} from '../getters';
-import { resolveRef, resolveValue } from '../resolvers';
+} from '../getters/index.ts';
+import { resolveRef, resolveValue } from '../resolvers/index.ts';
 import type {
   ContextSpec,
   GeneratorSchema,
   InputFiltersOptions,
   OpenApiSchemaObject,
   OpenApiSchemasObject,
-} from '../types';
+} from '../types.ts';
 import {
   conventionName,
   isBoolean,
@@ -22,8 +22,8 @@ import {
   jsDoc,
   pascal,
   sanitize,
-} from '../utils';
-import { generateInterface } from './interface';
+} from '../utils/index.ts';
+import { generateInterface } from './interface.ts';
 
 /**
  * Extract all types from #/components/schemas

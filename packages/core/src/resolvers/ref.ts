@@ -1,7 +1,7 @@
 import { isDereferenced } from '@scalar/openapi-types/helpers';
 import { prop } from 'remeda';
 
-import { getRefInfo, type RefInfo } from '../getters/ref';
+import { getRefInfo, type RefInfo } from '../getters/ref.ts';
 import type {
   ContextSpec,
   GeneratorImport,
@@ -9,8 +9,8 @@ import type {
   OpenApiExampleObject,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
-} from '../types';
-import { isReference } from '../utils';
+} from '../types.ts';
+import { isReference } from '../utils/index.ts';
 
 /* eslint-disable @typescript-eslint/no-unnecessary-type-parameters -- TSchema constrains return type for callers (e.g. resolveRef<OpenApiExampleObject>) */
 

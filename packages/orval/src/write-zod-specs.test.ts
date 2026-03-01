@@ -4,7 +4,10 @@ import path from 'node:path';
 import fs from 'fs-extra';
 import { describe, expect, it } from 'vitest';
 
-import { writeZodSchemas, writeZodSchemasFromVerbs } from './write-zod-specs';
+import {
+  writeZodSchemas,
+  writeZodSchemasFromVerbs,
+} from './write-zod-specs.ts';
 
 type MinimalVerbsContext = {
   output: {

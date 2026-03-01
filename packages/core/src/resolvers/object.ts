@@ -1,14 +1,14 @@
-import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum';
-import type { FormDataContext } from '../getters/object';
+import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum.ts';
+import type { FormDataContext } from '../getters/object.ts';
 import type {
   ContextSpec,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
   ResolverValue,
   ScalarValue,
-} from '../types';
-import { jsDoc } from '../utils';
-import { resolveValue } from './value';
+} from '../types.ts';
+import { jsDoc } from '../utils/index.ts';
+import { resolveValue } from './value.ts';
 
 interface ResolveOptions {
   schema: OpenApiSchemaObject | OpenApiReferenceObject;

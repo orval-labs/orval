@@ -1,25 +1,26 @@
+import { isFunction, isNumber, isString } from '@orval/core';
+
 import {
   getListPetsInfiniteKeyLoader,
   useListPetsInfinite,
 } from '../generated/swr/petstore-override-swr/endpoints';
-import { isFunction, isNumber, isString } from '@orval/core';
 import {
+  getCreatePetsMutationFetcher,
+  useCreatePets,
   useListPets as useListPetsWithHeaders,
   useListPetsInfinite as useListPetsInfiniteWithHeaders,
-  useCreatePets,
-  getCreatePetsMutationFetcher,
 } from '../generated/swr/petstore-with-headers/endpoints';
-import { ListPetsXExample } from '../generated/swr/petstore-with-headers/model';
 import type { CreatePetsHeaders } from '../generated/swr/petstore-with-headers/model';
-import {
-  getListPetsArrayInfiniteKeyLoader,
-  getListPetsWrappedInfiniteKeyLoader,
-  getGetPetSingleInfiniteKeyLoader,
-} from '../generated/swr/swr-infinite-pagination/endpoints';
+import { ListPetsXExample } from '../generated/swr/petstore-with-headers/model';
 import type {
+  getPetSingleResponse,
   listPetsArrayResponse,
   listPetsWrappedResponse,
-  getPetSingleResponse,
+} from '../generated/swr/swr-infinite-pagination/endpoints';
+import {
+  getGetPetSingleInfiniteKeyLoader,
+  getListPetsArrayInfiniteKeyLoader,
+  getListPetsWrappedInfiniteKeyLoader,
 } from '../generated/swr/swr-infinite-pagination/endpoints';
 import type {
   Pet,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { dedupeUnionType, jsStringEscape } from './string';
+import { dedupeUnionType, jsStringEscape } from './string.ts';
 
 describe('dedupeUnionType', () => {
   describe('edge cases', () => {

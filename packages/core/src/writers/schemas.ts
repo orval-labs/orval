@@ -1,13 +1,13 @@
 import fs from 'fs-extra';
 import { groupBy } from 'remeda';
 
-import { generateImports } from '../generators';
+import { generateImports } from '../generators/index.ts';
 import {
   type GeneratorImport,
   type GeneratorSchema,
   NamingConvention,
-} from '../types';
-import { conventionName, upath } from '../utils';
+} from '../types.ts';
+import { conventionName, upath } from '../utils/index.ts';
 
 type CanonicalInfo = Pick<GeneratorImport, 'importPath' | 'name'>;
 

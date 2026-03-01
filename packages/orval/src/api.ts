@@ -23,7 +23,7 @@ import {
   generateClientTitle,
   generateExtraFiles,
   generateOperations,
-} from './client';
+} from './client.ts';
 
 export async function getApiBuilder({
   input,

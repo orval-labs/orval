@@ -13,7 +13,7 @@ import {
   stringify,
 } from '@orval/core';
 
-import { getMockScalar } from '../faker/getters';
+import { getMockScalar } from '../faker/getters/index.ts';
 
 function getMockPropertiesWithoutFunc(properties: any, spec: OpenApiDocument) {
   return Object.entries(

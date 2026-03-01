@@ -1,10 +1,10 @@
-import { TEMPLATE_TAG_REGEX } from '../constants';
+import { TEMPLATE_TAG_REGEX } from '../constants.ts';
 import type {
   BaseUrlFromConstant,
   BaseUrlFromSpec,
   OpenApiServerObject,
-} from '../types';
-import { camel, isString, sanitize } from '../utils';
+} from '../types.ts';
+import { camel, isString, sanitize } from '../utils/index.ts';
 
 const TEMPLATE_TAG_IN_PATH_REGEX = /\/([\w]+)(?:\$\{)/g; // all dynamic parts of path
 

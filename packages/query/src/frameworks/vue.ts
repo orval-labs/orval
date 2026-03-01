@@ -13,16 +13,16 @@ import {
 } from '@orval/core';
 import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
 
-import { generateAxiosRequestFunction } from '../client';
+import { generateAxiosRequestFunction } from '../client.ts';
 import type {
   FrameworkAdapterConfig,
   MutationHookBodyContext,
   MutationReturnTypeContext,
   QueryReturnStatementContext,
   QueryReturnTypeContext,
-} from '../framework-adapter';
-import { QueryType } from '../query-options';
-import { vueUnRefParams, vueWrapTypeWithMaybeRef } from '../utils';
+} from '../framework-adapter.ts';
+import { QueryType } from '../query-options.ts';
+import { vueUnRefParams, vueWrapTypeWithMaybeRef } from '../utils.ts';
 
 export const createVueAdapter = ({
   hasVueQueryV4,

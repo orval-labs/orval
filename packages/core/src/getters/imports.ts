@@ -1,4 +1,4 @@
-import type { ContextSpec, GeneratorImport, ResolverValue } from '../types';
+import type { ContextSpec, GeneratorImport, ResolverValue } from '../types.ts';
 
 interface GetAliasedImportsOptions {
   name?: string;

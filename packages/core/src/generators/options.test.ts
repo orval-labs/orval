@@ -7,12 +7,12 @@ import {
   type GetterQueryParam,
   type ResReqTypesValue,
   Verbs,
-} from '../types';
+} from '../types.ts';
 import {
   generateAxiosOptions,
   generateMutatorConfig,
   generateOptions,
-} from './options';
+} from './options.ts';
 
 const minimalSchema: GeneratorSchema = {
   name: 'TestSchema',

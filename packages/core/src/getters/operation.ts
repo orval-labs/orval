@@ -1,5 +1,5 @@
-import { type OpenApiOperationObject, Verbs } from '../types';
-import { isString, pascal, sanitize } from '../utils';
+import { type OpenApiOperationObject, Verbs } from '../types.ts';
+import { isString, pascal, sanitize } from '../utils/index.ts';
 
 export function getOperationId(
   operation: OpenApiOperationObject,

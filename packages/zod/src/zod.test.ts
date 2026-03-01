@@ -11,7 +11,7 @@ import {
   generateZodValidationSchemaDefinition,
   parseZodValidationSchemaDefinition,
   type ZodValidationSchemaDefinition,
-} from '.';
+} from './index.ts';
 
 const testOutput = {} as unknown as Parameters<typeof generateZod>[2];
 

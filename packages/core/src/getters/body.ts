@@ -1,14 +1,19 @@
-import { generalJSTypesWithArray } from '../constants';
-import { resolveRef } from '../resolvers';
+import { generalJSTypesWithArray } from '../constants.ts';
+import { resolveRef } from '../resolvers/index.ts';
 import type {
   ContextSpec,
   GetterBody,
   OpenApiReferenceObject,
   OpenApiRequestBodyObject,
   OverrideOutputContentType,
-} from '../types';
-import { camel, filterByContentType, isReference, sanitize } from '../utils';
-import { getResReqTypes } from './res-req-types';
+} from '../types.ts';
+import {
+  camel,
+  filterByContentType,
+  isReference,
+  sanitize,
+} from '../utils/index.ts';
+import { getResReqTypes } from './res-req-types.ts';
 
 interface GetBodyOptions {
   requestBody: OpenApiReferenceObject | OpenApiRequestBodyObject;

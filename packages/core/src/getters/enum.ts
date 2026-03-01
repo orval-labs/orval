@@ -4,7 +4,7 @@ import {
   EnumGeneration,
   NamingConvention,
   type OpenApiSchemaObject,
-} from '../types';
+} from '../types.ts';
 import {
   conventionName,
   escape,
@@ -12,7 +12,7 @@ import {
   isString,
   jsStringEscape,
   sanitize,
-} from '../utils';
+} from '../utils/index.ts';
 
 /** Bridge type for enum values from AnyOtherAttribute-infected schema extensions */
 type SchemaEnumValue = string | number | boolean | null;

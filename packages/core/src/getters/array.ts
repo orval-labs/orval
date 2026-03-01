@@ -1,14 +1,14 @@
-import { resolveExampleRefs } from '../resolvers';
-import { resolveObject } from '../resolvers/object';
+import { resolveExampleRefs } from '../resolvers/index.ts';
+import { resolveObject } from '../resolvers/object.ts';
 import type {
   ContextSpec,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
   ResolverValue,
   ScalarValue,
-} from '../types';
-import { compareVersions } from '../utils';
-import type { FormDataContext } from './object';
+} from '../types.ts';
+import { compareVersions } from '../utils/index.ts';
+import type { FormDataContext } from './object.ts';
 
 interface GetArrayOptions {
   schema: OpenApiSchemaObject;

@@ -1,4 +1,4 @@
-import type { OpenApiSchemaObject } from '../types';
+import type { OpenApiSchemaObject } from '../types.ts';
 
 /**
  * Determine if a content type is binary (vs text-based).

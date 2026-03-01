@@ -1,7 +1,7 @@
 import readline from 'node:readline';
 import { styleText } from 'node:util';
 
-import { isString } from './assertion';
+import { isString } from './assertion.ts';
 
 export const log = console.log;
 

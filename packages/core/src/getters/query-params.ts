@@ -1,4 +1,4 @@
-import { resolveValue } from '../resolvers';
+import { resolveValue } from '../resolvers/index.ts';
 import type {
   ContextSpec,
   GeneratorImport,
@@ -7,10 +7,10 @@ import type {
   GetterQueryParam,
   OpenApiParameterObject,
   OpenApiSchemaObject,
-} from '../types';
-import { jsDoc, pascal, sanitize } from '../utils';
-import { getEnum, getEnumDescriptions, getEnumNames } from './enum';
-import { getKey } from './keys';
+} from '../types.ts';
+import { jsDoc, pascal, sanitize } from '../utils/index.ts';
+import { getEnum, getEnumDescriptions, getEnumNames } from './enum.ts';
+import { getKey } from './keys.ts';
 
 type QueryParamsType = {
   name: string;

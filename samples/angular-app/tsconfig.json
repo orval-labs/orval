@@ -13,7 +13,12 @@
     "experimentalDecorators": true,
     "importHelpers": true,
     "target": "ES2022",
-    "module": "preserve"
+    "module": "preserve",
+    // these paths should be removed in a real app, they are only necessary in the orval monorepo
+    "paths": {
+      "orval": ["../../packages/orval/dist/index.d.mts"],
+      "@orval/*": ["../../packages/*/dist/index.d.mts"]
+    }
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

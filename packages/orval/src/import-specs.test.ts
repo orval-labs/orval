@@ -1,8 +1,8 @@
 import type { OpenApiDocument } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
-import { dereferenceExternalRef, importSpecs } from './import-specs';
-import { normalizeOptions } from './utils';
+import { dereferenceExternalRef, importSpecs } from './import-specs.ts';
+import { normalizeOptions } from './utils/index.ts';
 
 const TEST_SPEC: OpenApiDocument = {
   openapi: '3.1.0',

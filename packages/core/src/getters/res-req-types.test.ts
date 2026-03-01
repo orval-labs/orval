@@ -6,10 +6,10 @@ import type {
   OpenApiRequestBodyObject,
   OpenApiResponseObject,
   OpenApiSchemaObject,
-} from '../types';
-import { isString } from '../utils';
-import { isBinaryContentType } from '../utils/content-type';
-import { getResReqTypes } from './res-req-types';
+} from '../types.ts';
+import { isBinaryContentType } from '../utils/content-type.ts';
+import { isString } from '../utils/index.ts';
+import { getResReqTypes } from './res-req-types.ts';
 
 // Simulates an OpenAPI schema with a readOnly property
 const schemaWithReadOnly: OpenApiSchemaObject = {

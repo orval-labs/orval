@@ -11,10 +11,10 @@ import {
   PropertySortOrder,
 } from '@orval/core';
 
-import type { MockDefinition, MockSchemaObject } from '../../types';
-import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
-import { resolveMockValue } from '../resolvers/value';
-import { combineSchemasMock } from './combine';
+import type { MockDefinition, MockSchemaObject } from '../../types.ts';
+import { DEFAULT_OBJECT_KEY_MOCK } from '../constants.ts';
+import { resolveMockValue } from '../resolvers/value.ts';
+import { combineSchemasMock } from './combine.ts';
 
 export const overrideVarName = 'overrideResponse';
 

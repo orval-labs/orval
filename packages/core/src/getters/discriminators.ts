@@ -1,8 +1,8 @@
 import { isArray, isBoolean } from 'remeda';
 
-import type { ContextSpec, OpenApiSchemasObject } from '../types';
-import { getPropertySafe, isReference, pascal } from '../utils';
-import { getRefInfo } from './ref';
+import type { ContextSpec, OpenApiSchemasObject } from '../types.ts';
+import { getPropertySafe, isReference, pascal } from '../utils/index.ts';
+import { getRefInfo } from './ref.ts';
 
 export function resolveDiscriminators(
   schemas: OpenApiSchemasObject,

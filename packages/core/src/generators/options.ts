@@ -1,4 +1,4 @@
-import { getSuccessResponseType } from '../getters/res-req-types';
+import { getSuccessResponseType } from '../getters/res-req-types.ts';
 import {
   type GeneratorMutator,
   type GeneratorSchema,
@@ -7,8 +7,8 @@ import {
   type GetterResponse,
   type ParamsSerializerOptions,
   Verbs,
-} from '../types';
-import { getIsBodyVerb, isObject, stringify } from '../utils';
+} from '../types.ts';
+import { getIsBodyVerb, isObject, stringify } from '../utils/index.ts';
 
 /**
  * Filters query params for Angular's HttpClient.

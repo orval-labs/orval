@@ -4,10 +4,10 @@ import type {
   ContextSpec,
   GeneratorSchema,
   OpenApiSchemaObject,
-} from '../types';
-import { EnumGeneration, NamingConvention } from '../types';
-import { generateImports } from './imports';
-import { generateInterface } from './interface';
+} from '../types.ts';
+import { EnumGeneration, NamingConvention } from '../types.ts';
+import { generateImports } from './imports.ts';
+import { generateInterface } from './interface.ts';
 
 describe('generateInterface', () => {
   const context: ContextSpec = {

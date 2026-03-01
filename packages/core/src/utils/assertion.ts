@@ -7,7 +7,7 @@ import {
   type OpenApiSchemaObject,
   SchemaType,
   Verbs,
-} from '../types';
+} from '../types.ts';
 
 /**
  * Discriminator helper for `ReferenceObject`

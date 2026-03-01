@@ -14,7 +14,7 @@ import {
 } from '@orval/core';
 import { validate } from '@scalar/openapi-parser';
 
-import { getApiBuilder } from './api';
+import { getApiBuilder } from './api.ts';
 
 export async function importOpenApi({
   spec,

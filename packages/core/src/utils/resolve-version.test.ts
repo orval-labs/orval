@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import type { PackageJson } from '../types';
+import type { PackageJson } from '../types.ts';
 import {
   resolveInstalledVersion,
   resolveInstalledVersions,
-} from './resolve-version';
+} from './resolve-version.ts';
 
 const projectDir = process.cwd();
 

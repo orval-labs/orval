@@ -1,11 +1,11 @@
-import { resolveRef } from '../resolvers/ref';
+import { resolveRef } from '../resolvers/ref.ts';
 import type {
   ContextSpec,
   GetterParameters,
   OpenApiParameterObject,
   OpenApiReferenceObject,
-} from '../types';
-import { isReference } from '../utils';
+} from '../types.ts';
+import { isReference } from '../utils/index.ts';
 
 interface GetParametersOptions {
   parameters: (OpenApiReferenceObject | OpenApiParameterObject)[];

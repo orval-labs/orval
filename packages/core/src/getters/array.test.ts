@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpec, OpenApiSchemaObject } from '../types';
-import { getArray } from './array';
+import type { ContextSpec, OpenApiSchemaObject } from '../types.ts';
+import { getArray } from './array.ts';
 
 describe('getArray', () => {
   const context: ContextSpec = {

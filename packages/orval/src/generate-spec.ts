@@ -6,8 +6,8 @@ import {
   removeFilesAndEmptyFolders,
 } from '@orval/core';
 
-import { importSpecs } from './import-specs';
-import { writeSpecs } from './write-specs';
+import { importSpecs } from './import-specs.ts';
+import { writeSpecs } from './write-specs.ts';
 
 /**
  * Generate client/spec files for a single Orval project.

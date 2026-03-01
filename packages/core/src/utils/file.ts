@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { globby } from 'globby';
 
-import { isDirectory } from './assertion';
+import { isDirectory } from './assertion.ts';
 
 export function getFileInfo(
   target = '',

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
-import type { PackageJson } from '../types';
+import type { PackageJson } from '../types.ts';
 
 export function resolveInstalledVersion(
   packageName: string,

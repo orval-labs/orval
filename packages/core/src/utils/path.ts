@@ -1,7 +1,7 @@
 import basepath from 'node:path';
 
-import { isFunction, isStringLike } from './assertion';
-import { getExtension } from './extension';
+import { isFunction, isStringLike } from './assertion.ts';
+import { getExtension } from './extension.ts';
 
 // override path to support windows paths
 // https://github.com/anodynos/upath/blob/master/source/code/upath.coffee

@@ -1,6 +1,6 @@
 import { isNullish, unique } from 'remeda';
 
-import { resolveExampleRefs, resolveObject } from '../resolvers';
+import { resolveExampleRefs, resolveObject } from '../resolvers/index.ts';
 import {
   type ContextSpec,
   EnumGeneration,
@@ -10,12 +10,17 @@ import {
   type OpenApiSchemaObject,
   type ScalarValue,
   SchemaType,
-} from '../types';
-import { dedupeUnionType, getNumberWord, isSchema, pascal } from '../utils';
-import { getCombinedEnumValue } from './enum';
-import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
-import type { FormDataContext } from './object';
-import { getScalar } from './scalar';
+} from '../types.ts';
+import {
+  dedupeUnionType,
+  getNumberWord,
+  isSchema,
+  pascal,
+} from '../utils/index.ts';
+import { getCombinedEnumValue } from './enum.ts';
+import { getAliasedImports, getImportAliasForRefOrValue } from './imports.ts';
+import type { FormDataContext } from './object.ts';
+import { getScalar } from './scalar.ts';
 
 type CombinedData = {
   imports: GeneratorImport[];

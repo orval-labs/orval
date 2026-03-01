@@ -5,7 +5,7 @@ import type {
   GlobalMockOptions,
 } from '@orval/core';
 
-import { generateMSW, generateMSWImports } from './msw';
+import { generateMSW, generateMSWImports } from './msw/index.ts';
 
 export const DEFAULT_MOCK_OPTIONS: GlobalMockOptions = {
   type: 'msw',

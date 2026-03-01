@@ -5,8 +5,8 @@ import type {
   OpenApiReferenceObject,
   OpenApiSchemaObject,
   OpenApiSchemasObject,
-} from '../types';
-import { resolveDiscriminators } from './discriminators';
+} from '../types.ts';
+import { resolveDiscriminators } from './discriminators.ts';
 
 const context: ContextSpec = {
   target: 'spec',

@@ -6,7 +6,7 @@ import {
 } from '@orval/core';
 import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
 
-import { generateAxiosRequestFunction } from '../client';
+import { generateAxiosRequestFunction } from '../client.ts';
 import type {
   FrameworkAdapterConfig,
   MutationHookBodyContext,
@@ -14,8 +14,8 @@ import type {
   QueryInvocationContext,
   QueryReturnStatementContext,
   QueryReturnTypeContext,
-} from '../framework-adapter';
-import { QueryType } from '../query-options';
+} from '../framework-adapter.ts';
+import { QueryType } from '../query-options.ts';
 
 export const createSolidAdapter = ({
   hasQueryV5,

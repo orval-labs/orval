@@ -48,9 +48,9 @@ import {
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
 
-import pkg from '../../package.json';
-import { loadPackageJson } from './package-json';
-import { loadTsconfig } from './tsconfig';
+import pkg from '../../package.json' with { type: 'json' };
+import { loadPackageJson } from './package-json.ts';
+import { loadTsconfig } from './tsconfig.ts';
 
 /**
  * Type helper to make it easier to use orval.config.ts

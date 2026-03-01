@@ -1,10 +1,10 @@
-import { getScalar } from '../getters';
+import { getScalar } from '../getters/index.ts';
 import type {
   ContextSpec,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
-} from '../types';
-import { jsDoc } from '../utils';
+} from '../types.ts';
+import { jsDoc } from '../utils/index.ts';
 
 interface GenerateInterfaceOptions {
   name: string;

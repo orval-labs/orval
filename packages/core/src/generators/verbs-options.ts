@@ -6,7 +6,7 @@ import {
   getProps,
   getQueryParams,
   getResponse,
-} from '../getters';
+} from '../getters/index.ts';
 import type {
   ContextSpec,
   GeneratorVerbOptions,
@@ -20,7 +20,7 @@ import type {
   OpenApiPathItemObject,
   OpenApiRequestBodyObject,
   Verbs,
-} from '../types';
+} from '../types.ts';
 import {
   asyncReduce,
   camel,
@@ -31,8 +31,8 @@ import {
   jsDoc,
   mergeDeep,
   sanitize,
-} from '../utils';
-import { generateMutator } from './mutator';
+} from '../utils/index.ts';
+import { generateMutator } from './mutator.ts';
 
 export interface GenerateVerbOptionsParams {
   verb: Verbs;

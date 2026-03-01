@@ -11,7 +11,7 @@ import {
   toObjectString,
 } from '@orval/core';
 
-import { getQueryArgumentsRequestType } from '../client';
+import { getQueryArgumentsRequestType } from '../client.ts';
 import {
   isQueryV5,
   isQueryV5WithDataTagError,
@@ -22,18 +22,18 @@ import {
   isSvelteQueryV3,
   isSvelteQueryV6,
   isVueQueryV3,
-} from '../dependencies';
+} from '../dependencies.ts';
 import type {
   FrameworkAdapter,
   FrameworkAdapterConfig,
   MutationOnSuccessContext,
-} from '../framework-adapter';
-import { getQueryOptionsDefinition } from '../query-options';
-import { createAngularAdapter } from './angular';
-import { createReactAdapter } from './react';
-import { createSolidAdapter } from './solid';
-import { createSvelteAdapter } from './svelte';
-import { createVueAdapter } from './vue';
+} from '../framework-adapter.ts';
+import { getQueryOptionsDefinition } from '../query-options.ts';
+import { createAngularAdapter } from './angular.ts';
+import { createReactAdapter } from './react.ts';
+import { createSolidAdapter } from './solid.ts';
+import { createSvelteAdapter } from './svelte.ts';
+import { createVueAdapter } from './vue.ts';
 
 /** Fill in defaults for fields that most adapters leave empty or share a common implementation. */
 const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => ({

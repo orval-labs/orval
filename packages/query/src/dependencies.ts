@@ -6,7 +6,7 @@ import {
   type PackageJson,
 } from '@orval/core';
 
-import { ANGULAR_HTTP_DEPENDENCIES, AXIOS_DEPENDENCIES } from './client';
+import { ANGULAR_HTTP_DEPENDENCIES, AXIOS_DEPENDENCIES } from './client.ts';
 
 export const REACT_DEPENDENCIES: GeneratorDependency[] = [
   {

@@ -1,7 +1,11 @@
 import fs from 'fs-extra';
 
-import { generateModelsInline, generateMutatorImports } from '../generators';
-import { OutputClient, type WriteModeProps } from '../types';
+import {
+  generateModelsInline,
+  generateMutatorImports,
+} from '../generators/index.ts';
+import { OutputClient, type WriteModeProps } from '../types.ts';
+import { getMockFileExtensionByTypeName } from '../utils/file-extensions.ts';
 import {
   conventionName,
   getFileInfo,
@@ -9,11 +13,10 @@ import {
   isString,
   isSyntheticDefaultImportsAllow,
   upath,
-} from '../utils';
-import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
-import { generateImportsForBuilder } from './generate-imports-for-builder';
-import { generateTarget } from './target';
-import { getOrvalGeneratedTypes, getTypedResponse } from './types';
+} from '../utils/index.ts';
+import { generateImportsForBuilder } from './generate-imports-for-builder.ts';
+import { generateTarget } from './target.ts';
+import { getOrvalGeneratedTypes, getTypedResponse } from './types.ts';
 
 export async function writeSplitMode({
   builder,

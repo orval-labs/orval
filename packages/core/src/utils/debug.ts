@@ -1,6 +1,6 @@
 import debug from 'debug';
 
-import { isString } from './assertion';
+import { isString } from './assertion.ts';
 
 const filter = process.env.ORVAL_DEBUG_FILTER;
 const DEBUG = process.env.DEBUG;
