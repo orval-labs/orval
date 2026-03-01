@@ -21419,7 +21419,7 @@ __metadata:
     tsdown: "catalog:"
     typedoc: "npm:^0.28.15"
     typedoc-plugin-coverage: "npm:^4.0.2"
-    typedoc-plugin-markdown: "npm:^4.9.0"
+    typedoc-plugin-markdown: "npm:^4.10.0"
     typescript: "catalog:"
     vitest: "catalog:"
   peerDependencies:
@@ -27391,12 +27391,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typedoc-plugin-markdown@npm:^4.9.0":
-  version: 4.9.0
-  resolution: "typedoc-plugin-markdown@npm:4.9.0"
+"typedoc-plugin-markdown@npm:^4.10.0":
+  version: 4.10.0
+  resolution: "typedoc-plugin-markdown@npm:4.10.0"
   peerDependencies:
     typedoc: 0.28.x
-  checksum: 10c0/12040bbff7bc7e4f777d06710e39421f8ebaaf706f4b8075536453f35bc86726c5ce743de0cc9c39ee1bdfc8611b2878a4cf4c83a493e0678fc640dd71fe97fc
+  checksum: 10c0/20c7bc8ef68bd90053649ce223d02d4aceefed675c09efb1740c7791fbc37c10a1e25d14647605484a198f0695312eb21119015616d91c73fe1d63df5e4fb061
   languageName: node
   linkType: hard
 
