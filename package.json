@@ -52,7 +52,7 @@
     "eslint-plugin-unicorn": "^62.0.0",
     "globals": "^17.0.0",
     "husky": "^9.1.7",
-    "lint-staged": "^16.2.6",
+    "lint-staged": "^16.3.0",
     "prettier": "catalog:",
     "rimraf": "catalog:",
     "turbo": "^2.8.10",
