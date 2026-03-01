@@ -31,7 +31,7 @@
     "fs-extra": "^11.3.2",
     "globby": "16.1.0",
     "remeda": "^2.33.6",
-    "typedoc": "^0.28.15"
+    "typedoc": "^0.28.17"
   },
   "devDependencies": {
     "@faker-js/faker": "catalog:tooling",

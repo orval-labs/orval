@@ -6108,7 +6108,7 @@ __metadata:
     remeda: "npm:^2.33.6"
     rimraf: "catalog:"
     tsdown: "catalog:"
-    typedoc: "npm:^0.28.15"
+    typedoc: "npm:^0.28.17"
     typescript: "catalog:"
     vitest: "catalog:"
   peerDependencies:
@@ -21417,7 +21417,7 @@ __metadata:
     string-argv: "npm:^0.3.2"
     tsconfck: "npm:^3.1.6"
     tsdown: "catalog:"
-    typedoc: "npm:^0.28.15"
+    typedoc: "npm:^0.28.17"
     typedoc-plugin-coverage: "npm:^4.0.2"
     typedoc-plugin-markdown: "npm:^4.9.0"
     typescript: "catalog:"
@@ -27400,9 +27400,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typedoc@npm:^0.28.15":
-  version: 0.28.15
-  resolution: "typedoc@npm:0.28.15"
+"typedoc@npm:^0.28.17":
+  version: 0.28.17
+  resolution: "typedoc@npm:0.28.17"
   dependencies:
     "@gerrit0/mini-shiki": "npm:^3.17.0"
     lunr: "npm:^2.3.9"
@@ -27413,7 +27413,7 @@ __metadata:
     typescript: 5.0.x || 5.1.x || 5.2.x || 5.3.x || 5.4.x || 5.5.x || 5.6.x || 5.7.x || 5.8.x || 5.9.x
   bin:
     typedoc: bin/typedoc
-  checksum: 10c0/b5988ebebb367fed44f110bbd37baee85fe95fe10c8d5a511c33d787eb1e924e66ba54cb0763d63ed2c406adbd32fcb87bcbc3fd61b0bc8ab6f3a6c06f2de978
+  checksum: 10c0/25c3f6c08748debd2549e8af2c96dcdea255297924e8e0ecc78c86aea35d69c149eb5ad0a0d333a3a69d4e41a887ce55fef0aa97236789f0e658f3ad051429e8
   languageName: node
   linkType: hard
 
