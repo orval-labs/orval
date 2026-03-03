@@ -5047,6 +5047,175 @@ describe('zod split mode regressions', () => {
     expect(parsed.zod).toContain('.nullable()');
   });
 
+  it('resolves local component refs with schema suffix for arrays and nested objects', () => {
+    const suffixContext = {
+      output: {
+        override: {
+          useDates: false,
+          components: {
+            schemas: {
+              suffix: 'Schema',
+            },
+          },
+        },
+      },
+      spec: {
+        components: {
+          schemas: {
+            Position: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                quantity: { type: 'number' },
+              },
+              required: ['id', 'quantity'],
+            },
+          },
+        },
+      },
+    } as ContextSpec;
+
+    const resolvedSchema = dereference(
+      {
+        type: 'object',
+        properties: {
+          positions: {
+            type: 'array',
+            items: {
+              $ref: '#/components/schemas/Position',
+            },
+          },
+          primaryPosition: {
+            $ref: '#/components/schemas/Position',
+          },
+        },
+      },
+      suffixContext,
+    );
+
+    const definition = generateZodValidationSchemaDefinition(
+      resolvedSchema,
+      suffixContext,
+      'positionsEnvelope',
+      false,
+      false,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      definition,
+      suffixContext,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('"positions": zod.array(zod.object(');
+    expect(parsed.zod).toContain('"primaryPosition": zod.object(');
+    expect(parsed.zod).not.toContain('zod.unknown()');
+  });
+
+  it('resolves allOf/oneOf/anyOf refs with schema suffix without unknown fallback', () => {
+    const suffixContext = {
+      output: {
+        override: {
+          useDates: false,
+          components: {
+            schemas: {
+              suffix: 'Schema',
+            },
+          },
+        },
+      },
+      spec: {
+        components: {
+          schemas: {
+            BaseEnvelope: {
+              type: 'object',
+              properties: {
+                traceId: { type: 'string' },
+              },
+              required: ['traceId'],
+            },
+            Position: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
+              required: ['id'],
+            },
+            PositionAlias: {
+              type: 'object',
+              properties: {
+                alias: { type: 'string' },
+              },
+              required: ['alias'],
+            },
+          },
+        },
+      },
+    } as ContextSpec;
+
+    const resolvedSchema = dereference(
+      {
+        type: 'object',
+        properties: {
+          composed: {
+            allOf: [
+              { $ref: '#/components/schemas/BaseEnvelope' },
+              {
+                type: 'object',
+                properties: {
+                  position: {
+                    $ref: '#/components/schemas/Position',
+                  },
+                },
+                required: ['position'],
+              },
+            ],
+          },
+          oneChoice: {
+            oneOf: [
+              { $ref: '#/components/schemas/Position' },
+              { $ref: '#/components/schemas/PositionAlias' },
+            ],
+          },
+          anyChoice: {
+            anyOf: [
+              { $ref: '#/components/schemas/Position' },
+              { $ref: '#/components/schemas/PositionAlias' },
+            ],
+          },
+        },
+        required: ['composed', 'oneChoice', 'anyChoice'],
+      },
+      suffixContext,
+    );
+
+    const definition = generateZodValidationSchemaDefinition(
+      resolvedSchema,
+      suffixContext,
+      'combinatorsEnvelope',
+      false,
+      false,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      definition,
+      suffixContext,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('"composed": zod.object(');
+    expect(parsed.zod).toContain('.and(');
+    expect(parsed.zod).toContain('"oneChoice": zod.union([');
+    expect(parsed.zod).toContain('"anyChoice": zod.union([');
+    expect(parsed.zod).not.toContain('zod.unknown()');
+  });
+
   it('uses passthrough object for generic object schemas in zod v3', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',

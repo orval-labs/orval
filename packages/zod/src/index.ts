@@ -14,7 +14,6 @@ import {
   getFormDataFieldFileType,
   getNumberWord,
   getPropertySafe,
-  getRefInfo,
   isBoolean,
   isNumber,
   isObject,
@@ -1098,9 +1097,16 @@ export const dereference = (
   const resolvedSchema: OpenApiSchemaObject | undefined =
     '$ref' in schema
       ? (() => {
-          const referencedSchema = context.spec.components?.schemas?.[
-            getRefInfo(schema.$ref, context).name
-          ] as OpenApiSchemaObject | undefined;
+          const referencedSchema = (() => {
+            try {
+              return resolveRef<OpenApiSchemaObject>(
+                { $ref: schema.$ref } as OpenApiReferenceObject,
+                context,
+              ).schema;
+            } catch {
+              return;
+            }
+          })();
 
           if (!referencedSchema || !isObject(referencedSchema)) {
             return;
