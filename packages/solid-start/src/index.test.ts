@@ -1,11 +1,10 @@
-import { describe, expect, it } from 'vitest';
-
 import type {
   ContextSpec,
   GeneratorOptions,
   GeneratorVerbOptions,
 } from '@orval/core';
 import { Verbs } from '@orval/core';
+import { describe, expect, it } from 'vitest';
 
 import { generateSolidStart } from './index';
 
