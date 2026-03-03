@@ -305,7 +305,7 @@ const generateImplementation = (
       : '';
 
   const normalParamsImplementation = `if (value !== undefined) {
-        normalizedParams.append(key, value === null ? 'null' : ${hasDateParams ? 'value instanceof Date ? value.toISOString() : ' : ''}value.toString())
+        normalizedParams.append(key, Array.isArray(value) ? value.map(v => v === null ? 'null' : ${hasDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}String(v)).join(',') : value === null ? 'null' : ${hasDateParams ? 'value instanceof Date ? value.toISOString() : ' : ''}value.toString())
       }`;
 
   // Build query params string

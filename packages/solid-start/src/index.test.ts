@@ -188,8 +188,7 @@ describe('generateSolidStart — query string serialization', () => {
     const { implementation } = generateSolidStart(verbOptions, options);
 
     expect(implementation).not.toContain('const explodeParameters');
-    expect(implementation).not.toContain('Array.isArray(value)');
-    // still has the regular append
+    // still has the regular append (which internally uses Array.isArray for comma-joining)
     expect(implementation).toContain('normalizedParams.append(key');
   });
 
@@ -254,9 +253,9 @@ describe('generateSolidStart — query string serialization', () => {
     // explode path for the array param
     expect(implementation).toContain('const explodeParameters = ["country"]');
     expect(implementation).toContain('Array.isArray(value)');
-    // scalar fallback still present
+    // scalar fallback still present (the ternary after the Array.isArray branch)
     expect(implementation).toContain(
-      'normalizedParams.append(key, value === null',
+      "value === null ? 'null' : value.toString()",
     );
   });
 
@@ -329,7 +328,6 @@ describe('generateSolidStart — path-level parameter merging', () => {
     const { implementation } = generateSolidStart(verbOptions, options);
 
     expect(implementation).not.toContain('const explodeParameters');
-    expect(implementation).not.toContain('Array.isArray(value)');
   });
 
   it('merges path-level and operation-level params without duplicating shared names', () => {
@@ -424,5 +422,49 @@ describe('generateSolidStart — date-time format on array items (useDates)', ()
       'value instanceof Date ? value.toISOString()',
     );
     expect(implementation).not.toContain('const explodeParameters');
+  });
+
+  it('generates toISOString() inside the map callback for a non-exploded array<date-time> param when useDates is true', () => {
+    const parameters = [
+      {
+        name: 'dates',
+        in: 'query',
+        explode: false,
+        schema: {
+          type: 'array',
+          items: { type: 'string', format: 'date-time' },
+        },
+      },
+    ];
+    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+    const options = makeOptions(makeContext(parameters, true));
+
+    const { implementation } = generateSolidStart(verbOptions, options);
+
+    // No explode path — array is comma-joined via the normal params implementation
+    expect(implementation).not.toContain('const explodeParameters');
+    // The map callback must use toISOString() for Date values
+    expect(implementation).toContain('v instanceof Date ? v.toISOString()');
+  });
+
+  it('does NOT generate toISOString() in the map callback for a non-exploded array<date-time> param when useDates is false', () => {
+    const parameters = [
+      {
+        name: 'dates',
+        in: 'query',
+        explode: false,
+        schema: {
+          type: 'array',
+          items: { type: 'string', format: 'date-time' },
+        },
+      },
+    ];
+    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+    const options = makeOptions(makeContext(parameters, false));
+
+    const { implementation } = generateSolidStart(verbOptions, options);
+
+    expect(implementation).not.toContain('const explodeParameters');
+    expect(implementation).not.toContain('v instanceof Date ? v.toISOString()');
   });
 });
