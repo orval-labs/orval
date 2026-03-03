@@ -22,7 +22,6 @@ import {
   toObjectString,
   Verbs,
 } from '@orval/core';
-import { isDereferenced } from '@scalar/openapi-types/helpers';
 
 const SOLID_START_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -239,26 +238,48 @@ const generateImplementation = (
 
   const hasExplodedDateParams =
     context.output.override.useDates &&
-    explodeParameters.some(
-      (p) =>
-        isDereferenced(p) &&
-        (p.schema?.format === 'date-time' ||
-          (p.schema?.items as { format?: string } | undefined)?.format ===
-            'date-time'),
-    );
+    explodeParameters.some((p) => {
+      const { schema: parameterObject } = resolveRef<OpenApiParameterObject>(
+        p,
+        context,
+      );
+      if (!parameterObject.schema) {
+        return false;
+      }
+      const { schema: schemaObject } = resolveRef<OpenApiSchemaObject>(
+        parameterObject.schema,
+        context,
+      );
+      return (
+        schemaObject.format === 'date-time' ||
+        (schemaObject.items as { format?: string } | undefined)?.format ===
+          'date-time'
+      );
+    });
 
   const isExplodeParametersOnly =
     explodeParameters.length === parameters.length;
 
   const hasDateParams =
     context.output.override.useDates &&
-    parameters.some(
-      (p) =>
-        isDereferenced(p) &&
-        (p.schema?.format === 'date-time' ||
-          (p.schema?.items as { format?: string } | undefined)?.format ===
-            'date-time'),
-    );
+    parameters.some((p) => {
+      const { schema: parameterObject } = resolveRef<OpenApiParameterObject>(
+        p,
+        context,
+      );
+      if (!parameterObject.schema) {
+        return false;
+      }
+      const { schema: schemaObject } = resolveRef<OpenApiSchemaObject>(
+        parameterObject.schema,
+        context,
+      );
+      return (
+        schemaObject.format === 'date-time' ||
+        (schemaObject.items as { format?: string } | undefined)?.format ===
+          'date-time'
+      );
+    });
 
   const explodeArrayImplementation =
     explodeParameters.length > 0
