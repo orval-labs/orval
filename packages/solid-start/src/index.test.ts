@@ -173,12 +173,12 @@ describe('generateSolidStart — query string serialization', () => {
     expect(implementation).toContain('normalizedParams.append(key,');
   });
 
-  it('does NOT generate explode logic for an array param without explode:true', () => {
+  it('does NOT generate explode logic for an array param with explode:false', () => {
     const parameters = [
       {
         name: 'country',
         in: 'query',
-        // explode not set (defaults to false for non-form styles)
+        explode: false,
         schema: { type: 'array', items: { type: 'string' } },
       },
     ];
@@ -191,6 +191,24 @@ describe('generateSolidStart — query string serialization', () => {
     expect(implementation).not.toContain('Array.isArray(value)');
     // still has the regular append
     expect(implementation).toContain('normalizedParams.append(key');
+  });
+
+  it('treats a query array param as exploded when style and explode are both omitted (OpenAPI default)', () => {
+    // Per OpenAPI spec: omitted style defaults to 'form', and 'form' defaults explode to true.
+    const parameters = [
+      {
+        name: 'country',
+        in: 'query',
+        schema: { type: 'array', items: { type: 'string' } },
+      },
+    ];
+    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+    const options = makeOptions(makeContext(parameters));
+
+    const { implementation } = generateSolidStart(verbOptions, options);
+
+    expect(implementation).toContain('const explodeParameters = ["country"]');
+    expect(implementation).toContain('Array.isArray(value)');
   });
 
   it('handles multiple exploded array params', () => {

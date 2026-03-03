@@ -226,9 +226,15 @@ const generateImplementation = (
           resolveRef<OpenApiSchemaObject>(s, context).schema.type === 'array',
       );
 
-    return (
-      parameterObject.in === 'query' && isArrayLike && parameterObject.explode
-    );
+    // Per OpenAPI spec: query params use 'form' style by default, and 'form'
+    // style defaults explode to true when omitted.
+    const isExploded =
+      parameterObject.explode === true ||
+      (parameterObject.explode === undefined &&
+        (parameterObject.style === undefined ||
+          parameterObject.style === 'form'));
+
+    return parameterObject.in === 'query' && isArrayLike && isExploded;
   });
 
   const explodeParametersNames = explodeParameters.map((parameter) => {
