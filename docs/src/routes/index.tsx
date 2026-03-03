@@ -19,6 +19,7 @@ const frameworks = [
   { name: 'Vue Query', icon: '💚' },
   { name: 'Svelte Query', icon: '🔥' },
   { name: 'Solid Query', icon: '💠' },
+  { name: 'SolidStart', icon: '🏁' },
   { name: 'Angular', icon: '🅰️' },
   { name: 'SWR', icon: '🔄' },
   { name: 'Axios', icon: '📡' },
