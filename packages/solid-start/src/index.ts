@@ -240,7 +240,10 @@ const generateImplementation = (
   const hasExplodedDateParams =
     context.output.override.useDates &&
     explodeParameters.some(
-      (p) => isDereferenced(p) && p.schema?.format === 'date-time',
+      (p) =>
+        isDereferenced(p) &&
+        (p.schema?.format === 'date-time' ||
+          p.schema?.items?.format === 'date-time'),
     );
 
   const isExplodeParametersOnly =
@@ -249,7 +252,10 @@ const generateImplementation = (
   const hasDateParams =
     context.output.override.useDates &&
     parameters.some(
-      (p) => isDereferenced(p) && p.schema?.format === 'date-time',
+      (p) =>
+        isDereferenced(p) &&
+        (p.schema?.format === 'date-time' ||
+          p.schema?.items?.format === 'date-time'),
     );
 
   const explodeArrayImplementation =
