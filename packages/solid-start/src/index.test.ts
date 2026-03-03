@@ -93,6 +93,28 @@ function makeOptions(
   };
 }
 
+// Context factory supporting both path-item-level and operation-level parameters
+function makeContextWithPathParams(
+  pathParameters: unknown[] = [],
+  operationParameters: unknown[] = [],
+  useDates = false,
+): ContextSpec {
+  return {
+    target: '',
+    workspace: '',
+    spec: {
+      paths: {
+        '/pets': {
+          parameters: pathParameters,
+          get: { parameters: operationParameters },
+        },
+      },
+    },
+    // @ts-expect-error -- partial mock
+    output: { override: { useDates } },
+  };
+}
+
 // Minimal truthy queryParams object (schema content not used in the code path under test)
 const STUB_QUERY_PARAMS: GeneratorVerbOptions['queryParams'] = {
   // @ts-expect-error -- partial mock
@@ -245,27 +267,6 @@ describe('generateSolidStart — query string serialization', () => {
 });
 
 describe('generateSolidStart — path-level parameter merging', () => {
-  function makeContextWithPathParams(
-    pathParameters: unknown[] = [],
-    operationParameters: unknown[] = [],
-    useDates = false,
-  ): ContextSpec {
-    return {
-      target: '',
-      workspace: '',
-      spec: {
-        paths: {
-          '/pets': {
-            parameters: pathParameters,
-            get: { parameters: operationParameters },
-          },
-        },
-      },
-      // @ts-expect-error -- partial mock
-      output: { override: { useDates } },
-    };
-  }
-
   it('picks up an exploded array param defined at the path-item level', () => {
     const context = makeContextWithPathParams([
       {
@@ -341,7 +342,7 @@ describe('generateSolidStart — path-level parameter merging', () => {
     expect(implementation).toContain('"country"');
     expect(implementation).toContain('"status"');
     // 'country' must not appear twice in the explodeParameters array literal
-    expect((implementation.match(/"country"/g) ?? []).length).toBe(1);
+    expect(String(implementation).split('"country"').length - 1).toBe(1);
   });
 });
 
@@ -352,7 +353,10 @@ describe('generateSolidStart — date-time format on array items (useDates)', ()
         name: 'dates',
         in: 'query',
         explode: true,
-        schema: { type: 'array', items: { type: 'string', format: 'date-time' } },
+        schema: {
+          type: 'array',
+          items: { type: 'string', format: 'date-time' },
+        },
       },
     ];
     const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
@@ -370,7 +374,10 @@ describe('generateSolidStart — date-time format on array items (useDates)', ()
         name: 'dates',
         in: 'query',
         explode: true,
-        schema: { type: 'array', items: { type: 'string', format: 'date-time' } },
+        schema: {
+          type: 'array',
+          items: { type: 'string', format: 'date-time' },
+        },
       },
     ];
     const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
@@ -384,14 +391,20 @@ describe('generateSolidStart — date-time format on array items (useDates)', ()
 
   it('generates toISOString() for a scalar date-time param (existing behaviour unchanged)', () => {
     const parameters = [
-      { name: 'since', in: 'query', schema: { type: 'string', format: 'date-time' } },
+      {
+        name: 'since',
+        in: 'query',
+        schema: { type: 'string', format: 'date-time' },
+      },
     ];
     const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
     const options = makeOptions(makeContext(parameters, true));
 
     const { implementation } = generateSolidStart(verbOptions, options);
 
-    expect(implementation).toContain('value instanceof Date ? value.toISOString()');
+    expect(implementation).toContain(
+      'value instanceof Date ? value.toISOString()',
+    );
     expect(implementation).not.toContain('const explodeParameters');
   });
 });

@@ -243,7 +243,8 @@ const generateImplementation = (
       (p) =>
         isDereferenced(p) &&
         (p.schema?.format === 'date-time' ||
-          p.schema?.items?.format === 'date-time'),
+          (p.schema?.items as { format?: string } | undefined)?.format ===
+            'date-time'),
     );
 
   const isExplodeParametersOnly =
@@ -255,7 +256,8 @@ const generateImplementation = (
       (p) =>
         isDereferenced(p) &&
         (p.schema?.format === 'date-time' ||
-          p.schema?.items?.format === 'date-time'),
+          (p.schema?.items as { format?: string } | undefined)?.format ===
+            'date-time'),
     );
 
   const explodeArrayImplementation =
