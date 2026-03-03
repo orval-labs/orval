@@ -256,11 +256,13 @@ const generateImplementation = (
         parameterObject.schema,
         context,
       );
-      return (
-        schemaObject.format === 'date-time' ||
-        (schemaObject.items as { format?: string } | undefined)?.format ===
-          'date-time'
-      );
+      const itemsFormat = schemaObject.items
+        ? resolveRef<OpenApiSchemaObject>(
+            schemaObject.items as OpenApiSchemaObject | OpenApiReferenceObject,
+            context,
+          ).schema.format
+        : undefined;
+      return schemaObject.format === 'date-time' || itemsFormat === 'date-time';
     });
 
   const isExplodeParametersOnly =
@@ -280,11 +282,13 @@ const generateImplementation = (
         parameterObject.schema,
         context,
       );
-      return (
-        schemaObject.format === 'date-time' ||
-        (schemaObject.items as { format?: string } | undefined)?.format ===
-          'date-time'
-      );
+      const itemsFormat = schemaObject.items
+        ? resolveRef<OpenApiSchemaObject>(
+            schemaObject.items as OpenApiSchemaObject | OpenApiReferenceObject,
+            context,
+          ).schema.format
+        : undefined;
+      return schemaObject.format === 'date-time' || itemsFormat === 'date-time';
     });
 
   const explodeArrayImplementation =
@@ -310,7 +314,12 @@ const generateImplementation = (
 
     Object.entries(params || {}).forEach(([key, value]) => {
       ${explodeArrayImplementation}
-      ${isExplodeParametersOnly ? '' : normalParamsImplementation}
+      ${
+        // When every parameter is declared as an exploded array, scalar values
+        // are a type error at the call site (orval generates array-only types),
+        // so the scalar fallback is intentionally omitted for this case.
+        isExplodeParametersOnly ? '' : normalParamsImplementation
+      }
     });
 
     const queryString = normalizedParams.toString();
