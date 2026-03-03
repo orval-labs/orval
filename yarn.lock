@@ -6199,6 +6199,7 @@ __metadata:
   resolution: "@orval/solid-start@workspace:packages/solid-start"
   dependencies:
     "@orval/core": "workspace:*"
+    "@scalar/openapi-types": "catalog:"
     eslint: "catalog:"
     rimraf: "catalog:"
     tsdown: "catalog:"
