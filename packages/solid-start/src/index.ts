@@ -170,8 +170,20 @@ const generateImplementation = (
   const propsImplementation = toObjectString(props, 'implementation');
 
   // Detect explode parameters from the OpenAPI spec
-  const spec = context.spec.paths?.[pathRoute];
-  const parameters = spec?.[verb]?.parameters ?? [];
+  // Merge path-item and operation-level parameters per the OpenAPI spec:
+  // operation-level parameters override path-level ones with the same (in, name).
+  const pathItem = context.spec.paths?.[pathRoute];
+  const operation = pathItem?.[verb];
+  const mergedParameters = [
+    ...(pathItem?.parameters ?? []),
+    ...(operation?.parameters ?? []),
+  ];
+  const byKey = new Map<string, (typeof mergedParameters)[number]>();
+  for (const parameter of mergedParameters) {
+    const { schema } = resolveRef<OpenApiParameterObject>(parameter, context);
+    byKey.set(`${schema.in}:${schema.name}`, parameter);
+  }
+  const parameters = [...byKey.values()];
 
   const explodeParameters = parameters.filter((parameter) => {
     const { schema: parameterObject } = resolveRef<OpenApiParameterObject>(
