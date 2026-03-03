@@ -344,14 +344,6 @@ const generateQueryImplementation = ({
     adapter,
   });
 
-  const solidInfiniteDefaults =
-    adapter.outputClient === 'solid-query' &&
-    (type === QueryType.INFINITE || type === QueryType.SUSPENSE_INFINITE)
-      ? `initialPageParam: ${
-          queryParam ? `params?.['${queryParam}']` : 'undefined'
-        }, getNextPageParam: () => undefined,`
-      : '';
-
   const queryOptionsFnName = camel(
     queryKeyMutator || queryOptionsMutator || mutator?.isHook
       ? `use-${name}-queryOptions`
@@ -428,7 +420,7 @@ ${hookOptions}
    return  ${
      queryOptionsMutator
        ? 'customOptions'
-       : `{ queryKey, queryFn, ${solidInfiniteDefaults} ${queryOptionsImp}}`
+       : `{ queryKey, queryFn, ${queryOptionsImp}}`
    }${
      adapter.shouldCastQueryOptions?.() === false
        ? ''

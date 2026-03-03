@@ -92,11 +92,5 @@ export default defineConfig(
       '@typescript-eslint/no-unsafe-return': 'off',
     },
   },
-  {
-    files: ['packages/orval/src/utils/package-json.test.ts'],
-    rules: {
-      '@typescript-eslint/ban-ts-comment': 'off',
-    },
-  },
   eslintPluginPrettierRecommended, // also sets up eslint-config-prettier
 );
