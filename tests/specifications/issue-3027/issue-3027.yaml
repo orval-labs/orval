@@ -1,0 +1,92 @@
+openapi: 3.0.0
+info:
+  title: Issue 3027 - zod suffix ref regression
+  version: 1.0.0
+paths:
+  /portfolio:
+    get:
+      operationId: getPortfolio
+      responses:
+        '200':
+          description: Portfolio response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioResponse'
+components:
+  schemas:
+    BaseEnvelope:
+      type: object
+      required:
+        - traceId
+      properties:
+        traceId:
+          type: string
+    Position:
+      type: object
+      required:
+        - id
+        - quantity
+      properties:
+        id:
+          type: string
+        quantity:
+          type: number
+    PositionAlias:
+      type: object
+      required:
+        - alias
+      properties:
+        alias:
+          type: string
+    ComposedPosition:
+      allOf:
+        - $ref: '#/components/schemas/BaseEnvelope'
+        - type: object
+          required:
+            - position
+          properties:
+            position:
+              $ref: '#/components/schemas/Position'
+    ChoicePosition:
+      oneOf:
+        - $ref: '#/components/schemas/Position'
+        - $ref: '#/components/schemas/PositionAlias'
+    AnyChoicePosition:
+      anyOf:
+        - $ref: '#/components/schemas/Position'
+        - $ref: './issue-3027-shared.yaml#/components/schemas/ExternalPosition'
+    PortfolioResponse:
+      type: object
+      required:
+        - positions
+        - nested
+        - composed
+        - oneChoice
+        - anyChoice
+        - externalPositions
+        - holder
+      properties:
+        positions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Position'
+        nested:
+          type: object
+          required:
+            - primary
+          properties:
+            primary:
+              $ref: '#/components/schemas/Position'
+        composed:
+          $ref: '#/components/schemas/ComposedPosition'
+        oneChoice:
+          $ref: '#/components/schemas/ChoicePosition'
+        anyChoice:
+          $ref: '#/components/schemas/AnyChoicePosition'
+        externalPositions:
+          type: array
+          items:
+            $ref: './issue-3027-shared.yaml#/components/schemas/ExternalPosition'
+        holder:
+          $ref: './issue-3027-shared.yaml#/components/schemas/ExternalHolder'
