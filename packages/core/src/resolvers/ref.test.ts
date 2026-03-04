@@ -141,6 +141,69 @@ describe('resolveRef', () => {
     });
     expect(resolved.schema.examples).toEqual([{ id: 'p_1' }]);
   });
+
+  it('applies schema suffix to import name when suffix is configured', () => {
+    const context = createContext({
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          Position: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+            },
+          },
+        },
+      },
+    });
+    // Override suffix
+    (
+      context.output.override.components as { schemas: { suffix: string } }
+    ).schemas.suffix = 'Schema';
+
+    const result = resolveRef(
+      { $ref: '#/components/schemas/Position' },
+      context,
+    );
+
+    expect(result.imports[0]).toEqual({
+      name: 'PositionSchema',
+      schemaName: 'Position',
+    });
+  });
+
+  it('returns a non-ref schema as-is when it is already dereferenced', () => {
+    const context = createContext({
+      openapi: '3.1.0',
+      components: { schemas: {} },
+    });
+
+    // A plain schema object (no $ref) is treated as already dereferenced
+    const result = resolveRef(
+      { type: 'object' } as unknown as OpenApiReferenceObject,
+      context,
+    );
+
+    expect(result.schema).toMatchObject({ type: 'object' });
+    expect(result.imports).toEqual([]);
+  });
+
+  it('resolves a nonexistent local ref path to the root spec (fallback behavior)', () => {
+    const context = createContext({
+      openapi: '3.1.0',
+      components: { schemas: {} },
+    });
+
+    // When a ref path doesn't resolve to a nested schema,
+    // getSchema falls back to context.spec — the result wraps the full spec
+    const result = resolveRef(
+      { $ref: '#/components/schemas/NonExistent' },
+      context,
+    );
+
+    // It resolves (doesn't throw) but the schema is the root spec document
+    expect(result.schema).toHaveProperty('openapi', '3.1.0');
+  });
 });
 
 describe('resolveExampleRefs', () => {

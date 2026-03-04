@@ -5216,6 +5216,344 @@ describe('zod split mode regressions', () => {
     expect(parsed.zod).not.toContain('zod.unknown()');
   });
 
+  it('handles circular $ref with suffix by breaking the cycle', () => {
+    const circularContext = {
+      output: {
+        override: {
+          useDates: false,
+          components: {
+            schemas: {
+              suffix: 'Schema',
+            },
+          },
+        },
+      },
+      spec: {
+        components: {
+          schemas: {
+            TreeNode: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                children: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/TreeNode',
+                  },
+                },
+              },
+              required: ['name'],
+            },
+          },
+        },
+      },
+    } as ContextSpec;
+
+    const resolvedSchema = dereference(
+      {
+        type: 'object',
+        properties: {
+          root: {
+            $ref: '#/components/schemas/TreeNode',
+          },
+        },
+        required: ['root'],
+      },
+      circularContext,
+    );
+
+    const definition = generateZodValidationSchemaDefinition(
+      resolvedSchema,
+      circularContext,
+      'treeEnvelope',
+      false,
+      false,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      definition,
+      circularContext,
+      false,
+      false,
+      false,
+    );
+
+    // The circular ref should NOT cause infinite recursion or stack overflow.
+    // It should inline the first level and break the cycle.
+    expect(parsed.zod).toContain('"root": zod.object(');
+    expect(parsed.zod).toContain('"name": zod.string()');
+  });
+
+  it('resolves additionalProperties with $ref and schema suffix', () => {
+    const suffixContext = {
+      output: {
+        override: {
+          useDates: false,
+          components: {
+            schemas: {
+              suffix: 'Schema',
+            },
+          },
+        },
+      },
+      spec: {
+        components: {
+          schemas: {
+            Position: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
+              required: ['id'],
+            },
+          },
+        },
+      },
+    } as ContextSpec;
+
+    const resolvedSchema = dereference(
+      {
+        type: 'object',
+        additionalProperties: {
+          $ref: '#/components/schemas/Position',
+        },
+      },
+      suffixContext,
+    );
+
+    const definition = generateZodValidationSchemaDefinition(
+      resolvedSchema,
+      suffixContext,
+      'positionMap',
+      false,
+      false,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      definition,
+      suffixContext,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('zod.record(zod.string()');
+    expect(parsed.zod).not.toContain('zod.unknown()');
+  });
+
+  it('resolves nullable $ref property with schema suffix (OAS 3.0)', () => {
+    const suffixContext = {
+      output: {
+        override: {
+          useDates: false,
+          components: {
+            schemas: {
+              suffix: 'Schema',
+            },
+          },
+        },
+      },
+      spec: {
+        components: {
+          schemas: {
+            Position: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
+              required: ['id'],
+            },
+          },
+        },
+      },
+    } as ContextSpec;
+
+    const resolvedSchema = dereference(
+      {
+        type: 'object',
+        properties: {
+          optionalPosition: {
+            $ref: '#/components/schemas/Position',
+            nullable: true,
+          } as unknown as OpenApiSchemaObject,
+        },
+      },
+      suffixContext,
+    );
+
+    const definition = generateZodValidationSchemaDefinition(
+      resolvedSchema,
+      suffixContext,
+      'nullableRefEnvelope',
+      false,
+      false,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      definition,
+      suffixContext,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('"optionalPosition": zod.object(');
+    expect(parsed.zod).toMatch(/\.null(able|ish)\(\)/);
+    expect(parsed.zod).not.toContain('zod.unknown()');
+  });
+
+  it('resolves deep nested allOf chains with schema suffix', () => {
+    const suffixContext = {
+      output: {
+        override: {
+          useDates: false,
+          components: {
+            schemas: {
+              suffix: 'Schema',
+            },
+          },
+        },
+      },
+      spec: {
+        components: {
+          schemas: {
+            Base: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
+              required: ['id'],
+            },
+            Extended: {
+              allOf: [
+                { $ref: '#/components/schemas/Base' },
+                {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string' },
+                  },
+                  required: ['name'],
+                },
+              ],
+            },
+            DoubleExtended: {
+              allOf: [
+                { $ref: '#/components/schemas/Extended' },
+                {
+                  type: 'object',
+                  properties: {
+                    extra: { type: 'boolean' },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    } as ContextSpec;
+
+    const resolvedSchema = dereference(
+      {
+        type: 'object',
+        properties: {
+          deep: {
+            $ref: '#/components/schemas/DoubleExtended',
+          },
+        },
+        required: ['deep'],
+      },
+      suffixContext,
+    );
+
+    const definition = generateZodValidationSchemaDefinition(
+      resolvedSchema,
+      suffixContext,
+      'deepNestedEnvelope',
+      false,
+      false,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      definition,
+      suffixContext,
+      false,
+      false,
+      false,
+    );
+
+    // Deep nested allOf with $refs should resolve properly
+    expect(parsed.zod).toContain('.and(');
+    expect(parsed.zod).toContain('"id": zod.string()');
+    expect(parsed.zod).toContain('"name": zod.string()');
+    expect(parsed.zod).not.toContain('zod.unknown()');
+  });
+
+  it('resolves refs with empty suffix (default) without regression', () => {
+    const noSuffixContext = {
+      output: {
+        override: {
+          useDates: false,
+          components: {
+            schemas: {
+              suffix: '',
+            },
+          },
+        },
+      },
+      spec: {
+        components: {
+          schemas: {
+            Position: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
+              required: ['id'],
+            },
+          },
+        },
+      },
+    } as ContextSpec;
+
+    const resolvedSchema = dereference(
+      {
+        type: 'object',
+        properties: {
+          position: {
+            $ref: '#/components/schemas/Position',
+          },
+        },
+        required: ['position'],
+      },
+      noSuffixContext,
+    );
+
+    const definition = generateZodValidationSchemaDefinition(
+      resolvedSchema,
+      noSuffixContext,
+      'positionEnvelope',
+      false,
+      false,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      definition,
+      noSuffixContext,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('"position": zod.object(');
+    expect(parsed.zod).toContain('"id": zod.string()');
+    expect(parsed.zod).not.toContain('zod.unknown()');
+  });
+
   it('uses passthrough object for generic object schemas in zod v3', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',

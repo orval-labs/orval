@@ -19,8 +19,19 @@ type WithOptionalExamples = {
   examples?: Examples;
 };
 
+const REF_NOT_FOUND_PREFIX = 'Oops... 🍻. Ref not found';
+
 /* eslint-disable @typescript-eslint/no-unnecessary-type-parameters -- TSchema constrains return type for callers (e.g. resolveRef<OpenApiExampleObject>) */
 
+/**
+ * Recursively resolves a `$ref` in an OpenAPI document, following
+ * nested schema refs and collecting imports along the way.
+ *
+ * Handles OpenAPI 3.0 `nullable` and 3.1 type-array hints on direct refs.
+ *
+ * @see https://spec.openapis.org/oas/v3.0.3#reference-object
+ * @see https://spec.openapis.org/oas/v3.1.0#reference-object
+ */
 export function resolveRef<TSchema extends object = OpenApiComponentsObject>(
   schema: OpenApiComponentsObject | OpenApiReferenceObject,
   context: ContextSpec,
@@ -78,7 +89,7 @@ export function resolveRef<TSchema extends object = OpenApiComponentsObject>(
   }
 
   if (!refPath) {
-    throw new Error('Oops... 🍻. Ref not found: missing $ref');
+    throw new Error(`${REF_NOT_FOUND_PREFIX}: missing $ref`);
   }
 
   const {
@@ -87,7 +98,7 @@ export function resolveRef<TSchema extends object = OpenApiComponentsObject>(
   } = getSchema(schema, context);
 
   if (!currentSchema) {
-    throw new Error(`Oops... 🍻. Ref not found: ${refPath}`);
+    throw new Error(`${REF_NOT_FOUND_PREFIX}: ${refPath}`);
   }
 
   return resolveRef<TSchema>(currentSchema, { ...context }, [
@@ -96,6 +107,15 @@ export function resolveRef<TSchema extends object = OpenApiComponentsObject>(
   ]);
 }
 
+/**
+ * Looks up a schema by its `$ref` path in the spec, applying suffix resolution.
+ *
+ * Preserves OpenAPI 3.0 `nullable` and 3.1 type-array (`["object", "null"]`)
+ * hints from the referencing schema onto the resolved target.
+ *
+ * @see https://spec.openapis.org/oas/v3.0.3#fixed-fields-18 (nullable)
+ * @see https://spec.openapis.org/oas/v3.1.0#schema-object (type as array)
+ */
 function getSchema<TSchema extends object = OpenApiComponentsObject>(
   schema: OpenApiReferenceObject,
   context: ContextSpec,
@@ -104,7 +124,7 @@ function getSchema<TSchema extends object = OpenApiComponentsObject>(
   currentSchema: TSchema | undefined;
 } {
   if (!schema.$ref) {
-    throw new Error('Oops... 🍻. Ref not found: missing $ref');
+    throw new Error(`${REF_NOT_FOUND_PREFIX}: missing $ref`);
   }
 
   const refInfo = getRefInfo(schema.$ref, context);
@@ -162,6 +182,7 @@ function getSchema<TSchema extends object = OpenApiComponentsObject>(
 
 /* eslint-enable @typescript-eslint/no-unnecessary-type-parameters */
 
+/** Recursively resolves `$ref` entries in an examples array or record. */
 export function resolveExampleRefs(
   examples: Examples,
   context: ContextSpec,
@@ -184,7 +205,7 @@ export function resolveExampleRefs(
           // Bridge assertion: ExampleObject.value is typed as `any`
           result[key] = isReference(example)
             ? (resolveRef<OpenApiExampleObject>(example, context).schema
-                .value as unknown as Example)
+                .value as Example)
             : example;
         }
         return result;

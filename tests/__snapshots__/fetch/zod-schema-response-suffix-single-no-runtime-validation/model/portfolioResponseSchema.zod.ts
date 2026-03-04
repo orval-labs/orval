@@ -57,6 +57,27 @@ export const PortfolioResponseSchema = zod.object({
   holder: zod.object({
     holderId: zod.string(),
   }),
+  positionMap: zod.record(
+    zod.string(),
+    zod.object({
+      id: zod.string(),
+      quantity: zod.number(),
+    }),
+  ),
+  tree: zod.object({
+    name: zod.string(),
+    children: zod.array(zod.unknown()).optional(),
+  }),
+  nullablePosition: zod
+    .object({
+      position: zod
+        .object({
+          id: zod.string(),
+          quantity: zod.number(),
+        })
+        .nullish(),
+    })
+    .optional(),
 });
 
 export type PortfolioResponseSchema = zod.input<typeof PortfolioResponseSchema>;

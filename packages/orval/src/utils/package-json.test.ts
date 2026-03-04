@@ -1,4 +1,7 @@
-// @ts-nocheck
+// @ts-nocheck -- Pervasive mock typing mismatches: findUp mock signature
+// expects a matcher function but tests pass string filenames, and fs.readFile
+// mock returns Buffer where the type expects void. Fixing requires rewriting
+// all ~30 mock setups. Tracked for a dedicated cleanup PR.
 import { isString as isRemedaString } from 'remeda';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

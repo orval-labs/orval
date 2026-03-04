@@ -56,6 +56,28 @@ components:
       anyOf:
         - $ref: '#/components/schemas/Position'
         - $ref: './issue-3027-shared.yaml#/components/schemas/ExternalPosition'
+    PositionMap:
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/Position'
+    TreeNode:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/TreeNode'
+    NullablePositionWrapper:
+      type: object
+      properties:
+        position:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Position'
     PortfolioResponse:
       type: object
       required:
@@ -66,6 +88,8 @@ components:
         - anyChoice
         - externalPositions
         - holder
+        - positionMap
+        - tree
       properties:
         positions:
           type: array
@@ -90,3 +114,9 @@ components:
             $ref: './issue-3027-shared.yaml#/components/schemas/ExternalPosition'
         holder:
           $ref: './issue-3027-shared.yaml#/components/schemas/ExternalHolder'
+        positionMap:
+          $ref: '#/components/schemas/PositionMap'
+        tree:
+          $ref: '#/components/schemas/TreeNode'
+        nullablePosition:
+          $ref: '#/components/schemas/NullablePositionWrapper'
