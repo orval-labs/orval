@@ -13,7 +13,13 @@ import type {
 import { isObject, isReference } from '../utils';
 
 type Example = OpenApiExampleObject | OpenApiReferenceObject;
-type Examples = Example[] | Record<string, Example> | undefined;
+type ResolvedExample = unknown;
+type Examples =
+  | Example[]
+  | Record<string, Example>
+  | ResolvedExample[]
+  | Record<string, ResolvedExample>
+  | undefined;
 
 type WithOptionalExamples = {
   examples?: Examples;
@@ -186,27 +192,28 @@ function getSchema<TSchema extends object = OpenApiComponentsObject>(
 export function resolveExampleRefs(
   examples: Examples,
   context: ContextSpec,
-): Examples {
+): ResolvedExample[] | Record<string, ResolvedExample> | undefined {
   if (!examples) {
     return undefined;
   }
   return Array.isArray(examples)
     ? examples.map((example) => {
-        if (isReference(example)) {
+        if (isObject(example) && isReference(example)) {
           const { schema } = resolveRef<OpenApiExampleObject>(example, context);
           // Bridge assertion: ExampleObject.value is typed as `any`
-          return schema.value as Example;
+          return schema.value as ResolvedExample;
         }
-        return example;
+        return example as ResolvedExample;
       })
     : (() => {
-        const result: Record<string, Example> = {};
+        const result: Record<string, ResolvedExample> = {};
         for (const [key, example] of Object.entries(examples)) {
           // Bridge assertion: ExampleObject.value is typed as `any`
-          result[key] = isReference(example)
-            ? (resolveRef<OpenApiExampleObject>(example, context).schema
-                .value as Example)
-            : example;
+          result[key] =
+            isObject(example) && isReference(example)
+              ? (resolveRef<OpenApiExampleObject>(example, context).schema
+                  .value as ResolvedExample)
+              : (example as ResolvedExample);
         }
         return result;
       })();
