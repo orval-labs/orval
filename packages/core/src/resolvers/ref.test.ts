@@ -188,20 +188,23 @@ describe('resolveRef', () => {
     expect(result.imports).toEqual([]);
   });
 
-  it('resolves a nonexistent local ref path to the root spec (fallback behavior)', () => {
+  it('documents current behavior for nonexistent local refs (KNOWN ISSUE)', () => {
     const context = createContext({
       openapi: '3.1.0',
       components: { schemas: {} },
     });
 
-    // When a ref path doesn't resolve to a nested schema,
-    // getSchema falls back to context.spec — the result wraps the full spec
+    // KNOWN ISSUE: When a ref path does not resolve to a nested schema,
+    // getSchema currently falls back to context.spec and returns the full
+    // spec document instead of throwing (see schemaByRefPaths ??= context.spec
+    // in ref.ts). This test documents current behavior and should be updated
+    // once unresolved refs are handled strictly.
     const result = resolveRef(
       { $ref: '#/components/schemas/NonExistent' },
       context,
     );
 
-    // It resolves (doesn't throw) but the schema is the root spec document
+    // Current behavior: resolves (doesn't throw) and returns root spec.
     expect(result.schema).toHaveProperty('openapi', '3.1.0');
   });
 });
