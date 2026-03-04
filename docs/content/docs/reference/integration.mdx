@@ -63,9 +63,8 @@ const globalOptions: GlobalOptions = {
   // clean: ['./src/api', './types'],   // Clean specific directories (string[])
   output: './src/generated', // Override output directory
 
-  // Code formatting
-  prettier: true, // Format with Prettier
-  biome: true, // Format with Biome
+  // Code formatting (only one formatter can be used at a time)
+  formatter: 'prettier', // 'prettier' | 'biome' | 'oxfmt' | 'none'
 
   // HTTP client configuration
   client: 'fetch', // Override HTTP client

@@ -44,6 +44,7 @@ describe('generateMSW', () => {
         httpClient: 'fetch',
         clean: false,
         docs: false,
+        formatter: undefined,
         prettier: false,
         biome: false,
         headers: false,

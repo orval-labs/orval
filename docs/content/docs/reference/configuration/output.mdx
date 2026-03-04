@@ -374,19 +374,42 @@ export default defineConfig({
 
 Clean generated files before regenerating.
 
-## prettier
+## formatter
+
+**Type:** `'prettier' | 'biome' | 'oxfmt' | 'none'`
+
+Format generated files with the specified formatter. Only one formatter can be used at a time. Use `'none'` to explicitly disable formatting (useful to override a global formatter).
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      formatter: 'prettier',
+    },
+  },
+});
+```
+
+### prettier (deprecated)
 
 **Type:** `Boolean`
 **Default:** `false`
 
-Run Prettier on generated files.
+Deprecated. Use `formatter: 'prettier'` instead.
 
-## biome
+### biome (deprecated)
 
 **Type:** `Boolean`
 **Default:** `false`
 
-Run Biome lint and format on generated files.
+Deprecated. Use `formatter: 'biome'` instead.
+
+### oxfmt (deprecated)
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Deprecated. Use `formatter: 'oxfmt'` instead.
 
 ## headers
 
