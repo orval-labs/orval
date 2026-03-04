@@ -14,12 +14,12 @@ import {
   getFormDataFieldFileType,
   getNumberWord,
   getPropertySafe,
-  getRefInfo,
   isBoolean,
   isNumber,
   isObject,
   isString,
   jsStringEscape,
+  logVerbose,
   type OpenApiParameterObject,
   type OpenApiReferenceObject,
   type OpenApiRequestBodyObject,
@@ -1079,6 +1079,36 @@ const dereferenceScalar = (value: unknown, context: ContextSpec): unknown => {
   }
 };
 
+/**
+ * Attempts to resolve a `$ref` to its target schema. Returns `undefined`
+ * instead of throwing when the ref cannot be found (e.g. external refs
+ * not yet bundled). Logs a verbose warning on failure to aid debugging.
+ */
+function tryResolveRefSchema(
+  $ref: string,
+  context: ContextSpec,
+): OpenApiSchemaObject | undefined {
+  try {
+    return resolveRef<OpenApiSchemaObject>(
+      { $ref } as OpenApiReferenceObject,
+      context,
+    ).schema;
+  } catch (error) {
+    logVerbose(
+      `[orval/zod] Failed to resolve $ref "${$ref}":`,
+      error instanceof Error ? error.message : error,
+    );
+    return;
+  }
+}
+
+/**
+ * Recursively inlines all `$ref` references in an OpenAPI schema tree,
+ * producing a fully-resolved schema suitable for Zod code generation.
+ *
+ * Tracks visited `$ref` paths via `context.parents` to break circular
+ * references (returning `{}` for cycles).
+ */
 export const dereference = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
@@ -1098,9 +1128,7 @@ export const dereference = (
   const resolvedSchema: OpenApiSchemaObject | undefined =
     '$ref' in schema
       ? (() => {
-          const referencedSchema = context.spec.components?.schemas?.[
-            getRefInfo(schema.$ref, context).name
-          ] as OpenApiSchemaObject | undefined;
+          const referencedSchema = tryResolveRefSchema(schema.$ref, context);
 
           if (!referencedSchema || !isObject(referencedSchema)) {
             return;

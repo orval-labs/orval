@@ -12,6 +12,7 @@ export default defineConfig(
   globalIgnores([
     'docs',
     'tests/generated',
+    'tests/**/__snapshots__/**',
     'samples',
     '.husky',
     'packages/hono/src/zValidator.ts',
@@ -89,6 +90,12 @@ export default defineConfig(
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
+    },
+  },
+  {
+    files: ['packages/orval/src/utils/package-json.test.ts'],
+    rules: {
+      '@typescript-eslint/ban-ts-comment': 'off',
     },
   },
   eslintPluginPrettierRecommended, // also sets up eslint-config-prettier
