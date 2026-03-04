@@ -44,6 +44,7 @@ import {
   type QueryOptions,
   RefComponentSuffix,
   type SchemaOptions,
+  SupportedFormatter,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
 
@@ -53,6 +54,7 @@ import { loadTsconfig } from './tsconfig';
 
 const INPUT_TARGET_FETCH_TIMEOUT_MS = 10_000;
 
+const logger = createLogger();
 /**
  * Type helper to make it easier to use orval.config.ts
  * accepts a direct {@link ConfigExternal} object.
@@ -148,7 +150,9 @@ export async function normalizeOptions(
     workspace,
   );
 
-  const { clean, prettier, client, httpClient, mode, biome } = globalOptions;
+  const { clean, client, httpClient, mode } = globalOptions;
+
+  const formatter = resolveFormatter(outputOptions, globalOptions);
 
   const tsconfig = await loadTsconfig(
     outputOptions.tsconfig ?? globalOptions.tsconfig,
@@ -238,8 +242,9 @@ export async function normalizeOptions(
       mock,
       clean: outputOptions.clean ?? clean ?? false,
       docs: outputOptions.docs ?? false,
-      prettier: outputOptions.prettier ?? prettier ?? false,
-      biome: outputOptions.biome ?? biome ?? false,
+      formatter,
+      prettier: formatter === SupportedFormatter.PRETTIER,
+      biome: formatter === SupportedFormatter.BIOME,
       tsconfig,
       packageJson,
       headers: outputOptions.headers ?? false,
@@ -742,6 +747,91 @@ function normalizeOperationsAndTags(
       },
     ),
   );
+}
+
+export function formatterFromFlags(opts: {
+  prettier?: boolean;
+  biome?: boolean;
+  oxfmt?: boolean;
+}): SupportedFormatter | undefined {
+  if (opts.prettier) return SupportedFormatter.PRETTIER;
+  if (opts.biome) return SupportedFormatter.BIOME;
+  if (opts.oxfmt) return SupportedFormatter.OXFMT;
+  return undefined;
+}
+
+export function resolveFormatter(
+  outputOptions: {
+    formatter?: SupportedFormatter;
+    prettier?: boolean;
+    biome?: boolean;
+    oxfmt?: boolean;
+  },
+  globalOptions: {
+    formatter?: SupportedFormatter;
+    prettier?: boolean;
+    biome?: boolean;
+    oxfmt?: boolean;
+  },
+): SupportedFormatter | undefined {
+  assertFormatterConsistency(outputOptions, 'output');
+  assertFormatterConsistency(globalOptions, 'global');
+
+  const outputLegacyFormatter = formatterFromFlags(outputOptions);
+  if (outputLegacyFormatter) {
+    logger.warnOnce(
+      `output.${outputLegacyFormatter} is deprecated. Use output.formatter: '${outputLegacyFormatter}' instead.`,
+    );
+  }
+
+  const globalLegacyFormatter = formatterFromFlags(globalOptions);
+  if (globalLegacyFormatter) {
+    logger.warnOnce(
+      `${globalLegacyFormatter} is deprecated. Use formatter: '${globalLegacyFormatter}' instead.`,
+    );
+  }
+
+  const resolved =
+    outputOptions.formatter ??
+    outputLegacyFormatter ??
+    globalOptions.formatter ??
+    globalLegacyFormatter;
+
+  return resolved === SupportedFormatter.NONE ? undefined : resolved;
+}
+
+export function assertFormatterConsistency(
+  opts: {
+    formatter?: SupportedFormatter;
+    prettier?: boolean;
+    biome?: boolean;
+    oxfmt?: boolean;
+  },
+  scope: 'output' | 'global',
+): void {
+  const enabledFlags = [
+    opts.prettier ? SupportedFormatter.PRETTIER : undefined,
+    opts.biome ? SupportedFormatter.BIOME : undefined,
+    opts.oxfmt ? SupportedFormatter.OXFMT : undefined,
+  ].filter(Boolean) as SupportedFormatter[];
+
+  if (enabledFlags.length > 1) {
+    throw new Error(
+      styleText(
+        'red',
+        `${scope} formatter options are mutually exclusive: ${enabledFlags.join(', ')}`,
+      ),
+    );
+  }
+
+  if (opts.formatter && enabledFlags.length > 0) {
+    throw new Error(
+      styleText(
+        'red',
+        `${scope} formatter options are mutually exclusive: formatter and ${enabledFlags[0]}`,
+      ),
+    );
+  }
 }
 
 function normalizeOutputMode(mode?: OutputMode): OutputMode {

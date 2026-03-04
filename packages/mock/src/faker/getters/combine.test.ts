@@ -28,6 +28,7 @@ function createMockContext(): ContextSpec {
       httpClient: OutputHttpClient.FETCH,
       clean: false,
       docs: false,
+      formatter: undefined,
       prettier: false,
       biome: false,
       headers: false,

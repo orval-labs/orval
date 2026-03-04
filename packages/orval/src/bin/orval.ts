@@ -16,7 +16,7 @@ import {
 import pkg from '../../package.json';
 import { generateSpec } from '../generate-spec';
 import { findConfigFile, loadConfigFile } from '../utils/config';
-import { normalizeOptions } from '../utils/options';
+import { formatterFromFlags, normalizeOptions } from '../utils/options';
 import { startWatcher } from '../utils/watcher';
 
 const orvalMessage = startMessage({
@@ -72,11 +72,29 @@ cli
   )
   .option('--mock', 'activate the mock')
   .option('--clean [paths...]', 'Clean output directory')
-  .option('--prettier', 'Prettier generated files')
-  .option('--biome', 'biome generated files')
+  .addOption(
+    new Option('--prettier', 'Format generated files with Prettier').conflicts([
+      'biome',
+      'oxfmt',
+    ]),
+  )
+  .addOption(
+    new Option('--biome', 'Format generated files with Biome').conflicts([
+      'prettier',
+      'oxfmt',
+    ]),
+  )
+  .addOption(
+    new Option('--oxfmt', 'Format generated files with oxfmt').conflicts([
+      'prettier',
+      'biome',
+    ]),
+  )
   .option('--tsconfig <path>', 'path to your tsconfig file')
   .option('--verbose', 'Enable verbose logging')
   .action(async (options) => {
+    const formatter = formatterFromFlags(options);
+
     if (options.verbose) {
       setVerbose(true);
     }
@@ -89,8 +107,7 @@ cli
         output: {
           target: options.output,
           clean: options.clean,
-          prettier: options.prettier,
-          biome: options.biome,
+          formatter,
           mock: options.mock,
           client: options.client,
           mode: options.mode,
@@ -146,11 +163,11 @@ cli
 
       let hasErrors = false;
       for (const [projectName, config] of configs) {
-        const normalizedOptions = await normalizeOptions(
-          config,
-          workspace,
-          options,
-        );
+        const { prettier, biome, oxfmt, ...restOptions } = options;
+        const normalizedOptions = await normalizeOptions(config, workspace, {
+          ...restOptions,
+          formatter,
+        });
 
         if (options.watch === undefined) {
           try {

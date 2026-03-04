@@ -2,6 +2,16 @@ import type { allLocales } from '@faker-js/faker';
 import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import type { TypeDocOptions } from 'typedoc';
 
+export const SupportedFormatter = {
+  NONE: 'none',
+  PRETTIER: 'prettier',
+  BIOME: 'biome',
+  OXFMT: 'oxfmt',
+} as const;
+
+export type SupportedFormatter =
+  (typeof SupportedFormatter)[keyof typeof SupportedFormatter];
+
 export interface Options {
   output?: string | OutputOptions;
   input?: string | string[] | InputOptions;
@@ -38,7 +48,10 @@ export interface NormalizedOutputOptions {
   httpClient: OutputHttpClient;
   clean: boolean | string[];
   docs: boolean | OutputDocsOptions;
+  formatter?: SupportedFormatter;
+  /** @deprecated Read `formatter` instead. */
   prettier: boolean;
+  /** @deprecated Read `formatter` instead. */
   biome: boolean;
   tsconfig?: Tsconfig;
   packageJson?: PackageJson;
@@ -266,8 +279,13 @@ export interface OutputOptions {
   httpClient?: OutputHttpClient;
   clean?: boolean | string[];
   docs?: boolean | OutputDocsOptions;
+  formatter?: SupportedFormatter;
+  /** @deprecated Use `formatter: 'prettier'` instead */
   prettier?: boolean;
+  /** @deprecated Use `formatter: 'biome'` instead */
   biome?: boolean;
+  /** @deprecated Use `formatter: 'oxfmt'` instead */
+  oxfmt?: boolean;
   tsconfig?: string | Tsconfig;
   packageJson?: string;
   headers?: boolean;
@@ -878,8 +896,13 @@ export interface GlobalOptions {
   watch?: boolean | string | string[];
   verbose?: boolean;
   clean?: boolean | string[];
+  formatter?: SupportedFormatter;
+  /** @deprecated Use `formatter: 'prettier'` instead */
   prettier?: boolean;
+  /** @deprecated Use `formatter: 'biome'` instead */
   biome?: boolean;
+  /** @deprecated Use `formatter: 'oxfmt'` instead */
+  oxfmt?: boolean;
   mock?: boolean | GlobalMockOptions;
   client?: OutputClient;
   httpClient?: OutputHttpClient;
