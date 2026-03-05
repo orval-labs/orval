@@ -7,6 +7,8 @@ export default defineConfig({
       schemas: '../generated/swr/petstore/model',
       client: 'swr',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -24,6 +26,8 @@ export default defineConfig({
       },
       mock: true,
       client: 'swr',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -36,6 +40,8 @@ export default defineConfig({
       mock: true,
       mode: 'tags-split',
       client: 'swr',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -48,6 +54,8 @@ export default defineConfig({
       mock: true,
       mode: 'split',
       client: 'swr',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -60,6 +68,8 @@ export default defineConfig({
       mock: true,
       mode: 'tags',
       client: 'swr',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -76,6 +86,8 @@ export default defineConfig({
           forceSuccessResponse: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -94,6 +106,8 @@ export default defineConfig({
           includeHttpResponseReturnType: false,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -112,6 +126,8 @@ export default defineConfig({
           name: 'customInstance',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -133,6 +149,8 @@ export default defineConfig({
           name: 'customClient',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -154,6 +172,8 @@ export default defineConfig({
           name: 'customFetch',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -167,6 +187,8 @@ export default defineConfig({
       override: {
         useNamedParameters: true,
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -195,6 +217,8 @@ export default defineConfig({
           },
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -211,6 +235,8 @@ export default defineConfig({
           useInfinite: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -222,6 +248,8 @@ export default defineConfig({
       schemas: '../generated/swr/blob-file/model',
       client: 'swr',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/blob-file.yaml',
@@ -236,6 +264,8 @@ export default defineConfig({
       schemas: '../generated/swr/nested-arrays/model',
       client: 'swr',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/arrays.yaml',
@@ -247,6 +277,8 @@ export default defineConfig({
       schemas: '../generated/swr/errors/model',
       client: 'swr',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/errors.yaml',
@@ -258,6 +290,8 @@ export default defineConfig({
       schemas: '../generated/swr/optional-request-body/model',
       client: 'swr',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/optional-request-body.yaml',
@@ -269,6 +303,8 @@ export default defineConfig({
       schemas: '../generated/swr/pattern/model',
       client: 'swr',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/pattern.yaml',
@@ -283,6 +319,8 @@ export default defineConfig({
       schemas: '../generated/swr/form-data-optional-request/model',
       client: 'swr',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/form-data-optional-request.yaml',
@@ -301,6 +339,8 @@ export default defineConfig({
         type: 'msw',
         useExamples: true,
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/examples.yaml',
@@ -320,6 +360,8 @@ export default defineConfig({
           environment: 'api.dev',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/url-paths.yaml',
@@ -334,6 +376,8 @@ export default defineConfig({
         getBaseUrlFromSpecification: false,
         baseUrl: 'https://api.example.com',
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/url-paths.yaml',
@@ -349,6 +393,8 @@ export default defineConfig({
           useInfinite: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/swr-infinite-pagination.yaml',
@@ -364,6 +410,8 @@ export default defineConfig({
           useSuspense: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -379,6 +427,8 @@ export default defineConfig({
           generateErrorTypes: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',

@@ -1,9 +1,8 @@
 {
   "name": "@orval/core",
-  "version": "8.2.0",
+  "version": "8.5.2",
   "license": "MIT",
   "type": "module",
-  "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "exports": {
     ".": "./dist/index.mjs",
@@ -22,8 +21,20 @@
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
   },
+  "dependencies": {
+    "@scalar/openapi-types": "catalog:",
+    "acorn": "^8.15.0",
+    "compare-versions": "^6.1.1",
+    "debug": "^4.4.3",
+    "esbuild": "^0.27.3",
+    "esutils": "2.0.3",
+    "fs-extra": "^11.3.2",
+    "globby": "16.1.0",
+    "remeda": "^2.33.6",
+    "typedoc": "^0.28.17"
+  },
   "devDependencies": {
-    "@faker-js/faker": "^10.2.0",
+    "@faker-js/faker": "catalog:tooling",
     "@types/debug": "^4.1.12",
     "@types/esutils": "^2.0.2",
     "@types/fs-extra": "^11.0.4",
@@ -33,18 +44,12 @@
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
-  "dependencies": {
-    "@scalar/openapi-types": "catalog:",
-    "acorn": "^8.15.0",
-    "chalk": "^5.6.2",
-    "compare-versions": "^6.1.1",
-    "debug": "^4.4.3",
-    "esbuild": "^0.27.2",
-    "esutils": "2.0.3",
-    "fs-extra": "^11.3.2",
-    "globby": "16.1.0",
-    "remeda": "^2.32.0",
-    "typedoc": "^0.28.15"
+  "peerDependencies": {
+    "@faker-js/faker": ">=10"
   },
-  "module": "./dist/index.mjs"
+  "peerDependenciesMeta": {
+    "@faker-js/faker": {
+      "optional": true
+    }
+  }
 }

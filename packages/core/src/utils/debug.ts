@@ -16,7 +16,7 @@ export function createDebugger(
   const log = debug(ns);
   const { onlyWhenFocused } = options;
   const focus = isString(onlyWhenFocused) ? onlyWhenFocused : ns;
-  return (msg: string, ...args: any[]) => {
+  return (msg: string, ...args: unknown[]) => {
     if (filter && !msg.includes(filter)) {
       return;
     }

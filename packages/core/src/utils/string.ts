@@ -22,7 +22,7 @@ import {
  * stringify({ a: 1, b: 'test' }) // returns "{ a: 1, b: 'test', }"
  */
 export function stringify(
-  data?: string | any[] | Record<string, any>,
+  data?: string | unknown[] | Record<string, unknown>,
 ): string | undefined {
   if (isNullish(data)) {
     return;
@@ -33,29 +33,30 @@ export function stringify(
   }
 
   if (isNumber(data) || isBoolean(data) || isFunction(data)) {
-    return `${data}`;
+    return String(data);
   }
 
   if (Array.isArray(data)) {
-    return `[${data.map(stringify).join(', ')}]`;
+    return `[${data.map((item: unknown) => stringify(item as string | unknown[] | Record<string, unknown>)).join(', ')}]`;
   }
 
-  return Object.entries(data).reduce((acc, [key, value], index, arr) => {
-    const strValue = stringify(value);
-    if (arr.length === 1) {
-      return `{ ${key}: ${strValue}, }`;
+  const entries = Object.entries(data);
+  let result = '';
+  for (const [index, [key, value]] of entries.entries()) {
+    const strValue = stringify(
+      value as string | unknown[] | Record<string, unknown>,
+    );
+    if (entries.length === 1) {
+      result = `{ ${key}: ${strValue}, }`;
+    } else if (!index) {
+      result = `{ ${key}: ${strValue}, `;
+    } else if (entries.length - 1 === index) {
+      result += `${key}: ${strValue}, }`;
+    } else {
+      result += `${key}: ${strValue}, `;
     }
-
-    if (!index) {
-      return `{ ${key}: ${strValue}, `;
-    }
-
-    if (arr.length - 1 === index) {
-      return acc + `${key}: ${strValue}, }`;
-    }
-
-    return acc + `${key}: ${strValue}, `;
-  }, '');
+  }
+  return result;
 }
 
 /**
@@ -101,10 +102,7 @@ export function sanitize(
   let newValue = value;
 
   if (!special) {
-    newValue = newValue.replaceAll(
-      /[!"`'#%&,:;<>=@{}~\$\(\)\*\+\/\\\?\[\]\^\|]/g,
-      '',
-    );
+    newValue = newValue.replaceAll(/[!"`'#%&,:;<>=@{}~$()*+/\\?[\]^|]/g, '');
   }
 
   if (whitespace !== true) {
@@ -159,17 +157,16 @@ export function toObjectString<T>(props: T[], path?: keyof T) {
   }
 
   const arrayOfString = isString(path)
-    ? props.map((prop) =>
-        path
-          .split('.')
-          .reduce(
-            (obj: any, key: string) =>
-              obj && (isObject(obj) || Array.isArray(obj))
-                ? obj[key]
-                : undefined,
-            prop,
-          ),
-      )
+    ? props.map((prop) => {
+        let obj: unknown = prop;
+        for (const key of path.split('.')) {
+          obj =
+            obj && (isObject(obj) || Array.isArray(obj))
+              ? (obj as Record<string, unknown>)[key]
+              : undefined;
+        }
+        return obj as string;
+      })
     : props;
 
   return arrayOfString.join(',\n    ') + ',';
@@ -198,7 +195,8 @@ const NUMBERS = {
  * getNumberWord(42) // returns "fourtwo"
  */
 export function getNumberWord(num: number) {
-  const arrayOfNumber = num.toString().split('') as (keyof typeof NUMBERS)[];
+  // eslint-disable-next-line @typescript-eslint/no-misused-spread -- digits 0-9 only, no unicode concerns
+  const arrayOfNumber = [...num.toString()] as (keyof typeof NUMBERS)[];
   return arrayOfNumber.reduce((acc, n) => acc + NUMBERS[n], '');
 }
 

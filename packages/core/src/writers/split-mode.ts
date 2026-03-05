@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import fs from 'fs-extra';
 
 import { generateModelsInline, generateMutatorImports } from '../generators';
@@ -23,7 +25,12 @@ export async function writeSplitMode({
   needSchema,
 }: WriteModeProps): Promise<string[]> {
   try {
-    const { filename, dirname, extension } = getFileInfo(output.target, {
+    const {
+      path: targetPath,
+      filename,
+      dirname,
+      extension,
+    } = getFileInfo(output.target, {
       backupFilename: conventionName(
         builder.info.title,
         output.namingConvention,
@@ -48,8 +55,8 @@ export async function writeSplitMode({
     let mockData = header;
 
     const relativeSchemasPath = output.schemas
-      ? upath.relativeSafe(
-          dirname,
+      ? upath.getRelativeImportPath(
+          targetPath,
           getFileInfo(
             isString(output.schemas) ? output.schemas : output.schemas.path,
             { extension: output.fileExtension },
@@ -100,15 +107,12 @@ export async function writeSplitMode({
 
     const schemasPath = output.schemas
       ? undefined
-      : upath.join(dirname, filename + '.schemas' + extension);
+      : path.join(dirname, filename + '.schemas' + extension);
 
     if (schemasPath && needSchema) {
       const schemasData = header + generateModelsInline(builder.schemas);
 
-      await fs.outputFile(
-        upath.join(dirname, filename + '.schemas' + extension),
-        schemasData,
-      );
+      await fs.outputFile(schemasPath, schemasData);
     }
 
     if (mutators) {
@@ -164,14 +168,11 @@ export async function writeSplitMode({
       (OutputClient.ANGULAR === output.client ? '.service' : '') +
       extension;
 
-    const implementationPath = upath.join(dirname, implementationFilename);
-    await fs.outputFile(
-      upath.join(dirname, implementationFilename),
-      implementationData,
-    );
+    const implementationPath = path.join(dirname, implementationFilename);
+    await fs.outputFile(implementationPath, implementationData);
 
     const mockPath = output.mock
-      ? upath.join(
+      ? path.join(
           dirname,
           filename +
             '.' +
@@ -191,7 +192,7 @@ export async function writeSplitMode({
     ];
   } catch (error) {
     throw new Error(
-      `Oups... 🍻. An Error occurred while splitting => ${error}`,
+      `Oups... 🍻. An Error occurred while splitting => ${String(error)}`,
     );
   }
 }

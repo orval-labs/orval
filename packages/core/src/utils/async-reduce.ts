@@ -11,8 +11,8 @@ export async function asyncReduce<IterationItem, AccValue>(
   const shouldClone =
     initValue === null ||
     (initValue === Object(initValue) && !isFunction(initValue));
-  let accumulate = shouldClone
-    ? Object.create(initValue as unknown as object)
+  let accumulate: AccValue = shouldClone
+    ? (Object.create(initValue as unknown as object) as AccValue)
     : initValue;
 
   for (const item of array) {

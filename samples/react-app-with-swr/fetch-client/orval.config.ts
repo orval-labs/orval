@@ -8,6 +8,8 @@ export default defineConfig({
       target: 'src/api/endpoints',
       schemas: 'src/api/models',
       client: 'swr',
+      clean: true,
+      prettier: true,
       mock: true,
       override: {
         fetch: {

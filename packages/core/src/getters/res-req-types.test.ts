@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type {
   ContextSpec,
+  OpenApiReferenceObject,
   OpenApiRequestBodyObject,
   OpenApiResponseObject,
   OpenApiSchemaObject,
@@ -26,6 +27,7 @@ const context: ContextSpec = {
     override: {
       formData: { arrayHandling: 'serialize', disabled: false },
       enumGenerationType: 'const',
+      namingConvention: {},
       components: {
         schemas: { suffix: '', itemSuffix: 'Item' },
         responses: { suffix: '' },
@@ -59,8 +61,11 @@ describe('getResReqTypes (formData, readOnly property)', () => {
     const types = getResReqTypes(reqBody, 'UploadBody', context);
     // Get the generated code for formData
     expect(types[0]).toBeDefined();
-    expect(isString(types[0].formData)).toBe(true);
-    const formDataCode = types[0].formData!;
+    const formData = types[0].formData;
+    if (!formData || !isString(formData)) {
+      throw new Error('Expected formData to be a defined string');
+    }
+    const formDataCode = formData;
     // Verify that the readOnly property "id" is NOT present in the generated code
     expect(formDataCode).not.toContain('id');
     // Verify that the non-readOnly fields are present
@@ -488,5 +493,35 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
       // allOf with $ref: intersection type (not union)
       expect(schema?.model).toContain('ClientUpdateDto & {');
     });
+  });
+});
+
+describe('getResReqTypes ($ref response without content)', () => {
+  it('should not crash when a $ref response has no content property', () => {
+    const ctxWithResponses: ContextSpec = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {},
+          responses: {
+            OK: {
+              description: 'OK',
+            },
+          },
+        },
+      },
+    };
+
+    const responses: [
+      string,
+      OpenApiReferenceObject | OpenApiResponseObject,
+    ][] = [['200', { $ref: '#/components/responses/OK' }]];
+
+    const result = getResReqTypes(responses, 'Response', ctxWithResponses);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].value).toBe('Ok');
+    expect(result[0].isRef).toBe(true);
+    expect(result[0].originalSchema).toBeUndefined();
   });
 });

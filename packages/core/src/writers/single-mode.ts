@@ -22,7 +22,7 @@ export async function writeSingleMode({
   needSchema,
 }: WriteModeProps): Promise<string[]> {
   try {
-    const { path, dirname } = getFileInfo(output.target, {
+    const { path } = getFileInfo(output.target, {
       backupFilename: conventionName(
         builder.info.title,
         output.namingConvention,
@@ -46,8 +46,8 @@ export async function writeSingleMode({
     let data = header;
 
     const schemasPath = output.schemas
-      ? upath.relativeSafe(
-          dirname,
+      ? upath.getRelativeImportPath(
+          path,
           getFileInfo(
             isString(output.schemas) ? output.schemas : output.schemas.path,
             { extension: output.fileExtension },

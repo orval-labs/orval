@@ -1,0 +1,21 @@
+openapi: 3.0.0
+info:
+  title: Issue 3027 shared schemas
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    ExternalPosition:
+      type: object
+      required:
+        - externalId
+      properties:
+        externalId:
+          type: string
+    ExternalHolder:
+      type: object
+      required:
+        - holderId
+      properties:
+        holderId:
+          type: string

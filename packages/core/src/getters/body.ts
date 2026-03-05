@@ -3,7 +3,6 @@ import { resolveRef } from '../resolvers';
 import type {
   ContextSpec,
   GetterBody,
-  OpenApiOperationObject,
   OpenApiReferenceObject,
   OpenApiRequestBodyObject,
   OverrideOutputContentType,
@@ -16,24 +15,6 @@ interface GetBodyOptions {
   operationName: string;
   context: ContextSpec;
   contentType?: OverrideOutputContentType;
-}
-
-/**
- * Extract all content types from a requestBody (#2812)
- */
-export function getRequestBodyContentTypes(
-  requestBody: OpenApiOperationObject['requestBody'],
-  context: ContextSpec,
-): string[] {
-  if (!requestBody) {
-    return [];
-  }
-
-  const resolvedBody = isReference(requestBody)
-    ? resolveRef<OpenApiRequestBodyObject>(requestBody, context).schema
-    : requestBody;
-
-  return resolvedBody.content ? Object.keys(resolvedBody.content) : [];
 }
 
 export function getBody({

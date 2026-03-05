@@ -1,5 +1,9 @@
 import { getScalar } from '../getters';
-import type { ContextSpec, OpenApiSchemaObject } from '../types';
+import type {
+  ContextSpec,
+  OpenApiReferenceObject,
+  OpenApiSchemaObject,
+} from '../types';
 import { jsDoc } from '../utils';
 
 interface GenerateInterfaceOptions {
@@ -27,7 +31,7 @@ export function generateInterface({
   });
   const isEmptyObject = scalar.value === '{}';
   const shouldUseTypeAlias =
-    context?.output.override?.useTypeOverInterfaces || scalar.useTypeAlias;
+    context.output.override.useTypeOverInterfaces ?? scalar.useTypeAlias;
 
   let model = '';
 
@@ -39,11 +43,14 @@ export function generateInterface({
   }
 
   if (scalar.type === 'object' && !shouldUseTypeAlias) {
+    // Bridge assertion: schema.properties is `any` due to AnyOtherAttribute
+    const properties = schema.properties as
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+      | undefined;
     if (
-      scalar.type === 'object' &&
-      schema.properties &&
-      Object.values(schema.properties).length > 0 &&
-      Object.values(schema.properties).every((item) => 'const' in item)
+      properties &&
+      Object.values(properties).length > 0 &&
+      Object.values(properties).every((item) => 'const' in item)
     ) {
       const mappedScalarValue = scalar.value
         .replaceAll(';', ',')

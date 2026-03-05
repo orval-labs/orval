@@ -105,19 +105,27 @@ function getMockScalarJsTypes(
 
   switch (type) {
     case 'number': {
+      const numArrParts: string[] = [];
+      if (mockOptionsWithoutFunc.arrayMin !== undefined)
+        numArrParts.push(`min: ${mockOptionsWithoutFunc.arrayMin}`);
+      if (mockOptionsWithoutFunc.arrayMax !== undefined)
+        numArrParts.push(`max: ${mockOptionsWithoutFunc.arrayMax}`);
+      const numArrArg =
+        numArrParts.length > 0 ? `{${numArrParts.join(', ')}}` : '';
       return isArray
-        ? `Array.from({length: faker.number.int({` +
-            `min: ${mockOptionsWithoutFunc.arrayMin}, ` +
-            `max: ${mockOptionsWithoutFunc.arrayMax}}` +
-            `)}, () => faker.number.int())`
+        ? `Array.from({length: faker.number.int(${numArrArg})}, () => faker.number.int())`
         : 'faker.number.int()';
     }
     case 'string': {
+      const strArrParts: string[] = [];
+      if (mockOptionsWithoutFunc?.arrayMin !== undefined)
+        strArrParts.push(`min: ${mockOptionsWithoutFunc.arrayMin}`);
+      if (mockOptionsWithoutFunc?.arrayMax !== undefined)
+        strArrParts.push(`max: ${mockOptionsWithoutFunc.arrayMax}`);
+      const strArrArg =
+        strArrParts.length > 0 ? `{${strArrParts.join(', ')}}` : '';
       return isArray
-        ? `Array.from({length: faker.number.int({` +
-            `min: ${mockOptionsWithoutFunc?.arrayMin},` +
-            `max: ${mockOptionsWithoutFunc?.arrayMax}}` +
-            `)}, () => faker.word.sample())`
+        ? `Array.from({length: faker.number.int(${strArrArg})}, () => faker.word.sample())`
         : 'faker.word.sample()';
     }
     default: {

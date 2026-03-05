@@ -1,27 +1,24 @@
 import { isObject } from './assertion';
 
 export function mergeDeep<
-  T extends Record<string, any>,
-  U extends Record<string, any>,
+  T extends Record<string, unknown>,
+  U extends Record<string, unknown>,
 >(source: T, target: U): T & U {
   if (!isObject(target) || !isObject(source)) {
     return source as T & U;
   }
 
-  return Object.entries(target).reduce(
-    (acc, [key, value]) => {
-      const sourceValue = acc[key];
+  const acc: Record<string, unknown> = Object.assign({}, source);
+  for (const [key, value] of Object.entries(target)) {
+    const sourceValue = acc[key];
 
-      if (Array.isArray(sourceValue) && Array.isArray(value)) {
-        (acc[key] as any) = [...sourceValue, ...value];
-      } else if (isObject(sourceValue) && isObject(value)) {
-        (acc[key] as any) = mergeDeep(sourceValue, value);
-      } else {
-        (acc[key] as any) = value;
-      }
-
-      return acc;
-    },
-    Object.assign({}, source),
-  ) as T & U;
+    if (Array.isArray(sourceValue) && Array.isArray(value)) {
+      acc[key] = [...(sourceValue as unknown[]), ...(value as unknown[])];
+    } else if (isObject(sourceValue) && isObject(value)) {
+      acc[key] = mergeDeep(sourceValue, value);
+    } else {
+      acc[key] = value;
+    }
+  }
+  return acc as T & U;
 }

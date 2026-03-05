@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  getLooseObjectFunctionName,
   getObjectFunctionName,
   getParameterFunctions,
   getZodDateFormat,
@@ -58,6 +59,41 @@ describe('isZodVersionV4', () => {
     };
 
     expect(isZodVersionV4(packageJson)).toBe(true);
+  });
+});
+
+describe('isZodVersionV4 with resolvedVersions', () => {
+  it('should prefer resolvedVersions over dependencies', () => {
+    const packageJson = {
+      dependencies: {
+        zod: '3.24.3',
+      },
+      resolvedVersions: {
+        zod: '4.0.0',
+      },
+    };
+
+    expect(isZodVersionV4(packageJson)).toBe(true);
+  });
+
+  it('should return true when only resolvedVersions is present', () => {
+    const packageJson = {
+      resolvedVersions: {
+        zod: '4.1.0',
+      },
+    };
+
+    expect(isZodVersionV4(packageJson)).toBe(true);
+  });
+
+  it('should fall back to dependencies when resolvedVersions is absent', () => {
+    const packageJson = {
+      dependencies: {
+        zod: '3.24.3',
+      },
+    };
+
+    expect(isZodVersionV4(packageJson)).toBe(false);
   });
 });
 
@@ -161,5 +197,17 @@ describe('getObjectFunctionName', () => {
         expect(result).toBe('object');
       });
     });
+  });
+});
+
+describe('getLooseObjectFunctionName', () => {
+  it('should return "looseObject" when isZodV4 is true', () => {
+    const result = getLooseObjectFunctionName(true);
+    expect(result).toBe('looseObject');
+  });
+
+  it('should return "object" when isZodV4 is false', () => {
+    const result = getLooseObjectFunctionName(false);
+    expect(result).toBe('object');
   });
 });

@@ -84,20 +84,27 @@ export function getParams({
       context,
     });
 
+    const originalSchema = resolvedValue.originalSchema;
+
+    // Bridge assertion: .default returns any due to AnyOtherAttribute on OpenApiSchemaObject
+    const schemaDefault = originalSchema.default as
+      | string
+      | Record<string, unknown>
+      | unknown[]
+      | undefined;
+
     let paramType = resolvedValue.value;
     if (output.allParamsOptional) {
       paramType = `${paramType} | undefined | null`; // TODO: maybe check that `paramType` isn't already undefined or null
     }
 
     const definition = `${name}${
-      !required || resolvedValue.originalSchema!.default ? '?' : ''
+      !required || schemaDefault ? '?' : ''
     }: ${paramType}`;
 
-    const implementation = `${name}${
-      !required && !resolvedValue.originalSchema!.default ? '?' : ''
-    }${
-      resolvedValue.originalSchema!.default
-        ? `: ${paramType} = ${stringify(resolvedValue.originalSchema!.default)}`
+    const implementation = `${name}${!required && !schemaDefault ? '?' : ''}${
+      schemaDefault
+        ? `: ${paramType} = ${stringify(schemaDefault)}`
         : `: ${paramType}` // FIXME: in Vue if we have `version: MaybeRef<number | undefined | null> = 1` and we don't pass version, the unref(version) will be `undefined` and not `1`, so we need to handle default value somewhere in implementation and not in the definition
     }`;
 
@@ -105,10 +112,10 @@ export function getParams({
       name,
       definition,
       implementation,
-      default: resolvedValue.originalSchema!.default,
+      default: schemaDefault,
       required,
       imports: resolvedValue.imports,
-      originalSchema: resolvedValue.originalSchema,
+      originalSchema,
     };
   });
 }

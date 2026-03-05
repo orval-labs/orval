@@ -1,8 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalEnv": ["ORVAL_DEBUG_FILTER", "CI", "DEBUG"],
-  // disable background process as it is causing issues with file locks in the node_modules folder
-  "daemon": false,
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -12,12 +10,9 @@
     "dev": {
       "cache": false
     },
-    // https://turborepo.com/docs/crafting-your-repository/configuring-tasks#dependent-tasks-that-can-be-run-in-parallel
-    "transit": {
-      "dependsOn": ["^transit"]
-    },
     "lint": {
-      "dependsOn": ["transit"]
+      // linting will fail if the packages are not built
+      "dependsOn": ["build"]
     },
     "lint:generated": {
       "dependsOn": ["transit"]
@@ -27,6 +22,18 @@
     },
     "generate-api": {
       "dependsOn": ["orval#build"]
+    },
+    "orval-tests#generate-api": {
+      "dependsOn": ["orval#build"],
+      "outputs": ["generated/**"]
+    },
+    "test:snapshots": {
+      "dependsOn": ["generate-api"],
+      "outputs": ["__snapshots__/**"]
+    },
+    "test:snapshots:update": {
+      "dependsOn": ["generate-api"],
+      "outputs": ["__snapshots__/**"]
     }
   }
 }

@@ -54,18 +54,18 @@ export interface QueryInvocationContext {
   optionalQueryClientArgument: string;
 }
 
+interface InvalidateTarget {
+  query: string;
+  params?: string[] | Record<string, string>;
+  invalidateMode: 'invalidate' | 'reset';
+}
+
 export interface MutationOnSuccessContext {
   operationName: string;
   definitions: string;
   isRequestOptions: boolean;
-  generateInvalidateCall: (target: {
-    query: string;
-    params?: string[] | Record<string, string>;
-  }) => string;
-  uniqueInvalidates: {
-    query: string;
-    params?: string[] | Record<string, string>;
-  }[];
+  generateInvalidateCall: (target: InvalidateTarget) => string;
+  uniqueInvalidates: InvalidateTarget[];
 }
 
 export interface MutationHookBodyContext {
@@ -96,6 +96,8 @@ export interface FrameworkAdapter {
   readonly hasQueryV5: boolean;
   readonly hasQueryV5WithDataTagError: boolean;
   readonly hasQueryV5WithInfiniteQueryOptionsError: boolean;
+  readonly hasQueryV5WithMutationContextOnSuccess: boolean;
+  readonly hasQueryV5WithRequiredContextOnSuccess: boolean;
 
   // --- Props Transformation ---
   /** Vue: wraps with MaybeRef. Others: identity. */
@@ -168,12 +170,26 @@ export interface FrameworkAdapter {
   /** React v5 only: true to emit overload type declarations. */
   shouldGenerateOverrideTypes(): boolean;
 
+  /** Whether to cast the query result with 'as returnType'. Solid Query needs this to be false for proper type inference. */
+  shouldCastQueryResult?(): boolean;
+
+  /** Whether to cast the query options return type. Solid Query needs this to be false for proper initialData discrimination. */
+  shouldCastQueryOptions?(): boolean;
+
   /** queryClient?: QueryClient vs queryClient?: () => QueryClient vs '' */
   getOptionalQueryClientArgument(hasInvalidation?: boolean): string;
 
   // --- Query Options ---
   /** 'Use' or 'Create' prefix for options definition types */
   getQueryOptionsDefinitionPrefix(): string;
+
+  /**
+   * Get the options type name for return types of getOptions functions.
+   * Solid: 'SolidQueryOptions' / 'SolidMutationOptions'. Others: use prefix + type.
+   */
+  getOptionsReturnTypeName?(
+    type: 'query' | 'infiniteQuery' | 'mutation',
+  ): string | undefined;
 
   /** Vue: computed() for enabled. Others: direct boolean. */
   generateEnabledOption(
@@ -252,6 +268,8 @@ type DefaultableFields =
   | 'shouldDestructureNamedPathParams'
   | 'shouldAnnotateQueryKey'
   | 'shouldGenerateOverrideTypes'
+  | 'shouldCastQueryResult'
+  | 'shouldCastQueryOptions'
   | 'getHttpFunctionQueryProps'
   | 'getQueryType'
   | 'getQueryKeyPrefix'
@@ -264,7 +282,8 @@ type DefaultableFields =
   | 'generateQueryInit'
   | 'generateQueryInvocationArgs'
   | 'getOptionalQueryClientArgument'
-  | 'generateQueryArguments';
+  | 'generateQueryArguments'
+  | 'generateMutationOnSuccess';
 
 /**
  * Adapter config type — adapters implement this. The factory fills in

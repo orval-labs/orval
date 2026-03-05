@@ -1,13 +1,21 @@
 import { isArray } from 'remeda';
 
 import { resolveExampleRefs } from '../resolvers';
-import type { ContextSpec, OpenApiSchemaObject, ScalarValue } from '../types';
+import type {
+  ContextSpec,
+  OpenApiSchemaObject,
+  OpenApiSchemaObjectType,
+  ScalarValue,
+} from '../types';
 import { escape, isString } from '../utils';
 import { getFormDataFieldFileType } from '../utils/content-type';
 import { getArray } from './array';
 import { combineSchemas } from './combine';
 import type { FormDataContext } from './object';
 import { getObject } from './object';
+
+/** Bridge type for enum values extracted from OpenAPI schemas infected by AnyOtherAttribute */
+type SchemaEnumValue = string | number | boolean | null;
 
 interface GetScalarOptions {
   item: OpenApiSchemaObject;
@@ -28,20 +36,45 @@ export function getScalar({
   context,
   formDataContext,
 }: GetScalarOptions): ScalarValue {
+  // Bridge assertions: extract typed values from AnyOtherAttribute-infected schema
+  const schemaEnum = item.enum as SchemaEnumValue[] | undefined;
+  const schemaType = item.type as
+    | OpenApiSchemaObjectType
+    | OpenApiSchemaObjectType[]
+    | undefined;
+  const schemaReadOnly = item.readOnly as boolean | undefined;
+  const schemaExample = item.example as unknown;
+  const schemaExamples = item.examples as Parameters<
+    typeof resolveExampleRefs
+  >[0];
+  const schemaConst = item.const as string | undefined;
+  const schemaFormat = item.format as string | undefined;
+  const schemaNullable = item.nullable as boolean | undefined;
+  const schemaContentMediaType = item.contentMediaType as string | undefined;
+  const schemaContentEncoding = item.contentEncoding as string | undefined;
+
   const nullable =
-    (isArray(item.type) && item.type.includes('null')) || item.nullable === true
+    (isArray(schemaType) && schemaType.includes('null')) ||
+    schemaNullable === true
       ? ' | null'
       : '';
 
-  const enumItems = item.enum?.filter((enumItem) => enumItem !== null);
+  const enumItems = schemaEnum?.filter(
+    (enumItem): enumItem is Exclude<SchemaEnumValue, null> => enumItem !== null,
+  );
 
-  let itemType = item.type;
+  let itemType:
+    | OpenApiSchemaObjectType
+    | OpenApiSchemaObjectType[]
+    | undefined = schemaType;
   if (!itemType && item.items) {
     item.type = 'array';
     itemType = 'array';
   }
-  if (isArray(item.type) && item.type.includes('null')) {
-    const typesWithoutNull = item.type.filter((x) => x !== 'null');
+  if (isArray(schemaType) && schemaType.includes('null')) {
+    const typesWithoutNull = schemaType.filter(
+      (x): x is OpenApiSchemaObjectType => x !== 'null',
+    );
     itemType =
       typesWithoutNull.length === 1 ? typesWithoutNull[0] : typesWithoutNull;
   }
@@ -51,23 +84,20 @@ export function getScalar({
     case 'integer': {
       let value =
         context.output.override.useBigInt &&
-        (item.format === 'int64' || item.format === 'uint64')
+        (schemaFormat === 'int64' || schemaFormat === 'uint64')
           ? 'bigint'
           : 'number';
       let isEnum = false;
 
       if (enumItems) {
-        value = enumItems
-          .map((enumItem: number | null) => `${enumItem}`)
-          .join(' | ');
+        value = enumItems.map((enumItem) => `${enumItem}`).join(' | ');
         isEnum = true;
       }
 
       value += nullable;
 
-      const itemWithConst = item;
-      if (itemWithConst.const !== undefined) {
-        value = itemWithConst.const;
+      if (schemaConst !== undefined) {
+        value = schemaConst;
       }
 
       return {
@@ -77,19 +107,18 @@ export function getScalar({
         schemas: [],
         imports: [],
         isRef: false,
-        hasReadonlyProps: item.readOnly || false,
+        hasReadonlyProps: schemaReadOnly ?? false,
         dependencies: [],
-        example: item.example,
-        examples: resolveExampleRefs(item.examples, context),
+        example: schemaExample,
+        examples: resolveExampleRefs(schemaExamples, context),
       };
     }
 
     case 'boolean': {
       let value = 'boolean' + nullable;
 
-      const itemWithConst = item;
-      if (itemWithConst.const !== undefined) {
-        value = itemWithConst.const;
+      if (schemaConst !== undefined) {
+        value = schemaConst;
       }
 
       return {
@@ -99,10 +128,10 @@ export function getScalar({
         schemas: [],
         imports: [],
         isRef: false,
-        hasReadonlyProps: item.readOnly || false,
+        hasReadonlyProps: schemaReadOnly ?? false,
         dependencies: [],
-        example: item.example,
-        examples: resolveExampleRefs(item.examples, context),
+        example: schemaExample,
+        examples: resolveExampleRefs(schemaExamples, context),
       };
     }
 
@@ -116,7 +145,7 @@ export function getScalar({
       return {
         value: value + nullable,
         ...rest,
-        dependencies: rest.dependencies ?? [],
+        dependencies: rest.dependencies,
       };
     }
 
@@ -126,7 +155,7 @@ export function getScalar({
 
       if (enumItems) {
         value = enumItems
-          .map((enumItem: string | null) =>
+          .map((enumItem) =>
             isString(enumItem) ? `'${escape(enumItem)}'` : `${enumItem}`,
           )
           .filter(Boolean)
@@ -135,7 +164,7 @@ export function getScalar({
         isEnum = true;
       }
 
-      if (item.format === 'binary') {
+      if (schemaFormat === 'binary') {
         value = 'Blob';
       } else if (formDataContext?.atPart) {
         const fileType = getFormDataFieldFileType(
@@ -145,20 +174,28 @@ export function getScalar({
         if (fileType) {
           value = fileType === 'binary' ? 'Blob' : 'Blob | string';
         }
+      } else if (
+        schemaContentMediaType === 'application/octet-stream' &&
+        !schemaContentEncoding
+      ) {
+        // The @scalar/openapi-parser upgrader converts format: binary to
+        // contentMediaType: application/octet-stream when upgrading
+        // Swagger 2.0 / OAS 3.0 → OAS 3.1. Treat it the same as
+        // format: binary so $ref-based model types generate Blob.
+        value = 'Blob';
       }
 
       if (
         context.output.override.useDates &&
-        (item.format === 'date' || item.format === 'date-time')
+        (schemaFormat === 'date' || schemaFormat === 'date-time')
       ) {
         value = 'Date';
       }
 
       value += nullable;
 
-      const itemWithConst = item;
-      if (itemWithConst.const) {
-        value = `'${itemWithConst.const}'`;
+      if (schemaConst) {
+        value = `'${schemaConst}'`;
       }
 
       return {
@@ -168,10 +205,10 @@ export function getScalar({
         imports: [],
         schemas: [],
         isRef: false,
-        hasReadonlyProps: item.readOnly || false,
+        hasReadonlyProps: schemaReadOnly ?? false,
         dependencies: [],
-        example: item.example,
-        examples: resolveExampleRefs(item.examples, context),
+        example: schemaExample,
+        examples: resolveExampleRefs(schemaExamples, context),
       };
     }
 
@@ -183,21 +220,18 @@ export function getScalar({
         imports: [],
         schemas: [],
         isRef: false,
-        hasReadonlyProps: item.readOnly || false,
+        hasReadonlyProps: schemaReadOnly ?? false,
         dependencies: [],
       };
     }
 
-    case 'object':
     default: {
       if (isArray(itemType)) {
+        const anyOfVariants = itemType.map((type) =>
+          Object.assign({}, item, { type }),
+        ) as OpenApiSchemaObject[];
         return combineSchemas({
-          schema: {
-            anyOf: itemType.map((type) => ({
-              ...item,
-              type,
-            })),
-          },
+          schema: { anyOf: anyOfVariants } as OpenApiSchemaObject,
           name,
           separator: 'anyOf',
           context,
@@ -207,8 +241,8 @@ export function getScalar({
 
       if (enumItems) {
         const value = enumItems
-          .map((enumItem: unknown) =>
-            isString(enumItem) ? `'${escape(enumItem)}'` : `${enumItem}`,
+          .map((enumItem) =>
+            isString(enumItem) ? `'${escape(enumItem)}'` : String(enumItem),
           )
           .filter(Boolean)
           .join(` | `);
@@ -220,18 +254,20 @@ export function getScalar({
           imports: [],
           schemas: [],
           isRef: false,
-          hasReadonlyProps: item.readOnly || false,
+          hasReadonlyProps: schemaReadOnly ?? false,
           dependencies: [],
-          example: item.example,
-          examples: resolveExampleRefs(item.examples, context),
+          example: schemaExample,
+          examples: resolveExampleRefs(schemaExamples, context),
         };
       }
 
       // Determine if we should pass form-data context:
-      // - atPart: false → always pass (navigating to properties)
-      // - atPart: true + combiner → pass (combiner members are still the same part)
-      // - atPart: true + plain object → don't pass (nested properties are JSON)
-      const hasCombiners = item.allOf || item.anyOf || item.oneOf;
+      // - atPart: false -> always pass (navigating to properties)
+      // - atPart: true + combiner -> pass (combiner members are still the same part)
+      // - atPart: true + plain object -> don't pass (nested properties are JSON)
+      const hasCombiners = (item.allOf ?? item.anyOf ?? item.oneOf) as
+        | unknown[]
+        | undefined;
       const shouldPassContext =
         formDataContext?.atPart === false ||
         (formDataContext?.atPart && hasCombiners);

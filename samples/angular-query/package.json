@@ -1,6 +1,6 @@
 {
   "name": "angular-query",
-  "version": "8.2.0",
+  "version": "8.5.2",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -8,7 +8,9 @@
     "watch": "ng build --watch --configuration development",
     "test": "CI=true ng test --no-watch",
     "lint": "ng lint",
-    "generate-api": "node ../../packages/orval/dist/bin/orval.mjs"
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "yarn test:snapshots --update",
+    "generate-api": "orval"
   },
   "private": true,
   "dependencies": {
@@ -19,30 +21,20 @@
     "@angular/forms": "catalog:angular",
     "@angular/platform-browser": "catalog:angular",
     "@angular/router": "catalog:angular",
-    "@tanstack/angular-query-experimental": "^5.62.7",
-    "rxjs": "catalog:tooling",
-    "tslib": "catalog:build-tools",
+    "@tanstack/angular-query-experimental": "^5.90.16",
+    "rxjs": "catalog:angular",
+    "tslib": "catalog:",
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@angular-eslint/builder": "catalog:angular",
-    "@angular-eslint/eslint-plugin": "catalog:angular",
-    "@angular-eslint/eslint-plugin-template": "catalog:angular",
-    "@angular-eslint/template-parser": "catalog:angular",
     "@angular/build": "catalog:angular",
     "@angular/cli": "catalog:angular",
     "@angular/compiler-cli": "catalog:angular",
-    "@eslint/js": "catalog:",
-    "@faker-js/faker": "^10.2.0",
-    "@testing-library/angular": "catalog:angular",
-    "@testing-library/dom": "^10.4.1",
-    "@typescript-eslint/eslint-plugin": "^8.52.0",
-    "@typescript-eslint/parser": "^8.50.1",
-    "@typescript-eslint/types": "^8.52.0",
-    "@typescript-eslint/utils": "^8.52.0",
-    "eslint": "catalog:",
-    "msw": "^2.12.7",
-    "orval": "link:../../packages/orval/dist",
+    "@faker-js/faker": "catalog:tooling",
+    "@testing-library/angular": "19.0.0",
+    "msw": "catalog:tooling",
+    "orval": "workspace:*",
+    "prettier": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },

@@ -1,6 +1,6 @@
 {
   "name": "vue-query-basic",
-  "version": "8.2.0",
+  "version": "8.5.2",
   "type": "module",
   "private": true,
   "scripts": {
@@ -8,26 +8,29 @@
     "build": "vite build",
     "serve": "vite preview",
     "generate-api": "orval",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "yarn test:snapshots --update",
     "test": "vitest --run"
   },
   "dependencies": {
-    "@faker-js/faker": "^10.2.0",
-    "@tanstack/vue-query": "^5.92.7",
-    "axios": "^1.13.2",
-    "vue": "^3.5.26"
+    "@faker-js/faker": "catalog:tooling",
+    "@tanstack/vue-query": "catalog:vue",
+    "axios": "catalog:axios",
+    "vue": "catalog:vue"
   },
   "devDependencies": {
     "@testing-library/vue": "^8.1.0",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/compiler-sfc": "^3.5.26",
     "jsdom": "^27.1.0",
-    "msw": "^2.12.7",
+    "msw": "catalog:tooling",
     "orval": "workspace:*",
+    "prettier": "catalog:",
     "tsd": "^0.33.0",
-    "typescript": "~5.9.3",
-    "vite": "^7.2.2",
-    "vitest": "^4.0.16",
-    "vue-tsc": "^3.2.4"
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "vue-tsc": "catalog:vue"
   },
   "dependenciesMeta": {
     "msw": {

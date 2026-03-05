@@ -53,3 +53,38 @@ describe('isFakerVersionV9', () => {
     expect(isFakerVersionV9(packageJson)).toBe(true);
   });
 });
+
+describe('isFakerVersionV9 with resolvedVersions', () => {
+  it('should prefer resolvedVersions over dependencies', () => {
+    const packageJson = {
+      dependencies: {
+        '@faker-js/faker': '8.4.0',
+      },
+      resolvedVersions: {
+        '@faker-js/faker': '9.3.0',
+      },
+    };
+
+    expect(isFakerVersionV9(packageJson)).toBe(true);
+  });
+
+  it('should return true when only resolvedVersions is present', () => {
+    const packageJson = {
+      resolvedVersions: {
+        '@faker-js/faker': '9.0.0',
+      },
+    };
+
+    expect(isFakerVersionV9(packageJson)).toBe(true);
+  });
+
+  it('should fall back to dependencies when resolvedVersions is absent', () => {
+    const packageJson = {
+      dependencies: {
+        '@faker-js/faker': '8.4.0',
+      },
+    };
+
+    expect(isFakerVersionV9(packageJson)).toBe(false);
+  });
+});

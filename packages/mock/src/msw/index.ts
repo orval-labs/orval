@@ -101,7 +101,50 @@ function generateDefinition(
   }
 
   const isResponseOverridable = value.includes(overrideVarName);
-  const isTextPlain = contentTypes.includes('text/plain');
+  const isTextLikeContentType = (ct: string) =>
+    ct.startsWith('text/') || ct === 'application/xml' || ct.endsWith('+xml');
+  const isTypeExactlyString = (typeExpr: string) =>
+    typeExpr.trim().replaceAll(/^\(+|\)+$/g, '') === 'string';
+  const isUnionContainingString = (typeExpr: string) =>
+    typeExpr
+      .split('|')
+      .map((part) => part.trim().replaceAll(/^\(+|\)+$/g, ''))
+      .includes('string');
+  const isBinaryLikeContentType = (ct: string) =>
+    ct === 'application/octet-stream' ||
+    ct === 'application/pdf' ||
+    ct.startsWith('image/') ||
+    ct.startsWith('audio/') ||
+    ct.startsWith('video/') ||
+    ct.startsWith('font/');
+
+  const preferredContentType = isFunction(mock)
+    ? undefined
+    : (
+        mock as { preferredContentType?: string } | undefined
+      )?.preferredContentType?.toLowerCase();
+  const preferredContentTypeMatch = preferredContentType
+    ? contentTypes.find((ct) => ct.toLowerCase() === preferredContentType)
+    : undefined;
+  const contentTypesByPreference = preferredContentTypeMatch
+    ? [preferredContentTypeMatch]
+    : contentTypes;
+
+  const hasTextLikeContentType = contentTypes.some((ct) =>
+    isTextLikeContentType(ct),
+  );
+  const isExactlyStringReturnType = isTypeExactlyString(returnType);
+
+  // Keep text helpers for exact string success return types whenever a text-like
+  // media type is available in the declared content types. This prevents a
+  // preferredContentType that matches an error media type from forcing
+  // HttpResponse.json() for text/plain success responses.
+  const isTextResponse =
+    (isExactlyStringReturnType && hasTextLikeContentType) ||
+    contentTypesByPreference.some((ct) => isTextLikeContentType(ct));
+  const isBinaryResponse =
+    returnType === 'Blob' ||
+    contentTypesByPreference.some((ct) => isBinaryLikeContentType(ct));
   const isReturnHttpResponse = value && value !== 'undefined';
 
   const getResponseMockFunctionName = `${getResponseMockFunctionNameBase}${pascal(
@@ -118,41 +161,128 @@ function generateDefinition(
       ? `${addedSplitMockImplementations.join('\n\n')}\n\n`
       : '';
 
+  const mockReturnType = isBinaryResponse
+    ? returnType.replaceAll(/\bBlob\b/g, 'ArrayBuffer')
+    : returnType;
+
+  const hasJsonContentType = contentTypesByPreference.some(
+    (ct) => ct.includes('json') || ct.includes('+json'),
+  );
+  const hasStringReturnType =
+    isTypeExactlyString(mockReturnType) ||
+    isUnionContainingString(mockReturnType);
+  const overrideResponseType = `Partial<Extract<${mockReturnType}, object>>`;
+  const shouldPreferJsonResponse = hasJsonContentType && !hasStringReturnType;
+
+  // When the return type is a union containing both string and structured types
+  // (e.g. `string | Pet`) AND both text-like and JSON content types are available,
+  // we need runtime branching to pick the correct HttpResponse helper based on
+  // the actual resolved value type. Without this, objects could be JSON.stringify'd
+  // and served under a text-like Content-Type (e.g. xml/html/plain), which is
+  // semantically incorrect for structured JSON data.
+  const needsRuntimeContentTypeSwitch =
+    isTextResponse &&
+    hasJsonContentType &&
+    hasStringReturnType &&
+    mockReturnType !== 'string';
+
   const mockImplementation = isReturnHttpResponse
     ? `${mockImplementations}export const ${getResponseMockFunctionName} = (${
         isResponseOverridable
-          ? `overrideResponse: Partial< ${returnType} > = {}`
+          ? `overrideResponse: ${overrideResponseType} = {}`
           : ''
-      })${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
+      })${mockData ? '' : `: ${mockReturnType}`} => (${value})\n\n`
     : mockImplementations;
 
   const delay = getDelay(override, isFunction(mock) ? undefined : mock);
   const infoParam = 'info';
-  const overrideResponse = `overrideResponse !== undefined
+  const resolvedResponseExpr = `overrideResponse !== undefined
     ? (typeof overrideResponse === "function" ? await overrideResponse(${infoParam}) : overrideResponse)
     : ${getResponseMockFunctionName}()`;
+
+  const statusCode = status === 'default' ? 200 : status.replace(/XX$/, '00');
+
+  // Determine the preferred non-JSON content type for binary responses
+  const binaryContentType =
+    (preferredContentTypeMatch &&
+    isBinaryLikeContentType(preferredContentTypeMatch)
+      ? preferredContentTypeMatch
+      : contentTypes.find((ct) => isBinaryLikeContentType(ct))) ??
+    'application/octet-stream';
+
+  // Pick the most specific MSW response helper based on the first
+  // text-like content type so the correct Content-Type header is set.
+  // MSW provides HttpResponse.xml() for application/xml and +xml,
+  // HttpResponse.html() for text/html, and HttpResponse.text() for
+  // all other text/* types.
+  const shouldIgnorePreferredForTextHelper =
+    isExactlyStringReturnType &&
+    !!preferredContentTypeMatch &&
+    !isTextLikeContentType(preferredContentTypeMatch) &&
+    hasTextLikeContentType;
+  const firstTextCt = shouldIgnorePreferredForTextHelper
+    ? contentTypes.find((ct) => isTextLikeContentType(ct))
+    : contentTypesByPreference.find((ct) => isTextLikeContentType(ct));
+  const textHelper =
+    firstTextCt === 'application/xml' || firstTextCt?.endsWith('+xml')
+      ? 'xml'
+      : firstTextCt === 'text/html'
+        ? 'html'
+        : 'text';
+
+  let responseBody: string;
+  // Use a prelude to evaluate the override expression once into a temp variable
+  // (the expression contains `await` so must not be duplicated)
+  let responsePrelude = '';
+  if (isBinaryResponse) {
+    responsePrelude = `const binaryBody = ${resolvedResponseExpr};`;
+  } else if (needsRuntimeContentTypeSwitch) {
+    responsePrelude = `const resolvedBody = ${resolvedResponseExpr};`;
+  } else if (isTextResponse && !shouldPreferJsonResponse) {
+    responsePrelude = `const resolvedBody = ${resolvedResponseExpr};
+    const textBody = typeof resolvedBody === 'string' ? resolvedBody : JSON.stringify(resolvedBody ?? null);`;
+  }
+  if (!isReturnHttpResponse) {
+    responseBody = `new HttpResponse(null,
+      { status: ${statusCode}
+      })`;
+  } else if (isBinaryResponse) {
+    responseBody = `HttpResponse.arrayBuffer(
+      binaryBody instanceof ArrayBuffer
+        ? binaryBody
+        : new ArrayBuffer(0),
+      { status: ${statusCode},
+        headers: { 'Content-Type': '${binaryContentType}' }
+      })`;
+  } else if (needsRuntimeContentTypeSwitch) {
+    // Runtime branching: when the resolved value is a string, use the
+    // appropriate text helper; otherwise fall back to HttpResponse.json()
+    // so objects are never JSON.stringify'd under a text/xml Content-Type.
+    responseBody = `typeof resolvedBody === 'string'
+      ? HttpResponse.${textHelper}(resolvedBody, { status: ${statusCode} })
+      : HttpResponse.json(resolvedBody, { status: ${statusCode} })`;
+  } else if (isTextResponse && !shouldPreferJsonResponse) {
+    responseBody = `HttpResponse.${textHelper}(textBody,
+      { status: ${statusCode}
+      })`;
+  } else {
+    responseBody = `HttpResponse.json(${resolvedResponseExpr},
+      { status: ${statusCode}
+      })`;
+  }
+
+  const infoType = `Parameters<Parameters<typeof http.${verb}>[1]>[0]`;
+
   const handlerImplementation = `
-export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType}), options?: RequestHandlerOptions) => {
-  return http.${verb}('${route}', async (${infoParam}) => {${
+export const ${handlerName} = (overrideResponse?: ${mockReturnType} | ((${infoParam}: ${infoType}) => Promise<${mockReturnType}> | ${mockReturnType}), options?: RequestHandlerOptions) => {
+  return http.${verb}('${route}', async (${infoParam}: ${infoType}) => {${
     delay === false
       ? ''
-      : `await delay(${isFunction(delay) ? `(${delay})()` : delay});`
+      : `await delay(${isFunction(delay) ? `(${String(delay)})()` : String(delay)});`
   }
   ${isReturnHttpResponse ? '' : `if (typeof overrideResponse === 'function') {await overrideResponse(info); }`}
-    return new HttpResponse(${
-      isReturnHttpResponse
-        ? isTextPlain
-          ? overrideResponse
-          : `JSON.stringify(${overrideResponse})`
-        : null
-    },
-      { status: ${status === 'default' ? 200 : status.replace(/XX$/, '00')},
-        ${
-          isReturnHttpResponse
-            ? `headers: { 'Content-Type': ${isTextPlain ? "'text/plain'" : "'application/json'"} }`
-            : ''
-        }
-      })
+  ${responsePrelude}
+    return ${responseBody}
   }, options)
 }\n`;
 

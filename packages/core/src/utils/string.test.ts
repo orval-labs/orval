@@ -71,7 +71,9 @@ describe('dedupeUnionType', () => {
       // Verify deduping still works for identical string literals
       expect(dedupeUnionType("'a | a' | 'a | a'")).toBe("'a | a'");
       // Without escape handling, \' would close the string, trapping | inside
-      expect(dedupeUnionType("'it\\'s' | 'it\\'s'")).toBe("'it\\'s'");
+      expect(dedupeUnionType(String.raw`'it\'s' | 'it\'s'`)).toBe(
+        String.raw`'it\'s'`,
+      );
     });
 
     it('should not be confused by unbalanced brackets inside string literals', () => {

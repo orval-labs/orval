@@ -14,6 +14,8 @@ export default defineConfig({
           useInfiniteQueryParam: 'limit',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -31,6 +33,8 @@ export default defineConfig({
       },
       mock: true,
       client: 'svelte-query',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -43,6 +47,8 @@ export default defineConfig({
       mock: true,
       mode: 'tags-split',
       client: 'svelte-query',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -55,6 +61,8 @@ export default defineConfig({
       mock: true,
       mode: 'split',
       client: 'svelte-query',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -67,6 +75,8 @@ export default defineConfig({
       mock: true,
       mode: 'tags',
       client: 'svelte-query',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -78,6 +88,8 @@ export default defineConfig({
       schemas: '../generated/svelte-query/http-client-fetch/model',
       mode: 'tags-split',
       client: 'svelte-query',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -96,6 +108,8 @@ export default defineConfig({
           includeHttpResponseReturnType: false,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -119,6 +133,8 @@ export default defineConfig({
           useInfiniteQueryParam: 'limit',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -141,6 +157,8 @@ export default defineConfig({
           name: 'customFetch',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -159,6 +177,8 @@ export default defineConfig({
         },
         useNamedParameters: true,
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -182,19 +202,61 @@ export default defineConfig({
               invalidates: ['listPets'],
             },
             {
-              onMutations: ['deletePet', 'updatePet', 'patchPet'],
+              onMutations: ['deletePetById'],
               invalidates: [
-                'listPets',
-                { query: 'showPetById', params: ['petId'] },
+                { query: 'listPets', invalidateMode: 'reset' },
+                {
+                  query: 'showPetById',
+                  params: ['petId'],
+                  invalidateMode: 'reset',
+                },
               ],
-            },
-            {
-              onMutations: ['uploadFile'],
-              invalidates: ['listPets'],
             },
           ],
         },
       },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  invalidatesOtherFile: {
+    output: {
+      target: '../generated/svelte-query/invalidates-other-file',
+      schemas: '../generated/svelte-query/invalidates-other-file/model',
+      client: 'svelte-query',
+      mode: 'tags',
+      mock: true,
+      headers: true,
+      override: {
+        query: {
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: [
+                'listPets',
+                { query: 'healthCheck', file: './health' },
+              ],
+            },
+            {
+              onMutations: ['deletePetById'],
+              invalidates: [
+                { query: 'listPets', invalidateMode: 'reset' },
+                { query: 'healthCheck', file: './health' },
+                {
+                  query: 'showPetById',
+                  params: ['petId'],
+                  invalidateMode: 'reset',
+                },
+              ],
+            },
+          ],
+        },
+      },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',

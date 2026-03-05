@@ -47,7 +47,7 @@ describe('getProps', () => {
     expect(props[0].implementation).toMatch('params: ListPetsParams');
     expect(props[0].required).toBe(true);
   });
-  it('should generate DeepNonNullable props for query params type definition when client is angular', () => {
+  it('should use raw param type for query params definition when client is angular', () => {
     const context: ContextSpec = {
       output: {
         client: 'angular',
@@ -81,7 +81,8 @@ describe('getProps', () => {
 
     expect(props).toHaveLength(1);
     expect(props[0].type).toBe('queryParam');
-    expect(props[0].definition).toMatch('DeepNonNullable<ListPetsParams>');
+    expect(props[0].definition).toMatch('params: ListPetsParams');
+    expect(props[0].definition).not.toMatch('DeepNonNullable');
     expect(props[0].required).toBe(true);
   });
 });

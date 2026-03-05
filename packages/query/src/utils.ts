@@ -1,3 +1,6 @@
+import nodePath from 'node:path';
+import { styleText } from 'node:util';
+
 import {
   type GetterProps,
   GetterPropType,
@@ -10,9 +13,7 @@ import {
   type OutputClientFunc,
   type QueryOptions,
   TEMPLATE_TAG_REGEX,
-  upath,
 } from '@orval/core';
-import chalk from 'chalk';
 
 export const normalizeQueryOptions = (
   queryOptions: QueryOptions = {},
@@ -72,19 +73,19 @@ const normalizeMutator = (
 ): NormalizedMutator | undefined => {
   if (isObject(mutator)) {
     if (!mutator.path) {
-      throw new Error(chalk.red(`Mutator need a path`));
+      throw new Error(styleText('red', `Mutator need a path`));
     }
 
     return {
       ...mutator,
-      path: upath.resolve(workspace, mutator.path),
+      path: nodePath.resolve(workspace, mutator.path),
       default: mutator.default ?? !mutator.name,
     };
   }
 
   if (isString(mutator)) {
     return {
-      path: upath.resolve(workspace, mutator),
+      path: nodePath.resolve(workspace, mutator),
       default: true,
     };
   }

@@ -10,7 +10,7 @@ import { generateSchemasDefinition } from './schema-definition';
 describe('generateSchemasDefinition', () => {
   const context: ContextSpec = {
     output: {
-      override: {},
+      override: { namingConvention: {} },
     },
     target: 'typescript',
     spec: {},
@@ -235,7 +235,7 @@ describe('generateSchemasDefinition', () => {
     const specContext: ContextSpec = {
       ...context,
       output: {
-        override: { enumGenerationType: 'const' },
+        override: { enumGenerationType: 'const', namingConvention: {} },
       },
       spec: {
         components: { schemas },
@@ -280,7 +280,7 @@ describe('generateSchemasDefinition', () => {
     const specContext: ContextSpec = {
       ...context,
       output: {
-        override: { enumGenerationType: 'const' },
+        override: { enumGenerationType: 'const', namingConvention: {} },
       },
       spec: {
         components: { schemas },
@@ -337,7 +337,7 @@ describe('generateSchemasDefinition', () => {
     const specContext: ContextSpec = {
       ...context,
       output: {
-        override: { enumGenerationType: 'const' },
+        override: { enumGenerationType: 'const', namingConvention: {} },
       },
       spec: {
         components: { schemas },

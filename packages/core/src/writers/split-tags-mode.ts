@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import fs from 'fs-extra';
 
 import { generateModelsInline, generateMutatorImports } from '../generators';
@@ -34,19 +36,22 @@ export async function writeSplitTagsMode({
     output.tsconfig,
   );
 
-  const indexFilePath =
-    output.mock && !isFunction(output.mock) && output.mock.indexMockFiles
-      ? upath.join(
-          dirname,
-          'index.' + getMockFileExtensionByTypeName(output.mock!) + extension,
-        )
-      : undefined;
+  const mockOption =
+    output.mock && !isFunction(output.mock) ? output.mock : undefined;
+  const indexFilePath = mockOption?.indexMockFiles
+    ? path.join(
+        dirname,
+        'index.' + getMockFileExtensionByTypeName(mockOption) + extension,
+      )
+    : undefined;
   if (indexFilePath) {
     await fs.outputFile(indexFilePath, '');
   }
 
+  const tagEntries = Object.entries(target);
+
   const generatedFilePathsArray = await Promise.all(
-    Object.entries(target).map(async ([tag, target]) => {
+    tagEntries.map(async ([tag, target]) => {
       try {
         const {
           imports,
@@ -64,10 +69,10 @@ export async function writeSplitTagsMode({
         let implementationData = header;
         let mockData = header;
 
+        const importerPath = path.join(dirname, tag, tag + extension);
         const relativeSchemasPath = output.schemas
-          ? '../' +
-            upath.relativeSafe(
-              dirname,
+          ? upath.getRelativeImportPath(
+              importerPath,
               getFileInfo(
                 isString(output.schemas) ? output.schemas : output.schemas.path,
                 { extension: output.fileExtension },
@@ -114,7 +119,7 @@ export async function writeSplitTagsMode({
 
         const schemasPath = output.schemas
           ? undefined
-          : upath.join(dirname, filename + '.schemas' + extension);
+          : path.join(dirname, filename + '.schemas' + extension);
 
         if (schemasPath && needSchema) {
           const schemasData = header + generateModelsInline(builder.schemas);
@@ -181,7 +186,7 @@ export async function writeSplitTagsMode({
           (OutputClient.ANGULAR === output.client ? '.service' : '') +
           extension;
 
-        const implementationPath = upath.join(
+        const implementationPath = path.join(
           dirname,
           tag,
           implementationFilename,
@@ -189,7 +194,7 @@ export async function writeSplitTagsMode({
         await fs.outputFile(implementationPath, implementationData);
 
         const mockPath = output.mock
-          ? upath.join(
+          ? path.join(
               dirname,
               tag,
               tag +
@@ -201,17 +206,6 @@ export async function writeSplitTagsMode({
 
         if (mockPath) {
           await fs.outputFile(mockPath, mockData);
-          if (indexFilePath) {
-            const localMockPath = upath.joinSafe(
-              './',
-              tag,
-              tag + '.' + getMockFileExtensionByTypeName(output.mock!),
-            );
-            fs.appendFile(
-              indexFilePath,
-              `export { get${pascal(tag)}Mock } from '${localMockPath}'\n`,
-            );
-          }
         }
 
         return [
@@ -221,11 +215,29 @@ export async function writeSplitTagsMode({
         ];
       } catch (error) {
         throw new Error(
-          `Oups... 🍻. An Error occurred while splitting tag ${tag} => ${error}`,
+          `Oups... 🍻. An Error occurred while splitting tag ${tag} => ${String(error)}`,
         );
       }
     }),
   );
 
-  return generatedFilePathsArray.flat();
+  // Write mock index file after Promise.all to ensure deterministic export order.
+  if (indexFilePath && mockOption) {
+    const indexContent = tagEntries
+      .map(([tag]) => {
+        const localMockPath = upath.joinSafe(
+          './',
+          tag,
+          tag + '.' + getMockFileExtensionByTypeName(mockOption),
+        );
+        return `export { get${pascal(tag)}Mock } from '${localMockPath}'\n`;
+      })
+      .join('');
+    await fs.appendFile(indexFilePath, indexContent);
+  }
+
+  return [
+    ...(indexFilePath ? [indexFilePath] : []),
+    ...generatedFilePathsArray.flat(),
+  ];
 }

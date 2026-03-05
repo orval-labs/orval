@@ -1,8 +1,9 @@
 {
   "name": "@orval/zod",
-  "version": "8.2.0",
+  "version": "8.5.2",
   "license": "MIT",
   "type": "module",
+  "types": "./dist/index.d.mts",
   "exports": {
     ".": "./dist/index.mjs",
     "./package.json": "./package.json"
@@ -22,15 +23,12 @@
   },
   "dependencies": {
     "@orval/core": "workspace:*",
-    "remeda": "^2.32.0"
+    "remeda": "^2.33.6"
   },
   "devDependencies": {
     "eslint": "catalog:",
     "rimraf": "catalog:",
     "tsdown": "catalog:",
     "vitest": "catalog:"
-  },
-  "main": "./dist/index.mjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.mts"
+  }
 }

@@ -7,7 +7,7 @@ import { getQueryParams } from './query-params';
 const context: ContextSpec = {
   spec: {},
   output: {
-    // @ts-expect-error
+    // @ts-expect-error -- partial mock: only override.useDates needed for test
     override: {
       useDates: true,
     },
@@ -181,5 +181,70 @@ describe('getQueryParams getter', () => {
     expect(result?.schema.model.trim()).toBe(
       `export type Params = {\naffiliations?: string | null;\n};`,
     );
+  });
+
+  it('tracks required nullable keys for downstream generators', () => {
+    const result = getQueryParams({
+      queryParams: [
+        {
+          parameter: {
+            name: 'requiredNullableParam',
+            in: 'query',
+            required: true,
+            schema: {
+              type: ['string', 'null'],
+            },
+          },
+          imports: [],
+        },
+        {
+          parameter: {
+            name: 'optionalNullableParam',
+            in: 'query',
+            required: false,
+            schema: {
+              nullable: true,
+              type: 'string',
+            },
+          },
+          imports: [],
+        },
+      ],
+      operationName: '',
+      context,
+    });
+
+    expect(result?.requiredNullableKeys).toEqual(['requiredNullableParam']);
+  });
+
+  it('tracks required nullable keys when nullability comes from oneOf', () => {
+    const result = getQueryParams({
+      queryParams: [
+        {
+          parameter: {
+            name: 'requiredOneOfNullableParam',
+            in: 'query',
+            required: true,
+            schema: {
+              oneOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+            },
+          },
+          imports: [],
+        },
+      ],
+      operationName: '',
+      context,
+    });
+
+    expect(result?.requiredNullableKeys).toEqual([
+      'requiredOneOfNullableParam',
+    ]);
   });
 });

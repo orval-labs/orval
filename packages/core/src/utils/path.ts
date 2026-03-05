@@ -1,45 +1,24 @@
 import basepath from 'node:path';
 
-import { isFunction, isStringLike } from './assertion';
 import { getExtension } from './extension';
 
-// override path to support windows paths
-// https://github.com/anodynos/upath/blob/master/source/code/upath.coffee
-type Path = typeof basepath;
-const path = {} as Path;
-
-for (const [propName, propValue] of Object.entries(basepath)) {
-  if (isFunction(propValue)) {
-    // @ts-ignore
-    path[propName] = ((propName) => {
-      return (...args: any[]) => {
-        args = args.map((p) => {
-          return isStringLike(p) ? toUnix(p) : p;
-        });
-
-        // @ts-ignore
-        const result = basepath[propName](...args);
-        return isStringLike(result) ? toUnix(result) : result;
-      };
-    })(propName);
-  } else {
-    // @ts-ignore
-    path[propName] = propValue;
-  }
+export function toUnix(value: string): string {
+  value = value.replaceAll('\\', '/');
+  value = value.replaceAll(/(?<!^)\/+/g, '/'); // deduplicate except leading for UNC paths
+  return value;
 }
 
-const { join, resolve, extname, dirname, basename, isAbsolute } = path;
-export { basename, dirname, extname, isAbsolute, join, resolve };
+export function join(...args: string[]): string {
+  return toUnix(basepath.join(...args.map((a) => toUnix(a))));
+}
 
 /**
  * Behaves exactly like `path.relative(from, to)`, but keeps the first meaningful "./"
  */
 export function relativeSafe(from: string, to: string) {
-  const normalizedRelativePath = path.relative(from, to);
-  /**
-   * Prepend "./" to every path and then use normalizeSafe method to normalize it
-   * normalizeSafe doesn't remove meaningful leading "./"
-   */
+  const normalizedRelativePath = toUnix(
+    basepath.relative(toUnix(from), toUnix(to)),
+  );
   const relativePath = normalizeSafe(`.${separator}${normalizedRelativePath}`);
   return relativePath;
 }
@@ -52,16 +31,10 @@ export function getSchemaFileName(path: string) {
 
 export const separator = '/';
 
-const toUnix = function (value: string) {
-  value = value.replaceAll('\\', '/');
-  value = value.replaceAll(/(?<!^)\/+/g, '/'); // replace doubles except beginning for UNC path
-  return value;
-};
-
 export function normalizeSafe(value: string) {
   let result;
   value = toUnix(value);
-  result = path.normalize(value);
+  result = toUnix(basepath.normalize(value));
   if (
     value.startsWith('./') &&
     !result.startsWith('./') &&
@@ -75,7 +48,7 @@ export function normalizeSafe(value: string) {
 }
 
 export function joinSafe(...values: string[]) {
-  let result = path.join(...values);
+  let result = toUnix(basepath.join(...values.map((v) => toUnix(v))));
 
   if (values.length > 0) {
     const firstValue = toUnix(values[0]);
@@ -90,4 +63,65 @@ export function joinSafe(...values: string[]) {
     }
   }
   return result;
+}
+
+/**
+ * Given two absolute file paths, generates a valid ESM relative import path
+ * from the 'importer' file to the 'exporter' file.
+ *
+ * @example
+ * ```ts
+ * getRelativeImportPath('/path/to/importer.ts', '/path/to/exporter.ts')
+ * // => './exporter'
+ * getRelativeImportPath('/path/to/importer.ts', '/path/to/sub/exporter.ts')
+ * // => './sub/exporter'
+ * getRelativeImportPath('/path/to/importer.ts', '/path/sibling/exporter.ts')
+ * // => '../sibling/exporter'
+ * ```
+ *
+ * This function handles path normalization, cross-platform separators, and
+ * ensures the path is a valid ESM relative specifier (e.g., starts with './').
+ *
+ * @param importerFilePath - The absolute path of the file that will contain the import statement.
+ * @param exporterFilePath - The absolute path of the file being imported.
+ * @param [includeFileExtension=false] - Whether the import path should include the file extension, defaults to false.
+ * @returns The relative import path string.
+ */
+export function getRelativeImportPath(
+  importerFilePath: string,
+  exporterFilePath: string,
+  includeFileExtension = false,
+): string {
+  if (!basepath.isAbsolute(importerFilePath))
+    throw new Error(
+      `'importerFilePath' is not an absolute path. "${importerFilePath}"`,
+    );
+  if (!basepath.isAbsolute(exporterFilePath))
+    throw new Error(
+      `'exporterFilePath' is not an absolute path. "${exporterFilePath}"`,
+    );
+
+  // Get the directory of the importer file.
+  const importerDir = basepath.dirname(importerFilePath);
+
+  // Calculate the relative path from the importer's directory to the exporter file.
+  const relativePath = basepath.relative(importerDir, exporterFilePath);
+
+  // Convert to posix path
+  let posixPath = basepath.posix.join(...relativePath.split(basepath.sep));
+
+  // Ensure the path starts with './' for same-directory imports.
+  // A relative specifier must start with './' or '../'.
+  if (!posixPath.startsWith('./') && !posixPath.startsWith('../')) {
+    posixPath = `./${posixPath}`;
+  }
+
+  if (!includeFileExtension) {
+    const ext = basepath.extname(posixPath);
+    if (ext && posixPath.endsWith(ext)) {
+      posixPath = posixPath.slice(0, -ext.length);
+    }
+  }
+
+  return posixPath;
 }

@@ -3,6 +3,7 @@ import {
   isString,
   logError,
   type OptionsExport,
+  setVerbose,
 } from '@orval/core';
 
 import { generateSpec } from './generate-spec';
@@ -15,6 +16,8 @@ export async function generate(
   workspace = process.cwd(),
   options?: GlobalOptions,
 ) {
+  setVerbose(!!options?.verbose);
+
   if (!optionsExport || isString(optionsExport)) {
     const configFilePath = findConfigFile(optionsExport);
     const configFile = await loadConfigFile(configFilePath);

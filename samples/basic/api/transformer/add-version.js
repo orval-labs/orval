@@ -1,10 +1,6 @@
-/**
- * Transformer function for orval.
- *
- * @param {OpenAPIObject} inputSchema
- * @return {OpenAPIObject}
- */
-export default (inputSchema) => ({
+import { defineTransformer } from 'orval';
+
+export default defineTransformer((inputSchema) => ({
   ...inputSchema,
   paths: Object.entries(inputSchema.paths).reduce(
     (acc, [path, pathItem]) => ({
@@ -33,4 +29,4 @@ export default (inputSchema) => ({
     }),
     {},
   ),
-});
+}));

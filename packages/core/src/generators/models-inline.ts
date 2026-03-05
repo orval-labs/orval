@@ -9,8 +9,9 @@ export function generateModelsInline(
 ): string {
   const schemas = Object.values(obj).flat();
 
-  return schemas.reduce<string>(
-    (acc, { model }) => generateModelInline(acc, model),
-    '',
-  );
+  let result = '';
+  for (const { model } of schemas) {
+    result = generateModelInline(result, model);
+  }
+  return result;
 }

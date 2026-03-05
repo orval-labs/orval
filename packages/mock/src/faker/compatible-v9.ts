@@ -2,6 +2,7 @@ import { compareVersions, type PackageJson } from '@orval/core';
 
 const getFakerPackageVersion = (packageJson: PackageJson) => {
   return (
+    packageJson.resolvedVersions?.['@faker-js/faker'] ??
     packageJson.dependencies?.['@faker-js/faker'] ??
     packageJson.devDependencies?.['@faker-js/faker'] ??
     packageJson.peerDependencies?.['@faker-js/faker']

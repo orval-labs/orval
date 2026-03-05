@@ -28,6 +28,8 @@ export default defineConfig({
           baseUrl: 'https://petstore.swagger.io/v1',
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -41,6 +43,8 @@ export default defineConfig({
         type: 'msw',
         delay: false,
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/endpoints-named-delay.yaml',
@@ -57,6 +61,8 @@ export default defineConfig({
           generateEachHttpStatus: true,
         },
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/default-status.yaml',
@@ -79,6 +85,8 @@ export default defineConfig({
           },
         };
       },
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -91,6 +99,8 @@ export default defineConfig({
       mock: true,
       mode: 'tags-split',
       client: 'axios',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -103,6 +113,8 @@ export default defineConfig({
       mock: true,
       mode: 'split',
       client: 'axios',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -115,6 +127,8 @@ export default defineConfig({
       mock: true,
       mode: 'tags',
       client: 'axios',
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -125,6 +139,8 @@ export default defineConfig({
       schemas: '../generated/mock/null-type/model',
       target: '../generated/mock/null-type/endpoints.ts',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/null-type.yaml',
@@ -137,6 +153,8 @@ export default defineConfig({
       target: '../generated/mock/enumRefs/endpoints.ts',
       client: 'axios',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/enum-refs.yaml',
@@ -148,6 +166,8 @@ export default defineConfig({
       schemas: '../generated/mock/typelessEnum/schemas',
       target: '../generated/mock/typelessEnum',
       mock: true,
+      clean: true,
+      prettier: true,
     },
   },
   formats: {
@@ -163,6 +183,8 @@ export default defineConfig({
           fractionDigits: 1,
         },
       },
+      clean: true,
+      prettier: true,
     },
   },
   zodSchemaResponse: {
@@ -174,6 +196,8 @@ export default defineConfig({
       },
       client: 'axios',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -184,6 +208,8 @@ export default defineConfig({
       target: '../generated/mock/allof-shared-base/endpoints.ts',
       schemas: '../generated/mock/allof-shared-base/model',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/allof-shared-base.yaml',
@@ -194,9 +220,75 @@ export default defineConfig({
       target: '../generated/mock/circular/endpoints.ts',
       schemas: '../generated/mock/circular/model',
       mock: true,
+      clean: true,
+      prettier: true,
     },
     input: {
       target: '../specifications/circular.yaml',
+    },
+  },
+  mswMixedContentUnion: {
+    output: {
+      target: '../generated/mock/msw-mixed-content-union/endpoints.ts',
+      schemas: '../generated/mock/msw-mixed-content-union/model',
+      client: 'axios',
+      mock: {
+        type: 'msw',
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/msw-mixed-content-union.yaml',
+    },
+  },
+  mswMixedContentUnionPreferredJson: {
+    output: {
+      target:
+        '../generated/mock/msw-mixed-content-union-preferred-json/endpoints.ts',
+      schemas: '../generated/mock/msw-mixed-content-union-preferred-json/model',
+      client: 'axios',
+      mock: {
+        type: 'msw',
+        preferredContentType: 'application/json',
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/msw-mixed-content-union.yaml',
+    },
+  },
+  mswMixedContentUnionEachHttpStatus: {
+    output: {
+      target:
+        '../generated/mock/msw-mixed-content-union-each-status/endpoints.ts',
+      schemas: '../generated/mock/msw-mixed-content-union-each-status/model',
+      client: 'axios',
+      mock: {
+        type: 'msw',
+        generateEachHttpStatus: true,
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/msw-mixed-content-each-status.yaml',
+    },
+  },
+  mswMixedContentUnionVendor: {
+    output: {
+      target: '../generated/mock/msw-mixed-content-union-vendor/endpoints.ts',
+      schemas: '../generated/mock/msw-mixed-content-union-vendor/model',
+      client: 'axios',
+      mock: {
+        type: 'msw',
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/msw-mixed-content-union-vendor.yaml',
     },
   },
 });

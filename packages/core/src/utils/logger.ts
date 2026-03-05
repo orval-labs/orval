@@ -1,10 +1,23 @@
 import readline from 'node:readline';
-
-import chalk from 'chalk';
+import { styleText } from 'node:util';
 
 import { isString } from './assertion';
 
 export const log = console.log;
+
+let _verbose = false;
+
+export function setVerbose(v: boolean) {
+  _verbose = v;
+}
+
+export function isVerbose(): boolean {
+  return _verbose;
+}
+
+export const logVerbose: typeof console.log = (...args) => {
+  if (_verbose) log(...args);
+};
 
 export function startMessage({
   name,
@@ -15,7 +28,7 @@ export function startMessage({
   version: string;
   description: string;
 }): string {
-  return `🍻 ${chalk.cyan.bold(name)} ${chalk.green(`v${version}`)}${
+  return `🍻 ${styleText(['cyan', 'bold'], name)} ${styleText('green', `v${version}`)}${
     description ? ` - ${description}` : ''
   }`;
 }
@@ -39,7 +52,8 @@ export function logError(err: unknown, tag?: string) {
   }
 
   log(
-    chalk.red(
+    styleText(
+      'red',
       ['🛑', tag ? `${tag} -` : undefined, message].filter(Boolean).join(' '),
     ),
   );
@@ -47,7 +61,8 @@ export function logError(err: unknown, tag?: string) {
 
 export function mismatchArgsMessage(mismatchArgs: string[]) {
   log(
-    chalk.yellow(
+    styleText(
+      'yellow',
       `${mismatchArgs.join(', ')} ${
         mismatchArgs.length === 1 ? 'is' : 'are'
       } not defined in your configuration!`,
@@ -58,7 +73,7 @@ export function mismatchArgsMessage(mismatchArgs: string[]) {
 export function createSuccessMessage(backend?: string) {
   log(
     `🎉 ${
-      backend ? `${chalk.green(backend)} - ` : ''
+      backend ? `${styleText('green', backend)} - ` : ''
     }Your OpenAPI spec has been converted into ready to use orval!`,
   );
 }
@@ -113,7 +128,9 @@ export function createLogger(
   const clear =
     allowClearScreen && process.stdout.isTTY && !process.env.CI
       ? clearScreen
-      : () => {};
+      : () => {
+          /* noop */
+        };
 
   function output(type: LogType, msg: string, options: LogOptions = {}) {
     if (thresh >= LogLevels[type]) {
@@ -122,11 +139,11 @@ export function createLogger(
         if (options.timestamp) {
           const tag =
             type === 'info'
-              ? chalk.cyan.bold(prefix)
+              ? styleText(['cyan', 'bold'], prefix)
               : type === 'warn'
-                ? chalk.yellow.bold(prefix)
-                : chalk.red.bold(prefix);
-          return `${chalk.dim(new Date().toLocaleTimeString())} ${tag} ${msg}`;
+                ? styleText(['yellow', 'bold'], prefix)
+                : styleText(['red', 'bold'], prefix);
+          return `${styleText('dim', new Date().toLocaleTimeString())} ${tag} ${msg}`;
         } else {
           return msg;
         }
@@ -134,7 +151,7 @@ export function createLogger(
       if (type === lastType && msg === lastMsg) {
         sameCount++;
         clear();
-        console[method](format(), chalk.yellow(`(x${sameCount + 1})`));
+        console[method](format(), styleText('yellow', `(x${sameCount + 1})`));
       } else {
         sameCount = 0;
         lastMsg = msg;

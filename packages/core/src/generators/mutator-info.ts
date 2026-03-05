@@ -1,5 +1,3 @@
-import path from 'node:path';
-
 import { type ecmaVersion, Parser, type Program } from 'acorn';
 import { build, type BuildOptions } from 'esbuild';
 import { isArray } from 'remeda';
@@ -30,7 +28,7 @@ export async function getMutatorInfo(
 
   const code = await bundleFile(
     root,
-    path.resolve(filePath),
+    filePath,
     alias,
     external,
     tsconfig?.compilerOptions,
@@ -66,7 +64,7 @@ async function bundleFile(
     treeShaking: false,
     keepNames: false,
     alias,
-    external: external || ['*'],
+    external: external ?? ['*'],
   } satisfies BuildOptions);
   const { text } = result.outputFiles[0];
 
