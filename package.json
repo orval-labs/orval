@@ -9,7 +9,7 @@
     "tests"
   ],
   "private": true,
-  "packageManager": "yarn@4.11.0",
+  "packageManager": "yarn@4.13.0",
   "devEngines": {
     "runtime": {
       "name": "node",
@@ -61,6 +61,6 @@
   },
   "volta": {
     "node": "24.13.0",
-    "yarn": "4.11.0"
+    "yarn": "4.13.0"
   }
 }
