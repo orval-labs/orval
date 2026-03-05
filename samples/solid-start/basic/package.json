@@ -15,8 +15,8 @@
     "@solidjs/router": "^0.15.4",
     "@solidjs/start": "^1.0.17",
     "@tanstack/solid-query": "^5.90.21",
-    "axios": "^1.13.2",
-    "msw": "^2.12.7",
+    "axios": "catalog:axios",
+    "msw": "catalog:tooling",
     "solid-js": "^1.9.11",
     "vinxi": "^0.5.9"
   },

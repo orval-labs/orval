@@ -3,7 +3,8 @@
   "version": 1,
   "cli": {
     "packageManager": "yarn",
-    "analytics": false
+    "analytics": false,
+    "schematicCollections": ["angular-eslint"]
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -100,6 +101,12 @@
             "runner": "vitest",
             "buildTarget": "::development",
             "setupFiles": ["vitest.setup.ts"]
+          }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
           }
         }
       }

@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@tanstack/solid-query": "^5.90.21",
-    "msw": "^2.12.7",
+    "msw": "catalog:tooling",
     "solid-js": "^1.9.11"
   },
   "msw": {

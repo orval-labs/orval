@@ -13,7 +13,7 @@
             <span>Error: {$pets.error}</span>
         {:else}
             <ul>
-                {#each $pets.data as pet}
+                {#each $pets.data as pet (pet.id)}
                     <li>{pet.name}</li>
                 {/each}
             </ul>
