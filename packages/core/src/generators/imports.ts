@@ -11,7 +11,7 @@ import { conventionName } from '../utils';
 
 interface GenerateImportsOptions {
   imports: readonly GeneratorImport[];
-  target: string;
+  target?: string;
   namingConvention?: NamingConvention;
 }
 

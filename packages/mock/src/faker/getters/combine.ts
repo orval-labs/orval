@@ -83,7 +83,12 @@ export function combineSchemasMock({
   }
 
   const value = (item[separator] ?? []).reduce(
-    (acc, val, _, arr) => {
+    (
+      acc: string,
+      val: MockSchemaObject,
+      _: number,
+      arr: MockSchemaObject[],
+    ) => {
       const refName =
         '$ref' in val ? pascal(val.$ref.split('/').pop() ?? '') : '';
       // For allOf: skip if refName is in existingRefs AND this is an inline schema (not a top-level ref)

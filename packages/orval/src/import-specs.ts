@@ -63,7 +63,7 @@ export async function importSpecs(
     spec,
     input,
     output,
-    target: input.target,
+    target: isString(input.target) ? input.target : workspace,
     workspace,
     projectName,
   });

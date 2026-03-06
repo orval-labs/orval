@@ -10,13 +10,13 @@ import { generateImports } from './imports';
 import { generateInterface } from './interface';
 
 describe('generateInterface', () => {
-  const context: ContextSpec = {
+  const context = {
     output: {
       override: { namingConvention: {} },
     },
     target: 'typescript',
     spec: {},
-  };
+  } as unknown as ContextSpec;
 
   const withContext = ({
     output,

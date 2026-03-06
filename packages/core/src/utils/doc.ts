@@ -5,22 +5,24 @@ const replacement = String.raw`*\/`; // Replace With '*\/'
 
 const regex = new RegExp(search, 'g');
 
+type JsDocSchema = {
+  description?: string[] | string;
+  deprecated?: boolean;
+  summary?: string;
+  minLength?: number;
+  maxLength?: number;
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
+  minItems?: number;
+  maxItems?: number;
+  type?: string | string[];
+  pattern?: string;
+};
+
 export function jsDoc(
-  schema: {
-    description?: string[] | string;
-    deprecated?: boolean;
-    summary?: string;
-    minLength?: number;
-    maxLength?: number;
-    minimum?: number;
-    maximum?: number;
-    exclusiveMinimum?: number;
-    exclusiveMaximum?: number;
-    minItems?: number;
-    maxItems?: number;
-    type?: string | string[];
-    pattern?: string;
-  },
+  schema: object & JsDocSchema,
   tryOneLine = false,
   context?: ContextSpec,
 ): string {

@@ -79,7 +79,7 @@ function normalizeAllOfSchema(
   const mergedProperties: Record<
     string,
     OpenApiSchemaObject | OpenApiReferenceObject
-  > = { ...schemaProperties };
+  > = schemaProperties ? { ...schemaProperties } : {};
   const mergedRequired = new Set(schemaRequired);
   const remainingAllOf: (OpenApiSchemaObject | OpenApiReferenceObject)[] = [];
 
@@ -408,7 +408,17 @@ export function combineSchemas({
 
   let resolvedValue: ScalarValue | undefined;
 
-  if (normalizedSchema.properties) {
+  const normalizedProperties = normalizedSchema.properties as
+    | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+    | undefined;
+  const schemaOneOf = schema.oneOf as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+  const schemaAnyOf = schema.anyOf as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+
+  if (normalizedProperties) {
     resolvedValue = getScalar({
       item: Object.fromEntries(
         Object.entries(normalizedSchema).filter(([key]) => key !== separator),
@@ -417,13 +427,11 @@ export function combineSchemas({
       context,
       formDataContext,
     });
-  } else if (separator === 'allOf' && (schema.oneOf || schema.anyOf)) {
+  } else if (separator === 'allOf' && (schemaOneOf || schemaAnyOf)) {
     // Handle sibling pattern: allOf + oneOf/anyOf at same level
     // e.g. { allOf: [A], oneOf: [B, C] } should produce A & (B | C)
-    const siblingCombiner = schema.oneOf ? 'oneOf' : 'anyOf';
-    const siblingSchemas = schema[siblingCombiner] as
-      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-      | undefined;
+    const siblingCombiner = schemaOneOf ? 'oneOf' : 'anyOf';
+    const siblingSchemas = schemaOneOf ?? schemaAnyOf;
     resolvedValue = combineSchemas({
       schema: { [siblingCombiner]: siblingSchemas },
       name,

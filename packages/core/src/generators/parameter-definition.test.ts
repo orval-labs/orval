@@ -4,7 +4,7 @@ import type { ContextSpec, OpenApiComponentsObject } from '../types';
 import { generateParameterDefinition } from './parameter-definition';
 
 describe('generateParameterDefinition', () => {
-  const context: ContextSpec = {
+  const context = {
     output: {
       override: {
         components: {
@@ -14,7 +14,7 @@ describe('generateParameterDefinition', () => {
     },
     target: 'typescript',
     spec: {},
-  };
+  } as unknown as ContextSpec;
 
   it('should return an empty array if parameters are empty', () => {
     const result = generateParameterDefinition({}, context, 'Suffix');

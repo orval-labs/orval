@@ -21,9 +21,7 @@ import {
  * stringify([1, 2, 3]) // returns "[1, 2, 3]"
  * stringify({ a: 1, b: 'test' }) // returns "{ a: 1, b: 'test', }"
  */
-export function stringify(
-  data?: string | unknown[] | Record<string, unknown>,
-): string | undefined {
+export function stringify(data?: unknown): string | undefined {
   if (isNullish(data)) {
     return;
   }

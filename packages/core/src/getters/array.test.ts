@@ -4,7 +4,7 @@ import type { ContextSpec, OpenApiSchemaObject } from '../types';
 import { getArray } from './array';
 
 describe('getArray', () => {
-  const context: ContextSpec = {
+  const context = {
     output: {
       override: {
         components: {
@@ -14,7 +14,7 @@ describe('getArray', () => {
     },
     target: 'typescript',
     spec: { openapi: '3.1.0' },
-  };
+  } as unknown as ContextSpec;
 
   it('should inline types when name is undefined (no schemas generated)', () => {
     // When name is undefined, types should be inlined, not declared as schemas.

@@ -21,6 +21,7 @@
     "dev": "tsdown --config-loader unrun --watch src",
     "lint": "eslint .",
     "test": "vitest",
+    "typecheck": "tsc --noEmit",
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
   },
@@ -33,6 +34,7 @@
     "eslint": "catalog:",
     "rimraf": "catalog:",
     "tsdown": "catalog:",
+    "typescript": "catalog:",
     "vitest": "catalog:"
   },
   "publishConfig": {

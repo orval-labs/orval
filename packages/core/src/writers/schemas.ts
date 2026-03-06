@@ -442,17 +442,15 @@ export async function writeSchemas({
         .toSorted((a, b) => a.localeCompare(b));
 
       const existingContent = await fs.readFile(schemaFilePath, 'utf8');
-      const existingExports =
-        existingContent
-          .match(/export\s+\*\s+from\s+['"][^'"]+['"]/g)
-          ?.map((statement) => {
-            const match = /export\s+\*\s+from\s+['"]([^'"]+)['"]/.exec(
-              statement,
-            );
-            if (!match) return;
-            return `export * from '${match[1]}';`;
-          })
-          .filter(Boolean) ?? [];
+      const matchedExports = existingContent
+        .match(/export\s+\*\s+from\s+['"][^'"]+['"]/g)
+        ?.map((statement) => {
+          const match = /export\s+\*\s+from\s+['"]([^'"]+)['"]/.exec(statement);
+          if (!match) return;
+          return `export * from '${match[1]}';`;
+        })
+        .filter(Boolean);
+      const existingExports = (matchedExports ?? []) as string[];
 
       const exports = [...new Set([...existingExports, ...currentExports])]
         .toSorted((a, b) => a.localeCompare(b))

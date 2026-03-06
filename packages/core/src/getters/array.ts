@@ -103,7 +103,7 @@ export function getArray({
       example: schemaExample,
       examples: resolveExampleRefs(schemaExamples, context),
     };
-  } else if (compareVersions(context.spec.openapi, '3.1', '>=')) {
+  } else if (compareVersions(context.spec.openapi ?? '3.0.0', '3.1', '>=')) {
     return {
       value: 'unknown[]',
       imports: [],

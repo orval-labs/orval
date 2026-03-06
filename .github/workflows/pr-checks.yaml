@@ -44,6 +44,9 @@ jobs:
       - name: Build packages
         run: yarn build
 
+      - name: Typecheck packages
+        run: yarn typecheck
+
       - name: Lint packages
         run: yarn lint
 

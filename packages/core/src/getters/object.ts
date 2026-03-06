@@ -129,11 +129,23 @@ export function getObject({
     };
   }
 
-  if (item.allOf || item.oneOf || item.anyOf) {
-    const separator = item.allOf ? 'allOf' : item.oneOf ? 'oneOf' : 'anyOf';
+  const schemaItem = item as OpenApiSchemaObject & Record<string, unknown>;
+  const itemAllOf = schemaItem.allOf as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+  const itemOneOf = schemaItem.oneOf as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+  const itemAnyOf = schemaItem.anyOf as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+  const itemType = schemaItem.type as string | string[] | undefined;
+
+  if (itemAllOf || itemOneOf || itemAnyOf) {
+    const separator = itemAllOf ? 'allOf' : itemOneOf ? 'oneOf' : 'anyOf';
 
     return combineSchemas({
-      schema: item,
+      schema: schemaItem,
       name,
       separator,
       context,
@@ -142,11 +154,11 @@ export function getObject({
     });
   }
 
-  if (Array.isArray(item.type)) {
-    const typeArray = item.type as string[];
+  if (Array.isArray(itemType)) {
+    const typeArray = itemType;
     // Bridge: item is OpenApiSchemaObject which includes AnyOtherAttribute index signature.
     // Spreading it directly would carry `any` into the result. Cast to break the chain.
-    const baseItem = item as OpenApiSchemaObject;
+    const baseItem = schemaItem;
     return combineSchemas({
       schema: {
         anyOf: typeArray.map(
@@ -162,7 +174,7 @@ export function getObject({
 
   // Bridge assertion: item.properties is typed as { [name: string]: ReferenceObject | SchemaObject }
   // but AnyOtherAttribute index signature infects all property access to return `any`
-  const itemProperties = item.properties as
+  const itemProperties = schemaItem.properties as
     | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
     | undefined;
 
@@ -180,19 +192,18 @@ export function getObject({
       isEnum: false,
       type: 'object' as SchemaType,
       isRef: false,
-      schema: {},
       hasReadonlyProps: false,
       useTypeAlias: false,
       dependencies: [],
-      example: item.example as unknown,
+      example: schemaItem.example as unknown,
       examples: resolveExampleRefs(
-        item.examples as
+        schemaItem.examples as
           | Record<string, OpenApiReferenceObject | { value?: unknown }>
           | undefined,
         context,
       ),
     };
-    const itemRequired = item.required as string[] | undefined;
+    const itemRequired = schemaItem.required as string[] | undefined;
     for (const [index, [key, schema]] of entries.entries()) {
       const isRequired = (
         Array.isArray(itemRequired) ? itemRequired : []
@@ -236,7 +247,7 @@ export function getObject({
       });
 
       const isReadOnly =
-        (item.readOnly as boolean | undefined) ??
+        (schemaItem.readOnly as boolean | undefined) ??
         ((schema as OpenApiSchemaObject).readOnly as boolean | undefined);
       if (!index) {
         acc.value += '{';
@@ -299,20 +310,23 @@ export function getObject({
       if (entries.length - 1 === index) {
         // Bridge assertion: additionalProperties is boolean | ReferenceObject | SchemaObject
         // but AnyOtherAttribute infects property access
-        const additionalProps = item.additionalProperties as
+        const additionalProps = schemaItem.additionalProperties as
           | boolean
           | OpenApiSchemaObject
           | OpenApiReferenceObject
           | undefined;
         if (additionalProps) {
           if (isBoolean(additionalProps)) {
-            const recordType = getPropertyNamesRecordType(item, 'unknown');
+            const recordType = getPropertyNamesRecordType(
+              schemaItem,
+              'unknown',
+            );
             if (recordType) {
               acc.value += '\n}';
               acc.value += ` & ${recordType}`;
               acc.useTypeAlias = true;
             } else {
-              const keyType = getIndexSignatureKey(item);
+              const keyType = getIndexSignatureKey(schemaItem);
               acc.value += `\n  [key: ${keyType}]: unknown;\n }`;
             }
           } else {
@@ -322,7 +336,7 @@ export function getObject({
               context,
             });
             const recordType = getPropertyNamesRecordType(
-              item,
+              schemaItem,
               resolvedValue.value,
             );
             if (recordType) {
@@ -330,7 +344,7 @@ export function getObject({
               acc.value += ` & ${recordType}`;
               acc.useTypeAlias = true;
             } else {
-              const keyType = getIndexSignatureKey(item);
+              const keyType = getIndexSignatureKey(schemaItem);
               acc.value += `\n  [key: ${keyType}]: ${resolvedValue.value};\n}`;
             }
             acc.dependencies.push(...resolvedValue.dependencies);
@@ -346,15 +360,15 @@ export function getObject({
   }
 
   // Bridge assertion: additionalProperties is boolean | ReferenceObject | SchemaObject
-  const outerAdditionalProps = item.additionalProperties as
+  const outerAdditionalProps = schemaItem.additionalProperties as
     | boolean
     | OpenApiSchemaObject
     | OpenApiReferenceObject
     | undefined;
-  const readOnlyFlag = item.readOnly as boolean | undefined;
+  const readOnlyFlag = schemaItem.readOnly as boolean | undefined;
   if (outerAdditionalProps) {
     if (isBoolean(outerAdditionalProps)) {
-      const recordType = getPropertyNamesRecordType(item, 'unknown');
+      const recordType = getPropertyNamesRecordType(schemaItem, 'unknown');
       if (recordType) {
         return {
           value: recordType + nullable,
@@ -368,7 +382,7 @@ export function getObject({
           dependencies: [],
         };
       }
-      const keyType = getIndexSignatureKey(item);
+      const keyType = getIndexSignatureKey(schemaItem);
       return {
         value: `{ [key: ${keyType}]: unknown }` + nullable,
         imports: [],
@@ -386,7 +400,10 @@ export function getObject({
       name,
       context,
     });
-    const recordType = getPropertyNamesRecordType(item, resolvedValue.value);
+    const recordType = getPropertyNamesRecordType(
+      schemaItem,
+      resolvedValue.value,
+    );
     if (recordType) {
       return {
         value: recordType + nullable,
@@ -400,7 +417,7 @@ export function getObject({
         dependencies: resolvedValue.dependencies,
       };
     }
-    const keyType = getIndexSignatureKey(item);
+    const keyType = getIndexSignatureKey(schemaItem);
     return {
       value: `{[key: ${keyType}]: ${resolvedValue.value}}` + nullable,
       imports: resolvedValue.imports,
@@ -414,7 +431,7 @@ export function getObject({
     };
   }
 
-  const constValue = item.const as string | undefined;
+  const constValue = schemaItem.const as string | undefined;
   if (constValue) {
     return {
       value: `'${constValue}'`,
@@ -429,9 +446,9 @@ export function getObject({
   }
 
   const keyType =
-    item.type === 'object' ? getIndexSignatureKey(item) : 'string';
-  const recordType = getPropertyNamesRecordType(item, 'unknown');
-  if (item.type === 'object' && recordType) {
+    itemType === 'object' ? getIndexSignatureKey(schemaItem) : 'string';
+  const recordType = getPropertyNamesRecordType(schemaItem, 'unknown');
+  if (itemType === 'object' && recordType) {
     return {
       value: recordType + nullable,
       imports: [],
@@ -446,7 +463,7 @@ export function getObject({
   }
   return {
     value:
-      (item.type === 'object' ? `{ [key: ${keyType}]: unknown }` : 'unknown') +
+      (itemType === 'object' ? `{ [key: ${keyType}]: unknown }` : 'unknown') +
       nullable,
     imports: [],
     schemas: [],

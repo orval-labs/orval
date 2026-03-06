@@ -16,19 +16,24 @@ import {
 import { getMockScalar } from '../faker/getters';
 
 function getMockPropertiesWithoutFunc(properties: any, spec: OpenApiDocument) {
-  return Object.entries(
-    isFunction(properties) ? properties(spec) : properties,
-  ).reduce<Record<string, string>>((acc, [key, value]) => {
-    const implementation = isFunction(value)
-      ? `(${value})()`
-      : stringify(value as string)!;
+  const resolvedProperties =
+    typeof properties === 'function'
+      ? (properties as (spec: OpenApiDocument) => Record<string, unknown>)(spec)
+      : (properties as Record<string, unknown>);
+  return Object.entries(resolvedProperties).reduce<Record<string, string>>(
+    (acc, [key, value]) => {
+      const implementation = isFunction(value)
+        ? `(${value})()`
+        : stringify(value as string)!;
 
-    acc[key] = implementation.replaceAll(
-      /import_faker\.defaults|import_faker\.faker|_faker\.faker/g,
-      'faker',
-    );
-    return acc;
-  }, {});
+      acc[key] = implementation.replaceAll(
+        /import_faker\.defaults|import_faker\.faker|_faker\.faker/g,
+        'faker',
+      );
+      return acc;
+    },
+    {},
+  );
 }
 
 function getMockWithoutFunc(

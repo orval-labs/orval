@@ -6277,6 +6277,7 @@ __metadata:
     remeda: "npm:^2.33.6"
     rimraf: "catalog:"
     tsdown: "catalog:"
+    typescript: "catalog:"
     vitest: "catalog:"
   languageName: unknown
   linkType: soft
@@ -6304,6 +6305,7 @@ __metadata:
     eslint: "catalog:"
     rimraf: "catalog:"
     tsdown: "catalog:"
+    typescript: "catalog:"
     vitest: "catalog:"
   languageName: unknown
   linkType: soft
@@ -6317,6 +6319,7 @@ __metadata:
     remeda: "npm:^2.33.6"
     rimraf: "catalog:"
     tsdown: "catalog:"
+    typescript: "catalog:"
     vitest: "catalog:"
   languageName: unknown
   linkType: soft

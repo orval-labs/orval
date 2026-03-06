@@ -22,7 +22,7 @@ const schemaWithReadOnly: OpenApiSchemaObject = {
   required: ['file'],
 };
 
-const context: ContextSpec = {
+const context = {
   output: {
     override: {
       formData: { arrayHandling: 'serialize', disabled: false },
@@ -41,7 +41,7 @@ const context: ContextSpec = {
   spec: {
     components: { schemas: {} },
   },
-};
+} as unknown as ContextSpec;
 
 describe('getResReqTypes (formData, readOnly property)', () => {
   it('should not include readOnly properties in the generated formData', () => {

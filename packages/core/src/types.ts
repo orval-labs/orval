@@ -1092,7 +1092,7 @@ export type GetterParam = {
   name: string;
   definition: string;
   implementation: string;
-  default: boolean;
+  default: unknown;
   required: boolean;
   imports: GeneratorImport[];
 };
@@ -1125,7 +1125,7 @@ type GetterPropBase = {
   name: string;
   definition: string;
   implementation: string;
-  default: boolean;
+  default: unknown;
   required: boolean;
 };
 
@@ -1171,7 +1171,7 @@ export type ScalarValue = {
   isRef: boolean;
   dependencies: string[];
   example?: unknown;
-  examples?: Record<string, unknown>;
+  examples?: Record<string, unknown> | unknown[];
 };
 
 export type ResolverValue = ScalarValue & {
@@ -1304,7 +1304,7 @@ export type OpenApiSchemaObjectType =
 
 // OpenAPI type aliases. Intended to make it easy to swap to OpenAPI v3.2 in the future
 export type OpenApiDocument = OpenAPIV3_1.Document;
-export type OpenApiSchemaObject = OpenAPIV3_1.SchemaObject;
+export type OpenApiSchemaObject = Exclude<OpenAPIV3_1.SchemaObject, boolean>;
 export type OpenApiSchemasObject = Record<string, OpenApiSchemaObject>;
 export type OpenApiReferenceObject = OpenAPIV3_1.ReferenceObject & {
   // https://github.com/scalar/scalar/issues/7405
