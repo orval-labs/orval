@@ -20,13 +20,14 @@
     "prepare": "see https://github.com/sveltejs/kit/issues/5390#issuecomment-1176480653"
   },
   "devDependencies": {
+    "@eslint/compat": "^2.0.2",
     "@faker-js/faker": "catalog:tooling",
     "@sveltejs/adapter-auto": "^2.1.1",
     "@sveltejs/kit": "^1.30.4",
-    "@typescript-eslint/eslint-plugin": "^8.52.0",
-    "@typescript-eslint/parser": "^8.50.1",
+    "@types/node": "catalog:",
     "eslint": "catalog:",
-    "eslint-plugin-svelte3": "^4.0.0",
+    "eslint-plugin-svelte": "^3.15.0",
+    "globals": "catalog:",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
     "prettier": "catalog:",
@@ -34,6 +35,7 @@
     "svelte-check": "catalog:svelte",
     "tslib": "catalog:",
     "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
   },

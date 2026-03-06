@@ -330,6 +330,7 @@ export async function writeSchema({
   } catch (error) {
     throw new Error(
       `Oups... 🍻. An Error occurred while writing schema ${name} => ${String(error)}`,
+      { cause: error },
     );
   }
 }
@@ -447,6 +448,7 @@ export async function writeSchemas({
     } catch (error) {
       throw new Error(
         `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${String(error)}`,
+        { cause: error },
       );
     }
   }

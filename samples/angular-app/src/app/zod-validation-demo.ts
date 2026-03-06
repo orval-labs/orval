@@ -634,7 +634,7 @@ export class ZodValidationDemo implements OnInit {
   } | null>(null);
 
   protected readonly observeResults = signal<
-    Array<{ mode: string; status: string }>
+    { mode: string; status: string }[]
   >([]);
 
   private readonly DEMO_PARAMS = {
@@ -676,7 +676,7 @@ export class ZodValidationDemo implements OnInit {
   }
 
   private loadObserveModes() {
-    const results: Array<{ mode: string; status: string }> = [];
+    const results: { mode: string; status: string }[] = [];
     let completed = 0;
     const totalModes = 3;
 

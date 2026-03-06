@@ -1,5 +1,3 @@
-// @ts-check
-import eslint from '@eslint/js';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import turboConfig from 'eslint-config-turbo/flat';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
@@ -19,13 +17,17 @@ export default defineConfig(
     '**/.yarn',
     '**/.turbo',
     '**/dist',
+    '**/__snapshots__',
   ]),
   turboConfig,
-  eslint.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
   eslintPluginUnicorn.configs.recommended,
   {
+    linterOptions: {
+      reportUnusedDisableDirectives: 'error',
+      reportUnusedInlineConfigs: 'error',
+    },
     languageOptions: {
       globals: globals.builtin,
       parserOptions: {

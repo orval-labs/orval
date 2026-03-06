@@ -15,7 +15,7 @@ export function generateImportsForBuilder(
   const isZodSchemaOutput =
     isObject(output.schemas) && output.schemas.type === 'zod';
 
-  let schemaImports: GeneratorDependency[] = [];
+  let schemaImports: GeneratorDependency[];
   if (output.indexFiles) {
     schemaImports = isZodSchemaOutput
       ? [

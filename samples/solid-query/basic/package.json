@@ -19,8 +19,8 @@
   },
   "dependencies": {
     "@tanstack/solid-query": "^5.90.21",
-    "axios": "^1.13.2",
-    "msw": "^2.12.7",
+    "axios": "catalog:axios",
+    "msw": "catalog:tooling",
     "solid-js": "^1.9.11"
   },
   "dependenciesMeta": {

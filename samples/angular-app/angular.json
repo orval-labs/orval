@@ -3,7 +3,8 @@
   "version": 1,
   "cli": {
     "packageManager": "yarn",
-    "analytics": false
+    "analytics": false,
+    "schematicCollections": ["angular-eslint"]
   },
   "newProjectRoot": "projects",
   "projects": {

@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 const responseType = <Result>(
@@ -10,9 +10,9 @@ const responseType = <Result>(
   }: {
     url: string;
     method: string;
-    params?: any;
-    data?: any;
-    headers?: any;
+    params?: HttpParams | Record<string, string | string[]>;
+    data?: unknown;
+    headers?: Record<string, string | string[]>;
   },
   http: HttpClient,
 ): Observable<Result> =>

@@ -1,0 +1,56 @@
+<div class="pets-page">
+  <div class="page-header">
+    <div class="page-header-inner">
+      <div class="logo-glow">
+        <img
+          ngSrc="logo.svg"
+          width="40"
+          height="40"
+          priority
+          alt="Orval logo"
+        />
+      </div>
+      <div>
+        <h1 class="page-title">{{ title() }}</h1>
+        <p class="page-sub">
+          Browse pets from the default generated Angular client — no custom
+          params serializer required.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  @if (pets$ | async; as pets) {
+  <div class="pets-grid" role="list" aria-label="Pets list">
+    @for (pet of pets; track pet.id) {
+    <article class="pet-card" role="listitem">
+      <div class="pet-card-header">
+        <span class="pet-card-id">#{{ pet.id }}</span>
+        @if (pet.status) {
+        <span class="status-dot" [class]="'status-' + pet.status"></span>
+        }
+      </div>
+      <h2 class="pet-card-name">{{ pet.name }}</h2>
+      @if (pet.tag) {
+      <span class="pet-card-tag">{{ pet.tag }}</span>
+      }
+    </article>
+    }
+  </div>
+  } @else {
+  <div class="loading-state" aria-live="polite">
+    <span class="loading-dot"></span>
+    <span class="loading-dot"></span>
+    <span class="loading-dot"></span>
+    <span>Loading pets…</span>
+  </div>
+  }
+
+  <div class="devnote">
+    <span class="devnote-badge">DEV</span>
+    <span
+      >Content type overload tests (issue #2243) — check browser console for
+      text/xml/json/default response shapes.</span
+    >
+  </div>
+</div>

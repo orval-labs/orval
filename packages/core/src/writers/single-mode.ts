@@ -189,6 +189,7 @@ export async function writeSingleMode({
     const errorMsg = error instanceof Error ? error.message : 'unknown error';
     throw new Error(
       `Oups... 🍻. An Error occurred while writing file => ${errorMsg}`,
+      { cause: error },
     );
   }
 }
