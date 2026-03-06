@@ -119,6 +119,7 @@
     "globals": "catalog:",
     "husky": "^9.1.7",
     "lint-staged": "^16.3.2",
+    "orval": "workspace:*",
     "prettier": "catalog:",
     "rimraf": "catalog:",
     "tsdown": "catalog:",
