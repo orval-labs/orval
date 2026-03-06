@@ -185,7 +185,9 @@ function getCanonicalMap(
     };
 
     canonicalPathMap.set(key, canonicalInfo);
-    canonicalNameMap.set(groupSchemas[0].name, canonicalInfo);
+    for (const schema of groupSchemas) {
+      canonicalNameMap.set(schema.name, canonicalInfo);
+    }
   }
 
   return {
