@@ -82,7 +82,7 @@
       "@angular/cli": "21.1.4"
     },
     "axios": {
-      "axios": "1.13.5"
+      "axios": "1.13.6"
     },
     "tooling": {
       "@faker-js/faker": "10.3.0",
