@@ -6,6 +6,7 @@
     "lib": ["esnext"],
     "moduleDetection": "force",
     "module": "preserve",
+    "customConditions": ["development"],
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "types": ["node"],
