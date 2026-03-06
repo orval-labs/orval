@@ -11,9 +11,8 @@ import {
   generateMutatorImports,
   type GeneratorDependency,
   type GeneratorImport,
-  type GeneratorMutator,
-  type GeneratorOptions,
   type GeneratorVerbOptions,
+  getAngularFilteredParamsExpression,
   getFileInfo,
   getFullRoute,
   GetterPropType,
@@ -33,8 +32,12 @@ import {
   ANGULAR_HTTP_RESOURCE_DEPENDENCIES,
 } from './constants';
 import {
+  buildAcceptHelpers,
   generateHttpClientImplementation,
+  getAcceptHelperName,
   getHttpClientReturnTypes,
+  getUniqueContentTypes,
+  type HttpClientGeneratorContext,
   resetHttpClientReturnTypes,
 } from './http-client';
 import {
@@ -44,7 +47,9 @@ import {
   createRouteRegistry,
   getDefaultSuccessType,
   isMutationVerb,
+  isPrimitiveType,
   isRetrievalVerb,
+  isZodSchemaOutput,
 } from './utils';
 
 /**
@@ -61,7 +66,31 @@ import {
  */
 interface AngularOperationOverride {
   readonly client?: ClientOverride;
+  readonly httpResource?: AngularHttpResourceOptionsConfig;
 }
+
+type AngularHttpResourceOptionsConfig = {
+  defaultValue?: unknown;
+  debugName?: string;
+  injector?: string;
+  equal?: string;
+};
+
+const isAngularHttpResourceOptions = (
+  value: unknown,
+): value is AngularHttpResourceOptionsConfig =>
+  value === undefined ||
+  (isObject(value) &&
+    (value.defaultValue === undefined ||
+      typeof value.defaultValue === 'string' ||
+      typeof value.defaultValue === 'number' ||
+      typeof value.defaultValue === 'boolean' ||
+      value.defaultValue === null ||
+      Array.isArray(value.defaultValue) ||
+      isObject(value.defaultValue)) &&
+    (value.debugName === undefined || typeof value.debugName === 'string') &&
+    (value.injector === undefined || typeof value.injector === 'string') &&
+    (value.equal === undefined || typeof value.equal === 'string'));
 
 const isAngularOperationOverride = (
   value: unknown,
@@ -72,7 +101,9 @@ const isAngularOperationOverride = (
   (!('client' in value) ||
     value.client === 'httpClient' ||
     value.client === 'httpResource' ||
-    value.client === 'both');
+    value.client === 'both') &&
+  (!('httpResource' in value) ||
+    isAngularHttpResourceOptions(value.httpResource));
 
 const getClientOverride = (
   verbOption: GeneratorVerbOptions,
@@ -83,6 +114,34 @@ const getClientOverride = (
   return isAngularOperationOverride(angular) ? angular.client : undefined;
 };
 
+const getHttpResourceOverride = (
+  verbOption: GeneratorVerbOptions,
+  output: NormalizedOutputOptions,
+): AngularHttpResourceOptionsConfig | undefined => {
+  const operationAngular =
+    verbOption.override.operations[verbOption.operationId]?.angular;
+  const operationOverride = isAngularOperationOverride(operationAngular)
+    ? operationAngular.httpResource
+    : undefined;
+  const angularOverride = output.override.angular as unknown;
+  const globalOverride =
+    isObject(angularOverride) &&
+    'httpResource' in angularOverride &&
+    isAngularHttpResourceOptions(angularOverride.httpResource)
+      ? angularOverride.httpResource
+      : undefined;
+
+  if (globalOverride === undefined) return operationOverride;
+  if (operationOverride === undefined) return globalOverride;
+
+  return {
+    ...globalOverride,
+    ...operationOverride,
+  };
+};
+
+// NOTE: Module-level singletons — reset() is called by the header builder
+// (generateAngularHttpResourceHeader) at the start of each generation pass.
 const resourceReturnTypesRegistry = createReturnTypesRegistry();
 
 /** @internal Exported for testing only */
@@ -180,6 +239,8 @@ type HttpResourceFactoryName =
   | 'httpResource.arrayBuffer'
   | 'httpResource.blob';
 
+const HTTP_RESOURCE_OPTIONS_TYPE_NAME = 'OrvalHttpResourceOptions';
+
 const getHttpResourceFactory = (
   response: { readonly isBlob: boolean },
   contentType: string | undefined,
@@ -189,6 +250,23 @@ const getHttpResourceFactory = (
   if (isResponseBlob(contentType, response.isBlob)) return 'httpResource.blob';
   if (isResponseArrayBuffer(contentType)) return 'httpResource.arrayBuffer';
   return 'httpResource';
+};
+
+const getHttpResourceRawType = (factory: HttpResourceFactoryName): string => {
+  switch (factory) {
+    case 'httpResource.text': {
+      return 'string';
+    }
+    case 'httpResource.arrayBuffer': {
+      return 'ArrayBuffer';
+    }
+    case 'httpResource.blob': {
+      return 'Blob';
+    }
+    default: {
+      return 'unknown';
+    }
+  }
 };
 
 const getTypeWithoutDefault = (definition: string): string => {
@@ -348,10 +426,16 @@ const buildResourceRequest = (
 
   const paramsAccess = queryParams ? 'params?.()' : undefined;
   const headersAccess = headers ? 'headers?.()' : undefined;
+  const filteredParamsValue = paramsAccess
+    ? getAngularFilteredParamsExpression(
+        `${paramsAccess} ?? {}`,
+        queryParams?.requiredNullableKeys,
+      )
+    : undefined;
   const paramsValue = paramsAccess
     ? paramsSerializer
-      ? `params?.() ? ${paramsSerializer.name}(params()) : undefined`
-      : paramsAccess
+      ? `params?.() ? ${paramsSerializer.name}(${filteredParamsValue}) : undefined`
+      : filteredParamsValue
     : undefined;
 
   const isGet = verb === 'get';
@@ -377,16 +461,11 @@ const buildResourceRequest = (
   };
 };
 
-const PRIMITIVE_TYPES = new Set([
-  'string',
-  'number',
-  'boolean',
-  'void',
-  'unknown',
-]);
-
 const escapeRegExp = (value: string): string =>
   value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+
+const getSchemaOutputTypeRef = (typeName: string): string =>
+  typeName === 'Error' ? 'ErrorOutput' : `${typeName}Output`;
 
 const getHttpResourceResponseImports = (
   response: GeneratorVerbOptions['response'],
@@ -403,11 +482,23 @@ const getHttpResourceResponseImports = (
 
 const getHttpResourceVerbImports = (
   verbOptions: GeneratorVerbOptions,
+  output: NormalizedOutputOptions,
 ): GeneratorImport[] => {
   const { response, body, queryParams, props, headers, params } = verbOptions;
+  const responseImports = isZodSchemaOutput(output)
+    ? [
+        ...getHttpResourceResponseImports(response).map((imp) => ({
+          ...imp,
+          values: true,
+        })),
+        ...getHttpResourceResponseImports(response)
+          .filter((imp) => !isPrimitiveType(imp.name))
+          .map((imp) => ({ name: getSchemaOutputTypeRef(imp.name) })),
+      ]
+    : getHttpResourceResponseImports(response);
 
   return [
-    ...getHttpResourceResponseImports(response),
+    ...responseImports,
     ...body.imports,
     ...props.flatMap((prop) =>
       prop.type === GetterPropType.NAMED_PATH_PARAMS
@@ -417,42 +508,165 @@ const getHttpResourceVerbImports = (
     ...(queryParams ? [{ name: queryParams.schema.name }] : []),
     ...(headers ? [{ name: headers.schema.name }] : []),
     ...params.flatMap<GeneratorImport>(({ imports }) => imports),
+    { name: 'map', values: true, importPath: 'rxjs' },
   ];
 };
 
-const getParseOption = (
+const getParseExpression = (
   response: {
     readonly imports: readonly { name: string; isZodSchema?: boolean }[];
     readonly definition: { readonly success?: string };
   },
   factory: HttpResourceFactoryName,
   output: NormalizedOutputOptions,
-): string => {
-  if (factory !== 'httpResource') return '';
+  responseTypeOverride?: string,
+): string | undefined => {
+  if (factory !== 'httpResource') return undefined;
 
   // Explicit isZodSchema flag on imports (forward-compatible)
   const zodSchema = response.imports.find((imp) => imp.isZodSchema);
-  if (zodSchema) return `, { parse: ${zodSchema.name}.parse }`;
+  if (zodSchema) return `${zodSchema.name}.parse`;
 
   // Check if runtime validation is disabled
-  if (!output.override.angular.runtimeValidation) return '';
+  if (!output.override.angular.runtimeValidation) return undefined;
 
   // Auto-detect: when schemas.type === 'zod', use the response type as the schema name
-  const isZodSchemaOutput =
-    isObject(output.schemas) && output.schemas.type === 'zod';
-  if (!isZodSchemaOutput) return '';
+  if (!isZodSchemaOutput(output)) return undefined;
 
-  const responseType = response.definition.success;
-  if (!responseType) return '';
-  if (PRIMITIVE_TYPES.has(responseType)) return '';
+  const responseType = responseTypeOverride ?? response.definition.success;
+  if (!responseType) return undefined;
+  if (isPrimitiveType(responseType)) return undefined;
 
   // Verify a matching import exists (the response type name resolves to a zod schema)
   const hasMatchingImport = response.imports.some(
     (imp) => imp.name === responseType,
   );
-  if (!hasMatchingImport) return '';
+  if (!hasMatchingImport) return undefined;
 
-  return `, { parse: ${responseType}.parse }`;
+  return `${responseType}.parse`;
+};
+
+const buildHttpResourceOptionsLiteral = (
+  verbOption: GeneratorVerbOptions,
+  factory: HttpResourceFactoryName,
+  output: NormalizedOutputOptions,
+  responseTypeOverride?: string,
+): { entries: string[]; hasDefaultValue: boolean } => {
+  const override = getHttpResourceOverride(verbOption, output);
+  const parseExpression = getParseExpression(
+    verbOption.response,
+    factory,
+    output,
+    responseTypeOverride,
+  );
+
+  const defaultValueLiteral =
+    override?.defaultValue === undefined
+      ? undefined
+      : JSON.stringify(override.defaultValue);
+
+  const optionEntries = [
+    parseExpression ? `parse: ${parseExpression}` : undefined,
+    defaultValueLiteral ? `defaultValue: ${defaultValueLiteral}` : undefined,
+    override?.debugName === undefined
+      ? undefined
+      : `debugName: ${JSON.stringify(override.debugName)}`,
+    override?.injector ? `injector: ${override.injector}` : undefined,
+    override?.equal ? `equal: ${override.equal}` : undefined,
+  ].filter((value): value is string => value !== undefined);
+
+  return {
+    entries: optionEntries,
+    hasDefaultValue: defaultValueLiteral !== undefined,
+  };
+};
+
+const appendArgument = (args: string, argument: string): string => {
+  const normalizedArgs = args.trim().replace(/,\s*$/, '');
+
+  return normalizedArgs.length > 0
+    ? `${normalizedArgs},
+  ${argument}`
+    : argument;
+};
+
+const normalizeOptionalParametersForRequiredTrailingArg = (
+  args: string,
+): string =>
+  args.replaceAll(/(\w+)\?:\s*([^,\n]+)(,?)/g, '$1: $2 | undefined$3');
+
+const buildHttpResourceOptionsArgument = (
+  valueType: string,
+  rawType: string,
+  options: { readonly requiresDefaultValue: boolean },
+  omitParse = false,
+): string => {
+  const baseType = `${HTTP_RESOURCE_OPTIONS_TYPE_NAME}<${valueType}, ${rawType}${omitParse ? ', true' : ''}>`;
+  return options.requiresDefaultValue
+    ? `options: ${baseType} & { defaultValue: NoInfer<${valueType}> }`
+    : `options?: ${baseType}`;
+};
+
+const buildHttpResourceOptionsExpression = (
+  configuredEntries: readonly string[],
+): string | undefined => {
+  if (configuredEntries.length === 0) {
+    return 'options';
+  }
+
+  return `{
+    ...(options ?? {}),
+    ${configuredEntries.join(',\n    ')}
+  }`;
+};
+
+const buildHttpResourceFunctionSignatures = (
+  resourceName: string,
+  args: string,
+  valueType: string,
+  rawType: string,
+  hasConfiguredDefaultValue: boolean,
+  omitParse = false,
+): string => {
+  if (hasConfiguredDefaultValue) {
+    return `export function ${resourceName}(${appendArgument(
+      args,
+      buildHttpResourceOptionsArgument(
+        valueType,
+        rawType,
+        {
+          requiresDefaultValue: false,
+        },
+        omitParse,
+      ),
+    )}): HttpResourceRef<${valueType}>`;
+  }
+
+  const overloadArgs = appendArgument(
+    normalizeOptionalParametersForRequiredTrailingArg(args),
+    buildHttpResourceOptionsArgument(
+      valueType,
+      rawType,
+      {
+        requiresDefaultValue: true,
+      },
+      omitParse,
+    ),
+  );
+  const implementationArgs = appendArgument(
+    args,
+    buildHttpResourceOptionsArgument(
+      valueType,
+      rawType,
+      {
+        requiresDefaultValue: false,
+      },
+      omitParse,
+    ),
+  );
+
+  return `export function ${resourceName}(${overloadArgs}): HttpResourceRef<${valueType}>;
+export function ${resourceName}(${implementationArgs}): HttpResourceRef<${valueType} | undefined>`;
 };
 
 const buildHttpResourceFunction = (
@@ -463,15 +677,42 @@ const buildHttpResourceFunction = (
   const { operationName, response, props, params, mutator } = verbOption;
 
   const dataType = response.definition.success || 'unknown';
+  const omitParse = isZodSchemaOutput(output);
+  const responseSchemaImports = getHttpResourceResponseImports(response);
+  const hasResponseSchemaImport = responseSchemaImports.some(
+    (imp) => imp.name === dataType,
+  );
   const resourceName = `${operationName}Resource`;
+  const parsedDataType =
+    omitParse &&
+    output.override.angular.runtimeValidation &&
+    !isPrimitiveType(dataType) &&
+    hasResponseSchemaImport
+      ? getSchemaOutputTypeRef(dataType)
+      : dataType;
+  const successTypes = response.types.success as ResReqTypesValue[];
+  const overallReturnType =
+    successTypes.length <= 1
+      ? parsedDataType
+      : [
+          ...new Set(
+            successTypes.map((type) =>
+              getHttpResourceGeneratedResponseType(
+                type.value,
+                type.contentType,
+                responseSchemaImports,
+                output,
+              ),
+            ),
+          ),
+        ].join(' | ') || parsedDataType;
   resourceReturnTypesRegistry.set(
     operationName,
     `export type ${pascal(
       operationName,
-    )}ResourceResult = NonNullable<${dataType}>`,
+    )}ResourceResult = NonNullable<${overallReturnType}>`,
   );
-
-  const successTypes = response.types.success as ResReqTypesValue[];
+  const uniqueContentTypes = getUniqueContentTypes(successTypes);
   const defaultSuccess = getDefaultSuccessType(successTypes, dataType);
   const jsonContentType = successTypes.find((type) =>
     type.contentType.includes('json'),
@@ -495,7 +736,206 @@ const buildHttpResourceFunction = (
     verbOption,
     signalRoute,
   );
-  const parseOption = getParseOption(response, resourceFactory, output);
+
+  if (uniqueContentTypes.length > 1) {
+    const defaultContentType = jsonContentType ?? defaultSuccess.contentType;
+    const acceptTypeName = getAcceptHelperName(operationName);
+    const requiredProps = signalProps.filter(
+      (_, index) => props[index]?.required && !props[index]?.default,
+    );
+    const optionalProps = signalProps.filter(
+      (_, index) => !props[index]?.required || props[index]?.default,
+    );
+    const requiredPart = requiredProps
+      .map((prop) => prop.implementation)
+      .join(',\n    ');
+    const optionalPart = optionalProps
+      .map((prop) => prop.implementation)
+      .join(',\n    ');
+    const getBranchReturnType = (type: ResReqTypesValue) =>
+      getHttpResourceGeneratedResponseType(
+        type.value,
+        type.contentType,
+        responseSchemaImports,
+        output,
+      );
+    const unionReturnType = [
+      ...new Set(
+        successTypes
+          .filter((type) => type.contentType)
+          .map((type) => getBranchReturnType(type)),
+      ),
+    ].join(' | ');
+    const branchOverloads = successTypes
+      .filter((type) => type.contentType)
+      .map((type) => {
+        const returnType = getBranchReturnType(type);
+        const overloadArgs = [
+          requiredPart,
+          `accept: '${type.contentType}'`,
+          optionalPart,
+          `options?: ${buildBranchOptionsType(unionReturnType, 'unknown', omitParse)}`,
+        ]
+          .filter(Boolean)
+          .join(',\n    ');
+
+        return `export function ${resourceName}(${overloadArgs}): HttpResourceRef<${returnType} | undefined>;`;
+      })
+      .join('\n');
+    const implementationArgs = [
+      requiredPart,
+      `accept?: ${acceptTypeName}`,
+      optionalPart,
+      `options?: ${buildBranchOptionsType(unionReturnType, 'unknown', omitParse)}`,
+    ]
+      .filter(Boolean)
+      .join(',\n    ');
+    const implementationArgsWithDefault = [
+      requiredPart,
+      `accept: ${acceptTypeName} = '${defaultContentType}'`,
+      optionalPart,
+      `options?: ${buildBranchOptionsType(unionReturnType, 'unknown', omitParse)}`,
+    ]
+      .filter(Boolean)
+      .join(',\n    ');
+
+    const getBranchOptions = (type: ResReqTypesValue | undefined) => {
+      if (!type) {
+        return `options as ${buildBranchOptionsType(unionReturnType, 'unknown', omitParse)}`;
+      }
+
+      const factory = getHttpResourceFactory(
+        response,
+        type.contentType,
+        type.value,
+      );
+      const branchOptions = buildHttpResourceOptionsLiteral(
+        verbOption,
+        factory,
+        output,
+        type.value,
+      );
+      const branchOptionsExpression = buildHttpResourceOptionsExpression(
+        branchOptions.entries,
+      );
+
+      return `${branchOptionsExpression ?? 'options'} as unknown as ${buildBranchOptionsType(
+        getBranchReturnType(type),
+        getHttpResourceRawType(factory),
+        omitParse,
+      )}`;
+    };
+
+    const jsonType = successTypes.find(
+      (type) =>
+        type.contentType.includes('json') || type.contentType.includes('+json'),
+    );
+    const textType = successTypes.find((type) =>
+      isResponseText(type.contentType, type.value),
+    );
+    const arrayBufferType = successTypes.find((type) =>
+      isResponseArrayBuffer(type.contentType),
+    );
+    const blobType = successTypes.find((type) =>
+      isResponseBlob(type.contentType, response.isBlob),
+    );
+
+    const fallbackReturn = blobType
+      ? `return httpResource.blob<Blob>(() => ({
+      ...normalizedRequest,
+      headers,
+    }), ${getBranchOptions(blobType)});`
+      : textType
+        ? `return httpResource.text<string>(() => ({
+      ...normalizedRequest,
+      headers,
+    }), ${getBranchOptions(textType)});`
+        : `return httpResource<${jsonType ? getBranchReturnType(jsonType) : parsedDataType}>(() => ({
+      ...normalizedRequest,
+      headers,
+    }), ${getBranchOptions(jsonType)});`;
+
+    return `/**
+ * @experimental httpResource is experimental (Angular v19.2+)
+ */
+${branchOverloads}
+export function ${resourceName}(
+    ${implementationArgs}
+  ): HttpResourceRef<${unionReturnType} | undefined>;
+export function ${resourceName}(
+    ${implementationArgsWithDefault}
+): HttpResourceRef<${unionReturnType} | undefined> {
+  return (() => {
+    ${bodyForm ? `${bodyForm};` : ''}
+    const request = ${request};
+    const normalizedRequest: HttpResourceRequest = typeof request === 'string' ? { url: request } : request;
+    const headers = normalizedRequest.headers instanceof HttpHeaders
+      ? normalizedRequest.headers.set('Accept', accept)
+      : { ...(normalizedRequest.headers ?? {}), Accept: accept };
+
+    if (accept.includes('json') || accept.includes('+json')) {
+      return httpResource<${jsonType ? getBranchReturnType(jsonType) : parsedDataType}>(() => ({
+        ...normalizedRequest,
+        headers,
+      }), ${getBranchOptions(jsonType)});
+    }
+
+    if (accept.startsWith('text/') || accept.includes('xml')) {
+      return httpResource.text<string>(() => ({
+        ...normalizedRequest,
+        headers,
+      }), ${getBranchOptions(textType)});
+    }
+
+    ${
+      arrayBufferType
+        ? `if (accept.includes('octet-stream') || accept.includes('pdf')) {
+      return httpResource.arrayBuffer<ArrayBuffer>(() => ({
+        ...normalizedRequest,
+        headers,
+      }), ${getBranchOptions(arrayBufferType)});
+    }
+
+    `
+        : ''
+    }${fallbackReturn}
+  })();
+}
+`;
+  }
+
+  const resourceOptions = buildHttpResourceOptionsLiteral(
+    verbOption,
+    resourceFactory,
+    output,
+  );
+  const rawType = getHttpResourceRawType(resourceFactory);
+  const resourceValueType = resourceOptions.hasDefaultValue
+    ? parsedDataType
+    : `${parsedDataType} | undefined`;
+  const functionSignatures = buildHttpResourceFunctionSignatures(
+    resourceName,
+    args,
+    parsedDataType,
+    rawType,
+    resourceOptions.hasDefaultValue,
+    omitParse,
+  );
+  const implementationArgs = appendArgument(
+    args,
+    buildHttpResourceOptionsArgument(
+      parsedDataType,
+      rawType,
+      {
+        requiresDefaultValue: false,
+      },
+      omitParse,
+    ),
+  );
+  const optionsExpression = buildHttpResourceOptionsExpression(
+    resourceOptions.entries,
+  );
+  const resourceCallOptions = optionsExpression ? `, ${optionsExpression}` : '';
 
   // HttpClient-style mutators expect (config, httpClient) — incompatible with
   // standalone httpResource functions which have no HttpClient instance.
@@ -510,8 +950,9 @@ const buildHttpResourceFunction = (
     return `/**
  * @experimental httpResource is experimental (Angular v19.2+)
  */
-export function ${resourceName}(${args}): HttpResourceRef<${dataType} | undefined> {
-  return ${resourceFactory}<${dataType}>(() => ${request}${parseOption});
+${functionSignatures};
+export function ${resourceName}(${implementationArgs}): HttpResourceRef<${resourceValueType}> {
+  return ${resourceFactory}<${parsedDataType}>(() => ${request}${resourceCallOptions});
 }
 `;
   }
@@ -519,15 +960,66 @@ export function ${resourceName}(${args}): HttpResourceRef<${dataType} | undefine
   return `/**
  * @experimental httpResource is experimental (Angular v19.2+)
  */
-export function ${resourceName}(${args}): HttpResourceRef<${dataType} | undefined> {
-  return ${resourceFactory}<${dataType}>(() => {
+${functionSignatures};
+export function ${resourceName}(${implementationArgs}): HttpResourceRef<${resourceValueType}> {
+  return ${resourceFactory}<${parsedDataType}>(() => {
     ${bodyForm ? `${bodyForm};` : ''}
     const request = ${request};
     return ${returnExpression};
-  }${parseOption});
+  }${resourceCallOptions});
 }
 `;
 };
+
+const buildHttpResourceOptionsUtilities = (omitParse: boolean): string => `
+export type ${HTTP_RESOURCE_OPTIONS_TYPE_NAME}<TValue, TRaw = unknown, TOmitParse extends boolean = ${omitParse}> = TOmitParse extends true
+  ? Omit<HttpResourceOptions<TValue, TRaw>, 'parse'>
+  : HttpResourceOptions<TValue, TRaw>;
+`;
+
+const getContentTypeReturnType = (
+  contentType: string | undefined,
+  value: string,
+): string => {
+  if (!contentType) return value;
+  if (contentType.includes('json') || contentType.includes('+json')) {
+    return value;
+  }
+  if (contentType.startsWith('text/') || contentType.includes('xml')) {
+    return 'string';
+  }
+  if (isResponseArrayBuffer(contentType)) {
+    return 'ArrayBuffer';
+  }
+  return 'Blob';
+};
+
+const getHttpResourceGeneratedResponseType = (
+  value: string,
+  contentType: string | undefined,
+  responseImports: readonly { name: string }[],
+  output: NormalizedOutputOptions,
+): string => {
+  if (
+    isZodSchemaOutput(output) &&
+    output.override.angular.runtimeValidation &&
+    !!contentType &&
+    (contentType.includes('json') || contentType.includes('+json')) &&
+    !isPrimitiveType(value) &&
+    responseImports.some((imp) => imp.name === value)
+  ) {
+    return getSchemaOutputTypeRef(value);
+  }
+
+  return getContentTypeReturnType(contentType, value);
+};
+
+const buildBranchOptionsType = (
+  valueType: string,
+  rawType: string,
+  omitParse: boolean,
+) =>
+  `${HTTP_RESOURCE_OPTIONS_TYPE_NAME}<${valueType}, ${rawType}${omitParse ? ', true' : ''}>`;
 
 const buildResourceStateUtilities = (): string => `
 /**
@@ -573,14 +1065,16 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
   resetHttpClientReturnTypes();
   resourceReturnTypesRegistry.reset();
 
-  const resources = Object.values(verbOptions)
-    .filter((verbOption) =>
-      isRetrievalVerb(
-        verbOption.verb,
-        verbOption.operationName,
-        getClientOverride(verbOption),
-      ),
-    )
+  const retrievals = Object.values(verbOptions).filter((verbOption) =>
+    isRetrievalVerb(
+      verbOption.verb,
+      verbOption.operationName,
+      getClientOverride(verbOption),
+    ),
+  );
+  const acceptHelpers = buildAcceptHelpers(retrievals, output);
+
+  const resources = retrievals
     .map((verbOption) => {
       const fullRoute = routeRegistry.get(
         verbOption.operationName,
@@ -589,6 +1083,9 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
       return buildHttpResourceFunction(verbOption, fullRoute, output);
     })
     .join('\n');
+  const resourceTypes = resourceReturnTypesRegistry.getFooter(
+    retrievals.map((verbOption) => verbOption.operationName),
+  );
 
   const mutations = Object.values(verbOptions).filter((verbOption) =>
     isMutationVerb(
@@ -604,13 +1101,10 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
         verbOption.operationName,
         verbOption.route,
       );
-      const generatorOptions = {
+      const generatorOptions: HttpClientGeneratorContext = {
         route: fullRoute,
-        pathRoute: verbOption.pathRoute,
-        override: verbOption.override,
-        context: { output } as ContextSpec,
-        output: output.target,
-      } satisfies GeneratorOptions;
+        context: { output },
+      };
 
       return generateHttpClientImplementation(verbOption, generatorOptions);
     })
@@ -624,25 +1118,23 @@ ${buildServiceClassOpen({
   isMutator,
   isGlobalMutator,
   provideIn,
+  hasQueryParams: mutations.some((verbOption) => !!verbOption.queryParams),
 })}
 ${mutationImplementation}
 };
 `
     : '';
 
-  return `${resources}${classImplementation}`;
+  return `${buildHttpResourceOptionsUtilities(isZodSchemaOutput(output))}${acceptHelpers ? `${acceptHelpers}\n\n` : ''}${resources}${classImplementation}${resourceTypes ? `\n${resourceTypes}\n` : ''}`;
 };
 
 export const generateHttpResourceFooter: ClientFooterBuilder = ({
   operationNames,
 }) => {
-  const resourceTypes = resourceReturnTypesRegistry.getFooter(operationNames);
   const clientTypes = getHttpClientReturnTypes(operationNames);
   const utilities = buildResourceStateUtilities();
 
-  return `${resourceTypes ? `${resourceTypes}\n` : ''}${
-    clientTypes ? `${clientTypes}\n` : ''
-  }${utilities}`;
+  return `${clientTypes ? `${clientTypes}\n` : ''}${utilities}`;
 };
 
 export const generateHttpResourceClient: ClientBuilder = (
@@ -650,7 +1142,10 @@ export const generateHttpResourceClient: ClientBuilder = (
   options,
 ) => {
   routeRegistry.set(verbOptions.operationName, options.route);
-  const imports = getHttpResourceVerbImports(verbOptions);
+  const imports = getHttpResourceVerbImports(
+    verbOptions,
+    options.context.output,
+  );
 
   return { implementation: '\n', imports };
 };
@@ -662,14 +1157,15 @@ const buildHttpResourceFile = (
 ) => {
   resourceReturnTypesRegistry.reset();
 
-  const resources = Object.values(verbOptions)
-    .filter((verbOption) =>
-      isRetrievalVerb(
-        verbOption.verb,
-        verbOption.operationName,
-        getClientOverride(verbOption),
-      ),
-    )
+  const retrievals = Object.values(verbOptions).filter((verbOption) =>
+    isRetrievalVerb(
+      verbOption.verb,
+      verbOption.operationName,
+      getClientOverride(verbOption),
+    ),
+  );
+
+  const resources = retrievals
     .map((verbOption) => {
       const fullRoute = getFullRoute(
         verbOption.route,
@@ -684,8 +1180,9 @@ const buildHttpResourceFile = (
     Object.values(verbOptions).map((verbOption) => verbOption.operationName),
   );
   const utilities = buildResourceStateUtilities();
+  const acceptHelpers = buildAcceptHelpers(retrievals, output);
 
-  return `${resources}\n${resourceTypes ? `${resourceTypes}\n` : ''}${utilities}`;
+  return `${buildHttpResourceOptionsUtilities(isZodSchemaOutput(output))}${acceptHelpers ? `${acceptHelpers}\n\n` : ''}${resources}\n${resourceTypes ? `${resourceTypes}\n` : ''}${utilities}`;
 };
 
 const buildSchemaImportDependencies = (
@@ -693,8 +1190,7 @@ const buildSchemaImportDependencies = (
   imports: GeneratorImport[],
   relativeSchemasPath: string,
 ) => {
-  const isZodSchemaOutput =
-    isObject(output.schemas) && output.schemas.type === 'zod';
+  const isZod = isZodSchemaOutput(output);
   const uniqueImports = [
     ...new Map(imports.map((imp) => [imp.name, imp])).values(),
   ];
@@ -703,10 +1199,10 @@ const buildSchemaImportDependencies = (
     return [...uniqueImports].map((imp) => {
       const baseName = imp.schemaName ?? imp.name;
       const name = conventionName(baseName, output.namingConvention);
-      const suffix = isZodSchemaOutput ? '.zod' : '';
+      const suffix = isZod ? '.zod' : '';
       const importExtension = output.fileExtension.replace(/\.ts$/, '');
       return {
-        exports: isZodSchemaOutput ? [{ ...imp, values: true }] : [imp],
+        exports: isZod ? [{ ...imp, values: true }] : [imp],
         dependency: upath.joinSafe(
           relativeSchemasPath,
           `${name}${suffix}${importExtension}`,
@@ -715,7 +1211,7 @@ const buildSchemaImportDependencies = (
     });
   }
 
-  if (isZodSchemaOutput) {
+  if (isZod) {
     return [
       {
         exports: uniqueImports.map((imp) => ({ ...imp, values: true })),
@@ -763,7 +1259,7 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
           getClientOverride(verbOption),
         ),
       )
-      .flatMap((verbOption) => getHttpResourceVerbImports(verbOption)),
+      .flatMap((verbOption) => getHttpResourceVerbImports(verbOption, output)),
     relativeSchemasPath,
   );
 
@@ -797,13 +1293,15 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
         verbOption.formData,
         verbOption.formUrlEncoded,
         verbOption.paramsSerializer,
-      ].filter(Boolean);
+      ].filter(
+        (value): value is NonNullable<typeof value> => value !== undefined,
+      );
     });
 
   const mutatorImports =
     mutators.length > 0
       ? generateMutatorImports({
-          mutators: mutators as GeneratorMutator[],
+          mutators,
         })
       : '';
 

@@ -1,6 +1,9 @@
 import {
+  getAngularFilteredParamsHelperBody,
   getDefaultContentType,
   isBoolean,
+  isObject,
+  type NormalizedOutputOptions,
   pascal,
   type ResReqTypesValue,
   sanitize,
@@ -8,11 +11,41 @@ import {
 } from '@orval/core';
 
 import {
+  HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE,
   HTTP_CLIENT_OPTIONS_TEMPLATE,
   THIRD_PARAMETER_TEMPLATE,
 } from './types';
 
 export type ClientOverride = 'httpClient' | 'httpResource' | 'both';
+
+const PRIMITIVE_TYPE_VALUES = [
+  'string',
+  'number',
+  'boolean',
+  'void',
+  'unknown',
+] as const;
+
+export type PrimitiveType = (typeof PRIMITIVE_TYPE_VALUES)[number];
+
+export const PRIMITIVE_TYPES = new Set(PRIMITIVE_TYPE_VALUES);
+
+const PRIMITIVE_TYPE_LOOKUP = {
+  string: true,
+  number: true,
+  boolean: true,
+  void: true,
+  unknown: true,
+} as const satisfies Record<PrimitiveType, true>;
+
+export const isPrimitiveType = (t: string | undefined): t is PrimitiveType =>
+  t != undefined &&
+  Object.prototype.hasOwnProperty.call(PRIMITIVE_TYPE_LOOKUP, t);
+
+export const isZodSchemaOutput = (output: NormalizedOutputOptions): boolean =>
+  isObject(output.schemas) && output.schemas.type === 'zod';
+
+export const isDefined = <T>(v: T | null | undefined): v is T => v != undefined;
 
 export const generateAngularTitle = (title: string) => {
   const sanTitle = sanitize(title);
@@ -29,19 +62,29 @@ export const buildServiceClassOpen = ({
   isMutator,
   isGlobalMutator,
   provideIn,
+  hasQueryParams,
 }: {
   title: string;
   isRequestOptions: boolean;
   isMutator: boolean;
   isGlobalMutator: boolean;
   provideIn: string | boolean | undefined;
+  hasQueryParams: boolean;
 }): string => {
   const provideInValue = provideIn
     ? `{ providedIn: '${isBoolean(provideIn) ? 'root' : provideIn}' }`
     : '';
 
   return `
-${isRequestOptions && !isGlobalMutator ? HTTP_CLIENT_OPTIONS_TEMPLATE : ''}
+${
+  isRequestOptions && !isGlobalMutator
+    ? `${HTTP_CLIENT_OPTIONS_TEMPLATE}
+
+${HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE}
+
+${hasQueryParams ? getAngularFilteredParamsHelperBody() : ''}`
+    : ''
+}
 
 ${isRequestOptions && isMutator ? THIRD_PARAMETER_TEMPLATE : ''}
 

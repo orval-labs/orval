@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE,
   HTTP_CLIENT_OPTIONS_TEMPLATE,
   THIRD_PARAMETER_TEMPLATE,
 } from './types';
 
 /**
  * Extracts property names from a TypeScript interface string template.
- * Matches lines like `  propertyName?: ...` or `  propertyName: ...`
+ * Matches lines like `  propertyName?: ...`, `  propertyName: ...`,
+ * or `  readonly propertyName?: ...`
  * Handles multi-line type definitions (e.g., params spanning multiple lines).
  */
 const extractPropertyNames = (template: string): string[] => {
@@ -15,7 +17,7 @@ const extractPropertyNames = (template: string): string[] => {
   const props: string[] = [];
 
   for (const line of lines) {
-    const match = /^\s+(\w+)\??\s*:/.exec(line);
+    const match = /^\s+(?:readonly\s+)?(\w+)\??\s*:/.exec(line);
     if (match) {
       props.push(match[1]);
     }
@@ -94,39 +96,53 @@ describe('Angular API conformance', () => {
     it('uses correct TypeScript types for each property', () => {
       // Verify a representative set of property types match Angular's API
       expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
-        'headers?: HttpHeaders | Record<string, string | string[]>',
-      );
-      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain('context?: HttpContext');
-      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
-        'params?:\n        | HttpParams\n        | Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>',
+        'readonly headers?: HttpHeaders | Record<string, string | string[]>',
       );
       expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
-        'reportProgress?: boolean',
+        'readonly context?: HttpContext',
       );
       expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
-        'withCredentials?: boolean',
+        'readonly params?:\n        | HttpParams\n      | Record<string, string | number | boolean | Array<string | number | boolean>>',
       );
       expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
-        'credentials?: RequestCredentials',
-      );
-      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain('keepalive?: boolean');
-      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
-        'priority?: RequestPriority',
-      );
-      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain('cache?: RequestCache');
-      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain('mode?: RequestMode');
-      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
-        'redirect?: RequestRedirect',
-      );
-      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain('referrer?: string');
-      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain('integrity?: string');
-      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
-        'referrerPolicy?: ReferrerPolicy',
+        'readonly reportProgress?: boolean',
       );
       expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
-        'transferCache?: {includeHeaders?: string[]} | boolean',
+        'readonly withCredentials?: boolean',
       );
-      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain('timeout?: number');
+      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
+        'readonly credentials?: RequestCredentials',
+      );
+      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
+        'readonly keepalive?: boolean',
+      );
+      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
+        'readonly priority?: RequestPriority',
+      );
+      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
+        'readonly cache?: RequestCache',
+      );
+      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
+        'readonly mode?: RequestMode',
+      );
+      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
+        'readonly redirect?: RequestRedirect',
+      );
+      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
+        'readonly referrer?: string',
+      );
+      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
+        'readonly integrity?: string',
+      );
+      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
+        'readonly referrerPolicy?: ReferrerPolicy',
+      );
+      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
+        'readonly transferCache?: {includeHeaders?: string[]} | boolean',
+      );
+      expect(HTTP_CLIENT_OPTIONS_TEMPLATE).toContain(
+        'readonly timeout?: number',
+      );
     });
 
     it('marks all options as optional (?:)', () => {
@@ -183,12 +199,32 @@ describe('Angular API conformance', () => {
 
     it('extracts the third parameter from a function type', () => {
       expect(THIRD_PARAMETER_TEMPLATE).toContain('args: infer P');
-      expect(THIRD_PARAMETER_TEMPLATE).toContain('config: any');
-      expect(THIRD_PARAMETER_TEMPLATE).toContain('httpClient: any');
+      expect(THIRD_PARAMETER_TEMPLATE).toContain('config: unknown');
+      expect(THIRD_PARAMETER_TEMPLATE).toContain('httpClient: unknown');
     });
 
     it('returns never when function has fewer than 3 params', () => {
       expect(THIRD_PARAMETER_TEMPLATE).toContain(': never');
+    });
+  });
+
+  describe('HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE', () => {
+    it('defines reusable observe helper types', () => {
+      expect(HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE).toContain(
+        'type HttpClientBodyOptions = HttpClientOptions & {',
+      );
+      expect(HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE).toContain(
+        "readonly observe?: 'body'",
+      );
+      expect(HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE).toContain(
+        "readonly observe: 'events'",
+      );
+      expect(HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE).toContain(
+        "readonly observe: 'response'",
+      );
+      expect(HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE).toContain(
+        'type HttpClientObserveOptions = HttpClientOptions & {',
+      );
     });
   });
 });

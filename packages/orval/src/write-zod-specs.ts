@@ -103,7 +103,8 @@ function generateZodSchemaFileContent(
 
       return `${schemaConsts}export const ${schemaName} = ${zodExpression}
 
-export type ${schemaName} = zod.input<typeof ${schemaName}>;`;
+    export type ${schemaName} = zod.input<typeof ${schemaName}>;
+    export type ${schemaName}Output = zod.output<typeof ${schemaName}>;`;
     })
     .join('\n\n');
 

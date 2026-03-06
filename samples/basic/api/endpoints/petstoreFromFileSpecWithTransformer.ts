@@ -11,14 +11,15 @@ import type {
   CreatePetsBody,
   ListPetsNestedArrayParams,
   ListPetsParams,
+  Pet,
+  PetsArray,
+  PetsNestedArray,
 } from '../model';
 
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { Pet, PetsArray, PetsNestedArray } from '../model';
 
 import listPetsMutator from '../mutator/response-type';
 /**

@@ -30,10 +30,8 @@ export default defineConfig({
 
 ## Generated Output
 
-When using the default HttpClient output, the Angular client generates two classes:
-
-1. **Abstract class** — Contains the service definition
-2. **Service class** — Contains the implementation
+By default, the Angular client generates injectable service classes backed by
+`HttpClient`.
 
 Register the service via DI (standalone or module-based apps both work):
 
@@ -51,6 +49,10 @@ export const appConfig: ApplicationConfig = {
 If you use `httpResource`, Orval also generates signal-first resource functions
 for eligible operations while keeping HttpClient methods for requests that need
 explicit bodies or request options.
+
+`provideIn` applies to generated service classes only. `httpResource`
+functions are plain exports, so you import and call them directly where you
+need them.
 
 ## httpResource Output (Angular v19.2+)
 
@@ -89,11 +91,82 @@ export function showPetByIdResource(
 }
 ```
 
+Available Angular client modes:
+
+- `httpClient` — generate service methods backed by `HttpClient`
+- `httpResource` — generate signal-first `httpResource` functions for retrievals
+- `both` — generate `httpResource` retrievals and keep `HttpClient` methods for
+  operations that need imperative request handling
+
+In `both` mode, Orval keeps the service class in your main generated file and
+emits the retrieval resources in a sibling `*.resource.ts` file.
+
+### httpResource options
+
+You can configure generated `httpResource` calls through
+`override.angular.httpResource`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/http-resource/petstore.ts',
+      schemas: {
+        type: 'zod',
+        path: 'src/api/model-zod',
+      },
+      client: 'angular',
+      override: {
+        angular: {
+          client: 'httpResource',
+          runtimeValidation: true,
+          httpResource: {
+            defaultValue: { id: 'fallback' },
+            debugName: 'getPetByIdResource',
+            injector: 'inject(Injector)',
+            equal: '(a, b) => a?.id === b?.id',
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+Supported options:
+
+- `defaultValue` — initial value exposed while the resource is idle/loading
+- `debugName` — name shown in Angular DevTools
+- `injector` — raw expression passed to `HttpResourceOptions.injector`
+- `equal` — raw expression passed to `HttpResourceOptions.equal`
+
+Orval emits a shared helper type for these options:
+
+```ts
+export type OrvalHttpResourceOptions<TValue, TRaw = unknown> = Omit<
+  HttpResourceOptions<TValue, TRaw>,
+  'parse'
+>;
+```
+
+When `defaultValue` is configured, generated resource overloads return
+`HttpResourceRef<T>` instead of `HttpResourceRef<T | undefined>`.
+
 ## httpResource + Zod Runtime Validation
 
 When `schemas.type` is set to `zod`, Orval automatically adds
 `{ parse: <ZodSchema>.parse }` for JSON responses in httpResource output. This
 validates responses at runtime before they reach your component.
+
+`runtimeValidation` is enabled by default for Angular output. You only need to
+set it explicitly when you want to make that choice obvious in config or opt
+out for a specific target/operation.
 
 > [!NOTE]
 > Zod is a runtime dependency when you enable `schemas.type: 'zod'`.
@@ -115,7 +188,7 @@ export default defineConfig({
       override: {
         angular: {
           client: 'httpResource',
-          runtimeValidation: true,
+          runtimeValidation: true, // optional: true by default
         },
       },
     },
@@ -162,12 +235,14 @@ export class ApiInterceptor implements HttpInterceptor {
 
 ## Zod Runtime Validation
 
-You can enable runtime response validation using Zod schemas. This validates every HTTP response through `Schema.parse()` in the RxJS pipeline, catching type mismatches at runtime.
+Angular output validates Zod-backed responses by default when `schemas.type` is
+set to `zod`. This runs `Schema.parse()` on eligible responses and catches type
+mismatches at runtime.
 
 ### Setup
 
 1. Set `schemas` to generate Zod schemas
-2. Enable `runtimeValidation` in the angular override
+2. Optionally set `override.angular.runtimeValidation: false` if you want to disable runtime validation
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -179,14 +254,9 @@ export default defineConfig({
       target: 'src/api/petstore.ts',
       schemas: {
         type: 'zod',
-        target: 'src/api/schemas',
+        path: 'src/api/schemas',
       },
       client: 'angular',
-      override: {
-        angular: {
-          runtimeValidation: true,
-        },
-      },
     },
     input: {
       target: './petstore.yaml',
@@ -197,23 +267,52 @@ export default defineConfig({
 
 ### How It Works
 
-When enabled, generated service methods pipe body responses through the Zod schema's `.parse()` method:
+For generated `HttpClient` services, body responses are piped through the Zod
+schema's `.parse()` method:
 
 ```ts
 // Generated code (simplified)
-getPet<TData = Pet>(options?: HttpClientOptions & { observe?: 'body' }): Observable<TData> {
-  return this.http.get<TData>(`/pet`, { observe: 'body' }).pipe(map(data => Pet.parse(data)));
+getPet<TData = Pet>(options?: HttpClientBodyOptions): Observable<TData> {
+  return this.http
+    .get<TData>(`/pet`, { observe: 'body' })
+    .pipe(map((data) => Pet.parse(data) as TData));
 }
 ```
 
 **Validation applies to:**
-- JSON body responses with model types
+- JSON body responses with model types in generated `HttpClient` services
+- JSON `httpResource` responses, where Orval emits `parse: Schema.parse`
 
 **Validation is skipped for:**
 - Primitive types (`string`, `number`, `boolean`, `void`, `unknown`)
 - `events` and `response` observe modes (`HttpEvent<T>`, `HttpResponse<T>`)
 - Custom mutator paths
-- Non-JSON content types (text, blob)
+- Non-JSON content types (text, blob, arrayBuffer)
+
+## Request-body readonly guidance
+
+Angular output now supports `override.preserveReadonlyRequestBodies` with two
+modes:
+
+- `'strip'` (default) — recommended for most OpenAPI specs
+- `'preserve'` — use when your request DTOs are intentionally immutable
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        preserveReadonlyRequestBodies: 'strip',
+      },
+    },
+  },
+});
+```
+
+`'strip'` is the best default because OpenAPI `readOnly` properties are usually
+response-oriented. This guidance applies equally to Angular `HttpClient` and
+`httpResource` output — `httpResource` still issues request payloads, so it
+should not preserve readonly request fields by default.
 
 ### Support Matrix
 

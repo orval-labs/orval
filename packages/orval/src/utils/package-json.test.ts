@@ -33,6 +33,8 @@ vi.mock('@orval/core', () => ({
     Object.prototype.toString.call(v) === '[object Object]',
   isString: isRemedaString,
   log: vi.fn(),
+  logVerbose: vi.fn(),
+  resolveInstalledVersions: vi.fn(() => ({})),
 }));
 
 vi.mock('./options', () => ({

@@ -1,3 +1,5 @@
+import nodePath from 'node:path';
+
 import {
   type ClientMockBuilder,
   type ConfigExternal,
@@ -10,6 +12,7 @@ import {
   type HookFunction,
   type HookOption,
   type HooksOptions,
+  type InputTransformerFn,
   isBoolean,
   isFunction,
   isNullish,
@@ -53,6 +56,16 @@ import { loadTsconfig } from './tsconfig';
  */
 export function defineConfig(options: ConfigExternal): ConfigExternal {
   return options;
+}
+
+/**
+ * Type helper to make it easier to write input transformers.
+ * accepts a direct {@link InputTransformerFn} function.
+ */
+export function defineTransformer(
+  transformer: InputTransformerFn,
+): InputTransformerFn {
+  return transformer;
 }
 
 function createFormData(
@@ -370,6 +383,9 @@ export async function normalizeOptions(
           client: outputOptions.override?.angular?.client ?? 'httpClient',
           runtimeValidation:
             outputOptions.override?.angular?.runtimeValidation ?? true,
+          ...(outputOptions.override?.angular?.httpResource
+            ? { httpResource: outputOptions.override.angular.httpResource }
+            : {}),
         },
         fetch: {
           includeHttpResponseReturnType:
@@ -380,6 +396,14 @@ export async function normalizeOptions(
           runtimeValidation:
             outputOptions.override?.fetch?.runtimeValidation ?? false,
           ...outputOptions.override?.fetch,
+          ...(outputOptions.override?.fetch?.jsonReviver
+            ? {
+                jsonReviver: normalizeMutator(
+                  outputWorkspace,
+                  outputOptions.override.fetch.jsonReviver,
+                ),
+              }
+            : {}),
         },
         useDates: outputOptions.override?.useDates ?? false,
         useDeprecatedOperations:
@@ -388,6 +412,8 @@ export async function normalizeOptions(
           outputOptions.override?.enumGenerationType ?? 'const',
         suppressReadonlyModifier:
           outputOptions.override?.suppressReadonlyModifier ?? false,
+        preserveReadonlyRequestBodies:
+          outputOptions.override?.preserveReadonlyRequestBodies ?? 'strip',
         aliasCombinedTypes: outputOptions.override?.aliasCombinedTypes ?? false,
       },
       allParamsOptional: outputOptions.allParamsOptional ?? false,
@@ -421,14 +447,14 @@ function normalizeMutator(
 
     return {
       ...mutator,
-      path: upath.resolve(workspace, mutator.path),
+      path: nodePath.resolve(workspace, mutator.path),
       default: mutator.default ?? !mutator.name,
     };
   }
 
   if (isString(mutator)) {
     return {
-      path: upath.resolve(workspace, mutator),
+      path: nodePath.resolve(workspace, mutator),
       default: true,
     };
   }
@@ -448,7 +474,7 @@ export function normalizePath<T>(path: T, workspace: string) {
   if (!isString(path)) {
     return path;
   }
-  return upath.resolve(workspace, path);
+  return nodePath.resolve(workspace, path);
 }
 
 function normalizeOperationsAndTags(
@@ -483,6 +509,9 @@ function normalizeOperationsAndTags(
                     provideIn: rest.angular.provideIn ?? 'root',
                     client: rest.angular.client ?? 'httpClient',
                     runtimeValidation: rest.angular.runtimeValidation ?? true,
+                    ...(rest.angular.httpResource
+                      ? { httpResource: rest.angular.httpResource }
+                      : {}),
                   },
                 }
               : {}),
@@ -629,12 +658,12 @@ function normalizeHonoOptions(
 ): NormalizedHonoOptions {
   return {
     ...(hono.handlers
-      ? { handlers: upath.resolve(workspace, hono.handlers) }
+      ? { handlers: nodePath.resolve(workspace, hono.handlers) }
       : {}),
     compositeRoute: hono.compositeRoute ?? '',
     validator: hono.validator ?? true,
     validatorOutputPath: hono.validatorOutputPath
-      ? upath.resolve(workspace, hono.validatorOutputPath)
+      ? nodePath.resolve(workspace, hono.validatorOutputPath)
       : '',
   };
 }

@@ -26,11 +26,13 @@ import {
 type AngularOverride = {
   provideIn: 'root' | 'any' | boolean;
   client: 'httpClient' | 'httpResource' | 'both';
+  runtimeValidation: boolean;
 };
 
 const angularOverride = {
   provideIn: 'root',
   client: 'httpClient',
+  runtimeValidation: false,
 } satisfies AngularOverride;
 
 const createOutput = (
@@ -213,6 +215,7 @@ const createVerbOption = (
       formData: { disabled: true, arrayHandling: 'serialize' },
       formUrlEncoded: true,
       paramsSerializerOptions: undefined,
+      angular: angularOverride,
     } as GeneratorVerbOptions['override'],
     deprecated: false,
     originalOperation: {} as GeneratorVerbOptions['originalOperation'],
@@ -272,6 +275,10 @@ describe('angular HttpClient generator', () => {
       const deps = getAngularDependencies(false, false);
       const allExports = deps.flatMap((d) => d.exports.map((e) => e.name));
       expect(allExports).toContain('HttpClient');
+      expect(
+        deps.flatMap((d) => d.exports).find((e) => e.name === 'HttpHeaders')
+          ?.values,
+      ).toBe(true);
       expect(allExports).toContain('Injectable');
       expect(allExports).toContain('inject');
       expect(allExports).toContain('Observable');
@@ -289,6 +296,7 @@ describe('angular HttpClient generator', () => {
         isGlobalMutator: false,
         provideIn: 'root',
         hasAwaitedType: false,
+        verbOptions: {},
       } as never);
 
       expect(header).toContain("@Injectable({ providedIn: 'root' })");
@@ -304,6 +312,7 @@ describe('angular HttpClient generator', () => {
         isGlobalMutator: false,
         provideIn: false,
         hasAwaitedType: false,
+        verbOptions: {},
       } as never);
 
       expect(header).toContain('@Injectable()');
@@ -318,6 +327,7 @@ describe('angular HttpClient generator', () => {
         isGlobalMutator: false,
         provideIn: 'any',
         hasAwaitedType: false,
+        verbOptions: {},
       } as never);
 
       expect(header).toContain("@Injectable({ providedIn: 'any' })");
@@ -331,11 +341,13 @@ describe('angular HttpClient generator', () => {
         isGlobalMutator: false,
         provideIn: 'root',
         hasAwaitedType: false,
+        verbOptions: {},
       } as never);
 
       expect(header).toContain('interface HttpClientOptions');
-      expect(header).toContain('headers?: HttpHeaders');
-      expect(header).toContain('referrerPolicy?: ReferrerPolicy');
+      expect(header).toContain('readonly headers?: HttpHeaders');
+      expect(header).toContain('readonly referrerPolicy?: ReferrerPolicy');
+      expect(header).toContain('type HttpClientObserveOptions');
     });
 
     it('omits HttpClientOptions when isRequestOptions is false', () => {
@@ -346,6 +358,7 @@ describe('angular HttpClient generator', () => {
         isGlobalMutator: false,
         provideIn: 'root',
         hasAwaitedType: false,
+        verbOptions: {},
       } as never);
 
       expect(header).not.toContain('interface HttpClientOptions');
@@ -359,6 +372,7 @@ describe('angular HttpClient generator', () => {
         isGlobalMutator: true,
         provideIn: 'root',
         hasAwaitedType: false,
+        verbOptions: {},
       } as never);
 
       expect(header).not.toContain('interface HttpClientOptions');
@@ -372,6 +386,7 @@ describe('angular HttpClient generator', () => {
         isGlobalMutator: false,
         provideIn: 'root',
         hasAwaitedType: false,
+        verbOptions: {},
       } as never);
 
       expect(header).toContain('type ThirdParameter');
@@ -385,6 +400,7 @@ describe('angular HttpClient generator', () => {
         isGlobalMutator: false,
         provideIn: 'root',
         hasAwaitedType: false,
+        verbOptions: {},
       } as never);
 
       expect(header).not.toContain('type ThirdParameter');
@@ -450,7 +466,7 @@ describe('angular HttpClient generator', () => {
 
       expect(impl).toContain('getPetById<TData = Pet>');
       expect(impl).toContain('this.http.get<TData>');
-      expect(impl).toContain('Observable<any>');
+      expect(impl).toContain('Observable<TData>');
     });
 
     it('includes petId parameter in the method signature', () => {
@@ -468,7 +484,7 @@ describe('angular HttpClient generator', () => {
 
       const impl = generateHttpClientImplementation(verbOption, options);
 
-      expect(impl).toContain('options?: HttpClientOptions');
+      expect(impl).toContain('options?: HttpClientObserveOptions');
     });
 
     it('omits HttpClientOptions when requestOptions is false', () => {
@@ -478,6 +494,7 @@ describe('angular HttpClient generator', () => {
           formData: { disabled: true, arrayHandling: 'serialize' },
           formUrlEncoded: true,
           paramsSerializerOptions: undefined,
+          angular: angularOverride,
         } as GeneratorVerbOptions['override'],
       });
       const options = createGeneratorOptions();
@@ -495,9 +512,9 @@ describe('angular HttpClient generator', () => {
 
       const impl = generateHttpClientImplementation(verbOption, options);
 
-      expect(impl).toContain("observe?: 'body'");
-      expect(impl).toContain("observe: 'events'");
-      expect(impl).toContain("observe: 'response'");
+      expect(impl).toContain('HttpClientBodyOptions');
+      expect(impl).toContain('HttpClientEventOptions');
+      expect(impl).toContain('HttpClientResponseOptions');
       expect(impl).toContain('Observable<TData>');
       expect(impl).toContain('Observable<HttpEvent<TData>>');
       expect(impl).toContain('Observable<AngularHttpResponse<TData>>');
@@ -510,6 +527,7 @@ describe('angular HttpClient generator', () => {
           formData: { disabled: true, arrayHandling: 'serialize' },
           formUrlEncoded: true,
           paramsSerializerOptions: undefined,
+          angular: angularOverride,
         } as GeneratorVerbOptions['override'],
       });
       const options = createGeneratorOptions();
@@ -703,7 +721,7 @@ describe('angular HttpClient generator', () => {
 
     // ── Multiple content types ────────────────────────────────────────
 
-    it('generates content-type overloads for multiple response types', () => {
+    it('generates accept-aware signatures for multiple response types', () => {
       const verbOption = createVerbOption({
         operationId: 'getPetFile',
         operationName: 'getPetFile',
@@ -723,15 +741,238 @@ describe('angular HttpClient generator', () => {
 
       const impl = generateHttpClientImplementation(verbOption, options);
 
-      expect(impl).toContain("accept: 'application/json'");
-      expect(impl).toContain("accept: 'text/plain'");
-      expect(impl).toContain('Observable<Pet>');
-      expect(impl).toContain('Observable<string>');
+      expect(impl).toContain('accept?: GetPetFileAccept');
+      expect(impl).toContain('Observable<Pet | string>');
+      expect(impl).toContain('this.http.get<Pet>');
+      expect(impl).toContain('as Observable<string>');
       // Content-type dispatch logic
       expect(impl).toContain("responseType: 'json'");
       expect(impl).toContain("responseType: 'text'");
-      // Default accept uses JSON when available
-      expect(impl).toContain("accept: string = 'application/json'");
+      expect(impl).toContain("accept: 'application/json'");
+      expect(impl).toContain("accept: 'text/plain'");
+      // Default accept prefers JSON when available
+      expect(impl).toContain("accept: GetPetFileAccept = 'application/json'");
+    });
+
+    it('preserves query params for multi-content responses', () => {
+      const verbOption = createVerbOption({
+        operationId: 'listPets',
+        operationName: 'listPets',
+        route: '/pets',
+        pathRoute: '/pets',
+        params: [],
+        queryParams: {
+          schema: { name: 'ListPetsParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          name: 'params',
+          definition: 'params?: ListPetsParams',
+          implementation: 'params?: ListPetsParams',
+          default: false,
+          required: false,
+          type: GetterPropType.QUERY_PARAM,
+          requiredNullableKeys: [],
+        } as never,
+        props: [
+          {
+            name: 'params',
+            definition: 'params?: ListPetsParams',
+            implementation: 'params?: ListPetsParams',
+            default: false,
+            required: false,
+            type: GetterPropType.QUERY_PARAM,
+          },
+        ],
+        response: baseResponse({
+          definition: { success: 'Pet | string', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'application/xml'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'application/xml'],
+        }),
+      });
+      const options = createGeneratorOptions({ route: '/api/pets' });
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain('const filteredParams =');
+      expect(impl).toContain('params: filteredParams');
+    });
+
+    it('validates Zod responses for response and event observe modes', () => {
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+        override: {
+          ...createOutput().override,
+          angular: {
+            ...angularOverride,
+            runtimeValidation: true,
+          },
+        },
+      });
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+        }),
+        override: {
+          ...createVerbOption().override,
+          angular: {
+            ...angularOverride,
+            runtimeValidation: true,
+          },
+        } as GeneratorVerbOptions['override'],
+      });
+      const options = {
+        route: '/api/pets/${petId}',
+        pathRoute: '/pets/{petId}',
+        override: output.override,
+        context: createContextSpec(output),
+        output: output.target,
+      } satisfies GeneratorOptions;
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain(
+        'response.clone({ body: Pet.parse(response.body) as TData })',
+      );
+      expect(impl).toContain(
+        'event instanceof AngularHttpResponse ? event.clone({ body: Pet.parse(event.body) as TData }) : event',
+      );
+    });
+
+    it('uses Zod output types for default generics and client result aliases', () => {
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+        override: {
+          ...createOutput().override,
+          angular: {
+            ...angularOverride,
+            runtimeValidation: true,
+          },
+        },
+      });
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+        }),
+        override: {
+          ...createVerbOption().override,
+          angular: {
+            ...angularOverride,
+            runtimeValidation: true,
+          },
+        } as GeneratorVerbOptions['override'],
+      });
+      const options = {
+        route: '/api/pets/${petId}',
+        pathRoute: '/pets/{petId}',
+        override: output.override,
+        context: createContextSpec(output),
+        output: output.target,
+      } satisfies GeneratorOptions;
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+      const footer = getHttpClientReturnTypes(['getPetById']);
+
+      expect(impl).toContain('getPetById<TData = PetOutput>');
+      expect(footer).toContain(
+        'export type GetPetByIdClientResult = NonNullable<PetOutput>',
+      );
+    });
+
+    it('uses Zod output types inside multi-content client result aliases', () => {
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+        override: {
+          ...createOutput().override,
+          angular: {
+            ...angularOverride,
+            runtimeValidation: true,
+          },
+        },
+      });
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'string | Pet', errors: 'Error' },
+          imports: [{ name: 'Pet' }],
+          types: {
+            success: [
+              createSuccessType('string', 'text/plain'),
+              createSuccessType('Pet', 'application/json'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['text/plain', 'application/json'],
+        }),
+        override: {
+          ...createVerbOption().override,
+          angular: {
+            ...angularOverride,
+            runtimeValidation: true,
+          },
+        } as GeneratorVerbOptions['override'],
+      });
+      const options = {
+        route: '/api/pets/${petId}',
+        pathRoute: '/pets/{petId}',
+        override: output.override,
+        context: createContextSpec(output),
+        output: output.target,
+      } satisfies GeneratorOptions;
+
+      generateHttpClientImplementation(verbOption, options);
+      const footer = getHttpClientReturnTypes(['getPetById']);
+
+      expect(footer).toContain(
+        'export type GetPetByIdClientResult = NonNullable<string | PetOutput>',
+      );
+    });
+
+    it('generates reusable Accept helper declarations in the header', () => {
+      const header = generateAngularHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: {
+          getPetFile: createVerbOption({
+            operationId: 'getPetFile',
+            operationName: 'getPetFile',
+            response: baseResponse({
+              definition: { success: 'Pet | string', errors: 'Error' },
+              types: {
+                success: [
+                  createSuccessType('Pet', 'application/json'),
+                  createSuccessType('string', 'text/plain'),
+                ],
+                errors: [],
+              },
+              contentTypes: ['application/json', 'text/plain'],
+            }),
+          }),
+        },
+      } as never);
+
+      expect(header).toContain('export type GetPetFileAccept');
+      expect(header).toContain('export const GetPetFileAccept = {');
+      expect(header).toContain("application_json: 'application/json'");
+      expect(header).toContain("text_plain: 'text/plain'");
     });
 
     // ── Mutator support ───────────────────────────────────────────────

@@ -9,34 +9,53 @@
  * packages/common/http/src/client.ts).
  */
 export const HTTP_CLIENT_OPTIONS_TEMPLATE = `interface HttpClientOptions {
-  headers?: HttpHeaders | Record<string, string | string[]>;
-  context?: HttpContext;
-  params?:
+  readonly headers?: HttpHeaders | Record<string, string | string[]>;
+  readonly context?: HttpContext;
+  readonly params?:
         | HttpParams
-        | Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>;
-  reportProgress?: boolean;
-  withCredentials?: boolean;
-  credentials?: RequestCredentials;
-  keepalive?: boolean;
-  priority?: RequestPriority;
-  cache?: RequestCache;
-  mode?: RequestMode;
-  redirect?: RequestRedirect;
-  referrer?: string;
-  integrity?: string;
-  referrerPolicy?: ReferrerPolicy;
-  transferCache?: {includeHeaders?: string[]} | boolean;
-  timeout?: number;
+      | Record<string, string | number | boolean | Array<string | number | boolean>>;
+  readonly reportProgress?: boolean;
+  readonly withCredentials?: boolean;
+  readonly credentials?: RequestCredentials;
+  readonly keepalive?: boolean;
+  readonly priority?: RequestPriority;
+  readonly cache?: RequestCache;
+  readonly mode?: RequestMode;
+  readonly redirect?: RequestRedirect;
+  readonly referrer?: string;
+  readonly integrity?: string;
+  readonly referrerPolicy?: ReferrerPolicy;
+  readonly transferCache?: {includeHeaders?: string[]} | boolean;
+  readonly timeout?: number;
 }`;
+
+/**
+ * Code templates for reusable observe option helpers emitted into generated files.
+ */
+export const HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE = `type HttpClientBodyOptions = HttpClientOptions & {
+  readonly observe?: 'body';
+};
+
+type HttpClientEventOptions = HttpClientOptions & {
+  readonly observe: 'events';
+};
+
+type HttpClientResponseOptions = HttpClientOptions & {
+  readonly observe: 'response';
+};
+
+type HttpClientObserveOptions = HttpClientOptions & {
+  readonly observe?: 'body' | 'events' | 'response';
+};`;
 
 /**
  * Code template for the `ThirdParameter` utility type used with custom mutators.
  */
 export const THIRD_PARAMETER_TEMPLATE = `// eslint-disable-next-line
-    type ThirdParameter<T extends (...args: any) => any> = T extends (
-  config: any,
-  httpClient: any,
+    type ThirdParameter<T extends (...args: never[]) => unknown> = T extends (
+  config: unknown,
+  httpClient: unknown,
   args: infer P,
-) => any
+) => unknown
   ? P
   : never;`;

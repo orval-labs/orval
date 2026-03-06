@@ -57,6 +57,26 @@ export type NormalizedParamsSerializerOptions = {
   qs?: Record<string, any>;
 };
 
+/**
+ * Controls how readonly properties are treated when a schema is reused as a request body.
+ *
+ * Best practice:
+ * - `strip` (default): recommended for most OpenAPI specs, because `readOnly`
+ *   properties are response-oriented and generally should not constrain request
+ *   payload authoring.
+ * - `preserve`: use when your schema intentionally models immutable request DTOs
+ *   and you want generated request-body types to keep readonly modifiers.
+ *
+ * Note: this applies to request bodies regardless of the generated client style
+ * (`httpClient`, `httpResource`, etc.). `httpResource` still issues request
+ * payloads, so the same OpenAPI guidance applies.
+ *
+ * If we later want a stricter OpenAPI-aligned mode that omits `readOnly`
+ * properties from request bodies entirely, that should be introduced as a new
+ * explicit mode rather than overloading `preserve`.
+ */
+export type ReadonlyRequestBodiesMode = 'strip' | 'preserve';
+
 export type NormalizedOverrideOutput = {
   title?: (title: string) => string;
   transformer?: OutputTransformer;
@@ -99,7 +119,7 @@ export type NormalizedOverrideOutput = {
     route: string,
     verb: Verbs,
   ) => string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   requestOptions: Record<string, unknown> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
@@ -108,6 +128,14 @@ export type NormalizedOverrideOutput = {
   useNamedParameters?: boolean;
   enumGenerationType: EnumGeneration;
   suppressReadonlyModifier?: boolean;
+  /**
+   * Controls how readonly properties are handled for generated request-body types.
+   *
+   * Prefer `strip` for most OpenAPI specs because `readOnly` fields are
+   * response-oriented. Use `preserve` only when your request DTOs are
+   * intentionally immutable and should remain readonly in generated types.
+   */
+  preserveReadonlyRequestBodies?: ReadonlyRequestBodiesMode;
   jsDoc: NormalizedJsDocOptions;
   aliasCombinedTypes: boolean;
   /**
@@ -336,6 +364,8 @@ export type GlobalMockOptions = {
   baseUrl?: string;
   // This is used to set the locale of the faker library
   locale?: keyof typeof allLocales;
+  // Preferred response content type when multiple success content types exist
+  preferredContentType?: string;
   indexMockFiles?: boolean;
 };
 
@@ -471,7 +501,7 @@ export type OverrideOutput = {
     verb: Verbs,
   ) => string;
   fetch?: FetchOptions;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   requestOptions?: Record<string, unknown> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
@@ -480,6 +510,14 @@ export type OverrideOutput = {
   useNamedParameters?: boolean;
   enumGenerationType?: EnumGeneration;
   suppressReadonlyModifier?: boolean;
+  /**
+   * Controls how readonly properties are handled for generated request-body types.
+   *
+   * Prefer `strip` for most OpenAPI specs because `readOnly` fields are
+   * response-oriented. Use `preserve` only when your request DTOs are
+   * intentionally immutable and should remain readonly in generated types.
+   */
+  preserveReadonlyRequestBodies?: ReadonlyRequestBodiesMode;
   jsDoc?: JsDocOptions;
   aliasCombinedTypes?: boolean;
   /**
@@ -595,7 +633,9 @@ export type InvalidateTarget =
   | string
   | {
       query: string;
-      params: string[] | Record<string, string>;
+      params?: string[] | Record<string, string>;
+      invalidateMode?: string;
+      file?: string;
     };
 
 export type MutationInvalidatesRule = {
@@ -621,7 +661,7 @@ export type NormalizedQueryOptions = {
   useInfiniteQueryParam?: string;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   options?: Record<string, unknown>;
   queryKey?: NormalizedMutator;
   queryOptions?: NormalizedMutator;
@@ -646,7 +686,7 @@ export type QueryOptions = {
   useInfiniteQueryParam?: string;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   options?: Record<string, unknown>;
   queryKey?: Mutator;
   queryOptions?: Mutator;
@@ -666,12 +706,37 @@ export type AngularOptions = {
   provideIn?: 'root' | 'any' | boolean;
   client?: 'httpClient' | 'httpResource' | 'both';
   runtimeValidation?: boolean;
+  httpResource?: AngularHttpResourceOptions;
 };
 
 export type NormalizedAngularOptions = {
   provideIn: 'root' | 'any' | boolean;
   client: 'httpClient' | 'httpResource' | 'both';
   runtimeValidation: boolean;
+  httpResource?: AngularHttpResourceOptions;
+};
+
+export type AngularHttpResourceOptions = {
+  /**
+   * Value to expose while the resource is idle/loading.
+   *
+   * Serialized as a literal into generated code.
+   */
+  defaultValue?: unknown;
+  /**
+   * Debug name shown in Angular DevTools.
+   */
+  debugName?: string;
+  /**
+   * Raw code expression for HttpResourceOptions.injector.
+   * Example: `inject(Injector)`.
+   */
+  injector?: string;
+  /**
+   * Raw code expression for HttpResourceOptions.equal.
+   * Example: `(a, b) => a.id === b.id`.
+   */
+  equal?: string;
 };
 
 export type SwrOptions = {
@@ -1100,6 +1165,7 @@ export type GetterQueryParam = {
   deps: GeneratorSchema[];
   isOptional: boolean;
   originalSchema?: OpenApiSchemaObject;
+  requiredNullableKeys?: string[];
 };
 
 export type GetterPropType =

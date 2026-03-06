@@ -24,15 +24,23 @@ type AngularOverride = {
   provideIn: 'root' | 'any' | boolean;
   client: 'httpClient' | 'httpResource' | 'both';
   runtimeValidation: boolean;
+  httpResource?: {
+    defaultValue?: unknown;
+    debugName?: string;
+    injector?: string;
+    equal?: string;
+  };
 };
 
 const angularOverride = (
   client: AngularOverride['client'],
   runtimeValidation = true,
+  httpResource?: AngularOverride['httpResource'],
 ): AngularOverride => ({
   provideIn: 'root',
   client,
   runtimeValidation,
+  ...(httpResource ? { httpResource } : {}),
 });
 
 const createOutput = (
@@ -254,6 +262,7 @@ const createVerbOption = (
       formUrlEncoded: true,
       paramsSerializerOptions: undefined,
       operations: {},
+      angular: angularOverride('httpResource'),
     } as GeneratorVerbOptions['override'],
     deprecated: false,
     originalOperation: {} as GeneratorVerbOptions['originalOperation'],
@@ -280,6 +289,7 @@ describe('angular httpResource generator', () => {
       expect(exportNames).toContain('Observable');
       // From httpResource deps
       expect(exportNames).toContain('httpResource');
+      expect(exportNames).toContain('HttpResourceOptions');
       expect(exportNames).toContain('HttpResourceRef');
       expect(exportNames).toContain('Signal');
       expect(exportNames).toContain('ResourceStatus');
@@ -297,6 +307,7 @@ describe('angular httpResource generator', () => {
         (e) => e.name === 'HttpHeaders',
       );
       expect(httpHeaders.length).toBe(1);
+      expect(httpHeaders[0]?.values).toBe(true);
     });
 
     it('getAngularHttpResourceOnlyDependencies returns only resource deps', () => {
@@ -420,6 +431,9 @@ describe('angular httpResource generator', () => {
 
       expect(header).toContain('export function getPetByIdResource');
       expect(header).toContain('petId: Signal<string>');
+      expect(header).toContain(
+        'options?: OrvalHttpResourceOptions<Pet, unknown>',
+      );
       expect(header).toContain('HttpResourceRef<Pet | undefined>');
       // Simple GET with only path params uses the URL-only form
       expect(header).toContain('`/api/pets/${petId()}`');
@@ -767,8 +781,14 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      expect(header).toContain('httpResource<string | Pet>');
-      expect(header).not.toContain('httpResource.text');
+      expect(header).toContain('export type GetPetByIdAccept');
+      expect(header).toContain('accept?: GetPetByIdAccept');
+      expect(header).toContain("accept: 'text/plain'");
+      expect(header).toContain("accept: 'application/json'");
+      expect(header).toContain("accept: GetPetByIdAccept = 'application/json'");
+      expect(header).toContain('httpResource<Pet>');
+      expect(header).toContain('httpResource.text<string>');
+      expect(header).toContain('Accept: accept');
     });
   });
 
@@ -822,7 +842,11 @@ describe('angular httpResource generator', () => {
       } as never);
 
       expect(header).toContain('params?: Signal<GetPetByIdParams>');
-      expect(header).toContain('params: params?.()');
+      expect(header).toContain(
+        'options?: OrvalHttpResourceOptions<Pet, unknown>',
+      );
+      expect(header).toContain('params: (() => {');
+      expect(header).toContain('Object.entries(params?.() ?? {})');
     });
 
     it('wraps named path params with pathParams: Signal<...>', () => {
@@ -897,6 +921,30 @@ describe('angular httpResource generator', () => {
 
       expect(header).toContain('return customHttpRequest(request)');
     });
+
+    it('supports caller-provided defaultValue overloads', () => {
+      const verbOption = createVerbOption();
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain(
+        'options: OrvalHttpResourceOptions<Pet, unknown> & { defaultValue: NoInfer<Pet> }',
+      );
+      expect(header).toContain(
+        'options?: OrvalHttpResourceOptions<Pet, unknown>): HttpResourceRef<Pet | undefined>;',
+      );
+    });
   });
 
   // ─── URL-only form for simple GETs ────────────────────────────────
@@ -920,7 +968,7 @@ describe('angular httpResource generator', () => {
 
       // URL-only: no request object, no "const request"
       expect(header).toContain(
-        'httpResource<Pet>(() => `/api/pets/${petId()}`)',
+        'httpResource<Pet>(() => `/api/pets/${petId()}`, options)',
       );
       expect(header).not.toContain('const request');
     });
@@ -972,7 +1020,8 @@ describe('angular httpResource generator', () => {
       } as never);
 
       expect(header).toContain('url: `/api/pets/${petId()}`');
-      expect(header).toContain('params: params?.()');
+      expect(header).toContain('params: (() => {');
+      expect(header).toContain('Object.entries(params?.() ?? {})');
     });
 
     it('uses request object form for POST verbs', () => {
@@ -1076,7 +1125,7 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      expect(header).toContain('{ parse: PetSchema.parse }');
+      expect(header).toContain('parse: PetSchema.parse');
     });
 
     it('auto-detects zod parse when schemas.type is zod', () => {
@@ -1106,7 +1155,7 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      expect(header).toContain('{ parse: Pet.parse }');
+      expect(header).toContain('parse: Pet.parse');
     });
 
     it('does not add parse when schemas.type is not zod', () => {
@@ -1129,7 +1178,7 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      expect(header).not.toContain('parse');
+      expect(header).not.toContain('parse:');
     });
 
     it('does not add parse for primitive response types with zod', () => {
@@ -1165,7 +1214,7 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      expect(header).not.toContain('parse');
+      expect(header).not.toContain('parse:');
     });
 
     it('does not add parse for non-JSON response factories', () => {
@@ -1202,7 +1251,7 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      expect(header).not.toContain('parse');
+      expect(header).not.toContain('parse:');
     });
 
     it('does not add parse when response type has no matching import', () => {
@@ -1233,7 +1282,7 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      expect(header).not.toContain('parse');
+      expect(header).not.toContain('parse:');
     });
 
     it('does not add parse when runtimeValidation is explicitly false', () => {
@@ -1267,7 +1316,7 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      expect(header).not.toContain('parse');
+      expect(header).not.toContain('parse:');
     });
 
     it('still adds parse with explicit isZodSchema even when runtimeValidation is false', () => {
@@ -1298,7 +1347,185 @@ describe('angular httpResource generator', () => {
       } as never);
 
       // Explicit isZodSchema flag bypasses the runtimeValidation toggle
-      expect(header).toContain('{ parse: PetSchema.parse }');
+      expect(header).toContain('parse: PetSchema.parse');
+    });
+
+    it('combines parse and configured httpResource options', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+        override: {
+          ...createOutput().override,
+          angular: angularOverride('httpResource', true, {
+            defaultValue: { id: 'fallback' },
+            debugName: 'getPetByIdResource',
+          }),
+        },
+      });
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output,
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('parse: Pet.parse');
+      expect(header).toContain('defaultValue: {"id":"fallback"}');
+      expect(header).toContain('debugName: "getPetByIdResource"');
+    });
+  });
+
+  describe('httpResource options', () => {
+    it('supports global defaultValue/debugName/injector/equal options', () => {
+      const verbOption = createVerbOption();
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const output = createOutput({
+        override: {
+          ...createOutput().override,
+          angular: angularOverride('httpResource', true, {
+            defaultValue: { id: 'fallback' },
+            debugName: 'getPetByIdResource',
+            injector: 'inject(Injector)',
+            equal: '(a, b) => a?.id === b?.id',
+          }),
+        },
+      });
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output,
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('HttpResourceRef<Pet>');
+      expect(header).not.toContain('HttpResourceRef<Pet | undefined>');
+      expect(header).toContain(
+        'options?: OrvalHttpResourceOptions<Pet, unknown>',
+      );
+      expect(header).toContain('defaultValue: {"id":"fallback"}');
+      expect(header).toContain('debugName: "getPetByIdResource"');
+      expect(header).toContain('injector: inject(Injector)');
+      expect(header).toContain('equal: (a, b) => a?.id === b?.id');
+    });
+
+    it('prefers operation-level httpResource options over global options', () => {
+      const baseVerbOption = createVerbOption();
+      const verbOption = createVerbOption({
+        override: {
+          ...baseVerbOption.override,
+          operations: {
+            ...baseVerbOption.override.operations,
+            getPetById: {
+              angular: {
+                provideIn: 'root',
+                client: 'httpResource',
+                runtimeValidation: true,
+                httpResource: {
+                  debugName: 'operation-level',
+                },
+              },
+            },
+          },
+          angular: angularOverride('httpResource', true),
+        } as GeneratorVerbOptions['override'],
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const output = createOutput({
+        override: {
+          ...createOutput().override,
+          angular: angularOverride('httpResource', true, {
+            debugName: 'global-level',
+          }),
+        },
+      });
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output,
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('debugName: "operation-level"');
+      expect(header).not.toContain('debugName: "global-level"');
+    });
+
+    it('emits the shared httpResource options helper type', () => {
+      const verbOption = createVerbOption();
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('export type OrvalHttpResourceOptions');
+      expect(header).toContain('TOmitParse extends boolean = false');
+      expect(header).toContain(': HttpResourceOptions<TValue, TRaw>;');
+    });
+
+    it('omits parse from resource options when generating Zod-backed resources', () => {
+      const verbOption = createVerbOption();
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      });
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output,
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('TOmitParse extends boolean = true');
+      expect(header).toContain(
+        "? Omit<HttpResourceOptions<TValue, TRaw>, 'parse'>",
+      );
     });
   });
 
@@ -1324,8 +1551,7 @@ describe('angular httpResource generator', () => {
       const verbOption = createVerbOption();
       routeRegistry.set('getPetById', '/api/pets/${petId}');
 
-      // Header populates the resource return types registry
-      generateHttpResourceHeader({
+      const header = generateHttpResourceHeader({
         title: 'PetService',
         isRequestOptions: true,
         isMutator: false,
@@ -1337,18 +1563,81 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      const footer = generateHttpResourceFooter({
-        operationNames: ['getPetById'],
+      expect(header).toContain('GetPetByIdResourceResult');
+      expect(header).toContain('NonNullable<Pet>');
+    });
+
+    it('emits Zod output types in ResourceResult aliases', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      });
+
+      const header = generateHttpResourceHeader({
         title: 'PetService',
-        hasMutator: false,
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
         hasAwaitedType: false,
-        output: createOutput(),
-        outputClient: 'angular',
-        titles: { implementation: 'PetService', implementationMock: '' },
+        output,
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
       } as never);
 
-      expect(footer).toContain('GetPetByIdResourceResult');
-      expect(footer).toContain('NonNullable<Pet>');
+      expect(header).toContain(
+        'export type GetPetByIdResourceResult = NonNullable<PetOutput>',
+      );
+    });
+
+    it('emits Zod output unions in multi-content ResourceResult aliases', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'string | Pet', errors: 'Error' },
+          imports: [{ name: 'Pet' }],
+          types: {
+            success: [
+              createSuccessType('string', 'text/plain'),
+              createSuccessType('Pet', 'application/json'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['text/plain', 'application/json'],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      });
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output,
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain(
+        'export type GetPetByIdResourceResult = NonNullable<string | PetOutput>',
+      );
     });
   });
 
