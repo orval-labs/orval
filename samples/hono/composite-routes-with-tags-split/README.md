@@ -1,6 +1,6 @@
 # composite-routes-with-tags-split
 
 ```
-yarn install
-yarn dev
+bun install
+bun run dev
 ```

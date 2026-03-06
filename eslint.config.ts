@@ -14,7 +14,7 @@ export default defineConfig(
     'samples',
     '.husky',
     'packages/hono/src/zValidator.ts',
-    '**/.yarn',
+    '**/.bun',
     '**/.turbo',
     '**/dist',
     '**/__snapshots__',

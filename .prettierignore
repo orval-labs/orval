@@ -8,7 +8,7 @@ node_modules
 **/dist
 .husky
 mockServiceWorker.js
-yarn.lock
+bun.lockb
 .svelte-kit
 .prettierignore
 

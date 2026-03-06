@@ -22,37 +22,27 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
-          # disable setup-node@v5's caching to be able to setup yarn
-          # https://github.com/actions/setup-node/issues/1357
-          package-manager-cache: false
-      - name: Enable corepack
-        run: corepack enable
-      # until setup-node have better support for corepack we have to setup yarn in 2 steps
-      # https://github.com/actions/setup-node/issues/531
-      - uses: actions/setup-node@v6
-        with:
-          node-version: ${{ matrix.node-version }}
-          # yarn is now installed so we can enable caching
-          cache: 'yarn'
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: yarn install --immutable
+        run: bun install --frozen-lockfile
 
       - name: Check formatting
-        run: yarn format:check
+        run: bun run format:check
 
       - name: Build packages
-        run: yarn build
+        run: bun run build
 
       - name: Lint packages
-        run: yarn lint
+        run: bun run lint
 
       - name: Test packages
-        run: yarn test
+        run: bun run test
 
       - name: Verify snapshot
         # this step also runs the generate-api task
-        run: yarn test:snapshots
+        run: bun run test:snapshots
 
       - name: Verify generated code can build
-        run: yarn workspace orval-tests build
+        run: bun run --filter orval-tests build

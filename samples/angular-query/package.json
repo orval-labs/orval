@@ -9,7 +9,7 @@
     "test": "CI=true ng test --no-watch",
     "lint": "ng lint",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
-    "test:snapshots:update": "yarn test:snapshots --update",
+    "test:snapshots:update": "bun run test:snapshots --update",
     "generate-api": "orval"
   },
   "private": true,

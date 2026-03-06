@@ -25,20 +25,11 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Cache Yarn dependencies
-        uses: actions/cache@v5
-        with:
-          path: .yarn/cache
-          key: yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            yarn-
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: yarn install --immutable
+        run: bun install --frozen-lockfile
 
       # 🔧 New step to remove stableVersion recursively
       - name: Remove all stableVersion fields
@@ -56,8 +47,10 @@ jobs:
       - name: Update versions, generated output and snapshots
         run: |
           echo "Updating all workspace versions to ${{ github.event.inputs.version }}"
-          yarn workspaces foreach -Av version "${{ github.event.inputs.version }}"
-          yarn test:snapshots:update
+          for pkg in packages/*/package.json package.json; do
+            jq --arg v "${{ github.event.inputs.version }}" '.version = $v' "$pkg" > tmp.$$.json && mv tmp.$$.json "$pkg"
+          done
+          bun run test:snapshots:update
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v8
