@@ -510,8 +510,6 @@ describe('getMockScalar (pattern escaping)', () => {
       },
     });
 
-    expect(result.value).toBe(
-      String.raw`faker.helpers.fromRegExp('a\'\'\'b')`,
-    );
+    expect(result.value).toBe(String.raw`faker.helpers.fromRegExp('a\'\'\'b')`);
   });
 });
