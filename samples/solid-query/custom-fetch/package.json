@@ -7,7 +7,7 @@
     "dev": "vite dev --host",
     "build": "vite build",
     "preview": "vite preview",
-    "generate-api": "bunx orval",
+    "generate-api": "orval",
     "test": "tsc --noEmit"
   },
   "devDependencies": {

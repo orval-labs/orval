@@ -7,7 +7,7 @@
     "dev": "vinxi dev",
     "build": "vinxi build",
     "start": "vinxi start",
-    "generate-api": "bunx orval",
+    "generate-api": "orval",
     "test": "tsc --noEmit"
   },
   "dependencies": {

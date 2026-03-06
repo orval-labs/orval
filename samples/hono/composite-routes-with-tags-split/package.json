@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "wrangler dev src/app.ts --ip 0.0.0.0",
     "deploy": "wrangler deploy --minify src/index.ts",
-    "generate-api": "bunx orval",
+    "generate-api": "orval",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
     "test:snapshots:update": "bun run test:snapshots --update"
   },

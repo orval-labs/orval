@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "generate-api": "bunx orval",
+    "generate-api": "orval",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
     "test:snapshots:update": "bun run test:snapshots --update",
     "format": "prettier --write ."

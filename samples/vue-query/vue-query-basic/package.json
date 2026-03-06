@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "serve": "vite preview",
-    "generate-api": "bunx orval",
+    "generate-api": "orval",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
     "test:snapshots:update": "bun run test:snapshots --update",
     "test": "vitest --run"

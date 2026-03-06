@@ -11,7 +11,7 @@
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
     "test:snapshots:update": "bun run test:snapshots --update",
     "lint": "ng lint",
-    "generate-api": "bunx orval",
+    "generate-api": "orval",
     "clean": "rimraf .turbo dist .angular src/api",
     "nuke": "rimraf .turbo dist .angular src/api node_modules"
   },

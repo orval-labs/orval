@@ -10,7 +10,7 @@
     "lint": "ng lint",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
     "test:snapshots:update": "bun run test:snapshots --update",
-    "generate-api": "bunx orval"
+    "generate-api": "orval"
   },
   "private": true,
   "dependencies": {
