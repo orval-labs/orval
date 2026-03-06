@@ -45,3 +45,4 @@ export const Pets = zod.array(
 );
 
 export type Pets = zod.input<typeof Pets>;
+export type PetsOutput = zod.output<typeof Pets>;

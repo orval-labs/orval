@@ -47,3 +47,4 @@ export const PetWithTag = zod.object({
 });
 
 export type PetWithTag = zod.input<typeof PetWithTag>;
+export type PetWithTagOutput = zod.output<typeof PetWithTag>;

@@ -5,6 +5,12 @@ type OperationParameter = {
   in?: string;
 } & Record<string, unknown>;
 
+type PathItemObject = Record<string, unknown>;
+
+type InputSchema = {
+  paths?: Record<string, PathItemObject | undefined>;
+} & Record<string, unknown>;
+
 const HTTP_VERBS = new Set([
   'get',
   'put',
@@ -16,7 +22,7 @@ const HTTP_VERBS = new Set([
   'trace',
 ]);
 
-export default defineTransformer((inputSchema) => ({
+export default defineTransformer((inputSchema: InputSchema): InputSchema => ({
   ...inputSchema,
   paths: Object.entries(inputSchema.paths ?? {}).reduce(
     (acc, [path, pathItem]) => ({

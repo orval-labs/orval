@@ -69,9 +69,14 @@ export class HttpResourceZodPage {
   protected readonly version = signal(1);
   protected readonly petId = signal('1');
 
-  protected readonly listResource = listPetsResource(undefined, this.version);
+  protected readonly listResource = listPetsResource(
+    'application/json',
+    undefined,
+    this.version,
+  );
   protected readonly petByIdResource = showPetByIdResource(
     this.petId,
+    'application/json',
     this.version,
   );
 

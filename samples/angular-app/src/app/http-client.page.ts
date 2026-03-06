@@ -105,9 +105,9 @@ export class HttpClientPage {
     '',
   );
 
-  protected readonly petXmlState$ = this.createLoadState$<Pet | undefined>(
+  protected readonly petXmlState$ = this.createLoadState$<string>(
     this.petService.showPetById(this.petId, 'application/xml', this.version),
-    undefined,
+    '',
   );
 
   protected readonly petJsonState$ = this.createLoadState$<

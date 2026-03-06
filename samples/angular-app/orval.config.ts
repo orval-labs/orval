@@ -12,7 +12,6 @@ export default defineConfig({
       tsconfig: './tsconfig.app.json',
       clean: true,
       override: {
-        paramsSerializer: 'src/orval/mutator/custom-params-serializer.ts',
         operations: {
           listPets: {
             mutator: 'src/orval/mutator/response-type.ts',
@@ -47,7 +46,108 @@ export default defineConfig({
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'src/orval/transformer/add-version.js',
+        transformer: 'orval/transformer/add-version.ts',
+      },
+    },
+  },
+  petstoreCustomParamsSerializer: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/http-client-custom-params/petstore.ts',
+      schemas: 'src/api/model-custom-params',
+      client: 'angular',
+      mock: { type: 'msw', indexMockFiles: true },
+      tsconfig: './tsconfig.app.json',
+      clean: true,
+      override: {
+        paramsSerializer: 'src/orval/mutator/custom-params-serializer.ts',
+        operations: {
+          listPets: {
+            mock: {
+              properties: () => {
+                return {
+                  id: () => faker.number.int({ min: 1, max: 99999 }),
+                };
+              },
+            },
+          },
+          showPetById: {
+            mock: {
+              data: () => ({
+                id: faker.number.int({ min: 1, max: 99 }),
+                name: faker.person.firstName(),
+                tag: faker.helpers.arrayElement([
+                  faker.word.sample(),
+                  undefined,
+                ]),
+              }),
+            },
+          },
+        },
+        mock: {
+          properties: {
+            '/tag|name/': () => faker.person.lastName(),
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+      override: {
+        transformer: 'orval/transformer/add-version.ts',
+      },
+    },
+  },
+  petstoreZod: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/endpoints-zod/petstore.ts',
+      schemas: {
+        type: 'zod',
+        path: 'src/api/model-zod',
+      },
+      client: 'angular',
+      mock: { type: 'msw', indexMockFiles: true },
+      tsconfig: './tsconfig.app.json',
+      clean: true,
+      override: {
+        angular: {
+          runtimeValidation: true,
+        },
+        operations: {
+          listPets: {
+            mock: {
+              properties: () => {
+                return {
+                  id: () => faker.number.int({ min: 1, max: 99999 }),
+                };
+              },
+            },
+          },
+          showPetById: {
+            mock: {
+              data: () => ({
+                id: faker.number.int({ min: 1, max: 99 }),
+                name: faker.person.firstName(),
+                tag: faker.helpers.arrayElement([
+                  faker.word.sample(),
+                  undefined,
+                ]),
+              }),
+            },
+          },
+        },
+        mock: {
+          properties: {
+            '/tag|name/': () => faker.person.lastName(),
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+      override: {
+        transformer: 'orval/transformer/add-version.ts',
       },
     },
   },
@@ -64,7 +164,6 @@ export default defineConfig({
         angular: {
           client: 'httpResource',
         },
-        paramsSerializer: 'src/orval/mutator/custom-params-serializer.ts',
         operations: {
           listPets: {
             // Note: response-type mutator is HttpClient-specific (requires HttpClient
@@ -100,7 +199,7 @@ export default defineConfig({
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'src/orval/transformer/add-version.js',
+        transformer: 'orval/transformer/add-version.ts',
       },
     },
   },
@@ -120,7 +219,6 @@ export default defineConfig({
         angular: {
           client: 'httpResource',
         },
-        paramsSerializer: 'src/orval/mutator/custom-params-serializer.ts',
         operations: {
           listPets: {
             mock: {
@@ -154,7 +252,7 @@ export default defineConfig({
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'src/orval/transformer/add-version.js',
+        transformer: 'orval/transformer/add-version.ts',
       },
     },
   },

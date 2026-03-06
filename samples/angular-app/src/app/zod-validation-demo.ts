@@ -619,6 +619,7 @@ import type { Pets } from '../api/model-zod/index.zod';
 })
 export class ZodValidationDemo implements OnInit {
   private readonly petsService = inject(ZodPetsService);
+  private readonly demoVersion = 1;
 
   protected readonly searchPets = signal<Pets>([]);
   protected readonly searchError = signal<string | null>(null);
@@ -649,7 +650,7 @@ export class ZodValidationDemo implements OnInit {
 
   private loadSearchPets() {
     this.petsService
-      .searchPets(this.DEMO_PARAMS, {
+      .searchPets(this.DEMO_PARAMS, this.demoVersion, {
         params: {
           demoValidation: '1',
           demoMode: 'search',
@@ -663,7 +664,7 @@ export class ZodValidationDemo implements OnInit {
 
   private loadSinglePet() {
     this.petsService
-      .showPetById('1', 'application/json', {
+      .showPetById('1', 'application/json', this.demoVersion, {
         params: {
           demoValidation: '1',
         },
@@ -687,7 +688,7 @@ export class ZodValidationDemo implements OnInit {
 
     // Body mode - validates
     this.petsService
-      .searchPets(this.DEMO_PARAMS, {
+      .searchPets(this.DEMO_PARAMS, this.demoVersion, {
         observe: 'body',
         params: {
           demoValidation: '1',
@@ -713,7 +714,7 @@ export class ZodValidationDemo implements OnInit {
 
     // Events mode - no validation
     this.petsService
-      .searchPets(this.DEMO_PARAMS, {
+      .searchPets(this.DEMO_PARAMS, this.demoVersion, {
         observe: 'events',
         params: {
           demoValidation: '1',
@@ -739,7 +740,7 @@ export class ZodValidationDemo implements OnInit {
 
     // Response mode - no validation
     this.petsService
-      .searchPets(this.DEMO_PARAMS, {
+      .searchPets(this.DEMO_PARAMS, this.demoVersion, {
         observe: 'response',
         params: {
           demoValidation: '1',

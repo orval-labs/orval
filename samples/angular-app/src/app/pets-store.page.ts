@@ -6,7 +6,7 @@ import {
   signal,
 } from '@angular/core';
 import { AsyncPipe, NgOptimizedImage } from '@angular/common';
-import { PetsService } from '../api/endpoints/pets/pets.service';
+import { PetsService } from '../api/http-client/pets/pets.service';
 
 @Component({
   selector: 'app-pets-store-page',
@@ -28,7 +28,8 @@ import { PetsService } from '../api/endpoints/pets/pets.service';
           <div>
             <h1 class="page-title">{{ title() }}</h1>
             <p class="page-sub">
-              Browse pets from the default generated Angular client
+              Browse pets from the default generated Angular client — no custom
+              params serializer required.
             </p>
           </div>
         </div>

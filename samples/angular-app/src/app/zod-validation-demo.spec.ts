@@ -153,8 +153,8 @@ describe('ZodValidationDemo', () => {
     button.click();
     fixture.detectChanges();
 
-    // Respond to POST /pets
-    const createReq = httpMock.expectOne('/pets');
+    // Respond to POST /v1/pets
+    const createReq = httpMock.expectOne('/v1/pets');
     expect(createReq.request.method).toBe('POST');
     expect(createReq.request.body).toEqual({ name: 'Buddy', tag: 'dog' });
     createReq.flush(null);
