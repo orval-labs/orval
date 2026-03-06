@@ -1,6 +1,6 @@
 {
   "name": "@orval/solid-start",
-  "version": "8.4.2",
+  "version": "8.5.3",
   "license": "MIT",
   "type": "module",
   "types": "./dist/index.d.mts",
@@ -25,7 +25,8 @@
     "nuke": "rimraf .turbo dist node_modules"
   },
   "dependencies": {
-    "@orval/core": "workspace:*"
+    "@orval/core": "workspace:*",
+    "@scalar/openapi-types": "catalog:"
   },
   "devDependencies": {
     "eslint": "catalog:",

@@ -1,3 +1,8 @@
+import { access } from 'node:fs/promises';
+import nodePath from 'node:path';
+import { clearTimeout, setTimeout } from 'node:timers';
+import { styleText } from 'node:util';
+
 import {
   type ClientMockBuilder,
   type ConfigExternal,
@@ -10,6 +15,7 @@ import {
   type HookFunction,
   type HookOption,
   type HooksOptions,
+  type InputOptions,
   type InputTransformerFn,
   isBoolean,
   isFunction,
@@ -39,10 +45,8 @@ import {
   type QueryOptions,
   RefComponentSuffix,
   type SchemaOptions,
-  upath,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
-import chalk from 'chalk';
 
 import pkg from '../../package.json';
 import { loadPackageJson } from './package-json';
@@ -122,16 +126,17 @@ export async function normalizeOptions(
     : optionsExport);
 
   if (!options.input) {
-    throw new Error(chalk.red(`Config require an input`));
+    throw new Error(styleText('red', `Config require an input`));
   }
 
   if (!options.output) {
-    throw new Error(chalk.red(`Config require an output`));
+    throw new Error(styleText('red', `Config require an output`));
   }
 
-  const inputOptions = isString(options.input)
-    ? { target: options.input }
-    : options.input;
+  const inputOptions: InputOptions =
+    isString(options.input) || Array.isArray(options.input)
+      ? { target: options.input }
+      : options.input;
 
   const outputOptions = isString(options.output)
     ? { target: options.output }
@@ -182,11 +187,28 @@ export async function normalizeOptions(
     ...normalizeQueryOptions(outputOptions.override?.query, workspace),
   };
 
+  let resolvedInputTarget;
+  if (globalOptions.input) {
+    resolvedInputTarget = Array.isArray(globalOptions.input)
+      ? await resolveFirstValidTarget(
+          globalOptions.input,
+          process.cwd(),
+          inputOptions.parserOptions,
+        )
+      : normalizePathOrUrl(globalOptions.input, process.cwd());
+  } else if (Array.isArray(inputOptions.target)) {
+    resolvedInputTarget = await resolveFirstValidTarget(
+      inputOptions.target,
+      workspace,
+      inputOptions.parserOptions,
+    );
+  } else {
+    resolvedInputTarget = normalizePathOrUrl(inputOptions.target, workspace);
+  }
+
   const normalizedOptions: NormalizedOptions = {
     input: {
-      target: globalOptions.input
-        ? normalizePathOrUrl(globalOptions.input, process.cwd())
-        : normalizePathOrUrl(inputOptions.target, workspace),
+      target: resolvedInputTarget,
       override: {
         transformer: normalizePath(
           inputOptions.override?.transformer,
@@ -390,6 +412,14 @@ export async function normalizeOptions(
           runtimeValidation:
             outputOptions.override?.fetch?.runtimeValidation ?? false,
           ...outputOptions.override?.fetch,
+          ...(outputOptions.override?.fetch?.jsonReviver
+            ? {
+                jsonReviver: normalizeMutator(
+                  outputWorkspace,
+                  outputOptions.override.fetch.jsonReviver,
+                ),
+              }
+            : {}),
         },
         useDates: outputOptions.override?.useDates ?? false,
         useDeprecatedOperations:
@@ -410,11 +440,13 @@ export async function normalizeOptions(
   };
 
   if (!normalizedOptions.input.target) {
-    throw new Error(chalk.red(`Config require an input target`));
+    throw new Error(styleText('red', `Config require an input target`));
   }
 
   if (!normalizedOptions.output.target && !normalizedOptions.output.schemas) {
-    throw new Error(chalk.red(`Config require an output target or schemas`));
+    throw new Error(
+      styleText('red', `Config require an output target or schemas`),
+    );
   }
 
   return normalizedOptions;
@@ -426,24 +458,102 @@ function normalizeMutator(
 ): NormalizedMutator | undefined {
   if (isObject(mutator)) {
     if (!mutator.path) {
-      throw new Error(chalk.red(`Mutator need a path`));
+      throw new Error(styleText('red', `Mutator need a path`));
     }
 
     return {
       ...mutator,
-      path: upath.resolve(workspace, mutator.path),
+      path: nodePath.resolve(workspace, mutator.path),
       default: mutator.default ?? !mutator.name,
     };
   }
 
   if (isString(mutator)) {
     return {
-      path: upath.resolve(workspace, mutator),
+      path: nodePath.resolve(workspace, mutator),
       default: true,
     };
   }
 
   return mutator;
+}
+
+const TARGET_RESOLVE_TIMEOUT_MS = 5000;
+
+async function resolveFirstValidTarget(
+  targets: string[],
+  workspace: string,
+  parserOptions?: InputOptions['parserOptions'],
+): Promise<string> {
+  for (const target of targets) {
+    if (isUrl(target)) {
+      try {
+        const headers = getHeadersForUrl(target, parserOptions?.headers);
+        const controller = new AbortController();
+        const timer = setTimeout(() => {
+          controller.abort();
+        }, TARGET_RESOLVE_TIMEOUT_MS);
+
+        try {
+          const response = await fetch(target, {
+            method: 'HEAD',
+            headers,
+            signal: controller.signal,
+          });
+
+          if (response.ok) return target;
+
+          if (response.status === 405 || response.status === 501) {
+            const getResponse = await fetch(target, {
+              method: 'GET',
+              headers,
+              signal: controller.signal,
+            });
+            if (getResponse.ok) return target;
+          }
+        } finally {
+          clearTimeout(timer);
+        }
+      } catch {
+        continue;
+      }
+    } else {
+      const resolved = nodePath.resolve(workspace, target);
+      try {
+        await access(resolved);
+        return resolved;
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  throw new Error(
+    styleText(
+      'red',
+      `None of the input targets could be resolved:\n${targets.map((t) => `  - ${t}`).join('\n')}`,
+    ),
+  );
+}
+
+function getHeadersForUrl(
+  url: string,
+  headersConfig?: NonNullable<InputOptions['parserOptions']>['headers'],
+): Record<string, string> {
+  if (!headersConfig) return {};
+
+  const { hostname } = new URL(url);
+  const matched: Record<string, string> = {};
+
+  for (const entry of headersConfig) {
+    if (
+      entry.domains.some((d) => hostname === d || hostname.endsWith(`.${d}`))
+    ) {
+      Object.assign(matched, entry.headers);
+    }
+  }
+
+  return matched;
 }
 
 function normalizePathOrUrl<T>(path: T, workspace: string) {
@@ -458,7 +568,7 @@ export function normalizePath<T>(path: T, workspace: string) {
   if (!isString(path)) {
     return path;
   }
-  return upath.resolve(workspace, path);
+  return nodePath.resolve(workspace, path);
 }
 
 function normalizeOperationsAndTags(
@@ -599,7 +709,9 @@ function normalizeOutputMode(mode?: OutputMode): OutputMode {
   }
 
   if (!Object.values(OutputMode).includes(mode)) {
-    createLogger().warn(chalk.yellow(`Unknown the provided mode => ${mode}`));
+    createLogger().warn(
+      styleText('yellow', `Unknown the provided mode => ${mode}`),
+    );
     return OutputMode.SINGLE;
   }
 
@@ -630,12 +742,14 @@ function normalizeHonoOptions(
 ): NormalizedHonoOptions {
   return {
     ...(hono.handlers
-      ? { handlers: upath.resolve(workspace, hono.handlers) }
+      ? { handlers: nodePath.resolve(workspace, hono.handlers) }
       : {}),
-    compositeRoute: hono.compositeRoute ?? '',
+    compositeRoute: hono.compositeRoute
+      ? nodePath.resolve(workspace, hono.compositeRoute)
+      : '',
     validator: hono.validator ?? true,
     validatorOutputPath: hono.validatorOutputPath
-      ? upath.resolve(workspace, hono.validatorOutputPath)
+      ? nodePath.resolve(workspace, hono.validatorOutputPath)
       : '',
   };
 }

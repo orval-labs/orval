@@ -50,6 +50,8 @@ export function getScalar({
   const schemaConst = item.const as string | undefined;
   const schemaFormat = item.format as string | undefined;
   const schemaNullable = item.nullable as boolean | undefined;
+  const schemaContentMediaType = item.contentMediaType as string | undefined;
+  const schemaContentEncoding = item.contentEncoding as string | undefined;
 
   const nullable =
     (isArray(schemaType) && schemaType.includes('null')) ||
@@ -172,6 +174,15 @@ export function getScalar({
         if (fileType) {
           value = fileType === 'binary' ? 'Blob' : 'Blob | string';
         }
+      } else if (
+        schemaContentMediaType === 'application/octet-stream' &&
+        !schemaContentEncoding
+      ) {
+        // The @scalar/openapi-parser upgrader converts format: binary to
+        // contentMediaType: application/octet-stream when upgrading
+        // Swagger 2.0 / OAS 3.0 → OAS 3.1. Treat it the same as
+        // format: binary so $ref-based model types generate Blob.
+        value = 'Blob';
       }
 
       if (

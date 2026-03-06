@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { dedupeUnionType, jsStringEscape } from './string';
+import { dedupeUnionType, escape, jsStringEscape } from './string';
 
 describe('dedupeUnionType', () => {
   describe('edge cases', () => {
@@ -203,5 +203,21 @@ describe('jsStringEscape', () => {
       expect(jsStringEscape('/*')).toBe(String.raw`\/\*`);
       expect(jsStringEscape('*/')).toBe(String.raw`\*\/`);
     });
+  });
+});
+
+describe('escape', () => {
+  it('should escape a single occurrence of the character', () => {
+    expect(escape("don't")).toBe(String.raw`don\'t`);
+  });
+
+  it('should escape all occurrences of the character', () => {
+    expect(escape("it's John's car")).toBe(String.raw`it\'s John\'s car`);
+  });
+
+  it('should escape all occurrences of a custom character', () => {
+    expect(escape('say "hello" and "goodbye"', '"')).toBe(
+      String.raw`say \"hello\" and \"goodbye\"`,
+    );
   });
 });

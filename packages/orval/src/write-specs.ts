@@ -1,3 +1,6 @@
+import path from 'node:path';
+import { styleText } from 'node:util';
+
 import {
   createSuccessMessage,
   fixCrossDirectoryImports,
@@ -20,7 +23,6 @@ import {
   writeSplitTagsMode,
   writeTagsMode,
 } from '@orval/core';
-import chalk from 'chalk';
 import { execa, ExecaError } from 'execa';
 import fs from 'fs-extra';
 import { unique } from 'remeda';
@@ -52,9 +54,12 @@ async function addOperationSchemasReExport(
   fileExtension: string,
   header: string,
 ): Promise<void> {
-  const relativePath = upath.relativeSafe(schemaPath, operationSchemasPath);
-  const schemaIndexPath = upath.join(schemaPath, `index${fileExtension}`);
-  const exportLine = `export * from '${relativePath}';\n`;
+  const schemaIndexPath = path.join(schemaPath, `index${fileExtension}`);
+  const esmImportPath = upath.getRelativeImportPath(
+    schemaIndexPath,
+    operationSchemasPath,
+  );
+  const exportLine = `export * from '${esmImportPath}';\n`;
 
   const indexExists = await fs.pathExists(schemaIndexPath);
   if (indexExists) {
@@ -62,7 +67,7 @@ async function addOperationSchemasReExport(
     // Use regex to handle both single and double quotes
     const existingContent = await fs.readFile(schemaIndexPath, 'utf8');
     const exportPattern = new RegExp(
-      String.raw`export\s*\*\s*from\s*['"]${relativePath.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)}['"]`,
+      String.raw`export\s*\*\s*from\s*['"]${esmImportPath.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)}['"]`,
     );
     if (!exportPattern.test(existingContent)) {
       await fs.appendFile(schemaIndexPath, exportLine);
@@ -285,16 +290,18 @@ export async function writeSpecs(
 
   if (output.workspace) {
     const workspacePath = output.workspace;
+    const indexFile = path.join(workspacePath, 'index.ts');
     const imports = implementationPaths
       .filter(
-        (path) =>
+        (p) =>
           !output.mock ||
-          !path.endsWith(`.${getMockFileExtensionByTypeName(output.mock)}.ts`),
+          !p.endsWith(`.${getMockFileExtensionByTypeName(output.mock)}.ts`),
       )
-      .map((path) =>
-        upath.relativeSafe(
-          workspacePath,
-          getFileInfo(path).pathWithoutExtension,
+      .map((p) =>
+        upath.getRelativeImportPath(
+          indexFile,
+          getFileInfo(p).pathWithoutExtension,
+          true,
         ),
       );
 
@@ -303,22 +310,23 @@ export async function writeSpecs(
         ? output.schemas
         : output.schemas.path;
       imports.push(
-        upath.relativeSafe(workspacePath, getFileInfo(schemasPath).dirname),
+        upath.getRelativeImportPath(
+          indexFile,
+          getFileInfo(schemasPath).dirname,
+        ),
       );
     }
 
     if (output.operationSchemas) {
       imports.push(
-        upath.relativeSafe(
-          workspacePath,
+        upath.getRelativeImportPath(
+          indexFile,
           getFileInfo(output.operationSchemas).dirname,
         ),
       );
     }
 
     if (output.indexFiles) {
-      const indexFile = upath.join(workspacePath, '/index.ts');
-
       if (await fs.pathExists(indexFile)) {
         const data = await fs.readFile(indexFile, 'utf8');
         const importsNotDeclared = imports.filter((imp) => !data.includes(imp));
@@ -388,7 +396,7 @@ export async function writeSpecs(
       if (error instanceof ExecaError && error.exitCode === 1)
         message = error.message;
 
-      log(chalk.yellow(message));
+      log(styleText('yellow', message));
     }
   }
 
@@ -410,7 +418,7 @@ export async function writeSpecs(
 
       const Application = await getTypedocApplication();
       const app = await Application.bootstrapWithPlugins({
-        entryPoints: paths,
+        entryPoints: paths.map((x) => upath.toUnix(x)),
         theme: 'markdown',
         // Set the custom config location if it has been provided.
         ...config,
@@ -440,7 +448,7 @@ export async function writeSpecs(
           ? error.message
           : `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Unable to generate docs`;
 
-      log(chalk.yellow(message));
+      log(styleText('yellow', message));
     }
   }
 

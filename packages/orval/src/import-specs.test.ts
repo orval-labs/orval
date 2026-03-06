@@ -726,4 +726,17 @@ describe('dereferenceExternalRefs', () => {
 
     expect(result).not.toHaveProperty('x-ext');
   });
+
+  it('should not inject components into Swagger 2.0 spec when no external refs exist', () => {
+    const input = {
+      swagger: '2.0',
+      info: { title: 'Test', version: '1.0' },
+      paths: {},
+      definitions: { Foo: { type: 'object' } },
+    };
+
+    const result = dereferenceExternalRef(input);
+
+    expect(result).not.toHaveProperty('components');
+  });
 });

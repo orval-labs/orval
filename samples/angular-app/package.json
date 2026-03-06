@@ -1,6 +1,6 @@
 {
   "name": "angular-app",
-  "version": "8.4.2",
+  "version": "8.5.3",
   "type": "module",
   "scripts": {
     "ng": "ng",
@@ -28,15 +28,19 @@
     "zod": "catalog:zod3"
   },
   "devDependencies": {
+    "@angular-eslint/builder": "21.3.0",
     "@angular/build": "catalog:angular",
     "@angular/cli": "catalog:angular",
     "@angular/compiler-cli": "catalog:angular",
     "@faker-js/faker": "catalog:tooling",
+    "angular-eslint": "21.3.0",
+    "eslint": "catalog:",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
     "prettier": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
     "vitest": "catalog:"
   },
   "dependenciesMeta": {

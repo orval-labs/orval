@@ -4,7 +4,7 @@ import type { TypeDocOptions } from 'typedoc';
 
 export interface Options {
   output?: string | OutputOptions;
-  input?: string | InputOptions;
+  input?: string | string[] | InputOptions;
   hooks?: Partial<HooksOptions>;
 }
 
@@ -258,7 +258,7 @@ export type InputFiltersOptions = {
 };
 
 export type InputOptions = {
-  target: string | Record<string, unknown> | OpenApiDocument;
+  target: string | string[] | Record<string, unknown> | OpenApiDocument;
   override?: OverrideInput;
   filters?: InputFiltersOptions;
   parserOptions?: {
@@ -794,7 +794,7 @@ export interface GlobalOptions {
   mode?: OutputMode;
   tsconfig?: string | Tsconfig;
   packageJson?: string;
-  input?: string;
+  input?: string | string[];
   output?: string;
   verbose?: boolean;
 }
@@ -1256,10 +1256,7 @@ export type GeneratorClientFooter = (data: {
 export type GeneratorClientImports = (data: {
   client: OutputClient | OutputClientFunc;
   implementation: string;
-  imports: {
-    exports: GeneratorImport[];
-    dependency: string;
-  }[];
+  imports: readonly GeneratorDependency[];
   projectName?: string;
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;
@@ -1272,10 +1269,7 @@ export type GeneratorClientImports = (data: {
 
 export type GenerateMockImports = (data: {
   implementation: string;
-  imports: {
-    exports: GeneratorImport[];
-    dependency: string;
-  }[];
+  imports: readonly GeneratorDependency[];
   projectName?: string;
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;

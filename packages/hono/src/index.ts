@@ -1,3 +1,5 @@
+import nodePath from 'node:path';
+
 import {
   camel,
   type ClientBuilder,
@@ -29,7 +31,7 @@ import fs from 'fs-extra';
 import { getRoute } from './route';
 
 const ZVALIDATOR_SOURCE = fs
-  .readFileSync(upath.join(import.meta.dirname, 'zValidator.ts'))
+  .readFileSync(nodePath.join(import.meta.dirname, 'zValidator.ts'))
   .toString('utf8');
 
 const HONO_DEPENDENCIES: GeneratorDependency[] = [
@@ -65,13 +67,10 @@ const HONO_DEPENDENCIES: GeneratorDependency[] = [
  * extensionless to conform with the rest of orval.
  */
 const generateModuleSpecifier = (from: string, to: string) => {
-  if (to.startsWith('.') || upath.isAbsolute(to)) {
-    // One of "/foo/bar", "./foo/bar", "../foo/bar", etc.
-    let ret: string;
-    ret = upath.relativeSafe(upath.dirname(from), to);
-    ret = ret.replace(/\.ts$/, '');
-    ret = ret.replaceAll(upath.separator, '/');
-    return ret;
+  if (to.startsWith('.') || nodePath.isAbsolute(to)) {
+    return upath
+      .getRelativeImportPath(nodePath.resolve(from), nodePath.resolve(to), true)
+      .replace(/\.ts$/, '');
   }
 
   // Not a relative or absolute file path. Import as-is.
@@ -103,8 +102,11 @@ export const getHonoHeader: ClientHeaderBuilder = ({
         const tag = kebab(verbOption.tags[0] ?? 'default');
 
         const handlersPath = upath.relativeSafe(
-          upath.join(targetInfo.dirname, isTagMode ? tag : ''),
-          upath.join(handlerFileInfo.dirname, `./${verbOption.operationName}`),
+          nodePath.join(targetInfo.dirname, isTagMode ? tag : ''),
+          nodePath.join(
+            handlerFileInfo.dirname,
+            `./${verbOption.operationName}`,
+          ),
         );
 
         return `import { ${verbOption.operationName}Handlers } from '${handlersPath}';`;
@@ -385,7 +387,7 @@ const generateHandlerFiles = async (
       Object.values(verbOptions).map(async (verbOption) => {
         const tag = kebab(verbOption.tags[0] ?? 'default');
 
-        const path = upath.join(
+        const path = nodePath.join(
           output.override.hono.handlers ?? '',
           `./${verbOption.operationName}` + extension,
         );
@@ -397,12 +399,12 @@ const generateHandlerFiles = async (
             validatorModule,
             zodModule:
               output.mode === 'tags'
-                ? upath.join(dirname, `${kebab(tag)}.zod`)
-                : upath.join(dirname, tag, tag + '.zod'),
+                ? nodePath.join(dirname, `${kebab(tag)}.zod`)
+                : nodePath.join(dirname, tag, tag + '.zod'),
             contextModule:
               output.mode === 'tags'
-                ? upath.join(dirname, `${kebab(tag)}.context`)
-                : upath.join(dirname, tag, tag + '.context'),
+                ? nodePath.join(dirname, `${kebab(tag)}.context`)
+                : nodePath.join(dirname, tag, tag + '.context'),
           }),
           path,
         };
@@ -418,8 +420,8 @@ const generateHandlerFiles = async (
       Object.entries(groupByTags).map(async ([tag, verbs]) => {
         const handlerPath =
           output.mode === 'tags'
-            ? upath.join(dirname, `${kebab(tag)}.handlers${extension}`)
-            : upath.join(dirname, tag, tag + '.handlers' + extension);
+            ? nodePath.join(dirname, `${kebab(tag)}.handlers${extension}`)
+            : nodePath.join(dirname, tag, tag + '.handlers' + extension);
 
         return {
           content: await generateHandlerFile({
@@ -428,12 +430,12 @@ const generateHandlerFiles = async (
             validatorModule,
             zodModule:
               output.mode === 'tags'
-                ? upath.join(dirname, `${kebab(tag)}.zod`)
-                : upath.join(dirname, tag, tag + '.zod'),
+                ? nodePath.join(dirname, `${kebab(tag)}.zod`)
+                : nodePath.join(dirname, tag, tag + '.zod'),
             contextModule:
               output.mode === 'tags'
-                ? upath.join(dirname, `${kebab(tag)}.context`)
-                : upath.join(dirname, tag, tag + '.context'),
+                ? nodePath.join(dirname, `${kebab(tag)}.context`)
+                : nodePath.join(dirname, tag, tag + '.context'),
           }),
           path: handlerPath,
         };
@@ -442,7 +444,10 @@ const generateHandlerFiles = async (
   }
 
   // One file with all operations.
-  const handlerPath = upath.join(dirname, `${filename}.handlers${extension}`);
+  const handlerPath = nodePath.join(
+    dirname,
+    `${filename}.handlers${extension}`,
+  );
 
   return [
     {
@@ -450,8 +455,8 @@ const generateHandlerFiles = async (
         path: handlerPath,
         verbs: Object.values(verbOptions),
         validatorModule,
-        zodModule: upath.join(dirname, `${filename}.zod`),
-        contextModule: upath.join(dirname, `${filename}.context`),
+        zodModule: nodePath.join(dirname, `${filename}.zod`),
+        contextModule: nodePath.join(dirname, `${filename}.context`),
       }),
       path: handlerPath,
     },
@@ -578,8 +583,8 @@ const generateContextFiles = (
     return Object.entries(groupByTags).map(([tag, verbs]) => {
       const path =
         output.mode === 'tags'
-          ? upath.join(dirname, `${kebab(tag)}.context${extension}`)
-          : upath.join(dirname, tag, tag + '.context' + extension);
+          ? nodePath.join(dirname, `${kebab(tag)}.context${extension}`)
+          : nodePath.join(dirname, tag, tag + '.context' + extension);
       const code = generateContextFile({
         verbs,
         path,
@@ -589,7 +594,7 @@ const generateContextFiles = (
     });
   }
 
-  const path = upath.join(dirname, `${filename}.context${extension}`);
+  const path = nodePath.join(dirname, `${filename}.context${extension}`);
   const code = generateContextFile({
     verbs: Object.values(verbOptions),
     path,
@@ -656,8 +661,8 @@ const generateZodFiles = async (
 
         const zodPath =
           output.mode === 'tags'
-            ? upath.join(dirname, `${kebab(tag)}.zod${extension}`)
-            : upath.join(dirname, tag, tag + '.zod' + extension);
+            ? nodePath.join(dirname, `${kebab(tag)}.zod${extension}`)
+            : nodePath.join(dirname, tag, tag + '.zod' + extension);
 
         content += zods.map((zod) => zod.implementation).join('\n');
 
@@ -700,7 +705,7 @@ const generateZodFiles = async (
 
   let content = `${header}import { z as zod } from 'zod';\n${mutatorsImports}\n`;
 
-  const zodPath = upath.join(dirname, `${filename}.zod${extension}`);
+  const zodPath = nodePath.join(dirname, `${filename}.zod${extension}`);
 
   content += zods.map((zod) => zod.implementation).join('\n');
 
@@ -722,7 +727,7 @@ const generateZvalidator = (
   if (!output.override.hono.validatorOutputPath) {
     const { extension, dirname, filename } = getFileInfo(output.target);
 
-    validatorPath = upath.join(dirname, `${filename}.validator${extension}`);
+    validatorPath = nodePath.join(dirname, `${filename}.validator${extension}`);
   }
 
   return {
@@ -762,7 +767,7 @@ const generateCompositeRoutes = (
 
         const handlersPath = generateModuleSpecifier(
           compositeRouteInfo.path,
-          upath.join(handlerFileInfo.dirname, `./${operationName}`),
+          nodePath.join(handlerFileInfo.dirname, `./${operationName}`),
         );
 
         return `import { ${importHandlerName} } from '${handlersPath}';`;
@@ -783,7 +788,7 @@ const generateCompositeRoutes = (
 
         const handlersPath = generateModuleSpecifier(
           compositeRouteInfo.path,
-          upath.join(targetInfo.dirname, tag),
+          nodePath.join(targetInfo.dirname, tag),
         );
 
         return `import {\n${importHandlerNames}\n} from '${handlersPath}/${tag}.handlers';`;
