@@ -201,17 +201,19 @@ export function getNumberWord(num: number) {
 }
 
 /**
- * Escapes a specific character in a string by prefixing it with a backslash.
+ * Escapes a specific character in a string by prefixing all of its occurrences with a backslash.
  *
  * @param str - The string to escape, or null.
  * @param char - The character to escape. Defaults to single quote (').
  * @returns The escaped string, or null if the input is null.
  * @example
  * escape("don't") // returns "don\'t"
+ * escape("it's John's") // returns "it\'s John\'s"
  * escape('say "hello"', '"') // returns 'say \\"hello\\"'
+ * escape("a'''b", "'") // returns "a\'\'\'b"
  */
 export function escape(str: string | null, char = "'") {
-  return str?.replace(char, `\\${char}`);
+  return str?.replaceAll(char, `\\${char}`);
 }
 
 /**

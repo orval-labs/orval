@@ -499,4 +499,19 @@ describe('getMockScalar (pattern escaping)', () => {
       String.raw`faker.helpers.fromRegExp('^[a-zA-Z0-9\']*$')`,
     );
   });
+
+  it('should escape multiple single quotes in pattern when generating faker.helpers.fromRegExp call', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        name: 'pattern-item-multiple',
+        pattern: "a'''b",
+      },
+    });
+
+    expect(result.value).toBe(
+      String.raw`faker.helpers.fromRegExp('a\'\'\'b')`,
+    );
+  });
 });
