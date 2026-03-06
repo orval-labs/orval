@@ -30,7 +30,12 @@ jobs:
 
       - name: Link workspace binaries
         if: runner.os != 'Windows'
-        run: ln -sf ../packages/orval/dist/bin/orval.mjs node_modules/.bin/orval
+        run: |
+          find . -path '*/node_modules/orval' -type l | while read orval_link; do
+            bin_dir="$(dirname "$orval_link")/.bin"
+            mkdir -p "$bin_dir"
+            ln -sf ../orval/dist/bin/orval.mjs "$bin_dir/orval"
+          done
 
       - name: Check formatting
         run: bun run format:check
