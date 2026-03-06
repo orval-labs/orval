@@ -33,7 +33,9 @@ export const routes: Routes = [
   {
     path: 'zod-demo',
     loadComponent: () =>
-      import('./zod-validation-demo').then((module) => module.ZodValidationDemo),
+      import('./zod-validation-demo').then(
+        (module) => module.ZodValidationDemo,
+      ),
   },
   { path: '**', redirectTo: '' },
 ];
