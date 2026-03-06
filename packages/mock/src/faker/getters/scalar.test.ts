@@ -1,5 +1,6 @@
 /* eslint-disable unicorn/no-null */
 import type { ContextSpec, OpenApiSchemaObjectType } from '@orval/core';
+
 import { describe, expect, it } from 'vitest';
 
 import { getMockScalar } from './scalar';

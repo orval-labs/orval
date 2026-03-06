@@ -8,6 +8,7 @@ import {
 } from '@orval/core';
 
 import type { MockDefinition, MockSchemaObject } from '../../types';
+
 import { resolveMockValue } from '../resolvers';
 
 interface CombineSchemasMockOptions {

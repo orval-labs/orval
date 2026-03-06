@@ -4,8 +4,6 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-// based on https://github.com/honojs/middleware/blob/main/packages/zod-validator/src/index.ts
-import type { ZodSafeParseResult as ZodSafeParseResult$1 } from 'zod/v4';
 import type {
   Context,
   Env,
@@ -14,6 +12,9 @@ import type {
   TypedResponse,
   ValidationTargets,
 } from 'hono';
+// based on https://github.com/honojs/middleware/blob/main/packages/zod-validator/src/index.ts
+import type { ZodSafeParseResult as ZodSafeParseResult$1 } from 'zod/v4';
+
 import { zValidator as zValidatorBase } from '@hono/zod-validator';
 import * as v3 from 'zod/v3';
 import * as v4 from 'zod/v4/core';

@@ -1,11 +1,12 @@
 import { entries, isEmptyish } from 'remeda';
 
-import { getResReqTypes } from '../getters';
 import type {
   ContextSpec,
   GeneratorSchema,
   OpenApiComponentsObject,
 } from '../types';
+
+import { getResReqTypes } from '../getters';
 import { jsDoc, pascal, sanitize } from '../utils';
 
 export function generateComponentDefinition(

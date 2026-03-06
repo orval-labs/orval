@@ -12,6 +12,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import type { MockSchemaObject } from '../../types';
+
 import { combineSchemasMock } from './combine';
 
 function createMockContext(): ContextSpec {

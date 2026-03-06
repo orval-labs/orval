@@ -9,10 +9,6 @@ import {
   toObjectString,
 } from '@orval/core';
 
-import {
-  generateAngularHttpRequestFunction,
-  getQueryArgumentsRequestType,
-} from '../client';
 import type {
   FrameworkAdapterConfig,
   MutationHookBodyContext,
@@ -22,6 +18,11 @@ import type {
   QueryReturnStatementContext,
   QueryReturnTypeContext,
 } from '../framework-adapter';
+
+import {
+  generateAngularHttpRequestFunction,
+  getQueryArgumentsRequestType,
+} from '../client';
 import { getQueryOptionsDefinition, QueryType } from '../query-options';
 import { getQueryTypeForFramework } from '../utils';
 

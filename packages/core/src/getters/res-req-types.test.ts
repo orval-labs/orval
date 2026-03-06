@@ -7,6 +7,7 @@ import type {
   OpenApiResponseObject,
   OpenApiSchemaObject,
 } from '../types';
+
 import { isString } from '../utils';
 import { isBinaryContentType } from '../utils/content-type';
 import { getResReqTypes } from './res-req-types';

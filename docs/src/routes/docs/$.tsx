@@ -2,6 +2,7 @@ import { createFileRoute, notFound } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
 import { useFumadocsLoader } from 'fumadocs-core/source/client';
 import browserCollections from 'fumadocs-mdx:collections/browser';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import {
   DocsBody,
@@ -10,7 +11,6 @@ import {
   DocsTitle,
 } from 'fumadocs-ui/layouts/docs/page';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Suspense } from 'react';
 
 import { baseOptions } from '@/lib/layout.shared';

@@ -5,18 +5,12 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { CreatePetsBody } from './model/createPetsBody';
-
 import type { CreatePetsParams } from './model/createPetsParams';
-
 import type { Error } from './model/error';
-
 import type { ListPetsParams } from './model/listPetsParams';
-
 import type { Pet } from './model/pet';
-
-import type { PetWithTag } from './model/petWithTag';
-
 import type { Pets } from './model/pets';
+import type { PetWithTag } from './model/petWithTag';
 
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;

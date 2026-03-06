@@ -1,22 +1,14 @@
-import { TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
 import { HttpClient, provideHttpClient } from '@angular/common/http';
 import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import {
   provideTanStackQuery,
   QueryClient,
 } from '@tanstack/angular-query-experimental';
-
-import {
-  listPets,
-  getListPetsQueryOptions,
-  injectListPets,
-  getListPetsQueryKey,
-  uploadFormData,
-} from '../api/endpoints-no-transformer/pets/pets';
 
 import {
   listPets as listPetsCustom,
@@ -29,6 +21,13 @@ import {
   uploadFormData as uploadFormDataCustom,
   createPets as createPetsCustom,
 } from '../api/endpoints-custom-instance/pets/pets';
+import {
+  listPets,
+  getListPetsQueryOptions,
+  injectListPets,
+  getListPetsQueryKey,
+  uploadFormData,
+} from '../api/endpoints-no-transformer/pets/pets';
 
 // Note: responseType mutator is used by custom-instance, it receives http from generated code
 

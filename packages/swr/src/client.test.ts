@@ -1,4 +1,5 @@
 import type { GetterProp } from '@orval/core';
+
 import { GetterPropType } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 

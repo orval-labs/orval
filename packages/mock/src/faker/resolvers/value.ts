@@ -10,6 +10,7 @@ import {
 import { prop } from 'remeda';
 
 import type { MockDefinition, MockSchemaObject } from '../../types';
+
 import { overrideVarName } from '../getters';
 import { getMockScalar } from '../getters/scalar';
 

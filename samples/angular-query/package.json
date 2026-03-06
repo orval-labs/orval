@@ -1,6 +1,7 @@
 {
   "name": "angular-query",
   "version": "8.5.3",
+  "private": true,
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -12,7 +13,6 @@
     "test:snapshots:update": "bun run test:snapshots --update",
     "generate-api": "orval"
   },
-  "private": true,
   "dependencies": {
     "@angular/animations": "catalog:angular",
     "@angular/common": "catalog:angular",
@@ -34,18 +34,17 @@
     "@testing-library/angular": "19.0.0",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
-    "prettier": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
-  },
-  "msw": {
-    "workerDirectory": [
-      "public"
-    ]
   },
   "dependenciesMeta": {
     "msw": {
       "built": true
     }
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }

@@ -1,5 +1,7 @@
 import { isNullish, unique } from 'remeda';
 
+import type { FormDataContext } from './object';
+
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import {
   type ContextSpec,
@@ -14,7 +16,6 @@ import {
 import { dedupeUnionType, getNumberWord, isSchema, pascal } from '../utils';
 import { getCombinedEnumValue } from './enum';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
-import type { FormDataContext } from './object';
 import { getScalar } from './scalar';
 
 type CombinedData = {

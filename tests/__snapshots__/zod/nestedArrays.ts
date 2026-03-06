@@ -4,9 +4,7 @@
  * NestedArrays
  * OpenAPI spec version: 1.0.0
  */
-import {
-  z as zod
-} from 'zod';
+import { z as zod } from 'zod';
 
 /**
  * @summary sample
@@ -15,7 +13,11 @@ export const postApiSampleResponseItemsItemMin = 2;
 
 export const postApiSampleResponseItemsItemMax = 5;
 
-
 export const postApiSampleResponse = zod.object({
-  "items": zod.array(zod.array(zod.string()).min(postApiSampleResponseItemsItemMin).max(postApiSampleResponseItemsItemMax))
-})
+  items: zod.array(
+    zod
+      .array(zod.string())
+      .min(postApiSampleResponseItemsItemMin)
+      .max(postApiSampleResponseItemsItemMax),
+  ),
+});

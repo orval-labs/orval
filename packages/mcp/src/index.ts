@@ -1,5 +1,3 @@
-import path from 'node:path';
-
 import {
   camel,
   type ClientBuilder,
@@ -21,6 +19,7 @@ import {
 } from '@orval/core';
 import { generateClient, generateFetchHeader } from '@orval/fetch';
 import { generateZod } from '@orval/zod';
+import path from 'node:path';
 
 const getHeader = (
   option: false | ((info: OpenApiInfoObject) => string | string[]),

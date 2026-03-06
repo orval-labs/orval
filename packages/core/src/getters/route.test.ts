@@ -5,6 +5,7 @@ import type {
   BaseUrlFromSpec,
   OpenApiServerObject,
 } from '../types';
+
 import { getFullRoute, getRoute, getRouteAsArray } from './route';
 
 describe('getRoute getter', () => {

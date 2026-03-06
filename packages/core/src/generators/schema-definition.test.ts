@@ -5,6 +5,7 @@ import type {
   InputFiltersOptions,
   OpenApiSchemasObject,
 } from '../types';
+
 import { generateSchemasDefinition } from './schema-definition';
 
 describe('generateSchemasDefinition', () => {

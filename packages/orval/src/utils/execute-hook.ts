@@ -1,5 +1,3 @@
-import { styleText } from 'node:util';
-
 import {
   type Hook,
   type HookOption,
@@ -11,6 +9,7 @@ import {
   type NormalizedHookCommand,
 } from '@orval/core';
 import { execa } from 'execa';
+import { styleText } from 'node:util';
 import { parseArgsStringToArgv } from 'string-argv';
 
 export const executeHook = async (

@@ -6,6 +6,7 @@ import type {
   OpenApiReferenceObject,
   OpenApiSchemaObject,
 } from '../types';
+
 import { resolveExampleRefs, resolveRef } from './ref';
 
 function createContext(spec: OpenApiDocument): ContextSpec {

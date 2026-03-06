@@ -1,5 +1,3 @@
-import nodePath from 'node:path';
-
 import {
   camel,
   type ClientBuilder,
@@ -27,6 +25,7 @@ import {
 } from '@orval/core';
 import { generateZod } from '@orval/zod';
 import fs from 'fs-extra';
+import nodePath from 'node:path';
 
 import { getRoute } from './route';
 

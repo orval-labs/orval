@@ -1,9 +1,10 @@
-import { TEMPLATE_TAG_REGEX } from '../constants';
 import type {
   BaseUrlFromConstant,
   BaseUrlFromSpec,
   OpenApiServerObject,
 } from '../types';
+
+import { TEMPLATE_TAG_REGEX } from '../constants';
 import { camel, isString, sanitize } from '../utils';
 
 const TEMPLATE_TAG_IN_PATH_REGEX = /\/([\w]+)(?:\$\{)/g; // all dynamic parts of path

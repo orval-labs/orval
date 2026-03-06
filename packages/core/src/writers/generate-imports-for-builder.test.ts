@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { GeneratorImport, NormalizedOutputOptions } from '../types';
+
 import { NamingConvention } from '../types';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 

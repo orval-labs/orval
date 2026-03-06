@@ -1,15 +1,45 @@
 {
   "name": "orval",
-  "description": "A swagger client generator for typescript",
   "version": "8.5.3",
+  "description": "A swagger client generator for typescript",
+  "keywords": [
+    "angular",
+    "axios",
+    "client",
+    "code-generation",
+    "data fetching",
+    "fetch",
+    "hono",
+    "mock",
+    "msw",
+    "open-api",
+    "react",
+    "react-query",
+    "rest",
+    "svelte",
+    "svelte-query",
+    "swagger",
+    "swr",
+    "vue",
+    "vue-query",
+    "zod"
+  ],
   "license": "MIT",
-  "type": "module",
+  "author": {
+    "name": "Victor Bury",
+    "email": "victor@anymaniax.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/orval-labs/orval.git"
+  },
+  "bin": "./dist/bin/orval.mjs",
   "files": [
     "dist",
     "!dist/**/*.d.ts.map",
     "!dist/**/*.d.mts.map"
   ],
-  "bin": "./dist/bin/orval.mjs",
+  "type": "module",
   "types": "./dist/index.d.mts",
   "exports": {
     ".": {
@@ -22,45 +52,17 @@
     },
     "./package.json": "./package.json"
   },
-  "engines": {
-    "node": ">=22.18.0"
-  },
-  "keywords": [
-    "rest",
-    "client",
-    "swagger",
-    "open-api",
-    "fetch",
-    "data fetching",
-    "code-generation",
-    "angular",
-    "react",
-    "react-query",
-    "svelte",
-    "svelte-query",
-    "vue",
-    "vue-query",
-    "msw",
-    "mock",
-    "axios",
-    "vue-query",
-    "vue",
-    "swr",
-    "zod",
-    "hono"
-  ],
-  "author": {
-    "name": "Victor Bury",
-    "email": "victor@anymaniax.com"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/orval-labs/orval.git"
+  "publishConfig": {
+    "exports": {
+      ".": "./dist/index.mjs",
+      "./bin/orval": "./dist/bin/orval.mjs",
+      "./package.json": "./package.json"
+    }
   },
   "scripts": {
     "build": "tsdown --config-loader unrun",
     "dev": "tsdown --config-loader unrun --watch src",
-    "lint": "eslint .",
+    "lint": "oxlint --type-aware",
     "test": "vitest",
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
@@ -99,7 +101,7 @@
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/js-yaml": "^4.0.9",
-    "eslint": "catalog:",
+    "oxlint": "catalog:",
     "rimraf": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
@@ -113,11 +115,7 @@
       "optional": true
     }
   },
-  "publishConfig": {
-    "exports": {
-      ".": "./dist/index.mjs",
-      "./bin/orval": "./dist/bin/orval.mjs",
-      "./package.json": "./package.json"
-    }
+  "engines": {
+    "node": ">=22.18.0"
   }
 }

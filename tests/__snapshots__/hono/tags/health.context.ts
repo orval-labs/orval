@@ -6,4 +6,4 @@
  */
 import type { Context, Env } from 'hono';
 
-export type HealthCheckContext<E extends Env = any> = Context<E, '/health'>
+export type HealthCheckContext<E extends Env = any> = Context<E, '/health'>;

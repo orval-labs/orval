@@ -1,6 +1,5 @@
-import nodePath from 'node:path';
-
 import fs from 'fs-extra';
+import nodePath from 'node:path';
 import { groupBy } from 'remeda';
 
 import { generateImports } from '../generators';

@@ -1,4 +1,3 @@
-import { resolveValue } from '../resolvers';
 import type {
   ContextSpec,
   GeneratorImport,
@@ -8,6 +7,8 @@ import type {
   OpenApiParameterObject,
   OpenApiSchemaObject,
 } from '../types';
+
+import { resolveValue } from '../resolvers';
 import { jsDoc, pascal, sanitize } from '../utils';
 import { getEnum, getEnumDescriptions, getEnumNames } from './enum';
 import { getKey } from './keys';

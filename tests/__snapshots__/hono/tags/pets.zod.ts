@@ -7,59 +7,81 @@
 import { z as zod } from 'zod';
 
 export const listPetsQueryParams = zod.object({
-  "limit": zod.string().optional().describe('How many items to return at one time (max 100)'),
-  "sort": zod.enum(['name', '-name', 'email', '-email']).describe('Which property to sort by?\nExample: name sorts ASC while -name sorts DESC.\n')
-})
+  limit: zod
+    .string()
+    .optional()
+    .describe('How many items to return at one time (max 100)'),
+  sort: zod
+    .enum(['name', '-name', 'email', '-email'])
+    .describe(
+      'Which property to sort by?\nExample: name sorts ASC while -name sorts DESC.\n',
+    ),
+});
 
 export const listPetsHeader = zod.object({
-  "X-EXAMPLE": zod.enum(['ONE', 'TWO', 'THREE']).describe('Header parameters')
-})
-
+  'X-EXAMPLE': zod.enum(['ONE', 'TWO', 'THREE']).describe('Header parameters'),
+});
 
 export const createPetsQueryParams = zod.object({
-  "limit": zod.string().optional().describe('How many items to return at one time (max 100)'),
-  "sort": zod.enum(['name', '-name', 'email', '-email']).describe('Which property to sort by?\nExample: name sorts ASC while -name sorts DESC.\n')
-})
+  limit: zod
+    .string()
+    .optional()
+    .describe('How many items to return at one time (max 100)'),
+  sort: zod
+    .enum(['name', '-name', 'email', '-email'])
+    .describe(
+      'Which property to sort by?\nExample: name sorts ASC while -name sorts DESC.\n',
+    ),
+});
 
 export const createPetsHeader = zod.object({
-  "X-EXAMPLE": zod.enum(['ONE', 'TWO', 'THREE']).describe('Header parameters')
-})
+  'X-EXAMPLE': zod.enum(['ONE', 'TWO', 'THREE']).describe('Header parameters'),
+});
 
 export const createPetsBody = zod.object({
-  "name": zod.string(),
-  "tag": zod.string()
-})
+  name: zod.string(),
+  tag: zod.string(),
+});
 
-export const createPetsResponse = zod.union([zod.union([zod.object({
-  "cuteness": zod.number(),
-  "breed": zod.enum(['Labradoodle'])
-}),zod.object({
-  "length": zod.number(),
-  "breed": zod.enum(['Dachshund'])
-})]),zod.object({
-  "petsRequested": zod.number().optional(),
-  "type": zod.enum(['cat'])
-})])
-
+export const createPetsResponse = zod.union([
+  zod.union([
+    zod.object({
+      cuteness: zod.number(),
+      breed: zod.enum(['Labradoodle']),
+    }),
+    zod.object({
+      length: zod.number(),
+      breed: zod.enum(['Dachshund']),
+    }),
+  ]),
+  zod.object({
+    petsRequested: zod.number().optional(),
+    type: zod.enum(['cat']),
+  }),
+]);
 
 export const showPetByIdParams = zod.object({
-  "petId": zod.string().describe('The id of the pet to retrieve'),
-  "testId": zod.string().describe('The id of the pet to retrieve')
-})
+  petId: zod.string().describe('The id of the pet to retrieve'),
+  testId: zod.string().describe('The id of the pet to retrieve'),
+});
 
-export const showPetByIdResponse = zod.union([zod.union([zod.object({
-  "cuteness": zod.number(),
-  "breed": zod.enum(['Labradoodle'])
-}),zod.object({
-  "length": zod.number(),
-  "breed": zod.enum(['Dachshund'])
-})]),zod.object({
-  "petsRequested": zod.number().optional(),
-  "type": zod.enum(['cat'])
-})])
-
+export const showPetByIdResponse = zod.union([
+  zod.union([
+    zod.object({
+      cuteness: zod.number(),
+      breed: zod.enum(['Labradoodle']),
+    }),
+    zod.object({
+      length: zod.number(),
+      breed: zod.enum(['Dachshund']),
+    }),
+  ]),
+  zod.object({
+    petsRequested: zod.number().optional(),
+    type: zod.enum(['cat']),
+  }),
+]);
 
 export const deletePetByIdParams = zod.object({
-  "petId": zod.string().describe('The id of the pet to delete')
-})
-
+  petId: zod.string().describe('The id of the pet to delete'),
+});

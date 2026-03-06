@@ -2,6 +2,7 @@ import { VueQueryPlugin } from '@tanstack/vue-query';
 import { render, screen, waitFor } from '@testing-library/vue';
 import { http } from 'msw';
 import { describe, expect, it } from 'vitest';
+
 import { server } from '../mocks/server';
 import Pets from './pets.vue';
 

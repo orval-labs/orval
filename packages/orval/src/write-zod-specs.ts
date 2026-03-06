@@ -1,5 +1,3 @@
-import path from 'node:path';
-
 import {
   type ContextSpec,
   conventionName,
@@ -19,6 +17,7 @@ import {
   parseZodValidationSchemaDefinition,
 } from '@orval/zod';
 import fs from 'fs-extra';
+import path from 'node:path';
 
 type ZodSchemaFileEntry = {
   schemaName: string;

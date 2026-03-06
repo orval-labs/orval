@@ -1,4 +1,5 @@
 import type { OpenApiDocument } from '@orval/core';
+
 import { describe, expect, it } from 'vitest';
 
 import { dereferenceExternalRef, importSpecs } from './import-specs';

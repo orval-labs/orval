@@ -1,6 +1,6 @@
+import angular from 'angular-eslint';
 import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
-import angular from 'angular-eslint';
 
 export default defineConfig([
   {

@@ -1,5 +1,6 @@
 import { expectError } from 'tsd';
 import { ref } from 'vue';
+
 import { useShowPetById } from '../api/endpoints/petstoreFromFileSpecWithTransformer';
 
 useShowPetById(null); // can pass null, query will be disabled

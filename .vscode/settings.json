@@ -14,10 +14,7 @@
     "turbo.json": "jsonc"
   },
   "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit"
-  },
-  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+  "editor.defaultFormatter": "oxc.oxc-vscode",
   "debug.javascript.terminalOptions": {
     "skipFiles": [
       "**/node_modules/**",
@@ -29,9 +26,21 @@
     "editor.defaultFormatter": "unifiedjs.vscode-mdx"
   },
   "[yaml]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   },
   "[html]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "oxc.enable": true,
+  "eslint.enable": false,
+  "prettier.enable": false,
+  "[json]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   }
 }

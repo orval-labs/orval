@@ -3,6 +3,7 @@ import { HomeLayout } from 'fumadocs-ui/layouts/home';
 
 import { Playground } from '@/components/playground/Playground';
 import { baseOptions } from '@/lib/layout.shared';
+
 import * as siteConfig from '../../site.config.json';
 
 export const Route = createFileRoute('/playground')({

@@ -1,6 +1,7 @@
 import { Title } from '@solidjs/meta';
 import { createAsync, revalidate, useAction } from '@solidjs/router';
 import { Component, For, Show, createSignal } from 'solid-js';
+
 import { SwaggerPetstore } from '~/api/endpoints/petstore';
 
 const Home: Component = () => {

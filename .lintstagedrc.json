@@ -1,3 +1,4 @@
 {
-  "*": "prettier --check"
+  "*": "oxfmt --check",
+  "*.{ts,tsx,js,mjs,cjs}": "oxlint --type-aware"
 }

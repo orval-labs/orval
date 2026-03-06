@@ -1,6 +1,5 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-
 import { describe, test } from 'vitest';
 
 async function getAllGeneratedFiles(dir: string): Promise<string[]> {

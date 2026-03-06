@@ -13,13 +13,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
     <header class="app-header">
       <div class="brand">
         <div class="logo-wrap">
-          <img
-            ngSrc="logo.svg"
-            width="28"
-            height="28"
-            priority
-            alt="Orval logo"
-          />
+          <img ngSrc="logo.svg" width="28" height="28" priority alt="Orval logo" />
         </div>
         <div class="brand-copy">
           <span class="brand-name">orval</span>

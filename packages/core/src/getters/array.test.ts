@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ContextSpec, OpenApiSchemaObject } from '../types';
+
 import { getArray } from './array';
 
 describe('getArray', () => {

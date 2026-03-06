@@ -4,26 +4,24 @@
  * format test
  * OpenAPI spec version: 1.0.0
  */
-import {
-  z as zod
-} from 'zod';
+import { z as zod } from 'zod';
 
 /**
  * @summary Info for a specific pet
  */
 export const showPetByIdParams = zod.object({
-  "petId": zod.string().describe('The id of the pet to retrieve'),
-  "testId": zod.string().describe('The id of the pet to retrieve')
-})
+  petId: zod.string().describe('The id of the pet to retrieve'),
+  testId: zod.string().describe('The id of the pet to retrieve'),
+});
 
 export const showPetByIdResponse = zod.object({
-  "id": zod.number().optional(),
-  "birthDate": zod.string().date(),
-  "createdAt": zod.string().datetime({}),
-  "age": zod.number().optional(),
-  "legCount": zod.number().optional(),
-  "weight": zod.number().optional(),
-  "height": zod.number().optional(),
-  "chipNumbers": zod.array(zod.number()).optional(),
-  "feedingTime": zod.string().time({"precision":-1}).optional()
-})
+  id: zod.number().optional(),
+  birthDate: zod.string().date(),
+  createdAt: zod.string().datetime({}),
+  age: zod.number().optional(),
+  legCount: zod.number().optional(),
+  weight: zod.number().optional(),
+  height: zod.number().optional(),
+  chipNumbers: zod.array(zod.number()).optional(),
+  feedingTime: zod.string().time({ precision: -1 }).optional(),
+});

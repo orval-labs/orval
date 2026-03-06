@@ -2,6 +2,11 @@
   "name": "@orval/zod",
   "version": "8.5.3",
   "license": "MIT",
+  "files": [
+    "dist",
+    "!dist/**/*.d.ts.map",
+    "!dist/**/*.d.mts.map"
+  ],
   "type": "module",
   "types": "./dist/index.d.mts",
   "exports": {
@@ -11,15 +16,16 @@
     },
     "./package.json": "./package.json"
   },
-  "files": [
-    "dist",
-    "!dist/**/*.d.ts.map",
-    "!dist/**/*.d.mts.map"
-  ],
+  "publishConfig": {
+    "exports": {
+      ".": "./dist/index.mjs",
+      "./package.json": "./package.json"
+    }
+  },
   "scripts": {
     "build": "tsdown --config-loader unrun",
     "dev": "tsdown --config-loader unrun --watch src",
-    "lint": "eslint .",
+    "lint": "oxlint --type-aware",
     "test": "vitest",
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
@@ -29,15 +35,9 @@
     "remeda": "^2.33.6"
   },
   "devDependencies": {
-    "eslint": "catalog:",
+    "oxlint": "catalog:",
     "rimraf": "catalog:",
     "tsdown": "catalog:",
     "vitest": "catalog:"
-  },
-  "publishConfig": {
-    "exports": {
-      ".": "./dist/index.mjs",
-      "./package.json": "./package.json"
-    }
   }
 }

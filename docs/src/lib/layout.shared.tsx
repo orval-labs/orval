@@ -1,4 +1,5 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
+
 import * as siteConfig from 'site.config.json';
 
 export function baseOptions(): BaseLayoutProps {

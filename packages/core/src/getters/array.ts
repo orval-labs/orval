@@ -1,5 +1,3 @@
-import { resolveExampleRefs } from '../resolvers';
-import { resolveObject } from '../resolvers/object';
 import type {
   ContextSpec,
   OpenApiReferenceObject,
@@ -7,8 +5,11 @@ import type {
   ResolverValue,
   ScalarValue,
 } from '../types';
-import { compareVersions } from '../utils';
 import type { FormDataContext } from './object';
+
+import { resolveExampleRefs } from '../resolvers';
+import { resolveObject } from '../resolvers/object';
+import { compareVersions } from '../utils';
 
 interface GetArrayOptions {
   schema: OpenApiSchemaObject;

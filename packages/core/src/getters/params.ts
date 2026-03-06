@@ -1,10 +1,11 @@
-import { resolveValue } from '../resolvers';
 import type {
   ContextSpec,
   GetterParameters,
   GetterParams,
   NormalizedOutputOptions,
 } from '../types';
+
+import { resolveValue } from '../resolvers';
 import { camel, sanitize, stringify } from '../utils';
 
 /**
@@ -105,8 +106,8 @@ export function getParams({
     const implementation = `${name}${!required && !schemaDefault ? '?' : ''}${
       schemaDefault
         ? `: ${paramType} = ${stringify(schemaDefault)}`
-        : `: ${paramType}` // FIXME: in Vue if we have `version: MaybeRef<number | undefined | null> = 1` and we don't pass version, the unref(version) will be `undefined` and not `1`, so we need to handle default value somewhere in implementation and not in the definition
-    }`;
+        : `: ${paramType}`
+    }`; // FIXME: in Vue if we have `version: MaybeRef<number | undefined | null> = 1` and we don't pass version, the unref(version) will be `undefined` and not `1`, so we need to handle default value somewhere in implementation and not in the definition
 
     return {
       name,

@@ -1,10 +1,11 @@
-import { provideZonelessChangeDetection } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
-import { provideRouter } from '@angular/router';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { PetsStorePage } from './pets-store.page';
-import { AppShell } from './app.shell';
+import { provideRouter } from '@angular/router';
+
 import { routes } from './app.routes';
+import { AppShell } from './app.shell';
+import { PetsStorePage } from './pets-store.page';
 
 describe('PetsStorePage', () => {
   beforeEach(async () => {

@@ -1,4 +1,5 @@
 import path from 'node:path';
+
 import { describeApiGenerationSnapshots } from '../../../test-utils/snapshot-testing';
 
 const rootDir = path.resolve(import.meta.dirname, '..', '..', '..');

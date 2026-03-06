@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-import path from 'node:path';
-
 import { Option, program } from '@commander-js/extra-typings';
 import {
   ErrorWithTag,
@@ -12,6 +10,7 @@ import {
   setVerbose,
   startMessage,
 } from '@orval/core';
+import path from 'node:path';
 
 import pkg from '../../package.json';
 import { generateSpec } from '../generate-spec';

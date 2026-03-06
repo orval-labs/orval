@@ -1,6 +1,7 @@
 import { createFactory } from 'hono/factory';
-import { zValidator } from '../petstore.validator';
+
 import { ListPetsContext } from '../petstore.context';
+import { zValidator } from '../petstore.validator';
 import { listPetsQueryParams, listPetsResponse } from '../petstore.zod';
 
 const factory = createFactory();

@@ -5,6 +5,7 @@ import type {
   GeneratorImport,
   NormalizedOutputOptions,
 } from '../types';
+
 import { conventionName, isObject, upath } from '../utils';
 
 export function generateImportsForBuilder(

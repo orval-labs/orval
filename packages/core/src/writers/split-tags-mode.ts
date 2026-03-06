@@ -1,6 +1,5 @@
-import path from 'node:path';
-
 import fs from 'fs-extra';
+import path from 'node:path';
 
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import { OutputClient, type WriteModeProps } from '../types';

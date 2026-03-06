@@ -4,23 +4,16 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import {
-  Hono
-} from 'hono';
+import { Hono } from 'hono';
 
+import { healthCheckHandlers } from './health.handlers';
 
-
-import {
- healthCheckHandlers
-} from './health.handlers';
-
-
-const app = new Hono()
+const app = new Hono();
 
 /**
  * @summary health check
  */
 
-app.get('/health',...healthCheckHandlers)
+app.get('/health', ...healthCheckHandlers);
 
-export default app
+export default app;

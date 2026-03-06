@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { GeneratorVerbOptions } from '../types';
+
 import { addDependency, generateVerbImports } from './imports';
 
 describe('imports generator helpers', () => {

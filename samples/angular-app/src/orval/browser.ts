@@ -1,7 +1,8 @@
-import { setupWorker } from 'msw/browser';
 import { http, HttpResponse, RequestHandler } from 'msw';
-import * as mocks from '../api/endpoints/index.msw';
+import { setupWorker } from 'msw/browser';
+
 import * as zodMocks from '../api/endpoints-zod/index.msw';
+import * as mocks from '../api/endpoints/index.msw';
 
 const demoValidPet = {
   id: 1,

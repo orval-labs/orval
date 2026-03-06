@@ -1,7 +1,7 @@
 {
   "name": "vue-query-custom-fetch",
-  "private": true,
   "version": "8.5.3",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -20,7 +20,6 @@
     "@faker-js/faker": "catalog:tooling",
     "@vitejs/plugin-vue": "^6.0.1",
     "orval": "workspace:*",
-    "prettier": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:",

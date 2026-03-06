@@ -1,4 +1,5 @@
 import type { ClientMockBuilder, GlobalMockOptions } from '../types';
+
 import { isFunction } from './assertion';
 
 export function getMockFileExtensionByTypeName(

@@ -1,5 +1,4 @@
-import path from 'node:path';
-import { styleText } from 'node:util';
+import type { TypeDocOptions } from 'typedoc';
 
 import {
   createSuccessMessage,
@@ -25,8 +24,9 @@ import {
 } from '@orval/core';
 import { execa, ExecaError } from 'execa';
 import fs from 'fs-extra';
+import path from 'node:path';
+import { styleText } from 'node:util';
 import { unique } from 'remeda';
-import type { TypeDocOptions } from 'typedoc';
 
 import { formatWithPrettier } from './formatters/prettier';
 import { executeHook } from './utils';

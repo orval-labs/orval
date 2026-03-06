@@ -1,7 +1,6 @@
 import { isDereferenced } from '@scalar/openapi-types/helpers';
 import { prop } from 'remeda';
 
-import { getRefInfo, type RefInfo } from '../getters/ref';
 import type {
   ContextSpec,
   GeneratorImport,
@@ -10,6 +9,8 @@ import type {
   OpenApiReferenceObject,
   OpenApiSchemaObject,
 } from '../types';
+
+import { getRefInfo, type RefInfo } from '../getters/ref';
 import { isObject, isReference } from '../utils';
 
 type Example = OpenApiExampleObject | OpenApiReferenceObject;

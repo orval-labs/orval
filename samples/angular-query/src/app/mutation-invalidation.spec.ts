@@ -1,9 +1,11 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import type { MutationFunctionContext } from '@tanstack/angular-query-experimental';
+
 import { HttpClient, provideHttpClient } from '@angular/common/http';
 import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
   provideTanStackQuery,
@@ -18,7 +20,6 @@ import {
   getListPetsQueryKey,
   getShowPetByIdQueryKey,
 } from '../api/endpoints/pets/pets';
-import type { MutationFunctionContext } from '@tanstack/angular-query-experimental';
 
 describe('mutationInvalidates feature', () => {
   let queryClient: QueryClient;

@@ -199,7 +199,9 @@ Usage:
   template: `
     <ul>
       @for (pet of pets.data(); track pet.id) {
-        <li>{{ pet.name }} <button (click)="onDelete(pet.id)">Delete</button></li>
+        <li>
+          {{ pet.name }} <button (click)="onDelete(pet.id)">Delete</button>
+        </li>
       }
     </ul>
   `,
@@ -330,8 +332,9 @@ export default defineConfig({
 This generates:
 
 ```ts
-const request$ = http.get<Pets>(url, { params: httpParams })
-  .pipe(map(data => Pets.parse(data)));
+const request$ = http
+  .get<Pets>(url, { params: httpParams })
+  .pipe(map((data) => Pets.parse(data)));
 ```
 
 Validation is automatically skipped for primitive response types (`string`, `void`, etc.) and for operations using a custom mutator.

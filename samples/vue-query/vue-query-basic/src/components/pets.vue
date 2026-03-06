@@ -9,6 +9,7 @@
 
 <script lang="ts">
 import { computed, ref } from 'vue';
+
 import { useListPets } from '../api/endpoints/petstoreFromFileSpecWithTransformer';
 import { SELECT_PET_ID_EVENT } from './../constants';
 

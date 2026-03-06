@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { PackageJson } from '../types';
+
 import {
   resolveInstalledVersion,
   resolveInstalledVersions,

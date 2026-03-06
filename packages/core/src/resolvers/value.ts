@@ -1,4 +1,3 @@
-import { getScalar } from '../getters';
 import type { FormDataContext } from '../getters/object';
 import type {
   ContextSpec,
@@ -7,6 +6,8 @@ import type {
   ResolverValue,
   SchemaType,
 } from '../types';
+
+import { getScalar } from '../getters';
 import { isReference } from '../utils';
 import { resolveRef } from './ref';
 

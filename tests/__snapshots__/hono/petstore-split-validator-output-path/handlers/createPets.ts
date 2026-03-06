@@ -1,20 +1,18 @@
 import { createFactory } from 'hono/factory';
-import { zValidator } from './validator';
+
 import { CreatePetsContext } from '../endpoints.context';
 import {
-createPetsQueryParams,
-createPetsBody,
-createPetsResponse
-} from '../endpoints.zod'
+  createPetsQueryParams,
+  createPetsBody,
+  createPetsResponse,
+} from '../endpoints.zod';
+import { zValidator } from './validator';
 
 const factory = createFactory();
 
-
 export const createPetsHandlers = factory.createHandlers(
-zValidator('query', createPetsQueryParams),
-zValidator('json', createPetsBody),
-zValidator('response', createPetsResponse),
-async (c: CreatePetsContext) => {
-
-  },
+  zValidator('query', createPetsQueryParams),
+  zValidator('json', createPetsBody),
+  zValidator('response', createPetsResponse),
+  async (c: CreatePetsContext) => {},
 );

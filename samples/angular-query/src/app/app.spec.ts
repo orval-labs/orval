@@ -1,13 +1,13 @@
-import { provideZonelessChangeDetection } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { App } from './app';
 import {
   provideTanStackQuery,
   QueryClient,
 } from '@tanstack/angular-query-experimental';
-
 import { waitFor } from '@testing-library/angular';
+
+import { App } from './app';
 
 describe('App', () => {
   beforeEach(async () => {

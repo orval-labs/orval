@@ -1,17 +1,18 @@
 import { isArray } from 'remeda';
 
-import { resolveExampleRefs } from '../resolvers';
 import type {
   ContextSpec,
   OpenApiSchemaObject,
   OpenApiSchemaObjectType,
   ScalarValue,
 } from '../types';
+import type { FormDataContext } from './object';
+
+import { resolveExampleRefs } from '../resolvers';
 import { escape, isString } from '../utils';
 import { getFormDataFieldFileType } from '../utils/content-type';
 import { getArray } from './array';
 import { combineSchemas } from './combine';
-import type { FormDataContext } from './object';
 import { getObject } from './object';
 
 /** Bridge type for enum values extracted from OpenAPI schemas infected by AnyOtherAttribute */

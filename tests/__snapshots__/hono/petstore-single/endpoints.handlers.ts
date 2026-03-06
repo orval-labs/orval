@@ -1,5 +1,5 @@
 import { createFactory } from 'hono/factory';
-import { zValidator } from './endpoints.validator';
+
 import {
   ListPetsContext,
   CreatePetsContext,
@@ -8,6 +8,7 @@ import {
   HealthCheckContext,
   ShowPetWithOwnerContext,
 } from './endpoints.context';
+import { zValidator } from './endpoints.validator';
 import {
   ListPetsQueryParams,
   CreatePetsQueryParams,

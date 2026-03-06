@@ -1,6 +1,8 @@
 import { AxiosError, AxiosRequestConfig } from 'axios';
-import { getPets, createPet, getPetById } from '~/server/pets';
+
 import type { CreatePetsBody } from '~/api/model';
+
+import { getPets, createPet, getPetById } from '~/server/pets';
 
 export const customInstance = async <T>(
   config: AxiosRequestConfig,

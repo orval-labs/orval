@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ContextSpec, OpenApiSchemaObject } from '../types';
+
 import { getScalar } from './scalar';
 
 const context = {

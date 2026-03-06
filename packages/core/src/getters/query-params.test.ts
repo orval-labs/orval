@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ContextSpec, OpenApiParameterObject } from '../types';
+
 import { getQueryParams } from './query-params';
 
 // Mock context for getQueryParams

@@ -1,13 +1,6 @@
 import { isDereferenced } from '@scalar/openapi-types/helpers';
 import { isArray, isEmptyish } from 'remeda';
 
-import {
-  getEnum,
-  getEnumDescriptions,
-  getEnumNames,
-  resolveDiscriminators,
-} from '../getters';
-import { resolveRef, resolveValue } from '../resolvers';
 import type {
   ContextSpec,
   GeneratorSchema,
@@ -15,6 +8,14 @@ import type {
   OpenApiSchemaObject,
   OpenApiSchemasObject,
 } from '../types';
+
+import {
+  getEnum,
+  getEnumDescriptions,
+  getEnumNames,
+  resolveDiscriminators,
+} from '../getters';
+import { resolveRef, resolveValue } from '../resolvers';
 import {
   conventionName,
   isBoolean,

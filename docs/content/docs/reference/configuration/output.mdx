@@ -309,15 +309,15 @@ export default defineConfig({
 });
 ```
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `type` | `'msw'` | `'msw'` | Mock type |
-| `delay` | `Number \| Function \| false` | `false` | Response delay in ms |
-| `delayFunctionLazyExecute` | `Boolean` | `false` | Execute delay function at runtime |
-| `useExamples` | `Boolean` | `false` | Use OpenAPI examples |
-| `generateEachHttpStatus` | `Boolean` | `false` | Generate mocks for all status codes |
-| `baseUrl` | `String` | `''` | Base URL for handlers |
-| `locale` | `String` | `'en'` | Faker.js locale |
+| Option                     | Type                          | Default | Description                         |
+| -------------------------- | ----------------------------- | ------- | ----------------------------------- |
+| `type`                     | `'msw'`                       | `'msw'` | Mock type                           |
+| `delay`                    | `Number \| Function \| false` | `false` | Response delay in ms                |
+| `delayFunctionLazyExecute` | `Boolean`                     | `false` | Execute delay function at runtime   |
+| `useExamples`              | `Boolean`                     | `false` | Use OpenAPI examples                |
+| `generateEachHttpStatus`   | `Boolean`                     | `false` | Generate mocks for all status codes |
+| `baseUrl`                  | `String`                      | `''`    | Base URL for handlers               |
+| `locale`                   | `String`                      | `'en'`  | Faker.js locale                     |
 
 ## indexFiles
 
@@ -629,7 +629,11 @@ export default defineConfig({
               onMutations: ['deletePet', 'updatePet'],
               invalidates: [
                 'listPets',
-                { query: 'showPetById', params: ['petId'], invalidationMode: 'reset' },
+                {
+                  query: 'showPetById',
+                  params: ['petId'],
+                  invalidationMode: 'reset',
+                },
                 { query: 'adminPets', file: './admin' },
               ],
             },
@@ -973,12 +977,12 @@ Enable Zod runtime validation for fetch client responses. Requires `schemas: { t
 
 `runtimeValidation` support differs by client family and mutator usage:
 
-| Client | Config key | Status | Notes |
-|--------|------------|--------|-------|
-| `angular` | `override.angular.runtimeValidation` | ✅ | Validates JSON body responses via `Schema.parse()`; skips primitive/`void`, `observe: 'events'/'response'`, and custom mutator paths |
-| `angular-query` | `override.query.runtimeValidation` | ✅ | Validates eligible responses via `Schema.parse()` in RxJS pipeline; skips primitive/`void` and custom mutator paths |
-| `fetch` | `override.fetch.runtimeValidation` | ✅ | Validates JSON responses via `Schema.parse()` |
-| any client with custom mutator | varies | ⚠️ | Runtime validation may be bypassed depending on mutator path and signature (see [#2858](https://github.com/orval-labs/orval/issues/2858)) |
+| Client                         | Config key                           | Status | Notes                                                                                                                                     |
+| ------------------------------ | ------------------------------------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `angular`                      | `override.angular.runtimeValidation` | ✅     | Validates JSON body responses via `Schema.parse()`; skips primitive/`void`, `observe: 'events'/'response'`, and custom mutator paths      |
+| `angular-query`                | `override.query.runtimeValidation`   | ✅     | Validates eligible responses via `Schema.parse()` in RxJS pipeline; skips primitive/`void` and custom mutator paths                       |
+| `fetch`                        | `override.fetch.runtimeValidation`   | ✅     | Validates JSON responses via `Schema.parse()`                                                                                             |
+| any client with custom mutator | varies                               | ⚠️     | Runtime validation may be bypassed depending on mutator path and signature (see [#2858](https://github.com/orval-labs/orval/issues/2858)) |
 
 ---
 
@@ -1192,7 +1196,10 @@ export const Example = { foo: 'foo', bar: 'bar' } as const;
 export type Example = (typeof Example)[keyof typeof Example];
 
 // 'enum'
-export enum Example { foo = 'foo', bar = 'bar' }
+export enum Example {
+  foo = 'foo',
+  bar = 'bar',
+}
 
 // 'union'
 export type Example = 'foo' | 'bar';
@@ -1535,9 +1542,16 @@ export default defineConfig({
         jsDoc: {
           filter: (schema) => {
             const allowlist = [
-              'type', 'format', 'maxLength', 'minLength',
-              'description', 'minimum', 'maximum', 'pattern',
-              'nullable', 'enum',
+              'type',
+              'format',
+              'maxLength',
+              'minLength',
+              'description',
+              'minimum',
+              'maximum',
+              'pattern',
+              'nullable',
+              'enum',
             ];
             return Object.entries(schema || {})
               .filter(([key]) => allowlist.includes(key))
@@ -1567,4 +1581,3 @@ export interface Pet {
   name: string;
 }
 ```
-

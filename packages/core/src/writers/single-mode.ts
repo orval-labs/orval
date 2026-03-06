@@ -1,7 +1,8 @@
 import fs from 'fs-extra';
 
-import { generateModelsInline, generateMutatorImports } from '../generators';
 import type { WriteModeProps } from '../types';
+
+import { generateModelsInline, generateMutatorImports } from '../generators';
 import {
   conventionName,
   getFileInfo,

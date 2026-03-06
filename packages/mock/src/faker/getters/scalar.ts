@@ -17,6 +17,7 @@ import {
 } from '@orval/core';
 
 import type { MockDefinition, MockSchemaObject } from '../../types';
+
 import { isFakerVersionV9 } from '../compatible-v9';
 import { DEFAULT_FORMAT_MOCK } from '../constants';
 import {

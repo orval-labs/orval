@@ -1,8 +1,8 @@
+import fs from 'fs-extra';
 import { styleText } from 'node:util';
 
-import fs from 'fs-extra';
-
 import type { GeneratorMutator, NormalizedMutator, Tsconfig } from '../types';
+
 import { getFileInfo, pascal, upath } from '../utils';
 import { getMutatorInfo } from './mutator-info';
 

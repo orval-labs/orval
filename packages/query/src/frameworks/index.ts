@@ -11,6 +11,12 @@ import {
   toObjectString,
 } from '@orval/core';
 
+import type {
+  FrameworkAdapter,
+  FrameworkAdapterConfig,
+  MutationOnSuccessContext,
+} from '../framework-adapter';
+
 import { getQueryArgumentsRequestType } from '../client';
 import {
   isQueryV5,
@@ -23,11 +29,6 @@ import {
   isSvelteQueryV6,
   isVueQueryV3,
 } from '../dependencies';
-import type {
-  FrameworkAdapter,
-  FrameworkAdapterConfig,
-  MutationOnSuccessContext,
-} from '../framework-adapter';
 import { getQueryOptionsDefinition } from '../query-options';
 import { createAngularAdapter } from './angular';
 import { createReactAdapter } from './react';

@@ -14,6 +14,7 @@ export type getPortfolioResponse200 = {
 export type getPortfolioResponseSuccess = getPortfolioResponse200 & {
   headers: Headers;
 };
+
 export type getPortfolioResponse = getPortfolioResponseSuccess;
 
 export const getGetPortfolioUrl = () => {

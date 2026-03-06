@@ -1,6 +1,7 @@
 import { isArray, isBoolean } from 'remeda';
 
 import type { ContextSpec, OpenApiSchemasObject } from '../types';
+
 import { getPropertySafe, isReference, pascal } from '../utils';
 import { getRefInfo } from './ref';
 

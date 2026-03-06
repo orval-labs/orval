@@ -1,8 +1,12 @@
 {
   "recommendations": [
     "streetsidesoftware.code-spell-checker",
-    "dbaeumer.vscode-eslint",
+    "oxc.oxc-vscode",
     "vitest.explorer",
     "unifiedjs.vscode-mdx"
+  ],
+  "unwantedRecommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode"
   ]
 }

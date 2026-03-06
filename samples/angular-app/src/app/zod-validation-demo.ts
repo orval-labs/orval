@@ -1,3 +1,4 @@
+import { JsonPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -5,10 +6,11 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { JsonPipe } from '@angular/common';
 import { z } from 'zod';
-import { PetsService as ZodPetsService } from '../api/endpoints-zod/pets/pets.service';
+
 import type { Pets } from '../api/model-zod/index.zod';
+
+import { PetsService as ZodPetsService } from '../api/endpoints-zod/pets/pets.service';
 
 /**
  * Demo component showing Zod runtime validation with Angular HttpClient services.
@@ -33,9 +35,9 @@ import type { Pets } from '../api/model-zod/index.zod';
           <span class="badge">ZOD</span>
         </div>
         <p class="page-desc">
-          Services generated with <code>runtimeValidation: true</code> pipe
-          every JSON response body through <code>Schema.parse()</code> — invalid
-          data throws a <code>ZodError</code> before reaching your component.
+          Services generated with <code>runtimeValidation: true</code> pipe every
+          JSON response body through <code>Schema.parse()</code> — invalid data
+          throws a <code>ZodError</code> before reaching your component.
         </p>
       </div>
 
@@ -144,11 +146,7 @@ import type { Pets } from '../api/model-zod/index.zod';
             skipped
           </div>
           <div class="panel-body">
-            <button
-              class="btn"
-              (click)="createPet()"
-              [disabled]="createLoading()"
-            >
+            <button class="btn" (click)="createPet()" [disabled]="createLoading()">
               <span class="btn-icon">{{ createLoading() ? '⟳' : '↗' }}</span>
               {{ createLoading() ? 'Creating…' : 'Create Pet' }}
             </button>

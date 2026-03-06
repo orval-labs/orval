@@ -4,35 +4,43 @@
  * Circular references
  * OpenAPI spec version: 0.0.0
  */
-import {
-  z as zod
-} from 'zod';
+import { z as zod } from 'zod';
 
 /**
  * @summary Example
  */
-export const getExampleResponse = zod.object({
-  "id": zod.number().optional(),
-  "name": zod.string().optional(),
-  "child": zod.any().optional()
-}).strict()
-
+export const getExampleResponse = zod
+  .object({
+    id: zod.number().optional(),
+    name: zod.string().optional(),
+    child: zod.any().optional(),
+  })
+  .strict();
 
 /**
  * @summary Add list
  */
 export const addListQueryLimitRegExpOne = new RegExp('^\\+\\d{10, 15}');
 
-
-export const addListQueryParams = zod.object({
-  "limit": zod.string().regex(addListQueryLimitRegExpOne).optional().describe('How many items to return at one time (max 100)'),
-  "birthdate": zod.string().date().optional().describe('birth date')
-}).strict()
+export const addListQueryParams = zod
+  .object({
+    limit: zod
+      .string()
+      .regex(addListQueryLimitRegExpOne)
+      .optional()
+      .describe('How many items to return at one time (max 100)'),
+    birthdate: zod.string().date().optional().describe('birth date'),
+  })
+  .strict();
 
 export const addListBodyListItemMaxOne = 10;
 export const addListBodyListMaxOne = 10;
 
-
-export const addListBody = zod.object({
-  "list": zod.array(zod.number().min(1).max(addListBodyListItemMaxOne)).min(1).max(addListBodyListMaxOne)
-}).strict()
+export const addListBody = zod
+  .object({
+    list: zod
+      .array(zod.number().min(1).max(addListBodyListItemMaxOne))
+      .min(1)
+      .max(addListBodyListMaxOne),
+  })
+  .strict();

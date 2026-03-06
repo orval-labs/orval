@@ -1,6 +1,3 @@
-import nodePath from 'node:path';
-import { styleText } from 'node:util';
-
 import {
   type GetterProps,
   GetterPropType,
@@ -14,6 +11,8 @@ import {
   type QueryOptions,
   TEMPLATE_TAG_REGEX,
 } from '@orval/core';
+import nodePath from 'node:path';
+import { styleText } from 'node:util';
 
 export const normalizeQueryOptions = (
   queryOptions: QueryOptions = {},

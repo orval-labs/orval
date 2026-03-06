@@ -1,10 +1,10 @@
 {
   "name": "orval-tests",
   "version": "8.5.3",
-  "description": "",
-  "author": "Victor Bury",
-  "license": "ISC",
   "private": true,
+  "description": "",
+  "license": "ISC",
+  "author": "Victor Bury",
   "type": "module",
   "scripts": {
     "generate-api": "run-p 'generate:*'",
@@ -44,7 +44,6 @@
     "msw": "catalog:tooling",
     "npm-run-all2": "catalog:",
     "orval": "workspace:*",
-    "prettier": "catalog:",
     "react": "catalog:react",
     "rimraf": "catalog:",
     "rxjs": "catalog:angular",

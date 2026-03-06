@@ -1,8 +1,3 @@
-import { access } from 'node:fs/promises';
-import nodePath from 'node:path';
-import { clearTimeout, setTimeout } from 'node:timers';
-import { styleText } from 'node:util';
-
 import {
   type ClientMockBuilder,
   type ConfigExternal,
@@ -47,6 +42,10 @@ import {
   type SchemaOptions,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
+import { access } from 'node:fs/promises';
+import nodePath from 'node:path';
+import { clearTimeout, setTimeout } from 'node:timers';
+import { styleText } from 'node:util';
 
 import pkg from '../../package.json';
 import { loadPackageJson } from './package-json';

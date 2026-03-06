@@ -1,9 +1,8 @@
+import { log } from '@orval/core';
+import { execa } from 'execa';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { styleText } from 'node:util';
-
-import { log } from '@orval/core';
-import { execa } from 'execa';
 
 /**
  * Format files with prettier.

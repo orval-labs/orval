@@ -1,5 +1,3 @@
-import { styleText } from 'node:util';
-
 import {
   dynamicImport,
   isObject,
@@ -12,6 +10,7 @@ import {
 import { findUp, findUpMultiple } from 'find-up';
 import fs from 'fs-extra';
 import yaml from 'js-yaml';
+import { styleText } from 'node:util';
 
 import { normalizePath } from './options';
 

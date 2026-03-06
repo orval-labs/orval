@@ -6,6 +6,7 @@ import type {
   OpenApiSchemaObject,
   OpenApiSchemasObject,
 } from '../types';
+
 import { resolveDiscriminators } from './discriminators';
 
 const context: ContextSpec = {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ContextSpec, OpenApiComponentsObject } from '../types';
+
 import { generateParameterDefinition } from './parameter-definition';
 
 describe('generateParameterDefinition', () => {

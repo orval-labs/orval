@@ -1,30 +1,71 @@
 {
   "name": "orval-workspaces",
-  "namespace": "@orval",
   "version": "8.5.3",
+  "private": true,
   "license": "MIT",
   "workspaces": [
     "packages/*",
     "samples/**",
     "tests"
   ],
-  "private": true,
+  "scripts": {
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "format:staged": "lint-staged",
+    "format:samples": "oxfmt samples",
+    "prepare": "husky",
+    "commitlint": "commitlint",
+    "update-samples": "turbo run generate-api",
+    "build": "turbo build --filter='./packages/*'",
+    "test": "turbo test --filter='./packages/*'",
+    "test:cli": "bun run --filter orval-tests clean && bun run --filter orval-tests generate-api && bun run --filter orval-tests build",
+    "test:samples": "turbo test --filter='./samples/**' --filter=!react-query-form-data --filter=!react-query-form-url-encoded --filter=!react-query-form-url-encoded-mutator --filter=!react-query-form-data-mutator --filter=!react-query-hook-mutator-axios --filter=!react-query-hook-mutator-fetch",
+    "test:snapshots": "turbo run test:snapshots --filter='./samples/**' --filter=orval-tests",
+    "test:snapshots:update": "turbo run test:snapshots:update --filter='./samples/**' --filter=orval-tests",
+    "lint": "turbo run lint --filter='./packages/*' --filter=!@orval/mock --filter=!@orval/zod",
+    "lint:samples": "turbo run lint --filter='./samples/**'",
+    "dev": "turbo run dev --filter='./packages/*'",
+    "clean": "rimraf .turbo",
+    "clean:all": "bun run --filter '*' clean",
+    "nuke:all": "bun run --filter '*' nuke && rimraf .turbo node_modules"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.1.0",
+    "@commitlint/config-conventional": "^20.0.0",
+    "@types/node": "catalog:",
+    "esbuild-plugin-alias": "^0.2.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.2",
+    "oxfmt": "^0.36.0",
+    "oxlint": "^1.51.0",
+    "oxlint-tsgolint": "^0.16.0",
+    "rimraf": "catalog:",
+    "turbo": "^2.8.12",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=24",
+      "onFail": "error"
+    }
+  },
   "packageManager": "bun@1.3.9",
   "catalog": {
     "eslint": "9.39.2",
     "@eslint/js": "9.39.2",
     "globals": "17.4.0",
-    "prettier": "3.8.1",
     "rimraf": "6.1.2",
     "tslib": "2.8.1",
     "tsdown": "0.20.3",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.56.1",
     "npm-run-all2": "8.0.4",
     "vite": "7.2.2",
     "vitest": "4.0.18",
     "@types/node": "22.18.12",
-    "@scalar/openapi-types": "0.5.3"
+    "@scalar/openapi-types": "0.5.3",
+    "oxlint": "1.51.0"
   },
   "catalogs": {
     "angular": {
@@ -75,55 +116,5 @@
     "mcp": {
       "@modelcontextprotocol/sdk": "1.26.0"
     }
-  },
-  "devEngines": {
-    "runtime": {
-      "name": "node",
-      "version": ">=24",
-      "onFail": "error"
-    }
-  },
-  "scripts": {
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "format:staged": "lint-staged",
-    "format:samples": "prettier --write samples",
-    "prepare": "husky",
-    "commitlint": "commitlint",
-    "update-samples": "turbo run generate-api",
-    "build": "turbo build --filter='./packages/*'",
-    "test": "turbo test --filter='./packages/*'",
-    "test:cli": "bun run --filter orval-tests clean && bun run --filter orval-tests generate-api && bun run --filter orval-tests build",
-    "test:samples": "turbo test --filter='./samples/**' --filter=!react-query-form-data --filter=!react-query-form-url-encoded --filter=!react-query-form-url-encoded-mutator --filter=!react-query-form-data-mutator --filter=!react-query-hook-mutator-axios --filter=!react-query-hook-mutator-fetch",
-    "test:snapshots": "turbo run test:snapshots --filter='./samples/**' --filter=orval-tests",
-    "test:snapshots:update": "turbo run test:snapshots:update --filter='./samples/**' --filter=orval-tests",
-    "lint": "turbo run lint --filter='./packages/*' --filter=!@orval/mock --filter=!@orval/zod",
-    "lint:samples": "turbo run lint --filter='./samples/**'",
-    "dev": "turbo run dev --filter='./packages/*'",
-    "clean": "rimraf .turbo",
-    "clean:all": "bun run --filter '*' clean",
-    "nuke:all": "bun run --filter '*' nuke && rimraf .turbo node_modules"
-  },
-  "devDependencies": {
-    "@commitlint/cli": "^20.1.0",
-    "@commitlint/config-conventional": "^20.0.0",
-    "@eslint/js": "catalog:",
-    "@types/node": "catalog:",
-    "esbuild-plugin-alias": "^0.2.1",
-    "eslint": "9.39.2",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-config-turbo": "^2.8.13",
-    "eslint-plugin-prettier": "^5.5.5",
-    "eslint-plugin-simple-import-sort": "^12.1.1",
-    "eslint-plugin-unicorn": "^63.0.0",
-    "globals": "catalog:",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.3.2",
-    "prettier": "catalog:",
-    "rimraf": "catalog:",
-    "turbo": "^2.8.12",
-    "typescript": "catalog:",
-    "typescript-eslint": "catalog:",
-    "vitest": "catalog:"
   }
 }

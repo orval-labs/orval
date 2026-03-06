@@ -5,22 +5,21 @@
  * OpenAPI spec version: 1.0.0
  */
 import { Hono } from 'hono';
+
+import { healthCheckHandlers } from './endpoints/health/health.handlers';
 import {
- listPetsHandlers, 
- createPetsHandlers, 
- showPetByIdHandlers, 
- deletePetByIdHandlers
+  listPetsHandlers,
+  createPetsHandlers,
+  showPetByIdHandlers,
+  deletePetByIdHandlers,
 } from './endpoints/pets/pets.handlers';
-import {
- healthCheckHandlers
-} from './endpoints/health/health.handlers';
 
-const app = new Hono()
+const app = new Hono();
 
-app.get('/pets',...listPetsHandlers);
-app.post('/pets',...createPetsHandlers);
-app.get('/pets/:petId',...showPetByIdHandlers);
-app.delete('/pets/:petId',...deletePetByIdHandlers);
-app.get('/health',...healthCheckHandlers)
+app.get('/pets', ...listPetsHandlers);
+app.post('/pets', ...createPetsHandlers);
+app.get('/pets/:petId', ...showPetByIdHandlers);
+app.delete('/pets/:petId', ...deletePetByIdHandlers);
+app.get('/health', ...healthCheckHandlers);
 
-export default app
+export default app;

@@ -1,6 +1,7 @@
 {
   "name": "angular-app",
   "version": "8.5.3",
+  "private": true,
   "type": "module",
   "scripts": {
     "ng": "ng",
@@ -15,7 +16,6 @@
     "clean": "rimraf .turbo dist .angular src/api",
     "nuke": "rimraf .turbo dist .angular src/api node_modules"
   },
-  "private": true,
   "dependencies": {
     "@angular/common": "catalog:angular",
     "@angular/compiler": "catalog:angular",
@@ -34,13 +34,10 @@
     "@angular/compiler-cli": "catalog:angular",
     "@faker-js/faker": "catalog:tooling",
     "angular-eslint": "21.3.0",
-    "eslint": "catalog:",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
-    "prettier": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "typescript-eslint": "catalog:",
     "vitest": "catalog:"
   },
   "dependenciesMeta": {

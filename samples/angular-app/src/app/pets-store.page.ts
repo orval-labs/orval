@@ -1,3 +1,4 @@
+import { AsyncPipe, NgOptimizedImage } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -5,7 +6,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { AsyncPipe, NgOptimizedImage } from '@angular/common';
+
 import { PetsService } from '../api/endpoints/pets/pets.service';
 
 @Component({

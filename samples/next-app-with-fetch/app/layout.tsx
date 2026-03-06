@@ -1,8 +1,9 @@
-import { setupServer } from 'msw/node';
-import { getPetsMock } from './gen/pets/pets.msw';
-
 import type { Metadata } from 'next';
+
+import { setupServer } from 'msw/node';
 import { Inter } from 'next/font/google';
+
+import { getPetsMock } from './gen/pets/pets.msw';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });

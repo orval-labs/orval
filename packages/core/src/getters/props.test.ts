@@ -6,6 +6,7 @@ import type {
   OpenApiReferenceObject,
   OpenApiRequestBodyObject,
 } from '../types';
+
 import { getProps } from './props';
 
 describe('getProps', () => {

@@ -1,10 +1,11 @@
-import { resolveRef } from '../resolvers/ref';
 import type {
   ContextSpec,
   GetterParameters,
   OpenApiParameterObject,
   OpenApiReferenceObject,
 } from '../types';
+
+import { resolveRef } from '../resolvers/ref';
 import { isReference } from '../utils';
 
 interface GetParametersOptions {

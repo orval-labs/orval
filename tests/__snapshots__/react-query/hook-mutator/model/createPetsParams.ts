@@ -7,14 +7,14 @@
 import type { CreatePetsSort } from './createPetsSort';
 
 export type CreatePetsParams = {
-/**
- * How many items to return at one time (max 100)
- */
-limit?: string;
-/**
+  /**
+   * How many items to return at one time (max 100)
+   */
+  limit?: string;
+  /**
  * Which property to sort by?
 Example: name sorts ASC while -name sorts DESC.
 
  */
-sort: CreatePetsSort;
+  sort: CreatePetsSort;
 };

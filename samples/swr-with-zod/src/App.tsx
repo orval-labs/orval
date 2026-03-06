@@ -1,8 +1,7 @@
 import './App.css';
-
-import { Pet } from './gen/models';
 import { useListPets, useCreatePets } from './gen/endpoints/pets/pets';
 import { createPetsBodyItem } from './gen/endpoints/pets/pets.zod';
+import { Pet } from './gen/models';
 
 function App() {
   const { data } = useListPets();

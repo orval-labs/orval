@@ -4,18 +4,17 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import {
-  z as zod
-} from 'zod';
+import { z as zod } from 'zod';
 
 export const postPetsResponse = zod.object({
-  "id": zod.number(),
-  "file": zod.object({
-  "id": zod.number()
-}).optional()
-})
-
+  id: zod.number(),
+  file: zod
+    .object({
+      id: zod.number(),
+    })
+    .optional(),
+});
 
 export const getPetsResponse = zod.object({
-  "id": zod.number()
-})
+  id: zod.number(),
+});

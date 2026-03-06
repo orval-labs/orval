@@ -65,6 +65,7 @@ export type listPetsResponse200 = {
 export type listPetsResponseSuccess = listPetsResponse200 & {
   headers: Headers;
 };
+
 export type listPetsResponse = listPetsResponseSuccess;
 
 export const getListPetsUrl = (params?: ListPetsParams) => {

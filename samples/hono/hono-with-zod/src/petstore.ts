@@ -6,10 +6,10 @@
  */
 import { Hono } from 'hono';
 
-import { listPetsHandlers } from './handlers/listPets';
 import { createPetsHandlers } from './handlers/createPets';
-import { updatePetsHandlers } from './handlers/updatePets';
+import { listPetsHandlers } from './handlers/listPets';
 import { showPetByIdHandlers } from './handlers/showPetById';
+import { updatePetsHandlers } from './handlers/updatePets';
 
 const app = new Hono();
 

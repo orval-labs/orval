@@ -31,27 +31,39 @@ export default defineConfig({
 
 The output options configure how and where you want to write the generated code.
 
-| Option | Description |
-| --- | --- |
-| `mode` | Specifies how files are generated. Default: `single` (one file with everything) |
-| `target` | Specifies where the generated file(s) will be written |
-| `schemas` | Specifies where the models will be written |
-| `client` | Specifies the HTTP client to generate (`axios`, `react-query`, `vue-query`, etc.) |
-| `mock` | Generates mocks with MSW. See the [MSW guide](/docs/guides/msw) |
+| Option    | Description                                                                       |
+| --------- | --------------------------------------------------------------------------------- |
+| `mode`    | Specifies how files are generated. Default: `single` (one file with everything)   |
+| `target`  | Specifies where the generated file(s) will be written                             |
+| `schemas` | Specifies where the models will be written                                        |
+| `client`  | Specifies the HTTP client to generate (`axios`, `react-query`, `vue-query`, etc.) |
+| `mock`    | Generates mocks with MSW. See the [MSW guide](/docs/guides/msw)                   |
 
 ## Input Options
 
 The input options configure the imported specification and any optional overrides.
 
-| Option | Description |
-| --- | --- |
-| `target` | Path or URL to the OpenAPI specification file |
+| Option                 | Description                                                          |
+| ---------------------- | -------------------------------------------------------------------- |
+| `target`               | Path or URL to the OpenAPI specification file                        |
 | `override.transformer` | Transform the specification (e.g., add a parameter to every request) |
 
 ## Next Steps
 
 <Cards>
-  <Card title="Configuration Reference" href="/docs/reference/configuration" description="See all available options" />
-  <Card title="React Query" href="/docs/guides/react-query" description="Generate React Query hooks" />
-  <Card title="MSW Mocking" href="/docs/guides/msw" description="Generate API mocks" />
+  <Card
+    title="Configuration Reference"
+    href="/docs/reference/configuration"
+    description="See all available options"
+  />
+  <Card
+    title="React Query"
+    href="/docs/guides/react-query"
+    description="Generate React Query hooks"
+  />
+  <Card
+    title="MSW Mocking"
+    href="/docs/guides/msw"
+    description="Generate API mocks"
+  />
 </Cards>

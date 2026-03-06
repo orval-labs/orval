@@ -1,7 +1,6 @@
+import fs from 'fs-extra';
 import os from 'node:os';
 import path from 'node:path';
-
-import fs from 'fs-extra';
 import { describe, expect, it } from 'vitest';
 
 import { type GeneratorSchema, NamingConvention } from '../types';

@@ -1,8 +1,7 @@
-import fs from 'node:fs';
-import path from 'node:path';
-
 import { type Config, type ConfigExternal, isFunction } from '@orval/core';
 import { createJiti } from 'jiti';
+import fs from 'node:fs';
+import path from 'node:path';
 
 /**
  * Resolve the Orval config file path.

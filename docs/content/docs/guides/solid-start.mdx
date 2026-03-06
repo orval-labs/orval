@@ -265,16 +265,16 @@ export const customInstance = async <T>(
 
 **If you are using SolidStart, it's highly recommended to use its built-in primitives** (`query()` and `action()` from `@solidjs/router`) instead of Solid Query. These primitives are designed to work seamlessly with SolidStart's server-side rendering, routing, and caching systems.
 
-| Feature | Solid Query | SolidStart |
-| --- | --- | --- |
-| Package | `@tanstack/solid-query` | `@solidjs/router` (via SolidStart) |
-| Use Case | Standalone Solid apps | SolidStart applications |
-| Query Hook | `createQuery` | `query()` |
-| Mutation Hook | `createMutation` | `action()` |
-| Cache Keys | Manual query key functions | Automatic via `.key` and `.keyFor()` |
-| HTTP Client | Configurable (axios, fetch, etc.) | Native fetch API |
-| Query Options | Full TanStack Query options | Simpler, opinionated options |
-| SSR Integration | Manual configuration | Built-in and automatic |
+| Feature         | Solid Query                       | SolidStart                           |
+| --------------- | --------------------------------- | ------------------------------------ |
+| Package         | `@tanstack/solid-query`           | `@solidjs/router` (via SolidStart)   |
+| Use Case        | Standalone Solid apps             | SolidStart applications              |
+| Query Hook      | `createQuery`                     | `query()`                            |
+| Mutation Hook   | `createMutation`                  | `action()`                           |
+| Cache Keys      | Manual query key functions        | Automatic via `.key` and `.keyFor()` |
+| HTTP Client     | Configurable (axios, fetch, etc.) | Native fetch API                     |
+| Query Options   | Full TanStack Query options       | Simpler, opinionated options         |
+| SSR Integration | Manual configuration              | Built-in and automatic               |
 
 Choose **SolidStart client** when building a SolidStart application. Choose **Solid Query client** only if you're building a standalone SolidJS app without the SolidStart framework and need advanced TanStack Query features like optimistic updates, background refetching, and complex caching strategies.
 

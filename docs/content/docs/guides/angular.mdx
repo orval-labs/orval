@@ -116,9 +116,11 @@ getPet<TData = Pet>(options?: HttpClientOptions & { observe?: 'body' }): Observa
 ```
 
 **Validation applies to:**
+
 - JSON body responses with model types
 
 **Validation is skipped for:**
+
 - Primitive types (`string`, `number`, `boolean`, `void`, `unknown`)
 - `events` and `response` observe modes (`HttpEvent<T>`, `HttpResponse<T>`)
 - Custom mutator paths
@@ -126,12 +128,12 @@ getPet<TData = Pet>(options?: HttpClientOptions & { observe?: 'body' }): Observa
 
 ### Support Matrix
 
-| Client | Config key | Runtime validation |
-|--------|------------|--------------------|
-| `angular` | `override.angular.runtimeValidation` | ✅ Supported |
-| `angular-query` | `override.query.runtimeValidation` | ✅ Supported |
-| `fetch` | `override.fetch.runtimeValidation` | ✅ Supported |
-| custom mutator paths | varies | ⚠️ See [#2858](https://github.com/orval-labs/orval/issues/2858) |
+| Client               | Config key                           | Runtime validation                                              |
+| -------------------- | ------------------------------------ | --------------------------------------------------------------- |
+| `angular`            | `override.angular.runtimeValidation` | ✅ Supported                                                    |
+| `angular-query`      | `override.query.runtimeValidation`   | ✅ Supported                                                    |
+| `fetch`              | `override.fetch.runtimeValidation`   | ✅ Supported                                                    |
+| custom mutator paths | varies                               | ⚠️ See [#2858](https://github.com/orval-labs/orval/issues/2858) |
 
 ### Error Handling
 

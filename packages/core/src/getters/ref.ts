@@ -1,4 +1,5 @@
 import type { ContextSpec, NormalizedOverrideOutput } from '../types';
+
 import { pascal, sanitize, upath } from '../utils';
 
 type RefComponent = 'schemas' | 'responses' | 'parameters' | 'requestBodies';

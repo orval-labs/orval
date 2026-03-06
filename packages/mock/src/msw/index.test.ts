@@ -3,6 +3,7 @@ import type {
   GeneratorVerbOptions,
   NormalizedOverrideOutput,
 } from '@orval/core';
+
 import { OutputMockType } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 

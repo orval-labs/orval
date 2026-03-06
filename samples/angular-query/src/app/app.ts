@@ -1,6 +1,13 @@
 import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
+// Custom instance endpoint (uses custom mutator)
+import { injectListPets as injectListPetsCustom } from '../api/endpoints-custom-instance/pets/pets';
+// No-transformer endpoint (native Angular HttpClient, no custom mutator)
+import {
+  injectListPets as injectListPetsNative,
+  injectSearchPets as injectSearchPetsNative,
+} from '../api/endpoints-no-transformer/pets/pets';
 // Main endpoint (with mocks and invalidation)
 import {
   injectListPets,
@@ -11,15 +18,6 @@ import {
   injectPatchPet,
   getUpdatePetMutationOptions,
 } from '../api/endpoints/pets/pets';
-
-// No-transformer endpoint (native Angular HttpClient, no custom mutator)
-import {
-  injectListPets as injectListPetsNative,
-  injectSearchPets as injectSearchPetsNative,
-} from '../api/endpoints-no-transformer/pets/pets';
-
-// Custom instance endpoint (uses custom mutator)
-import { injectListPets as injectListPetsCustom } from '../api/endpoints-custom-instance/pets/pets';
 
 @Component({
   selector: 'app-root',
@@ -127,8 +125,7 @@ import { injectListPets as injectListPetsCustom } from '../api/endpoints-custom-
         <section class="section">
           <h2>🎛️ Reactive Options Demo</h2>
           <p class="subtitle">
-            Signal-based options - changing enabled triggers query
-            enable/disable!
+            Signal-based options - changing enabled triggers query enable/disable!
           </p>
 
           <div class="reactivity-controls">
@@ -193,9 +190,7 @@ import { injectListPets as injectListPetsCustom } from '../api/endpoints-custom-
         <!-- SECTION: Custom Instance Endpoint -->
         <section class="section">
           <h2>⚙️ Custom Instance Endpoint</h2>
-          <p class="subtitle">
-            endpoints-custom-instance - uses custom mutator
-          </p>
+          <p class="subtitle">endpoints-custom-instance - uses custom mutator</p>
 
           <h3>Custom List Pets</h3>
           @if (petsCustom.isPending()) {

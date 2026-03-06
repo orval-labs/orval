@@ -17,10 +17,10 @@
 
 <script lang="ts">
 import { defineComponent, ref } from 'vue';
-import { SELECT_PET_ID_EVENT } from './constants';
 
-import Pets from './components/pets.vue';
 import Pet from './components/pet.vue';
+import Pets from './components/pets.vue';
+import { SELECT_PET_ID_EVENT } from './constants';
 
 export default defineComponent({
   name: 'App',

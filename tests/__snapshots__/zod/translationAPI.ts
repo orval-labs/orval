@@ -5,15 +5,16 @@
  * Translation APIs
  * OpenAPI spec version: 1.0.0
  */
-import {
-  z as zod
-} from 'zod';
+import { z as zod } from 'zod';
 
 /**
  * @summary Retrieve Translations
  */
 export const retrieveTranslationsParams = zod.object({
-  "locale": zod.string()
-})
+  locale: zod.string(),
+});
 
-export const retrieveTranslationsResponse = zod.record(zod.string(), zod.string())
+export const retrieveTranslationsResponse = zod.record(
+  zod.string(),
+  zod.string(),
+);

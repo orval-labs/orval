@@ -8,6 +8,7 @@
 
 <script lang="ts" setup>
 import { computed, ref, unref } from 'vue';
+
 import { useShowPetById } from '../../api/endpoints/petstoreFromFileSpecWithTransformer';
 
 setTimeout(() => {

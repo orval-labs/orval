@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { OpenApiOperationObject } from '../types';
+
 import { getOperationId } from './operation';
 
 describe('getOperationId getter', () => {

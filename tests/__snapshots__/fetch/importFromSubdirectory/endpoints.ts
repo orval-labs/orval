@@ -14,6 +14,7 @@ export type postPetsResponse200 = {
 export type postPetsResponseSuccess = postPetsResponse200 & {
   headers: Headers;
 };
+
 export type postPetsResponse = postPetsResponseSuccess;
 
 export const getPostPetsUrl = () => {
@@ -42,6 +43,7 @@ export type getPetsResponse200 = {
 export type getPetsResponseSuccess = getPetsResponse200 & {
   headers: Headers;
 };
+
 export type getPetsResponse = getPetsResponseSuccess;
 
 export const getGetPetsUrl = () => {

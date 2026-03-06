@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import { Hono } from 'hono';
+
 import {
   listPetsHandlers,
   createPetsHandlers,

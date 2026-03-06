@@ -20,6 +20,7 @@ export type streamResponse200 = {
 export type streamResponseSuccess = streamResponse200 & {
   headers: Headers;
 };
+
 export type streamResponse = streamResponseSuccess;
 
 export const getStreamUrl = () => {

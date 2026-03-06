@@ -1,12 +1,3 @@
-import {
-  getBody,
-  getOperationId,
-  getParameters,
-  getParams,
-  getProps,
-  getQueryParams,
-  getResponse,
-} from '../getters';
 import type {
   ContextSpec,
   GeneratorVerbOptions,
@@ -21,6 +12,16 @@ import type {
   OpenApiRequestBodyObject,
   Verbs,
 } from '../types';
+
+import {
+  getBody,
+  getOperationId,
+  getParameters,
+  getParams,
+  getProps,
+  getQueryParams,
+  getResponse,
+} from '../getters';
 import {
   asyncReduce,
   camel,

@@ -9,18 +9,51 @@ import type { Context, Env } from 'hono';
 import {
   ListPetsParams,
   CreatePetsParams,
-  CreatePetsBody
+  CreatePetsBody,
 } from '../../schemas';
 
-export type ListPetsContext<E extends Env = any> = Context<E, '/pets', { in: { query: ListPetsParams, }, out: { query: ListPetsParams, } }>
-export type CreatePetsContext<E extends Env = any> = Context<E, '/pets', { in: { query: CreatePetsParams,json: CreatePetsBody, }, out: { query: CreatePetsParams,json: CreatePetsBody, } }>
-export type ShowPetByIdContext<E extends Env = any> = Context<E, '/pets/:petId', { in: { param: {
- petId: string,
- }, }, out: { param: {
- petId: string,
- }, } }>
-export type DeletePetByIdContext<E extends Env = any> = Context<E, '/pets/:petId', { in: { param: {
- petId: string,
- }, }, out: { param: {
- petId: string,
- }, } }>
+export type ListPetsContext<E extends Env = any> = Context<
+  E,
+  '/pets',
+  { in: { query: ListPetsParams }; out: { query: ListPetsParams } }
+>;
+export type CreatePetsContext<E extends Env = any> = Context<
+  E,
+  '/pets',
+  {
+    in: { query: CreatePetsParams; json: CreatePetsBody };
+    out: { query: CreatePetsParams; json: CreatePetsBody };
+  }
+>;
+export type ShowPetByIdContext<E extends Env = any> = Context<
+  E,
+  '/pets/:petId',
+  {
+    in: {
+      param: {
+        petId: string;
+      };
+    };
+    out: {
+      param: {
+        petId: string;
+      };
+    };
+  }
+>;
+export type DeletePetByIdContext<E extends Env = any> = Context<
+  E,
+  '/pets/:petId',
+  {
+    in: {
+      param: {
+        petId: string;
+      };
+    };
+    out: {
+      param: {
+        petId: string;
+      };
+    };
+  }
+>;

@@ -1,5 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { defineConfig } from 'orval';
+
 import transformer from './api/transformer/add-version.js';
 
 export default defineConfig({

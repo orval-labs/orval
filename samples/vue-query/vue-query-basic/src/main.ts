@@ -1,6 +1,7 @@
-import { createApp } from 'vue';
-import App from './App.vue';
 import { VueQueryPlugin } from '@tanstack/vue-query';
+import { createApp } from 'vue';
+
+import App from './App.vue';
 
 // NEW
 if (process.env.NODE_ENV === 'development') {

@@ -12,6 +12,7 @@ import {
 } from '@orval/core';
 
 import type { MockDefinition, MockSchemaObject } from '../../types';
+
 import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
 import { resolveMockValue } from '../resolvers/value';
 import { combineSchemasMock } from './combine';

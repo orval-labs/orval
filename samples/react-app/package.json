@@ -11,21 +11,6 @@
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
     "test:snapshots:update": "bun run test:snapshots --update"
   },
-  "eslintConfig": {
-    "extends": "react-app"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
   "dependencies": {
     "@faker-js/faker": "catalog:tooling",
     "@types/node": "catalog:",
@@ -41,13 +26,27 @@
   "devDependencies": {
     "msw": "catalog:tooling",
     "orval": "workspace:*",
-    "prettier": "catalog:",
     "vitest": "catalog:"
   },
   "dependenciesMeta": {
     "msw": {
       "built": true
     }
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "eslintConfig": {
+    "extends": "react-app"
   },
   "msw": {
     "workerDirectory": "public"

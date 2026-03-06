@@ -1,4 +1,5 @@
 import { Component, For, Show } from 'solid-js';
+
 import { useListPets } from './api/endpoints/petstoreFromFileSpecWithTransformer';
 import './App.css';
 import logo from './logo.svg';

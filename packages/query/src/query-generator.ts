@@ -20,8 +20,9 @@ import {
   Verbs,
 } from '@orval/core';
 
-import { getHookOptions, getQueryErrorType, getQueryOptions } from './client';
 import type { FrameworkAdapter } from './framework-adapter';
+
+import { getHookOptions, getQueryErrorType, getQueryOptions } from './client';
 import { generateMutationHook } from './mutation-generator';
 import {
   generateQueryOptions,

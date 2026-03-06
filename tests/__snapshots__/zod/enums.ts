@@ -4,57 +4,70 @@
  * Enums
  * OpenAPI spec version: 1.0.0
  */
-import {
-  z as zod
-} from 'zod';
+import { z as zod } from 'zod';
 
 /**
  * @summary sample cat
  */
-export const getApiCatResponseItem = zod.union([zod.literal(1),zod.literal(2),zod.literal(3)])
-export const getApiCatResponse = zod.array(getApiCatResponseItem)
-
+export const getApiCatResponseItem = zod.union([
+  zod.literal(1),
+  zod.literal(2),
+  zod.literal(3),
+]);
+export const getApiCatResponse = zod.array(getApiCatResponseItem);
 
 /**
  * @summary sample required cat
  */
 export const getApiRequiredCatResponse = zod.object({
-  "petsRequested": zod.array(zod.object({
-  "colours": zod.array(zod.enum(['BLACK', 'BROWN', 'WHITE', 'GREY']))
-})).optional()
-})
-
+  petsRequested: zod
+    .array(
+      zod.object({
+        colours: zod.array(zod.enum(['BLACK', 'BROWN', 'WHITE', 'GREY'])),
+      }),
+    )
+    .optional(),
+});
 
 /**
  * @summary sample dog
  */
 export const getApiDogResponse = zod.object({
-  "group": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]).optional(),
-  "petsRequested": zod.array(zod.object({
-  "colour": zod.enum(['BLACK', 'BROWN']).optional()
-})).optional()
-})
-
+  group: zod.union([zod.literal(1), zod.literal(2), zod.literal(3)]).optional(),
+  petsRequested: zod
+    .array(
+      zod.object({
+        colour: zod.enum(['BLACK', 'BROWN']).optional(),
+      }),
+    )
+    .optional(),
+});
 
 /**
  * @summary sample required dog
  */
 export const getApiRequiredDogResponse = zod.object({
-  "petsRequested": zod.array(zod.object({
-  "colour": zod.enum(['BLACK', 'BROWN'])
-})).optional()
-})
-
+  petsRequested: zod
+    .array(
+      zod.object({
+        colour: zod.enum(['BLACK', 'BROWN']),
+      }),
+    )
+    .optional(),
+});
 
 /**
  * @summary sample duck
  */
 export const getApiDuckResponse = zod.object({
-  "petsRequested": zod.array(zod.string()).optional()
-})
-
+  petsRequested: zod.array(zod.string()).optional(),
+});
 
 /**
  * @summary sample cat dog
  */
-export const getApiCatDogResponse = zod.union([zod.literal(1),zod.literal('2'),zod.literal('a')])
+export const getApiCatDogResponse = zod.union([
+  zod.literal(1),
+  zod.literal('2'),
+  zod.literal('a'),
+]);

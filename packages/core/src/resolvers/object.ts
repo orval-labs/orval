@@ -1,4 +1,3 @@
-import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum';
 import type { FormDataContext } from '../getters/object';
 import type {
   ContextSpec,
@@ -7,6 +6,8 @@ import type {
   ResolverValue,
   ScalarValue,
 } from '../types';
+
+import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum';
 import { jsDoc } from '../utils';
 import { resolveValue } from './value';
 

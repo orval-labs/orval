@@ -8,6 +8,7 @@
 
 <script lang="ts" setup>
 import { computed, unref } from 'vue';
+
 import { useShowPetById } from '../api/endpoints/petstoreFromFileSpecWithTransformer';
 
 const props = defineProps<{ petId: string }>();

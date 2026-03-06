@@ -52,7 +52,7 @@ export const MyEnum = {
   Four: 4,
 } as const;
 
-export type MyEnum = typeof MyEnum[keyof typeof MyEnum];
+export type MyEnum = (typeof MyEnum)[keyof typeof MyEnum];
 ```
 
 ## Supported Extensions
@@ -72,5 +72,8 @@ Orval recognizes the following extensions:
 - `x-enum-descriptions`
 
 <Callout type="info">
-Enum descriptions are only supported when [`enumGenerationType`](/docs/reference/configuration/output#enumgenerationtype) is set to `const` (default). They are not applied when using `enum` or `union`.
+  Enum descriptions are only supported when
+  [`enumGenerationType`](/docs/reference/configuration/output#enumgenerationtype)
+  is set to `const` (default). They are not applied when using `enum` or
+  `union`.
 </Callout>

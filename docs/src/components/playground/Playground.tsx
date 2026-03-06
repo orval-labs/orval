@@ -2,13 +2,14 @@ import { useMutation } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useDebounce } from 'use-debounce';
 
+import type { GenerateOutput } from '@/lib/playground/types';
+
 import {
   DEFAULT_EXAMPLE,
   EXAMPLES,
   getGroupedExamples,
 } from '@/lib/playground/examples';
 import { generatePlaygroundCode } from '@/lib/playground/generate';
-import type { GenerateOutput } from '@/lib/playground/types';
 
 import { EditorPanel } from './EditorPanel';
 import { ExampleSelector } from './ExampleSelector';

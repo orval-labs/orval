@@ -1,8 +1,10 @@
 {
   "name": "basic",
   "version": "8.5.3",
-  "description": "",
   "private": true,
+  "description": "",
+  "license": "ISC",
+  "author": "Victor Bury",
   "type": "module",
   "main": "index.html",
   "scripts": {
@@ -13,18 +15,15 @@
     "example:basic": "orval --input ./petstore.yaml --output ./api/endpoints/petstoreFromFileSpec.ts",
     "example:config": "orval"
   },
-  "author": "Victor Bury",
-  "license": "ISC",
+  "dependencies": {
+    "@faker-js/faker": "catalog:tooling",
+    "axios": "catalog:axios"
+  },
   "devDependencies": {
     "msw": "catalog:tooling",
     "npm-run-all2": "catalog:",
     "orval": "workspace:*",
-    "prettier": "catalog:",
     "vitest": "catalog:"
-  },
-  "dependencies": {
-    "@faker-js/faker": "catalog:tooling",
-    "axios": "catalog:axios"
   },
   "dependenciesMeta": {
     "msw": {

@@ -12,6 +12,7 @@ v8 brings significant improvements focused on modern JavaScript ecosystem suppor
 The entire project has migrated from CommonJS to ESM.
 
 **Key Changes:**
+
 - All packages use `"type": "module"` in package.json
 - Import/export syntax instead of `require()`
 - **Node.js 22.18 or higher required**
@@ -143,6 +144,7 @@ export default defineConfig({
 The project has been fully converted from CommonJS to ESM.
 
 **Key Changes:**
+
 - Node.js 22.18+ required
 - All packages now use `"type": "module"` in package.json
 - Import/export syntax instead of `require()`
@@ -185,6 +187,7 @@ Update dynamic imports:
 > `.ts` files require no changes if written in ESM style.
 
 **Benefits:**
+
 - Better tree-shaking (unused code elimination)
 - Native browser support
 - Async module loading
@@ -272,14 +275,14 @@ Variable expansion is now supported in `override.requestOptions.headers`.
 
 ## Release Timeline
 
-| Version | Release Date | Main Changes |
-| --- | --- | --- |
-| v8.0.0-rc.0 | 2025-10-27 | ESM migration, basic Breaking Changes |
-| v8.0.0-rc.1 | 2025-10-30 | ESM module import support (jiti) |
-| v8.0.0-rc.2 | 2025-11-14 | Bug fixes |
-| v8.0.0-rc.3 | 2025-12-06 | Bug fixes |
-| v8.0.0-rc.4 | 2025-12-14 | Zod schema features |
-| v8.0.0-rc.5 | 2025-12-23 | Angular Query, Zod fixes |
+| Version     | Release Date | Main Changes                          |
+| ----------- | ------------ | ------------------------------------- |
+| v8.0.0-rc.0 | 2025-10-27   | ESM migration, basic Breaking Changes |
+| v8.0.0-rc.1 | 2025-10-30   | ESM module import support (jiti)      |
+| v8.0.0-rc.2 | 2025-11-14   | Bug fixes                             |
+| v8.0.0-rc.3 | 2025-12-06   | Bug fixes                             |
+| v8.0.0-rc.4 | 2025-12-14   | Zod schema features                   |
+| v8.0.0-rc.5 | 2025-12-23   | Angular Query, Zod fixes              |
 
 ---
 

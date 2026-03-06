@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+
 import { useListPets, useCreatePets } from '../gen/pets/pets';
 
 const { data } = useListPets();

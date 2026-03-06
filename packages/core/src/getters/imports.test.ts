@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ContextSpec, GeneratorImport, ResolverValue } from '../types';
+
 import {
   getAliasedImports,
   getImportAliasForRefOrValue,

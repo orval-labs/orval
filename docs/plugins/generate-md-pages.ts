@@ -1,6 +1,7 @@
+import type { Plugin } from 'vite';
+
 import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, relative, dirname, basename } from 'node:path';
-import type { Plugin } from 'vite';
 
 const BASE_URL = 'https://orval.dev';
 

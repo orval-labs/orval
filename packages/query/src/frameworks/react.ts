@@ -7,7 +7,6 @@ import {
 } from '@orval/core';
 import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
 
-import { generateAxiosRequestFunction } from '../client';
 import type {
   FrameworkAdapterConfig,
   MutationHookBodyContext,
@@ -15,6 +14,8 @@ import type {
   QueryReturnStatementContext,
   QueryReturnTypeContext,
 } from '../framework-adapter';
+
+import { generateAxiosRequestFunction } from '../client';
 import { isSuspenseQuery } from '../query-options';
 
 export const createReactAdapter = ({

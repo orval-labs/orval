@@ -5,6 +5,7 @@ import type {
   GeneratorSchema,
   OpenApiSchemaObject,
 } from '../types';
+
 import { EnumGeneration, NamingConvention } from '../types';
 import { generateImports } from './imports';
 import { generateInterface } from './interface';

@@ -1,6 +1,8 @@
 import { keyword } from 'esutils';
 import { uniqueBy } from 'remeda';
 
+import type { FormDataContext } from './object';
+
 import { resolveObject } from '../resolvers/object';
 import { resolveExampleRefs, resolveRef } from '../resolvers/ref';
 import {
@@ -24,7 +26,6 @@ import {
   isBinaryContentType,
 } from '../utils/content-type';
 import { getNumberWord } from '../utils/string';
-import type { FormDataContext } from './object';
 
 // Bridge assertion helpers for AnyOtherAttribute-infected schema properties.
 // OpenAPI SchemaObject includes `[key: string]: any` which infects all property access.

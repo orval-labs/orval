@@ -1,5 +1,3 @@
-import { generalJSTypesWithArray } from '../constants';
-import { resolveRef } from '../resolvers';
 import type {
   ContextSpec,
   GetterBody,
@@ -7,6 +5,9 @@ import type {
   OpenApiRequestBodyObject,
   OverrideOutputContentType,
 } from '../types';
+
+import { generalJSTypesWithArray } from '../constants';
+import { resolveRef } from '../resolvers';
 import { camel, filterByContentType, isReference, sanitize } from '../utils';
 import { getResReqTypes } from './res-req-types';
 

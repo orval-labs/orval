@@ -12,12 +12,13 @@ import {
   pascal,
 } from '@orval/core';
 
+import type { FrameworkAdapter } from './framework-adapter';
+
 import {
   getHooksOptionImplementation,
   getMutationRequestArgs,
   getQueryErrorType,
 } from './client';
-import type { FrameworkAdapter } from './framework-adapter';
 import { getQueryOptionsDefinition } from './query-options';
 
 type NormalizedTarget = {

@@ -5,18 +5,13 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { CreatePetsBody } from './model/createPetsBody.zod';
-
 import type { CreatePetsParams } from './model/createPetsParams.zod';
-
 import type { Error } from './model/error.zod';
-
 import type { ListPetsParams } from './model/listPetsParams.zod';
 
 import { Pet } from './model/pet.zod';
-
-import { PetWithTag } from './model/petWithTag.zod';
-
 import { Pets } from './model/pets.zod';
+import { PetWithTag } from './model/petWithTag.zod';
 
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;

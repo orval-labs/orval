@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 import mdx from 'fumadocs-mdx/vite';
 import { defineConfig } from 'vite';
 import tsConfigPaths from 'vite-tsconfig-paths';
+
 import { generateMdPages } from './plugins/generate-md-pages';
 
 export default defineConfig({

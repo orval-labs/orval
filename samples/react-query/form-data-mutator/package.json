@@ -17,7 +17,6 @@
   },
   "devDependencies": {
     "orval": "workspace:*",
-    "prettier": "catalog:",
     "vitest": "catalog:"
   }
 }
