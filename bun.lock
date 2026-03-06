@@ -117,10 +117,12 @@
         "@hono/zod-validator": "catalog:hono",
         "@types/fs-extra": "^11.0.4",
         "eslint": "catalog:",
+        "hono": "catalog:hono",
         "rimraf": "catalog:",
         "tsdown": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:",
+        "zod": "catalog:zod3",
       },
     },
     "packages/mcp": {

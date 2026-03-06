@@ -10,4 +10,4 @@ node_modules
 # Ignore files for PNPM, NPM and BUN
 pnpm-lock.yaml
 package-lock.json
-bun.lockb
+bun.lock

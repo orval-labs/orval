@@ -8,7 +8,7 @@ node_modules
 **/dist
 .husky
 mockServiceWorker.js
-bun.lockb
+bun.lock
 .svelte-kit
 .prettierignore
 
@@ -20,6 +20,8 @@ bun.lockb
 .gitignore
 .gitattributes
 *.xml
+Dockerfile
+.eslintignore
 
 # Data files that aren't really our code
 packages/hono/src/zValidator.ts

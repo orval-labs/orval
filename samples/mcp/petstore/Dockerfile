@@ -4,6 +4,6 @@ FROM $NODE_IMAGE
 EXPOSE 3000
 WORKDIR /app
 COPY . /app
-RUN npm install -g bun
+RUN npm install -g bun@1.3.9
 RUN bun install --frozen-lockfile
 CMD ["bun", "run", "dev"]
