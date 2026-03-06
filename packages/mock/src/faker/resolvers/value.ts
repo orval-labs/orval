@@ -86,7 +86,7 @@ export function resolveMockValue({
   allowOverride,
 }: ResolveMockValueOptions): MockDefinition & { type?: string } {
   if (isReference(schema)) {
-    const { originalName, refPaths } = getRefInfo(schema.$ref, context);
+    const { name, refPaths } = getRefInfo(schema.$ref, context);
 
     const schemaRef = Array.isArray(refPaths)
       ? (prop(
@@ -98,7 +98,7 @@ export function resolveMockValue({
 
     const newSchema = {
       ...schemaRef,
-      name: pascal(originalName),
+      name,
       path: schema.path,
       isRef: true,
       required: [...(schemaRef?.required ?? []), ...(schema.required ?? [])],

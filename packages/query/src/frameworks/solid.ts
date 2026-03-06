@@ -11,6 +11,7 @@ import type {
   FrameworkAdapterConfig,
   MutationHookBodyContext,
   MutationReturnTypeContext,
+  QueryInvocationContext,
   QueryReturnStatementContext,
   QueryReturnTypeContext,
 } from '../framework-adapter';
@@ -43,6 +44,40 @@ export const createSolidAdapter = ({
     return hasSolidQueryUsePrefix ? 'Use' : 'Create';
   },
 
+  getOptionsReturnTypeName(
+    type: 'query' | 'infiniteQuery' | 'mutation',
+  ): string | undefined {
+    // Solid Query uses SolidQueryOptions for queries, SolidInfiniteQueryOptions for infinite queries,
+    // and SolidMutationOptions for mutations (these are accessors)
+    if (type === 'mutation') return 'SolidMutationOptions';
+    if (type === 'infiniteQuery') return 'SolidInfiniteQueryOptions';
+    return 'SolidQueryOptions';
+  },
+
+  getQueryKeyPrefix(): string {
+    // Solid Query v5 doesn't support accessing queryKey from queryOptions
+    // The queryKey must be generated directly from the params
+    return '';
+  },
+
+  shouldAnnotateQueryKey(): boolean {
+    // Solid Query works with accessor functions
+    // The queryKey is accessed from within the accessor, not annotated on the return type
+    return false;
+  },
+
+  shouldCastQueryResult(): boolean {
+    // Solid Query should not cast the query result because it breaks TypeScript's
+    // ability to discriminate between overloads based on initialData
+    return false;
+  },
+
+  shouldCastQueryOptions(): boolean {
+    // Solid Query should not cast the query options return type because it prevents
+    // TypeScript from properly discriminating between defined and undefined initialData
+    return false;
+  },
+
   getQueryReturnType({ type }: QueryReturnTypeContext): string {
     const prefix = hasSolidQueryUsePrefix ? 'Use' : 'Create';
     const queryKeyType = hasQueryV5
@@ -72,7 +107,23 @@ export const createSolidAdapter = ({
     queryResultVarName,
     queryOptionsVarName,
   }: QueryReturnStatementContext): string {
-    return `return { ...${queryResultVarName}, queryKey: ${queryOptionsVarName}.queryKey };`;
+    // Use Object.assign to attach queryKey to the result and cast to any to satisfy TypeScript
+    // The type is properly enforced by the function signature
+    return `return Object.assign(${queryResultVarName}, { queryKey: ${queryOptionsVarName}.queryKey }) as any;`;
+  },
+
+  generateQueryInvocationArgs({
+    queryOptionsFnName,
+    queryProperties,
+    isRequestOptions,
+    optionalQueryClientArgument,
+  }: QueryInvocationContext): string {
+    // Solid Query requires options to be wrapped in an arrow function for reactivity
+    const optionsArg = isRequestOptions ? 'options' : 'queryOptions';
+    const args = queryProperties
+      ? `${queryProperties},${optionsArg}`
+      : optionsArg;
+    return `() => ${queryOptionsFnName}(${args})${optionalQueryClientArgument ? ', queryClient' : ''}`;
   },
 
   generateMutationImplementation({
@@ -98,7 +149,13 @@ export const createSolidAdapter = ({
     mutationImplementation,
     optionalQueryClientArgument,
   }: MutationHookBodyContext): string {
-    return `      return ${operationPrefix}Mutation(${mutationImplementation}${optionalQueryClientArgument ? `, queryClient` : ''});`;
+    // Solid Query mutations also need to be wrapped in accessor functions
+    return `      return ${operationPrefix}Mutation(() => ${mutationImplementation}${optionalQueryClientArgument ? `, queryClient` : ''});`;
+  },
+
+  getOptionalQueryClientArgument(): string {
+    // Solid Query expects queryClient to be an Accessor: () => QueryClient
+    return ', queryClient?: () => QueryClient';
   },
 
   generateRequestFunction(

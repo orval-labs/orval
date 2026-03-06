@@ -302,4 +302,20 @@ export default defineConfig({
     },
     input: '../specifications/zod-required-default-values.yaml',
   },
+  'issue-3027-suffix': {
+    output: {
+      target: '../generated/zod/issue-3027-suffix/issue-3027.ts',
+      client: 'zod',
+      override: {
+        components: {
+          schemas: {
+            suffix: 'Schema',
+          },
+        },
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: '../specifications/issue-3027/issue-3027.yaml',
+  },
 });

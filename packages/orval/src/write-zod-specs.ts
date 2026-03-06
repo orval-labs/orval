@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import {
   type ContextSpec,
   conventionName,
@@ -8,7 +10,6 @@ import {
   type OpenApiRequestBodyObject,
   type OpenApiSchemaObject,
   pascal,
-  upath,
   type ZodCoerceType,
 } from '@orval/core';
 import {
@@ -164,7 +165,7 @@ async function writeZodSchemaIndex(
   shouldMergeExisting = false,
 ) {
   const importFileExtension = fileExtension.replace(/\.ts$/, '');
-  const indexPath = upath.join(schemasPath, `index${fileExtension}`);
+  const indexPath = path.join(schemasPath, `index${fileExtension}`);
 
   let existingExports = '';
   if (shouldMergeExisting && (await fs.pathExists(indexPath))) {
@@ -215,7 +216,7 @@ export async function writeZodSchemas(
     }
 
     const fileName = conventionName(name, output.namingConvention);
-    const filePath = upath.join(schemasPath, `${fileName}${fileExtension}`);
+    const filePath = path.join(schemasPath, `${fileName}${fileExtension}`);
     const context: ContextSpec = {
       spec: builder.spec,
       target: builder.target,
@@ -410,7 +411,7 @@ export async function writeZodSchemasFromVerbs(
 
   for (const { name, schema } of uniqueVerbsSchemas) {
     const fileName = conventionName(name, output.namingConvention);
-    const filePath = upath.join(schemasPath, `${fileName}${fileExtension}`);
+    const filePath = path.join(schemasPath, `${fileName}${fileExtension}`);
 
     const zodDefinition = generateZodValidationSchemaDefinition(
       schema,

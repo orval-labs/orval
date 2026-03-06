@@ -1,8 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalEnv": ["ORVAL_DEBUG_FILTER", "CI", "DEBUG"],
-  // disable background process as it is causing issues with file locks in the node_modules folder
-  "daemon": false,
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -14,7 +12,8 @@
     },
     "lint": {
       // linting will fail if the packages are not built
-      "dependsOn": ["build"]
+      "dependsOn": ["build"],
+      "cache": false
     },
     "test": {
       "outputs": []

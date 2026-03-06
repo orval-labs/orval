@@ -1,3 +1,5 @@
+import { styleText } from 'node:util';
+
 import {
   type Hook,
   type HookOption,
@@ -8,7 +10,6 @@ import {
   logError,
   type NormalizedHookCommand,
 } from '@orval/core';
-import chalk from 'chalk';
 import { execa } from 'execa';
 import { parseArgsStringToArgv } from 'string-argv';
 
@@ -17,7 +18,7 @@ export const executeHook = async (
   commands: NormalizedHookCommand = [],
   args: string[] = [],
 ) => {
-  log(chalk.white(`Running ${name} hook...`));
+  log(styleText('white', `Running ${name} hook...`));
 
   for (const command of commands) {
     try {

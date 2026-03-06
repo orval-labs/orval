@@ -1,7 +1,7 @@
 {
   "name": "orval-workspaces",
   "namespace": "@orval",
-  "version": "8.4.2",
+  "version": "8.5.3",
   "license": "MIT",
   "workspaces": [
     "packages/*",
@@ -22,7 +22,9 @@
     "vite": "7.2.2",
     "vitest": "4.0.18",
     "@types/node": "22.18.12",
-    "@scalar/openapi-types": "0.5.3"
+    "@scalar/openapi-types": "0.5.3",
+    "typescript-eslint": "8.56.1",
+    "globals": "17.4.0"
   },
   "catalogs": {
     "angular": {
@@ -39,7 +41,7 @@
       "@angular/cli": "21.1.4"
     },
     "axios": {
-      "axios": "1.13.5"
+      "axios": "1.13.6"
     },
     "tooling": {
       "@faker-js/faker": "10.3.0",
@@ -105,23 +107,24 @@
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
-    "@eslint/js": "9.39.2",
-    "@types/node": "22.18.12",
+    "@eslint/js": "catalog:",
+    "@types/node": "catalog:",
     "esbuild-plugin-alias": "^0.2.1",
-    "eslint": "9.39.2",
+    "eslint": "catalog:",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-config-turbo": "^2.7.4",
-    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-config-turbo": "^2.8.13",
+    "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-simple-import-sort": "^12.1.1",
-    "eslint-plugin-unicorn": "^62.0.0",
-    "globals": "^17.0.0",
+    "eslint-plugin-unicorn": "^63.0.0",
+    "globals": "catalog:",
     "husky": "^9.1.7",
-    "lint-staged": "^16.2.6",
-    "prettier": "3.8.1",
-    "rimraf": "6.1.2",
-    "turbo": "^2.8.10",
-    "typescript": "5.9.3",
-    "typescript-eslint": "^8.50.1",
-    "vitest": "4.0.18"
+    "lint-staged": "^16.3.2",
+    "prettier": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "turbo": "^2.8.12",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
+    "vitest": "catalog:"
   }
 }

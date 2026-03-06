@@ -135,6 +135,31 @@ describe('generateImportsForBuilder', () => {
         },
       ]);
     });
+
+    it('should use import name for zod schema file path when schemaName differs', () => {
+      const output = createMockOutput({
+        indexFiles: false,
+        fileExtension: '.ts',
+        schemas: { path: './schemas', type: 'zod' },
+      });
+      const imports = [
+        createMockImport('PortfolioResponseSchema', 'PortfolioResponse'),
+      ];
+
+      const result = generateImportsForBuilder(output, imports, '../models');
+
+      expect(result).toEqual([
+        {
+          exports: [
+            {
+              name: 'PortfolioResponseSchema',
+              schemaName: 'PortfolioResponse',
+            },
+          ],
+          dependency: '../models/portfolioResponseSchema.zod',
+        },
+      ]);
+    });
   });
 
   describe('with indexFiles', () => {

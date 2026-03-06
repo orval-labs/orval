@@ -1,5 +1,3 @@
-// @ts-check
-import eslint from '@eslint/js';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import turboConfig from 'eslint-config-turbo/flat';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
@@ -12,19 +10,24 @@ export default defineConfig(
   globalIgnores([
     'docs',
     'tests/generated',
+    'tests/**/__snapshots__/**',
     'samples',
     '.husky',
     'packages/hono/src/zValidator.ts',
     '**/.bun',
     '**/.turbo',
     '**/dist',
+    '**/__snapshots__',
   ]),
   turboConfig,
-  eslint.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
   eslintPluginUnicorn.configs.recommended,
   {
+    linterOptions: {
+      reportUnusedDisableDirectives: 'error',
+      reportUnusedInlineConfigs: 'error',
+    },
     languageOptions: {
       globals: globals.builtin,
       parserOptions: {
@@ -89,6 +92,12 @@ export default defineConfig(
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
+    },
+  },
+  {
+    files: ['packages/orval/src/utils/package-json.test.ts'],
+    rules: {
+      '@typescript-eslint/ban-ts-comment': 'off',
     },
   },
   eslintPluginPrettierRecommended, // also sets up eslint-config-prettier

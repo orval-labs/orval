@@ -272,7 +272,7 @@ export default defineConfig({
       override: {
         fetch: {
           jsonReviver: {
-            path: 'mutators/custom-reviver.ts',
+            path: '../mutators/custom-reviver.ts',
             default: true,
           },
         },
@@ -420,6 +420,221 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/petstore.yaml',
+    },
+  },
+  zodSchemaResponseSuffixSingle: {
+    output: {
+      target:
+        '../generated/fetch/zod-schema-response-suffix-single/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/zod-schema-response-suffix-single/model',
+        type: 'zod',
+      },
+      client: 'fetch',
+      override: {
+        components: {
+          schemas: {
+            suffix: 'Schema',
+          },
+        },
+        fetch: {
+          runtimeValidation: true,
+        },
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/issue-3027/issue-3027.yaml',
+    },
+  },
+  zodSchemaResponseSuffixSplit: {
+    output: {
+      target:
+        '../generated/fetch/zod-schema-response-suffix-split/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/zod-schema-response-suffix-split/model',
+        type: 'zod',
+      },
+      mode: 'split',
+      indexFiles: false,
+      client: 'fetch',
+      override: {
+        components: {
+          schemas: {
+            suffix: 'Schema',
+          },
+        },
+        fetch: {
+          runtimeValidation: true,
+        },
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/issue-3027/issue-3027.yaml',
+    },
+  },
+  zodSchemaResponseSuffixTags: {
+    output: {
+      target: '../generated/fetch/zod-schema-response-suffix-tags/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/zod-schema-response-suffix-tags/model',
+        type: 'zod',
+      },
+      mode: 'tags',
+      client: 'fetch',
+      override: {
+        components: {
+          schemas: {
+            suffix: 'Schema',
+          },
+        },
+        fetch: {
+          runtimeValidation: true,
+        },
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/issue-3027/issue-3027.yaml',
+    },
+  },
+  zodSchemaResponseSuffixTagsSplit: {
+    output: {
+      target:
+        '../generated/fetch/zod-schema-response-suffix-tags-split/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/zod-schema-response-suffix-tags-split/model',
+        type: 'zod',
+      },
+      mode: 'tags-split',
+      client: 'fetch',
+      override: {
+        components: {
+          schemas: {
+            suffix: 'Schema',
+          },
+        },
+        fetch: {
+          runtimeValidation: true,
+        },
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/issue-3027/issue-3027.yaml',
+    },
+  },
+  zodSchemaResponseSuffixSingleNoRuntimeValidation: {
+    output: {
+      target:
+        '../generated/fetch/zod-schema-response-suffix-single-no-runtime-validation/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/zod-schema-response-suffix-single-no-runtime-validation/model',
+        type: 'zod',
+      },
+      client: 'fetch',
+      override: {
+        components: {
+          schemas: {
+            suffix: 'Schema',
+          },
+        },
+        fetch: {
+          runtimeValidation: false,
+        },
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/issue-3027/issue-3027.yaml',
+    },
+  },
+  zodSchemaResponseSuffixSplitNoRuntimeValidation: {
+    output: {
+      target:
+        '../generated/fetch/zod-schema-response-suffix-split-no-runtime-validation/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/zod-schema-response-suffix-split-no-runtime-validation/model',
+        type: 'zod',
+      },
+      mode: 'split',
+      indexFiles: false,
+      client: 'fetch',
+      override: {
+        components: {
+          schemas: {
+            suffix: 'Schema',
+          },
+        },
+        fetch: {
+          runtimeValidation: false,
+        },
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/issue-3027/issue-3027.yaml',
+    },
+  },
+  zodSchemaResponseSuffixTagsNoRuntimeValidation: {
+    output: {
+      target:
+        '../generated/fetch/zod-schema-response-suffix-tags-no-runtime-validation/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/zod-schema-response-suffix-tags-no-runtime-validation/model',
+        type: 'zod',
+      },
+      mode: 'tags',
+      client: 'fetch',
+      override: {
+        components: {
+          schemas: {
+            suffix: 'Schema',
+          },
+        },
+        fetch: {
+          runtimeValidation: false,
+        },
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/issue-3027/issue-3027.yaml',
+    },
+  },
+  zodSchemaResponseSuffixTagsSplitNoRuntimeValidation: {
+    output: {
+      target:
+        '../generated/fetch/zod-schema-response-suffix-tags-split-no-runtime-validation/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/zod-schema-response-suffix-tags-split-no-runtime-validation/model',
+        type: 'zod',
+      },
+      mode: 'tags-split',
+      client: 'fetch',
+      override: {
+        components: {
+          schemas: {
+            suffix: 'Schema',
+          },
+        },
+        fetch: {
+          runtimeValidation: false,
+        },
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/issue-3027/issue-3027.yaml',
     },
   },
   wildcardResponses: {
