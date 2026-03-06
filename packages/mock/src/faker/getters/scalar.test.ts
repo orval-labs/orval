@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable unicorn/no-null */
 import type { ContextSpec, OpenApiSchemaObjectType } from '@orval/core';
 import { describe, expect, it } from 'vitest';
@@ -473,5 +472,31 @@ describe('getMockScalar (@-prefixed property names)', () => {
     // Property key should be quoted as '@type', not sanitized to '_type' or 'type'
     expect(result.value).toContain("'@type'");
     expect(result.value).not.toContain('_type');
+  });
+});
+
+describe('getMockScalar (pattern escaping)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+    context: { output: { override: {} } } as ContextSpec,
+  };
+
+  it('should escape single quotes in pattern when generating faker.helpers.fromRegExp call', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        name: 'pattern-item',
+        pattern: "^[a-zA-Z0-9']*$",
+      },
+    });
+
+    expect(result.value).toBe(
+      String.raw`faker.helpers.fromRegExp('^[a-zA-Z0-9\']*$')`,
+    );
   });
 });
