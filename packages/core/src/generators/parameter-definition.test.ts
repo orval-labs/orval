@@ -1,20 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpec, OpenApiComponentsObject } from '../types';
+import { createTestContextSpec } from '../test-utils/context';
+import type { OpenApiComponentsObject } from '../types';
 import { generateParameterDefinition } from './parameter-definition';
 
 describe('generateParameterDefinition', () => {
-  const context = {
-    output: {
-      override: {
-        components: {
-          schemas: { itemSuffix: 'Parameter' },
-        },
+  const context = createTestContextSpec({
+    override: {
+      components: {
+        schemas: { suffix: '', itemSuffix: 'Parameter' },
+        responses: { suffix: '' },
+        parameters: { suffix: '' },
+        requestBodies: { suffix: '' },
       },
     },
-    target: 'typescript',
-    spec: {},
-  } as unknown as ContextSpec;
+  });
 
   it('should return an empty array if parameters are empty', () => {
     const result = generateParameterDefinition({}, context, 'Suffix');

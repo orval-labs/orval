@@ -3,6 +3,15 @@ import type {
   GeneratorOptions,
   OpenApiSchemaObject,
 } from '@orval/core';
+import {
+  EnumGeneration,
+  FormDataArrayHandling,
+  NamingConvention,
+  OutputClient,
+  OutputHttpClient,
+  OutputMode,
+  PropertySortOrder,
+} from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -14,6 +23,148 @@ import {
 } from '.';
 
 const testOutput = {} as unknown as Parameters<typeof generateZod>[2];
+
+function makeContextSpec({
+  target,
+  workspace,
+  spec,
+  output,
+  override,
+}: {
+  target?: ContextSpec['target'];
+  workspace?: ContextSpec['workspace'];
+  spec?: Partial<ContextSpec['spec']>;
+  output?: Partial<ContextSpec['output']>;
+  override?: Partial<ContextSpec['output']['override']>;
+} = {}): ContextSpec {
+  const baseContext: ContextSpec = {
+    target: 'typescript',
+    workspace: '',
+    spec: {
+      openapi: '3.1.0',
+      info: { title: 'Test' },
+      paths: {},
+    },
+    output: {
+      target: '',
+      namingConvention: NamingConvention.CAMEL_CASE,
+      fileExtension: '.ts',
+      mode: OutputMode.SINGLE,
+      client: OutputClient.FETCH,
+      httpClient: OutputHttpClient.FETCH,
+      clean: false,
+      docs: false,
+      prettier: false,
+      biome: false,
+      headers: false,
+      indexFiles: false,
+      allParamsOptional: false,
+      urlEncodeParameters: false,
+      unionAddMissingProperties: false,
+      optionsParamRequired: false,
+      propertySortOrder: PropertySortOrder.ALPHABETICAL,
+      override: {
+        title: undefined,
+        transformer: undefined,
+        mutator: undefined,
+        operations: {},
+        tags: {},
+        mock: undefined,
+        contentType: undefined,
+        header: false,
+        formData: {
+          disabled: false,
+          arrayHandling: FormDataArrayHandling.SERIALIZE,
+        },
+        formUrlEncoded: false,
+        paramsSerializer: undefined,
+        paramsSerializerOptions: undefined,
+        namingConvention: {},
+        components: {
+          schemas: { suffix: '', itemSuffix: '' },
+          responses: { suffix: '' },
+          parameters: { suffix: '' },
+          requestBodies: { suffix: '' },
+        },
+        hono: { compositeRoute: '', validator: false, validatorOutputPath: '' },
+        query: {
+          useQuery: false,
+          useSuspenseQuery: false,
+          useMutation: false,
+          useInfinite: false,
+          useSuspenseInfiniteQuery: false,
+          useInfiniteQueryParam: '',
+          usePrefetch: false,
+          useInvalidate: false,
+          shouldExportMutatorHooks: false,
+          shouldExportHttpClient: false,
+          shouldExportQueryKey: false,
+          shouldSplitQueryKey: false,
+          useOperationIdAsQueryKey: false,
+          signal: false,
+          version: 5,
+        },
+        angular: { provideIn: 'root', runtimeValidation: false },
+        swr: {},
+        zod: {
+          strict: {
+            param: false,
+            query: false,
+            header: false,
+            body: false,
+            response: false,
+          },
+          generate: {
+            param: false,
+            query: false,
+            header: false,
+            body: false,
+            response: false,
+          },
+          coerce: {
+            param: false,
+            query: false,
+            header: false,
+            body: false,
+            response: false,
+          },
+          generateEachHttpStatus: false,
+          dateTimeOptions: {},
+          timeOptions: { precision: 3 },
+        },
+        fetch: {
+          includeHttpResponseReturnType: false,
+          forceSuccessResponse: false,
+          runtimeValidation: false,
+        },
+        useDates: false,
+        enumGenerationType: EnumGeneration.UNION,
+        jsDoc: {},
+        requestOptions: true,
+        aliasCombinedTypes: false,
+      },
+    },
+  };
+
+  return {
+    ...baseContext,
+    ...(target !== undefined ? { target } : {}),
+    ...(workspace !== undefined ? { workspace } : {}),
+    spec: {
+      ...baseContext.spec,
+      ...spec,
+    },
+    output: {
+      ...baseContext.output,
+      ...output,
+      override: {
+        ...baseContext.output.override,
+        ...output?.override,
+        ...override,
+      },
+    },
+  };
+}
 
 const record: ZodValidationSchemaDefinition = {
   functions: [
@@ -913,13 +1064,11 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
-        output: {
-          override: {
-            useDates: false,
-          },
+      makeContextSpec({
+        override: {
+          useDates: false,
         },
-      } as ContextSpec,
+      }),
       true,
       false,
       false,
@@ -929,13 +1078,11 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   describe('description handling', () => {
-    const context: ContextSpec = {
-      output: {
-        override: {
-          useDates: false,
-        },
+    const context = makeContextSpec({
+      override: {
+        useDates: false,
       },
-    } as unknown as ContextSpec;
+    });
 
     it('generates a description for a parameter', () => {
       const schemaWithDefault: OpenApiSchemaObject = {
@@ -976,13 +1123,11 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   describe('default value handling', () => {
-    const context: ContextSpec = {
-      output: {
-        override: {
-          useDates: false,
-        },
+    const context = makeContextSpec({
+      override: {
+        useDates: false,
       },
-    } as unknown as ContextSpec;
+    });
 
     it('generates a default value for a non-required string schema', () => {
       const schemaWithDefault: OpenApiSchemaObject = {

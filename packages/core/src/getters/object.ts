@@ -9,14 +9,7 @@ import {
   type ScalarValue,
   SchemaType,
 } from '../types';
-import {
-  escape,
-  isBoolean,
-  isReference,
-  isString,
-  jsDoc,
-  pascal,
-} from '../utils';
+import { escape, isReference, isString, jsDoc, pascal } from '../utils';
 import { combineSchemas } from './combine';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getKey } from './keys';
@@ -158,7 +151,7 @@ export function getObject({
     const typeArray = itemType;
     // Bridge: item is OpenApiSchemaObject which includes AnyOtherAttribute index signature.
     // Spreading it directly would carry `any` into the result. Cast to break the chain.
-    const baseItem = schemaItem;
+    const baseItem = schemaItem as Record<string, unknown>;
     return combineSchemas({
       schema: {
         anyOf: typeArray.map(
@@ -316,7 +309,7 @@ export function getObject({
           | OpenApiReferenceObject
           | undefined;
         if (additionalProps) {
-          if (isBoolean(additionalProps)) {
+          if (additionalProps === true) {
             const recordType = getPropertyNamesRecordType(
               schemaItem,
               'unknown',
@@ -331,7 +324,9 @@ export function getObject({
             }
           } else {
             const resolvedValue = resolveValue({
-              schema: additionalProps,
+              schema: additionalProps as
+                | OpenApiSchemaObject
+                | OpenApiReferenceObject,
               name,
               context,
             });
@@ -367,7 +362,7 @@ export function getObject({
     | undefined;
   const readOnlyFlag = schemaItem.readOnly as boolean | undefined;
   if (outerAdditionalProps) {
-    if (isBoolean(outerAdditionalProps)) {
+    if (outerAdditionalProps === true) {
       const recordType = getPropertyNamesRecordType(schemaItem, 'unknown');
       if (recordType) {
         return {
@@ -396,7 +391,9 @@ export function getObject({
       };
     }
     const resolvedValue = resolveValue({
-      schema: outerAdditionalProps,
+      schema: outerAdditionalProps as
+        | OpenApiSchemaObject
+        | OpenApiReferenceObject,
       name,
       context,
     });
@@ -431,14 +428,32 @@ export function getObject({
     };
   }
 
-  const constValue = schemaItem.const as string | undefined;
-  if (constValue) {
+  const constValue = schemaItem.const as unknown;
+  if (constValue !== undefined) {
+    let type: SchemaType;
+    if (Array.isArray(constValue)) {
+      type = 'array';
+    } else if (constValue === null) {
+      type = 'null';
+    } else if (typeof constValue === 'string') {
+      type = 'string';
+    } else if (typeof constValue === 'number') {
+      type = 'number';
+    } else if (typeof constValue === 'boolean') {
+      type = 'boolean';
+    } else {
+      type = 'object';
+    }
+
     return {
-      value: `'${constValue}'`,
+      value:
+        typeof constValue === 'string'
+          ? `'${escape(constValue)}'`
+          : JSON.stringify(constValue),
       imports: [],
       schemas: [],
       isEnum: false,
-      type: 'string',
+      type,
       isRef: false,
       hasReadonlyProps: readOnlyFlag ?? false,
       dependencies: [],

@@ -11,7 +11,7 @@ import {
   PropertySortOrder,
 } from '@orval/core';
 
-import type { MockDefinition, MockSchemaObject } from '../../types';
+import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
 import { resolveMockValue } from '../resolvers/value';
 import { combineSchemasMock } from './combine';
@@ -67,9 +67,9 @@ export function getMockObject({
   }
 
   const schemaItem = item as MockSchemaObject & Record<string, unknown>;
-  const itemAllOf = schemaItem.allOf as MockSchemaObject[] | undefined;
-  const itemOneOf = schemaItem.oneOf as MockSchemaObject[] | undefined;
-  const itemAnyOf = schemaItem.anyOf as MockSchemaObject[] | undefined;
+  const itemAllOf = schemaItem.allOf as MockSchema[] | undefined;
+  const itemOneOf = schemaItem.oneOf as MockSchema[] | undefined;
+  const itemAnyOf = schemaItem.anyOf as MockSchema[] | undefined;
   const itemType = schemaItem.type as string | string[] | undefined;
   const itemProperties = schemaItem.properties as
     | Record<string, OpenApiReferenceObject | OpenApiSchemaObject>
@@ -102,7 +102,7 @@ export function getMockObject({
       item: {
         anyOf: itemType.map((type) => ({
           type,
-        })) as unknown as MockSchemaObject[],
+        })),
         name: schemaItem.name,
       },
       separator: 'anyOf',
@@ -164,7 +164,7 @@ export function getMockObject({
 
           const resolvedValue = resolveMockValue({
             schema: {
-              ...prop,
+              ...(prop as Record<string, unknown>),
               name: key,
               path: schemaItem.path ? `${schemaItem.path}.${key}` : `#.${key}`,
             },
@@ -225,7 +225,7 @@ export function getMockObject({
     if (
       isReference(itemAdditionalProperties) &&
       existingReferencedProperties.includes(
-        (itemAdditionalProperties.$ref ?? '').split('/').pop() ?? '',
+        pascal((itemAdditionalProperties.$ref ?? '').split('/').pop() ?? ''),
       )
     ) {
       return { value: `{}`, imports: [], name: schemaItem.name };

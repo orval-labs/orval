@@ -106,7 +106,7 @@ function normalizeAllOfSchema(
   }
 
   return {
-    ...schema,
+    ...(schema as Record<string, unknown>),
     ...(Object.keys(mergedProperties).length > 0 && {
       properties: mergedProperties,
     }),

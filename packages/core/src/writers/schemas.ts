@@ -278,7 +278,6 @@ interface GetSchemaOptions {
 
 function getSchema({
   schema: { imports, model },
-  target,
   header,
   namingConvention = NamingConvention.CAMEL_CASE,
 }: GetSchemaOptions): string {
@@ -289,7 +288,6 @@ function getSchema({
         !model.includes(`type ${imp.alias ?? imp.name} =`) &&
         !model.includes(`interface ${imp.alias ?? imp.name} {`),
     ),
-    target,
     namingConvention,
   });
   file += imports.length > 0 ? '\n\n' : '\n';
@@ -442,15 +440,16 @@ export async function writeSchemas({
         .toSorted((a, b) => a.localeCompare(b));
 
       const existingContent = await fs.readFile(schemaFilePath, 'utf8');
-      const matchedExports = existingContent
-        .match(/export\s+\*\s+from\s+['"][^'"]+['"]/g)
-        ?.map((statement) => {
-          const match = /export\s+\*\s+from\s+['"]([^'"]+)['"]/.exec(statement);
-          if (!match) return;
-          return `export * from '${match[1]}';`;
-        })
-        .filter(Boolean);
-      const existingExports = (matchedExports ?? []) as string[];
+      const matchedExports =
+        existingContent
+          .match(/export\s+\*\s+from\s+['"][^'"]+['"]/g)
+          ?.flatMap((statement) => {
+            const match = /export\s+\*\s+from\s+['"]([^'"]+)['"]/.exec(
+              statement,
+            );
+            return match ? [`export * from '${match[1]}';`] : [];
+          }) ?? [];
+      const existingExports = matchedExports;
 
       const exports = [...new Set([...existingExports, ...currentExports])]
         .toSorted((a, b) => a.localeCompare(b))

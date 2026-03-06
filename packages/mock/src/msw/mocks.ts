@@ -212,7 +212,7 @@ export function getResponsesMockDefinition({
       const scalar = getMockScalar({
         item: {
           name: definition,
-          ...resolvedRef.schema,
+          ...(resolvedRef.schema as Record<string, unknown>),
         },
         imports,
         mockOptions: mockOptionsWithoutFunc,
