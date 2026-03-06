@@ -897,10 +897,10 @@ Controls which Angular output style Orval generates.
 ### runtimeValidation
 
 **Type:** `Boolean`
-**Default:** `true`
+**Default:** `false`
 
 Enable Zod runtime validation for Angular output. Requires
-`schemas: { type: 'zod' }`.
+`schemas: { type: 'zod' }`. This option is opt-in for backward compatibility.
 
 - For generated `HttpClient` services, eligible JSON body responses are
   validated via `Schema.parse()` in the RxJS pipeline.

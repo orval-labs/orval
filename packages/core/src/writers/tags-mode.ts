@@ -17,6 +17,9 @@ import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
+const escapeRegExp = (value: string) =>
+  value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+
 export async function writeTagsMode({
   builder,
   output,
@@ -71,6 +74,7 @@ export async function writeTagsMode({
         const implementationImports = imports.filter((imp) => {
           const searchWords = [imp.alias, imp.name]
             .filter((part): part is string => Boolean(part?.length))
+            .map(escapeRegExp)
             .join('|');
           if (!searchWords) {
             return false;

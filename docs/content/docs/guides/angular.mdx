@@ -161,12 +161,13 @@ When `defaultValue` is configured, generated resource overloads return
 ## httpResource + Zod Runtime Validation
 
 When `schemas.type` is set to `zod`, Orval automatically adds
-`{ parse: <ZodSchema>.parse }` for JSON responses in httpResource output. This
-validates responses at runtime before they reach your component.
+`{ parse: <ZodSchema>.parse }` for eligible JSON responses in `httpResource`
+output when `override.angular.runtimeValidation` is enabled. This validates
+responses at runtime before they reach your component.
 
-`runtimeValidation` is enabled by default for Angular output. You only need to
-set it explicitly when you want to make that choice obvious in config or opt
-out for a specific target/operation.
+`runtimeValidation` is disabled by default for Angular output to preserve
+backward compatibility. Set it to `true` when you want generated Angular
+clients to validate Zod-backed responses at runtime.
 
 > [!NOTE]
 > Zod is a runtime dependency when you enable `schemas.type: 'zod'`.
@@ -188,7 +189,7 @@ export default defineConfig({
       override: {
         angular: {
           client: 'httpResource',
-          runtimeValidation: true, // optional: true by default
+          runtimeValidation: true, // opt-in
         },
       },
     },
@@ -199,13 +200,13 @@ export default defineConfig({
 });
 ```
 
-If you need to disable automatic Zod parsing, set `runtimeValidation: false`:
+If you want automatic Zod parsing, enable `runtimeValidation: true`:
 
 ```ts title="orval.config.ts"
 override: {
   angular: {
     client: 'httpResource',
-    runtimeValidation: false,
+    runtimeValidation: true,
   },
 },
 ```
@@ -235,14 +236,14 @@ export class ApiInterceptor implements HttpInterceptor {
 
 ## Zod Runtime Validation
 
-Angular output validates Zod-backed responses by default when `schemas.type` is
-set to `zod`. This runs `Schema.parse()` on eligible responses and catches type
-mismatches at runtime.
+Angular output can validate Zod-backed responses when `schemas.type` is set to
+`zod` and `override.angular.runtimeValidation` is enabled. This runs
+`Schema.parse()` on eligible responses and catches type mismatches at runtime.
 
 ### Setup
 
 1. Set `schemas` to generate Zod schemas
-2. Optionally set `override.angular.runtimeValidation: false` if you want to disable runtime validation
+2. Set `override.angular.runtimeValidation: true` to enable runtime validation
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';

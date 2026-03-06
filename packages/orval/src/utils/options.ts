@@ -1,3 +1,4 @@
+import { access } from 'node:fs/promises';
 import nodePath from 'node:path';
 
 import {
@@ -12,6 +13,7 @@ import {
   type HookFunction,
   type HookOption,
   type HooksOptions,
+  type InputOptions,
   type InputTransformerFn,
   isBoolean,
   isFunction,
@@ -41,7 +43,6 @@ import {
   type QueryOptions,
   RefComponentSuffix,
   type SchemaOptions,
-  upath,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
 import chalk from 'chalk';
@@ -131,9 +132,10 @@ export async function normalizeOptions(
     throw new Error(chalk.red(`Config require an output`));
   }
 
-  const inputOptions = isString(options.input)
-    ? { target: options.input }
-    : options.input;
+  const inputOptions: InputOptions =
+    isString(options.input) || Array.isArray(options.input)
+      ? { target: options.input }
+      : options.input;
 
   const outputOptions = isString(options.output)
     ? { target: options.output }
@@ -187,8 +189,20 @@ export async function normalizeOptions(
   const normalizedOptions: NormalizedOptions = {
     input: {
       target: globalOptions.input
-        ? normalizePathOrUrl(globalOptions.input, process.cwd())
-        : normalizePathOrUrl(inputOptions.target, workspace),
+        ? Array.isArray(globalOptions.input)
+          ? await resolveFirstValidTarget(
+              globalOptions.input,
+              process.cwd(),
+              inputOptions.parserOptions,
+            )
+          : normalizePathOrUrl(globalOptions.input, process.cwd())
+        : Array.isArray(inputOptions.target)
+          ? await resolveFirstValidTarget(
+              inputOptions.target,
+              workspace,
+              inputOptions.parserOptions,
+            )
+          : normalizePathOrUrl(inputOptions.target, workspace),
       override: {
         transformer: normalizePath(
           inputOptions.override?.transformer,
@@ -382,7 +396,7 @@ export async function normalizeOptions(
           provideIn: outputOptions.override?.angular?.provideIn ?? 'root',
           client: outputOptions.override?.angular?.client ?? 'httpClient',
           runtimeValidation:
-            outputOptions.override?.angular?.runtimeValidation ?? true,
+            outputOptions.override?.angular?.runtimeValidation ?? false,
           ...(outputOptions.override?.angular?.httpResource
             ? { httpResource: outputOptions.override.angular.httpResource }
             : {}),
@@ -462,6 +476,80 @@ function normalizeMutator(
   return mutator;
 }
 
+async function resolveFirstValidTarget(
+  targets: string[],
+  workspace: string,
+  parserOptions?: InputOptions['parserOptions'],
+): Promise<string> {
+  for (const target of targets) {
+    if (isUrl(target)) {
+      try {
+        const headers = getHeadersForUrl(target, parserOptions?.headers);
+        const headResponse = await fetch(target, {
+          method: 'HEAD',
+          headers,
+        });
+
+        if (headResponse.ok) {
+          return target;
+        }
+
+        if (headResponse.status === 405 || headResponse.status === 501) {
+          const getResponse = await fetch(target, {
+            method: 'GET',
+            headers,
+          });
+
+          if (getResponse.ok) {
+            return target;
+          }
+        }
+      } catch {
+        continue;
+      }
+
+      continue;
+    }
+
+    const resolvedTarget = normalizePath(target, workspace);
+
+    try {
+      await access(resolvedTarget);
+      return resolvedTarget;
+    } catch {
+      continue;
+    }
+  }
+
+  throw new Error(
+    chalk.red(
+      `None of the input targets could be resolved:\n${targets.map((target) => `  - ${target}`).join('\n')}`,
+    ),
+  );
+}
+
+function getHeadersForUrl(
+  url: string,
+  headersConfig?: NonNullable<InputOptions['parserOptions']>['headers'],
+): Record<string, string> {
+  if (!headersConfig) return {};
+
+  const { hostname } = new URL(url);
+  const matchedHeaders: Record<string, string> = {};
+
+  for (const headerEntry of headersConfig) {
+    if (
+      headerEntry.domains.some(
+        (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
+      )
+    ) {
+      Object.assign(matchedHeaders, headerEntry.headers);
+    }
+  }
+
+  return matchedHeaders;
+}
+
 function normalizePathOrUrl<T>(path: T, workspace: string) {
   if (isString(path) && !isUrl(path)) {
     return normalizePath(path, workspace);
@@ -508,7 +596,7 @@ function normalizeOperationsAndTags(
                   angular: {
                     provideIn: rest.angular.provideIn ?? 'root',
                     client: rest.angular.client ?? 'httpClient',
-                    runtimeValidation: rest.angular.runtimeValidation ?? true,
+                    runtimeValidation: rest.angular.runtimeValidation ?? false,
                     ...(rest.angular.httpResource
                       ? { httpResource: rest.angular.httpResource }
                       : {}),
@@ -660,7 +748,9 @@ function normalizeHonoOptions(
     ...(hono.handlers
       ? { handlers: nodePath.resolve(workspace, hono.handlers) }
       : {}),
-    compositeRoute: hono.compositeRoute ?? '',
+    compositeRoute: hono.compositeRoute
+      ? nodePath.resolve(workspace, hono.compositeRoute)
+      : '',
     validator: hono.validator ?? true,
     validatorOutputPath: hono.validatorOutputPath
       ? nodePath.resolve(workspace, hono.validatorOutputPath)

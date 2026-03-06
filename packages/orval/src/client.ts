@@ -275,10 +275,21 @@ export const generateOperations = (
       const generatedMock = generateMock(verbOption, options);
 
       const hasImplementation = client.implementation.trim().length > 0;
+      const preferredOperationKey = verbOption.operationName;
+      const baseOperationKey = verbOption.operationId
+        ? `${verbOption.operationId}::${verbOption.operationName}`
+        : verbOption.operationName;
+      let operationKey = Object.hasOwn(acc, preferredOperationKey)
+        ? baseOperationKey
+        : preferredOperationKey;
+      let collisionIndex = 1;
 
-      // Use operationName as key instead of operationId to support multiple
-      // content-type variants of the same operation (e.g., WithJson, WithFormData) #2812
-      acc[verbOption.operationName] = {
+      while (Object.hasOwn(acc, operationKey)) {
+        collisionIndex += 1;
+        operationKey = `${baseOperationKey}::${collisionIndex}`;
+      }
+
+      acc[operationKey] = {
         implementation: hasImplementation
           ? verbOption.doc + client.implementation
           : client.implementation,
