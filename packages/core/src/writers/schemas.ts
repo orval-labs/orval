@@ -170,6 +170,8 @@ function getCanonicalMap(
   fileExtension: string,
 ) {
   const canonicalPathMap = new Map<string, CanonicalInfo>();
+  const canonicalNameMap = new Map<string, CanonicalInfo>();
+
   for (const [key, groupSchemas] of Object.entries(schemaGroups)) {
     const canonicalPath = getPath(
       schemaPath,
@@ -177,29 +179,40 @@ function getCanonicalMap(
       fileExtension,
     );
 
-    canonicalPathMap.set(key, {
+    const canonicalInfo = {
       importPath: canonicalPath,
       name: groupSchemas[0].name,
-    });
+    };
+
+    canonicalPathMap.set(key, canonicalInfo);
+    canonicalNameMap.set(groupSchemas[0].name, canonicalInfo);
   }
-  return canonicalPathMap;
+
+  return {
+    canonicalPathMap,
+    canonicalNameMap,
+  };
 }
 
 function normalizeCanonicalImportPaths(
   schemas: GeneratorSchema[],
   canonicalPathMap: Map<string, CanonicalInfo>,
+  canonicalNameMap: Map<string, CanonicalInfo>,
   schemaPath: string,
   namingConvention: NamingConvention,
   fileExtension: string,
 ) {
   for (const schema of schemas) {
     schema.imports = schema.imports.map((imp) => {
+      const canonicalByName = canonicalNameMap.get(imp.name);
+
       const resolvedImportKey = resolveImportKey(
         schemaPath,
         imp.importPath ?? `./${conventionName(imp.name, namingConvention)}`,
         fileExtension,
       );
-      const canonical = canonicalPathMap.get(resolvedImportKey);
+      const canonicalByPath = canonicalPathMap.get(resolvedImportKey);
+      const canonical = canonicalByName ?? canonicalByPath;
       if (!canonical?.importPath) return imp;
 
       const importPath = removeFileExtension(
@@ -361,7 +374,7 @@ export async function writeSchemas({
     fileExtension,
   );
 
-  const canonicalPathByKey = getCanonicalMap(
+  const { canonicalPathMap, canonicalNameMap } = getCanonicalMap(
     schemaGroups,
     schemaPath,
     namingConvention,
@@ -370,7 +383,8 @@ export async function writeSchemas({
 
   normalizeCanonicalImportPaths(
     schemas,
-    canonicalPathByKey,
+    canonicalPathMap,
+    canonicalNameMap,
     schemaPath,
     namingConvention,
     fileExtension,
