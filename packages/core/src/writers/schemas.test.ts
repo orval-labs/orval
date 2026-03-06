@@ -697,4 +697,40 @@ describe('writeSchemas indexFiles', () => {
       await fs.remove(tempDir);
     }
   });
+
+  it('normalizes imports to schema name canonical file when importPath is stale', async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'orval-schema-import-normalize-'),
+    );
+    const schemaPath = path.join(tempDir, 'schemas');
+
+    try {
+      await writeSchemas({
+        schemaPath,
+        schemas: [
+          createMockSchema('NotFound'),
+          createMockSchema('NotFoundResponse'),
+          {
+            name: 'PetsApi',
+            model: 'export type PetsApi = NotFoundResponse;',
+            imports: [{ name: 'NotFoundResponse', importPath: './notFound' }],
+            schema: {},
+          },
+        ],
+        target: 'src/api',
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.ts',
+        header: '// command api',
+        indexFiles: false,
+      });
+
+      const petsApiPath = path.join(schemaPath, 'petsApi.ts');
+      const content = await fs.readFile(petsApiPath, 'utf8');
+
+      expect(content).toContain("from './notFoundResponse';");
+      expect(content).not.toContain("from './notFound';");
+    } finally {
+      await fs.remove(tempDir);
+    }
+  });
 });
