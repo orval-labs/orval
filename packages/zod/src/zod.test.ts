@@ -38,8 +38,8 @@ function makeContextSpec({
 
   return {
     ...baseContext,
-    ...(target !== undefined ? { target } : {}),
-    ...(workspace !== undefined ? { workspace } : {}),
+    ...(target === undefined ? {} : { target }),
+    ...(workspace === undefined ? {} : { workspace }),
     spec: {
       ...baseContext.spec,
       ...spec,
