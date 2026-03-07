@@ -514,10 +514,10 @@ const getHeader = (
 };
 
 const getSpecInfo = (context: ContextSpec): OpenApiInfoObject =>
-  (context.spec.info ?? {
+  context.spec.info ?? {
     title: 'API',
     version: '1.0.0',
-  }) as OpenApiInfoObject;
+  };
 
 const generateContextFile = ({
   path,
@@ -833,9 +833,9 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
     isObject(output.schemas) && output.schemas.type === 'zod';
 
   if (output.schemas != undefined) {
-    const schemasPath = isObject(output.schemas)
-      ? output.schemas.path
-      : output.schemas;
+    const schemasPath = (
+      isObject(output.schemas) ? output.schemas.path : output.schemas
+    ) as string;
     const basePath = getFileInfo(schemasPath).dirname;
     schemaModule =
       isZodSchemaOutput && output.indexFiles

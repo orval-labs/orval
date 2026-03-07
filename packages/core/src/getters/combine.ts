@@ -17,7 +17,7 @@ import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import type { FormDataContext } from './object';
 import { getScalar } from './scalar';
 
-type CombinedData = {
+interface CombinedData {
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
   originalSchema: (OpenApiSchemaObject | undefined)[];
@@ -35,7 +35,7 @@ type CombinedData = {
   requiredProperties: string[];
   example?: unknown;
   examples?: Record<string, unknown> | unknown[];
-};
+}
 
 type Separator = 'allOf' | 'anyOf' | 'oneOf';
 const mergeableAllOfKeys = new Set(['type', 'properties', 'required']);
@@ -146,10 +146,10 @@ function combineValues({
       .join(` & `);
     if (resolvedData.originalSchema.length > 0 && resolvedValue) {
       // Bridge: discriminator is typed but AnyOtherAttribute infects access
-      type Discriminator = {
+      interface Discriminator {
         propertyName?: string;
         mapping?: Record<string, string>;
-      };
+      }
       const discriminatedPropertySchemas = resolvedData.originalSchema.filter(
         (s) => {
           const disc = s?.discriminator as Discriminator | undefined;

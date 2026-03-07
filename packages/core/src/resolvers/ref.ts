@@ -21,9 +21,9 @@ type Examples =
   | Record<string, ResolvedExample>
   | undefined;
 
-type WithOptionalExamples = {
+interface WithOptionalExamples {
   examples?: Examples;
-};
+}
 
 const REF_NOT_FOUND_PREFIX = 'Oops... 🍻. Ref not found';
 
@@ -204,7 +204,7 @@ export function resolveExampleRefs(
           // Bridge assertion: ExampleObject.value is typed as `any`
           return schema.value as ResolvedExample;
         }
-        return example as ResolvedExample;
+        return example;
       })
     : (() => {
         const result: Record<string, ResolvedExample> = {};
@@ -214,7 +214,7 @@ export function resolveExampleRefs(
             isObject(example) && isReference(example)
               ? (resolveRef<OpenApiExampleObject>(example, context).schema
                   .value as ResolvedExample)
-              : (example as ResolvedExample);
+              : example;
         }
         return result;
       })();

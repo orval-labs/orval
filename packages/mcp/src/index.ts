@@ -12,6 +12,7 @@ import {
   getFileInfo,
   getFullRoute,
   isObject,
+  isString,
   jsDoc,
   jsStringEscape,
   type NormalizedOutputOptions,
@@ -36,16 +37,20 @@ const getHeader = (
 };
 
 const getSpecInfo = (context: ContextSpec): OpenApiInfoObject =>
-  (context.spec.info ?? {
+  context.spec.info ?? {
     title: 'API',
     version: '1.0.0',
-  }) as OpenApiInfoObject;
+  };
 
 export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
   const targetInfo = getFileInfo(output.target);
-  const schemasPath = isObject(output.schemas)
-    ? output.schemas.path
-    : output.schemas;
+  const schemasPath = (
+    isObject(output.schemas)
+      ? output.schemas.path
+      : isString(output.schemas)
+        ? output.schemas
+        : undefined
+  ) as string | undefined;
   const schemaInfo = schemasPath ? getFileInfo(schemasPath) : undefined;
 
   const isZodSchemaOutput =
@@ -378,9 +383,13 @@ const generateHttpClientFiles = async (
 
   const isZodSchemaOutput =
     isObject(output.schemas) && output.schemas.type === 'zod';
-  const schemasPath = isObject(output.schemas)
-    ? output.schemas.path
-    : output.schemas;
+  const schemasPath = (
+    isObject(output.schemas)
+      ? output.schemas.path
+      : isString(output.schemas)
+        ? output.schemas
+        : undefined
+  ) as string | undefined;
   const basePath = schemasPath ? getFileInfo(schemasPath).dirname : undefined;
   const relativeSchemasPath = basePath
     ? isZodSchemaOutput && output.indexFiles

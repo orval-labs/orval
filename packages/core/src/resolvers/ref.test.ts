@@ -116,10 +116,10 @@ describe('resolveRef', () => {
       },
     });
 
-    type NestedResolved = {
+    interface NestedResolved {
       schema: OpenApiSchemaObject;
       examples?: unknown[];
-    };
+    }
 
     const carrier = {
       schema: {
