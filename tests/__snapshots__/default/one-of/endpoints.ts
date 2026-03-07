@@ -37,13 +37,7 @@ export const getGetOneOfWithNullableObjectResponseCatMock = (
 
 export const getGetOneOfWithNullableObjectResponseMock = (): Pet =>
   faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      {
-        id: faker.number.int(),
-        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      },
-      null,
-    ]),
+    faker.helpers.arrayElement([null]),
     { ...getGetOneOfWithNullableObjectResponseCatMock() },
   ]);
 

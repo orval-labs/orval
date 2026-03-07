@@ -68,18 +68,7 @@ export const getFetchNullableResponseMock = (): string | null =>
   ]);
 
 export const getFetchNullableObjectResponseMock = (): NullableObject | null =>
-  faker.helpers.arrayElement([
-    {
-      name: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        undefined,
-      ]),
-    },
-    null,
-  ]);
+  faker.helpers.arrayElement([null]);
 
 export const getFetchNullableAnyObjectResponseMock =
   (): NullableAnyObject | null => faker.helpers.arrayElement([null]);
