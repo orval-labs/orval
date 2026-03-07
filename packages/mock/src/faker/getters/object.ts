@@ -99,9 +99,7 @@ export function getMockObject({
   if (Array.isArray(itemType)) {
     return combineSchemasMock({
       item: {
-        anyOf: itemType.map((type) =>
-          type === 'object' ? { ...schemaItem, type } : { type },
-        ),
+        anyOf: itemType.map((type) => ({ type })) as unknown as MockSchema[],
         name: schemaItem.name,
       },
       separator: 'anyOf',

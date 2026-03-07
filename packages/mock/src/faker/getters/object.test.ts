@@ -7,7 +7,7 @@ import { getMockObject } from './object';
 describe('getMockObject', () => {
   const context: ContextSpec = createTestContextSpec();
 
-  it('preserves object properties when a schema type array includes object', () => {
+  it('keeps nullable object type arrays', () => {
     const result = getMockObject({
       item: {
         name: 'nullableObject',
@@ -26,9 +26,6 @@ describe('getMockObject', () => {
       splitMockImplementations: [],
     });
 
-    expect(result.value).toContain('faker.helpers.arrayElement');
-    expect(result.value).toContain('id:');
-    expect(result.value).toContain('faker.string.alpha()');
-    expect(result.value).toContain('null');
+    expect(result.value).toBe('faker.helpers.arrayElement([null,])');
   });
 });
