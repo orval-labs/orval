@@ -240,15 +240,22 @@ export function getObject({
       });
 
       const isReadOnly =
-        (schemaItem.readOnly as boolean | undefined) ??
-        ((schema as OpenApiSchemaObject).readOnly as boolean | undefined);
+        Boolean(schemaItem.readOnly) ||
+        Boolean((schema as OpenApiSchemaObject).readOnly);
       if (!index) {
         acc.value += '{';
       }
 
       const doc = jsDoc(schema, true, context);
+      const propertyDoc = doc
+        ? `${doc
+            .trimEnd()
+            .split('\n')
+            .map((line) => `  ${line}`)
+            .join('\n')}\n`
+        : '';
 
-      if (isReadOnly ?? false) {
+      if (isReadOnly) {
         acc.hasReadonlyProps = true;
       }
 
@@ -267,6 +274,7 @@ export function getObject({
 
       const needsValueImport =
         hasConst && (resolvedValue.isEnum || resolvedValue.type === 'enum');
+      const usedResolvedValue = !hasConst || needsValueImport;
 
       const aliasedImports: GeneratorImport[] = needsValueImport
         ? resolvedValue.imports.map((imp) => ({ ...imp, isConstant: true }))
@@ -292,13 +300,15 @@ export function getObject({
           ? `${propValue} | null`
           : propValue;
 
-      acc.value += `\n  ${doc ? `${doc}  ` : ''}${
+      acc.value += `\n${propertyDoc}${
         isReadOnly && !context.output.override.suppressReadonlyModifier
-          ? 'readonly '
-          : ''
+          ? '  readonly '
+          : '  '
       }${getKey(key)}${isRequired ? '' : '?'}: ${finalPropValue};`;
-      acc.schemas.push(...resolvedValue.schemas);
-      acc.dependencies.push(...resolvedValue.dependencies);
+      if (usedResolvedValue) {
+        acc.schemas.push(...resolvedValue.schemas);
+        acc.dependencies.push(...resolvedValue.dependencies);
+      }
 
       if (entries.length - 1 === index) {
         // Bridge assertion: additionalProperties is boolean | ReferenceObject | SchemaObject

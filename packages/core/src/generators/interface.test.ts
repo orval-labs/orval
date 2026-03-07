@@ -21,24 +21,28 @@ describe('generateInterface', () => {
     output?: Partial<ContextSpec['output']>;
     override?: Partial<ContextSpec['output']['override']>;
     spec?: Partial<ContextSpec['spec']>;
-  } = {}): ContextSpec => ({
-    ...createTestContextSpec(),
-    ...context,
-    spec: {
-      ...context.spec,
-      ...spec,
-    },
-    output: {
-      ...createTestContextSpec().output,
-      ...context.output,
-      ...output,
-      override: {
-        ...createTestContextSpec().output.override,
-        ...context.output.override,
-        ...override,
+  } = {}): ContextSpec => {
+    const base = createTestContextSpec();
+
+    return {
+      ...base,
+      ...context,
+      spec: {
+        ...context.spec,
+        ...spec,
       },
-    },
-  });
+      output: {
+        ...base.output,
+        ...context.output,
+        ...output,
+        override: {
+          ...base.output.override,
+          ...context.output.override,
+          ...override,
+        },
+      },
+    };
+  };
 
   const constEnumGenerationContext = withContext({
     override: { enumGenerationType: EnumGeneration.CONST },

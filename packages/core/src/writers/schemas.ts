@@ -455,7 +455,7 @@ export async function writeSchemas({
         .toSorted((a, b) => a.localeCompare(b))
         .join('\n');
 
-      const fileContent = `${header}\n${exports}`;
+      const fileContent = `${header}\n${exports}\n`;
 
       await fs.writeFile(schemaFilePath, fileContent, { encoding: 'utf8' });
     } catch (error) {

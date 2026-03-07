@@ -2,7 +2,6 @@ import {
   type ContextSpec,
   type GeneratorImport,
   getKey,
-  isBoolean,
   isReference,
   type MockOptions,
   type OpenApiReferenceObject,
@@ -78,7 +77,7 @@ export function getMockObject({
   const itemAdditionalProperties = schemaItem.additionalProperties as
     | boolean
     | OpenApiReferenceObject
-    | MockSchemaObject
+    | OpenApiSchemaObject
     | undefined;
 
   if (itemAllOf || itemOneOf || itemAnyOf) {
@@ -219,13 +218,14 @@ export function getMockObject({
   }
 
   if (itemAdditionalProperties) {
-    if (isBoolean(itemAdditionalProperties)) {
+    if (itemAdditionalProperties === true) {
       return { value: `{}`, imports: [], name: schemaItem.name };
     }
+    const additionalProperties = itemAdditionalProperties;
     if (
-      isReference(itemAdditionalProperties) &&
+      isReference(additionalProperties) &&
       existingReferencedProperties.includes(
-        pascal((itemAdditionalProperties.$ref ?? '').split('/').pop() ?? ''),
+        pascal((additionalProperties.$ref ?? '').split('/').pop() ?? ''),
       )
     ) {
       return { value: `{}`, imports: [], name: schemaItem.name };
@@ -233,7 +233,7 @@ export function getMockObject({
 
     const resolvedValue = resolveMockValue({
       schema: {
-        ...itemAdditionalProperties,
+        ...additionalProperties,
         name: schemaItem.name,
         path: schemaItem.path ? `${schemaItem.path}.#` : '#',
       },

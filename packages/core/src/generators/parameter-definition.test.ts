@@ -63,24 +63,4 @@ describe('generateParameterDefinition', () => {
     expect(result[0].name).toBe('XUserIdParameter');
     expect(result[0].model).toBe('export type XUserIdParameter = string;\n');
   });
-
-  it('should generate parameter definitions for header parameters', () => {
-    const parameters: OpenApiComponentsObject['parameters'] = {
-      XUserId: {
-        name: 'X-User-Id',
-        in: 'header',
-        schema: {
-          type: 'string',
-        },
-      },
-    };
-    const result = generateParameterDefinition(
-      parameters,
-      context,
-      'Parameter',
-    );
-    expect(result).toHaveLength(1);
-    expect(result[0].name).toBe('XUserIdParameter');
-    expect(result[0].model).toBe('export type XUserIdParameter = string;\n');
-  });
 });
