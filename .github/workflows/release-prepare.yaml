@@ -31,14 +31,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Link workspace binaries
-        run: |
-          find . -path '*/node_modules/orval' -type l | while read orval_link; do
-            bin_dir="$(dirname "$orval_link")/.bin"
-            mkdir -p "$bin_dir"
-            ln -sf ../orval/dist/bin/orval.mjs "$bin_dir/orval"
-          done
-
       # 🔧 New step to remove stableVersion recursively
       - name: Remove all stableVersion fields
         run: |
