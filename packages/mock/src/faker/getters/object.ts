@@ -147,9 +147,9 @@ export function getMockObject({
           // Check to see if the property is a reference to an existing property
           // Fixes issue #910
           if (
-            '$ref' in prop &&
+            isReference(prop) &&
             existingReferencedProperties.includes(
-              pascal(prop.$ref.split('/').pop() ?? ''),
+              pascal((prop.$ref ?? '').split('/').pop() ?? ''),
             )
           ) {
             if (isRequired) {
