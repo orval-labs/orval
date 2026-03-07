@@ -2,7 +2,6 @@ import {
   type ContextSpec,
   type GeneratorImport,
   getKey,
-  isBoolean,
   isReference,
   type MockOptions,
   type OpenApiReferenceObject,
@@ -11,7 +10,7 @@ import {
   PropertySortOrder,
 } from '@orval/core';
 
-import type { MockDefinition, MockSchemaObject } from '../../types';
+import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
 import { resolveMockValue } from '../resolvers/value';
 import { combineSchemasMock } from './combine';
@@ -66,10 +65,25 @@ export function getMockObject({
     });
   }
 
-  if (item.allOf || item.oneOf || item.anyOf) {
-    const separator = item.allOf ? 'allOf' : item.oneOf ? 'oneOf' : 'anyOf';
+  const schemaItem = item as MockSchemaObject & Record<string, unknown>;
+  const itemAllOf = schemaItem.allOf as MockSchema[] | undefined;
+  const itemOneOf = schemaItem.oneOf as MockSchema[] | undefined;
+  const itemAnyOf = schemaItem.anyOf as MockSchema[] | undefined;
+  const itemType = schemaItem.type as string | string[] | undefined;
+  const itemProperties = schemaItem.properties as
+    | Record<string, OpenApiReferenceObject | OpenApiSchemaObject>
+    | undefined;
+  const itemRequired = schemaItem.required as string[] | undefined;
+  const itemAdditionalProperties = schemaItem.additionalProperties as
+    | boolean
+    | OpenApiReferenceObject
+    | OpenApiSchemaObject
+    | undefined;
+
+  if (itemAllOf || itemOneOf || itemAnyOf) {
+    const separator = itemAllOf ? 'allOf' : itemOneOf ? 'oneOf' : 'anyOf';
     return combineSchemasMock({
-      item,
+      item: schemaItem,
       separator,
       mockOptions,
       operationId,
@@ -82,11 +96,11 @@ export function getMockObject({
     });
   }
 
-  if (Array.isArray(item.type)) {
+  if (Array.isArray(itemType)) {
     return combineSchemasMock({
       item: {
-        anyOf: item.type.map((type) => ({ type })),
-        name: item.name,
+        anyOf: itemType.map((type) => ({ type })) as unknown as MockSchema[],
+        name: schemaItem.name,
       },
       separator: 'anyOf',
       mockOptions,
@@ -100,7 +114,7 @@ export function getMockObject({
     });
   }
 
-  if (item.properties) {
+  if (itemProperties) {
     let value =
       !combine || combine.separator === 'oneOf' || combine.separator === 'anyOf'
         ? '{'
@@ -108,7 +122,7 @@ export function getMockObject({
     const imports: GeneratorImport[] = [];
     const includedProperties: string[] = [];
 
-    const entries = Object.entries(item.properties);
+    const entries = Object.entries(itemProperties);
     if (context.output.propertySortOrder === PropertySortOrder.ALPHABETICAL) {
       entries.sort((a, b) => {
         return a[0].localeCompare(b[0]);
@@ -126,7 +140,7 @@ export function getMockObject({
 
           const isRequired =
             mockOptions?.required ??
-            (Array.isArray(item.required) ? item.required : []).includes(key);
+            (Array.isArray(itemRequired) ? itemRequired : []).includes(key);
 
           const hasNullable = 'nullable' in prop && prop.nullable === true;
 
@@ -147,9 +161,9 @@ export function getMockObject({
 
           const resolvedValue = resolveMockValue({
             schema: {
-              ...prop,
+              ...(prop as Record<string, unknown>),
               name: key,
-              path: item.path ? `${item.path}.${key}` : `#.${key}`,
+              path: schemaItem.path ? `${schemaItem.path}.${key}` : `#.${key}`,
             },
             mockOptions,
             operationId,
@@ -196,29 +210,30 @@ export function getMockObject({
     return {
       value,
       imports,
-      name: item.name,
+      name: schemaItem.name,
       includedProperties,
     };
   }
 
-  if (item.additionalProperties) {
-    if (isBoolean(item.additionalProperties)) {
-      return { value: `{}`, imports: [], name: item.name };
+  if (itemAdditionalProperties) {
+    if (itemAdditionalProperties === true) {
+      return { value: `{}`, imports: [], name: schemaItem.name };
     }
+    const additionalProperties = itemAdditionalProperties;
     if (
-      isReference(item.additionalProperties) &&
+      isReference(additionalProperties) &&
       existingReferencedProperties.includes(
-        item.additionalProperties.$ref.split('/').pop() ?? '',
+        pascal((additionalProperties.$ref ?? '').split('/').pop() ?? ''),
       )
     ) {
-      return { value: `{}`, imports: [], name: item.name };
+      return { value: `{}`, imports: [], name: schemaItem.name };
     }
 
     const resolvedValue = resolveMockValue({
       schema: {
-        ...item.additionalProperties,
-        name: item.name,
-        path: item.path ? `${item.path}.#` : '#',
+        ...additionalProperties,
+        name: schemaItem.name,
+        path: schemaItem.path ? `${schemaItem.path}.#` : '#',
       },
       mockOptions,
       operationId,
@@ -237,5 +252,5 @@ export function getMockObject({
     };
   }
 
-  return { value: '{}', imports: [], name: item.name };
+  return { value: '{}', imports: [], name: schemaItem.name };
 }

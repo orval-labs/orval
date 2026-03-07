@@ -1,7 +1,7 @@
 import type { OpenApiSchemaObject } from '@orval/core';
 
 export const DEFAULT_FORMAT_MOCK: Record<
-  Required<OpenApiSchemaObject>['format'],
+  Required<Extract<OpenApiSchemaObject, object>>['format'],
   string
 > = {
   bic: 'faker.finance.bic()',

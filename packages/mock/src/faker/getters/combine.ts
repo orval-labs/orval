@@ -7,7 +7,7 @@ import {
   pascal,
 } from '@orval/core';
 
-import type { MockDefinition, MockSchemaObject } from '../../types';
+import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { resolveMockValue } from '../resolvers';
 
 interface CombineSchemasMockOptions {
@@ -83,7 +83,7 @@ export function combineSchemasMock({
   }
 
   const value = (item[separator] ?? []).reduce(
-    (acc, val, _, arr) => {
+    (acc: string, val: MockSchema, _: number, arr: MockSchema[]) => {
       const refName =
         '$ref' in val ? pascal(val.$ref.split('/').pop() ?? '') : '';
       // For allOf: skip if refName is in existingRefs AND this is an inline schema (not a top-level ref)

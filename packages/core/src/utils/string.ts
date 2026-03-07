@@ -1,5 +1,4 @@
 import { keyword } from 'esutils';
-import { isNullish } from 'remeda';
 
 import {
   isBoolean,
@@ -14,18 +13,20 @@ import {
  * Handles strings, numbers, booleans, functions, arrays, and objects.
  *
  * @param data - The data to stringify. Can be a string, array, object, number, boolean, function, null, or undefined.
- * @returns A string representation of the data, or undefined if data is null or undefined.
+ * @returns A string representation of the data, `null` for null, or undefined if data is undefined.
  * @example
  * stringify('hello') // returns "'hello'"
  * stringify(42) // returns "42"
  * stringify([1, 2, 3]) // returns "[1, 2, 3]"
  * stringify({ a: 1, b: 'test' }) // returns "{ a: 1, b: 'test', }"
  */
-export function stringify(
-  data?: string | unknown[] | Record<string, unknown>,
-): string | undefined {
-  if (isNullish(data)) {
+export function stringify(data?: unknown): string | undefined {
+  if (data === undefined) {
     return;
+  }
+
+  if (data === null) {
+    return 'null';
   }
 
   if (isString(data)) {

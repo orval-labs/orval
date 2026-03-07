@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { dedupeUnionType, escape, jsStringEscape } from './string';
+import { dedupeUnionType, escape, jsStringEscape, stringify } from './string';
 
 describe('dedupeUnionType', () => {
   describe('edge cases', () => {
@@ -219,5 +219,16 @@ describe('escape', () => {
     expect(escape('say "hello" and "goodbye"', '"')).toBe(
       String.raw`say \"hello\" and \"goodbye\"`,
     );
+  });
+});
+
+describe('stringify', () => {
+  it('returns undefined for undefined', () => {
+    expect(stringify()).toBeUndefined();
+  });
+
+  it('returns the null literal for null', () => {
+    // eslint-disable-next-line unicorn/no-null -- Regression test for explicit null serialization
+    expect(stringify(null)).toBe('null');
   });
 });

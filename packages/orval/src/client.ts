@@ -89,7 +89,7 @@ export const generateClientImports: GeneratorClientImports = ({
           ),
           ...imports,
         ]
-      : imports,
+      : (imports as Parameters<typeof generateDependencyImports>[1]),
     projectName,
     hasSchemaDir,
     isAllowSyntheticDefaultImports,
@@ -149,9 +149,9 @@ export const generateClientFooter: GeneratorClientFooter = ({
   let implementation: string;
   try {
     if (isFunction(outputClient)) {
-      implementation = (footer as (operationNames: string[]) => string)(
-        operationNames,
-      );
+      implementation = (
+        footer as unknown as (operationNames: string[]) => string
+      )(operationNames);
       // being here means that the previous call worked
       console.warn(
         '[WARN] Passing an array of strings for operations names to the footer function is deprecated and will be removed in a future major release. Please pass them in an object instead: { operationNames: string[] }.',

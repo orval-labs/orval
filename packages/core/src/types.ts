@@ -1092,7 +1092,7 @@ export type GetterParam = {
   name: string;
   definition: string;
   implementation: string;
-  default: boolean;
+  default: unknown;
   required: boolean;
   imports: GeneratorImport[];
 };
@@ -1125,7 +1125,7 @@ type GetterPropBase = {
   name: string;
   definition: string;
   implementation: string;
-  default: boolean;
+  default: unknown;
   required: boolean;
 };
 
@@ -1171,7 +1171,7 @@ export type ScalarValue = {
   isRef: boolean;
   dependencies: string[];
   example?: unknown;
-  examples?: Record<string, unknown>;
+  examples?: Record<string, unknown> | unknown[];
 };
 
 export type ResolverValue = ScalarValue & {
