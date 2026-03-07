@@ -9,7 +9,7 @@ import {
 } from '@orval/core';
 import { prop } from 'remeda';
 
-import type { MockDefinition, MockSchemaObject } from '../../types';
+import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
 import { getMockScalar } from '../getters/scalar';
 
@@ -56,7 +56,7 @@ export function getNullable(value: string, nullable?: boolean) {
 }
 
 interface ResolveMockValueOptions {
-  schema: MockSchemaObject;
+  schema: MockSchema;
   operationId: string;
   mockOptions?: MockOptions;
   tags: string[];
@@ -86,7 +86,13 @@ export function resolveMockValue({
   allowOverride,
 }: ResolveMockValueOptions): MockDefinition & { type?: string } {
   if (isReference(schema)) {
-    const { name, refPaths } = getRefInfo(schema.$ref, context);
+    const schemaReference = schema as MockSchema & {
+      path?: string;
+      required?: string[];
+      nullable?: boolean;
+    };
+    const schemaRefPath = typeof schema.$ref === 'string' ? schema.$ref : '';
+    const { name, refPaths } = getRefInfo(schemaRefPath, context);
 
     const schemaRef = Array.isArray(refPaths)
       ? (prop(
@@ -99,10 +105,15 @@ export function resolveMockValue({
     const newSchema = {
       ...schemaRef,
       name,
-      path: schema.path,
+      path: schemaReference.path,
       isRef: true,
-      required: [...(schemaRef?.required ?? []), ...(schema.required ?? [])],
-      ...(schema.nullable !== undefined ? { nullable: schema.nullable } : {}),
+      required: [
+        ...((schemaRef?.required as string[] | undefined) ?? []),
+        ...(schemaReference.required ?? []),
+      ],
+      ...(schemaReference.nullable === undefined
+        ? {}
+        : { nullable: schemaReference.nullable }),
     } as MockSchemaObject;
 
     const newSeparator = newSchema.allOf
@@ -141,7 +152,10 @@ export function resolveMockValue({
           f.includes(`export const ${funcName}`),
         )
       ) {
-        const discriminatedProperty = newSchema.discriminator?.propertyName;
+        const discriminator = newSchema.discriminator as
+          | { propertyName?: string }
+          | undefined;
+        const discriminatedProperty = discriminator?.propertyName;
 
         let type = `Partial<${newSchema.name}>`;
         if (discriminatedProperty) {
@@ -184,7 +198,11 @@ export function resolveMockValue({
   };
 }
 
-function getType(schema: MockSchemaObject) {
+function getType(schema: MockSchema) {
+  if (isReference(schema)) {
+    return;
+  }
+
   return (
     (schema.type as string | undefined) ??
     (schema.properties ? 'object' : schema.items ? 'array' : undefined)
