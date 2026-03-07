@@ -439,21 +439,7 @@ export async function writeSchemas({
         .map((schemaName) => `export * from './${schemaName}${ext}';`)
         .toSorted((a, b) => a.localeCompare(b));
 
-      const existingContent = await fs.readFile(schemaFilePath, 'utf8');
-      const matchedExports =
-        existingContent
-          .match(/export\s+\*\s+from\s+['"][^'"]+['"]/g)
-          ?.flatMap((statement) => {
-            const match = /export\s+\*\s+from\s+['"]([^'"]+)['"]/.exec(
-              statement,
-            );
-            return match ? [`export * from '${match[1]}';`] : [];
-          }) ?? [];
-      const existingExports = matchedExports;
-
-      const exports = [...new Set([...existingExports, ...currentExports])]
-        .toSorted((a, b) => a.localeCompare(b))
-        .join('\n');
+      const exports = currentExports.join('\n');
 
       const fileContent = `${header}\n${exports}\n`;
 

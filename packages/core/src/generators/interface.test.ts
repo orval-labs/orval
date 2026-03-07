@@ -22,21 +22,16 @@ describe('generateInterface', () => {
     override?: Partial<ContextSpec['output']['override']>;
     spec?: Partial<ContextSpec['spec']>;
   } = {}): ContextSpec => {
-    const base = createTestContextSpec();
-
     return {
-      ...base,
       ...context,
       spec: {
         ...context.spec,
         ...spec,
       },
       output: {
-        ...base.output,
         ...context.output,
         ...output,
         override: {
-          ...base.output.override,
           ...context.output.override,
           ...override,
         },

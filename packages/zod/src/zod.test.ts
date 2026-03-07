@@ -1467,13 +1467,11 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   describe('enum handling', () => {
-    const context: ContextSpec = {
-      output: {
-        override: {
-          useDates: false,
-        },
+    const context = makeContextSpec({
+      override: {
+        useDates: false,
       },
-    } as unknown as ContextSpec;
+    });
 
     it('generates an enum for a string', () => {
       const schema: OpenApiSchemaObject = {
