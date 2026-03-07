@@ -5,7 +5,7 @@ const replacement = String.raw`*\/`; // Replace With '*\/'
 
 const regex = new RegExp(search, 'g');
 
-type JsDocSchema = {
+interface JsDocSchema extends Record<string, unknown> {
   description?: string[] | string;
   deprecated?: boolean;
   summary?: string;
@@ -19,7 +19,7 @@ type JsDocSchema = {
   maxItems?: number;
   type?: string | string[];
   pattern?: string;
-};
+}
 
 export function jsDoc(
   schema: object & JsDocSchema,

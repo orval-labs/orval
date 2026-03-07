@@ -36,9 +36,6 @@ export default defineConfig(
       },
     },
     rules: {
-      'no-useless-escape': 'warn',
-      'no-case-declarations': 'warn',
-      'no-prototype-builtins': 'warn',
       'unicorn/prevent-abbreviations': 'off',
       'unicorn/consistent-function-scoping': [
         'error',
@@ -57,20 +54,6 @@ export default defineConfig(
           allowRegExp: true,
         },
       ],
-
-      // enable these in the future
-      'unicorn/no-null': 'warn',
-      'unicorn/prefer-at': 'off',
-      'unicorn/no-array-reduce': 'warn',
-      '@typescript-eslint/no-unused-vars': 'warn',
-      '@typescript-eslint/ban-ts-comment': 'warn',
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-require-imports': 'warn',
-      '@typescript-eslint/no-unsafe-assignment': 'warn',
-      '@typescript-eslint/no-unsafe-function-type': 'warn',
-      '@typescript-eslint/consistent-type-definitions': 'off',
-      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
-      '@typescript-eslint/no-non-null-asserted-optional-chain': 'warn',
     },
   },
   {

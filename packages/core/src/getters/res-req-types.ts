@@ -404,7 +404,7 @@ export function getSuccessResponseType(
 ): 'blob' | 'text' | undefined {
   const successContentTypes = response.types.success
     .map((t) => t.contentType)
-    .filter(Boolean) as string[];
+    .filter(Boolean);
 
   if (response.isBlob) {
     return 'blob' as const;
