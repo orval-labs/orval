@@ -24,7 +24,7 @@
     "generate:hono": "orval --config ./configs/hono.config.ts",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
     "test:snapshots:update": "bun run test:snapshots --update",
-    "build": "tsc && bun run verify:mock-generated",
+    "build": "tsc --noEmit && bun run verify:mock-generated",
     "verify:mock-generated": "node ./scripts/verify-mock-generated.mjs",
     "clean": "rimraf .turbo dist generated",
     "nuke": "rimraf .turbo dist generated node_modules"
