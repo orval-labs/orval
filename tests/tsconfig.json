@@ -1,6 +1,5 @@
 {
   "include": ["generated", "mutators"],
-  "exclude": ["generated/mcp/**/server.ts"],
   "compilerOptions": {
     "skipLibCheck": true,
     "target": "es6",

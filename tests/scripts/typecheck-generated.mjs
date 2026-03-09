@@ -1,13 +1,13 @@
+import { execSync } from 'node:child_process';
 import {
   existsSync,
   readdirSync,
   statSync,
-  writeFileSync,
   unlinkSync,
+  writeFileSync,
 } from 'node:fs';
-import { join, resolve, dirname } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execSync } from 'node:child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const testsRoot = resolve(__dirname, '..');
@@ -37,11 +37,13 @@ for (const folder of folders) {
     include: [`generated/${folder}`, 'mutators'],
   };
 
-  // MCP SDK's server.tool() triggers exponential type inference via
-  // ShapeOutput<Args> -> SchemaOutput -> z3.infer<S> | z4.output<S> (zod-compat).
-  // Handlers, schemas, and HTTP client are still fully type-checked.
+  // Bun's flat node_modules makes the MCP SDK resolve `zod` to the project's v3.25
+  // which ships both v3 and v4 compat types. The SDK's zod-compat.d.ts loads both
+  // type systems, causing exponential type inference in server.tool() calls.
+  // Yarn avoided this by nesting a separate zod@4.x for the SDK.
+  // server.ts is pure glue — handlers, schemas and HTTP client are still fully checked.
   if (folder === 'mcp') {
-    config.exclude = [`generated/mcp/**/server.ts`];
+    config.exclude = ['generated/mcp/**/server.ts'];
   }
 
   writeFileSync(tmpTsconfig, JSON.stringify(config, null, 2));
@@ -57,10 +59,11 @@ for (const folder of folders) {
       stdio: ['pipe', 'pipe', 'pipe'],
       timeout: 60_000,
     });
-  } catch (e) {
+  } catch (error_) {
     ok = false;
     hasFailure = true;
-    error = e.stderr?.toString() || e.stdout?.toString() || e.message;
+    error =
+      error_.stderr?.toString() || error_.stdout?.toString() || error_.message;
   }
 
   const elapsed = ((performance.now() - start) / 1000).toFixed(2);
