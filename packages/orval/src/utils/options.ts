@@ -503,6 +503,7 @@ async function resolveFirstValidTarget(
             method: 'HEAD',
             headers,
             signal: controller.signal,
+            rejectUnauthorized: false,
           });
 
           if (response.ok) return target;
@@ -512,6 +513,7 @@ async function resolveFirstValidTarget(
               method: 'GET',
               headers,
               signal: controller.signal,
+              rejectUnauthorized: false,
             });
             if (getResponse.ok) return target;
           }
