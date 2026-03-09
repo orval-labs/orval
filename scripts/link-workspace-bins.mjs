@@ -5,22 +5,45 @@ import {
   lstatSync,
   unlinkSync,
 } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { platform } from 'node:os';
-
-const binDir = join('node_modules', '.bin');
-mkdirSync(binDir, { recursive: true });
+import { execSync } from 'node:child_process';
 
 const isWindows = platform() === 'win32';
-const link = join(binDir, isWindows ? 'orval.cmd' : 'orval');
+const orvalBin = resolve('packages/orval/dist/bin/orval.mjs');
 
-try {
-  lstatSync(link);
-  unlinkSync(link);
-} catch {}
+function linkOrval(binDir) {
+  mkdirSync(binDir, { recursive: true });
+  const link = join(binDir, isWindows ? 'orval.cmd' : 'orval');
 
-if (isWindows) {
-  writeFileSync(link, '@node "%~dp0\\..\\orval\\dist\\bin\\orval.mjs" %*\r\n');
-} else {
-  symlinkSync('../orval/dist/bin/orval.mjs', link);
+  try {
+    lstatSync(link);
+    unlinkSync(link);
+  } catch {}
+
+  if (isWindows) {
+    writeFileSync(link, `@node "${orvalBin}" %*\r\n`);
+  } else {
+    symlinkSync(orvalBin, link);
+  }
+}
+
+// Always link in root
+linkOrval(join('node_modules', '.bin'));
+
+// Find and link in all workspace node_modules/.bin directories
+if (!isWindows) {
+  try {
+    const dirs = execSync(
+      "find . -path '*/node_modules/.bin' -not -path './node_modules/.bin' -not -path '*/node_modules/*/node_modules/*' -type d",
+      { encoding: 'utf8' },
+    )
+      .trim()
+      .split('\n')
+      .filter(Boolean);
+
+    for (const dir of dirs) {
+      linkOrval(dir);
+    }
+  } catch {}
 }
