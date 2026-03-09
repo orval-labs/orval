@@ -135,10 +135,10 @@ const COERCIBLE_TYPES = new Set([
   'date',
 ]);
 
-export type ZodValidationSchemaDefinition = {
+export interface ZodValidationSchemaDefinition {
   functions: [string, unknown][];
   consts: string[];
-};
+}
 
 const minAndMaxTypes = new Set(['number', 'string', 'array']);
 
@@ -169,15 +169,15 @@ const removeReadOnlyProperties = (
   return schema;
 };
 
-type DateTimeOptions = {
+interface DateTimeOptions {
   offset?: boolean;
   local?: boolean;
   precision?: number;
-};
+}
 
-type TimeOptions = {
+interface TimeOptions {
   precision?: -1 | 0 | 1 | 2 | 3;
-};
+}
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 
@@ -436,10 +436,7 @@ export const generateZodValidationSchemaDefinition = (
               'tuple',
               prefixItems.map((item, idx) =>
                 generateZodValidationSchemaDefinition(
-                  dereference(
-                    item as OpenApiSchemaObject | OpenApiReferenceObject,
-                    context,
-                  ),
+                  dereference(item, context),
                   context,
                   camel(`${name}-${idx}-item`),
                   isZodV4,
@@ -670,7 +667,7 @@ export const generateZodValidationSchemaDefinition = (
           break;
         }
 
-        functions.push([type as string, undefined]);
+        functions.push([type, undefined]);
 
         break;
       }
@@ -828,7 +825,7 @@ export const parseZodValidationSchemaDefinition = (
       return value.map((item) => formatFunctionArgs(item)).join(', ');
     }
     if (isObject(value)) {
-      return stringify(value as Record<string, unknown>) ?? '';
+      return stringify(value) ?? '';
     }
     if (isNumber(value) || isBoolean(value)) return `${value}`;
     return '';
@@ -981,12 +978,8 @@ ${Object.entries(mergedProperties)
       const parsedObject = `zod.${objectType}({
 ${Object.entries(objectArgs)
   .map(([key, schema]) => {
-    const value = (schema as ZodValidationSchemaDefinition).functions
-      .map((prop) => parseProperty(prop))
-      .join('');
-    appendConstsChunk(
-      (schema as ZodValidationSchemaDefinition).consts.join('\n'),
-    );
+    const value = schema.functions.map((prop) => parseProperty(prop)).join('');
+    appendConstsChunk(schema.consts.join('\n'));
     return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
   })
   .join(',\n')}

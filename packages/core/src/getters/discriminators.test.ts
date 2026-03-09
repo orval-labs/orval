@@ -150,7 +150,9 @@ describe('resolveDiscriminators getter', () => {
             { $ref: '#/components/schemas/Cat' },
             { $ref: '#/components/schemas/Dog' },
           ],
-        },
+        } as unknown as NonNullable<
+          OpenApiSchemasObject[string]
+        >['discriminator'],
       },
       Cat: {
         type: 'object',

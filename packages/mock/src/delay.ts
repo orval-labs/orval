@@ -1,8 +1,8 @@
 import {
+  type GlobalMockOptions,
   isBoolean,
   isFunction,
   isNumber,
-  type GlobalMockOptions,
   type NormalizedOverrideOutput,
 } from '@orval/core';
 

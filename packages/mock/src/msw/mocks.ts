@@ -15,26 +15,76 @@ import {
 
 import { getMockScalar } from '../faker/getters';
 
-function getMockPropertiesWithoutFunc(properties: any, spec: OpenApiDocument) {
-  return Object.entries(
-    isFunction(properties) ? properties(spec) : properties,
-  ).reduce<Record<string, string>>((acc, [key, value]) => {
-    const implementation = isFunction(value)
-      ? `(${value})()`
-      : stringify(value as string)!;
+function getMockPropertiesWithoutFunc(
+  properties:
+    | Record<string, unknown>
+    | ((spec: OpenApiDocument) => Record<string, unknown>),
+  spec: OpenApiDocument,
+) {
+  const resolvedProperties =
+    typeof properties === 'function' ? properties(spec) : properties;
+  const mockProperties: Record<string, string> = {};
 
-    acc[key] = implementation.replaceAll(
+  for (const [key, value] of Object.entries(resolvedProperties)) {
+    const implementation = isFunction(value)
+      ? `(${String(value)})()`
+      : (stringify(value) ?? 'undefined');
+
+    mockProperties[key] = implementation.replaceAll(
       /import_faker\.defaults|import_faker\.faker|_faker\.faker/g,
       'faker',
     );
-    return acc;
-  }, {});
+  }
+
+  return mockProperties;
 }
 
 function getMockWithoutFunc(
   spec: OpenApiDocument,
   override?: NormalizedOverrideOutput,
 ): MockOptions {
+  const operations = override?.operations
+    ? (() => {
+        const operationMocks: Exclude<MockOptions['operations'], undefined> =
+          {};
+
+        for (const [key, value] of Object.entries(override.operations)) {
+          if (!value?.mock?.properties) {
+            continue;
+          }
+
+          operationMocks[key] = {
+            properties: getMockPropertiesWithoutFunc(
+              value.mock.properties,
+              spec,
+            ),
+          };
+        }
+
+        return operationMocks;
+      })()
+    : undefined;
+  const tags = override?.tags
+    ? (() => {
+        const tagMocks: Exclude<MockOptions['tags'], undefined> = {};
+
+        for (const [key, value] of Object.entries(override.tags)) {
+          if (!value?.mock?.properties) {
+            continue;
+          }
+
+          tagMocks[key] = {
+            properties: getMockPropertiesWithoutFunc(
+              value.mock.properties,
+              spec,
+            ),
+          };
+        }
+
+        return tagMocks;
+      })()
+    : undefined;
+
   return {
     arrayMin: override?.mock?.arrayMin,
     arrayMax: override?.mock?.arrayMax,
@@ -57,43 +107,17 @@ function getMockWithoutFunc(
           format: getMockPropertiesWithoutFunc(override.mock.format, spec),
         }
       : {}),
-    ...(override?.operations
-      ? {
-          operations: Object.entries(override.operations).reduce<
-            Exclude<MockOptions['operations'], undefined>
-          >((acc, [key, value]) => {
-            if (value?.mock?.properties) {
-              acc[key] = {
-                properties: getMockPropertiesWithoutFunc(
-                  value.mock.properties,
-                  spec,
-                ),
-              };
-            }
-
-            return acc;
-          }, {}),
-        }
-      : {}),
-    ...(override?.tags
-      ? {
-          tags: Object.entries(override.tags).reduce<
-            Exclude<MockOptions['tags'], undefined>
-          >((acc, [key, value]) => {
-            if (value?.mock?.properties) {
-              acc[key] = {
-                properties: getMockPropertiesWithoutFunc(
-                  value.mock.properties,
-                  spec,
-                ),
-              };
-            }
-
-            return acc;
-          }, {}),
-        }
-      : {}),
+    ...(operations ? { operations } : {}),
+    ...(tags ? { tags } : {}),
   };
+}
+
+function getMockNumberOption(
+  mockOptionsWithoutFunc: Record<string, unknown>,
+  key: 'arrayMin' | 'arrayMax',
+) {
+  const value = mockOptionsWithoutFunc[key];
+  return typeof value === 'number' ? value : undefined;
 }
 
 function getMockScalarJsTypes(
@@ -102,14 +126,14 @@ function getMockScalarJsTypes(
 ) {
   const isArray = definition.endsWith('[]');
   const type = isArray ? definition.slice(0, -2) : definition;
+  const arrayMin = getMockNumberOption(mockOptionsWithoutFunc, 'arrayMin');
+  const arrayMax = getMockNumberOption(mockOptionsWithoutFunc, 'arrayMax');
 
   switch (type) {
     case 'number': {
       const numArrParts: string[] = [];
-      if (mockOptionsWithoutFunc.arrayMin !== undefined)
-        numArrParts.push(`min: ${mockOptionsWithoutFunc.arrayMin}`);
-      if (mockOptionsWithoutFunc.arrayMax !== undefined)
-        numArrParts.push(`max: ${mockOptionsWithoutFunc.arrayMax}`);
+      if (arrayMin !== undefined) numArrParts.push(`min: ${arrayMin}`);
+      if (arrayMax !== undefined) numArrParts.push(`max: ${arrayMax}`);
       const numArrArg =
         numArrParts.length > 0 ? `{${numArrParts.join(', ')}}` : '';
       return isArray
@@ -118,10 +142,8 @@ function getMockScalarJsTypes(
     }
     case 'string': {
       const strArrParts: string[] = [];
-      if (mockOptionsWithoutFunc?.arrayMin !== undefined)
-        strArrParts.push(`min: ${mockOptionsWithoutFunc.arrayMin}`);
-      if (mockOptionsWithoutFunc?.arrayMax !== undefined)
-        strArrParts.push(`max: ${mockOptionsWithoutFunc.arrayMax}`);
+      if (arrayMin !== undefined) strArrParts.push(`min: ${arrayMin}`);
+      if (arrayMax !== undefined) strArrParts.push(`max: ${arrayMax}`);
       const strArrArg =
         strArrParts.length > 0 ? `{${strArrParts.join(', ')}}` : '';
       return isArray
@@ -139,7 +161,6 @@ interface GetResponsesMockDefinitionOptions {
   tags: string[];
   returnType: string;
   responses: ResReqTypesValue[];
-  imports: GeneratorImport[];
   mockOptionsWithoutFunc: Record<string, unknown>;
   transformer?: (value: unknown, definition: string) => string;
   context: ContextSpec;
@@ -147,90 +168,106 @@ interface GetResponsesMockDefinitionOptions {
   splitMockImplementations: string[];
 }
 
+function getExampleEntries(examples: unknown): unknown[] {
+  if (Array.isArray(examples)) {
+    return examples;
+  }
+
+  if (examples && typeof examples === 'object') {
+    return Object.values(examples as Record<string, unknown>);
+  }
+
+  return [];
+}
+
+function unwrapExampleValue(example: unknown): unknown {
+  if (example && typeof example === 'object' && 'value' in example) {
+    return (example as { value?: unknown }).value;
+  }
+
+  return example;
+}
+
 export function getResponsesMockDefinition({
   operationId,
   tags,
   returnType,
   responses,
-  imports: responseImports,
   mockOptionsWithoutFunc,
   transformer,
   context,
   mockOptions,
   splitMockImplementations,
 }: GetResponsesMockDefinitionOptions) {
-  return responses.reduce(
-    (
-      acc,
-      { value: definition, originalSchema, example, examples, imports, isRef },
-    ) => {
-      if (
-        context.output.override.mock?.useExamples ||
-        mockOptions?.useExamples
-      ) {
-        let exampleValue =
-          example ??
+  const result = {
+    definitions: [] as string[],
+    imports: [] as GeneratorImport[],
+  };
+
+  for (const response of responses) {
+    const { value: definition, example, examples, imports } = response;
+    let { originalSchema } = response;
+
+    if (context.output.override.mock?.useExamples || mockOptions?.useExamples) {
+      const exampleValue = unwrapExampleValue(
+        example ??
           originalSchema?.example ??
-          Object.values(examples ?? {})[0] ??
-          originalSchema?.examples?.[0];
-        exampleValue = exampleValue?.value ?? exampleValue;
-        if (exampleValue) {
-          acc.definitions.push(
-            transformer
-              ? transformer(exampleValue, returnType)
-              : JSON.stringify(exampleValue),
-          );
-          return acc;
-        }
-      }
-      if (!definition || generalJSTypesWithArray.includes(definition)) {
-        const value = getMockScalarJsTypes(definition, mockOptionsWithoutFunc);
+          getExampleEntries(examples)[0] ??
+          getExampleEntries(originalSchema?.examples)[0],
+      );
 
-        acc.definitions.push(
-          transformer ? transformer(value, returnType) : value,
+      if (exampleValue !== undefined) {
+        result.definitions.push(
+          transformer
+            ? transformer(exampleValue, returnType)
+            : JSON.stringify(exampleValue),
         );
-
-        return acc;
+        continue;
       }
+    }
 
-      if (!originalSchema && definition === 'Blob') {
-        originalSchema = { type: 'string', format: 'binary' };
-      } else if (!originalSchema) {
-        return acc;
-      }
+    if (!definition || generalJSTypesWithArray.includes(definition)) {
+      const value = getMockScalarJsTypes(definition, mockOptionsWithoutFunc);
 
-      const resolvedRef = resolveRef<OpenApiSchemaObject>(
-        originalSchema,
-        context,
+      result.definitions.push(
+        transformer ? transformer(value, returnType) : value,
       );
+      continue;
+    }
 
-      const scalar = getMockScalar({
-        item: {
-          name: definition,
-          ...resolvedRef.schema,
-        },
-        imports,
-        mockOptions: mockOptionsWithoutFunc,
-        operationId,
-        tags,
-        context,
-        existingReferencedProperties: [],
-        splitMockImplementations,
-        allowOverride: true,
-      });
+    if (!originalSchema && definition === 'Blob') {
+      originalSchema = { type: 'string', format: 'binary' };
+    } else if (!originalSchema) {
+      continue;
+    }
 
-      acc.imports.push(...scalar.imports);
-      acc.definitions.push(
-        transformer ? transformer(scalar.value, returnType) : scalar.value,
-      );
+    const resolvedSchema = resolveRef<OpenApiSchemaObject>(
+      originalSchema,
+      context,
+    ).schema;
 
-      return acc;
-    },
-    {
-      definitions: [] as string[],
-      imports: [] as GeneratorImport[],
-    },
-  );
+    const scalar = getMockScalar({
+      item: {
+        ...(resolvedSchema as Record<string, unknown>),
+        name: definition,
+      },
+      imports,
+      mockOptions: mockOptionsWithoutFunc,
+      operationId,
+      tags,
+      context,
+      existingReferencedProperties: [],
+      splitMockImplementations,
+      allowOverride: true,
+    });
+
+    result.imports.push(...scalar.imports);
+    result.definitions.push(
+      transformer ? transformer(scalar.value, returnType) : scalar.value,
+    );
+  }
+
+  return result;
 }
 
 interface GetMockDefinitionOptions {
@@ -251,7 +288,6 @@ export function getMockDefinition({
   tags,
   returnType,
   responses,
-  imports: responseImports,
   override,
   transformer,
   context,
@@ -265,7 +301,6 @@ export function getMockDefinition({
     tags,
     returnType,
     responses,
-    imports: responseImports,
     mockOptionsWithoutFunc,
     transformer,
     context,
@@ -291,7 +326,7 @@ export function getMockOptionsDataOverride(
       .map((operationTag) => override.tags[operationTag]?.mock?.data)
       .find((e) => e !== undefined);
   const implementation = isFunction(responseOverride)
-    ? `(${responseOverride})()`
+    ? `(${String(responseOverride)})()`
     : stringify(responseOverride);
 
   return implementation?.replaceAll(

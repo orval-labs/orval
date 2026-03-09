@@ -7,7 +7,7 @@ import {
   pascal,
 } from '@orval/core';
 
-import type { MockDefinition, MockSchemaObject } from '../../types';
+import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { resolveMockValue } from '../resolvers';
 
 interface CombineSchemasMockOptions {
@@ -42,6 +42,8 @@ export function combineSchemasMock({
 }: CombineSchemasMockOptions): MockDefinition {
   const combineImports: GeneratorImport[] = [];
   const includedProperties: string[] = [...(combine?.includedProperties ?? [])];
+  const separatorItems = (item[separator] ?? []) as MockSchema[];
+  const itemRequired = item.required as string[] | undefined;
 
   const isRefAndNotExisting =
     isReference(item) && !existingReferencedProperties.includes(item.name);
@@ -72,98 +74,112 @@ export function combineSchemasMock({
 
   const allRequiredFields: string[] = [];
   if (separator === 'allOf') {
-    if (item.required) {
-      allRequiredFields.push(...item.required);
+    if (itemRequired) {
+      allRequiredFields.push(...itemRequired);
     }
-    for (const val of item[separator] ?? []) {
+    for (const val of separatorItems) {
       if (isSchema(val) && val.required) {
-        allRequiredFields.push(...val.required);
+        allRequiredFields.push(...(val.required as string[]));
       }
     }
   }
 
-  const value = (item[separator] ?? []).reduce(
-    (acc, val, _, arr) => {
-      const refName =
-        '$ref' in val ? pascal(val.$ref.split('/').pop() ?? '') : '';
-      // For allOf: skip if refName is in existingRefs AND this is an inline schema (not a top-level ref)
-      // This allows top-level schemas (item.isRef=true) to get base properties from allOf
-      // while preventing circular allOf chains in inline property schemas
-      const shouldSkipRef =
-        separator === 'allOf'
-          ? refName &&
-            (refName === item.name ||
-              (existingReferencedProperties.includes(refName) && !item.isRef))
-          : false;
+  let value = separator === 'allOf' ? '' : 'faker.helpers.arrayElement([';
 
-      if (shouldSkipRef) {
-        if (arr.length === 1) {
-          return 'undefined';
-        }
+  for (const val of separatorItems) {
+    const refName = isReference(val)
+      ? pascal((val.$ref ?? '').split('/').pop() ?? '')
+      : '';
+    // For allOf: skip if refName is in existingRefs AND this is an inline schema (not a top-level ref)
+    // This allows top-level schemas (item.isRef=true) to get base properties from allOf
+    // while preventing circular allOf chains in inline property schemas
+    const shouldSkipRef =
+      separator === 'allOf'
+        ? refName &&
+          (refName === item.name ||
+            (existingReferencedProperties.includes(refName) && !item.isRef))
+        : false;
 
-        return acc;
+    if (shouldSkipRef) {
+      if (separatorItems.length === 1) {
+        value = 'undefined';
       }
+      continue;
+    }
 
-      // the required fields in this schema need to be considered
-      // in the sub schema under the allOf key
-      if (separator === 'allOf' && allRequiredFields.length > 0) {
-        const combinedRequired =
-          isSchema(val) && val.required
-            ? [...allRequiredFields, ...val.required]
-            : allRequiredFields;
-        val = { ...val, required: [...new Set(combinedRequired)] };
-      }
-
-      const resolvedValue = resolveMockValue({
-        schema: {
+    // the required fields in this schema need to be considered
+    // in the sub schema under the allOf key
+    const schema = (() => {
+      if (separator !== 'allOf' || allRequiredFields.length === 0) {
+        return {
           ...val,
           name: item.name,
           path: item.path ?? '#',
-        },
-        combine: {
-          separator,
-          includedProperties:
-            separator === 'oneOf'
-              ? (itemResolvedValue?.includedProperties ?? [])
-              : includedProperties,
-        },
-        mockOptions,
-        operationId,
-        tags,
-        context,
-        imports,
-        existingReferencedProperties,
-        splitMockImplementations,
-      });
+        };
+      }
 
-      combineImports.push(...resolvedValue.imports);
-      includedProperties.push(...(resolvedValue.includedProperties ?? []));
+      const valWithRequired = val as MockSchema & { required?: string[] };
+      const valRequired = valWithRequired.required;
+      const combinedRequired = valRequired
+        ? [...allRequiredFields, ...valRequired]
+        : allRequiredFields;
 
-      if (resolvedValue.value === '{}') {
+      return {
+        ...val,
+        name: item.name,
+        path: item.path ?? '#',
+        required: [...new Set(combinedRequired)],
+      };
+    })();
+
+    const resolvedValue = resolveMockValue({
+      schema,
+      combine: {
+        separator,
+        includedProperties:
+          separator === 'oneOf'
+            ? (itemResolvedValue?.includedProperties ?? [])
+            : includedProperties,
+      },
+      mockOptions,
+      operationId,
+      tags,
+      context,
+      imports,
+      existingReferencedProperties,
+      splitMockImplementations,
+    });
+
+    combineImports.push(...resolvedValue.imports);
+    includedProperties.push(...(resolvedValue.includedProperties ?? []));
+
+    if (resolvedValue.value === '{}') {
+      containsOnlyPrimitiveValues = false;
+      continue;
+    }
+
+    if (separator === 'allOf') {
+      if (resolvedValue.value.startsWith('{') || !resolvedValue.type) {
         containsOnlyPrimitiveValues = false;
-        return acc;
+        value += `...${resolvedValue.value},`;
+        continue;
       }
-      if (separator === 'allOf') {
-        if (resolvedValue.value.startsWith('{') || !resolvedValue.type) {
-          containsOnlyPrimitiveValues = false;
-          return `${acc}...${resolvedValue.value},`;
-        } else if (resolvedValue.type === 'object') {
-          containsOnlyPrimitiveValues = false;
-          return resolvedValue.value.startsWith('faker')
-            ? `${acc}...${resolvedValue.value},`
-            : `${acc}...{${resolvedValue.value}},`;
-        }
+
+      if (resolvedValue.type === 'object') {
+        containsOnlyPrimitiveValues = false;
+        value += resolvedValue.value.startsWith('faker')
+          ? `...${resolvedValue.value},`
+          : `...{${resolvedValue.value}},`;
+        continue;
       }
-      return `${acc}${resolvedValue.value},`;
-    },
-    separator === 'allOf' ? '' : 'faker.helpers.arrayElement([',
-  );
+    }
+
+    value += `${resolvedValue.value},`;
+  }
   let finalValue =
     value === 'undefined'
       ? value
       : // containsOnlyPrimitiveValues isn't just true, it's being set to false inside the above reduce and the type system doesn't detect it
-
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         `${separator === 'allOf' && !containsOnlyPrimitiveValues ? '{' : ''}${value}${separator === 'allOf' ? (containsOnlyPrimitiveValues ? '' : '}') : '])'}`;
   if (itemResolvedValue) {
     finalValue = finalValue.startsWith('...')

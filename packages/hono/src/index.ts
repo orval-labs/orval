@@ -513,6 +513,12 @@ const getHeader = (
   return Array.isArray(header) ? jsDoc({ description: header }) : header;
 };
 
+const getSpecInfo = (context: ContextSpec): OpenApiInfoObject =>
+  context.spec.info ?? {
+    title: 'API',
+    version: '1.0.0',
+  };
+
 const generateContextFile = ({
   path,
   verbs,
@@ -574,7 +580,7 @@ const generateContextFiles = (
   context: ContextSpec,
   schemaModule: string,
 ) => {
-  const header = getHeader(output.override.header, context.spec.info);
+  const header = getHeader(output.override.header, getSpecInfo(context));
   const { extension, dirname, filename } = getFileInfo(output.target);
 
   if (output.mode === 'tags' || output.mode === 'tags-split') {
@@ -616,7 +622,7 @@ const generateZodFiles = async (
 ) => {
   const { extension, dirname, filename } = getFileInfo(output.target);
 
-  const header = getHeader(output.override.header, context.spec.info);
+  const header = getHeader(output.override.header, getSpecInfo(context));
 
   if (output.mode === 'tags' || output.mode === 'tags-split') {
     const groupByTags = getVerbOptionGroupByTag(verbOptions);
@@ -721,7 +727,7 @@ const generateZvalidator = (
   output: NormalizedOutputOptions,
   context: ContextSpec,
 ) => {
-  const header = getHeader(output.override.header, context.spec.info);
+  const header = getHeader(output.override.header, getSpecInfo(context));
 
   let validatorPath = output.override.hono.validatorOutputPath;
   if (!output.override.hono.validatorOutputPath) {
@@ -744,7 +750,7 @@ const generateCompositeRoutes = (
   const targetInfo = getFileInfo(output.target);
   const compositeRouteInfo = getFileInfo(output.override.hono.compositeRoute);
 
-  const header = getHeader(output.override.header, context.spec.info);
+  const header = getHeader(output.override.header, getSpecInfo(context));
 
   const routes = Object.values(verbOptions)
     .map((verbOption) => {
@@ -827,9 +833,9 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
     isObject(output.schemas) && output.schemas.type === 'zod';
 
   if (output.schemas != undefined) {
-    const schemasPath = isObject(output.schemas)
-      ? output.schemas.path
-      : output.schemas;
+    const schemasPath = (
+      isObject(output.schemas) ? output.schemas.path : output.schemas
+    ) as string;
     const basePath = getFileInfo(schemasPath).dirname;
     schemaModule =
       isZodSchemaOutput && output.indexFiles

@@ -11,7 +11,6 @@ import { conventionName } from '../utils';
 
 interface GenerateImportsOptions {
   imports: readonly GeneratorImport[];
-  target: string;
   namingConvention?: NamingConvention;
 }
 
@@ -306,7 +305,7 @@ export function addDependency({
 
 function getLibName(code: string) {
   const splitString = code.split(' from ');
-  return splitString[splitString.length - 1].split(';')[0].trim();
+  return (splitString.at(-1) ?? '').split(';')[0].trim();
 }
 
 export function generateDependencyImports(
