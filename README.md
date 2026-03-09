@@ -68,7 +68,7 @@ This project uses [Bun](https://bun.sh/) for package management and building. Bu
 
 - **`bun run build`** - Build the project and make changes available to the workspace. Run this after making code changes to compile TypeScript and prepare the project for use.
 
-- **`yarn typecheck`** - Run TypeScript type checking across all packages.
+- **`bun run typecheck`** - Run TypeScript type checking across all packages.
 
 ### Test Scripts
 

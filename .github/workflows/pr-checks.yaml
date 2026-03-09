@@ -35,7 +35,7 @@ jobs:
         run: bun run build
 
       - name: Typecheck packages
-        run: yarn typecheck
+        run: bun run typecheck
 
       - name: Lint packages
         run: bun run lint
