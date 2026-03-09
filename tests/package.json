@@ -23,15 +23,16 @@
     "generate:mcp": "orval --config ./configs/mcp.config.ts",
     "generate:hono": "orval --config ./configs/hono.config.ts",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
-    "test:snapshots:update": "yarn test:snapshots --update",
-    "build": "tsc && yarn verify:mock-generated",
+    "test:snapshots:update": "bun run test:snapshots --update",
+    "build": "node ./scripts/typecheck-generated.mjs && bun run verify:mock-generated",
     "verify:mock-generated": "node ./scripts/verify-mock-generated.mjs",
     "clean": "rimraf .turbo dist generated",
-    "nuke": "rimraf .turbo dist generated .yarn node_modules"
+    "nuke": "rimraf .turbo dist generated node_modules"
   },
   "devDependencies": {
     "@angular/common": "catalog:angular",
     "@angular/core": "catalog:angular",
+    "@orval/core": "workspace:*",
     "@faker-js/faker": "catalog:tooling",
     "@hono/zod-validator": "catalog:hono",
     "@modelcontextprotocol/sdk": "catalog:mcp",

@@ -1,1 +1,1 @@
-yarn commitlint --edit
+bun run commitlint --edit

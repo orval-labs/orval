@@ -60,46 +60,46 @@ Try Orval out for yourself using our [Playground](https://orval.dev/playground) 
 
 ## Developers
 
-This project uses [Yarn](https://yarnpkg.com/) for package management and building. Yarn [install guide](https://yarnpkg.com/getting-started/install).
+This project uses [Bun](https://bun.sh/) for package management and building. Bun [install guide](https://bun.sh/docs/installation).
 
 ### Build Scripts
 
-- **`yarn nuke:all`** - Completely clean your workspace by removing all build artifacts, node_modules, and cached files. Use this when you want to start fresh.
+- **`bun run nuke:all`** - Completely clean your workspace by removing all build artifacts, node_modules, and cached files. Use this when you want to start fresh.
 
-- **`yarn build`** - Build the project and make changes available to the workspace. Run this after making code changes to compile TypeScript and prepare the project for use.
+- **`bun run build`** - Build the project and make changes available to the workspace. Run this after making code changes to compile TypeScript and prepare the project for use.
 
-- **`yarn typecheck`** - Run TypeScript type checking across all packages.
+- **`bun run typecheck`** - Run TypeScript type checking across all packages.
 
 ### Test Scripts
 
-- **`yarn test`** - Run unit tests in all packages.
+- **`bun run test`** - Run unit tests in all packages.
 
-- **`yarn update-samples`** - Generate sample outputs using the newly built version of Orval. This regenerates the sample code based on the current build.
+- **`bun run update-samples`** - Generate sample outputs using the newly built version of Orval. This regenerates the sample code based on the current build.
 
-- **`yarn test:samples`** - Run tests in the samples directory using the newly generated output from `update-samples`.
+- **`bun run test:samples`** - Run tests in the samples directory using the newly generated output from `update-samples`.
 
-- **`yarn test:snapshots`** - Run snapshot tests to verify generated sample outputs match the committed snapshots. Fails if any generated file differs from its snapshot.
+- **`bun run test:snapshots`** - Run snapshot tests to verify generated sample outputs match the committed snapshots. Fails if any generated file differs from its snapshot.
 
-- **`yarn test:snapshots:update`** - Regenerate snapshot files to match the current generated output. Run this after `yarn update-samples` when the generated output has intentionally changed.
+- **`bun run test:snapshots:update`** - Regenerate snapshot files to match the current generated output. Run this after `bun run update-samples` when the generated output has intentionally changed.
 
-- **`yarn test:cli`** - Test that the generated output (not samples) is valid TypeScript. This validates the TypeScript compilation of the generated code.
+- **`bun run test:cli`** - Test that the generated output (not samples) is valid TypeScript. This validates the TypeScript compilation of the generated code.
 
 ### Development Workflow
 
 A typical development workflow would be:
 
 1. Make your code changes
-2. Run `yarn build` to compile your changes
-3. Run `yarn typecheck` to verify package typings
-4. Run `yarn lint` to catch lint issues early
-5. Run `yarn test` to run unit tests in packages
-6. Run `yarn test:snapshots` to verify generated output matches snapshots
+2. Run `bun run build` to compile your changes
+3. Run `bun run typecheck` to verify package typings
+4. Run `bun run lint` to catch lint issues early
+5. Run `bun run test` to run unit tests in packages
+6. Run `bun run test:snapshots` to verify generated output matches snapshots
 
-If step 6 fails because the generated output has intentionally changed, run `yarn test:snapshots:update` to update the snapshots.
+If step 6 fails because the generated output has intentionally changed, run `bun run test:snapshots:update` to update the snapshots.
 
 If you encounter issues or want to start completely fresh:
 
-1. Run `yarn nuke:all` to clean everything
+1. Run `bun run nuke:all` to clean everything
 2. Reinstall dependencies and rebuild from scratch
 
 ## Sponsors

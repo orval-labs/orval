@@ -28,10 +28,10 @@ then, clone it to your local machine:
 gh repo clone <your-github-name>/orval
 ```
 
-Install dependencies and set up Git hooks. Because `enableScripts` is disabled in `.yarnrc.yml`, lifecycle scripts won't run automatically, so run the following manually after cloning:
+Install dependencies and set up Git hooks:
 
 ```bash
-yarn install && yarn prepare
+bun install && bun run prepare
 ```
 
 ### Implement your changes

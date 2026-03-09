@@ -17,7 +17,7 @@ SolidStart client for Orval - generates type-safe API client code using SolidSta
 ```bash
 npm install @orval/solid-start
 # or
-yarn add @orval/solid-start
+bun add @orval/solid-start
 # or
 pnpm add @orval/solid-start
 ```
