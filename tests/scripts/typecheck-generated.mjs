@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import {
   existsSync,
   readdirSync,
@@ -54,7 +54,7 @@ for (const folder of folders) {
   let error = '';
 
   try {
-    execSync(`bunx tsc --noEmit --project ${tmpTsconfig}`, {
+    execFileSync('bunx', ['tsc', '--noEmit', '--project', tmpTsconfig], {
       cwd: testsRoot,
       stdio: ['pipe', 'pipe', 'pipe'],
       timeout: 60_000,
