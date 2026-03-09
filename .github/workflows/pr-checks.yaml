@@ -49,5 +49,3 @@ jobs:
 
       - name: Verify generated code can build
         run: bun run --filter orval-tests build
-        env:
-          NODE_OPTIONS: --max-old-space-size=6144

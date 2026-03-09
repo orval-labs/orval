@@ -88,7 +88,7 @@
     "format:check": "prettier --check .",
     "format:staged": "lint-staged",
     "format:samples": "prettier --write samples",
-    "postinstall": "node scripts/link-workspace-bins.mjs",
+    "postinstall": "bun scripts/link-workspace-bins.mjs",
     "prepare": "husky",
     "commitlint": "commitlint",
     "update-samples": "turbo run generate-api",

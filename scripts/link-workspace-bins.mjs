@@ -1,13 +1,14 @@
 import {
-  mkdirSync,
-  symlinkSync,
-  writeFileSync,
+  existsSync,
   lstatSync,
+  mkdirSync,
+  readdirSync,
+  symlinkSync,
   unlinkSync,
+  writeFileSync,
 } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { platform } from 'node:os';
-import { execSync } from 'node:child_process';
 
 const isWindows = platform() === 'win32';
 const orvalBin = resolve('packages/orval/dist/bin/orval.mjs');
@@ -28,22 +29,38 @@ function linkOrval(binDir) {
   }
 }
 
-// Always link in root
-linkOrval(join('node_modules', '.bin'));
+function findBinDirs(dir, depth = 0) {
+  if (depth > 5) return [];
+  const dirs = [];
 
-// Find and link in all workspace node_modules/.bin directories
-if (!isWindows) {
   try {
-    const dirs = execSync(
-      "find . -path '*/node_modules/.bin' -not -path './node_modules/.bin' -not -path '*/node_modules/*/node_modules/*' -type d",
-      { encoding: 'utf8' },
-    )
-      .trim()
-      .split('\n')
-      .filter(Boolean);
+    const entries = readdirSync(dir, { withFileTypes: true });
 
-    for (const dir of dirs) {
-      linkOrval(dir);
+    for (const entry of entries) {
+      if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+
+      const fullPath = join(dir, entry.name);
+
+      if (entry.name === 'node_modules') {
+        const binDir = join(fullPath, '.bin');
+        if (existsSync(binDir)) dirs.push(binDir);
+      } else {
+        dirs.push(...findBinDirs(fullPath, depth + 1));
+      }
     }
   } catch {}
+
+  return dirs;
+}
+
+// Link in root
+linkOrval(join('node_modules', '.bin'));
+
+// Link in all workspace node_modules/.bin directories
+for (const wsRoot of ['packages', 'samples', 'tests', 'docs']) {
+  if (existsSync(wsRoot)) {
+    for (const binDir of findBinDirs(wsRoot)) {
+      linkOrval(binDir);
+    }
+  }
 }
