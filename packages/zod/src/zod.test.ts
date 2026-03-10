@@ -13,7 +13,13 @@ import {
   generateZodValidationSchemaDefinition,
   parseZodValidationSchemaDefinition,
   type ZodValidationSchemaDefinition,
+  predefinedZodFormats,
 } from '.';
+import {
+  getZodDateFormat,
+  getZodDateTimeFormat,
+  getZodTimeFormat,
+} from './compatible-v4';
 
 const testOutput = {} as unknown as Parameters<typeof generateZod>[2];
 
@@ -968,44 +974,63 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   it('uses regex after predefined format validator in v4', () => {
-    const schema: OpenApiSchemaObject = {
-      type: 'string',
-      format: 'uuid',
-      pattern: '^[0-9a-f-]+$',
-    };
+    const expectedZodFormatByOpenApiFormat = new Map([
+      ['date', getZodDateFormat(true)],
+      ['time', getZodTimeFormat(true)],
+      ['date-time', getZodDateTimeFormat(true)],
+      ['email', 'email'],
+      ['uri', 'url'],
+      ['hostname', 'hostname'],
+      ['uuid', 'uuid'],
+    ]);
 
-    const result = generateZodValidationSchemaDefinition(
-      schema,
-      {
-        output: {
-          override: {
-            useDates: false,
+    for (const format of predefinedZodFormats) {
+      const zodFormat = expectedZodFormatByOpenApiFormat.get(format);
+      expect(zodFormat).toBeDefined();
+
+      const schema: OpenApiSchemaObject = {
+        type: 'string',
+        format: format,
+        pattern: '^[0-9a-f-]+$',
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        {
+          output: {
+            override: {
+              useDates: false,
+              zod: {
+                dateTimeOptions: {},
+                timeOptions: {},
+              },
+            },
           },
-        },
-      } as ContextSpec,
-      'testUuidPattern',
-      true, // strict mode
-      true, // Zod v4
-      { required: true },
-    );
+        } as ContextSpec,
+        'testFormatPattern',
+        true,
+        true,
+        { required: true },
+      );
 
-    const parsed = parseZodValidationSchemaDefinition(
-      result,
-      {
-        output: {
-          override: {
-            useDates: false,
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        {
+          output: {
+            override: {
+              useDates: false,
+            },
           },
-        },
-      } as ContextSpec,
-      true,
-      true,
-      true,
-    );
+        } as ContextSpec,
+        true,
+        true,
+        true,
+      );
 
-    expect(parsed.zod).toContain('.uuid()');
-    expect(parsed.zod).toContain('.regex(');
-    expect(parsed.zod).not.toContain('.stringFormat(');
+      expect(parsed.zod).toContain(`.${zodFormat}(`);
+      expect(parsed.zod).toContain('.regex(');
+      expect(parsed.zod).not.toContain('.stringFormat(');
+    }
   });
 
   it('generates hostname validator in v4 for hostname format', () => {

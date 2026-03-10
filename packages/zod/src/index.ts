@@ -73,7 +73,7 @@ const possibleSchemaTypes = new Set([
   'array',
 ]);
 
-const predefinedZodFormats = new Set([
+export const predefinedZodFormats = new Set([
   'date',
   'time',
   'date-time',
