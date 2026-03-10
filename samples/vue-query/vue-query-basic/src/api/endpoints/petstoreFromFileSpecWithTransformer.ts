@@ -9,12 +9,12 @@ import type {
   DataTag,
   InfiniteData,
   MutationFunction,
+  MutationObserverOptions,
   QueryClient,
   QueryFunction,
   QueryKey,
   UseInfiniteQueryOptions,
   UseInfiniteQueryReturnType,
-  UseMutationOptions,
   UseMutationReturnType,
   UseQueryOptions,
   UseQueryReturnType,
@@ -269,13 +269,13 @@ export const getCreatePetsMutationOptions = <
   TError = Error,
   TContext = unknown,
 >(options?: {
-  mutation?: UseMutationOptions<
+  mutation?: MutationObserverOptions<
     Awaited<ReturnType<typeof createPets>>,
     TError,
     { data: CreatePetsBody; version?: number | undefined | null },
     TContext
   >;
-}): UseMutationOptions<
+}): MutationObserverOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
   { data: CreatePetsBody; version?: number | undefined | null },
@@ -313,7 +313,7 @@ export type CreatePetsMutationError = Error;
  */
 export const useCreatePets = <TError = Error, TContext = unknown>(
   options?: {
-    mutation?: UseMutationOptions<
+    mutation?: MutationObserverOptions<
       Awaited<ReturnType<typeof createPets>>,
       TError,
       { data: CreatePetsBody; version?: number | undefined | null },
@@ -531,13 +531,13 @@ export const getPostApiV1UserLogoutMutationOptions = <
   TError = unknown,
   TContext = unknown,
 >(options?: {
-  mutation?: UseMutationOptions<
+  mutation?: MutationObserverOptions<
     Awaited<ReturnType<typeof postApiV1UserLogout>>,
     TError,
     void,
     TContext
   >;
-}): UseMutationOptions<
+}): MutationObserverOptions<
   Awaited<ReturnType<typeof postApiV1UserLogout>>,
   TError,
   void,
@@ -573,7 +573,7 @@ export type PostApiV1UserLogoutMutationError = unknown;
  */
 export const usePostApiV1UserLogout = <TError = unknown, TContext = unknown>(
   options?: {
-    mutation?: UseMutationOptions<
+    mutation?: MutationObserverOptions<
       Awaited<ReturnType<typeof postApiV1UserLogout>>,
       TError,
       void,

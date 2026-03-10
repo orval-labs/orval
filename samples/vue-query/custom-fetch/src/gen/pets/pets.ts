@@ -8,10 +8,10 @@ import { useMutation, useQuery } from '@tanstack/vue-query';
 import type {
   DataTag,
   MutationFunction,
+  MutationObserverOptions,
   QueryClient,
   QueryFunction,
   QueryKey,
-  UseMutationOptions,
   UseMutationReturnType,
   UseQueryOptions,
   UseQueryReturnType,
@@ -261,14 +261,14 @@ export const getCreatePetsMutationOptions = <
   TError = Error,
   TContext = unknown,
 >(options?: {
-  mutation?: UseMutationOptions<
+  mutation?: MutationObserverOptions<
     Awaited<ReturnType<typeof createPets>>,
     TError,
     { data: CreatePetsBodyItem[] },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
+}): MutationObserverOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
   { data: CreatePetsBodyItem[] },
@@ -306,7 +306,7 @@ export type CreatePetsMutationError = Error;
  */
 export const useCreatePets = <TError = Error, TContext = unknown>(
   options?: {
-    mutation?: UseMutationOptions<
+    mutation?: MutationObserverOptions<
       Awaited<ReturnType<typeof createPets>>,
       TError,
       { data: CreatePetsBodyItem[] },
@@ -367,14 +367,14 @@ export const getUpdatePetsMutationOptions = <
   TError = Error,
   TContext = unknown,
 >(options?: {
-  mutation?: UseMutationOptions<
+  mutation?: MutationObserverOptions<
     Awaited<ReturnType<typeof updatePets>>,
     TError,
     { data: NonReadonly<Pet> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
+}): MutationObserverOptions<
   Awaited<ReturnType<typeof updatePets>>,
   TError,
   { data: NonReadonly<Pet> },
@@ -412,7 +412,7 @@ export type UpdatePetsMutationError = Error;
  */
 export const useUpdatePets = <TError = Error, TContext = unknown>(
   options?: {
-    mutation?: UseMutationOptions<
+    mutation?: MutationObserverOptions<
       Awaited<ReturnType<typeof updatePets>>,
       TError,
       { data: NonReadonly<Pet> },
