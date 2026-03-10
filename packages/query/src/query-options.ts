@@ -91,6 +91,7 @@ export const getQueryOptionsDefinition = ({
   isReturnType,
   initialData,
   isAngularClient,
+  isVueClient,
 }: {
   operationName: string;
   mutator?: GeneratorMutator;
@@ -104,6 +105,7 @@ export const getQueryOptionsDefinition = ({
   isReturnType: boolean;
   initialData?: 'defined' | 'undefined';
   isAngularClient: boolean;
+  isVueClient?: boolean;
 }) => {
   const isMutatorHook = mutator?.isHook;
   const prefix = !hasSvelteQueryV4 && !isAngularClient ? 'Use' : 'Create';
@@ -149,7 +151,11 @@ export const getQueryOptionsDefinition = ({
     }${optionTypeInitialDataPostfix}`;
   }
 
-  return `${prefix}MutationOptions<Awaited<ReturnType<${
+  const mutationOptionsType = isVueClient
+    ? 'MutationObserverOptions'
+    : `${prefix}MutationOptions`;
+
+  return `${mutationOptionsType}<Awaited<ReturnType<${
     isMutatorHook
       ? `ReturnType<typeof use${pascal(operationName)}Hook>`
       : `typeof ${operationName}`
@@ -171,6 +177,7 @@ export const generateQueryArguments = ({
   initialData,
   httpClient,
   isAngularClient,
+  isVueClient,
   forQueryOptions = false,
   forAngularInject = false,
 }: {
@@ -188,6 +195,7 @@ export const generateQueryArguments = ({
   initialData?: 'defined' | 'undefined';
   httpClient: OutputHttpClient;
   isAngularClient: boolean;
+  isVueClient?: boolean;
   /** When true, don't make options an Accessor for svelte-query v6 */
   forQueryOptions?: boolean;
   /** When true, wrap options type in getter alternative for Angular reactive support. */
@@ -206,6 +214,7 @@ export const generateQueryArguments = ({
     isReturnType: false,
     initialData,
     isAngularClient,
+    isVueClient,
   });
 
   // Note: For Angular Query, http: HttpClient is added as the FIRST parameter

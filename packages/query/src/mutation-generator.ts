@@ -23,7 +23,7 @@ import {
   getQueryOptionsDefinition,
 } from './query-options';
 import { generateMutatorReturnType } from './return-types';
-import { isAngular, isReact, isSolid, isSvelte } from './utils';
+import { isAngular, isReact, isSolid, isSvelte, isVue } from './utils';
 
 type NormalizedTarget = {
   query: string;
@@ -139,6 +139,9 @@ export const generateMutationHook = async ({
     : `typeof ${operationName}`;
 
   const isAngularClient = isAngular(outputClient);
+  const isReactClient = isReact(outputClient);
+  const isSvelteClient = isSvelte(outputClient);
+  const isVueClient = isVue(outputClient);
 
   const mutationOptionFnReturnType = getQueryOptionsDefinition({
     operationName,
@@ -149,6 +152,7 @@ export const generateMutationHook = async ({
     hasQueryV5WithInfiniteQueryOptionsError,
     isReturnType: true,
     isAngularClient,
+    isVueClient,
   });
 
   const mutationArguments = generateQueryArguments({
@@ -162,6 +166,7 @@ export const generateMutationHook = async ({
     hasQueryV5WithInfiniteQueryOptionsError,
     httpClient,
     isAngularClient,
+    isVueClient,
   });
 
   // Separate arguments for getMutationOptions function (includes http: HttpClient param for Angular)
@@ -176,6 +181,7 @@ export const generateMutationHook = async ({
     hasQueryV5WithInfiniteQueryOptionsError,
     httpClient,
     isAngularClient,
+    isVueClient,
     forQueryOptions: true,
   });
 
@@ -205,7 +211,7 @@ export const generateMutationHook = async ({
   });
   const hasInvalidation =
     uniqueInvalidates.length > 0 &&
-    (isAngularClient || isReact(outputClient) || isSvelte(outputClient));
+    (isAngularClient || isReactClient || isSvelteClient || isVueClient);
 
   // For Angular, add http: HttpClient as FIRST param (required, before optional params)
   // This avoids TS1016 "required param cannot follow optional param"
@@ -241,23 +247,18 @@ ${hooksOptionImplementation}
 
 ${
   hasInvalidation
-    ? isAngular(outputClient)
+    ? isAngularClient || isVueClient || (isSvelteClient && hasSvelteQueryV6)
       ? `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
 ${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
   };`
-      : isReact(outputClient)
+      : isReactClient
         ? `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext) => {
 ${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
     mutationOptions?.onSuccess?.(data, variables, context);
   };`
-        : isSvelte(outputClient)
-          ? hasSvelteQueryV6
-            ? `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
-${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
-    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
-  };`
-            : `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext | undefined) => {
+        : isSvelteClient
+          ? `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext | undefined) => {
 ${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
     mutationOptions?.onSuccess?.(data, variables, context);
   };`
@@ -292,17 +293,19 @@ ${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
 
   const operationPrefix = getFrameworkPrefix(
     hasSvelteQueryV4,
-    isAngular(outputClient),
+    isAngularClient,
     isSolid(outputClient),
   );
   const optionalQueryClientArgument = hasSvelteQueryV6
     ? ', queryClient?: () => QueryClient'
-    : (hasQueryV5 || (isSvelte(outputClient) && hasInvalidation)) &&
-        !isAngular(outputClient)
+    : (hasQueryV5 ||
+          (isSvelteClient && hasInvalidation) ||
+          (isVueClient && hasInvalidation)) &&
+        !isAngularClient
       ? ', queryClient?: QueryClient'
       : '';
 
-  const mutationImplementation = `${mutationOptionsFnName}(${hasInvalidation ? (hasSvelteQueryV6 ? 'backupQueryClient, ' : `queryClient${isReact(outputClient) || isSvelte(outputClient) ? ' ?? backupQueryClient' : ''}, `) : ''}${
+  const mutationImplementation = `${mutationOptionsFnName}(${hasInvalidation ? (hasSvelteQueryV6 ? 'backupQueryClient, ' : `queryClient${isReactClient || isSvelteClient || isVueClient ? ' ?? backupQueryClient' : ''}, `) : ''}${
     isRequestOptions ? 'options' : 'mutationOptions'
   }${hasSvelteQueryV6 ? '?.()' : ''})`;
 
@@ -336,7 +339,7 @@ ${mutationOptionsFn}
       },
     )} => {
 ${
-  isAngular(outputClient)
+  isAngularClient
     ? isAngularHttp && (!mutator || mutator.hasSecondArg)
       ? `      const http = inject(HttpClient);${hasInvalidation ? '\n      const queryClient = inject(QueryClient);' : ''}
       const ${mutationOptionsVarName} = ${mutationOptionsFnName}(http${hasInvalidation ? ', queryClient' : ''}${isRequestOptions ? ', options' : ', mutationOptions'});
@@ -345,10 +348,10 @@ ${
       : `      const ${mutationOptionsVarName} = ${mutationImplementation};
 
       return ${operationPrefix}Mutation(() => ${mutationOptionsVarName});`
-    : `      ${(isReact(outputClient) || isSvelte(outputClient)) && hasInvalidation ? `const backupQueryClient = useQueryClient(${hasSvelteQueryV6 && optionalQueryClientArgument ? 'queryClient?.()' : ''});\n      ` : ''}return ${operationPrefix}Mutation(${
+    : `      ${(isReactClient || isSvelteClient || isVueClient) && hasInvalidation ? `const backupQueryClient = useQueryClient(${hasSvelteQueryV6 && optionalQueryClientArgument ? 'queryClient?.()' : ''});\n      ` : ''}return ${operationPrefix}Mutation(${
         hasSvelteQueryV6
           ? `() => ({ ...${mutationImplementation} })${optionalQueryClientArgument ? `, queryClient` : ''}`
-          : isSvelte(outputClient)
+          : isSvelteClient
             ? mutationImplementation
             : `${mutationImplementation}${optionalQueryClientArgument ? `, queryClient` : ''}`
       });`

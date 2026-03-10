@@ -23,6 +23,40 @@ export default defineConfig({
       },
     },
   },
+  invalidates: {
+    output: {
+      target: '../generated/vue-query/invalidates/endpoints.ts',
+      schemas: '../generated/vue-query/invalidates/model',
+      client: 'vue-query',
+      httpClient: 'axios',
+      mock: true,
+      headers: true,
+      override: {
+        query: {
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['listPets'],
+            },
+            {
+              onMutations: ['deletePet', 'updatePet', 'patchPet'],
+              invalidates: [
+                'listPets',
+                { query: 'showPetById', params: ['petId'] },
+              ],
+            },
+            {
+              onMutations: ['uploadFile'],
+              invalidates: ['listPets'],
+            },
+          ],
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   zodSchemaResponse: {
     output: {
       target: '../generated/vue-query/zod-schema-response/endpoints.ts',
