@@ -73,6 +73,16 @@ const possibleSchemaTypes = new Set([
   'array',
 ]);
 
+const predefinedZodFormats = new Set([
+  'date',
+  'time',
+  'date-time',
+  'email',
+  'uri',
+  'hostname',
+  'uuid',
+]);
+
 type ResolvedZodType =
   | string
   | {
@@ -518,17 +528,7 @@ export const generateZodValidationSchemaDefinition = (
         }
 
         if (isZodV4) {
-          if (
-            ![
-              'date',
-              'time',
-              'date-time',
-              'email',
-              'uri',
-              'hostname',
-              'uuid',
-            ].includes(schema.format ?? '')
-          ) {
+          if (!predefinedZodFormats.has(schema.format ?? '')) {
             if ('const' in schema) {
               functions.push(['literal', `"${schema.const}"`]);
             } else if (schema.pattern && schema.format) {
@@ -574,8 +574,17 @@ export const generateZodValidationSchemaDefinition = (
           break;
         }
 
-        if (schema.format === 'uri' || schema.format === 'hostname') {
+        if (schema.format === 'uri') {
           functions.push(['url', undefined]);
+          break;
+        }
+
+        if (schema.format === 'hostname') {
+          if (isZodV4) {
+            functions.push(['hostname', undefined]);
+          } else {
+            functions.push(['url', undefined]);
+          }
           break;
         }
 
@@ -735,7 +744,7 @@ export const generateZodValidationSchemaDefinition = (
     consts.push(
       `export const ${name}RegExp${constsCounterValue} = ${regexp};\n`,
     );
-    if (schema.format && isZodV4) {
+    if (schema.format && !predefinedZodFormats.has(schema.format) && isZodV4) {
       functions.push([
         'stringFormat',
         [`'${escape(schema.format)}'`, `${name}RegExp${constsCounterValue}`],
