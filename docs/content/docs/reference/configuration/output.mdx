@@ -376,9 +376,10 @@ Clean generated files before regenerating.
 
 ## formatter
 
-**Type:** `'prettier' | 'biome' | 'oxfmt' | 'none'`
+**Type:** `'prettier' | 'biome' | 'oxfmt' | undefined`
+**Default:** `undefined`
 
-Format generated files with the specified formatter. Only one formatter can be used at a time. Use `'none'` to explicitly disable formatting (useful to override a global formatter).
+Format generated files with the specified formatter. Only one formatter can be used at a time.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -389,27 +390,6 @@ export default defineConfig({
   },
 });
 ```
-
-### prettier (deprecated)
-
-**Type:** `Boolean`
-**Default:** `false`
-
-Deprecated. Use `formatter: 'prettier'` instead.
-
-### biome (deprecated)
-
-**Type:** `Boolean`
-**Default:** `false`
-
-Deprecated. Use `formatter: 'biome'` instead.
-
-### oxfmt (deprecated)
-
-**Type:** `Boolean`
-**Default:** `false`
-
-Deprecated. Use `formatter: 'oxfmt'` instead.
 
 ## headers
 

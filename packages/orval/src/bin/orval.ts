@@ -16,7 +16,7 @@ import {
 import pkg from '../../package.json';
 import { generateSpec } from '../generate-spec';
 import { findConfigFile, loadConfigFile } from '../utils/config';
-import { formatterFromFlags, normalizeOptions } from '../utils/options';
+import { normalizeOptions } from '../utils/options';
 import { startWatcher } from '../utils/watcher';
 
 const orvalMessage = startMessage({
@@ -73,27 +73,15 @@ cli
   .option('--mock', 'activate the mock')
   .option('--clean [paths...]', 'Clean output directory')
   .addOption(
-    new Option('--prettier', 'Format generated files with Prettier').conflicts([
-      'biome',
-      'oxfmt',
-    ]),
-  )
-  .addOption(
-    new Option('--biome', 'Format generated files with Biome').conflicts([
-      'prettier',
-      'oxfmt',
-    ]),
-  )
-  .addOption(
-    new Option('--oxfmt', 'Format generated files with oxfmt').conflicts([
-      'prettier',
-      'biome',
-    ]),
+    new Option(
+      '--formatter <name>',
+      'Format generated files (prettier, biome, oxfmt)',
+    ).choices(['prettier', 'biome', 'oxfmt'] as const),
   )
   .option('--tsconfig <path>', 'path to your tsconfig file')
   .option('--verbose', 'Enable verbose logging')
   .action(async (options) => {
-    const formatter = formatterFromFlags(options);
+    const { formatter } = options;
 
     if (options.verbose) {
       setVerbose(true);
@@ -163,10 +151,8 @@ cli
 
       let hasErrors = false;
       for (const [projectName, config] of configs) {
-        const { prettier, biome, oxfmt, ...restOptions } = options;
         const normalizedOptions = await normalizeOptions(config, workspace, {
-          ...restOptions,
-          formatter,
+          ...options,
         });
 
         if (options.watch === undefined) {
