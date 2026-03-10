@@ -124,6 +124,44 @@ const getTypeConstEnum = (
   return enumValue;
 };
 
+/**
+ * Derive the object/enum key for a single enum value.
+ *
+ * Handles numeric prefixes, sanitization, and optional naming convention
+ * transforms.  When `disambiguate` is true, special characters (-/+) are
+ * replaced with semantic words before the convention transform to prevent
+ * key collisions.
+ */
+function deriveEnumKey(
+  val: string,
+  enumNamingConvention?: NamingConvention,
+  disambiguate = false,
+): string {
+  let key = val.startsWith("'") ? val.slice(1, -1) : val;
+
+  if (isNumeric(key)) {
+    key = toNumberKey(key);
+  }
+
+  if (key.length > 1) {
+    key = sanitize(key, {
+      whitespace: '_',
+      underscore: true,
+      dash: true,
+      special: true,
+    });
+  }
+
+  if (enumNamingConvention) {
+    if (disambiguate) {
+      key = replaceSpecialCharacters(key);
+    }
+    key = conventionName(key, enumNamingConvention);
+  }
+
+  return key;
+}
+
 export function getEnumImplementation(
   value: string,
   names?: string[],
@@ -134,6 +172,15 @@ export function getEnumImplementation(
   if (value === '') return '';
 
   const uniqueValues = [...new Set(value.split(' | '))];
+
+  // Check whether the naming convention produces duplicate keys.
+  // Only apply special-character disambiguation when it does,
+  // so that existing output is preserved for non-colliding enums.
+  const disambiguate =
+    !!enumNamingConvention &&
+    new Set(uniqueValues.map((v) => deriveEnumKey(v, enumNamingConvention)))
+      .size < uniqueValues.length;
+
   let result = '';
   for (const [index, val] of uniqueValues.entries()) {
     const name = names?.[index];
@@ -147,27 +194,7 @@ export function getEnumImplementation(
       continue;
     }
 
-    let key = val.startsWith("'") ? val.slice(1, -1) : val;
-
-    const isNumber = isNumeric(key);
-
-    if (isNumber) {
-      key = toNumberKey(key);
-    }
-
-    if (key.length > 1) {
-      key = sanitize(key, {
-        whitespace: '_',
-        underscore: true,
-        dash: true,
-        special: true,
-      });
-    }
-
-    if (enumNamingConvention) {
-      key = replaceSpecialCharacters(key);
-      key = conventionName(key, enumNamingConvention);
-    }
+    const key = deriveEnumKey(val, enumNamingConvention, disambiguate);
 
     result +=
       comment +
@@ -196,6 +223,12 @@ const getNativeEnumItems = (
   if (value === '') return '';
 
   const uniqueValues = [...new Set(value.split(' | '))];
+
+  const disambiguate =
+    !!enumNamingConvention &&
+    new Set(uniqueValues.map((v) => deriveEnumKey(v, enumNamingConvention)))
+      .size < uniqueValues.length;
+
   let result = '';
   for (const [index, val] of uniqueValues.entries()) {
     const name = names?.[index];
@@ -204,27 +237,7 @@ const getNativeEnumItems = (
       continue;
     }
 
-    let key = val.startsWith("'") ? val.slice(1, -1) : val;
-
-    const isNumber = isNumeric(key);
-
-    if (isNumber) {
-      key = toNumberKey(key);
-    }
-
-    if (key.length > 1) {
-      key = sanitize(key, {
-        whitespace: '_',
-        underscore: true,
-        dash: true,
-        special: true,
-      });
-    }
-
-    if (enumNamingConvention) {
-      key = replaceSpecialCharacters(key);
-      key = conventionName(key, enumNamingConvention);
-    }
+    const key = deriveEnumKey(val, enumNamingConvention, disambiguate);
 
     result += `  ${keyword.isIdentifierNameES5(key) ? key : `'${key}'`}= ${val},\n`;
   }

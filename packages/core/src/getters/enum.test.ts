@@ -21,8 +21,6 @@ describe('getEnumImplementation', () => {
         NamingConvention.PASCAL_CASE,
       );
 
-      // "-" is replaced with "Minus" before PascalCase, so both values
-      // produce distinct keys
       expect(result).toContain('CreatedAt');
       expect(result).toContain('MinusCreatedAt');
       expect(result).toContain('Email');
@@ -65,6 +63,20 @@ describe('getEnumImplementation', () => {
       expect(result).toContain('Active');
       expect(result).toContain('Inactive');
       expect(result).toContain('Pending');
+    });
+
+    it('should not change keys when dash values do not collide', () => {
+      // "-date" alone (no "date") should still produce "Date", not "MinusDate"
+      const result = getEnumImplementation(
+        "'-date' | 'name'",
+        undefined,
+        undefined,
+        NamingConvention.PASCAL_CASE,
+      );
+
+      expect(result).toContain('Date');
+      expect(result).toContain('Name');
+      expect(result).not.toContain('Minus');
     });
   });
 });
