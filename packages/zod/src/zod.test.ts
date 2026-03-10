@@ -744,7 +744,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).toContain('.strict()');
     // Should be a single object, not multiple objects
     expect(parsed.zod).toMatch(
-      /zod\.object\(\{[^}]*"name"[^}]*"swimming"[^}]*\}\)\.strict\(\)/,
+      /zod\.object\(\{[^}]*"name"[^}]*"swimming"[^}]*}\)\.strict\(\)/,
     );
   });
 
@@ -816,7 +816,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).toContain('strictObject');
     // Should be a single object, not multiple objects
     expect(parsed.zod).toMatch(
-      /zod\.strictObject\(\{[^}]*"name"[^}]*"swimming"[^}]*\}\)/,
+      /zod\.strictObject\(\{[^}]*"name"[^}]*"swimming"[^}]*}\)/,
     );
   });
 
@@ -5750,4 +5750,123 @@ describe('generateZodValidationSchemaDefinition (contentMediaType: application/o
       consts: [],
     });
   });
+});
+
+it('uses regex after predefined format validator in v4', () => {
+  const schema: OpenApiSchemaObject = {
+    type: 'string',
+    format: 'uuid',
+    pattern: '^[0-9a-f-]+$',
+  };
+
+  const result = generateZodValidationSchemaDefinition(
+    schema,
+    {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpec,
+    'testUuidPattern',
+    true, // strict mode
+    true, // Zod v4
+    { required: true },
+  );
+
+  const parsed = parseZodValidationSchemaDefinition(
+    result,
+    {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpec,
+    true,
+    true,
+    true,
+  );
+
+  expect(parsed.zod).toContain('.uuid()');
+  expect(parsed.zod).toContain('.regex(');
+  expect(parsed.zod).not.toContain('.stringFormat(');
+});
+
+it('generates hostname validator in v4 for hostname format', () => {
+  const schema: OpenApiSchemaObject = {
+    type: 'string',
+    format: 'hostname',
+  };
+
+  const result = generateZodValidationSchemaDefinition(
+    schema,
+    {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpec,
+    'testHostnameV4',
+    true,
+    true, // Zod v4
+    { required: true },
+  );
+
+  const parsed = parseZodValidationSchemaDefinition(
+    result,
+    {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpec,
+    false,
+    true,
+    true,
+  );
+
+  expect(parsed.zod).toContain('.hostname()');
+  expect(parsed.zod).not.toContain('.url()');
+});
+
+it('falls back to url validator for hostname format in v3', () => {
+  const schema: OpenApiSchemaObject = {
+    type: 'string',
+    format: 'hostname',
+  };
+
+  const result = generateZodValidationSchemaDefinition(
+    schema,
+    {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpec,
+    'testHostnameV3',
+    true,
+    false, // Zod v3
+    { required: true },
+  );
+
+  const parsed = parseZodValidationSchemaDefinition(
+    result,
+    {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpec,
+    false,
+    true,
+    false,
+  );
+
+  expect(parsed.zod).toContain('.url()');
+  expect(parsed.zod).not.toContain('.hostname()');
 });
