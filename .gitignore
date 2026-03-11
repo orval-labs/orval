@@ -104,3 +104,6 @@ tests/generated
 
 # Ignore the skills folder
 .github/skills
+
+# Claude Code worktrees
+.claude/worktrees/
