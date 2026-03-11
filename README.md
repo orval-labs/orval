@@ -68,6 +68,8 @@ This project uses [Bun](https://bun.sh/) for package management and building. Bu
 
 - **`bun run build`** - Build the project and make changes available to the workspace. Run this after making code changes to compile TypeScript and prepare the project for use.
 
+- **`bun run typecheck`** - Run TypeScript type checking across all packages.
+
 ### Test Scripts
 
 - **`bun run test`** - Run unit tests in all packages.
@@ -88,11 +90,12 @@ A typical development workflow would be:
 
 1. Make your code changes
 2. Run `bun run build` to compile your changes
-3. Run `bun run lint` to catch lint issues early
-4. Run `bun run test` to run unit tests in packages
-5. Run `bun run test:snapshots` to verify generated output matches snapshots
+3. Run `bun run typecheck` to verify package typings
+4. Run `bun run lint` to catch lint issues early
+5. Run `bun run test` to run unit tests in packages
+6. Run `bun run test:snapshots` to verify generated output matches snapshots
 
-If step 5 fails because the generated output has intentionally changed, run `bun run test:snapshots:update` to update the snapshots.
+If step 6 fails because the generated output has intentionally changed, run `bun run test:snapshots:update` to update the snapshots.
 
 If you encounter issues or want to start completely fresh:
 

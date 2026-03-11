@@ -209,17 +209,17 @@ const getUnion = (value: string, enumName: string) => {
   return `export type ${enumName} = ${value};`;
 };
 
-type CombinedEnumInput = {
+interface CombinedEnumInput {
   value: string;
   isRef: boolean;
   schema: OpenApiSchemaObject | undefined;
-};
+}
 
-type CombinedEnumValue = {
+interface CombinedEnumValue {
   value: string;
   valueImports: string[];
   hasNull: boolean;
-};
+}
 
 export function getEnumUnionFromSchema(
   schema: OpenApiSchemaObject | undefined,

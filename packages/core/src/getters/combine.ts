@@ -18,7 +18,7 @@ import { getCombinedEnumValue } from './enum';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getScalar } from './scalar';
 
-type CombinedData = {
+interface CombinedData {
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
   originalSchema: (OpenApiSchemaObject | undefined)[];
@@ -36,7 +36,7 @@ type CombinedData = {
   requiredProperties: string[];
   example?: unknown;
   examples?: Record<string, unknown> | unknown[];
-};
+}
 
 type Separator = 'allOf' | 'anyOf' | 'oneOf';
 const mergeableAllOfKeys = new Set(['type', 'properties', 'required']);
@@ -80,7 +80,7 @@ function normalizeAllOfSchema(
   const mergedProperties: Record<
     string,
     OpenApiSchemaObject | OpenApiReferenceObject
-  > = { ...schemaProperties };
+  > = schemaProperties ? { ...schemaProperties } : {};
   const mergedRequired = new Set(schemaRequired);
   const remainingAllOf: (OpenApiSchemaObject | OpenApiReferenceObject)[] = [];
 
@@ -107,7 +107,7 @@ function normalizeAllOfSchema(
   }
 
   return {
-    ...schema,
+    ...(schema as Record<string, unknown>),
     ...(Object.keys(mergedProperties).length > 0 && {
       properties: mergedProperties,
     }),
@@ -147,10 +147,10 @@ function combineValues({
       .join(` & `);
     if (resolvedData.originalSchema.length > 0 && resolvedValue) {
       // Bridge: discriminator is typed but AnyOtherAttribute infects access
-      type Discriminator = {
+      interface Discriminator {
         propertyName?: string;
         mapping?: Record<string, string>;
-      };
+      }
       const discriminatedPropertySchemas = resolvedData.originalSchema.filter(
         (s) => {
           const disc = s?.discriminator as Discriminator | undefined;
@@ -409,7 +409,17 @@ export function combineSchemas({
 
   let resolvedValue: ScalarValue | undefined;
 
-  if (normalizedSchema.properties) {
+  const normalizedProperties = normalizedSchema.properties as
+    | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+    | undefined;
+  const schemaOneOf = schema.oneOf as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+  const schemaAnyOf = schema.anyOf as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+
+  if (normalizedProperties) {
     resolvedValue = getScalar({
       item: Object.fromEntries(
         Object.entries(normalizedSchema).filter(([key]) => key !== separator),
@@ -418,13 +428,11 @@ export function combineSchemas({
       context,
       formDataContext,
     });
-  } else if (separator === 'allOf' && (schema.oneOf || schema.anyOf)) {
+  } else if (separator === 'allOf' && (schemaOneOf || schemaAnyOf)) {
     // Handle sibling pattern: allOf + oneOf/anyOf at same level
     // e.g. { allOf: [A], oneOf: [B, C] } should produce A & (B | C)
-    const siblingCombiner = schema.oneOf ? 'oneOf' : 'anyOf';
-    const siblingSchemas = schema[siblingCombiner] as
-      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-      | undefined;
+    const siblingCombiner = schemaOneOf ? 'oneOf' : 'anyOf';
+    const siblingSchemas = schemaOneOf ?? schemaAnyOf;
     resolvedValue = combineSchemas({
       schema: { [siblingCombiner]: siblingSchemas },
       name,

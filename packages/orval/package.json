@@ -64,6 +64,7 @@
     "dev": "tsdown --config-loader unrun --watch src",
     "lint": "oxlint --type-aware",
     "test": "vitest",
+    "typecheck": "tsc --noEmit",
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
   },
@@ -102,6 +103,7 @@
     "@types/fs-extra": "^11.0.4",
     "@types/js-yaml": "^4.0.9",
     "oxlint": "catalog:",
+    "prettier": "catalog:",
     "rimraf": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",

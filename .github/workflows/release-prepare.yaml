@@ -47,7 +47,7 @@ jobs:
       - name: Update versions, generated output and snapshots
         run: |
           echo "Updating all workspace versions to ${{ github.event.inputs.version }}"
-          for pkg in packages/*/package.json package.json; do
+          for pkg in $(find . -name package.json -not -path '*/node_modules/*' -not -path '*/dist/*'); do
             jq --arg v "${{ github.event.inputs.version }}" '.version = $v' "$pkg" > tmp.$$.json && mv tmp.$$.json "$pkg"
           done
           bun run test:snapshots:update

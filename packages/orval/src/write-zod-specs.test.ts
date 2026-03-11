@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { writeZodSchemas, writeZodSchemasFromVerbs } from './write-zod-specs';
 
-type MinimalVerbsContext = {
+interface MinimalVerbsContext {
   output: {
     override: {
       useDates?: boolean;
@@ -18,7 +18,7 @@ type MinimalVerbsContext = {
   spec: unknown;
   target: string;
   workspace: string;
-};
+}
 const createOutputOptions = (): Parameters<typeof writeZodSchemas>[4] =>
   ({
     namingConvention: 'PascalCase',

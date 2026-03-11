@@ -124,11 +124,11 @@ export function camel(s = '') {
   return isStartWithUnderscore ? `_${camelString}` : camelString;
 }
 
-export function snake(s: string) {
+export function snake(s = '') {
   return lower(s, '_', true);
 }
 
-export function kebab(s: string) {
+export function kebab(s = '') {
   return lower(s, '-', true);
 }
 

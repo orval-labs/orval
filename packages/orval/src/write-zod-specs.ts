@@ -19,17 +19,17 @@ import {
 import fs from 'fs-extra';
 import path from 'node:path';
 
-type ZodSchemaFileEntry = {
+interface ZodSchemaFileEntry {
   schemaName: string;
   consts: string;
   zodExpression: string;
-};
+}
 
 type ZodSchemaFileToWrite = ZodSchemaFileEntry & {
   filePath: string;
 };
 
-type WriteZodOutputOptions = {
+interface WriteZodOutputOptions {
   namingConvention: NamingConvention;
   indexFiles: boolean;
   packageJson?: NormalizedOutputOptions['packageJson'];
@@ -43,22 +43,22 @@ type WriteZodOutputOptions = {
       };
     };
   };
-};
+}
 
-type WriteZodSchemasInput = {
+interface WriteZodSchemasInput {
   spec: ContextSpec['spec'];
   target: string;
   schemas: {
     name: string;
     schema?: OpenApiSchemaObject | OpenApiReferenceObject;
   }[];
-};
+}
 
-type WriteZodVerbResponseType = {
+interface WriteZodVerbResponseType {
   value: string;
   isRef?: boolean;
   originalSchema?: OpenApiSchemaObject;
-};
+}
 
 type WriteZodSchemasFromVerbsInput = Record<
   string,
@@ -77,20 +77,20 @@ type WriteZodSchemasFromVerbsInput = Record<
   }
 >;
 
-type WriteZodSchemasFromVerbsContext = {
+interface WriteZodSchemasFromVerbsContext {
   output: {
     override: {
-      useDates?: boolean;
-      zod: {
-        dateTimeOptions?: Record<string, unknown>;
-        timeOptions?: Record<string, unknown>;
-      };
+      useDates?: NormalizedOutputOptions['override']['useDates'];
+      zod: Pick<
+        NormalizedOutputOptions['override']['zod'],
+        'dateTimeOptions' | 'timeOptions'
+      >;
     };
   };
   spec: ContextSpec['spec'];
   target: string;
   workspace: string;
-};
+}
 
 function generateZodSchemaFileContent(
   header: string,
@@ -284,7 +284,7 @@ export async function writeZodSchemasFromVerbs(
   output: WriteZodOutputOptions,
   context: WriteZodSchemasFromVerbsContext,
 ) {
-  const zodContext = context as ContextSpec;
+  const zodContext = context as unknown as ContextSpec;
   const verbOptionsArray = Object.values(verbOptions);
 
   if (verbOptionsArray.length === 0) {
@@ -298,10 +298,7 @@ export async function writeZodSchemasFromVerbs(
   const generateVerbsSchemas = verbOptionsArray.flatMap((verbOption) => {
     const operation = verbOption.originalOperation;
 
-    const requestBody = operation.requestBody as
-      | OpenApiRequestBodyObject
-      | OpenApiReferenceObject
-      | undefined;
+    const requestBody = operation.requestBody;
     const requestBodyContent =
       requestBody && 'content' in requestBody
         ? (requestBody as OpenApiRequestBodyObject).content

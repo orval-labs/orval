@@ -13,14 +13,14 @@ import { jsDoc, pascal, sanitize } from '../utils';
 import { getEnum, getEnumDescriptions, getEnumNames } from './enum';
 import { getKey } from './keys';
 
-type QueryParamsType = {
+interface QueryParamsType {
   name: string;
   required: boolean;
   definition: string;
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
   originalSchema: OpenApiSchemaObject;
-};
+}
 
 const isOpenApiSchemaObject = (
   value: unknown,

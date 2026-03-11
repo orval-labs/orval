@@ -14,7 +14,7 @@ const petSchema: OpenApiSchemaObject = {
   },
 };
 
-const context: ContextSpec = {
+const context = {
   output: {
     override: {
       enumGenerationType: 'const',
@@ -42,7 +42,7 @@ const context: ContextSpec = {
       },
     },
   },
-} as ContextSpec;
+} as unknown as ContextSpec;
 
 describe('combineSchemas (allOf required handling)', () => {
   it('does not add Required<Pick> when required properties are defined on parent', () => {

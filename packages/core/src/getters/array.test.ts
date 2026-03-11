@@ -1,21 +1,21 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpec, OpenApiSchemaObject } from '../types';
+import type { OpenApiSchemaObject } from '../types';
 
+import { createTestContextSpec } from '../test-utils/context';
 import { getArray } from './array';
 
 describe('getArray', () => {
-  const context: ContextSpec = {
-    output: {
-      override: {
-        components: {
-          schemas: { suffix: '', itemSuffix: 'Item' },
-        },
+  const context = createTestContextSpec({
+    override: {
+      components: {
+        schemas: { suffix: '', itemSuffix: 'Item' },
+        responses: { suffix: '' },
+        parameters: { suffix: '' },
+        requestBodies: { suffix: '' },
       },
     },
-    target: 'typescript',
-    spec: { openapi: '3.1.0' },
-  };
+  });
 
   it('should inline types when name is undefined (no schemas generated)', () => {
     // When name is undefined, types should be inlined, not declared as schemas.

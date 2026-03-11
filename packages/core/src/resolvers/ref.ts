@@ -22,9 +22,9 @@ type Examples =
   | Record<string, ResolvedExample>
   | undefined;
 
-type WithOptionalExamples = {
+interface WithOptionalExamples {
   examples?: Examples;
-};
+}
 
 const REF_NOT_FOUND_PREFIX = 'Oops... 🍻. Ref not found';
 
@@ -138,22 +138,23 @@ function getSchema<TSchema extends object = OpenApiComponentsObject>(
 
   const { refPaths } = refInfo;
 
-  let schemaByRefPaths = Array.isArray(refPaths)
+  const schemaByRefPaths:
+    | OpenApiSchemaObject
+    | OpenApiReferenceObject
+    | undefined = Array.isArray(refPaths)
     ? (prop(
         context.spec,
         // @ts-expect-error: [ts2556] refPaths are not guaranteed to be valid keys of the spec
         ...refPaths,
-      ) as OpenApiSchemaObject | OpenApiReferenceObject)
+      ) as OpenApiSchemaObject | OpenApiReferenceObject | undefined)
     : undefined;
 
-  schemaByRefPaths ??= context.spec;
-
-  if (isReference(schemaByRefPaths)) {
+  if (isObject(schemaByRefPaths) && isReference(schemaByRefPaths)) {
     return getSchema(schemaByRefPaths, context);
   }
 
-  let currentSchema: OpenApiSchemaObject | OpenApiReferenceObject =
-    schemaByRefPaths || context.spec;
+  let currentSchema: OpenApiSchemaObject | OpenApiReferenceObject | undefined =
+    schemaByRefPaths;
 
   // Handle OpenAPI 3.0 nullable property
   // Bridge assertion: schema properties are `any` due to AnyOtherAttribute
@@ -182,7 +183,7 @@ function getSchema<TSchema extends object = OpenApiComponentsObject>(
   }
 
   return {
-    currentSchema: currentSchema as TSchema,
+    currentSchema: currentSchema as TSchema | undefined,
     refInfo,
   };
 }
@@ -204,7 +205,7 @@ export function resolveExampleRefs(
           // Bridge assertion: ExampleObject.value is typed as `any`
           return schema.value as ResolvedExample;
         }
-        return example as ResolvedExample;
+        return example;
       })
     : (() => {
         const result: Record<string, ResolvedExample> = {};
@@ -214,7 +215,7 @@ export function resolveExampleRefs(
             isObject(example) && isReference(example)
               ? (resolveRef<OpenApiExampleObject>(example, context).schema
                   .value as ResolvedExample)
-              : (example as ResolvedExample);
+              : example;
         }
         return result;
       })();

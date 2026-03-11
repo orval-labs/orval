@@ -54,7 +54,7 @@ export function getRefInfo($ref: string, context: ContextSpec): RefInfo {
   const suffix = getOverrideSuffix(context.output.override, refPaths);
 
   const originalName = ref
-    ? refPaths[refPaths.length - 1]
+    ? (refPaths.at(-1) ?? '')
     : upath.getSchemaFileName(pathname);
 
   if (!pathname) {

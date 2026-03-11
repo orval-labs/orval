@@ -30,7 +30,10 @@ export async function writeTagsMode({
     dirname,
     extension,
   } = getFileInfo(output.target, {
-    backupFilename: conventionName(builder.info.title, output.namingConvention),
+    backupFilename: conventionName(
+      builder.info.title ?? 'filename',
+      output.namingConvention,
+    ),
     extension: output.fileExtension,
   });
 

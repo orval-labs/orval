@@ -135,11 +135,12 @@ export function getResReqTypes(
               isEnum: false,
               isRef: true,
               hasReadonlyProps: false,
+              dependencies: [name],
               originalSchema: undefined,
               example: undefined,
               examples: undefined,
               key,
-              contentType: undefined,
+              contentType: '',
             },
           ] as ResReqTypesValue[];
         }
@@ -159,6 +160,7 @@ export function getResReqTypes(
               isEnum: false,
               isRef: true,
               hasReadonlyProps: false,
+              dependencies: [name],
               originalSchema: mediaType.schema,
               example: mediaType.example as unknown,
               examples: resolveExampleRefs(
@@ -212,6 +214,7 @@ export function getResReqTypes(
             type: 'unknown',
             isEnum: false,
             hasReadonlyProps: false,
+            dependencies: [name],
             formData,
             formUrlEncoded,
             isRef: true,
@@ -285,6 +288,7 @@ export function getResReqTypes(
               return {
                 ...resolvedValue,
                 imports: resolvedValue.imports,
+                dependencies: resolvedValue.dependencies,
                 contentType,
                 example: mediaType.example,
                 examples: resolveExampleRefs(mediaType.examples, context),
@@ -374,6 +378,7 @@ export function getResReqTypes(
           schemas: [],
           type: defaultType,
           isEnum: false,
+          dependencies: [],
           key,
           isRef: false,
           hasReadonlyProps: false,
@@ -400,7 +405,7 @@ export function getSuccessResponseType(
 ): 'blob' | 'text' | undefined {
   const successContentTypes = response.types.success
     .map((t) => t.contentType)
-    .filter(Boolean) as string[];
+    .filter(Boolean);
 
   if (response.isBlob) {
     return 'blob' as const;

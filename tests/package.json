@@ -24,7 +24,7 @@
     "generate:hono": "orval --config ./configs/hono.config.ts",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
     "test:snapshots:update": "bun run test:snapshots --update",
-    "build": "tsc && bun run verify:mock-generated",
+    "build": "node ./scripts/typecheck-generated.mjs && bun run verify:mock-generated",
     "verify:mock-generated": "node ./scripts/verify-mock-generated.mjs",
     "clean": "rimraf .turbo dist generated",
     "nuke": "rimraf .turbo dist generated node_modules"
@@ -35,6 +35,7 @@
     "@faker-js/faker": "catalog:tooling",
     "@hono/zod-validator": "catalog:hono",
     "@modelcontextprotocol/sdk": "catalog:mcp",
+    "@orval/core": "workspace:*",
     "@tanstack/react-query": "catalog:react",
     "@tanstack/svelte-query": "catalog:svelte",
     "@tanstack/vue-query": "catalog:vue",

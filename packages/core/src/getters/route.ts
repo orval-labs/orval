@@ -16,13 +16,15 @@ const getRoutePath = (path: string): string => {
   if (!matches?.length) return path; // impossible due to regexp grouping here, but for TS
 
   const prev = matches[1];
-  const param = sanitize(camel(matches[2]), {
+  const rawParam = matches[2];
+  const rest = matches[3];
+  const param = sanitize(camel(rawParam), {
     es5keyword: true,
     underscore: true,
     dash: true,
     dot: true,
   });
-  const next = hasParam(matches[3]) ? getRoutePath(matches[3]) : matches[3];
+  const next = hasParam(rest) ? getRoutePath(rest) : rest;
 
   return hasParam(path)
     ? `${prev}\${${param}}${next}`
@@ -61,9 +63,10 @@ export function getFullRoute(
         Math.min(baseUrl.index ?? 0, servers.length - 1),
       );
       if (!server) return '';
-      if (!server.variables) return server.url;
+      const serverUrl = server.url ?? '';
+      if (!server.variables) return serverUrl;
 
-      let url = server.url;
+      let url = serverUrl;
       const variables = baseUrl.variables;
       for (const variableKey of Object.keys(server.variables)) {
         const variable = server.variables[variableKey];
@@ -73,7 +76,7 @@ export function getFullRoute(
             !variable.enum.some((e) => e == variables[variableKey])
           ) {
             throw new Error(
-              `Invalid variable value '${variables[variableKey]}' for variable '${variableKey}' when resolving ${server.url}. Valid values are: ${variable.enum.join(', ')}.`,
+              `Invalid variable value '${variables[variableKey]}' for variable '${variableKey}' when resolving ${serverUrl}. Valid values are: ${variable.enum.join(', ')}.`,
             );
           }
           url = url.replaceAll(`{${variableKey}}`, variables[variableKey]);

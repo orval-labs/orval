@@ -6,6 +6,7 @@ import type {
   NormalizedMutator,
   NormalizedOperationOptions,
   NormalizedOutputOptions,
+  NormalizedOverrideOutput,
   OpenApiComponentsObject,
   OpenApiOperationObject,
   OpenApiPathItemObject,
@@ -83,7 +84,7 @@ export async function generateVerbOptions({
   const override = mergeDeep(
     mergeDeep(output.override, overrideTag),
     overrideOperation ?? {},
-  );
+  ) as NormalizedOverrideOutput;
 
   const overrideOperationName =
     overrideOperation?.operationName ?? output.override.operationName;
@@ -178,7 +179,7 @@ export async function generateVerbOptions({
       ? await generateMutator({
           output: output.target,
           name: operationName,
-          mutator: override.formUrlEncoded,
+          mutator: override.formUrlEncoded as NormalizedMutator,
           workspace: context.workspace,
           tsconfig: context.output.tsconfig,
         })
@@ -208,7 +209,7 @@ export async function generateVerbOptions({
   const doc = jsDoc({ description, deprecated, summary });
 
   const verbOption: GeneratorVerbOptions = {
-    verb: verb as Verbs,
+    verb: verb,
     tags,
     route,
     pathRoute,

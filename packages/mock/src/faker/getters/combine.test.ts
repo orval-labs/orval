@@ -79,7 +79,7 @@ function createMockContext(): ContextSpec {
           signal: false,
           version: 5,
         },
-        angular: { provideIn: 'root' },
+        angular: { provideIn: 'root', runtimeValidation: false },
         swr: {},
         zod: {
           strict: {
@@ -110,10 +110,12 @@ function createMockContext(): ContextSpec {
         fetch: {
           includeHttpResponseReturnType: false,
           forceSuccessResponse: false,
+          runtimeValidation: false,
         },
         enumGenerationType: EnumGeneration.UNION,
         jsDoc: {},
         requestOptions: true,
+        aliasCombinedTypes: false,
       },
     },
   };

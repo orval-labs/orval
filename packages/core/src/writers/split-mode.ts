@@ -31,7 +31,7 @@ export async function writeSplitMode({
       extension,
     } = getFileInfo(output.target, {
       backupFilename: conventionName(
-        builder.info.title,
+        builder.info.title ?? 'filename',
         output.namingConvention,
       ),
       extension: output.fileExtension,

@@ -91,10 +91,9 @@ const createAngularHeader =
     verbOptions,
     tag,
   }) => {
-    const stringTag = tag as string | undefined;
-    const relevantVerbs = stringTag
+    const relevantVerbs = tag
       ? Object.values(verbOptions).filter((v) =>
-          v.tags.some((t) => camel(t) === camel(stringTag)),
+          v.tags.some((t) => camel(t) === camel(tag)),
         )
       : Object.values(verbOptions);
     const hasQueryParams = relevantVerbs.some((v) => v.queryParams);

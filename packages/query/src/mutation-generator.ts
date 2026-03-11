@@ -21,12 +21,12 @@ import {
 } from './client';
 import { getQueryOptionsDefinition } from './query-options';
 
-type NormalizedTarget = {
+interface NormalizedTarget {
   query: string;
   params?: string[] | Record<string, string>;
   invalidateMode: 'invalidate' | 'reset';
   file?: string;
-};
+}
 
 const normalizeTarget = (target: InvalidateTarget): NormalizedTarget =>
   isString(target)

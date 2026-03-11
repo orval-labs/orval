@@ -51,7 +51,9 @@ To run these tests in your IDE, you can use the following configuration in Visua
   "name": "Debug Current Test File",
   "runtimeExecutable": "bun",
   "args": [
+    "run",
     "test",
+    "--",
     "${file}" // Refers to the currently open file in the editor
   ],
   "skipFiles": ["<node_internals>/**"],

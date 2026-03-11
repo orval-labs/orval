@@ -33,11 +33,13 @@ export const getZodDateTimeFormat = (isZodV4: boolean) => {
   return isZodV4 ? 'iso.datetime' : 'datetime';
 };
 
+type ParameterDefinitions = Record<string, unknown>;
+type ParameterFunction = [string, ParameterDefinitions | undefined];
 export const getParameterFunctions = (
   isZodV4: boolean,
   strict: boolean,
-  parameters: Record<string, any>,
-): [string, any][] => {
+  parameters: ParameterDefinitions,
+): ParameterFunction[] => {
   if (isZodV4 && strict) {
     return [['strictObject', parameters]];
   } else {
