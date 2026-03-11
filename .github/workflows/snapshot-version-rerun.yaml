@@ -1,0 +1,41 @@
+name: Re-run snapshot checks
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  actions: write
+  pull-requests: read
+
+jobs:
+  rerun-open-prs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Re-run snapshot checks on open PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          WORKFLOW="snapshot-version-check.yaml"
+
+          PR_BRANCHES=$(gh pr list --repo "$GITHUB_REPOSITORY" --base master --state open --search "draft:false" --json headRefName --jq '.[].headRefName')
+
+          if [ -z "$PR_BRANCHES" ]; then
+            echo "No open PRs targeting master."
+            exit 0
+          fi
+
+          for BRANCH in $PR_BRANCHES; do
+            RUN_ID=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$WORKFLOW" --branch "$BRANCH" --event pull_request --limit 1 --json databaseId --jq '.[0].databaseId' 2>&1) || {
+              echo "Warning: failed to list runs for branch ${BRANCH}: ${RUN_ID}"
+              continue
+            }
+
+            if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
+              echo "Re-running workflow run ${RUN_ID} for branch ${BRANCH}..."
+              gh run rerun "$RUN_ID" --repo "$GITHUB_REPOSITORY" || echo "Warning: failed to re-run ${RUN_ID}"
+            else
+              echo "No previous run found for branch ${BRANCH}, skipping."
+            fi
+          done
