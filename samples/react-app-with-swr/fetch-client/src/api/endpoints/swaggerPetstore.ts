@@ -48,7 +48,12 @@ export const listPets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: Pets = body ? JSON.parse(body) : {};
+  const resContentType = res.headers.get('content-type') ?? '';
+  const data: Pets = resContentType.startsWith('text/')
+    ? (body ?? '')
+    : body
+      ? JSON.parse(body)
+      : {};
   return data;
 };
 
@@ -111,7 +116,12 @@ export const createPets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: Pet = body ? JSON.parse(body) : {};
+  const resContentType = res.headers.get('content-type') ?? '';
+  const data: Pet = resContentType.startsWith('text/')
+    ? (body ?? '')
+    : body
+      ? JSON.parse(body)
+      : {};
   return data;
 };
 
@@ -171,7 +181,12 @@ export const showPetById = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: Pet = body ? JSON.parse(body) : {};
+  const resContentType = res.headers.get('content-type') ?? '';
+  const data: Pet = resContentType.startsWith('text/')
+    ? (body ?? '')
+    : body
+      ? JSON.parse(body)
+      : {};
   return data;
 };
 
