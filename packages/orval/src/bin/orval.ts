@@ -11,6 +11,7 @@ import {
   OutputMode,
   setVerbose,
   startMessage,
+  SupportedFormatter,
 } from '@orval/core';
 
 import pkg from '../../package.json';
@@ -76,13 +77,11 @@ cli
     new Option(
       '--formatter <name>',
       'Format generated files (prettier, biome, oxfmt)',
-    ).choices(['prettier', 'biome', 'oxfmt'] as const),
+    ).choices(Object.values(SupportedFormatter)),
   )
   .option('--tsconfig <path>', 'path to your tsconfig file')
   .option('--verbose', 'Enable verbose logging')
   .action(async (options) => {
-    const { formatter } = options;
-
     if (options.verbose) {
       setVerbose(true);
     }
@@ -95,7 +94,7 @@ cli
         output: {
           target: options.output,
           clean: options.clean,
-          formatter,
+          formatter: options.formatter,
           mock: options.mock,
           client: options.client,
           mode: options.mode,
