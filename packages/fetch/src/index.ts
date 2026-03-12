@@ -194,9 +194,16 @@ ${
   );
 
   const isTextPlain = (contentType: string) => contentType === 'text/plain';
-  const isPlainText = response.contentTypes.some((contentType) =>
-    isTextPlain(contentType),
-  );
+  // Prefer deriving plain-text behavior from success responses only, so that
+  // text/plain error responses do not force successful JSON responses to be
+  // treated as plain text.
+  const successContentTypes = response.types.success
+    .map((r) => r.contentType)
+    .filter((ct) => typeof ct === 'string' && ct.length > 0);
+  const isPlainText =
+    successContentTypes.length > 0
+      ? successContentTypes.some((contentType) => isTextPlain(contentType))
+      : response.contentTypes.some((contentType) => isTextPlain(contentType));
   const responseTypeName = fetchResponseTypeName(
     override.fetch.includeHttpResponseReturnType,
     isNdJson ? 'Response' : response.definition.success,
