@@ -193,17 +193,6 @@ ${
     isContentTypeNdJson(contentType),
   );
 
-  const isTextPlain = (contentType: string) => contentType === 'text/plain';
-  // Prefer deriving plain-text behavior from success responses only, so that
-  // text/plain error responses do not force successful JSON responses to be
-  // treated as plain text.
-  const successContentTypes = response.types.success
-    .map((r) => r.contentType)
-    .filter((ct) => typeof ct === 'string' && ct.length > 0);
-  const isPlainText =
-    successContentTypes.length > 0
-      ? successContentTypes.some((contentType) => isTextPlain(contentType))
-      : response.contentTypes.some((contentType) => isTextPlain(contentType));
   const responseTypeName = fetchResponseTypeName(
     override.fetch.includeHttpResponseReturnType,
     isNdJson ? 'Response' : response.definition.success,
@@ -398,7 +387,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   const throwOnErrorImplementation = `if (!${isNdJson ? 'stream' : 'res'}.ok) {
     ${isNdJson ? 'const body = [204, 205, 304].includes(stream.status) ? null : await stream.text();' : ''}
     const err: globalThis.Error & {info?: ${hasError ? `${errorName}${override.fetch.includeHttpResponseReturnType ? "['data']" : ''}` : 'any'}, status?: number} = new globalThis.Error();
-    const data ${hasError ? `: ${errorName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''}` : ''} = ${isPlainText ? `body ?? ''` : `body ? JSON.parse(body${reviver}) : {}`}
+    const data ${hasError ? `: ${errorName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''}` : ''} = ${`body ? JSON.parse(body${reviver}) : {}`}
     err.info = data;
     err.status = ${isNdJson ? 'stream' : 'res'}.status;
     throw err;
@@ -414,9 +403,11 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
   ${
     isValidateResponse
-      ? `const parsedBody = ${isPlainText ? `body ?? ''` : `body ? JSON.parse(body${reviver}) : {}`};
+      ? `const parsedBody = ${`body ? JSON.parse(body${reviver}) : {}`};
   const data = ${schemaValueRef}.parse(parsedBody)`
-      : `const data: ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = ${isPlainText ? `body ?? ''` : `body ? JSON.parse(body${reviver}) : {}`}`
+      : `
+      const resContentType = res.headers.get("content-type") ?? "";
+      const data: ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = resContentType.startsWith('text/') ? body ?? '' : body ? JSON.parse(body${reviver}) : {}`
   }
   ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : 'return data'}
 `;
