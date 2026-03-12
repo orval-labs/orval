@@ -3,8 +3,10 @@ import type {
   GeneratorOptions,
   OpenApiSchemaObject,
 } from '@orval/core';
+import { PropertySortOrder } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
+import { createTestContextSpec } from '../../core/src/test-utils/context';
 import {
   dereference,
   generateZod,
@@ -14,6 +16,45 @@ import {
 } from '.';
 
 const testOutput = {} as unknown as Parameters<typeof generateZod>[2];
+
+function makeContextSpec({
+  target,
+  workspace,
+  spec,
+  output,
+  override,
+}: {
+  target?: ContextSpec['target'];
+  workspace?: ContextSpec['workspace'];
+  spec?: Partial<ContextSpec['spec']>;
+  output?: Partial<ContextSpec['output']>;
+  override?: Partial<ContextSpec['output']['override']>;
+} = {}): ContextSpec {
+  const baseContext = createTestContextSpec({
+    output: {
+      propertySortOrder: PropertySortOrder.ALPHABETICAL,
+    },
+  });
+
+  return {
+    ...baseContext,
+    ...(target === undefined ? {} : { target }),
+    ...(workspace === undefined ? {} : { workspace }),
+    spec: {
+      ...baseContext.spec,
+      ...spec,
+    },
+    output: {
+      ...baseContext.output,
+      ...output,
+      override: {
+        ...baseContext.output.override,
+        ...output?.override,
+        ...override,
+      },
+    },
+  };
+}
 
 const record: ZodValidationSchemaDefinition = {
   functions: [
@@ -913,13 +954,11 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     const parsed = parseZodValidationSchemaDefinition(
       result,
-      {
-        output: {
-          override: {
-            useDates: false,
-          },
+      makeContextSpec({
+        override: {
+          useDates: false,
         },
-      } as ContextSpec,
+      }),
       true,
       false,
       false,
@@ -929,13 +968,11 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   describe('description handling', () => {
-    const context: ContextSpec = {
-      output: {
-        override: {
-          useDates: false,
-        },
+    const context = makeContextSpec({
+      override: {
+        useDates: false,
       },
-    } as ContextSpec;
+    });
 
     it('generates a description for a parameter', () => {
       const schemaWithDefault: OpenApiSchemaObject = {
@@ -976,13 +1013,11 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   describe('default value handling', () => {
-    const context: ContextSpec = {
-      output: {
-        override: {
-          useDates: false,
-        },
+    const context = makeContextSpec({
+      override: {
+        useDates: false,
       },
-    } as ContextSpec;
+    });
 
     it('generates a default value for a non-required string schema', () => {
       const schemaWithDefault: OpenApiSchemaObject = {
@@ -1432,13 +1467,11 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   describe('enum handling', () => {
-    const context: ContextSpec = {
-      output: {
-        override: {
-          useDates: false,
-        },
+    const context = makeContextSpec({
+      override: {
+        useDates: false,
       },
-    } as ContextSpec;
+    });
 
     it('generates an enum for a string', () => {
       const schema: OpenApiSchemaObject = {
@@ -1847,7 +1880,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    } as unknown as ContextSpec;
 
     it('generates an number', () => {
       const schema: OpenApiSchemaObject = {
@@ -3144,7 +3177,7 @@ describe('generateZodWithMultiTypeArray', () => {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    } as unknown as ContextSpec;
 
     // Test case from the issue: type: ["string", "number", "boolean", "null"]
     const schemaWithMultiType: OpenApiSchemaObject = {
@@ -3181,7 +3214,7 @@ describe('generateZodWithMultiTypeArray', () => {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    } as unknown as ContextSpec;
 
     const schemaWithMultiType: OpenApiSchemaObject = {
       type: ['string', 'number'],
@@ -3214,7 +3247,7 @@ describe('generateZodWithMultiTypeArray', () => {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    } as unknown as ContextSpec;
 
     const schemaWithMultiType: OpenApiSchemaObject = {
       type: ['string', 'number'],
@@ -3251,7 +3284,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    } as unknown as ContextSpec;
 
     // Test case: anyOf with multiple nullable refs that could cause duplicate names
     const schemaWithAnyOfNullableRefs: OpenApiSchemaObject = {
@@ -3308,7 +3341,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    } as unknown as ContextSpec;
 
     const schemaWithOneOfNullableRefs: OpenApiSchemaObject = {
       oneOf: [
@@ -3364,7 +3397,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    } as unknown as ContextSpec;
 
     const schemaWithAllOfNullableRefs: OpenApiSchemaObject = {
       allOf: [
@@ -3417,7 +3450,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    } as unknown as ContextSpec;
 
     const schemaWithAllOfAndProperties: OpenApiSchemaObject = {
       allOf: [
@@ -3473,7 +3506,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    } as unknown as ContextSpec;
 
     // Test case from issue #2511: nullable oneOf with multiple enum refs
     // This should not generate duplicate schema names like "Item1Hello" and "Item2Hello"
@@ -3560,7 +3593,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    } as unknown as ContextSpec;
 
     // Test case: anyOf with 3 nullable refs (like Animals.animalId)
     const schemaWithThreeRefs: OpenApiSchemaObject = {
@@ -3602,7 +3635,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpec;
+    } as unknown as ContextSpec;
 
     // Test case: object with multiple anyOf properties (like Animals)
     const schemaWithMultipleAnyOf: OpenApiSchemaObject = {
@@ -5073,7 +5106,7 @@ describe('zod split mode regressions', () => {
           },
         },
       },
-    } as ContextSpec;
+    } as unknown as ContextSpec;
 
     const resolvedSchema = dereference(
       {
@@ -5154,7 +5187,7 @@ describe('zod split mode regressions', () => {
           },
         },
       },
-    } as ContextSpec;
+    } as unknown as ContextSpec;
 
     const resolvedSchema = dereference(
       {
@@ -5247,7 +5280,7 @@ describe('zod split mode regressions', () => {
           },
         },
       },
-    } as ContextSpec;
+    } as unknown as ContextSpec;
 
     const resolvedSchema = dereference(
       {
@@ -5310,7 +5343,7 @@ describe('zod split mode regressions', () => {
           },
         },
       },
-    } as ContextSpec;
+    } as unknown as ContextSpec;
 
     const resolvedSchema = dereference(
       {
@@ -5368,7 +5401,7 @@ describe('zod split mode regressions', () => {
           },
         },
       },
-    } as ContextSpec;
+    } as unknown as ContextSpec;
 
     const resolvedSchema = dereference(
       {
@@ -5453,7 +5486,7 @@ describe('zod split mode regressions', () => {
           },
         },
       },
-    } as ContextSpec;
+    } as unknown as ContextSpec;
 
     const resolvedSchema = dereference(
       {
@@ -5517,7 +5550,7 @@ describe('zod split mode regressions', () => {
           },
         },
       },
-    } as ContextSpec;
+    } as unknown as ContextSpec;
 
     const resolvedSchema = dereference(
       {

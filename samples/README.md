@@ -4,7 +4,7 @@ This directory contains sample projects demonstrating orval with various framewo
 
 ## Adding a Sample
 
-Create a directory under `samples/` with the four files described below, then run `yarn install` to link `orval@workspace`. The sample does not need to be directly under `samples/` and can be under `samples/<GROUP NAME>/`.
+Create a directory under `samples/` with the four files described below, then run `bun install` to link `orval@workspace`. The sample does not need to be directly under `samples/` and can be under `samples/<GROUP NAME>/`.
 
 ```text
 samples/
@@ -25,7 +25,7 @@ Update `<ORVAL OUTPUT DIR>`
   "scripts": {
     "generate-api": "orval",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
-    "test:snapshots:update": "yarn test:snapshots --update",
+    "test:snapshots:update": "bun run test:snapshots --update",
     "clean": "rimraf .turbo dist <ORVAL OUTPUT DIR>",
     "nuke": "rimraf .turbo dist node_modules <ORVAL OUTPUT DIR>",
   },
@@ -38,7 +38,7 @@ Update `<ORVAL OUTPUT DIR>`
 ```
 
 > [!IMPORTANT]
-> Remember to run `yarn install` to link `orval@workspace`.
+> Remember to run `bun install` to link `orval@workspace`.
 
 ### `orval.config.ts`
 

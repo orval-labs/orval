@@ -616,7 +616,7 @@ describe('fixRegularSchemaImports', () => {
 });
 
 describe('writeSchemas indexFiles', () => {
-  it('merges index exports across multiple runs in the same schema path', async () => {
+  it('replaces index exports with the current run when re-generating the same schema path', async () => {
     const tempDir = await fs.mkdtemp(
       path.join(os.tmpdir(), 'orval-schema-index-'),
     );
@@ -652,10 +652,10 @@ describe('writeSchemas indexFiles', () => {
       const indexPath = path.join(schemaPath, 'index.ts');
       const content = await fs.readFile(indexPath, 'utf8');
 
-      expect(content).toContain("export * from './createUserRequest';");
-      expect(content).toContain("export * from './createUserResponse';");
       expect(content).toContain("export * from './userDto';");
       expect(content).toContain("export * from './userListResponse';");
+      expect(content).not.toContain("export * from './createUserRequest';");
+      expect(content).not.toContain("export * from './createUserResponse';");
     } finally {
       await fs.remove(tempDir);
     }
@@ -693,6 +693,42 @@ describe('writeSchemas indexFiles', () => {
 
       const matches = content.match(/export \* from '.\/userDto';/g) ?? [];
       expect(matches).toHaveLength(1);
+    } finally {
+      await fs.remove(tempDir);
+    }
+  });
+
+  it('normalizes imports to schema name canonical file when importPath is stale', async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'orval-schema-import-normalize-'),
+    );
+    const schemaPath = path.join(tempDir, 'schemas');
+
+    try {
+      await writeSchemas({
+        schemaPath,
+        schemas: [
+          createMockSchema('NotFound'),
+          createMockSchema('NotFoundResponse'),
+          {
+            name: 'PetsApi',
+            model: 'export type PetsApi = NotFoundResponse;',
+            imports: [{ name: 'NotFoundResponse', importPath: './notFound' }],
+            schema: {},
+          },
+        ],
+        target: 'src/api',
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.ts',
+        header: '// command api',
+        indexFiles: false,
+      });
+
+      const petsApiPath = path.join(schemaPath, 'petsApi.ts');
+      const content = await fs.readFile(petsApiPath, 'utf8');
+
+      expect(content).toContain("from './notFoundResponse';");
+      expect(content).not.toContain("from './notFound';");
     } finally {
       await fs.remove(tempDir);
     }

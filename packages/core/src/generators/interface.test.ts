@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { createTestContextSpec } from '../test-utils/context';
 import type {
   ContextSpec,
   GeneratorSchema,
@@ -10,31 +11,33 @@ import { generateImports } from './imports';
 import { generateInterface } from './interface';
 
 describe('generateInterface', () => {
-  const context: ContextSpec = {
-    output: {
-      override: { namingConvention: {} },
-    },
-    target: 'typescript',
-    spec: {},
-  };
+  const context = createTestContextSpec();
 
   const withContext = ({
     output,
     override,
+    spec,
   }: {
     output?: Partial<ContextSpec['output']>;
     override?: Partial<ContextSpec['output']['override']>;
-  } = {}): ContextSpec => ({
-    ...context,
-    output: {
-      ...context.output,
-      ...output,
-      override: {
-        ...context.output.override,
-        ...override,
+    spec?: Partial<ContextSpec['spec']>;
+  } = {}): ContextSpec => {
+    return {
+      ...context,
+      spec: {
+        ...context.spec,
+        ...spec,
       },
-    },
-  });
+      output: {
+        ...context.output,
+        ...output,
+        override: {
+          ...context.output.override,
+          ...override,
+        },
+      },
+    };
+  };
 
   const constEnumGenerationContext = withContext({
     override: { enumGenerationType: EnumGeneration.CONST },
@@ -42,6 +45,20 @@ describe('generateInterface', () => {
 
   const aliasCombinedTypesContext = withContext({
     override: { aliasCombinedTypes: true },
+  });
+
+  const referencedSchemaContext = withContext({
+    override: { enumGenerationType: EnumGeneration.CONST },
+    spec: {
+      components: {
+        schemas: {
+          OrderStatus: {
+            type: 'string',
+            enum: ['pending', 'done'],
+          },
+        },
+      },
+    },
   });
 
   it('should return const object with typeof', () => {
@@ -67,7 +84,7 @@ describe('generateInterface', () => {
     const got = generateInterface({
       name: 'TestSchema',
       context,
-      schema: schema as unknown as OpenApiSchemaObject,
+      schema,
     });
     const want: GeneratorSchema[] = [
       {
@@ -104,7 +121,7 @@ export type TestSchema = typeof TestSchemaValue;
     const got = generateInterface({
       name: 'ConstEnum',
       context: constEnumGenerationContext,
-      schema: schema as unknown as OpenApiSchemaObject,
+      schema,
     });
     const want: GeneratorSchema[] = [
       {
@@ -143,8 +160,8 @@ export type ConstEnum = typeof ConstEnumValue;
 
     const got = generateInterface({
       name: 'Order',
-      context: constEnumGenerationContext,
-      schema: schema as unknown as OpenApiSchemaObject,
+      context: referencedSchemaContext,
+      schema,
     });
 
     expect(got).toEqual([
@@ -182,7 +199,7 @@ export type ConstEnum = typeof ConstEnumValue;
     const got = generateInterface({
       name: 'OrderWithInlineEnum',
       context: constEnumGenerationContext,
-      schema: schema as unknown as OpenApiSchemaObject,
+      schema,
     });
 
     expect(got).toEqual([
@@ -234,7 +251,7 @@ export type ConstEnum = typeof ConstEnumValue;
     const got = generateInterface({
       name: 'TestSchema',
       context,
-      schema: schema as unknown as OpenApiSchemaObject,
+      schema,
     });
     const want: GeneratorSchema[] = [
       {
@@ -263,7 +280,7 @@ export type ConstEnum = typeof ConstEnumValue;
     const got = generateInterface({
       name: 'MyObject',
       context,
-      schema: schema as unknown as OpenApiSchemaObject,
+      schema,
     });
     const want: GeneratorSchema[] = [
       {
@@ -290,7 +307,7 @@ export type ConstEnum = typeof ConstEnumValue;
     const got = generateInterface({
       name: 'MyObject',
       context,
-      schema: schema as unknown as OpenApiSchemaObject,
+      schema,
     });
     const want: GeneratorSchema[] = [
       {
@@ -319,7 +336,7 @@ export type ConstEnum = typeof ConstEnumValue;
     const got = generateInterface({
       name: 'MyObject',
       context,
-      schema: schema as unknown as OpenApiSchemaObject,
+      schema,
     });
     const want: GeneratorSchema[] = [
       {
@@ -348,7 +365,7 @@ export type ConstEnum = typeof ConstEnumValue;
     const got = generateInterface({
       name: 'MyObject',
       context,
-      schema: schema as unknown as OpenApiSchemaObject,
+      schema,
     });
     const want: GeneratorSchema[] = [
       {
@@ -414,7 +431,7 @@ export type ConstEnum = typeof ConstEnumValue;
       const aliasResult = generateInterface({
         name: `Alias${combinerName}`,
         context: aliasCombinedTypesContext,
-        schema: schema as unknown as OpenApiSchemaObject,
+        schema,
       });
       expect(aliasResult).toHaveLength(2);
       expect(aliasResult[0].name).toBe(`Alias${combinerName}Field`);
@@ -430,7 +447,7 @@ export type ConstEnum = typeof ConstEnumValue;
       const inlineResult = generateInterface({
         name: `Inline${combinerName}`,
         context,
-        schema: schema as unknown as OpenApiSchemaObject,
+        schema,
       });
       expect(inlineResult).toHaveLength(1);
       expect(inlineResult[0].name).toBe(`Inline${combinerName}`);
@@ -457,7 +474,7 @@ export type ConstEnum = typeof ConstEnumValue;
     const aliasResult = generateInterface({
       name: 'AliasObject',
       context: aliasCombinedTypesContext,
-      schema: schema as unknown as OpenApiSchemaObject,
+      schema,
     });
     expect(aliasResult).toHaveLength(4);
     expect(aliasResult[0].name).toBe('AliasObjectFieldOneOf');
@@ -481,7 +498,7 @@ export type ConstEnum = typeof ConstEnumValue;
     const inlineResult = generateInterface({
       name: 'InlineObject',
       context,
-      schema: schema as unknown as OpenApiSchemaObject,
+      schema,
     });
     expect(inlineResult).toHaveLength(2);
     expect(inlineResult[0].name).toBe('InlineObjectField');

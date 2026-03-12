@@ -1,7 +1,7 @@
 {
   "name": "swr-with-zod",
   "private": true,
-  "version": "8.5.2",
+  "version": "8.5.3",
   "type": "module",
   "scripts": {
     "dev": "vite  --host",
@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "generate-api": "orval",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
-    "test:snapshots:update": "yarn test:snapshots --update"
+    "test:snapshots:update": "bun run test:snapshots --update"
   },
   "dependencies": {
     "react": "catalog:react",

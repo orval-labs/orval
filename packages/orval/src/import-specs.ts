@@ -63,7 +63,7 @@ export async function importSpecs(
     spec,
     input,
     output,
-    target: input.target,
+    target: isString(input.target) ? input.target : workspace,
     workspace,
     projectName,
   });
@@ -120,8 +120,7 @@ function mergeExternalSchemas(
     schemaNameMappings[extKey] = {};
 
     if (isObject(extDoc) && 'components' in extDoc) {
-      const extComponents = (extDoc as Record<string, unknown>)
-        .components as Record<string, unknown>;
+      const extComponents = extDoc.components as Record<string, unknown>;
       if (isObject(extComponents) && 'schemas' in extComponents) {
         const extSchemas = extComponents.schemas as Record<string, unknown>;
         for (const [schemaName, schema] of Object.entries(extSchemas)) {
@@ -130,10 +129,8 @@ function mergeExternalSchemas(
           const isXExtRef =
             isObject(existingSchema) &&
             '$ref' in existingSchema &&
-            isString((existingSchema as Record<string, unknown>).$ref) &&
-            (
-              (existingSchema as Record<string, unknown>).$ref as string
-            ).startsWith('#/x-ext/');
+            isString(existingSchema.$ref) &&
+            existingSchema.$ref.startsWith('#/x-ext/');
 
           let finalSchemaName = schemaName;
 
@@ -179,7 +176,7 @@ function scrubUnwantedKeys(obj: unknown): unknown {
   if (obj === null || obj === undefined) return obj;
   if (Array.isArray(obj)) return obj.map((x) => scrubUnwantedKeys(x));
   if (isObject(obj)) {
-    const rec = obj as Record<string, unknown>;
+    const rec = obj;
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(rec)) {
       if (UNWANTED_KEYS.has(k)) continue;
@@ -207,7 +204,7 @@ function updateInternalRefs(
   }
 
   if (isObject(obj)) {
-    const record = obj as Record<string, unknown>;
+    const record = obj;
 
     // Check if this is a $ref to #/components/schemas/...
     if ('$ref' in record && isString(record.$ref)) {

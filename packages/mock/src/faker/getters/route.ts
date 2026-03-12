@@ -21,16 +21,20 @@ const getRoutePath = (path: string): string => {
 export const getRouteMSW = (route: string, baseUrl = '*') => {
   route = route.replaceAll(':', String.raw`\:`);
   const splittedRoute = route.split('/');
+  let resolvedRoute = baseUrl;
 
-  return splittedRoute.reduce((acc, path, i) => {
-    if (!path && !i) {
-      return acc;
+  for (const [index, path] of splittedRoute.entries()) {
+    if (!path && !index) {
+      continue;
     }
 
     if (!path.includes('{')) {
-      return `${acc}/${path}`;
+      resolvedRoute = `${resolvedRoute}/${path}`;
+      continue;
     }
 
-    return `${acc}/${getRoutePath(path)}`;
-  }, baseUrl);
+    resolvedRoute = `${resolvedRoute}/${getRoutePath(path)}`;
+  }
+
+  return resolvedRoute;
 };

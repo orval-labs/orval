@@ -123,7 +123,7 @@ export function getMockScalar({
 
   const isNullable = Array.isArray(item.type) && item.type.includes('null');
   if (item.format && ALL_FORMAT[item.format]) {
-    let value = ALL_FORMAT[item.format] as string;
+    let value = ALL_FORMAT[item.format];
 
     const dateFormats = ['date', 'date-time'];
     if (dateFormats.includes(item.format) && context.output.override.useDates) {
@@ -416,12 +416,15 @@ function getEnum(
       enumValue += ` as ${item.name}${item.name.endsWith('[]') ? '' : '[]'}`;
       imports.push({ name: item.name });
     } else {
-      enumValue += ` as ${existingReferencedProperties[existingReferencedProperties.length - 1]}['${item.name}']`;
+      const parentReference = existingReferencedProperties.at(-1);
+      if (!parentReference) {
+        return '';
+      }
+
+      enumValue += ` as ${parentReference}['${item.name}']`;
       if (!item.path?.endsWith('[]')) enumValue += '[]';
       imports.push({
-        name: existingReferencedProperties[
-          existingReferencedProperties.length - 1
-        ],
+        name: parentReference,
       });
     }
   } else {

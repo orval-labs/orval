@@ -1,4 +1,8 @@
-import type { GeneratorImport, OpenApiSchemaObject } from '@orval/core';
+import type {
+  GeneratorImport,
+  OpenApiReferenceObject,
+  OpenApiSchemaObject,
+} from '@orval/core';
 
 export interface MockDefinition {
   value: string;
@@ -9,9 +13,15 @@ export interface MockDefinition {
   includedProperties?: string[];
 }
 
-export type MockSchemaObject = Omit<OpenApiSchemaObject, 'enum'> & {
+type OpenApiObjectSchema = Extract<OpenApiSchemaObject, object>;
+
+export type MockSchemaRef = OpenApiReferenceObject;
+
+export type MockSchemaObject = Omit<OpenApiObjectSchema, 'enum'> & {
   name: string;
   path?: string;
   isRef?: boolean;
   enum?: string[];
 };
+
+export type MockSchema = MockSchemaObject | MockSchemaRef;

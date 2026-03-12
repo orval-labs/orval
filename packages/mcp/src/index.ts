@@ -12,6 +12,7 @@ import {
   getFileInfo,
   getFullRoute,
   isObject,
+  isString,
   jsDoc,
   jsStringEscape,
   type NormalizedOutputOptions,
@@ -35,11 +36,21 @@ const getHeader = (
   return Array.isArray(header) ? jsDoc({ description: header }) : header;
 };
 
+const getSpecInfo = (context: ContextSpec): OpenApiInfoObject =>
+  context.spec.info ?? {
+    title: 'API',
+    version: '1.0.0',
+  };
+
 export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
   const targetInfo = getFileInfo(output.target);
-  const schemasPath = isObject(output.schemas)
-    ? output.schemas.path
-    : output.schemas;
+  const schemasPath = (
+    isObject(output.schemas)
+      ? output.schemas.path
+      : isString(output.schemas)
+        ? output.schemas
+        : undefined
+  ) as string | undefined;
   const schemaInfo = schemasPath ? getFileInfo(schemasPath) : undefined;
 
   const isZodSchemaOutput =
@@ -178,7 +189,7 @@ export const generateServer = (
   output: NormalizedOutputOptions,
   context: ContextSpec,
 ) => {
-  const info = context.spec.info;
+  const info = getSpecInfo(context);
   const { extension, dirname } = getFileInfo(output.target);
   const serverPath = path.join(dirname, `server${extension}`);
   const header = getHeader(output.override.header, info);
@@ -206,7 +217,7 @@ export const generateServer = (
       const toolImplementation = `
 server.tool(
   '${jsStringEscape(verbOption.operationName)}',
-  '${jsStringEscape(verbOption.summary)}',${inputSchemaImplementation ? `\n${inputSchemaImplementation}` : ''}
+  '${jsStringEscape(verbOption.summary ?? '')}',${inputSchemaImplementation ? `\n${inputSchemaImplementation}` : ''}
   ${jsStringEscape(verbOption.operationName)}Handler
 );`;
 
@@ -288,7 +299,7 @@ const generateZodFiles = async (
 ) => {
   const { extension, dirname } = getFileInfo(output.target);
 
-  const header = getHeader(output.override.header, context.spec.info);
+  const header = getHeader(output.override.header, getSpecInfo(context));
 
   const zods = await Promise.all(
     Object.values(verbOptions).map(async (verbOption) =>
@@ -343,7 +354,7 @@ const generateHttpClientFiles = async (
     filename,
   } = getFileInfo(output.target);
 
-  const header = getHeader(output.override.header, context.spec.info);
+  const header = getHeader(output.override.header, getSpecInfo(context));
 
   const clients = await Promise.all(
     Object.values(verbOptions).map(async (verbOption) => {
@@ -372,9 +383,13 @@ const generateHttpClientFiles = async (
 
   const isZodSchemaOutput =
     isObject(output.schemas) && output.schemas.type === 'zod';
-  const schemasPath = isObject(output.schemas)
-    ? output.schemas.path
-    : output.schemas;
+  const schemasPath = (
+    isObject(output.schemas)
+      ? output.schemas.path
+      : isString(output.schemas)
+        ? output.schemas
+        : undefined
+  ) as string | undefined;
   const basePath = schemasPath ? getFileInfo(schemasPath).dirname : undefined;
   const relativeSchemasPath = basePath
     ? isZodSchemaOutput && output.indexFiles

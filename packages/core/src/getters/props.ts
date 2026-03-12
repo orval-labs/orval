@@ -6,7 +6,7 @@ import {
   GetterPropType,
   type GetterQueryParam,
 } from '../types';
-import { isNullish, pascal, sortByPriority } from '../utils';
+import { isNullish, pascal, sortByPriority, stringify } from '../utils';
 
 interface GetPropsOptions {
   body: GetterBody;
@@ -74,13 +74,14 @@ export function getProps({
 
     const isOptional =
       context.output.optionsParamRequired ||
-      params.every((param) => param.default);
+      params.every((param) => param.default !== undefined);
 
     const implementation = `{ ${params
-      .map((property) =>
-        property.default
-          ? `${property.name} = ${property.default}` // if we use property.implementation, we will get `{ version: number = 1 }: ListPetsPathParameters = {}` which isn't valid
-          : property.name,
+      .map(
+        (property) =>
+          property.default === undefined
+            ? property.name
+            : `${property.name} = ${stringify(property.default)}`, // if we use property.implementation, we will get `{ version: number = 1 }: ListPetsPathParameters = {}` which isn't valid
       )
       .join(', ')} }: ${parameterTypeName}${isOptional ? ' = {}' : ''}`;
 

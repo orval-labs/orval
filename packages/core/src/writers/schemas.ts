@@ -170,6 +170,8 @@ function getCanonicalMap(
   fileExtension: string,
 ) {
   const canonicalPathMap = new Map<string, CanonicalInfo>();
+  const canonicalNameMap = new Map<string, CanonicalInfo>();
+
   for (const [key, groupSchemas] of Object.entries(schemaGroups)) {
     const canonicalPath = getPath(
       schemaPath,
@@ -177,29 +179,42 @@ function getCanonicalMap(
       fileExtension,
     );
 
-    canonicalPathMap.set(key, {
+    const canonicalInfo = {
       importPath: canonicalPath,
       name: groupSchemas[0].name,
-    });
+    };
+
+    canonicalPathMap.set(key, canonicalInfo);
+    for (const schema of groupSchemas) {
+      canonicalNameMap.set(schema.name, canonicalInfo);
+    }
   }
-  return canonicalPathMap;
+
+  return {
+    canonicalPathMap,
+    canonicalNameMap,
+  };
 }
 
 function normalizeCanonicalImportPaths(
   schemas: GeneratorSchema[],
   canonicalPathMap: Map<string, CanonicalInfo>,
+  canonicalNameMap: Map<string, CanonicalInfo>,
   schemaPath: string,
   namingConvention: NamingConvention,
   fileExtension: string,
 ) {
   for (const schema of schemas) {
     schema.imports = schema.imports.map((imp) => {
+      const canonicalByName = canonicalNameMap.get(imp.name);
+
       const resolvedImportKey = resolveImportKey(
         schemaPath,
         imp.importPath ?? `./${conventionName(imp.name, namingConvention)}`,
         fileExtension,
       );
-      const canonical = canonicalPathMap.get(resolvedImportKey);
+      const canonicalByPath = canonicalPathMap.get(resolvedImportKey);
+      const canonical = canonicalByName ?? canonicalByPath;
       if (!canonical?.importPath) return imp;
 
       const importPath = removeFileExtension(
@@ -263,7 +278,6 @@ interface GetSchemaOptions {
 
 function getSchema({
   schema: { imports, model },
-  target,
   header,
   namingConvention = NamingConvention.CAMEL_CASE,
 }: GetSchemaOptions): string {
@@ -274,7 +288,6 @@ function getSchema({
         !model.includes(`type ${imp.alias ?? imp.name} =`) &&
         !model.includes(`interface ${imp.alias ?? imp.name} {`),
     ),
-    target,
     namingConvention,
   });
   file += imports.length > 0 ? '\n\n' : '\n';
@@ -361,7 +374,7 @@ export async function writeSchemas({
     fileExtension,
   );
 
-  const canonicalPathByKey = getCanonicalMap(
+  const { canonicalPathMap, canonicalNameMap } = getCanonicalMap(
     schemaGroups,
     schemaPath,
     namingConvention,
@@ -370,7 +383,8 @@ export async function writeSchemas({
 
   normalizeCanonicalImportPaths(
     schemas,
-    canonicalPathByKey,
+    canonicalPathMap,
+    canonicalNameMap,
     schemaPath,
     namingConvention,
     fileExtension,
@@ -425,24 +439,9 @@ export async function writeSchemas({
         .map((schemaName) => `export * from './${schemaName}${ext}';`)
         .toSorted((a, b) => a.localeCompare(b));
 
-      const existingContent = await fs.readFile(schemaFilePath, 'utf8');
-      const existingExports =
-        existingContent
-          .match(/export\s+\*\s+from\s+['"][^'"]+['"]/g)
-          ?.map((statement) => {
-            const match = /export\s+\*\s+from\s+['"]([^'"]+)['"]/.exec(
-              statement,
-            );
-            if (!match) return;
-            return `export * from '${match[1]}';`;
-          })
-          .filter(Boolean) ?? [];
+      const exports = currentExports.join('\n');
 
-      const exports = [...new Set([...existingExports, ...currentExports])]
-        .toSorted((a, b) => a.localeCompare(b))
-        .join('\n');
-
-      const fileContent = `${header}\n${exports}`;
+      const fileContent = `${header}\n${exports}\n`;
 
       await fs.writeFile(schemaFilePath, fileContent, { encoding: 'utf8' });
     } catch (error) {

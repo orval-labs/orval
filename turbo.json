@@ -7,6 +7,10 @@
       "inputs": ["$TURBO_DEFAULT$", "../tsdown.base.ts"],
       "outputs": ["dist/**"]
     },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "outputs": []
+    },
     "dev": {
       "cache": false
     },

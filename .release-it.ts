@@ -24,7 +24,7 @@ export default {
     },
   },
   hooks: {
-    'before:init': ['yarn run build', 'yarn run test:ci'],
-    'after:bump': ['yarn run build --force', 'yarn run update-samples'],
+    'before:init': ['bun run build', 'bun run test:ci'],
+    'after:bump': ['bun run build --force', 'bun run update-samples'],
   },
 } satisfies Config;

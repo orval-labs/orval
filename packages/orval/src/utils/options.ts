@@ -455,14 +455,18 @@ function normalizeMutator(
   mutator?: Mutator,
 ): NormalizedMutator | undefined {
   if (isObject(mutator)) {
-    if (!mutator.path) {
-      throw new Error(chalk.red(`Mutator need a path`));
+    const m = mutator as Exclude<Mutator, string>;
+    if (!m.path) {
+      throw new Error(styleText('red', `Mutator need a path`));
     }
 
     return {
-      ...mutator,
-      path: nodePath.resolve(workspace, mutator.path),
-      default: mutator.default ?? !mutator.name,
+      path: nodePath.resolve(workspace, m.path),
+      name: m.name,
+      default: m.default ?? !m.name,
+      alias: m.alias,
+      external: m.external,
+      extension: m.extension,
     };
   }
 
@@ -473,7 +477,7 @@ function normalizeMutator(
     };
   }
 
-  return mutator;
+  return undefined;
 }
 
 async function resolveFirstValidTarget(

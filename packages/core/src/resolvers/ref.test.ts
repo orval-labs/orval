@@ -116,10 +116,10 @@ describe('resolveRef', () => {
       },
     });
 
-    type NestedResolved = {
+    interface NestedResolved {
       schema: OpenApiSchemaObject;
       examples?: unknown[];
-    };
+    }
 
     const carrier = {
       schema: {
@@ -188,24 +188,15 @@ describe('resolveRef', () => {
     expect(result.imports).toEqual([]);
   });
 
-  it('documents current behavior for nonexistent local refs (KNOWN ISSUE)', () => {
+  it('throws for nonexistent local refs', () => {
     const context = createContext({
       openapi: '3.1.0',
       components: { schemas: {} },
     });
 
-    // KNOWN ISSUE: When a ref path does not resolve to a nested schema,
-    // getSchema currently falls back to context.spec and returns the full
-    // spec document instead of throwing (see schemaByRefPaths ??= context.spec
-    // in ref.ts). This test documents current behavior and should be updated
-    // once unresolved refs are handled strictly.
-    const result = resolveRef(
-      { $ref: '#/components/schemas/NonExistent' },
-      context,
-    );
-
-    // Current behavior: resolves (doesn't throw) and returns root spec.
-    expect(result.schema).toHaveProperty('openapi', '3.1.0');
+    expect(() =>
+      resolveRef({ $ref: '#/components/schemas/NonExistent' }, context),
+    ).toThrow('Oops... 🍻. Ref not found: #/components/schemas/NonExistent');
   });
 });
 

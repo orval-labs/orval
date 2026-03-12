@@ -103,7 +103,7 @@ export const generateClientImports: GeneratorClientImports = ({
           ),
           ...imports,
         ]
-      : imports,
+      : (imports as Parameters<typeof generateDependencyImports>[1]),
     projectName,
     hasSchemaDir,
     isAllowSyntheticDefaultImports,

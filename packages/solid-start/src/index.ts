@@ -257,10 +257,10 @@ const generateImplementation = (
         context,
       );
       const itemsFormat = schemaObject.items
-        ? resolveRef<OpenApiSchemaObject>(
+        ? (resolveRef<OpenApiSchemaObject>(
             schemaObject.items as OpenApiSchemaObject | OpenApiReferenceObject,
             context,
-          ).schema.format
+          ).schema.format as string | undefined)
         : undefined;
       return schemaObject.format === 'date-time' || itemsFormat === 'date-time';
     });
@@ -283,10 +283,10 @@ const generateImplementation = (
         context,
       );
       const itemsFormat = schemaObject.items
-        ? resolveRef<OpenApiSchemaObject>(
+        ? (resolveRef<OpenApiSchemaObject>(
             schemaObject.items as OpenApiSchemaObject | OpenApiReferenceObject,
             context,
-          ).schema.format
+          ).schema.format as string | undefined)
         : undefined;
       return schemaObject.format === 'date-time' || itemsFormat === 'date-time';
     });

@@ -23,28 +23,18 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Cache Yarn dependencies
-        uses: actions/cache@v5
-        with:
-          path: .yarn/cache
-          key: yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            yarn-
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: yarn install --immutable
+        run: bun install --frozen-lockfile
 
       - name: Run build
-        run: yarn build
+        run: bun run build
 
       - name: Configure npm authentication
         run: |
-          yarn config set npmRegistryServer "https://registry.npmjs.org"
-          yarn config set npmAuthToken ${{ secrets.NPM_TOKEN }}
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
 
       - name: Fail if unsafe lifecycle scripts exist
         run: |
@@ -61,7 +51,22 @@ jobs:
           echo "No unsafe lifecycle scripts detected."
 
       - name: Publish workspaces to npm
-        run: yarn workspaces foreach --all --no-private -v npm publish --access public --tolerate-republish
+        run: |
+          failed=0
+          for pkg in packages/*/package.json; do
+            dir=$(dirname "$pkg")
+            if ! jq -e '.private' "$pkg" > /dev/null 2>&1 || [ "$(jq -r '.private' "$pkg")" = "false" ] || [ "$(jq -r '.private' "$pkg")" = "null" ]; then
+              echo "Publishing $(jq -r '.name' "$pkg")..."
+              if ! (cd "$dir" && npm publish --access public); then
+                echo "Publish failed for $(jq -r '.name' "$pkg")"
+                failed=1
+              fi
+            fi
+          done
+          if [ "$failed" -ne 0 ]; then
+            echo "One or more packages failed to publish."
+            exit 1
+          fi
 
       - name: Extract version
         id: version

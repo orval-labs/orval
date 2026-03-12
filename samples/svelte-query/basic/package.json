@@ -1,6 +1,6 @@
 {
   "name": "svelte-query-basic",
-  "version": "8.5.2",
+  "version": "8.5.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,8 +13,8 @@
     "lint": "eslint .",
     "generate-api": "svelte-kit sync && orval",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
-    "test:snapshots:update": "yarn test:snapshots --update",
-    "test": "yarn check"
+    "test:snapshots:update": "bun run test:snapshots --update",
+    "test": "bun run check"
   },
   "scriptsComments": {
     "prepare": "see https://github.com/sveltejs/kit/issues/5390#issuecomment-1176480653"

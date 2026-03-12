@@ -1,6 +1,6 @@
 {
   "name": "@hono/composite-routes-with-tags-split",
-  "version": "8.5.2",
+  "version": "8.5.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,7 @@
     "deploy": "wrangler deploy --minify src/index.ts",
     "generate-api": "orval",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
-    "test:snapshots:update": "yarn test:snapshots --update"
+    "test:snapshots:update": "bun run test:snapshots --update"
   },
   "dependencies": {
     "@hono/zod-validator": "catalog:hono",

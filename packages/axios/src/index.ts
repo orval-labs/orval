@@ -335,9 +335,9 @@ const axiosFunctionsClientBuilder: ClientGeneratorsBuilder = {
   title: generateAxiosTitle,
 };
 
-export type AxiosBuilderOptions = {
+export interface AxiosBuilderOptions {
   type?: 'axios' | 'axios-functions';
-};
+}
 
 export const builder =
   ({ type = 'axios-functions' }: AxiosBuilderOptions = {}) =>
