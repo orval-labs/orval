@@ -19,23 +19,37 @@ jobs:
         run: |
           WORKFLOW="snapshot-version-check.yaml"
 
-          PR_BRANCHES=$(gh pr list --repo "$GITHUB_REPOSITORY" --base master --state open --search "draft:false" --json headRefName --jq '.[].headRefName')
+          PRS=$(gh pr list --repo "$GITHUB_REPOSITORY" --base master --state open \
+            --search "draft:false" \
+            --json number,headRefName,headRefOid \
+            --jq '.[] | @base64')
 
-          if [ -z "$PR_BRANCHES" ]; then
+          if [ -z "$PRS" ]; then
             echo "No open PRs targeting master."
             exit 0
           fi
 
-          for BRANCH in $PR_BRANCHES; do
-            RUN_ID=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$WORKFLOW" --branch "$BRANCH" --event pull_request --limit 1 --json databaseId --jq '.[0].databaseId' 2>&1) || {
-              echo "Warning: failed to list runs for branch ${BRANCH}: ${RUN_ID}"
+          for PR in $PRS; do
+            PR_DATA=$(printf '%s' "$PR" | base64 --decode)
+            PR_NUMBER=$(printf '%s' "$PR_DATA" | jq -r '.number')
+            BRANCH=$(printf '%s' "$PR_DATA" | jq -r '.headRefName')
+            HEAD_SHA=$(printf '%s' "$PR_DATA" | jq -r '.headRefOid')
+
+            RUN_ID=$(gh run list --repo "$GITHUB_REPOSITORY" \
+              --workflow "$WORKFLOW" \
+              --commit "$HEAD_SHA" \
+              --event pull_request \
+              --limit 1 \
+              --json databaseId \
+              --jq '.[0].databaseId' 2>&1) || {
+              echo "Warning: failed to list runs for PR #${PR_NUMBER} (${BRANCH}): ${RUN_ID}"
               continue
             }
 
             if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
-              echo "Re-running workflow run ${RUN_ID} for branch ${BRANCH}..."
+              echo "Re-running workflow run ${RUN_ID} for PR #${PR_NUMBER} (${BRANCH})..."
               gh run rerun "$RUN_ID" --repo "$GITHUB_REPOSITORY" || echo "Warning: failed to re-run ${RUN_ID}"
             else
-              echo "No previous run found for branch ${BRANCH}, skipping."
+              echo "::notice::No previous run found for PR #${PR_NUMBER} (${BRANCH}), skipping."
             fi
           done
