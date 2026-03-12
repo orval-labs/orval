@@ -147,7 +147,7 @@ export async function normalizeOptions(
     workspace,
   );
 
-  const { clean, prettier, client, httpClient, mode, biome } = globalOptions;
+  const { clean, client, httpClient, mode } = globalOptions;
 
   const tsconfig = await loadTsconfig(
     outputOptions.tsconfig ?? globalOptions.tsconfig,
@@ -242,8 +242,7 @@ export async function normalizeOptions(
       mock,
       clean: outputOptions.clean ?? clean ?? false,
       docs: outputOptions.docs ?? false,
-      prettier: outputOptions.prettier ?? prettier ?? false,
-      biome: outputOptions.biome ?? biome ?? false,
+      formatter: outputOptions.formatter ?? globalOptions.formatter,
       tsconfig,
       packageJson,
       headers: outputOptions.headers ?? false,

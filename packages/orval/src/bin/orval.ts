@@ -11,6 +11,7 @@ import {
   OutputMode,
   setVerbose,
   startMessage,
+  SupportedFormatter,
 } from '@orval/core';
 
 import pkg from '../../package.json';
@@ -72,8 +73,12 @@ cli
   )
   .option('--mock', 'activate the mock')
   .option('--clean [paths...]', 'Clean output directory')
-  .option('--prettier', 'Prettier generated files')
-  .option('--biome', 'biome generated files')
+  .addOption(
+    new Option(
+      '--formatter <name>',
+      'Format generated files (prettier, biome, oxfmt)',
+    ).choices(Object.values(SupportedFormatter)),
+  )
   .option('--tsconfig <path>', 'path to your tsconfig file')
   .option('--verbose', 'Enable verbose logging')
   .action(async (options) => {
@@ -89,8 +94,7 @@ cli
         output: {
           target: options.output,
           clean: options.clean,
-          prettier: options.prettier,
-          biome: options.biome,
+          formatter: options.formatter,
           mock: options.mock,
           client: options.client,
           mode: options.mode,
@@ -146,11 +150,9 @@ cli
 
       let hasErrors = false;
       for (const [projectName, config] of configs) {
-        const normalizedOptions = await normalizeOptions(
-          config,
-          workspace,
-          options,
-        );
+        const normalizedOptions = await normalizeOptions(config, workspace, {
+          ...options,
+        });
 
         if (options.watch === undefined) {
           try {
