@@ -7,7 +7,7 @@
 import type { Form } from './model';
 
 export type addResponseDefault = {
-  data: Blob;
+  data: unknown;
   status: number;
 };
 export type addResponseError = addResponseDefault & {
