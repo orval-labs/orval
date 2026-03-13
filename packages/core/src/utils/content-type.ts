@@ -1,5 +1,11 @@
 import type { OpenApiSchemaObject } from '../types';
 
+// Known binary application/* types — add new entries here as needed
+const binaryApplicationTypes = new Set([
+  'application/octet-stream',
+  'application/pdf',
+]);
+
 /**
  * Determine if a content type is binary.
  * Only known binary types return true. Unknown types default to false (non-binary)
@@ -13,12 +19,6 @@ export function isBinaryContentType(contentType: string): boolean {
   if (baseType.startsWith('audio/')) return true;
   if (baseType.startsWith('video/')) return true;
   if (baseType.startsWith('font/')) return true;
-
-  // Known binary application/* types — add new entries here as needed
-  const binaryApplicationTypes = new Set([
-    'application/octet-stream',
-    'application/pdf',
-  ]);
 
   return binaryApplicationTypes.has(baseType);
 }
