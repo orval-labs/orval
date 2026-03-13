@@ -4,6 +4,7 @@
  * Stream
  * OpenAPI spec version: 1.0.0
  */
+import type { StreamEntry } from './model';
 
 interface TypedResponse<T> extends Response {
   json(): Promise<T>;
@@ -13,7 +14,7 @@ interface TypedResponse<T> extends Response {
  * Stream results
  */
 export type streamResponse200 = {
-  stream: TypedResponse<Blob>;
+  stream: TypedResponse<StreamEntry>;
   status: 200;
 };
 
