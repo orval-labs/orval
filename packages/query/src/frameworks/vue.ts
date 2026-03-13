@@ -70,12 +70,21 @@ export const createVueAdapter = ({
     return queryProperties;
   },
 
-  getInfiniteQueryHttpProps(props: GetterProps, queryParam: string): string {
+  getInfiniteQueryHttpProps(
+    props: GetterProps,
+    queryParam: string,
+    _hasMutator: boolean,
+    requireQueryParam = false,
+  ): string {
     return props
       .map((param) => {
         // Vue does NOT destructure named path params (keeps param.name)
         return param.name === 'params'
-          ? `{...unref(params), '${queryParam}': pageParam || unref(params)?.['${queryParam}']}`
+          ? `{...unref(params), '${queryParam}': ${
+              requireQueryParam
+                ? 'pageParam'
+                : `pageParam || unref(params)?.['${queryParam}']`
+            }}`
           : param.name;
       })
       .join(',');

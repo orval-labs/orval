@@ -57,6 +57,26 @@ const getQueryFnArguments = ({
   return `{ ${signalDestructure} }`;
 };
 
+const escapeRegExp = (value: string): string =>
+  value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+
+const hasQueryParamInSchema = (
+  queryParams: GetterQueryParam | undefined,
+  queryParam: string,
+): boolean => {
+  if (!queryParams?.schema.model) {
+    return false;
+  }
+
+  const escapedParam = escapeRegExp(queryParam);
+  const paramKeyRegex = new RegExp(
+    `(?:^|\\n)\\s*(?:'${escapedParam}'|\"${escapedParam}\"|${escapedParam})\\??:\\s`,
+    'm',
+  );
+
+  return paramKeyRegex.test(queryParams.schema.model);
+};
+
 const generatePrefetch = ({
   usePrefetch,
   type,
@@ -137,7 +157,14 @@ const generatePrefetch = ({
 };
 
 const generateQueryImplementation = ({
-  queryOption: { name, queryParam, options, type, queryKeyFnName },
+  queryOption: {
+    name,
+    queryParam,
+    requireQueryParam,
+    options,
+    type,
+    queryKeyFnName,
+  },
   operationName,
   queryProperties,
   queryKeyProperties,
@@ -165,6 +192,7 @@ const generateQueryImplementation = ({
     options?: object | boolean;
     type: (typeof QueryType)[keyof typeof QueryType];
     queryParam?: string;
+    requireQueryParam?: boolean;
     queryKeyFnName: string;
   };
   isRequestOptions: boolean;
@@ -225,7 +253,12 @@ const generateQueryImplementation = ({
   const hasInfiniteQueryParam = queryParam && queryParams?.schema.name;
 
   const httpFunctionProps = queryParam
-    ? adapter.getInfiniteQueryHttpProps(props, queryParam, !!mutator)
+    ? adapter.getInfiniteQueryHttpProps(
+        props,
+        queryParam,
+        !!mutator,
+        !!requireQueryParam,
+      )
     : adapter.getHttpFunctionQueryProps(queryProperties, httpClient, !!mutator);
 
   const definedInitialDataReturnType = adapter.getQueryReturnType({
@@ -647,14 +680,26 @@ export const generateQueryHook = async (
       })
       .join(',');
 
+    const hasConfiguredInfiniteQueryParam =
+      !!query.useInfiniteQueryParam &&
+      hasQueryParamInSchema(queryParams, query.useInfiniteQueryParam);
+
+    const shouldRequireInfiniteQueryParam =
+      !!query.useInfiniteRequireQueryParam && !!query.useInfiniteQueryParam;
+
+    const canGenerateInfiniteQuery =
+      !shouldRequireInfiniteQueryParam || hasConfiguredInfiniteQueryParam;
+
     const queries = [
-      ...(query.useInfinite || operationQueryOptions?.useInfinite
+      ...(canGenerateInfiniteQuery &&
+      (query.useInfinite || operationQueryOptions?.useInfinite)
         ? [
             {
               name: camel(`${operationName}-infinite`),
               options: query.options,
               type: QueryType.INFINITE,
               queryParam: query.useInfiniteQueryParam,
+              requireQueryParam: shouldRequireInfiniteQueryParam,
               queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
@@ -679,14 +724,16 @@ export const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query.useSuspenseInfiniteQuery ||
-      operationQueryOptions?.useSuspenseInfiniteQuery
+      ...(canGenerateInfiniteQuery &&
+      (query.useSuspenseInfiniteQuery ||
+        operationQueryOptions?.useSuspenseInfiniteQuery)
         ? [
             {
               name: camel(`${operationName}-suspense-infinite`),
               options: query.options,
               type: QueryType.SUSPENSE_INFINITE,
               queryParam: query.useInfiniteQueryParam,
+              requireQueryParam: shouldRequireInfiniteQueryParam,
               queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]

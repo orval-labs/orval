@@ -696,4 +696,27 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  useInfiniteRequireQueryParam: {
+    output: {
+      target:
+        '../generated/react-query/use-infinite-require-query-param/endpoints.ts',
+      schemas:
+        '../generated/react-query/use-infinite-require-query-param/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useSuspenseInfiniteQuery: true,
+          useInfiniteQueryParam: 'page',
+          useInfiniteRequireQueryParam: true,
+        },
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/infinite-require-query-param.yaml',
+    },
+  },
 });

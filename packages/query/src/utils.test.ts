@@ -67,4 +67,25 @@ describe('normalizeQueryOptions', () => {
     const result = normalizeQueryOptions({}, '/workspace');
     expect(result.useOperationIdAsQueryKey).toBeUndefined();
   });
+
+  it('should include useInfiniteRequireQueryParam when true', () => {
+    const result = normalizeQueryOptions(
+      { useInfiniteRequireQueryParam: true },
+      '/workspace',
+    );
+    expect(result.useInfiniteRequireQueryParam).toBe(true);
+  });
+
+  it('should not include useInfiniteRequireQueryParam when false', () => {
+    const result = normalizeQueryOptions(
+      { useInfiniteRequireQueryParam: false },
+      '/workspace',
+    );
+    expect(result.useInfiniteRequireQueryParam).toBeUndefined();
+  });
+
+  it('should not include useInfiniteRequireQueryParam when not provided', () => {
+    const result = normalizeQueryOptions({}, '/workspace');
+    expect(result.useInfiniteRequireQueryParam).toBeUndefined();
+  });
 });
