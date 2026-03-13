@@ -126,6 +126,7 @@ export interface FrameworkAdapter {
     props: GetterProps,
     queryParam: string,
     hasMutator: boolean,
+    requireQueryParam?: boolean,
   ): string;
 
   /** Angular: 'http: HttpClient, ' when isAngularHttp && (!mutator || mutator.hasSecondArg). Others: '' */

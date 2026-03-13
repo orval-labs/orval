@@ -1,0 +1,74 @@
+openapi: 3.0.3
+info:
+  title: Infinite Query Require Param
+  version: 1.0.0
+paths:
+  /api/facility/floors/{id}/image:
+    get:
+      operationId: getFloorplanImage
+      summary: Get floorplan image by floor id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: variant
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - cropped
+              - original
+      responses:
+        '200':
+          description: Image file
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+  /api/dashboard/dashboard:
+    get:
+      operationId: listDashboards
+      summary: List dashboards with pagination
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 20
+      responses:
+        '200':
+          description: Paged dashboard list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardPageDto'
+
+components:
+  schemas:
+    DashboardPageDto:
+      type: object
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: true

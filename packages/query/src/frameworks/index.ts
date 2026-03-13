@@ -83,13 +83,22 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => ({
     return prop.type === GetterPropType.BODY ? body.implementation : prop.name;
   },
 
-  getInfiniteQueryHttpProps(props: GetterProps, queryParam: string) {
+  getInfiniteQueryHttpProps(
+    props: GetterProps,
+    queryParam: string,
+    _hasMutator: boolean,
+    requireQueryParam = false,
+  ) {
     return props
       .map((param) => {
         if (param.type === GetterPropType.NAMED_PATH_PARAMS)
           return param.destructured;
         return param.name === 'params'
-          ? `{...params, '${queryParam}': pageParam || params?.['${queryParam}']}`
+          ? `{...params, '${queryParam}': ${
+              requireQueryParam
+                ? 'pageParam'
+                : `pageParam || params?.['${queryParam}']`
+            }}`
           : param.name;
       })
       .join(',');
