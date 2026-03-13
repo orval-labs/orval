@@ -85,7 +85,8 @@ function getResReqContentTypes({
     formDataContext,
   });
 
-  // Media key has highest precedence: binary media key → Blob (overrides schema)
+  // Known binary content type → Blob (overrides schema)
+  // This ensures correct responseType ('blob') even when schema lacks format: binary.
   if (!isFormData && isBinaryContentType(contentType)) {
     return {
       ...resolvedObject,
