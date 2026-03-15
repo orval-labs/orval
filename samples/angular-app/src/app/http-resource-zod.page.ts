@@ -13,11 +13,11 @@ import {
 } from '../api/http-resource-zod/pets/pets.service';
 
 /**
- * Demonstrates httpResource with Zod runtime validation.
+ * Demonstrates httpResource usage with Zod-generated model types.
  *
- * Generated functions include `{ parse: <ZodSchema>.parse }` so that
- * every HTTP response is validated at runtime through the Zod schema
- * before it reaches the component.
+ * The generated resource functions still return Angular's native
+ * `HttpResourceRef`, so templates and computed values should guard
+ * `value()` reads with `hasValue()`.
  */
 @Component({
   selector: 'app-http-resource-zod-page',
@@ -27,11 +27,11 @@ import {
     <section>
       <h2>httpResource + Zod output</h2>
       <p>
-        Signal-first fetching via httpResource with automatic Zod runtime
-        validation on every response.
+        Signal-first fetching via httpResource with types generated alongside
+        the Zod schemas.
       </p>
 
-      <h3>Pets (validated via Pets.parse)</h3>
+      <h3>Pets</h3>
       <p>Status: {{ listStatus() }}</p>
       @if (listResource.isLoading()) {
         <p>Loading pets…</p>
@@ -47,7 +47,7 @@ import {
         <p>No pets returned.</p>
       }
 
-      <h3>showPetByIdResource() (validated via Pet.parse)</h3>
+      <h3>showPetByIdResource()</h3>
       <p>Status: {{ petStatus() }}</p>
       @if (petByIdResource.isLoading()) {
         <p>Loading pet…</p>
@@ -80,25 +80,32 @@ export class HttpResourceZodPage {
     this.version,
   );
 
-  protected readonly pets = computed<Pets>(
-    () => this.listResource.value() ?? [],
+  protected readonly pets = computed<Pets>(() =>
+    this.listResource.hasValue() ? this.listResource.value() : [],
   );
   protected readonly listStatus = computed(() => this.listResource.status());
   protected readonly listError = computed(
     () => this.listResource.error()?.message ?? 'Unknown error',
   );
 
-  protected readonly petByIdRaw = computed<Pet | string | undefined>(() =>
-    this.petByIdResource.value(),
-  );
+  protected readonly petByIdRaw = computed<Pet | string | undefined>(() => {
+    if (!this.petByIdResource.hasValue()) {
+      return undefined;
+    }
+
+    return this.petByIdResource.value();
+  });
   protected readonly petStatus = computed(() => this.petByIdResource.status());
   protected readonly petError = computed(
     () => this.petByIdResource.error()?.message ?? 'Unknown error',
   );
 
   protected readonly petByIdDisplay = computed(() => {
+    if (!this.petByIdResource.hasValue()) {
+      return this.petByIdResource.error() ? 'Failed to load pet' : 'Loading…';
+    }
+
     const value = this.petByIdResource.value();
-    if (!value) return 'Loading…';
     return typeof value === 'string' ? value : `${value.name} (#${value.id})`;
   });
 }

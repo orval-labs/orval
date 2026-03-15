@@ -6,14 +6,14 @@ import {
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import { HttpResourceZodPage } from './http-resource-zod.page';
+import { HttpResourcePage } from './http-resource.page';
 
-describe('HttpResourceZodPage', () => {
+describe('HttpResourcePage', () => {
   let httpMock: HttpTestingController;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HttpResourceZodPage],
+      imports: [HttpResourcePage],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(),
@@ -28,7 +28,10 @@ describe('HttpResourceZodPage', () => {
     httpMock.verify();
   });
 
-  const flushSuccessfulRequests = () => {
+  it('renders fetched httpResource data from the Angular testing backend', async () => {
+    const fixture = TestBed.createComponent(HttpResourcePage);
+    fixture.detectChanges();
+
     const listReq = httpMock.expectOne('/v1/pets');
     expect(listReq.request.method).toBe('GET');
     expect(listReq.request.headers.get('Accept')).toBe('application/json');
@@ -36,6 +39,11 @@ describe('HttpResourceZodPage', () => {
       {
         id: 1,
         name: 'Rex',
+        requiredNullableString: null,
+      },
+      {
+        id: 2,
+        name: 'Milo',
         requiredNullableString: null,
       },
     ]);
@@ -48,37 +56,22 @@ describe('HttpResourceZodPage', () => {
       name: 'Rex',
       requiredNullableString: null,
     });
-  };
-
-  it('should create the page', () => {
-    const fixture = TestBed.createComponent(HttpResourceZodPage);
-    const page = fixture.componentInstance;
-    expect(page).toBeTruthy();
-  });
-
-  it('renders validated httpResource data from HttpTestingController responses', async () => {
-    const fixture = TestBed.createComponent(HttpResourceZodPage);
-    fixture.detectChanges();
-
-    flushSuccessfulRequests();
 
     await fixture.whenStable();
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h2')?.textContent).toContain(
-      'httpResource + Zod output',
-    );
     expect(compiled.textContent).toContain('Status: resolved');
     expect(compiled.textContent).toContain('Rex');
+    expect(compiled.textContent).toContain('Milo');
+    expect(compiled.textContent).toContain('Rex (#1)');
   });
 
-  it('surfaces backend errors without throwing from guarded value() reads', async () => {
-    const fixture = TestBed.createComponent(HttpResourceZodPage);
+  it('renders backend errors without unsafe value() access', async () => {
+    const fixture = TestBed.createComponent(HttpResourcePage);
     fixture.detectChanges();
 
     const listReq = httpMock.expectOne('/v1/pets');
-    expect(listReq.request.headers.get('Accept')).toBe('application/json');
     listReq.flush('Failed!', {
       status: 500,
       statusText: 'Internal Server Error',

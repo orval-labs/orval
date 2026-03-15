@@ -17,6 +17,7 @@
     "@faker-js/faker": "catalog:tooling",
     "@sveltejs/vite-plugin-svelte": "^5.1.1",
     "@tsconfig/svelte": "^5.0.6",
+    "msw": "catalog:tooling",
     "orval": "workspace:*",
     "prettier": "catalog:",
     "svelte": "catalog:svelte",

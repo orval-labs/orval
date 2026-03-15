@@ -9,6 +9,7 @@ import {
   provideTanStackQuery,
   QueryClient,
 } from '@tanstack/angular-query-experimental';
+import type { MutationFunctionContext } from '@tanstack/angular-query-experimental';
 
 import {
   getCreatePetsMutationOptions,

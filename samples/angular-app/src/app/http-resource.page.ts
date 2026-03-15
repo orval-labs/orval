@@ -70,25 +70,32 @@ export class HttpResourcePage {
     this.version,
   );
 
-  protected readonly pets = computed<Pets>(
-    () => this.listResource.value() ?? [],
+  protected readonly pets = computed<Pets>(() =>
+    this.listResource.hasValue() ? this.listResource.value() : [],
   );
   protected readonly listStatus = computed(() => this.listResource.status());
   protected readonly listError = computed(
     () => this.listResource.error()?.message ?? 'Unknown error',
   );
 
-  protected readonly petByIdRaw = computed<Pet | string | undefined>(() =>
-    this.petByIdResource.value(),
-  );
+  protected readonly petByIdRaw = computed<Pet | string | undefined>(() => {
+    if (!this.petByIdResource.hasValue()) {
+      return undefined;
+    }
+
+    return this.petByIdResource.value();
+  });
   protected readonly petStatus = computed(() => this.petByIdResource.status());
   protected readonly petError = computed(
     () => this.petByIdResource.error()?.message ?? 'Unknown error',
   );
 
   protected readonly petByIdDisplay = computed(() => {
+    if (!this.petByIdResource.hasValue()) {
+      return this.petByIdResource.error() ? 'Failed to load pet' : 'Loading…';
+    }
+
     const value = this.petByIdResource.value();
-    if (!value) return 'Loading…';
     return typeof value === 'string' ? value : `${value.name} (#${value.id})`;
   });
 }

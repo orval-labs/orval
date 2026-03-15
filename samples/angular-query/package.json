@@ -32,6 +32,7 @@
     "@angular/compiler-cli": "catalog:angular",
     "@faker-js/faker": "catalog:tooling",
     "@testing-library/angular": "19.0.0",
+    "jsdom": "catalog:",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
     "prettier": "catalog:",
