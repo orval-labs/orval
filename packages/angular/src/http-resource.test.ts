@@ -20,7 +20,7 @@ import {
   routeRegistry,
 } from './http-resource';
 
-type AngularOverride = {
+interface AngularOverride {
   provideIn: 'root' | 'any' | boolean;
   client: 'httpClient' | 'httpResource' | 'both';
   runtimeValidation: boolean;
@@ -30,7 +30,7 @@ type AngularOverride = {
     injector?: string;
     equal?: string;
   };
-};
+}
 
 const angularOverride = (
   client: AngularOverride['client'],

@@ -237,7 +237,7 @@ export function addDependency({
   const toAdds = exports.filter((e) => {
     const searchWords = [e.alias, e.name]
       .filter((p): p is string => Boolean(p?.length))
-      .map(escapeRegExp)
+      .map((part) => escapeRegExp(part))
       .join('|');
 
     if (!searchWords) {

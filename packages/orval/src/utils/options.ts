@@ -1,5 +1,6 @@
 import { access } from 'node:fs/promises';
 import nodePath from 'node:path';
+import { styleText } from 'node:util';
 
 import {
   type ClientMockBuilder,
@@ -45,7 +46,6 @@ import {
   type SchemaOptions,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
-import chalk from 'chalk';
 
 import pkg from '../../package.json';
 import { loadPackageJson } from './package-json';
@@ -125,11 +125,11 @@ export async function normalizeOptions(
     : optionsExport);
 
   if (!options.input) {
-    throw new Error(chalk.red(`Config require an input`));
+    throw new Error(styleText('red', `Config require an input`));
   }
 
   if (!options.output) {
-    throw new Error(chalk.red(`Config require an output`));
+    throw new Error(styleText('red', `Config require an output`));
   }
 
   const inputOptions: InputOptions =
@@ -440,11 +440,13 @@ export async function normalizeOptions(
   };
 
   if (!normalizedOptions.input.target) {
-    throw new Error(chalk.red(`Config require an input target`));
+    throw new Error(styleText('red', `Config require an input target`));
   }
 
   if (!normalizedOptions.output.target && !normalizedOptions.output.schemas) {
-    throw new Error(chalk.red(`Config require an output target or schemas`));
+    throw new Error(
+      styleText('red', `Config require an output target or schemas`),
+    );
   }
 
   return normalizedOptions;
@@ -526,7 +528,8 @@ async function resolveFirstValidTarget(
   }
 
   throw new Error(
-    chalk.red(
+    styleText(
+      'red',
       `None of the input targets could be resolved:\n${targets.map((target) => `  - ${target}`).join('\n')}`,
     ),
   );
@@ -587,6 +590,7 @@ function normalizeOperationsAndTags(
           formUrlEncoded,
           paramsSerializer,
           query,
+          angular,
           zod,
           ...rest
         },
@@ -595,14 +599,14 @@ function normalizeOperationsAndTags(
           key,
           {
             ...rest,
-            ...(rest.angular
+            ...(angular
               ? {
                   angular: {
-                    provideIn: rest.angular.provideIn ?? 'root',
-                    client: rest.angular.client ?? 'httpClient',
-                    runtimeValidation: rest.angular.runtimeValidation ?? false,
-                    ...(rest.angular.httpResource
-                      ? { httpResource: rest.angular.httpResource }
+                    provideIn: angular.provideIn ?? 'root',
+                    client: angular.client ?? 'httpClient',
+                    runtimeValidation: angular.runtimeValidation ?? false,
+                    ...(angular.httpResource
+                      ? { httpResource: angular.httpResource }
                       : {}),
                   },
                 }
@@ -690,7 +694,9 @@ function normalizeOperationsAndTags(
             ...(mutator
               ? { mutator: normalizeMutator(workspace, mutator) }
               : {}),
-            ...createFormData(workspace, formData),
+            ...(formData === undefined
+              ? {}
+              : { formData: createFormData(workspace, formData) }),
             ...(formUrlEncoded
               ? {
                   formUrlEncoded: isBoolean(formUrlEncoded)
@@ -719,7 +725,9 @@ function normalizeOutputMode(mode?: OutputMode): OutputMode {
   }
 
   if (!Object.values(OutputMode).includes(mode)) {
-    createLogger().warn(chalk.yellow(`Unknown the provided mode => ${mode}`));
+    createLogger().warn(
+      styleText('yellow', `Unknown the provided mode => ${mode}`),
+    );
     return OutputMode.SINGLE;
   }
 

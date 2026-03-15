@@ -91,6 +91,38 @@ export function showPetByIdResource(
 }
 ```
 
+Because Orval returns Angular's native `HttpResourceRef`, you automatically get
+the platform APIs such as `hasValue()`, `status()`, `error()`, `reload()`, and
+the resource snapshot API for advanced composition.
+
+### Consume generated resources safely
+
+Guard `value()` reads with `hasValue()`. Angular resources throw if you read
+`value()` while the resource is in an error state, so `hasValue()` is the safe
+and recommended gate.
+
+```ts title="pets.page.ts"
+import { computed, signal } from '@angular/core';
+
+import { showPetByIdResource } from './api/http-resource/pets.service';
+
+const petId = signal('1');
+const petResource = showPetByIdResource(petId);
+
+const petName = computed(() => {
+  if (!petResource.hasValue()) {
+    return undefined;
+  }
+
+  return petResource.value().name;
+});
+```
+
+> [!TIP]
+> Prefer returning a fallback from a `computed()` when `hasValue()` is false
+> instead of reading `value()` unconditionally. That keeps loading and error
+> states safe in templates and component logic.
+
 Available Angular client modes:
 
 - `httpClient` — generate service methods backed by `HttpClient`
@@ -158,16 +190,13 @@ export type OrvalHttpResourceOptions<TValue, TRaw = unknown> = Omit<
 When `defaultValue` is configured, generated resource overloads return
 `HttpResourceRef<T>` instead of `HttpResourceRef<T | undefined>`.
 
-## httpResource + Zod Runtime Validation
+## httpResource + Zod schema types
 
-When `schemas.type` is set to `zod`, Orval automatically adds
-`{ parse: <ZodSchema>.parse }` for eligible JSON responses in `httpResource`
-output when `override.angular.runtimeValidation` is enabled. This validates
-responses at runtime before they reach your component.
-
-`runtimeValidation` is disabled by default for Angular output to preserve
-backward compatibility. Set it to `true` when you want generated Angular
-clients to validate Zod-backed responses at runtime.
+When `schemas.type` is set to `zod`, Orval can generate Angular `httpResource`
+functions alongside the Zod-backed model files. The generated resources still
+return Angular's native `HttpResourceRef`, so the main best-practice remains the
+same: guard `value()` reads with `hasValue()` and test loading/error states the
+same way you would for any other `httpResource`.
 
 > [!NOTE]
 > Zod is a runtime dependency when you enable `schemas.type: 'zod'`.
@@ -200,16 +229,59 @@ export default defineConfig({
 });
 ```
 
-If you want automatic Zod parsing, enable `runtimeValidation: true`:
+## Testing generated `httpResource` functions
 
-```ts title="orval.config.ts"
-override: {
-  angular: {
-    client: 'httpResource',
-    runtimeValidation: true,
-  },
-},
+Generated resources use Angular's standard `HttpClient` stack, so test them the
+same way you test any other `HttpClient`-based code: configure
+`provideHttpClient()` before `provideHttpClientTesting()`, flush requests with
+`HttpTestingController`, then wait for Angular to propagate the new signal
+values.
+
+```ts title="pets.page.spec.ts"
+import { provideHttpClient } from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+
+import { PetsPage } from './pets.page';
+
+describe('PetsPage', () => {
+  let httpMock: HttpTestingController;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [PetsPage],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    }).compileComponents();
+
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  it('renders fetched pets', async () => {
+    const fixture = TestBed.createComponent(PetsPage);
+    fixture.detectChanges();
+
+    const req = httpMock.expectOne('/v1/pets');
+    expect(req.request.method).toBe('GET');
+    req.flush([{ id: 1, name: 'Rex', requiredNullableString: null }]);
+
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Rex');
+  });
+});
 ```
+
+This is also the right place to verify loading and backend-error behavior for
+`schemas.type: 'zod'` outputs, especially when your component uses guarded
+`hasValue()` checks to avoid unsafe `value()` reads.
 
 ## Setting the Backend URL
 
@@ -282,7 +354,6 @@ getPet<TData = Pet>(options?: HttpClientBodyOptions): Observable<TData> {
 
 **Validation applies to:**
 - JSON body responses with model types in generated `HttpClient` services
-- JSON `httpResource` responses, where Orval emits `parse: Schema.parse`
 
 **Validation is skipped for:**
 - Primitive types (`string`, `number`, `boolean`, `void`, `unknown`)

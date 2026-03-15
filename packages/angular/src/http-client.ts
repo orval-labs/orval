@@ -39,10 +39,10 @@ import {
  * to supply a full `ContextSpec` (which also requires `target`, `workspace`,
  * `spec`, etc.).
  */
-export type HttpClientGeneratorContext = {
+export interface HttpClientGeneratorContext {
   route: string;
   context: Pick<ContextSpec, 'output'>;
-};
+}
 
 // NOTE: Module-level singleton — reset() is called at the start of each
 // header builder invocation (generateAngularHeader). Must stay in sync with
@@ -101,7 +101,9 @@ const buildAcceptHelper = (
   const unionValue = contentTypes
     .map((contentType) => `'${contentType}'`)
     .join(' | ');
-  const names = contentTypes.map(toAcceptHelperKey);
+  const names = contentTypes.map((contentType) =>
+    toAcceptHelperKey(contentType),
+  );
   const implementation = getEnumImplementation(
     unionValue,
     names,
@@ -150,7 +152,7 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
       )
     : Object.values(verbOptions);
   const hasQueryParams = relevantVerbs.some((v) => v.queryParams);
-  const acceptHelpers = output ? buildAcceptHelpers(relevantVerbs, output) : '';
+  const acceptHelpers = buildAcceptHelpers(relevantVerbs, output);
 
   return `
 ${
@@ -417,7 +419,6 @@ export const generateHttpClientImplementation = (
     }
   }
 
-  const multiImplementationReturnType = `Observable<${parsedJsonReturnType} | string | Blob>`;
   const textSuccessTypes = successTypes.filter(
     ({ contentType, value }) =>
       !!contentType &&

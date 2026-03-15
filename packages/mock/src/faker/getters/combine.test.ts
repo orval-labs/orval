@@ -78,7 +78,11 @@ function createMockContext(): ContextSpec {
           signal: false,
           version: 5,
         },
-        angular: { provideIn: 'root', runtimeValidation: false },
+        angular: {
+          provideIn: 'root',
+          client: 'httpClient',
+          runtimeValidation: false,
+        },
         swr: {},
         zod: {
           strict: {

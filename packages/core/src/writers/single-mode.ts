@@ -65,7 +65,7 @@ export async function writeSingleMode({
     const implementationImports = imports.filter((imp) => {
       const searchWords = [imp.alias, imp.name]
         .filter((part): part is string => Boolean(part?.length))
-        .map(escapeRegExp)
+        .map((part) => escapeRegExp(part))
         .join('|');
       if (!searchWords) {
         return false;

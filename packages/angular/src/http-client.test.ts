@@ -23,11 +23,11 @@ import {
 // Test helpers
 // ---------------------------------------------------------------------------
 
-type AngularOverride = {
+interface AngularOverride {
   provideIn: 'root' | 'any' | boolean;
   client: 'httpClient' | 'httpResource' | 'both';
   runtimeValidation: boolean;
-};
+}
 
 const angularOverride = {
   provideIn: 'root',

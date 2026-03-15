@@ -717,14 +717,14 @@ export interface AngularOptions {
   httpResource?: AngularHttpResourceOptions;
 }
 
-export type NormalizedAngularOptions = {
+export interface NormalizedAngularOptions {
   provideIn: 'root' | 'any' | boolean;
   client: 'httpClient' | 'httpResource' | 'both';
   runtimeValidation: boolean;
   httpResource?: AngularHttpResourceOptions;
-};
+}
 
-export type AngularHttpResourceOptions = {
+export interface AngularHttpResourceOptions {
   /**
    * Value to expose while the resource is idle/loading.
    *
@@ -745,7 +745,7 @@ export type AngularHttpResourceOptions = {
    * Example: `(a, b) => a.id === b.id`.
    */
   equal?: string;
-};
+}
 
 export interface SwrOptions {
   useInfinite?: boolean;
@@ -857,6 +857,7 @@ export interface ContextSpec {
 
 export interface GlobalOptions {
   watch?: boolean | string | string[];
+  verbose?: boolean;
   clean?: boolean | string[];
   prettier?: boolean;
   biome?: boolean;
@@ -901,6 +902,7 @@ export interface PackageJson {
   peerDependencies?: Record<string, string>;
   catalog?: Record<string, string>;
   catalogs?: Record<string, Record<string, string>>;
+  resolvedVersions?: Record<string, string>;
 }
 
 export interface GeneratorSchema {
@@ -1326,10 +1328,7 @@ export type GeneratorClientFooter = (data: {
 export type GeneratorClientImports = (data: {
   client: OutputClient | OutputClientFunc;
   implementation: string;
-  imports: {
-    exports: GeneratorImport[];
-    dependency: string;
-  }[];
+  imports: readonly GeneratorDependency[];
   projectName?: string;
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;
@@ -1342,10 +1341,7 @@ export type GeneratorClientImports = (data: {
 
 export type GenerateMockImports = (data: {
   implementation: string;
-  imports: {
-    exports: GeneratorImport[];
-    dependency: string;
-  }[];
+  imports: readonly GeneratorDependency[];
   projectName?: string;
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;

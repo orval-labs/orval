@@ -69,12 +69,12 @@ interface AngularOperationOverride {
   readonly httpResource?: AngularHttpResourceOptionsConfig;
 }
 
-type AngularHttpResourceOptionsConfig = {
+interface AngularHttpResourceOptionsConfig {
   defaultValue?: unknown;
   debugName?: string;
   injector?: string;
   equal?: string;
-};
+}
 
 const isAngularHttpResourceOptions = (
   value: unknown,
@@ -163,7 +163,10 @@ const getHeader = (
 const mergeDependencies = (
   deps: GeneratorDependency[],
 ): GeneratorDependency[] => {
-  const merged = new Map<string, GeneratorDependency>();
+  const merged = new Map<
+    string,
+    { exports: GeneratorImport[]; dependency: string }
+  >();
 
   for (const dep of deps) {
     const existing = merged.get(dep.dependency);
@@ -294,7 +297,7 @@ const withSignal = (
   const type = getTypeWithoutDefault(prop.definition);
   const derivedDefault =
     getDefaultValueFromImplementation(prop.implementation) !== undefined ||
-    prop.default;
+    prop.default !== undefined;
   const hasDefault = options.hasDefault ?? derivedDefault;
   const nameMatch = /^([^:]+):/.exec(prop.definition);
   const namePart = nameMatch ? nameMatch[1] : prop.name;
@@ -316,7 +319,7 @@ const buildSignalProps = (
   for (const param of params) {
     const hasDefault =
       getDefaultValueFromImplementation(param.implementation) !== undefined ||
-      param.default;
+      param.default !== undefined;
     paramDefaults.set(param.name, hasDefault);
   }
 
@@ -690,7 +693,7 @@ const buildHttpResourceFunction = (
     hasResponseSchemaImport
       ? getSchemaOutputTypeRef(dataType)
       : dataType;
-  const successTypes = response.types.success as ResReqTypesValue[];
+  const successTypes = response.types.success;
   const overallReturnType =
     successTypes.length <= 1
       ? parsedDataType
@@ -1239,9 +1242,8 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
 
   const implementation = buildHttpResourceFile(verbOptions, output, context);
 
-  const schemasPath = isObject(output.schemas)
-    ? output.schemas.path
-    : output.schemas;
+  const schemasPath =
+    typeof output.schemas === 'string' ? output.schemas : output.schemas?.path;
   const basePath = schemasPath ? getFileInfo(schemasPath).dirname : undefined;
   const relativeSchemasPath = basePath
     ? output.indexFiles
