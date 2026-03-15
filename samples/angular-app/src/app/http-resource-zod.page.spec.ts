@@ -66,8 +66,8 @@ describe('HttpResourceZodPage', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h2')?.textContent).toContain(
-      'httpResource + Zod output',
+    expect(compiled.querySelector('h1')?.textContent).toContain(
+      'httpResource + Zod',
     );
     expect(compiled.textContent).toContain('Status: resolved');
     expect(compiled.textContent).toContain('Rex');
@@ -93,6 +93,42 @@ describe('HttpResourceZodPage', () => {
 
     await fixture.whenStable();
     fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Failed to load pets:');
+    expect(compiled.textContent).toContain('Rex (#1)');
+  });
+
+  it('surfaces Zod parse failures when runtimeValidation is enabled', async () => {
+    const fixture = TestBed.createComponent(HttpResourceZodPage);
+    fixture.detectChanges();
+
+    const listReq = httpMock.expectOne('/v1/pets');
+    expect(listReq.request.headers.get('Accept')).toBe('application/json');
+    listReq.flush([
+      {
+        id: 1,
+        name: 'Rex',
+      },
+    ]);
+
+    const petReq = httpMock.expectOne('/v1/pets/1');
+    petReq.flush({
+      id: 1,
+      name: 'Rex',
+      requiredNullableString: null,
+    });
+
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const page = fixture.componentInstance as HttpResourceZodPage & {
+      listResource: { error(): Error | undefined };
+    };
+    expect(page.listResource.error()?.name).toBe('ZodError');
+    expect(page.listResource.error()?.message).toContain(
+      'requiredNullableString',
+    );
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Failed to load pets:');

@@ -1,6 +1,29 @@
 import { faker } from '@faker-js/faker';
 import { defineConfig } from 'orval';
 
+const createValidPhone = () =>
+  faker.helpers.arrayElement([
+    `+1${faker.string.numeric({ length: 10 })}`,
+    undefined,
+  ]);
+
+const createShowPetMock = () => ({
+  id: faker.number.int({ min: 1, max: 99 }),
+  name: faker.person.firstName(),
+  tag: faker.helpers.arrayElement([faker.word.sample(), undefined]),
+  status: faker.helpers.arrayElement(['available', 'pending', 'sold'] as const),
+  requiredNullableString: null,
+  optionalNullableString: faker.helpers.arrayElement([
+    faker.word.sample(),
+    null,
+    undefined,
+  ]),
+  phone: faker.helpers.arrayElement([
+    `+1${faker.string.numeric({ length: 10 })}`,
+    undefined,
+  ]),
+});
+
 export default defineConfig({
   petstore: {
     output: {
@@ -25,20 +48,14 @@ export default defineConfig({
           },
           showPetById: {
             mock: {
-              data: () => ({
-                id: faker.number.int({ min: 1, max: 99 }),
-                name: faker.person.firstName(),
-                tag: faker.helpers.arrayElement([
-                  faker.word.sample(),
-                  undefined,
-                ]),
-              }),
+              data: createShowPetMock,
             },
           },
         },
         mock: {
           properties: {
             '/tag|name/': () => faker.person.lastName(),
+            '/phone/': createValidPhone,
           },
         },
       },
@@ -73,20 +90,14 @@ export default defineConfig({
           },
           showPetById: {
             mock: {
-              data: () => ({
-                id: faker.number.int({ min: 1, max: 99 }),
-                name: faker.person.firstName(),
-                tag: faker.helpers.arrayElement([
-                  faker.word.sample(),
-                  undefined,
-                ]),
-              }),
+              data: createShowPetMock,
             },
           },
         },
         mock: {
           properties: {
             '/tag|name/': () => faker.person.lastName(),
+            '/phone/': createValidPhone,
           },
         },
       },
@@ -126,20 +137,14 @@ export default defineConfig({
           },
           showPetById: {
             mock: {
-              data: () => ({
-                id: faker.number.int({ min: 1, max: 99 }),
-                name: faker.person.firstName(),
-                tag: faker.helpers.arrayElement([
-                  faker.word.sample(),
-                  undefined,
-                ]),
-              }),
+              data: createShowPetMock,
             },
           },
         },
         mock: {
           properties: {
             '/tag|name/': () => faker.person.lastName(),
+            '/phone/': createValidPhone,
           },
         },
       },
@@ -178,20 +183,14 @@ export default defineConfig({
           },
           showPetById: {
             mock: {
-              data: () => ({
-                id: faker.number.int({ min: 1, max: 99 }),
-                name: faker.person.firstName(),
-                tag: faker.helpers.arrayElement([
-                  faker.word.sample(),
-                  undefined,
-                ]),
-              }),
+              data: createShowPetMock,
             },
           },
         },
         mock: {
           properties: {
             '/tag|name/': () => faker.person.lastName(),
+            '/phone/': createValidPhone,
           },
         },
       },
@@ -218,6 +217,7 @@ export default defineConfig({
       override: {
         angular: {
           client: 'httpResource',
+          runtimeValidation: true,
         },
         operations: {
           listPets: {
@@ -231,20 +231,14 @@ export default defineConfig({
           },
           showPetById: {
             mock: {
-              data: () => ({
-                id: faker.number.int({ min: 1, max: 99 }),
-                name: faker.person.firstName(),
-                tag: faker.helpers.arrayElement([
-                  faker.word.sample(),
-                  undefined,
-                ]),
-              }),
+              data: createShowPetMock,
             },
           },
         },
         mock: {
           properties: {
             '/tag|name/': () => faker.person.lastName(),
+            '/phone/': createValidPhone,
           },
         },
       },

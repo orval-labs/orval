@@ -33,10 +33,11 @@ export const getSearchPetsResponseMock = (): Pets =>
       faker.number.float({ min: 0, max: 5, multipleOf: 0.5 }),
       undefined,
     ]),
-    phone: faker.helpers.arrayElement([
-      faker.helpers.fromRegExp('^\\+?[1-9]\\d{1,14}$'),
-      undefined,
-    ]),
+    phone: (() =>
+      faker.helpers.arrayElement([
+        `+1${faker.string.numeric({ length: 10 })}`,
+        undefined,
+      ]))(),
     requiredNullableString: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
         faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -76,10 +77,11 @@ export const getListPetsResponseMock = (): Pets =>
         faker.number.float({ min: 0, max: 5, multipleOf: 0.5 }),
         undefined,
       ]),
-      phone: faker.helpers.arrayElement([
-        faker.helpers.fromRegExp('^\\+?[1-9]\\d{1,14}$'),
-        undefined,
-      ]),
+      phone: (() =>
+        faker.helpers.arrayElement([
+          `+1${faker.string.numeric({ length: 10 })}`,
+          undefined,
+        ]))(),
       requiredNullableString: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
           faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -116,10 +118,11 @@ export const getListPetsResponseMock = (): Pets =>
         faker.number.float({ min: 0, max: 5, multipleOf: 0.5 }),
         undefined,
       ]),
-      phone: faker.helpers.arrayElement([
-        faker.helpers.fromRegExp('^\\+?[1-9]\\d{1,14}$'),
-        undefined,
-      ]),
+      phone: (() =>
+        faker.helpers.arrayElement([
+          `+1${faker.string.numeric({ length: 10 })}`,
+          undefined,
+        ]))(),
       requiredNullableString: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
           faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -142,6 +145,17 @@ export const getShowPetByIdResponseMock = () =>
     id: faker.number.int({ min: 1, max: 99 }),
     name: faker.person.firstName(),
     tag: faker.helpers.arrayElement([faker.word.sample(), undefined]),
+    status: faker.helpers.arrayElement(['available', 'pending', 'sold']),
+    requiredNullableString: null,
+    optionalNullableString: faker.helpers.arrayElement([
+      faker.word.sample(),
+      null,
+      undefined,
+    ]),
+    phone: faker.helpers.arrayElement([
+      `+1${faker.string.numeric({ length: 10 })}`,
+      undefined,
+    ]),
   }))();
 
 export const getShowPetTextResponseMock = (): string => faker.word.sample();

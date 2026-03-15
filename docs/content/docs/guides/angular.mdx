@@ -198,6 +198,10 @@ return Angular's native `HttpResourceRef`, so the main best-practice remains the
 same: guard `value()` reads with `hasValue()` and test loading/error states the
 same way you would for any other `httpResource`.
 
+With `override.angular.runtimeValidation: true`, generated JSON resources also
+emit `parse: Schema.parse` and expose Zod output types such as `PetOutput` and
+`PetsOutput`.
+
 > [!NOTE]
 > Zod is a runtime dependency when you enable `schemas.type: 'zod'`.
 > Make sure your app installs `zod` (for example, `zod` in `dependencies`).
@@ -281,7 +285,10 @@ describe('PetsPage', () => {
 
 This is also the right place to verify loading and backend-error behavior for
 `schemas.type: 'zod'` outputs, especially when your component uses guarded
-`hasValue()` checks to avoid unsafe `value()` reads.
+`hasValue()` checks to avoid unsafe `value()` reads. When
+`override.angular.runtimeValidation` is enabled, add at least one test that
+flushes an invalid JSON payload and asserts that the resource exposes a
+`ZodError`.
 
 ## Setting the Backend URL
 
@@ -330,6 +337,11 @@ export default defineConfig({
         path: 'src/api/schemas',
       },
       client: 'angular',
+      override: {
+        angular: {
+          runtimeValidation: true,
+        },
+      },
     },
     input: {
       target: './petstore.yaml',
@@ -341,7 +353,8 @@ export default defineConfig({
 ### How It Works
 
 For generated `HttpClient` services, body responses are piped through the Zod
-schema's `.parse()` method:
+schema's `.parse()` method. Generated `httpResource` JSON retrievals receive the
+same parse hook via Angular's `HttpResourceOptions.parse`.
 
 ```ts
 // Generated code (simplified)
@@ -350,14 +363,24 @@ getPet<TData = Pet>(options?: HttpClientBodyOptions): Observable<TData> {
     .get<TData>(`/pet`, { observe: 'body' })
     .pipe(map((data) => Pet.parse(data) as TData));
 }
+
+showPetByIdResource(
+  petId: Signal<string>,
+): HttpResourceRef<PetOutput | undefined> {
+  return httpResource<PetOutput>(() => `/pet/${petId()}`, {
+    parse: Pet.parse,
+  });
+}
 ```
 
 **Validation applies to:**
 - JSON body responses with model types in generated `HttpClient` services
+- JSON `httpResource` retrievals with model response types
 
 **Validation is skipped for:**
 - Primitive types (`string`, `number`, `boolean`, `void`, `unknown`)
-- `events` and `response` observe modes (`HttpEvent<T>`, `HttpResponse<T>`)
+- `events` and `response` observe modes (`HttpEvent<T>`, `HttpResponse<T>`) in
+  generated `HttpClient` services
 - Custom mutator paths
 - Non-JSON content types (text, blob, arrayBuffer)
 

@@ -65,7 +65,7 @@ describe('ZodValidationDemo', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('h1')?.textContent).toContain(
-      'Runtime Validation',
+      'Zod runtime validation',
     );
     expect(compiled.querySelectorAll('.panel').length).toBe(4);
 
@@ -108,10 +108,12 @@ describe('ZodValidationDemo', () => {
     await fixture.whenStable();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const listItems = compiled.querySelectorAll('.panel:first-child li');
-    expect(listItems.length).toBe(2);
-    expect(listItems[0].textContent).toContain('Rex');
-    expect(listItems[1].textContent).toContain('Felix');
+    const petCards = compiled.querySelectorAll(
+      '.panel:first-child app-pet-card',
+    );
+    expect(petCards.length).toBe(2);
+    expect(petCards[0].textContent).toContain('Rex');
+    expect(petCards[1].textContent).toContain('Felix');
   });
 
   it('should show single pet from validated showPetById response', async () => {
