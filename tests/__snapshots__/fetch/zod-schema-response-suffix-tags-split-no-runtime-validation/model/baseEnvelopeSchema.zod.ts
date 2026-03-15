@@ -11,3 +11,4 @@ export const BaseEnvelopeSchema = zod.object({
 });
 
 export type BaseEnvelopeSchema = zod.input<typeof BaseEnvelopeSchema>;
+export type BaseEnvelopeSchemaOutput = zod.output<typeof BaseEnvelopeSchema>;

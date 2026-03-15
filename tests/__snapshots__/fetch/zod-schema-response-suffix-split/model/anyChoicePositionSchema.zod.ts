@@ -17,3 +17,6 @@ export const AnyChoicePositionSchema = zod.union([
 ]);
 
 export type AnyChoicePositionSchema = zod.input<typeof AnyChoicePositionSchema>;
+export type AnyChoicePositionSchemaOutput = zod.output<
+  typeof AnyChoicePositionSchema
+>;

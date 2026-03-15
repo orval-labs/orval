@@ -8,16 +8,16 @@ import type { CreatePetsBodyStatus } from './createPetsBodyStatus';
 
 export type CreatePetsBody = {
   /**
-   * Name of the pet
-   * @minLength 1
-   * @maxLength 100
-   */
+     * Name of the pet
+     * @minLength 1
+     * @maxLength 100
+     */
   name: string;
   /**
-   * Classification tag
-   * @minLength 1
-   * @maxLength 50
-   */
+     * Classification tag
+     * @minLength 1
+     * @maxLength 50
+     */
   tag: string;
   /** Owner contact email */
   email?: string;

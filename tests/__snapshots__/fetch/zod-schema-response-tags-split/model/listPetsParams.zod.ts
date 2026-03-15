@@ -12,3 +12,4 @@ export const ListPetsParams = zod.object({
 });
 
 export type ListPetsParams = zod.input<typeof ListPetsParams>;
+export type ListPetsParamsOutput = zod.output<typeof ListPetsParams>;

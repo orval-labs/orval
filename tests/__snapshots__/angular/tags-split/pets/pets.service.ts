@@ -4,13 +4,12 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import type {
-  HttpContext,
-  HttpEvent,
-  HttpParams,
+import {
+  HttpClient,
+  HttpHeaders,
   HttpResponse as AngularHttpResponse,
 } from '@angular/common/http';
+import type { HttpContext, HttpEvent, HttpParams } from '@angular/common/http';
 
 import { Injectable, inject } from '@angular/core';
 
@@ -46,7 +45,24 @@ interface HttpClientOptions {
   readonly integrity?: string;
   readonly referrerPolicy?: ReferrerPolicy;
   readonly transferCache?: { includeHeaders?: string[] } | boolean;
+  readonly timeout?: number;
 }
+
+type HttpClientBodyOptions = HttpClientOptions & {
+  readonly observe?: 'body';
+};
+
+type HttpClientEventOptions = HttpClientOptions & {
+  readonly observe: 'events';
+};
+
+type HttpClientResponseOptions = HttpClientOptions & {
+  readonly observe: 'response';
+};
+
+type HttpClientObserveOptions = HttpClientOptions & {
+  readonly observe?: 'body' | 'events' | 'response';
+};
 
 function filterParams(
   params: Record<string, unknown>,
@@ -97,22 +113,22 @@ export class PetsService {
   listPets<TData = Pets>(
     params: ListPetsParams,
     version?: number,
-    options?: HttpClientOptions & { observe?: 'body' },
+    options?: HttpClientBodyOptions,
   ): Observable<TData>;
   listPets<TData = Pets>(
     params: ListPetsParams,
     version?: number,
-    options?: HttpClientOptions & { observe: 'events' },
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   listPets<TData = Pets>(
     params: ListPetsParams,
     version?: number,
-    options?: HttpClientOptions & { observe: 'response' },
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   listPets<TData = Pets>(
     params: ListPetsParams,
     version: number = 1,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     const filteredParams = filterParams(
       { ...params, ...options?.params },
@@ -148,25 +164,25 @@ export class PetsService {
     createPetsBody: CreatePetsBody,
     params: CreatePetsParams,
     version?: number,
-    options?: HttpClientOptions & { observe?: 'body' },
+    options?: HttpClientBodyOptions,
   ): Observable<TData>;
   createPets<TData = Pet>(
     createPetsBody: CreatePetsBody,
     params: CreatePetsParams,
     version?: number,
-    options?: HttpClientOptions & { observe: 'events' },
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   createPets<TData = Pet>(
     createPetsBody: CreatePetsBody,
     params: CreatePetsParams,
     version?: number,
-    options?: HttpClientOptions & { observe: 'response' },
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   createPets<TData = Pet>(
     createPetsBody: CreatePetsBody,
     params: CreatePetsParams,
     version: number = 1,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     const filteredParams = filterParams(
       { ...params, ...options?.params },
@@ -201,22 +217,22 @@ export class PetsService {
   showPetById<TData = Pet>(
     petId: string,
     version?: number,
-    options?: HttpClientOptions & { observe?: 'body' },
+    options?: HttpClientBodyOptions,
   ): Observable<TData>;
   showPetById<TData = Pet>(
     petId: string,
     version?: number,
-    options?: HttpClientOptions & { observe: 'events' },
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   showPetById<TData = Pet>(
     petId: string,
     version?: number,
-    options?: HttpClientOptions & { observe: 'response' },
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   showPetById<TData = Pet>(
     petId: string,
     version: number = 1,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     if (options?.observe === 'events') {
       return this.http.get<TData>(`/v${version}/pets/${petId}`, {
@@ -243,22 +259,22 @@ export class PetsService {
   deletePetById<TData = void>(
     petId: string,
     version?: number,
-    options?: HttpClientOptions & { observe?: 'body' },
+    options?: HttpClientBodyOptions,
   ): Observable<TData>;
   deletePetById<TData = void>(
     petId: string,
     version?: number,
-    options?: HttpClientOptions & { observe: 'events' },
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   deletePetById<TData = void>(
     petId: string,
     version?: number,
-    options?: HttpClientOptions & { observe: 'response' },
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   deletePetById<TData = void>(
     petId: string,
     version: number = 1,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     if (options?.observe === 'events') {
       return this.http.delete<TData>(`/v${version}/pets/${petId}`, {
@@ -285,22 +301,22 @@ export class PetsService {
   showPetWithOwner<TData = PetWithTag>(
     petId: string,
     version?: number,
-    options?: HttpClientOptions & { observe?: 'body' },
+    options?: HttpClientBodyOptions,
   ): Observable<TData>;
   showPetWithOwner<TData = PetWithTag>(
     petId: string,
     version?: number,
-    options?: HttpClientOptions & { observe: 'events' },
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   showPetWithOwner<TData = PetWithTag>(
     petId: string,
     version?: number,
-    options?: HttpClientOptions & { observe: 'response' },
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   showPetWithOwner<TData = PetWithTag>(
     petId: string,
     version: number = 1,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     if (options?.observe === 'events') {
       return this.http.get<TData>(`/v${version}/pets/${petId}/owner`, {
@@ -322,3 +338,9 @@ export class PetsService {
     });
   }
 }
+
+export type ListPetsClientResult = NonNullable<Pets>;
+export type CreatePetsClientResult = NonNullable<Pet>;
+export type ShowPetByIdClientResult = NonNullable<Pet>;
+export type DeletePetByIdClientResult = NonNullable<void>;
+export type ShowPetWithOwnerClientResult = NonNullable<PetWithTag>;

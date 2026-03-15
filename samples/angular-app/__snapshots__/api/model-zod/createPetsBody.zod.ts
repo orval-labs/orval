@@ -18,4 +18,5 @@ export const CreatePetsBody = zod.object({
   "status": zod.enum(['available', 'pending', 'sold']).default(createPetsBodyStatusDefaultOne).describe('Initial adoption status')
 })
 
-export type CreatePetsBody = zod.input<typeof CreatePetsBody>;
+    export type CreatePetsBody = zod.input<typeof CreatePetsBody>;
+    export type CreatePetsBodyOutput = zod.output<typeof CreatePetsBody>;

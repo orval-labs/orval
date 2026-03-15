@@ -7,13 +7,14 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
+import type { ColorObject } from './schemas';
+
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
 import { Colors1, Colors2 } from './schemas';
-import type { ColorObject } from './schemas';
 
 /**
  * @summary sample colors

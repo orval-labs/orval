@@ -7,12 +7,12 @@
 import useSwr from 'swr';
 import type { Key, SWRConfiguration } from 'swr';
 
+import type { Node } from './model';
+
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { Node } from './model';
 
 /**
  * @summary Example

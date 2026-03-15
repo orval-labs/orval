@@ -8,12 +8,12 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
+import type { SampleStepsResponse } from './model';
+
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { SampleStepsResponse } from './model';
 
 export const getSample = (axiosInstance: AxiosInstance = axios) => {
   const getSampleApi = (

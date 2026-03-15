@@ -36,4 +36,5 @@ export const Pets = zod.array(zod.object({
   "optionalNullableString": zod.string().nullish()
 })).max(PetsMaxOne)
 
-export type Pets = zod.input<typeof Pets>;
+    export type Pets = zod.input<typeof Pets>;
+    export type PetsOutput = zod.output<typeof Pets>;

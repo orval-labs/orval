@@ -7,22 +7,21 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import type { CreatePetsBody, CreatePetsParams, ListPetsParams } from './model';
+import type {
+  CreatePetsBody,
+  CreatePetsParams,
+  ListPetsParams,
+  Pet,
+  PetWithTag,
+  Pets,
+} from './model';
 
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, delay, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-import type {
-  Cat,
-  Dachshund,
-  Dog,
-  Labradoodle,
-  Pet,
-  PetWithTag,
-  Pets,
-} from './model';
+import type { Cat, Dachshund, Dog, Labradoodle } from './model';
 
 export const getSwaggerPetstore = (axiosInstance: AxiosInstance = axios) => {
   /**

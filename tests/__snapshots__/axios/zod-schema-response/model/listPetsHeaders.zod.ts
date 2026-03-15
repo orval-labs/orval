@@ -11,3 +11,4 @@ export const ListPetsHeaders = zod.object({
 });
 
 export type ListPetsHeaders = zod.input<typeof ListPetsHeaders>;
+export type ListPetsHeadersOutput = zod.output<typeof ListPetsHeaders>;

@@ -15,6 +15,9 @@ import type {
   CreatePetsParams,
   Error,
   ListPetsParams,
+  Pet,
+  PetWithTag,
+  Pets,
 } from './model';
 
 import { faker } from '@faker-js/faker';
@@ -22,15 +25,7 @@ import { faker } from '@faker-js/faker';
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-import type {
-  Cat,
-  Dachshund,
-  Dog,
-  Labradoodle,
-  Pet,
-  PetWithTag,
-  Pets,
-} from './model';
+import type { Cat, Dachshund, Dog, Labradoodle } from './model';
 
 import { customFetch } from '../../../mutators/custom-fetch';
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];

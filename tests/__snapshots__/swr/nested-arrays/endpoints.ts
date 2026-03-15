@@ -9,12 +9,12 @@ import type { Arguments, Key } from 'swr';
 import useSWRMutation from 'swr/mutation';
 import type { SWRMutationConfiguration } from 'swr/mutation';
 
+import type { ResSampleModel } from './model';
+
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { ResSampleModel } from './model';
 
 /**
  * @summary sample

@@ -20,6 +20,9 @@ import type {
   CreatePetsParams,
   Error,
   ListPetsParams,
+  Pet,
+  PetWithTag,
+  Pets,
 } from './model/index.zod';
 
 import { faker } from '@faker-js/faker';
@@ -27,15 +30,7 @@ import { faker } from '@faker-js/faker';
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-import type {
-  Cat,
-  Dachshund,
-  Dog,
-  Labradoodle,
-  Pet,
-  PetWithTag,
-  Pets,
-} from './model/index.zod';
+import type { Cat, Dachshund, Dog, Labradoodle } from './model/index.zod';
 
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;

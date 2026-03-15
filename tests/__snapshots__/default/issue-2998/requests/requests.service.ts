@@ -5,13 +5,12 @@
  * Minimal OpenAPI spec for testing Orval code generation
  * OpenAPI spec version: 1.0.0
  */
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import type {
-  HttpContext,
-  HttpEvent,
-  HttpParams,
+import {
+  HttpClient,
+  HttpHeaders,
   HttpResponse as AngularHttpResponse,
 } from '@angular/common/http';
+import type { HttpContext, HttpEvent, HttpParams } from '@angular/common/http';
 
 import { Injectable, inject } from '@angular/core';
 
@@ -44,7 +43,24 @@ interface HttpClientOptions {
   readonly integrity?: string;
   readonly referrerPolicy?: ReferrerPolicy;
   readonly transferCache?: { includeHeaders?: string[] } | boolean;
+  readonly timeout?: number;
 }
+
+type HttpClientBodyOptions = HttpClientOptions & {
+  readonly observe?: 'body';
+};
+
+type HttpClientEventOptions = HttpClientOptions & {
+  readonly observe: 'events';
+};
+
+type HttpClientResponseOptions = HttpClientOptions & {
+  readonly observe: 'response';
+};
+
+type HttpClientObserveOptions = HttpClientOptions & {
+  readonly observe?: 'body' | 'events' | 'response';
+};
 
 function filterParams(
   params: Record<string, unknown>,
@@ -94,19 +110,19 @@ export class RequestsService {
    */
   findByReferenceId<TData = RequestDTO>(
     referenceId: string,
-    options?: HttpClientOptions & { observe?: 'body' },
+    options?: HttpClientBodyOptions,
   ): Observable<TData>;
   findByReferenceId<TData = RequestDTO>(
     referenceId: string,
-    options?: HttpClientOptions & { observe: 'events' },
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   findByReferenceId<TData = RequestDTO>(
     referenceId: string,
-    options?: HttpClientOptions & { observe: 'response' },
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   findByReferenceId<TData = RequestDTO>(
     referenceId: string,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     if (options?.observe === 'events') {
       return this.http.get<TData>(`/api/requests/${referenceId}`, {
@@ -132,19 +148,19 @@ export class RequestsService {
    */
   findRequests<TData = PageDTORequestDTO>(
     params: FindRequestsParams,
-    options?: HttpClientOptions & { observe?: 'body' },
+    options?: HttpClientBodyOptions,
   ): Observable<TData>;
   findRequests<TData = PageDTORequestDTO>(
     params: FindRequestsParams,
-    options?: HttpClientOptions & { observe: 'events' },
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   findRequests<TData = PageDTORequestDTO>(
     params: FindRequestsParams,
-    options?: HttpClientOptions & { observe: 'response' },
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   findRequests<TData = PageDTORequestDTO>(
     params: FindRequestsParams,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     const filteredParams = filterParams(
       { ...params, ...options?.params },
@@ -178,19 +194,19 @@ export class RequestsService {
    */
   createRequest<TData = RequestDTO>(
     requestDTO: RequestDTO,
-    options?: HttpClientOptions & { observe?: 'body' },
+    options?: HttpClientBodyOptions,
   ): Observable<TData>;
   createRequest<TData = RequestDTO>(
     requestDTO: RequestDTO,
-    options?: HttpClientOptions & { observe: 'events' },
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   createRequest<TData = RequestDTO>(
     requestDTO: RequestDTO,
-    options?: HttpClientOptions & { observe: 'response' },
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   createRequest<TData = RequestDTO>(
     requestDTO: RequestDTO,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     if (options?.observe === 'events') {
       return this.http.post<TData>(`/api/requests`, requestDTO, {
@@ -212,3 +228,7 @@ export class RequestsService {
     });
   }
 }
+
+export type FindByReferenceIdClientResult = NonNullable<RequestDTO>;
+export type FindRequestsClientResult = NonNullable<PageDTORequestDTO>;
+export type CreateRequestClientResult = NonNullable<RequestDTO>;

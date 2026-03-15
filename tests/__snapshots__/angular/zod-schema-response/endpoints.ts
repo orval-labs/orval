@@ -4,13 +4,12 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import type {
-  HttpContext,
-  HttpEvent,
-  HttpParams,
+import {
+  HttpClient,
+  HttpHeaders,
   HttpResponse as AngularHttpResponse,
 } from '@angular/common/http';
+import type { HttpContext, HttpEvent, HttpParams } from '@angular/common/http';
 
 import { Injectable, inject } from '@angular/core';
 
@@ -20,6 +19,9 @@ import type {
   CreatePetsBody,
   CreatePetsParams,
   ListPetsParams,
+  Pet,
+  PetWithTag,
+  Pets,
 } from './model/index.zod';
 
 import { faker } from '@faker-js/faker';
@@ -27,15 +29,7 @@ import { faker } from '@faker-js/faker';
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-import type {
-  Cat,
-  Dachshund,
-  Dog,
-  Labradoodle,
-  Pet,
-  PetWithTag,
-  Pets,
-} from './model/index.zod';
+import type { Cat, Dachshund, Dog, Labradoodle } from './model/index.zod';
 
 interface HttpClientOptions {
   readonly headers?: HttpHeaders | Record<string, string | string[]>;
@@ -58,7 +52,24 @@ interface HttpClientOptions {
   readonly integrity?: string;
   readonly referrerPolicy?: ReferrerPolicy;
   readonly transferCache?: { includeHeaders?: string[] } | boolean;
+  readonly timeout?: number;
 }
+
+type HttpClientBodyOptions = HttpClientOptions & {
+  readonly observe?: 'body';
+};
+
+type HttpClientEventOptions = HttpClientOptions & {
+  readonly observe: 'events';
+};
+
+type HttpClientResponseOptions = HttpClientOptions & {
+  readonly observe: 'response';
+};
+
+type HttpClientObserveOptions = HttpClientOptions & {
+  readonly observe?: 'body' | 'events' | 'response';
+};
 
 function filterParams(
   params: Record<string, unknown>,
@@ -108,19 +119,19 @@ export class SwaggerPetstoreService {
    */
   listPets<TData = Pets>(
     params: ListPetsParams,
-    options?: HttpClientOptions & { observe?: 'body' },
+    options?: HttpClientBodyOptions,
   ): Observable<TData>;
   listPets<TData = Pets>(
     params: ListPetsParams,
-    options?: HttpClientOptions & { observe: 'events' },
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   listPets<TData = Pets>(
     params: ListPetsParams,
-    options?: HttpClientOptions & { observe: 'response' },
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   listPets<TData = Pets>(
     params: ListPetsParams,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     const filteredParams = filterParams(
       { ...params, ...options?.params },
@@ -156,22 +167,22 @@ export class SwaggerPetstoreService {
   createPets<TData = Pet>(
     createPetsBody: CreatePetsBody,
     params: CreatePetsParams,
-    options?: HttpClientOptions & { observe?: 'body' },
+    options?: HttpClientBodyOptions,
   ): Observable<TData>;
   createPets<TData = Pet>(
     createPetsBody: CreatePetsBody,
     params: CreatePetsParams,
-    options?: HttpClientOptions & { observe: 'events' },
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   createPets<TData = Pet>(
     createPetsBody: CreatePetsBody,
     params: CreatePetsParams,
-    options?: HttpClientOptions & { observe: 'response' },
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   createPets<TData = Pet>(
     createPetsBody: CreatePetsBody,
     params: CreatePetsParams,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     const filteredParams = filterParams(
       { ...params, ...options?.params },
@@ -206,19 +217,19 @@ export class SwaggerPetstoreService {
    */
   showPetById<TData = Pet>(
     petId: string,
-    options?: HttpClientOptions & { observe?: 'body' },
+    options?: HttpClientBodyOptions,
   ): Observable<TData>;
   showPetById<TData = Pet>(
     petId: string,
-    options?: HttpClientOptions & { observe: 'events' },
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   showPetById<TData = Pet>(
     petId: string,
-    options?: HttpClientOptions & { observe: 'response' },
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   showPetById<TData = Pet>(
     petId: string,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     if (options?.observe === 'events') {
       return this.http.get<TData>(`/pets/${petId}`, {
@@ -245,19 +256,19 @@ export class SwaggerPetstoreService {
    */
   deletePetById<TData = void>(
     petId: string,
-    options?: HttpClientOptions & { observe?: 'body' },
+    options?: HttpClientBodyOptions,
   ): Observable<TData>;
   deletePetById<TData = void>(
     petId: string,
-    options?: HttpClientOptions & { observe: 'events' },
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   deletePetById<TData = void>(
     petId: string,
-    options?: HttpClientOptions & { observe: 'response' },
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   deletePetById<TData = void>(
     petId: string,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     if (options?.observe === 'events') {
       return this.http.delete<TData>(`/pets/${petId}`, {
@@ -282,17 +293,13 @@ export class SwaggerPetstoreService {
   /**
    * @summary health check
    */
+  healthCheck(options?: HttpClientBodyOptions): Observable<string>;
+  healthCheck(options?: HttpClientEventOptions): Observable<HttpEvent<string>>;
   healthCheck(
-    options?: HttpClientOptions & { observe?: 'body' },
-  ): Observable<string>;
-  healthCheck(
-    options?: HttpClientOptions & { observe: 'events' },
-  ): Observable<HttpEvent<string>>;
-  healthCheck(
-    options?: HttpClientOptions & { observe: 'response' },
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<string>>;
   healthCheck(
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    options?: HttpClientObserveOptions,
   ): Observable<string | HttpEvent<string> | AngularHttpResponse<string>> {
     if (options?.observe === 'events') {
       return this.http.get(`/health`, {
@@ -322,19 +329,19 @@ export class SwaggerPetstoreService {
    */
   showPetWithOwner<TData = PetWithTag>(
     petId: string,
-    options?: HttpClientOptions & { observe?: 'body' },
+    options?: HttpClientBodyOptions,
   ): Observable<TData>;
   showPetWithOwner<TData = PetWithTag>(
     petId: string,
-    options?: HttpClientOptions & { observe: 'events' },
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   showPetWithOwner<TData = PetWithTag>(
     petId: string,
-    options?: HttpClientOptions & { observe: 'response' },
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   showPetWithOwner<TData = PetWithTag>(
     petId: string,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     if (options?.observe === 'events') {
       return this.http.get<TData>(`/pets/${petId}/owner`, {

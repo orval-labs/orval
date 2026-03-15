@@ -81,3 +81,6 @@ export const PortfolioResponseSchema = zod.object({
 });
 
 export type PortfolioResponseSchema = zod.input<typeof PortfolioResponseSchema>;
+export type PortfolioResponseSchemaOutput = zod.output<
+  typeof PortfolioResponseSchema
+>;

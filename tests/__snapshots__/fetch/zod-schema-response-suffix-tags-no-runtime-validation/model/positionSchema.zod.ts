@@ -12,3 +12,4 @@ export const PositionSchema = zod.object({
 });
 
 export type PositionSchema = zod.input<typeof PositionSchema>;
+export type PositionSchemaOutput = zod.output<typeof PositionSchema>;

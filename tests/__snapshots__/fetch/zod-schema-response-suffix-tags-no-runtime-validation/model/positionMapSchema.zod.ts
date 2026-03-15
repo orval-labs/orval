@@ -15,3 +15,4 @@ export const PositionMapSchema = zod.record(
 );
 
 export type PositionMapSchema = zod.input<typeof PositionMapSchema>;
+export type PositionMapSchemaOutput = zod.output<typeof PositionMapSchema>;

@@ -12,3 +12,4 @@ export const Labradoodle = zod.object({
 });
 
 export type Labradoodle = zod.input<typeof Labradoodle>;
+export type LabradoodleOutput = zod.output<typeof Labradoodle>;

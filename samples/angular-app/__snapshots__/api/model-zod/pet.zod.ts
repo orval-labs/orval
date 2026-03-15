@@ -34,4 +34,5 @@ export const Pet = zod.object({
   "optionalNullableString": zod.string().nullish()
 })
 
-export type Pet = zod.input<typeof Pet>;
+    export type Pet = zod.input<typeof Pet>;
+    export type PetOutput = zod.output<typeof Pet>;

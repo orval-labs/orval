@@ -20,3 +20,6 @@ export const ComposedPositionSchema = zod
   );
 
 export type ComposedPositionSchema = zod.input<typeof ComposedPositionSchema>;
+export type ComposedPositionSchemaOutput = zod.output<
+  typeof ComposedPositionSchema
+>;

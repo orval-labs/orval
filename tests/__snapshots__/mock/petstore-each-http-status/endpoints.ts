@@ -7,10 +7,10 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
+import type { Sample } from './model';
+
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { Sample } from './model';
 
 export const getOrvalDefaultStatusTest = (
   axiosInstance: AxiosInstance = axios,

@@ -16,4 +16,5 @@ export const Error = zod.object({
   "message": zod.string().min(1).describe('Human-readable error message')
 })
 
-export type Error = zod.input<typeof Error>;
+    export type Error = zod.input<typeof Error>;
+    export type ErrorOutput = zod.output<typeof Error>;

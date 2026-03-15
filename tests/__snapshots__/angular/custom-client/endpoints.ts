@@ -8,22 +8,21 @@ import { HttpClient } from '@angular/common/http';
 
 import { Injectable, inject } from '@angular/core';
 
-import type { CreatePetsBody, CreatePetsParams, ListPetsParams } from './model';
+import type {
+  CreatePetsBody,
+  CreatePetsParams,
+  ListPetsParams,
+  Pet,
+  PetWithTag,
+  Pets,
+} from './model';
 
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-import type {
-  Cat,
-  Dachshund,
-  Dog,
-  Labradoodle,
-  Pet,
-  PetWithTag,
-  Pets,
-} from './model';
+import type { Cat, Dachshund, Dog, Labradoodle } from './model';
 
 import listPetsMutator from '../../../mutators/custom-client-angular';
 import createPetsMutator from '../../../mutators/custom-client-angular';

@@ -43,3 +43,4 @@ export const Pet = zod
   );
 
 export type Pet = zod.input<typeof Pet>;
+export type PetOutput = zod.output<typeof Pet>;

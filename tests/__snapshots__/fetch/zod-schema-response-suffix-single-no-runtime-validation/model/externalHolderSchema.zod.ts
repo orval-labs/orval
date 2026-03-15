@@ -11,3 +11,6 @@ export const ExternalHolderSchema = zod.object({
 });
 
 export type ExternalHolderSchema = zod.input<typeof ExternalHolderSchema>;
+export type ExternalHolderSchemaOutput = zod.output<
+  typeof ExternalHolderSchema
+>;

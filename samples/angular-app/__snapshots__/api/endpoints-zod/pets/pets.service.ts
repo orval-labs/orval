@@ -6,13 +6,13 @@
  */
 import {
   HttpClient,
-  HttpHeaders
+  HttpHeaders,
+  HttpResponse as AngularHttpResponse
 } from '@angular/common/http';
 import type {
   HttpContext,
   HttpEvent,
-  HttpParams,
-  HttpResponse as AngularHttpResponse
+  HttpParams
 } from '@angular/common/http';
 
 import {
@@ -31,6 +31,8 @@ import {
 import type {
   CreatePetsBody,
   ListPetsParams,
+  PetOutput,
+  PetsOutput,
   SearchPetsParams
 } from '../../model-zod/index.zod';
 
@@ -131,13 +133,13 @@ export class PetsService {
 /**
  * @summary Search pets by query params
  */
- searchPets<TData = Pets>(params: SearchPetsParams,
+ searchPets<TData = PetsOutput>(params: SearchPetsParams,
     version?: number, options?: HttpClientBodyOptions): Observable<TData>;
- searchPets<TData = Pets>(params: SearchPetsParams,
+ searchPets<TData = PetsOutput>(params: SearchPetsParams,
     version?: number, options?: HttpClientEventOptions): Observable<HttpEvent<TData>>;
- searchPets<TData = Pets>(params: SearchPetsParams,
+ searchPets<TData = PetsOutput>(params: SearchPetsParams,
     version?: number, options?: HttpClientResponseOptions): Observable<AngularHttpResponse<TData>>;
-  searchPets<TData = Pets>(
+  searchPets<TData = PetsOutput>(
     params: SearchPetsParams,
     version: number = 1, options?: HttpClientObserveOptions): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     const filteredParams = filterParams({...params, ...options?.params}, new Set<string>(["requirednullableString","requirednullableStringTwo"]));
@@ -148,7 +150,7 @@ export class PetsService {
     ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'events',
         params: filteredParams,}
-    );
+    ).pipe(map(event => event instanceof AngularHttpResponse ? event.clone({ body: Pets.parse(event.body) as TData }) : event));
     }
 
     if (options?.observe === 'response') {
@@ -157,7 +159,7 @@ export class PetsService {
     ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'response',
         params: filteredParams,}
-    );
+    ).pipe(map(response => response.clone({ body: Pets.parse(response.body) as TData })));
     }
 
     return this.http.get<TData>(
@@ -172,42 +174,47 @@ export class PetsService {
  */
  listPets(accept: 'application/json',
     params?: ListPetsParams,
-    version?: number, options?: HttpClientOptions): Observable<Pets>;
+    version?: number, options?: HttpClientOptions): Observable<PetsOutput>;
   listPets(accept: 'application/xml',
     params?: ListPetsParams,
     version?: number, options?: HttpClientOptions): Observable<string>;
   listPets(accept?: ListPetsAccept,
     params?: ListPetsParams,
-    version?: number, options?: HttpClientOptions): Observable<Pets | string | Blob>;
+    version?: number, options?: HttpClientOptions): Observable<PetsOutput | string>;
   listPets(
     accept: ListPetsAccept = 'application/json',
     params?: ListPetsParams,
     version: number = 1,
     options?: HttpClientOptions
-  ): Observable<Pets | string | Blob> {
+  ): Observable<PetsOutput | string> {
+    const filteredParams = filterParams({...params, ...options?.params}, new Set<string>([]));
+
     const headers = options?.headers instanceof HttpHeaders
       ? options.headers.set('Accept', accept)
       : { ...(options?.headers ?? {}), Accept: accept };
 
     if (accept.includes('json') || accept.includes('+json')) {
-      return this.http.get<Pets>(`/v${version}/pets`, {
+      return this.http.get<PetsOutput>(`/v${version}/pets`, {
         ...options,
         responseType: 'json',
         headers,
+        params: filteredParams,
       }).pipe(map(data => Pets.parse(data)));
     } else if (accept.startsWith('text/') || accept.includes('xml')) {
       return this.http.get(`/v${version}/pets`, {
         ...options,
         responseType: 'text',
         headers,
+        params: filteredParams,
       }) as Observable<string>;
-    } else {
-      return this.http.get(`/v${version}/pets`, {
-        ...options,
-        responseType: 'blob',
-        headers,
-      }) as Observable<Blob>;
     }
+
+    return this.http.get<PetsOutput>(`/v${version}/pets`, {
+      ...options,
+      responseType: 'json',
+      headers,
+      params: filteredParams,
+    }).pipe(map(data => Pets.parse(data)));
   }
 /**
  * @summary Create a pet
@@ -260,39 +267,42 @@ export class PetsService {
     version?: number, options?: HttpClientOptions): Observable<string>;
   showPetById(petId: string,
     accept: 'application/json',
-    version?: number, options?: HttpClientOptions): Observable<Pet>;
+    version?: number, options?: HttpClientOptions): Observable<PetOutput>;
   showPetById(petId: string,
     accept?: ShowPetByIdAccept,
-    version?: number, options?: HttpClientOptions): Observable<Pet | string | Blob>;
+    version?: number, options?: HttpClientOptions): Observable<PetOutput | string>;
   showPetById(
     petId: string,
-    accept: ShowPetByIdAccept = 'text/plain',
+    accept: ShowPetByIdAccept = 'application/json',
     version: number = 1,
     options?: HttpClientOptions
-  ): Observable<Pet | string | Blob> {
+  ): Observable<PetOutput | string> {
     const headers = options?.headers instanceof HttpHeaders
       ? options.headers.set('Accept', accept)
       : { ...(options?.headers ?? {}), Accept: accept };
 
     if (accept.includes('json') || accept.includes('+json')) {
-      return this.http.get<Pet>(`/v${version}/pets/${petId}`, {
+      return this.http.get<PetOutput>(`/v${version}/pets/${petId}`, {
         ...options,
         responseType: 'json',
         headers,
+        
       }).pipe(map(data => Pet.parse(data)));
     } else if (accept.startsWith('text/') || accept.includes('xml')) {
       return this.http.get(`/v${version}/pets/${petId}`, {
         ...options,
         responseType: 'text',
         headers,
+        
       }) as Observable<string>;
-    } else {
-      return this.http.get(`/v${version}/pets/${petId}`, {
-        ...options,
-        responseType: 'blob',
-        headers,
-      }) as Observable<Blob>;
     }
+
+    return this.http.get<PetOutput>(`/v${version}/pets/${petId}`, {
+      ...options,
+      responseType: 'json',
+      headers,
+      
+    }).pipe(map(data => Pet.parse(data)));
   }
 /**
  * @summary Info for a specific pet as plain text
@@ -416,10 +426,10 @@ export class PetsService {
   }
 };
 
-export type SearchPetsClientResult = NonNullable<Pets>
-export type ListPetsClientResult = NonNullable<Pets>
+export type SearchPetsClientResult = NonNullable<PetsOutput>
+export type ListPetsClientResult = NonNullable<PetsOutput | string>
 export type CreatePetsClientResult = NonNullable<void>
-export type ShowPetByIdClientResult = NonNullable<string | Pet>
+export type ShowPetByIdClientResult = NonNullable<string | PetOutput>
 export type ShowPetTextClientResult = NonNullable<string>
 export type UploadFileClientResult = NonNullable<void>
 export type DownloadFileClientResult = NonNullable<Blob>

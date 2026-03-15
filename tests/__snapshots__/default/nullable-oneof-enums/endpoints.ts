@@ -8,12 +8,6 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
-import { BlankEnum, HelloEnum, NotNullEnum } from './model';
 import type {
   Item1,
   Item3,
@@ -21,6 +15,13 @@ import type {
   MixedTypeEnums,
   NestedItem,
 } from './model';
+
+import { faker } from '@faker-js/faker';
+
+import { HttpResponse, http } from 'msw';
+import type { RequestHandlerOptions } from 'msw';
+
+import { BlankEnum, HelloEnum, NotNullEnum } from './model';
 
 export const getItems = (
   options?: AxiosRequestConfig,

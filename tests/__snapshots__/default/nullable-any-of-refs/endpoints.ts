@@ -7,11 +7,6 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 import type {
   Animals,
   MixedNullable,
@@ -19,6 +14,11 @@ import type {
   NestedAnimals,
   Pets,
 } from './model';
+
+import { faker } from '@faker-js/faker';
+
+import { HttpResponse, http } from 'msw';
+import type { RequestHandlerOptions } from 'msw';
 
 export const getPets = (
   options?: AxiosRequestConfig,

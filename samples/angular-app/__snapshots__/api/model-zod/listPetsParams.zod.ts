@@ -10,4 +10,5 @@ export const ListPetsParams = zod.object({
   "limit": zod.string().optional()
 })
 
-export type ListPetsParams = zod.input<typeof ListPetsParams>;
+    export type ListPetsParams = zod.input<typeof ListPetsParams>;
+    export type ListPetsParamsOutput = zod.output<typeof ListPetsParams>;

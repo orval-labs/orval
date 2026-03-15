@@ -17,4 +17,5 @@ export const SearchPetsParams = zod.object({
   "limit": zod.number().min(1).max(searchPetsParamsLimitMaxOne).optional()
 })
 
-export type SearchPetsParams = zod.input<typeof SearchPetsParams>;
+    export type SearchPetsParams = zod.input<typeof SearchPetsParams>;
+    export type SearchPetsParamsOutput = zod.output<typeof SearchPetsParams>;

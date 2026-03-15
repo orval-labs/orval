@@ -7,19 +7,18 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import type { AllOfPet } from './model';
-
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 import type {
+  AllOfPet,
   GetNotHasPropertiesWithAllOfPets200,
   ItemWithNullableRequired,
   Pet,
   PetDetail,
 } from './model';
+
+import { faker } from '@faker-js/faker';
+
+import { HttpResponse, http } from 'msw';
+import type { RequestHandlerOptions } from 'msw';
 
 /**
  * @summary Create a pet
