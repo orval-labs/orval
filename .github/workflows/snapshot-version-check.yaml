@@ -2,9 +2,10 @@ name: Snapshot version check
 
 on:
   pull_request:
-  push:
     branches:
-      - '**'
+      - master
+    paths:
+      - '**/__snapshots__/**'
 
 permissions:
   contents: read
@@ -12,28 +13,25 @@ permissions:
 
 jobs:
   check-snapshot-versions:
-    if: github.event_name == 'pull_request' && github.event.pull_request.base.ref == github.event.repository.default_branch
     runs-on: ubuntu-latest
-    env:
-      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Get version from default branch
+      - name: Get version from master branch
         id: base-version
         run: |
-          git fetch origin "$DEFAULT_BRANCH"
-          VERSION=$(git show "origin/${DEFAULT_BRANCH}:package.json" | jq -r '.version')
+          git fetch origin master
+          VERSION=$(git show "origin/master:package.json" | jq -r '.version')
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Default branch (${DEFAULT_BRANCH}) version: $VERSION"
+          echo "Master branch version: $VERSION"
 
       - name: Check snapshot file headers
         env:
           EXPECTED_VERSION: ${{ steps.base-version.outputs.version }}
         run: |
-          CHANGED_SNAPSHOTS=$(git diff --name-only --diff-filter=ACMR "origin/${DEFAULT_BRANCH}...HEAD" -- '*/__snapshots__/**')
+          CHANGED_SNAPSHOTS=$(git diff --name-only --diff-filter=ACMR "origin/master...HEAD" -- '**/__snapshots__/**')
 
           if [ -z "$CHANGED_SNAPSHOTS" ]; then
             echo "No snapshot files changed in this PR."
@@ -65,42 +63,10 @@ jobs:
 
           if [ "$FAILED" -eq 1 ]; then
             echo ""
-            echo "::error::Snapshot version mismatch. Snapshots must be generated with orval v${EXPECTED_VERSION} (the version on ${DEFAULT_BRANCH})."
+            echo "::error::Snapshot version mismatch. Snapshots must be generated with orval v${EXPECTED_VERSION} (the version on master)."
             echo "Run 'bun run test:snapshots:update' after updating the orval version to regenerate snapshots."
             exit 1
           fi
 
           echo ""
           echo "All snapshot versions match v${EXPECTED_VERSION}."
-
-  rerun-open-prs:
-    if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-      pull-requests: read
-    steps:
-      - name: Re-run snapshot checks on open PRs
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-        run: |
-          WORKFLOW="snapshot-version-check.yaml"
-
-          PR_BRANCHES=$(gh pr list --repo "$GITHUB_REPOSITORY" --base "$DEFAULT_BRANCH" --state open --draft false --json headRefName --jq '.[].headRefName')
-
-          if [ -z "$PR_BRANCHES" ]; then
-            echo "No open PRs targeting ${DEFAULT_BRANCH}."
-            exit 0
-          fi
-
-          for BRANCH in $PR_BRANCHES; do
-            RUN_ID=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$WORKFLOW" --branch "$BRANCH" --event pull_request --limit 1 --json databaseId --jq '.[0].databaseId')
-
-            if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
-              echo "Re-running workflow run ${RUN_ID} for branch ${BRANCH}..."
-              gh run rerun "$RUN_ID" --repo "$GITHUB_REPOSITORY" || echo "Warning: failed to re-run ${RUN_ID}"
-            else
-              echo "No previous run found for branch ${BRANCH}, skipping."
-            fi
-          done
