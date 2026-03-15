@@ -313,7 +313,7 @@ export function getMockScalar({
           'string',
         );
       } else if (item.pattern) {
-        value = `faker.helpers.fromRegExp('${escape(item.pattern)}')`;
+        value = `faker.helpers.fromRegExp(${JSON.stringify(item.pattern)})`;
       } else if ('const' in item) {
         value = JSON.stringify((item as OpenApiSchemaObject).const);
       }

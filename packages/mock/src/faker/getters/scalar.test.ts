@@ -475,41 +475,24 @@ describe('getMockScalar (@-prefixed property names)', () => {
   });
 });
 
-describe('getMockScalar (pattern escaping)', () => {
-  const baseArg = {
-    imports: [],
-    operationId: 'test-operation',
-    tags: [],
-    existingReferencedProperties: [],
-    splitMockImplementations: [],
-    context: { output: { override: {} } } as ContextSpec,
-  };
-
-  it('should escape single quotes in pattern when generating faker.helpers.fromRegExp call', () => {
+describe('getMockScalar (pattern-backed string escaping)', () => {
+  it('escapes regex patterns when generating faker.helpers.fromRegExp()', () => {
     const result = getMockScalar({
-      ...baseArg,
       item: {
         type: 'string' as const,
-        name: 'pattern-item',
-        pattern: "^[a-zA-Z0-9']*$",
+        pattern: String.raw`^\+?[1-9]\d{1,14}$`,
+        name: 'phone',
       },
+      imports: [],
+      operationId: 'test-operation',
+      tags: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+      context: { output: { override: {} } } as ContextSpec,
     });
 
     expect(result.value).toBe(
-      String.raw`faker.helpers.fromRegExp('^[a-zA-Z0-9\']*$')`,
+      String.raw`faker.helpers.fromRegExp("^\\+?[1-9]\\d{1,14}$")`,
     );
-  });
-
-  it('should escape multiple single quotes in pattern when generating faker.helpers.fromRegExp call', () => {
-    const result = getMockScalar({
-      ...baseArg,
-      item: {
-        type: 'string' as const,
-        name: 'pattern-item-multiple',
-        pattern: "a'''b",
-      },
-    });
-
-    expect(result.value).toBe(String.raw`faker.helpers.fromRegExp('a\'\'\'b')`);
   });
 });

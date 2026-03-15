@@ -1,7 +1,5 @@
 import { access } from 'node:fs/promises';
 import nodePath from 'node:path';
-import { clearTimeout, setTimeout } from 'node:timers';
-import { styleText } from 'node:util';
 
 import {
   type ClientMockBuilder,
@@ -47,6 +45,7 @@ import {
   type SchemaOptions,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
+import chalk from 'chalk';
 
 import pkg from '../../package.json';
 import { loadPackageJson } from './package-json';
@@ -126,11 +125,11 @@ export async function normalizeOptions(
     : optionsExport);
 
   if (!options.input) {
-    throw new Error(styleText('red', `Config require an input`));
+    throw new Error(chalk.red(`Config require an input`));
   }
 
   if (!options.output) {
-    throw new Error(styleText('red', `Config require an output`));
+    throw new Error(chalk.red(`Config require an output`));
   }
 
   const inputOptions: InputOptions =
@@ -187,28 +186,23 @@ export async function normalizeOptions(
     ...normalizeQueryOptions(outputOptions.override?.query, workspace),
   };
 
-  let resolvedInputTarget;
-  if (globalOptions.input) {
-    resolvedInputTarget = Array.isArray(globalOptions.input)
-      ? await resolveFirstValidTarget(
-          globalOptions.input,
-          process.cwd(),
-          inputOptions.parserOptions,
-        )
-      : normalizePathOrUrl(globalOptions.input, process.cwd());
-  } else if (Array.isArray(inputOptions.target)) {
-    resolvedInputTarget = await resolveFirstValidTarget(
-      inputOptions.target,
-      workspace,
-      inputOptions.parserOptions,
-    );
-  } else {
-    resolvedInputTarget = normalizePathOrUrl(inputOptions.target, workspace);
-  }
-
   const normalizedOptions: NormalizedOptions = {
     input: {
-      target: resolvedInputTarget,
+      target: globalOptions.input
+        ? Array.isArray(globalOptions.input)
+          ? await resolveFirstValidTarget(
+              globalOptions.input,
+              process.cwd(),
+              inputOptions.parserOptions,
+            )
+          : normalizePathOrUrl(globalOptions.input, process.cwd())
+        : Array.isArray(inputOptions.target)
+          ? await resolveFirstValidTarget(
+              inputOptions.target,
+              workspace,
+              inputOptions.parserOptions,
+            )
+          : normalizePathOrUrl(inputOptions.target, workspace),
       override: {
         transformer: normalizePath(
           inputOptions.override?.transformer,
@@ -400,8 +394,12 @@ export async function normalizeOptions(
         },
         angular: {
           provideIn: outputOptions.override?.angular?.provideIn ?? 'root',
+          client: outputOptions.override?.angular?.client ?? 'httpClient',
           runtimeValidation:
             outputOptions.override?.angular?.runtimeValidation ?? false,
+          ...(outputOptions.override?.angular?.httpResource
+            ? { httpResource: outputOptions.override.angular.httpResource }
+            : {}),
         },
         fetch: {
           includeHttpResponseReturnType:
@@ -428,6 +426,8 @@ export async function normalizeOptions(
           outputOptions.override?.enumGenerationType ?? 'const',
         suppressReadonlyModifier:
           outputOptions.override?.suppressReadonlyModifier ?? false,
+        preserveReadonlyRequestBodies:
+          outputOptions.override?.preserveReadonlyRequestBodies ?? 'strip',
         aliasCombinedTypes: outputOptions.override?.aliasCombinedTypes ?? false,
       },
       allParamsOptional: outputOptions.allParamsOptional ?? false,
@@ -440,13 +440,11 @@ export async function normalizeOptions(
   };
 
   if (!normalizedOptions.input.target) {
-    throw new Error(styleText('red', `Config require an input target`));
+    throw new Error(chalk.red(`Config require an input target`));
   }
 
   if (!normalizedOptions.output.target && !normalizedOptions.output.schemas) {
-    throw new Error(
-      styleText('red', `Config require an output target or schemas`),
-    );
+    throw new Error(chalk.red(`Config require an output target or schemas`));
   }
 
   return normalizedOptions;
@@ -482,8 +480,6 @@ function normalizeMutator(
   return undefined;
 }
 
-const TARGET_RESOLVE_TIMEOUT_MS = 5000;
-
 async function resolveFirstValidTarget(
   targets: string[],
   workspace: string,
@@ -493,49 +489,45 @@ async function resolveFirstValidTarget(
     if (isUrl(target)) {
       try {
         const headers = getHeadersForUrl(target, parserOptions?.headers);
-        const controller = new AbortController();
-        const timer = setTimeout(() => {
-          controller.abort();
-        }, TARGET_RESOLVE_TIMEOUT_MS);
+        const headResponse = await fetch(target, {
+          method: 'HEAD',
+          headers,
+        });
 
-        try {
-          const response = await fetch(target, {
-            method: 'HEAD',
+        if (headResponse.ok) {
+          return target;
+        }
+
+        if (headResponse.status === 405 || headResponse.status === 501) {
+          const getResponse = await fetch(target, {
+            method: 'GET',
             headers,
-            signal: controller.signal,
           });
 
-          if (response.ok) return target;
-
-          if (response.status === 405 || response.status === 501) {
-            const getResponse = await fetch(target, {
-              method: 'GET',
-              headers,
-              signal: controller.signal,
-            });
-            if (getResponse.ok) return target;
+          if (getResponse.ok) {
+            return target;
           }
-        } finally {
-          clearTimeout(timer);
         }
       } catch {
         continue;
       }
-    } else {
-      const resolved = nodePath.resolve(workspace, target);
-      try {
-        await access(resolved);
-        return resolved;
-      } catch {
-        continue;
-      }
+
+      continue;
+    }
+
+    const resolvedTarget = normalizePath(target, workspace);
+
+    try {
+      await access(resolvedTarget);
+      return resolvedTarget;
+    } catch {
+      continue;
     }
   }
 
   throw new Error(
-    styleText(
-      'red',
-      `None of the input targets could be resolved:\n${targets.map((t) => `  - ${t}`).join('\n')}`,
+    chalk.red(
+      `None of the input targets could be resolved:\n${targets.map((target) => `  - ${target}`).join('\n')}`,
     ),
   );
 }
@@ -547,17 +539,19 @@ function getHeadersForUrl(
   if (!headersConfig) return {};
 
   const { hostname } = new URL(url);
-  const matched: Record<string, string> = {};
+  const matchedHeaders: Record<string, string> = {};
 
-  for (const entry of headersConfig) {
+  for (const headerEntry of headersConfig) {
     if (
-      entry.domains.some((d) => hostname === d || hostname.endsWith(`.${d}`))
+      headerEntry.domains.some(
+        (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
+      )
     ) {
-      Object.assign(matched, entry.headers);
+      Object.assign(matchedHeaders, headerEntry.headers);
     }
   }
 
-  return matched;
+  return matchedHeaders;
 }
 
 function normalizePathOrUrl<T>(path: T, workspace: string) {
@@ -601,6 +595,18 @@ function normalizeOperationsAndTags(
           key,
           {
             ...rest,
+            ...(rest.angular
+              ? {
+                  angular: {
+                    provideIn: rest.angular.provideIn ?? 'root',
+                    client: rest.angular.client ?? 'httpClient',
+                    runtimeValidation: rest.angular.runtimeValidation ?? false,
+                    ...(rest.angular.httpResource
+                      ? { httpResource: rest.angular.httpResource }
+                      : {}),
+                  },
+                }
+              : {}),
             ...(query
               ? {
                   query: normalizeQueryOptions(query, workspace, global.query),
@@ -713,9 +719,7 @@ function normalizeOutputMode(mode?: OutputMode): OutputMode {
   }
 
   if (!Object.values(OutputMode).includes(mode)) {
-    createLogger().warn(
-      styleText('yellow', `Unknown the provided mode => ${mode}`),
-    );
+    createLogger().warn(chalk.yellow(`Unknown the provided mode => ${mode}`));
     return OutputMode.SINGLE;
   }
 

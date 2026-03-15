@@ -39,6 +39,42 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
           <span class="nav-icon">◈</span> Pet Store
         </a>
         <a
+          routerLink="/http-client"
+          #httpClientRla="routerLinkActive"
+          routerLinkActive="active"
+          [attr.aria-current]="httpClientRla.isActive ? 'page' : null"
+          class="nav-link"
+        >
+          <span class="nav-icon">◎</span> HttpClient
+        </a>
+        <a
+          routerLink="/http-client-custom-params"
+          #customParamsRla="routerLinkActive"
+          routerLinkActive="active"
+          [attr.aria-current]="customParamsRla.isActive ? 'page' : null"
+          class="nav-link"
+        >
+          <span class="nav-icon">⟲</span> Custom Params
+        </a>
+        <a
+          routerLink="/http-resource"
+          #httpResourceRla="routerLinkActive"
+          routerLinkActive="active"
+          [attr.aria-current]="httpResourceRla.isActive ? 'page' : null"
+          class="nav-link"
+        >
+          <span class="nav-icon">◌</span> httpResource
+        </a>
+        <a
+          routerLink="/http-resource-zod"
+          #httpResourceZodRla="routerLinkActive"
+          routerLinkActive="active"
+          [attr.aria-current]="httpResourceZodRla.isActive ? 'page' : null"
+          class="nav-link"
+        >
+          <span class="nav-icon">⬢</span> httpResource + Zod
+        </a>
+        <a
           routerLink="/zod-demo"
           #zodRla="routerLinkActive"
           routerLinkActive="active"

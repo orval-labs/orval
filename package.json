@@ -101,6 +101,7 @@
     "test:snapshots:update": "turbo run test:snapshots:update --filter='./samples/**' --filter=orval-tests",
     "lint": "turbo run lint --filter='./packages/*'",
     "lint:samples": "turbo run lint --filter='./samples/**'",
+    "lint:generated": "turbo run lint:generated --filter='./tests'",
     "dev": "turbo run dev --filter='./packages/*'",
     "clean": "rimraf .turbo",
     "clean:all": "bun run --filter '*' clean",

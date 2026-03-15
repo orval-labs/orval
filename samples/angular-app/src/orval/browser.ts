@@ -1,20 +1,10 @@
 import { setupWorker } from 'msw/browser';
 import { http, HttpResponse, RequestHandler } from 'msw';
-import * as mocks from '../api/endpoints/index.msw';
-import * as zodMocks from '../api/endpoints-zod/index.msw';
 
-const demoValidPet = {
-  id: 1,
-  name: 'Fluffy',
-  tag: 'cat',
-  phone: '+15551234567',
-  requiredNullableString: null,
-};
-
-const demoInvalidPet = {
-  ...demoValidPet,
-  phone: 'invalid-phone',
-};
+import * as httpClientMocks from '../api/http-client/index.msw';
+import * as httpClientCustomParamsMocks from '../api/http-client-custom-params/index.msw';
+import * as httpResourceMocks from '../api/http-resource/index.msw';
+import * as httpResourceZodMocks from '../api/http-resource-zod/index.msw';
 
 // TODO: This is a temporary override for showPetById to handle Accept header content negotiation.
 // The MSW generator needs to be fixed to generate this logic automatically (see issue #2243).
@@ -36,61 +26,18 @@ const customShowPetByIdHandler = http.get(
   },
 );
 
-// Demo-only runtime validation handlers for zod-validation-demo component.
-// These are deterministic by design:
-// - /search (body mode): intentionally invalid phone values to demonstrate Zod failures
-// - /search (events/response mode): valid payloads
-// - /pets/:petId: valid payload for stable JSON parse success
-const customZodDemoSearchHandler = http.get(
-  ({ request }) => {
-    const url = new URL(request.url);
-    return (
-      url.pathname.endsWith('/search') &&
-      url.searchParams.get('demoValidation') === '1'
-    );
-  },
-  ({ request }) => {
-    const url = new URL(request.url);
-    const demoMode = url.searchParams.get('demoMode');
+const allMocks = {
+  ...httpClientMocks,
+  ...httpClientCustomParamsMocks,
+  ...httpResourceMocks,
+  ...httpResourceZodMocks,
+};
 
-    if (demoMode === 'body') {
-      return HttpResponse.json([demoInvalidPet, demoInvalidPet], {
-        status: 200,
-      });
-    }
-
-    return HttpResponse.json([demoValidPet, { ...demoValidPet, id: 2 }], {
-      status: 200,
-    });
-  },
-);
-
-const customZodDemoShowPetByIdHandler = http.get(
-  ({ request }) => {
-    const url = new URL(request.url);
-    return (
-      /\/pets\/[^/]+$/.test(url.pathname) &&
-      url.searchParams.get('demoValidation') === '1'
-    );
-  },
-  () => HttpResponse.json(demoInvalidPet, { status: 200 }),
-);
-
-const generatedHandlers = Object.entries(mocks)
+const generatedHandlers = Object.entries(allMocks)
   .filter(([name]) => name !== 'getShowPetByIdMockHandler')
   .flatMap(([, getMock]) => (getMock as () => RequestHandler[])());
 
-const zodHandlers = Object.entries(zodMocks).flatMap(([, getMock]) =>
-  (getMock as () => RequestHandler[])(),
-);
-
-const handlers = [
-  customZodDemoSearchHandler,
-  customZodDemoShowPetByIdHandler,
-  customShowPetByIdHandler,
-  ...generatedHandlers,
-  ...zodHandlers,
-];
+const handlers = [customShowPetByIdHandler, ...generatedHandlers];
 const worker = setupWorker(...handlers);
 
 export { worker };

@@ -224,6 +224,9 @@ interface AddDependencyOptions {
   isAllowSyntheticDefaultImports: boolean;
 }
 
+const escapeRegExp = (value: string) =>
+  value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+
 export function addDependency({
   implementation,
   exports,
@@ -232,7 +235,15 @@ export function addDependency({
   isAllowSyntheticDefaultImports,
 }: AddDependencyOptions) {
   const toAdds = exports.filter((e) => {
-    const searchWords = [e.alias, e.name].filter((p) => p?.length).join('|');
+    const searchWords = [e.alias, e.name]
+      .filter((p): p is string => Boolean(p?.length))
+      .map(escapeRegExp)
+      .join('|');
+
+    if (!searchWords) {
+      return false;
+    }
+
     const pattern = new RegExp(String.raw`\b(${searchWords})\b`, 'g');
 
     return implementation.match(pattern);

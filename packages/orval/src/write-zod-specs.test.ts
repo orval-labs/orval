@@ -75,6 +75,12 @@ describe('write-zod-specs regressions', () => {
     expect(fileContent).toContain(
       'export const RangeSchema = zod.number().min(RangeSchemaMin).max(RangeSchemaMax)',
     );
+    expect(fileContent).toContain(
+      'export type RangeSchema = zod.input<typeof RangeSchema>;',
+    );
+    expect(fileContent).toContain(
+      'export type RangeSchemaOutput = zod.output<typeof RangeSchema>;',
+    );
     expect(fileContent).not.toContain(
       'export const RangeSchema = export const',
     );

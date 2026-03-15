@@ -6,14 +6,15 @@
  */
 import { z as zod } from 'zod';
 
-export const searchPetsParamsLimitMax = 100;
+export const searchPetsParamsLimitMaxOne = 100;
 
 export const SearchPetsParams = zod.object({
   requirednullableString: zod.string().nullable(),
   requirednullableStringTwo: zod.string().nullable(),
   nonRequirednullableString: zod.string().nullish(),
   status: zod.enum(['available', 'pending', 'sold']).optional(),
-  limit: zod.number().min(1).max(searchPetsParamsLimitMax).optional(),
+  limit: zod.number().min(1).max(searchPetsParamsLimitMaxOne).optional(),
 });
 
 export type SearchPetsParams = zod.input<typeof SearchPetsParams>;
+export type SearchPetsParamsOutput = zod.output<typeof SearchPetsParams>;

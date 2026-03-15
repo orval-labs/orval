@@ -6,16 +6,17 @@
  */
 import { z as zod } from 'zod';
 
-export const errorCodeMin = 100;
-export const errorCodeMax = 600;
+export const errorCodeMinOne = 100;
+export const errorCodeMaxOne = 600;
 
 export const Error = zod.object({
   code: zod
     .number()
-    .min(errorCodeMin)
-    .max(errorCodeMax)
+    .min(errorCodeMinOne)
+    .max(errorCodeMaxOne)
     .describe('HTTP-like error code'),
   message: zod.string().min(1).describe('Human-readable error message'),
 });
 
 export type Error = zod.input<typeof Error>;
+export type ErrorOutput = zod.output<typeof Error>;

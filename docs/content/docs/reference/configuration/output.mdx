@@ -857,7 +857,11 @@ export default defineConfig({
       override: {
         angular: {
           provideIn: 'root', // 'root' | 'any' | '' | false
-          runtimeValidation: true, // enable Zod schema validation
+          client: 'httpClient',
+          runtimeValidation: true,
+          httpResource: {
+            debugName: 'getPetByIdResource',
+          },
         },
       },
     },
@@ -870,14 +874,94 @@ export default defineConfig({
 **Type:** `'root' | 'any' | boolean`
 **Default:** `'root'`
 
-Controls the Angular `@Injectable({ providedIn })` scope for generated services.
+Controls the Angular `@Injectable({ providedIn })` scope for generated service
+classes.
+
+> [!NOTE]
+> `provideIn` affects generated service classes only. `httpResource`
+> functions are plain exports, not injectables.
+
+### client
+
+**Type:** `'httpClient' | 'httpResource' | 'both'`
+**Default:** `'httpClient'`
+
+Controls which Angular output style Orval generates.
+
+- `httpClient`: generate injectable services backed by Angular `HttpClient`
+- `httpResource`: generate signal-first retrieval functions using Angular
+  `httpResource`
+- `both`: keep `HttpClient` service methods and emit retrieval resources in a
+  sibling `*.resource.ts` file
 
 ### runtimeValidation
 
 **Type:** `Boolean`
 **Default:** `false`
 
-Enable Zod runtime validation for Angular HttpClient responses. Requires `schemas: { type: 'zod' }`. When enabled, responses are validated via `Schema.parse()` in the RxJS pipeline. Only applies to JSON body responses — skipped for primitive types, `events`/`response` observe modes, and custom mutators.
+Enable Zod runtime validation for Angular output. Requires
+`schemas: { type: 'zod' }`. This option is opt-in for backward compatibility.
+
+- For generated `HttpClient` services, eligible JSON body responses are
+  validated via `Schema.parse()` in the RxJS pipeline.
+- For generated `httpResource` functions, eligible JSON resources receive a
+  `parse: Schema.parse` option.
+
+Validation is skipped for primitive types, non-JSON responses,
+`observe: 'events' | 'response'`, and custom mutator paths that bypass the
+generated validation flow.
+
+### httpResource
+
+**Type:** `Object`
+
+Options forwarded into generated `httpResource` calls.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        angular: {
+          client: 'httpResource',
+          httpResource: {
+            defaultValue: { id: 'fallback' },
+            debugName: 'getPetByIdResource',
+            injector: 'inject(Injector)',
+            equal: '(a, b) => a?.id === b?.id',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+#### defaultValue
+
+**Type:** `unknown`
+
+Initial value exposed while the resource is idle/loading. When configured,
+generated overloads return `HttpResourceRef<T>` instead of
+`HttpResourceRef<T | undefined>`.
+
+#### debugName
+
+**Type:** `String`
+
+Name shown in Angular DevTools.
+
+#### injector
+
+**Type:** `String`
+
+Raw expression passed to `HttpResourceOptions.injector`.
+
+#### equal
+
+**Type:** `String`
+
+Raw expression passed to `HttpResourceOptions.equal`.
 
 ---
 
@@ -1211,6 +1295,43 @@ Create intermediate type aliases for `anyOf`/`oneOf`/`allOf`.
 **Default:** `false`
 
 Suppress `readonly` modifier on properties.
+
+### preserveReadonlyRequestBodies
+
+**Type:** `'strip' | 'preserve'`
+**Default:** `'strip'`
+
+Controls how Orval treats `readonly` properties when a schema is reused as a
+request body.
+
+- `strip` (recommended): removes readonly modifiers from generated request-body
+  types via `NonReadonly<T>`. This is the safest default for most OpenAPI
+  specifications because `readOnly` properties are response-oriented.
+- `preserve`: keeps readonly modifiers on generated request-body types. Use this
+  only when your request DTOs are intentionally immutable and you want that
+  immutability reflected in the generated TypeScript types.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        preserveReadonlyRequestBodies: 'strip',
+      },
+    },
+  },
+});
+```
+
+> [!TIP]
+> Prefer separate request and response schemas when your API semantics differ.
+> This option is mainly useful when a single schema is reused for both request
+> and response payloads.
+
+> [!NOTE]
+> This setting applies to request bodies regardless of the generated Angular
+> style (`HttpClient` or `httpResource`). `httpResource` still sends request
+> payloads, so the same request-body guidance applies.
 
 ### useNullForOptional
 

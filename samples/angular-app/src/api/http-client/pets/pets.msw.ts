@@ -34,7 +34,7 @@ export const getSearchPetsResponseMock = (): Pets =>
       undefined,
     ]),
     phone: faker.helpers.arrayElement([
-      faker.helpers.fromRegExp('^\+?[1-9]\d{1,14}$'),
+      faker.helpers.fromRegExp('^\\+?[1-9]\\d{1,14}$'),
       undefined,
     ]),
     requiredNullableString: faker.helpers.arrayElement([
@@ -77,7 +77,7 @@ export const getListPetsResponseMock = (): Pets =>
         undefined,
       ]),
       phone: faker.helpers.arrayElement([
-        faker.helpers.fromRegExp('^\+?[1-9]\d{1,14}$'),
+        faker.helpers.fromRegExp('^\\+?[1-9]\\d{1,14}$'),
         undefined,
       ]),
       requiredNullableString: faker.helpers.arrayElement([
@@ -117,7 +117,7 @@ export const getListPetsResponseMock = (): Pets =>
         undefined,
       ]),
       phone: faker.helpers.arrayElement([
-        faker.helpers.fromRegExp('^\+?[1-9]\d{1,14}$'),
+        faker.helpers.fromRegExp('^\\+?[1-9]\\d{1,14}$'),
         undefined,
       ]),
       requiredNullableString: faker.helpers.arrayElement([

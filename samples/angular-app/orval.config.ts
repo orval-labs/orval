@@ -1,23 +1,17 @@
 import { faker } from '@faker-js/faker';
 import { defineConfig } from 'orval';
-import transformer from './src/orval/transformer/add-version';
 
 export default defineConfig({
   petstore: {
     output: {
       mode: 'tags-split',
-      target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
+      target: 'src/api/http-client/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
       client: 'angular',
-      mock: {
-        type: 'msw',
-        indexMockFiles: true,
-      },
+      mock: { type: 'msw', indexMockFiles: true },
       tsconfig: './tsconfig.app.json',
       clean: true,
-      prettier: true,
       override: {
-        paramsSerializer: 'src/orval/mutator/custom-params-serializer.ts',
         operations: {
           listPets: {
             mutator: 'src/orval/mutator/response-type.ts',
@@ -52,31 +46,214 @@ export default defineConfig({
     input: {
       target: './petstore.yaml',
       override: {
-        transformer,
+        transformer: 'orval/transformer/add-version.ts',
+      },
+    },
+  },
+  petstoreCustomParamsSerializer: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/http-client-custom-params/petstore.ts',
+      schemas: 'src/api/model-custom-params',
+      client: 'angular',
+      mock: { type: 'msw', indexMockFiles: true },
+      tsconfig: './tsconfig.app.json',
+      clean: true,
+      override: {
+        paramsSerializer: 'src/orval/mutator/custom-params-serializer.ts',
+        operations: {
+          listPets: {
+            mock: {
+              properties: () => {
+                return {
+                  id: () => faker.number.int({ min: 1, max: 99999 }),
+                };
+              },
+            },
+          },
+          showPetById: {
+            mock: {
+              data: () => ({
+                id: faker.number.int({ min: 1, max: 99 }),
+                name: faker.person.firstName(),
+                tag: faker.helpers.arrayElement([
+                  faker.word.sample(),
+                  undefined,
+                ]),
+              }),
+            },
+          },
+        },
+        mock: {
+          properties: {
+            '/tag|name/': () => faker.person.lastName(),
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+      override: {
+        transformer: 'orval/transformer/add-version.ts',
       },
     },
   },
   petstoreZod: {
     output: {
       mode: 'tags-split',
-      target: 'src/api/endpoints-zod',
-      schemas: { path: 'src/api/model-zod', type: 'zod' },
-      client: 'angular',
-      mock: {
-        type: 'msw',
-        indexMockFiles: true,
+      target: 'src/api/endpoints-zod/petstore.ts',
+      schemas: {
+        type: 'zod',
+        path: 'src/api/model-zod',
       },
+      client: 'angular',
+      mock: { type: 'msw', indexMockFiles: true },
       tsconfig: './tsconfig.app.json',
       clean: true,
-      prettier: true,
       override: {
         angular: {
           runtimeValidation: true,
+        },
+        operations: {
+          listPets: {
+            mock: {
+              properties: () => {
+                return {
+                  id: () => faker.number.int({ min: 1, max: 99999 }),
+                };
+              },
+            },
+          },
+          showPetById: {
+            mock: {
+              data: () => ({
+                id: faker.number.int({ min: 1, max: 99 }),
+                name: faker.person.firstName(),
+                tag: faker.helpers.arrayElement([
+                  faker.word.sample(),
+                  undefined,
+                ]),
+              }),
+            },
+          },
+        },
+        mock: {
+          properties: {
+            '/tag|name/': () => faker.person.lastName(),
+          },
         },
       },
     },
     input: {
       target: './petstore.yaml',
+      override: {
+        transformer: 'orval/transformer/add-version.ts',
+      },
+    },
+  },
+  petstoreHttpResource: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/http-resource/petstore.ts',
+      schemas: 'src/api/model',
+      client: 'angular',
+      mock: { type: 'msw', indexMockFiles: true },
+      tsconfig: './tsconfig.app.json',
+      clean: true,
+      override: {
+        angular: {
+          client: 'httpResource',
+        },
+        operations: {
+          listPets: {
+            // Note: response-type mutator is HttpClient-specific (requires HttpClient
+            // as second arg) and is incompatible with httpResource. Omitted here.
+            mock: {
+              properties: () => {
+                return {
+                  id: () => faker.number.int({ min: 1, max: 99999 }),
+                };
+              },
+            },
+          },
+          showPetById: {
+            mock: {
+              data: () => ({
+                id: faker.number.int({ min: 1, max: 99 }),
+                name: faker.person.firstName(),
+                tag: faker.helpers.arrayElement([
+                  faker.word.sample(),
+                  undefined,
+                ]),
+              }),
+            },
+          },
+        },
+        mock: {
+          properties: {
+            '/tag|name/': () => faker.person.lastName(),
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+      override: {
+        transformer: 'orval/transformer/add-version.ts',
+      },
+    },
+  },
+  petstoreHttpResourceZod: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/http-resource-zod/petstore.ts',
+      schemas: {
+        type: 'zod',
+        path: 'src/api/model-zod',
+      },
+      client: 'angular',
+      mock: { type: 'msw', indexMockFiles: true },
+      tsconfig: './tsconfig.app.json',
+      clean: true,
+      override: {
+        angular: {
+          client: 'httpResource',
+        },
+        operations: {
+          listPets: {
+            mock: {
+              properties: () => {
+                return {
+                  id: () => faker.number.int({ min: 1, max: 99999 }),
+                };
+              },
+            },
+          },
+          showPetById: {
+            mock: {
+              data: () => ({
+                id: faker.number.int({ min: 1, max: 99 }),
+                name: faker.person.firstName(),
+                tag: faker.helpers.arrayElement([
+                  faker.word.sample(),
+                  undefined,
+                ]),
+              }),
+            },
+          },
+        },
+        mock: {
+          properties: {
+            '/tag|name/': () => faker.person.lastName(),
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+      override: {
+        transformer: 'orval/transformer/add-version.ts',
+      },
     },
   },
 });

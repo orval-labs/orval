@@ -14,6 +14,9 @@ import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
+const escapeRegExp = (value: string) =>
+  value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+
 export async function writeSingleMode({
   builder,
   output,
@@ -59,14 +62,42 @@ export async function writeSingleMode({
       output.tsconfig,
     );
 
+    const implementationImports = imports.filter((imp) => {
+      const searchWords = [imp.alias, imp.name]
+        .filter((part): part is string => Boolean(part?.length))
+        .map(escapeRegExp)
+        .join('|');
+      if (!searchWords) {
+        return false;
+      }
+
+      return new RegExp(String.raw`\b(${searchWords})\b`, 'g').test(
+        implementation,
+      );
+    });
+
+    const normalizedImports = implementationImports.map((imp) => ({ ...imp }));
+    for (const mockImport of importsMock) {
+      const matchingImport = normalizedImports.find(
+        (imp) =>
+          imp.name === mockImport.name &&
+          (imp.alias ?? '') === (mockImport.alias ?? ''),
+      );
+      if (!matchingImport) continue;
+
+      const mockNeedsRuntimeValue =
+        !!mockImport.values ||
+        !!mockImport.isConstant ||
+        !!mockImport.default ||
+        !!mockImport.namespaceImport ||
+        !!mockImport.syntheticDefaultImport;
+      if (mockNeedsRuntimeValue) {
+        matchingImport.values = true;
+      }
+    }
+
     const importsForBuilder = schemasPath
-      ? generateImportsForBuilder(
-          output,
-          imports.filter(
-            (imp) => !importsMock.some((impMock) => imp.name === impMock.name),
-          ),
-          schemasPath,
-        )
+      ? generateImportsForBuilder(output, normalizedImports, schemasPath)
       : [];
 
     data += builder.imports({
@@ -87,7 +118,18 @@ export async function writeSingleMode({
 
     if (output.mock) {
       const importsMockForBuilder = schemasPath
-        ? generateImportsForBuilder(output, importsMock, schemasPath)
+        ? generateImportsForBuilder(
+            output,
+            importsMock.filter(
+              (impMock) =>
+                !normalizedImports.some(
+                  (imp) =>
+                    imp.name === impMock.name &&
+                    (imp.alias ?? '') === (impMock.alias ?? ''),
+                ),
+            ),
+            schemasPath,
+          )
         : [];
       data += builder.importsMock({
         implementation: implementationMock,

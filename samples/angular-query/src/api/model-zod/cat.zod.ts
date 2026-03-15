@@ -12,3 +12,4 @@ export const Cat = zod.object({
 });
 
 export type Cat = zod.input<typeof Cat>;
+export type CatOutput = zod.output<typeof Cat>;

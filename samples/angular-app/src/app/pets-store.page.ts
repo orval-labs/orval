@@ -6,7 +6,7 @@ import {
   signal,
 } from '@angular/core';
 import { AsyncPipe, NgOptimizedImage } from '@angular/common';
-import { PetsService } from '../api/endpoints/pets/pets.service';
+import { PetsService } from '../api/http-client/pets/pets.service';
 
 @Component({
   selector: 'app-pets-store-page',
