@@ -171,6 +171,111 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('normalizes angular retrievalClient as the generated retrieval mode', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            override: {
+              angular: {
+                retrievalClient: 'httpResource',
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.angular.client).toBe('httpResource');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('normalizes the legacy angular client alias for backward compatibility', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            override: {
+              angular: {
+                client: 'httpResource',
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.angular.client).toBe('httpResource');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('prefers angular retrievalClient over the legacy client alias when both are provided', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            override: {
+              angular: {
+                retrievalClient: 'both',
+                client: 'httpClient',
+              },
+              operations: {
+                searchPets: {
+                  angular: {
+                    retrievalClient: 'httpResource',
+                    client: 'httpClient',
+                  },
+                },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.angular.client).toBe('both');
+      expect(
+        normalized.output.override.operations.searchPets?.angular?.client,
+      ).toBe('httpResource');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('resolves hono compositeRoute relative to the workspace', async () => {
     const workspace = await createTempWorkspace();
 

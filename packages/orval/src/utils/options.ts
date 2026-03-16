@@ -396,7 +396,10 @@ export async function normalizeOptions(
         },
         angular: {
           provideIn: outputOptions.override?.angular?.provideIn ?? 'root',
-          client: outputOptions.override?.angular?.client ?? 'httpClient',
+          client:
+            outputOptions.override?.angular?.retrievalClient ??
+            outputOptions.override?.angular?.client ??
+            'httpClient',
           runtimeValidation:
             outputOptions.override?.angular?.runtimeValidation ?? false,
           ...(outputOptions.override?.angular?.httpResource
@@ -624,7 +627,8 @@ function normalizeOperationsAndTags(
               ? {
                   angular: {
                     provideIn: angular.provideIn ?? 'root',
-                    client: angular.client ?? 'httpClient',
+                    client:
+                      angular.retrievalClient ?? angular.client ?? 'httpClient',
                     runtimeValidation: angular.runtimeValidation ?? false,
                     ...(angular.httpResource
                       ? { httpResource: angular.httpResource }

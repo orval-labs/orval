@@ -857,7 +857,7 @@ export default defineConfig({
       override: {
         angular: {
           provideIn: 'root', // 'root' | 'any' | '' | false
-          client: 'httpClient',
+          retrievalClient: 'httpClient',
           runtimeValidation: true,
           httpResource: {
             debugName: 'getPetByIdResource',
@@ -881,18 +881,29 @@ classes.
 > `provideIn` affects generated service classes only. `httpResource`
 > functions are plain exports, not injectables.
 
-### client
+### retrievalClient
 
 **Type:** `'httpClient' | 'httpResource' | 'both'`
 **Default:** `'httpClient'`
 
-Controls which Angular output style Orval generates.
+Controls how **retrieval-style** Angular operations are generated.
 
-- `httpClient`: generate injectable services backed by Angular `HttpClient`
+- `httpClient`: keep retrievals as injectable services backed by Angular `HttpClient`
 - `httpResource`: generate signal-first retrieval functions using Angular
   `httpResource`
 - `both`: keep `HttpClient` service methods and emit retrieval resources in a
   sibling `*.resource.ts` file
+
+Mutation-style operations still use generated `HttpClient` service methods by
+default unless a per-operation override changes the classification.
+
+### client
+
+**Type:** `'httpClient' | 'httpResource' | 'both'`
+
+Backward-compatible alias for `retrievalClient`. Prefer
+`override.angular.retrievalClient` in new configs to make the retrieval-only
+scope clearer.
 
 ### runtimeValidation
 
@@ -923,7 +934,7 @@ export default defineConfig({
     output: {
       override: {
         angular: {
-          client: 'httpResource',
+          retrievalClient: 'httpResource',
           httpResource: {
             defaultValue: { id: 'fallback' },
             debugName: 'getPetByIdResource',

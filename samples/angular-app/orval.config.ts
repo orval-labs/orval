@@ -171,7 +171,7 @@ export default defineConfig({
       clean: true,
       override: {
         angular: {
-          client: 'httpResource',
+          retrievalClient: 'httpResource',
         },
         operations: {
           listPets: {
@@ -221,7 +221,7 @@ export default defineConfig({
       clean: true,
       override: {
         angular: {
-          client: 'httpResource',
+          retrievalClient: 'httpResource',
           runtimeValidation: true,
         },
         operations: {

@@ -61,7 +61,7 @@ import {
  * ```ts
  * override: {
  *   operations: {
- *     myPostSearch: { angular: { client: 'httpResource' } },
+ *     myPostSearch: { angular: { retrievalClient: 'httpResource' } },
  *   }
  * }
  * ```

@@ -38,21 +38,27 @@ export default defineConfig({
 ```
 
 `output.client = 'angular'` selects the Angular generator. After that, use
-`override.angular.client` to choose which Angular output mode Orval should
-generate.
+`override.angular.retrievalClient` to choose how **retrieval-style** Angular
+operations should be generated. The older `override.angular.client` key remains
+supported as a backward-compatible alias.
 
 ## Generated Output
 
 By default, the Angular client generates injectable service classes backed by
 `HttpClient`.
 
-Available Angular output modes:
+Available Angular retrieval modes:
 
-- `httpClient` — generate injectable service classes backed by `HttpClient`
+- `httpClient` — keep retrievals as injectable service methods backed by `HttpClient`
 - `httpResource` — generate signal-first `httpResource` functions for
   retrieval-style operations
 - `both` — generate `httpResource` retrievals and keep `HttpClient` methods for
-  operations that need imperative request handling
+  imperative request handling
+
+Mutation-style operations such as create, update, delete, and most imperative
+`POST` calls continue to use generated `HttpClient` service methods by default.
+If you need different behavior for a specific operation, use an operation-level
+Angular override.
 
 Register the generated service via DI (standalone or module-based apps both
 work):
@@ -74,7 +80,8 @@ need them.
 
 ## Choosing the Angular output mode
 
-Use `override.angular.client` to choose the generated Angular output mode:
+Use `override.angular.retrievalClient` to choose the generated Angular
+retrieval mode:
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -88,7 +95,7 @@ export default defineConfig({
       client: 'angular',
       override: {
         angular: {
-          client: 'httpClient',
+          retrievalClient: 'httpClient',
         },
       },
     },
@@ -99,15 +106,16 @@ export default defineConfig({
 });
 ```
 
-If you omit `override.angular.client`, Orval uses the default Angular
+If you omit `override.angular.retrievalClient` (or the legacy
+`override.angular.client` alias), Orval uses the default Angular
 `HttpClient` service-class output.
 
 ### Which mode should you choose?
 
-| `override.angular.client` | What Orval generates | Choose it when |
+| `override.angular.retrievalClient` | What Orval generates | Choose it when |
 |---|---|---|
-| `httpClient` | Injectable service classes backed by `HttpClient` | You want conventional Angular services, imperative request methods, and the broadest compatibility with request options and mutators |
-| `httpResource` | Signal-first `httpResource` functions for retrieval-style operations | You want Angular-native signal ergonomics for reads and prefer resource-based data fetching |
+| `httpClient` | Retrievals stay on injectable service classes backed by `HttpClient` | You want conventional Angular services, imperative request methods, and the broadest compatibility with request options and mutators |
+| `httpResource` | Retrieval-style operations become signal-first `httpResource` functions; mutations still use `HttpClient` service methods | You want Angular-native signal ergonomics for reads and prefer resource-based data fetching |
 | `both` | Service classes plus sibling `*.resource.ts` retrieval helpers | You want signal-first reads and imperative writes together |
 
 Quick rule of thumb:
@@ -115,7 +123,8 @@ Quick rule of thumb:
 - choose `httpClient` for classic Angular service-based APIs
 - choose `httpResource` for signal-first read flows
 - choose `both` when your app wants both patterns side-by-side
-- if you do not set `override.angular.client`, Orval defaults to `httpClient`
+- if you do not set `override.angular.retrievalClient`, Orval defaults to `httpClient`
+- create, update, delete, and other mutation-style operations still use `HttpClient` methods by default
 
 ## Setting the Backend URL
 
@@ -147,7 +156,7 @@ export const appConfig: ApplicationConfig = {
 
 ## httpResource Output (Angular v19.2+)
 
-Enable the `httpResource` output mode with `override.angular.client`.
+Enable the `httpResource` retrieval mode with `override.angular.retrievalClient`.
 This mode targets Angular's `httpResource` API, which is available in Angular
 v19.2+:
 
@@ -163,7 +172,7 @@ export default defineConfig({
       client: 'angular',
       override: {
         angular: {
-          client: 'httpResource',
+          retrievalClient: 'httpResource',
         },
       },
     },
@@ -210,12 +219,12 @@ export default defineConfig({
       target: 'src/api/petstore.ts',
       override: {
         angular: {
-          client: 'httpResource',
+          retrievalClient: 'httpResource',
         },
         operations: {
           searchPets: {
             angular: {
-              client: 'httpResource',
+              retrievalClient: 'httpResource',
             },
           },
         },
@@ -297,7 +306,7 @@ export default defineConfig({
       client: 'angular',
       override: {
         angular: {
-          client: 'both',
+          retrievalClient: 'both',
         },
       },
     },
@@ -339,7 +348,7 @@ export default defineConfig({
       client: 'angular',
       override: {
         angular: {
-          client: 'httpResource',
+          retrievalClient: 'httpResource',
           httpResource: {
             defaultValue: { id: 'fallback' },
             debugName: 'getPetByIdResource',
@@ -370,7 +379,7 @@ resource options:
 ```ts title="orval.config.ts"
 override: {
   angular: {
-    client: 'httpResource',
+    retrievalClient: 'httpResource',
     httpResource: {
       injector: 'inject(Injector)',
       equal: '(a, b) => a?.id === b?.id',
@@ -384,7 +393,7 @@ Operation-level `httpResource` options override global ones:
 ```ts title="orval.config.ts"
 override: {
   angular: {
-    client: 'httpResource',
+    retrievalClient: 'httpResource',
     httpResource: {
       debugName: 'globalPetResource',
     },
@@ -392,7 +401,7 @@ override: {
   operations: {
     showPetById: {
       angular: {
-        client: 'httpResource',
+        retrievalClient: 'httpResource',
         httpResource: {
           debugName: 'showPetByIdResource',
         },
@@ -457,7 +466,7 @@ export default defineConfig({
       client: 'angular',
       override: {
         angular: {
-          client: 'httpResource',
+          retrievalClient: 'httpResource',
           runtimeValidation: true, // opt-in
         },
       },

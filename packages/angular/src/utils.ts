@@ -161,8 +161,8 @@ export const createReturnTypesRegistry = () => {
  * ```ts
  * override: {
  *   operations: {
- *     myPostSearch: { angular: { client: 'httpResource' } },
- *     getOrCreateUser: { angular: { client: 'httpClient' } },
+ *     myPostSearch: { angular: { retrievalClient: 'httpResource' } },
+ *     getOrCreateUser: { angular: { retrievalClient: 'httpClient' } },
  *   }
  * }
  * ```

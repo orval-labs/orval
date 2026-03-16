@@ -25,16 +25,20 @@ Visit [orval.dev](https://orval.dev) for guides, API docs, and examples.
 
 ## What it generates
 
-`@orval/angular` supports three Angular output modes through
-`override.angular.client`:
+`@orval/angular` supports three Angular retrieval modes through
+`override.angular.retrievalClient` (or the legacy `override.angular.client`
+alias):
 
 | Mode           | Generated output                                               | Best for                                                    |
 | -------------- | -------------------------------------------------------------- | ----------------------------------------------------------- |
-| `httpClient`   | Injectable Angular service classes                             | Conventional service-based Angular APIs                     |
+| `httpClient`   | Retrievals stay on injectable Angular service classes          | Conventional service-based Angular APIs                     |
 | `httpResource` | Signal-first resource helpers for retrieval-style operations   | Angular apps using signals for read flows                   |
 | `both`         | Service classes plus sibling `*.resource.ts` retrieval helpers | Projects that want signal-first reads and imperative writes |
 
-If `override.angular.client` is omitted, Angular generation defaults to
+Mutation-style operations continue to use generated `HttpClient` service
+methods by default unless a per-operation override changes classification.
+
+If `override.angular.retrievalClient` is omitted, Angular generation defaults to
 `httpClient` mode.
 
 ## Example configuration
@@ -54,7 +58,7 @@ export default defineConfig({
       mode: 'tags-split',
       override: {
         angular: {
-          client: 'httpResource',
+          retrievalClient: 'httpResource',
           runtimeValidation: true,
         },
       },

@@ -132,7 +132,7 @@ export default defineConfig({
       client: 'angular',
       override: {
         angular: {
-          client: 'httpResource',
+          retrievalClient: 'httpResource',
         },
       },
     },
@@ -151,7 +151,7 @@ export default defineConfig({
       client: 'angular',
       override: {
         angular: {
-          client: 'httpResource',
+          retrievalClient: 'httpResource',
           runtimeValidation: false,
         },
       },

@@ -712,6 +712,22 @@ export interface QueryOptions {
 
 export interface AngularOptions {
   provideIn?: 'root' | 'any' | boolean;
+  /**
+   * Preferred name for configuring how retrieval-style operations are emitted.
+   *
+   * - `httpClient`: keep retrievals as service methods
+   * - `httpResource`: emit retrievals as Angular `httpResource` helpers
+   * - `both`: emit retrieval helpers and keep service methods where needed
+   *
+   * Mutation-style operations still use generated `HttpClient` service methods
+   * by default unless a per-operation override forces a different behavior.
+   */
+  retrievalClient?: 'httpClient' | 'httpResource' | 'both';
+  /**
+   * Backward-compatible alias for `retrievalClient`.
+   *
+   * Kept for compatibility with existing configs.
+   */
   client?: 'httpClient' | 'httpResource' | 'both';
   runtimeValidation?: boolean;
   httpResource?: AngularHttpResourceOptions;
