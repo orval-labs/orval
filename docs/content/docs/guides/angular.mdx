@@ -6,6 +6,14 @@ description: Generate Angular services with HttpClient and httpResource function
 Generate fully typed Angular services using `HttpClient` or signal-first
 `httpResource` functions from your OpenAPI specification.
 
+If you want the short version:
+
+- use `httpClient` for classic Angular service-based APIs
+- use `httpResource` for signal-first read flows
+- use `both` when you want resource-based reads and service-based writes together
+- enable `override.angular.runtimeValidation` when you generate Zod schemas and
+  want runtime response validation
+
 ## Configuration
 
 Set `output.client` to `angular` to enable Orval's Angular generator:
@@ -30,7 +38,7 @@ export default defineConfig({
 ```
 
 `output.client = 'angular'` selects the Angular generator. After that, use
-`override.angular.client` to choose which Angular-style output Orval should
+`override.angular.client` to choose which Angular output mode Orval should
 generate.
 
 ## Generated Output
@@ -60,13 +68,13 @@ export const appConfig: ApplicationConfig = {
 };
 ```
 
-`provideIn` applies to generated service classes only. `httpResource`
+`providedIn` applies to generated service classes only. `httpResource`
 functions are plain exports, so you import and call them directly where you
 need them.
 
 ## Choosing the Angular output mode
 
-Use `override.angular.client` to choose the generated Angular mode:
+Use `override.angular.client` to choose the generated Angular output mode:
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -109,9 +117,39 @@ Quick rule of thumb:
 - choose `both` when your app wants both patterns side-by-side
 - if you do not set `override.angular.client`, Orval defaults to `httpClient`
 
+## Setting the Backend URL
+
+Use an HTTP interceptor to automatically add the API base URL. In modern
+standalone Angular apps, a functional interceptor keeps the setup compact:
+
+```ts title="api.interceptor.ts"
+import { HttpInterceptorFn } from '@angular/common/http';
+
+export const apiInterceptor: HttpInterceptorFn = (req, next) => {
+  return next(
+    req.clone({
+      url: `https://api.example.com${req.url}`,
+    }),
+  );
+};
+```
+
+```ts title="app.config.ts"
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { ApplicationConfig } from '@angular/core';
+
+import { apiInterceptor } from './api.interceptor';
+
+export const appConfig: ApplicationConfig = {
+  providers: [provideHttpClient(withInterceptors([apiInterceptor]))],
+};
+```
+
 ## httpResource Output (Angular v19.2+)
 
-Enable the experimental `httpResource` client via `override.angular.client`:
+Enable the `httpResource` output mode with `override.angular.client`.
+This mode targets Angular's `httpResource` API, which is available in Angular
+v19.2+:
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -147,8 +185,8 @@ export function showPetByIdResource(
 ```
 
 Because Orval returns Angular's native `HttpResourceRef`, you automatically get
-the platform APIs such as `hasValue()`, `status()`, `error()`, `reload()`, and
-the resource snapshot API for advanced composition.
+Angular's resource APIs such as `hasValue()`, `status()`, `error()`,
+`reload()`, and the resource snapshot API for advanced composition.
 
 ### Which operations become `httpResource` functions?
 
@@ -283,7 +321,7 @@ needs service methods for writes or imperative request flows.
 
 ### httpResource options
 
-You can configure generated `httpResource` calls through
+You can customize generated `httpResource` calls through
 `override.angular.httpResource`:
 
 ```ts title="orval.config.ts"
@@ -302,12 +340,9 @@ export default defineConfig({
       override: {
         angular: {
           client: 'httpResource',
-          runtimeValidation: true,
           httpResource: {
             defaultValue: { id: 'fallback' },
             debugName: 'getPetByIdResource',
-            injector: 'inject(Injector)',
-            equal: '(a, b) => a?.id === b?.id',
           },
         },
       },
@@ -319,12 +354,30 @@ export default defineConfig({
 });
 ```
 
-Supported options:
+Common options:
 
 - `defaultValue` — initial value exposed while the resource is idle/loading
 - `debugName` — name shown in Angular DevTools
+
+Advanced options:
+
 - `injector` — raw expression passed to `HttpResourceOptions.injector`
 - `equal` — raw expression passed to `HttpResourceOptions.equal`
+
+For more advanced cases, you can also pass raw expressions for Angular's
+resource options:
+
+```ts title="orval.config.ts"
+override: {
+  angular: {
+    client: 'httpResource',
+    httpResource: {
+      injector: 'inject(Injector)',
+      equal: '(a, b) => a?.id === b?.id',
+    },
+  },
+}
+```
 
 Operation-level `httpResource` options override global ones:
 
@@ -349,8 +402,9 @@ override: {
 }
 ```
 
-Orval emits a shared helper type for these options. The exact default generic
-for `TOmitParse` depends on the generated file, but the emitted shape is:
+Orval also emits a shared helper type for these options. The exact default
+generic for `TOmitParse` depends on the generated file, but the emitted shape
+is:
 
 ```ts
 export type OrvalHttpResourceOptions<
@@ -472,43 +526,16 @@ This is also the right place to verify loading and backend-error behavior for
 flushes an invalid JSON payload and asserts that the resource exposes a
 `ZodError`.
 
-## Setting the Backend URL
-
-Use an HTTP interceptor to automatically add the API base URL. In modern
-standalone Angular apps, a functional interceptor keeps the setup compact:
-
-```ts title="api.interceptor.ts"
-import { HttpInterceptorFn } from '@angular/common/http';
-
-export const apiInterceptor: HttpInterceptorFn = (req, next) => {
-  return next(
-    req.clone({
-      url: `https://api.example.com${req.url}`,
-    }),
-  );
-};
-```
-
-```ts title="app.config.ts"
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { ApplicationConfig } from '@angular/core';
-
-import { apiInterceptor } from './api.interceptor';
-
-export const appConfig: ApplicationConfig = {
-  providers: [provideHttpClient(withInterceptors([apiInterceptor]))],
-};
-```
-
 ## Zod Runtime Validation
 
-Angular output can validate Zod-backed responses when `schemas.type` is set to
-`zod` and `override.angular.runtimeValidation` is enabled. This runs
-`Schema.parse()` on eligible responses and catches type mismatches at runtime.
+Angular output supports runtime validation for Zod-backed responses when
+`schemas.type` is set to `zod` and `override.angular.runtimeValidation` is
+enabled. For JSON model responses, Orval runs `Schema.parse()` on eligible
+responses and catches type mismatches at runtime.
 
 ### Setup
 
-1. Set `schemas` to generate Zod schemas
+1. Set `schemas.type` to `zod` to generate Zod schemas
 2. Set `override.angular.runtimeValidation: true` to enable runtime validation
 
 ```ts title="orval.config.ts"
@@ -540,8 +567,8 @@ export default defineConfig({
 ### How It Works
 
 For generated `HttpClient` services, JSON responses are piped through the Zod
-schema's `.parse()` method. Generated `httpResource` JSON retrievals receive the
-same parse hook via Angular's `HttpResourceOptions.parse`.
+schema's `.parse()` method. Generated `httpResource` JSON retrievals use the
+same validation hook through Angular's `HttpResourceOptions.parse`.
 
 ```ts
 // Generated code (simplified)
@@ -570,12 +597,14 @@ showPetByIdResource(
 - Non-JSON content types (text, blob, arrayBuffer)
 
 For generated `HttpClient` services, runtime validation also applies when the
-JSON response body is surfaced through `response` and response-event flows.
+JSON response body is surfaced through `response` and response-event observe
+flows.
 
 ## Request-body readonly guidance
 
-Angular output now supports `override.preserveReadonlyRequestBodies` with two
-modes:
+Angular output also supports `override.preserveReadonlyRequestBodies` to
+control how OpenAPI `readOnly` fields are handled in generated request body
+types:
 
 - `'strip'` (default) — recommended for most OpenAPI specs
 - `'preserve'` — use when your request DTOs are intentionally immutable
@@ -593,11 +622,11 @@ export default defineConfig({
 ```
 
 `'strip'` is the best default because OpenAPI `readOnly` properties are usually
-response-oriented. This guidance applies equally to Angular `HttpClient` and
-`httpResource` output — `httpResource` still issues request payloads, so it
+response-oriented. The same guidance applies to both Angular `HttpClient` and
+`httpResource` output: `httpResource` can still issue request payloads, so it
 should not preserve readonly request fields by default.
 
-### Support Matrix
+### Runtime validation support matrix
 
 | Client | Config key | Runtime validation |
 |--------|------------|--------------------|
@@ -630,8 +659,8 @@ For generated `httpResource` helpers, read the error through the resource's
 ## Advanced helpers
 
 Generated `httpResource` files also include small convenience helpers such as
-`ResourceState<T>` and `toResourceState()` for integrating a resource into your
-own state abstractions.
+`ResourceState<T>` and `toResourceState()` for integrating Angular resources
+into your own state abstractions.
 
 ## Full Example
 
