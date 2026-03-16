@@ -211,6 +211,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
     @media (max-width: 960px) {
       .app-header {
         align-items: flex-start;
+        padding-inline: 20px;
       }
 
       .nav-bar {
@@ -232,6 +233,10 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
       .nav-bar::-webkit-scrollbar-thumb {
         background: var(--border-2);
         border-radius: 999px;
+      }
+
+      main {
+        padding: 32px 20px 24px;
       }
     }
 

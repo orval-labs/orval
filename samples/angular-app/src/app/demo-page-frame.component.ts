@@ -143,7 +143,7 @@ import { BadgeComponent } from './ui/badge.component';
       gap: 16px;
     }
 
-    @media (max-width: 720px) {
+    @media (max-width: 860px) {
       .summary-grid {
         grid-template-columns: 1fr;
       }

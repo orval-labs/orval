@@ -40,6 +40,59 @@ export type OrvalHttpResourceOptions<
 > = TOmitParse extends true
   ? Omit<HttpResourceOptions<TValue, TRaw>, 'parse'>
   : HttpResourceOptions<TValue, TRaw>;
+
+type AngularHttpParamValue =
+  | string
+  | number
+  | boolean
+  | Array<string | number | boolean>;
+type AngularHttpParamValueWithNullable = AngularHttpParamValue | null;
+
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys?: ReadonlySet<string>,
+  preserveRequiredNullables?: false,
+): Record<string, AngularHttpParamValue>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> | undefined,
+  preserveRequiredNullables: true,
+): Record<string, AngularHttpParamValueWithNullable>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> = new Set(),
+  preserveRequiredNullables = false,
+): Record<string, AngularHttpParamValueWithNullable> {
+  const filteredParams: Record<string, AngularHttpParamValueWithNullable> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) {
+      const filtered = value.filter(
+        (item) =>
+          item != null &&
+          (typeof item === 'string' ||
+            typeof item === 'number' ||
+            typeof item === 'boolean'),
+      ) as Array<string | number | boolean>;
+      if (filtered.length) {
+        filteredParams[key] = filtered;
+      }
+    } else if (
+      preserveRequiredNullables &&
+      value === null &&
+      requiredNullableKeys.has(key)
+    ) {
+      filteredParams[key] = value;
+    } else if (
+      value != null &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean')
+    ) {
+      filteredParams[key] = value;
+    }
+  }
+  return filteredParams;
+}
 export type ListPetsAccept =
   (typeof ListPetsAccept)[keyof typeof ListPetsAccept];
 
@@ -81,43 +134,13 @@ export function searchPetsResource(
     () => {
       const request = {
         url: `/v${version?.() ?? 1}/search`,
-        params: (() => {
-          const requiredNullableParamKeys = new Set<string>([
+        params: filterParams(
+          params?.() ?? {},
+          new Set<string>([
             'requirednullableString',
             'requirednullableStringTwo',
-          ]);
-          const filteredParams = {} as Record<
-            string,
-            string | number | boolean | null | Array<string | number | boolean>
-          >;
-          for (const [key, value] of Object.entries(params?.() ?? {})) {
-            if (Array.isArray(value)) {
-              const filtered = value.filter(
-                (item) =>
-                  item != null &&
-                  (typeof item === 'string' ||
-                    typeof item === 'number' ||
-                    typeof item === 'boolean'),
-              ) as Array<string | number | boolean>;
-              if (filtered.length) {
-                filteredParams[key] = filtered;
-              }
-            } else if (value === null && requiredNullableParamKeys.has(key)) {
-              filteredParams[key] = value;
-            } else if (
-              value != null &&
-              (typeof value === 'string' ||
-                typeof value === 'number' ||
-                typeof value === 'boolean')
-            ) {
-              filteredParams[key] = value as string | number | boolean;
-            }
-          }
-          return filteredParams as unknown as Record<
-            string,
-            string | number | boolean | Array<string | number | boolean>
-          >;
-        })(),
+          ]),
+        ),
       };
       return request;
     },
@@ -155,74 +178,30 @@ export function listPetsResource(
   version?: Signal<number>,
   options?: OrvalHttpResourceOptions<PetsOutput | string, unknown, true>,
 ): HttpResourceRef<PetsOutput | string | undefined> {
-  return (() => {
-    const request = {
-      url: `/v${version?.() ?? 1}/pets`,
-      params: (() => {
-        const requiredNullableParamKeys = new Set<string>([]);
-        const filteredParams = {} as Record<
-          string,
-          string | number | boolean | null | Array<string | number | boolean>
-        >;
-        for (const [key, value] of Object.entries(params?.() ?? {})) {
-          if (Array.isArray(value)) {
-            const filtered = value.filter(
-              (item) =>
-                item != null &&
-                (typeof item === 'string' ||
-                  typeof item === 'number' ||
-                  typeof item === 'boolean'),
-            ) as Array<string | number | boolean>;
-            if (filtered.length) {
-              filteredParams[key] = filtered;
-            }
-          } else if (value === null && requiredNullableParamKeys.has(key)) {
-            filteredParams[key] = value;
-          } else if (
-            value != null &&
-            (typeof value === 'string' ||
-              typeof value === 'number' ||
-              typeof value === 'boolean')
-          ) {
-            filteredParams[key] = value as string | number | boolean;
-          }
-        }
-        return filteredParams as unknown as Record<
-          string,
-          string | number | boolean | Array<string | number | boolean>
-        >;
-      })(),
-    };
-    const normalizedRequest: HttpResourceRequest =
-      typeof request === 'string' ? { url: request } : request;
-    const headers =
-      normalizedRequest.headers instanceof HttpHeaders
-        ? normalizedRequest.headers.set('Accept', accept)
-        : { ...(normalizedRequest.headers ?? {}), Accept: accept };
+  const request = {
+    url: `/v${version?.() ?? 1}/pets`,
+    params: filterParams(params?.() ?? {}, new Set<string>([])),
+  };
+  const normalizedRequest: HttpResourceRequest = request;
+  const headers =
+    normalizedRequest.headers instanceof HttpHeaders
+      ? normalizedRequest.headers.set('Accept', accept)
+      : { ...(normalizedRequest.headers ?? {}), Accept: accept };
 
-    if (accept.includes('json') || accept.includes('+json')) {
-      return httpResource<PetsOutput>(
-        () => ({
-          ...normalizedRequest,
-          headers,
-        }),
-        {
-          ...(options ?? {}),
-          parse: Pets.parse,
-        } as unknown as OrvalHttpResourceOptions<PetsOutput, unknown, true>,
-      );
-    }
+  if (accept.includes('json') || accept.includes('+json')) {
+    return httpResource<PetsOutput>(
+      () => ({
+        ...normalizedRequest,
+        headers,
+      }),
+      {
+        ...(options ?? {}),
+        parse: Pets.parse,
+      } as unknown as OrvalHttpResourceOptions<PetsOutput, unknown, true>,
+    );
+  }
 
-    if (accept.startsWith('text/') || accept.includes('xml')) {
-      return httpResource.text<string>(
-        () => ({
-          ...normalizedRequest,
-          headers,
-        }),
-        options as unknown as OrvalHttpResourceOptions<string, string, true>,
-      );
-    }
-
+  if (accept.startsWith('text/') || accept.includes('xml')) {
     return httpResource.text<string>(
       () => ({
         ...normalizedRequest,
@@ -230,7 +209,15 @@ export function listPetsResource(
       }),
       options as unknown as OrvalHttpResourceOptions<string, string, true>,
     );
-  })();
+  }
+
+  return httpResource.text<string>(
+    () => ({
+      ...normalizedRequest,
+      headers,
+    }),
+    options as unknown as OrvalHttpResourceOptions<string, string, true>,
+  );
 }
 
 /**
@@ -266,38 +253,27 @@ export function showPetByIdResource(
   version?: Signal<number>,
   options?: OrvalHttpResourceOptions<string | PetOutput, unknown, true>,
 ): HttpResourceRef<string | PetOutput | undefined> {
-  return (() => {
-    const request = `/v${version?.() ?? 1}/pets/${petId()}`;
-    const normalizedRequest: HttpResourceRequest =
-      typeof request === 'string' ? { url: request } : request;
-    const headers =
-      normalizedRequest.headers instanceof HttpHeaders
-        ? normalizedRequest.headers.set('Accept', accept)
-        : { ...(normalizedRequest.headers ?? {}), Accept: accept };
+  const request = `/v${version?.() ?? 1}/pets/${petId()}`;
+  const normalizedRequest: HttpResourceRequest = { url: request };
+  const headers =
+    normalizedRequest.headers instanceof HttpHeaders
+      ? normalizedRequest.headers.set('Accept', accept)
+      : { ...(normalizedRequest.headers ?? {}), Accept: accept };
 
-    if (accept.includes('json') || accept.includes('+json')) {
-      return httpResource<PetOutput>(
-        () => ({
-          ...normalizedRequest,
-          headers,
-        }),
-        {
-          ...(options ?? {}),
-          parse: Pet.parse,
-        } as unknown as OrvalHttpResourceOptions<PetOutput, unknown, true>,
-      );
-    }
+  if (accept.includes('json') || accept.includes('+json')) {
+    return httpResource<PetOutput>(
+      () => ({
+        ...normalizedRequest,
+        headers,
+      }),
+      {
+        ...(options ?? {}),
+        parse: Pet.parse,
+      } as unknown as OrvalHttpResourceOptions<PetOutput, unknown, true>,
+    );
+  }
 
-    if (accept.startsWith('text/') || accept.includes('xml')) {
-      return httpResource.text<string>(
-        () => ({
-          ...normalizedRequest,
-          headers,
-        }),
-        options as unknown as OrvalHttpResourceOptions<string, string, true>,
-      );
-    }
-
+  if (accept.startsWith('text/') || accept.includes('xml')) {
     return httpResource.text<string>(
       () => ({
         ...normalizedRequest,
@@ -305,7 +281,15 @@ export function showPetByIdResource(
       }),
       options as unknown as OrvalHttpResourceOptions<string, string, true>,
     );
-  })();
+  }
+
+  return httpResource.text<string>(
+    () => ({
+      ...normalizedRequest,
+      headers,
+    }),
+    options as unknown as OrvalHttpResourceOptions<string, string, true>,
+  );
 }
 
 /**

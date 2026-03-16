@@ -122,7 +122,7 @@ import { PetCardComponent } from './ui/pet-card.component';
       color: var(--error);
     }
 
-    @media (max-width: 860px) {
+    @media (max-width: 960px) {
       .demo-grid {
         grid-template-columns: 1fr;
       }

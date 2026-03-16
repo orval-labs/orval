@@ -6,7 +6,6 @@
  */
 import { z as zod } from 'zod';
 
-
 export const petNameMaxOne = 100;
 
 export const petTagMaxOne = 50;
@@ -22,17 +21,40 @@ export const petRatingMultipleOfOne = 0.5;
 export const petPhoneRegExpOne = new RegExp('^\\+?[1-9]\\d{1,14}$');
 
 export const Pet = zod.object({
-  "id": zod.number().min(1).describe('Unique identifier for the pet'),
-  "name": zod.string().min(1).max(petNameMaxOne).describe('Name of the pet'),
-  "tag": zod.string().min(1).max(petTagMaxOne).optional().describe('Optional classification tag'),
-  "email": zod.string().email().optional().describe('Owner contact email'),
-  "status": zod.enum(['available', 'pending', 'sold']).default(petStatusDefaultOne).describe('Current adoption status'),
-  "age": zod.number().min(petAgeMinOne).max(petAgeMaxOne).optional().describe('Age of the pet in years'),
-  "rating": zod.number().min(petRatingMinOne).max(petRatingMaxOne).multipleOf(petRatingMultipleOfOne).optional().describe('Average customer rating'),
-  "phone": zod.string().regex(petPhoneRegExpOne).optional().describe('Contact phone in E.164 format'),
-  "requiredNullableString": zod.string().nullable(),
-  "optionalNullableString": zod.string().nullish()
-})
+  id: zod.number().min(1).describe('Unique identifier for the pet'),
+  name: zod.string().min(1).max(petNameMaxOne).describe('Name of the pet'),
+  tag: zod
+    .string()
+    .min(1)
+    .max(petTagMaxOne)
+    .optional()
+    .describe('Optional classification tag'),
+  email: zod.string().email().optional().describe('Owner contact email'),
+  status: zod
+    .enum(['available', 'pending', 'sold'])
+    .default(petStatusDefaultOne)
+    .describe('Current adoption status'),
+  age: zod
+    .number()
+    .min(petAgeMinOne)
+    .max(petAgeMaxOne)
+    .optional()
+    .describe('Age of the pet in years'),
+  rating: zod
+    .number()
+    .min(petRatingMinOne)
+    .max(petRatingMaxOne)
+    .multipleOf(petRatingMultipleOfOne)
+    .optional()
+    .describe('Average customer rating'),
+  phone: zod
+    .string()
+    .regex(petPhoneRegExpOne)
+    .optional()
+    .describe('Contact phone in E.164 format'),
+  requiredNullableString: zod.string().nullable(),
+  optionalNullableString: zod.string().nullish(),
+});
 
-    export type Pet = zod.input<typeof Pet>;
-    export type PetOutput = zod.output<typeof Pet>;
+export type Pet = zod.input<typeof Pet>;
+export type PetOutput = zod.output<typeof Pet>;

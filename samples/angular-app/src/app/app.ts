@@ -12,12 +12,16 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
       </header>
       <nav class="App-nav">
         <a routerLink="/http-client" routerLinkActive="active">HttpClient</a>
-        <a routerLink="/http-resource" routerLinkActive="active"
-          >httpResource</a
-        >
-        <a routerLink="/http-resource-zod" routerLinkActive="active"
-          >httpResource + Zod</a
-        >
+        <a routerLink="/http-client-custom-params" routerLinkActive="active">
+          HttpClient custom params
+        </a>
+        <a routerLink="/http-resource" routerLinkActive="active">
+          httpResource
+        </a>
+        <a routerLink="/http-resource-zod" routerLinkActive="active">
+          httpResource + Zod
+        </a>
+        <a routerLink="/zod-demo" routerLinkActive="active"> Zod validation </a>
       </nav>
       <main>
         <router-outlet />

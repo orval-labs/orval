@@ -88,56 +88,7 @@ import { PetCardComponent } from './ui/pet-card.component';
       </div>
     </app-demo-page-frame>
   `,
-  styles: `
-    .demo-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr);
-      gap: 16px;
-      align-items: start;
-    }
-
-    .panel-stack {
-      display: grid;
-      gap: 16px;
-    }
-
-    .pet-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 10px;
-    }
-
-    pre {
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 14px;
-    }
-
-    pre {
-      font-family: var(--font-mono);
-      font-size: 0.82rem;
-      line-height: 1.6;
-      color: var(--text);
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .muted {
-      color: var(--text-2);
-    }
-
-    .error {
-      color: var(--error);
-    }
-
-    @media (max-width: 860px) {
-      .demo-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-  `,
+  styleUrl: './demo-page.styles.css',
 })
 export class HttpResourcePage {
   protected readonly highlights = [

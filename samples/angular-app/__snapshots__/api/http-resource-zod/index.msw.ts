@@ -1,1 +1,1 @@
-export { getPetsMock } from './pets/pets.msw'
+export { getPetsMock } from './pets/pets.msw';

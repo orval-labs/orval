@@ -8,8 +8,8 @@
 /**
  * Initial adoption status
  */
-export type CreatePetsBodyStatus = typeof CreatePetsBodyStatus[keyof typeof CreatePetsBodyStatus];
-
+export type CreatePetsBodyStatus =
+  (typeof CreatePetsBodyStatus)[keyof typeof CreatePetsBodyStatus];
 
 export const CreatePetsBodyStatus = {
   available: 'available',

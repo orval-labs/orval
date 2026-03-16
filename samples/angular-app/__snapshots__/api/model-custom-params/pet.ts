@@ -8,42 +8,42 @@ import type { PetStatus } from './petStatus';
 
 export interface Pet {
   /**
-     * Unique identifier for the pet
-     * @minimum 1
-     */
+   * Unique identifier for the pet
+   * @minimum 1
+   */
   id: number;
   /**
-     * Name of the pet
-     * @minLength 1
-     * @maxLength 100
-     */
+   * Name of the pet
+   * @minLength 1
+   * @maxLength 100
+   */
   name: string;
   /**
-     * Optional classification tag
-     * @minLength 1
-     * @maxLength 50
-     */
+   * Optional classification tag
+   * @minLength 1
+   * @maxLength 50
+   */
   tag?: string;
   /** Owner contact email */
   email?: string;
   /** Current adoption status */
   status?: PetStatus;
   /**
-     * Age of the pet in years
-     * @minimum 0
-     * @maximum 30
-     */
+   * Age of the pet in years
+   * @minimum 0
+   * @maximum 30
+   */
   age?: number;
   /**
-     * Average customer rating
-     * @minimum 0
-     * @maximum 5
-     */
+   * Average customer rating
+   * @minimum 0
+   * @maximum 5
+   */
   rating?: number;
   /**
-     * Contact phone in E.164 format
-     * @pattern ^\+?[1-9]\d{1,14}$
-     */
+   * Contact phone in E.164 format
+   * @pattern ^\+?[1-9]\d{1,14}$
+   */
   phone?: string;
   /** @nullable */
   requiredNullableString: string | null;
