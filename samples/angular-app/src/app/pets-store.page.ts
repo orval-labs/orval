@@ -6,30 +6,26 @@ import {
   signal,
 } from '@angular/core';
 import { AsyncPipe, JsonPipe } from '@angular/common';
-import type { Observable } from 'rxjs';
-import {
-  BehaviorSubject,
-  catchError,
-  map,
-  of,
-  shareReplay,
-  startWith,
-  switchMap,
-} from 'rxjs';
+import { BehaviorSubject, shareReplay, switchMap } from 'rxjs';
 
 import type { Pet, Pets } from '../api/model';
 import { PetsService } from '../api/http-client/pets/pets.service';
 import { DemoPageFrameComponent } from './demo-page-frame.component';
+import { toLoadState } from './load-state';
+import { BadgeComponent } from './ui/badge.component';
+import { DemoPanelComponent } from './ui/demo-panel.component';
 import { PetCardComponent } from './ui/pet-card.component';
-
-type LoadState<T> =
-  | { status: 'loading'; data: T; error?: undefined }
-  | { status: 'success'; data: T; error?: undefined }
-  | { status: 'error'; data: T; error: string };
 
 @Component({
   selector: 'app-pets-store-page',
-  imports: [AsyncPipe, JsonPipe, DemoPageFrameComponent, PetCardComponent],
+  imports: [
+    AsyncPipe,
+    JsonPipe,
+    BadgeComponent,
+    DemoPageFrameComponent,
+    DemoPanelComponent,
+    PetCardComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-demo-page-frame
@@ -41,19 +37,14 @@ type LoadState<T> =
     >
       <div class="pets-page">
         <div class="demo-grid">
-          <section class="panel panel--wide">
-            <div class="panel-header">
-              <div>
-                <h2>listPets()</h2>
-                <p>
-                  Friendly baseline UI rendered from the default generated
-                  HttpClient service.
-                </p>
-              </div>
-              @if (petsState$ | async; as petsState) {
-                <span class="status-pill">Status: {{ petsState.status }}</span>
-              }
-            </div>
+          <app-demo-panel
+            class="panel--wide"
+            title="listPets()"
+            description="Friendly baseline UI rendered from the default generated HttpClient service."
+          >
+            @if (petsState$ | async; as petsState) {
+              <app-badge panel-badge>Status: {{ petsState.status }}</app-badge>
+            }
 
             @if (petsState$ | async; as petsState) {
               @if (petsState.status === 'loading') {
@@ -75,20 +66,15 @@ type LoadState<T> =
                 <p class="muted">No pets returned.</p>
               }
             }
-          </section>
+          </app-demo-panel>
 
           <section class="panel-stack">
-            <article class="panel">
-              <div class="panel-header compact">
-                <div>
-                  <h2>createPets()</h2>
-                  <p>
-                    Use the generated mutation to add a pet to the in-browser
-                    demo store.
-                  </p>
-                </div>
-                <span class="status-pill">Mutation</span>
-              </div>
+            <app-demo-panel
+              title="createPets()"
+              description="Use the generated mutation to add a pet to the in-browser demo store."
+              compact
+            >
+              <app-badge panel-badge>Mutation</app-badge>
 
               <form class="pet-form" (submit)="createPet($event)">
                 <label class="field">
@@ -132,25 +118,23 @@ type LoadState<T> =
                   {{ result.message }}
                 </p>
               }
-            </article>
+            </app-demo-panel>
 
-            <article class="panel">
-              <div class="panel-header compact">
-                <div>
-                  <h2>showPetById()</h2>
-                  <p>
-                    Compare the generated content-type overloads in one place.
-                  </p>
-                </div>
-                <span class="status-pill">Overloads</span>
-              </div>
+            <app-demo-panel
+              title="showPetById()"
+              description="Compare the generated content-type overloads in one place."
+              compact
+            >
+              <app-badge panel-badge>Overloads</app-badge>
 
               <div class="overload-stack">
                 <section class="overload-card">
                   <div class="overload-meta">
                     <h3>text/plain</h3>
                     @if (petTextState$ | async; as petTextState) {
-                      <span class="mini-status">{{ petTextState.status }}</span>
+                      <app-badge size="xs" panel-badge>{{
+                        petTextState.status
+                      }}</app-badge>
                     }
                   </div>
                   @if (petTextState$ | async; as petTextState) {
@@ -165,7 +149,9 @@ type LoadState<T> =
                   <div class="overload-meta">
                     <h3>application/xml</h3>
                     @if (petXmlState$ | async; as petXmlState) {
-                      <span class="mini-status">{{ petXmlState.status }}</span>
+                      <app-badge size="xs" panel-badge>{{
+                        petXmlState.status
+                      }}</app-badge>
                     }
                   </div>
                   @if (petXmlState$ | async; as petXmlState) {
@@ -180,7 +166,9 @@ type LoadState<T> =
                   <div class="overload-meta">
                     <h3>application/json</h3>
                     @if (petJsonState$ | async; as petJsonState) {
-                      <span class="mini-status">{{ petJsonState.status }}</span>
+                      <app-badge size="xs" panel-badge>{{
+                        petJsonState.status
+                      }}</app-badge>
                     }
                   </div>
                   @if (petJsonState$ | async; as petJsonState) {
@@ -191,12 +179,12 @@ type LoadState<T> =
                   }
                 </section>
               </div>
-            </article>
+            </app-demo-panel>
           </section>
         </div>
 
         <div class="devnote">
-          <span class="devnote-badge">DEV</span>
+          <app-badge shape="tag" size="xs" tone="neutral">DEV</app-badge>
           <span>
             This single page now covers the default HttpClient story end-to-end:
             list rendering, content-type overloads, and a real createPets()
@@ -230,26 +218,9 @@ export class PetsStorePage {
     message: string;
   } | null>(null);
 
-  private createLoadState$<T>(
-    source: Observable<T>,
-    initialValue: T,
-  ): Observable<LoadState<T>> {
-    return source.pipe(
-      map((data) => ({ status: 'success', data }) as LoadState<T>),
-      startWith({ status: 'loading', data: initialValue } as LoadState<T>),
-      catchError((error: unknown) =>
-        of({
-          status: 'error',
-          data: initialValue,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        } as LoadState<T>),
-      ),
-    );
-  }
-
   protected readonly petsState$ = this.refreshPets$.pipe(
     switchMap(() =>
-      this.createLoadState$<Pets>(
+      toLoadState<Pets>(
         this.petService.listPets(undefined, this.version),
         [] as Pets,
       ),
@@ -257,19 +228,17 @@ export class PetsStorePage {
     shareReplay({ bufferSize: 1, refCount: true }),
   );
 
-  protected readonly petTextState$ = this.createLoadState$<string>(
+  protected readonly petTextState$ = toLoadState<string>(
     this.petService.showPetById(this.petId, 'text/plain', this.version),
     '',
   ).pipe(shareReplay({ bufferSize: 1, refCount: true }));
 
-  protected readonly petXmlState$ = this.createLoadState$<string>(
+  protected readonly petXmlState$ = toLoadState<string>(
     this.petService.showPetById(this.petId, 'application/xml', this.version),
     '',
   ).pipe(shareReplay({ bufferSize: 1, refCount: true }));
 
-  protected readonly petJsonState$ = this.createLoadState$<
-    Pet | string | undefined
-  >(
+  protected readonly petJsonState$ = toLoadState<Pet | string | undefined>(
     this.petService.showPetById(this.petId, 'application/json', this.version),
     undefined,
   ).pipe(shareReplay({ bufferSize: 1, refCount: true }));

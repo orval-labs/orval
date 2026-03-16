@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { PetsService as ZodPetsService } from '../api/endpoints-zod/pets/pets.service';
 import type { Pets } from '../api/model-zod/index.zod';
 import { DemoPageFrameComponent } from './demo-page-frame.component';
+import { BadgeComponent } from './ui/badge.component';
 import { PetCardComponent } from './ui/pet-card.component';
 
 /**
@@ -26,7 +27,7 @@ import { PetCardComponent } from './ui/pet-card.component';
  */
 @Component({
   selector: 'app-zod-validation-demo',
-  imports: [JsonPipe, DemoPageFrameComponent, PetCardComponent],
+  imports: [JsonPipe, BadgeComponent, DemoPageFrameComponent, PetCardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-demo-page-frame
@@ -43,10 +44,16 @@ import { PetCardComponent } from './ui/pet-card.component';
           <div class="panel-header">
             <span class="panel-num">01</span>
             <span class="panel-title">searchPets()</span>
-            <span
-              class="panel-badge"
-              [class.badge-error]="searchError()"
-              [class.badge-ok]="!searchError() && searchPets().length"
+            <app-badge
+              shape="tag"
+              size="xs"
+              [tone]="
+                searchError()
+                  ? 'error'
+                  : searchPets().length
+                    ? 'success'
+                    : 'neutral'
+              "
             >
               {{
                 searchError()
@@ -55,7 +62,7 @@ import { PetCardComponent } from './ui/pet-card.component';
                     ? 'valid'
                     : '…'
               }}
-            </span>
+            </app-badge>
           </div>
           <div class="panel-meta">
             Response validated via <code>Pets.parse(data)</code>
@@ -92,10 +99,12 @@ import { PetCardComponent } from './ui/pet-card.component';
           <div class="panel-header">
             <span class="panel-num">02</span>
             <span class="panel-title">showPetById()</span>
-            <span
-              class="panel-badge"
-              [class.badge-error]="showPetError()"
-              [class.badge-ok]="!showPetError() && singlePet()"
+            <app-badge
+              shape="tag"
+              size="xs"
+              [tone]="
+                showPetError() ? 'error' : singlePet() ? 'success' : 'neutral'
+              "
             >
               {{
                 showPetError()
@@ -104,7 +113,7 @@ import { PetCardComponent } from './ui/pet-card.component';
                     ? 'valid'
                     : '…'
               }}
-            </span>
+            </app-badge>
           </div>
           <div class="panel-meta">
             Multi-content-type — JSON branch runs <code>Pet.parse(data)</code>
@@ -133,7 +142,7 @@ import { PetCardComponent } from './ui/pet-card.component';
           <div class="panel-header">
             <span class="panel-num">03</span>
             <span class="panel-title">createPets()</span>
-            <span class="panel-badge badge-neutral">void</span>
+            <app-badge shape="tag" size="xs" tone="neutral">void</app-badge>
           </div>
           <div class="panel-meta">
             Response is <code>void</code> — <code>.parse()</code> is correctly
@@ -168,7 +177,9 @@ import { PetCardComponent } from './ui/pet-card.component';
           <div class="panel-header">
             <span class="panel-num">04</span>
             <span class="panel-title">Observe Modes</span>
-            <span class="panel-badge badge-neutral">3 requests</span>
+            <app-badge shape="tag" size="xs" tone="neutral"
+              >3 requests</app-badge
+            >
           </div>
           <div class="panel-meta">
             Only <code>body</code> mode validates — <code>events</code> &amp;
@@ -257,34 +268,6 @@ import { PetCardComponent } from './ui/pet-card.component';
       font-weight: 600;
       color: var(--text);
       flex: 1;
-    }
-
-    .panel-badge {
-      font-family: var(--font-mono);
-      font-size: 0.65rem;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      padding: 2px 7px;
-      border-radius: 3px;
-      text-transform: uppercase;
-
-      &.badge-error {
-        background: var(--error-dim);
-        color: var(--error);
-        border: 1px solid oklch(0.68 0.22 22 / 0.3);
-      }
-
-      &.badge-ok {
-        background: var(--success-dim);
-        color: var(--success);
-        border: 1px solid oklch(0.75 0.16 148 / 0.3);
-      }
-
-      &.badge-neutral {
-        background: var(--surface);
-        color: var(--text-3);
-        border: 1px solid var(--border-2);
-      }
     }
 
     .panel-meta {

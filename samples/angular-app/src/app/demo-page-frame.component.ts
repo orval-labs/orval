@@ -1,7 +1,10 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
+import { BadgeComponent } from './ui/badge.component';
+
 @Component({
   selector: 'app-demo-page-frame',
+  imports: [BadgeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="demo-page">
@@ -12,7 +15,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
             <div class="title-row">
               <h1 class="page-title">{{ title() }}</h1>
               @if (badge(); as badge) {
-                <span class="badge">{{ badge }}</span>
+                <app-badge>{{ badge }}</app-badge>
               }
             </div>
             <p class="page-description">{{ description() }}</p>
@@ -91,19 +94,6 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
       letter-spacing: -0.04em;
       color: var(--text);
     }
-
-    .badge {
-      font-family: var(--font-mono);
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: var(--accent-dim);
-      color: var(--accent);
-      border: 1px solid var(--accent-glow);
-    }
-
     .page-description {
       color: var(--text-2);
       font-size: 0.98rem;

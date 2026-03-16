@@ -15,49 +15,6 @@
   gap: 16px;
 }
 
-.panel {
-  background: linear-gradient(180deg, var(--surface), var(--surface-2));
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 18px;
-  box-shadow: 0 14px 32px oklch(0 0 0 / 0.18);
-}
-
-.panel-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.panel-header h2 {
-  font-size: 1rem;
-  margin-bottom: 4px;
-}
-
-.panel-header p {
-  color: var(--text-2);
-  font-size: 0.9rem;
-}
-
-.status-pill,
-.mini-status {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--accent);
-  background: var(--accent-dim);
-  border: 1px solid var(--accent-glow);
-  border-radius: 999px;
-  padding: 4px 10px;
-  white-space: nowrap;
-}
-
-.mini-status {
-  font-size: 0.68rem;
-  padding: 2px 8px;
-}
-
 .pets-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -225,20 +182,6 @@
   border-radius: 8px;
   font-size: 0.8rem;
   color: var(--text-3);
-}
-
-.devnote-badge {
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 1px 6px;
-  border-radius: 3px;
-  background: var(--surface-2);
-  color: var(--text-3);
-  border: 1px solid var(--border-2);
-  flex-shrink: 0;
-  margin-top: 1px;
 }
 
 .muted {
