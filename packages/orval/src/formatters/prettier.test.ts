@@ -46,7 +46,9 @@ describe('formatWithPrettier', () => {
     mocks.resolveConfig.mockResolvedValue({ semi: true });
     mocks.readFile.mockResolvedValue('const value=1');
     mocks.format.mockResolvedValue('const value = 1;\n');
-    mocks.writeFile.mockResolvedValue();
+    mocks.writeFile.mockImplementation(async () => {
+      await Promise.resolve();
+    });
   });
 
   it('ignores files that disappear before they can be written', async () => {
