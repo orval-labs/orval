@@ -150,9 +150,7 @@ cli
 
       let hasErrors = false;
       for (const [projectName, config] of configs) {
-        const normalizedOptions = await normalizeOptions(config, workspace, {
-          ...options,
-        });
+        const normalizedOptions = await normalizeOptions(config, workspace, options);
 
         if (options.watch === undefined) {
           try {
