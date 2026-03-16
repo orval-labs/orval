@@ -1,4 +1,8 @@
+import path from 'node:path';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const FILE_PATH = path.resolve('/tmp/pets.service.ts');
 
 const mocks = vi.hoisted(() => ({
   execa: vi.fn(),
@@ -59,7 +63,7 @@ describe('formatWithPrettier', () => {
     mocks.writeFile.mockRejectedValueOnce(missingFileError);
 
     await expect(
-      formatWithPrettier(['/tmp/pets.service.ts'], 'petstore'),
+      formatWithPrettier([FILE_PATH], 'petstore'),
     ).resolves.toBeUndefined();
 
     expect(mocks.log).not.toHaveBeenCalled();
@@ -68,12 +72,12 @@ describe('formatWithPrettier', () => {
   it('logs unexpected formatting failures', async () => {
     mocks.format.mockRejectedValueOnce(new Error('Boom'));
 
-    await formatWithPrettier(['/tmp/pets.service.ts'], 'petstore');
+    await formatWithPrettier([FILE_PATH], 'petstore');
 
     expect(mocks.log).toHaveBeenCalledTimes(1);
     expect(mocks.log).toHaveBeenCalledWith(
       expect.stringContaining(
-        '⚠️  petstore - Failed to format file /tmp/pets.service.ts: Error: Boom',
+        `⚠️  petstore - Failed to format file ${FILE_PATH}: Error: Boom`,
       ),
     );
   });
@@ -83,14 +87,14 @@ describe('formatWithPrettier', () => {
     mocks.resolveConfig.mockResolvedValueOnce(prettierConfig);
 
     await expect(
-      formatWithPrettier(['/tmp/pets.service.ts'], 'petstore'),
+      formatWithPrettier([FILE_PATH], 'petstore'),
     ).resolves.toBeUndefined();
 
     expect(mocks.format).toHaveBeenCalledWith('const value=1', {
-      filepath: '/tmp/pets.service.ts',
+      filepath: FILE_PATH,
     });
     expect(mocks.writeFile).toHaveBeenCalledWith(
-      '/tmp/pets.service.ts',
+      FILE_PATH,
       'const value = 1;\n',
     );
   });
