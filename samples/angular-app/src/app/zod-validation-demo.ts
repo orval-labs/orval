@@ -22,8 +22,8 @@ import { PetCardComponent } from './ui/pet-card.component';
  *   - `schemas: { type: 'zod' }`
  *   - `override.angular.runtimeValidation: true`
  *
- * Every JSON body response is piped through `Schema.parse()` in the RxJS pipeline,
- * which means invalid responses throw a ZodError at runtime.
+ * Eligible JSON responses are piped through `Schema.parse()` in the RxJS
+ * pipeline, which means invalid responses throw a ZodError at runtime.
  */
 @Component({
   selector: 'app-zod-validation-demo',
@@ -33,7 +33,7 @@ import { PetCardComponent } from './ui/pet-card.component';
     <app-demo-page-frame
       eyebrow="Runtime validation playground"
       title="Zod runtime validation"
-      description="This page showcases generated Angular HttpClient services with runtimeValidation enabled, so JSON responses are validated at runtime and malformed data throws a ZodError before it reaches your UI code."
+      description="This page showcases generated Angular HttpClient services with runtimeValidation enabled, so eligible JSON responses are validated at runtime and malformed data throws a ZodError before it reaches your UI code."
       why="Use this mode when compile-time types are not enough and you want the generated client to guard your components against invalid backend payloads."
       badge="ZOD"
       [highlights]="highlights"
@@ -182,8 +182,8 @@ import { PetCardComponent } from './ui/pet-card.component';
             >
           </div>
           <div class="panel-meta">
-            Only <code>body</code> mode validates — <code>events</code> &amp;
-            <code>response</code> skip <code>.parse()</code>
+            <code>body</code>, terminal <code>events</code>, and
+            <code>response</code> flows all validate eligible JSON payloads
           </div>
           <div class="panel-body">
             @if (observeResults().length) {
@@ -519,7 +519,7 @@ export class ZodValidationDemo implements OnInit {
   protected readonly highlights = [
     'Generated Angular HttpClient services with runtimeValidation enabled',
     'How ZodError surfaces for invalid JSON responses before component code consumes them',
-    'Which observe modes validate response bodies and which intentionally skip validation',
+    'How body, response, and terminal events flows each validate eligible JSON responses',
   ] as const;
 
   protected readonly searchPets = signal<Pets>([]);
@@ -614,7 +614,7 @@ export class ZodValidationDemo implements OnInit {
         },
       });
 
-    // Events mode - no validation
+    // Events mode - validates on the terminal HttpResponse event
     this.petsService
       .searchPets(this.DEMO_PARAMS, this.demoVersion, {
         observe: 'events',
@@ -629,14 +629,14 @@ export class ZodValidationDemo implements OnInit {
             return;
           }
 
-          updateResults('events', '✅ Received (no validation)');
+          updateResults('events', '✅ Validated terminal response event');
         },
         error: (err) => {
           updateResults('events', `❌ ${this.formatZodError(err)}`);
         },
       });
 
-    // Response mode - no validation
+    // Response mode - validates cloned response bodies
     this.petsService
       .searchPets(this.DEMO_PARAMS, this.demoVersion, {
         observe: 'response',
@@ -647,7 +647,7 @@ export class ZodValidationDemo implements OnInit {
       })
       .subscribe({
         next: () => {
-          updateResults('response', '✅ Received (no validation)');
+          updateResults('response', '✅ Validated response body');
         },
         error: (err) => {
           updateResults('response', `❌ ${this.formatZodError(err)}`);

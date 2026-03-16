@@ -542,6 +542,11 @@ Angular output supports runtime validation for Zod-backed responses when
 enabled. For JSON model responses, Orval runs `Schema.parse()` on eligible
 responses and catches type mismatches at runtime.
 
+This applies to generated Angular `HttpClient` services too, not just
+`httpResource`. If you keep the default Angular retrieval mode
+(`retrievalClient: 'httpClient'`), eligible generated `GET` methods already
+pipe JSON model responses through Zod.
+
 ### Setup
 
 1. Set `schemas.type` to `zod` to generate Zod schemas
@@ -598,6 +603,8 @@ showPetByIdResource(
 
 **Validation applies to:**
 - JSON model responses in generated `HttpClient` services
+- JSON model responses returned by generated `GET` methods
+- JSON model responses returned by generated mutation methods such as `POST`, `PUT`, `PATCH`, and `DELETE`
 - JSON `httpResource` retrievals with model response types
 
 **Validation is skipped for:**
@@ -608,6 +615,30 @@ showPetByIdResource(
 For generated `HttpClient` services, runtime validation also applies when the
 JSON response body is surfaced through `response` and response-event observe
 flows.
+
+### Request bodies are typed, but not auto-parsed
+
+When you generate Zod schemas, Orval also emits request-body schemas such as
+`CreatePetsBody`, plus matching `z.input<>` / `z.output<>` types. Generated
+Angular `HttpClient` methods use those types, but they do **not** automatically
+call `Schema.parse(body)` before sending a request.
+
+That means the current Angular + Zod split is:
+
+- request bodies get generated TypeScript types and reusable Zod schemas
+- response bodies get automatic runtime parsing when
+  `override.angular.runtimeValidation` is enabled
+
+If you want pre-send validation, validate explicitly before calling the
+generated client:
+
+```ts
+const payload = CreatePetsBody.parse(formValue);
+return this.petsService.createPets(payload);
+```
+
+Use `.parse()` when you want invalid input to throw immediately, or
+`.safeParse()` when you want to surface validation feedback without throwing.
 
 ## Request-body readonly guidance
 

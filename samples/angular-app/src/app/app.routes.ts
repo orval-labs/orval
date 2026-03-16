@@ -13,6 +13,14 @@ export const routes: Routes = [
     pathMatch: 'full',
   },
   {
+    path: 'http-client-zod',
+    title: 'HttpClient + Zod · Orval Angular Demo',
+    loadComponent: () =>
+      import('./zod-validation-demo').then(
+        (module) => module.ZodValidationDemo,
+      ),
+  },
+  {
     path: 'http-client-custom-params',
     title: 'HttpClient custom params · Orval Angular Demo',
     loadComponent: () =>
