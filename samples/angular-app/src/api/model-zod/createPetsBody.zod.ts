@@ -6,26 +6,26 @@
  */
 import { z as zod } from 'zod';
 
-export const createPetsBodyNameMaxOne = 100;
+export const createPetsBodyNameMax = 100;
 
-export const createPetsBodyTagMaxOne = 50;
+export const createPetsBodyTagMax = 50;
 
-export const createPetsBodyStatusDefaultOne = `available`;
+export const createPetsBodyStatusDefault = `available`;
 export const CreatePetsBody = zod.object({
   name: zod
     .string()
     .min(1)
-    .max(createPetsBodyNameMaxOne)
+    .max(createPetsBodyNameMax)
     .describe('Name of the pet'),
   tag: zod
     .string()
     .min(1)
-    .max(createPetsBodyTagMaxOne)
+    .max(createPetsBodyTagMax)
     .describe('Classification tag'),
   email: zod.string().email().optional().describe('Owner contact email'),
   status: zod
     .enum(['available', 'pending', 'sold'])
-    .default(createPetsBodyStatusDefaultOne)
+    .default(createPetsBodyStatusDefault)
     .describe('Initial adoption status'),
 });
 

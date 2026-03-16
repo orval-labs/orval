@@ -10,5 +10,5 @@ export const ListPetsHeaders = zod.object({
   "X-EXAMPLE": zod.enum(['ONE', 'TWO', 'THREE'])
 })
 
-    export type ListPetsHeaders = zod.input<typeof ListPetsHeaders>;
-    export type ListPetsHeadersOutput = zod.output<typeof ListPetsHeaders>;
+export type ListPetsHeaders = zod.input<typeof ListPetsHeaders>;
+export type ListPetsHeadersOutput = zod.output<typeof ListPetsHeaders>;

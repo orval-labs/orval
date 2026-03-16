@@ -11,5 +11,5 @@ export const ListPetsParams = zod.object({
   "sort": zod.enum(['name', '-name', 'email', '-email'])
 })
 
-    export type ListPetsParams = zod.input<typeof ListPetsParams>;
-    export type ListPetsParamsOutput = zod.output<typeof ListPetsParams>;
+export type ListPetsParams = zod.input<typeof ListPetsParams>;
+export type ListPetsParamsOutput = zod.output<typeof ListPetsParams>;

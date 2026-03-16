@@ -11,5 +11,5 @@ export const Dachshund = zod.object({
   "breed": zod.enum(['Dachshund'])
 })
 
-    export type Dachshund = zod.input<typeof Dachshund>;
-    export type DachshundOutput = zod.output<typeof Dachshund>;
+export type Dachshund = zod.input<typeof Dachshund>;
+export type DachshundOutput = zod.output<typeof Dachshund>;

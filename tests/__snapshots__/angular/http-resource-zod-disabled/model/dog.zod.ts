@@ -17,5 +17,5 @@ export const Dog = zod.union([zod.object({
   "type": zod.enum(['dog'])
 }))
 
-    export type Dog = zod.input<typeof Dog>;
-    export type DogOutput = zod.output<typeof Dog>;
+export type Dog = zod.input<typeof Dog>;
+export type DogOutput = zod.output<typeof Dog>;

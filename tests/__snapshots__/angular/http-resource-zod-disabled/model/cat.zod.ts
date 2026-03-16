@@ -11,5 +11,5 @@ export const Cat = zod.object({
   "type": zod.enum(['cat'])
 })
 
-    export type Cat = zod.input<typeof Cat>;
-    export type CatOutput = zod.output<typeof Cat>;
+export type Cat = zod.input<typeof Cat>;
+export type CatOutput = zod.output<typeof Cat>;

@@ -9,6 +9,7 @@
     "test:snapshots:update": "bun run test:snapshots --update"
   },
   "devDependencies": {
+    "msw": "catalog:tooling",
     "orval": "workspace:*",
     "prettier": "catalog:",
     "vitest": "catalog:"

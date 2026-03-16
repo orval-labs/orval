@@ -10,12 +10,10 @@ import {
   isSyntheticDefaultImportsAllow,
   upath,
 } from '../utils';
+import { escapeRegExp } from '../utils/string';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
-
-const escapeRegExp = (value: string) =>
-  value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
 export async function writeSingleMode({
   builder,

@@ -6,6 +6,7 @@ import {
   type ClientHeaderBuilder,
   type ContextSpec,
   conventionName,
+  escapeRegExp,
   generateDependencyImports,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorImports,
@@ -489,9 +490,6 @@ const buildResourceRequest = (
     isUrlOnly,
   };
 };
-
-const escapeRegExp = (value: string): string =>
-  value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
 const getSchemaOutputTypeRef = (typeName: string): string =>
   typeName === 'Error' ? 'ErrorOutput' : `${typeName}Output`;

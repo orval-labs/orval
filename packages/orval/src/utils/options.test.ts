@@ -2,7 +2,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { normalizeOptions } from './options';
 
@@ -64,6 +64,83 @@ describe('normalizeOptions', () => {
 
       expect(normalized.input.target).toBe(validSpecPath);
     } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('passes an AbortSignal when probing remote targets and falls back on failure', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const validSpecPath = path.join(workspace, 'fallback.yaml');
+      await writeFile(
+        validSpecPath,
+        'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+      );
+
+      const fetchMock = vi.fn<typeof fetch>((_input, init) => {
+        expect(init?.signal).toBeInstanceOf(AbortSignal);
+        return Promise.reject(new Error('Request failed'));
+      });
+
+      vi.stubGlobal('fetch', fetchMock as typeof fetch);
+
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: ['https://example.com/openapi.json', './fallback.yaml'],
+          },
+          output: {
+            target: './generated.ts',
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.input.target).toBe(validSpecPath);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('falls back from HEAD to GET when the remote target does not support HEAD', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const remoteTarget = 'https://example.com/openapi.json';
+      const fetchMock = vi
+        .fn<typeof fetch>()
+        .mockImplementationOnce((_input, init) => {
+          expect(init?.method).toBe('HEAD');
+          expect(init?.signal).toBeInstanceOf(AbortSignal);
+          return Promise.resolve(new Response(undefined, { status: 405 }));
+        })
+        .mockImplementationOnce((_input, init) => {
+          expect(init?.method).toBe('GET');
+          expect(init?.signal).toBeInstanceOf(AbortSignal);
+          return Promise.resolve(new Response('{}', { status: 200 }));
+        });
+
+      vi.stubGlobal('fetch', fetchMock as typeof fetch);
+
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: [remoteTarget],
+          },
+          output: {
+            target: './generated.ts',
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.input.target).toBe(remoteTarget);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.unstubAllGlobals();
       await rm(workspace, { recursive: true, force: true });
     }
   });

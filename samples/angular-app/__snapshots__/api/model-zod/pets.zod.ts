@@ -6,21 +6,21 @@
  */
 import { z as zod } from 'zod';
 
-export const PetsMaxOne = 100;
+export const PetsMax = 100;
 
-export const petsItemNameMaxOne = 100;
+export const petsItemNameMax = 100;
 
-export const petsItemTagMaxOne = 50;
+export const petsItemTagMax = 50;
 
-export const petsItemStatusDefaultOne = `available`;
-export const petsItemAgeMinOne = 0;
-export const petsItemAgeMaxOne = 30;
+export const petsItemStatusDefault = `available`;
+export const petsItemAgeMin = 0;
+export const petsItemAgeMax = 30;
 
-export const petsItemRatingMinOne = 0;
-export const petsItemRatingMaxOne = 5;
-export const petsItemRatingMultipleOfOne = 0.5;
+export const petsItemRatingMin = 0;
+export const petsItemRatingMax = 5;
+export const petsItemRatingMultipleOf = 0.5;
 
-export const petsItemPhoneRegExpOne = new RegExp('^\\+?[1-9]\\d{1,14}$');
+export const petsItemPhoneRegExp = new RegExp('^\\+?[1-9]\\d{1,14}$');
 
 export const Pets = zod
   .array(
@@ -29,42 +29,42 @@ export const Pets = zod
       name: zod
         .string()
         .min(1)
-        .max(petsItemNameMaxOne)
+        .max(petsItemNameMax)
         .describe('Name of the pet'),
       tag: zod
         .string()
         .min(1)
-        .max(petsItemTagMaxOne)
+        .max(petsItemTagMax)
         .optional()
         .describe('Optional classification tag'),
       email: zod.string().email().optional().describe('Owner contact email'),
       status: zod
         .enum(['available', 'pending', 'sold'])
-        .default(petsItemStatusDefaultOne)
+        .default(petsItemStatusDefault)
         .describe('Current adoption status'),
       age: zod
         .number()
-        .min(petsItemAgeMinOne)
-        .max(petsItemAgeMaxOne)
+        .min(petsItemAgeMin)
+        .max(petsItemAgeMax)
         .optional()
         .describe('Age of the pet in years'),
       rating: zod
         .number()
-        .min(petsItemRatingMinOne)
-        .max(petsItemRatingMaxOne)
-        .multipleOf(petsItemRatingMultipleOfOne)
+        .min(petsItemRatingMin)
+        .max(petsItemRatingMax)
+        .multipleOf(petsItemRatingMultipleOf)
         .optional()
         .describe('Average customer rating'),
       phone: zod
         .string()
-        .regex(petsItemPhoneRegExpOne)
+        .regex(petsItemPhoneRegExp)
         .optional()
         .describe('Contact phone in E.164 format'),
       requiredNullableString: zod.string().nullable(),
       optionalNullableString: zod.string().nullish(),
     }),
   )
-  .max(PetsMaxOne);
+  .max(PetsMax);
 
 export type Pets = zod.input<typeof Pets>;
 export type PetsOutput = zod.output<typeof Pets>;

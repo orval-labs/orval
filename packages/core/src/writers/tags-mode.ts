@@ -13,12 +13,10 @@ import {
   kebab,
   upath,
 } from '../utils';
+import { escapeRegExp } from '../utils/string';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
-
-const escapeRegExp = (value: string) =>
-  value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
 export async function writeTagsMode({
   builder,

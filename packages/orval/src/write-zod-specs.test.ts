@@ -81,6 +81,7 @@ describe('write-zod-specs regressions', () => {
     expect(fileContent).toContain(
       'export type RangeSchemaOutput = zod.output<typeof RangeSchema>;',
     );
+    expect(fileContent).not.toContain('\n    export type RangeSchema =');
     expect(fileContent).not.toContain(
       'export const RangeSchema = export const',
     );

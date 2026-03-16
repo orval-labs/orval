@@ -9,7 +9,6 @@ import {
   injectDeletePet,
   injectUpdatePet,
   injectPatchPet,
-  getUpdatePetMutationOptions,
 } from '../api/endpoints/pets/pets';
 
 // No-transformer endpoint (native Angular HttpClient, no custom mutator)

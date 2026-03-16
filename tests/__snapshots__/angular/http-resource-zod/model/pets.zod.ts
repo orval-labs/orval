@@ -28,5 +28,5 @@ export const Pets = zod.array(zod.union([zod.union([zod.object({
   "country": zod.enum(['People\'s Republic of China', 'Uruguay']).optional()
 })))
 
-    export type Pets = zod.input<typeof Pets>;
-    export type PetsOutput = zod.output<typeof Pets>;
+export type Pets = zod.input<typeof Pets>;
+export type PetsOutput = zod.output<typeof Pets>;

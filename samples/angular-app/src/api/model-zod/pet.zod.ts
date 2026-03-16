@@ -6,50 +6,50 @@
  */
 import { z as zod } from 'zod';
 
-export const petNameMaxOne = 100;
+export const petNameMax = 100;
 
-export const petTagMaxOne = 50;
+export const petTagMax = 50;
 
-export const petStatusDefaultOne = `available`;
-export const petAgeMinOne = 0;
-export const petAgeMaxOne = 30;
+export const petStatusDefault = `available`;
+export const petAgeMin = 0;
+export const petAgeMax = 30;
 
-export const petRatingMinOne = 0;
-export const petRatingMaxOne = 5;
-export const petRatingMultipleOfOne = 0.5;
+export const petRatingMin = 0;
+export const petRatingMax = 5;
+export const petRatingMultipleOf = 0.5;
 
-export const petPhoneRegExpOne = new RegExp('^\\+?[1-9]\\d{1,14}$');
+export const petPhoneRegExp = new RegExp('^\\+?[1-9]\\d{1,14}$');
 
 export const Pet = zod.object({
   id: zod.number().min(1).describe('Unique identifier for the pet'),
-  name: zod.string().min(1).max(petNameMaxOne).describe('Name of the pet'),
+  name: zod.string().min(1).max(petNameMax).describe('Name of the pet'),
   tag: zod
     .string()
     .min(1)
-    .max(petTagMaxOne)
+    .max(petTagMax)
     .optional()
     .describe('Optional classification tag'),
   email: zod.string().email().optional().describe('Owner contact email'),
   status: zod
     .enum(['available', 'pending', 'sold'])
-    .default(petStatusDefaultOne)
+    .default(petStatusDefault)
     .describe('Current adoption status'),
   age: zod
     .number()
-    .min(petAgeMinOne)
-    .max(petAgeMaxOne)
+    .min(petAgeMin)
+    .max(petAgeMax)
     .optional()
     .describe('Age of the pet in years'),
   rating: zod
     .number()
-    .min(petRatingMinOne)
-    .max(petRatingMaxOne)
-    .multipleOf(petRatingMultipleOfOne)
+    .min(petRatingMin)
+    .max(petRatingMax)
+    .multipleOf(petRatingMultipleOf)
     .optional()
     .describe('Average customer rating'),
   phone: zod
     .string()
-    .regex(petPhoneRegExpOne)
+    .regex(petPhoneRegExp)
     .optional()
     .describe('Contact phone in E.164 format'),
   requiredNullableString: zod.string().nullable(),

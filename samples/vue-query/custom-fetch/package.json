@@ -19,6 +19,7 @@
   "devDependencies": {
     "@faker-js/faker": "catalog:tooling",
     "@vitejs/plugin-vue": "^6.0.1",
+    "msw": "catalog:tooling",
     "orval": "workspace:*",
     "prettier": "catalog:",
     "typescript": "catalog:",

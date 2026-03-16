@@ -8,6 +8,7 @@ import {
   NamingConvention,
 } from '../types';
 import { conventionName } from '../utils';
+import { escapeRegExp } from '../utils/string';
 
 interface GenerateImportsOptions {
   imports: readonly GeneratorImport[];
@@ -223,9 +224,6 @@ interface AddDependencyOptions {
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;
 }
-
-const escapeRegExp = (value: string) =>
-  value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
 export function addDependency({
   implementation,

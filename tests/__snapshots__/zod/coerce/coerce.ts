@@ -27,24 +27,24 @@ export const GetNodeWithRequiredChildResponse = zod.object({
 /**
  * @summary Add list
  */
-export const addListQueryLimitRegExpTwo = new RegExp('^\\+\\d{10, 15}');
+export const addListQueryLimitRegExp = new RegExp('^\\+\\d{10, 15}');
 
 export const AddListQueryParams = zod.object({
   limit: zod.coerce
     .string()
-    .regex(addListQueryLimitRegExpTwo)
+    .regex(addListQueryLimitRegExp)
     .optional()
     .describe('How many items to return at one time (max 100)'),
   birthdate: zod.coerce.string().date().optional().describe('birth date'),
 });
 
-export const addListBodyListItemMaxTwo = 10;
+export const addListBodyListItemMax = 10;
 
-export const addListBodyListMaxTwo = 10;
+export const addListBodyListMax = 10;
 
 export const AddListBody = zod.object({
   list: zod
-    .array(zod.coerce.number().min(1).max(addListBodyListItemMaxTwo))
+    .array(zod.coerce.number().min(1).max(addListBodyListItemMax))
     .min(1)
-    .max(addListBodyListMaxTwo),
+    .max(addListBodyListMax),
 });

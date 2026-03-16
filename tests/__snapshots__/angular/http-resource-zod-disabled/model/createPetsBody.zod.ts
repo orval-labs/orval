@@ -11,5 +11,5 @@ export const CreatePetsBody = zod.object({
   "tag": zod.string()
 })
 
-    export type CreatePetsBody = zod.input<typeof CreatePetsBody>;
-    export type CreatePetsBodyOutput = zod.output<typeof CreatePetsBody>;
+export type CreatePetsBody = zod.input<typeof CreatePetsBody>;
+export type CreatePetsBodyOutput = zod.output<typeof CreatePetsBody>;

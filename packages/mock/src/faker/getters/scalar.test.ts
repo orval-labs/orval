@@ -495,4 +495,24 @@ describe('getMockScalar (pattern-backed string escaping)', () => {
       String.raw`faker.helpers.fromRegExp("^\\+?[1-9]\\d{1,14}$")`,
     );
   });
+
+  it('preserves single quotes in regex patterns when stringifying them', () => {
+    const result = getMockScalar({
+      item: {
+        type: 'string' as const,
+        pattern: String.raw`^[a-zA-Z0-9']*$`,
+        name: 'username',
+      },
+      imports: [],
+      operationId: 'test-operation',
+      tags: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+      context: { output: { override: {} } } as ContextSpec,
+    });
+
+    expect(result.value).toBe(
+      String.raw`faker.helpers.fromRegExp("^[a-zA-Z0-9']*$")`,
+    );
+  });
 });

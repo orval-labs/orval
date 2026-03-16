@@ -51,6 +51,8 @@ import pkg from '../../package.json';
 import { loadPackageJson } from './package-json';
 import { loadTsconfig } from './tsconfig';
 
+const INPUT_TARGET_FETCH_TIMEOUT_MS = 10_000;
+
 /**
  * Type helper to make it easier to use orval.config.ts
  * accepts a direct {@link ConfigExternal} object.
@@ -125,11 +127,11 @@ export async function normalizeOptions(
     : optionsExport);
 
   if (!options.input) {
-    throw new Error(styleText('red', `Config require an input`));
+    throw new Error(styleText('red', `Config requires an input.`));
   }
 
   if (!options.output) {
-    throw new Error(styleText('red', `Config require an output`));
+    throw new Error(styleText('red', `Config requires an output.`));
   }
 
   const inputOptions: InputOptions =
@@ -440,12 +442,12 @@ export async function normalizeOptions(
   };
 
   if (!normalizedOptions.input.target) {
-    throw new Error(styleText('red', `Config require an input target`));
+    throw new Error(styleText('red', `Config requires an input target.`));
   }
 
   if (!normalizedOptions.output.target && !normalizedOptions.output.schemas) {
     throw new Error(
-      styleText('red', `Config require an output target or schemas`),
+      styleText('red', `Config requires an output target or schemas.`),
     );
   }
 
@@ -459,7 +461,7 @@ function normalizeMutator(
   if (isObject(mutator)) {
     const m = mutator as Exclude<Mutator, string>;
     if (!m.path) {
-      throw new Error(styleText('red', `Mutator need a path`));
+      throw new Error(styleText('red', `Mutator requires a path.`));
     }
 
     return {
@@ -491,7 +493,7 @@ async function resolveFirstValidTarget(
     if (isUrl(target)) {
       try {
         const headers = getHeadersForUrl(target, parserOptions?.headers);
-        const headResponse = await fetch(target, {
+        const headResponse = await fetchWithTimeout(target, {
           method: 'HEAD',
           headers,
         });
@@ -501,7 +503,7 @@ async function resolveFirstValidTarget(
         }
 
         if (headResponse.status === 405 || headResponse.status === 501) {
-          const getResponse = await fetch(target, {
+          const getResponse = await fetchWithTimeout(target, {
             method: 'GET',
             headers,
           });
@@ -555,6 +557,25 @@ function getHeadersForUrl(
   }
 
   return matchedHeaders;
+}
+
+async function fetchWithTimeout(
+  target: string,
+  init: RequestInit,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, INPUT_TARGET_FETCH_TIMEOUT_MS);
+
+  try {
+    return await fetch(target, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 function normalizePathOrUrl<T>(path: T, workspace: string) {
@@ -726,7 +747,7 @@ function normalizeOutputMode(mode?: OutputMode): OutputMode {
 
   if (!Object.values(OutputMode).includes(mode)) {
     createLogger().warn(
-      styleText('yellow', `Unknown the provided mode => ${mode}`),
+      styleText('yellow', `Unknown provided mode => ${mode}`),
     );
     return OutputMode.SINGLE;
   }

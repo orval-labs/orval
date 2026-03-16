@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { dedupeUnionType, escape, jsStringEscape, stringify } from './string';
+import {
+  dedupeUnionType,
+  escape,
+  escapeRegExp,
+  jsStringEscape,
+  stringify,
+} from './string';
 
 describe('dedupeUnionType', () => {
   describe('edge cases', () => {
@@ -218,6 +224,14 @@ describe('escape', () => {
   it('should escape all occurrences of a custom character', () => {
     expect(escape('say "hello" and "goodbye"', '"')).toBe(
       String.raw`say \"hello\" and \"goodbye\"`,
+    );
+  });
+});
+
+describe('escapeRegExp', () => {
+  it('escapes regex metacharacters without changing plain characters', () => {
+    expect(escapeRegExp(String.raw`foo$bar.(baz)[qux]?`)).toBe(
+      String.raw`foo\$bar\.\(baz\)\[qux\]\?`,
     );
   });
 });

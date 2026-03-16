@@ -134,8 +134,6 @@ const resolveZodType = (schema: OpenApiSchemaObject): ResolvedZodType => {
   }
 };
 
-const constsUniqueCounter: Record<string, number> = {};
-
 // https://github.com/colinhacks/zod#coercion-for-primitives
 const COERCIBLE_TYPES = new Set([
   'string',
@@ -206,20 +204,27 @@ export const generateZodValidationSchemaDefinition = (
      * Not passed to nested schemas. Used by form-data for file type handling.
      */
     propertyOverrides?: Record<string, ZodValidationSchemaDefinition>;
+    /**
+     * Internal registry to keep generated const names unique within a single
+     * schema generation tree without leaking suffixes across unrelated top-level
+     * schemas.
+     */
+    constNameRegistry?: Record<string, number>;
   },
 ): ZodValidationSchemaDefinition => {
   if (!schema) return { functions: [], consts: [] };
 
   const consts: string[] = [];
-  const constsCounter = isNumber(constsUniqueCounter[name])
-    ? constsUniqueCounter[name] + 1
+  const constNameRegistry = rules?.constNameRegistry ?? {};
+  const constsCounter = isNumber(constNameRegistry[name])
+    ? constNameRegistry[name] + 1
     : 0;
 
   const constsCounterValue = constsCounter
     ? pascal(getNumberWord(constsCounter))
     : '';
 
-  constsUniqueCounter[name] = constsCounter;
+  constNameRegistry[name] = constsCounter;
 
   const functions: [string, unknown][] = [];
   const type = resolveZodType(schema);
@@ -272,6 +277,7 @@ export const generateZodValidationSchemaDefinition = (
         isZodV4,
         {
           required: true,
+          constNameRegistry,
         },
       ),
     );
@@ -296,6 +302,7 @@ export const generateZodValidationSchemaDefinition = (
           isZodV4,
           {
             required: true,
+            constNameRegistry,
           },
         );
 
@@ -398,7 +405,10 @@ export const generateZodValidationSchemaDefinition = (
           name,
           strict,
           isZodV4,
-          { required: true },
+          {
+            required: true,
+            constNameRegistry,
+          },
         ),
       ),
     ]);
@@ -453,6 +463,7 @@ export const generateZodValidationSchemaDefinition = (
                   strict,
                   {
                     required: true,
+                    constNameRegistry,
                   },
                 ),
               ),
@@ -473,6 +484,7 @@ export const generateZodValidationSchemaDefinition = (
                   isZodV4,
                   {
                     required: true,
+                    constNameRegistry,
                   },
                 ),
               ]);
@@ -492,6 +504,7 @@ export const generateZodValidationSchemaDefinition = (
             isZodV4,
             {
               required: true,
+              constNameRegistry,
             },
           ),
         ]);
@@ -627,7 +640,10 @@ export const generateZodValidationSchemaDefinition = (
                     camel(`${name}-${key}`),
                     strict,
                     isZodV4,
-                    { required: schema.required?.includes(key) },
+                    {
+                      required: schema.required?.includes(key),
+                      constNameRegistry,
+                    },
                   ),
               }))
               .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
@@ -665,6 +681,7 @@ export const generateZodValidationSchemaDefinition = (
               isZodV4,
               {
                 required: true,
+                constNameRegistry,
               },
             ),
           ]);

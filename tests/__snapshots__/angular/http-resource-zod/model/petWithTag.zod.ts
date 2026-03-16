@@ -31,5 +31,5 @@ export const PetWithTag = zod.object({
 })).nullable()
 })
 
-    export type PetWithTag = zod.input<typeof PetWithTag>;
-    export type PetWithTagOutput = zod.output<typeof PetWithTag>;
+export type PetWithTag = zod.input<typeof PetWithTag>;
+export type PetWithTagOutput = zod.output<typeof PetWithTag>;

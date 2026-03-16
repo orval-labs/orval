@@ -318,16 +318,24 @@
         "zod": "^4.3.6",
       },
       "devDependencies": {
+        "@angular-eslint/builder": "21.3.0",
+        "@angular-eslint/eslint-plugin": "21.3.0",
+        "@angular-eslint/eslint-plugin-template": "21.3.0",
+        "@angular-eslint/template-parser": "21.3.0",
         "@angular/build": "catalog:angular",
         "@angular/cli": "catalog:angular",
         "@angular/compiler-cli": "catalog:angular",
+        "@eslint/js": "catalog:",
         "@faker-js/faker": "catalog:tooling",
         "@testing-library/angular": "19.0.0",
+        "angular-eslint": "21.3.0",
+        "eslint": "catalog:",
         "jsdom": "catalog:",
         "msw": "catalog:tooling",
         "orval": "workspace:*",
         "prettier": "catalog:",
         "typescript": "catalog:",
+        "typescript-eslint": "catalog:",
         "vitest": "catalog:",
       },
     },
@@ -365,6 +373,7 @@
       "name": "hono-with-fetch-client",
       "version": "8.5.3",
       "devDependencies": {
+        "msw": "catalog:tooling",
         "orval": "workspace:*",
         "prettier": "catalog:",
         "vitest": "catalog:",
@@ -394,6 +403,7 @@
         "@types/node": "catalog:",
         "@types/react": "catalog:react",
         "@types/react-dom": "^18.3.7",
+        "msw": "catalog:tooling",
         "postcss": "8.5.6",
         "tailwindcss": "^3.4.17",
         "typescript": "catalog:",
@@ -470,6 +480,7 @@
         "typescript": "catalog:",
       },
       "devDependencies": {
+        "eslint-config-react-app": "^7.0.1",
         "msw": "catalog:tooling",
         "orval": "workspace:*",
         "prettier": "catalog:",
@@ -493,6 +504,7 @@
         "typescript": "catalog:",
       },
       "devDependencies": {
+        "eslint-config-react-app": "^7.0.1",
         "orval": "workspace:*",
         "prettier": "catalog:",
         "vitest": "catalog:",
@@ -516,6 +528,7 @@
         "eslint": "catalog:",
         "eslint-plugin-react-hooks": "^7.0.1",
         "eslint-plugin-react-refresh": "^0.5.2",
+        "msw": "catalog:tooling",
         "orval": "workspace:*",
         "prettier": "catalog:",
         "typescript": "catalog:",
@@ -541,6 +554,7 @@
         "typescript": "catalog:",
       },
       "devDependencies": {
+        "eslint-config-react-app": "^7.0.1",
         "orval": "workspace:*",
         "prettier": "catalog:",
         "vitest": "catalog:",
@@ -564,6 +578,7 @@
         "eslint": "catalog:",
         "eslint-plugin-react-hooks": "^7.0.1",
         "eslint-plugin-react-refresh": "^0.5.2",
+        "msw": "catalog:tooling",
         "orval": "workspace:*",
         "prettier": "catalog:",
         "typescript": "catalog:",
@@ -804,6 +819,7 @@
         "eslint": "catalog:",
         "eslint-plugin-react-hooks": "^7.0.1",
         "eslint-plugin-react-refresh": "^0.5.2",
+        "msw": "catalog:tooling",
         "orval": "workspace:*",
         "prettier": "catalog:",
         "typescript": "catalog:",
@@ -821,6 +837,7 @@
       "devDependencies": {
         "@faker-js/faker": "catalog:tooling",
         "@vitejs/plugin-vue": "^6.0.1",
+        "msw": "catalog:tooling",
         "orval": "workspace:*",
         "prettier": "catalog:",
         "typescript": "catalog:",
@@ -2537,7 +2554,7 @@
 
     "babel-plugin-polyfill-corejs2": ["babel-plugin-polyfill-corejs2@0.4.16", "", { "dependencies": { "@babel/compat-data": "^7.28.6", "@babel/helper-define-polyfill-provider": "^0.6.7", "semver": "^6.3.1" }, "peerDependencies": { "@babel/core": "^7.4.0 || ^8.0.0-0 <8.0.0" } }, "sha512-xaVwwSfebXf0ooE11BJovZYKhFjIvQo7TsyVpETuIeH2JHv0k/T6Y5j22pPTvqYqmpkxdlPAJlyJ0tfOJAoMxw=="],
 
-    "babel-plugin-polyfill-corejs3": ["babel-plugin-polyfill-corejs3@0.14.1", "", { "dependencies": { "@babel/helper-define-polyfill-provider": "^0.6.7", "core-js-compat": "^3.48.0" }, "peerDependencies": { "@babel/core": "^7.4.0 || ^8.0.0-0 <8.0.0" } }, "sha512-ENp89vM9Pw4kv/koBb5N2f9bDZsR0hpf3BdPMOg/pkS3pwO4dzNnQZVXtBbeyAadgm865DmQG2jMMLqmZXvuCw=="],
+    "babel-plugin-polyfill-corejs3": ["babel-plugin-polyfill-corejs3@0.13.0", "", { "dependencies": { "@babel/helper-define-polyfill-provider": "^0.6.5", "core-js-compat": "^3.43.0" }, "peerDependencies": { "@babel/core": "^7.4.0 || ^8.0.0-0 <8.0.0" } }, "sha512-U+GNwMdSFgzVmfhNm8GJUX88AadB3uo9KpJqS3FaqNIPKgySuvMb+bHPsOmmuWyIcuqZj/pzt1RUIUZns4y2+A=="],
 
     "babel-plugin-polyfill-regenerator": ["babel-plugin-polyfill-regenerator@0.6.7", "", { "dependencies": { "@babel/helper-define-polyfill-provider": "^0.6.7" }, "peerDependencies": { "@babel/core": "^7.4.0 || ^8.0.0-0 <8.0.0" } }, "sha512-OTYbUlSwXhNgr4g6efMZgsO8//jA61P7ZbRX3iTT53VON8l+WQS8IAUEVo4a4cWknrg2W8Cj4gQhRYNCJ8GkAA=="],
 
@@ -5161,11 +5178,11 @@
 
     "@babel/plugin-transform-react-jsx/@babel/types": ["@babel/types@7.29.0", "", { "dependencies": { "@babel/helper-string-parser": "^7.27.1", "@babel/helper-validator-identifier": "^7.28.5" } }, "sha512-LwdZHpScM4Qz8Xw2iKSzS+cfglZzJGvofQICy7W7v4caru4EaAmyUuO6BGrbyQ2mYV11W0U8j5mBhd14dd3B0A=="],
 
-    "@babel/plugin-transform-runtime/babel-plugin-polyfill-corejs3": ["babel-plugin-polyfill-corejs3@0.13.0", "", { "dependencies": { "@babel/helper-define-polyfill-provider": "^0.6.5", "core-js-compat": "^3.43.0" }, "peerDependencies": { "@babel/core": "^7.4.0 || ^8.0.0-0 <8.0.0" } }, "sha512-U+GNwMdSFgzVmfhNm8GJUX88AadB3uo9KpJqS3FaqNIPKgySuvMb+bHPsOmmuWyIcuqZj/pzt1RUIUZns4y2+A=="],
-
     "@babel/plugin-transform-runtime/semver": ["semver@6.3.1", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA=="],
 
     "@babel/preset-env/@babel/plugin-proposal-private-property-in-object": ["@babel/plugin-proposal-private-property-in-object@7.21.0-placeholder-for-preset-env.2", "", { "peerDependencies": { "@babel/core": "^7.0.0-0" } }, "sha512-SOSkfJDddaM7mak6cPEpswyTRnuRltl429hMraQEglW+OkovnCzsiszTmsrlY//qLFjCpQDFRvjdm2wA5pPm9w=="],
+
+    "@babel/preset-env/babel-plugin-polyfill-corejs3": ["babel-plugin-polyfill-corejs3@0.14.1", "", { "dependencies": { "@babel/helper-define-polyfill-provider": "^0.6.7", "core-js-compat": "^3.48.0" }, "peerDependencies": { "@babel/core": "^7.4.0 || ^8.0.0-0 <8.0.0" } }, "sha512-ENp89vM9Pw4kv/koBb5N2f9bDZsR0hpf3BdPMOg/pkS3pwO4dzNnQZVXtBbeyAadgm865DmQG2jMMLqmZXvuCw=="],
 
     "@babel/preset-env/semver": ["semver@6.3.1", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA=="],
 
