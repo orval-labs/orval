@@ -611,6 +611,105 @@ describe('angular httpResource generator', () => {
       expect(header).toContain('export class PetService');
       expect(header).toContain('this.http.post');
     });
+
+    it('emits filterParams helper only once for mixed resource and mutation query params', () => {
+      const getVerb = createVerbOption({
+        queryParams: {
+          schema: { name: 'ListPetsParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          name: 'params',
+          definition: 'params: ListPetsParams',
+          implementation: 'params: ListPetsParams',
+          default: false,
+          required: false,
+          type: GetterPropType.QUERY_PARAM,
+        } as never,
+        props: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: false,
+            required: true,
+            type: GetterPropType.PARAM,
+          },
+          {
+            name: 'params',
+            definition: 'params: ListPetsParams',
+            implementation: 'params: ListPetsParams',
+            default: false,
+            required: false,
+            type: GetterPropType.QUERY_PARAM,
+          },
+        ],
+      });
+      const postVerb = createVerbOption({
+        operationId: 'createPet',
+        operationName: 'createPet',
+        verb: 'post',
+        route: '/pets',
+        pathRoute: '/pets',
+        queryParams: {
+          schema: { name: 'CreatePetParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          name: 'params',
+          definition: 'params: CreatePetParams',
+          implementation: 'params: CreatePetParams',
+          default: false,
+          required: false,
+          type: GetterPropType.QUERY_PARAM,
+        } as never,
+        body: {
+          implementation: 'createPetBody',
+          definition: 'CreatePetBody',
+          imports: [],
+          schemas: [],
+          originalSchema: {} as never,
+          contentType: 'application/json',
+          formData: '',
+          formUrlEncoded: '',
+          isOptional: false,
+        },
+        props: [
+          {
+            name: 'createPetBody',
+            definition: 'createPetBody: CreatePetBody',
+            implementation: 'createPetBody: CreatePetBody',
+            default: false,
+            required: true,
+            type: GetterPropType.BODY,
+          },
+          {
+            name: 'params',
+            definition: 'params: CreatePetParams',
+            implementation: 'params: CreatePetParams',
+            default: false,
+            required: false,
+            type: GetterPropType.QUERY_PARAM,
+          },
+        ],
+        params: [],
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+      routeRegistry.set('createPet', '/api/pets');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: getVerb, createPet: postVerb },
+        clientImplementation: '',
+      } as never);
+
+      expect(header.match(/type AngularHttpParamValue =/g)).toHaveLength(1);
+      expect(header.match(/function filterParams\(/g)).toHaveLength(3);
+    });
   });
 
   // ─── Response type factories ──────────────────────────────────────

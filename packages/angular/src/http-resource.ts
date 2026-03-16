@@ -1165,6 +1165,9 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
       getClientOverride(verbOption),
     ),
   );
+  const hasMutationQueryParams = mutations.some(
+    (verbOption) => !!verbOption.queryParams,
+  );
 
   const mutationImplementation = mutations
     .map((verbOption) => {
@@ -1189,7 +1192,7 @@ ${buildServiceClassOpen({
   isMutator,
   isGlobalMutator,
   provideIn,
-  hasQueryParams: mutations.some((verbOption) => !!verbOption.queryParams),
+  hasQueryParams: hasMutationQueryParams && !hasResourceQueryParams,
 })}
 ${mutationImplementation}
 };
