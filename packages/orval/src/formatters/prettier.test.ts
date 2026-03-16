@@ -78,8 +78,9 @@ describe('formatWithPrettier', () => {
     );
   });
 
-  it('formats files when prettier.resolveConfig returns null', async () => {
-    mocks.resolveConfig.mockResolvedValueOnce(null);
+  it('formats files when prettier.resolveConfig returns undefined', async () => {
+    const prettierConfig = undefined;
+    mocks.resolveConfig.mockResolvedValueOnce(prettierConfig);
 
     await expect(
       formatWithPrettier(['/tmp/pets.service.ts'], 'petstore'),
