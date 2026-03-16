@@ -22,7 +22,7 @@ export async function formatWithPrettier(
       return;
     }
 
-    const config = await prettier.resolveConfig(filePaths[0]);
+    const config = (await prettier.resolveConfig(filePaths[0])) ?? {};
     await Promise.all(
       filePaths.map(async (filePath) => {
         try {

@@ -77,4 +77,20 @@ describe('formatWithPrettier', () => {
       ),
     );
   });
+
+  it('formats files when prettier.resolveConfig returns null', async () => {
+    mocks.resolveConfig.mockResolvedValueOnce(null);
+
+    await expect(
+      formatWithPrettier(['/tmp/pets.service.ts'], 'petstore'),
+    ).resolves.toBeUndefined();
+
+    expect(mocks.format).toHaveBeenCalledWith('const value=1', {
+      filepath: '/tmp/pets.service.ts',
+    });
+    expect(mocks.writeFile).toHaveBeenCalledWith(
+      '/tmp/pets.service.ts',
+      'const value = 1;\n',
+    );
+  });
 });

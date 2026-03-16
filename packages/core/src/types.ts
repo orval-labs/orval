@@ -642,7 +642,7 @@ export type InvalidateTarget =
   | {
       query: string;
       params?: string[] | Record<string, string>;
-      invalidateMode?: string;
+      invalidateMode?: 'invalidate' | 'reset';
       file?: string;
     };
 
@@ -820,8 +820,9 @@ export interface OperationOptions {
 
 export type Hook = 'afterAllFilesWrite';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type HookFunction = (...args: any[]) => void | Promise<void>;
+export type HookFunction<TArgs extends unknown[] = unknown[]> = (
+  ...args: TArgs
+) => void | Promise<void>;
 
 export interface HookOption {
   command: string | HookFunction;

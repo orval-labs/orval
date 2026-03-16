@@ -149,7 +149,7 @@ export const createReturnTypesRegistry = () => {
  * Resolution order:
  * 1. **Per-operation override** — `override.operations.<operationId>.angular.client`
  *    in the orval config. `httpResource` forces retrieval, `httpClient` forces mutation.
- * 2. **HTTP verb** — `GET` is always a retrieval.
+ * 2. **HTTP verb** — absent a per-operation override, `GET` is treated as a retrieval.
  * 3. **Name heuristic** — For `POST`, if the operationName starts with a
  *    retrieval-like prefix (search, list, find, query, get, fetch, lookup)
  *    it is treated as a retrieval. This handles common patterns like
@@ -176,7 +176,7 @@ export function isRetrievalVerb(
   if (clientOverride === 'httpResource') return true;
   if (clientOverride === 'httpClient') return false;
 
-  // GET is always a retrieval
+  // Absent a per-operation override, GET is treated as a retrieval
   if (verb === 'get') return true;
 
   // POST with a retrieval-like operation name
