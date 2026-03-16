@@ -41,6 +41,7 @@
         (petTextState.status === 'error') {
         <p class="error">{{ petTextState.error }}</p>
         }
+
         <pre>{{ petTextState.data }}</pre>
         }
       </app-demo-panel>
@@ -56,6 +57,7 @@
         === 'error') {
         <p class="error">{{ petXmlState.error }}</p>
         }
+
         <pre>{{ petXmlState.data | json }}</pre>
         }
       </app-demo-panel>
@@ -71,6 +73,7 @@
         (petJsonState.status === 'error') {
         <p class="error">{{ petJsonState.error }}</p>
         }
+
         <pre>{{ petJsonState.data | json }}</pre>
         }
       </app-demo-panel>

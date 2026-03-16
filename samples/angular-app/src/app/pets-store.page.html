@@ -102,6 +102,7 @@
               (petTextState.status === 'error') {
               <p class="error">{{ petTextState.error }}</p>
               }
+
               <pre>{{ petTextState.data }}</pre>
               }
             </section>
@@ -119,6 +120,7 @@
               (petXmlState.status === 'error') {
               <p class="error">{{ petXmlState.error }}</p>
               }
+
               <pre>{{ petXmlState.data | json }}</pre>
               }
             </section>
@@ -136,6 +138,7 @@
               (petJsonState.status === 'error') {
               <p class="error">{{ petJsonState.error }}</p>
               }
+
               <pre>{{ petJsonState.data | json }}</pre>
               }
             </section>
