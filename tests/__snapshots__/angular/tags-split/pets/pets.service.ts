@@ -64,17 +64,29 @@ type HttpClientObserveOptions = HttpClientOptions & {
   readonly observe?: 'body' | 'events' | 'response';
 };
 
+type AngularHttpParamValue =
+  | string
+  | number
+  | boolean
+  | Array<string | number | boolean>;
+type AngularHttpParamValueWithNullable = AngularHttpParamValue | null;
+
 function filterParams(
   params: Record<string, unknown>,
-  requiredNullableKeys: Set<string> = new Set(),
-): Record<
-  string,
-  string | number | boolean | Array<string | number | boolean>
-> {
-  const filteredParams: Record<
-    string,
-    string | number | boolean | null | Array<string | number | boolean>
-  > = {};
+  requiredNullableKeys?: ReadonlySet<string>,
+  preserveRequiredNullables?: false,
+): Record<string, AngularHttpParamValue>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> | undefined,
+  preserveRequiredNullables: true,
+): Record<string, AngularHttpParamValueWithNullable>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> = new Set(),
+  preserveRequiredNullables = false,
+): Record<string, AngularHttpParamValueWithNullable> {
+  const filteredParams: Record<string, AngularHttpParamValueWithNullable> = {};
   for (const [key, value] of Object.entries(params)) {
     if (Array.isArray(value)) {
       const filtered = value.filter(
@@ -87,7 +99,11 @@ function filterParams(
       if (filtered.length) {
         filteredParams[key] = filtered;
       }
-    } else if (value === null && requiredNullableKeys.has(key)) {
+    } else if (
+      preserveRequiredNullables &&
+      value === null &&
+      requiredNullableKeys.has(key)
+    ) {
       filteredParams[key] = value;
     } else if (
       value != null &&
@@ -95,13 +111,10 @@ function filterParams(
         typeof value === 'number' ||
         typeof value === 'boolean')
     ) {
-      filteredParams[key] = value as string | number | boolean;
+      filteredParams[key] = value;
     }
   }
-  return filteredParams as Record<
-    string,
-    string | number | boolean | Array<string | number | boolean>
-  >;
+  return filteredParams;
 }
 
 @Injectable({ providedIn: 'root' })

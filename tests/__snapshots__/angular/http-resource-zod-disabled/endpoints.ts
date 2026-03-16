@@ -64,6 +64,55 @@ import type {
 export type OrvalHttpResourceOptions<TValue, TRaw = unknown, TOmitParse extends boolean = true> = TOmitParse extends true
   ? Omit<HttpResourceOptions<TValue, TRaw>, 'parse'>
   : HttpResourceOptions<TValue, TRaw>;
+
+type AngularHttpParamValue = string | number | boolean | Array<string | number | boolean>;
+type AngularHttpParamValueWithNullable = AngularHttpParamValue | null;
+
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys?: ReadonlySet<string>,
+  preserveRequiredNullables?: false,
+): Record<string, AngularHttpParamValue>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> | undefined,
+  preserveRequiredNullables: true,
+): Record<string, AngularHttpParamValueWithNullable>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> = new Set(),
+  preserveRequiredNullables = false,
+): Record<string, AngularHttpParamValueWithNullable> {
+  const filteredParams: Record<string, AngularHttpParamValueWithNullable> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) {
+      const filtered = value.filter(
+        (item) =>
+          item != null &&
+          (typeof item === 'string' ||
+            typeof item === 'number' ||
+            typeof item === 'boolean'),
+      ) as Array<string | number | boolean>;
+      if (filtered.length) {
+        filteredParams[key] = filtered;
+      }
+    } else if (
+      preserveRequiredNullables &&
+      value === null &&
+      requiredNullableKeys.has(key)
+    ) {
+      filteredParams[key] = value;
+    } else if (
+      value != null &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean')
+    ) {
+      filteredParams[key] = value;
+    }
+  }
+  return filteredParams;
+}
 /**
  * @experimental httpResource is experimental (Angular v19.2+)
  */
@@ -77,34 +126,7 @@ export function listPetsResource(params?: Signal<ListPetsParams>,
     
     const request = ({
       url: `/pets`,
-      params: (() => {
-  const requiredNullableParamKeys = new Set<string>([]);
-  const filteredParams = {} as Record<string, string | number | boolean | null | Array<string | number | boolean>>;
-  for (const [key, value] of Object.entries(params?.() ?? {})) {
-    if (Array.isArray(value)) {
-      const filtered = value.filter(
-        (item) =>
-          item != null &&
-          (typeof item === 'string' ||
-            typeof item === 'number' ||
-            typeof item === 'boolean'),
-          ) as Array<string | number | boolean>;
-      if (filtered.length) {
-        filteredParams[key] = filtered;
-      }
-    } else if (value === null && requiredNullableParamKeys.has(key)) {
-      filteredParams[key] = value;
-    } else if (
-      value != null &&
-      (typeof value === 'string' ||
-        typeof value === 'number' ||
-        typeof value === 'boolean')
-    ) {
-      filteredParams[key] = value as string | number | boolean;
-    }
-  }
-  return filteredParams as unknown as Record<string, string | number | boolean | Array<string | number | boolean>>;
-})()
+      params: filterParams(params?.() ?? {}, new Set<string>([]))
     });
     return request;
   }, options);
@@ -181,11 +203,25 @@ type HttpClientObserveOptions = HttpClientOptions & {
   readonly observe?: 'body' | 'events' | 'response';
 };
 
+type AngularHttpParamValue = string | number | boolean | Array<string | number | boolean>;
+type AngularHttpParamValueWithNullable = AngularHttpParamValue | null;
+
 function filterParams(
   params: Record<string, unknown>,
-  requiredNullableKeys: Set<string> = new Set(),
-): Record<string, string | number | boolean | Array<string | number | boolean>> {
-  const filteredParams: Record<string, string | number | boolean | null | Array<string | number | boolean>> = {};
+  requiredNullableKeys?: ReadonlySet<string>,
+  preserveRequiredNullables?: false,
+): Record<string, AngularHttpParamValue>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> | undefined,
+  preserveRequiredNullables: true,
+): Record<string, AngularHttpParamValueWithNullable>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> = new Set(),
+  preserveRequiredNullables = false,
+): Record<string, AngularHttpParamValueWithNullable> {
+  const filteredParams: Record<string, AngularHttpParamValueWithNullable> = {};
   for (const [key, value] of Object.entries(params)) {
     if (Array.isArray(value)) {
       const filtered = value.filter(
@@ -198,7 +234,11 @@ function filterParams(
       if (filtered.length) {
         filteredParams[key] = filtered;
       }
-    } else if (value === null && requiredNullableKeys.has(key)) {
+    } else if (
+      preserveRequiredNullables &&
+      value === null &&
+      requiredNullableKeys.has(key)
+    ) {
       filteredParams[key] = value;
     } else if (
       value != null &&
@@ -206,10 +246,10 @@ function filterParams(
         typeof value === 'number' ||
         typeof value === 'boolean')
     ) {
-      filteredParams[key] = value as string | number | boolean;
+      filteredParams[key] = value;
     }
   }
-  return filteredParams as Record<string, string | number | boolean | Array<string | number | boolean>>;
+  return filteredParams;
 }
 
 

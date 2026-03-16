@@ -38,6 +38,10 @@ import {
  * The implementation only reads `context.output`, so callers don't need
  * to supply a full `ContextSpec` (which also requires `target`, `workspace`,
  * `spec`, etc.).
+ *
+ * @remarks
+ * This keeps the call sites lightweight when `http-resource.ts` delegates
+ * mutation generation back to the shared `HttpClient` implementation builder.
  */
 export interface HttpClientGeneratorContext {
   route: string;
@@ -75,13 +79,38 @@ const getContentTypeReturnType = (
   return 'Blob';
 };
 
+/**
+ * Returns the dependency list required by the Angular `HttpClient` generator.
+ *
+ * These imports are consumed by Orval's generic dependency-import emitter when
+ * composing the generated Angular client file.
+ *
+ * @returns The Angular `HttpClient` dependency descriptors used during import generation.
+ */
 export const getAngularDependencies: ClientDependenciesBuilder = () => [
   ...ANGULAR_HTTP_CLIENT_DEPENDENCIES,
 ];
 
+/**
+ * Builds the generated TypeScript helper name used for multi-content-type
+ * `Accept` header unions.
+ *
+ * Example: `listPets` -> `ListPetsAccept`.
+ *
+ * @returns A PascalCase helper type/const name for the operation's `Accept` values.
+ */
 export const getAcceptHelperName = (operationName: string) =>
   `${pascal(operationName)}Accept`;
 
+/**
+ * Collects the distinct successful response content types for a single
+ * operation.
+ *
+ * The Angular generators use this to decide whether they need `Accept`
+ * overloads or content-type-specific branching logic.
+ *
+ * @returns A de-duplicated list of response content types, excluding empty entries.
+ */
 export const getUniqueContentTypes = (
   successTypes: GeneratorVerbOptions['response']['types']['success'],
 ) => [...new Set(successTypes.map((t) => t.contentType).filter(Boolean))];
@@ -117,6 +146,16 @@ export const ${acceptHelperName} = {
 ${implementation}} as const;`;
 };
 
+/**
+ * Builds the shared `Accept` helper declarations for all operations in the
+ * current Angular generation scope.
+ *
+ * @remarks
+ * Helpers are emitted only for operations with more than one successful
+ * response content type.
+ *
+ * @returns Concatenated type/const declarations or an empty string when no helpers are needed.
+ */
 export const buildAcceptHelpers = (
   verbOptions: readonly GeneratorVerbOptions[],
   output: ContextSpec['output'],
@@ -134,6 +173,18 @@ export const buildAcceptHelpers = (
     })
     .join('\n\n');
 
+/**
+ * Generates the static header section for Angular `HttpClient` output.
+ *
+ * Depending on the current generation options this may include:
+ * - reusable request option helper types
+ * - filtered query-param helper utilities
+ * - mutator support types
+ * - `Accept` helper unions/constants for multi-content-type operations
+ * - the `@Injectable()` service class shell
+ *
+ * @returns A string containing the prelude and service class opening for the generated file.
+ */
 export const generateAngularHeader: ClientHeaderBuilder = ({
   title,
   isRequestOptions,
@@ -175,6 +226,15 @@ export class ${title} {
 `;
 };
 
+/**
+ * Generates the closing section for Angular `HttpClient` output.
+ *
+ * @remarks
+ * Besides closing the generated service class, this appends any collected
+ * `ClientResult` aliases registered while individual operations were emitted.
+ *
+ * @returns The footer text for the generated Angular client file.
+ */
 export const generateAngularFooter: ClientFooterBuilder = ({
   operationNames,
 }) => {
@@ -188,6 +248,25 @@ export const generateAngularFooter: ClientFooterBuilder = ({
   return footer;
 };
 
+/**
+ * Generates the Angular `HttpClient` method implementation for a single
+ * OpenAPI operation.
+ *
+ * This function is responsible for:
+ * - method signatures and overloads
+ * - observe-mode branching
+ * - multi-content-type `Accept` handling
+ * - mutator integration
+ * - runtime Zod validation hooks for Angular output
+ * - registering the operation's `ClientResult` alias for footer emission
+ *
+ * @remarks
+ * This is the central implementation builder shared by the dedicated
+ * `httpClient` mode and the mutation side of Angular `both` / `httpResource`
+ * generation.
+ *
+ * @returns The complete TypeScript method declaration and implementation for the operation.
+ */
 export const generateHttpClientImplementation = (
   {
     headers,
@@ -592,6 +671,15 @@ export const generateHttpClientImplementation = (
 `;
 };
 
+/**
+ * Orval client builder entry point for Angular `HttpClient` output.
+ *
+ * It normalizes imports needed for runtime validation, delegates the actual
+ * method implementation to `generateHttpClientImplementation`, and returns the
+ * generated code plus imports for the current operation.
+ *
+ * @returns The generated implementation fragment and imports for one operation.
+ */
 export const generateAngular: ClientBuilder = (verbOptions, options) => {
   const isZodOutput = isZodSchemaOutput(options.context.output);
   const responseType = verbOptions.response.definition.success;
@@ -688,9 +776,26 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
   return { implementation, imports };
 };
 
+/**
+ * Returns the footer aliases collected for the provided operation names.
+ *
+ * The Angular generators use these aliases to expose stable `ClientResult`
+ * helper types such as `ListPetsClientResult`.
+ *
+ * @returns Concatenated `ClientResult` aliases for the requested operation names.
+ */
 export const getHttpClientReturnTypes = (operationNames: string[]) =>
   returnTypesRegistry.getFooter(operationNames);
 
+/**
+ * Clears the module-level return type registry used during Angular client
+ * generation.
+ *
+ * This must be called at the start of each generation pass to avoid leaking
+ * aliases across files or tags.
+ *
+ * @returns Nothing.
+ */
 export const resetHttpClientReturnTypes = () => {
   returnTypesRegistry.reset();
 };

@@ -12,7 +12,8 @@ import {
   type GeneratorDependency,
   type GeneratorImport,
   type GeneratorVerbOptions,
-  getAngularFilteredParamsExpression,
+  getAngularFilteredParamsCallExpression,
+  getAngularFilteredParamsHelperBody,
   getFileInfo,
   getFullRoute,
   GetterPropType,
@@ -114,6 +115,15 @@ const getClientOverride = (
   return isAngularOperationOverride(angular) ? angular.client : undefined;
 };
 
+/**
+ * Resolves the effective `httpResource` option override for an operation.
+ *
+ * Operation-level configuration takes precedence over the global
+ * `override.angular.httpResource` block while still inheriting unspecified
+ * values from the global configuration.
+ *
+ * @returns The merged resource options for the operation, or `undefined` when no override exists.
+ */
 const getHttpResourceOverride = (
   verbOption: GeneratorVerbOptions,
   output: NormalizedOutputOptions,
@@ -200,6 +210,15 @@ const cloneDependencies = (
     exports: [...dep.exports],
   }));
 
+/**
+ * Returns the merged dependency list required when Angular `httpResource`
+ * output coexists with Angular `HttpClient` service generation.
+ *
+ * This is used for pure `httpResource` mode as well as mixed generation paths
+ * that still need Angular common HTTP symbols and service helpers.
+ *
+ * @returns The de-duplicated dependency descriptors for Angular resource generation.
+ */
 export const getAngularHttpResourceDependencies: ClientDependenciesBuilder =
   () =>
     mergeDependencies([
@@ -207,6 +226,12 @@ export const getAngularHttpResourceDependencies: ClientDependenciesBuilder =
       ...ANGULAR_HTTP_RESOURCE_DEPENDENCIES,
     ]);
 
+/**
+ * Returns only the dependencies required by standalone generated resource
+ * files, such as the sibling `*.resource.ts` output used in `both` mode.
+ *
+ * @returns The dependency descriptors required by resource-only files.
+ */
 export const getAngularHttpResourceOnlyDependencies: ClientDependenciesBuilder =
   () => cloneDependencies(ANGULAR_HTTP_RESOURCE_DEPENDENCIES);
 
@@ -430,9 +455,10 @@ const buildResourceRequest = (
   const paramsAccess = queryParams ? 'params?.()' : undefined;
   const headersAccess = headers ? 'headers?.()' : undefined;
   const filteredParamsValue = paramsAccess
-    ? getAngularFilteredParamsExpression(
+    ? getAngularFilteredParamsCallExpression(
         `${paramsAccess} ?? {}`,
-        queryParams?.requiredNullableKeys,
+        queryParams?.requiredNullableKeys ?? [],
+        !!paramsSerializer,
       )
     : undefined;
   const paramsValue = paramsAccess
@@ -549,6 +575,16 @@ const getParseExpression = (
   return `${responseType}.parse`;
 };
 
+/**
+ * Builds the literal option entries that Orval injects into generated
+ * `httpResource()` calls.
+ *
+ * This merges user-supplied generator configuration such as `defaultValue` or
+ * `debugName` with automatically derived runtime-validation hooks like
+ * `parse: Schema.parse`.
+ *
+ * @returns The option entries plus metadata about whether a configured default value exists.
+ */
 const buildHttpResourceOptionsLiteral = (
   verbOption: GeneratorVerbOptions,
   factory: HttpResourceFactoryName,
@@ -672,6 +708,20 @@ const buildHttpResourceFunctionSignatures = (
 export function ${resourceName}(${implementationArgs}): HttpResourceRef<${valueType} | undefined>`;
 };
 
+/**
+ * Generates a single Angular `httpResource` helper function for an operation.
+ *
+ * The generated output handles signal-wrapped parameters, route interpolation,
+ * request-body construction, content-type branching, runtime validation, and
+ * optional mutator integration when the mutator is compatible with standalone
+ * resource functions.
+ *
+ * @remarks
+ * This function emits overloads when content negotiation or caller-supplied
+ * `defaultValue` support requires multiple signatures.
+ *
+ * @returns A string containing the complete generated resource helper.
+ */
 const buildHttpResourceFunction = (
   verbOption: GeneratorVerbOptions,
   route: string,
@@ -858,6 +908,10 @@ const buildHttpResourceFunction = (
       headers,
     }), ${getBranchOptions(jsonType)});`;
 
+    const normalizeRequest = isUrlOnly
+      ? `const normalizedRequest: HttpResourceRequest = { url: request };`
+      : `const normalizedRequest: HttpResourceRequest = request;`;
+
     return `/**
  * @experimental httpResource is experimental (Angular v19.2+)
  */
@@ -868,41 +922,39 @@ export function ${resourceName}(
 export function ${resourceName}(
     ${implementationArgsWithDefault}
 ): HttpResourceRef<${unionReturnType} | undefined> {
-  return (() => {
-    ${bodyForm ? `${bodyForm};` : ''}
-    const request = ${request};
-    const normalizedRequest: HttpResourceRequest = typeof request === 'string' ? { url: request } : request;
-    const headers = normalizedRequest.headers instanceof HttpHeaders
-      ? normalizedRequest.headers.set('Accept', accept)
-      : { ...(normalizedRequest.headers ?? {}), Accept: accept };
+  ${bodyForm ? `${bodyForm};` : ''}
+  const request = ${request};
+  ${normalizeRequest}
+  const headers = normalizedRequest.headers instanceof HttpHeaders
+    ? normalizedRequest.headers.set('Accept', accept)
+    : { ...(normalizedRequest.headers ?? {}), Accept: accept };
 
-    if (accept.includes('json') || accept.includes('+json')) {
-      return httpResource<${jsonType ? getBranchReturnType(jsonType) : parsedDataType}>(() => ({
-        ...normalizedRequest,
-        headers,
-      }), ${getBranchOptions(jsonType)});
-    }
+  if (accept.includes('json') || accept.includes('+json')) {
+    return httpResource<${jsonType ? getBranchReturnType(jsonType) : parsedDataType}>(() => ({
+      ...normalizedRequest,
+      headers,
+    }), ${getBranchOptions(jsonType)});
+  }
 
-    if (accept.startsWith('text/') || accept.includes('xml')) {
-      return httpResource.text<string>(() => ({
-        ...normalizedRequest,
-        headers,
-      }), ${getBranchOptions(textType)});
-    }
+  if (accept.startsWith('text/') || accept.includes('xml')) {
+    return httpResource.text<string>(() => ({
+      ...normalizedRequest,
+      headers,
+    }), ${getBranchOptions(textType)});
+  }
 
-    ${
-      arrayBufferType
-        ? `if (accept.includes('octet-stream') || accept.includes('pdf')) {
-      return httpResource.arrayBuffer<ArrayBuffer>(() => ({
-        ...normalizedRequest,
-        headers,
-      }), ${getBranchOptions(arrayBufferType)});
-    }
+  ${
+    arrayBufferType
+      ? `if (accept.includes('octet-stream') || accept.includes('pdf')) {
+    return httpResource.arrayBuffer<ArrayBuffer>(() => ({
+      ...normalizedRequest,
+      headers,
+    }), ${getBranchOptions(arrayBufferType)});
+  }
 
-    `
-        : ''
-    }${fallbackReturn}
-  })();
+  `
+      : ''
+  }${fallbackReturn}
 }
 `;
   }
@@ -1056,6 +1108,16 @@ export function toResourceState<T>(ref: HttpResourceRef<T>): ResourceState<T> {
 }
 `;
 
+/**
+ * Generates the header section for Angular `httpResource` output.
+ *
+ * @remarks
+ * Resource functions are emitted in the header phase because their final shape
+ * depends on the full set of operations in scope, including generated `Accept`
+ * helpers and any shared mutation service methods.
+ *
+ * @returns The generated header, resource helpers, optional mutation service class, and resource result aliases.
+ */
 export const generateHttpResourceHeader: ClientHeaderBuilder = ({
   title,
   isRequestOptions,
@@ -1075,6 +1137,12 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
       getClientOverride(verbOption),
     ),
   );
+  const hasResourceQueryParams = retrievals.some(
+    (verbOption) => !!verbOption.queryParams,
+  );
+  const filterParamsHelper = hasResourceQueryParams
+    ? `\n${getAngularFilteredParamsHelperBody()}\n`
+    : '';
   const acceptHelpers = buildAcceptHelpers(retrievals, output);
 
   const resources = retrievals
@@ -1128,9 +1196,18 @@ ${mutationImplementation}
 `
     : '';
 
-  return `${buildHttpResourceOptionsUtilities(isZodSchemaOutput(output))}${acceptHelpers ? `${acceptHelpers}\n\n` : ''}${resources}${classImplementation}${resourceTypes ? `\n${resourceTypes}\n` : ''}`;
+  return `${buildHttpResourceOptionsUtilities(isZodSchemaOutput(output))}${filterParamsHelper}${acceptHelpers ? `${acceptHelpers}\n\n` : ''}${resources}${classImplementation}${resourceTypes ? `\n${resourceTypes}\n` : ''}`;
 };
 
+/**
+ * Generates the footer for Angular `httpResource` output.
+ *
+ * The footer appends any registered `ClientResult` aliases coming from shared
+ * `HttpClient` mutation methods and the resource-state helper utilities emitted
+ * for generated Angular resources.
+ *
+ * @returns The footer text for the generated Angular resource file.
+ */
 export const generateHttpResourceFooter: ClientFooterBuilder = ({
   operationNames,
 }) => {
@@ -1140,6 +1217,15 @@ export const generateHttpResourceFooter: ClientFooterBuilder = ({
   return `${clientTypes ? `${clientTypes}\n` : ''}${utilities}`;
 };
 
+/**
+ * Per-operation builder used during Angular `httpResource` generation.
+ *
+ * Unlike the `HttpClient` builder, the actual implementation body is emitted in
+ * the header phase after all operations are known. This function mainly records
+ * the resolved route and returns the imports required by the current operation.
+ *
+ * @returns An empty implementation plus the imports required by the operation.
+ */
 export const generateHttpResourceClient: ClientBuilder = (
   verbOptions,
   options,
@@ -1168,6 +1254,13 @@ const buildHttpResourceFile = (
     ),
   );
 
+  const hasResourceQueryParams = retrievals.some(
+    (verbOption) => !!verbOption.queryParams,
+  );
+  const filterParamsHelper = hasResourceQueryParams
+    ? `\n${getAngularFilteredParamsHelperBody()}\n`
+    : '';
+
   const resources = retrievals
     .map((verbOption) => {
       const fullRoute = getFullRoute(
@@ -1185,7 +1278,7 @@ const buildHttpResourceFile = (
   const utilities = buildResourceStateUtilities();
   const acceptHelpers = buildAcceptHelpers(retrievals, output);
 
-  return `${buildHttpResourceOptionsUtilities(isZodSchemaOutput(output))}${acceptHelpers ? `${acceptHelpers}\n\n` : ''}${resources}\n${resourceTypes ? `${resourceTypes}\n` : ''}${utilities}`;
+  return `${buildHttpResourceOptionsUtilities(isZodSchemaOutput(output))}${filterParamsHelper}${acceptHelpers ? `${acceptHelpers}\n\n` : ''}${resources}\n${resourceTypes ? `${resourceTypes}\n` : ''}${utilities}`;
 };
 
 const buildSchemaImportDependencies = (
@@ -1231,6 +1324,16 @@ const buildSchemaImportDependencies = (
   ];
 };
 
+/**
+ * Generates the extra sibling resource file used by Angular `both` mode.
+ *
+ * @remarks
+ * The main generated file keeps the `HttpClient` service class while retrieval
+ * resources are emitted into `*.resource.ts` so consumers can opt into both
+ * access patterns without mixing the generated surfaces.
+ *
+ * @returns A single extra file descriptor representing the generated resource file.
+ */
 export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
   verbOptions,
   output,

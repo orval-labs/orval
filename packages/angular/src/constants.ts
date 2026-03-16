@@ -23,10 +23,6 @@ export const ANGULAR_HTTP_CLIENT_DEPENDENCIES = [
     exports: [{ name: 'Observable', values: true }],
     dependency: 'rxjs',
   },
-  {
-    exports: [{ name: 'DeepNonNullable' }],
-    dependency: '@orval/core',
-  },
 ] as const satisfies readonly GeneratorDependency[];
 
 export const ANGULAR_HTTP_RESOURCE_DEPENDENCIES = [
@@ -45,9 +41,5 @@ export const ANGULAR_HTTP_RESOURCE_DEPENDENCIES = [
   {
     exports: [{ name: 'Signal' }, { name: 'ResourceStatus' }],
     dependency: '@angular/core',
-  },
-  {
-    exports: [{ name: 'DeepNonNullable' }],
-    dependency: '@orval/core',
   },
 ] as const satisfies readonly GeneratorDependency[];

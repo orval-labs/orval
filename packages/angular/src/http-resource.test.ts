@@ -845,8 +845,7 @@ describe('angular httpResource generator', () => {
       expect(header).toContain(
         'options?: OrvalHttpResourceOptions<Pet, unknown>',
       );
-      expect(header).toContain('params: (() => {');
-      expect(header).toContain('Object.entries(params?.() ?? {})');
+      expect(header).toContain('params: filterParams(params?.() ?? {}');
     });
 
     it('wraps named path params with pathParams: Signal<...>', () => {
@@ -1020,8 +1019,7 @@ describe('angular httpResource generator', () => {
       } as never);
 
       expect(header).toContain('url: `/api/pets/${petId()}`');
-      expect(header).toContain('params: (() => {');
-      expect(header).toContain('Object.entries(params?.() ?? {})');
+      expect(header).toContain('params: filterParams(params?.() ?? {}');
     });
 
     it('uses request object form for POST verbs', () => {
