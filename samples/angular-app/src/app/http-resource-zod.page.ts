@@ -33,69 +33,7 @@ import { PetCardComponent } from './ui/pet-card.component';
     PetCardComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <app-demo-page-frame
-      eyebrow="Signal-first + schema-backed types"
-      title="httpResource + Zod"
-      description="This page showcases generated httpResource helpers together with Zod-derived model types, combining signal-first fetching with schema-backed values that are easier to trust in the UI."
-      why="Choose this variant when you want Angular's resource ergonomics while keeping the generated types closely aligned with your Zod schema layer."
-      badge="ZOD"
-      [highlights]="highlights"
-    >
-      <div class="demo-grid">
-        <app-demo-panel
-          class="panel--wide"
-          title="listPetsResource()"
-          description="Resource output typed from the generated Zod models."
-        >
-          <app-badge panel-badge>Status: {{ listStatus() }}</app-badge>
-
-          @if (listResource.isLoading()) {
-            <p class="muted">Loading pets…</p>
-          } @else if (listResource.error()) {
-            <p class="error">Failed to load pets: {{ listError() }}</p>
-          } @else if (pets().length) {
-            <div
-              class="pet-grid"
-              role="list"
-              aria-label="Pets list from listPetsResource()"
-            >
-              @for (pet of pets(); track pet.id) {
-                <app-pet-card [pet]="pet" />
-              }
-            </div>
-          } @else {
-            <p class="muted">No pets returned.</p>
-          }
-        </app-demo-panel>
-
-        <section class="panel-stack">
-          <app-demo-panel
-            title="showPetByIdResource()"
-            description="Friendly summary computed from the resource value."
-            compact
-          >
-            <app-badge panel-badge>Status: {{ petStatus() }}</app-badge>
-
-            @if (petByIdResource.isLoading()) {
-              <p class="muted">Loading pet…</p>
-            } @else if (petByIdResource.error()) {
-              <p class="error">Failed to load pet: {{ petError() }}</p>
-            }
-            <pre>{{ petByIdDisplay() }}</pre>
-          </app-demo-panel>
-
-          <app-demo-panel
-            title="Raw resource value"
-            description="The exact value returned from the typed resource."
-            compact
-          >
-            <pre>{{ petByIdRaw() | json }}</pre>
-          </app-demo-panel>
-        </section>
-      </div>
-    </app-demo-page-frame>
-  `,
+  templateUrl: './http-resource-zod.page.html',
   styleUrl: './demo-page.styles.css',
 })
 export class HttpResourceZodPage {
