@@ -1,4 +1,5 @@
 import {
+  camel,
   type ClientHeaderBuilder,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
@@ -744,9 +745,13 @@ export const getQueryHeader: ClientHeaderBuilder = (params) => {
   }
 
   if (params.output.httpClient === OutputHttpClient.ANGULAR) {
-    const hasQueryParams = Object.values(params.verbOptions).some(
-      (v) => v.queryParams,
-    );
+    const relevantVerbs = params.tag
+      ? Object.values(params.verbOptions).filter((verbOption) =>
+          verbOption.tags.some((tag) => camel(tag) === camel(params.tag)),
+        )
+      : Object.values(params.verbOptions);
+    const hasQueryParams = relevantVerbs.some((v) => v.queryParams);
+
     return hasQueryParams ? getAngularFilteredParamsHelperBody() : '';
   }
 

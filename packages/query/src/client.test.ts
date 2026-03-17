@@ -4,9 +4,83 @@ import { describe, expect, it } from 'vitest';
 import {
   generateRequestOptionsArguments,
   getHttpFunctionQueryProps,
+  getQueryHeader,
   getQueryOptions,
   getSignalDefinition,
 } from './client';
+
+describe('getQueryHeader', () => {
+  it('emits filterParams helper for Angular when a non-tagged file has query params', () => {
+    const header = getQueryHeader({
+      output: { httpClient: OutputHttpClient.ANGULAR },
+      verbOptions: {
+        listPets: {
+          tags: ['pets'],
+          queryParams: { schema: { name: 'ListPetsParams' } },
+        },
+        healthCheck: {
+          tags: ['health'],
+          queryParams: undefined,
+        },
+      },
+    } as never);
+
+    expect(header).toContain('function filterParams');
+  });
+
+  it('does not emit filterParams helper for a tag file with no query params', () => {
+    const header = getQueryHeader({
+      output: { httpClient: OutputHttpClient.ANGULAR },
+      tag: 'health',
+      verbOptions: {
+        listPets: {
+          tags: ['pets'],
+          queryParams: { schema: { name: 'ListPetsParams' } },
+        },
+        healthCheck: {
+          tags: ['health'],
+          queryParams: undefined,
+        },
+      },
+    } as never);
+
+    expect(header).toBe('');
+  });
+
+  it('emits filterParams helper for a tag file whose operations use query params', () => {
+    const header = getQueryHeader({
+      output: { httpClient: OutputHttpClient.ANGULAR },
+      tag: 'pets',
+      verbOptions: {
+        listPets: {
+          tags: ['pets'],
+          queryParams: { schema: { name: 'ListPetsParams' } },
+        },
+        healthCheck: {
+          tags: ['health'],
+          queryParams: undefined,
+        },
+      },
+    } as never);
+
+    expect(header).toContain('function filterParams');
+  });
+
+  it('matches tags using the same normalized pattern as the Angular generator', () => {
+    const header = getQueryHeader({
+      output: { httpClient: OutputHttpClient.ANGULAR },
+      tag: 'pet-status',
+      verbOptions: {
+        listPetStatus: {
+          tags: ['PetStatus'],
+          queryParams: { schema: { name: 'ListPetStatusParams' } },
+        },
+      },
+    } as never);
+
+    expect(header).toContain('function filterParams');
+  });
+});
 
 describe('getHttpFunctionQueryProps', () => {
   describe('without mutator (native Angular)', () => {
