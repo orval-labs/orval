@@ -1,5 +1,3 @@
-import fs from 'fs-extra';
-
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import type { WriteModeProps } from '../types';
 import {
@@ -10,6 +8,7 @@ import {
   isSyntheticDefaultImportsAllow,
   upath,
 } from '../utils';
+import { writeGeneratedFile } from './file';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
@@ -144,7 +143,7 @@ export async function writeSingleMode({
       data += implementationMock;
     }
 
-    await fs.outputFile(path, data);
+    await writeGeneratedFile(path, data);
 
     return [path];
   } catch (error) {

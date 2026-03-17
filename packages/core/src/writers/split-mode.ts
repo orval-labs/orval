@@ -1,7 +1,5 @@
 import path from 'node:path';
 
-import fs from 'fs-extra';
-
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import { OutputClient, type WriteModeProps } from '../types';
 import {
@@ -13,6 +11,7 @@ import {
   upath,
 } from '../utils';
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
+import { writeGeneratedFile } from './file';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
@@ -112,7 +111,7 @@ export async function writeSplitMode({
     if (schemasPath && needSchema) {
       const schemasData = header + generateModelsInline(builder.schemas);
 
-      await fs.outputFile(schemasPath, schemasData);
+      await writeGeneratedFile(schemasPath, schemasData);
     }
 
     if (mutators) {
@@ -169,7 +168,7 @@ export async function writeSplitMode({
       extension;
 
     const implementationPath = path.join(dirname, implementationFilename);
-    await fs.outputFile(implementationPath, implementationData);
+    await writeGeneratedFile(implementationPath, implementationData);
 
     const mockPath = output.mock
       ? path.join(
@@ -182,7 +181,7 @@ export async function writeSplitMode({
       : undefined;
 
     if (mockPath) {
-      await fs.outputFile(mockPath, mockData);
+      await writeGeneratedFile(mockPath, mockData);
     }
 
     return [
