@@ -14,6 +14,7 @@ import {
   upath,
 } from '../utils';
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
+import { writeGeneratedFile } from './file';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
@@ -127,7 +128,7 @@ export async function writeSplitTagsMode({
         if (schemasPath && needSchema) {
           const schemasData = header + generateModelsInline(builder.schemas);
 
-          await fs.outputFile(schemasPath, schemasData);
+          await writeGeneratedFile(schemasPath, schemasData);
         }
 
         if (mutators) {
@@ -194,7 +195,7 @@ export async function writeSplitTagsMode({
           tag,
           implementationFilename,
         );
-        await fs.outputFile(implementationPath, implementationData);
+        await writeGeneratedFile(implementationPath, implementationData);
 
         const mockPath = output.mock
           ? path.join(
@@ -208,7 +209,7 @@ export async function writeSplitTagsMode({
           : undefined;
 
         if (mockPath) {
-          await fs.outputFile(mockPath, mockData);
+          await writeGeneratedFile(mockPath, mockData);
         }
 
         return [

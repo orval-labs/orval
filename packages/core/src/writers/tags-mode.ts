@@ -1,7 +1,5 @@
 import path from 'node:path';
 
-import fs from 'fs-extra';
-
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import type { WriteModeProps } from '../types';
 import {
@@ -13,6 +11,7 @@ import {
   kebab,
   upath,
 } from '../utils';
+import { writeGeneratedFile } from './file';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
@@ -119,7 +118,7 @@ export async function writeTagsMode({
         if (schemasPath && needSchema) {
           const schemasData = header + generateModelsInline(builder.schemas);
 
-          await fs.outputFile(schemasPath, schemasData);
+          await writeGeneratedFile(schemasPath, schemasData);
         }
 
         if (mutators) {
@@ -172,7 +171,7 @@ export async function writeTagsMode({
           dirname,
           `${kebab(tag)}${extension}`,
         );
-        await fs.outputFile(implementationPath, data);
+        await writeGeneratedFile(implementationPath, data);
 
         return [implementationPath, ...(schemasPath ? [schemasPath] : [])];
       } catch (error) {
