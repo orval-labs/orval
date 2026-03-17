@@ -6,5 +6,12 @@
     "outDir": "./out-tsc/spec",
     "types": ["vitest/globals"]
   },
-  "include": ["src/**/*.ts"]
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "typeCheckHostBindings": true,
+    "strictTemplates": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.html"]
 }

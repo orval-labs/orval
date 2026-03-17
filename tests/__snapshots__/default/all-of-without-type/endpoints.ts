@@ -7,12 +7,12 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
+import type { Get200 } from './model';
+
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { Get200 } from './model';
 
 export const get = (
   options?: AxiosRequestConfig,

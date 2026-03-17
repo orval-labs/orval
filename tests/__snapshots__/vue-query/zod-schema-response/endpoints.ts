@@ -28,6 +28,9 @@ import type {
   CreatePetsParams,
   Error,
   ListPetsParams,
+  Pet,
+  PetWithTag,
+  Pets,
 } from './model/index.zod';
 
 import { faker } from '@faker-js/faker';
@@ -35,15 +38,7 @@ import { faker } from '@faker-js/faker';
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-import type {
-  Cat,
-  Dachshund,
-  Dog,
-  Labradoodle,
-  Pet,
-  PetWithTag,
-  Pets,
-} from './model/index.zod';
+import type { Cat, Dachshund, Dog, Labradoodle } from './model/index.zod';
 
 /**
  * @summary List all pets

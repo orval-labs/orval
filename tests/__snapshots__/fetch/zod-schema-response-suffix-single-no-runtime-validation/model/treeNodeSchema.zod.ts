@@ -19,3 +19,4 @@ export const TreeNodeSchema = zod.object({
 });
 
 export type TreeNodeSchema = zod.input<typeof TreeNodeSchema>;
+export type TreeNodeSchemaOutput = zod.output<typeof TreeNodeSchema>;

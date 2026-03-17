@@ -1,25 +1,29 @@
 import angular from '@orval/angular';
 import axios from '@orval/axios';
+import type {
+  AngularOptions,
+  ClientFileBuilder,
+  ClientGeneratorsBuilder,
+  ClientMockBuilder,
+  ClientMockGeneratorBuilder,
+  ContextSpec,
+  GeneratorClientFooter,
+  GeneratorClientHeader,
+  GeneratorClientImports,
+  GeneratorClients,
+  GeneratorClientTitle,
+  GeneratorOperations,
+  GeneratorOptions,
+  GeneratorVerbOptions,
+  GeneratorVerbsOptions,
+  NormalizedOutputOptions,
+  OutputClientFunc,
+} from '@orval/core';
 import {
   asyncReduce,
-  type ClientFileBuilder,
-  type ClientMockBuilder,
-  type ClientMockGeneratorBuilder,
-  type ContextSpec,
   generateDependencyImports,
-  type GeneratorClientFooter,
-  type GeneratorClientHeader,
-  type GeneratorClientImports,
-  type GeneratorClients,
-  type GeneratorClientTitle,
-  type GeneratorOperations,
-  type GeneratorOptions,
-  type GeneratorVerbOptions,
-  type GeneratorVerbsOptions,
   isFunction,
-  type NormalizedOutputOptions,
   OutputClient,
-  type OutputClientFunc,
   pascal,
 } from '@orval/core';
 import fetchClient from '@orval/fetch';
@@ -37,10 +41,13 @@ const getGeneratorClient = (
   outputClient: OutputClient | OutputClientFunc,
   output: NormalizedOutputOptions,
 ) => {
+  const angularBuilder = angular() as (
+    options?: AngularOptions,
+  ) => ClientGeneratorsBuilder;
   const GENERATOR_CLIENT: GeneratorClients = {
     axios: axios({ type: 'axios' })(),
     'axios-functions': axios({ type: 'axios-functions' })(),
-    angular: angular()(),
+    angular: angularBuilder(output.override.angular),
     'angular-query': query({ output, type: 'angular-query' })(),
     'react-query': query({ output, type: 'react-query' })(),
     'solid-start': solidStart()(),
@@ -57,6 +64,13 @@ const getGeneratorClient = (
   const generator = isFunction(outputClient)
     ? outputClient(GENERATOR_CLIENT)
     : GENERATOR_CLIENT[outputClient];
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive guard for custom OutputClientFunc returning unexpected values
+  if (!generator) {
+    throw new Error(
+      `Unknown output client provided to getGeneratorClient: ${String(outputClient)}`,
+    );
+  }
 
   return generator;
 };
@@ -260,8 +274,25 @@ export const generateOperations = (
 
       const generatedMock = generateMock(verbOption, options);
 
-      acc[verbOption.operationId] = {
-        implementation: verbOption.doc + client.implementation,
+      const hasImplementation = client.implementation.trim().length > 0;
+      const preferredOperationKey = verbOption.operationName;
+      const baseOperationKey = verbOption.operationId
+        ? `${verbOption.operationId}::${verbOption.operationName}`
+        : verbOption.operationName;
+      let operationKey = Object.hasOwn(acc, preferredOperationKey)
+        ? baseOperationKey
+        : preferredOperationKey;
+      let collisionIndex = 1;
+
+      while (Object.hasOwn(acc, operationKey)) {
+        collisionIndex += 1;
+        operationKey = `${baseOperationKey}::${collisionIndex}`;
+      }
+
+      acc[operationKey] = {
+        implementation: hasImplementation
+          ? verbOption.doc + client.implementation
+          : client.implementation,
         imports: client.imports,
         implementationMock: generatedMock.implementation,
         importsMock: generatedMock.imports,

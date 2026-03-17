@@ -29,6 +29,10 @@ export default defineConfig({
               useQuery: true,
               useInfinite: true,
               useInfiniteQueryParam: 'limit',
+              options: {
+                initialPageParam: '20',
+                getNextPageParam: () => undefined,
+              },
             },
           },
           showPetById: {

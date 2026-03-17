@@ -25,14 +25,15 @@ import type {
   Error,
   ListPetsNestedArrayParams,
   ListPetsParams,
+  N42PetsNestedArray,
+  Pet,
+  _PetsArrAy,
 } from './model';
 
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { N42PetsNestedArray, Pet, _PetsArrAy } from './model';
 
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;
@@ -774,7 +775,7 @@ export const getListPetsResponseMock = (): _PetsArrAy =>
     ]),
     tag: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
-        faker.helpers.fromRegExp('^\\d{3}-\\d{2}-\\d{4}$'),
+        faker.helpers.fromRegExp('^\\\\d{3}-\\\\d{2}-\\\\d{4}$'),
         null,
       ]),
       undefined,
@@ -809,7 +810,7 @@ export const getListPetsNestedArrayResponseMock = (
       ]),
       tag: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
-          faker.helpers.fromRegExp('^\\d{3}-\\d{2}-\\d{4}$'),
+          faker.helpers.fromRegExp('^\\\\d{3}-\\\\d{2}-\\\\d{4}$'),
           null,
         ]),
         undefined,
@@ -843,7 +844,7 @@ export const getShowPetByIdResponseMock = (
   ]),
   tag: faker.helpers.arrayElement([
     faker.helpers.arrayElement([
-      faker.helpers.fromRegExp('^\\d{3}-\\d{2}-\\d{4}$'),
+      faker.helpers.fromRegExp('^\\\\d{3}-\\\\d{2}-\\\\d{4}$'),
       null,
     ]),
     undefined,

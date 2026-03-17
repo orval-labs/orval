@@ -26,10 +26,27 @@ import { getIsBodyVerb, isObject, stringify } from '../utils';
 export const getAngularFilteredParamsExpression = (
   paramsExpression: string,
   requiredNullableParamKeys: string[] = [],
-): string =>
-  `(() => {
+  preserveRequiredNullables = false,
+): string => {
+  const filteredParamValueType = `string | number | boolean${preserveRequiredNullables ? ' | null' : ''} | Array<string | number | boolean>`;
+  const preserveNullableBranch = preserveRequiredNullables
+    ? `    } else if (value === null && requiredNullableParamKeys.has(key)) {
+      filteredParams[key] = value;
+`
+    : '';
+  const scalarBranch = `    } else if (
+      value != null &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean')
+    ) {
+      filteredParams[key] = value;
+    }
+`;
+
+  return `(() => {
   const requiredNullableParamKeys = new Set<string>(${JSON.stringify(requiredNullableParamKeys)});
-  const filteredParams = {} as Record<string, string | number | boolean | null | Array<string | number | boolean>>;
+  const filteredParams: Record<string, ${filteredParamValueType}> = {};
   for (const [key, value] of Object.entries(${paramsExpression})) {
     if (Array.isArray(value)) {
       const filtered = value.filter(
@@ -38,23 +55,14 @@ export const getAngularFilteredParamsExpression = (
           (typeof item === 'string' ||
             typeof item === 'number' ||
             typeof item === 'boolean'),
-          ) as Array<string | number | boolean>;
+      ) as Array<string | number | boolean>;
       if (filtered.length) {
         filteredParams[key] = filtered;
       }
-    } else if (value === null && requiredNullableParamKeys.has(key)) {
-      filteredParams[key] = value;
-    } else if (
-      value != null &&
-      (typeof value === 'string' ||
-        typeof value === 'number' ||
-        typeof value === 'boolean')
-    ) {
-      filteredParams[key] = value as string | number | boolean;
-    }
-  }
-  return filteredParams as unknown as Record<string, string | number | boolean | Array<string | number | boolean>>;
+${preserveNullableBranch}${scalarBranch}  }
+  return filteredParams;
 })()`;
+};
 
 /**
  * Returns the body of a standalone `filterParams` helper function
@@ -62,11 +70,25 @@ export const getAngularFilteredParamsExpression = (
  * inline IIFE that was previously duplicated in every method.
  */
 export const getAngularFilteredParamsHelperBody = (): string =>
-  `function filterParams(
+  `type AngularHttpParamValue = string | number | boolean | Array<string | number | boolean>;
+type AngularHttpParamValueWithNullable = AngularHttpParamValue | null;
+
+function filterParams(
   params: Record<string, unknown>,
-  requiredNullableKeys: Set<string> = new Set(),
-): Record<string, string | number | boolean | Array<string | number | boolean>> {
-  const filteredParams: Record<string, string | number | boolean | null | Array<string | number | boolean>> = {};
+  requiredNullableKeys?: ReadonlySet<string>,
+  preserveRequiredNullables?: false,
+): Record<string, AngularHttpParamValue>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> | undefined,
+  preserveRequiredNullables: true,
+): Record<string, AngularHttpParamValueWithNullable>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> = new Set(),
+  preserveRequiredNullables = false,
+): Record<string, AngularHttpParamValueWithNullable> {
+  const filteredParams: Record<string, AngularHttpParamValueWithNullable> = {};
   for (const [key, value] of Object.entries(params)) {
     if (Array.isArray(value)) {
       const filtered = value.filter(
@@ -79,7 +101,11 @@ export const getAngularFilteredParamsHelperBody = (): string =>
       if (filtered.length) {
         filteredParams[key] = filtered;
       }
-    } else if (value === null && requiredNullableKeys.has(key)) {
+    } else if (
+      preserveRequiredNullables &&
+      value === null &&
+      requiredNullableKeys.has(key)
+    ) {
       filteredParams[key] = value;
     } else if (
       value != null &&
@@ -87,10 +113,10 @@ export const getAngularFilteredParamsHelperBody = (): string =>
         typeof value === 'number' ||
         typeof value === 'boolean')
     ) {
-      filteredParams[key] = value as string | number | boolean;
+      filteredParams[key] = value;
     }
   }
-  return filteredParams as Record<string, string | number | boolean | Array<string | number | boolean>>;
+  return filteredParams;
 }`;
 
 /**
@@ -99,8 +125,9 @@ export const getAngularFilteredParamsHelperBody = (): string =>
 export const getAngularFilteredParamsCallExpression = (
   paramsExpression: string,
   requiredNullableParamKeys: string[] = [],
+  preserveRequiredNullables = false,
 ): string =>
-  `filterParams(${paramsExpression}, new Set<string>(${JSON.stringify(requiredNullableParamKeys)}))`;
+  `filterParams(${paramsExpression}, new Set<string>(${JSON.stringify(requiredNullableParamKeys)})${preserveRequiredNullables ? ', true' : ''})`;
 
 interface GenerateFormDataAndUrlEncodedFunctionOptions {
   body: GetterBody;
@@ -200,6 +227,7 @@ export function generateAxiosOptions({
         const iifeExpr = getAngularFilteredParamsExpression(
           'params ?? {}',
           requiredNullableQueryParamKeys,
+          !!paramsSerializer,
         );
         value += paramsSerializer
           ? `\n        params: ${paramsSerializer.name}(${iifeExpr}),`
@@ -252,6 +280,7 @@ export function generateAxiosOptions({
         const callExpr = getAngularFilteredParamsCallExpression(
           '{...params, ...options?.params}',
           requiredNullableQueryParamKeys,
+          true,
         );
         value += `\n        params: ${paramsSerializer.name}(${callExpr}),`;
       } else if (isAngular) {

@@ -7,14 +7,17 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import type { AddListBody, AddListParams } from './model';
+import type {
+  AddListBody,
+  AddListParams,
+  Node,
+  NodeWithRequiredChild,
+} from './model';
 
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { Node, NodeWithRequiredChild } from './model';
 
 /**
  * @summary Example

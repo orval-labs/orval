@@ -56,6 +56,26 @@ export interface NormalizedParamsSerializerOptions {
   qs?: Record<string, unknown>;
 }
 
+/**
+ * Controls how readonly properties are treated when a schema is reused as a request body.
+ *
+ * Best practice:
+ * - `strip` (default): recommended for most OpenAPI specs, because `readOnly`
+ *   properties are response-oriented and generally should not constrain request
+ *   payload authoring.
+ * - `preserve`: use when your schema intentionally models immutable request DTOs
+ *   and you want generated request-body types to keep readonly modifiers.
+ *
+ * Note: this applies to request bodies regardless of the generated client style
+ * (`httpClient`, `httpResource`, etc.). `httpResource` still issues request
+ * payloads, so the same OpenAPI guidance applies.
+ *
+ * If we later want a stricter OpenAPI-aligned mode that omits `readOnly`
+ * properties from request bodies entirely, that should be introduced as a new
+ * explicit mode rather than overloading `preserve`.
+ */
+export type ReadonlyRequestBodiesMode = 'strip' | 'preserve';
+
 export interface NormalizedOverrideOutput {
   title?: (title: string) => string;
   transformer?: OutputTransformer;
@@ -89,7 +109,7 @@ export interface NormalizedOverrideOutput {
   };
   hono: NormalizedHonoOptions;
   query: NormalizedQueryOptions;
-  angular: Required<AngularOptions>;
+  angular: NormalizedAngularOptions;
   swr: SwrOptions;
   zod: NormalizedZodOptions;
   fetch: NormalizedFetchOptions;
@@ -98,6 +118,7 @@ export interface NormalizedOverrideOutput {
     route: string,
     verb: Verbs,
   ) => string;
+
   requestOptions: Record<string, unknown> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
@@ -106,6 +127,14 @@ export interface NormalizedOverrideOutput {
   useNamedParameters?: boolean;
   enumGenerationType: EnumGeneration;
   suppressReadonlyModifier?: boolean;
+  /**
+   * Controls how readonly properties are handled for generated request-body types.
+   *
+   * Prefer `strip` for most OpenAPI specs because `readOnly` fields are
+   * response-oriented. Use `preserve` only when your request DTOs are
+   * intentionally immutable and should remain readonly in generated types.
+   */
+  preserveReadonlyRequestBodies?: ReadonlyRequestBodiesMode;
   jsDoc: NormalizedJsDocOptions;
   aliasCombinedTypes: boolean;
   /**
@@ -133,7 +162,7 @@ export interface NormalizedOperationOptions {
   };
   contentType?: OverrideOutputContentType;
   query?: NormalizedQueryOptions;
-  angular?: Required<AngularOptions>;
+  angular?: NormalizedAngularOptions;
   swr?: SwrOptions;
   zod?: NormalizedZodOptions;
   operationName?: (
@@ -342,9 +371,8 @@ export interface GlobalMockOptions {
   baseUrl?: string;
   // This is used to set the locale of the faker library
   locale?: keyof typeof allLocales;
-  // Prefer a specific response content type when multiple are defined
-  // (falls back to the order in the OpenAPI spec when not set)
-  preferredContentType?: PreferredContentType;
+  // Preferred response content type when multiple success content types exist
+  preferredContentType?: string;
   indexMockFiles?: boolean;
 }
 
@@ -479,6 +507,7 @@ export interface OverrideOutput {
     verb: Verbs,
   ) => string;
   fetch?: FetchOptions;
+
   requestOptions?: Record<string, unknown> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
@@ -487,6 +516,14 @@ export interface OverrideOutput {
   useNamedParameters?: boolean;
   enumGenerationType?: EnumGeneration;
   suppressReadonlyModifier?: boolean;
+  /**
+   * Controls how readonly properties are handled for generated request-body types.
+   *
+   * Prefer `strip` for most OpenAPI specs because `readOnly` fields are
+   * response-oriented. Use `preserve` only when your request DTOs are
+   * intentionally immutable and should remain readonly in generated types.
+   */
+  preserveReadonlyRequestBodies?: ReadonlyRequestBodiesMode;
   jsDoc?: JsDocOptions;
   aliasCombinedTypes?: boolean;
   /**
@@ -632,6 +669,7 @@ export interface NormalizedQueryOptions {
   useInfiniteQueryParam?: string;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
+
   options?: Record<string, unknown>;
   queryKey?: NormalizedMutator;
   queryOptions?: NormalizedMutator;
@@ -656,6 +694,7 @@ export interface QueryOptions {
   useInfiniteQueryParam?: string;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
+
   options?: Record<string, unknown>;
   queryKey?: Mutator;
   queryOptions?: Mutator;
@@ -673,7 +712,55 @@ export interface QueryOptions {
 
 export interface AngularOptions {
   provideIn?: 'root' | 'any' | boolean;
+  /**
+   * Preferred name for configuring how retrieval-style operations are emitted.
+   *
+   * - `httpClient`: keep retrievals as service methods
+   * - `httpResource`: emit retrievals as Angular `httpResource` helpers
+   * - `both`: emit retrieval helpers and keep service methods where needed
+   *
+   * Mutation-style operations still use generated `HttpClient` service methods
+   * by default unless a per-operation override forces a different behavior.
+   */
+  retrievalClient?: 'httpClient' | 'httpResource' | 'both';
+  /**
+   * Backward-compatible alias for `retrievalClient`.
+   *
+   * Kept for compatibility with existing configs.
+   */
+  client?: 'httpClient' | 'httpResource' | 'both';
   runtimeValidation?: boolean;
+  httpResource?: AngularHttpResourceOptions;
+}
+
+export interface NormalizedAngularOptions {
+  provideIn: 'root' | 'any' | boolean;
+  client: 'httpClient' | 'httpResource' | 'both';
+  runtimeValidation: boolean;
+  httpResource?: AngularHttpResourceOptions;
+}
+
+export interface AngularHttpResourceOptions {
+  /**
+   * Value to expose while the resource is idle/loading.
+   *
+   * Serialized as a literal into generated code.
+   */
+  defaultValue?: unknown;
+  /**
+   * Debug name shown in Angular DevTools.
+   */
+  debugName?: string;
+  /**
+   * Raw code expression for HttpResourceOptions.injector.
+   * Example: `inject(Injector)`.
+   */
+  injector?: string;
+  /**
+   * Raw code expression for HttpResourceOptions.equal.
+   * Example: `(a, b) => a.id === b.id`.
+   */
+  equal?: string;
 }
 
 export interface SwrOptions {
@@ -716,7 +803,7 @@ export interface OperationOptions {
     properties?: MockProperties;
   };
   query?: QueryOptions;
-  angular?: Required<AngularOptions>;
+  angular?: AngularOptions;
   swr?: SwrOptions;
   zod?: ZodOptions;
   operationName?: (
@@ -733,7 +820,9 @@ export interface OperationOptions {
 
 export type Hook = 'afterAllFilesWrite';
 
-export type HookFunction = (...args: unknown[]) => void | Promise<void>;
+export type HookFunction<TArgs extends unknown[] = unknown[]> = (
+  ...args: TArgs
+) => void | Promise<void>;
 
 export interface HookOption {
   command: string | HookFunction;
@@ -785,6 +874,7 @@ export interface ContextSpec {
 
 export interface GlobalOptions {
   watch?: boolean | string | string[];
+  verbose?: boolean;
   clean?: boolean | string[];
   prettier?: boolean;
   biome?: boolean;
@@ -796,7 +886,6 @@ export interface GlobalOptions {
   packageJson?: string;
   input?: string | string[];
   output?: string;
-  verbose?: boolean;
 }
 
 export interface Tsconfig {
@@ -1024,7 +1113,7 @@ export type ClientDependenciesBuilder = (
   httpClient?: OutputHttpClient,
   hasTagsMutator?: boolean,
   override?: NormalizedOverrideOutput,
-) => readonly GeneratorDependency[];
+) => GeneratorDependency[];
 
 export interface ClientMockGeneratorImplementation {
   function: string;
@@ -1102,8 +1191,8 @@ export interface GetterQueryParam {
   schema: GeneratorSchema;
   deps: GeneratorSchema[];
   isOptional: boolean;
-  requiredNullableKeys?: string[];
   originalSchema?: OpenApiSchemaObject;
+  requiredNullableKeys?: string[];
 }
 
 export type GetterPropType =

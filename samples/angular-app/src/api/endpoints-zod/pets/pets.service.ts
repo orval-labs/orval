@@ -4,13 +4,12 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import type {
-  HttpContext,
-  HttpEvent,
-  HttpParams,
+import {
+  HttpClient,
+  HttpHeaders,
   HttpResponse as AngularHttpResponse,
 } from '@angular/common/http';
+import type { HttpContext, HttpEvent, HttpParams } from '@angular/common/http';
 
 import { Injectable, inject } from '@angular/core';
 
@@ -20,6 +19,8 @@ import { Pet, Pets } from '../../model-zod/index.zod';
 import type {
   CreatePetsBody,
   ListPetsParams,
+  PetOutput,
+  PetsOutput,
   SearchPetsParams,
 } from '../../model-zod/index.zod';
 
@@ -46,19 +47,48 @@ interface HttpClientOptions {
   readonly integrity?: string;
   readonly referrerPolicy?: ReferrerPolicy;
   readonly transferCache?: { includeHeaders?: string[] } | boolean;
+  readonly timeout?: number;
 }
+
+type HttpClientBodyOptions = HttpClientOptions & {
+  readonly observe?: 'body';
+};
+
+type HttpClientEventOptions = HttpClientOptions & {
+  readonly observe: 'events';
+};
+
+type HttpClientResponseOptions = HttpClientOptions & {
+  readonly observe: 'response';
+};
+
+type HttpClientObserveOptions = HttpClientOptions & {
+  readonly observe?: 'body' | 'events' | 'response';
+};
+
+type AngularHttpParamValue =
+  | string
+  | number
+  | boolean
+  | Array<string | number | boolean>;
+type AngularHttpParamValueWithNullable = AngularHttpParamValue | null;
 
 function filterParams(
   params: Record<string, unknown>,
-  requiredNullableKeys: Set<string> = new Set(),
-): Record<
-  string,
-  string | number | boolean | Array<string | number | boolean>
-> {
-  const filteredParams: Record<
-    string,
-    string | number | boolean | null | Array<string | number | boolean>
-  > = {};
+  requiredNullableKeys?: ReadonlySet<string>,
+  preserveRequiredNullables?: false,
+): Record<string, AngularHttpParamValue>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> | undefined,
+  preserveRequiredNullables: true,
+): Record<string, AngularHttpParamValueWithNullable>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> = new Set(),
+  preserveRequiredNullables = false,
+): Record<string, AngularHttpParamValueWithNullable> {
+  const filteredParams: Record<string, AngularHttpParamValueWithNullable> = {};
   for (const [key, value] of Object.entries(params)) {
     if (Array.isArray(value)) {
       const filtered = value.filter(
@@ -71,7 +101,11 @@ function filterParams(
       if (filtered.length) {
         filteredParams[key] = filtered;
       }
-    } else if (value === null && requiredNullableKeys.has(key)) {
+    } else if (
+      preserveRequiredNullables &&
+      value === null &&
+      requiredNullableKeys.has(key)
+    ) {
       filteredParams[key] = value;
     } else if (
       value != null &&
@@ -79,14 +113,28 @@ function filterParams(
         typeof value === 'number' ||
         typeof value === 'boolean')
     ) {
-      filteredParams[key] = value as string | number | boolean;
+      filteredParams[key] = value;
     }
   }
-  return filteredParams as Record<
-    string,
-    string | number | boolean | Array<string | number | boolean>
-  >;
+  return filteredParams;
 }
+
+export type ListPetsAccept =
+  (typeof ListPetsAccept)[keyof typeof ListPetsAccept];
+
+export const ListPetsAccept = {
+  application_json: 'application/json',
+  application_xml: 'application/xml',
+} as const;
+
+export type ShowPetByIdAccept =
+  (typeof ShowPetByIdAccept)[keyof typeof ShowPetByIdAccept];
+
+export const ShowPetByIdAccept = {
+  text_plain: 'text/plain',
+  application_xml: 'application/xml',
+  application_json: 'application/json',
+} as const;
 
 @Injectable({ providedIn: 'root' })
 export class PetsService {
@@ -94,21 +142,25 @@ export class PetsService {
   /**
    * @summary Search pets by query params
    */
-  searchPets<TData = Pets>(
+  searchPets<TData = PetsOutput>(
     params: SearchPetsParams,
-    options?: HttpClientOptions & { observe?: 'body' },
+    version?: number,
+    options?: HttpClientBodyOptions,
   ): Observable<TData>;
-  searchPets<TData = Pets>(
+  searchPets<TData = PetsOutput>(
     params: SearchPetsParams,
-    options?: HttpClientOptions & { observe: 'events' },
+    version?: number,
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
-  searchPets<TData = Pets>(
+  searchPets<TData = PetsOutput>(
     params: SearchPetsParams,
-    options?: HttpClientOptions & { observe: 'response' },
+    version?: number,
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
-  searchPets<TData = Pets>(
+  searchPets<TData = PetsOutput>(
     params: SearchPetsParams,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    version: number = 1,
+    options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     const filteredParams = filterParams(
       { ...params, ...options?.params },
@@ -116,23 +168,37 @@ export class PetsService {
     );
 
     if (options?.observe === 'events') {
-      return this.http.get<TData>(`/search`, {
-        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
-        observe: 'events',
-        params: filteredParams,
-      });
+      return this.http
+        .get<TData>(`/v${version}/search`, {
+          ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+          observe: 'events',
+          params: filteredParams,
+        })
+        .pipe(
+          map((event) =>
+            event instanceof AngularHttpResponse
+              ? event.clone({ body: Pets.parse(event.body) as TData })
+              : event,
+          ),
+        );
     }
 
     if (options?.observe === 'response') {
-      return this.http.get<TData>(`/search`, {
-        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
-        observe: 'response',
-        params: filteredParams,
-      });
+      return this.http
+        .get<TData>(`/v${version}/search`, {
+          ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+          observe: 'response',
+          params: filteredParams,
+        })
+        .pipe(
+          map((response) =>
+            response.clone({ body: Pets.parse(response.body) as TData }),
+          ),
+        );
     }
 
     return this.http
-      .get<TData>(`/search`, {
+      .get<TData>(`/v${version}/search`, {
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'body',
         params: filteredParams,
@@ -145,23 +211,32 @@ export class PetsService {
   listPets(
     accept: 'application/json',
     params?: ListPetsParams,
+    version?: number,
     options?: HttpClientOptions,
-  ): Observable<Pets>;
+  ): Observable<PetsOutput>;
   listPets(
     accept: 'application/xml',
     params?: ListPetsParams,
+    version?: number,
     options?: HttpClientOptions,
   ): Observable<string>;
   listPets(
-    accept?: string,
+    accept?: ListPetsAccept,
     params?: ListPetsParams,
+    version?: number,
     options?: HttpClientOptions,
-  ): Observable<Pets | string | Blob>;
+  ): Observable<PetsOutput | string>;
   listPets(
-    accept: string = 'application/json',
+    accept: ListPetsAccept = 'application/json',
     params?: ListPetsParams,
+    version: number = 1,
     options?: HttpClientOptions,
-  ): Observable<Pets | string | Blob> {
+  ): Observable<PetsOutput | string> {
+    const filteredParams = filterParams(
+      { ...params, ...options?.params },
+      new Set<string>([]),
+    );
+
     const headers =
       options?.headers instanceof HttpHeaders
         ? options.headers.set('Accept', accept)
@@ -169,60 +244,69 @@ export class PetsService {
 
     if (accept.includes('json') || accept.includes('+json')) {
       return this.http
-        .get<Pets>(`/pets`, {
+        .get<PetsOutput>(`/v${version}/pets`, {
           ...options,
           responseType: 'json',
           headers,
+          params: filteredParams,
         })
         .pipe(map((data) => Pets.parse(data)));
     } else if (accept.startsWith('text/') || accept.includes('xml')) {
-      return this.http.get(`/pets`, {
+      return this.http.get(`/v${version}/pets`, {
         ...options,
         responseType: 'text',
         headers,
+        params: filteredParams,
       }) as Observable<string>;
-    } else {
-      return this.http.get(`/pets`, {
-        ...options,
-        responseType: 'blob',
-        headers,
-      }) as Observable<Blob>;
     }
+
+    return this.http
+      .get<PetsOutput>(`/v${version}/pets`, {
+        ...options,
+        responseType: 'json',
+        headers,
+        params: filteredParams,
+      })
+      .pipe(map((data) => Pets.parse(data)));
   }
   /**
    * @summary Create a pet
    */
   createPets<TData = void>(
     createPetsBody: CreatePetsBody,
-    options?: HttpClientOptions & { observe?: 'body' },
+    version?: number,
+    options?: HttpClientBodyOptions,
   ): Observable<TData>;
   createPets<TData = void>(
     createPetsBody: CreatePetsBody,
-    options?: HttpClientOptions & { observe: 'events' },
+    version?: number,
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   createPets<TData = void>(
     createPetsBody: CreatePetsBody,
-    options?: HttpClientOptions & { observe: 'response' },
+    version?: number,
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   createPets<TData = void>(
     createPetsBody: CreatePetsBody,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    version: number = 1,
+    options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     if (options?.observe === 'events') {
-      return this.http.post<TData>(`/pets`, createPetsBody, {
+      return this.http.post<TData>(`/v${version}/pets`, createPetsBody, {
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'events',
       });
     }
 
     if (options?.observe === 'response') {
-      return this.http.post<TData>(`/pets`, createPetsBody, {
+      return this.http.post<TData>(`/v${version}/pets`, createPetsBody, {
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'response',
       });
     }
 
-    return this.http.post<TData>(`/pets`, createPetsBody, {
+    return this.http.post<TData>(`/v${version}/pets`, createPetsBody, {
       ...(options as Omit<NonNullable<typeof options>, 'observe'>),
       observe: 'body',
     });
@@ -233,28 +317,33 @@ export class PetsService {
   showPetById(
     petId: string,
     accept: 'text/plain',
+    version?: number,
     options?: HttpClientOptions,
   ): Observable<string>;
   showPetById(
     petId: string,
     accept: 'application/xml',
+    version?: number,
     options?: HttpClientOptions,
   ): Observable<string>;
   showPetById(
     petId: string,
     accept: 'application/json',
+    version?: number,
     options?: HttpClientOptions,
-  ): Observable<Pet>;
+  ): Observable<PetOutput>;
   showPetById(
     petId: string,
-    accept?: string,
+    accept?: ShowPetByIdAccept,
+    version?: number,
     options?: HttpClientOptions,
-  ): Observable<Pet | string | Blob>;
+  ): Observable<PetOutput | string>;
   showPetById(
     petId: string,
-    accept: string = 'text/plain',
+    accept: ShowPetByIdAccept = 'application/json',
+    version: number = 1,
     options?: HttpClientOptions,
-  ): Observable<Pet | string | Blob> {
+  ): Observable<PetOutput | string> {
     const headers =
       options?.headers instanceof HttpHeaders
         ? options.headers.set('Accept', accept)
@@ -262,47 +351,53 @@ export class PetsService {
 
     if (accept.includes('json') || accept.includes('+json')) {
       return this.http
-        .get<Pet>(`/pets/${petId}`, {
+        .get<PetOutput>(`/v${version}/pets/${petId}`, {
           ...options,
           responseType: 'json',
           headers,
         })
         .pipe(map((data) => Pet.parse(data)));
     } else if (accept.startsWith('text/') || accept.includes('xml')) {
-      return this.http.get(`/pets/${petId}`, {
+      return this.http.get(`/v${version}/pets/${petId}`, {
         ...options,
         responseType: 'text',
         headers,
       }) as Observable<string>;
-    } else {
-      return this.http.get(`/pets/${petId}`, {
-        ...options,
-        responseType: 'blob',
-        headers,
-      }) as Observable<Blob>;
     }
+
+    return this.http
+      .get<PetOutput>(`/v${version}/pets/${petId}`, {
+        ...options,
+        responseType: 'json',
+        headers,
+      })
+      .pipe(map((data) => Pet.parse(data)));
   }
   /**
    * @summary Info for a specific pet as plain text
    */
   showPetText(
     petId: string,
-    options?: HttpClientOptions & { observe?: 'body' },
+    version?: number,
+    options?: HttpClientBodyOptions,
   ): Observable<string>;
   showPetText(
     petId: string,
-    options?: HttpClientOptions & { observe: 'events' },
+    version?: number,
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<string>>;
   showPetText(
     petId: string,
-    options?: HttpClientOptions & { observe: 'response' },
+    version?: number,
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<string>>;
   showPetText(
     petId: string,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    version: number = 1,
+    options?: HttpClientObserveOptions,
   ): Observable<string | HttpEvent<string> | AngularHttpResponse<string>> {
     if (options?.observe === 'events') {
-      return this.http.get(`/pets/${petId}/text`, {
+      return this.http.get(`/v${version}/pets/${petId}/text`, {
         responseType: 'text',
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'events',
@@ -310,14 +405,14 @@ export class PetsService {
     }
 
     if (options?.observe === 'response') {
-      return this.http.get(`/pets/${petId}/text`, {
+      return this.http.get(`/v${version}/pets/${petId}/text`, {
         responseType: 'text',
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'response',
       });
     }
 
-    return this.http.get(`/pets/${petId}/text`, {
+    return this.http.get(`/v${version}/pets/${petId}/text`, {
       responseType: 'text',
       ...(options as Omit<NonNullable<typeof options>, 'observe'>),
       observe: 'body',
@@ -330,26 +425,30 @@ export class PetsService {
   uploadFile<TData = void>(
     petId: number,
     uploadFileBody: Blob,
-    options?: HttpClientOptions & { observe?: 'body' },
+    version?: number,
+    options?: HttpClientBodyOptions,
   ): Observable<TData>;
   uploadFile<TData = void>(
     petId: number,
     uploadFileBody: Blob,
-    options?: HttpClientOptions & { observe: 'events' },
+    version?: number,
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   uploadFile<TData = void>(
     petId: number,
     uploadFileBody: Blob,
-    options?: HttpClientOptions & { observe: 'response' },
+    version?: number,
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   uploadFile<TData = void>(
     petId: number,
     uploadFileBody: Blob,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    version: number = 1,
+    options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     if (options?.observe === 'events') {
       return this.http.post<TData>(
-        `/pet/${petId}/uploadImage`,
+        `/v${version}/pet/${petId}/uploadImage`,
         uploadFileBody,
         {
           ...(options as Omit<NonNullable<typeof options>, 'observe'>),
@@ -360,7 +459,7 @@ export class PetsService {
 
     if (options?.observe === 'response') {
       return this.http.post<TData>(
-        `/pet/${petId}/uploadImage`,
+        `/v${version}/pet/${petId}/uploadImage`,
         uploadFileBody,
         {
           ...(options as Omit<NonNullable<typeof options>, 'observe'>),
@@ -369,10 +468,14 @@ export class PetsService {
       );
     }
 
-    return this.http.post<TData>(`/pet/${petId}/uploadImage`, uploadFileBody, {
-      ...(options as Omit<NonNullable<typeof options>, 'observe'>),
-      observe: 'body',
-    });
+    return this.http.post<TData>(
+      `/v${version}/pet/${petId}/uploadImage`,
+      uploadFileBody,
+      {
+        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+        observe: 'body',
+      },
+    );
   }
   /**
    * Download image of the pet.
@@ -380,22 +483,26 @@ export class PetsService {
    */
   downloadFile(
     petId: number,
-    options?: HttpClientOptions & { observe?: 'body' },
+    version?: number,
+    options?: HttpClientBodyOptions,
   ): Observable<Blob>;
   downloadFile(
     petId: number,
-    options?: HttpClientOptions & { observe: 'events' },
+    version?: number,
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<Blob>>;
   downloadFile(
     petId: number,
-    options?: HttpClientOptions & { observe: 'response' },
+    version?: number,
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<Blob>>;
   downloadFile(
     petId: number,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    version: number = 1,
+    options?: HttpClientObserveOptions,
   ): Observable<Blob | HttpEvent<Blob> | AngularHttpResponse<Blob>> {
     if (options?.observe === 'events') {
-      return this.http.get(`/pet/${petId}/downloadImage`, {
+      return this.http.get(`/v${version}/pet/${petId}/downloadImage`, {
         responseType: 'blob',
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'events',
@@ -403,17 +510,25 @@ export class PetsService {
     }
 
     if (options?.observe === 'response') {
-      return this.http.get(`/pet/${petId}/downloadImage`, {
+      return this.http.get(`/v${version}/pet/${petId}/downloadImage`, {
         responseType: 'blob',
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'response',
       });
     }
 
-    return this.http.get(`/pet/${petId}/downloadImage`, {
+    return this.http.get(`/v${version}/pet/${petId}/downloadImage`, {
       responseType: 'blob',
       ...(options as Omit<NonNullable<typeof options>, 'observe'>),
       observe: 'body',
     });
   }
 }
+
+export type SearchPetsClientResult = NonNullable<PetsOutput>;
+export type ListPetsClientResult = NonNullable<PetsOutput | string>;
+export type CreatePetsClientResult = NonNullable<void>;
+export type ShowPetByIdClientResult = NonNullable<string | PetOutput>;
+export type ShowPetTextClientResult = NonNullable<string>;
+export type UploadFileClientResult = NonNullable<void>;
+export type DownloadFileClientResult = NonNullable<Blob>;

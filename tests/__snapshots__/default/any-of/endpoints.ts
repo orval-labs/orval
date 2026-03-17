@@ -7,14 +7,12 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import type { GetItemsParams } from './model';
+import type { CatDetail, GetItemsParams, Pet } from './model';
 
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { CatDetail, Pet } from './model';
 
 /**
  * @summary Gets one of the items

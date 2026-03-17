@@ -30,3 +30,4 @@ export const CreatePetsBody = zod.object({
 });
 
 export type CreatePetsBody = zod.input<typeof CreatePetsBody>;
+export type CreatePetsBodyOutput = zod.output<typeof CreatePetsBody>;

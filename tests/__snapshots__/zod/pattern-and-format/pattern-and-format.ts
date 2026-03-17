@@ -9,10 +9,10 @@ import * as zod from 'zod';
 /**
  * @summary Example
  */
-export const getExampleResponseGuidRegExpOne = new RegExp(
+export const getExampleResponseGuidRegExp = new RegExp(
   '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
 );
 
 export const GetExampleResponse = zod.object({
-  guid: zod.string().regex(getExampleResponseGuidRegExpOne),
+  guid: zod.string().regex(getExampleResponseGuidRegExp),
 });

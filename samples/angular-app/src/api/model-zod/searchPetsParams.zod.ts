@@ -17,3 +17,4 @@ export const SearchPetsParams = zod.object({
 });
 
 export type SearchPetsParams = zod.input<typeof SearchPetsParams>;
+export type SearchPetsParamsOutput = zod.output<typeof SearchPetsParams>;

@@ -4,13 +4,12 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import type {
-  HttpContext,
-  HttpEvent,
-  HttpParams,
+import {
+  HttpClient,
+  HttpHeaders,
   HttpResponse as AngularHttpResponse,
 } from '@angular/common/http';
+import type { HttpContext, HttpEvent, HttpParams } from '@angular/common/http';
 
 import { Injectable, inject } from '@angular/core';
 
@@ -42,7 +41,24 @@ interface HttpClientOptions {
   readonly integrity?: string;
   readonly referrerPolicy?: ReferrerPolicy;
   readonly transferCache?: { includeHeaders?: string[] } | boolean;
+  readonly timeout?: number;
 }
+
+type HttpClientBodyOptions = HttpClientOptions & {
+  readonly observe?: 'body';
+};
+
+type HttpClientEventOptions = HttpClientOptions & {
+  readonly observe: 'events';
+};
+
+type HttpClientResponseOptions = HttpClientOptions & {
+  readonly observe: 'response';
+};
+
+type HttpClientObserveOptions = HttpClientOptions & {
+  readonly observe?: 'body' | 'events' | 'response';
+};
 
 @Injectable({ providedIn: 'root' })
 export class HealthService {
@@ -52,19 +68,19 @@ export class HealthService {
    */
   healthCheck(
     version?: number,
-    options?: HttpClientOptions & { observe?: 'body' },
+    options?: HttpClientBodyOptions,
   ): Observable<string>;
   healthCheck(
     version?: number,
-    options?: HttpClientOptions & { observe: 'events' },
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<string>>;
   healthCheck(
     version?: number,
-    options?: HttpClientOptions & { observe: 'response' },
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<string>>;
   healthCheck(
     version: number = 1,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    options?: HttpClientObserveOptions,
   ): Observable<string | HttpEvent<string> | AngularHttpResponse<string>> {
     if (options?.observe === 'events') {
       return this.http.get(`/v${version}/health`, {

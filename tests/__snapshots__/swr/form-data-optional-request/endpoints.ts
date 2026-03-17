@@ -9,14 +9,12 @@ import type { Key } from 'swr';
 import useSWRMutation from 'swr/mutation';
 import type { SWRMutationConfiguration } from 'swr/mutation';
 
-import type { Error } from './model';
+import type { Error, Pet, PetBase, PetExtended } from './model';
 
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { Pet, PetBase, PetExtended } from './model';
 
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;

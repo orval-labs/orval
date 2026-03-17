@@ -82,5 +82,20 @@ export type MyError = Error;
           "import type {\n  Error\n} from '../models/index.zod';\n",
       );
     });
+
+    it('escapes regex metacharacters when matching referenced imports', () => {
+      const dep = addDependency({
+        implementation: 'const value = schema$Value.parse(data);',
+        dependency: '../models/index.zod',
+        projectName: undefined,
+        hasSchemaDir: true,
+        isAllowSyntheticDefaultImports: true,
+        exports: [{ name: 'schema$Value', values: true }],
+      });
+
+      expect(dep).toBe(
+        "import {\n  schema$Value\n} from '../models/index.zod';\n",
+      );
+    });
   });
 });

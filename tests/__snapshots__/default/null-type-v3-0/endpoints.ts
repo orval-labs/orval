@@ -8,16 +8,16 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 import type {
   NullableAnyObject,
   NullableObject,
   NullableStringEnum,
 } from './model';
+
+import { faker } from '@faker-js/faker';
+
+import { HttpResponse, http } from 'msw';
+import type { RequestHandlerOptions } from 'msw';
 
 /**
  * @summary Nullable response

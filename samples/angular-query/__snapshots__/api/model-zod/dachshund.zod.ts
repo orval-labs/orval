@@ -12,3 +12,4 @@ export const Dachshund = zod.object({
 });
 
 export type Dachshund = zod.input<typeof Dachshund>;
+export type DachshundOutput = zod.output<typeof Dachshund>;

@@ -12,14 +12,12 @@ import type {
   UseMutationResult,
 } from '@tanstack/react-query';
 
-import type { Error } from './model';
+import type { Error, Pet, PetBase, PetExtended } from './model';
 
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { Pet, PetBase, PetExtended } from './model';
 
 import { customInstance } from '../../../mutators/custom-instance';
 /**

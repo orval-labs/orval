@@ -1,165 +1,151 @@
 .pets-page {
-  max-width: 900px;
-  margin: 0 auto;
+  display: grid;
+  gap: 20px;
 }
 
-/* ── Page header ── */
-.page-header {
-  margin-bottom: 36px;
+.demo-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr);
+  gap: 16px;
+  align-items: start;
 }
 
-.page-header-inner {
-  display: flex;
-  align-items: center;
+.panel-stack {
+  display: grid;
   gap: 16px;
 }
 
-.logo-glow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 14px;
-  background: var(--accent-dim);
-  border: 1px solid var(--accent-glow);
-  box-shadow:
-    0 0 24px var(--accent-glow),
-    inset 0 0 12px var(--accent-dim);
-  flex-shrink: 0;
-  transition: box-shadow 0.3s ease;
-
-  &:hover {
-    box-shadow:
-      0 0 40px var(--accent-glow),
-      inset 0 0 20px var(--accent-dim);
-  }
-}
-
-.page-title {
-  font-family: var(--font-display);
-  font-size: 2.2rem;
-  font-weight: 800;
-  color: var(--text);
-  letter-spacing: -0.03em;
-  margin: 0;
-}
-
-.page-sub {
-  color: var(--text-2);
-  font-size: 0.875rem;
-  margin-top: 4px;
-}
-
-/* ── Grid ── */
 .pets-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 12px;
-  margin-bottom: 32px;
 }
 
-.pet-card {
+.pet-form {
+  display: grid;
+  gap: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field span {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.field input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.field input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-color: var(--accent-glow);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--accent-dim);
+  border-color: var(--accent-glow);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-icon {
+  font-size: 1rem;
+}
+
+.inline-result {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+}
+
+.inline-result.success {
+  color: var(--success);
+  background: var(--success-dim);
+  border: 1px solid oklch(0.75 0.16 148 / 0.3);
+}
+
+.inline-result.failure {
+  color: var(--error);
+  background: var(--error-dim);
+  border: 1px solid oklch(0.68 0.22 22 / 0.3);
+}
+
+.overload-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.overload-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.overload-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.overload-meta h3 {
+  font-size: 0.92rem;
+}
+
+.overload-card pre {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 16px;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
-  animation: cardIn 0.3s ease backwards;
-  cursor: default;
-
-  &:hover {
-    border-color: var(--border-2);
-    box-shadow: 0 4px 20px oklch(0 0 0 / 0.5);
-    transform: translateY(-2px);
-  }
-}
-
-.pet-card:nth-child(1) {
-  animation-delay: 0.05s;
-}
-.pet-card:nth-child(2) {
-  animation-delay: 0.1s;
-}
-.pet-card:nth-child(3) {
-  animation-delay: 0.15s;
-}
-.pet-card:nth-child(4) {
-  animation-delay: 0.2s;
-}
-.pet-card:nth-child(5) {
-  animation-delay: 0.25s;
-}
-.pet-card:nth-child(6) {
-  animation-delay: 0.3s;
-}
-.pet-card:nth-child(7) {
-  animation-delay: 0.35s;
-}
-.pet-card:nth-child(8) {
-  animation-delay: 0.4s;
-}
-.pet-card:nth-child(9) {
-  animation-delay: 0.45s;
-}
-.pet-card:nth-child(10) {
-  animation-delay: 0.5s;
-}
-
-.pet-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.pet-card-id {
+  padding: 10px 12px;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--text-3);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--text-3);
-
-  &.status-available {
-    background: var(--success);
-    box-shadow: 0 0 6px var(--success);
-  }
-  &.status-pending {
-    background: var(--warning);
-    box-shadow: 0 0 6px var(--warning);
-  }
-  &.status-sold {
-    background: var(--text-3);
-  }
-}
-
-.pet-card-name {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0 0 8px;
-  letter-spacing: -0.01em;
-}
-
-.pet-card-tag {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--accent);
-  background: var(--accent-dim);
-  padding: 2px 7px;
-  border-radius: 3px;
-}
-
-/* ── Loading ── */
 .loading-state {
   display: flex;
   align-items: center;
@@ -167,7 +153,6 @@
   font-family: var(--font-mono);
   font-size: 0.85rem;
   color: var(--text-3);
-  margin-bottom: 32px;
 }
 
 .loading-dot {
@@ -199,30 +184,12 @@
   color: var(--text-3);
 }
 
-.devnote-badge {
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 1px 6px;
-  border-radius: 3px;
-  background: var(--surface-2);
-  color: var(--text-3);
-  border: 1px solid var(--border-2);
-  flex-shrink: 0;
-  margin-top: 1px;
+.muted {
+  color: var(--text-2);
 }
 
-/* ── Animations ── */
-@keyframes cardIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.error {
+  color: var(--error);
 }
 
 @keyframes pulse {
@@ -237,8 +204,14 @@
   }
 }
 
+@media (max-width: 960px) {
+  .demo-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 480px) {
   .pets-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 }

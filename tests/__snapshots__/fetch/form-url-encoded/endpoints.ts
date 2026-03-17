@@ -4,14 +4,12 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import type { CreatePetsBody, Error } from './model';
+import type { CreatePetsBody, Error, Pet } from './model';
 
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { Pet } from './model';
 
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;

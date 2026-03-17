@@ -1,10 +1,9 @@
-import { NgOptimizedImage } from '@angular/common';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgOptimizedImage],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     role: 'application',
@@ -13,13 +12,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
     <header class="app-header">
       <div class="brand">
         <div class="logo-wrap">
-          <img
-            ngSrc="logo.svg"
-            width="28"
-            height="28"
-            priority
-            alt="Orval logo"
-          />
+          <img src="logo.svg" width="83" height="28" alt="Orval logo" />
         </div>
         <div class="brand-copy">
           <span class="brand-name">orval</span>
@@ -36,7 +29,34 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
           [attr.aria-current]="petsRla.isActive ? 'page' : null"
           class="nav-link"
         >
-          <span class="nav-icon">◈</span> Pet Store
+          <span class="nav-icon">◎</span> HttpClient
+        </a>
+        <a
+          routerLink="/http-client-custom-params"
+          #customParamsRla="routerLinkActive"
+          routerLinkActive="active"
+          [attr.aria-current]="customParamsRla.isActive ? 'page' : null"
+          class="nav-link"
+        >
+          <span class="nav-icon">⟲</span> HttpClient + Params
+        </a>
+        <a
+          routerLink="/http-resource"
+          #httpResourceRla="routerLinkActive"
+          routerLinkActive="active"
+          [attr.aria-current]="httpResourceRla.isActive ? 'page' : null"
+          class="nav-link"
+        >
+          <span class="nav-icon">◌</span> httpResource
+        </a>
+        <a
+          routerLink="/http-resource-zod"
+          #httpResourceZodRla="routerLinkActive"
+          routerLinkActive="active"
+          [attr.aria-current]="httpResourceZodRla.isActive ? 'page' : null"
+          class="nav-link"
+        >
+          <span class="nav-icon">⬢</span> httpResource + Zod
         </a>
         <a
           routerLink="/zod-demo"
@@ -67,14 +87,13 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
       top: 0;
       z-index: 50;
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-start;
       align-items: center;
       gap: 16px;
-      padding: 0 32px;
-      height: 56px;
+      padding: 12px 32px;
+      min-height: 64px;
       background: var(--surface);
       border-bottom: 1px solid var(--border);
-      flex-wrap: wrap;
 
       /* subtle noise texture */
       &::after {
@@ -90,16 +109,18 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
       display: flex;
       align-items: center;
       gap: 10px;
+      position: relative;
+      z-index: 1;
+      flex-shrink: 0;
     }
 
     .logo-wrap {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 36px;
       height: 36px;
+      padding: 0 10px;
       border-radius: 8px;
-      background: var(--accent-dim);
       border: 1px solid var(--accent-glow);
       box-shadow: 0 0 12px var(--accent-glow);
       transition: box-shadow 0.3s ease;
@@ -134,13 +155,22 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
     .nav-bar {
       display: flex;
+      flex: 1;
       gap: 4px;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      align-items: center;
+      margin-left: 8px;
+      position: relative;
+      z-index: 1;
     }
 
     .nav-link {
       display: flex;
       align-items: center;
       gap: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
       text-decoration: none;
       color: var(--text-2);
       padding: 6px 14px;
@@ -178,9 +208,47 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
       opacity: 0.7;
     }
 
+    @media (max-width: 960px) {
+      .app-header {
+        align-items: flex-start;
+        padding-inline: 20px;
+      }
+
+      .nav-bar {
+        width: 100%;
+        flex: 0 0 100%;
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        margin-left: 0;
+        padding-bottom: 4px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border-2) transparent;
+      }
+
+      .nav-bar::-webkit-scrollbar {
+        height: 6px;
+      }
+
+      .nav-bar::-webkit-scrollbar-thumb {
+        background: var(--border-2);
+        border-radius: 999px;
+      }
+
+      main {
+        padding: 32px 20px 24px;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .brand-tag {
+        display: none;
+      }
+    }
+
     main {
       flex: 1;
-      padding: 32px;
+      padding: 40px 32px 32px;
       background: var(--bg);
     }
 
@@ -190,8 +258,9 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
         height: auto;
         padding-block: 12px;
       }
+
       main {
-        padding: 20px 16px;
+        padding: 28px 16px 20px;
       }
     }
   `,

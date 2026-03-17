@@ -1,0 +1,82 @@
+<app-demo-page-frame
+  eyebrow="Generated Angular service"
+  title="HttpClient services"
+  description="This page uses the same default generated Angular HttpClient service as Pet Store, but presents it as a method-by-method API showcase with list fetching and content-type overloads called out explicitly."
+  why="Use this page when you want to inspect the raw generated service surface area, then compare it with the more product-like Pet Store overview and the advanced client variants."
+  [highlights]="highlights"
+>
+  <div class="demo-grid">
+    <app-demo-panel
+      class="panel--wide"
+      title="listPets()"
+      description="Generated service call returning an RxJS stream from HttpClient."
+    >
+      @if (petsState$ | async; as petsState) {
+      <app-badge panel-badge>Status: {{ petsState.status }}</app-badge>
+      } @if (petsState$ | async; as petsState) { @if (petsState.status ===
+      'loading') {
+      <p class="muted">Loading pets…</p>
+      } @else if (petsState.status === 'error') {
+      <p class="error">{{ petsState.error }}</p>
+      } @else if (petsState.data.length) {
+      <div class="pet-grid" role="list" aria-label="Pets list from listPets()">
+        @for (pet of petsState.data; track pet.id) {
+        <app-pet-card [pet]="pet" />
+        }
+      </div>
+      } @else {
+      <p class="muted">No pets returned.</p>
+      } }
+    </app-demo-panel>
+
+    <section class="panel-stack">
+      <app-demo-panel
+        title="showPetById()"
+        description="text/plain overload"
+        compact
+      >
+        @if (petTextState$ | async; as petTextState) {
+        <app-badge panel-badge>Status: {{ petTextState.status }}</app-badge>
+        } @if (petTextState$ | async; as petTextState) { @if
+        (petTextState.status === 'error') {
+        <p class="error">{{ petTextState.error }}</p>
+        }
+
+        <pre>{{ petTextState.data }}</pre>
+        }
+      </app-demo-panel>
+
+      <app-demo-panel
+        title="showPetById()"
+        description="application/xml overload"
+        compact
+      >
+        @if (petXmlState$ | async; as petXmlState) {
+        <app-badge panel-badge>Status: {{ petXmlState.status }}</app-badge>
+        } @if (petXmlState$ | async; as petXmlState) { @if (petXmlState.status
+        === 'error') {
+        <p class="error">{{ petXmlState.error }}</p>
+        }
+
+        <pre>{{ petXmlState.data | json }}</pre>
+        }
+      </app-demo-panel>
+
+      <app-demo-panel
+        title="showPetById()"
+        description="application/json overload"
+        compact
+      >
+        @if (petJsonState$ | async; as petJsonState) {
+        <app-badge panel-badge>Status: {{ petJsonState.status }}</app-badge>
+        } @if (petJsonState$ | async; as petJsonState) { @if
+        (petJsonState.status === 'error') {
+        <p class="error">{{ petJsonState.error }}</p>
+        }
+
+        <pre>{{ petJsonState.data | json }}</pre>
+        }
+      </app-demo-panel>
+    </section>
+  </div>
+</app-demo-page-frame>

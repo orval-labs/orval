@@ -67,3 +67,4 @@ export const Pets = zod
   .max(PetsMax);
 
 export type Pets = zod.input<typeof Pets>;
+export type PetsOutput = zod.output<typeof Pets>;

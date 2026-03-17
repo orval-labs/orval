@@ -11,3 +11,6 @@ export const ExternalPositionSchema = zod.object({
 });
 
 export type ExternalPositionSchema = zod.input<typeof ExternalPositionSchema>;
+export type ExternalPositionSchemaOutput = zod.output<
+  typeof ExternalPositionSchema
+>;

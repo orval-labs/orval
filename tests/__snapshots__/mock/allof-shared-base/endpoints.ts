@@ -7,12 +7,12 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
+import type { Response } from './model';
+
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { Response } from './model';
 
 /**
  * allOf with shared base schema in deeply nested structure.

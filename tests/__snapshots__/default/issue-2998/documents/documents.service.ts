@@ -5,13 +5,12 @@
  * Minimal OpenAPI spec for testing Orval code generation
  * OpenAPI spec version: 1.0.0
  */
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import type {
-  HttpContext,
-  HttpEvent,
-  HttpParams,
+import {
+  HttpClient,
+  HttpHeaders,
   HttpResponse as AngularHttpResponse,
 } from '@angular/common/http';
+import type { HttpContext, HttpEvent, HttpParams } from '@angular/common/http';
 
 import { Injectable, inject } from '@angular/core';
 
@@ -40,7 +39,24 @@ interface HttpClientOptions {
   readonly integrity?: string;
   readonly referrerPolicy?: ReferrerPolicy;
   readonly transferCache?: { includeHeaders?: string[] } | boolean;
+  readonly timeout?: number;
 }
+
+type HttpClientBodyOptions = HttpClientOptions & {
+  readonly observe?: 'body';
+};
+
+type HttpClientEventOptions = HttpClientOptions & {
+  readonly observe: 'events';
+};
+
+type HttpClientResponseOptions = HttpClientOptions & {
+  readonly observe: 'response';
+};
+
+type HttpClientObserveOptions = HttpClientOptions & {
+  readonly observe?: 'body' | 'events' | 'response';
+};
 
 @Injectable({ providedIn: 'root' })
 export class DocumentsService {
@@ -51,22 +67,22 @@ export class DocumentsService {
   getDocuments<TData = DocumentCollectionDTO>(
     module: 'requests' | 'procedures',
     referenceId: string,
-    options?: HttpClientOptions & { observe?: 'body' },
+    options?: HttpClientBodyOptions,
   ): Observable<TData>;
   getDocuments<TData = DocumentCollectionDTO>(
     module: 'requests' | 'procedures',
     referenceId: string,
-    options?: HttpClientOptions & { observe: 'events' },
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   getDocuments<TData = DocumentCollectionDTO>(
     module: 'requests' | 'procedures',
     referenceId: string,
-    options?: HttpClientOptions & { observe: 'response' },
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   getDocuments<TData = DocumentCollectionDTO>(
     module: 'requests' | 'procedures',
     referenceId: string,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     if (options?.observe === 'events') {
       return this.http.get<TData>(`/api/${module}/${referenceId}/documents`, {
@@ -95,28 +111,28 @@ export class DocumentsService {
     referenceId: string,
     category: 'category_a' | 'category_b' | 'category_c',
     addDocumentBody: AddDocumentBody,
-    options?: HttpClientOptions & { observe?: 'body' },
+    options?: HttpClientBodyOptions,
   ): Observable<TData>;
   addDocument<TData = DocumentCollectionDTO>(
     module: 'requests' | 'procedures',
     referenceId: string,
     category: 'category_a' | 'category_b' | 'category_c',
     addDocumentBody: AddDocumentBody,
-    options?: HttpClientOptions & { observe: 'events' },
+    options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   addDocument<TData = DocumentCollectionDTO>(
     module: 'requests' | 'procedures',
     referenceId: string,
     category: 'category_a' | 'category_b' | 'category_c',
     addDocumentBody: AddDocumentBody,
-    options?: HttpClientOptions & { observe: 'response' },
+    options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   addDocument<TData = DocumentCollectionDTO>(
     module: 'requests' | 'procedures',
     referenceId: string,
     category: 'category_a' | 'category_b' | 'category_c',
     addDocumentBody: AddDocumentBody,
-    options?: HttpClientOptions & { observe?: 'body' | 'events' | 'response' },
+    options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     const formData = new FormData();
     formData.append(`file`, addDocumentBody.file);

@@ -19,3 +19,4 @@ export const Error = zod.object({
 });
 
 export type Error = zod.input<typeof Error>;
+export type ErrorOutput = zod.output<typeof Error>;

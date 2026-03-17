@@ -6,7 +6,17 @@ import { AppShell } from './app/app.shell';
 async function prepareApp() {
   if (isDevMode()) {
     const { worker } = await import('./orval/browser');
-    return worker.start();
+    return worker.start({
+      onUnhandledRequest(request, print) {
+        const pathname = new URL(request.url).pathname;
+
+        if (!pathname.startsWith('/v')) {
+          return;
+        }
+
+        print.warning();
+      },
+    });
   }
 
   return Promise.resolve();

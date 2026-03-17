@@ -1,13 +1,22 @@
 ---
 title: Angular
-description: Generate Angular services with HttpClient from OpenAPI
+description: Generate Angular services with HttpClient and httpResource functions from OpenAPI
 ---
 
-Generate fully typed Angular services using HttpClient from your OpenAPI specification.
+Generate fully typed Angular services using `HttpClient` or signal-first
+`httpResource` functions from your OpenAPI specification.
+
+If you want the short version:
+
+- use `httpClient` for classic Angular service-based APIs
+- use `httpResource` for signal-first read flows
+- use `both` when you want resource-based reads and service-based writes together
+- enable `override.angular.runtimeValidation` when you generate Zod schemas and
+  want runtime response validation
 
 ## Configuration
 
-Set the `client` option to `angular`:
+Set `output.client` to `angular` to enable Orval's Angular generator:
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -28,55 +37,520 @@ export default defineConfig({
 });
 ```
 
+`output.client = 'angular'` selects the Angular generator. After that, use
+`override.angular.retrievalClient` to choose how **retrieval-style** Angular
+operations should be generated. The older `override.angular.client` key remains
+supported as a backward-compatible alias.
+
 ## Generated Output
 
-The Angular client generates two classes:
+By default, the Angular client generates injectable service classes backed by
+`HttpClient`.
 
-1. **Abstract class** — Contains the service definition
-2. **Service class** — Contains the implementation
+Available Angular retrieval modes:
 
-Add the service to your module's providers to use it:
+- `httpClient` — keep retrievals as injectable service methods backed by `HttpClient`
+- `httpResource` — generate signal-first `httpResource` functions for
+  retrieval-style operations
+- `both` — generate `httpResource` retrievals and keep `HttpClient` methods for
+  imperative request handling
 
-```ts title="app.module.ts"
+Mutation-style operations such as create, update, delete, and most imperative
+`POST` calls continue to use generated `HttpClient` service methods by default.
+If you need different behavior for a specific operation, use an operation-level
+Angular override.
+
+Register the generated service via DI (standalone or module-based apps both
+work):
+
+```ts title="app.config.ts"
+import { provideHttpClient } from '@angular/common/http';
+import { ApplicationConfig } from '@angular/core';
+
 import { PetstoreService } from './api/petstore';
 
-@NgModule({
-  providers: [PetstoreService],
-})
-export class AppModule {}
+export const appConfig: ApplicationConfig = {
+  providers: [provideHttpClient(), PetstoreService],
+};
 ```
+
+`providedIn` applies to generated service classes only. `httpResource`
+functions are plain exports, so you import and call them directly where you
+need them.
+
+## Choosing the Angular output mode
+
+Use `override.angular.retrievalClient` to choose the generated Angular
+retrieval mode:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: 'src/api/model',
+      client: 'angular',
+      override: {
+        angular: {
+          retrievalClient: 'httpClient',
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+If you omit `override.angular.retrievalClient` (or the legacy
+`override.angular.client` alias), Orval uses the default Angular
+`HttpClient` service-class output.
+
+### Which mode should you choose?
+
+| `override.angular.retrievalClient` | What Orval generates | Choose it when |
+|---|---|---|
+| `httpClient` | Retrievals stay on injectable service classes backed by `HttpClient` | You want conventional Angular services, imperative request methods, and the broadest compatibility with request options and mutators |
+| `httpResource` | Retrieval-style operations become signal-first `httpResource` functions; mutations still use `HttpClient` service methods | You want Angular-native signal ergonomics for reads and prefer resource-based data fetching |
+| `both` | Service classes plus sibling `*.resource.ts` retrieval helpers | You want signal-first reads and imperative writes together |
+
+Quick rule of thumb:
+
+- choose `httpClient` for classic Angular service-based APIs
+- choose `httpResource` for signal-first read flows
+- choose `both` when your app wants both patterns side-by-side
+- if you do not set `override.angular.retrievalClient`, Orval defaults to `httpClient`
+- create, update, delete, and other mutation-style operations still use `HttpClient` methods by default
 
 ## Setting the Backend URL
 
-Use an HTTP interceptor to automatically add the API base URL:
+Use an HTTP interceptor to automatically add the API base URL. In modern
+standalone Angular apps, a functional interceptor keeps the setup compact:
 
 ```ts title="api.interceptor.ts"
-import { Injectable } from '@angular/core';
-import {
-  HttpInterceptor,
-  HttpRequest,
-  HttpHandler,
-} from '@angular/common/http';
+import { HttpInterceptorFn } from '@angular/common/http';
 
-@Injectable()
-export class ApiInterceptor implements HttpInterceptor {
-  intercept(req: HttpRequest<any>, next: HttpHandler) {
-    const apiReq = req.clone({
+export const apiInterceptor: HttpInterceptorFn = (req, next) => {
+  return next(
+    req.clone({
       url: `https://api.example.com${req.url}`,
-    });
-    return next.handle(apiReq);
-  }
+    }),
+  );
+};
+```
+
+```ts title="app.config.ts"
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { ApplicationConfig } from '@angular/core';
+
+import { apiInterceptor } from './api.interceptor';
+
+export const appConfig: ApplicationConfig = {
+  providers: [provideHttpClient(withInterceptors([apiInterceptor]))],
+};
+```
+
+## httpResource Output (Angular v19.2+)
+
+Enable the `httpResource` retrieval mode with `override.angular.retrievalClient`.
+This mode targets Angular's `httpResource` API, which is available in Angular
+v19.2+:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/http-resource/petstore.ts',
+      schemas: 'src/api/model',
+      client: 'angular',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+Generated resource functions use signals and return `HttpResourceRef<T>`:
+
+```ts title="pets.service.ts"
+export function showPetByIdResource(
+  petId: Signal<string>,
+): HttpResourceRef<Pet | undefined> {
+  return httpResource<Pet>(() => `/pets/${petId()}`);
 }
 ```
 
+Because Orval returns Angular's native `HttpResourceRef`, you automatically get
+Angular's resource APIs such as `hasValue()`, `status()`, `error()`,
+`reload()`, and the resource snapshot API for advanced composition.
+
+### Which operations become `httpResource` functions?
+
+Orval generates `httpResource` helpers for retrieval-style operations.
+
+- `GET` operations are generated as resources
+- retrieval-style `POST` operations, such as search/list/find/query endpoints,
+  can also be generated as resources
+- mutation-style operations remain `HttpClient` service methods
+
+If you need to override the default classification for a specific operation, use
+an operation-level Angular override:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'angular',
+      target: 'src/api/petstore.ts',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+        operations: {
+          searchPets: {
+            angular: {
+              retrievalClient: 'httpResource',
+            },
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+This is especially useful when your API uses `POST` for retrieval-style
+endpoints.
+
+### Consume generated resources safely
+
+Guard `value()` reads with `hasValue()`. Angular resources throw if you read
+`value()` while the resource is in an error state, so `hasValue()` is the safe
+and recommended gate.
+
+```ts title="pets.page.ts"
+import { computed, signal } from '@angular/core';
+
+import { showPetByIdResource } from './api/http-resource/pets.service';
+
+const petId = signal('1');
+const petResource = showPetByIdResource(petId);
+
+const petName = computed(() => {
+  if (!petResource.hasValue()) {
+    return undefined;
+  }
+
+  return petResource.value().name;
+});
+```
+
+> [!TIP]
+> Prefer returning a fallback from a `computed()` when `hasValue()` is false
+> instead of reading `value()` unconditionally. That keeps loading and error
+> states safe in templates and component logic.
+
+### Multiple content types
+
+When an operation can return multiple response content types, generated
+resources may expose an `accept` parameter and return different result types for
+different `Accept` values.
+
+```ts title="pets.service.ts"
+export function showPetByIdResource(
+  petId: Signal<string>,
+  accept: 'application/json',
+): HttpResourceRef<Pet | undefined>;
+
+export function showPetByIdResource(
+  petId: Signal<string>,
+  accept: 'text/plain',
+): HttpResourceRef<string | undefined>;
+```
+
+This keeps the generated Angular API aligned with your OpenAPI response matrix,
+including plain-text, blob, and array-buffer resource variants where needed.
+
+### `both` mode
+
+Use `both` when you want signal-first retrievals and imperative `HttpClient`
+methods in the same generated area:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: 'src/api/model',
+      client: 'angular',
+      override: {
+        angular: {
+          retrievalClient: 'both',
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+In `both` mode, Orval keeps the service class in your main generated file and
+emits the retrieval resources in a sibling `*.resource.ts` file.
+
+```ts title="pets.page.ts"
+import { PetstoreService } from './api/petstore';
+import { listPetsResource } from './api/petstore.resource';
+```
+
+This separation works well when your app prefers signal-first reads but still
+needs service methods for writes or imperative request flows.
+
+### httpResource options
+
+You can customize generated `httpResource` calls through
+`override.angular.httpResource`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/http-resource/petstore.ts',
+      schemas: {
+        type: 'zod',
+        path: 'src/api/model-zod',
+      },
+      client: 'angular',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+          httpResource: {
+            defaultValue: { id: 'fallback' },
+            debugName: 'getPetByIdResource',
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+Common options:
+
+- `defaultValue` — initial value exposed while the resource is idle/loading
+- `debugName` — name shown in Angular DevTools
+
+Advanced options:
+
+- `injector` — raw expression passed to `HttpResourceOptions.injector`
+- `equal` — raw expression passed to `HttpResourceOptions.equal`
+
+For more advanced cases, you can also pass raw expressions for Angular's
+resource options:
+
+```ts title="orval.config.ts"
+override: {
+  angular: {
+    retrievalClient: 'httpResource',
+    httpResource: {
+      injector: 'inject(Injector)',
+      equal: '(a, b) => a?.id === b?.id',
+    },
+  },
+}
+```
+
+Operation-level `httpResource` options override global ones:
+
+```ts title="orval.config.ts"
+override: {
+  angular: {
+    retrievalClient: 'httpResource',
+    httpResource: {
+      debugName: 'globalPetResource',
+    },
+  },
+  operations: {
+    showPetById: {
+      angular: {
+        retrievalClient: 'httpResource',
+        httpResource: {
+          debugName: 'showPetByIdResource',
+        },
+      },
+    },
+  },
+}
+```
+
+Orval also emits a shared helper type for these options. The exact default
+generic for `TOmitParse` depends on the generated file, but the emitted shape
+is:
+
+```ts
+export type OrvalHttpResourceOptions<
+  TValue,
+  TRaw = unknown,
+  TOmitParse extends boolean = false,
+> = TOmitParse extends true
+  ? Omit<HttpResourceOptions<TValue, TRaw>, 'parse'>
+  : HttpResourceOptions<TValue, TRaw>;
+```
+
+When `defaultValue` is configured, generated resource overloads return
+`HttpResourceRef<T>` instead of `HttpResourceRef<T | undefined>`.
+
+### Mutator compatibility
+
+`httpResource` output supports request-compatible mutators, but it cannot use
+`HttpClient`-style mutators that require the generated `HttpClient` instance as
+an extra argument. If your mutator depends on that injected `HttpClient`
+parameter, prefer `httpClient` or `both` mode for that operation.
+
+## httpResource + Zod schema types
+
+When `schemas.type` is set to `zod`, Orval can generate Angular `httpResource`
+functions alongside the Zod-backed model files. The generated resources still
+return Angular's native `HttpResourceRef`, so the main best-practice remains the
+same: guard `value()` reads with `hasValue()` and test loading/error states the
+same way you would for any other `httpResource`.
+
+With `override.angular.runtimeValidation: true`, generated JSON resources also
+emit `parse: Schema.parse` and expose Zod output types such as `PetOutput` and
+`PetsOutput`.
+
+> [!NOTE]
+> Zod is a runtime dependency when you enable `schemas.type: 'zod'`.
+> Make sure your app installs `zod` (for example, `zod` in `dependencies`).
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/http-resource-zod/petstore.ts',
+      schemas: {
+        type: 'zod',
+        path: 'src/api/model-zod',
+      },
+      client: 'angular',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+          runtimeValidation: true, // opt-in
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Testing generated `httpResource` functions
+
+Generated resources use Angular's standard `HttpClient` stack, so test them the
+same way you test any other `HttpClient`-based code: configure
+`provideHttpClient()` before `provideHttpClientTesting()`, flush requests with
+`HttpTestingController`, then wait for Angular to propagate the new signal
+values.
+
+```ts title="pets.page.spec.ts"
+import { provideHttpClient } from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+
+import { PetsPage } from './pets.page';
+
+describe('PetsPage', () => {
+  let httpMock: HttpTestingController;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [PetsPage],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    }).compileComponents();
+
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  it('renders fetched pets', async () => {
+    const fixture = TestBed.createComponent(PetsPage);
+    fixture.detectChanges();
+
+    const req = httpMock.expectOne('/v1/pets');
+    expect(req.request.method).toBe('GET');
+    req.flush([{ id: 1, name: 'Rex', requiredNullableString: null }]);
+
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Rex');
+  });
+});
+```
+
+This is also the right place to verify loading and backend-error behavior for
+`schemas.type: 'zod'` outputs, especially when your component uses guarded
+`hasValue()` checks to avoid unsafe `value()` reads. When
+`override.angular.runtimeValidation` is enabled, add at least one test that
+flushes an invalid JSON payload and asserts that the resource exposes a
+`ZodError`.
+
 ## Zod Runtime Validation
 
-You can enable runtime response validation using Zod schemas. This validates every HTTP response through `Schema.parse()` in the RxJS pipeline, catching type mismatches at runtime.
+Angular output supports runtime validation for Zod-backed responses when
+`schemas.type` is set to `zod` and `override.angular.runtimeValidation` is
+enabled. For JSON model responses, Orval runs `Schema.parse()` on eligible
+responses and catches type mismatches at runtime.
+
+This applies to generated Angular `HttpClient` services too, not just
+`httpResource`. If you keep the default Angular retrieval mode
+(`retrievalClient: 'httpClient'`), eligible generated `GET` methods already
+pipe JSON model responses through Zod.
 
 ### Setup
 
-1. Set `schemas` to generate Zod schemas
-2. Enable `runtimeValidation` in the angular override
+1. Set `schemas.type` to `zod` to generate Zod schemas
+2. Set `override.angular.runtimeValidation: true` to enable runtime validation
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -88,7 +562,7 @@ export default defineConfig({
       target: 'src/api/petstore.ts',
       schemas: {
         type: 'zod',
-        target: 'src/api/schemas',
+        path: 'src/api/schemas',
       },
       client: 'angular',
       override: {
@@ -106,25 +580,93 @@ export default defineConfig({
 
 ### How It Works
 
-When enabled, generated service methods pipe body responses through the Zod schema's `.parse()` method:
+For generated `HttpClient` services, JSON responses are piped through the Zod
+schema's `.parse()` method. Generated `httpResource` JSON retrievals use the
+same validation hook through Angular's `HttpResourceOptions.parse`.
 
 ```ts
 // Generated code (simplified)
-getPet<TData = Pet>(options?: HttpClientOptions & { observe?: 'body' }): Observable<TData> {
-  return this.http.get<TData>(`/pet`, { observe: 'body' }).pipe(map(data => Pet.parse(data)));
+getPet<TData = PetOutput>(options?: HttpClientBodyOptions): Observable<TData> {
+  return this.http
+    .get<TData>(`/pet`, { observe: 'body' })
+    .pipe(map((data) => Pet.parse(data) as TData));
+}
+
+showPetByIdResource(
+  petId: Signal<string>,
+): HttpResourceRef<PetOutput | undefined> {
+  return httpResource<PetOutput>(() => `/pet/${petId()}`, {
+    parse: Pet.parse,
+  });
 }
 ```
 
 **Validation applies to:**
-- JSON body responses with model types
+- JSON model responses in generated `HttpClient` services
+- JSON model responses returned by generated `GET` methods
+- JSON model responses returned by generated mutation methods such as `POST`, `PUT`, `PATCH`, and `DELETE`
+- JSON `httpResource` retrievals with model response types
 
 **Validation is skipped for:**
 - Primitive types (`string`, `number`, `boolean`, `void`, `unknown`)
-- `events` and `response` observe modes (`HttpEvent<T>`, `HttpResponse<T>`)
 - Custom mutator paths
-- Non-JSON content types (text, blob)
+- Non-JSON content types (text, blob, arrayBuffer)
 
-### Support Matrix
+For generated `HttpClient` services, runtime validation also applies when the
+JSON response body is surfaced through `response` and response-event observe
+flows.
+
+### Request bodies are typed, but not auto-parsed
+
+When you generate Zod schemas, Orval also emits request-body schemas such as
+`CreatePetsBody`, plus matching `z.input<>` / `z.output<>` types. Generated
+Angular `HttpClient` methods use those types, but they do **not** automatically
+call `Schema.parse(body)` before sending a request.
+
+That means the current Angular + Zod split is:
+
+- request bodies get generated TypeScript types and reusable Zod schemas
+- response bodies get automatic runtime parsing when
+  `override.angular.runtimeValidation` is enabled
+
+If you want pre-send validation, validate explicitly before calling the
+generated client:
+
+```ts
+const payload = CreatePetsBody.parse(formValue);
+return this.petsService.createPets(payload);
+```
+
+Use `.parse()` when you want invalid input to throw immediately, or
+`.safeParse()` when you want to surface validation feedback without throwing.
+
+## Request-body readonly guidance
+
+Angular output also supports `override.preserveReadonlyRequestBodies` to
+control how OpenAPI `readOnly` fields are handled in generated request body
+types:
+
+- `'strip'` (default) — recommended for most OpenAPI specs
+- `'preserve'` — use when your request DTOs are intentionally immutable
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        preserveReadonlyRequestBodies: 'strip',
+      },
+    },
+  },
+});
+```
+
+`'strip'` is the best default because OpenAPI `readOnly` properties are usually
+response-oriented. The same guidance applies to both Angular `HttpClient` and
+`httpResource` output: `httpResource` can still issue request payloads, so it
+should not preserve readonly request fields by default.
+
+### Runtime validation support matrix
 
 | Client | Config key | Runtime validation |
 |--------|------------|--------------------|
@@ -135,7 +677,10 @@ getPet<TData = Pet>(options?: HttpClientOptions & { observe?: 'body' }): Observa
 
 ### Error Handling
 
-When validation fails, Zod throws a `ZodError`. You can handle this in your services or with an Angular error interceptor:
+When validation fails, Zod throws a `ZodError`.
+
+For `HttpClient` services, handle it in your subscription, effect, or error
+interceptor:
 
 ```ts
 this.petService.getPet().subscribe({
@@ -147,6 +692,15 @@ this.petService.getPet().subscribe({
   },
 });
 ```
+
+For generated `httpResource` helpers, read the error through the resource's
+`error()` signal and keep `value()` reads guarded with `hasValue()`.
+
+## Advanced helpers
+
+Generated `httpResource` files also include small convenience helpers such as
+`ResourceState<T>` and `toResourceState()` for integrating Angular resources
+into your own state abstractions.
 
 ## Full Example
 

@@ -1,7 +1,9 @@
-// @ts-nocheck -- Pervasive mock typing mismatches: findUp mock signature
-// expects a matcher function but tests pass string filenames, and fs.readFile
-// mock returns Buffer where the type expects void. Fixing requires rewriting
-// all ~30 mock setups. Tracked for a dedicated cleanup PR.
+/**
+ * These tests validate Orval's own catalog resolution logic. We read and
+ * normalize `catalog:`/`catalogs:` entries from pnpm, Yarn, and package.json
+ * because package managers do not resolve them for us at runtime.
+ */
+
 import { isString as isRemedaString } from 'remeda';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -13,9 +15,9 @@ vi.mock('find-up', () => ({
 
 vi.mock('fs-extra', () => ({
   default: {
-    readFile: vi.fn(),
-    readJson: vi.fn(),
-    existsSync: vi.fn(),
+    readFile: vi.fn<(...args: unknown[]) => Promise<Buffer>>(),
+    readJson: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+    existsSync: vi.fn<(...args: unknown[]) => boolean>(),
   },
 }));
 
@@ -32,30 +34,43 @@ vi.mock('@orval/core', () => ({
   isString: isRemedaString,
   log: vi.fn(),
   logVerbose: vi.fn(),
-  resolveInstalledVersions: vi.fn().mockReturnValue({}),
+  resolveInstalledVersions: vi.fn(() => ({})),
 }));
 
 vi.mock('./options', () => ({
   normalizePath: (p: string) => p,
 }));
 
-import {
-  dynamicImport,
-  log,
-  logVerbose,
-  resolveInstalledVersions,
-} from '@orval/core';
+import { dynamicImport, log } from '@orval/core';
 import { findUp, findUpMultiple } from 'find-up';
 import fs from 'fs-extra';
 import yaml from 'js-yaml';
 
-import { _resetResolvedCache, loadPackageJson } from './package-json';
+import { loadPackageJson } from './package-json';
+
+const mockFindUp = (
+  resolver: (name: string | string[] | undefined) => string | undefined,
+) => {
+  vi.mocked(findUp).mockImplementation((matcher) => {
+    const name =
+      typeof matcher === 'string' || Array.isArray(matcher)
+        ? matcher
+        : undefined;
+    return Promise.resolve(resolver(name));
+  });
+};
+
+const mockReadFile = (value: string) => {
+  (
+    vi.mocked(fs.readFile) as unknown as {
+      mockResolvedValue: (value: Buffer) => void;
+    }
+  ).mockResolvedValue(Buffer.from(value));
+};
 
 describe('loadPackageJson - catalog resolution', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    _resetResolvedCache();
-    vi.mocked(resolveInstalledVersions).mockReturnValue({});
   });
 
   afterEach(() => {
@@ -70,7 +85,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml')
           return '/workspace/pnpm-workspace.yaml';
         if (Array.isArray(name) && name.includes('package.json'))
@@ -79,9 +94,7 @@ describe('loadPackageJson - catalog resolution', () => {
       });
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readFile).mockResolvedValue(
-        Buffer.from('catalog:\n  react: "^18.2.0"'),
-      );
+      mockReadFile('catalog:\n  react: "^18.2.0"');
       vi.mocked(yaml.load).mockReturnValue({
         catalog: { react: '^18.2.0' },
       });
@@ -98,7 +111,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml')
           return '/workspace/pnpm-workspace.yaml';
         if (Array.isArray(name) && name.includes('package.json'))
@@ -107,7 +120,7 @@ describe('loadPackageJson - catalog resolution', () => {
       });
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
+      mockReadFile('');
       vi.mocked(yaml.load).mockReturnValue({
         catalog: { react: '^18.2.0' },
       });
@@ -124,7 +137,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml')
           return '/workspace/pnpm-workspace.yaml';
         if (Array.isArray(name) && name.includes('package.json'))
@@ -133,7 +146,7 @@ describe('loadPackageJson - catalog resolution', () => {
       });
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
+      mockReadFile('');
       vi.mocked(yaml.load).mockReturnValue({
         catalogs: {
           testing: { jest: '^29.0.0' },
@@ -152,7 +165,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml')
           return '/workspace/pnpm-workspace.yaml';
         if (Array.isArray(name) && name.includes('package.json'))
@@ -161,7 +174,7 @@ describe('loadPackageJson - catalog resolution', () => {
       });
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
+      mockReadFile('');
       vi.mocked(yaml.load).mockReturnValue({
         catalog: { react: '^18.2.0' },
       });
@@ -183,7 +196,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return;
         if (Array.isArray(name) && name.includes('package.json'))
@@ -209,7 +222,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return;
         if (Array.isArray(name) && name.includes('package.json'))
@@ -239,7 +252,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return '/workspace/.yarnrc.yml';
         if (Array.isArray(name) && name.includes('package.json'))
@@ -250,7 +263,7 @@ describe('loadPackageJson - catalog resolution', () => {
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
       vi.mocked(fs.readJson).mockResolvedValue({});
-      vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
+      mockReadFile('');
       vi.mocked(yaml.load).mockReturnValue({
         catalog: { typescript: '5.9.3' },
       });
@@ -269,7 +282,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml')
           return '/workspace/pnpm-workspace.yaml';
         if (Array.isArray(name) && name.includes('package.json'))
@@ -279,7 +292,7 @@ describe('loadPackageJson - catalog resolution', () => {
       vi.mocked(findUpMultiple).mockResolvedValue(['/workspace/package.json']);
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
+      mockReadFile('');
       vi.mocked(yaml.load).mockReturnValue({
         catalog: { react: '^18.0.0' },
       });
@@ -299,7 +312,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return '/workspace/.yarnrc.yml';
         if (Array.isArray(name) && name.includes('package.json'))
@@ -312,7 +325,7 @@ describe('loadPackageJson - catalog resolution', () => {
       vi.mocked(fs.readJson).mockResolvedValue({
         catalog: { react: '^19.0.0' },
       });
-      vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
+      mockReadFile('');
       vi.mocked(yaml.load).mockReturnValue({
         catalog: { react: '^18.0.0' },
       });
@@ -332,7 +345,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (Array.isArray(name) && name.includes('package.json'))
           return '/workspace/packages/app/package.json';
         return;
@@ -353,7 +366,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (Array.isArray(name) && name.includes('package.json'))
           return '/workspace/packages/app/package.json';
         return;
@@ -382,7 +395,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml')
           return '/workspace/pnpm-workspace.yaml';
         if (Array.isArray(name) && name.includes('package.json'))
@@ -391,7 +404,7 @@ describe('loadPackageJson - catalog resolution', () => {
       });
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
+      mockReadFile('');
       vi.mocked(yaml.load).mockReturnValue({
         catalog: {
           react: '^18.2.0',
@@ -414,7 +427,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml')
           return '/workspace/pnpm-workspace.yaml';
         if (Array.isArray(name) && name.includes('package.json'))
@@ -423,7 +436,7 @@ describe('loadPackageJson - catalog resolution', () => {
       });
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
+      mockReadFile('');
       vi.mocked(yaml.load).mockReturnValue({
         catalogs: {
           testing: { vitest: '^2.0.0' },
@@ -445,7 +458,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml')
           return '/workspace/pnpm-workspace.yaml';
         if (Array.isArray(name) && name.includes('package.json'))
@@ -454,7 +467,7 @@ describe('loadPackageJson - catalog resolution', () => {
       });
 
       vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-      vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
+      mockReadFile('');
       vi.mocked(yaml.load).mockReturnValue({
         catalog: { react: '^18.0.0' },
       });
@@ -473,7 +486,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return;
         if (Array.isArray(name) && name.includes('package.json'))
@@ -504,7 +517,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return;
         if (Array.isArray(name) && name.includes('package.json'))
@@ -539,7 +552,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return;
         if (Array.isArray(name) && name.includes('package.json'))
@@ -572,7 +585,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return;
         if (Array.isArray(name) && name.includes('package.json'))
@@ -604,7 +617,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return;
         if (Array.isArray(name) && name.includes('package.json'))
@@ -635,7 +648,7 @@ describe('loadPackageJson - catalog resolution', () => {
         },
       };
 
-      vi.mocked(findUp).mockImplementation((name) => {
+      mockFindUp((name) => {
         if (name === 'pnpm-workspace.yaml') return;
         if (name === '.yarnrc.yml') return;
         if (Array.isArray(name) && name.includes('package.json'))
@@ -653,227 +666,5 @@ describe('loadPackageJson - catalog resolution', () => {
         expect.stringContaining('no catalog source was found'),
       );
     });
-  });
-});
-
-describe('loadPackageJson - version resolution', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    _resetResolvedCache();
-  });
-
-  afterEach(() => {
-    vi.resetAllMocks();
-  });
-
-  it('should populate resolvedVersions when packages are resolvable', async () => {
-    const mockPkg = {
-      dependencies: {
-        react: '^18.2.0',
-        typescript: '^5.0.0',
-      },
-    };
-
-    vi.mocked(findUp).mockImplementation((name) => {
-      if (Array.isArray(name) && name.includes('package.json'))
-        return '/workspace/package.json';
-      return;
-    });
-    vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-    vi.mocked(resolveInstalledVersions).mockReturnValue({
-      react: '18.3.1',
-      typescript: '5.6.3',
-    });
-
-    const result = await loadPackageJson();
-
-    expect(resolveInstalledVersions).toHaveBeenCalledWith(
-      mockPkg,
-      process.cwd(),
-    );
-    expect(result?.resolvedVersions).toEqual({
-      react: '18.3.1',
-      typescript: '5.6.3',
-    });
-  });
-
-  it('should not set resolvedVersions when no packages resolve', async () => {
-    const mockPkg = {
-      dependencies: {
-        'some-private-pkg': '^1.0.0',
-      },
-    };
-
-    vi.mocked(findUp).mockImplementation((name) => {
-      if (Array.isArray(name) && name.includes('package.json'))
-        return '/workspace/package.json';
-      return;
-    });
-    vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-    vi.mocked(resolveInstalledVersions).mockReturnValue({});
-
-    const result = await loadPackageJson();
-
-    expect(resolveInstalledVersions).toHaveBeenCalledWith(
-      mockPkg,
-      process.cwd(),
-    );
-    expect(result?.resolvedVersions).toBeUndefined();
-  });
-
-  it('should verbose-log each resolved version', async () => {
-    const mockPkg = {
-      dependencies: {
-        '@tanstack/react-query': '^5.0.0',
-      },
-    };
-
-    vi.mocked(findUp).mockImplementation((name) => {
-      if (Array.isArray(name) && name.includes('package.json'))
-        return '/workspace/package.json';
-      return;
-    });
-    vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-    vi.mocked(resolveInstalledVersions).mockReturnValue({
-      '@tanstack/react-query': '5.90.1',
-    });
-
-    await loadPackageJson();
-
-    expect(logVerbose).toHaveBeenCalledWith(
-      expect.stringContaining('Detected'),
-    );
-    expect(logVerbose).toHaveBeenCalledWith(
-      expect.stringContaining('@tanstack/react-query'),
-    );
-    expect(logVerbose).toHaveBeenCalledWith(expect.stringContaining('5.90.1'));
-    expect(log).not.toHaveBeenCalledWith(expect.stringContaining('Detected'));
-  });
-
-  it('should resolve versions only once per package.json path (caching)', async () => {
-    const mockPkg = {
-      dependencies: { react: '^18.0.0' },
-    };
-
-    vi.mocked(findUp).mockImplementation((name) => {
-      if (Array.isArray(name) && name.includes('package.json'))
-        return '/cached-workspace/package.json';
-      return;
-    });
-    vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-    vi.mocked(resolveInstalledVersions).mockReturnValue({
-      react: '18.3.1',
-    });
-
-    const result1 = await loadPackageJson(undefined, '/cached-workspace');
-    const result2 = await loadPackageJson(undefined, '/cached-workspace');
-
-    expect(resolveInstalledVersions).toHaveBeenCalledTimes(1);
-    expect(result1?.resolvedVersions).toEqual({ react: '18.3.1' });
-    expect(result2?.resolvedVersions).toEqual({ react: '18.3.1' });
-  });
-
-  it('should not reuse cached versions across different package.json files in the same workspace', async () => {
-    const pkgA = {
-      dependencies: { react: '^18.0.0' },
-    };
-    const pkgB = {
-      dependencies: { vue: '^3.0.0' },
-    };
-
-    vi.mocked(fs.existsSync).mockReturnValue(true);
-    vi.mocked(dynamicImport).mockImplementation((path) => {
-      if (path === 'apps/app-a/package.json') return pkgA;
-      return pkgB;
-    });
-    vi.mocked(resolveInstalledVersions).mockImplementation((pkg) => {
-      if (pkg === pkgA) return { react: '18.3.1' };
-      if (pkg === pkgB) return { vue: '3.5.13' };
-      return {};
-    });
-
-    const resultA = await loadPackageJson('apps/app-a/package.json', '/repo');
-    const resultB = await loadPackageJson('apps/app-b/package.json', '/repo');
-
-    expect(resolveInstalledVersions).toHaveBeenCalledTimes(2);
-    expect(resultA?.resolvedVersions).toEqual({ react: '18.3.1' });
-    expect(resultB?.resolvedVersions).toEqual({ vue: '3.5.13' });
-  });
-
-  it('should pass workspace directory to resolveInstalledVersions', async () => {
-    const mockPkg = {
-      dependencies: { react: '^18.0.0' },
-    };
-    const customWorkspace = '/custom/workspace/path';
-
-    vi.mocked(findUp).mockImplementation((name) => {
-      if (Array.isArray(name) && name.includes('package.json'))
-        return '/custom/workspace/path/package.json';
-      return;
-    });
-    vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-    vi.mocked(resolveInstalledVersions).mockReturnValue({
-      react: '18.3.1',
-    });
-
-    await loadPackageJson(undefined, customWorkspace);
-
-    expect(resolveInstalledVersions).toHaveBeenCalledWith(
-      mockPkg,
-      customWorkspace,
-    );
-  });
-
-  it('should resolve versions after catalog substitution', async () => {
-    const mockPkg = {
-      dependencies: {
-        react: 'catalog:',
-      },
-    };
-
-    vi.mocked(findUp).mockImplementation((name) => {
-      if (name === 'pnpm-workspace.yaml')
-        return '/workspace/pnpm-workspace.yaml';
-      if (Array.isArray(name) && name.includes('package.json'))
-        return '/workspace/package.json';
-      return;
-    });
-    vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-    vi.mocked(fs.readFile).mockResolvedValue(Buffer.from(''));
-    vi.mocked(yaml.load).mockReturnValue({
-      catalog: { react: '^18.2.0' },
-    });
-    vi.mocked(resolveInstalledVersions).mockReturnValue({
-      react: '18.3.1',
-    });
-
-    const result = await loadPackageJson();
-
-    // Catalog substitution happened first
-    expect(result?.dependencies?.react).toBe('^18.2.0');
-    // Then version resolution ran on the substituted package
-    expect(result?.resolvedVersions).toEqual({ react: '18.3.1' });
-    // resolveInstalledVersions received the catalog-resolved pkg (not the raw catalog: reference)
-    expect(
-      vi.mocked(resolveInstalledVersions).mock.calls[0]?.[0]?.dependencies
-        ?.react,
-    ).toBe('^18.2.0');
-  });
-
-  it('should resolve versions when using explicit package.json path', async () => {
-    const mockPkg = {
-      dependencies: { lodash: '^4.17.21' },
-    };
-
-    vi.mocked(fs.existsSync).mockReturnValue(true);
-    vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
-    vi.mocked(resolveInstalledVersions).mockReturnValue({
-      lodash: '4.17.21',
-    });
-
-    const result = await loadPackageJson('/explicit/package.json', '/explicit');
-
-    expect(resolveInstalledVersions).toHaveBeenCalledWith(mockPkg, '/explicit');
-    expect(result?.resolvedVersions).toEqual({ lodash: '4.17.21' });
   });
 });

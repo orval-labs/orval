@@ -11,3 +11,4 @@ export const PositionAliasSchema = zod.object({
 });
 
 export type PositionAliasSchema = zod.input<typeof PositionAliasSchema>;
+export type PositionAliasSchemaOutput = zod.output<typeof PositionAliasSchema>;

@@ -18,3 +18,6 @@ export const NullablePositionWrapperSchema = zod.object({
 export type NullablePositionWrapperSchema = zod.input<
   typeof NullablePositionWrapperSchema
 >;
+export type NullablePositionWrapperSchemaOutput = zod.output<
+  typeof NullablePositionWrapperSchema
+>;

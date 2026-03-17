@@ -7,6 +7,7 @@ import logo from './logo.svg';
 function App() {
   const dispatch = useAuthDispatch();
   const { data: pets, mutate } = useListPets();
+  const petList = pets?.status === 200 ? pets.data : [];
 
   useEffect(() => {
     dispatch('token');
@@ -19,7 +20,7 @@ function App() {
     <div className="App">
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
-        {pets?.map((pet) => (
+        {petList.map((pet) => (
           <p key={pet.id}>{pet.name}</p>
         ))}
       </header>

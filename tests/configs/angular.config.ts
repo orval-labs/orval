@@ -121,4 +121,43 @@ export default defineConfig({
       },
     },
   },
+  httpResourceZod: {
+    output: {
+      target: '../generated/angular/http-resource-zod/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/angular/http-resource-zod/model',
+      },
+      mock: true,
+      client: 'angular',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  httpResourceZodDisabled: {
+    output: {
+      target: '../generated/angular/http-resource-zod-disabled/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/angular/http-resource-zod-disabled/model',
+      },
+      mock: true,
+      client: 'angular',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+          runtimeValidation: false,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

@@ -17,12 +17,12 @@ import type {
   UseQueryResult,
 } from '@tanstack/react-query';
 
+import type { DescendantOne, DescendantTwo } from './model';
+
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { DescendantOne, DescendantTwo } from './model';
 
 export type getPolymorphicResponseResponse200 = {
   data: DescendantOne | DescendantTwo;

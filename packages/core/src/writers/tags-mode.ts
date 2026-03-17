@@ -11,6 +11,7 @@ import {
   kebab,
   upath,
 } from '../utils';
+import { escapeRegExp } from '../utils/string';
 import { writeGeneratedFile } from './file';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTargetForTags } from './target-tags';
@@ -70,11 +71,45 @@ export async function writeTagsMode({
             )
           : './' + filename + '.schemas';
 
+        const implementationImports = imports.filter((imp) => {
+          const searchWords = [imp.alias, imp.name]
+            .filter((part): part is string => Boolean(part?.length))
+            .map((part) => escapeRegExp(part))
+            .join('|');
+          if (!searchWords) {
+            return false;
+          }
+
+          return new RegExp(String.raw`\b(${searchWords})\b`, 'g').test(
+            implementation,
+          );
+        });
+
+        const normalizedImports = implementationImports.map((imp) => ({
+          ...imp,
+        }));
+        for (const mockImport of importsMock) {
+          const matchingImport = normalizedImports.find(
+            (imp) =>
+              imp.name === mockImport.name &&
+              (imp.alias ?? '') === (mockImport.alias ?? ''),
+          );
+          if (!matchingImport) continue;
+
+          const mockNeedsRuntimeValue =
+            !!mockImport.values ||
+            !!mockImport.isConstant ||
+            !!mockImport.default ||
+            !!mockImport.namespaceImport ||
+            !!mockImport.syntheticDefaultImport;
+          if (mockNeedsRuntimeValue) {
+            matchingImport.values = true;
+          }
+        }
+
         const importsForBuilder = generateImportsForBuilder(
           output,
-          imports.filter(
-            (imp) => !importsMock.some((impMock) => imp.name === impMock.name),
-          ),
+          normalizedImports,
           schemasPathRelative,
         );
 
@@ -97,7 +132,14 @@ export async function writeTagsMode({
         if (output.mock) {
           const importsMockForBuilder = generateImportsForBuilder(
             output,
-            importsMock,
+            importsMock.filter(
+              (impMock) =>
+                !normalizedImports.some(
+                  (imp) =>
+                    imp.name === impMock.name &&
+                    (imp.alias ?? '') === (impMock.alias ?? ''),
+                ),
+            ),
             schemasPathRelative,
           );
 

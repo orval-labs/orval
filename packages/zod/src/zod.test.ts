@@ -1608,6 +1608,73 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
       expect(parsed.consts).toContain('export const petAgeMax = 30;');
     });
+
+    it('does not leak const suffix counters across repeated top-level generations', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'object',
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['available', 'pending', 'sold'],
+            default: 'available',
+          },
+          age: {
+            type: 'number',
+            minimum: 0,
+            maximum: 30,
+          },
+        },
+      };
+
+      const firstResult = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'pet',
+        false,
+        false,
+        { required: true },
+      );
+
+      const secondResult = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'pet',
+        false,
+        false,
+        { required: true },
+      );
+
+      const firstParsed = parseZodValidationSchemaDefinition(
+        firstResult,
+        context,
+        false,
+        false,
+        false,
+      );
+
+      const secondParsed = parseZodValidationSchemaDefinition(
+        secondResult,
+        context,
+        false,
+        false,
+        false,
+      );
+
+      expect(firstParsed.consts).toContain(
+        'export const petStatusDefault = `available`;',
+      );
+      expect(firstParsed.consts).toContain('export const petAgeMax = 30;');
+      expect(firstParsed.consts).not.toContain('petStatusDefaultOne');
+      expect(firstParsed.consts).not.toContain('petAgeMaxOne');
+
+      expect(secondParsed.consts).toContain(
+        'export const petStatusDefault = `available`;',
+      );
+      expect(secondParsed.consts).toContain('export const petAgeMax = 30;');
+      expect(secondParsed.consts).not.toContain('petStatusDefaultOne');
+      expect(secondParsed.consts).not.toContain('petAgeMaxOne');
+      expect(secondParsed.consts).toBe(firstParsed.consts);
+    });
   });
 
   describe('enum handling', () => {
