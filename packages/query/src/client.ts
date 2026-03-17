@@ -1,5 +1,4 @@
 import {
-  camel,
   type ClientHeaderBuilder,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
@@ -15,6 +14,7 @@ import {
   type GetterResponse,
   isObject,
   isSyntheticDefaultImportsAllow,
+  kebab,
   OutputHttpClient,
   pascal,
   toObjectString,
@@ -746,8 +746,8 @@ export const getQueryHeader: ClientHeaderBuilder = (params) => {
 
   if (params.output.httpClient === OutputHttpClient.ANGULAR) {
     const relevantVerbs = params.tag
-      ? Object.values(params.verbOptions).filter((verbOption) =>
-          verbOption.tags.some((tag) => camel(tag) === camel(params.tag)),
+      ? Object.values(params.verbOptions).filter(
+          (verbOption) => kebab(verbOption.tags[0] ?? 'default') === params.tag,
         )
       : Object.values(params.verbOptions);
     const hasQueryParams = relevantVerbs.some((v) => v.queryParams);

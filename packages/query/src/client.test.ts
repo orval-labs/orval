@@ -72,8 +72,42 @@ describe('getQueryHeader', () => {
       tag: 'pet-status',
       verbOptions: {
         listPetStatus: {
-          tags: ['PetStatus'],
+          tags: ['PetStatus', 'pets'],
           queryParams: { schema: { name: 'ListPetStatusParams' } },
+        },
+      },
+    } as never);
+
+    expect(header).toContain('function filterParams');
+  });
+
+  it('does not emit filterParams when the current tag is not the first operation tag', () => {
+    const header = getQueryHeader({
+      output: { httpClient: OutputHttpClient.ANGULAR },
+      tag: 'pets',
+      verbOptions: {
+        healthCheck: {
+          tags: ['health', 'pets'],
+          queryParams: { schema: { name: 'HealthCheckParams' } },
+        },
+      },
+    } as never);
+
+    expect(header).toBe('');
+  });
+
+  it('emits filterParams when the current tag matches the first operation tag among multi-tag operations', () => {
+    const header = getQueryHeader({
+      output: { httpClient: OutputHttpClient.ANGULAR },
+      tag: 'pets',
+      verbOptions: {
+        healthCheck: {
+          tags: ['health', 'pets'],
+          queryParams: { schema: { name: 'HealthCheckParams' } },
+        },
+        listPets: {
+          tags: ['pets', 'health'],
+          queryParams: { schema: { name: 'ListPetsParams' } },
         },
       },
     } as never);
