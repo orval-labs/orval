@@ -250,7 +250,6 @@ export default defineConfig({
         query: {
           useQuery: true,
           useInfinite: true,
-          useSuspenseInfiniteQuery: true,
           useInfiniteQueryParam: 'page',
           useInfiniteRequireQueryParam: true,
         },
