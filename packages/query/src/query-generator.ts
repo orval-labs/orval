@@ -680,12 +680,20 @@ export const generateQueryHook = async (
       })
       .join(',');
 
+    const effectiveInfiniteQueryParam =
+      operationQueryOptions?.useInfiniteQueryParam ??
+      query.useInfiniteQueryParam;
+
+    const effectiveUseInfiniteRequireQueryParam =
+      operationQueryOptions?.useInfiniteRequireQueryParam ??
+      query.useInfiniteRequireQueryParam;
+
     const hasConfiguredInfiniteQueryParam =
-      !!query.useInfiniteQueryParam &&
-      hasQueryParamInSchema(queryParams, query.useInfiniteQueryParam);
+      !!effectiveInfiniteQueryParam &&
+      hasQueryParamInSchema(queryParams, effectiveInfiniteQueryParam);
 
     const shouldRequireInfiniteQueryParam =
-      !!query.useInfiniteRequireQueryParam && !!query.useInfiniteQueryParam;
+      !!effectiveUseInfiniteRequireQueryParam && !!effectiveInfiniteQueryParam;
 
     const canGenerateInfiniteQuery =
       !shouldRequireInfiniteQueryParam || hasConfiguredInfiniteQueryParam;
@@ -698,7 +706,7 @@ export const generateQueryHook = async (
               name: camel(`${operationName}-infinite`),
               options: query.options,
               type: QueryType.INFINITE,
-              queryParam: query.useInfiniteQueryParam,
+              queryParam: effectiveInfiniteQueryParam,
               requireQueryParam: shouldRequireInfiniteQueryParam,
               queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
@@ -732,7 +740,7 @@ export const generateQueryHook = async (
               name: camel(`${operationName}-suspense-infinite`),
               options: query.options,
               type: QueryType.SUSPENSE_INFINITE,
-              queryParam: query.useInfiniteQueryParam,
+              queryParam: effectiveInfiniteQueryParam,
               requireQueryParam: shouldRequireInfiniteQueryParam,
               queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
