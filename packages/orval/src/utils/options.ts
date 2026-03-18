@@ -806,13 +806,13 @@ function normalizeQueryOptions(
       ? {}
       : {
           useInfiniteRequireQueryParam:
-            !!globalOptions.useInfiniteRequireQueryParam,
+            globalOptions.useInfiniteRequireQueryParam,
         }),
     ...(isNullish(queryOptions.useInfiniteRequireQueryParam)
       ? {}
       : {
           useInfiniteRequireQueryParam:
-            !!queryOptions.useInfiniteRequireQueryParam,
+            queryOptions.useInfiniteRequireQueryParam,
         }),
     ...(queryOptions.options ? { options: queryOptions.options } : {}),
     ...(globalOptions.queryKey
