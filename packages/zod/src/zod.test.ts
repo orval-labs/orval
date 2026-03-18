@@ -1750,6 +1750,179 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(parsed.zod).toBe("zod.enum(['+33', '+420']).optional()");
     });
 
+    it('skips string constraints for direct enums with minLength/maxLength (#3024)', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'string',
+        enum: ['cat', 'dog'],
+        minLength: 2,
+        maxLength: 3,
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumStringMinLength',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['enum', "['cat', 'dog']"],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+
+      expect(parsed.zod).toBe("zod.enum(['cat', 'dog']).optional()");
+      expect(parsed.zod).not.toContain('zod.min(');
+      expect(parsed.zod).not.toContain('.min(');
+      expect(parsed.zod).not.toContain('.max(');
+    });
+
+    it('skips constraints for dereferenced enum schemas with sibling minLength (#3024)', () => {
+      const dereferenceContext = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              PetStatus: {
+                type: 'string',
+                enum: ['available', 'sold'],
+              },
+            },
+          },
+        },
+      } as ContextSpec;
+
+      const resolvedSchema = dereference(
+        {
+          $ref: '#/components/schemas/PetStatus',
+          minLength: 1,
+        },
+        dereferenceContext,
+      );
+
+      const result = generateZodValidationSchemaDefinition(
+        resolvedSchema,
+        dereferenceContext,
+        'testDereferencedEnumStringMinLength',
+        false,
+        false,
+        { required: true },
+      );
+
+      expect(result).toEqual({
+        functions: [['enum', "['available', 'sold']"]],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        dereferenceContext,
+        false,
+        false,
+        false,
+      );
+
+      expect(parsed.zod).toBe("zod.enum(['available', 'sold'])");
+      expect(parsed.zod).not.toContain('zod.min(');
+      expect(parsed.zod).not.toContain('.min(');
+    });
+
+    it('skips pattern chains for enums to avoid invalid regex-enum output (#3024)', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'string',
+        enum: ['cat', 'dog'],
+        pattern: '^[a-z]+$',
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumStringPattern',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['enum', "['cat', 'dog']"],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+
+      expect(parsed.zod).toBe("zod.enum(['cat', 'dog']).optional()");
+      expect(parsed.zod).not.toContain('.regex(');
+      expect(parsed.consts).toBe('');
+    });
+
+    it('preserves default while skipping min/max on enums (#3024)', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'string',
+        enum: ['EUR', 'USD'],
+        minLength: 3,
+        maxLength: 3,
+        default: 'EUR',
+        description: 'Currency code for the order.',
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumStringDefault',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['enum', "['EUR', 'USD']"],
+          ['default', 'testEnumStringDefaultDefault'],
+          ['describe', "'Currency code for the order.'"],
+        ],
+        consts: ['export const testEnumStringDefaultDefault = `EUR`;'],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+
+      expect(parsed.zod).toBe(
+        "zod.enum(['EUR', 'USD']).default(testEnumStringDefaultDefault).describe('Currency code for the order.')",
+      );
+      expect(parsed.zod).not.toContain('zod.min(');
+      expect(parsed.zod).not.toContain('.min(');
+      expect(parsed.zod).not.toContain('.max(');
+      expect(parsed.consts).toBe(
+        'export const testEnumStringDefaultDefault = `EUR`;',
+      );
+    });
+
     it('generates an enum for a number', () => {
       const schema: OpenApiSchemaObject = {
         type: 'number',

@@ -254,6 +254,7 @@ export const generateZodValidationSchemaDefinition = (
 
   const multipleOf = schema.multipleOf;
   const matches = schema.pattern ?? undefined;
+  const hasNonArrayEnum = !!schema.enum && type !== 'array';
 
   // Check for allOf/oneOf/anyOf BEFORE processing by type
   // This ensures these constraints work with any base type (string, number, object, etc.)
@@ -700,7 +701,7 @@ export const generateZodValidationSchemaDefinition = (
     }
   }
 
-  if (isString(type) && minAndMaxTypes.has(type)) {
+  if (!hasNonArrayEnum && isString(type) && minAndMaxTypes.has(type)) {
     // Handle minimum constraints: exclusiveMinimum (>.gt()) takes priority over minimum (.min())
     // Check if exclusive flag was set (boolean format in OpenAPI 3.0) or a different value (OpenAPI 3.1)
     const shouldUseExclusiveMin = exclusiveMinRaw !== undefined;
@@ -750,7 +751,7 @@ export const generateZodValidationSchemaDefinition = (
     }
   }
 
-  if (matches) {
+  if (matches && !hasNonArrayEnum) {
     const isStartWithSlash = matches.startsWith('/');
     const isEndWithSlash = matches.endsWith('/');
 
