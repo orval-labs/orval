@@ -57,24 +57,270 @@ const getQueryFnArguments = ({
   return `{ ${signalDestructure} }`;
 };
 
-const escapeRegExp = (value: string): string =>
-  value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+const getTopLevelObjectBody = (model: string): string | undefined => {
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let inTemplateLiteral = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  let objectStart = -1;
+  let objectDepth = 0;
+
+  for (let index = 0; index < model.length; index++) {
+    const char = model[index];
+    const nextChar = model[index + 1];
+    const prevChar = model[index - 1];
+
+    if (inLineComment) {
+      if (char === '\n') {
+        inLineComment = false;
+      }
+      continue;
+    }
+
+    if (inBlockComment) {
+      if (char === '*' && nextChar === '/') {
+        inBlockComment = false;
+        index++;
+      }
+      continue;
+    }
+
+    if (!inSingleQuote && !inDoubleQuote && !inTemplateLiteral) {
+      if (char === '/' && nextChar === '/') {
+        inLineComment = true;
+        index++;
+        continue;
+      }
+
+      if (char === '/' && nextChar === '*') {
+        inBlockComment = true;
+        index++;
+        continue;
+      }
+    }
+
+    if (
+      !inDoubleQuote &&
+      !inTemplateLiteral &&
+      char === "'" &&
+      prevChar !== '\\'
+    ) {
+      inSingleQuote = !inSingleQuote;
+      continue;
+    }
+
+    if (
+      !inSingleQuote &&
+      !inTemplateLiteral &&
+      char === '"' &&
+      prevChar !== '\\'
+    ) {
+      inDoubleQuote = !inDoubleQuote;
+      continue;
+    }
+
+    if (!inSingleQuote && !inDoubleQuote && char === '`' && prevChar !== '\\') {
+      inTemplateLiteral = !inTemplateLiteral;
+      continue;
+    }
+
+    if (inSingleQuote || inDoubleQuote || inTemplateLiteral) {
+      continue;
+    }
+
+    if (char === '{') {
+      if (objectStart === -1) {
+        objectStart = index;
+      }
+      objectDepth++;
+      continue;
+    }
+
+    if (char === '}' && objectStart !== -1) {
+      objectDepth--;
+
+      if (objectDepth === 0) {
+        return model.slice(objectStart + 1, index);
+      }
+    }
+  }
+
+  return undefined;
+};
+
+const hasTopLevelProperty = (
+  objectBody: string,
+  queryParam: string,
+): boolean => {
+  const segments: string[] = [];
+  let current = '';
+  let braceDepth = 0;
+  let bracketDepth = 0;
+  let parenDepth = 0;
+
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let inTemplateLiteral = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  for (let index = 0; index < objectBody.length; index++) {
+    const char = objectBody[index];
+    const nextChar = objectBody[index + 1];
+    const prevChar = objectBody[index - 1];
+
+    if (inLineComment) {
+      if (char === '\n') {
+        inLineComment = false;
+      }
+      current += char;
+      continue;
+    }
+
+    if (inBlockComment) {
+      if (char === '*' && nextChar === '/') {
+        inBlockComment = false;
+        current += '*/';
+        index++;
+        continue;
+      }
+      current += char;
+      continue;
+    }
+
+    if (!inSingleQuote && !inDoubleQuote && !inTemplateLiteral) {
+      if (char === '/' && nextChar === '/') {
+        inLineComment = true;
+        current += '//';
+        index++;
+        continue;
+      }
+
+      if (char === '/' && nextChar === '*') {
+        inBlockComment = true;
+        current += '/*';
+        index++;
+        continue;
+      }
+    }
+
+    if (
+      !inDoubleQuote &&
+      !inTemplateLiteral &&
+      char === "'" &&
+      prevChar !== '\\'
+    ) {
+      inSingleQuote = !inSingleQuote;
+      current += char;
+      continue;
+    }
+
+    if (
+      !inSingleQuote &&
+      !inTemplateLiteral &&
+      char === '"' &&
+      prevChar !== '\\'
+    ) {
+      inDoubleQuote = !inDoubleQuote;
+      current += char;
+      continue;
+    }
+
+    if (!inSingleQuote && !inDoubleQuote && char === '`' && prevChar !== '\\') {
+      inTemplateLiteral = !inTemplateLiteral;
+      current += char;
+      continue;
+    }
+
+    if (!inSingleQuote && !inDoubleQuote && !inTemplateLiteral) {
+      switch (char) {
+        case '{': {
+          braceDepth++;
+
+          break;
+        }
+        case '}': {
+          braceDepth--;
+
+          break;
+        }
+        case '[': {
+          bracketDepth++;
+
+          break;
+        }
+        case ']': {
+          bracketDepth--;
+
+          break;
+        }
+        case '(': {
+          parenDepth++;
+
+          break;
+        }
+        case ')': {
+          parenDepth--;
+
+          break;
+        }
+        // No default
+      }
+
+      if (
+        char === ';' &&
+        braceDepth === 0 &&
+        bracketDepth === 0 &&
+        parenDepth === 0
+      ) {
+        segments.push(current);
+        current = '';
+        continue;
+      }
+    }
+
+    current += char;
+  }
+
+  if (current.trim()) {
+    segments.push(current);
+  }
+
+  return segments.some((segment) => {
+    const member = segment.trim();
+    if (!member || member.startsWith('[')) {
+      return false;
+    }
+
+    const propertyMatch =
+      /^(?:readonly\s+)?(?:'([^']+)'|"([^"]+)"|([A-Za-z_$][\w$]*))\??\s*:/.exec(
+        member,
+      );
+
+    const propertyName =
+      propertyMatch?.[1] ?? propertyMatch?.[2] ?? propertyMatch?.[3];
+
+    return propertyName === queryParam;
+  });
+};
 
 const hasQueryParamInSchema = (
   queryParams: GetterQueryParam | undefined,
   queryParam: string,
 ): boolean => {
-  if (!queryParams?.schema.model) {
+  const schemaModel = queryParams?.schema.model;
+  if (!schemaModel) {
     return false;
   }
 
-  const escapedParam = escapeRegExp(queryParam);
-  const paramKeyRegex = new RegExp(
-    `(?:^|\\n)\\s*(?:'${escapedParam}'|\"${escapedParam}\"|${escapedParam})\\??:\\s`,
-    'm',
-  );
+  const topLevelObjectBody = getTopLevelObjectBody(schemaModel);
+  if (!topLevelObjectBody) {
+    return false;
+  }
 
-  return paramKeyRegex.test(queryParams.schema.model);
+  return hasTopLevelProperty(topLevelObjectBody, queryParam);
 };
 
 const generatePrefetch = ({
