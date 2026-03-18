@@ -1876,6 +1876,45 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(parsed.consts).toBe('');
     });
 
+    it('skips stringFormat emission for enums in Zod v4 when format and pattern are both present (#3024)', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'string',
+        enum: ['cat', 'dog'],
+        format: 'pet-kind',
+        pattern: '^[a-z]+$',
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumStringPatternV4',
+        false,
+        true,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['enum', "['cat', 'dog']"],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        true,
+      );
+
+      expect(parsed.zod).toBe("zod.enum(['cat', 'dog']).optional()");
+      expect(parsed.zod).not.toContain('.regex(');
+      expect(parsed.zod).not.toContain('.stringFormat(');
+      expect(parsed.consts).toBe('');
+    });
+
     it('preserves default while skipping min/max on enums (#3024)', () => {
       const schema: OpenApiSchemaObject = {
         type: 'string',
@@ -1921,6 +1960,55 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(parsed.consts).toBe(
         'export const testEnumStringDefaultDefault = `EUR`;',
       );
+    });
+
+    it('skips numeric constraints for enum literal unions (#3024)', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'number',
+        enum: [1, 2],
+        minimum: 1,
+        maximum: 2,
+        multipleOf: 1,
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumNumberConstraints',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          [
+            'oneOf',
+            [
+              { functions: [['literal', 1]], consts: [] },
+              { functions: [['literal', 2]], consts: [] },
+            ],
+          ],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+
+      expect(parsed.zod).toBe(
+        'zod.union([zod.literal(1),zod.literal(2)]).optional()',
+      );
+      expect(parsed.zod).not.toContain('.min(');
+      expect(parsed.zod).not.toContain('.max(');
+      expect(parsed.zod).not.toContain('.multipleOf(');
+      expect(parsed.consts).toBe('');
     });
 
     it('generates an enum for a number', () => {

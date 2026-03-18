@@ -254,6 +254,9 @@ export const generateZodValidationSchemaDefinition = (
 
   const multipleOf = schema.multipleOf;
   const matches = schema.pattern ?? undefined;
+  // Enum-based schemas are emitted as `zod.enum(...)` or literal unions, so
+  // chaining scalar constraints onto the parent schema would generate invalid
+  // Zod output. Arrays are handled separately via their item schema.
   const hasNonArrayEnum = !!schema.enum && type !== 'array';
 
   // Check for allOf/oneOf/anyOf BEFORE processing by type
