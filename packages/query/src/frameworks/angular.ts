@@ -96,7 +96,7 @@ export const createAngularAdapter = ({
           return param.name === 'params'
             ? `{...params, '${queryParam}': ${
                 requireQueryParam
-                  ? 'pageParam'
+                  ? `pageParam ?? params?.['${queryParam}']`
                   : `pageParam || params?.['${queryParam}']`
               }}`
             : param.name;

@@ -82,7 +82,7 @@ export const createVueAdapter = ({
         return param.name === 'params'
           ? `{...unref(params), '${queryParam}': ${
               requireQueryParam
-                ? 'pageParam'
+                ? `pageParam ?? unref(params)?.['${queryParam}']`
                 : `pageParam || unref(params)?.['${queryParam}']`
             }}`
           : param.name;
