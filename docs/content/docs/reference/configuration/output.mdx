@@ -593,7 +593,11 @@ Generate `useInfiniteQuery` hooks.
 
 **Type:** `String`
 
-Query parameter name for infinite queries.
+Query parameter name for infinite queries. 
+
+<Callout title="Side Effects">
+  If added, `useInfinite` and `useSuspenseInfinite` will only create `useInfiniteQuery` and `useSuspenseInfiniteQuery` hooks for endpoints that use this query parameter. 
+</Callout>
 
 ### usePrefetch
 
