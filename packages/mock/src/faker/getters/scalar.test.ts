@@ -444,6 +444,32 @@ describe('getMockScalar (undefined filtering)', () => {
       'faker.string.alpha({length: {min: 5, max: 20}})',
     );
   });
+
+  it('should include only max when only maxLength is specified', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        maxLength: 5,
+        name: 'test-item',
+      },
+    });
+
+    expect(result.value).toBe('faker.string.alpha({length: {max: 5}})');
+  });
+
+  it('should include only min when only minLength is specified', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        minLength: 30,
+        name: 'test-item',
+      },
+    });
+
+    expect(result.value).toBe('faker.string.alpha({length: {min: 30}})');
+  });
 });
 
 describe('getMockScalar (@-prefixed property names)', () => {

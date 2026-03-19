@@ -1,0 +1,49 @@
+openapi: 3.1.0
+info:
+  title: Mock Constraints
+  description: 'Test one-sided string and array constraints for MSW mock generation'
+  version: 1.0.0
+tags:
+  - name: mock-constraints
+    description: One-sided constraint test endpoints
+servers:
+  - url: http://localhost
+paths:
+  /items:
+    get:
+      tags:
+        - mock-constraints
+      summary: Get items with one-sided constraints
+      operationId: getItems
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConstrainedItem'
+components:
+  schemas:
+    ConstrainedItem:
+      type: object
+      properties:
+        maxLengthOnly:
+          type: string
+          maxLength: 5
+        minLengthOnly:
+          type: string
+          minLength: 30
+        maxItemsOnly:
+          type: array
+          maxItems: 2
+          items:
+            type: string
+        minItemsOnly:
+          type: array
+          minItems: 5
+          items:
+            type: string
+        bothBounds:
+          type: string
+          minLength: 2
+          maxLength: 8
