@@ -891,18 +891,29 @@ export const generateQueryHook = async (
       operationQueryOptions?.useInfiniteQueryParam ??
       query.useInfiniteQueryParam;
 
+    const operationRequestsInfinite =
+      !!query.useInfinite ||
+      !!operationQueryOptions?.useInfinite ||
+      !!query.useSuspenseInfiniteQuery ||
+      !!operationQueryOptions?.useSuspenseInfiniteQuery;
+
     const hasConfiguredInfiniteQueryParam =
       !!effectiveInfiniteQueryParam &&
       hasQueryParamInSchema(queryParams, effectiveInfiniteQueryParam);
 
-    if (effectiveInfiniteQueryParam && !hasConfiguredInfiniteQueryParam) {
+    if (
+      operationRequestsInfinite &&
+      effectiveInfiniteQueryParam &&
+      !hasConfiguredInfiniteQueryParam
+    ) {
       createLogger().warn(
         `query.useInfiniteQueryParam is set to "${effectiveInfiniteQueryParam}" for operation "${operationName}", but this query parameter was not found in the operation schema. Infinite query generation will be skipped for this operation.`,
       );
     }
 
-    const canGenerateInfiniteQuery =
-      !effectiveInfiniteQueryParam || hasConfiguredInfiniteQueryParam;
+    const canGenerateInfiniteQuery = !operationRequestsInfinite
+      ? true
+      : !effectiveInfiniteQueryParam || hasConfiguredInfiniteQueryParam;
 
     const queries = [
       ...(canGenerateInfiniteQuery &&
