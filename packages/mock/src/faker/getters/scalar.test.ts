@@ -445,7 +445,7 @@ describe('getMockScalar (undefined filtering)', () => {
     );
   });
 
-  it('should use min: 1 when only maxLength is specified', () => {
+  it('should include only max when only maxLength is specified', () => {
     const result = getMockScalar({
       ...baseArg,
       item: {
@@ -455,7 +455,7 @@ describe('getMockScalar (undefined filtering)', () => {
       },
     });
 
-    expect(result.value).toBe('faker.string.alpha({length: {min: 1, max: 5}})');
+    expect(result.value).toBe('faker.string.alpha({length: {max: 5}})');
   });
 
   it('should include only min when only minLength is specified', () => {
@@ -471,7 +471,7 @@ describe('getMockScalar (undefined filtering)', () => {
     expect(result.value).toBe('faker.string.alpha({length: {min: 30}})');
   });
 
-  it('should use min: 1 when only maxItems is specified', () => {
+  it('should include only max when only maxItems is specified', () => {
     const result = getMockScalar({
       ...baseArg,
       item: {
@@ -482,7 +482,7 @@ describe('getMockScalar (undefined filtering)', () => {
       },
     });
 
-    expect(result.value).toContain('faker.number.int({min: 1, max: 5})');
+    expect(result.value).toContain('faker.number.int({max: 5})');
   });
 
   it('should include only min when only minItems is specified', () => {
