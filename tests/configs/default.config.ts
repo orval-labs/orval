@@ -394,6 +394,18 @@ export default defineConfig({
       target: '../specifications/multiple-tags.yaml',
     },
   },
+  multipleTagsSplit: {
+    output: {
+      target: '../generated/default/multiple-tags-split/endpoints.ts',
+      schemas: '../generated/default/multiple-tags-split/model',
+      mode: 'tags-split',
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/multiple-tags.yaml',
+    },
+  },
   indexMockFiles: {
     output: {
       target: '../generated/default/index-mock-file/endpoints.ts',

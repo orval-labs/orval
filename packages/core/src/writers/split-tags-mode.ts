@@ -242,7 +242,9 @@ export async function writeSplitTagsMode({
   }
 
   return [
-    ...(indexFilePath ? [indexFilePath] : []),
-    ...generatedFilePathsArray.flat(),
+    ...new Set([
+      ...(indexFilePath ? [indexFilePath] : []),
+      ...generatedFilePathsArray.flat(),
+    ]),
   ];
 }
