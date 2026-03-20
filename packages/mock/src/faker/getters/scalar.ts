@@ -268,13 +268,13 @@ export function getMockScalar({
       }
 
       const arrMin = (item.minItems ??
-        (item.maxItems !== undefined ? 1 : safeMockOptions.arrayMin)) as
-        | number
-        | undefined;
+        (item.maxItems === undefined
+          ? safeMockOptions.arrayMin
+          : undefined)) as number | undefined;
       const arrMax = (item.maxItems ??
-        (item.minItems !== undefined
-          ? undefined
-          : safeMockOptions.arrayMax)) as number | undefined;
+        (item.minItems === undefined
+          ? safeMockOptions.arrayMax
+          : undefined)) as number | undefined;
       const arrParts: string[] = [];
       if (arrMin !== undefined) arrParts.push(`min: ${arrMin}`);
       if (arrMax !== undefined) arrParts.push(`max: ${arrMax}`);
@@ -293,13 +293,13 @@ export function getMockScalar({
 
     case 'string': {
       const strMin = (item.minLength ??
-        (item.maxLength !== undefined ? 1 : safeMockOptions.stringMin)) as
-        | number
-        | undefined;
+        (item.maxLength === undefined
+          ? safeMockOptions.stringMin
+          : undefined)) as number | undefined;
       const strMax = (item.maxLength ??
-        (item.minLength !== undefined
-          ? undefined
-          : safeMockOptions.stringMax)) as number | undefined;
+        (item.minLength === undefined
+          ? safeMockOptions.stringMax
+          : undefined)) as number | undefined;
       const strLenParts: string[] = [];
       if (strMin !== undefined) strLenParts.push(`min: ${strMin}`);
       if (strMax !== undefined) strLenParts.push(`max: ${strMax}`);
