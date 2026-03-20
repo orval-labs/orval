@@ -470,6 +470,34 @@ describe('getMockScalar (undefined filtering)', () => {
 
     expect(result.value).toBe('faker.string.alpha({length: {min: 30}})');
   });
+
+  it('should use min: 1 when only maxItems is specified', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'array' as const,
+        maxItems: 5,
+        name: 'test-item',
+        items: { type: 'string' },
+      },
+    });
+
+    expect(result.value).toContain('faker.number.int({min: 1, max: 5})');
+  });
+
+  it('should include only min when only minItems is specified', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'array' as const,
+        minItems: 3,
+        name: 'test-item',
+        items: { type: 'string' },
+      },
+    });
+
+    expect(result.value).toContain('faker.number.int({min: 3})');
+  });
 });
 
 describe('getMockScalar (@-prefixed property names)', () => {
