@@ -268,9 +268,9 @@ export function getMockScalar({
       }
 
       const arrMin = (item.minItems ??
-        (item.maxItems !== undefined
-          ? undefined
-          : safeMockOptions.arrayMin)) as number | undefined;
+        (item.maxItems !== undefined ? 1 : safeMockOptions.arrayMin)) as
+        | number
+        | undefined;
       const arrMax = (item.maxItems ??
         (item.minItems !== undefined
           ? undefined
@@ -293,9 +293,9 @@ export function getMockScalar({
 
     case 'string': {
       const strMin = (item.minLength ??
-        (item.maxLength !== undefined
-          ? undefined
-          : safeMockOptions.stringMin)) as number | undefined;
+        (item.maxLength !== undefined ? 1 : safeMockOptions.stringMin)) as
+        | number
+        | undefined;
       const strMax = (item.maxLength ??
         (item.minLength !== undefined
           ? undefined
