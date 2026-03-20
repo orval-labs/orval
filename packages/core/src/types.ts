@@ -630,7 +630,6 @@ export interface NormalizedQueryOptions {
   useInfinite?: boolean;
   useSuspenseInfiniteQuery?: boolean;
   useInfiniteQueryParam?: string;
-  useInfiniteRequireQueryParam?: boolean;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
   options?: Record<string, unknown>;
@@ -655,7 +654,6 @@ export interface QueryOptions {
   useInfinite?: boolean;
   useSuspenseInfiniteQuery?: boolean;
   useInfiniteQueryParam?: string;
-  useInfiniteRequireQueryParam?: boolean;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
   options?: Record<string, unknown>;

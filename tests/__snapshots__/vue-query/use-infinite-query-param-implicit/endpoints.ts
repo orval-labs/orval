@@ -4,15 +4,12 @@
  * Infinite Query Require Param
  * OpenAPI spec version: 1.0.0
  */
-import { useInfiniteQuery, useQuery } from '@tanstack/vue-query';
+import { useQuery } from '@tanstack/vue-query';
 import type {
   DataTag,
-  InfiniteData,
   QueryClient,
   QueryFunction,
   QueryKey,
-  UseInfiniteQueryOptions,
-  UseInfiniteQueryReturnType,
   UseQueryOptions,
   UseQueryReturnType,
 } from '@tanstack/vue-query';
@@ -159,18 +156,6 @@ export const listDashboards = (
   });
 };
 
-export const getListDashboardsInfiniteQueryKey = (
-  params?: MaybeRef<ListDashboardsParams>,
-) => {
-  return [
-    'infinite',
-    'api',
-    'dashboard',
-    'dashboard',
-    ...(params ? [params] : []),
-  ] as const;
-};
-
 export const getListDashboardsQueryKey = (
   params?: MaybeRef<ListDashboardsParams>,
 ) => {
@@ -181,101 +166,6 @@ export const getListDashboardsQueryKey = (
     ...(params ? [params] : []),
   ] as const;
 };
-
-export const getListDashboardsInfiniteQueryOptions = <
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof listDashboards>>,
-    ListDashboardsParams['page']
-  >,
-  TError = AxiosError<unknown>,
->(
-  params?: MaybeRef<ListDashboardsParams>,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof listDashboards>>,
-        TError,
-        TData,
-        QueryKey,
-        ListDashboardsParams['page']
-      >
-    >;
-    axios?: AxiosRequestConfig;
-  },
-) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
-
-  const queryKey = getListDashboardsInfiniteQueryKey(params);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof listDashboards>>,
-    QueryKey,
-    ListDashboardsParams['page']
-  > = ({ signal, pageParam }) =>
-    listDashboards(
-      { ...unref(params), page: pageParam },
-      { signal, ...axiosOptions },
-    );
-
-  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
-    Awaited<ReturnType<typeof listDashboards>>,
-    TError,
-    TData,
-    QueryKey,
-    ListDashboardsParams['page']
-  >;
-};
-
-export type ListDashboardsInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listDashboards>>
->;
-export type ListDashboardsInfiniteQueryError = AxiosError<unknown>;
-
-/**
- * @summary List dashboards with pagination
- */
-
-export function useListDashboardsInfinite<
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof listDashboards>>,
-    ListDashboardsParams['page']
-  >,
-  TError = AxiosError<unknown>,
->(
-  params?: MaybeRef<ListDashboardsParams>,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof listDashboards>>,
-        TError,
-        TData,
-        QueryKey,
-        ListDashboardsParams['page']
-      >
-    >;
-    axios?: AxiosRequestConfig;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryReturnType<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getListDashboardsInfiniteQueryOptions(params, options);
-
-  const query = useInfiniteQuery(
-    queryOptions,
-    queryClient,
-  ) as UseInfiniteQueryReturnType<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  query.queryKey = unref(queryOptions).queryKey as DataTag<
-    QueryKey,
-    TData,
-    TError
-  >;
-
-  return query;
-}
 
 export const getListDashboardsQueryOptions = <
   TData = Awaited<ReturnType<typeof listDashboards>>,
@@ -334,108 +224,6 @@ export function useListDashboards<
     TData,
     TError
   > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = unref(queryOptions).queryKey as DataTag<
-    QueryKey,
-    TData,
-    TError
-  >;
-
-  return query;
-}
-
-export const getListDashboardsSuspenseInfiniteQueryOptions = <
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof listDashboards>>,
-    ListDashboardsParams['page']
-  >,
-  TError = AxiosError<unknown>,
->(
-  params?: MaybeRef<ListDashboardsParams>,
-  options?: {
-    query?: Partial<
-      UseSuspenseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof listDashboards>>,
-        TError,
-        TData,
-        QueryKey,
-        ListDashboardsParams['page']
-      >
-    >;
-    axios?: AxiosRequestConfig;
-  },
-) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
-
-  const queryKey = getListDashboardsInfiniteQueryKey(params);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof listDashboards>>,
-    QueryKey,
-    ListDashboardsParams['page']
-  > = ({ signal, pageParam }) =>
-    listDashboards(
-      { ...unref(params), page: pageParam },
-      { signal, ...axiosOptions },
-    );
-
-  return {
-    queryKey,
-    queryFn,
-    ...queryOptions,
-  } as UseSuspenseInfiniteQueryOptions<
-    Awaited<ReturnType<typeof listDashboards>>,
-    TError,
-    TData,
-    QueryKey,
-    ListDashboardsParams['page']
-  >;
-};
-
-export type ListDashboardsSuspenseInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listDashboards>>
->;
-export type ListDashboardsSuspenseInfiniteQueryError = AxiosError<unknown>;
-
-/**
- * @summary List dashboards with pagination
- */
-
-export function useListDashboardsSuspenseInfinite<
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof listDashboards>>,
-    ListDashboardsParams['page']
-  >,
-  TError = AxiosError<unknown>,
->(
-  params?: MaybeRef<ListDashboardsParams>,
-  options?: {
-    query?: Partial<
-      UseSuspenseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof listDashboards>>,
-        TError,
-        TData,
-        QueryKey,
-        ListDashboardsParams['page']
-      >
-    >;
-    axios?: AxiosRequestConfig;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryReturnType<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getListDashboardsSuspenseInfiniteQueryOptions(
-    params,
-    options,
-  );
-
-  const query = useSuspenseInfiniteQuery(
-    queryOptions,
-    queryClient,
-  ) as UseInfiniteQueryReturnType<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,

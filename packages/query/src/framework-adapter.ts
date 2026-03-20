@@ -121,7 +121,10 @@ export interface FrameworkAdapter {
     hasMutator: boolean,
   ): string;
 
-  /** Build HTTP function props for infinite queries with pageParam substitution */
+  /**
+   * Build HTTP function props for infinite queries with pageParam substitution.
+   * @param requireQueryParam - When true, ensures the query parameter is included even if optional.
+   */
   getInfiniteQueryHttpProps(
     props: GetterProps,
     queryParam: string,

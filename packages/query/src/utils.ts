@@ -27,9 +27,6 @@ export const normalizeQueryOptions = (
     ...(queryOptions.useInfiniteQueryParam
       ? { useInfiniteQueryParam: queryOptions.useInfiniteQueryParam }
       : {}),
-    ...(queryOptions.useInfiniteRequireQueryParam
-      ? { useInfiniteRequireQueryParam: true }
-      : {}),
     ...(queryOptions.options ? { options: queryOptions.options } : {}),
     ...(queryOptions.queryKey
       ? {

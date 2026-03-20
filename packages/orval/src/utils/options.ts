@@ -802,18 +802,6 @@ function normalizeQueryOptions(
     ...(queryOptions.useInfiniteQueryParam
       ? { useInfiniteQueryParam: queryOptions.useInfiniteQueryParam }
       : {}),
-    ...(isNullish(globalOptions.useInfiniteRequireQueryParam)
-      ? {}
-      : {
-          useInfiniteRequireQueryParam:
-            globalOptions.useInfiniteRequireQueryParam,
-        }),
-    ...(isNullish(queryOptions.useInfiniteRequireQueryParam)
-      ? {}
-      : {
-          useInfiniteRequireQueryParam:
-            queryOptions.useInfiniteRequireQueryParam,
-        }),
     ...(queryOptions.options ? { options: queryOptions.options } : {}),
     ...(globalOptions.queryKey
       ? {

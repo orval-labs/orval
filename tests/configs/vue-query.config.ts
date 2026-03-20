@@ -239,11 +239,11 @@ export default defineConfig({
       target: '../specifications/form-data.yaml',
     },
   },
-  useInfiniteRequireQueryParam: {
+  useInfiniteQueryParamImplicit: {
     output: {
       target:
-        '../generated/vue-query/use-infinite-require-query-param/endpoints.ts',
-      schemas: '../generated/vue-query/use-infinite-require-query-param/model',
+        '../generated/vue-query/use-infinite-query-param-implicit/endpoints.ts',
+      schemas: '../generated/vue-query/use-infinite-query-param-implicit/model',
       client: 'vue-query',
       httpClient: 'axios',
       override: {
@@ -251,14 +251,13 @@ export default defineConfig({
           useQuery: true,
           useInfinite: true,
           useInfiniteQueryParam: 'page',
-          useInfiniteRequireQueryParam: true,
         },
       },
       clean: true,
       prettier: true,
     },
     input: {
-      target: '../specifications/infinite-require-query-param.yaml',
+      target: '../specifications/infinite-query-param-implicit.yaml',
     },
   },
   // Unsupported for now, see for context: https://github.com/orval-labs/orval/pull/931#issuecomment-1752355686

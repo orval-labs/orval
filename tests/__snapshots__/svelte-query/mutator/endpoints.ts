@@ -4,14 +4,8 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import {
-  createInfiniteQuery,
-  createMutation,
-  createQuery,
-} from '@tanstack/svelte-query';
+import { createMutation, createQuery } from '@tanstack/svelte-query';
 import type {
-  CreateInfiniteQueryOptions,
-  CreateInfiniteQueryResult,
   CreateMutationOptions,
   CreateMutationResult,
   CreateQueryOptions,
@@ -60,103 +54,12 @@ export const listPets = (
   });
 };
 
-export const getListPetsInfiniteQueryKey = (
-  params?: ListPetsParams,
-  version: number = 1,
-) => {
-  return [
-    'infinite',
-    `/v${version}/pets`,
-    ...(params ? [params] : []),
-  ] as const;
-};
-
 export const getListPetsQueryKey = (
   params?: ListPetsParams,
   version: number = 1,
 ) => {
   return [`/v${version}/pets`, ...(params ? [params] : [])] as const;
 };
-
-export const getListPetsInfiniteQueryOptions = <
-  TData = Awaited<ReturnType<typeof listPets>>,
-  TError = Error,
->(
-  params: ListPetsParams,
-  version: number = 1,
-  options?: {
-    query?: CreateInfiniteQueryOptions<
-      Awaited<ReturnType<typeof listPets>>,
-      TError,
-      TData
-    >;
-  },
-) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getListPetsInfiniteQueryKey(params, version);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
-    signal,
-    pageParam,
-  }) =>
-    listPets(
-      { ...params, limit: pageParam || params?.['limit'] },
-      version,
-      signal,
-    );
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!version,
-    ...queryOptions,
-  } as CreateInfiniteQueryOptions<
-    Awaited<ReturnType<typeof listPets>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type ListPetsInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listPets>>
->;
-export type ListPetsInfiniteQueryError = Error;
-
-/**
- * @summary List all pets
- */
-
-export function createListPetsInfinite<
-  TData = Awaited<ReturnType<typeof listPets>>,
-  TError = Error,
->(
-  params: ListPetsParams,
-  version: number = 1,
-  options?: {
-    query?: CreateInfiniteQueryOptions<
-      Awaited<ReturnType<typeof listPets>>,
-      TError,
-      TData
-    >;
-  },
-): CreateInfiniteQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListPetsInfiniteQueryOptions(
-    params,
-    version,
-    options,
-  );
-
-  const query = createInfiniteQuery(queryOptions) as CreateInfiniteQueryResult<
-    TData,
-    TError
-  > & { queryKey: QueryKey };
-
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
-}
 
 export const getListPetsQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
@@ -324,90 +227,9 @@ export const showPetById = (
   });
 };
 
-export const getShowPetByIdInfiniteQueryKey = (
-  petId: string,
-  version: number = 1,
-) => {
-  return ['infinite', `/v${version}/pets/${petId}`] as const;
-};
-
 export const getShowPetByIdQueryKey = (petId: string, version: number = 1) => {
   return [`/v${version}/pets/${petId}`] as const;
 };
-
-export const getShowPetByIdInfiniteQueryOptions = <
-  TData = Awaited<ReturnType<typeof showPetById>>,
-  TError = Error,
->(
-  petId: string,
-  version: number = 1,
-  options?: {
-    query?: CreateInfiniteQueryOptions<
-      Awaited<ReturnType<typeof showPetById>>,
-      TError,
-      TData
-    >;
-  },
-) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getShowPetByIdInfiniteQueryKey(petId, version);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({
-    signal,
-  }) => showPetById(petId, version, signal);
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!(version && petId),
-    ...queryOptions,
-  } as CreateInfiniteQueryOptions<
-    Awaited<ReturnType<typeof showPetById>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type ShowPetByIdInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof showPetById>>
->;
-export type ShowPetByIdInfiniteQueryError = Error;
-
-/**
- * @summary Info for a specific pet
- */
-
-export function createShowPetByIdInfinite<
-  TData = Awaited<ReturnType<typeof showPetById>>,
-  TError = Error,
->(
-  petId: string,
-  version: number = 1,
-  options?: {
-    query?: CreateInfiniteQueryOptions<
-      Awaited<ReturnType<typeof showPetById>>,
-      TError,
-      TData
-    >;
-  },
-): CreateInfiniteQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getShowPetByIdInfiniteQueryOptions(
-    petId,
-    version,
-    options,
-  );
-
-  const query = createInfiniteQuery(queryOptions) as CreateInfiniteQueryResult<
-    TData,
-    TError
-  > & { queryKey: QueryKey };
-
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
-}
 
 export const getShowPetByIdQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
@@ -570,81 +392,9 @@ export const healthCheck = (version: number = 1, signal?: AbortSignal) => {
   });
 };
 
-export const getHealthCheckInfiniteQueryKey = (version: number = 1) => {
-  return ['infinite', `/v${version}/health`] as const;
-};
-
 export const getHealthCheckQueryKey = (version: number = 1) => {
   return [`/v${version}/health`] as const;
 };
-
-export const getHealthCheckInfiniteQueryOptions = <
-  TData = Awaited<ReturnType<typeof healthCheck>>,
-  TError = Error,
->(
-  version: number = 1,
-  options?: {
-    query?: CreateInfiniteQueryOptions<
-      Awaited<ReturnType<typeof healthCheck>>,
-      TError,
-      TData
-    >;
-  },
-) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getHealthCheckInfiniteQueryKey(version);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = ({
-    signal,
-  }) => healthCheck(version, signal);
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!version,
-    ...queryOptions,
-  } as CreateInfiniteQueryOptions<
-    Awaited<ReturnType<typeof healthCheck>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type HealthCheckInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof healthCheck>>
->;
-export type HealthCheckInfiniteQueryError = Error;
-
-/**
- * @summary health check
- */
-
-export function createHealthCheckInfinite<
-  TData = Awaited<ReturnType<typeof healthCheck>>,
-  TError = Error,
->(
-  version: number = 1,
-  options?: {
-    query?: CreateInfiniteQueryOptions<
-      Awaited<ReturnType<typeof healthCheck>>,
-      TError,
-      TData
-    >;
-  },
-): CreateInfiniteQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getHealthCheckInfiniteQueryOptions(version, options);
-
-  const query = createInfiniteQuery(queryOptions) as CreateInfiniteQueryResult<
-    TData,
-    TError
-  > & { queryKey: QueryKey };
-
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
-}
 
 export const getHealthCheckQueryOptions = <
   TData = Awaited<ReturnType<typeof healthCheck>>,
@@ -728,94 +478,12 @@ export const showPetWithOwner = (
   });
 };
 
-export const getShowPetWithOwnerInfiniteQueryKey = (
-  petId: string,
-  version: number = 1,
-) => {
-  return ['infinite', `/v${version}/pets/${petId}/owner`] as const;
-};
-
 export const getShowPetWithOwnerQueryKey = (
   petId: string,
   version: number = 1,
 ) => {
   return [`/v${version}/pets/${petId}/owner`] as const;
 };
-
-export const getShowPetWithOwnerInfiniteQueryOptions = <
-  TData = Awaited<ReturnType<typeof showPetWithOwner>>,
-  TError = Error,
->(
-  petId: string,
-  version: number = 1,
-  options?: {
-    query?: CreateInfiniteQueryOptions<
-      Awaited<ReturnType<typeof showPetWithOwner>>,
-      TError,
-      TData
-    >;
-  },
-) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ??
-    getShowPetWithOwnerInfiniteQueryKey(petId, version);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof showPetWithOwner>>
-  > = ({ signal }) => showPetWithOwner(petId, version, signal);
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!(version && petId),
-    ...queryOptions,
-  } as CreateInfiniteQueryOptions<
-    Awaited<ReturnType<typeof showPetWithOwner>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type ShowPetWithOwnerInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof showPetWithOwner>>
->;
-export type ShowPetWithOwnerInfiniteQueryError = Error;
-
-/**
- * @summary combinate nullable and $ref
- */
-
-export function createShowPetWithOwnerInfinite<
-  TData = Awaited<ReturnType<typeof showPetWithOwner>>,
-  TError = Error,
->(
-  petId: string,
-  version: number = 1,
-  options?: {
-    query?: CreateInfiniteQueryOptions<
-      Awaited<ReturnType<typeof showPetWithOwner>>,
-      TError,
-      TData
-    >;
-  },
-): CreateInfiniteQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getShowPetWithOwnerInfiniteQueryOptions(
-    petId,
-    version,
-    options,
-  );
-
-  const query = createInfiniteQuery(queryOptions) as CreateInfiniteQueryResult<
-    TData,
-    TError
-  > & { queryKey: QueryKey };
-
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
-}
 
 export const getShowPetWithOwnerQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,

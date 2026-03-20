@@ -1,5 +1,6 @@
 import {
   camel,
+  createLogger,
   generateMutator,
   type GeneratorImport,
   type GeneratorMutator,
@@ -57,103 +58,29 @@ const getQueryFnArguments = ({
   return `{ ${signalDestructure} }`;
 };
 
-const getTopLevelObjectBody = (model: string): string | undefined => {
-  let inSingleQuote = false;
-  let inDoubleQuote = false;
-  let inTemplateLiteral = false;
-  let inLineComment = false;
-  let inBlockComment = false;
+const countPrecedingBackslashes = (value: string, index: number): number => {
+  let count = 0;
 
-  let objectStart = -1;
-  let objectDepth = 0;
-
-  for (let index = 0; index < model.length; index++) {
-    const char = model[index];
-    const nextChar = model[index + 1];
-    const prevChar = model[index - 1];
-
-    if (inLineComment) {
-      if (char === '\n') {
-        inLineComment = false;
-      }
-      continue;
-    }
-
-    if (inBlockComment) {
-      if (char === '*' && nextChar === '/') {
-        inBlockComment = false;
-        index++;
-      }
-      continue;
-    }
-
-    if (!inSingleQuote && !inDoubleQuote && !inTemplateLiteral) {
-      if (char === '/' && nextChar === '/') {
-        inLineComment = true;
-        index++;
-        continue;
-      }
-
-      if (char === '/' && nextChar === '*') {
-        inBlockComment = true;
-        index++;
-        continue;
-      }
-    }
-
-    if (
-      !inDoubleQuote &&
-      !inTemplateLiteral &&
-      char === "'" &&
-      prevChar !== '\\'
-    ) {
-      inSingleQuote = !inSingleQuote;
-      continue;
-    }
-
-    if (
-      !inSingleQuote &&
-      !inTemplateLiteral &&
-      char === '"' &&
-      prevChar !== '\\'
-    ) {
-      inDoubleQuote = !inDoubleQuote;
-      continue;
-    }
-
-    if (!inSingleQuote && !inDoubleQuote && char === '`' && prevChar !== '\\') {
-      inTemplateLiteral = !inTemplateLiteral;
-      continue;
-    }
-
-    if (inSingleQuote || inDoubleQuote || inTemplateLiteral) {
-      continue;
-    }
-
-    if (char === '{') {
-      if (objectStart === -1) {
-        objectStart = index;
-      }
-      objectDepth++;
-      continue;
-    }
-
-    if (char === '}' && objectStart !== -1) {
-      objectDepth--;
-
-      if (objectDepth === 0) {
-        return model.slice(objectStart + 1, index);
-      }
-    }
+  for (
+    let cursor = index - 1;
+    cursor >= 0 && value[cursor] === '\\';
+    cursor--
+  ) {
+    count++;
   }
 
-  return undefined;
+  return count;
 };
 
-const hasTopLevelProperty = (
+const isEscaped = (value: string, index: number): boolean =>
+  countPrecedingBackslashes(value, index) % 2 === 1;
+
+const parseTopLevelSegments = (
   objectBody: string,
-  queryParam: string,
-): boolean => {
+): {
+  firstTopLevelObjectBody: string | undefined;
+  segments: string[];
+} => {
   const segments: string[] = [];
   let current = '';
   let braceDepth = 0;
@@ -166,10 +93,12 @@ const hasTopLevelProperty = (
   let inLineComment = false;
   let inBlockComment = false;
 
+  let objectStart = -1;
+  let firstTopLevelObjectBody: string | undefined;
+
   for (let index = 0; index < objectBody.length; index++) {
     const char = objectBody[index];
     const nextChar = objectBody[index + 1];
-    const prevChar = objectBody[index - 1];
 
     if (inLineComment) {
       if (char === '\n') {
@@ -210,7 +139,7 @@ const hasTopLevelProperty = (
       !inDoubleQuote &&
       !inTemplateLiteral &&
       char === "'" &&
-      prevChar !== '\\'
+      !isEscaped(objectBody, index)
     ) {
       inSingleQuote = !inSingleQuote;
       current += char;
@@ -221,14 +150,19 @@ const hasTopLevelProperty = (
       !inSingleQuote &&
       !inTemplateLiteral &&
       char === '"' &&
-      prevChar !== '\\'
+      !isEscaped(objectBody, index)
     ) {
       inDoubleQuote = !inDoubleQuote;
       current += char;
       continue;
     }
 
-    if (!inSingleQuote && !inDoubleQuote && char === '`' && prevChar !== '\\') {
+    if (
+      !inSingleQuote &&
+      !inDoubleQuote &&
+      char === '`' &&
+      !isEscaped(objectBody, index)
+    ) {
       inTemplateLiteral = !inTemplateLiteral;
       current += char;
       continue;
@@ -237,12 +171,23 @@ const hasTopLevelProperty = (
     if (!inSingleQuote && !inDoubleQuote && !inTemplateLiteral) {
       switch (char) {
         case '{': {
+          if (objectStart === -1) {
+            objectStart = index;
+          }
           braceDepth++;
 
           break;
         }
         case '}': {
           braceDepth--;
+
+          if (
+            objectStart !== -1 &&
+            braceDepth === 0 &&
+            firstTopLevelObjectBody === undefined
+          ) {
+            firstTopLevelObjectBody = objectBody.slice(objectStart + 1, index);
+          }
 
           break;
         }
@@ -287,6 +232,22 @@ const hasTopLevelProperty = (
   if (current.trim()) {
     segments.push(current);
   }
+
+  return {
+    firstTopLevelObjectBody,
+    segments,
+  };
+};
+
+const getTopLevelObjectBody = (model: string): string | undefined => {
+  return parseTopLevelSegments(model).firstTopLevelObjectBody;
+};
+
+const hasTopLevelProperty = (
+  objectBody: string,
+  queryParam: string,
+): boolean => {
+  const { segments } = parseTopLevelSegments(objectBody);
 
   return segments.some((segment) => {
     const member = segment.trim();
@@ -930,19 +891,18 @@ export const generateQueryHook = async (
       operationQueryOptions?.useInfiniteQueryParam ??
       query.useInfiniteQueryParam;
 
-    const effectiveUseInfiniteRequireQueryParam =
-      operationQueryOptions?.useInfiniteRequireQueryParam ??
-      query.useInfiniteRequireQueryParam;
-
     const hasConfiguredInfiniteQueryParam =
       !!effectiveInfiniteQueryParam &&
       hasQueryParamInSchema(queryParams, effectiveInfiniteQueryParam);
 
-    const shouldRequireInfiniteQueryParam =
-      !!effectiveUseInfiniteRequireQueryParam && !!effectiveInfiniteQueryParam;
+    if (effectiveInfiniteQueryParam && !hasConfiguredInfiniteQueryParam) {
+      createLogger().warn(
+        `query.useInfiniteQueryParam is set to "${effectiveInfiniteQueryParam}" for operation "${operationName}", but this query parameter was not found in the operation schema. Infinite query generation will be skipped for this operation.`,
+      );
+    }
 
     const canGenerateInfiniteQuery =
-      !shouldRequireInfiniteQueryParam || hasConfiguredInfiniteQueryParam;
+      !effectiveInfiniteQueryParam || hasConfiguredInfiniteQueryParam;
 
     const queries = [
       ...(canGenerateInfiniteQuery &&
@@ -953,7 +913,7 @@ export const generateQueryHook = async (
               options: query.options,
               type: QueryType.INFINITE,
               queryParam: effectiveInfiniteQueryParam,
-              requireQueryParam: shouldRequireInfiniteQueryParam,
+              requireQueryParam: !!effectiveInfiniteQueryParam,
               queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
@@ -987,7 +947,7 @@ export const generateQueryHook = async (
               options: query.options,
               type: QueryType.SUSPENSE_INFINITE,
               queryParam: effectiveInfiniteQueryParam,
-              requireQueryParam: shouldRequireInfiniteQueryParam,
+              requireQueryParam: !!effectiveInfiniteQueryParam,
               queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
