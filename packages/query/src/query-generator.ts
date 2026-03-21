@@ -911,9 +911,9 @@ export const generateQueryHook = async (
       );
     }
 
-    const canGenerateInfiniteQuery = !operationRequestsInfinite
-      ? true
-      : !effectiveInfiniteQueryParam || hasConfiguredInfiniteQueryParam;
+    const canGenerateInfiniteQuery = operationRequestsInfinite
+      ? !effectiveInfiniteQueryParam || hasConfiguredInfiniteQueryParam
+      : true;
 
     const queries = [
       ...(canGenerateInfiniteQuery &&
