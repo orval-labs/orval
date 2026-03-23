@@ -30,7 +30,7 @@
     },
     "packages/angular": {
       "name": "@orval/angular",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@orval/core": "workspace:*",
       },
@@ -44,7 +44,7 @@
     },
     "packages/axios": {
       "name": "@orval/axios",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@orval/core": "workspace:*",
       },
@@ -58,7 +58,7 @@
     },
     "packages/core": {
       "name": "@orval/core",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@scalar/openapi-types": "catalog:",
         "acorn": "^8.15.0",
@@ -92,7 +92,7 @@
     },
     "packages/fetch": {
       "name": "@orval/fetch",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@orval/core": "workspace:*",
         "@scalar/openapi-types": "catalog:",
@@ -107,7 +107,7 @@
     },
     "packages/hono": {
       "name": "@orval/hono",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@orval/core": "workspace:*",
         "@orval/zod": "workspace:*",
@@ -128,7 +128,7 @@
     },
     "packages/mcp": {
       "name": "@orval/mcp",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@orval/core": "workspace:*",
         "@orval/fetch": "workspace:*",
@@ -144,7 +144,7 @@
     },
     "packages/mock": {
       "name": "@orval/mock",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@orval/core": "workspace:*",
         "remeda": "^2.33.6",
@@ -159,7 +159,7 @@
     },
     "packages/orval": {
       "name": "orval",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "bin": "./dist/bin/orval.mjs",
       "dependencies": {
         "@commander-js/extra-typings": "^14.0.0",
@@ -210,7 +210,7 @@
     },
     "packages/query": {
       "name": "@orval/query",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@orval/core": "workspace:*",
         "@orval/fetch": "workspace:*",
@@ -226,7 +226,7 @@
     },
     "packages/solid-start": {
       "name": "@orval/solid-start",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@orval/core": "workspace:*",
         "@scalar/openapi-types": "catalog:",
@@ -241,7 +241,7 @@
     },
     "packages/swr": {
       "name": "@orval/swr",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@orval/core": "workspace:*",
         "@orval/fetch": "workspace:*",
@@ -256,7 +256,7 @@
     },
     "packages/zod": {
       "name": "@orval/zod",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@orval/core": "workspace:*",
         "remeda": "^2.33.6",
@@ -271,7 +271,7 @@
     },
     "samples/angular-app": {
       "name": "angular-app",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@angular/common": "catalog:angular",
         "@angular/compiler": "catalog:angular",
@@ -303,7 +303,7 @@
     },
     "samples/angular-query": {
       "name": "angular-query",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@angular/animations": "catalog:angular",
         "@angular/common": "catalog:angular",
@@ -341,7 +341,7 @@
     },
     "samples/basic": {
       "name": "basic",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "axios": "catalog:axios",
@@ -356,7 +356,7 @@
     },
     "samples/hono/composite-routes-with-tags-split": {
       "name": "@hono/composite-routes-with-tags-split",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@hono/zod-validator": "catalog:hono",
         "hono": "catalog:hono",
@@ -371,7 +371,7 @@
     },
     "samples/hono/hono-with-fetch-client": {
       "name": "hono-with-fetch-client",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "devDependencies": {
         "msw": "catalog:tooling",
         "orval": "workspace:*",
@@ -381,7 +381,7 @@
     },
     "samples/hono/hono-with-fetch-client/hono-app": {
       "name": "hono-app",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@hono/zod-validator": "catalog:hono",
         "hono": "catalog:hono",
@@ -393,7 +393,7 @@
     },
     "samples/hono/hono-with-fetch-client/next-app": {
       "name": "next-app",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "next": "^15.5.7",
         "react": "catalog:react",
@@ -412,7 +412,7 @@
     },
     "samples/hono/hono-with-zod": {
       "name": "hono-with-zod",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@hono/zod-validator": "catalog:hono",
         "hono": "catalog:hono",
@@ -428,7 +428,7 @@
     },
     "samples/mcp/petstore": {
       "name": "mcp-petstore",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@modelcontextprotocol/sdk": "catalog:mcp",
         "zod": "catalog:zod3",
@@ -444,7 +444,7 @@
     },
     "samples/next-app-with-fetch": {
       "name": "next-app-with-fetch",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "next": "14.2.35",
         "react": "catalog:react",
@@ -468,7 +468,7 @@
     },
     "samples/react-app": {
       "name": "react-app",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "@types/node": "catalog:",
@@ -491,7 +491,7 @@
     },
     "samples/react-app-with-swr/basic": {
       "name": "swr-basic",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "@types/node": "catalog:",
@@ -514,7 +514,7 @@
     },
     "samples/react-app-with-swr/fetch-client": {
       "name": "swr-with-fetch-client",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "react": "catalog:react",
         "react-dom": "^18.3.1",
@@ -540,7 +540,7 @@
     },
     "samples/react-query/basic": {
       "name": "react-query-basic",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "@tanstack/react-query": "catalog:react",
@@ -564,7 +564,7 @@
     },
     "samples/react-query/custom-fetch": {
       "name": "react-query-custom-fetch",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@tanstack/react-query": "catalog:react",
         "react": "catalog:react",
@@ -590,7 +590,7 @@
     },
     "samples/react-query/form-data": {
       "name": "react-query-form-data",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "axios": "catalog:axios",
@@ -605,7 +605,7 @@
     },
     "samples/react-query/form-data-mutator": {
       "name": "react-query-form-data-mutator",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "axios": "catalog:axios",
@@ -620,7 +620,7 @@
     },
     "samples/react-query/form-url-encoded": {
       "name": "react-query-form-url-encoded",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "axios": "catalog:axios",
@@ -635,7 +635,7 @@
     },
     "samples/react-query/form-url-encoded-mutator": {
       "name": "react-query-form-url-encoded-mutator",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "axios": "catalog:axios",
@@ -650,7 +650,7 @@
     },
     "samples/react-query/hook-mutator-axios": {
       "name": "react-query-hook-mutator-axios",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "axios": "catalog:axios",
@@ -665,7 +665,7 @@
     },
     "samples/react-query/hook-mutator-fetch": {
       "name": "react-query-hook-mutator-fetch",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "react": "catalog:react",
@@ -679,7 +679,7 @@
     },
     "samples/solid-query/basic": {
       "name": "solid-query-basic",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@tanstack/solid-query": "^5.90.21",
         "axios": "catalog:axios",
@@ -696,7 +696,7 @@
     },
     "samples/solid-query/custom-fetch": {
       "name": "solid-query-custom-fetch",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@tanstack/solid-query": "^5.90.21",
         "msw": "catalog:tooling",
@@ -712,7 +712,7 @@
     },
     "samples/solid-start/basic": {
       "name": "solid-start-basic",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@solidjs/meta": "^0.29.4",
         "@solidjs/router": "^0.15.4",
@@ -733,7 +733,7 @@
     },
     "samples/svelte-query/basic": {
       "name": "svelte-query-basic",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@tanstack/svelte-query": "catalog:svelte",
         "axios": "catalog:axios",
@@ -761,7 +761,7 @@
     },
     "samples/svelte-query/custom-fetch": {
       "name": "svelte-query-custom-fetch",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@tanstack/svelte-query": "catalog:svelte",
       },
@@ -782,7 +782,7 @@
     },
     "samples/svelte-query/v6-custom-fetch": {
       "name": "svelte-query-v6-custom-fetch",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@sveltestack/svelte-query": "^1.6.0",
         "@tanstack/svelte-query": "^6.0.17",
@@ -804,7 +804,7 @@
     },
     "samples/swr-with-zod": {
       "name": "swr-with-zod",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "react": "catalog:react",
         "react-dom": "^18.3.1",
@@ -831,7 +831,7 @@
     },
     "samples/vue-query/custom-fetch": {
       "name": "vue-query-custom-fetch",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@tanstack/vue-query": "catalog:vue",
         "vue": "catalog:vue",
@@ -850,7 +850,7 @@
     },
     "samples/vue-query/vue-query-basic": {
       "name": "vue-query-basic",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "dependencies": {
         "@faker-js/faker": "catalog:tooling",
         "@tanstack/vue-query": "catalog:vue",
@@ -874,7 +874,7 @@
     },
     "tests": {
       "name": "orval-tests",
-      "version": "8.6.1",
+      "version": "8.6.2",
       "devDependencies": {
         "@angular/common": "catalog:angular",
         "@angular/core": "catalog:angular",
