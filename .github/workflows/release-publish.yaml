@@ -27,7 +27,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Run build
         run: bun run build
@@ -49,6 +49,26 @@ jobs:
             fi
           done
           echo "No unsafe lifecycle scripts detected."
+
+      - name: Resolve workspace:* references
+        run: |
+          ROOT_VERSION=$(jq -r '.version' package.json)
+          echo "Resolving workspace:* to version $ROOT_VERSION"
+          for pkg in packages/*/package.json; do
+            tmpfile=$(mktemp)
+            jq --arg v "$ROOT_VERSION" '
+              (.dependencies // {}) |= with_entries(
+                if .value == "workspace:*" then .value = $v else . end
+              ) |
+              (.devDependencies // {}) |= with_entries(
+                if .value == "workspace:*" then .value = $v else . end
+              ) |
+              (.peerDependencies // {}) |= with_entries(
+                if .value == "workspace:*" then .value = $v else . end
+              )
+            ' "$pkg" > "$tmpfile" && mv "$tmpfile" "$pkg"
+          done
+          echo "Resolved all workspace:* references to $ROOT_VERSION"
 
       - name: Publish workspaces to npm
         run: |
