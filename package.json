@@ -1,7 +1,7 @@
 {
   "name": "orval-workspaces",
   "namespace": "@orval",
-  "version": "8.5.3",
+  "version": "8.6.0",
   "license": "MIT",
   "workspaces": [
     "packages/*",
