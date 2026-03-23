@@ -6,13 +6,6 @@
     "outDir": "./out-tsc/app",
     "types": []
   },
-  "angularCompilerOptions": {
-    "enableI18nLegacyMessageIdFormat": false,
-    "strictInjectionParameters": true,
-    "strictInputAccessModifiers": true,
-    "typeCheckHostBindings": true,
-    "strictTemplates": true
-  },
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.spec.ts"]
 }

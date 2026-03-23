@@ -39,7 +39,6 @@
     "angular-eslint": "21.3.0",
     "eslint": "catalog:",
     "@testing-library/angular": "19.0.0",
-    "jsdom": "catalog:",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
     "prettier": "catalog:",

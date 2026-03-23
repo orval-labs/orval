@@ -30,7 +30,7 @@ import type {
   Pet,
   Pets,
   SearchPetsParams,
-} from '../../model';
+} from '../model';
 
 export type OrvalHttpResourceOptions<
   TValue,

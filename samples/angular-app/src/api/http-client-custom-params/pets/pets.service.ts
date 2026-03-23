@@ -21,7 +21,7 @@ import type {
   Pet,
   Pets,
   SearchPetsParams,
-} from '../../model-custom-params';
+} from '../model';
 
 import paramsSerializerMutator from '../../../orval/mutator/custom-params-serializer';
 

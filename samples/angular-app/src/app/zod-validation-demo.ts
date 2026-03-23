@@ -9,7 +9,7 @@ import {
 import { JsonPipe } from '@angular/common';
 import { z } from 'zod';
 import { PetsService as ZodPetsService } from '../api/endpoints-zod/pets/pets.service';
-import type { Pets } from '../api/model-zod/index.zod';
+import type { Pets } from '../api/endpoints-zod/model/index.zod';
 import { DemoPageFrameComponent } from './demo-page-frame.component';
 import { BadgeComponent } from './ui/badge.component';
 import { PetCardComponent } from './ui/pet-card.component';

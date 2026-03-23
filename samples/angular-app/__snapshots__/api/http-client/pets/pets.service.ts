@@ -21,7 +21,7 @@ import type {
   Pet,
   Pets,
   SearchPetsParams,
-} from '../../model';
+} from '../model';
 
 import listPetsMutator from '../../../orval/mutator/response-type';
 
