@@ -1,6 +1,6 @@
 {
   "name": "hono-with-fetch-client",
-  "version": "8.5.3",
+  "version": "8.6.0",
   "private": true,
   "type": "module",
   "scripts": {
