@@ -35,7 +35,6 @@
     "@faker-js/faker": "catalog:tooling",
     "angular-eslint": "21.3.0",
     "eslint": "catalog:",
-    "jsdom": "catalog:",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
     "prettier": "catalog:",

@@ -9,7 +9,7 @@ import { faker } from '@faker-js/faker';
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-import type { Pet, Pets } from '../../model-zod/index.zod';
+import type { Pet, Pets } from '../model/index.zod';
 
 export const getSearchPetsResponseMock = (): Pets =>
   Array.from(

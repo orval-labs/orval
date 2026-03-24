@@ -1,3 +1,10 @@
+import { defineTransformer } from 'orval';
+
+type OperationParameter = {
+  name?: string;
+  in?: string;
+} & Record<string, unknown>;
+
 const HTTP_VERBS = new Set([
   'get',
   'put',
@@ -9,7 +16,7 @@ const HTTP_VERBS = new Set([
   'trace',
 ]);
 
-const transformer = (inputSchema) => ({
+export default defineTransformer((inputSchema) => ({
   ...inputSchema,
   paths: Object.entries(inputSchema.paths ?? {}).reduce(
     (acc, [path, pathItem]) => ({
@@ -28,7 +35,7 @@ const transformer = (inputSchema) => ({
           }
 
           const existingParameters = Array.isArray(operation.parameters)
-            ? operation.parameters
+            ? (operation.parameters as OperationParameter[])
             : [];
 
           const filteredParameters = existingParameters.filter(
@@ -64,6 +71,4 @@ const transformer = (inputSchema) => ({
     }),
     {},
   ),
-});
-
-export default transformer;
+}));

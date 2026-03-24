@@ -6,7 +6,7 @@ import {
   signal,
 } from '@angular/core';
 
-import type { Pet, Pets } from '../api/model';
+import type { Pet, Pets } from '../api/http-resource/model';
 import {
   listPetsResource,
   showPetByIdResource,

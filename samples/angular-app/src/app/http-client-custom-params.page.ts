@@ -2,7 +2,7 @@ import { AsyncPipe, JsonPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { shareReplay } from 'rxjs';
 
-import type { Pets } from '../api/model-custom-params';
+import type { Pets } from '../api/http-client-custom-params/model';
 import { PetsService } from '../api/http-client-custom-params/pets/pets.service';
 import { DemoPageFrameComponent } from './demo-page-frame.component';
 import { toLoadState } from './load-state';

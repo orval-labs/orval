@@ -24,14 +24,14 @@ import type { ResourceStatus, Signal } from '@angular/core';
 
 import { Observable } from 'rxjs';
 
-import { Pet, Pets } from '../../model-zod/index.zod';
+import { Pet, Pets } from '../model/index.zod';
 import type {
   CreatePetsBody,
   ListPetsParams,
   PetOutput,
   PetsOutput,
   SearchPetsParams,
-} from '../../model-zod/index.zod';
+} from '../model/index.zod';
 
 export type OrvalHttpResourceOptions<
   TValue,
