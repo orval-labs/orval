@@ -251,13 +251,18 @@ const hasTopLevelProperty = (
 
   return segments.some((segment) => {
     const member = segment.trim();
-    if (!member || member.startsWith('[')) {
+    const normalizedMember = member.replace(
+      /^(?:(?:\/\*[\s\S]*?\*\/|\/\/.*(?:\n|$))\s*)+/,
+      '',
+    );
+
+    if (!normalizedMember || normalizedMember.startsWith('[')) {
       return false;
     }
 
     const propertyMatch =
       /^(?:readonly\s+)?(?:'([^']+)'|"([^"]+)"|([A-Za-z_$][\w$]*))\??\s*:/.exec(
-        member,
+        normalizedMember,
       );
 
     const propertyName =
