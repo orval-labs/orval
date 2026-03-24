@@ -3,9 +3,12 @@ import { entries, isEmptyish } from 'remeda';
 import { resolveObject, resolveRef } from '../resolvers';
 import type {
   ContextSpec,
+  GeneratorImport,
   GeneratorSchema,
   OpenApiComponentsObject,
   OpenApiParameterObject,
+  OpenApiReferenceObject,
+  OpenApiSchemaObject,
 } from '../types';
 import { jsDoc, pascal, sanitize } from '../utils';
 
@@ -27,10 +30,13 @@ export function generateParameterDefinition(
       es5keyword: true,
       es5IdentifierName: true,
     });
-    const { schema, imports } = resolveRef<OpenApiParameterObject>(
-      parameter,
-      context,
-    );
+    const {
+      schema,
+      imports,
+    }: {
+      schema: OpenApiParameterObject;
+      imports: GeneratorImport[];
+    } = resolveRef(parameter, context);
 
     if (schema.in !== 'query' && schema.in !== 'header') {
       continue;
@@ -58,7 +64,7 @@ export function generateParameterDefinition(
     }
 
     const resolvedObject = resolveObject({
-      schema: schema.schema,
+      schema: schema.schema as OpenApiSchemaObject | OpenApiReferenceObject,
       propName: modelName,
       context,
     });

@@ -34,6 +34,13 @@ const SOLID_START_DEPENDENCIES: GeneratorDependency[] = [
     dependency: '@solidjs/router',
   },
 ];
+const resolveSchemaRef = (
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: GeneratorOptions['context'],
+) =>
+  resolveRef(schema, context) as {
+    schema: OpenApiSchemaObject;
+  };
 
 export const getSolidStartDependencies: ClientDependenciesBuilder = () =>
   SOLID_START_DEPENDENCIES;
@@ -176,25 +183,28 @@ const generateImplementation = (
   const mergedParameters = [
     ...(pathItem?.parameters ?? []),
     ...(operation?.parameters ?? []),
-  ];
-  const byKey = new Map<string, (typeof mergedParameters)[number]>();
+  ] as (OpenApiParameterObject | OpenApiReferenceObject)[];
+  const byKey = new Map<
+    string,
+    OpenApiParameterObject | OpenApiReferenceObject
+  >();
   for (const parameter of mergedParameters) {
-    const { schema } = resolveRef<OpenApiParameterObject>(parameter, context);
-    byKey.set(`${schema.in}:${schema.name}`, parameter);
+    const { schema } = resolveRef(parameter, context);
+    const parameterObject = schema as OpenApiParameterObject;
+    byKey.set(`${parameterObject.in}:${parameterObject.name}`, parameter);
   }
   const parameters = [...byKey.values()];
+  const parameterObjects = parameters.map((parameter) => {
+    const { schema } = resolveRef(parameter, context);
+    return schema as OpenApiParameterObject;
+  });
 
-  const explodeParameters = parameters.filter((parameter) => {
-    const { schema: parameterObject } = resolveRef<OpenApiParameterObject>(
-      parameter,
-      context,
-    );
-
+  const explodeParameters = parameterObjects.filter((parameterObject) => {
     if (!parameterObject.schema) {
       return false;
     }
 
-    const { schema: schemaObject } = resolveRef<OpenApiSchemaObject>(
+    const { schema: schemaObject } = resolveSchemaRef(
       parameterObject.schema,
       context,
     );
@@ -205,26 +215,17 @@ const generateImplementation = (
         (schemaObject.oneOf as
           | (OpenApiSchemaObject | OpenApiReferenceObject)[]
           | undefined) ?? []
-      ).some(
-        (s) =>
-          resolveRef<OpenApiSchemaObject>(s, context).schema.type === 'array',
-      ) ||
+      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array') ||
       (
         (schemaObject.anyOf as
           | (OpenApiSchemaObject | OpenApiReferenceObject)[]
           | undefined) ?? []
-      ).some(
-        (s) =>
-          resolveRef<OpenApiSchemaObject>(s, context).schema.type === 'array',
-      ) ||
+      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array') ||
       (
         (schemaObject.allOf as
           | (OpenApiSchemaObject | OpenApiReferenceObject)[]
           | undefined) ?? []
-      ).some(
-        (s) =>
-          resolveRef<OpenApiSchemaObject>(s, context).schema.type === 'array',
-      );
+      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array');
 
     // Per OpenAPI spec: query params use 'form' style by default, and 'form'
     // style defaults explode to true when omitted.
@@ -237,27 +238,22 @@ const generateImplementation = (
     return parameterObject.in === 'query' && isArrayLike && isExploded;
   });
 
-  const explodeParametersNames = explodeParameters.map((parameter) => {
-    const { schema } = resolveRef<OpenApiParameterObject>(parameter, context);
-    return schema.name;
-  });
+  const explodeParametersNames = explodeParameters.map(
+    (parameter) => parameter.name,
+  );
 
   const hasExplodedDateParams =
     context.output.override.useDates &&
-    explodeParameters.some((p) => {
-      const { schema: parameterObject } = resolveRef<OpenApiParameterObject>(
-        p,
-        context,
-      );
-      if (!parameterObject.schema) {
+    explodeParameters.some((parameter) => {
+      if (!parameter.schema) {
         return false;
       }
-      const { schema: schemaObject } = resolveRef<OpenApiSchemaObject>(
-        parameterObject.schema,
+      const { schema: schemaObject } = resolveSchemaRef(
+        parameter.schema,
         context,
       );
       const itemsFormat = schemaObject.items
-        ? (resolveRef<OpenApiSchemaObject>(
+        ? (resolveSchemaRef(
             schemaObject.items as OpenApiSchemaObject | OpenApiReferenceObject,
             context,
           ).schema.format as string | undefined)
@@ -270,20 +266,16 @@ const generateImplementation = (
 
   const hasDateParams =
     context.output.override.useDates &&
-    parameters.some((p) => {
-      const { schema: parameterObject } = resolveRef<OpenApiParameterObject>(
-        p,
-        context,
-      );
-      if (!parameterObject.schema) {
+    parameterObjects.some((parameter) => {
+      if (!parameter.schema) {
         return false;
       }
-      const { schema: schemaObject } = resolveRef<OpenApiSchemaObject>(
-        parameterObject.schema,
+      const { schema: schemaObject } = resolveSchemaRef(
+        parameter.schema,
         context,
       );
       const itemsFormat = schemaObject.items
-        ? (resolveRef<OpenApiSchemaObject>(
+        ? (resolveSchemaRef(
             schemaObject.items as OpenApiSchemaObject | OpenApiReferenceObject,
             context,
           ).schema.format as string | undefined)
