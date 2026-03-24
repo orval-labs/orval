@@ -717,8 +717,7 @@ export default defineConfig({
     output: {
       target:
         '../generated/react-query/use-set-query-data-multi-params/endpoints.ts',
-      schemas:
-        '../generated/react-query/use-set-query-data-multi-params/model',
+      schemas: '../generated/react-query/use-set-query-data-multi-params/model',
       client: 'react-query',
       override: {
         query: {
@@ -736,8 +735,7 @@ export default defineConfig({
     output: {
       target:
         '../generated/react-query/use-set-query-data-named-params/endpoints.ts',
-      schemas:
-        '../generated/react-query/use-set-query-data-named-params/model',
+      schemas: '../generated/react-query/use-set-query-data-named-params/model',
       client: 'react-query',
       override: {
         useNamedParameters: true,
