@@ -158,6 +158,7 @@ const generateQueryImplementation = ({
   useQuery,
   useInfinite,
   useInvalidate,
+  useSetQueryData,
   adapter,
 }: {
   queryOption: {
@@ -187,6 +188,7 @@ const generateQueryImplementation = ({
   useQuery?: boolean;
   useInfinite?: boolean;
   useInvalidate?: boolean;
+  useSetQueryData?: boolean;
   adapter: FrameworkAdapter;
 }) => {
   const {
@@ -467,6 +469,14 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
       (type === QueryType.SUSPENSE_INFINITE && !useInfinite));
   const invalidateFnName = camel(`invalidate-${name}`);
 
+  const shouldGenerateSetQueryData =
+    useSetQueryData &&
+    (type === QueryType.QUERY ||
+      type === QueryType.INFINITE ||
+      (type === QueryType.SUSPENSE_QUERY && !useQuery) ||
+      (type === QueryType.SUSPENSE_INFINITE && !useInfinite));
+  const setQueryDataFnName = camel(`set-${name}-query-data`);
+
   // Generate query init (e.g. const queryOptions = fn(...) or const http = inject(HttpClient))
   const queryInit = adapter.generateQueryInit({
     queryOptionsFnName,
@@ -525,6 +535,13 @@ ${
   await queryClient.invalidateQueries({ queryKey: ${queryKeyFnName}(${queryKeyProperties}) }, options);
 
   return queryClient;
+}\n`
+    : ''
+}
+${
+  shouldGenerateSetQueryData
+    ? `${doc}export const ${setQueryDataFnName} = (queryClient: QueryClient, ${queryProps}updater: Awaited<ReturnType<${dataType}>> | undefined | ((old: Awaited<ReturnType<${dataType}>> | undefined) => Awaited<ReturnType<${dataType}>> | undefined)) => {
+  queryClient.setQueryData(${queryKeyFnName}(${queryKeyProperties}), updater);
 }\n`
     : ''
 }
@@ -795,6 +812,7 @@ ${queryKeyFns}`;
         useQuery: query.useQuery,
         useInfinite: query.useInfinite,
         useInvalidate: query.useInvalidate,
+        useSetQueryData: query.useSetQueryData,
         adapter,
       });
     }
