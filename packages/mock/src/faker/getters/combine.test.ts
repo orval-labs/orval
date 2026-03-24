@@ -70,6 +70,7 @@ function createMockContext(): ContextSpec {
           useInfiniteQueryParam: '',
           usePrefetch: false,
           useInvalidate: false,
+          useSetQueryData: false,
           shouldExportMutatorHooks: false,
           shouldExportHttpClient: false,
           shouldExportQueryKey: false,

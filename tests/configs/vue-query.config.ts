@@ -239,6 +239,17 @@ export default defineConfig({
       target: '../specifications/form-data.yaml',
     },
   },
+  useSetQueryData: {
+    output: {
+      target: '../generated/vue-query/use-set-query-data/endpoints.ts',
+      schemas: '../generated/vue-query/use-set-query-data/model',
+      client: 'vue-query',
+      override: { query: { useSetQueryData: true } },
+      clean: true,
+      prettier: true,
+    },
+    input: { target: '../specifications/petstore.yaml' },
+  },
   // Unsupported for now, see for context: https://github.com/orval-labs/orval/pull/931#issuecomment-1752355686
   // namedParameters: {
   //   output: {

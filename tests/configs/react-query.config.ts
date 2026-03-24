@@ -696,4 +696,81 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  useSetQueryData: {
+    output: {
+      target: '../generated/react-query/use-set-query-data/endpoints.ts',
+      schemas: '../generated/react-query/use-set-query-data/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useSetQueryData: true,
+        },
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  useSetQueryDataMultiParams: {
+    output: {
+      target:
+        '../generated/react-query/use-set-query-data-multi-params/endpoints.ts',
+      schemas: '../generated/react-query/use-set-query-data-multi-params/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useSetQueryData: true,
+        },
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/multi-query-params.yaml',
+    },
+  },
+  useSetQueryDataNamedParams: {
+    output: {
+      target:
+        '../generated/react-query/use-set-query-data-named-params/endpoints.ts',
+      schemas: '../generated/react-query/use-set-query-data-named-params/model',
+      client: 'react-query',
+      override: {
+        useNamedParameters: true,
+        query: {
+          useSetQueryData: true,
+        },
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
+  useSetQueryDataInfinite: {
+    output: {
+      target:
+        '../generated/react-query/use-set-query-data-infinite/endpoints.ts',
+      schemas: '../generated/react-query/use-set-query-data-infinite/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useInfinite: true,
+          useInfiniteQueryParam: 'limit',
+          useSetQueryData: true,
+        },
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });
