@@ -23,11 +23,17 @@ import type {
 import type {
   CreatePetsBody,
   CreatePetsParams,
+  CreatePetsPathParameters,
+  DeletePetByIdPathParameters,
   Error,
+  HealthCheckPathParameters,
   ListPetsParams,
+  ListPetsPathParameters,
   Pet,
   PetWithTag,
   Pets,
+  ShowPetByIdPathParameters,
+  ShowPetWithOwnerPathParameters,
 } from './model';
 
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
@@ -94,7 +100,10 @@ export type listPetsResponseError = listPetsResponseDefault & {
 
 export type listPetsResponse = listPetsResponseSuccess | listPetsResponseError;
 
-export const getListPetsUrl = (params: ListPetsParams) => {
+export const getListPetsUrl = (
+  { version = 1 }: ListPetsPathParameters = {},
+  params: ListPetsParams,
+) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -105,14 +114,17 @@ export const getListPetsUrl = (params: ListPetsParams) => {
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/pets?${stringifiedParams}` : `/pets`;
+  return stringifiedParams.length > 0
+    ? `/v${version}/pets?${stringifiedParams}`
+    : `/v${version}/pets`;
 };
 
 export const listPets = async (
+  { version = 1 }: ListPetsPathParameters = {},
   params: ListPetsParams,
   options?: RequestInit,
 ): Promise<listPetsResponse> => {
-  const res = await fetch(getListPetsUrl(params), {
+  const res = await fetch(getListPetsUrl({ version }, params), {
     ...options,
     method: 'GET',
   });
@@ -123,14 +135,18 @@ export const listPets = async (
   return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };
 
-export const getListPetsQueryKey = (params?: ListPetsParams) => {
-  return [`/pets`, ...(params ? [params] : [])] as const;
+export const getListPetsQueryKey = (
+  { version = 1 }: ListPetsPathParameters = {},
+  params?: ListPetsParams,
+) => {
+  return [`/v${version}/pets`, ...(params ? [params] : [])] as const;
 };
 
 export const getListPetsQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
+  { version = 1 }: ListPetsPathParameters = {},
   params: ListPetsParams,
   options?: {
     query?: Partial<
@@ -141,17 +157,21 @@ export const getListPetsQueryOptions = <
 ) => {
   const { query: queryOptions, fetch: fetchOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListPetsQueryKey(params);
+  const queryKey =
+    queryOptions?.queryKey ?? getListPetsQueryKey({ version }, params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
     signal,
-  }) => listPets(params, { signal, ...fetchOptions });
+  }) => listPets({ version }, params, { signal, ...fetchOptions });
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof listPets>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!version,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 };
 
 export type ListPetsQueryResult = NonNullable<
@@ -163,6 +183,7 @@ export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
+  pathParams: ListPetsPathParameters,
   params: ListPetsParams,
   options: {
     query: Partial<
@@ -186,6 +207,7 @@ export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
+  pathParams: ListPetsPathParameters,
   params: ListPetsParams,
   options?: {
     query?: Partial<
@@ -209,6 +231,7 @@ export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
+  pathParams: ListPetsPathParameters,
   params: ListPetsParams,
   options?: {
     query?: Partial<
@@ -228,6 +251,7 @@ export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
+  { version = 1 }: ListPetsPathParameters = {},
   params: ListPetsParams,
   options?: {
     query?: Partial<
@@ -239,7 +263,7 @@ export function useListPets<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getListPetsQueryOptions(params, options);
+  const queryOptions = getListPetsQueryOptions({ version }, params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<
     TData,
@@ -255,6 +279,7 @@ export function useListPets<
 export const useSetListPetsQueryData = () => {
   const queryClient = useQueryClient();
   return (
+    { version = 1 }: ListPetsPathParameters = {},
     params: ListPetsParams,
     updater:
       | Awaited<ReturnType<typeof listPets>>
@@ -263,7 +288,7 @@ export const useSetListPetsQueryData = () => {
           old: Awaited<ReturnType<typeof listPets>> | undefined,
         ) => Awaited<ReturnType<typeof listPets>> | undefined),
   ) => {
-    queryClient.setQueryData(getListPetsQueryKey(params), updater);
+    queryClient.setQueryData(getListPetsQueryKey({ version }, params), updater);
   };
 };
 
@@ -291,7 +316,10 @@ export type createPetsResponse =
   | createPetsResponseSuccess
   | createPetsResponseError;
 
-export const getCreatePetsUrl = (params: CreatePetsParams) => {
+export const getCreatePetsUrl = (
+  { version = 1 }: CreatePetsPathParameters = {},
+  params: CreatePetsParams,
+) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -302,15 +330,18 @@ export const getCreatePetsUrl = (params: CreatePetsParams) => {
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/pets?${stringifiedParams}` : `/pets`;
+  return stringifiedParams.length > 0
+    ? `/v${version}/pets?${stringifiedParams}`
+    : `/v${version}/pets`;
 };
 
 export const createPets = async (
+  { version = 1 }: CreatePetsPathParameters = {},
   createPetsBody: CreatePetsBody,
   params: CreatePetsParams,
   options?: RequestInit,
 ): Promise<createPetsResponse> => {
-  const res = await fetch(getCreatePetsUrl(params), {
+  const res = await fetch(getCreatePetsUrl({ version }, params), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -334,14 +365,22 @@ export const getCreatePetsMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createPets>>,
     TError,
-    { data: CreatePetsBody; params: CreatePetsParams },
+    {
+      pathParams: CreatePetsPathParameters;
+      data: CreatePetsBody;
+      params: CreatePetsParams;
+    },
     TContext
   >;
   fetch?: RequestInit;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBody; params: CreatePetsParams },
+  {
+    pathParams: CreatePetsPathParameters;
+    data: CreatePetsBody;
+    params: CreatePetsParams;
+  },
   TContext
 > => {
   const mutationKey = ['createPets'];
@@ -355,11 +394,15 @@ export const getCreatePetsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
-    { data: CreatePetsBody; params: CreatePetsParams }
+    {
+      pathParams: CreatePetsPathParameters;
+      data: CreatePetsBody;
+      params: CreatePetsParams;
+    }
   > = (props) => {
-    const { data, params } = props ?? {};
+    const { pathParams, data, params } = props ?? {};
 
-    return createPets(data, params, fetchOptions);
+    return createPets(pathParams, data, params, fetchOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -379,7 +422,11 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof createPets>>,
       TError,
-      { data: CreatePetsBody; params: CreatePetsParams },
+      {
+        pathParams: CreatePetsPathParameters;
+        data: CreatePetsBody;
+        params: CreatePetsParams;
+      },
       TContext
     >;
     fetch?: RequestInit;
@@ -388,7 +435,11 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBody; params: CreatePetsParams },
+  {
+    pathParams: CreatePetsPathParameters;
+    data: CreatePetsBody;
+    params: CreatePetsParams;
+  },
   TContext
 > => {
   return useMutation(getCreatePetsMutationOptions(options), queryClient);
@@ -418,15 +469,18 @@ export type showPetByIdResponse =
   | showPetByIdResponseSuccess
   | showPetByIdResponseError;
 
-export const getShowPetByIdUrl = (petId: string) => {
-  return `/pets/${petId}`;
+export const getShowPetByIdUrl = ({
+  version = 1,
+  petId,
+}: ShowPetByIdPathParameters) => {
+  return `/v${version}/pets/${petId}`;
 };
 
 export const showPetById = async (
-  petId: string,
+  { version = 1, petId }: ShowPetByIdPathParameters,
   options?: RequestInit,
 ): Promise<showPetByIdResponse> => {
-  const res = await fetch(getShowPetByIdUrl(petId), {
+  const res = await fetch(getShowPetByIdUrl({ version, petId }), {
     ...options,
     method: 'GET',
   });
@@ -441,15 +495,18 @@ export const showPetById = async (
   } as showPetByIdResponse;
 };
 
-export const getShowPetByIdQueryKey = (petId: string) => {
-  return [`/pets/${petId}`] as const;
+export const getShowPetByIdQueryKey = ({
+  version = 1,
+  petId,
+}: ShowPetByIdPathParameters) => {
+  return [`/v${version}/pets/${petId}`] as const;
 };
 
 export const getShowPetByIdQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: string,
+  { version = 1, petId }: ShowPetByIdPathParameters,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
@@ -459,16 +516,17 @@ export const getShowPetByIdQueryOptions = <
 ) => {
   const { query: queryOptions, fetch: fetchOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
+  const queryKey =
+    queryOptions?.queryKey ?? getShowPetByIdQueryKey({ version, petId });
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({
     signal,
-  }) => showPetById(petId, { signal, ...fetchOptions });
+  }) => showPetById({ version, petId }, { signal, ...fetchOptions });
 
   return {
     queryKey,
     queryFn,
-    enabled: !!petId,
+    enabled: !!(version && petId),
     ...queryOptions,
   } as UseQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,
@@ -486,7 +544,7 @@ export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: string,
+  pathParams: ShowPetByIdPathParameters,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
@@ -509,7 +567,7 @@ export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: string,
+  pathParams: ShowPetByIdPathParameters,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
@@ -532,7 +590,7 @@ export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: string,
+  pathParams: ShowPetByIdPathParameters,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
@@ -551,7 +609,7 @@ export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: string,
+  { version = 1, petId }: ShowPetByIdPathParameters,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
@@ -562,7 +620,7 @@ export function useShowPetById<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getShowPetByIdQueryOptions(petId, options);
+  const queryOptions = getShowPetByIdQueryOptions({ version, petId }, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<
     TData,
@@ -578,7 +636,7 @@ export function useShowPetById<
 export const useSetShowPetByIdQueryData = () => {
   const queryClient = useQueryClient();
   return (
-    petId: string,
+    { version = 1, petId }: ShowPetByIdPathParameters,
     updater:
       | Awaited<ReturnType<typeof showPetById>>
       | undefined
@@ -586,7 +644,10 @@ export const useSetShowPetByIdQueryData = () => {
           old: Awaited<ReturnType<typeof showPetById>> | undefined,
         ) => Awaited<ReturnType<typeof showPetById>> | undefined),
   ) => {
-    queryClient.setQueryData(getShowPetByIdQueryKey(petId), updater);
+    queryClient.setQueryData(
+      getShowPetByIdQueryKey({ version, petId }),
+      updater,
+    );
   };
 };
 
@@ -614,15 +675,18 @@ export type deletePetByIdResponse =
   | deletePetByIdResponseSuccess
   | deletePetByIdResponseError;
 
-export const getDeletePetByIdUrl = (petId: string) => {
-  return `/pets/${petId}`;
+export const getDeletePetByIdUrl = ({
+  version = 1,
+  petId,
+}: DeletePetByIdPathParameters) => {
+  return `/v${version}/pets/${petId}`;
 };
 
 export const deletePetById = async (
-  petId: string,
+  { version = 1, petId }: DeletePetByIdPathParameters,
   options?: RequestInit,
 ): Promise<deletePetByIdResponse> => {
-  const res = await fetch(getDeletePetByIdUrl(petId), {
+  const res = await fetch(getDeletePetByIdUrl({ version, petId }), {
     ...options,
     method: 'DELETE',
   });
@@ -644,14 +708,14 @@ export const getDeletePetByIdMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deletePetById>>,
     TError,
-    { petId: string },
+    { pathParams: DeletePetByIdPathParameters },
     TContext
   >;
   fetch?: RequestInit;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deletePetById>>,
   TError,
-  { petId: string },
+  { pathParams: DeletePetByIdPathParameters },
   TContext
 > => {
   const mutationKey = ['deletePetById'];
@@ -665,11 +729,11 @@ export const getDeletePetByIdMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deletePetById>>,
-    { petId: string }
+    { pathParams: DeletePetByIdPathParameters }
   > = (props) => {
-    const { petId } = props ?? {};
+    const { pathParams } = props ?? {};
 
-    return deletePetById(petId, fetchOptions);
+    return deletePetById(pathParams, fetchOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -689,7 +753,7 @@ export const useDeletePetById = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof deletePetById>>,
       TError,
-      { petId: string },
+      { pathParams: DeletePetByIdPathParameters },
       TContext
     >;
     fetch?: RequestInit;
@@ -698,7 +762,7 @@ export const useDeletePetById = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof deletePetById>>,
   TError,
-  { petId: string },
+  { pathParams: DeletePetByIdPathParameters },
   TContext
 > => {
   return useMutation(getDeletePetByIdMutationOptions(options), queryClient);
@@ -728,14 +792,17 @@ export type healthCheckResponse =
   | healthCheckResponseSuccess
   | healthCheckResponseError;
 
-export const getHealthCheckUrl = () => {
-  return `/health`;
+export const getHealthCheckUrl = ({
+  version = 1,
+}: HealthCheckPathParameters = {}) => {
+  return `/v${version}/health`;
 };
 
 export const healthCheck = async (
+  { version = 1 }: HealthCheckPathParameters = {},
   options?: RequestInit,
 ): Promise<healthCheckResponse> => {
-  const res = await fetch(getHealthCheckUrl(), {
+  const res = await fetch(getHealthCheckUrl({ version }), {
     ...options,
     method: 'GET',
   });
@@ -750,28 +817,39 @@ export const healthCheck = async (
   } as healthCheckResponse;
 };
 
-export const getHealthCheckQueryKey = () => {
-  return [`/health`] as const;
+export const getHealthCheckQueryKey = ({
+  version = 1,
+}: HealthCheckPathParameters = {}) => {
+  return [`/v${version}/health`] as const;
 };
 
 export const getHealthCheckQueryOptions = <
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
-  >;
-  fetch?: RequestInit;
-}) => {
+>(
+  { version = 1 }: HealthCheckPathParameters = {},
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
+    >;
+    fetch?: RequestInit;
+  },
+) => {
   const { query: queryOptions, fetch: fetchOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getHealthCheckQueryKey();
+  const queryKey =
+    queryOptions?.queryKey ?? getHealthCheckQueryKey({ version });
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = ({
     signal,
-  }) => healthCheck({ signal, ...fetchOptions });
+  }) => healthCheck({ version }, { signal, ...fetchOptions });
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!version,
+    ...queryOptions,
+  } as UseQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,
     TError,
     TData
@@ -787,6 +865,7 @@ export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
 >(
+  pathParams: HealthCheckPathParameters,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
@@ -809,6 +888,7 @@ export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
 >(
+  pathParams: HealthCheckPathParameters,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
@@ -831,6 +911,7 @@ export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
 >(
+  pathParams: HealthCheckPathParameters,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
@@ -849,6 +930,7 @@ export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
 >(
+  { version = 1 }: HealthCheckPathParameters = {},
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
@@ -859,7 +941,7 @@ export function useHealthCheck<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getHealthCheckQueryOptions(options);
+  const queryOptions = getHealthCheckQueryOptions({ version }, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<
     TData,
@@ -875,6 +957,7 @@ export function useHealthCheck<
 export const useSetHealthCheckQueryData = () => {
   const queryClient = useQueryClient();
   return (
+    { version = 1 }: HealthCheckPathParameters = {},
     updater:
       | Awaited<ReturnType<typeof healthCheck>>
       | undefined
@@ -882,7 +965,7 @@ export const useSetHealthCheckQueryData = () => {
           old: Awaited<ReturnType<typeof healthCheck>> | undefined,
         ) => Awaited<ReturnType<typeof healthCheck>> | undefined),
   ) => {
-    queryClient.setQueryData(getHealthCheckQueryKey(), updater);
+    queryClient.setQueryData(getHealthCheckQueryKey({ version }), updater);
   };
 };
 
@@ -910,15 +993,18 @@ export type showPetWithOwnerResponse =
   | showPetWithOwnerResponseSuccess
   | showPetWithOwnerResponseError;
 
-export const getShowPetWithOwnerUrl = (petId: string) => {
-  return `/pets/${petId}/owner`;
+export const getShowPetWithOwnerUrl = ({
+  version = 1,
+  petId,
+}: ShowPetWithOwnerPathParameters) => {
+  return `/v${version}/pets/${petId}/owner`;
 };
 
 export const showPetWithOwner = async (
-  petId: string,
+  { version = 1, petId }: ShowPetWithOwnerPathParameters,
   options?: RequestInit,
 ): Promise<showPetWithOwnerResponse> => {
-  const res = await fetch(getShowPetWithOwnerUrl(petId), {
+  const res = await fetch(getShowPetWithOwnerUrl({ version, petId }), {
     ...options,
     method: 'GET',
   });
@@ -933,15 +1019,18 @@ export const showPetWithOwner = async (
   } as showPetWithOwnerResponse;
 };
 
-export const getShowPetWithOwnerQueryKey = (petId: string) => {
-  return [`/pets/${petId}/owner`] as const;
+export const getShowPetWithOwnerQueryKey = ({
+  version = 1,
+  petId,
+}: ShowPetWithOwnerPathParameters) => {
+  return [`/v${version}/pets/${petId}/owner`] as const;
 };
 
 export const getShowPetWithOwnerQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,
 >(
-  petId: string,
+  { version = 1, petId }: ShowPetWithOwnerPathParameters,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -955,16 +1044,18 @@ export const getShowPetWithOwnerQueryOptions = <
 ) => {
   const { query: queryOptions, fetch: fetchOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getShowPetWithOwnerQueryKey(petId);
+  const queryKey =
+    queryOptions?.queryKey ?? getShowPetWithOwnerQueryKey({ version, petId });
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof showPetWithOwner>>
-  > = ({ signal }) => showPetWithOwner(petId, { signal, ...fetchOptions });
+  > = ({ signal }) =>
+    showPetWithOwner({ version, petId }, { signal, ...fetchOptions });
 
   return {
     queryKey,
     queryFn,
-    enabled: !!petId,
+    enabled: !!(version && petId),
     ...queryOptions,
   } as UseQueryOptions<
     Awaited<ReturnType<typeof showPetWithOwner>>,
@@ -982,7 +1073,7 @@ export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,
 >(
-  petId: string,
+  pathParams: ShowPetWithOwnerPathParameters,
   options: {
     query: Partial<
       UseQueryOptions<
@@ -1009,7 +1100,7 @@ export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,
 >(
-  petId: string,
+  pathParams: ShowPetWithOwnerPathParameters,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -1036,7 +1127,7 @@ export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,
 >(
-  petId: string,
+  pathParams: ShowPetWithOwnerPathParameters,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -1059,7 +1150,7 @@ export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,
 >(
-  petId: string,
+  { version = 1, petId }: ShowPetWithOwnerPathParameters,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -1074,7 +1165,10 @@ export function useShowPetWithOwner<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getShowPetWithOwnerQueryOptions(petId, options);
+  const queryOptions = getShowPetWithOwnerQueryOptions(
+    { version, petId },
+    options,
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<
     TData,
@@ -1090,7 +1184,7 @@ export function useShowPetWithOwner<
 export const useSetShowPetWithOwnerQueryData = () => {
   const queryClient = useQueryClient();
   return (
-    petId: string,
+    { version = 1, petId }: ShowPetWithOwnerPathParameters,
     updater:
       | Awaited<ReturnType<typeof showPetWithOwner>>
       | undefined
@@ -1098,6 +1192,9 @@ export const useSetShowPetWithOwnerQueryData = () => {
           old: Awaited<ReturnType<typeof showPetWithOwner>> | undefined,
         ) => Awaited<ReturnType<typeof showPetWithOwner>> | undefined),
   ) => {
-    queryClient.setQueryData(getShowPetWithOwnerQueryKey(petId), updater);
+    queryClient.setQueryData(
+      getShowPetWithOwnerQueryKey({ version, petId }),
+      updater,
+    );
   };
 };

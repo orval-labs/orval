@@ -12,7 +12,7 @@ import {
   type GetterQueryParam,
   type GetterResponse,
   jsDoc,
-  type OutputClient,
+  OutputClient,
   type OutputClientFunc,
   type OutputHttpClient,
   pascal,
@@ -475,7 +475,10 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
       type === QueryType.INFINITE ||
       (type === QueryType.SUSPENSE_QUERY && !useQuery) ||
       (type === QueryType.SUSPENSE_INFINITE && !useInfinite));
-  const setQueryDataFnName = camel(`set-${name}-query-data`);
+  const isReactQuery = adapter.outputClient === OutputClient.REACT_QUERY;
+  const setQueryDataFnName = isReactQuery
+    ? camel(`use-set-${name}-query-data`)
+    : camel(`set-${name}-query-data`);
 
   // Generate query init (e.g. const queryOptions = fn(...) or const http = inject(HttpClient))
   const queryInit = adapter.generateQueryInit({
@@ -540,7 +543,14 @@ ${
 }
 ${
   shouldGenerateSetQueryData
-    ? `${doc}export const ${setQueryDataFnName} = (queryClient: QueryClient, ${queryProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
+    ? isReactQuery
+      ? `${doc}export const ${setQueryDataFnName} = () => {
+  const queryClient = useQueryClient();
+  return (${queryProps.replaceAll('?:', ':')}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
+    queryClient.setQueryData(${queryKeyFnName}(${queryKeyProperties}), updater);
+  };
+}\n`
+      : `${doc}export const ${setQueryDataFnName} = (queryClient: QueryClient, ${queryProps.replaceAll('?:', ':')}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
   queryClient.setQueryData(${queryKeyFnName}(${queryKeyProperties}), updater);
 }\n`
     : ''

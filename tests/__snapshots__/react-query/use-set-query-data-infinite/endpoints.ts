@@ -4,16 +4,25 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
+  DefinedUseInfiniteQueryResult,
   DefinedUseQueryResult,
+  InfiniteData,
   MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseInfiniteQueryOptions,
+  UseInfiniteQueryResult,
   UseMutationOptions,
   UseMutationResult,
   UseQueryOptions,
@@ -123,8 +132,229 @@ export const listPets = async (
   return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };
 
+export const getListPetsInfiniteQueryKey = (params?: ListPetsParams) => {
+  return ['infinite', `/pets`, ...(params ? [params] : [])] as const;
+};
+
 export const getListPetsQueryKey = (params?: ListPetsParams) => {
   return [`/pets`, ...(params ? [params] : [])] as const;
+};
+
+export const getListPetsInfiniteQueryOptions = <
+  TData = InfiniteData<
+    Awaited<ReturnType<typeof listPets>>,
+    ListPetsParams['limit']
+  >,
+  TError = Error,
+>(
+  params: ListPetsParams,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof listPets>>,
+        TError,
+        TData,
+        Awaited<ReturnType<typeof listPets>>,
+        QueryKey,
+        ListPetsParams['limit']
+      >
+    >;
+    fetch?: RequestInit;
+  },
+) => {
+  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListPetsInfiniteQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listPets>>,
+    QueryKey,
+    ListPetsParams['limit']
+  > = ({ signal, pageParam }) =>
+    listPets(
+      { ...params, limit: pageParam || params?.['limit'] },
+      { signal, ...fetchOptions },
+    );
+
+  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof listPets>>,
+    TError,
+    TData,
+    Awaited<ReturnType<typeof listPets>>,
+    QueryKey,
+    ListPetsParams['limit']
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListPetsInfiniteQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPets>>
+>;
+export type ListPetsInfiniteQueryError = Error;
+
+export function useListPetsInfinite<
+  TData = InfiniteData<
+    Awaited<ReturnType<typeof listPets>>,
+    ListPetsParams['limit']
+  >,
+  TError = Error,
+>(
+  params: ListPetsParams,
+  options: {
+    query: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof listPets>>,
+        TError,
+        TData,
+        Awaited<ReturnType<typeof listPets>>,
+        QueryKey,
+        ListPetsParams['limit']
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPets>>,
+          TError,
+          Awaited<ReturnType<typeof listPets>>,
+          QueryKey
+        >,
+        'initialData'
+      >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): DefinedUseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useListPetsInfinite<
+  TData = InfiniteData<
+    Awaited<ReturnType<typeof listPets>>,
+    ListPetsParams['limit']
+  >,
+  TError = Error,
+>(
+  params: ListPetsParams,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof listPets>>,
+        TError,
+        TData,
+        Awaited<ReturnType<typeof listPets>>,
+        QueryKey,
+        ListPetsParams['limit']
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPets>>,
+          TError,
+          Awaited<ReturnType<typeof listPets>>,
+          QueryKey
+        >,
+        'initialData'
+      >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useListPetsInfinite<
+  TData = InfiniteData<
+    Awaited<ReturnType<typeof listPets>>,
+    ListPetsParams['limit']
+  >,
+  TError = Error,
+>(
+  params: ListPetsParams,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof listPets>>,
+        TError,
+        TData,
+        Awaited<ReturnType<typeof listPets>>,
+        QueryKey,
+        ListPetsParams['limit']
+      >
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary List all pets
+ */
+
+export function useListPetsInfinite<
+  TData = InfiniteData<
+    Awaited<ReturnType<typeof listPets>>,
+    ListPetsParams['limit']
+  >,
+  TError = Error,
+>(
+  params: ListPetsParams,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof listPets>>,
+        TError,
+        TData,
+        Awaited<ReturnType<typeof listPets>>,
+        QueryKey,
+        ListPetsParams['limit']
+      >
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getListPetsInfiniteQueryOptions(params, options);
+
+  const query = useInfiniteQuery(
+    queryOptions,
+    queryClient,
+  ) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all pets
+ */
+export const useSetListPetsInfiniteQueryData = () => {
+  const queryClient = useQueryClient();
+  return (
+    params: ListPetsParams,
+    updater:
+      | InfiniteData<
+          Awaited<ReturnType<typeof listPets>>,
+          ListPetsParams['limit']
+        >
+      | undefined
+      | ((
+          old:
+            | InfiniteData<
+                Awaited<ReturnType<typeof listPets>>,
+                ListPetsParams['limit']
+              >
+            | undefined,
+        ) =>
+          | InfiniteData<
+              Awaited<ReturnType<typeof listPets>>,
+              ListPetsParams['limit']
+            >
+          | undefined),
+  ) => {
+    queryClient.setQueryData(getListPetsInfiniteQueryKey(params), updater);
+  };
 };
 
 export const getListPetsQueryOptions = <
@@ -441,8 +671,182 @@ export const showPetById = async (
   } as showPetByIdResponse;
 };
 
+export const getShowPetByIdInfiniteQueryKey = (petId: string) => {
+  return ['infinite', `/pets/${petId}`] as const;
+};
+
 export const getShowPetByIdQueryKey = (petId: string) => {
   return [`/pets/${petId}`] as const;
+};
+
+export const getShowPetByIdInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof showPetById>>>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof showPetById>>,
+        TError,
+        TData
+      >
+    >;
+    fetch?: RequestInit;
+  },
+) => {
+  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getShowPetByIdInfiniteQueryKey(petId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({
+    signal,
+  }) => showPetById(petId, { signal, ...fetchOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!petId,
+    ...queryOptions,
+  } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof showPetById>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ShowPetByIdInfiniteQueryResult = NonNullable<
+  Awaited<ReturnType<typeof showPetById>>
+>;
+export type ShowPetByIdInfiniteQueryError = Error;
+
+export function useShowPetByIdInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof showPetById>>>,
+  TError = Error,
+>(
+  petId: string,
+  options: {
+    query: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof showPetById>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof showPetById>>,
+          TError,
+          Awaited<ReturnType<typeof showPetById>>
+        >,
+        'initialData'
+      >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): DefinedUseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useShowPetByIdInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof showPetById>>>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof showPetById>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof showPetById>>,
+          TError,
+          Awaited<ReturnType<typeof showPetById>>
+        >,
+        'initialData'
+      >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useShowPetByIdInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof showPetById>>>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof showPetById>>,
+        TError,
+        TData
+      >
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Info for a specific pet
+ */
+
+export function useShowPetByIdInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof showPetById>>>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof showPetById>>,
+        TError,
+        TData
+      >
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getShowPetByIdInfiniteQueryOptions(petId, options);
+
+  const query = useInfiniteQuery(
+    queryOptions,
+    queryClient,
+  ) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Info for a specific pet
+ */
+export const useSetShowPetByIdInfiniteQueryData = () => {
+  const queryClient = useQueryClient();
+  return (
+    petId: string,
+    updater:
+      | InfiniteData<Awaited<ReturnType<typeof showPetById>>>
+      | undefined
+      | ((
+          old:
+            | InfiniteData<Awaited<ReturnType<typeof showPetById>>>
+            | undefined,
+        ) => InfiniteData<Awaited<ReturnType<typeof showPetById>>> | undefined),
+  ) => {
+    queryClient.setQueryData(getShowPetByIdInfiniteQueryKey(petId), updater);
+  };
 };
 
 export const getShowPetByIdQueryOptions = <
@@ -750,8 +1154,168 @@ export const healthCheck = async (
   } as healthCheckResponse;
 };
 
+export const getHealthCheckInfiniteQueryKey = () => {
+  return ['infinite', `/health`] as const;
+};
+
 export const getHealthCheckQueryKey = () => {
   return [`/health`] as const;
+};
+
+export const getHealthCheckInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof healthCheck>>>,
+  TError = Error,
+>(options?: {
+  query?: Partial<
+    UseInfiniteQueryOptions<
+      Awaited<ReturnType<typeof healthCheck>>,
+      TError,
+      TData
+    >
+  >;
+  fetch?: RequestInit;
+}) => {
+  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getHealthCheckInfiniteQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = ({
+    signal,
+  }) => healthCheck({ signal, ...fetchOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof healthCheck>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type HealthCheckInfiniteQueryResult = NonNullable<
+  Awaited<ReturnType<typeof healthCheck>>
+>;
+export type HealthCheckInfiniteQueryError = Error;
+
+export function useHealthCheckInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof healthCheck>>>,
+  TError = Error,
+>(
+  options: {
+    query: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof healthCheck>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof healthCheck>>,
+          TError,
+          Awaited<ReturnType<typeof healthCheck>>
+        >,
+        'initialData'
+      >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): DefinedUseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useHealthCheckInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof healthCheck>>>,
+  TError = Error,
+>(
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof healthCheck>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof healthCheck>>,
+          TError,
+          Awaited<ReturnType<typeof healthCheck>>
+        >,
+        'initialData'
+      >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useHealthCheckInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof healthCheck>>>,
+  TError = Error,
+>(
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof healthCheck>>,
+        TError,
+        TData
+      >
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary health check
+ */
+
+export function useHealthCheckInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof healthCheck>>>,
+  TError = Error,
+>(
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof healthCheck>>,
+        TError,
+        TData
+      >
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getHealthCheckInfiniteQueryOptions(options);
+
+  const query = useInfiniteQuery(
+    queryOptions,
+    queryClient,
+  ) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary health check
+ */
+export const useSetHealthCheckInfiniteQueryData = () => {
+  const queryClient = useQueryClient();
+  return (
+    updater:
+      | InfiniteData<Awaited<ReturnType<typeof healthCheck>>>
+      | undefined
+      | ((
+          old:
+            | InfiniteData<Awaited<ReturnType<typeof healthCheck>>>
+            | undefined,
+        ) => InfiniteData<Awaited<ReturnType<typeof healthCheck>>> | undefined),
+  ) => {
+    queryClient.setQueryData(getHealthCheckInfiniteQueryKey(), updater);
+  };
 };
 
 export const getHealthCheckQueryOptions = <
@@ -933,8 +1497,187 @@ export const showPetWithOwner = async (
   } as showPetWithOwnerResponse;
 };
 
+export const getShowPetWithOwnerInfiniteQueryKey = (petId: string) => {
+  return ['infinite', `/pets/${petId}/owner`] as const;
+};
+
 export const getShowPetWithOwnerQueryKey = (petId: string) => {
   return [`/pets/${petId}/owner`] as const;
+};
+
+export const getShowPetWithOwnerInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof showPetWithOwner>>>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof showPetWithOwner>>,
+        TError,
+        TData
+      >
+    >;
+    fetch?: RequestInit;
+  },
+) => {
+  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getShowPetWithOwnerInfiniteQueryKey(petId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof showPetWithOwner>>
+  > = ({ signal }) => showPetWithOwner(petId, { signal, ...fetchOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!petId,
+    ...queryOptions,
+  } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof showPetWithOwner>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ShowPetWithOwnerInfiniteQueryResult = NonNullable<
+  Awaited<ReturnType<typeof showPetWithOwner>>
+>;
+export type ShowPetWithOwnerInfiniteQueryError = Error;
+
+export function useShowPetWithOwnerInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof showPetWithOwner>>>,
+  TError = Error,
+>(
+  petId: string,
+  options: {
+    query: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof showPetWithOwner>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof showPetWithOwner>>,
+          TError,
+          Awaited<ReturnType<typeof showPetWithOwner>>
+        >,
+        'initialData'
+      >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): DefinedUseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useShowPetWithOwnerInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof showPetWithOwner>>>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof showPetWithOwner>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof showPetWithOwner>>,
+          TError,
+          Awaited<ReturnType<typeof showPetWithOwner>>
+        >,
+        'initialData'
+      >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useShowPetWithOwnerInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof showPetWithOwner>>>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof showPetWithOwner>>,
+        TError,
+        TData
+      >
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary combinate nullable and $ref
+ */
+
+export function useShowPetWithOwnerInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof showPetWithOwner>>>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof showPetWithOwner>>,
+        TError,
+        TData
+      >
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getShowPetWithOwnerInfiniteQueryOptions(petId, options);
+
+  const query = useInfiniteQuery(
+    queryOptions,
+    queryClient,
+  ) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary combinate nullable and $ref
+ */
+export const useSetShowPetWithOwnerInfiniteQueryData = () => {
+  const queryClient = useQueryClient();
+  return (
+    petId: string,
+    updater:
+      | InfiniteData<Awaited<ReturnType<typeof showPetWithOwner>>>
+      | undefined
+      | ((
+          old:
+            | InfiniteData<Awaited<ReturnType<typeof showPetWithOwner>>>
+            | undefined,
+        ) =>
+          | InfiniteData<Awaited<ReturnType<typeof showPetWithOwner>>>
+          | undefined),
+  ) => {
+    queryClient.setQueryData(
+      getShowPetWithOwnerInfiniteQueryKey(petId),
+      updater,
+    );
+  };
 };
 
 export const getShowPetWithOwnerQueryOptions = <
