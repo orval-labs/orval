@@ -63,10 +63,8 @@ export function getBody({
       es5IdentifierName: true,
     });
     if (isReference(requestBody)) {
-      const { schema: bodySchema } = resolveRef<OpenApiRequestBodyObject>(
-        requestBody,
-        context,
-      );
+      const { schema: bodySchema }: { schema: OpenApiRequestBodyObject } =
+        resolveRef(requestBody, context);
       if (bodySchema.required !== undefined) {
         isOptional = !bodySchema.required;
       }

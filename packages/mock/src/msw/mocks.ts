@@ -7,7 +7,6 @@ import {
   type MockOptions,
   type NormalizedOverrideOutput,
   type OpenApiDocument,
-  type OpenApiSchemaObject,
   resolveRef,
   type ResReqTypesValue,
   stringify,
@@ -241,10 +240,7 @@ export function getResponsesMockDefinition({
       continue;
     }
 
-    const resolvedSchema = resolveRef<OpenApiSchemaObject>(
-      originalSchema,
-      context,
-    ).schema;
+    const resolvedSchema = resolveRef(originalSchema, context).schema;
 
     const scalar = getMockScalar({
       item: {
