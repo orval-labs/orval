@@ -540,7 +540,7 @@ ${
 }
 ${
   shouldGenerateSetQueryData
-    ? `${doc}export const ${setQueryDataFnName} = (queryClient: QueryClient, ${queryProps}updater: Awaited<ReturnType<${dataType}>> | undefined | ((old: Awaited<ReturnType<${dataType}>> | undefined) => Awaited<ReturnType<${dataType}>> | undefined)) => {
+    ? `${doc}export const ${setQueryDataFnName} = (queryClient: QueryClient, ${queryProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
   queryClient.setQueryData(${queryKeyFnName}(${queryKeyProperties}), updater);
 }\n`
     : ''
