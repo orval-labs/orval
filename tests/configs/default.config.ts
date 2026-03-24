@@ -6,7 +6,7 @@ export default defineConfig({
     output: {
       target: '../generated/default/petstore/endpoints.ts',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'petstore-filter': {
@@ -20,7 +20,7 @@ export default defineConfig({
     output: {
       target: '../generated/default/petstore-filter/endpoints.ts',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'petstore-filter-exlude-mode': {
@@ -35,7 +35,7 @@ export default defineConfig({
     output: {
       target: '../generated/default/petstore-filter-exclude-mode/endpoints.ts',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'petstore-transfomer': {
@@ -44,7 +44,7 @@ export default defineConfig({
       schemas: '../generated/default/petstore-transformer/model',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -60,7 +60,7 @@ export default defineConfig({
       schemas: '../generated/default/endpoint-parameters/model',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   translation: {
@@ -69,7 +69,7 @@ export default defineConfig({
       target: '../generated/default/translation/endpoints.ts',
       schemas: '../generated/default/translation/model',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   regressions: {
@@ -79,7 +79,7 @@ export default defineConfig({
       schemas: '../generated/default/regressions/model',
       mode: 'tags-split',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'null-type': {
@@ -88,7 +88,7 @@ export default defineConfig({
       schemas: '../generated/default/null-type/model',
       target: '../generated/default/null-type/endpoints.ts',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'null-type-v-3-0': {
@@ -98,7 +98,7 @@ export default defineConfig({
       schemas: '../generated/default/null-type-v3-0/model',
       target: '../generated/default/null-type-v3-0/endpoints.ts',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   readonly: {
@@ -107,7 +107,7 @@ export default defineConfig({
       schemas: '../generated/default/readonly/model',
       target: '../generated/default/readonly/endpoints.ts',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'default-status': {
@@ -116,7 +116,7 @@ export default defineConfig({
       schemas: '../generated/default/default-status/model',
       target: '../generated/default/default-status/endpoints.ts',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'all-of-one-of': {
@@ -126,7 +126,7 @@ export default defineConfig({
       target: '../generated/default/all-of-one-of/endpoints.ts',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'all-of-without-type': {
@@ -136,7 +136,7 @@ export default defineConfig({
       target: '../generated/default/all-of-without-type/endpoints.ts',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'all-of-required-in-parent': {
@@ -146,7 +146,7 @@ export default defineConfig({
       target: '../generated/default/all-of-required-in-parent/endpoints.ts',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'all-of-all-of': {
@@ -156,7 +156,7 @@ export default defineConfig({
       target: '../generated/default/all-of-all-of/endpoints.ts',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'all-of-primitive': {
@@ -166,7 +166,7 @@ export default defineConfig({
       target: '../generated/default/all-of-primitive/endpoints.ts',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'one-of': {
@@ -176,7 +176,7 @@ export default defineConfig({
       target: '../generated/default/one-of/endpoints.ts',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'one-of-primitive': {
@@ -186,7 +186,7 @@ export default defineConfig({
       target: '../generated/default/one-of-primitive/endpoints.ts',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'one-of-required': {
@@ -196,7 +196,7 @@ export default defineConfig({
       target: '../generated/default/one-of-required/endpoints.ts',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'one-of-nested': {
@@ -206,7 +206,7 @@ export default defineConfig({
       target: '../generated/default/one-of-nested/endpoints.ts',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'any-of-primitive': {
@@ -216,7 +216,7 @@ export default defineConfig({
       target: '../generated/default/any-of-primitive/endpoints.ts',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'circular-v2': {
@@ -226,7 +226,7 @@ export default defineConfig({
       target: '../generated/default/circular-v2/endpoints.ts',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'any-of': {
@@ -236,7 +236,7 @@ export default defineConfig({
       target: '../generated/default/any-of/endpoints.ts',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'all-of': {
@@ -246,7 +246,7 @@ export default defineConfig({
       target: '../generated/default/all-of/endpoints.ts',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'all-of-ref': {
@@ -256,7 +256,7 @@ export default defineConfig({
       target: '../generated/default/all-of-ref/endpoints.ts',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'all-of-strict': {
@@ -278,7 +278,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'deeply-nested-refs': {
@@ -287,7 +287,7 @@ export default defineConfig({
       schemas: '../generated/default/deeply-nested-refs/model',
       target: '../generated/default/deeply-nested-refs/endpoints.ts',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'example-v3-1': {
@@ -297,7 +297,7 @@ export default defineConfig({
       schemas: '../generated/default/example-v3-1/model',
       target: '../generated/default/example-v3-1/endpoints.ts',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'override-mock': {
@@ -319,7 +319,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'runtime-mock-delay': {
@@ -333,7 +333,7 @@ export default defineConfig({
       schemas: '../generated/default/runtime-mock-delay/model',
       target: '../generated/default/runtime-mock-delay/endpoints.ts',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'http-status-mocks': {
@@ -346,7 +346,7 @@ export default defineConfig({
       schemas: '../generated/default/http-status-mocks/model',
       target: '../generated/default/http-status-mocks/endpoints.ts',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'combined-enum': {
@@ -356,7 +356,7 @@ export default defineConfig({
       target: '../generated/default/combine-enum',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   const: {
@@ -366,7 +366,7 @@ export default defineConfig({
       target: '../generated/default/const',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   noIndexFiles: {
@@ -376,7 +376,7 @@ export default defineConfig({
       client: 'fetch',
       indexFiles: false,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -388,7 +388,7 @@ export default defineConfig({
       schemas: '../generated/default/multiple-tags/model',
       mode: 'tags',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/multiple-tags.yaml',
@@ -400,7 +400,7 @@ export default defineConfig({
       schemas: '../generated/default/multiple-tags-split/model',
       mode: 'tags-split',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/multiple-tags.yaml',
@@ -417,7 +417,7 @@ export default defineConfig({
       },
       mode: 'tags-split',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -433,7 +433,7 @@ export default defineConfig({
         '../generated/default/petstore-naming-convention-camel-case/model',
       namingConvention: 'camelCase',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   petstoreNamingConventionPascalCase: {
@@ -446,7 +446,7 @@ export default defineConfig({
         '../generated/default/petstore-naming-convention-pascal-case/model',
       namingConvention: 'PascalCase',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   petstoreNamingConventionKebabCase: {
@@ -459,7 +459,7 @@ export default defineConfig({
         '../generated/default/petstore-naming-convention-kebab-case/model',
       namingConvention: 'kebab-case',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   petstoreNamingConventionSnakeCase: {
@@ -472,7 +472,7 @@ export default defineConfig({
         '../generated/default/petstore-naming-convention-snake-case/model',
       namingConvention: 'snake_case',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   lowerCaseDiscriminator: {
@@ -480,7 +480,7 @@ export default defineConfig({
     output: {
       target: '../generated/default/lowercase-discriminator/endpoints.ts',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   constEnums: {
@@ -489,7 +489,7 @@ export default defineConfig({
       schemas: '../generated/default/enums/const/model',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/enums.yaml',
@@ -504,7 +504,7 @@ export default defineConfig({
         enumGenerationType: 'enum',
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/enums.yaml',
@@ -519,7 +519,7 @@ export default defineConfig({
         enumGenerationType: 'union',
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/enums.yaml',
@@ -535,7 +535,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/form-data-nested.yaml',
@@ -576,7 +576,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -588,7 +588,7 @@ export default defineConfig({
         '../generated/default/multi-files-with-same-import-names/endpoints.ts',
       schemas: '../generated/default/multi-files-with-same-import-names/model',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: '../specifications/multi-files-with-same-import-names/api.yaml',
   },
@@ -599,7 +599,7 @@ export default defineConfig({
     output: {
       target: '../generated/default/external-ref/endpoints.ts',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'nullable-any-of-refs': {
@@ -611,7 +611,7 @@ export default defineConfig({
       schemas: '../generated/default/nullable-any-of-refs/model',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'nullable-oneof-enums': {
@@ -623,7 +623,7 @@ export default defineConfig({
       schemas: '../generated/default/nullable-oneof-enums/model',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'schemas-typescript-only': {
@@ -635,7 +635,7 @@ export default defineConfig({
       },
       client: 'fetch',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -650,7 +650,7 @@ export default defineConfig({
       },
       client: 'zod',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -664,7 +664,7 @@ export default defineConfig({
       mode: 'tags-split',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/issue-2998.yaml',

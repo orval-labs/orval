@@ -9,7 +9,7 @@ export default defineConfig({
       client: 'solid-query',
       baseUrl: 'http://localhost:8000',
       mock: true,
-      prettier: true,
+      formatter: 'prettier',
       override: {
         mutator: {
           path: './src/custom-fetch.ts',

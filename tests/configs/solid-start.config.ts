@@ -8,7 +8,7 @@ export default defineConfig({
       client: 'solid-start',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -25,7 +25,7 @@ export default defineConfig({
       mode: 'tags-split',
       client: 'solid-start',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -39,7 +39,7 @@ export default defineConfig({
       mode: 'split',
       client: 'solid-start',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -53,7 +53,7 @@ export default defineConfig({
       mode: 'tags',
       client: 'solid-start',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -72,7 +72,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -90,7 +90,7 @@ export default defineConfig({
         useNamedParameters: true,
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',

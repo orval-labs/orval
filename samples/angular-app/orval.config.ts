@@ -33,7 +33,7 @@ export default defineConfig({
       client: 'angular',
       mock: { type: 'msw', indexMockFiles: true },
       tsconfig: './tsconfig.app.json',
-      prettier: true,
+      formatter: 'prettier',
       clean: true,
       override: {
         operations: {
@@ -76,7 +76,7 @@ export default defineConfig({
       client: 'angular',
       mock: { type: 'msw', indexMockFiles: true },
       tsconfig: './tsconfig.app.json',
-      prettier: true,
+      formatter: 'prettier',
       clean: true,
       override: {
         paramsSerializer: 'src/orval/mutator/custom-params-serializer.ts',
@@ -122,7 +122,7 @@ export default defineConfig({
       client: 'angular',
       mock: { type: 'msw', indexMockFiles: true },
       tsconfig: './tsconfig.app.json',
-      prettier: true,
+      formatter: 'prettier',
       clean: true,
       override: {
         angular: {
@@ -167,7 +167,7 @@ export default defineConfig({
       client: 'angular',
       mock: { type: 'msw', indexMockFiles: true },
       tsconfig: './tsconfig.app.json',
-      prettier: true,
+      formatter: 'prettier',
       clean: true,
       override: {
         angular: {
@@ -217,7 +217,7 @@ export default defineConfig({
       client: 'angular',
       mock: { type: 'msw', indexMockFiles: true },
       tsconfig: './tsconfig.app.json',
-      prettier: true,
+      formatter: 'prettier',
       clean: true,
       override: {
         angular: {
