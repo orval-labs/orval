@@ -541,20 +541,26 @@ ${
 }\n`
     : ''
 }
-${
-  shouldGenerateSetQueryData
-    ? isReactQuery
-      ? `${doc}export const ${setQueryDataFnName} = () => {
+${(() => {
+  if (!shouldGenerateSetQueryData) return '';
+  const queryKeyExpr = queryKeyMutator
+    ? `${queryKeyMutator.name}({ ${queryProperties} }${queryKeyMutator.hasSecondArg ? `, { url: \`${route}\` }` : ''})`
+    : `${queryKeyFnName}(${queryKeyProperties})`;
+  const setQueryDataProps = toObjectString(
+    props.filter((prop) => prop.type !== GetterPropType.HEADER),
+    'implementation',
+  ).replaceAll('?:', ':');
+  return isReactQuery
+    ? `${doc}export const ${setQueryDataFnName} = () => {
   const queryClient = useQueryClient();
-  return (${queryProps.replaceAll('?:', ':')}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
-    queryClient.setQueryData(${queryKeyFnName}(${queryKeyProperties}), updater);
+  return (${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
+    queryClient.setQueryData(${queryKeyExpr}, updater);
   };
 }\n`
-      : `${doc}export const ${setQueryDataFnName} = (queryClient: QueryClient, ${queryProps.replaceAll('?:', ':')}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
-  queryClient.setQueryData(${queryKeyFnName}(${queryKeyProperties}), updater);
-}\n`
-    : ''
-}
+    : `${doc}export const ${setQueryDataFnName} = (queryClient: QueryClient, ${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
+  queryClient.setQueryData(${queryKeyExpr}, updater);
+}\n`;
+})()}
 `;
 };
 
@@ -822,7 +828,8 @@ ${queryKeyFns}`;
         useQuery: query.useQuery,
         useInfinite: query.useInfinite,
         useInvalidate: query.useInvalidate,
-        useSetQueryData: query.useSetQueryData,
+        useSetQueryData:
+          operationQueryOptions?.useSetQueryData ?? query.useSetQueryData,
         adapter,
       });
     }
