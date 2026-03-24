@@ -461,24 +461,27 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     doc,
   });
 
-  const shouldGenerateInvalidate =
-    useInvalidate &&
-    (type === QueryType.QUERY ||
-      type === QueryType.INFINITE ||
-      (type === QueryType.SUSPENSE_QUERY && !useQuery) ||
-      (type === QueryType.SUSPENSE_INFINITE && !useInfinite));
+  const isPrimaryQueryType =
+    type === QueryType.QUERY ||
+    type === QueryType.INFINITE ||
+    (type === QueryType.SUSPENSE_QUERY && !useQuery) ||
+    (type === QueryType.SUSPENSE_INFINITE && !useInfinite);
+
+  const shouldGenerateInvalidate = useInvalidate && isPrimaryQueryType;
   const invalidateFnName = camel(`invalidate-${name}`);
 
-  const shouldGenerateSetQueryData =
-    useSetQueryData &&
-    (type === QueryType.QUERY ||
-      type === QueryType.INFINITE ||
-      (type === QueryType.SUSPENSE_QUERY && !useQuery) ||
-      (type === QueryType.SUSPENSE_INFINITE && !useInfinite));
+  const shouldGenerateSetQueryData = useSetQueryData && isPrimaryQueryType;
   const isReactQuery = adapter.outputClient === OutputClient.REACT_QUERY;
   const setQueryDataFnName = isReactQuery
     ? camel(`use-set-${name}-query-data`)
     : camel(`set-${name}-query-data`);
+  const setQueryDataKeyExpr = queryKeyMutator
+    ? `${queryKeyMutator.name}({ ${queryProperties} }${queryKeyMutator.hasSecondArg ? `, { url: \`${route}\` }` : ''})`
+    : `${queryKeyFnName}(${queryKeyProperties})`;
+  const setQueryDataProps = toObjectString(
+    props.filter((prop) => prop.type !== GetterPropType.HEADER),
+    'implementation',
+  ).replaceAll('?:', ':');
 
   // Generate query init (e.g. const queryOptions = fn(...) or const http = inject(HttpClient))
   const queryInit = adapter.generateQueryInit({
@@ -541,26 +544,20 @@ ${
 }\n`
     : ''
 }
-${(() => {
-  if (!shouldGenerateSetQueryData) return '';
-  const queryKeyExpr = queryKeyMutator
-    ? `${queryKeyMutator.name}({ ${queryProperties} }${queryKeyMutator.hasSecondArg ? `, { url: \`${route}\` }` : ''})`
-    : `${queryKeyFnName}(${queryKeyProperties})`;
-  const setQueryDataProps = toObjectString(
-    props.filter((prop) => prop.type !== GetterPropType.HEADER),
-    'implementation',
-  ).replaceAll('?:', ':');
-  return isReactQuery
-    ? `${doc}export const ${setQueryDataFnName} = () => {
+${
+  shouldGenerateSetQueryData
+    ? isReactQuery
+      ? `${doc}export const ${setQueryDataFnName} = () => {
   const queryClient = useQueryClient();
   return (${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
-    queryClient.setQueryData(${queryKeyExpr}, updater);
+    queryClient.setQueryData(${setQueryDataKeyExpr}, updater);
   };
 }\n`
-    : `${doc}export const ${setQueryDataFnName} = (queryClient: QueryClient, ${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
-  queryClient.setQueryData(${queryKeyExpr}, updater);
-}\n`;
-})()}
+      : `${doc}export const ${setQueryDataFnName} = (queryClient: QueryClient, ${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
+  queryClient.setQueryData(${setQueryDataKeyExpr}, updater);
+}\n`
+    : ''
+}
 `;
 };
 
