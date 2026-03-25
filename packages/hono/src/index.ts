@@ -297,12 +297,14 @@ const generateHandlerFile = async ({
   validatorModule,
   zodModule,
   contextModule,
+  header,
 }: {
   verbs: GeneratorVerbOptions[];
   path: string;
   validatorModule?: string;
   zodModule: string;
   contextModule: string;
+  header: string;
 }) => {
   const validator =
     validatorModule === '@hono/zod-validator'
@@ -365,7 +367,7 @@ const generateHandlerFile = async ({
     );
   }
 
-  return `${imports.filter((imp) => imp !== '').join('\n')}
+  return `${header}${imports.filter((imp) => imp !== '').join('\n')}
 
 const factory = createFactory();${handlerCode}`;
 };
@@ -373,8 +375,10 @@ const factory = createFactory();${handlerCode}`;
 const generateHandlerFiles = async (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
+  context: ContextSpec,
   validatorModule: string,
 ) => {
+  const header = getHeader(output.override.header, getSpecInfo(context));
   const { extension, dirname, filename } = getFileInfo(output.target);
 
   // This function _does not control_ where the .zod and .context modules land.
@@ -405,6 +409,7 @@ const generateHandlerFiles = async (
               output.mode === 'tags'
                 ? nodePath.join(dirname, `${kebab(tag)}.context`)
                 : nodePath.join(dirname, tag, tag + '.context'),
+            header,
           }),
           path,
         };
@@ -436,6 +441,7 @@ const generateHandlerFiles = async (
               output.mode === 'tags'
                 ? nodePath.join(dirname, `${kebab(tag)}.context`)
                 : nodePath.join(dirname, tag, tag + '.context'),
+            header,
           }),
           path: handlerPath,
         };
@@ -457,6 +463,7 @@ const generateHandlerFiles = async (
         validatorModule,
         zodModule: nodePath.join(dirname, `${filename}.zod`),
         contextModule: nodePath.join(dirname, `${filename}.context`),
+        header,
       }),
       path: handlerPath,
     },
@@ -857,7 +864,7 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
     ? generateCompositeRoutes(verbOptions, output, context)
     : [];
   const [handlers, zods] = await Promise.all([
-    generateHandlerFiles(verbOptions, output, validator.path),
+    generateHandlerFiles(verbOptions, output, context, validator.path),
     generateZodFiles(verbOptions, output, context),
   ]);
 
