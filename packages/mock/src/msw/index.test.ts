@@ -45,8 +45,6 @@ describe('generateMSW', () => {
         clean: false,
         docs: false,
         formatter: undefined,
-        prettier: false,
-        biome: false,
         headers: false,
         indexFiles: true,
         allParamsOptional: false,

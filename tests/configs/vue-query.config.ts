@@ -246,7 +246,7 @@ export default defineConfig({
       client: 'vue-query',
       override: { query: { useSetQueryData: true } },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: { target: '../specifications/petstore.yaml' },
   },

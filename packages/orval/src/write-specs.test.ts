@@ -1,17 +1,19 @@
 import { SupportedFormatter } from '@orval/core';
-import type { ExecaError } from 'execa';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { MockExecaError } = vi.hoisted(() => ({
+  MockExecaError: class MockExecaError extends Error {
+    code?: string;
+    constructor(message: string) {
+      super(message);
+      this.name = 'ExecaError';
+    }
+  },
+}));
 
 vi.mock('execa', () => ({
   execa: vi.fn(),
-  ExecaError: class ExecaError extends Error {
-    code?: string;
-    constructor(message: string, options?: { code?: string }) {
-      super(message);
-      this.name = 'ExecaError';
-      if (options?.code) this.code = options.code;
-    }
-  },
+  ExecaError: MockExecaError,
 }));
 
 vi.mock('./formatters/prettier', () => ({
@@ -69,11 +71,7 @@ describe('runFormatter', () => {
 
   it('logs a warning when binary is not found (ENOENT)', async () => {
     const { log } = await import('@orval/core');
-    const { ExecaError } = await import('execa');
-
-    const error = new ExecaError('spawn oxfmt ENOENT') as ExecaError & {
-      code: string;
-    };
+    const error = new MockExecaError('spawn oxfmt ENOENT');
     error.code = 'ENOENT';
     mockedExeca.mockRejectedValueOnce(error);
 

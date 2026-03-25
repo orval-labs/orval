@@ -707,7 +707,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -725,7 +725,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/multi-query-params.yaml',
@@ -744,7 +744,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -767,7 +767,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',

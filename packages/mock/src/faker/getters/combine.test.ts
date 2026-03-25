@@ -29,8 +29,6 @@ function createMockContext(): ContextSpec {
       clean: false,
       docs: false,
       formatter: undefined,
-      prettier: false,
-      biome: false,
       headers: false,
       indexFiles: false,
       allParamsOptional: false,
