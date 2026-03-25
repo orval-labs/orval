@@ -115,7 +115,6 @@ export const ShowPetByIdParams = zod.preprocess(
   stripNill,
   zod.object({
     petId: zod.string().describe('The id of the pet to retrieve'),
-    testId: zod.string().describe('The id of the pet to retrieve'),
   }),
 );
 

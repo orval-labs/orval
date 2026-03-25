@@ -119,7 +119,6 @@ export const showPetByIdPathVersionDefault = 1;
 
 export const ShowPetByIdParams = zod.object({
   petId: zod.string().describe('The id of the pet to retrieve'),
-  testId: zod.string().describe('The id of the pet to retrieve'),
   version: zod.number().default(showPetByIdPathVersionDefault),
 });
 
