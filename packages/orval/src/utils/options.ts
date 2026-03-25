@@ -177,6 +177,15 @@ export async function normalizeOptions(
 
   const defaultFileExtension = '.ts';
 
+  const userQueryOptions = outputOptions.override?.query;
+  const hasExplicitQueryHookOptions = !!(
+    userQueryOptions &&
+    (!isNullish(userQueryOptions.useQuery) ||
+      !isNullish(userQueryOptions.useSuspenseQuery) ||
+      !isNullish(userQueryOptions.useInfinite) ||
+      !isNullish(userQueryOptions.useSuspenseInfiniteQuery))
+  );
+
   const globalQueryOptions: NormalizedQueryOptions = {
     useQuery: true,
     useMutation: true,
@@ -186,6 +195,7 @@ export async function normalizeOptions(
     shouldExportQueryKey: true,
     shouldSplitQueryKey: false,
     ...normalizeQueryOptions(outputOptions.override?.query, workspace),
+    ...(hasExplicitQueryHookOptions ? { _explicitQueryHookOptions: true } : {}),
   };
 
   const normalizedOptions: NormalizedOptions = {

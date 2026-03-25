@@ -683,6 +683,8 @@ export interface NormalizedQueryOptions {
   version?: 3 | 4 | 5;
   mutationInvalidates?: MutationInvalidatesConfig;
   runtimeValidation?: boolean;
+  /** @internal Indicates that the user explicitly set query hook options in the global config */
+  _explicitQueryHookOptions?: boolean;
 }
 
 export interface QueryOptions {

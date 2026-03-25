@@ -586,14 +586,16 @@ export const generateQueryHook = async (
     operationQueryOptions?.useSuspenseInfiniteQuery,
   ].some(Boolean);
 
+  const hasGlobalQueryOption = [
+    override.query.useQuery,
+    override.query.useSuspenseQuery,
+    override.query.useInfinite,
+    override.query.useSuspenseInfiniteQuery,
+  ].some(Boolean);
+
   let isQuery =
-    (Verbs.GET === verb &&
-      [
-        override.query.useQuery,
-        override.query.useSuspenseQuery,
-        override.query.useInfinite,
-        override.query.useSuspenseInfiniteQuery,
-      ].some(Boolean)) ||
+    ((Verbs.GET === verb || override.query._explicitQueryHookOptions) &&
+      hasGlobalQueryOption) ||
     hasOperationQueryOption;
 
   let isMutation = override.query.useMutation && verb !== Verbs.GET;
