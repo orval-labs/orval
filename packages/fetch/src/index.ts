@@ -85,10 +85,7 @@ export const generateRequestFunction = (
   );
 
   const spec = context.spec.paths?.[pathRoute];
-  const parameters = (spec?.[verb]?.parameters ?? []) as (
-    | OpenApiParameterObject
-    | OpenApiReferenceObject
-  )[];
+  const parameters = spec?.[verb]?.parameters ?? [];
   const parameterObjects = parameters.map((parameter) => {
     const { schema } = resolveRef(parameter, context);
     return schema as OpenApiParameterObject;

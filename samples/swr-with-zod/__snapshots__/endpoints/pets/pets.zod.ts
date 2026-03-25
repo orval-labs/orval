@@ -178,7 +178,6 @@ export const UpdatePetsResponse = zod
  */
 export const ShowPetByIdParams = zod.object({
   petId: zod.string().describe('The id of the pet to retrieve'),
-  testId: zod.string().describe('The id of the pet to retrieve'),
 });
 
 export const ShowPetByIdResponse = zod
