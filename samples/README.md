@@ -55,7 +55,7 @@ export default defineConfig({
       target: './<OUTPUT DIR>',
 
       // keep these
-      prettier: true,
+      formatter: 'prettier',
       clean: true,
     },
   },

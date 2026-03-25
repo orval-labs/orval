@@ -10,7 +10,7 @@ export default defineConfig({
       client: 'solid-start',
       httpClient: 'axios',
       mock: true,
-      prettier: true,
+      formatter: 'prettier',
       override: {
         mutator: {
           path: 'src/api/mutator/custom-instance.ts',

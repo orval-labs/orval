@@ -7,14 +7,14 @@ export default defineConfig({
     input: './petstore.yaml',
     output: {
       target: './api/endpoints/petstoreFromFileSpecWithConfig.ts',
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   'petstore-file-transfomer': {
     output: {
       target: './api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: './api/model',
-      prettier: true,
+      formatter: 'prettier',
       mock: true,
       override: {
         operations: {

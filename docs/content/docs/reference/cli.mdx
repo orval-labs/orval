@@ -70,20 +70,14 @@ orval --clean ./src
 This cleans all output target and schemas folders.
 </Callout>
 
-### --prettier
+### --formatter
 
-Format generated files with Prettier:
-
-```bash
-orval --prettier
-```
-
-### --biome
-
-Format generated files with [Biome](https://biomejs.dev/):
+Format generated files with the specified formatter (`prettier`, `biome`, or `oxfmt`):
 
 ```bash
-orval --biome
+orval --formatter prettier
+orval --formatter biome
+orval --formatter oxfmt
 ```
 
 ### --tsconfig
