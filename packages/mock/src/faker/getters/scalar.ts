@@ -151,10 +151,14 @@ export function getMockScalar({
         (item.format === 'int64' || item.format === 'uint64')
           ? 'bigInt'
           : 'int';
-      const numMin = (item.exclusiveMinimum ??
+      const numMin = ((typeof item.exclusiveMinimum === 'number'
+        ? item.exclusiveMinimum
+        : undefined) ??
         item.minimum ??
         safeMockOptions.numberMin) as number | undefined;
-      const numMax = (item.exclusiveMaximum ??
+      const numMax = ((typeof item.exclusiveMaximum === 'number'
+        ? item.exclusiveMaximum
+        : undefined) ??
         item.maximum ??
         safeMockOptions.numberMax) as number | undefined;
       const intParts: string[] = [];
