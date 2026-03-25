@@ -1,0 +1,28 @@
+name: Issue Labeler
+
+on:
+  issues:
+    types:
+      - reopened
+      - opened
+
+jobs:
+  label-issue:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Add label from issue form
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUMBER: ${{ github.event.issue.number }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          client="$(printf '%s\n' "$ISSUE_BODY" | awk 'BEGIN{IGNORECASE=1} /^### Output client[[:space:]]*$/{getline; gsub(/\r/,""); print tolower($0); exit}')"
+
+          if [ -z "$client" ] || [ "$client" = "other" ]; then
+            echo "No output client label; skipping."
+            exit 0
+          fi
+
+          gh issue edit "$NUMBER" --add-label "$client"
