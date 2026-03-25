@@ -6,7 +6,7 @@ body:
     attributes:
       label: Acknowledgement
       options:
-        - label: I acknowledge that issues using this template may be closed without further explanation at the maintainers discretion.
+        - label: I acknowledge that issues using this template may be closed without further explanation at the maintainers' discretion.
           required: true
   - type: textarea
     id: contents
