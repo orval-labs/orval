@@ -110,6 +110,11 @@ function generateDefinition(
       .split('|')
       .map((part) => part.trim().replaceAll(/^\(+|\)+$/g, ''))
       .includes('string');
+  const isUnionContainingVoid = (typeExpr: string) =>
+    typeExpr
+      .split('|')
+      .map((part) => part.trim().replaceAll(/^\(+|\)+$/g, ''))
+      .includes('void');
   const isBinaryLikeContentType = (ct: string) =>
     ct === 'application/octet-stream' ||
     ct === 'application/pdf' ||
@@ -186,6 +191,11 @@ function generateDefinition(
     hasStringReturnType &&
     mockReturnType !== 'string';
 
+  // When the return type is a union containing void (e.g. `ResourceResponse | void`),
+  // HttpResponse.json() will reject the void type. We need runtime branching to
+  // return `new HttpResponse(null, { status: 204 })` for the void/undefined case.
+  const hasVoidInReturnType = isUnionContainingVoid(mockReturnType);
+
   const mockImplementation = isReturnHttpResponse
     ? `${mockImplementations}export const ${getResponseMockFunctionName} = (${
         isResponseOverridable
@@ -236,6 +246,8 @@ function generateDefinition(
   let responsePrelude = '';
   if (isBinaryResponse) {
     responsePrelude = `const binaryBody = ${resolvedResponseExpr};`;
+  } else if (hasVoidInReturnType && isReturnHttpResponse) {
+    responsePrelude = `const resolvedBody = ${resolvedResponseExpr};`;
   } else if (needsRuntimeContentTypeSwitch) {
     responsePrelude = `const resolvedBody = ${resolvedResponseExpr};`;
   } else if (isTextResponse && !shouldPreferJsonResponse) {
@@ -254,6 +266,12 @@ function generateDefinition(
       { status: ${statusCode},
         headers: { 'Content-Type': '${binaryContentType}' }
       })`;
+  } else if (hasVoidInReturnType) {
+    // Runtime branching: when the resolved value is undefined (void),
+    // return a no-content response; otherwise use HttpResponse.json().
+    responseBody = `resolvedBody === undefined
+      ? new HttpResponse(null, { status: 204 })
+      : HttpResponse.json(resolvedBody, { status: ${statusCode} })`;
   } else if (needsRuntimeContentTypeSwitch) {
     // Runtime branching: when the resolved value is a string, use the
     // appropriate text helper; otherwise fall back to HttpResponse.json()

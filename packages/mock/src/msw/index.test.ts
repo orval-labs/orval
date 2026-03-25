@@ -1039,7 +1039,47 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).not.toContain('JSON.stringify');
     });
 
-    it('Test L: should not treat type names containing "string" as string return types', () => {
+    it('Test L: should handle void in return type union (issue #3026)', () => {
+      const voidUnionVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'ResourceResponse | void' },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: 'ResourceResponse',
+                originalSchema: {
+                  type: 'object',
+                  properties: { id: { type: 'string' } },
+                },
+              },
+              { key: '204', value: 'void' },
+            ],
+          },
+          contentTypes: ['application/json'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(voidUnionVerbOptions, baseOptions);
+
+      // Should use runtime branching to handle the void case
+      expect(result.implementation.handler).toContain('const resolvedBody =');
+      expect(result.implementation.handler).toContain(
+        'resolvedBody === undefined',
+      );
+      expect(result.implementation.handler).toContain(
+        'new HttpResponse(null, { status: 204 })',
+      );
+      expect(result.implementation.handler).toContain('HttpResponse.json(');
+      // Should NOT have a bare HttpResponse.json that would reject void
+      expect(result.implementation.handler).not.toMatch(
+        /return\s+HttpResponse\.json\(overrideResponse/,
+      );
+    });
+
+    it('Test M: should not treat type names containing "string" as string return types', () => {
       const mixedVerbOptions = {
         ...mockVerbOptions,
         response: {
