@@ -5,6 +5,7 @@ import {
   type ClientHeaderBuilder,
   generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
+  generateMutatorRequestOptions,
   generateVerbImports,
   type GeneratorDependency,
   type GeneratorOptions,
@@ -308,7 +309,11 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     })
     .join(',');
 
-  const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}`;
+  const mutatorOptions =
+    isRequestOptions && mutator?.hasSecondArg
+      ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
+      : '';
+  const args = `${toObjectString(props, 'implementation')} ${mutatorOptions || (isRequestOptions ? `options?: RequestInit` : '')}`;
   const returnType =
     override.fetch.forceSuccessResponse && hasSuccess
       ? `Promise<${successName}>`
@@ -357,9 +362,10 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   } else {
     globalFetchOptions = '';
   }
+  const hasMutatorSecondArg = mutator?.hasSecondArg ?? false;
   const fetchHeadersOption =
     headersToAdd.length > 0
-      ? `headers: { ${headersToAdd.join(',')}, ...options?.headers }`
+      ? `headers: { ${headersToAdd.join(',')}${hasMutatorSecondArg ? '' : ', ...options?.headers'} }`
       : '';
   const requestBodyParams = generateBodyOptions(
     body,
@@ -373,9 +379,10 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? `body: ${requestBodyParams}`
       : `body: JSON.stringify(${requestBodyParams})`
     : '';
+  const shouldSpreadOptions = isRequestOptions && !mutator?.hasSecondArg;
   const fetchFnOptions = `${getUrlFnName}(${getUrlFnProperties}),
   {${globalFetchOptions ? '\n' : ''}      ${globalFetchOptions}
-    ${isRequestOptions ? '...options,' : ''}
+    ${shouldSpreadOptions ? '...options,' : ''}
     ${fetchMethodOption}${fetchHeadersOption ? ',' : ''}
     ${fetchHeadersOption}${fetchBodyOption ? ',' : ''}
     ${fetchBodyOption}
@@ -409,7 +416,14 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   }
   ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : 'return data'}
 `;
-  let customFetchResponseImplementation = `return ${mutator?.name}<${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}>(${fetchFnOptions});`;
+  const mutatorRequestOptions =
+    isRequestOptions && mutator?.hasSecondArg
+      ? generateMutatorRequestOptions(
+          override.requestOptions,
+          mutator.hasSecondArg,
+        )
+      : '';
+  let customFetchResponseImplementation = `return ${mutator?.name}<${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}>(${fetchFnOptions}${mutatorRequestOptions ? `, ${mutatorRequestOptions}` : ''});`;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -431,7 +445,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       const ${formattedDeconstructor} = ${mutator.name}();
       return (${args}) => {
         ${bodyForm}
-        return ${fetchExportName}(${fetchFnOptions});
+        return ${fetchExportName}(${fetchFnOptions}${mutatorRequestOptions ? `, ${mutatorRequestOptions}` : ''});
       }
   `;
   }
@@ -528,9 +542,17 @@ export const generateFetchHeader: ClientHeaderBuilder = ({
   return needsStatusCodeTypes ? getHTTPStatusCodes() : '';
 };
 
+const generateFetchClientHeader: ClientHeaderBuilder = (params) => {
+  const secondParameterType =
+    params.isRequestOptions && params.isMutator
+      ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
+      : '';
+  return secondParameterType + generateFetchHeader(params);
+};
+
 const fetchClientBuilder: ClientGeneratorsBuilder = {
   client: generateClient,
-  header: generateFetchHeader,
+  header: generateFetchClientHeader,
   dependencies: getFetchDependencies,
 };
 
