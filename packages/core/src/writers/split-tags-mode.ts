@@ -82,7 +82,10 @@ export async function writeSplitTagsMode({
                 { extension: output.fileExtension },
               ).dirname,
             )
-          : '../' + filename + '.schemas';
+          : '../' +
+            filename +
+            '.schemas' +
+            (extension.endsWith('.ts') ? extension.slice(0, -3) : extension);
 
         const importsForBuilder = generateImportsForBuilder(
           output,

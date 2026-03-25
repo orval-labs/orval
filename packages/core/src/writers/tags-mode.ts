@@ -69,7 +69,10 @@ export async function writeTagsMode({
                 { extension: output.fileExtension },
               ).dirname,
             )
-          : './' + filename + '.schemas';
+          : './' +
+            filename +
+            '.schemas' +
+            (extension.endsWith('.ts') ? extension.slice(0, -3) : extension);
 
         const implementationImports = imports.filter((imp) => {
           const searchWords = [imp.alias, imp.name]
