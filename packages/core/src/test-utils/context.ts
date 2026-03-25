@@ -112,7 +112,7 @@ export function createTestContextSpec({
           response: false,
         },
         generateEachHttpStatus: false,
-        dateTimeOptions: {},
+        dateTimeOptions: { offset: true },
         timeOptions: { precision: 3 },
       },
       fetch: {

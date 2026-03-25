@@ -387,7 +387,9 @@ export async function normalizeOptions(
           },
           generateEachHttpStatus:
             outputOptions.override?.zod?.generateEachHttpStatus ?? false,
-          dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {},
+          dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {
+            offset: true,
+          },
           timeOptions: outputOptions.override?.zod?.timeOptions ?? {},
         },
         swr: {
@@ -708,7 +710,9 @@ function normalizeOperationsAndTags(
                         : {}),
                     },
                     generateEachHttpStatus: zod.generateEachHttpStatus ?? false,
-                    dateTimeOptions: zod.dateTimeOptions ?? {},
+                    dateTimeOptions: zod.dateTimeOptions ?? {
+                      offset: true,
+                    },
                     timeOptions: zod.timeOptions ?? {},
                   },
                 }

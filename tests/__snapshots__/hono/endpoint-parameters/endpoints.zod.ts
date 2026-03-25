@@ -55,7 +55,7 @@ export const ListPetsByAgeQueryParams = zod.object({
     .describe('How many items to return at one time (max 100)'),
   latestBirthdate: zod
     .string()
-    .datetime({})
+    .datetime({"offset":true})
     .optional()
     .describe('Filter by latest birthdate.\nExample: 2020-01-01T00:00:00Z\n'),
 });
