@@ -117,7 +117,10 @@ export function getScalar({
     case 'boolean': {
       let value = 'boolean';
 
-      if (enumItems) {
+      if (
+        enumItems &&
+        !(enumItems.includes(true) && enumItems.includes(false))
+      ) {
         value = enumItems.map((enumItem) => `${enumItem}`).join(' | ');
       }
 
