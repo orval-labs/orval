@@ -8,7 +8,7 @@ export default defineConfig({
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
       mock: true,
-      prettier: true,
+      formatter: 'prettier',
       override: {
         mutator: {
           path: 'src/api/mutator/custom-instance.ts',
@@ -55,7 +55,7 @@ export default defineConfig({
     input: './petstore.yaml',
     output: {
       target: 'src/api/endpoints/petstoreFromFileSpecWithDocsMarkdown.ts',
-      prettier: true,
+      formatter: 'prettier',
       docs: {
         out: './docs-markdown',
         disableSources: true,
@@ -66,7 +66,7 @@ export default defineConfig({
     input: './petstore.yaml',
     output: {
       target: 'src/api/endpoints/petstoreFromFileSpecWithDocsHtml.ts',
-      prettier: true,
+      formatter: 'prettier',
       docs: {
         theme: 'default',
         out: './docs-html',
@@ -78,7 +78,7 @@ export default defineConfig({
     input: './petstore.yaml',
     output: {
       target: 'src/api/endpoints/petstoreFromFileSpecWithDocsHtmlPlugin.ts',
-      prettier: true,
+      formatter: 'prettier',
       docs: {
         theme: 'default',
         out: './docs-html-plugin',

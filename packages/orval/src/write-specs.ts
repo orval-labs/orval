@@ -15,6 +15,7 @@ import {
   type OpenApiInfoObject,
   OutputMode,
   splitSchemasByType,
+  SupportedFormatter,
   upath,
   writeSchemas,
   writeSingleMode,
@@ -31,6 +32,54 @@ import type { TypeDocOptions } from 'typedoc';
 import { formatWithPrettier } from './formatters/prettier';
 import { executeHook } from './utils';
 import { writeZodSchemas, writeZodSchemasFromVerbs } from './write-zod-specs';
+
+async function runExternalFormatter(
+  bin: string,
+  args: string[],
+  projectTitle?: string,
+): Promise<void> {
+  try {
+    await execa(bin, args);
+  } catch (error) {
+    let message: string;
+    if (error instanceof ExecaError) {
+      message =
+        error.code === 'ENOENT'
+          ? `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}${bin} not found`
+          : error.message;
+    } else if (error instanceof Error) {
+      message = error.message;
+    } else {
+      message = `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}${bin} failed`;
+    }
+    log(styleText('yellow', message));
+  }
+}
+
+export async function runFormatter(
+  formatter: SupportedFormatter | undefined,
+  paths: string[],
+  projectTitle?: string,
+): Promise<void> {
+  switch (formatter) {
+    case SupportedFormatter.PRETTIER: {
+      await formatWithPrettier(paths, projectTitle);
+      break;
+    }
+    case SupportedFormatter.BIOME: {
+      await runExternalFormatter(
+        SupportedFormatter.BIOME,
+        ['check', '--write', ...paths],
+        projectTitle,
+      );
+      break;
+    }
+    case SupportedFormatter.OXFMT: {
+      await runExternalFormatter(SupportedFormatter.OXFMT, paths, projectTitle);
+      break;
+    }
+  }
+}
 
 function getHeader(
   option: false | ((info: OpenApiInfoObject) => string | string[]),
@@ -384,21 +433,7 @@ export async function writeSpecs(
     );
   }
 
-  if (output.prettier) {
-    await formatWithPrettier(paths, projectTitle);
-  }
-
-  if (output.biome) {
-    try {
-      await execa('biome', ['check', '--write', ...paths]);
-    } catch (error) {
-      let message = `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}biome not found`;
-      if (error instanceof ExecaError && error.exitCode === 1)
-        message = error.message;
-
-      log(styleText('yellow', message));
-    }
-  }
+  await runFormatter(output.formatter, paths, projectTitle);
 
   if (output.docs) {
     try {
@@ -436,9 +471,7 @@ export async function writeSpecs(
         const outputPath = app.options.getValue('out');
         await app.generateDocs(project, outputPath);
 
-        if (output.prettier) {
-          await formatWithPrettier([outputPath], projectTitle);
-        }
+        await runFormatter(output.formatter, [outputPath], projectTitle);
       } else {
         throw new Error('TypeDoc not initialized');
       }

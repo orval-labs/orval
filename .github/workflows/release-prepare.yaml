@@ -50,6 +50,7 @@ jobs:
           for pkg in $(find . -name package.json -not -path '*/node_modules/*' -not -path '*/dist/*'); do
             jq --arg v "${{ github.event.inputs.version }}" '.version = $v' "$pkg" > tmp.$$.json && mv tmp.$$.json "$pkg"
           done
+          bun install
           bun run test:snapshots:update
 
       - name: Create Pull Request

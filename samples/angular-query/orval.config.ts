@@ -10,7 +10,7 @@ export default defineConfig({
       client: 'angular-query',
       httpClient: 'angular',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
       override: {
         query: {
           signal: true,
@@ -29,7 +29,7 @@ export default defineConfig({
       client: 'angular-query',
       httpClient: 'angular',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
       override: {
         query: {
           signal: true,
@@ -56,7 +56,7 @@ export default defineConfig({
       },
       tsconfig: './tsconfig.app.json',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
       override: {
         query: {
           useInvalidate: true,
@@ -124,7 +124,7 @@ export default defineConfig({
       client: 'angular-query',
       httpClient: 'angular',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
       override: {
         query: {
           signal: true,

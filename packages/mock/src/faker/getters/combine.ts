@@ -10,6 +10,12 @@ import {
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { resolveMockValue } from '../resolvers';
 
+function getReferenceName(ref?: string): string {
+  if (!ref) return '';
+
+  return pascal(ref.split('/').pop() ?? '');
+}
+
 interface CombineSchemasMockOptions {
   item: MockSchemaObject;
   separator: 'allOf' | 'oneOf' | 'anyOf';
@@ -87,9 +93,7 @@ export function combineSchemasMock({
   let value = separator === 'allOf' ? '' : 'faker.helpers.arrayElement([';
 
   for (const val of separatorItems) {
-    const refName = isReference(val)
-      ? pascal((val.$ref ?? '').split('/').pop() ?? '')
-      : '';
+    const refName = isReference(val) ? getReferenceName(val.$ref) : '';
     // For allOf: skip if refName is in existingRefs AND this is an inline schema (not a top-level ref)
     // This allows top-level schemas (item.isRef=true) to get base properties from allOf
     // while preventing circular allOf chains in inline property schemas

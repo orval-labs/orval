@@ -7,7 +7,7 @@ export default defineConfig({
       schemas: './models',
       client: 'react-query',
       httpClient: 'axios',
-      prettier: true,
+      formatter: 'prettier',
       override: {
         mutator: {
           path: './custom-instance.ts',

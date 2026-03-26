@@ -9,7 +9,7 @@ export default defineConfig({
       mode: 'single',
       client: 'mcp',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   zodSchemaResponse: {
@@ -23,7 +23,7 @@ export default defineConfig({
       mode: 'single',
       client: 'mcp',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
 });

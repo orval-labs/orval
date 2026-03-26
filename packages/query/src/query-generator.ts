@@ -12,7 +12,7 @@ import {
   type GetterQueryParam,
   type GetterResponse,
   jsDoc,
-  type OutputClient,
+  OutputClient,
   type OutputClientFunc,
   type OutputHttpClient,
   pascal,
@@ -158,6 +158,7 @@ const generateQueryImplementation = ({
   useQuery,
   useInfinite,
   useInvalidate,
+  useSetQueryData,
   adapter,
 }: {
   queryOption: {
@@ -187,6 +188,7 @@ const generateQueryImplementation = ({
   useQuery?: boolean;
   useInfinite?: boolean;
   useInvalidate?: boolean;
+  useSetQueryData?: boolean;
   adapter: FrameworkAdapter;
 }) => {
   const {
@@ -459,13 +461,27 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     doc,
   });
 
-  const shouldGenerateInvalidate =
-    useInvalidate &&
-    (type === QueryType.QUERY ||
-      type === QueryType.INFINITE ||
-      (type === QueryType.SUSPENSE_QUERY && !useQuery) ||
-      (type === QueryType.SUSPENSE_INFINITE && !useInfinite));
+  const isPrimaryQueryType =
+    type === QueryType.QUERY ||
+    type === QueryType.INFINITE ||
+    (type === QueryType.SUSPENSE_QUERY && !useQuery) ||
+    (type === QueryType.SUSPENSE_INFINITE && !useInfinite);
+
+  const shouldGenerateInvalidate = useInvalidate && isPrimaryQueryType;
   const invalidateFnName = camel(`invalidate-${name}`);
+
+  const shouldGenerateSetQueryData = useSetQueryData && isPrimaryQueryType;
+  const isReactQuery = adapter.outputClient === OutputClient.REACT_QUERY;
+  const setQueryDataFnName = isReactQuery
+    ? camel(`use-set-${name}-query-data`)
+    : camel(`set-${name}-query-data`);
+  const setQueryDataKeyExpr = queryKeyMutator
+    ? `${queryKeyMutator.name}({ ${queryProperties} }${queryKeyMutator.hasSecondArg ? `, { url: \`${route}\` }` : ''})`
+    : `${queryKeyFnName}(${queryKeyProperties})`;
+  const setQueryDataProps = toObjectString(
+    props.filter((prop) => prop.type !== GetterPropType.HEADER),
+    'implementation',
+  ).replaceAll('?:', ':');
 
   // Generate query init (e.g. const queryOptions = fn(...) or const http = inject(HttpClient))
   const queryInit = adapter.generateQueryInit({
@@ -525,6 +541,20 @@ ${
   await queryClient.invalidateQueries({ queryKey: ${queryKeyFnName}(${queryKeyProperties}) }, options);
 
   return queryClient;
+}\n`
+    : ''
+}
+${
+  shouldGenerateSetQueryData
+    ? isReactQuery
+      ? `${doc}export const ${setQueryDataFnName} = () => {
+  const queryClient = useQueryClient();
+  return (${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
+    queryClient.setQueryData(${setQueryDataKeyExpr}, updater);
+  };
+}\n`
+      : `${doc}export const ${setQueryDataFnName} = (queryClient: QueryClient, ${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
+  queryClient.setQueryData(${setQueryDataKeyExpr}, updater);
 }\n`
     : ''
 }
@@ -795,6 +825,8 @@ ${queryKeyFns}`;
         useQuery: query.useQuery,
         useInfinite: query.useInfinite,
         useInvalidate: query.useInvalidate,
+        useSetQueryData:
+          operationQueryOptions?.useSetQueryData ?? query.useSetQueryData,
         adapter,
       });
     }

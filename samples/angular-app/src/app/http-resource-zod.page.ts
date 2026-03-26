@@ -6,7 +6,10 @@ import {
   signal,
 } from '@angular/core';
 
-import type { PetOutput, PetsOutput } from '../api/model-zod/index.zod';
+import type {
+  PetOutput,
+  PetsOutput,
+} from '../api/http-resource-zod/model/index.zod';
 import {
   listPetsResource,
   showPetByIdResource,

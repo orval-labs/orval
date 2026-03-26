@@ -120,6 +120,25 @@ export default defineConfig({
 
 If you're using SolidStart, consider using the [SolidStart client](/docs/guides/solid-start) instead, which uses native Solid Router primitives (`query()` and `action()`) for better SSR integration.
 
+## Set Query Data
+
+When `useSetQueryData: true` is set, Orval generates type-safe helper functions to update cached query data:
+
+```ts
+export const setListPetsQueryData = (
+  queryClient: QueryClient,
+  params: ListPetsParams,
+  updater:
+    | Awaited<ReturnType<typeof listPets>>
+    | undefined
+    | ((
+        old: Awaited<ReturnType<typeof listPets>> | undefined,
+      ) => Awaited<ReturnType<typeof listPets>> | undefined),
+) => {
+  queryClient.setQueryData(getListPetsQueryKey(params), updater);
+};
+```
+
 ## Full Example
 
 See the [complete Solid Query example](https://github.com/orval-labs/orval/tree/master/samples/solid-query) on GitHub.

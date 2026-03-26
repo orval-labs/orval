@@ -9,7 +9,7 @@ export default defineConfig({
       schemas: 'src/api/models',
       client: 'swr',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
       mock: true,
       override: {
         fetch: {

@@ -1,6 +1,6 @@
 {
   "name": "angular-query",
-  "version": "8.5.3",
+  "version": "8.6.2",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -35,11 +35,9 @@
     "@angular/cli": "catalog:angular",
     "@angular/compiler-cli": "catalog:angular",
     "@faker-js/faker": "catalog:tooling",
-    "@eslint/js": "catalog:",
     "angular-eslint": "21.3.0",
     "eslint": "catalog:",
     "@testing-library/angular": "19.0.0",
-    "jsdom": "catalog:",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
     "prettier": "catalog:",

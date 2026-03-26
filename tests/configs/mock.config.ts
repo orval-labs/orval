@@ -29,7 +29,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -44,7 +44,7 @@ export default defineConfig({
         delay: false,
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/endpoints-named-delay.yaml',
@@ -62,7 +62,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/default-status.yaml',
@@ -86,7 +86,7 @@ export default defineConfig({
         };
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -100,7 +100,7 @@ export default defineConfig({
       mode: 'tags-split',
       client: 'axios',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -114,7 +114,7 @@ export default defineConfig({
       mode: 'split',
       client: 'axios',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -128,7 +128,7 @@ export default defineConfig({
       mode: 'tags',
       client: 'axios',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -140,7 +140,7 @@ export default defineConfig({
       target: '../generated/mock/null-type/endpoints.ts',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/null-type.yaml',
@@ -154,7 +154,7 @@ export default defineConfig({
       client: 'axios',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/enum-refs.yaml',
@@ -167,7 +167,7 @@ export default defineConfig({
       target: '../generated/mock/typelessEnum',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   formats: {
@@ -184,7 +184,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   zodSchemaResponse: {
@@ -197,7 +197,7 @@ export default defineConfig({
       client: 'axios',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -209,7 +209,7 @@ export default defineConfig({
       schemas: '../generated/mock/allof-shared-base/model',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/allof-shared-base.yaml',
@@ -221,7 +221,7 @@ export default defineConfig({
       schemas: '../generated/mock/circular/model',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/circular.yaml',
@@ -236,7 +236,7 @@ export default defineConfig({
         type: 'msw',
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/msw-mixed-content-union.yaml',
@@ -253,7 +253,7 @@ export default defineConfig({
         preferredContentType: 'application/json',
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/msw-mixed-content-union.yaml',
@@ -270,7 +270,7 @@ export default defineConfig({
         generateEachHttpStatus: true,
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/msw-mixed-content-each-status.yaml',
@@ -285,7 +285,7 @@ export default defineConfig({
         type: 'msw',
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/msw-mixed-content-union-vendor.yaml',

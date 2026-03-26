@@ -1,6 +1,6 @@
 {
   "name": "swr-basic",
-  "version": "8.5.3",
+  "version": "8.6.2",
   "private": true,
   "type": "module",
   "dependencies": {

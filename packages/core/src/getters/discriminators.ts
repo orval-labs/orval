@@ -66,11 +66,13 @@ export function resolveDiscriminators(
           mappingKey,
         ];
 
+        // @see https://github.com/orval-labs/orval/issues/3139
         const mergedProperty = {
           ...schemaProperty,
           type: 'string',
           enum: mergedEnumValues,
         };
+        delete (mergedProperty as Record<string, unknown>).const;
 
         subTypeSchema.properties = {
           ...subTypeSchema.properties,
