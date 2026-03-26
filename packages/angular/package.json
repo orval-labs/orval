@@ -7,7 +7,7 @@
     "url": "git+https://github.com/orval-labs/orval.git",
     "directory": "packages/angular"
   },
-  "homepage": "https://github.com/orval-labs/orval#readme",
+  "homepage": "https://orval.dev/docs/guides/angular",
   "bugs": {
     "url": "https://github.com/orval-labs/orval/issues"
   },

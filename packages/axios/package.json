@@ -7,7 +7,7 @@
     "url": "git+https://github.com/orval-labs/orval.git",
     "directory": "packages/axios"
   },
-  "homepage": "https://github.com/orval-labs/orval#readme",
+  "homepage": "https://orval.dev/docs/guides/custom-axios",
   "bugs": {
     "url": "https://github.com/orval-labs/orval/issues"
   },

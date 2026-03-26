@@ -57,6 +57,10 @@
     "type": "git",
     "url": "git+https://github.com/orval-labs/orval.git"
   },
+  "homepage": "https://orval.dev",
+  "bugs": {
+    "url": "https://github.com/orval-labs/orval/issues"
+  },
   "scripts": {
     "build": "tsdown --config-loader unrun",
     "dev": "tsdown --config-loader unrun --watch src",
