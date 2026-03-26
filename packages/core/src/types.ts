@@ -2,6 +2,15 @@ import type { allLocales } from '@faker-js/faker';
 import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import type { TypeDocOptions } from 'typedoc';
 
+export const SupportedFormatter = {
+  PRETTIER: 'prettier',
+  BIOME: 'biome',
+  OXFMT: 'oxfmt',
+} as const;
+
+export type SupportedFormatter =
+  (typeof SupportedFormatter)[keyof typeof SupportedFormatter];
+
 export interface Options {
   output?: string | OutputOptions;
   input?: string | string[] | InputOptions;
@@ -38,8 +47,7 @@ export interface NormalizedOutputOptions {
   httpClient: OutputHttpClient;
   clean: boolean | string[];
   docs: boolean | OutputDocsOptions;
-  prettier: boolean;
-  biome: boolean;
+  formatter?: SupportedFormatter;
   tsconfig?: Tsconfig;
   packageJson?: PackageJson;
   headers: boolean;
@@ -266,8 +274,7 @@ export interface OutputOptions {
   httpClient?: OutputHttpClient;
   clean?: boolean | string[];
   docs?: boolean | OutputDocsOptions;
-  prettier?: boolean;
-  biome?: boolean;
+  formatter?: SupportedFormatter;
   tsconfig?: string | Tsconfig;
   packageJson?: string;
   headers?: boolean;
@@ -669,6 +676,7 @@ export interface NormalizedQueryOptions {
   useInfiniteQueryParam?: string;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
+  useSetQueryData?: boolean;
 
   options?: Record<string, unknown>;
   queryKey?: NormalizedMutator;
@@ -694,6 +702,7 @@ export interface QueryOptions {
   useInfiniteQueryParam?: string;
   usePrefetch?: boolean;
   useInvalidate?: boolean;
+  useSetQueryData?: boolean;
 
   options?: Record<string, unknown>;
   queryKey?: Mutator;
@@ -876,8 +885,7 @@ export interface GlobalOptions {
   watch?: boolean | string | string[];
   verbose?: boolean;
   clean?: boolean | string[];
-  prettier?: boolean;
-  biome?: boolean;
+  formatter?: SupportedFormatter;
   mock?: boolean | GlobalMockOptions;
   client?: OutputClient;
   httpClient?: OutputHttpClient;

@@ -158,6 +158,25 @@ export const invalidateShowPetById = async (
 };
 ```
 
+## Set Query Data
+
+When `useSetQueryData: true` is set, Orval generates type-safe helper functions to update cached query data:
+
+```ts
+export const setShowPetByIdQueryData = (
+  queryClient: QueryClient,
+  petId: string,
+  updater:
+    | Awaited<ReturnType<typeof showPetById>>
+    | undefined
+    | ((
+        old: Awaited<ReturnType<typeof showPetById>> | undefined,
+      ) => Awaited<ReturnType<typeof showPetById>> | undefined),
+) => {
+  queryClient.setQueryData(getShowPetByIdQueryKey(petId), updater);
+};
+```
+
 ## Automatic Mutation Invalidation
 
 Configure automatic invalidation when mutations succeed:

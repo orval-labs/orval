@@ -19,9 +19,15 @@ import {
   stringify,
   toObjectString,
 } from '@orval/core';
-import { isDereferenced } from '@scalar/openapi-types/helpers';
 
 const WILDCARD_STATUS_CODE_REGEX = /^[1-5]XX$/i;
+const resolveSchemaRef = (
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: GeneratorOptions['context'],
+) =>
+  resolveRef(schema, context) as {
+    schema: OpenApiSchemaObject;
+  };
 
 const getStatusCodeType = (key: string): string => {
   if (WILDCARD_STATUS_CODE_REGEX.test(key)) {
@@ -80,18 +86,17 @@ export const generateRequestFunction = (
 
   const spec = context.spec.paths?.[pathRoute];
   const parameters = spec?.[verb]?.parameters ?? [];
+  const parameterObjects = parameters.map((parameter) => {
+    const { schema } = resolveRef(parameter, context);
+    return schema as OpenApiParameterObject;
+  });
 
-  const explodeParameters = parameters.filter((parameter) => {
-    const { schema: parameterObject } = resolveRef<OpenApiParameterObject>(
-      parameter,
-      context,
-    );
-
+  const explodeParameters = parameterObjects.filter((parameterObject) => {
     if (!parameterObject.schema) {
       return false;
     }
 
-    const { schema: schemaObject } = resolveRef<OpenApiSchemaObject>(
+    const { schema: schemaObject } = resolveSchemaRef(
       parameterObject.schema,
       context,
     );
@@ -102,42 +107,36 @@ export const generateRequestFunction = (
         (schemaObject.oneOf as
           | (OpenApiSchemaObject | OpenApiReferenceObject)[]
           | undefined) ?? []
-      ).some(
-        (s) =>
-          resolveRef<OpenApiSchemaObject>(s, context).schema.type === 'array',
-      ) ||
+      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array') ||
       (
         (schemaObject.anyOf as
           | (OpenApiSchemaObject | OpenApiReferenceObject)[]
           | undefined) ?? []
-      ).some(
-        (s) =>
-          resolveRef<OpenApiSchemaObject>(s, context).schema.type === 'array',
-      ) ||
+      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array') ||
       (
         (schemaObject.allOf as
           | (OpenApiSchemaObject | OpenApiReferenceObject)[]
           | undefined) ?? []
-      ).some(
-        (s) =>
-          resolveRef<OpenApiSchemaObject>(s, context).schema.type === 'array',
-      );
+      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array');
 
     return (
       parameterObject.in === 'query' && isArrayLike && parameterObject.explode
     );
   });
 
-  const explodeParametersNames = explodeParameters.map((parameter) => {
-    const { schema } = resolveRef<OpenApiParameterObject>(parameter, context);
-
-    return schema.name;
-  });
+  const explodeParametersNames = explodeParameters.map(
+    (parameter) => parameter.name,
+  );
   const hasExplodedDateParams =
     context.output.override.useDates &&
-    explodeParameters.some(
-      (p) => isDereferenced(p) && p.schema?.format === 'date-time',
-    );
+    explodeParameters.some((parameter) => {
+      if (!parameter.schema) {
+        return false;
+      }
+
+      const { schema } = resolveSchemaRef(parameter.schema, context);
+      return schema.format === 'date-time';
+    });
 
   const explodeArrayImplementation =
     explodeParameters.length > 0
@@ -157,9 +156,14 @@ export const generateRequestFunction = (
 
   const hasDateParams =
     context.output.override.useDates &&
-    parameters.some(
-      (p) => isDereferenced(p) && p.schema?.format === 'date-time',
-    );
+    parameterObjects.some((parameter) => {
+      if (!parameter.schema) {
+        return false;
+      }
+
+      const { schema } = resolveSchemaRef(parameter.schema, context);
+      return schema.format === 'date-time';
+    });
 
   const normalParamsImplementation = `if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : ${hasDateParams ? 'value instanceof Date ? value.toISOString() : ' : ''}value.toString())

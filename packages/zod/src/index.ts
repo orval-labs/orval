@@ -13,7 +13,6 @@ import {
   type GeneratorVerbOptions,
   getFormDataFieldFileType,
   getNumberWord,
-  getPropertySafe,
   isBoolean,
   isNumber,
   isObject,
@@ -1112,10 +1111,8 @@ function tryResolveRefSchema(
   context: ContextSpec,
 ): OpenApiSchemaObject | undefined {
   try {
-    return resolveRef<OpenApiSchemaObject>(
-      { $ref } as OpenApiReferenceObject,
-      context,
-    ).schema;
+    return resolveRef({ $ref } as OpenApiReferenceObject, context)
+      .schema as OpenApiSchemaObject;
   } catch (error) {
     logVerbose(
       `[orval/zod] Failed to resolve $ref "${$ref}":`,
@@ -1300,9 +1297,9 @@ const parseBodyAndResponse = ({
     };
   }
 
-  const resolvedRef = resolveRef<
-    OpenApiResponseObject | OpenApiRequestBodyObject
-  >(data, context).schema;
+  const resolvedRef = resolveRef(data, context).schema as
+    | OpenApiResponseObject
+    | OpenApiRequestBodyObject;
 
   // Only handle JSON and form-data; other content types (e.g., application/octet-stream)
   // are skipped - unclear if this is correct behavior for root-level binary/text bodies
@@ -1440,80 +1437,83 @@ export const parseParameters = ({
     };
   }
 
-  const defintionsByParameters = data.reduce<
-    Record<
-      'headers' | 'queryParams' | 'params',
-      Record<string, { functions: [string, unknown][]; consts: string[] }>
-    >
-  >(
-    (acc, val) => {
-      const { schema: parameter } = resolveRef<OpenApiParameterObject>(
-        val,
-        context,
-      );
+  const initialDefinitionsByParameters: Record<
+    'headers' | 'queryParams' | 'params',
+    Record<string, { functions: [string, unknown][]; consts: string[] }>
+  > = {
+    headers: {},
+    queryParams: {},
+    params: {},
+  };
 
-      if (!parameter.schema) {
-        return acc;
-      }
-      if (!parameter.in || !parameter.name) {
-        return acc;
-      }
+  const defintionsByParameters = data.reduce((acc, val) => {
+    const { schema: parameter }: { schema: OpenApiParameterObject } =
+      resolveRef(val, context);
 
-      const schema = dereference(parameter.schema, context);
-      schema.description = parameter.description;
-
-      const mapStrict = {
-        path: strict.param,
-        query: strict.query,
-        header: strict.header,
-      };
-
-      const mapGenerate = {
-        path: generate.param,
-        query: generate.query,
-        header: generate.header,
-      };
-
-      const definition = generateZodValidationSchemaDefinition(
-        schema,
-        context,
-        camel(`${operationName}-${parameter.in}-${parameter.name}`),
-        getPropertySafe(mapStrict, parameter.in).value ?? false,
-        isZodV4,
-        {
-          required: parameter.required,
-        },
-      );
-
-      if (parameter.in === 'header' && mapGenerate.header) {
-        return {
-          ...acc,
-          headers: { ...acc.headers, [parameter.name]: definition },
-        };
-      }
-
-      if (parameter.in === 'query' && mapGenerate.query) {
-        return {
-          ...acc,
-          queryParams: { ...acc.queryParams, [parameter.name]: definition },
-        };
-      }
-
-      if (parameter.in === 'path' && mapGenerate.path) {
-        return {
-          ...acc,
-          params: { ...acc.params, [parameter.name]: definition },
-        };
-      }
-
+    if (!parameter.schema) {
       return acc;
-    },
-    {
-      headers: {},
-      queryParams: {},
-      params: {},
-    },
-  );
+    }
+    if (!parameter.in || !parameter.name) {
+      return acc;
+    }
+
+    const schema = dereference(parameter.schema, context);
+    schema.description = parameter.description;
+
+    const mapStrict = {
+      path: strict.param,
+      query: strict.query,
+      header: strict.header,
+    };
+
+    const mapGenerate = {
+      path: generate.param,
+      query: generate.query,
+      header: generate.header,
+    };
+
+    if (
+      parameter.in !== 'path' &&
+      parameter.in !== 'query' &&
+      parameter.in !== 'header'
+    ) {
+      return acc;
+    }
+
+    const definition = generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      camel(`${operationName}-${parameter.in}-${parameter.name}`),
+      mapStrict[parameter.in],
+      isZodV4,
+      {
+        required: parameter.required,
+      },
+    );
+
+    if (parameter.in === 'header' && mapGenerate.header) {
+      return {
+        ...acc,
+        headers: { ...acc.headers, [parameter.name]: definition },
+      };
+    }
+
+    if (parameter.in === 'query' && mapGenerate.query) {
+      return {
+        ...acc,
+        queryParams: { ...acc.queryParams, [parameter.name]: definition },
+      };
+    }
+
+    if (parameter.in === 'path' && mapGenerate.path) {
+      return {
+        ...acc,
+        params: { ...acc.params, [parameter.name]: definition },
+      };
+    }
+
+    return acc;
+  }, initialDefinitionsByParameters);
 
   const headers: ZodValidationSchemaDefinition = {
     functions: [],

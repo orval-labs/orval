@@ -19,9 +19,6 @@
       "dependsOn": ["build"],
       "cache": false
     },
-    "lint:generated": {
-      "dependsOn": ["transit"]
-    },
     "test": {
       "outputs": []
     },

@@ -17,6 +17,12 @@ import { combineSchemasMock } from './combine';
 
 export const overrideVarName = 'overrideResponse';
 
+function getReferenceName(ref?: string): string {
+  if (!ref) return '';
+
+  return pascal(ref.split('/').pop() ?? '');
+}
+
 interface GetMockObjectOptions {
   item: MockSchemaObject;
   operationId: string;
@@ -148,9 +154,7 @@ export function getMockObject({
           // Fixes issue #910
           if (
             isReference(prop) &&
-            existingReferencedProperties.includes(
-              pascal((prop.$ref ?? '').split('/').pop() ?? ''),
-            )
+            existingReferencedProperties.includes(getReferenceName(prop.$ref))
           ) {
             if (isRequired) {
               const keyDefinition = getKey(key);
@@ -223,7 +227,7 @@ export function getMockObject({
     if (
       isReference(additionalProperties) &&
       existingReferencedProperties.includes(
-        pascal((additionalProperties.$ref ?? '').split('/').pop() ?? ''),
+        getReferenceName(additionalProperties.$ref),
       )
     ) {
       return { value: `{}`, imports: [], name: schemaItem.name };

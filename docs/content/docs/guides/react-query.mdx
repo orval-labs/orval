@@ -128,6 +128,27 @@ export default defineConfig({
 });
 ```
 
+## Set Query Data
+
+When `useSetQueryData: true` is set, Orval generates type-safe helper functions to update cached query data:
+
+```ts
+export const useSetListPetsQueryData = () => {
+  const queryClient = useQueryClient();
+  return (
+    params: ListPetsParams,
+    updater:
+      | Awaited<ReturnType<typeof listPets>>
+      | undefined
+      | ((
+          old: Awaited<ReturnType<typeof listPets>> | undefined,
+        ) => Awaited<ReturnType<typeof listPets>> | undefined),
+  ) => {
+    queryClient.setQueryData(getListPetsQueryKey(params), updater);
+  };
+};
+```
+
 ## Full Example
 
 See the [complete React Query example](https://github.com/orval-labs/orval/blob/master/samples/react-query/basic) on GitHub.

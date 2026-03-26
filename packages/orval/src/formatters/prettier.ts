@@ -17,7 +17,7 @@ export async function formatWithPrettier(
   const prettier = await tryImportPrettier();
 
   if (prettier) {
-    const filePaths = await collectFilePaths(paths);
+    const filePaths = [...new Set(await collectFilePaths(paths))];
     if (filePaths.length === 0) {
       return;
     }

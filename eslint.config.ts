@@ -10,7 +10,6 @@ export default defineConfig(
   globalIgnores([
     'docs',
     'tests/generated',
-    'tests/**/__snapshots__/**',
     'samples',
     '.husky',
     'packages/hono/src/zValidator.ts',

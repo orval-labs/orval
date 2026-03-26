@@ -9,7 +9,7 @@ export default defineConfig({
       mock: true,
       headers: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -44,7 +44,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -60,7 +60,7 @@ export default defineConfig({
       mock: true,
       client: 'react-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -79,7 +79,7 @@ export default defineConfig({
       },
       headers: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/no-content-with-default.yaml',
@@ -93,7 +93,7 @@ export default defineConfig({
       mode: 'tags-split',
       client: 'react-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -107,7 +107,7 @@ export default defineConfig({
       mode: 'split',
       client: 'react-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -121,7 +121,7 @@ export default defineConfig({
       mode: 'tags',
       client: 'react-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -138,7 +138,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -158,7 +158,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -176,7 +176,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -196,7 +196,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -222,7 +222,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -251,7 +251,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -275,7 +275,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -300,7 +300,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -328,7 +328,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -350,7 +350,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -372,7 +372,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -393,7 +393,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -416,7 +416,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -436,7 +436,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/form-data.yaml',
@@ -456,7 +456,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/form-data.yaml',
@@ -480,7 +480,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/form-data.yaml',
@@ -500,7 +500,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/form-url-encoded.yaml',
@@ -524,7 +524,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/form-url-encoded.yaml',
@@ -538,7 +538,7 @@ export default defineConfig({
       mode: 'split',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: '../specifications/import-from-subdirectory/petstore.yaml',
   },
@@ -552,7 +552,7 @@ export default defineConfig({
         useDeprecatedOperations: false,
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: '../specifications/deprecated.yaml',
   },
@@ -569,7 +569,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -585,7 +585,7 @@ export default defineConfig({
         delay: false,
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -599,7 +599,7 @@ export default defineConfig({
       mock: true,
       headers: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/polymorphic.yaml',
@@ -614,7 +614,7 @@ export default defineConfig({
         useNamedParameters: true,
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -630,7 +630,7 @@ export default defineConfig({
       client: 'react-query',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/models-with-special-char.yaml',
@@ -649,7 +649,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -673,7 +673,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -690,7 +690,84 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  useSetQueryData: {
+    output: {
+      target: '../generated/react-query/use-set-query-data/endpoints.ts',
+      schemas: '../generated/react-query/use-set-query-data/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useSetQueryData: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  useSetQueryDataMultiParams: {
+    output: {
+      target:
+        '../generated/react-query/use-set-query-data-multi-params/endpoints.ts',
+      schemas: '../generated/react-query/use-set-query-data-multi-params/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useSetQueryData: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/multi-query-params.yaml',
+    },
+  },
+  useSetQueryDataNamedParams: {
+    output: {
+      target:
+        '../generated/react-query/use-set-query-data-named-params/endpoints.ts',
+      schemas: '../generated/react-query/use-set-query-data-named-params/model',
+      client: 'react-query',
+      override: {
+        useNamedParameters: true,
+        query: {
+          useSetQueryData: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
+  useSetQueryDataInfinite: {
+    output: {
+      target:
+        '../generated/react-query/use-set-query-data-infinite/endpoints.ts',
+      schemas: '../generated/react-query/use-set-query-data-infinite/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useInfinite: true,
+          useInfiniteQueryParam: 'limit',
+          useSetQueryData: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',

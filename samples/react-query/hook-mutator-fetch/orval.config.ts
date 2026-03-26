@@ -7,7 +7,7 @@ export default defineConfig({
       schemas: './models',
       client: 'react-query',
       httpClient: 'fetch',
-      prettier: true,
+      formatter: 'prettier',
       override: {
         mutator: {
           path: './use-custom-instance.ts',

@@ -20,5 +20,6 @@
     "prettier": "catalog:",
     "vitest": "catalog:",
     "wrangler": "^4.59.2"
-  }
+  },
+  "version": "8.6.2"
 }

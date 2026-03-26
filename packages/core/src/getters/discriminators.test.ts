@@ -136,6 +136,59 @@ describe('resolveDiscriminators getter', () => {
     }
   });
 
+  it('strips const from discriminator property to prevent DogValue object bug (#3139)', () => {
+    const schemas: OpenApiSchemasObject = {
+      Pet: {
+        oneOf: [
+          { $ref: '#/components/schemas/Cat' },
+          { $ref: '#/components/schemas/Dog' },
+        ],
+        discriminator: {
+          propertyName: 'type',
+          mapping: {
+            cat: '#/components/schemas/Cat',
+            dog: '#/components/schemas/Dog',
+          },
+        },
+      },
+      Cat: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['type', 'name'],
+        properties: {
+          type: { const: 'cat' },
+          name: { type: 'string' },
+        },
+      },
+      Dog: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['type'],
+        properties: {
+          type: { const: 'dog', description: 'animal type' },
+        },
+      },
+    };
+
+    const result = resolveDiscriminators(structuredClone(schemas), context);
+    const dogSchema = result.Dog as NonNullable<OpenApiSchemasObject[string]>;
+    const dogProps = dogSchema.properties as
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+      | undefined;
+    const typeProp = dogProps?.type as OpenApiSchemaObject | undefined;
+
+    // The merged property must NOT retain `const` — otherwise interface.ts
+    // generates `const DogValue = { type: DogType }` where DogType is the
+    // runtime enum object instead of the string literal.
+    expect(typeProp).toBeDefined();
+    expect(typeProp).not.toHaveProperty('const');
+    expect(typeProp?.enum).toEqual(['dog']);
+    expect(typeProp?.type).toBe('string');
+    expect((typeProp as Record<string, unknown>).description).toBe(
+      'animal type',
+    );
+  });
+
   it('hoists oneOf from discriminator when nested incorrectly', () => {
     const schemas: OpenApiSchemasObject = {
       Animal: {
