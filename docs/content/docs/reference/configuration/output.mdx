@@ -817,6 +817,7 @@ export default defineConfig({
             header: true,
           },
           generateEachHttpStatus: true,
+          useBrandedTypes: true,
         },
       },
     },
@@ -853,6 +854,14 @@ Add preprocess functions to schemas.
 **Type:** `Object`
 
 Configure Zod datetime/time validation options.
+
+### useBrandedTypes
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Append [`.brand()`](https://zod.dev/api?id=branded-types) to generated Zod schemas using the schema name as the brand identifier.
 
 ---
 
