@@ -7,7 +7,7 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import type { ApiResult } from './model';
+import type { ApiResult, StatusResult } from './model';
 
 export const getResult = (
   options?: AxiosRequestConfig,
@@ -15,4 +15,11 @@ export const getResult = (
   return axios.get(`/api/result`, options);
 };
 
+export const getStatus = (
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<StatusResult>> => {
+  return axios.get(`/api/status`, options);
+};
+
 export type GetResultResult = AxiosResponse<ApiResult>;
+export type GetStatusResult = AxiosResponse<StatusResult>;

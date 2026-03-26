@@ -13,6 +13,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResult'
+  /api/status:
+    get:
+      operationId: getStatus
+      responses:
+        '200':
+          description: A status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResult'
 components:
   schemas:
     ApiResult:
@@ -43,4 +53,33 @@ components:
         success:
           type: boolean
         error:
+          type: string
+    StatusResult:
+      oneOf:
+        - $ref: '#/components/schemas/ActiveStatus'
+        - $ref: '#/components/schemas/InactiveStatus'
+      discriminator:
+        propertyName: code
+        mapping:
+          '1': '#/components/schemas/ActiveStatus'
+          '0': '#/components/schemas/InactiveStatus'
+    ActiveStatus:
+      type: object
+      required:
+        - code
+        - details
+      properties:
+        code:
+          type: integer
+        details:
+          type: string
+    InactiveStatus:
+      type: object
+      required:
+        - code
+        - reason
+      properties:
+        code:
+          type: integer
+        reason:
           type: string
