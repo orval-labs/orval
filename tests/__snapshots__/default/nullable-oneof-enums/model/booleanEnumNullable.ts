@@ -9,4 +9,4 @@
 /**
  * @nullable
  */
-export type BooleanEnumNullable = boolean | null;
+export type BooleanEnumNullable = true | false | null;
