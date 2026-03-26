@@ -7,7 +7,7 @@ on:
       - opened
 
 env:
-  OUTPUT_CLIENT_LABELS: >-
+  OUTPUT_CLIENTS: >-
     axios fetch hono angular angular-query react-query vue-query svelte-query
     solid-query solid-start swr zod mcp
 
@@ -30,9 +30,22 @@ jobs:
             exit 0
           fi
 
-          case " $OUTPUT_CLIENT_LABELS " in
+          case " $OUTPUT_CLIENTS " in
             *" $client "*)
-              gh issue edit "$NUMBER" --add-label "$client"
+              label="$client"
+
+              # labels and output clients don't map 1:1, so we map to existing repo labels
+              if [ "$client" = "react-query" ]; then
+                label="tanstack-query"
+              elif [ "$client" = "angular-query" ]; then
+                label="angular"
+              elif [ "$client" = "solid-query" ] || [ "$client" = "solid-start" ]; then
+                label="solid"
+              elif [ "$client" = "svelte-query" ]; then
+                label="svelte"
+              fi
+
+              gh issue edit "$NUMBER" --add-label "$label"
               ;;
             *)
               echo "Unsupported client label; skipping."
