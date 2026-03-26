@@ -6541,7 +6541,7 @@ describe('generateZod (useBrandedTypes)', () => {
 
     expect(result.implementation).toContain('export const TestResponseItem = ');
     expect(result.implementation).not.toMatch(
-      /TestResponseItem = zod\.object\([^)]*\)\)\.brand/,
+      /TestResponseItem = zod\.object\([^)]*\)\s*\.brand/,
     );
     expect(result.implementation).toContain(
       'export const TestResponse = zod.array(TestResponseItem).brand<"TestResponse">()',

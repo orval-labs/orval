@@ -861,7 +861,7 @@ Configure Zod datetime/time validation options.
 
 **Default:** `false`
 
-Append [`.brand()`](https://zod.dev/api?id=branded-types) to generated Zod schemas using the schema name as the brand identifier.
+Append [`.brand()`](https://zod.dev/api?id=branded-types) to generated Zod schemas using the schema name as the brand identifier. For array request/response bodies, only the top-level array wrapper schema is branded — the exported `*Item` helper schema is not branded.
 
 ---
 
