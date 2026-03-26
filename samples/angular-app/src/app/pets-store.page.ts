@@ -8,7 +8,7 @@ import {
 import { AsyncPipe, JsonPipe } from '@angular/common';
 import { BehaviorSubject, shareReplay, switchMap } from 'rxjs';
 
-import type { Pet, Pets } from '../api/model';
+import type { Pet, Pets } from '../api/http-client/model';
 import { PetsService } from '../api/http-client/pets/pets.service';
 import { DemoPageFrameComponent } from './demo-page-frame.component';
 import { toLoadState } from './load-state';

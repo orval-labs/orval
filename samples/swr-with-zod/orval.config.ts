@@ -11,7 +11,7 @@ export default defineConfig({
       target: 'src/gen/endpoints',
       schemas: 'src/gen/models',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
       baseUrl: 'http://localhost:8000',
       mock: true,
     },
@@ -25,7 +25,7 @@ export default defineConfig({
       client: 'zod',
       target: 'src/gen/endpoints',
       fileExtension: '.zod.ts',
-      prettier: true,
+      formatter: 'prettier',
     },
   },
 });

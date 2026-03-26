@@ -29,11 +29,11 @@ export default defineConfig({
     output: {
       mode: 'tags-split',
       target: 'src/api/http-client/petstoreFromFileSpecWithTransformer.ts',
-      schemas: 'src/api/model',
+      schemas: 'src/api/http-client/model',
       client: 'angular',
       mock: { type: 'msw', indexMockFiles: true },
       tsconfig: './tsconfig.app.json',
-      prettier: true,
+      formatter: 'prettier',
       clean: true,
       override: {
         operations: {
@@ -64,7 +64,7 @@ export default defineConfig({
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'orval/transformer/add-version.ts',
+        transformer: 'src/orval/transformer/add-version.ts',
       },
     },
   },
@@ -72,11 +72,11 @@ export default defineConfig({
     output: {
       mode: 'tags-split',
       target: 'src/api/http-client-custom-params/petstore.ts',
-      schemas: 'src/api/model-custom-params',
+      schemas: 'src/api/http-client-custom-params/model',
       client: 'angular',
       mock: { type: 'msw', indexMockFiles: true },
       tsconfig: './tsconfig.app.json',
-      prettier: true,
+      formatter: 'prettier',
       clean: true,
       override: {
         paramsSerializer: 'src/orval/mutator/custom-params-serializer.ts',
@@ -107,7 +107,7 @@ export default defineConfig({
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'orval/transformer/add-version.ts',
+        transformer: 'src/orval/transformer/add-version.ts',
       },
     },
   },
@@ -117,12 +117,12 @@ export default defineConfig({
       target: 'src/api/endpoints-zod/petstore.ts',
       schemas: {
         type: 'zod',
-        path: 'src/api/model-zod',
+        path: 'src/api/endpoints-zod/model',
       },
       client: 'angular',
       mock: { type: 'msw', indexMockFiles: true },
       tsconfig: './tsconfig.app.json',
-      prettier: true,
+      formatter: 'prettier',
       clean: true,
       override: {
         angular: {
@@ -155,7 +155,7 @@ export default defineConfig({
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'orval/transformer/add-version.ts',
+        transformer: 'src/orval/transformer/add-version.ts',
       },
     },
   },
@@ -163,11 +163,11 @@ export default defineConfig({
     output: {
       mode: 'tags-split',
       target: 'src/api/http-resource/petstore.ts',
-      schemas: 'src/api/model',
+      schemas: 'src/api/http-resource/model',
       client: 'angular',
       mock: { type: 'msw', indexMockFiles: true },
       tsconfig: './tsconfig.app.json',
-      prettier: true,
+      formatter: 'prettier',
       clean: true,
       override: {
         angular: {
@@ -202,7 +202,7 @@ export default defineConfig({
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'orval/transformer/add-version.ts',
+        transformer: 'src/orval/transformer/add-version.ts',
       },
     },
   },
@@ -212,12 +212,12 @@ export default defineConfig({
       target: 'src/api/http-resource-zod/petstore.ts',
       schemas: {
         type: 'zod',
-        path: 'src/api/model-zod',
+        path: 'src/api/http-resource-zod/model',
       },
       client: 'angular',
       mock: { type: 'msw', indexMockFiles: true },
       tsconfig: './tsconfig.app.json',
-      prettier: true,
+      formatter: 'prettier',
       clean: true,
       override: {
         angular: {
@@ -251,7 +251,7 @@ export default defineConfig({
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'orval/transformer/add-version.ts',
+        transformer: 'src/orval/transformer/add-version.ts',
       },
     },
   },

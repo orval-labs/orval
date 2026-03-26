@@ -127,6 +127,25 @@ export default defineConfig({
 });
 ```
 
+## Set Query Data
+
+When `useSetQueryData: true` is set, Orval generates type-safe helper functions to update cached query data:
+
+```ts
+export const setListPetsQueryData = (
+  queryClient: QueryClient,
+  params: ListPetsParams,
+  updater:
+    | Awaited<ReturnType<typeof listPets>>
+    | undefined
+    | ((
+        old: Awaited<ReturnType<typeof listPets>> | undefined,
+      ) => Awaited<ReturnType<typeof listPets>> | undefined),
+) => {
+  queryClient.setQueryData(getListPetsQueryKey(params), updater);
+};
+```
+
 ## Full Example
 
 See the [complete Vue Query example](https://github.com/orval-labs/orval/tree/master/samples/vue-query) on GitHub.

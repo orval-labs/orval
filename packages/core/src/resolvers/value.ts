@@ -2,6 +2,7 @@ import { getScalar } from '../getters';
 import type { FormDataContext } from '../getters/object';
 import type {
   ContextSpec,
+  GeneratorImport,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
   ResolverValue,
@@ -24,10 +25,13 @@ export function resolveValue({
   formDataContext,
 }: ResolveValueOptions): ResolverValue {
   if (isReference(schema)) {
-    const { schema: schemaObject, imports } = resolveRef<OpenApiSchemaObject>(
-      schema,
-      context,
-    );
+    const {
+      schema: schemaObject,
+      imports,
+    }: {
+      schema: OpenApiSchemaObject;
+      imports: GeneratorImport[];
+    } = resolveRef(schema, context);
 
     const resolvedImport = imports[0];
 
@@ -59,9 +63,9 @@ export function resolveValue({
           (Array.isArray(anyOfItem.type) && anyOfItem.type.includes('null'))),
     );
 
+    const schemaType = schemaObject.type as string | string[] | undefined;
     const nullable =
-      (Array.isArray(schemaObject.type) &&
-        schemaObject.type.includes('null')) ||
+      (Array.isArray(schemaType) && schemaType.includes('null')) ||
       schemaObject.nullable === true ||
       isAnyOfNullable
         ? ' | null'

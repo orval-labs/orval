@@ -15,7 +15,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -34,7 +34,7 @@ export default defineConfig({
       mock: true,
       client: 'svelte-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -48,7 +48,7 @@ export default defineConfig({
       mode: 'tags-split',
       client: 'svelte-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -62,7 +62,7 @@ export default defineConfig({
       mode: 'split',
       client: 'svelte-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -76,7 +76,7 @@ export default defineConfig({
       mode: 'tags',
       client: 'svelte-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -89,7 +89,7 @@ export default defineConfig({
       mode: 'tags-split',
       client: 'svelte-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -109,7 +109,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -134,7 +134,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -158,7 +158,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -178,7 +178,7 @@ export default defineConfig({
         useNamedParameters: true,
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -216,7 +216,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -256,7 +256,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',

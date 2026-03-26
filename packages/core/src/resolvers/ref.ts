@@ -200,7 +200,10 @@ export function resolveExampleRefs(
   return Array.isArray(examples)
     ? examples.map((example) => {
         if (isObject(example) && isReference(example)) {
-          const { schema } = resolveRef<OpenApiExampleObject>(example, context);
+          const { schema }: { schema: OpenApiExampleObject } = resolveRef(
+            example,
+            context,
+          );
           // Bridge assertion: ExampleObject.value is typed as `any`
           return schema.value as ResolvedExample;
         }
@@ -212,8 +215,11 @@ export function resolveExampleRefs(
           // Bridge assertion: ExampleObject.value is typed as `any`
           result[key] =
             isObject(example) && isReference(example)
-              ? (resolveRef<OpenApiExampleObject>(example, context).schema
-                  .value as ResolvedExample)
+              ? ((
+                  resolveRef(example, context) as {
+                    schema: OpenApiExampleObject;
+                  }
+                ).schema.value as ResolvedExample)
               : example;
         }
         return result;

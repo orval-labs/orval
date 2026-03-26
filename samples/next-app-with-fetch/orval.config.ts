@@ -9,7 +9,7 @@ export default defineConfig({
       client: 'fetch',
       baseUrl: 'http://localhost:3000',
       mock: true,
-      prettier: true,
+      formatter: 'prettier',
       override: {
         mutator: {
           path: './custom-fetch.ts',

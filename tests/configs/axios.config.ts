@@ -8,7 +8,7 @@ export default defineConfig({
       mock: true,
       client: 'axios',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -27,7 +27,7 @@ export default defineConfig({
       mock: true,
       client: 'axios',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -43,7 +43,7 @@ export default defineConfig({
         mutator: '../mutators/custom-client.ts',
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -62,7 +62,7 @@ export default defineConfig({
         mutator: '../mutators/multi-arguments.ts',
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -79,7 +79,7 @@ export default defineConfig({
       mode: 'tags-split',
       client: 'axios',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -96,7 +96,7 @@ export default defineConfig({
       mode: 'split',
       client: 'axios',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -113,7 +113,7 @@ export default defineConfig({
       mode: 'tags',
       client: 'axios',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -131,7 +131,7 @@ export default defineConfig({
         useNamedParameters: true,
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',

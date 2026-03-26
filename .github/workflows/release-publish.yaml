@@ -57,7 +57,7 @@ jobs:
             dir=$(dirname "$pkg")
             if ! jq -e '.private' "$pkg" > /dev/null 2>&1 || [ "$(jq -r '.private' "$pkg")" = "false" ] || [ "$(jq -r '.private' "$pkg")" = "null" ]; then
               echo "Publishing $(jq -r '.name' "$pkg")..."
-              if ! (cd "$dir" && npm publish --access public); then
+              if ! (cd "$dir" && bun publish --access public); then
                 echo "Publish failed for $(jq -r '.name' "$pkg")"
                 failed=1
               fi

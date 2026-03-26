@@ -19,17 +19,16 @@ export function getParameters({
   const result: GetterParameters = { path: [], query: [], header: [] };
   for (const p of parameters) {
     if (isReference(p)) {
-      const { schema: parameter, imports } = resolveRef<OpenApiParameterObject>(
-        p,
-        context,
-      );
+      const { schema, imports } = resolveRef(p, context);
+      const parameter = schema as OpenApiParameterObject;
 
+      const location = parameter.in;
       if (
-        parameter.in === 'path' ||
-        parameter.in === 'query' ||
-        parameter.in === 'header'
+        location === 'path' ||
+        location === 'query' ||
+        location === 'header'
       ) {
-        result[parameter.in].push({ parameter, imports });
+        result[location].push({ parameter, imports });
       }
     } else {
       if (p.in === 'query' || p.in === 'path' || p.in === 'header') {

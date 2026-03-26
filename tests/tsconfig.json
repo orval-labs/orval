@@ -1,5 +1,5 @@
 {
-  "include": ["generated", "mutators", "__snapshots__"],
+  "include": ["generated", "mutators"],
   "compilerOptions": {
     "skipLibCheck": true,
     "target": "es6",
