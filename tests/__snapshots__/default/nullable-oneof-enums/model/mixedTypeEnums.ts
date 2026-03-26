@@ -20,5 +20,5 @@ export interface MixedTypeEnums {
   integerEnum?:
     | (typeof MixedTypeEnumsIntegerEnum)[keyof typeof MixedTypeEnumsIntegerEnum]
     | null;
-  booleanEnum?: BooleanEnumNullable | null | boolean;
+  booleanEnum?: BooleanEnumNullable | null | true;
 }
