@@ -196,8 +196,8 @@ describe('resolveDiscriminators getter', () => {
         discriminator: {
           propertyName: 'success',
           mapping: {
-            'true': '#/components/schemas/SuccessResult',
-            'false': '#/components/schemas/ErrorResult',
+            true: '#/components/schemas/SuccessResult',
+            false: '#/components/schemas/ErrorResult',
           },
         },
       },
