@@ -670,4 +670,15 @@ export default defineConfig({
       target: '../specifications/issue-2998.yaml',
     },
   },
+  'boolean-discriminator': {
+    output: {
+      target: '../generated/default/boolean-discriminator/endpoints.ts',
+      schemas: '../generated/default/boolean-discriminator/model',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/boolean-discriminator.yaml',
+    },
+  },
 });

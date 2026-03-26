@@ -1,0 +1,46 @@
+openapi: '3.0.0'
+info:
+  title: Boolean Discriminator Test
+  version: 1.0.0
+paths:
+  /api/result:
+    get:
+      operationId: getResult
+      responses:
+        '200':
+          description: A result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+components:
+  schemas:
+    ApiResult:
+      oneOf:
+        - $ref: '#/components/schemas/SuccessResult'
+        - $ref: '#/components/schemas/ErrorResult'
+      discriminator:
+        propertyName: success
+        mapping:
+          'true': '#/components/schemas/SuccessResult'
+          'false': '#/components/schemas/ErrorResult'
+    SuccessResult:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+        data:
+          type: string
+    ErrorResult:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
