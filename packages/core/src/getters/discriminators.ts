@@ -61,7 +61,8 @@ export function resolveDiscriminators(
             ? enumProperty.value
             : undefined;
 
-        const propertyType = schemaProperty?.type ?? 'string';
+        const propertyType =
+          (schemaProperty?.type as string | undefined) ?? 'string';
 
         let typedMappingKey: string | number | boolean = mappingKey;
         if (propertyType === 'boolean') {
