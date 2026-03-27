@@ -60,3 +60,25 @@ describe('getScalar (contentMediaType: application/octet-stream)', () => {
     expect(result.value).toBe('string');
   });
 });
+
+describe('getScalar (nullable-only schema without type — GH-3149)', () => {
+  it('nullable: true without type → "unknown | null" with useTypeAlias', () => {
+    const schema: OpenApiSchemaObject = {
+      nullable: true,
+    };
+
+    const result = getScalar({ item: schema, name: 'NullableOnly', context });
+
+    expect(result.value).toBe('unknown | null');
+    expect(result.useTypeAlias).toBe(true);
+  });
+
+  it('blank schema {} → "unknown" without useTypeAlias', () => {
+    const schema: OpenApiSchemaObject = {};
+
+    const result = getScalar({ item: schema, name: 'BlankSchema', context });
+
+    expect(result.value).toBe('unknown');
+    expect(result.useTypeAlias).toBe(false);
+  });
+});

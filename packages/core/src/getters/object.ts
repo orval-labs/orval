@@ -496,7 +496,7 @@ export function getObject({
     type: 'object',
     isRef: false,
     hasReadonlyProps: readOnlyFlag ?? false,
-    useTypeAlias: itemType !== 'object',
+    useTypeAlias: nullable !== '' && itemType !== 'object',
     dependencies: [],
   };
 }
