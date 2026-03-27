@@ -17,12 +17,16 @@ export async function formatWithPrettier(
   const prettier = await tryImportPrettier();
 
   if (prettier) {
-    const filePaths = await collectFilePaths(paths);
-    const config = await prettier.resolveConfig(filePaths[0]);
+    const filePaths = [...new Set(await collectFilePaths(paths))];
+    if (filePaths.length === 0) {
+      return;
+    }
+
+    const config = (await prettier.resolveConfig(filePaths[0])) ?? {};
     await Promise.all(
       filePaths.map(async (filePath) => {
-        const content = await fs.readFile(filePath, 'utf8');
         try {
+          const content = await fs.readFile(filePath, 'utf8');
           const formatted = await prettier.format(content, {
             ...config,
             // options.filepath can be specified for Prettier to infer the parser from the file extension
@@ -30,6 +34,10 @@ export async function formatWithPrettier(
           });
           await fs.writeFile(filePath, formatted);
         } catch (error) {
+          if (isMissingFileError(error)) {
+            return;
+          }
+
           if (error instanceof Error) {
             // prettier currently doesn't export UndefinedParserError, so having to do it the crude way
             if (error.name === 'UndefinedParserError') {
@@ -69,6 +77,15 @@ export async function formatWithPrettier(
       ),
     );
   }
+}
+
+function isMissingFileError(error: unknown): error is NodeJS.ErrnoException {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'ENOENT'
+  );
 }
 
 /**

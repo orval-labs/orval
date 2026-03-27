@@ -36,8 +36,15 @@ export function getBody({
 
   const definition = filteredBodyTypes.map(({ value }) => value).join(' | ');
   const hasReadonlyProps = filteredBodyTypes.some((x) => x.hasReadonlyProps);
+  // OpenAPI `readOnly` properties are typically response-only, so request body
+  // types are relaxed by default for backwards compatibility. The override lets
+  // callers opt back into preserving readonly request payloads when desired.
   const nonReadonlyDefinition =
-    hasReadonlyProps && definition ? `NonReadonly<${definition}>` : definition;
+    hasReadonlyProps &&
+    definition &&
+    context.output.override.preserveReadonlyRequestBodies !== 'preserve'
+      ? `NonReadonly<${definition}>`
+      : definition;
 
   let implementation =
     generalJSTypesWithArray.includes(definition.toLowerCase()) ||
@@ -56,10 +63,8 @@ export function getBody({
       es5IdentifierName: true,
     });
     if (isReference(requestBody)) {
-      const { schema: bodySchema } = resolveRef<OpenApiRequestBodyObject>(
-        requestBody,
-        context,
-      );
+      const { schema: bodySchema }: { schema: OpenApiRequestBodyObject } =
+        resolveRef(requestBody, context);
       if (bodySchema.required !== undefined) {
         isOptional = !bodySchema.required;
       }

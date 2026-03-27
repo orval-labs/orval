@@ -1,3 +1,3 @@
 {
-  "*": "prettier --check"
+  "*": "prettier --check --ignore-unknown"
 }

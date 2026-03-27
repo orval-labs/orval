@@ -1,6 +1,8 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+type QueryParamValue = string | number | boolean;
+
 const responseType = <Result>(
   {
     url,
@@ -10,7 +12,7 @@ const responseType = <Result>(
   }: {
     url: string;
     method: string;
-    params?: HttpParams | Record<string, string | string[]>;
+    params?: HttpParams | Record<string, QueryParamValue | QueryParamValue[]>;
     data?: unknown;
     headers?: Record<string, string | string[]>;
   },

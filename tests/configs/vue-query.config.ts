@@ -16,7 +16,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -36,7 +36,7 @@ export default defineConfig({
       client: 'vue-query',
       httpClient: 'axios',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -51,7 +51,7 @@ export default defineConfig({
       mode: 'tags-split',
       client: 'vue-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -66,7 +66,7 @@ export default defineConfig({
       mode: 'split',
       client: 'vue-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -81,7 +81,7 @@ export default defineConfig({
       mode: 'tags',
       client: 'vue-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -94,7 +94,7 @@ export default defineConfig({
       mode: 'tags-split',
       client: 'vue-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -114,7 +114,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -139,7 +139,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -163,7 +163,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -177,7 +177,7 @@ export default defineConfig({
       mock: true,
       allParamsOptional: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -191,7 +191,7 @@ export default defineConfig({
       mock: true,
       urlEncodeParameters: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -207,7 +207,7 @@ export default defineConfig({
       allParamsOptional: true,
       urlEncodeParameters: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -221,7 +221,7 @@ export default defineConfig({
         '../generated/vue-query/http-client-fetch-with-multi-query-params/model',
       client: 'vue-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/multi-query-params.yaml',
@@ -233,7 +233,7 @@ export default defineConfig({
       schemas: '../generated/vue-query/form-data/model',
       client: 'vue-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/form-data.yaml',
@@ -254,11 +254,22 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/infinite-query-param-implicit.yaml',
     },
+  },
+  useSetQueryData: {
+    output: {
+      target: '../generated/vue-query/use-set-query-data/endpoints.ts',
+      schemas: '../generated/vue-query/use-set-query-data/model',
+      client: 'vue-query',
+      override: { query: { useSetQueryData: true } },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: { target: '../specifications/petstore.yaml' },
   },
   // Unsupported for now, see for context: https://github.com/orval-labs/orval/pull/931#issuecomment-1752355686
   // namedParameters: {

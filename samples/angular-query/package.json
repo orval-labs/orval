@@ -1,6 +1,6 @@
 {
   "name": "angular-query",
-  "version": "8.5.3",
+  "version": "8.6.2",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -27,15 +27,22 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@angular-eslint/builder": "21.3.0",
+    "@angular-eslint/eslint-plugin": "21.3.0",
+    "@angular-eslint/eslint-plugin-template": "21.3.0",
+    "@angular-eslint/template-parser": "21.3.0",
     "@angular/build": "catalog:angular",
     "@angular/cli": "catalog:angular",
     "@angular/compiler-cli": "catalog:angular",
     "@faker-js/faker": "catalog:tooling",
+    "angular-eslint": "21.3.0",
+    "eslint": "catalog:",
     "@testing-library/angular": "19.0.0",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
     "prettier": "catalog:",
     "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
     "vitest": "catalog:"
   },
   "msw": {

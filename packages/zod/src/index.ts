@@ -13,7 +13,6 @@ import {
   type GeneratorVerbOptions,
   getFormDataFieldFileType,
   getNumberWord,
-  getPropertySafe,
   isBoolean,
   isNumber,
   isObject,
@@ -134,8 +133,6 @@ const resolveZodType = (schema: OpenApiSchemaObject): ResolvedZodType => {
   }
 };
 
-const constsUniqueCounter: Record<string, number> = {};
-
 // https://github.com/colinhacks/zod#coercion-for-primitives
 const COERCIBLE_TYPES = new Set([
   'string',
@@ -206,20 +203,27 @@ export const generateZodValidationSchemaDefinition = (
      * Not passed to nested schemas. Used by form-data for file type handling.
      */
     propertyOverrides?: Record<string, ZodValidationSchemaDefinition>;
+    /**
+     * Internal registry to keep generated const names unique within a single
+     * schema generation tree without leaking suffixes across unrelated top-level
+     * schemas.
+     */
+    constNameRegistry?: Record<string, number>;
   },
 ): ZodValidationSchemaDefinition => {
   if (!schema) return { functions: [], consts: [] };
 
   const consts: string[] = [];
-  const constsCounter = isNumber(constsUniqueCounter[name])
-    ? constsUniqueCounter[name] + 1
+  const constNameRegistry = rules?.constNameRegistry ?? {};
+  const constsCounter = isNumber(constNameRegistry[name])
+    ? constNameRegistry[name] + 1
     : 0;
 
   const constsCounterValue = constsCounter
     ? pascal(getNumberWord(constsCounter))
     : '';
 
-  constsUniqueCounter[name] = constsCounter;
+  constNameRegistry[name] = constsCounter;
 
   const functions: [string, unknown][] = [];
   const type = resolveZodType(schema);
@@ -249,6 +253,10 @@ export const generateZodValidationSchemaDefinition = (
 
   const multipleOf = schema.multipleOf;
   const matches = schema.pattern ?? undefined;
+  // Enum-based schemas are emitted as `zod.enum(...)` or literal unions, so
+  // chaining scalar constraints onto the parent schema would generate invalid
+  // Zod output. Arrays are handled separately via their item schema.
+  const hasNonArrayEnum = !!schema.enum && type !== 'array';
 
   // Check for allOf/oneOf/anyOf BEFORE processing by type
   // This ensures these constraints work with any base type (string, number, object, etc.)
@@ -272,6 +280,7 @@ export const generateZodValidationSchemaDefinition = (
         isZodV4,
         {
           required: true,
+          constNameRegistry,
         },
       ),
     );
@@ -296,6 +305,7 @@ export const generateZodValidationSchemaDefinition = (
           isZodV4,
           {
             required: true,
+            constNameRegistry,
           },
         );
 
@@ -398,7 +408,10 @@ export const generateZodValidationSchemaDefinition = (
           name,
           strict,
           isZodV4,
-          { required: true },
+          {
+            required: true,
+            constNameRegistry,
+          },
         ),
       ),
     ]);
@@ -453,6 +466,7 @@ export const generateZodValidationSchemaDefinition = (
                   strict,
                   {
                     required: true,
+                    constNameRegistry,
                   },
                 ),
               ),
@@ -473,6 +487,7 @@ export const generateZodValidationSchemaDefinition = (
                   isZodV4,
                   {
                     required: true,
+                    constNameRegistry,
                   },
                 ),
               ]);
@@ -492,6 +507,7 @@ export const generateZodValidationSchemaDefinition = (
             isZodV4,
             {
               required: true,
+              constNameRegistry,
             },
           ),
         ]);
@@ -627,7 +643,10 @@ export const generateZodValidationSchemaDefinition = (
                     camel(`${name}-${key}`),
                     strict,
                     isZodV4,
-                    { required: schema.required?.includes(key) },
+                    {
+                      required: schema.required?.includes(key),
+                      constNameRegistry,
+                    },
                   ),
               }))
               .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
@@ -665,6 +684,7 @@ export const generateZodValidationSchemaDefinition = (
               isZodV4,
               {
                 required: true,
+                constNameRegistry,
               },
             ),
           ]);
@@ -683,7 +703,7 @@ export const generateZodValidationSchemaDefinition = (
     }
   }
 
-  if (isString(type) && minAndMaxTypes.has(type)) {
+  if (!hasNonArrayEnum && isString(type) && minAndMaxTypes.has(type)) {
     // Handle minimum constraints: exclusiveMinimum (>.gt()) takes priority over minimum (.min())
     // Check if exclusive flag was set (boolean format in OpenAPI 3.0) or a different value (OpenAPI 3.1)
     const shouldUseExclusiveMin = exclusiveMinRaw !== undefined;
@@ -733,7 +753,7 @@ export const generateZodValidationSchemaDefinition = (
     }
   }
 
-  if (matches) {
+  if (matches && !hasNonArrayEnum) {
     const isStartWithSlash = matches.startsWith('/');
     const isEndWithSlash = matches.endsWith('/');
 
@@ -1091,10 +1111,8 @@ function tryResolveRefSchema(
   context: ContextSpec,
 ): OpenApiSchemaObject | undefined {
   try {
-    return resolveRef<OpenApiSchemaObject>(
-      { $ref } as OpenApiReferenceObject,
-      context,
-    ).schema;
+    return resolveRef({ $ref } as OpenApiReferenceObject, context)
+      .schema as OpenApiSchemaObject;
   } catch (error) {
     logVerbose(
       `[orval/zod] Failed to resolve $ref "${$ref}":`,
@@ -1279,9 +1297,9 @@ const parseBodyAndResponse = ({
     };
   }
 
-  const resolvedRef = resolveRef<
-    OpenApiResponseObject | OpenApiRequestBodyObject
-  >(data, context).schema;
+  const resolvedRef = resolveRef(data, context).schema as
+    | OpenApiResponseObject
+    | OpenApiRequestBodyObject;
 
   // Only handle JSON and form-data; other content types (e.g., application/octet-stream)
   // are skipped - unclear if this is correct behavior for root-level binary/text bodies
@@ -1419,80 +1437,83 @@ export const parseParameters = ({
     };
   }
 
-  const defintionsByParameters = data.reduce<
-    Record<
-      'headers' | 'queryParams' | 'params',
-      Record<string, { functions: [string, unknown][]; consts: string[] }>
-    >
-  >(
-    (acc, val) => {
-      const { schema: parameter } = resolveRef<OpenApiParameterObject>(
-        val,
-        context,
-      );
+  const initialDefinitionsByParameters: Record<
+    'headers' | 'queryParams' | 'params',
+    Record<string, { functions: [string, unknown][]; consts: string[] }>
+  > = {
+    headers: {},
+    queryParams: {},
+    params: {},
+  };
 
-      if (!parameter.schema) {
-        return acc;
-      }
-      if (!parameter.in || !parameter.name) {
-        return acc;
-      }
+  const defintionsByParameters = data.reduce((acc, val) => {
+    const { schema: parameter }: { schema: OpenApiParameterObject } =
+      resolveRef(val, context);
 
-      const schema = dereference(parameter.schema, context);
-      schema.description = parameter.description;
-
-      const mapStrict = {
-        path: strict.param,
-        query: strict.query,
-        header: strict.header,
-      };
-
-      const mapGenerate = {
-        path: generate.param,
-        query: generate.query,
-        header: generate.header,
-      };
-
-      const definition = generateZodValidationSchemaDefinition(
-        schema,
-        context,
-        camel(`${operationName}-${parameter.in}-${parameter.name}`),
-        getPropertySafe(mapStrict, parameter.in).value ?? false,
-        isZodV4,
-        {
-          required: parameter.required,
-        },
-      );
-
-      if (parameter.in === 'header' && mapGenerate.header) {
-        return {
-          ...acc,
-          headers: { ...acc.headers, [parameter.name]: definition },
-        };
-      }
-
-      if (parameter.in === 'query' && mapGenerate.query) {
-        return {
-          ...acc,
-          queryParams: { ...acc.queryParams, [parameter.name]: definition },
-        };
-      }
-
-      if (parameter.in === 'path' && mapGenerate.path) {
-        return {
-          ...acc,
-          params: { ...acc.params, [parameter.name]: definition },
-        };
-      }
-
+    if (!parameter.schema) {
       return acc;
-    },
-    {
-      headers: {},
-      queryParams: {},
-      params: {},
-    },
-  );
+    }
+    if (!parameter.in || !parameter.name) {
+      return acc;
+    }
+
+    const schema = dereference(parameter.schema, context);
+    schema.description = parameter.description;
+
+    const mapStrict = {
+      path: strict.param,
+      query: strict.query,
+      header: strict.header,
+    };
+
+    const mapGenerate = {
+      path: generate.param,
+      query: generate.query,
+      header: generate.header,
+    };
+
+    if (
+      parameter.in !== 'path' &&
+      parameter.in !== 'query' &&
+      parameter.in !== 'header'
+    ) {
+      return acc;
+    }
+
+    const definition = generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      camel(`${operationName}-${parameter.in}-${parameter.name}`),
+      mapStrict[parameter.in],
+      isZodV4,
+      {
+        required: parameter.required,
+      },
+    );
+
+    if (parameter.in === 'header' && mapGenerate.header) {
+      return {
+        ...acc,
+        headers: { ...acc.headers, [parameter.name]: definition },
+      };
+    }
+
+    if (parameter.in === 'query' && mapGenerate.query) {
+      return {
+        ...acc,
+        queryParams: { ...acc.queryParams, [parameter.name]: definition },
+      };
+    }
+
+    if (parameter.in === 'path' && mapGenerate.path) {
+      return {
+        ...acc,
+        params: { ...acc.params, [parameter.name]: definition },
+      };
+    }
+
+    return acc;
+  }, initialDefinitionsByParameters);
 
   const headers: ZodValidationSchemaDefinition = {
     functions: [],

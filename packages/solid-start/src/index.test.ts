@@ -33,8 +33,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
     httpClient: OutputHttpClient.FETCH,
     clean: false,
     docs: false,
-    prettier: false,
-    biome: false,
+    formatter: undefined,
     headers: false,
     indexFiles: false,
     allParamsOptional: false,
@@ -75,6 +74,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
         useInfiniteQueryParam: '',
         usePrefetch: false,
         useInvalidate: false,
+        useSetQueryData: false,
         shouldExportMutatorHooks: false,
         shouldExportHttpClient: false,
         shouldExportQueryKey: false,
@@ -83,7 +83,11 @@ function makeOutput(useDates = false): ContextSpec['output'] {
         signal: false,
         version: 5,
       },
-      angular: { provideIn: 'root', runtimeValidation: false },
+      angular: {
+        provideIn: 'root',
+        client: 'httpClient',
+        runtimeValidation: false,
+      },
       swr: {},
       zod: {
         strict: {

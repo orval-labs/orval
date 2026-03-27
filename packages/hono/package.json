@@ -1,7 +1,16 @@
 {
   "name": "@orval/hono",
-  "version": "8.5.3",
+  "version": "8.6.2",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/orval-labs/orval.git",
+    "directory": "packages/hono"
+  },
+  "homepage": "https://orval.dev/docs/guides/hono",
+  "bugs": {
+    "url": "https://github.com/orval-labs/orval/issues"
+  },
   "type": "module",
   "types": "./dist/index.d.mts",
   "exports": {

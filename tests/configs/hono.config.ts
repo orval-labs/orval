@@ -9,7 +9,7 @@ export default defineConfig({
       mode: 'split',
       client: 'hono',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   zodSchemaResponse: {
@@ -23,7 +23,7 @@ export default defineConfig({
       mode: 'single',
       client: 'hono',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   petstoreSingle: {
@@ -33,7 +33,7 @@ export default defineConfig({
       mode: 'single',
       client: 'hono',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   petstoreSplit: {
@@ -43,7 +43,7 @@ export default defineConfig({
       mode: 'split',
       client: 'hono',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   petstoreTags: {
@@ -53,7 +53,7 @@ export default defineConfig({
       mode: 'tags',
       client: 'hono',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
   petstoreTagsSplit: {
@@ -63,7 +63,7 @@ export default defineConfig({
       mode: 'tags-split',
       client: 'hono',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
   },
 });

@@ -1,7 +1,11 @@
 import type { OpenApiDocument } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
-import { dereferenceExternalRef, importSpecs } from './import-specs';
+import {
+  dereferenceExternalRef,
+  importSpecs,
+  validateComponentKeys,
+} from './import-specs';
 import { normalizeOptions } from './utils';
 
 const TEST_SPEC: OpenApiDocument = {
@@ -738,5 +742,62 @@ describe('dereferenceExternalRefs', () => {
     const result = dereferenceExternalRef(input);
 
     expect(result).not.toHaveProperty('components');
+  });
+});
+
+describe('validateComponentKeys', () => {
+  it('should pass for valid ASCII component keys', () => {
+    const data = {
+      components: {
+        schemas: {
+          User: { type: 'object' },
+          User_v2: { type: 'object' },
+          'my.org.User': { type: 'object' },
+          'user-name': { type: 'object' },
+        },
+      },
+    };
+    expect(() => {
+      validateComponentKeys(data);
+    }).not.toThrow();
+  });
+
+  it('should report all invalid keys at once', () => {
+    const data = {
+      components: {
+        schemas: {
+          Användare: { type: 'object' },
+          상품: { type: 'object' },
+        },
+      },
+    };
+    expect(() => {
+      validateComponentKeys(data);
+    }).toThrow(/Invalid component keys/);
+  });
+
+  it.each([
+    ['schemas', { Ünvalid: {} }],
+    ['responses', { Réponse: {} }],
+    ['parameters', { パラメータ: {} }],
+    ['examples', { 例子: {} }],
+    ['requestBodies', { тело: {} }],
+    ['headers', { κεφαλίδα: {} }],
+    ['securitySchemes', { sécurité: {} }],
+    ['links', { länk: {} }],
+    ['callbacks', { رد: {} }],
+    ['pathItems', { เส้นทาง: {} }],
+  ])('should reject invalid key in %s', (section, value) => {
+    const data = { components: { [section]: value } };
+    expect(() => {
+      validateComponentKeys(data);
+    }).toThrow(new RegExp(String.raw`components\.${section}\.`));
+  });
+
+  it('should pass when no components exist', () => {
+    const data = { openapi: '3.0.0', paths: {} };
+    expect(() => {
+      validateComponentKeys(data);
+    }).not.toThrow();
   });
 });

@@ -1,10 +1,10 @@
 {
   "name": "mcp-petstore",
-  "version": "8.5.3",
+  "version": "8.6.2",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --noCheck",
     "dev": "ts-node src/server.ts",
     "generate-api": "orval",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",

@@ -14,6 +14,7 @@ import {
   type GetterResponse,
   isObject,
   isSyntheticDefaultImportsAllow,
+  kebab,
   OutputHttpClient,
   pascal,
   toObjectString,
@@ -744,9 +745,13 @@ export const getQueryHeader: ClientHeaderBuilder = (params) => {
   }
 
   if (params.output.httpClient === OutputHttpClient.ANGULAR) {
-    const hasQueryParams = Object.values(params.verbOptions).some(
-      (v) => v.queryParams,
-    );
+    const relevantVerbs = params.tag
+      ? Object.values(params.verbOptions).filter(
+          (verbOption) => kebab(verbOption.tags[0] ?? 'default') === params.tag,
+        )
+      : Object.values(params.verbOptions);
+    const hasQueryParams = relevantVerbs.some((v) => v.queryParams);
+
     return hasQueryParams ? getAngularFilteredParamsHelperBody() : '';
   }
 

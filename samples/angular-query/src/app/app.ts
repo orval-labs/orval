@@ -9,7 +9,6 @@ import {
   injectDeletePet,
   injectUpdatePet,
   injectPatchPet,
-  getUpdatePetMutationOptions,
 } from '../api/endpoints/pets/pets';
 
 // No-transformer endpoint (native Angular HttpClient, no custom mutator)
@@ -168,7 +167,7 @@ import { injectListPets as injectListPetsCustom } from '../api/endpoints-custom-
             <p>Loading (native)...</p>
           }
           @if (petsNative.isError()) {
-            <p class="error">Error: {{ petsNative.error()?.message }}</p>
+            <p class="error">Error: {{ petsNative.error().message }}</p>
           }
           @if (petsNative.data(); as data) {
             <p class="success">
@@ -181,7 +180,7 @@ import { injectListPets as injectListPetsCustom } from '../api/endpoints-custom-
             <p>Searching (native)...</p>
           }
           @if (searchPetsNative.isError()) {
-            <p class="error">Error: {{ searchPetsNative.error()?.message }}</p>
+            <p class="error">Error: {{ searchPetsNative.error().message }}</p>
           }
           @if (searchPetsNative.data(); as data) {
             <p class="success">
@@ -202,7 +201,7 @@ import { injectListPets as injectListPetsCustom } from '../api/endpoints-custom-
             <p>Loading (custom)...</p>
           }
           @if (petsCustom.isError()) {
-            <p class="error">Error: {{ petsCustom.error()?.message }}</p>
+            <p class="error">Error: {{ petsCustom.error().message }}</p>
           }
           @if (petsCustom.data(); as data) {
             <p class="success">

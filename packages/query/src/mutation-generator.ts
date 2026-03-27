@@ -27,10 +27,18 @@ interface NormalizedTarget {
   file?: string;
 }
 
+const normalizeInvalidateMode = (
+  invalidateMode: string | undefined,
+): NormalizedTarget['invalidateMode'] =>
+  invalidateMode === 'reset' ? 'reset' : 'invalidate';
+
 const normalizeTarget = (target: InvalidateTarget): NormalizedTarget =>
   isString(target)
     ? { query: target, invalidateMode: 'invalidate' }
-    : { ...target, invalidateMode: target.invalidateMode ?? 'invalidate' };
+    : {
+        ...target,
+        invalidateMode: normalizeInvalidateMode(target.invalidateMode),
+      };
 
 const serializeTarget = (target: NormalizedTarget): string =>
   JSON.stringify({

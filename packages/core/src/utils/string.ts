@@ -218,6 +218,19 @@ export function escape(str: string | null, char = "'") {
 }
 
 /**
+ * Escapes regular expression metacharacters in a string so it can be safely
+ * embedded inside a RegExp pattern.
+ *
+ * @param value - The raw string value to escape for regex usage.
+ * @returns The escaped string.
+ * @example
+ * escapeRegExp('foo$bar') // returns 'foo\\$bar'
+ */
+export function escapeRegExp(value: string) {
+  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+}
+
+/**
  * Escape all characters not included in SingleStringCharacters and
  * DoubleStringCharacters on
  * http://www.ecma-international.org/ecma-262/5.1/#sec-7.8.4

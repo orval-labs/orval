@@ -10,6 +10,7 @@ import {
   NamingConvention,
 } from '../types';
 import { conventionName, upath } from '../utils';
+import { writeGeneratedFile } from './file';
 
 type CanonicalInfo = Pick<GeneratorImport, 'importPath' | 'name'>;
 
@@ -331,7 +332,7 @@ export async function writeSchema({
   const name = conventionName(schema.name, namingConvention);
 
   try {
-    await fs.outputFile(
+    await writeGeneratedFile(
       getPath(path, name, fileExtension),
       getSchema({
         schema,
@@ -443,7 +444,7 @@ export async function writeSchemas({
 
       const fileContent = `${header}\n${exports}\n`;
 
-      await fs.writeFile(schemaFilePath, fileContent, { encoding: 'utf8' });
+      await writeGeneratedFile(schemaFilePath, fileContent);
     } catch (error) {
       throw new Error(
         `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${String(error)}`,

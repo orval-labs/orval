@@ -115,7 +115,16 @@ export function getScalar({
     }
 
     case 'boolean': {
-      let value = 'boolean' + nullable;
+      let value = 'boolean';
+
+      if (
+        enumItems &&
+        !(enumItems.includes(true) && enumItems.includes(false))
+      ) {
+        value = enumItems.map((enumItem) => `${enumItem}`).join(' | ');
+      }
+
+      value += nullable;
 
       if (schemaConst !== undefined) {
         value = schemaConst;
