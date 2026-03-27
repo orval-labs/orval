@@ -93,6 +93,7 @@ const createOutput = (
           response: false,
         },
         generateEachHttpStatus: false,
+        useBrandedTypes: false,
         dateTimeOptions: {},
         timeOptions: {},
       },
