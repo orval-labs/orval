@@ -1733,21 +1733,33 @@ const generateZodRoute = async (
 
   const pascalOperationName = pascal(operationName);
 
+  const useBrandedTypes = override.zod.useBrandedTypes;
+  const brand = (name: string) =>
+    useBrandedTypes
+      ? isZodV4
+        ? `.brand("${name}")`
+        : `.brand<"${name}">()`
+      : '';
+
   return {
     implementation: [
       ...(inputParams.consts ? [inputParams.consts] : []),
       ...(inputParams.zod
-        ? [`export const ${pascalOperationName}Params = ${inputParams.zod}`]
+        ? [
+            `export const ${pascalOperationName}Params = ${inputParams.zod}${brand(`${pascalOperationName}Params`)}`,
+          ]
         : []),
       ...(inputQueryParams.consts ? [inputQueryParams.consts] : []),
       ...(inputQueryParams.zod
         ? [
-            `export const ${pascalOperationName}QueryParams = ${inputQueryParams.zod}`,
+            `export const ${pascalOperationName}QueryParams = ${inputQueryParams.zod}${brand(`${pascalOperationName}QueryParams`)}`,
           ]
         : []),
       ...(inputHeaders.consts ? [inputHeaders.consts] : []),
       ...(inputHeaders.zod
-        ? [`export const ${pascalOperationName}Header = ${inputHeaders.zod}`]
+        ? [
+            `export const ${pascalOperationName}Header = ${inputHeaders.zod}${brand(`${pascalOperationName}Header`)}`,
+          ]
         : []),
       ...(inputBody.consts ? [inputBody.consts] : []),
       ...(inputBody.zod
@@ -1758,8 +1770,8 @@ export const ${pascalOperationName}Body = zod.array(${pascalOperationName}BodyIt
                   parsedBody.rules?.min ? `.min(${parsedBody.rules.min})` : ''
                 }${
                   parsedBody.rules?.max ? `.max(${parsedBody.rules.max})` : ''
-                }`
-              : `export const ${pascalOperationName}Body = ${inputBody.zod}`,
+                }${brand(`${pascalOperationName}Body`)}`
+              : `export const ${pascalOperationName}Body = ${inputBody.zod}${brand(`${pascalOperationName}Body`)}`,
           ]
         : []),
       ...inputResponses.flatMap((inputResponse, index) => {
@@ -1782,8 +1794,8 @@ export const ${operationResponse} = zod.array(${operationResponse}Item)${
                       parsedResponses[index].rules?.max
                         ? `.max(${parsedResponses[index].rules.max})`
                         : ''
-                    }`
-                  : `export const ${operationResponse} = ${inputResponse.zod}`,
+                    }${brand(operationResponse)}`
+                  : `export const ${operationResponse} = ${inputResponse.zod}${brand(operationResponse)}`,
               ]
             : []),
         ];

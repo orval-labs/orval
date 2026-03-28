@@ -385,6 +385,8 @@ export async function normalizeOptions(
           },
           generateEachHttpStatus:
             outputOptions.override?.zod?.generateEachHttpStatus ?? false,
+          useBrandedTypes:
+            outputOptions.override?.zod?.useBrandedTypes ?? false,
           dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {},
           timeOptions: outputOptions.override?.zod?.timeOptions ?? {},
         },
@@ -706,6 +708,7 @@ function normalizeOperationsAndTags(
                         : {}),
                     },
                     generateEachHttpStatus: zod.generateEachHttpStatus ?? false,
+                    useBrandedTypes: zod.useBrandedTypes ?? false,
                     dateTimeOptions: zod.dateTimeOptions ?? {},
                     timeOptions: zod.timeOptions ?? {},
                   },

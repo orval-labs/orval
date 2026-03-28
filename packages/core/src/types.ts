@@ -606,6 +606,7 @@ export interface ZodOptions {
   dateTimeOptions?: ZodDateTimeOptions;
   timeOptions?: ZodTimeOptions;
   generateEachHttpStatus?: boolean;
+  useBrandedTypes?: boolean;
 }
 
 export type ZodCoerceType = 'string' | 'number' | 'boolean' | 'bigint' | 'date';
@@ -640,6 +641,7 @@ export interface NormalizedZodOptions {
     response?: NormalizedMutator;
   };
   generateEachHttpStatus: boolean;
+  useBrandedTypes: boolean;
   dateTimeOptions: ZodDateTimeOptions;
   timeOptions: ZodTimeOptions;
 }
