@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   dereferenceExternalRef,
   importSpecs,
+  normalizeLeftoverNullable,
   validateComponentKeys,
 } from './import-specs';
 import { normalizeOptions } from './utils';
@@ -742,6 +743,84 @@ describe('dereferenceExternalRefs', () => {
     const result = dereferenceExternalRef(input);
 
     expect(result).not.toHaveProperty('components');
+  });
+});
+
+describe('normalizeLeftoverNullable', () => {
+  it('should convert { nullable: true } (no type) to anyOf with null', () => {
+    const schema: Record<string, unknown> = { nullable: true };
+    normalizeLeftoverNullable(schema);
+    expect(schema).toEqual({ anyOf: [{}, { type: 'null' }] });
+  });
+
+  it('should convert { nullable: true, description: "x" } preserving other props', () => {
+    const schema: Record<string, unknown> = {
+      nullable: true,
+      description: 'test',
+    };
+    normalizeLeftoverNullable(schema);
+    expect(schema).toEqual({
+      anyOf: [{ description: 'test' }, { type: 'null' }],
+    });
+  });
+
+  it('should NOT touch schemas with both nullable and type (already handled by upgrader)', () => {
+    const schema: Record<string, unknown> = {
+      type: 'string',
+      nullable: true,
+    };
+    normalizeLeftoverNullable(schema);
+    // Has type → upgrader already converted; normalization leaves it alone
+    expect(schema).toEqual({ type: 'string', nullable: true });
+  });
+
+  it('should convert nullable schemas with combiners (allOf + nullable)', () => {
+    const schema: Record<string, unknown> = {
+      allOf: [{ type: 'object' }],
+      nullable: true,
+    };
+    normalizeLeftoverNullable(schema);
+    expect(schema).toEqual({
+      anyOf: [{ allOf: [{ type: 'object' }] }, { type: 'null' }],
+    });
+  });
+
+  it('should recurse into nested schemas', () => {
+    const spec = {
+      components: {
+        schemas: {
+          Foo: { nullable: true },
+          Bar: { type: 'string' },
+        },
+      },
+    };
+    normalizeLeftoverNullable(spec);
+    expect(spec.components.schemas.Foo).toEqual({
+      anyOf: [{}, { type: 'null' }],
+    });
+    expect(spec.components.schemas.Bar).toEqual({ type: 'string' });
+  });
+
+  it('should handle arrays', () => {
+    const spec = {
+      oneOf: [{ nullable: true }, { type: 'number' }],
+    };
+    normalizeLeftoverNullable(spec);
+    expect(spec.oneOf[0]).toEqual({ anyOf: [{}, { type: 'null' }] });
+    expect(spec.oneOf[1]).toEqual({ type: 'number' });
+  });
+
+  it('should not touch empty schemas', () => {
+    const schema: Record<string, unknown> = {};
+    normalizeLeftoverNullable(schema);
+    expect(schema).toEqual({});
+  });
+
+  it('should handle null and primitive values gracefully', () => {
+    expect(() => normalizeLeftoverNullable(null)).not.toThrow();
+    expect(() => normalizeLeftoverNullable(undefined)).not.toThrow();
+    expect(() => normalizeLeftoverNullable('string')).not.toThrow();
+    expect(() => normalizeLeftoverNullable(42)).not.toThrow();
   });
 });
 

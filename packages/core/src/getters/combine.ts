@@ -449,6 +449,10 @@ export function combineSchemas({
     parentSchema: normalizedSchema,
   });
 
+  // Union types (oneOf/anyOf) cannot be expressed as TypeScript interfaces
+  const isUnionResult =
+    separator !== 'allOf' && resolvedData.values.length > 1;
+
   return {
     value: dedupeUnionType(value + nullable),
     imports: resolvedValue
@@ -466,6 +470,7 @@ export function combineSchemas({
     hasReadonlyProps:
       resolvedData.hasReadonlyProps ||
       (resolvedValue?.hasReadonlyProps ?? false),
+    ...(isUnionResult && { useTypeAlias: true }),
     example: schema.example as unknown,
     examples: resolveExampleRefs(
       schema.examples as

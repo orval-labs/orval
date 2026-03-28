@@ -50,7 +50,51 @@ async function resolveSpec(
 
   const { specification } = upgrade(dereferencedData);
 
+  normalizeLeftoverNullable(specification);
+
   return specification;
+}
+
+/**
+ * The @scalar/openapi-upgrader only converts `nullable: true` when `type` is
+ * present.  Schemas like `{ nullable: true }` (no `type`) survive the upgrade
+ * unchanged.  This pass walks the entire spec and rewrites every remaining
+ * `{ nullable: true, ...rest }` → `{ anyOf: [{ ...rest }, { type: 'null' }] }`,
+ * which is the correct OAS 3.1 representation.
+ *
+ * The function mutates the spec in-place for performance.
+ */
+export function normalizeLeftoverNullable(obj: unknown): void {
+  if (obj === null || obj === undefined || typeof obj !== 'object') return;
+
+  if (Array.isArray(obj)) {
+    for (const element of obj) {
+      normalizeLeftoverNullable(element);
+    }
+    return;
+  }
+
+  const record = obj as Record<string, unknown>;
+
+  if (record.nullable === true && !('type' in record)) {
+    // Build the rest-schema (everything except `nullable`)
+    const rest: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(record)) {
+      if (k !== 'nullable') rest[k] = v;
+    }
+
+    // Clear the original object and replace with anyOf wrapper
+    for (const key of Object.keys(record)) delete record[key];
+    record.anyOf = [
+      Object.keys(rest).length > 0 ? rest : {},
+      { type: 'null' },
+    ];
+  }
+
+  // Recurse into all values (including the newly created anyOf array)
+  for (const value of Object.values(record)) {
+    normalizeLeftoverNullable(value);
+  }
 }
 
 export async function importSpecs(

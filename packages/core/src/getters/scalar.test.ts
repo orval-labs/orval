@@ -62,10 +62,12 @@ describe('getScalar (contentMediaType: application/octet-stream)', () => {
 });
 
 describe('getScalar (nullable-only schema without type — GH-3149)', () => {
-  it('nullable: true without type → "unknown | null" with useTypeAlias', () => {
+  it('anyOf with empty schema + null type → "unknown | null" with useTypeAlias', () => {
+    // After OAS 3.0→3.1 upgrade + normalizeLeftoverNullable, a schema that
+    // was `{ nullable: true }` becomes `{ anyOf: [{}, { type: "null" }] }`.
     const schema: OpenApiSchemaObject = {
-      nullable: true,
-    };
+      anyOf: [{}, { type: 'null' }],
+    } as OpenApiSchemaObject;
 
     const result = getScalar({ item: schema, name: 'NullableOnly', context });
 
