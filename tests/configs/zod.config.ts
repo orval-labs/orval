@@ -302,6 +302,22 @@ export default defineConfig({
     },
     input: '../specifications/zod-required-default-values.yaml',
   },
+  brandedTypes: {
+    output: {
+      target: '../generated/zod/branded-types/branded-types.ts',
+      client: 'zod',
+      override: {
+        zod: {
+          useBrandedTypes: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   'issue-3027-suffix': {
     output: {
       target: '../generated/zod/issue-3027-suffix/issue-3027.ts',

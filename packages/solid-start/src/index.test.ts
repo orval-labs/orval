@@ -112,6 +112,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
           response: false,
         },
         generateEachHttpStatus: false,
+        useBrandedTypes: false,
         dateTimeOptions: {},
         timeOptions: { precision: 3 },
       },
