@@ -85,10 +85,7 @@ export function normalizeLeftoverNullable(obj: unknown): void {
 
     // Clear the original object and replace with anyOf wrapper
     for (const key of Object.keys(record)) delete record[key];
-    record.anyOf = [
-      Object.keys(rest).length > 0 ? rest : {},
-      { type: 'null' },
-    ];
+    record.anyOf = [Object.keys(rest).length > 0 ? rest : {}, { type: 'null' }];
   }
 
   // Recurse into all values (including the newly created anyOf array)

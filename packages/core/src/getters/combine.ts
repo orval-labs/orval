@@ -450,8 +450,7 @@ export function combineSchemas({
   });
 
   // Union types (oneOf/anyOf) cannot be expressed as TypeScript interfaces
-  const isUnionResult =
-    separator !== 'allOf' && resolvedData.values.length > 1;
+  const isUnionResult = separator !== 'allOf' && resolvedData.values.length > 1;
 
   return {
     value: dedupeUnionType(value + nullable),
