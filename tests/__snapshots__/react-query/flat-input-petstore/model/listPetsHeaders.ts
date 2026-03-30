@@ -7,8 +7,8 @@
 import type { ListPetsXExample } from './listPetsXExample';
 
 export type ListPetsHeaders = {
-/**
- * Header parameters
- */
-'X-EXAMPLE': ListPetsXExample;
+  /**
+   * Header parameters
+   */
+  'X-EXAMPLE': ListPetsXExample;
 };

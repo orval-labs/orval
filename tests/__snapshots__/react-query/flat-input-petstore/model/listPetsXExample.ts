@@ -5,8 +5,8 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type ListPetsXExample = typeof ListPetsXExample[keyof typeof ListPetsXExample];
-
+export type ListPetsXExample =
+  (typeof ListPetsXExample)[keyof typeof ListPetsXExample];
 
 export const ListPetsXExample = {
   ONE: 'ONE',

@@ -4,10 +4,7 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import {
-  useMutation,
-  useQuery
-} from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
@@ -20,7 +17,7 @@ import type {
   UseMutationOptions,
   UseMutationResult,
   UseQueryOptions,
-  UseQueryResult
+  UseQueryResult,
 } from '@tanstack/react-query';
 
 import type {
@@ -32,721 +29,1018 @@ import type {
   ListPetsParams,
   Pet,
   PetWithTag,
-  Pets
+  Pets,
 } from './model';
 
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;
 export type HTTPStatusCode3xx = 300 | 301 | 302 | 303 | 304 | 305 | 307 | 308;
-export type HTTPStatusCode4xx = 400 | 401 | 402 | 403 | 404 | 405 | 406 | 407 | 408 | 409 | 410 | 411 | 412 | 413 | 414 | 415 | 416 | 417 | 418 | 419 | 420 | 421 | 422 | 423 | 424 | 426 | 428 | 429 | 431 | 451;
+export type HTTPStatusCode4xx =
+  | 400
+  | 401
+  | 402
+  | 403
+  | 404
+  | 405
+  | 406
+  | 407
+  | 408
+  | 409
+  | 410
+  | 411
+  | 412
+  | 413
+  | 414
+  | 415
+  | 416
+  | 417
+  | 418
+  | 419
+  | 420
+  | 421
+  | 422
+  | 423
+  | 424
+  | 426
+  | 428
+  | 429
+  | 431
+  | 451;
 export type HTTPStatusCode5xx = 500 | 501 | 502 | 503 | 504 | 505 | 507 | 511;
-export type HTTPStatusCodes = HTTPStatusCode1xx | HTTPStatusCode2xx | HTTPStatusCode3xx | HTTPStatusCode4xx | HTTPStatusCode5xx;
-
+export type HTTPStatusCodes =
+  | HTTPStatusCode1xx
+  | HTTPStatusCode2xx
+  | HTTPStatusCode3xx
+  | HTTPStatusCode4xx
+  | HTTPStatusCode5xx;
 
 /**
  * @summary List all pets
  */
 export type listPetsResponse200 = {
-  data: Pets
-  status: 200
-}
+  data: Pets;
+  status: 200;
+};
 
 export type listPetsResponseDefault = {
-  data: Error
-  status: Exclude<HTTPStatusCodes, 200>
-}
-
-export type listPetsResponseSuccess = (listPetsResponse200) & {
-  headers: Headers;
-};
-export type listPetsResponseError = (listPetsResponseDefault) & {
-  headers: Headers;
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
 };
 
-export type listPetsResponse = (listPetsResponseSuccess | listPetsResponseError)
+export type listPetsResponseSuccess = listPetsResponse200 & {
+  headers: Headers;
+};
+export type listPetsResponseError = listPetsResponseDefault & {
+  headers: Headers;
+};
 
-export const getListPetsUrl = (params: ListPetsParams,) => {
+export type listPetsResponse = listPetsResponseSuccess | listPetsResponseError;
+
+export const getListPetsUrl = (params: ListPetsParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
+      normalizedParams.append(key, value === null ? 'null' : value.toString());
     }
   });
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/pets?${stringifiedParams}` : `/pets`
-}
+  return stringifiedParams.length > 0 ? `/pets?${stringifiedParams}` : `/pets`;
+};
 
-export const listPets = async (params: ListPetsParams,
-    headers: ListPetsHeaders, options?: RequestInit): Promise<listPetsResponse> => {
-
-  const res = await fetch(getListPetsUrl(params),
-  {
+export const listPets = async (
+  params: ListPetsParams,
+  headers: ListPetsHeaders,
+  options?: RequestInit,
+): Promise<listPetsResponse> => {
+  const res = await fetch(getListPetsUrl(params), {
     ...options,
     method: 'GET',
-    headers: { ...headers, ...options?.headers }
-
-  }
-)
+    headers: { ...headers, ...options?.headers },
+  });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listPetsResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as listPetsResponse
-}
+  const data: listPetsResponse['data'] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as listPetsResponse;
+};
 
+export const getListPetsQueryKey = (params?: ListPetsParams) => {
+  return [`/pets`, ...(params ? [params] : [])] as const;
+};
 
-
-
-
-export const getListPetsQueryKey = (params?: ListPetsParams,) => {
-    return [
-    `/pets`, ...(params ? [params] : [])
-    ] as const;
-    }
-
-
-export const getListPetsQueryOptions = <TData = Awaited<ReturnType<typeof listPets>>, TError = Error>(params: ListPetsParams,
-    headers: ListPetsHeaders, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>>, fetch?: RequestInit}
+export const getListPetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = Error,
+>(
+  params: ListPetsParams,
+  headers: ListPetsHeaders,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+    >;
+    fetch?: RequestInit;
+  },
 ) => {
+  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getListPetsQueryKey(params);
 
-  const queryKey =  queryOptions?.queryKey ?? getListPetsQueryKey(params);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
+    signal,
+  }) => listPets(params, headers, { signal, ...fetchOptions });
 
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listPets>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
 
+export type ListPetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPets>>
+>;
+export type ListPetsQueryError = Error;
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({ signal }) => listPets(params,headers, { signal, ...fetchOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type ListPetsQueryResult = NonNullable<Awaited<ReturnType<typeof listPets>>>
-export type ListPetsQueryError = Error
-
-
-export function useListPets<TData = Awaited<ReturnType<typeof listPets>>, TError = Error>(
- params: ListPetsParams,
-    headers: ListPetsHeaders, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>> & Pick<
+export function useListPets<
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = Error,
+>(
+  params: ListPetsParams,
+  headers: ListPetsHeaders,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+    > &
+      Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listPets>>,
           TError,
           Awaited<ReturnType<typeof listPets>>
-        > , 'initialData'
-      >, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListPets<TData = Awaited<ReturnType<typeof listPets>>, TError = Error>(
- params: ListPetsParams,
-    headers: ListPetsHeaders, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>> & Pick<
+        >,
+        'initialData'
+      >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useListPets<
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = Error,
+>(
+  params: ListPetsParams,
+  headers: ListPetsHeaders,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+    > &
+      Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listPets>>,
           TError,
           Awaited<ReturnType<typeof listPets>>
-        > , 'initialData'
-      >, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListPets<TData = Awaited<ReturnType<typeof listPets>>, TError = Error>(
- params: ListPetsParams,
-    headers: ListPetsHeaders, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>>, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+        >,
+        'initialData'
+      >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useListPets<
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = Error,
+>(
+  params: ListPetsParams,
+  headers: ListPetsHeaders,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
 /**
  * @summary List all pets
  */
 
-export function useListPets<TData = Awaited<ReturnType<typeof listPets>>, TError = Error>(
- params: ListPetsParams,
-    headers: ListPetsHeaders, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>>, fetch?: RequestInit}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+export function useListPets<
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = Error,
+>(
+  params: ListPetsParams,
+  headers: ListPetsHeaders,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getListPetsQueryOptions(params, headers, options);
 
-  const queryOptions = getListPetsQueryOptions(params,headers,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
 
 /**
  * @summary Create a pet
  */
 export type createPetsResponse200 = {
-  data: Pet
-  status: 200
-}
+  data: Pet;
+  status: 200;
+};
 
 export type createPetsResponseDefault = {
-  data: Error
-  status: Exclude<HTTPStatusCodes, 200>
-}
-
-export type createPetsResponseSuccess = (createPetsResponse200) & {
-  headers: Headers;
-};
-export type createPetsResponseError = (createPetsResponseDefault) & {
-  headers: Headers;
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
 };
 
-export type createPetsResponse = (createPetsResponseSuccess | createPetsResponseError)
+export type createPetsResponseSuccess = createPetsResponse200 & {
+  headers: Headers;
+};
+export type createPetsResponseError = createPetsResponseDefault & {
+  headers: Headers;
+};
 
-export const getCreatePetsUrl = (params: CreatePetsParams,) => {
+export type createPetsResponse =
+  | createPetsResponseSuccess
+  | createPetsResponseError;
+
+export const getCreatePetsUrl = (params: CreatePetsParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
+      normalizedParams.append(key, value === null ? 'null' : value.toString());
     }
   });
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/pets?${stringifiedParams}` : `/pets`
-}
+  return stringifiedParams.length > 0 ? `/pets?${stringifiedParams}` : `/pets`;
+};
 
-export const createPets = async (createPetsBody: CreatePetsBody,
-    params: CreatePetsParams,
-    headers: CreatePetsHeaders, options?: RequestInit): Promise<createPetsResponse> => {
-
-  const res = await fetch(getCreatePetsUrl(params),
-  {
+export const createPets = async (
+  createPetsBody: CreatePetsBody,
+  params: CreatePetsParams,
+  headers: CreatePetsHeaders,
+  options?: RequestInit,
+): Promise<createPetsResponse> => {
+  const res = await fetch(getCreatePetsUrl(params), {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json',...headers, ...options?.headers },
-    body: JSON.stringify(
-      createPetsBody,)
-  }
-)
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
+      ...options?.headers,
+    },
+    body: JSON.stringify(createPetsBody),
+  });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: createPetsResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as createPetsResponse
-}
+  const data: createPetsResponse['data'] = body ? JSON.parse(body) : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as createPetsResponse;
+};
 
+export const getCreatePetsMutationOptions = <
+  TError = Error,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPets>>,
+    TError,
+    CreatePetsParams & CreatePetsBody,
+    TContext
+  >;
+  fetch?: RequestInit;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createPets>>,
+  TError,
+  CreatePetsParams & CreatePetsBody,
+  TContext
+> => {
+  const mutationKey = ['createPets'];
+  const { mutation: mutationOptions, fetch: fetchOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, fetch: undefined };
 
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createPets>>,
+    CreatePetsParams & CreatePetsBody
+  > = (props) => {
+    const { limit, sort, ...data } = props ?? {};
 
+    return createPets({ limit, sort }, data, fetchOptions);
+  };
 
-export const getCreatePetsMutationOptions = <TError = Error,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPets>>, TError,CreatePetsParams & CreatePetsBody, TContext>, fetch?: RequestInit}
-): UseMutationOptions<Awaited<ReturnType<typeof createPets>>, TError,CreatePetsParams & CreatePetsBody, TContext> => {
+  return { mutationFn, ...mutationOptions };
+};
 
-const mutationKey = ['createPets'];
-const {mutation: mutationOptions, fetch: fetchOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, fetch: undefined};
+export type CreatePetsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createPets>>
+>;
+export type CreatePetsMutationBody = CreatePetsBody;
+export type CreatePetsMutationError = Error;
 
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPets>>, CreatePetsParams & CreatePetsBody> = (props) => {
-          const {limit, sort, ...data} = props ?? {};
-
-          return  createPets({ limit, sort }, data,fetchOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CreatePetsMutationResult = NonNullable<Awaited<ReturnType<typeof createPets>>>
-    export type CreatePetsMutationBody = CreatePetsBody
-    export type CreatePetsMutationError = Error
-
-    /**
+/**
  * @summary Create a pet
  */
-export const useCreatePets = <TError = Error,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPets>>, TError,CreatePetsParams & CreatePetsBody, TContext>, fetch?: RequestInit}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        CreatePetsParams & CreatePetsBody,
-        TContext
-      > => {
-      return useMutation(getCreatePetsMutationOptions(options), queryClient);
-    }
+export const useCreatePets = <TError = Error, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createPets>>,
+      TError,
+      CreatePetsParams & CreatePetsBody,
+      TContext
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof createPets>>,
+  TError,
+  CreatePetsParams & CreatePetsBody,
+  TContext
+> => {
+  return useMutation(getCreatePetsMutationOptions(options), queryClient);
+};
 
 /**
  * @summary Info for a specific pet
  */
 export type showPetByIdResponse200 = {
-  data: Pet
-  status: 200
-}
+  data: Pet;
+  status: 200;
+};
 
 export type showPetByIdResponseDefault = {
-  data: Error
-  status: Exclude<HTTPStatusCodes, 200>
-}
-
-export type showPetByIdResponseSuccess = (showPetByIdResponse200) & {
-  headers: Headers;
-};
-export type showPetByIdResponseError = (showPetByIdResponseDefault) & {
-  headers: Headers;
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
 };
 
-export type showPetByIdResponse = (showPetByIdResponseSuccess | showPetByIdResponseError)
+export type showPetByIdResponseSuccess = showPetByIdResponse200 & {
+  headers: Headers;
+};
+export type showPetByIdResponseError = showPetByIdResponseDefault & {
+  headers: Headers;
+};
 
-export const getShowPetByIdUrl = (petId: string,) => {
+export type showPetByIdResponse =
+  | showPetByIdResponseSuccess
+  | showPetByIdResponseError;
 
+export const getShowPetByIdUrl = (petId: string) => {
+  return `/pets/${petId}`;
+};
 
-
-
-  return `/pets/${petId}`
-}
-
-export const showPetById = async (petId: string, options?: RequestInit): Promise<showPetByIdResponse> => {
-
-  const res = await fetch(getShowPetByIdUrl(petId),
-  {
+export const showPetById = async (
+  petId: string,
+  options?: RequestInit,
+): Promise<showPetByIdResponse> => {
+  const res = await fetch(getShowPetByIdUrl(petId), {
     ...options,
-    method: 'GET'
-
-
-  }
-)
+    method: 'GET',
+  });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: showPetByIdResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as showPetByIdResponse
-}
+  const data: showPetByIdResponse['data'] = body ? JSON.parse(body) : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as showPetByIdResponse;
+};
 
+export const getShowPetByIdQueryKey = (petId: string) => {
+  return [`/pets/${petId}`] as const;
+};
 
-
-
-
-export const getShowPetByIdQueryKey = (petId: string,) => {
-    return [
-    `/pets/${petId}`
-    ] as const;
-    }
-
-
-export const getShowPetByIdQueryOptions = <TData = Awaited<ReturnType<typeof showPetById>>, TError = Error>(petId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>>, fetch?: RequestInit}
+export const getShowPetByIdQueryOptions = <
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
+    >;
+    fetch?: RequestInit;
+  },
 ) => {
+  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
 
-  const queryKey =  queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({
+    signal,
+  }) => showPetById(petId, { signal, ...fetchOptions });
 
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!petId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof showPetById>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
 
+export type ShowPetByIdQueryResult = NonNullable<
+  Awaited<ReturnType<typeof showPetById>>
+>;
+export type ShowPetByIdQueryError = Error;
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({ signal }) => showPetById(petId, { signal, ...fetchOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: !!(petId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type ShowPetByIdQueryResult = NonNullable<Awaited<ReturnType<typeof showPetById>>>
-export type ShowPetByIdQueryError = Error
-
-
-export function useShowPetById<TData = Awaited<ReturnType<typeof showPetById>>, TError = Error>(
- petId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>> & Pick<
+export function useShowPetById<
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = Error,
+>(
+  petId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
+    > &
+      Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof showPetById>>,
           TError,
           Awaited<ReturnType<typeof showPetById>>
-        > , 'initialData'
-      >, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useShowPetById<TData = Awaited<ReturnType<typeof showPetById>>, TError = Error>(
- petId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>> & Pick<
+        >,
+        'initialData'
+      >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useShowPetById<
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
+    > &
+      Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof showPetById>>,
           TError,
           Awaited<ReturnType<typeof showPetById>>
-        > , 'initialData'
-      >, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useShowPetById<TData = Awaited<ReturnType<typeof showPetById>>, TError = Error>(
- petId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>>, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+        >,
+        'initialData'
+      >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useShowPetById<
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
 /**
  * @summary Info for a specific pet
  */
 
-export function useShowPetById<TData = Awaited<ReturnType<typeof showPetById>>, TError = Error>(
- petId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>>, fetch?: RequestInit}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+export function useShowPetById<
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getShowPetByIdQueryOptions(petId, options);
 
-  const queryOptions = getShowPetByIdQueryOptions(petId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
 
 /**
  * @summary Deletes a specific pet
  */
 export type deletePetByIdResponse204 = {
-  data: void
-  status: 204
-}
+  data: void;
+  status: 204;
+};
 
 export type deletePetByIdResponseDefault = {
-  data: Error
-  status: Exclude<HTTPStatusCodes, 204>
-}
-
-export type deletePetByIdResponseSuccess = (deletePetByIdResponse204) & {
-  headers: Headers;
-};
-export type deletePetByIdResponseError = (deletePetByIdResponseDefault) & {
-  headers: Headers;
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 204>;
 };
 
-export type deletePetByIdResponse = (deletePetByIdResponseSuccess | deletePetByIdResponseError)
+export type deletePetByIdResponseSuccess = deletePetByIdResponse204 & {
+  headers: Headers;
+};
+export type deletePetByIdResponseError = deletePetByIdResponseDefault & {
+  headers: Headers;
+};
 
-export const getDeletePetByIdUrl = (petId: string,) => {
+export type deletePetByIdResponse =
+  | deletePetByIdResponseSuccess
+  | deletePetByIdResponseError;
 
+export const getDeletePetByIdUrl = (petId: string) => {
+  return `/pets/${petId}`;
+};
 
-
-
-  return `/pets/${petId}`
-}
-
-export const deletePetById = async (petId: string, options?: RequestInit): Promise<deletePetByIdResponse> => {
-
-  const res = await fetch(getDeletePetByIdUrl(petId),
-  {
+export const deletePetById = async (
+  petId: string,
+  options?: RequestInit,
+): Promise<deletePetByIdResponse> => {
+  const res = await fetch(getDeletePetByIdUrl(petId), {
     ...options,
-    method: 'DELETE'
-
-
-  }
-)
+    method: 'DELETE',
+  });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: deletePetByIdResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as deletePetByIdResponse
-}
+  const data: deletePetByIdResponse['data'] = body ? JSON.parse(body) : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as deletePetByIdResponse;
+};
 
+export const getDeletePetByIdMutationOptions = <
+  TError = Error,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePetById>>,
+    TError,
+    { petId: string },
+    TContext
+  >;
+  fetch?: RequestInit;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deletePetById>>,
+  TError,
+  { petId: string },
+  TContext
+> => {
+  const mutationKey = ['deletePetById'];
+  const { mutation: mutationOptions, fetch: fetchOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, fetch: undefined };
 
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deletePetById>>,
+    { petId: string }
+  > = (props) => {
+    const { petId } = props ?? {};
 
+    return deletePetById(petId, fetchOptions);
+  };
 
-export const getDeletePetByIdMutationOptions = <TError = Error,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePetById>>, TError,{petId: string}, TContext>, fetch?: RequestInit}
-): UseMutationOptions<Awaited<ReturnType<typeof deletePetById>>, TError,{petId: string}, TContext> => {
+  return { mutationFn, ...mutationOptions };
+};
 
-const mutationKey = ['deletePetById'];
-const {mutation: mutationOptions, fetch: fetchOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, fetch: undefined};
+export type DeletePetByIdMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deletePetById>>
+>;
 
+export type DeletePetByIdMutationError = Error;
 
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deletePetById>>, {petId: string}> = (props) => {
-          const {petId} = props ?? {};
-
-          return  deletePetById(petId,fetchOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type DeletePetByIdMutationResult = NonNullable<Awaited<ReturnType<typeof deletePetById>>>
-
-    export type DeletePetByIdMutationError = Error
-
-    /**
+/**
  * @summary Deletes a specific pet
  */
-export const useDeletePetById = <TError = Error,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePetById>>, TError,{petId: string}, TContext>, fetch?: RequestInit}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        {petId: string},
-        TContext
-      > => {
-      return useMutation(getDeletePetByIdMutationOptions(options), queryClient);
-    }
+export const useDeletePetById = <TError = Error, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deletePetById>>,
+      TError,
+      { petId: string },
+      TContext
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof deletePetById>>,
+  TError,
+  { petId: string },
+  TContext
+> => {
+  return useMutation(getDeletePetByIdMutationOptions(options), queryClient);
+};
 
 /**
  * @summary health check
  */
 export type healthCheckResponse200 = {
-  data: string
-  status: 200
-}
+  data: string;
+  status: 200;
+};
 
 export type healthCheckResponseDefault = {
-  data: Error
-  status: Exclude<HTTPStatusCodes, 200>
-}
-
-export type healthCheckResponseSuccess = (healthCheckResponse200) & {
-  headers: Headers;
-};
-export type healthCheckResponseError = (healthCheckResponseDefault) & {
-  headers: Headers;
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
 };
 
-export type healthCheckResponse = (healthCheckResponseSuccess | healthCheckResponseError)
+export type healthCheckResponseSuccess = healthCheckResponse200 & {
+  headers: Headers;
+};
+export type healthCheckResponseError = healthCheckResponseDefault & {
+  headers: Headers;
+};
+
+export type healthCheckResponse =
+  | healthCheckResponseSuccess
+  | healthCheckResponseError;
 
 export const getHealthCheckUrl = () => {
+  return `/health`;
+};
 
-
-
-
-  return `/health`
-}
-
-export const healthCheck = async ( options?: RequestInit): Promise<healthCheckResponse> => {
-
-  const res = await fetch(getHealthCheckUrl(),
-  {
+export const healthCheck = async (
+  options?: RequestInit,
+): Promise<healthCheckResponse> => {
+  const res = await fetch(getHealthCheckUrl(), {
     ...options,
-    method: 'GET'
-
-
-  }
-)
+    method: 'GET',
+  });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: healthCheckResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as healthCheckResponse
-}
-
-
-
-
+  const data: healthCheckResponse['data'] = body ? JSON.parse(body) : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as healthCheckResponse;
+};
 
 export const getHealthCheckQueryKey = () => {
-    return [
-    `/health`
-    ] as const;
-    }
+  return [`/health`] as const;
+};
 
+export const getHealthCheckQueryOptions = <
+  TData = Awaited<ReturnType<typeof healthCheck>>,
+  TError = Error,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
+  >;
+  fetch?: RequestInit;
+}) => {
+  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
 
-export const getHealthCheckQueryOptions = <TData = Awaited<ReturnType<typeof healthCheck>>, TError = Error>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>>, fetch?: RequestInit}
-) => {
+  const queryKey = queryOptions?.queryKey ?? getHealthCheckQueryKey();
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = ({
+    signal,
+  }) => healthCheck({ signal, ...fetchOptions });
 
-  const queryKey =  queryOptions?.queryKey ?? getHealthCheckQueryKey();
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof healthCheck>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
 
+export type HealthCheckQueryResult = NonNullable<
+  Awaited<ReturnType<typeof healthCheck>>
+>;
+export type HealthCheckQueryError = Error;
 
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = ({ signal }) => healthCheck({ signal, ...fetchOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type HealthCheckQueryResult = NonNullable<Awaited<ReturnType<typeof healthCheck>>>
-export type HealthCheckQueryError = Error
-
-
-export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, TError = Error>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>> & Pick<
+export function useHealthCheck<
+  TData = Awaited<ReturnType<typeof healthCheck>>,
+  TError = Error,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
+    > &
+      Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof healthCheck>>,
           TError,
           Awaited<ReturnType<typeof healthCheck>>
-        > , 'initialData'
-      >, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, TError = Error>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>> & Pick<
+        >,
+        'initialData'
+      >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useHealthCheck<
+  TData = Awaited<ReturnType<typeof healthCheck>>,
+  TError = Error,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
+    > &
+      Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof healthCheck>>,
           TError,
           Awaited<ReturnType<typeof healthCheck>>
-        > , 'initialData'
-      >, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, TError = Error>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>>, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+        >,
+        'initialData'
+      >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useHealthCheck<
+  TData = Awaited<ReturnType<typeof healthCheck>>,
+  TError = Error,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
 /**
  * @summary health check
  */
 
-export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, TError = Error>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>>, fetch?: RequestInit}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+export function useHealthCheck<
+  TData = Awaited<ReturnType<typeof healthCheck>>,
+  TError = Error,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getHealthCheckQueryOptions(options);
 
-  const queryOptions = getHealthCheckQueryOptions(options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
 
 /**
  * @summary combinate nullable and $ref
  */
 export type showPetWithOwnerResponse200 = {
-  data: PetWithTag
-  status: 200
-}
+  data: PetWithTag;
+  status: 200;
+};
 
 export type showPetWithOwnerResponseDefault = {
-  data: Error
-  status: Exclude<HTTPStatusCodes, 200>
-}
-
-export type showPetWithOwnerResponseSuccess = (showPetWithOwnerResponse200) & {
-  headers: Headers;
-};
-export type showPetWithOwnerResponseError = (showPetWithOwnerResponseDefault) & {
-  headers: Headers;
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
 };
 
-export type showPetWithOwnerResponse = (showPetWithOwnerResponseSuccess | showPetWithOwnerResponseError)
+export type showPetWithOwnerResponseSuccess = showPetWithOwnerResponse200 & {
+  headers: Headers;
+};
+export type showPetWithOwnerResponseError = showPetWithOwnerResponseDefault & {
+  headers: Headers;
+};
 
-export const getShowPetWithOwnerUrl = (petId: string,) => {
+export type showPetWithOwnerResponse =
+  | showPetWithOwnerResponseSuccess
+  | showPetWithOwnerResponseError;
 
+export const getShowPetWithOwnerUrl = (petId: string) => {
+  return `/pets/${petId}/owner`;
+};
 
-
-
-  return `/pets/${petId}/owner`
-}
-
-export const showPetWithOwner = async (petId: string, options?: RequestInit): Promise<showPetWithOwnerResponse> => {
-
-  const res = await fetch(getShowPetWithOwnerUrl(petId),
-  {
+export const showPetWithOwner = async (
+  petId: string,
+  options?: RequestInit,
+): Promise<showPetWithOwnerResponse> => {
+  const res = await fetch(getShowPetWithOwnerUrl(petId), {
     ...options,
-    method: 'GET'
-
-
-  }
-)
+    method: 'GET',
+  });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: showPetWithOwnerResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as showPetWithOwnerResponse
-}
+  const data: showPetWithOwnerResponse['data'] = body ? JSON.parse(body) : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as showPetWithOwnerResponse;
+};
 
+export const getShowPetWithOwnerQueryKey = (petId: string) => {
+  return [`/pets/${petId}/owner`] as const;
+};
 
-
-
-
-export const getShowPetWithOwnerQueryKey = (petId: string,) => {
-    return [
-    `/pets/${petId}/owner`
-    ] as const;
-    }
-
-
-export const getShowPetWithOwnerQueryOptions = <TData = Awaited<ReturnType<typeof showPetWithOwner>>, TError = Error>(petId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof showPetWithOwner>>, TError, TData>>, fetch?: RequestInit}
+export const getShowPetWithOwnerQueryOptions = <
+  TData = Awaited<ReturnType<typeof showPetWithOwner>>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof showPetWithOwner>>,
+        TError,
+        TData
+      >
+    >;
+    fetch?: RequestInit;
+  },
 ) => {
+  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getShowPetWithOwnerQueryKey(petId);
 
-  const queryKey =  queryOptions?.queryKey ?? getShowPetWithOwnerQueryKey(petId);
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof showPetWithOwner>>
+  > = ({ signal }) => showPetWithOwner(petId, { signal, ...fetchOptions });
 
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!petId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof showPetWithOwner>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
 
+export type ShowPetWithOwnerQueryResult = NonNullable<
+  Awaited<ReturnType<typeof showPetWithOwner>>
+>;
+export type ShowPetWithOwnerQueryError = Error;
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetWithOwner>>> = ({ signal }) => showPetWithOwner(petId, { signal, ...fetchOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: !!(petId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof showPetWithOwner>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type ShowPetWithOwnerQueryResult = NonNullable<Awaited<ReturnType<typeof showPetWithOwner>>>
-export type ShowPetWithOwnerQueryError = Error
-
-
-export function useShowPetWithOwner<TData = Awaited<ReturnType<typeof showPetWithOwner>>, TError = Error>(
- petId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof showPetWithOwner>>, TError, TData>> & Pick<
+export function useShowPetWithOwner<
+  TData = Awaited<ReturnType<typeof showPetWithOwner>>,
+  TError = Error,
+>(
+  petId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof showPetWithOwner>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof showPetWithOwner>>,
           TError,
           Awaited<ReturnType<typeof showPetWithOwner>>
-        > , 'initialData'
-      >, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useShowPetWithOwner<TData = Awaited<ReturnType<typeof showPetWithOwner>>, TError = Error>(
- petId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof showPetWithOwner>>, TError, TData>> & Pick<
+        >,
+        'initialData'
+      >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useShowPetWithOwner<
+  TData = Awaited<ReturnType<typeof showPetWithOwner>>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof showPetWithOwner>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof showPetWithOwner>>,
           TError,
           Awaited<ReturnType<typeof showPetWithOwner>>
-        > , 'initialData'
-      >, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useShowPetWithOwner<TData = Awaited<ReturnType<typeof showPetWithOwner>>, TError = Error>(
- petId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof showPetWithOwner>>, TError, TData>>, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+        >,
+        'initialData'
+      >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useShowPetWithOwner<
+  TData = Awaited<ReturnType<typeof showPetWithOwner>>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof showPetWithOwner>>,
+        TError,
+        TData
+      >
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
 /**
  * @summary combinate nullable and $ref
  */
 
-export function useShowPetWithOwner<TData = Awaited<ReturnType<typeof showPetWithOwner>>, TError = Error>(
- petId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof showPetWithOwner>>, TError, TData>>, fetch?: RequestInit}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+export function useShowPetWithOwner<
+  TData = Awaited<ReturnType<typeof showPetWithOwner>>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof showPetWithOwner>>,
+        TError,
+        TData
+      >
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getShowPetWithOwnerQueryOptions(petId, options);
 
-  const queryOptions = getShowPetWithOwnerQueryOptions(petId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }

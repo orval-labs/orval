@@ -5,8 +5,8 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type LabradoodleBreed = typeof LabradoodleBreed[keyof typeof LabradoodleBreed];
-
+export type LabradoodleBreed =
+  (typeof LabradoodleBreed)[keyof typeof LabradoodleBreed];
 
 export const LabradoodleBreed = {
   Labradoodle: 'Labradoodle',

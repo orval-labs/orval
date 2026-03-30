@@ -7,18 +7,18 @@
 import type { GetUsersUserIdOrdersStatus } from './getUsersUserIdOrdersStatus';
 
 export type GetUsersUserIdOrdersParams = {
-/**
- * Filter orders by status
- */
-status?: GetUsersUserIdOrdersStatus;
-/**
- * Filter orders from this date (YYYY-MM-DD)
- */
-fromDate?: string;
-/**
- * Maximum number of orders to return
- * @minimum 1
- * @maximum 100
- */
-limit?: number;
+  /**
+   * Filter orders by status
+   */
+  status?: GetUsersUserIdOrdersStatus;
+  /**
+   * Filter orders from this date (YYYY-MM-DD)
+   */
+  fromDate?: string;
+  /**
+   * Maximum number of orders to return
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
 };

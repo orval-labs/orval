@@ -5,8 +5,8 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type PetCallingCode = typeof PetCallingCode[keyof typeof PetCallingCode];
-
+export type PetCallingCode =
+  (typeof PetCallingCode)[keyof typeof PetCallingCode];
 
 export const PetCallingCode = {
   '+33': '+33',

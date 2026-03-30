@@ -5,8 +5,8 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type DachshundBreed = typeof DachshundBreed[keyof typeof DachshundBreed];
-
+export type DachshundBreed =
+  (typeof DachshundBreed)[keyof typeof DachshundBreed];
 
 export const DachshundBreed = {
   Dachshund: 'Dachshund',

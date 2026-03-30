@@ -5,8 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type DogType = typeof DogType[keyof typeof DogType];
-
+export type DogType = (typeof DogType)[keyof typeof DogType];
 
 export const DogType = {
   dog: 'dog',

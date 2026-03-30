@@ -5,8 +5,8 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type GetUsersUserIdOrdersStatus = typeof GetUsersUserIdOrdersStatus[keyof typeof GetUsersUserIdOrdersStatus];
-
+export type GetUsersUserIdOrdersStatus =
+  (typeof GetUsersUserIdOrdersStatus)[keyof typeof GetUsersUserIdOrdersStatus];
 
 export const GetUsersUserIdOrdersStatus = {
   pending: 'pending',

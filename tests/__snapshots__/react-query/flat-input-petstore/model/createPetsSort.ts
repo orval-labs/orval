@@ -5,8 +5,8 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type CreatePetsSort = typeof CreatePetsSort[keyof typeof CreatePetsSort];
-
+export type CreatePetsSort =
+  (typeof CreatePetsSort)[keyof typeof CreatePetsSort];
 
 export const CreatePetsSort = {
   name: 'name',
