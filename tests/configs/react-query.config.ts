@@ -773,4 +773,52 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  flatInputPetstore: {
+    output: {
+      target: '../generated/react-query/flat-input-petstore/endpoints.ts',
+      schemas: '../generated/react-query/flat-input-petstore/model',
+      client: 'react-query',
+      headers: true,
+      override: {
+        useFlatInput: true,
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  flatInputMultiParams: {
+    output: {
+      target: '../generated/react-query/flat-input-multi-params/endpoints.ts',
+      schemas: '../generated/react-query/flat-input-multi-params/model',
+      client: 'react-query',
+      override: {
+        useFlatInput: true,
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/multi-query-params.yaml',
+    },
+  },
+  flatInputPathQueryBody: {
+    output: {
+      target:
+        '../generated/react-query/flat-input-path-query-body/endpoints.ts',
+      schemas:
+        '../generated/react-query/flat-input-path-query-body/model',
+      client: 'react-query',
+      override: {
+        useFlatInput: true,
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/flat-input-with-body-query.yaml',
+    },
+  },
 });

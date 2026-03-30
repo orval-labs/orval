@@ -222,5 +222,6 @@ export function getQueryParams({
     deps: schemas,
     isOptional: allOptional,
     requiredNullableKeys,
+    fieldNames: types.map(({ name }) => name),
   };
 }

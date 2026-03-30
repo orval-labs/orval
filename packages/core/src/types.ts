@@ -133,6 +133,7 @@ export interface NormalizedOverrideOutput {
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
   useNamedParameters?: boolean;
+  useFlatInput?: boolean;
   enumGenerationType: EnumGeneration;
   suppressReadonlyModifier?: boolean;
   /**
@@ -521,6 +522,7 @@ export interface OverrideOutput {
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
   useNamedParameters?: boolean;
+  useFlatInput?: boolean;
   enumGenerationType?: EnumGeneration;
   suppressReadonlyModifier?: boolean;
   /**
@@ -1203,6 +1205,7 @@ export interface GetterQueryParam {
   isOptional: boolean;
   originalSchema?: OpenApiSchemaObject;
   requiredNullableKeys?: string[];
+  fieldNames?: string[];
 }
 
 export type GetterPropType =

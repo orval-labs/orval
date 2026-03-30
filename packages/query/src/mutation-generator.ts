@@ -17,6 +17,7 @@ import {
   getMutationRequestArgs,
   getQueryErrorType,
 } from './client';
+import { checkFlatInputCollisions } from './flat-input';
 import type { FrameworkAdapter } from './framework-adapter';
 import { getQueryOptionsDefinition } from './query-options';
 
@@ -102,6 +103,7 @@ export const generateMutationHook = async ({
     response,
     operationId,
     override,
+    queryParams,
   } = verbOptions;
   const { route, context, output } = options;
   const query = override.query;
@@ -116,19 +118,72 @@ export const generateMutationHook = async ({
       })
     : undefined;
 
-  const definitions = props
-    .map(({ definition, type }) =>
-      type === GetterPropType.BODY
-        ? mutator?.bodyTypeName
-          ? `data: ${mutator.bodyTypeName}<${body.definition}>`
-          : `data: ${body.definition}`
-        : definition,
-    )
-    .join(';');
+  const useFlatInput = !!override.useFlatInput;
 
-  const properties = props
-    .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
-    .join(',');
+  if (useFlatInput && props.length > 1) {
+    checkFlatInputCollisions(operationName, props, queryParams);
+  }
+
+  let definitions: string;
+  let properties: string;
+  let flatMutationCallArgs: string | undefined;
+
+  if (useFlatInput && props.length > 1) {
+    const pathParamProps = props.filter(
+      (p) =>
+        p.type === GetterPropType.PARAM ||
+        p.type === GetterPropType.NAMED_PATH_PARAMS,
+    );
+    const queryParamProp = props.find(
+      (p) => p.type === GetterPropType.QUERY_PARAM,
+    );
+    const bodyPropEntry = props.find((p) => p.type === GetterPropType.BODY);
+    const queryFieldNames = queryParams?.fieldNames ?? [];
+
+    const pathType =
+      pathParamProps.length > 0
+        ? `{ ${pathParamProps.map((p) => p.definition).join('; ')} }`
+        : '';
+    const queryType = queryParamProp ? (queryParams?.schema.name ?? '') : '';
+    const bodyType = bodyPropEntry
+      ? mutator?.bodyTypeName
+        ? `${mutator.bodyTypeName}<${body.definition}>`
+        : body.definition
+      : '';
+    const types = [pathType, queryType, bodyType].filter(Boolean);
+    definitions = types.join(' & ');
+
+    const knownNames = [
+      ...pathParamProps.map((p) => p.name),
+      ...queryFieldNames,
+    ];
+    const hasBody = !!bodyPropEntry;
+    properties = hasBody
+      ? [...knownNames, '...data'].join(', ')
+      : knownNames.join(', ');
+
+    const pathArgs = pathParamProps.map((p) => p.name).join(', ');
+    const queryArgs =
+      queryFieldNames.length > 0 ? `{ ${queryFieldNames.join(', ')} }` : '';
+    const bodyArg = hasBody ? 'data' : '';
+    flatMutationCallArgs = [pathArgs, queryArgs, bodyArg]
+      .filter(Boolean)
+      .join(', ');
+  } else {
+    definitions = props
+      .map(({ definition, type }) =>
+        type === GetterPropType.BODY
+          ? mutator?.bodyTypeName
+            ? `data: ${mutator.bodyTypeName}<${body.definition}>`
+            : `data: ${body.definition}`
+          : definition,
+      )
+      .join(';');
+
+    properties = props
+      .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
+      .join(',');
+  }
 
   const errorType = getQueryErrorType(
     operationName,
@@ -221,11 +276,15 @@ ${hooksOptionImplementation}
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<${dataType}>>, ${
-        definitions ? `{${definitions}}` : 'void'
+        definitions
+          ? flatMutationCallArgs
+            ? definitions
+            : `{${definitions}}`
+          : 'void'
       }> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props ?? {};` : ''}
 
-          return  ${operationName}(${adapter.getMutationHttpPrefix(mutator)}${properties}${
+          return  ${operationName}(${adapter.getMutationHttpPrefix(mutator)}${flatMutationCallArgs ?? properties}${
             properties ? ',' : ''
           }${getMutationRequestArgs(isRequestOptions, httpClient, mutator)})
         }

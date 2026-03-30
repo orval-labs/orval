@@ -21,6 +21,7 @@ import {
 } from '@orval/core';
 
 import { getHookOptions, getQueryErrorType, getQueryOptions } from './client';
+import { checkFlatInputCollisions } from './flat-input';
 import type { FrameworkAdapter } from './framework-adapter';
 import { generateMutationHook } from './mutation-generator';
 import {
@@ -159,6 +160,7 @@ const generateQueryImplementation = ({
   useInfinite,
   useInvalidate,
   useSetQueryData,
+  useFlatInput,
   adapter,
 }: {
   queryOption: {
@@ -189,6 +191,7 @@ const generateQueryImplementation = ({
   useInfinite?: boolean;
   useInvalidate?: boolean;
   useSetQueryData?: boolean;
+  useFlatInput: boolean;
   adapter: FrameworkAdapter;
 }) => {
   const {
@@ -373,7 +376,54 @@ const generateQueryImplementation = ({
   // This avoids TS1016 "required param cannot follow optional param"
   const httpFirstParam = adapter.getHttpFirstParam(mutator);
 
-  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${httpFirstParam}${queryProps} ${queryArgumentsForOptions}) => {
+  const pathParams = props.filter(
+    (p) =>
+      p.type === GetterPropType.PARAM ||
+      p.type === GetterPropType.NAMED_PATH_PARAMS,
+  );
+  const queryParamProp = props.find(
+    (p) => p.type === GetterPropType.QUERY_PARAM,
+  );
+  const bodyProp = props.find((p) => p.type === GetterPropType.BODY);
+  const hasMultiplePropTypes =
+    (pathParams.length > 0 ? 1 : 0) +
+      (queryParamProp ? 1 : 0) +
+      (bodyProp ? 1 : 0) >
+    1;
+
+  let flatInputType = '';
+  let flatInputDestructure = '';
+
+  if (useFlatInput && hasMultiplePropTypes) {
+    checkFlatInputCollisions(operationName, props, queryParams);
+
+    const pathParamTypes = pathParams.map((p) => p.definition).join(';\n  ');
+    const pathType = pathParams.length > 0 ? `{ ${pathParamTypes} }` : '';
+    const queryType = queryParamProp ? queryParams?.schema.name : '';
+    const bodyType = bodyProp
+      ? bodyProp.definition.split(':').slice(1).join(':').trim()
+      : '';
+
+    const types = [pathType, queryType, bodyType].filter(Boolean);
+    flatInputType = types.join(' & ');
+
+    const pathNames = pathParams.map((p) => p.name);
+    const queryFieldNames = queryParams?.fieldNames ?? [];
+
+    if (queryParamProp && bodyProp) {
+      const knownNames = [...pathNames, ...queryFieldNames];
+      flatInputDestructure = `{ ${[...knownNames, `...${bodyProp.name}`].join(', ')} }: ${flatInputType},`;
+    } else if (queryParamProp) {
+      flatInputDestructure = `{ ${[...pathNames, '...params'].join(', ')} }: ${flatInputType},`;
+    } else if (bodyProp) {
+      flatInputDestructure = `{ ${[...pathNames, `...${bodyProp.name}`].join(', ')} }: ${flatInputType},`;
+    }
+  }
+
+  const flatProps =
+    useFlatInput && flatInputDestructure ? flatInputDestructure : queryProps;
+
+  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${httpFirstParam}${flatProps} ${queryArgumentsForOptions}) => {
 
 ${hookOptions}
 
@@ -438,11 +488,6 @@ ${hookOptions}
 
   const queryHookName = camel(`${operationPrefix}-${name}`);
 
-  const overrideTypes = `
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${definedInitialDataQueryPropsDefinitions} ${definedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${definedInitialDataReturnType}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}`;
-
   const prefetch = generatePrefetch({
     usePrefetch,
     type,
@@ -506,6 +551,26 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
 
   const queryInvocationSuffix = adapter.getQueryInvocationSuffix();
 
+  const hookProps =
+    useFlatInput && flatInputDestructure
+      ? flatInputDestructure
+      : adapter.getHookPropsDefinitions(props);
+
+  const hookPropsForDefinedInitialData =
+    useFlatInput && flatInputDestructure
+      ? flatInputDestructure
+      : definedInitialDataQueryPropsDefinitions;
+
+  const hookPropsForOverloads =
+    useFlatInput && flatInputDestructure
+      ? flatInputDestructure
+      : queryPropDefinitions;
+
+  const overrideTypes = `
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${hookPropsForDefinedInitialData} ${definedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${definedInitialDataReturnType}
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${hookPropsForOverloads} ${undefinedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${hookPropsForOverloads} ${queryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}`;
+
   return `
 ${queryOptionsFn}
 
@@ -516,9 +581,7 @@ export type ${pascal(name)}QueryError = ${errorType}
 
 ${adapter.shouldGenerateOverrideTypes() ? overrideTypes : ''}
 ${doc}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${adapter.getHookPropsDefinitions(
-    props,
-  )} ${queryArguments} ${optionalQueryClientArgument} \n ): ${returnType} {
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${hookProps} ${queryArguments} ${optionalQueryClientArgument} \n ): ${returnType} {
 
   ${queryInit}
 
@@ -598,6 +661,12 @@ export const generateQueryHook = async (
   const query = override.query;
   const isRequestOptions = override.requestOptions !== false;
   const operationQueryOptions = operations[operationId]?.query;
+
+  if (override.useFlatInput && override.useNamedParameters) {
+    throw new Error(
+      'useFlatInput and useNamedParameters cannot be used together. useFlatInput already flattens all parameters into a single object.',
+    );
+  }
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
 
@@ -827,6 +896,7 @@ ${queryKeyFns}`;
         useInvalidate: query.useInvalidate,
         useSetQueryData:
           operationQueryOptions?.useSetQueryData ?? query.useSetQueryData,
+        useFlatInput: !!override.useFlatInput,
         adapter,
       });
     }
