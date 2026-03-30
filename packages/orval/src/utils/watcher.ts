@@ -40,11 +40,14 @@ export async function startWatcher(
     ignorePermissionErrors: true,
     ignored,
   });
-  watcher.on('all', (type, file) => {
-    log(`Change detected: ${type} ${file}`);
+  watcher.on('ready', () => {
+    log('Initial scan complete. Watching for changes...');
+    watcher.on('all', (type, file) => {
+      log(`Change detected: ${type} ${file}`);
 
-    watchFn().catch((error: unknown) => {
-      logError(error);
+      watchFn().catch((error: unknown) => {
+        logError(error);
+      });
     });
   });
 }

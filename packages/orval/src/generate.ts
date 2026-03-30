@@ -32,14 +32,14 @@ export async function generate(
         options,
       );
 
-      if (options?.watch === undefined) {
-        try {
-          await generateSpec(workspace, normalizedOptions, projectName);
-        } catch (error) {
-          hasErrors = true;
-          logError(error, projectName);
-        }
-      } else {
+      try {
+        await generateSpec(workspace, normalizedOptions, projectName);
+      } catch (error) {
+        hasErrors = true;
+        logError(error, projectName);
+      }
+
+      if (options?.watch !== undefined) {
         const fileToWatch = isString(normalizedOptions.input.target)
           ? normalizedOptions.input.target
           : undefined;
@@ -70,6 +70,12 @@ export async function generate(
     options,
   );
 
+  try {
+    await generateSpec(workspace, normalizedOptions);
+  } catch (error) {
+    logError(error);
+  }
+
   if (options?.watch) {
     await startWatcher(
       options.watch,
@@ -82,11 +88,5 @@ export async function generate(
       },
       normalizedOptions.input.target as string,
     );
-  } else {
-    try {
-      await generateSpec(workspace, normalizedOptions);
-    } catch (error) {
-      logError(error);
-    }
   }
 }
