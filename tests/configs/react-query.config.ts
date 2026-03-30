@@ -808,8 +808,7 @@ export default defineConfig({
     output: {
       target:
         '../generated/react-query/flat-input-path-query-body/endpoints.ts',
-      schemas:
-        '../generated/react-query/flat-input-path-query-body/model',
+      schemas: '../generated/react-query/flat-input-path-query-body/model',
       client: 'react-query',
       override: {
         useFlatInput: true,
