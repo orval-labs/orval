@@ -242,8 +242,8 @@ export const createPets = async (createPetsBody: CreatePetsBody,
 
 
 export const getCreatePetsMutationOptions = <TError = Error,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPets>>, TError,{CreatePetsParams & CreatePetsBody}, TContext>, fetch?: RequestInit}
-): UseMutationOptions<Awaited<ReturnType<typeof createPets>>, TError,{CreatePetsParams & CreatePetsBody}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPets>>, TError,CreatePetsParams & CreatePetsBody, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof createPets>>, TError,CreatePetsParams & CreatePetsBody, TContext> => {
 
 const mutationKey = ['createPets'];
 const {mutation: mutationOptions, fetch: fetchOptions} = options ?
@@ -276,11 +276,11 @@ const {mutation: mutationOptions, fetch: fetchOptions} = options ?
  * @summary Create a pet
  */
 export const useCreatePets = <TError = Error,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPets>>, TError,{CreatePetsParams & CreatePetsBody}, TContext>, fetch?: RequestInit}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPets>>, TError,CreatePetsParams & CreatePetsBody, TContext>, fetch?: RequestInit}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createPets>>,
         TError,
-        {CreatePetsParams & CreatePetsBody},
+        CreatePetsParams & CreatePetsBody,
         TContext
       > => {
       return useMutation(getCreatePetsMutationOptions(options), queryClient);

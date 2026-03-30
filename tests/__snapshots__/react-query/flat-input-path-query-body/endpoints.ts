@@ -75,8 +75,8 @@ export const searchItems = async (orgId: string,
 
 
 export const getSearchItemsMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof searchItems>>, TError,{{ orgId: string } & SearchItemsParams & SearchItemsBody}, TContext>, fetch?: RequestInit}
-): UseMutationOptions<Awaited<ReturnType<typeof searchItems>>, TError,{{ orgId: string } & SearchItemsParams & SearchItemsBody}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof searchItems>>, TError,{ orgId: string } & SearchItemsParams & SearchItemsBody, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof searchItems>>, TError,{ orgId: string } & SearchItemsParams & SearchItemsBody, TContext> => {
 
 const mutationKey = ['searchItems'];
 const {mutation: mutationOptions, fetch: fetchOptions} = options ?
@@ -109,11 +109,11 @@ const {mutation: mutationOptions, fetch: fetchOptions} = options ?
  * @summary Search items with path, query, and body
  */
 export const useSearchItems = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof searchItems>>, TError,{{ orgId: string } & SearchItemsParams & SearchItemsBody}, TContext>, fetch?: RequestInit}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof searchItems>>, TError,{ orgId: string } & SearchItemsParams & SearchItemsBody, TContext>, fetch?: RequestInit}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof searchItems>>,
         TError,
-        {{ orgId: string } & SearchItemsParams & SearchItemsBody},
+        { orgId: string } & SearchItemsParams & SearchItemsBody,
         TContext
       > => {
       return useMutation(getSearchItemsMutationOptions(options), queryClient);

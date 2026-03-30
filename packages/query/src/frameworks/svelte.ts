@@ -166,6 +166,7 @@ export const createSvelteAdapter = ({
     generateQueryArguments({
       operationName,
       definitions,
+      overrideVariableType,
       mutator,
       isRequestOptions,
       type,
@@ -180,6 +181,7 @@ export const createSvelteAdapter = ({
         operationName,
         mutator,
         definitions,
+        overrideVariableType,
         type,
         prefix,
         hasQueryV5,
