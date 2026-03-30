@@ -100,10 +100,9 @@ function getHeader(
 async function addOperationSchemasReExport(
   schemaPath: string,
   operationSchemasPath: string,
-  fileExtension: string,
   header: string,
 ): Promise<void> {
-  const schemaIndexPath = path.join(schemaPath, `index${fileExtension}`);
+  const schemaIndexPath = path.join(schemaPath, `index.ts`);
   const esmImportPath = upath.getRelativeImportPath(
     schemaIndexPath,
     operationSchemasPath,
@@ -203,7 +202,6 @@ export async function writeSpecs(
             await addOperationSchemasReExport(
               schemaPath,
               output.operationSchemas,
-              fileExtension,
               header,
             );
           }
@@ -278,7 +276,6 @@ export async function writeSpecs(
               await addOperationSchemasReExport(
                 output.schemas.path,
                 output.operationSchemas,
-                fileExtension,
                 header,
               );
             }

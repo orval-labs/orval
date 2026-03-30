@@ -417,7 +417,7 @@ export async function writeSchemas({
   }
 
   if (indexFiles) {
-    const schemaFilePath = nodePath.join(schemaPath, `index${fileExtension}`);
+    const schemaFilePath = nodePath.join(schemaPath, `index.ts`);
     await fs.ensureFile(schemaFilePath);
 
     // Ensure separate files are used for parallel schema writing.
