@@ -4,13 +4,16 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { useMutation, useQuery } from '@tanstack/vue-query';
+import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/vue-query';
 import type {
   DataTag,
+  InfiniteData,
   MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
+  UseInfiniteQueryOptions,
+  UseInfiniteQueryReturnType,
   UseMutationOptions,
   UseMutationReturnType,
   UseQueryOptions,
@@ -57,12 +60,130 @@ export const listPets = (
   });
 };
 
+export const getListPetsInfiniteQueryKey = (
+  params?: MaybeRef<ListPetsParams>,
+  version: MaybeRef<number> = 1,
+) => {
+  return [
+    'infinite',
+    'v',
+    version,
+    'pets',
+    ...(params ? [params] : []),
+  ] as const;
+};
+
 export const getListPetsQueryKey = (
   params?: MaybeRef<ListPetsParams>,
   version: MaybeRef<number> = 1,
 ) => {
   return ['v', version, 'pets', ...(params ? [params] : [])] as const;
 };
+
+export const getListPetsInfiniteQueryOptions = <
+  TData = InfiniteData<
+    Awaited<ReturnType<typeof listPets>>,
+    ListPetsParams['limit']
+  >,
+  TError = Error,
+>(
+  params: MaybeRef<ListPetsParams>,
+  version: MaybeRef<number> = 1,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof listPets>>,
+        TError,
+        TData,
+        QueryKey,
+        ListPetsParams['limit']
+      >
+    >;
+  },
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = getListPetsInfiniteQueryKey(params, version);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listPets>>,
+    QueryKey,
+    ListPetsParams['limit']
+  > = ({ signal, pageParam }) =>
+    listPets(
+      { ...unref(params), limit: pageParam ?? unref(params)?.['limit'] },
+      version,
+      signal,
+    );
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: computed(() => !!unref(version)),
+    ...queryOptions,
+  } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof listPets>>,
+    TError,
+    TData,
+    QueryKey,
+    ListPetsParams['limit']
+  >;
+};
+
+export type ListPetsInfiniteQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPets>>
+>;
+export type ListPetsInfiniteQueryError = Error;
+
+/**
+ * @summary List all pets
+ */
+
+export function useListPetsInfinite<
+  TData = InfiniteData<
+    Awaited<ReturnType<typeof listPets>>,
+    ListPetsParams['limit']
+  >,
+  TError = Error,
+>(
+  params: MaybeRef<ListPetsParams>,
+  version: MaybeRef<number> = 1,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof listPets>>,
+        TError,
+        TData,
+        QueryKey,
+        ListPetsParams['limit']
+      >
+    >;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryReturnType<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getListPetsInfiniteQueryOptions(
+    params,
+    version,
+    options,
+  );
+
+  const query = useInfiniteQuery(
+    queryOptions,
+    queryClient,
+  ) as UseInfiniteQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = unref(queryOptions).queryKey as DataTag<
+    QueryKey,
+    TData,
+    TError
+  >;
+
+  return query;
+}
 
 export const getListPetsQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,

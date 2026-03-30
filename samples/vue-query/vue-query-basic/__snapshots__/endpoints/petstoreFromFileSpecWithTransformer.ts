@@ -103,7 +103,7 @@ export const getListPetsInfiniteQueryOptions = <
     ListPetsParams['limit']
   > = ({ signal, pageParam }) =>
     listPets(
-      { ...unref(params), limit: pageParam || unref(params)?.['limit'] },
+      { ...unref(params), limit: pageParam ?? unref(params)?.['limit'] },
       version,
       signal,
     );
@@ -348,105 +348,12 @@ export const showPetById = (
   });
 };
 
-export const getShowPetByIdInfiniteQueryKey = (
-  petId: MaybeRef<string | undefined | null>,
-  version: MaybeRef<number | undefined | null> = 1,
-) => {
-  return ['infinite', 'v', version, 'pets', petId] as const;
-};
-
 export const getShowPetByIdQueryKey = (
   petId: MaybeRef<string | undefined | null>,
   version: MaybeRef<number | undefined | null> = 1,
 ) => {
   return ['v', version, 'pets', petId] as const;
 };
-
-export const getShowPetByIdInfiniteQueryOptions = <
-  TData = InfiniteData<Awaited<ReturnType<typeof showPetById>>>,
-  TError = Error,
->(
-  petId: MaybeRef<string | undefined | null>,
-  version: MaybeRef<number | undefined | null> = 1,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof showPetById>>,
-        TError,
-        TData
-      >
-    >;
-  },
-) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey = getShowPetByIdInfiniteQueryKey(petId, version);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({
-    signal,
-  }) => showPetById(petId, version, signal);
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: computed(() => !!(unref(version) && unref(petId))),
-    ...queryOptions,
-  } as UseInfiniteQueryOptions<
-    Awaited<ReturnType<typeof showPetById>>,
-    TError,
-    TData
-  >;
-};
-
-export type ShowPetByIdInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof showPetById>>
->;
-export type ShowPetByIdInfiniteQueryError = Error;
-
-/**
- * @summary Info for a specific pet
- */
-
-export function useShowPetByIdInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof showPetById>>>,
-  TError = Error,
->(
-  petId: MaybeRef<string | undefined | null>,
-  version: MaybeRef<number | undefined | null> = 1,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof showPetById>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryReturnType<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getShowPetByIdInfiniteQueryOptions(
-    petId,
-    version,
-    options,
-  );
-
-  const query = useInfiniteQuery(
-    queryOptions,
-    queryClient,
-  ) as UseInfiniteQueryReturnType<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  query.queryKey = unref(queryOptions).queryKey as DataTag<
-    QueryKey,
-    TData,
-    TError
-  >;
-
-  return query;
-}
 
 export const getShowPetByIdQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,

@@ -4,8 +4,14 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { createMutation, createQuery } from '@tanstack/svelte-query';
+import {
+  createInfiniteQuery,
+  createMutation,
+  createQuery,
+} from '@tanstack/svelte-query';
 import type {
+  CreateInfiniteQueryOptions,
+  CreateInfiniteQueryResult,
   CreateMutationOptions,
   CreateMutationResult,
   CreateQueryOptions,
@@ -49,12 +55,103 @@ export const listPets = (
   });
 };
 
+export const getListPetsInfiniteQueryKey = (
+  params?: ListPetsParams,
+  version: number = 1,
+) => {
+  return [
+    'infinite',
+    `/v${version}/pets`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
 export const getListPetsQueryKey = (
   params?: ListPetsParams,
   version: number = 1,
 ) => {
   return [`/v${version}/pets`, ...(params ? [params] : [])] as const;
 };
+
+export const getListPetsInfiniteQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = Error,
+>(
+  params: ListPetsParams,
+  version: number = 1,
+  options?: {
+    query?: CreateInfiniteQueryOptions<
+      Awaited<ReturnType<typeof listPets>>,
+      TError,
+      TData
+    >;
+  },
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListPetsInfiniteQueryKey(params, version);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
+    signal,
+    pageParam,
+  }) =>
+    listPets(
+      { ...params, limit: pageParam ?? params?.['limit'] },
+      version,
+      signal,
+    );
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!version,
+    ...queryOptions,
+  } as CreateInfiniteQueryOptions<
+    Awaited<ReturnType<typeof listPets>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListPetsInfiniteQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPets>>
+>;
+export type ListPetsInfiniteQueryError = Error;
+
+/**
+ * @summary List all pets
+ */
+
+export function createListPetsInfinite<
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = Error,
+>(
+  params: ListPetsParams,
+  version: number = 1,
+  options?: {
+    query?: CreateInfiniteQueryOptions<
+      Awaited<ReturnType<typeof listPets>>,
+      TError,
+      TData
+    >;
+  },
+): CreateInfiniteQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListPetsInfiniteQueryOptions(
+    params,
+    version,
+    options,
+  );
+
+  const query = createInfiniteQuery(queryOptions) as CreateInfiniteQueryResult<
+    TData,
+    TError
+  > & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
 
 export const getListPetsQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
