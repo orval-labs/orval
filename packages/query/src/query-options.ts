@@ -104,7 +104,7 @@ export const getQueryOptionsDefinition = ({
 }) => {
   const isMutatorHook = mutator?.isHook;
   const varType =
-    overrideVariableType || (definitions ? `{${definitions}}` : 'void');
+    overrideVariableType ?? (definitions ? `{${definitions}}` : 'void');
   const partialOptions = !isReturnType && hasQueryV5;
 
   if (type) {
