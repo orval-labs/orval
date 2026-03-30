@@ -102,6 +102,17 @@ cli
         },
       });
 
+      try {
+        await generateSpec(process.cwd(), normalizedOptions);
+      } catch (error) {
+        if (error instanceof ErrorWithTag) {
+          logError(error.cause, error.tag);
+        } else {
+          logError(error);
+        }
+        process.exit(1);
+      }
+
       if (options.watch) {
         await startWatcher(
           options.watch,
@@ -115,17 +126,6 @@ cli
           },
           normalizedOptions.input.target as string,
         );
-      } else {
-        try {
-          await generateSpec(process.cwd(), normalizedOptions);
-        } catch (error) {
-          if (error instanceof ErrorWithTag) {
-            logError(error.cause, error.tag);
-          } else {
-            logError(error);
-          }
-          process.exit(1);
-        }
       }
     } else {
       const configFilePath = findConfigFile(options.config);
@@ -156,14 +156,14 @@ cli
           options,
         );
 
-        if (options.watch === undefined) {
-          try {
-            await generateSpec(workspace, normalizedOptions, projectName);
-          } catch (error) {
-            hasErrors = true;
-            logError(error, projectName);
-          }
-        } else {
+        try {
+          await generateSpec(workspace, normalizedOptions, projectName);
+        } catch (error) {
+          hasErrors = true;
+          logError(error, projectName);
+        }
+
+        if (options.watch !== undefined) {
           const fileToWatch = isString(normalizedOptions.input.target)
             ? normalizedOptions.input.target
             : undefined;
