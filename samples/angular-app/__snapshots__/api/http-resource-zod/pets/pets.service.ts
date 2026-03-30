@@ -81,7 +81,7 @@ function filterParams(
       value === null &&
       requiredNullableKeys.has(key)
     ) {
-      filteredParams[key] = value;
+      filteredParams[key] = null;
     } else if (
       value != null &&
       (typeof value === 'string' ||
