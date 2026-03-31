@@ -86,7 +86,8 @@ export const getGetUsersUserIdOrdersQueryOptions = <
   TData = Awaited<ReturnType<typeof getUsersUserIdOrders>>,
   TError = unknown,
 >(
-  { userId, ...params }: { userId: number } & GetUsersUserIdOrdersParams,
+  userId: number,
+  params?: GetUsersUserIdOrdersParams,
   options?: {
     query?: Partial<
       UseQueryOptions<

@@ -21,7 +21,7 @@ import {
 } from '@orval/core';
 
 import { getHookOptions, getQueryErrorType, getQueryOptions } from './client';
-import { checkFlatInputCollisions } from './flat-input';
+import { buildFlatInput, checkFlatInputCollisions } from './flat-input';
 import type { FrameworkAdapter } from './framework-adapter';
 import { generateMutationHook } from './mutation-generator';
 import {
@@ -376,54 +376,14 @@ const generateQueryImplementation = ({
   // This avoids TS1016 "required param cannot follow optional param"
   const httpFirstParam = adapter.getHttpFirstParam(mutator);
 
-  const pathParams = props.filter(
-    (p) =>
-      p.type === GetterPropType.PARAM ||
-      p.type === GetterPropType.NAMED_PATH_PARAMS,
-  );
-  const queryParamProp = props.find(
-    (p) => p.type === GetterPropType.QUERY_PARAM,
-  );
-  const bodyProp = props.find((p) => p.type === GetterPropType.BODY);
-  const hasMultiplePropTypes =
-    (pathParams.length > 0 ? 1 : 0) +
-      (queryParamProp ? 1 : 0) +
-      (bodyProp ? 1 : 0) >
-    1;
+  const flatInput = useFlatInput
+    ? (() => {
+        checkFlatInputCollisions(operationName, props, queryParams);
+        return buildFlatInput(props, queryParams);
+      })()
+    : undefined;
 
-  let flatInputType = '';
-  let flatInputDestructure = '';
-
-  if (useFlatInput && hasMultiplePropTypes) {
-    checkFlatInputCollisions(operationName, props, queryParams);
-
-    const pathParamTypes = pathParams.map((p) => p.definition).join(';\n  ');
-    const pathType = pathParams.length > 0 ? `{ ${pathParamTypes} }` : '';
-    const queryType = queryParamProp ? queryParams?.schema.name : '';
-    const bodyType = bodyProp
-      ? bodyProp.definition.split(':').slice(1).join(':').trim()
-      : '';
-
-    const types = [pathType, queryType, bodyType].filter(Boolean);
-    flatInputType = types.join(' & ');
-
-    const pathNames = pathParams.map((p) => p.name);
-    const queryFieldNames = queryParams?.fieldNames ?? [];
-
-    if (queryParamProp && bodyProp) {
-      const knownNames = [...pathNames, ...queryFieldNames];
-      flatInputDestructure = `{ ${[...knownNames, `...${bodyProp.name}`].join(', ')} }: ${flatInputType},`;
-    } else if (queryParamProp) {
-      flatInputDestructure = `{ ${[...pathNames, '...params'].join(', ')} }: ${flatInputType},`;
-    } else if (bodyProp) {
-      flatInputDestructure = `{ ${[...pathNames, `...${bodyProp.name}`].join(', ')} }: ${flatInputType},`;
-    }
-  }
-
-  const flatProps =
-    useFlatInput && flatInputDestructure ? flatInputDestructure : queryProps;
-
-  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${httpFirstParam}${flatProps} ${queryArgumentsForOptions}) => {
+  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${httpFirstParam}${queryProps} ${queryArgumentsForOptions}) => {
 
 ${hookOptions}
 
@@ -551,20 +511,17 @@ ${hookOptions}
 
   const queryInvocationSuffix = adapter.getQueryInvocationSuffix();
 
-  const hookProps =
-    useFlatInput && flatInputDestructure
-      ? flatInputDestructure
-      : adapter.getHookPropsDefinitions(props);
+  const hookProps = flatInput
+    ? flatInput.destructure
+    : adapter.getHookPropsDefinitions(props);
 
-  const hookPropsForDefinedInitialData =
-    useFlatInput && flatInputDestructure
-      ? flatInputDestructure
-      : definedInitialDataQueryPropsDefinitions;
+  const hookPropsForDefinedInitialData = flatInput
+    ? flatInput.destructure
+    : definedInitialDataQueryPropsDefinitions;
 
-  const hookPropsForOverloads =
-    useFlatInput && flatInputDestructure
-      ? flatInputDestructure
-      : queryPropDefinitions;
+  const hookPropsForOverloads = flatInput
+    ? flatInput.destructure
+    : queryPropDefinitions;
 
   const overrideTypes = `
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${hookPropsForDefinedInitialData} ${definedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${definedInitialDataReturnType}

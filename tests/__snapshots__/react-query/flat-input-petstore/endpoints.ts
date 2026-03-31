@@ -330,14 +330,22 @@ export const getCreatePetsMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createPets>>,
     TError,
-    CreatePetsParams & CreatePetsBody,
+    {
+      data: CreatePetsBody;
+      params: CreatePetsParams;
+      headers: CreatePetsHeaders;
+    },
     TContext
   >;
   fetch?: RequestInit;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  CreatePetsParams & CreatePetsBody,
+  {
+    data: CreatePetsBody;
+    params: CreatePetsParams;
+    headers: CreatePetsHeaders;
+  },
   TContext
 > => {
   const mutationKey = ['createPets'];
@@ -351,11 +359,15 @@ export const getCreatePetsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
-    CreatePetsParams & CreatePetsBody
+    {
+      data: CreatePetsBody;
+      params: CreatePetsParams;
+      headers: CreatePetsHeaders;
+    }
   > = (props) => {
-    const { limit, sort, ...data } = props ?? {};
+    const { data, params, headers } = props ?? {};
 
-    return createPets({ limit, sort }, data, fetchOptions);
+    return createPets(data, params, headers, fetchOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -375,7 +387,11 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof createPets>>,
       TError,
-      CreatePetsParams & CreatePetsBody,
+      {
+        data: CreatePetsBody;
+        params: CreatePetsParams;
+        headers: CreatePetsHeaders;
+      },
       TContext
     >;
     fetch?: RequestInit;
@@ -384,7 +400,11 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  CreatePetsParams & CreatePetsBody,
+  {
+    data: CreatePetsBody;
+    params: CreatePetsParams;
+    headers: CreatePetsHeaders;
+  },
   TContext
 > => {
   return useMutation(getCreatePetsMutationOptions(options), queryClient);

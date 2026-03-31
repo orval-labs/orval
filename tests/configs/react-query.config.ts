@@ -804,11 +804,10 @@ export default defineConfig({
       target: '../specifications/multi-query-params.yaml',
     },
   },
-  flatInputPathQueryBody: {
+  flatInputScenarios: {
     output: {
-      target:
-        '../generated/react-query/flat-input-path-query-body/endpoints.ts',
-      schemas: '../generated/react-query/flat-input-path-query-body/model',
+      target: '../generated/react-query/flat-input-scenarios/endpoints.ts',
+      schemas: '../generated/react-query/flat-input-scenarios/model',
       client: 'react-query',
       override: {
         useFlatInput: true,
@@ -817,7 +816,7 @@ export default defineConfig({
       formatter: 'prettier',
     },
     input: {
-      target: '../specifications/flat-input-with-body-query.yaml',
+      target: '../specifications/flat-input-scenarios.yaml',
     },
   },
 });
