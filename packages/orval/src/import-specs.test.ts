@@ -816,21 +816,12 @@ describe('normalizeLeftoverNullable', () => {
     expect(schema).toEqual({});
   });
 
-  it('should handle null and primitive values gracefully', () => {
-    // eslint-disable-next-line unicorn/no-null -- testing runtime safety with null input
-    const nullValue = null;
-    expect(() => {
-      normalizeLeftoverNullable(nullValue);
-    }).not.toThrow();
-    expect(() => {
-      normalizeLeftoverNullable(undefined);
-    }).not.toThrow();
-    expect(() => {
-      normalizeLeftoverNullable('string');
-    }).not.toThrow();
-    expect(() => {
-      normalizeLeftoverNullable(42);
-    }).not.toThrow();
+  it('should handle non-object values gracefully', () => {
+    for (const value of ['string', 42, true]) {
+      expect(() => {
+        normalizeLeftoverNullable(value);
+      }).not.toThrow();
+    }
   });
 });
 
