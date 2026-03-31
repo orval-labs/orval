@@ -4,7 +4,7 @@
  * Issue 3027 - zod suffix ref regression
  * OpenAPI spec version: 1.0.0
  */
-import { PortfolioResponseSchema } from './model/index.zod';
+import { PortfolioResponseSchema } from './model';
 
 export type getPortfolioResponse200 = {
   data: PortfolioResponseSchema;

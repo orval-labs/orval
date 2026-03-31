@@ -193,7 +193,7 @@ describe('generateImportsForBuilder', () => {
       expect(result).toEqual([
         {
           exports: [{ name: 'User', schemaName: undefined }],
-          dependency: '../models/index.zod',
+          dependency: '../models',
         },
       ]);
     });

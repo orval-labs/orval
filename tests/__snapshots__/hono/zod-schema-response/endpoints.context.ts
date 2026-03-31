@@ -10,7 +10,7 @@ import type {
   CreatePetsBody,
   CreatePetsParams,
   ListPetsParams,
-} from './schemas/index.zod';
+} from './schemas';
 
 export type ListPetsContext<E extends Env = any> = Context<
   E,

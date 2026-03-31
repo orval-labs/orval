@@ -829,18 +829,13 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
   const { path, pathWithoutExtension } = getFileInfo(output.target);
   const validator = generateZvalidator(output, context);
   let schemaModule: string;
-  const isZodSchemaOutput =
-    isObject(output.schemas) && output.schemas.type === 'zod';
 
   if (output.schemas != undefined) {
     const schemasPath = (
       isObject(output.schemas) ? output.schemas.path : output.schemas
     ) as string;
     const basePath = getFileInfo(schemasPath).dirname;
-    schemaModule =
-      isZodSchemaOutput && output.indexFiles
-        ? upath.joinSafe(basePath, 'index.zod')
-        : basePath;
+    schemaModule = basePath;
   } else if (output.mode === 'single') {
     schemaModule = path;
   } else {

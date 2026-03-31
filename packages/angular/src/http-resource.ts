@@ -1312,7 +1312,7 @@ const buildSchemaImportDependencies = (
     return [
       {
         exports: uniqueImports.map((imp) => ({ ...imp, values: true })),
-        dependency: upath.joinSafe(relativeSchemasPath, 'index.zod'),
+        dependency: relativeSchemasPath,
       },
     ];
   }

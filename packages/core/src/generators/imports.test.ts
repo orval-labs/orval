@@ -67,7 +67,7 @@ export type MyError = Error;
 
       const dep = addDependency({
         implementation,
-        dependency: '../models/index.zod',
+        dependency: '../models',
         projectName: undefined,
         hasSchemaDir: true,
         isAllowSyntheticDefaultImports: true,
@@ -78,24 +78,22 @@ export type MyError = Error;
       });
 
       expect(dep).toBe(
-        "import {\n  Error as ErrorSchema\n} from '../models/index.zod';\n" +
-          "import type {\n  Error\n} from '../models/index.zod';\n",
+        "import {\n  Error as ErrorSchema\n} from '../models';\n" +
+          "import type {\n  Error\n} from '../models';\n",
       );
     });
 
     it('escapes regex metacharacters when matching referenced imports', () => {
       const dep = addDependency({
         implementation: 'const value = schema$Value.parse(data);',
-        dependency: '../models/index.zod',
+        dependency: '../models',
         projectName: undefined,
         hasSchemaDir: true,
         isAllowSyntheticDefaultImports: true,
         exports: [{ name: 'schema$Value', values: true }],
       });
 
-      expect(dep).toBe(
-        "import {\n  schema$Value\n} from '../models/index.zod';\n",
-      );
+      expect(dep).toBe("import {\n  schema$Value\n} from '../models';\n");
     });
   });
 });
