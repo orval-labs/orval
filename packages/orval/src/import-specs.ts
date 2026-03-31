@@ -76,7 +76,7 @@ export function normalizeLeftoverNullable(obj: unknown): void {
 
   const record = obj as Record<string, unknown>;
 
-  if (record.nullable === true && !('type' in record)) {
+  if (record.nullable === true && !('type' in record) && !('$ref' in record)) {
     // Build the rest-schema (everything except `nullable`)
     const rest: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(record)) {

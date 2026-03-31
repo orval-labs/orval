@@ -823,6 +823,19 @@ describe('normalizeLeftoverNullable', () => {
       }).not.toThrow();
     }
   });
+
+  it('should not convert { nullable: true, $ref: ... } to avoid breaking circular ref detection', () => {
+    const schema: Record<string, unknown> = {
+      nullable: true,
+      $ref: '#/components/schemas/Node',
+    };
+    normalizeLeftoverNullable(schema);
+    // $ref schemas must stay as-is; the core ref resolver handles nullable on $ref
+    expect(schema).toEqual({
+      nullable: true,
+      $ref: '#/components/schemas/Node',
+    });
+  });
 });
 
 describe('validateComponentKeys', () => {
