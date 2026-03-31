@@ -817,11 +817,13 @@ describe('normalizeLeftoverNullable', () => {
   });
 
   it('should handle null and primitive values gracefully', () => {
+    // eslint-disable-next-line unicorn/no-null -- testing runtime safety with null input
+    const nullValue = null;
     expect(() => {
-      normalizeLeftoverNullable(null as unknown);
+      normalizeLeftoverNullable(nullValue);
     }).not.toThrow();
     expect(() => {
-      normalizeLeftoverNullable(undefined as unknown);
+      normalizeLeftoverNullable(undefined);
     }).not.toThrow();
     expect(() => {
       normalizeLeftoverNullable('string');
