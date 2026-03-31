@@ -376,11 +376,11 @@ const generateQueryImplementation = ({
   // This avoids TS1016 "required param cannot follow optional param"
   const httpFirstParam = adapter.getHttpFirstParam(mutator);
 
+  if (useFlatInput) {
+    checkFlatInputCollisions(operationName, props, queryParams);
+  }
   const flatInput = useFlatInput
-    ? (() => {
-        checkFlatInputCollisions(operationName, props, queryParams);
-        return buildFlatInput(props, queryParams);
-      })()
+    ? buildFlatInput(props, queryParams)
     : undefined;
 
   const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${httpFirstParam}${queryProps} ${queryArgumentsForOptions}) => {

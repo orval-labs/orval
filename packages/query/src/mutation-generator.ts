@@ -120,16 +120,11 @@ export const generateMutationHook = async ({
 
   const useFlatInput = !!override.useFlatInput;
 
+  if (useFlatInput) {
+    checkFlatInputCollisions(operationName, props, queryParams);
+  }
   const flatInput = useFlatInput
-    ? (() => {
-        checkFlatInputCollisions(operationName, props, queryParams);
-        return buildFlatInput(
-          props,
-          queryParams,
-          body.definition,
-          mutator?.bodyTypeName,
-        );
-      })()
+    ? buildFlatInput(props, queryParams, body.definition, mutator?.bodyTypeName)
     : undefined;
 
   const definitions = props
