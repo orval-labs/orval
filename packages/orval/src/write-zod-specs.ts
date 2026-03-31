@@ -166,7 +166,7 @@ async function writeZodSchemaIndex(
   shouldMergeExisting = false,
 ) {
   const importFileExtension = fileExtension.replace(/\.ts$/, '');
-  const indexPath = path.join(schemasPath, `index${fileExtension}`);
+  const indexPath = path.join(schemasPath, `index.ts`);
 
   let existingExports = '';
   if (shouldMergeExisting && (await fs.pathExists(indexPath))) {

@@ -58,11 +58,7 @@ export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
   const basePath = schemaInfo?.dirname;
   const relativeSchemaImportPath = basePath
     ? isZodSchemaOutput && output.indexFiles
-      ? upath.getRelativeImportPath(
-          targetInfo.path,
-          path.join(basePath, 'index.zod'),
-          true,
-        )
+      ? upath.getRelativeImportPath(targetInfo.path, basePath, true)
       : upath.getRelativeImportPath(targetInfo.path, basePath)
     : './' + targetInfo.filename + '.schemas';
 
@@ -393,11 +389,7 @@ const generateHttpClientFiles = async (
   const basePath = schemasPath ? getFileInfo(schemasPath).dirname : undefined;
   const relativeSchemasPath = basePath
     ? isZodSchemaOutput && output.indexFiles
-      ? upath.getRelativeImportPath(
-          targetPath,
-          path.join(basePath, 'index.zod'),
-          true,
-        )
+      ? upath.getRelativeImportPath(targetPath, basePath, true)
       : upath.getRelativeImportPath(targetPath, basePath)
     : './' + filename + '.schemas';
 

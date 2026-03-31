@@ -15,14 +15,14 @@ import { Injectable, inject } from '@angular/core';
 
 import { Observable } from 'rxjs';
 
-import { Pet, Pets } from '../model/index.zod';
+import { Pet, Pets } from '../model';
 import type {
   CreatePetsBody,
   ListPetsParams,
   PetOutput,
   PetsOutput,
   SearchPetsParams,
-} from '../model/index.zod';
+} from '../model';
 
 import { map } from 'rxjs';
 

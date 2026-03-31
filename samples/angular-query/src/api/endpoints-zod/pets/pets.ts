@@ -25,13 +25,13 @@ import { fromEvent, lastValueFrom } from 'rxjs';
 
 import { map, takeUntil } from 'rxjs/operators';
 
-import { Pet, PetWithTag, Pets } from '../../model-zod/index.zod';
+import { Pet, PetWithTag, Pets } from '../../model-zod';
 import type {
   CreatePetsBody,
   CreatePetsParams,
   Error,
   ListPetsParams,
-} from '../../model-zod/index.zod';
+} from '../../model-zod';
 
 type AngularHttpParamValue =
   | string

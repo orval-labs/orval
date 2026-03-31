@@ -35,12 +35,12 @@ import {
   Pet,
   PetWithTag,
   Pets
-} from './model/index.zod';
+} from './model';
 import type {
   CreatePetsBody,
   CreatePetsParams,
   ListPetsParams
-} from './model/index.zod';
+} from './model';
 
 import {
   faker
@@ -59,7 +59,7 @@ import type {
   Dachshund,
   Dog,
   Labradoodle
-} from './model/index.zod';
+} from './model';
 
 export type OrvalHttpResourceOptions<TValue, TRaw = unknown, TOmitParse extends boolean = true> = TOmitParse extends true
   ? Omit<HttpResourceOptions<TValue, TRaw>, 'parse'>

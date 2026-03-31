@@ -31,14 +31,14 @@ import type {
   Pet,
   PetWithTag,
   Pets,
-} from './model/index.zod';
+} from './model';
 
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-import type { Cat, Dachshund, Dog, Labradoodle } from './model/index.zod';
+import type { Cat, Dachshund, Dog, Labradoodle } from './model';
 
 /**
  * @summary List all pets

@@ -19,7 +19,7 @@ import { fromEvent, lastValueFrom } from 'rxjs';
 
 import { takeUntil } from 'rxjs/operators';
 
-import type { Error } from '../../model-zod/index.zod';
+import type { Error } from '../../model-zod';
 
 /**
  * @summary health check
