@@ -355,6 +355,10 @@ const request$ = http.get<Pets>(url, { params: httpParams })
 
 Validation is automatically skipped for primitive response types (`string`, `void`, etc.) and for operations using a custom mutator.
 
+## Flat Input
+
+When `useFlatInput: true` is set, Orval flattens path params, query params, and body into a single object argument.
+
 ## Full Example
 
 See the [Angular Query sample](https://github.com/orval-labs/orval/tree/master/samples/angular-query) on GitHub.

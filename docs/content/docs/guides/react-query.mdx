@@ -149,6 +149,18 @@ export const useSetListPetsQueryData = () => {
 };
 ```
 
+## Flat Input
+
+When `useFlatInput: true` is set, Orval flattens path params, query params, and body into a single object argument:
+
+```ts
+// Before
+useGetUserOrders(userId, params, options);
+
+// After
+useGetUserOrders({ userId, status, page }, options);
+```
+
 ## Full Example
 
 See the [complete React Query example](https://github.com/orval-labs/orval/blob/master/samples/react-query/basic) on GitHub.

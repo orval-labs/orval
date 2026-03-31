@@ -1286,6 +1286,15 @@ Use TypeScript `type` instead of `interface`.
 
 Use named parameters object instead of positional arguments.
 
+### useFlatInput
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Flatten path params, query params, and body into a single object argument for query hooks and mutations. Uses TypeScript intersection types.
+
+Cannot be used together with `useNamedParameters`.
+
 ### useDeprecatedOperations
 
 **Type:** `Boolean`
