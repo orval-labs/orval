@@ -8,7 +8,7 @@ import {
   ListPetsParams,
   CreatePetsParams,
   CreatePetsBody,
-} from './http-schemas/index.zod';
+} from './http-schemas';
 
 import {
   listPets,

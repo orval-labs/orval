@@ -21,7 +21,7 @@ export function generateImportsForBuilder(
       ? [
           {
             exports: imports.filter((i) => !i.importPath),
-            dependency: upath.joinSafe(relativeSchemasPath, 'index.zod'),
+            dependency: relativeSchemasPath,
           },
         ]
       : [
