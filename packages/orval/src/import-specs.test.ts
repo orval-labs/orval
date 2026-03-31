@@ -817,10 +817,18 @@ describe('normalizeLeftoverNullable', () => {
   });
 
   it('should handle null and primitive values gracefully', () => {
-    expect(() => normalizeLeftoverNullable(null)).not.toThrow();
-    expect(() => normalizeLeftoverNullable(undefined)).not.toThrow();
-    expect(() => normalizeLeftoverNullable('string')).not.toThrow();
-    expect(() => normalizeLeftoverNullable(42)).not.toThrow();
+    expect(() => {
+      normalizeLeftoverNullable(null as unknown);
+    }).not.toThrow();
+    expect(() => {
+      normalizeLeftoverNullable(undefined as unknown);
+    }).not.toThrow();
+    expect(() => {
+      normalizeLeftoverNullable('string');
+    }).not.toThrow();
+    expect(() => {
+      normalizeLeftoverNullable(42);
+    }).not.toThrow();
   });
 });
 

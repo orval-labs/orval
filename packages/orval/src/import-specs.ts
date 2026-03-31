@@ -84,7 +84,10 @@ export function normalizeLeftoverNullable(obj: unknown): void {
     }
 
     // Clear the original object and replace with anyOf wrapper
-    for (const key of Object.keys(record)) delete record[key];
+    for (const key of Object.keys(record)) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- mutating in-place by design
+      delete record[key];
+    }
     record.anyOf = [Object.keys(rest).length > 0 ? rest : {}, { type: 'null' }];
   }
 
