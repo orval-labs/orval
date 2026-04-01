@@ -17,6 +17,7 @@ import {
   getMutationRequestArgs,
   getQueryErrorType,
 } from './client';
+import { buildFlatInput, checkFlatInputCollisions } from './flat-input';
 import type { FrameworkAdapter } from './framework-adapter';
 import { getQueryOptionsDefinition } from './query-options';
 
@@ -102,6 +103,7 @@ export const generateMutationHook = async ({
     response,
     operationId,
     override,
+    queryParams,
   } = verbOptions;
   const { route, context, output } = options;
   const query = override.query;
@@ -116,6 +118,15 @@ export const generateMutationHook = async ({
       })
     : undefined;
 
+  const useFlatInput = !!override.useFlatInput;
+
+  if (useFlatInput) {
+    checkFlatInputCollisions(operationName, props, queryParams);
+  }
+  const flatInput = useFlatInput
+    ? buildFlatInput(props, queryParams, body.definition, mutator?.bodyTypeName)
+    : undefined;
+
   const definitions = props
     .map(({ definition, type }) =>
       type === GetterPropType.BODY
@@ -126,9 +137,11 @@ export const generateMutationHook = async ({
     )
     .join(';');
 
-  const properties = props
-    .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
-    .join(',');
+  const properties = flatInput
+    ? flatInput.properties
+    : props
+        .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
+        .join(',');
 
   const errorType = getQueryErrorType(
     operationName,
@@ -145,6 +158,7 @@ export const generateMutationHook = async ({
     operationName,
     mutator,
     definitions,
+    overrideVariableType: flatInput?.type,
     prefix: adapter.getQueryOptionsDefinitionPrefix(),
     hasQueryV5: adapter.hasQueryV5,
     hasQueryV5WithInfiniteQueryOptionsError:
@@ -171,6 +185,7 @@ export const generateMutationHook = async ({
   const mutationArguments = adapter.generateQueryArguments({
     operationName,
     definitions,
+    overrideVariableType: flatInput?.type,
     mutator,
     isRequestOptions,
     httpClient,
@@ -181,6 +196,7 @@ export const generateMutationHook = async ({
   const mutationArgumentsForOptions = adapter.generateQueryArguments({
     operationName,
     definitions,
+    overrideVariableType: flatInput?.type,
     mutator,
     isRequestOptions,
     httpClient,
@@ -221,11 +237,11 @@ ${hooksOptionImplementation}
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<${dataType}>>, ${
-        definitions ? `{${definitions}}` : 'void'
+        flatInput?.type ?? (definitions ? `{${definitions}}` : 'void')
       }> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props ?? {};` : ''}
 
-          return  ${operationName}(${adapter.getMutationHttpPrefix(mutator)}${properties}${
+          return  ${operationName}(${adapter.getMutationHttpPrefix(mutator)}${flatInput?.callArgs ?? properties}${
             properties ? ',' : ''
           }${getMutationRequestArgs(isRequestOptions, httpClient, mutator)})
         }
@@ -282,7 +298,8 @@ ${
 
   const mutationReturnType = adapter.getMutationReturnType({
     dataType,
-    variableType: definitions ? `{${definitions}}` : 'void',
+    variableType:
+      flatInput?.type ?? (definitions ? `{${definitions}}` : 'void'),
   });
 
   const mutationHookBody = adapter.generateMutationHookBody({

@@ -116,6 +116,7 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => ({
   generateQueryArguments({
     operationName,
     definitions,
+    overrideVariableType,
     mutator,
     isRequestOptions,
     type,
@@ -130,6 +131,7 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => ({
       operationName,
       mutator,
       definitions,
+      overrideVariableType,
       type,
       prefix,
       hasQueryV5: adapter.hasQueryV5,

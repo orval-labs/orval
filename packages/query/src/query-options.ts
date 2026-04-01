@@ -76,6 +76,7 @@ export const getQueryOptionsDefinition = ({
   operationName,
   mutator,
   definitions,
+  overrideVariableType,
   type,
   prefix,
   hasQueryV5,
@@ -89,6 +90,7 @@ export const getQueryOptionsDefinition = ({
   operationName: string;
   mutator?: GeneratorMutator;
   definitions: string;
+  overrideVariableType?: string;
   type?: QueryType;
   /** 'Use' or 'Create' — from adapter.getQueryOptionsDefinitionPrefix() */
   prefix: string;
@@ -101,6 +103,8 @@ export const getQueryOptionsDefinition = ({
   adapter?: FrameworkAdapter;
 }) => {
   const isMutatorHook = mutator?.isHook;
+  const varType =
+    overrideVariableType ?? (definitions ? `{${definitions}}` : 'void');
   const partialOptions = !isReturnType && hasQueryV5;
 
   if (type) {
@@ -177,10 +181,10 @@ export const getQueryOptionsDefinition = ({
         isMutatorHook
           ? `ReturnType<typeof use${pascal(operationName)}Hook>`
           : `typeof ${operationName}`
-      }>>, TError,${definitions ? `{${definitions}}` : 'void'}, TContext>`
+      }>>, TError,${varType}, TContext>`
     : `${prefix}MutationOptions<Awaited<ReturnType<${
         isMutatorHook
           ? `ReturnType<typeof use${pascal(operationName)}Hook>`
           : `typeof ${operationName}`
-      }>>, TError,${definitions ? `{${definitions}}` : 'void'}, TContext>`;
+      }>>, TError,${varType}, TContext>`;
 };

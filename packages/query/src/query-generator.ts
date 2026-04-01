@@ -21,6 +21,7 @@ import {
 } from '@orval/core';
 
 import { getHookOptions, getQueryErrorType, getQueryOptions } from './client';
+import { buildFlatInput, checkFlatInputCollisions } from './flat-input';
 import type { FrameworkAdapter } from './framework-adapter';
 import { generateMutationHook } from './mutation-generator';
 import {
@@ -159,6 +160,7 @@ const generateQueryImplementation = ({
   useInfinite,
   useInvalidate,
   useSetQueryData,
+  useFlatInput,
   adapter,
 }: {
   queryOption: {
@@ -189,6 +191,7 @@ const generateQueryImplementation = ({
   useInfinite?: boolean;
   useInvalidate?: boolean;
   useSetQueryData?: boolean;
+  useFlatInput: boolean;
   adapter: FrameworkAdapter;
 }) => {
   const {
@@ -373,6 +376,13 @@ const generateQueryImplementation = ({
   // This avoids TS1016 "required param cannot follow optional param"
   const httpFirstParam = adapter.getHttpFirstParam(mutator);
 
+  if (useFlatInput) {
+    checkFlatInputCollisions(operationName, props, queryParams);
+  }
+  const flatInput = useFlatInput
+    ? buildFlatInput(props, queryParams)
+    : undefined;
+
   const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${httpFirstParam}${queryProps} ${queryArgumentsForOptions}) => {
 
 ${hookOptions}
@@ -438,11 +448,6 @@ ${hookOptions}
 
   const queryHookName = camel(`${operationPrefix}-${name}`);
 
-  const overrideTypes = `
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${definedInitialDataQueryPropsDefinitions} ${definedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${definedInitialDataReturnType}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}`;
-
   const prefetch = generatePrefetch({
     usePrefetch,
     type,
@@ -506,6 +511,23 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
 
   const queryInvocationSuffix = adapter.getQueryInvocationSuffix();
 
+  const hookProps = flatInput
+    ? flatInput.destructure
+    : adapter.getHookPropsDefinitions(props);
+
+  const hookPropsForDefinedInitialData = flatInput
+    ? flatInput.destructure
+    : definedInitialDataQueryPropsDefinitions;
+
+  const hookPropsForOverloads = flatInput
+    ? flatInput.destructure
+    : queryPropDefinitions;
+
+  const overrideTypes = `
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${hookPropsForDefinedInitialData} ${definedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${definedInitialDataReturnType}
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${hookPropsForOverloads} ${undefinedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${hookPropsForOverloads} ${queryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}`;
+
   return `
 ${queryOptionsFn}
 
@@ -516,9 +538,7 @@ export type ${pascal(name)}QueryError = ${errorType}
 
 ${adapter.shouldGenerateOverrideTypes() ? overrideTypes : ''}
 ${doc}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${adapter.getHookPropsDefinitions(
-    props,
-  )} ${queryArguments} ${optionalQueryClientArgument} \n ): ${returnType} {
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${hookProps} ${queryArguments} ${optionalQueryClientArgument} \n ): ${returnType} {
 
   ${queryInit}
 
@@ -598,6 +618,12 @@ export const generateQueryHook = async (
   const query = override.query;
   const isRequestOptions = override.requestOptions !== false;
   const operationQueryOptions = operations[operationId]?.query;
+
+  if (override.useFlatInput && override.useNamedParameters) {
+    throw new Error(
+      'useFlatInput and useNamedParameters cannot be used together. useFlatInput already flattens all parameters into a single object.',
+    );
+  }
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
 
@@ -827,6 +853,7 @@ ${queryKeyFns}`;
         useInvalidate: query.useInvalidate,
         useSetQueryData:
           operationQueryOptions?.useSetQueryData ?? query.useSetQueryData,
+        useFlatInput: !!override.useFlatInput,
         adapter,
       });
     }

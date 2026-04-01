@@ -191,6 +191,7 @@ export const createAngularAdapter = ({
     generateQueryArguments({
       operationName,
       definitions,
+      overrideVariableType,
       mutator,
       isRequestOptions,
       type,
@@ -205,6 +206,7 @@ export const createAngularAdapter = ({
         operationName,
         mutator,
         definitions,
+        overrideVariableType,
         type,
         prefix,
         hasQueryV5,

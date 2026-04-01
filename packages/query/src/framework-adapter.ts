@@ -207,6 +207,7 @@ export interface FrameworkAdapter {
   generateQueryArguments(args: {
     operationName: string;
     definitions: string;
+    overrideVariableType?: string;
     mutator?: GeneratorMutator;
     isRequestOptions: boolean;
     type?: (typeof QueryType)[keyof typeof QueryType];
