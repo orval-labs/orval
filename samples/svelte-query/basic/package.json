@@ -23,7 +23,7 @@
     "@eslint/compat": "^2.0.2",
     "@faker-js/faker": "catalog:tooling",
     "@sveltejs/adapter-auto": "^2.1.1",
-    "@sveltejs/kit": "^1.30.4",
+    "@sveltejs/kit": "^2.55.0",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-svelte": "^3.15.0",
