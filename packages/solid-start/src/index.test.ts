@@ -75,6 +75,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
         usePrefetch: false,
         useInvalidate: false,
         useSetQueryData: false,
+        useGetQueryData: false,
         shouldExportMutatorHooks: false,
         shouldExportHttpClient: false,
         shouldExportQueryKey: false,

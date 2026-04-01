@@ -679,6 +679,7 @@ export interface NormalizedQueryOptions {
   usePrefetch?: boolean;
   useInvalidate?: boolean;
   useSetQueryData?: boolean;
+  useGetQueryData?: boolean;
 
   options?: Record<string, unknown>;
   queryKey?: NormalizedMutator;
@@ -705,6 +706,7 @@ export interface QueryOptions {
   usePrefetch?: boolean;
   useInvalidate?: boolean;
   useSetQueryData?: boolean;
+  useGetQueryData?: boolean;
 
   options?: Record<string, unknown>;
   queryKey?: Mutator;
