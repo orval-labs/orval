@@ -31,7 +31,7 @@ export const getAngularFilteredParamsExpression = (
   const filteredParamValueType = `string | number | boolean${preserveRequiredNullables ? ' | null' : ''} | Array<string | number | boolean>`;
   const preserveNullableBranch = preserveRequiredNullables
     ? `    } else if (value === null && requiredNullableParamKeys.has(key)) {
-      filteredParams[key] = value;
+      filteredParams[key] = null;
 `
     : '';
   const scalarBranch = `    } else if (
@@ -106,7 +106,7 @@ function filterParams(
       value === null &&
       requiredNullableKeys.has(key)
     ) {
-      filteredParams[key] = value;
+      filteredParams[key] = null;
     } else if (
       value != null &&
       (typeof value === 'string' ||
