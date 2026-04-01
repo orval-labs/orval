@@ -312,8 +312,11 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     })
     .join(',');
 
+  const useRuntimeFetcher = override.fetch.useRuntimeFetcher;
   const fetchFnParam =
-    isRequestOptions && !mutator ? ', fetchFn?: typeof globalThis.fetch' : '';
+    useRuntimeFetcher && isRequestOptions && !mutator
+      ? ', fetchFn?: typeof globalThis.fetch'
+      : '';
   const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}${fetchFnParam}`;
   const returnType =
     override.fetch.forceSuccessResponse && hasSuccess
@@ -398,7 +401,8 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     err.status = ${isNdJson ? 'stream' : 'res'}.status;
     throw err;
   }`;
-  const fetchFnCall = isRequestOptions ? '(fetchFn ?? fetch)' : 'fetch';
+  const fetchFnCall =
+    useRuntimeFetcher && isRequestOptions ? '(fetchFn ?? fetch)' : 'fetch';
   const fetchResponseImplementation = isNdJson
     ? `  const stream = await ${fetchFnCall}(${fetchFnOptions});
   ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}

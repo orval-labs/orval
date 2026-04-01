@@ -216,6 +216,7 @@ export interface FrameworkAdapter {
     httpClient: OutputHttpClient;
     forQueryOptions?: boolean;
     hasInvalidation?: boolean;
+    useRuntimeFetcher?: boolean;
   }): string;
 
   // --- Mutation Hook Generation ---

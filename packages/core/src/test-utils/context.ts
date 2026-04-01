@@ -121,6 +121,7 @@ export function createTestContextSpec({
         includeHttpResponseReturnType: false,
         forceSuccessResponse: false,
         runtimeValidation: false,
+        useRuntimeFetcher: false,
       },
       enumGenerationType: EnumGeneration.UNION,
       jsDoc: {},

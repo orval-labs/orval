@@ -505,12 +505,13 @@ export const getSignalDefinition = ({
 export const getQueryArgumentsRequestType = (
   httpClient: OutputHttpClient,
   mutator?: GeneratorMutator,
+  useRuntimeFetcher?: boolean,
 ) => {
   if (!mutator) {
     if (httpClient === OutputHttpClient.AXIOS) {
       return `axios?: AxiosRequestConfig`;
     }
-    if (httpClient === OutputHttpClient.FETCH) {
+    if (httpClient === OutputHttpClient.FETCH && useRuntimeFetcher) {
       return 'fetch?: RequestInit, fetcher?: typeof globalThis.fetch';
     }
     return 'fetch?: RequestInit';
@@ -534,6 +535,7 @@ export const getQueryOptions = ({
   hasSignal,
   httpClient,
   hasSignalParam = false,
+  useRuntimeFetcher = false,
 }: {
   isRequestOptions: boolean;
   mutator?: GeneratorMutator;
@@ -541,6 +543,7 @@ export const getQueryOptions = ({
   hasSignal: boolean;
   httpClient: OutputHttpClient;
   hasSignalParam?: boolean;
+  useRuntimeFetcher?: boolean;
 }) => {
   // Use querySignal if API has a param named "signal" to avoid conflict
   const signalVar = hasSignalParam ? 'querySignal' : 'signal';
@@ -551,7 +554,9 @@ export const getQueryOptions = ({
     const options =
       httpClient === OutputHttpClient.AXIOS ? 'axiosOptions' : 'fetchOptions';
     const fetcherArg =
-      httpClient === OutputHttpClient.FETCH ? ', fetcherFn' : '';
+      httpClient === OutputHttpClient.FETCH && useRuntimeFetcher
+        ? ', fetcherFn'
+        : '';
 
     if (!hasSignal) {
       return `${options}${fetcherArg}`;
@@ -607,10 +612,12 @@ export const getHookOptions = ({
   isRequestOptions,
   httpClient,
   mutator,
+  useRuntimeFetcher = false,
 }: {
   isRequestOptions: boolean;
   httpClient: OutputHttpClient;
   mutator?: GeneratorMutator;
+  useRuntimeFetcher?: boolean;
 }) => {
   if (!isRequestOptions) {
     return '';
@@ -621,7 +628,7 @@ export const getHookOptions = ({
   if (!mutator) {
     if (httpClient === OutputHttpClient.AXIOS) {
       value += ', axios: axiosOptions';
-    } else if (httpClient === OutputHttpClient.FETCH) {
+    } else if (httpClient === OutputHttpClient.FETCH && useRuntimeFetcher) {
       value += ', fetch: fetchOptions, fetcher: fetcherFn';
     } else {
       value += ', fetch: fetchOptions';
@@ -676,11 +683,16 @@ export const getHooksOptionImplementation = (
   httpClient: OutputHttpClient,
   operationName: string,
   mutator?: GeneratorMutator,
+  useRuntimeFetcher?: boolean,
 ) => {
+  const fetcherOption =
+    httpClient === OutputHttpClient.FETCH && useRuntimeFetcher
+      ? ', fetcher: fetcherFn'
+      : '';
   const options =
     httpClient === OutputHttpClient.AXIOS
       ? ', axios: axiosOptions'
-      : ', fetch: fetchOptions';
+      : `, fetch: fetchOptions${fetcherOption}`;
 
   return isRequestOptions
     ? `const mutationKey = ['${operationName}'];
@@ -702,9 +714,14 @@ export const getMutationRequestArgs = (
   isRequestOptions: boolean,
   httpClient: OutputHttpClient,
   mutator?: GeneratorMutator,
+  useRuntimeFetcher?: boolean,
 ) => {
   const options =
     httpClient === OutputHttpClient.AXIOS ? 'axiosOptions' : 'fetchOptions';
+  const fetcherArg =
+    httpClient === OutputHttpClient.FETCH && useRuntimeFetcher
+      ? ', fetcherFn'
+      : '';
 
   // For Angular mutators with hasSecondArg, pass http (which is injected in inject* fn)
   // http is required as first param so no assertion needed
@@ -717,7 +734,7 @@ export const getMutationRequestArgs = (
       ? mutator.hasSecondArg
         ? 'requestOptions'
         : ''
-      : options
+      : `${options}${fetcherArg}`
     : '';
 };
 
