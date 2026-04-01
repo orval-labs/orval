@@ -152,6 +152,7 @@ const generateQueryImplementation = ({
   httpClient,
   isExactOptionalPropertyTypes,
   hasSignal,
+  useRuntimeFetcher,
   route,
   doc,
   usePrefetch,
@@ -182,6 +183,7 @@ const generateQueryImplementation = ({
   httpClient: OutputHttpClient;
   isExactOptionalPropertyTypes: boolean;
   hasSignal: boolean;
+  useRuntimeFetcher?: boolean;
   route: string;
   doc?: string;
   usePrefetch?: boolean;
@@ -267,6 +269,7 @@ const generateQueryImplementation = ({
     queryParam,
     initialData: 'defined',
     httpClient,
+    useRuntimeFetcher,
   });
   const undefinedInitialDataQueryArguments = adapter.generateQueryArguments({
     operationName,
@@ -278,6 +281,7 @@ const generateQueryImplementation = ({
     queryParam,
     initialData: 'undefined',
     httpClient,
+    useRuntimeFetcher,
   });
   const queryArguments = adapter.generateQueryArguments({
     operationName,
@@ -288,6 +292,7 @@ const generateQueryImplementation = ({
     queryParams,
     queryParam,
     httpClient,
+    useRuntimeFetcher,
   });
 
   // Separate arguments for getQueryOptions function (includes http: HttpClient param for Angular)
@@ -301,6 +306,7 @@ const generateQueryImplementation = ({
     queryParam,
     httpClient,
     forQueryOptions: true,
+    useRuntimeFetcher,
   });
 
   const queryOptions = getQueryOptions({
@@ -310,12 +316,14 @@ const generateQueryImplementation = ({
     hasSignal,
     httpClient,
     hasSignalParam,
+    useRuntimeFetcher,
   });
 
   const hookOptions = getHookOptions({
     isRequestOptions,
     httpClient,
     mutator,
+    useRuntimeFetcher,
   });
 
   const queryFnArguments = getQueryFnArguments({
@@ -817,6 +825,7 @@ ${queryKeyFns}`;
         hasSignal: getHasSignal({
           overrideQuerySignal: override.query.signal,
         }),
+        useRuntimeFetcher: override.fetch.useRuntimeFetcher,
         queryOptionsMutator,
         queryKeyMutator,
         route,

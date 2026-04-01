@@ -229,7 +229,7 @@ describe('getQueryOptions', () => {
   };
 
   describe('without mutator', () => {
-    it('should return fetchOptions with fetcherFn for fetch client', () => {
+    it('should return fetchOptions without fetcherFn for fetch client by default', () => {
       const result = getQueryOptions({
         isRequestOptions: true,
         mutator: undefined,
@@ -237,7 +237,7 @@ describe('getQueryOptions', () => {
         hasSignal: false,
         httpClient: OutputHttpClient.FETCH,
       });
-      expect(result).toBe('fetchOptions, fetcherFn');
+      expect(result).toBe('fetchOptions');
     });
 
     it('should return axiosOptions for axios client', () => {
@@ -251,7 +251,7 @@ describe('getQueryOptions', () => {
       expect(result).toBe('axiosOptions');
     });
 
-    it('should wrap signal in object for fetch client with signal and append fetcherFn', () => {
+    it('should wrap signal in object for fetch client with signal without fetcherFn by default', () => {
       const result = getQueryOptions({
         isRequestOptions: true,
         mutator: undefined,
@@ -259,7 +259,7 @@ describe('getQueryOptions', () => {
         hasSignal: true,
         httpClient: OutputHttpClient.FETCH,
       });
-      expect(result).toBe('{ signal, ...fetchOptions }, fetcherFn');
+      expect(result).toBe('{ signal, ...fetchOptions }');
     });
   });
 
@@ -372,13 +372,25 @@ describe('getQueryOptions', () => {
       expect(result).toBe('{ signal: querySignal, ...axiosOptions }');
     });
 
-    it('should use querySignal for fetch with signal param conflict and append fetcherFn', () => {
+    it('should use querySignal for fetch with signal param conflict without fetcherFn by default', () => {
       const result = getQueryOptions({
         isRequestOptions: true,
         isExactOptionalPropertyTypes: false,
         hasSignal: true,
         httpClient: OutputHttpClient.FETCH,
         hasSignalParam: true,
+      });
+      expect(result).toBe('{ signal: querySignal, ...fetchOptions }');
+    });
+
+    it('should use querySignal for fetch with signal param conflict and append fetcherFn when useRuntimeFetcher is true', () => {
+      const result = getQueryOptions({
+        isRequestOptions: true,
+        isExactOptionalPropertyTypes: false,
+        hasSignal: true,
+        httpClient: OutputHttpClient.FETCH,
+        hasSignalParam: true,
+        useRuntimeFetcher: true,
       });
       expect(result).toBe(
         '{ signal: querySignal, ...fetchOptions }, fetcherFn',
@@ -513,8 +525,17 @@ describe('generateRequestOptionsArguments with hasSignalParam', () => {
 });
 
 describe('getQueryArgumentsRequestType - fetcher support', () => {
-  it('should include fetcher type for fetch client without mutator', () => {
+  it('should not include fetcher type for fetch client by default', () => {
     const result = getQueryArgumentsRequestType(OutputHttpClient.FETCH);
+    expect(result).toBe('fetch?: RequestInit');
+  });
+
+  it('should include fetcher type for fetch client when useRuntimeFetcher is true', () => {
+    const result = getQueryArgumentsRequestType(
+      OutputHttpClient.FETCH,
+      undefined,
+      true,
+    );
     expect(result).toBe(
       'fetch?: RequestInit, fetcher?: typeof globalThis.fetch',
     );
@@ -546,17 +567,30 @@ describe('getQueryArgumentsRequestType - fetcher support', () => {
     const result = getQueryArgumentsRequestType(
       OutputHttpClient.FETCH,
       mutator,
+      true,
     );
     expect(result).toBe('request?: SecondParameter<typeof customFetch>');
   });
 });
 
 describe('getHookOptions - fetcher support', () => {
-  it('should extract fetcherFn for fetch client without mutator', () => {
+  it('should not extract fetcherFn for fetch client by default', () => {
     const result = getHookOptions({
       isRequestOptions: true,
       httpClient: OutputHttpClient.FETCH,
       mutator: undefined,
+    });
+    expect(result).toBe(
+      'const {query: queryOptions, fetch: fetchOptions} = options ?? {};',
+    );
+  });
+
+  it('should extract fetcherFn for fetch client when useRuntimeFetcher is true', () => {
+    const result = getHookOptions({
+      isRequestOptions: true,
+      httpClient: OutputHttpClient.FETCH,
+      mutator: undefined,
+      useRuntimeFetcher: true,
     });
     expect(result).toBe(
       'const {query: queryOptions, fetch: fetchOptions, fetcher: fetcherFn} = options ?? {};',
@@ -596,6 +630,29 @@ describe('getHookOptions - fetcher support', () => {
 });
 
 describe('getQueryOptions - fetcher support', () => {
+  it('should not append fetcherFn for fetch client by default', () => {
+    const result = getQueryOptions({
+      isRequestOptions: true,
+      mutator: undefined,
+      isExactOptionalPropertyTypes: false,
+      hasSignal: false,
+      httpClient: OutputHttpClient.FETCH,
+    });
+    expect(result).toBe('fetchOptions');
+  });
+
+  it('should append fetcherFn for fetch client when useRuntimeFetcher is true', () => {
+    const result = getQueryOptions({
+      isRequestOptions: true,
+      mutator: undefined,
+      isExactOptionalPropertyTypes: false,
+      hasSignal: false,
+      httpClient: OutputHttpClient.FETCH,
+      useRuntimeFetcher: true,
+    });
+    expect(result).toBe('fetchOptions, fetcherFn');
+  });
+
   it('should not append fetcherFn for axios client', () => {
     const result = getQueryOptions({
       isRequestOptions: true,
@@ -618,13 +675,14 @@ describe('getQueryOptions - fetcher support', () => {
     expect(result).toBe('{ signal, ...fetchOptions }');
   });
 
-  it('should append fetcherFn with exactOptionalPropertyTypes for fetch', () => {
+  it('should append fetcherFn with exactOptionalPropertyTypes for fetch when useRuntimeFetcher is true', () => {
     const result = getQueryOptions({
       isRequestOptions: true,
       mutator: undefined,
       isExactOptionalPropertyTypes: true,
       hasSignal: true,
       httpClient: OutputHttpClient.FETCH,
+      useRuntimeFetcher: true,
     });
     expect(result).toBe(
       '{ ...(signal ? { signal } : {}), ...fetchOptions }, fetcherFn',
