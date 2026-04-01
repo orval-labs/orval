@@ -23,8 +23,9 @@ export const getAddUrl = () => {
 export const add = async (
   form: Form,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<addResponse> => {
-  const res = await fetch(getAddUrl(), {
+  const res = await (fetchFn ?? fetch)(getAddUrl(), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },

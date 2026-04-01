@@ -90,8 +90,9 @@ export const getHealthCheckUrl = () => {
 
 export const healthCheck = async (
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<healthCheckResponse> => {
-  const res = await fetch(getHealthCheckUrl(), {
+  const res = await (fetchFn ?? fetch)(getHealthCheckUrl(), {
     ...options,
     method: 'GET',
   });
@@ -118,14 +119,19 @@ export const getHealthCheckQueryOptions = <
     UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
   >;
   fetch?: RequestInit;
+  fetcher?: typeof globalThis.fetch;
 }) => {
-  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
+  const {
+    query: queryOptions,
+    fetch: fetchOptions,
+    fetcher: fetcherFn,
+  } = options ?? {};
 
   const queryKey = getHealthCheckQueryKey();
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = ({
     signal,
-  }) => healthCheck({ signal, ...fetchOptions });
+  }) => healthCheck({ signal, ...fetchOptions }, fetcherFn);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,
@@ -152,6 +158,7 @@ export function useHealthCheck<
       UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
     >;
     fetch?: RequestInit;
+    fetcher?: typeof globalThis.fetch;
   },
   queryClient?: QueryClient,
 ): UseQueryReturnType<TData, TError> & {

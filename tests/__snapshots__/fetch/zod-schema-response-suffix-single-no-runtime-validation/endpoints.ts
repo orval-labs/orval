@@ -22,8 +22,9 @@ export const getGetPortfolioUrl = () => {
 
 export const getPortfolio = async (
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<getPortfolioResponse> => {
-  const res = await fetch(getGetPortfolioUrl(), {
+  const res = await (fetchFn ?? fetch)(getGetPortfolioUrl(), {
     ...options,
     method: 'GET',
   });

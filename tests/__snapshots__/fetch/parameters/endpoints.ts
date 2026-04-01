@@ -111,11 +111,15 @@ export const listPetsByCountry = async (
   params?: ListPetsByCountryParams,
   country: CountryCode = 'UY',
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<listPetsByCountryResponse> => {
-  const res = await fetch(getListPetsByCountryUrl(params, country), {
-    ...options,
-    method: 'GET',
-  });
+  const res = await (fetchFn ?? fetch)(
+    getListPetsByCountryUrl(params, country),
+    {
+      ...options,
+      method: 'GET',
+    },
+  );
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
@@ -174,8 +178,9 @@ export const listPetsByAge = async (
   params?: ListPetsByAgeParams,
   age: number = 5,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<listPetsByAgeResponse> => {
-  const res = await fetch(getListPetsByAgeUrl(params, age), {
+  const res = await (fetchFn ?? fetch)(getListPetsByAgeUrl(params, age), {
     ...options,
     method: 'GET',
   });

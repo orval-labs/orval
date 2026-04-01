@@ -57,11 +57,15 @@ export const getUsersUserIdOrders = async (
   userId: number,
   params?: GetUsersUserIdOrdersParams,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<getUsersUserIdOrdersResponse> => {
-  const res = await fetch(getGetUsersUserIdOrdersUrl(userId, params), {
-    ...options,
-    method: 'GET',
-  });
+  const res = await (fetchFn ?? fetch)(
+    getGetUsersUserIdOrdersUrl(userId, params),
+    {
+      ...options,
+      method: 'GET',
+    },
+  );
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
@@ -97,19 +101,26 @@ export const getGetUsersUserIdOrdersQueryOptions = <
       >
     >;
     fetch?: RequestInit;
+    fetcher?: typeof globalThis.fetch;
   },
 ) => {
-  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
+  const {
+    query: queryOptions,
+    fetch: fetchOptions,
+    fetcher: fetcherFn,
+  } = options ?? {};
 
   const queryKey = getGetUsersUserIdOrdersQueryKey(userId, params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getUsersUserIdOrders>>
   > = ({ signal }) =>
-    getUsersUserIdOrders(unref(userId), unref(params), {
-      signal,
-      ...fetchOptions,
-    });
+    getUsersUserIdOrders(
+      unref(userId),
+      unref(params),
+      { signal, ...fetchOptions },
+      fetcherFn,
+    );
 
   return {
     queryKey,
@@ -147,6 +158,7 @@ export function useGetUsersUserIdOrders<
       >
     >;
     fetch?: RequestInit;
+    fetcher?: typeof globalThis.fetch;
   },
   queryClient?: QueryClient,
 ): UseQueryReturnType<TData, TError> & {

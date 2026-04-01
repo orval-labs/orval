@@ -84,12 +84,13 @@ export const getCreatePetsUrl = () => {
 export const createPets = async (
   createPetsBody: CreatePetsBody,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<createPetsResponse> => {
   const formUrlEncoded = new URLSearchParams();
   formUrlEncoded.append(`name`, createPetsBody.name);
   formUrlEncoded.append(`tag`, createPetsBody.tag);
 
-  const res = await fetch(getCreatePetsUrl(), {
+  const res = await (fetchFn ?? fetch)(getCreatePetsUrl(), {
     ...options,
     method: 'POST',
     headers: {

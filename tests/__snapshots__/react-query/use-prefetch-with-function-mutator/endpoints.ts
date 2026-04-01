@@ -8,11 +8,11 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
-  DefinedUseQueryResult, 
+  DefinedUseQueryResult,
   MutationFunction,
   QueryClient,
   QueryFunction,
-  QueryKey, 
+  QueryKey,
   UndefinedInitialDataOptions,
   UseMutationOptions,
   UseMutationResult,

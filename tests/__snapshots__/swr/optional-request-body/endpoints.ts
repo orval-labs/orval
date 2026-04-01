@@ -31,8 +31,9 @@ export const getCreatePetsUrl = () => {
 export const createPets = async (
   requiredPetBodyBody: RequiredPetBodyBody,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<createPetsResponse> => {
-  const res = await fetch(getCreatePetsUrl(), {
+  const res = await (fetchFn ?? fetch)(getCreatePetsUrl(), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -100,8 +101,9 @@ export const getUpdatePetsUrl = () => {
 export const updatePets = async (
   optionalPetBodyBody?: OptionalPetBodyBody,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<updatePetsResponse> => {
-  const res = await fetch(getUpdatePetsUrl(), {
+  const res = await (fetchFn ?? fetch)(getUpdatePetsUrl(), {
     ...options,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -169,8 +171,9 @@ export const getCreateCookiesUrl = () => {
 export const createCookies = async (
   cookie: Cookie,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<createCookiesResponse> => {
-  const res = await fetch(getCreateCookiesUrl(), {
+  const res = await (fetchFn ?? fetch)(getCreateCookiesUrl(), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -238,8 +241,9 @@ export const getUpdateCookiesUrl = () => {
 export const updateCookies = async (
   cookie?: Cookie,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<updateCookiesResponse> => {
-  const res = await fetch(getUpdateCookiesUrl(), {
+  const res = await (fetchFn ?? fetch)(getUpdateCookiesUrl(), {
     ...options,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
