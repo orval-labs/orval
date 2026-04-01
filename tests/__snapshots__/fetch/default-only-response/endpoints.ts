@@ -27,8 +27,9 @@ export const getListPetsUrl = () => {
 
 export const listPets = async (
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<listPetsResponse> => {
-  const res = await fetch(getListPetsUrl(), {
+  const res = await (fetchFn ?? fetch)(getListPetsUrl(), {
     ...options,
     method: 'GET',
   });

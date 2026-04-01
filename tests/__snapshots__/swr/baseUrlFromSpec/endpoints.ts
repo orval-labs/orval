@@ -29,8 +29,9 @@ export const getCreatePetUrl = () => {
 export const createPet = async (
   requiredPetBodyBody: RequiredPetBodyBody,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<createPetResponse> => {
-  const res = await fetch(getCreatePetUrl(), {
+  const res = await (fetchFn ?? fetch)(getCreatePetUrl(), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -98,8 +99,9 @@ export const getGetEchoUrl = () => {
 
 export const getEcho = async (
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<getEchoResponse> => {
-  const res = await fetch(getGetEchoUrl(), {
+  const res = await (fetchFn ?? fetch)(getGetEchoUrl(), {
     ...options,
     method: 'GET',
   });

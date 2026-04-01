@@ -53,8 +53,9 @@ export const getListPetsArrayUrl = (params?: ListPetsArrayParams) => {
 export const listPetsArray = async (
   params?: ListPetsArrayParams,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<listPetsArrayResponse> => {
-  const res = await fetch(getListPetsArrayUrl(params), {
+  const res = await (fetchFn ?? fetch)(getListPetsArrayUrl(params), {
     ...options,
     method: 'GET',
   });
@@ -215,8 +216,9 @@ export const getListPetsWrappedUrl = (params?: ListPetsWrappedParams) => {
 export const listPetsWrapped = async (
   params?: ListPetsWrappedParams,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<listPetsWrappedResponse> => {
-  const res = await fetch(getListPetsWrappedUrl(params), {
+  const res = await (fetchFn ?? fetch)(getListPetsWrappedUrl(params), {
     ...options,
     method: 'GET',
   });
@@ -364,8 +366,9 @@ export const getGetPetSingleUrl = () => {
 
 export const getPetSingle = async (
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<getPetSingleResponse> => {
-  const res = await fetch(getGetPetSingleUrl(), {
+  const res = await (fetchFn ?? fetch)(getGetPetSingleUrl(), {
     ...options,
     method: 'GET',
   });

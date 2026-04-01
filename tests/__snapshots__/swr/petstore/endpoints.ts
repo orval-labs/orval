@@ -111,8 +111,9 @@ export const listPets = async (
   params: ListPetsParams,
   version: number = 1,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<listPetsResponse> => {
-  const res = await fetch(getListPetsUrl(params, version), {
+  const res = await (fetchFn ?? fetch)(getListPetsUrl(params, version), {
     ...options,
     method: 'GET',
   });
@@ -212,8 +213,9 @@ export const createPets = async (
   params: CreatePetsParams,
   version: number = 1,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<createPetsResponse> => {
-  const res = await fetch(getCreatePetsUrl(params, version), {
+  const res = await (fetchFn ?? fetch)(getCreatePetsUrl(params, version), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -311,8 +313,9 @@ export const showPetById = async (
   petId: string,
   version: number = 1,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<showPetByIdResponse> => {
-  const res = await fetch(getShowPetByIdUrl(petId, version), {
+  const res = await (fetchFn ?? fetch)(getShowPetByIdUrl(petId, version), {
     ...options,
     method: 'GET',
   });
@@ -400,8 +403,9 @@ export const deletePetById = async (
   petId: string,
   version: number = 1,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<deletePetByIdResponse> => {
-  const res = await fetch(getDeletePetByIdUrl(petId, version), {
+  const res = await (fetchFn ?? fetch)(getDeletePetByIdUrl(petId, version), {
     ...options,
     method: 'DELETE',
   });
@@ -496,8 +500,9 @@ export const getHealthCheckUrl = (version: number = 1) => {
 export const healthCheck = async (
   version: number = 1,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<healthCheckResponse> => {
-  const res = await fetch(getHealthCheckUrl(version), {
+  const res = await (fetchFn ?? fetch)(getHealthCheckUrl(version), {
     ...options,
     method: 'GET',
   });
@@ -584,8 +589,9 @@ export const showPetWithOwner = async (
   petId: string,
   version: number = 1,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<showPetWithOwnerResponse> => {
-  const res = await fetch(getShowPetWithOwnerUrl(petId, version), {
+  const res = await (fetchFn ?? fetch)(getShowPetWithOwnerUrl(petId, version), {
     ...options,
     method: 'GET',
   });

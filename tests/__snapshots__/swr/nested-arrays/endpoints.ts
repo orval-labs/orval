@@ -35,8 +35,9 @@ export const getPostApiSampleUrl = () => {
 
 export const postApiSample = async (
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<postApiSampleResponse> => {
-  const res = await fetch(getPostApiSampleUrl(), {
+  const res = await (fetchFn ?? fetch)(getPostApiSampleUrl(), {
     ...options,
     method: 'POST',
   });

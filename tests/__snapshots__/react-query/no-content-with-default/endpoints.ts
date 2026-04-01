@@ -38,8 +38,9 @@ export const getCreateItemsUrl = () => {
 
 export const createItems = async (
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<createItemsResponse> => {
-  const res = await fetch(getCreateItemsUrl(), {
+  const res = await (fetchFn ?? fetch)(getCreateItemsUrl(), {
     ...options,
     method: 'GET',
   });
@@ -66,14 +67,19 @@ export const getCreateItemsQueryOptions = <
     UseQueryOptions<Awaited<ReturnType<typeof createItems>>, TError, TData>
   >;
   fetch?: RequestInit;
+  fetcher?: typeof globalThis.fetch;
 }) => {
-  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
+  const {
+    query: queryOptions,
+    fetch: fetchOptions,
+    fetcher: fetcherFn,
+  } = options ?? {};
 
   const queryKey = queryOptions?.queryKey ?? getCreateItemsQueryKey();
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof createItems>>> = ({
     signal,
-  }) => createItems({ signal, ...fetchOptions });
+  }) => createItems({ signal, ...fetchOptions }, fetcherFn);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof createItems>>,
@@ -104,6 +110,7 @@ export function useCreateItems<
         'initialData'
       >;
     fetch?: RequestInit;
+    fetcher?: typeof globalThis.fetch;
   },
   queryClient?: QueryClient,
 ): DefinedUseQueryResult<TData, TError> & {
@@ -126,6 +133,7 @@ export function useCreateItems<
         'initialData'
       >;
     fetch?: RequestInit;
+    fetcher?: typeof globalThis.fetch;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & {
@@ -140,6 +148,7 @@ export function useCreateItems<
       UseQueryOptions<Awaited<ReturnType<typeof createItems>>, TError, TData>
     >;
     fetch?: RequestInit;
+    fetcher?: typeof globalThis.fetch;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & {
@@ -158,6 +167,7 @@ export function useCreateItems<
       UseQueryOptions<Awaited<ReturnType<typeof createItems>>, TError, TData>
     >;
     fetch?: RequestInit;
+    fetcher?: typeof globalThis.fetch;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & {

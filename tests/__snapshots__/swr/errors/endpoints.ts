@@ -94,8 +94,9 @@ export const getCreateItemsUrl = () => {
 
 export const createItems = async (
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<createItemsResponse> => {
-  const res = await fetch(getCreateItemsUrl(), {
+  const res = await (fetchFn ?? fetch)(getCreateItemsUrl(), {
     ...options,
     method: 'GET',
   });

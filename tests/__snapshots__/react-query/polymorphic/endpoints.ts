@@ -42,8 +42,9 @@ export const getGetPolymorphicResponseUrl = () => {
 
 export const getPolymorphicResponse = async (
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<getPolymorphicResponseResponse> => {
-  const res = await fetch(getGetPolymorphicResponseUrl(), {
+  const res = await (fetchFn ?? fetch)(getGetPolymorphicResponseUrl(), {
     ...options,
     method: 'GET',
   });
@@ -76,15 +77,21 @@ export const getGetPolymorphicResponseQueryOptions = <
     >
   >;
   fetch?: RequestInit;
+  fetcher?: typeof globalThis.fetch;
 }) => {
-  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
+  const {
+    query: queryOptions,
+    fetch: fetchOptions,
+    fetcher: fetcherFn,
+  } = options ?? {};
 
   const queryKey =
     queryOptions?.queryKey ?? getGetPolymorphicResponseQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getPolymorphicResponse>>
-  > = ({ signal }) => getPolymorphicResponse({ signal, ...fetchOptions });
+  > = ({ signal }) =>
+    getPolymorphicResponse({ signal, ...fetchOptions }, fetcherFn);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getPolymorphicResponse>>,
@@ -119,6 +126,7 @@ export function useGetPolymorphicResponse<
         'initialData'
       >;
     fetch?: RequestInit;
+    fetcher?: typeof globalThis.fetch;
   },
   queryClient?: QueryClient,
 ): DefinedUseQueryResult<TData, TError> & {
@@ -145,6 +153,7 @@ export function useGetPolymorphicResponse<
         'initialData'
       >;
     fetch?: RequestInit;
+    fetcher?: typeof globalThis.fetch;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & {
@@ -163,6 +172,7 @@ export function useGetPolymorphicResponse<
       >
     >;
     fetch?: RequestInit;
+    fetcher?: typeof globalThis.fetch;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & {
@@ -182,6 +192,7 @@ export function useGetPolymorphicResponse<
       >
     >;
     fetch?: RequestInit;
+    fetcher?: typeof globalThis.fetch;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & {

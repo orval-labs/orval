@@ -108,8 +108,9 @@ export const getListPetsUrl = (params: ListPetsParams) => {
 export const listPets = async (
   params: ListPetsParams,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<listPetsResponse> => {
-  const res = await fetch(getListPetsUrl(params), {
+  const res = await (fetchFn ?? fetch)(getListPetsUrl(params), {
     ...options,
     method: 'GET',
   });
@@ -200,8 +201,9 @@ export const createPets = async (
   createPetsBody: CreatePetsBody,
   params: CreatePetsParams,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<createPetsResponse> => {
-  const res = await fetch(getCreatePetsUrl(params), {
+  const res = await (fetchFn ?? fetch)(getCreatePetsUrl(params), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -292,8 +294,9 @@ export const getShowPetByIdUrl = (petId: string) => {
 export const showPetById = async (
   petId: string,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<showPetByIdResponse> => {
-  const res = await fetch(getShowPetByIdUrl(petId), {
+  const res = await (fetchFn ?? fetch)(getShowPetByIdUrl(petId), {
     ...options,
     method: 'GET',
   });
@@ -376,8 +379,9 @@ export const getDeletePetByIdUrl = (petId: string) => {
 export const deletePetById = async (
   petId: string,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<deletePetByIdResponse> => {
-  const res = await fetch(getDeletePetByIdUrl(petId), {
+  const res = await (fetchFn ?? fetch)(getDeletePetByIdUrl(petId), {
     ...options,
     method: 'DELETE',
   });
@@ -466,8 +470,9 @@ export const getShowPetWithOwnerUrl = (petId: string) => {
 export const showPetWithOwner = async (
   petId: string,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<showPetWithOwnerResponse> => {
-  const res = await fetch(getShowPetWithOwnerUrl(petId), {
+  const res = await (fetchFn ?? fetch)(getShowPetWithOwnerUrl(petId), {
     ...options,
     method: 'GET',
   });

@@ -38,8 +38,9 @@ export const getPostPetsUrl = () => {
 
 export const postPets = async (
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<postPetsResponse> => {
-  const res = await fetch(getPostPetsUrl(), {
+  const res = await (fetchFn ?? fetch)(getPostPetsUrl(), {
     ...options,
     method: 'POST',
   });
@@ -61,6 +62,7 @@ export const getPostPetsMutationOptions = <
     TContext
   >;
   fetch?: RequestInit;
+  fetcher?: typeof globalThis.fetch;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postPets>>,
   TError,
@@ -101,6 +103,7 @@ export const usePostPets = <TError = unknown, TContext = unknown>(
       TContext
     >;
     fetch?: RequestInit;
+    fetcher?: typeof globalThis.fetch;
   },
   queryClient?: QueryClient,
 ): UseMutationResult<
@@ -128,8 +131,9 @@ export const getGetPetsUrl = () => {
 
 export const getPets = async (
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<getPetsResponse> => {
-  const res = await fetch(getGetPetsUrl(), {
+  const res = await (fetchFn ?? fetch)(getGetPetsUrl(), {
     ...options,
     method: 'GET',
   });
@@ -152,14 +156,19 @@ export const getGetPetsQueryOptions = <
     UseQueryOptions<Awaited<ReturnType<typeof getPets>>, TError, TData>
   >;
   fetch?: RequestInit;
+  fetcher?: typeof globalThis.fetch;
 }) => {
-  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
+  const {
+    query: queryOptions,
+    fetch: fetchOptions,
+    fetcher: fetcherFn,
+  } = options ?? {};
 
   const queryKey = queryOptions?.queryKey ?? getGetPetsQueryKey();
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getPets>>> = ({
     signal,
-  }) => getPets({ signal, ...fetchOptions });
+  }) => getPets({ signal, ...fetchOptions }, fetcherFn);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getPets>>,
@@ -190,6 +199,7 @@ export function useGetPets<
         'initialData'
       >;
     fetch?: RequestInit;
+    fetcher?: typeof globalThis.fetch;
   },
   queryClient?: QueryClient,
 ): DefinedUseQueryResult<TData, TError> & {
@@ -212,6 +222,7 @@ export function useGetPets<
         'initialData'
       >;
     fetch?: RequestInit;
+    fetcher?: typeof globalThis.fetch;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & {
@@ -226,6 +237,7 @@ export function useGetPets<
       UseQueryOptions<Awaited<ReturnType<typeof getPets>>, TError, TData>
     >;
     fetch?: RequestInit;
+    fetcher?: typeof globalThis.fetch;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & {
@@ -241,6 +253,7 @@ export function useGetPets<
       UseQueryOptions<Awaited<ReturnType<typeof getPets>>, TError, TData>
     >;
     fetch?: RequestInit;
+    fetcher?: typeof globalThis.fetch;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & {

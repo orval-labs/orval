@@ -113,8 +113,9 @@ export const listPets = async (
   { version = 1 }: ListPetsPathParameters = {},
   params: ListPetsParams,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<listPetsResponse> => {
-  const res = await fetch(getListPetsUrl({ version }, params), {
+  const res = await (fetchFn ?? fetch)(getListPetsUrl({ version }, params), {
     ...options,
     method: 'GET',
   });
@@ -216,8 +217,9 @@ export const createPets = async (
   createPetsBody: CreatePetsBody,
   params: CreatePetsParams,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<createPetsResponse> => {
-  const res = await fetch(getCreatePetsUrl({ version }, params), {
+  const res = await (fetchFn ?? fetch)(getCreatePetsUrl({ version }, params), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -317,8 +319,9 @@ export const getShowPetByIdUrl = ({
 export const showPetById = async (
   { version = 1, petId }: ShowPetByIdPathParameters,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<showPetByIdResponse> => {
-  const res = await fetch(getShowPetByIdUrl({ version, petId }), {
+  const res = await (fetchFn ?? fetch)(getShowPetByIdUrl({ version, petId }), {
     ...options,
     method: 'GET',
   });
@@ -409,11 +412,15 @@ export const getDeletePetByIdUrl = ({
 export const deletePetById = async (
   { version = 1, petId }: DeletePetByIdPathParameters,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<deletePetByIdResponse> => {
-  const res = await fetch(getDeletePetByIdUrl({ version, petId }), {
-    ...options,
-    method: 'DELETE',
-  });
+  const res = await (fetchFn ?? fetch)(
+    getDeletePetByIdUrl({ version, petId }),
+    {
+      ...options,
+      method: 'DELETE',
+    },
+  );
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
@@ -508,8 +515,9 @@ export const getHealthCheckUrl = ({
 export const healthCheck = async (
   { version = 1 }: HealthCheckPathParameters = {},
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<healthCheckResponse> => {
-  const res = await fetch(getHealthCheckUrl({ version }), {
+  const res = await (fetchFn ?? fetch)(getHealthCheckUrl({ version }), {
     ...options,
     method: 'GET',
   });
@@ -599,11 +607,15 @@ export const getShowPetWithOwnerUrl = ({
 export const showPetWithOwner = async (
   { version = 1, petId }: ShowPetWithOwnerPathParameters,
   options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
 ): Promise<showPetWithOwnerResponse> => {
-  const res = await fetch(getShowPetWithOwnerUrl({ version, petId }), {
-    ...options,
-    method: 'GET',
-  });
+  const res = await (fetchFn ?? fetch)(
+    getShowPetWithOwnerUrl({ version, petId }),
+    {
+      ...options,
+      method: 'GET',
+    },
+  );
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
