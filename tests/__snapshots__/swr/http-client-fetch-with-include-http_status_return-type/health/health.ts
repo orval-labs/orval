@@ -16,11 +16,8 @@ export const getHealthCheckUrl = () => {
   return `/health`;
 };
 
-export const healthCheck = async (
-  options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
-): Promise<string> => {
-  const res = await (fetchFn ?? fetch)(getHealthCheckUrl(), {
+export const healthCheck = async (options?: RequestInit): Promise<string> => {
+  const res = await fetch(getHealthCheckUrl(), {
     ...options,
     method: 'GET',
   });

@@ -33,9 +33,8 @@ export const getGetBinaryBlobUrl = (version: number = 1) => {
 export const getBinaryBlob = async (
   version: number = 1,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<getBinaryBlobResponse> => {
-  const res = await (fetchFn ?? fetch)(getGetBinaryBlobUrl(version), {
+  const res = await fetch(getGetBinaryBlobUrl(version), {
     ...options,
     method: 'GET',
   });

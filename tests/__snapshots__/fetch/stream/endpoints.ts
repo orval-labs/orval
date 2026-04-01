@@ -29,9 +29,8 @@ export const getStreamUrl = () => {
 
 export const stream = async (
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<streamResponse> => {
-  const stream = await (fetchFn ?? fetch)(getStreamUrl(), {
+  const stream = await fetch(getStreamUrl(), {
     ...options,
     method: 'GET',
     headers: { Accept: 'application/x-ndjson', ...options?.headers },

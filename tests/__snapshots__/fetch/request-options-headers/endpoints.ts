@@ -95,9 +95,8 @@ export const getListPetsUrl = (params: ListPetsParams) => {
 export const listPets = async (
   params: ListPetsParams,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<listPetsResponse> => {
-  const res = await (fetchFn ?? fetch)(getListPetsUrl(params), {
+  const res = await fetch(getListPetsUrl(params), {
     ...options,
     method: 'GET',
     headers: {
@@ -155,9 +154,8 @@ export const createPets = async (
   createPetsBody: CreatePetsBody,
   params: CreatePetsParams,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<createPetsResponse> => {
-  const res = await (fetchFn ?? fetch)(getCreatePetsUrl(params), {
+  const res = await fetch(getCreatePetsUrl(params), {
     ...options,
     method: 'POST',
     headers: {
@@ -210,9 +208,8 @@ export const getShowPetByIdUrl = (petId: string) => {
 export const showPetById = async (
   petId: string,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<showPetByIdResponse> => {
-  const res = await (fetchFn ?? fetch)(getShowPetByIdUrl(petId), {
+  const res = await fetch(getShowPetByIdUrl(petId), {
     ...options,
     method: 'GET',
     headers: {
@@ -263,9 +260,8 @@ export const getDeletePetByIdUrl = (petId: string) => {
 export const deletePetById = async (
   petId: string,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<deletePetByIdResponse> => {
-  const res = await (fetchFn ?? fetch)(getDeletePetByIdUrl(petId), {
+  const res = await fetch(getDeletePetByIdUrl(petId), {
     ...options,
     method: 'DELETE',
     headers: {
@@ -315,9 +311,8 @@ export const getHealthCheckUrl = () => {
 
 export const healthCheck = async (
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<healthCheckResponse> => {
-  const res = await (fetchFn ?? fetch)(getHealthCheckUrl(), {
+  const res = await fetch(getHealthCheckUrl(), {
     ...options,
     method: 'GET',
     headers: {
@@ -368,9 +363,8 @@ export const getShowPetWithOwnerUrl = (petId: string) => {
 export const showPetWithOwner = async (
   petId: string,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<showPetWithOwnerResponse> => {
-  const res = await (fetchFn ?? fetch)(getShowPetWithOwnerUrl(petId), {
+  const res = await fetch(getShowPetWithOwnerUrl(petId), {
     ...options,
     method: 'GET',
     headers: {

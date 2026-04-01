@@ -27,9 +27,8 @@ export const getGetUsersUrl = (version: number = 1) => {
 export const getUsers = async (
   version: number = 1,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<getUsersResponse> => {
-  const res = await (fetchFn ?? fetch)(getGetUsersUrl(version), {
+  const res = await fetch(getGetUsersUrl(version), {
     ...options,
     method: 'GET',
   });
@@ -93,9 +92,8 @@ export const getGetUsers2Url = (version: number = 1) => {
 export const getUsers2 = async (
   version: number = 1,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<getUsers2Response> => {
-  const res = await (fetchFn ?? fetch)(getGetUsers2Url(version), {
+  const res = await fetch(getGetUsers2Url(version), {
     ...options,
     method: 'GET',
   });

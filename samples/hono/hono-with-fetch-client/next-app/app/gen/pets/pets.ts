@@ -86,9 +86,8 @@ export const getListPetsUrl = (params?: ListPetsParams) => {
 export const listPets = async (
   params?: ListPetsParams,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<listPetsResponse> => {
-  const res = await (fetchFn ?? fetch)(getListPetsUrl(params), {
+  const res = await fetch(getListPetsUrl(params), {
     ...options,
     method: 'GET',
   });
@@ -130,9 +129,8 @@ export const getCreatePetsUrl = () => {
 export const createPets = async (
   createPetsBodyItem: CreatePetsBodyItem[],
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<createPetsResponse> => {
-  const res = await (fetchFn ?? fetch)(getCreatePetsUrl(), {
+  const res = await fetch(getCreatePetsUrl(), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -180,9 +178,8 @@ export const getUpdatePetsUrl = () => {
 export const updatePets = async (
   pet: Pet,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<updatePetsResponse> => {
-  const res = await (fetchFn ?? fetch)(getUpdatePetsUrl(), {
+  const res = await fetch(getUpdatePetsUrl(), {
     ...options,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -230,9 +227,8 @@ export const getShowPetByIdUrl = (petId: string) => {
 export const showPetById = async (
   petId: string,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<showPetByIdResponse> => {
-  const res = await (fetchFn ?? fetch)(getShowPetByIdUrl(petId), {
+  const res = await fetch(getShowPetByIdUrl(petId), {
     ...options,
     method: 'GET',
   });

@@ -106,9 +106,8 @@ export const getListPetsUrl = (params: ListPetsParams) => {
 export const listPets = async (
   params: ListPetsParams,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<listPetsResponse> => {
-  const res = await (fetchFn ?? fetch)(getListPetsUrl(params), {
+  const res = await fetch(getListPetsUrl(params), {
     ...options,
     method: 'GET',
   });
@@ -135,20 +134,15 @@ export const getListPetsQueryOptions = <
       TData
     >;
     fetch?: RequestInit;
-    fetcher?: typeof globalThis.fetch;
   },
 ) => {
-  const {
-    query: queryOptions,
-    fetch: fetchOptions,
-    fetcher: fetcherFn,
-  } = options ?? {};
+  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
 
   const queryKey = queryOptions?.queryKey ?? getListPetsQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
     signal,
-  }) => listPets(params, { signal, ...fetchOptions }, fetcherFn);
+  }) => listPets(params, { signal, ...fetchOptions });
 
   return { queryKey, queryFn, ...queryOptions } as CreateQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
@@ -178,7 +172,6 @@ export function createListPets<
       TData
     >;
     fetch?: RequestInit;
-    fetcher?: typeof globalThis.fetch;
   },
 ): CreateQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListPetsQueryOptions(params, options);
@@ -235,9 +228,8 @@ export const createPets = async (
   createPetsBody: CreatePetsBody,
   params: CreatePetsParams,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<createPetsResponse> => {
-  const res = await (fetchFn ?? fetch)(getCreatePetsUrl(params), {
+  const res = await fetch(getCreatePetsUrl(params), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -265,7 +257,6 @@ export const getCreatePetsMutationOptions = <
     TContext
   >;
   fetch?: RequestInit;
-  fetcher?: typeof globalThis.fetch;
 }): CreateMutationOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
@@ -310,7 +301,6 @@ export const createCreatePets = <TError = Error, TContext = unknown>(options?: {
     TContext
   >;
   fetch?: RequestInit;
-  fetcher?: typeof globalThis.fetch;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof createPets>>,
   TError,
@@ -350,9 +340,8 @@ export const getShowPetByIdUrl = (petId: string) => {
 export const showPetById = async (
   petId: string,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<showPetByIdResponse> => {
-  const res = await (fetchFn ?? fetch)(getShowPetByIdUrl(petId), {
+  const res = await fetch(getShowPetByIdUrl(petId), {
     ...options,
     method: 'GET',
   });
@@ -383,20 +372,15 @@ export const getShowPetByIdQueryOptions = <
       TData
     >;
     fetch?: RequestInit;
-    fetcher?: typeof globalThis.fetch;
   },
 ) => {
-  const {
-    query: queryOptions,
-    fetch: fetchOptions,
-    fetcher: fetcherFn,
-  } = options ?? {};
+  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
 
   const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({
     signal,
-  }) => showPetById(petId, { signal, ...fetchOptions }, fetcherFn);
+  }) => showPetById(petId, { signal, ...fetchOptions });
 
   return {
     queryKey,
@@ -431,7 +415,6 @@ export function createShowPetById<
       TData
     >;
     fetch?: RequestInit;
-    fetcher?: typeof globalThis.fetch;
   },
 ): CreateQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getShowPetByIdQueryOptions(petId, options);
@@ -477,9 +460,8 @@ export const getDeletePetByIdUrl = (petId: string) => {
 export const deletePetById = async (
   petId: string,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<deletePetByIdResponse> => {
-  const res = await (fetchFn ?? fetch)(getDeletePetByIdUrl(petId), {
+  const res = await fetch(getDeletePetByIdUrl(petId), {
     ...options,
     method: 'DELETE',
   });
@@ -505,7 +487,6 @@ export const getDeletePetByIdMutationOptions = <
     TContext
   >;
   fetch?: RequestInit;
-  fetcher?: typeof globalThis.fetch;
 }): CreateMutationOptions<
   Awaited<ReturnType<typeof deletePetById>>,
   TError,
@@ -553,7 +534,6 @@ export const createDeletePetById = <
     TContext
   >;
   fetch?: RequestInit;
-  fetcher?: typeof globalThis.fetch;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof deletePetById>>,
   TError,
@@ -593,9 +573,8 @@ export const getShowPetWithOwnerUrl = (petId: string) => {
 export const showPetWithOwner = async (
   petId: string,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<showPetWithOwnerResponse> => {
-  const res = await (fetchFn ?? fetch)(getShowPetWithOwnerUrl(petId), {
+  const res = await fetch(getShowPetWithOwnerUrl(petId), {
     ...options,
     method: 'GET',
   });
@@ -626,21 +605,15 @@ export const getShowPetWithOwnerQueryOptions = <
       TData
     >;
     fetch?: RequestInit;
-    fetcher?: typeof globalThis.fetch;
   },
 ) => {
-  const {
-    query: queryOptions,
-    fetch: fetchOptions,
-    fetcher: fetcherFn,
-  } = options ?? {};
+  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
 
   const queryKey = queryOptions?.queryKey ?? getShowPetWithOwnerQueryKey(petId);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof showPetWithOwner>>
-  > = ({ signal }) =>
-    showPetWithOwner(petId, { signal, ...fetchOptions }, fetcherFn);
+  > = ({ signal }) => showPetWithOwner(petId, { signal, ...fetchOptions });
 
   return {
     queryKey,
@@ -675,7 +648,6 @@ export function createShowPetWithOwner<
       TData
     >;
     fetch?: RequestInit;
-    fetcher?: typeof globalThis.fetch;
   },
 ): CreateQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getShowPetWithOwnerQueryOptions(petId, options);

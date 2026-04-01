@@ -122,9 +122,8 @@ export const getFindPetsByStatusUrl = (params?: FindPetsByStatusParams) => {
 export const findPetsByStatus = async (
   params?: FindPetsByStatusParams,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<findPetsByStatusResponse> => {
-  const res = await (fetchFn ?? fetch)(getFindPetsByStatusUrl(params), {
+  const res = await fetch(getFindPetsByStatusUrl(params), {
     ...options,
     method: 'GET',
   });
@@ -200,9 +199,8 @@ export const getFindPetsByTagsUrl = (params?: FindPetsByTagsParams) => {
 export const findPetsByTags = async (
   params?: FindPetsByTagsParams,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<findPetsByTagsResponse> => {
-  const res = await (fetchFn ?? fetch)(getFindPetsByTagsUrl(params), {
+  const res = await fetch(getFindPetsByTagsUrl(params), {
     ...options,
     method: 'GET',
   });
@@ -267,9 +265,8 @@ export const getGetPetByIdUrl = (petId: number) => {
 export const getPetById = async (
   petId: number,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<getPetByIdResponse> => {
-  const res = await (fetchFn ?? fetch)(getGetPetByIdUrl(petId), {
+  const res = await fetch(getGetPetByIdUrl(petId), {
     ...options,
     method: 'GET',
   });
@@ -344,9 +341,8 @@ export const updatePetWithForm = async (
   petId: number,
   params?: UpdatePetWithFormParams,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<updatePetWithFormResponse> => {
-  const res = await (fetchFn ?? fetch)(getUpdatePetWithFormUrl(petId, params), {
+  const res = await fetch(getUpdatePetWithFormUrl(petId, params), {
     ...options,
     method: 'POST',
   });
@@ -397,9 +393,8 @@ export const getDeletePetUrl = (petId: number) => {
 export const deletePet = async (
   petId: number,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<deletePetResponse> => {
-  const res = await (fetchFn ?? fetch)(getDeletePetUrl(petId), {
+  const res = await fetch(getDeletePetUrl(petId), {
     ...options,
     method: 'DELETE',
   });
@@ -441,9 +436,8 @@ export const getGetInventoryUrl = () => {
 
 export const getInventory = async (
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<getInventoryResponse> => {
-  const res = await (fetchFn ?? fetch)(getGetInventoryUrl(), {
+  const res = await fetch(getGetInventoryUrl(), {
     ...options,
     method: 'GET',
   });
@@ -508,9 +502,8 @@ export const getGetOrderByIdUrl = (orderId: number) => {
 export const getOrderById = async (
   orderId: number,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<getOrderByIdResponse> => {
-  const res = await (fetchFn ?? fetch)(getGetOrderByIdUrl(orderId), {
+  const res = await fetch(getGetOrderByIdUrl(orderId), {
     ...options,
     method: 'GET',
   });
@@ -567,9 +560,8 @@ export const getDeleteOrderUrl = (orderId: number) => {
 export const deleteOrder = async (
   orderId: number,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<deleteOrderResponse> => {
-  const res = await (fetchFn ?? fetch)(getDeleteOrderUrl(orderId), {
+  const res = await fetch(getDeleteOrderUrl(orderId), {
     ...options,
     method: 'DELETE',
   });
@@ -640,9 +632,8 @@ export const getLoginUserUrl = (params?: LoginUserParams) => {
 export const loginUser = async (
   params?: LoginUserParams,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<loginUserResponse> => {
-  const res = await (fetchFn ?? fetch)(getLoginUserUrl(params), {
+  const res = await fetch(getLoginUserUrl(params), {
     ...options,
     method: 'GET',
   });
@@ -684,9 +675,8 @@ export const getLogoutUserUrl = () => {
 
 export const logoutUser = async (
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<logoutUserResponse> => {
-  const res = await (fetchFn ?? fetch)(getLogoutUserUrl(), {
+  const res = await fetch(getLogoutUserUrl(), {
     ...options,
     method: 'GET',
   });
@@ -751,9 +741,8 @@ export const getGetUserByNameUrl = (username: string) => {
 export const getUserByName = async (
   username: string,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<getUserByNameResponse> => {
-  const res = await (fetchFn ?? fetch)(getGetUserByNameUrl(username), {
+  const res = await fetch(getGetUserByNameUrl(username), {
     ...options,
     method: 'GET',
   });
@@ -810,9 +799,8 @@ export const getDeleteUserUrl = (username: string) => {
 export const deleteUser = async (
   username: string,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<deleteUserResponse> => {
-  const res = await (fetchFn ?? fetch)(getDeleteUserUrl(username), {
+  const res = await fetch(getDeleteUserUrl(username), {
     ...options,
     method: 'DELETE',
   });

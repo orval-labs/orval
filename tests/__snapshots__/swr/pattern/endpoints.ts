@@ -35,9 +35,8 @@ export const getGetVversionExampleUrl = (version: number = 1) => {
 export const getVversionExample = async (
   version: number = 1,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<getVversionExampleResponse> => {
-  const res = await (fetchFn ?? fetch)(getGetVversionExampleUrl(version), {
+  const res = await fetch(getGetVversionExampleUrl(version), {
     ...options,
     method: 'GET',
   });

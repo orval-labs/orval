@@ -87,7 +87,6 @@ export const getCreatePetsUrl = () => {
 export const createPets = async (
   pet: Pet,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<createPetsResponse> => {
   const formData = new FormData();
   const petPetBase = pet as PetBase;
@@ -121,7 +120,7 @@ export const createPets = async (
     formData.append(`country`, pet.country);
   }
 
-  const res = await (fetchFn ?? fetch)(getCreatePetsUrl(), {
+  const res = await fetch(getCreatePetsUrl(), {
     ...options,
     method: 'POST',
     body: formData,
@@ -148,7 +147,6 @@ export const getCreatePetsMutationOptions = <
     TContext
   >;
   fetch?: RequestInit;
-  fetcher?: typeof globalThis.fetch;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
@@ -194,7 +192,6 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
       TContext
     >;
     fetch?: RequestInit;
-    fetcher?: typeof globalThis.fetch;
   },
   queryClient?: QueryClient,
 ): UseMutationReturnType<

@@ -22,9 +22,8 @@ export const getPostPetsUrl = () => {
 
 export const postPets = async (
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<postPetsResponse> => {
-  const res = await (fetchFn ?? fetch)(getPostPetsUrl(), {
+  const res = await fetch(getPostPetsUrl(), {
     ...options,
     method: 'POST',
   });
@@ -51,9 +50,8 @@ export const getGetPetsUrl = () => {
 
 export const getPets = async (
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<getPetsResponse> => {
-  const res = await (fetchFn ?? fetch)(getGetPetsUrl(), {
+  const res = await fetch(getGetPetsUrl(), {
     ...options,
     method: 'GET',
   });

@@ -85,7 +85,6 @@ export const createPets = async (
   pet?: Pet,
   version: number = 1,
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<createPetsResponse> => {
   const formData = new FormData();
   const petPetBase = pet as PetBase | undefined;
@@ -119,7 +118,7 @@ export const createPets = async (
     formData.append(`country`, pet.country);
   }
 
-  const res = await (fetchFn ?? fetch)(getCreatePetsUrl(version), {
+  const res = await fetch(getCreatePetsUrl(version), {
     ...options,
     method: 'POST',
     body: formData,

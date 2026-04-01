@@ -94,9 +94,8 @@ export const getGetLoggedInUserUrl = () => {
 
 export const getLoggedInUser = async (
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<getLoggedInUserResponse> => {
-  const res = await (fetchFn ?? fetch)(getGetLoggedInUserUrl(), {
+  const res = await fetch(getGetLoggedInUserUrl(), {
     ...options,
     method: 'GET',
   });
@@ -149,9 +148,8 @@ export const getListItemsUrl = () => {
 
 export const listItems = async (
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<listItemsResponse> => {
-  const res = await (fetchFn ?? fetch)(getListItemsUrl(), {
+  const res = await fetch(getListItemsUrl(), {
     ...options,
     method: 'GET',
   });
@@ -212,9 +210,8 @@ export const getGetMixedResponsesUrl = () => {
 
 export const getMixedResponses = async (
   options?: RequestInit,
-  fetchFn?: typeof globalThis.fetch,
 ): Promise<getMixedResponsesResponse> => {
-  const res = await (fetchFn ?? fetch)(getGetMixedResponsesUrl(), {
+  const res = await fetch(getGetMixedResponsesUrl(), {
     ...options,
     method: 'GET',
   });
