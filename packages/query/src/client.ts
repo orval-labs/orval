@@ -507,9 +507,13 @@ export const getQueryArgumentsRequestType = (
   mutator?: GeneratorMutator,
 ) => {
   if (!mutator) {
-    return httpClient === OutputHttpClient.AXIOS
-      ? `axios?: AxiosRequestConfig`
-      : 'fetch?: RequestInit';
+    if (httpClient === OutputHttpClient.AXIOS) {
+      return `axios?: AxiosRequestConfig`;
+    }
+    if (httpClient === OutputHttpClient.FETCH) {
+      return 'fetch?: RequestInit, fetcher?: typeof globalThis.fetch';
+    }
+    return 'fetch?: RequestInit';
   }
 
   if (mutator.hasSecondArg && !mutator.isHook) {
@@ -546,16 +550,18 @@ export const getQueryOptions = ({
   if (!mutator && isRequestOptions) {
     const options =
       httpClient === OutputHttpClient.AXIOS ? 'axiosOptions' : 'fetchOptions';
+    const fetcherArg =
+      httpClient === OutputHttpClient.FETCH ? ', fetcherFn' : '';
 
     if (!hasSignal) {
-      return options;
+      return `${options}${fetcherArg}`;
     }
 
     return `{ ${
       isExactOptionalPropertyTypes
         ? `...(${signalVar} ? { ${signalProp} } : {})`
         : signalProp
-    }, ...${options} }`;
+    }, ...${options} }${fetcherArg}`;
   }
 
   // For Angular mutators with hasSecondArg, pass http through options parameter
@@ -613,12 +619,13 @@ export const getHookOptions = ({
   let value = 'const {query: queryOptions';
 
   if (!mutator) {
-    const options =
-      httpClient === OutputHttpClient.AXIOS
-        ? ', axios: axiosOptions'
-        : ', fetch: fetchOptions';
-
-    value += options;
+    if (httpClient === OutputHttpClient.AXIOS) {
+      value += ', axios: axiosOptions';
+    } else if (httpClient === OutputHttpClient.FETCH) {
+      value += ', fetch: fetchOptions, fetcher: fetcherFn';
+    } else {
+      value += ', fetch: fetchOptions';
+    }
   }
 
   if (mutator?.hasSecondArg) {
