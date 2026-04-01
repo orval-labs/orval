@@ -159,6 +159,7 @@ const generateQueryImplementation = ({
   useInfinite,
   useInvalidate,
   useSetQueryData,
+  useGetQueryData,
   adapter,
 }: {
   queryOption: {
@@ -189,6 +190,7 @@ const generateQueryImplementation = ({
   useInfinite?: boolean;
   useInvalidate?: boolean;
   useSetQueryData?: boolean;
+  useGetQueryData?: boolean;
   adapter: FrameworkAdapter;
 }) => {
   const {
@@ -483,6 +485,13 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     'implementation',
   ).replaceAll('?:', ':');
 
+  const shouldGenerateGetQueryData = useGetQueryData && isPrimaryQueryType;
+  const getQueryDataFnName = isReactQuery
+    ? camel(`use-get-${name}-query-data`)
+    : camel(`get-${name}-query-data`);
+  const getQueryDataKeyExpr = setQueryDataKeyExpr;
+  const getQueryDataProps = setQueryDataProps;
+
   // Generate query init (e.g. const queryOptions = fn(...) or const http = inject(HttpClient))
   const queryInit = adapter.generateQueryInit({
     queryOptionsFnName,
@@ -556,6 +565,18 @@ ${
       : `${doc}export const ${setQueryDataFnName} = (queryClient: QueryClient, ${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
   queryClient.setQueryData(${setQueryDataKeyExpr}, updater);
 }\n`
+    : ''
+}
+${
+  shouldGenerateGetQueryData
+    ? isReactQuery
+      ? `${doc}export const ${getQueryDataFnName} = () => {
+  const queryClient = useQueryClient();
+  return (${getQueryDataProps}) =>
+    queryClient.getQueryData<${TData}>(${getQueryDataKeyExpr});
+}\n`
+      : `${doc}export const ${getQueryDataFnName} = (queryClient: QueryClient, ${getQueryDataProps}) =>
+  queryClient.getQueryData<${TData}>(${getQueryDataKeyExpr});\n`
     : ''
 }
 `;
@@ -827,6 +848,8 @@ ${queryKeyFns}`;
         useInvalidate: query.useInvalidate,
         useSetQueryData:
           operationQueryOptions?.useSetQueryData ?? query.useSetQueryData,
+        useGetQueryData:
+          operationQueryOptions?.useGetQueryData ?? query.useGetQueryData,
         adapter,
       });
     }

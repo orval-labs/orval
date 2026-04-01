@@ -75,6 +75,7 @@ export function createTestContextSpec({
         usePrefetch: false,
         useInvalidate: false,
         useSetQueryData: false,
+        useGetQueryData: false,
         shouldExportMutatorHooks: false,
         shouldExportHttpClient: false,
         shouldExportQueryKey: false,

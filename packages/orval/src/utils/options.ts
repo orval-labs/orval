@@ -825,6 +825,9 @@ function normalizeQueryOptions(
     ...(isNullish(queryOptions.useSetQueryData)
       ? {}
       : { useSetQueryData: queryOptions.useSetQueryData }),
+    ...(isNullish(queryOptions.useGetQueryData)
+      ? {}
+      : { useGetQueryData: queryOptions.useGetQueryData }),
     ...(isNullish(queryOptions.useQuery)
       ? {}
       : { useQuery: queryOptions.useQuery }),

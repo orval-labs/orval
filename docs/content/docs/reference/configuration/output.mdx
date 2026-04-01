@@ -563,6 +563,7 @@ export default defineConfig({
           usePrefetch: true,
           useInvalidate: true,
           useSetQueryData: true,
+          useGetQueryData: true,
           signal: true,
           runtimeValidation: true,
           options: {
@@ -616,6 +617,12 @@ Generate query invalidation helpers.
 **Type:** `Boolean`
 
 Generate type-safe setQueryData helpers.
+
+### useGetQueryData
+
+**Type:** `Boolean`
+
+Generate type-safe getQueryData helpers.
 
 ### mutationInvalidates
 

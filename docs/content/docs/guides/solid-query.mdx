@@ -139,6 +139,20 @@ export const setListPetsQueryData = (
 };
 ```
 
+## Get Query Data
+
+When `useGetQueryData: true` is set, Orval generates type-safe helper functions to read cached query data:
+
+```ts
+export const getListPetsQueryData = (
+  queryClient: QueryClient,
+  params: ListPetsParams,
+) =>
+  queryClient.getQueryData<Awaited<ReturnType<typeof listPets>>>(
+    getListPetsQueryKey(params),
+  );
+```
+
 ## Full Example
 
 See the [complete Solid Query example](https://github.com/orval-labs/orval/tree/master/samples/solid-query) on GitHub.

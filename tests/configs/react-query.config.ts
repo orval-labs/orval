@@ -773,4 +773,21 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  useGetQueryData: {
+    output: {
+      target: '../generated/react-query/use-get-query-data/endpoints.ts',
+      schemas: '../generated/react-query/use-get-query-data/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useGetQueryData: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

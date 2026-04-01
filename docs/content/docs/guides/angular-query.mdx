@@ -177,6 +177,20 @@ export const setShowPetByIdQueryData = (
 };
 ```
 
+## Get Query Data
+
+When `useGetQueryData: true` is set, Orval generates type-safe helper functions to read cached query data:
+
+```ts
+export const getListPetsQueryData = (
+  queryClient: QueryClient,
+  params: ListPetsParams,
+) =>
+  queryClient.getQueryData<Awaited<ReturnType<typeof listPets>>>(
+    getListPetsQueryKey(params),
+  );
+```
+
 ## Automatic Mutation Invalidation
 
 Configure automatic invalidation when mutations succeed:
