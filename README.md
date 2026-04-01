@@ -127,6 +127,9 @@ Support us with a one-time donation and help us continue our activities on [Open
 <a href="https://opencollective.com/orval">
   <img src="https://orval.dev/images/emblem.svg" width="50" height="50" alt="Backer" />
 </a>
+<a href="https://github.com/tatsuya-asami">
+  <img src="https://github.com/tatsuya-asami.png" width="50" height="50" alt="tatsuya-asami" />
+</a>
 
 **Note:** After becoming a sponsor or backer, please contact us on [Discord](https://discord.gg/6fC2sjDU7w) to upload your logo.
 
