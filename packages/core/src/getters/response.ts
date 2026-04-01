@@ -5,7 +5,11 @@ import type {
   OverrideOutputContentType,
   ResReqTypesValue,
 } from '../types';
-import { dedupeUnionType, filterByContentType } from '../utils';
+import {
+  dedupeUnionType,
+  filterByContentType,
+  isBinaryContentType,
+} from '../utils';
 import { getResReqTypes } from './res-req-types';
 
 interface GetResponseOptions {
@@ -67,7 +71,9 @@ export function getResponse({
       success: success || (defaultType ?? 'unknown'),
       errors: errors || (defaultType ?? 'unknown'),
     },
-    isBlob: success === 'Blob',
+    isBlob: groupedByStatus.success.some(
+      (t) => !!t.contentType && isBinaryContentType(t.contentType),
+    ),
     types: groupedByStatus,
     contentTypes,
     schemas,
