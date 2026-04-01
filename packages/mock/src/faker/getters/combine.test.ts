@@ -116,6 +116,7 @@ function createMockContext(): ContextSpec {
           includeHttpResponseReturnType: false,
           forceSuccessResponse: false,
           runtimeValidation: false,
+          useRuntimeFetcher: false,
         },
         enumGenerationType: EnumGeneration.UNION,
         jsDoc: {},

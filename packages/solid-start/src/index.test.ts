@@ -121,6 +121,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
         includeHttpResponseReturnType: false,
         forceSuccessResponse: false,
         runtimeValidation: false,
+        useRuntimeFetcher: false,
       },
       useDates,
       enumGenerationType: EnumGeneration.UNION,

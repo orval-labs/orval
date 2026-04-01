@@ -101,6 +101,7 @@ const createOutput = (
         includeHttpResponseReturnType: true,
         forceSuccessResponse: false,
         runtimeValidation: false,
+        useRuntimeFetcher: false,
       },
       enumGenerationType: 'const',
       aliasCombinedTypes: false,
