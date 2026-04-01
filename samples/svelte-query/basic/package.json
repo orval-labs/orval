@@ -22,7 +22,7 @@
   "devDependencies": {
     "@eslint/compat": "^2.0.2",
     "@faker-js/faker": "catalog:tooling",
-    "@sveltejs/adapter-auto": "^2.1.1",
+    "@sveltejs/adapter-auto": "^7.0.1",
     "@sveltejs/kit": "^1.30.4",
     "@types/node": "catalog:",
     "eslint": "catalog:",
