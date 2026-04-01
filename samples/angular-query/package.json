@@ -37,7 +37,7 @@
     "@faker-js/faker": "catalog:tooling",
     "angular-eslint": "21.3.1",
     "eslint": "catalog:",
-    "@testing-library/angular": "19.0.0",
+    "@testing-library/angular": "19.2.1",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
     "prettier": "catalog:",
