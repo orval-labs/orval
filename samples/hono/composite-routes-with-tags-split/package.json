@@ -19,6 +19,6 @@
     "orval": "workspace:*",
     "prettier": "catalog:",
     "vitest": "catalog:",
-    "wrangler": "^4.59.2"
+    "wrangler": "^4.79.0"
   }
 }
