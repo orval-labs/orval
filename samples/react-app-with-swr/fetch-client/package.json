@@ -21,7 +21,7 @@
     "@faker-js/faker": "catalog:tooling",
     "@types/react": "catalog:react",
     "@types/react-dom": "^18.3.7",
-    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/eslint-plugin": "^8.58.0",
     "@typescript-eslint/parser": "^8.56.1",
     "@vitejs/plugin-react": "^5.1.2",
     "eslint": "catalog:",
