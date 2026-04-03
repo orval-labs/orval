@@ -494,6 +494,243 @@ describe('generateSolidStart — path-level parameter merging', () => {
   });
 });
 
+describe('generateSolidStart — deepObject query parameters', () => {
+  it('generates bracket notation for a style:deepObject query param', async () => {
+    const parameters = [
+      {
+        name: 'scope',
+        in: 'query',
+        style: 'deepObject',
+        explode: true,
+        schema: {
+          type: 'object',
+          properties: {
+            call_id: { type: 'string' },
+          },
+        },
+      },
+    ];
+    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+    const options = makeOptions(makeContext(parameters));
+
+    const implementation = await generateImplementation(verbOptions, options);
+
+    expect(implementation).toContain('const deepObjectParameters = ["scope"]');
+    expect(implementation).toContain(
+      "typeof value === 'object' && value !== null && !Array.isArray(value) && deepObjectParameters.includes(key)",
+    );
+    expect(implementation).toContain(
+      'Object.entries(value).forEach(([subKey, subValue])',
+    );
+    expect(implementation).toContain('deepObjectEntries.push(');
+    expect(implementation).toContain('encodeURIComponent(key)');
+    expect(implementation).toContain('encodeURIComponent(subKey)');
+    expect(implementation).toContain(
+      "[normalizedParams.toString(), deepObjectEntries.join('&')].filter(Boolean).join('&')",
+    );
+  });
+
+  it('does NOT generate deepObjectEntries when there are no deepObject params', async () => {
+    const parameters = [
+      { name: 'limit', in: 'query', schema: { type: 'string' } },
+    ];
+    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+    const options = makeOptions(makeContext(parameters));
+
+    const implementation = await generateImplementation(verbOptions, options);
+
+    expect(implementation).not.toContain('deepObjectEntries');
+  });
+
+  it('does NOT generate deepObject logic for a plain object param without style:deepObject', async () => {
+    const parameters = [
+      {
+        name: 'filter',
+        in: 'query',
+        schema: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+          },
+        },
+      },
+    ];
+    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+    const options = makeOptions(makeContext(parameters));
+
+    const implementation = await generateImplementation(verbOptions, options);
+
+    expect(implementation).not.toContain('deepObjectParameters');
+    expect(implementation).toContain('normalizedParams.append(key');
+  });
+
+  it('handles mixed deepObject and scalar params', async () => {
+    const parameters = [
+      {
+        name: 'scope',
+        in: 'query',
+        style: 'deepObject',
+        explode: true,
+        schema: {
+          type: 'object',
+          properties: { call_id: { type: 'string' } },
+        },
+      },
+      { name: 'limit', in: 'query', schema: { type: 'integer' } },
+    ];
+    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+    const options = makeOptions(makeContext(parameters));
+
+    const implementation = await generateImplementation(verbOptions, options);
+
+    expect(implementation).toContain('const deepObjectParameters = ["scope"]');
+    expect(implementation).toContain('deepObjectEntries.push(');
+    // scalar fallback still present for `limit`
+    expect(implementation).toContain(
+      "value === null ? 'null' : value.toString()",
+    );
+  });
+
+  it('handles mixed deepObject and exploded array params', async () => {
+    const parameters = [
+      {
+        name: 'scope',
+        in: 'query',
+        style: 'deepObject',
+        explode: true,
+        schema: {
+          type: 'object',
+          properties: { call_id: { type: 'string' } },
+        },
+      },
+      {
+        name: 'tags',
+        in: 'query',
+        explode: true,
+        schema: { type: 'array', items: { type: 'string' } },
+      },
+    ];
+    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+    const options = makeOptions(makeContext(parameters));
+
+    const implementation = await generateImplementation(verbOptions, options);
+
+    expect(implementation).toContain('const explodeParameters = ["tags"]');
+    expect(implementation).toContain('const deepObjectParameters = ["scope"]');
+    // both branches handle all params, so no scalar fallback
+    expect(implementation).not.toContain(
+      "value === null ? 'null' : value.toString()",
+    );
+  });
+
+  it('picks up a deepObject param defined at the path-item level', async () => {
+    const context = makeContextWithPathParams([
+      {
+        name: 'scope',
+        in: 'query',
+        style: 'deepObject',
+        explode: true,
+        schema: {
+          type: 'object',
+          properties: { call_id: { type: 'string' } },
+        },
+      },
+    ]);
+    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+    const options = makeOptions(context);
+
+    const implementation = await generateImplementation(verbOptions, options);
+
+    expect(implementation).toContain('const deepObjectParameters = ["scope"]');
+    expect(implementation).toContain('deepObjectEntries.push(');
+  });
+
+  it('handles multiple deepObject params', async () => {
+    const parameters = [
+      {
+        name: 'scope',
+        in: 'query',
+        style: 'deepObject',
+        explode: true,
+        schema: {
+          type: 'object',
+          properties: { call_id: { type: 'string' } },
+        },
+      },
+      {
+        name: 'filter',
+        in: 'query',
+        style: 'deepObject',
+        explode: true,
+        schema: {
+          type: 'object',
+          properties: { status: { type: 'string' } },
+        },
+      },
+    ];
+    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+    const options = makeOptions(makeContext(parameters));
+
+    const implementation = await generateImplementation(verbOptions, options);
+
+    expect(implementation).toContain('"scope"');
+    expect(implementation).toContain('"filter"');
+    expect(implementation).toContain('deepObjectEntries.push(');
+  });
+
+  it('generates toISOString() for deepObject properties with date-time format when useDates is true', async () => {
+    const parameters = [
+      {
+        name: 'scope',
+        in: 'query',
+        style: 'deepObject',
+        explode: true,
+        schema: {
+          type: 'object',
+          properties: {
+            created_at: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    ];
+    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+    const options = makeOptions(makeContext(parameters, true));
+
+    const implementation = await generateImplementation(verbOptions, options);
+
+    expect(implementation).toContain('const deepObjectParameters = ["scope"]');
+    expect(implementation).toContain(
+      'subValue instanceof Date ? subValue.toISOString()',
+    );
+  });
+
+  it('does NOT generate toISOString() for deepObject when useDates is false', async () => {
+    const parameters = [
+      {
+        name: 'scope',
+        in: 'query',
+        style: 'deepObject',
+        explode: true,
+        schema: {
+          type: 'object',
+          properties: {
+            created_at: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    ];
+    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+    const options = makeOptions(makeContext(parameters, false));
+
+    const implementation = await generateImplementation(verbOptions, options);
+
+    expect(implementation).toContain('const deepObjectParameters = ["scope"]');
+    expect(implementation).not.toContain(
+      'subValue instanceof Date ? subValue.toISOString()',
+    );
+  });
+});
+
 describe('generateSolidStart — date-time format on array items (useDates)', () => {
   it('generates toISOString() for an exploded array<date-time> param', async () => {
     const parameters = [
