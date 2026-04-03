@@ -100,8 +100,8 @@ export const getListPetsUrl = (params?: ListPetsParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString());
+    if (value !== undefined && value !== null) {
+      normalizedParams.append(key, value.toString());
     }
   });
 
@@ -331,8 +331,8 @@ export const getListPetsNestedArrayUrl = (
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString());
+    if (value !== undefined && value !== null) {
+      normalizedParams.append(key, value.toString());
     }
   });
 

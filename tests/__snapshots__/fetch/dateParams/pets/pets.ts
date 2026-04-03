@@ -90,13 +90,14 @@ export const getListPetsByCountryUrl = (
 
     if (Array.isArray(value) && explodeParameters.includes(key)) {
       value.forEach((v) => {
-        normalizedParams.append(key, v === null ? 'null' : v.toString());
+        if (v === null || v === undefined) return;
+        normalizedParams.append(key, v.toString());
       });
       return;
     }
 
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString());
+    if (value !== undefined && value !== null) {
+      normalizedParams.append(key, value.toString());
     }
   });
 
@@ -158,14 +159,10 @@ export const getListPetsByAgeUrl = (
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
+    if (value !== undefined && value !== null) {
       normalizedParams.append(
         key,
-        value === null
-          ? 'null'
-          : value instanceof Date
-            ? value.toISOString()
-            : value.toString(),
+        value instanceof Date ? value.toISOString() : value.toString(),
       );
     }
   });

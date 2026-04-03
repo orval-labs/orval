@@ -107,8 +107,8 @@ export const getFindPetsByStatusUrl = (params?: FindPetsByStatusParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString());
+    if (value !== undefined && value !== null) {
+      normalizedParams.append(key, value.toString());
     }
   });
 
@@ -183,7 +183,8 @@ export const getFindPetsByTagsUrl = (params?: FindPetsByTagsParams) => {
 
     if (Array.isArray(value) && explodeParameters.includes(key)) {
       value.forEach((v) => {
-        normalizedParams.append(key, v === null ? 'null' : v.toString());
+        if (v === null || v === undefined) return;
+        normalizedParams.append(key, v.toString());
       });
       return;
     }
@@ -325,8 +326,8 @@ export const getUpdatePetWithFormUrl = (
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString());
+    if (value !== undefined && value !== null) {
+      normalizedParams.append(key, value.toString());
     }
   });
 
@@ -617,8 +618,8 @@ export const getLoginUserUrl = (params?: LoginUserParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString());
+    if (value !== undefined && value !== null) {
+      normalizedParams.append(key, value.toString());
     }
   });
 
