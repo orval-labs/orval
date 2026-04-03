@@ -1,12 +1,9 @@
-import { TEMPLATE_TAG_REGEX } from '../constants';
 import type {
   BaseUrlFromConstant,
   BaseUrlFromSpec,
   OpenApiServerObject,
 } from '../types';
 import { camel, isString, sanitize } from '../utils';
-
-const TEMPLATE_TAG_IN_PATH_REGEX = /\/([\w]+)(?:\$\{)/g; // all dynamic parts of path
 
 const hasParam = (path: string): boolean => /[^{]*{[\w*_-]*}.*/.test(path);
 
@@ -102,13 +99,20 @@ export function getFullRoute(
 // Creates a mixed use array with path variables and string from template string route
 export function getRouteAsArray(route: string): string {
   return route
-    .replaceAll(TEMPLATE_TAG_IN_PATH_REGEX, '/$1/${')
     .split('/')
     .filter((i) => i !== '')
-    .map((i) =>
-      // @note - array is mixed with string and var
-      i.includes('${') ? i.replace(TEMPLATE_TAG_REGEX, '$1') : `'${i}'`,
-    )
-    .join(',')
-    .replace(',,', '');
+    .flatMap((segment) => {
+      if (!segment.includes('${')) {
+        return [`'${segment}'`];
+      }
+      // Split by template tags, keeping the delimiters
+      return segment
+        .split(/(\$\{.+?\})/g)
+        .filter(Boolean)
+        .map((part) => {
+          const match = /^\$\{(.+?)\}$/.exec(part);
+          return match ? match[1] : `'${part}'`;
+        });
+    })
+    .join(',');
 }
