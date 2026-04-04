@@ -24,7 +24,7 @@ export const getPets = (axiosInstance: AxiosInstance = axios) => {
     params: ListPetsParams,
     version: number = 1,
     options?: AxiosRequestConfig,
-  ): Promise<AxiosResponse<Pets>> => {
+  ): Promise<AxiosResponse<Pets | string>> => {
     return axiosInstance.get(`/v${version}/pets`, {
       ...options,
       params: { ...params, ...options?.params },
@@ -76,7 +76,7 @@ export const getPets = (axiosInstance: AxiosInstance = axios) => {
   };
   return { listPets, createPets, showPetById, deletePetById, showPetWithOwner };
 };
-export type ListPetsResult = AxiosResponse<Pets>;
+export type ListPetsResult = AxiosResponse<Pets | string>;
 export type CreatePetsResult = AxiosResponse<Pet>;
 export type ShowPetByIdResult = AxiosResponse<Pet>;
 export type DeletePetByIdResult = AxiosResponse<void>;
