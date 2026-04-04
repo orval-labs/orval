@@ -39,7 +39,7 @@ import type {
 export const listPets = (
   params: MaybeRef<ListPetsParams>,
   options?: AxiosRequestConfig,
-): Promise<AxiosResponse<Pets | string>> => {
+): Promise<AxiosResponse<Pets>> => {
   params = unref(params);
 
   return axios.get(`/pets`, {

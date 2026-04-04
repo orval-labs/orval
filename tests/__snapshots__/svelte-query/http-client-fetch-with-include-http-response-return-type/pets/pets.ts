@@ -45,7 +45,7 @@ export const getListPetsUrl = (params: ListPetsParams) => {
 export const listPets = async (
   params: ListPetsParams,
   options?: RequestInit,
-): Promise<Pets | string> => {
+): Promise<Pets> => {
   const res = await fetch(getListPetsUrl(params), {
     ...options,
     method: 'GET',
@@ -53,7 +53,7 @@ export const listPets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: Pets | string = body ? JSON.parse(body) : {};
+  const data: Pets = body ? JSON.parse(body) : {};
   return data;
 };
 

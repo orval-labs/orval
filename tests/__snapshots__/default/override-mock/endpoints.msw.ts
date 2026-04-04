@@ -298,24 +298,22 @@ export const getShowPetWithOwnerResponseMock = (
 export const getListPetsMockHandler = (
   overrideResponse?:
     | Pets
-    | string
     | ((
         info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pets | string> | Pets | string),
+      ) => Promise<Pets> | Pets),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/pets',
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      const resolvedBody =
+      return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
             ? await overrideResponse(info)
             : overrideResponse
-          : getListPetsResponseMock();
-      return typeof resolvedBody === 'string'
-        ? HttpResponse.text(resolvedBody, { status: 200 })
-        : HttpResponse.json(resolvedBody, { status: 200 });
+          : getListPetsResponseMock(),
+        { status: 200 },
+      );
     },
     options,
   );

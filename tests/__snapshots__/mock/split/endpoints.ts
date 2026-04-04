@@ -23,7 +23,7 @@ export const getSwaggerPetstore = (axiosInstance: AxiosInstance = axios) => {
   const listPets = (
     params: ListPetsParams,
     options?: AxiosRequestConfig,
-  ): Promise<AxiosResponse<Pets | string>> => {
+  ): Promise<AxiosResponse<Pets>> => {
     return axiosInstance.get(`/pets`, {
       ...options,
       params: { ...params, ...options?.params },
@@ -95,7 +95,7 @@ export const getSwaggerPetstore = (axiosInstance: AxiosInstance = axios) => {
     showPetWithOwner,
   };
 };
-export type ListPetsResult = AxiosResponse<Pets | string>;
+export type ListPetsResult = AxiosResponse<Pets>;
 export type CreatePetsResult = AxiosResponse<Pet>;
 export type ShowPetByIdResult = AxiosResponse<Pet>;
 export type DeletePetByIdResult = AxiosResponse<void>;

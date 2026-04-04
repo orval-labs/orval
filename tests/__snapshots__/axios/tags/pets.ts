@@ -31,7 +31,7 @@ export const getPets = (axiosInstance: AxiosInstance = axios) => {
     params: ListPetsParams,
     version: number = 1,
     options?: AxiosRequestConfig,
-  ): Promise<AxiosResponse<Pets | string>> => {
+  ): Promise<AxiosResponse<Pets>> => {
     return axiosInstance.get(`/v${version}/pets`, {
       ...options,
       params: { ...params, ...options?.params },
@@ -83,7 +83,7 @@ export const getPets = (axiosInstance: AxiosInstance = axios) => {
   };
   return { listPets, createPets, showPetById, deletePetById, showPetWithOwner };
 };
-export type ListPetsResult = AxiosResponse<Pets | string>;
+export type ListPetsResult = AxiosResponse<Pets>;
 export type CreatePetsResult = AxiosResponse<Pet>;
 export type ShowPetByIdResult = AxiosResponse<Pet>;
 export type DeletePetByIdResult = AxiosResponse<void>;
@@ -133,41 +133,38 @@ export const getListPetsResponseCatMock = (
   ...overrideResponse,
 });
 
-export const getListPetsResponseMock = (): Pets | string =>
-  faker.helpers.arrayElement([
-    Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1,
-    ).map(() => ({
-      ...faker.helpers.arrayElement([
-        { ...getListPetsResponseDogMock() },
-        { ...getListPetsResponseCatMock() },
-      ]),
-      '@id': faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        undefined,
-      ]),
-      id: faker.number.int(),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      tag: faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        undefined,
-      ]),
-      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-      callingCode: faker.helpers.arrayElement([
-        faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-        undefined,
-      ]),
-      country: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          "People's Republic of China",
-          'Uruguay',
-        ] as const),
-        undefined,
-      ]),
-    })),
-    faker.word.sample(),
-  ]);
+export const getListPetsResponseMock = (): Pets =>
+  Array.from(
+    { length: faker.number.int({ min: 1, max: 10 }) },
+    (_, i) => i + 1,
+  ).map(() => ({
+    ...faker.helpers.arrayElement([
+      { ...getListPetsResponseDogMock() },
+      { ...getListPetsResponseCatMock() },
+    ]),
+    '@id': faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      undefined,
+    ]),
+    id: faker.number.int(),
+    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    tag: faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      undefined,
+    ]),
+    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+    callingCode: faker.helpers.arrayElement([
+      faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
+      undefined,
+    ]),
+    country: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([
+        "People's Republic of China",
+        'Uruguay',
+      ] as const),
+      undefined,
+    ]),
+  }));
 
 export const getCreatePetsResponseLabradoodleMock = (
   overrideResponse: Partial<Labradoodle> = {},
@@ -397,24 +394,22 @@ export const getShowPetWithOwnerResponseMock = (
 export const getListPetsMockHandler = (
   overrideResponse?:
     | Pets
-    | string
     | ((
         info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pets | string> | Pets | string),
+      ) => Promise<Pets> | Pets),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/v:version/pets',
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      const resolvedBody =
+      return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
             ? await overrideResponse(info)
             : overrideResponse
-          : getListPetsResponseMock();
-      return typeof resolvedBody === 'string'
-        ? HttpResponse.text(resolvedBody, { status: 200 })
-        : HttpResponse.json(resolvedBody, { status: 200 });
+          : getListPetsResponseMock(),
+        { status: 200 },
+      );
     },
     options,
   );

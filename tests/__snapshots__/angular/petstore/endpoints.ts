@@ -124,74 +124,56 @@ function filterParams(
   return filteredParams;
 }
 
-export type ListPetsAccept =
-  (typeof ListPetsAccept)[keyof typeof ListPetsAccept];
-
-export const ListPetsAccept = {
-  application_hal_json: 'application/hal+json',
-  text_plain: 'text/plain',
-} as const;
-
 @Injectable({ providedIn: 'root' })
 export class SwaggerPetstoreService {
   private readonly http = inject(HttpClient);
   /**
    * @summary List all pets
    */
-  listPets(
+  listPets<TData = Pets>(
     params: ListPetsParams,
-    accept: 'application/hal+json',
     version?: number,
-    options?: HttpClientOptions,
-  ): Observable<Pets>;
-  listPets(
+    options?: HttpClientBodyOptions,
+  ): Observable<TData>;
+  listPets<TData = Pets>(
     params: ListPetsParams,
-    accept: 'text/plain',
     version?: number,
-    options?: HttpClientOptions,
-  ): Observable<string>;
-  listPets(
+    options?: HttpClientEventOptions,
+  ): Observable<HttpEvent<TData>>;
+  listPets<TData = Pets>(
     params: ListPetsParams,
-    accept?: ListPetsAccept,
     version?: number,
-    options?: HttpClientOptions,
-  ): Observable<Pets | string>;
-  listPets(
+    options?: HttpClientResponseOptions,
+  ): Observable<AngularHttpResponse<TData>>;
+  listPets<TData = Pets>(
     params: ListPetsParams,
-    accept: ListPetsAccept = 'application/hal+json',
     version: number = 1,
-    options?: HttpClientOptions,
-  ): Observable<Pets | string> {
+    options?: HttpClientObserveOptions,
+  ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     const filteredParams = filterParams(
       { ...params, ...options?.params },
       new Set<string>([]),
     );
 
-    const headers =
-      options?.headers instanceof HttpHeaders
-        ? options.headers.set('Accept', accept)
-        : { ...(options?.headers ?? {}), Accept: accept };
-
-    if (accept.includes('json') || accept.includes('+json')) {
-      return this.http.get<Pets>(`/v${version}/pets`, {
-        ...options,
-        responseType: 'json',
-        headers,
+    if (options?.observe === 'events') {
+      return this.http.get<TData>(`/v${version}/pets`, {
+        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+        observe: 'events',
         params: filteredParams,
       });
-    } else if (accept.startsWith('text/') || accept.includes('xml')) {
-      return this.http.get(`/v${version}/pets`, {
-        ...options,
-        responseType: 'text',
-        headers,
-        params: filteredParams,
-      }) as Observable<string>;
     }
 
-    return this.http.get<Pets>(`/v${version}/pets`, {
-      ...options,
-      responseType: 'json',
-      headers,
+    if (options?.observe === 'response') {
+      return this.http.get<TData>(`/v${version}/pets`, {
+        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+        observe: 'response',
+        params: filteredParams,
+      });
+    }
+
+    return this.http.get<TData>(`/v${version}/pets`, {
+      ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+      observe: 'body',
       params: filteredParams,
     });
   }
@@ -467,41 +449,38 @@ export const getListPetsResponseCatMock = (
   ...overrideResponse,
 });
 
-export const getListPetsResponseMock = (): Pets | string =>
-  faker.helpers.arrayElement([
-    Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1,
-    ).map(() => ({
-      ...faker.helpers.arrayElement([
-        { ...getListPetsResponseDogMock() },
-        { ...getListPetsResponseCatMock() },
-      ]),
-      '@id': faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        undefined,
-      ]),
-      id: faker.number.int(),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      tag: faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        undefined,
-      ]),
-      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-      callingCode: faker.helpers.arrayElement([
-        faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-        undefined,
-      ]),
-      country: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          "People's Republic of China",
-          'Uruguay',
-        ] as const),
-        undefined,
-      ]),
-    })),
-    faker.word.sample(),
-  ]);
+export const getListPetsResponseMock = (): Pets =>
+  Array.from(
+    { length: faker.number.int({ min: 1, max: 10 }) },
+    (_, i) => i + 1,
+  ).map(() => ({
+    ...faker.helpers.arrayElement([
+      { ...getListPetsResponseDogMock() },
+      { ...getListPetsResponseCatMock() },
+    ]),
+    '@id': faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      undefined,
+    ]),
+    id: faker.number.int(),
+    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    tag: faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      undefined,
+    ]),
+    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+    callingCode: faker.helpers.arrayElement([
+      faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
+      undefined,
+    ]),
+    country: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([
+        "People's Republic of China",
+        'Uruguay',
+      ] as const),
+      undefined,
+    ]),
+  }));
 
 export const getCreatePetsResponseLabradoodleMock = (
   overrideResponse: Partial<Labradoodle> = {},
@@ -733,24 +712,22 @@ export const getShowPetWithOwnerResponseMock = (
 export const getListPetsMockHandler = (
   overrideResponse?:
     | Pets
-    | string
     | ((
         info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pets | string> | Pets | string),
+      ) => Promise<Pets> | Pets),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/v:version/pets',
     async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      const resolvedBody =
+      return HttpResponse.json(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
             ? await overrideResponse(info)
             : overrideResponse
-          : getListPetsResponseMock();
-      return typeof resolvedBody === 'string'
-        ? HttpResponse.text(resolvedBody, { status: 200 })
-        : HttpResponse.json(resolvedBody, { status: 200 });
+          : getListPetsResponseMock(),
+        { status: 200 },
+      );
     },
     options,
   );
