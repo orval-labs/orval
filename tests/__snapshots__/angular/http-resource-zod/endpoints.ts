@@ -15,7 +15,8 @@ import type {
   HttpEvent,
   HttpParams,
   HttpResourceOptions,
-  HttpResourceRef
+  HttpResourceRef,
+  HttpResourceRequest
 } from '@angular/common/http';
 
 import {
@@ -113,23 +114,60 @@ function filterParams(
   }
   return filteredParams;
 }
+export type ListPetsAccept = typeof ListPetsAccept[keyof typeof ListPetsAccept];
+
+export const ListPetsAccept = {
+  application_hal_json: 'application/hal+json',
+  text_plain: 'text/plain',
+} as const;
+
 /**
  * @experimental httpResource is experimental (Angular v19.2+)
  */
-export function listPetsResource(params: Signal<ListPetsParams> | undefined,
-  options: OrvalHttpResourceOptions<Pets, unknown, true> & { defaultValue: NoInfer<Pets> }): HttpResourceRef<Pets>;
 export function listPetsResource(params?: Signal<ListPetsParams>,
-  options?: OrvalHttpResourceOptions<Pets, unknown, true>): HttpResourceRef<Pets | undefined>;
+    accept: 'application/hal+json',
+    options?: OrvalHttpResourceOptions<Pets | string, unknown, true>): HttpResourceRef<Pets | undefined>;
 export function listPetsResource(params?: Signal<ListPetsParams>,
-  options?: OrvalHttpResourceOptions<Pets, unknown, true>): HttpResourceRef<Pets | undefined> {
-  return httpResource<Pets>(() => {
+    accept: 'text/plain',
+    options?: OrvalHttpResourceOptions<Pets | string, unknown, true>): HttpResourceRef<string | undefined>;
+export function listPetsResource(
+    params?: Signal<ListPetsParams>,
+    accept?: ListPetsAccept,
+    options?: OrvalHttpResourceOptions<Pets | string, unknown, true>
+  ): HttpResourceRef<Pets | string | undefined>;
+export function listPetsResource(
+    params?: Signal<ListPetsParams>,
+    accept: ListPetsAccept = 'application/hal+json',
+    options?: OrvalHttpResourceOptions<Pets | string, unknown, true>
+): HttpResourceRef<Pets | string | undefined> {
 
-    const request = ({
+  const request = ({
       url: `/pets`,
       params: filterParams(params?.() ?? {}, new Set<string>([]))
     });
-    return request;
-  }, options);
+  const normalizedRequest: HttpResourceRequest = request;
+  const headers = normalizedRequest.headers instanceof HttpHeaders
+    ? normalizedRequest.headers.set('Accept', accept)
+    : { ...(normalizedRequest.headers ?? {}), Accept: accept };
+
+  if (accept.includes('json') || accept.includes('+json')) {
+    return httpResource<Pets>(() => ({
+      ...normalizedRequest,
+      headers,
+    }), options as unknown as OrvalHttpResourceOptions<Pets, unknown, true>);
+  }
+
+  if (accept.startsWith('text/') || accept.includes('xml')) {
+    return httpResource.text<string>(() => ({
+      ...normalizedRequest,
+      headers,
+    }), options as unknown as OrvalHttpResourceOptions<string, string, true>);
+  }
+
+  return httpResource.text<string>(() => ({
+      ...normalizedRequest,
+      headers,
+    }), options as unknown as OrvalHttpResourceOptions<string, string, true>);
 }
 
 /**
@@ -284,7 +322,7 @@ export class SwaggerPetstoreService {
 
 };
 
-export type ListPetsResourceResult = NonNullable<Pets>
+export type ListPetsResourceResult = NonNullable<Pets | string>
 export type ShowPetByIdResourceResult = NonNullable<Pet>
 export type HealthCheckResourceResult = NonNullable<string>
 export type ShowPetWithOwnerResourceResult = NonNullable<PetWithTag>
@@ -342,7 +380,7 @@ export const getListPetsResponseDogMock = (overrideResponse: Omit<Partial<Dog>, 
 
 export const getListPetsResponseCatMock = (overrideResponse: Partial<Cat> = {}): Cat => ({...{petsRequested: faker.helpers.arrayElement([faker.number.int(), undefined]), type: faker.helpers.arrayElement(['cat'] as const)}, ...overrideResponse});
 
-export const getListPetsResponseMock = (): Pets => (Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({...faker.helpers.arrayElement([{...getListPetsResponseDogMock()},{...getListPetsResponseCatMock()},]), '@id': faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), id: faker.number.int(), name: faker.string.alpha({length: {min: 10, max: 20}}), tag: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), email: faker.helpers.arrayElement([faker.internet.email(), undefined]), callingCode: faker.helpers.arrayElement([faker.helpers.arrayElement(['+33','+420','+33'] as const), undefined]), country: faker.helpers.arrayElement([faker.helpers.arrayElement(['People\'s Republic of China','Uruguay'] as const), undefined])})))
+export const getListPetsResponseMock = (): Pets | string => (faker.helpers.arrayElement([Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({...faker.helpers.arrayElement([{...getListPetsResponseDogMock()},{...getListPetsResponseCatMock()},]), '@id': faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), id: faker.number.int(), name: faker.string.alpha({length: {min: 10, max: 20}}), tag: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), email: faker.helpers.arrayElement([faker.internet.email(), undefined]), callingCode: faker.helpers.arrayElement([faker.helpers.arrayElement(['+33','+420','+33'] as const), undefined]), country: faker.helpers.arrayElement([faker.helpers.arrayElement(['People\'s Republic of China','Uruguay'] as const), undefined])})), faker.word.sample()]))
 
 export const getCreatePetsResponseLabradoodleMock = (overrideResponse: Partial<Labradoodle> = {}): Labradoodle => ({...{cuteness: faker.number.int(), breed: faker.helpers.arrayElement(['Labradoodle'] as const)}, ...overrideResponse});
 
@@ -377,15 +415,15 @@ export const getShowPetWithOwnerResponseCatMock = (overrideResponse: Partial<Cat
 export const getShowPetWithOwnerResponseMock = (overrideResponse: Partial<Extract<PetWithTag, object>> = {}): PetWithTag => ({tag: faker.string.alpha({length: {min: 10, max: 20}}), pet: {...faker.helpers.arrayElement([{...getShowPetWithOwnerResponseDogMock()},{...getShowPetWithOwnerResponseCatMock()},]), '@id': faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), id: faker.number.int(), name: faker.string.alpha({length: {min: 10, max: 20}}), tag: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), email: faker.helpers.arrayElement([faker.internet.email(), undefined]), callingCode: faker.helpers.arrayElement([faker.helpers.arrayElement(['+33','+420','+33'] as const), undefined]), country: faker.helpers.arrayElement([faker.helpers.arrayElement(['People\'s Republic of China','Uruguay'] as const), undefined])}, ...overrideResponse})
 
 
-export const getListPetsMockHandler = (overrideResponse?: Pets | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<Pets> | Pets), options?: RequestHandlerOptions) => {
+export const getListPetsMockHandler = (overrideResponse?: Pets | string | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<Pets | string> | Pets | string), options?: RequestHandlerOptions) => {
   return http.get('*/pets', async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
 
-
-    return HttpResponse.json(overrideResponse !== undefined
+  const resolvedBody = overrideResponse !== undefined
     ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
-    : getListPetsResponseMock(),
-      { status: 200
-      })
+    : getListPetsResponseMock();
+    return typeof resolvedBody === 'string'
+      ? HttpResponse.text(resolvedBody, { status: 200 })
+      : HttpResponse.json(resolvedBody, { status: 200 })
   }, options)
 }
 

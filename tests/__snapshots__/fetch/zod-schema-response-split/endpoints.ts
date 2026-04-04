@@ -16,7 +16,7 @@ import { Pet } from './model/pet.zod';
 
 import { PetWithTag } from './model/petWithTag.zod';
 
-import { Pets } from './model/pets.zod';
+import type { Pets } from './model/pets.zod';
 
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;
@@ -63,8 +63,13 @@ export type HTTPStatusCodes =
 /**
  * @summary List all pets
  */
-export type listPetsResponse200 = {
+export type listPetsResponse200ApplicationHalJson = {
   data: Pets;
+  status: 200;
+};
+
+export type listPetsResponse200TextPlain = {
+  data: string;
   status: 200;
 };
 
@@ -73,7 +78,10 @@ export type listPetsResponseDefault = {
   status: Exclude<HTTPStatusCodes, 200>;
 };
 
-export type listPetsResponseSuccess = listPetsResponse200 & {
+export type listPetsResponseSuccess = (
+  | listPetsResponse200ApplicationHalJson
+  | listPetsResponse200TextPlain
+) & {
   headers: Headers;
 };
 export type listPetsResponseError = listPetsResponseDefault & {
@@ -107,8 +115,7 @@ export const listPets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const parsedBody = body ? JSON.parse(body) : {};
-  const data = Pets.parse(parsedBody);
+  const data: listPetsResponse['data'] = body ? JSON.parse(body) : {};
   return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };
 

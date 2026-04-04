@@ -273,7 +273,7 @@ export type CreatePetsBody = {
 export const listPets = (
   params: ListPetsParams,
   options?: AxiosRequestConfig,
-): Promise<AxiosResponse<Pets>> => {
+): Promise<AxiosResponse<Pets | string>> => {
   return axios.get(`/pets`, {
     ...options,
     params: { ...params, ...options?.params },
@@ -336,7 +336,7 @@ export const showPetWithOwner = (
   return axios.get(`/pets/${petId}/owner`, options);
 };
 
-export type ListPetsResult = AxiosResponse<Pets>;
+export type ListPetsResult = AxiosResponse<Pets | string>;
 export type CreatePetsResult = AxiosResponse<Pet>;
 export type ShowPetByIdResult = AxiosResponse<Pet>;
 export type DeletePetByIdResult = AxiosResponse<void>;

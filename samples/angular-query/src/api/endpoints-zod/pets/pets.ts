@@ -25,12 +25,13 @@ import { fromEvent, lastValueFrom } from 'rxjs';
 
 import { map, takeUntil } from 'rxjs/operators';
 
-import { Pet, PetWithTag, Pets } from '../../model-zod';
+import { Pet, PetWithTag } from '../../model-zod';
 import type {
   CreatePetsBody,
   CreatePetsParams,
   Error,
   ListPetsParams,
+  Pets,
 } from '../../model-zod';
 
 type AngularHttpParamValue =
@@ -92,14 +93,12 @@ export const listPets = (
   http: HttpClient,
   params: ListPetsParams,
   options?: { signal?: AbortSignal | null },
-): Promise<Pets> => {
+): Promise<Pets | string> => {
   const httpParams = params
     ? new HttpParams({ fromObject: filterParams(params, new Set<string>([])) })
     : undefined;
   const url = `/pets`;
-  const request$ = http
-    .get<Pets>(url, { params: httpParams })
-    .pipe(map((data) => Pets.parse(data)));
+  const request$ = http.get<Pets | string>(url, { params: httpParams });
   if (options?.signal) {
     return lastValueFrom(
       request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),

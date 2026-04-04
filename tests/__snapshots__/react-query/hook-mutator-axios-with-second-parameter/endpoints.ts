@@ -39,7 +39,7 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
  * @summary List all pets
  */
 export const useListPetsHook = () => {
-  const listPets = useCustomInstance<Pets>();
+  const listPets = useCustomInstance<Pets | string>();
 
   return useCallback(
     (

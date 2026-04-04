@@ -123,56 +123,74 @@ function filterParams(
   return filteredParams;
 }
 
+export type ListPetsAccept =
+  (typeof ListPetsAccept)[keyof typeof ListPetsAccept];
+
+export const ListPetsAccept = {
+  application_hal_json: 'application/hal+json',
+  text_plain: 'text/plain',
+} as const;
+
 @Injectable({ providedIn: 'root' })
 export class SwaggerPetstoreService {
   private readonly http = inject(HttpClient);
   /**
    * @summary List all pets
    */
-  listPets<TData = Pets>(
+  listPets(
     pathParams: ListPetsPathParameters,
     params: ListPetsParams,
-    options?: HttpClientBodyOptions,
-  ): Observable<TData>;
-  listPets<TData = Pets>(
+    accept: 'application/hal+json',
+    options?: HttpClientOptions,
+  ): Observable<Pets>;
+  listPets(
     pathParams: ListPetsPathParameters,
     params: ListPetsParams,
-    options?: HttpClientEventOptions,
-  ): Observable<HttpEvent<TData>>;
-  listPets<TData = Pets>(
+    accept: 'text/plain',
+    options?: HttpClientOptions,
+  ): Observable<string>;
+  listPets(
     pathParams: ListPetsPathParameters,
     params: ListPetsParams,
-    options?: HttpClientResponseOptions,
-  ): Observable<AngularHttpResponse<TData>>;
-  listPets<TData = Pets>(
+    accept?: ListPetsAccept,
+    options?: HttpClientOptions,
+  ): Observable<Pets | string>;
+  listPets(
     { version = 1 }: ListPetsPathParameters = {},
     params: ListPetsParams,
-    options?: HttpClientObserveOptions,
-  ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
+    accept: ListPetsAccept = 'application/hal+json',
+    options?: HttpClientOptions,
+  ): Observable<Pets | string> {
     const filteredParams = filterParams(
       { ...params, ...options?.params },
       new Set<string>([]),
     );
 
-    if (options?.observe === 'events') {
-      return this.http.get<TData>(`/v${version}/pets`, {
-        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
-        observe: 'events',
+    const headers =
+      options?.headers instanceof HttpHeaders
+        ? options.headers.set('Accept', accept)
+        : { ...(options?.headers ?? {}), Accept: accept };
+
+    if (accept.includes('json') || accept.includes('+json')) {
+      return this.http.get<Pets>(`/v${version}/pets`, {
+        ...options,
+        responseType: 'json',
+        headers,
         params: filteredParams,
       });
-    }
-
-    if (options?.observe === 'response') {
-      return this.http.get<TData>(`/v${version}/pets`, {
-        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
-        observe: 'response',
+    } else if (accept.startsWith('text/') || accept.includes('xml')) {
+      return this.http.get(`/v${version}/pets`, {
+        ...options,
+        responseType: 'text',
+        headers,
         params: filteredParams,
-      });
+      }) as Observable<string>;
     }
 
-    return this.http.get<TData>(`/v${version}/pets`, {
-      ...(options as Omit<NonNullable<typeof options>, 'observe'>),
-      observe: 'body',
+    return this.http.get<Pets>(`/v${version}/pets`, {
+      ...options,
+      responseType: 'json',
+      headers,
       params: filteredParams,
     });
   }

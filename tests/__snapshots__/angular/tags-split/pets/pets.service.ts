@@ -117,56 +117,74 @@ function filterParams(
   return filteredParams;
 }
 
+export type ListPetsAccept =
+  (typeof ListPetsAccept)[keyof typeof ListPetsAccept];
+
+export const ListPetsAccept = {
+  application_hal_json: 'application/hal+json',
+  text_plain: 'text/plain',
+} as const;
+
 @Injectable({ providedIn: 'root' })
 export class PetsService {
   private readonly http = inject(HttpClient);
   /**
    * @summary List all pets
    */
-  listPets<TData = Pets>(
+  listPets(
     params: ListPetsParams,
+    accept: 'application/hal+json',
     version?: number,
-    options?: HttpClientBodyOptions,
-  ): Observable<TData>;
-  listPets<TData = Pets>(
+    options?: HttpClientOptions,
+  ): Observable<Pets>;
+  listPets(
     params: ListPetsParams,
+    accept: 'text/plain',
     version?: number,
-    options?: HttpClientEventOptions,
-  ): Observable<HttpEvent<TData>>;
-  listPets<TData = Pets>(
+    options?: HttpClientOptions,
+  ): Observable<string>;
+  listPets(
     params: ListPetsParams,
+    accept?: ListPetsAccept,
     version?: number,
-    options?: HttpClientResponseOptions,
-  ): Observable<AngularHttpResponse<TData>>;
-  listPets<TData = Pets>(
+    options?: HttpClientOptions,
+  ): Observable<Pets | string>;
+  listPets(
     params: ListPetsParams,
+    accept: ListPetsAccept = 'application/hal+json',
     version: number = 1,
-    options?: HttpClientObserveOptions,
-  ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
+    options?: HttpClientOptions,
+  ): Observable<Pets | string> {
     const filteredParams = filterParams(
       { ...params, ...options?.params },
       new Set<string>([]),
     );
 
-    if (options?.observe === 'events') {
-      return this.http.get<TData>(`/v${version}/pets`, {
-        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
-        observe: 'events',
+    const headers =
+      options?.headers instanceof HttpHeaders
+        ? options.headers.set('Accept', accept)
+        : { ...(options?.headers ?? {}), Accept: accept };
+
+    if (accept.includes('json') || accept.includes('+json')) {
+      return this.http.get<Pets>(`/v${version}/pets`, {
+        ...options,
+        responseType: 'json',
+        headers,
         params: filteredParams,
       });
-    }
-
-    if (options?.observe === 'response') {
-      return this.http.get<TData>(`/v${version}/pets`, {
-        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
-        observe: 'response',
+    } else if (accept.startsWith('text/') || accept.includes('xml')) {
+      return this.http.get(`/v${version}/pets`, {
+        ...options,
+        responseType: 'text',
+        headers,
         params: filteredParams,
-      });
+      }) as Observable<string>;
     }
 
-    return this.http.get<TData>(`/v${version}/pets`, {
-      ...(options as Omit<NonNullable<typeof options>, 'observe'>),
-      observe: 'body',
+    return this.http.get<Pets>(`/v${version}/pets`, {
+      ...options,
+      responseType: 'json',
+      headers,
       params: filteredParams,
     });
   }
@@ -352,7 +370,7 @@ export class PetsService {
   }
 }
 
-export type ListPetsClientResult = NonNullable<Pets>;
+export type ListPetsClientResult = NonNullable<Pets | string>;
 export type CreatePetsClientResult = NonNullable<Pet>;
 export type ShowPetByIdClientResult = NonNullable<Pet>;
 export type DeletePetByIdClientResult = NonNullable<void>;
