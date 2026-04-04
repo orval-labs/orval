@@ -76,8 +76,13 @@ export type HTTPStatusCodes =
 /**
  * @summary List all pets
  */
-export type listPetsResponse200 = {
+export type listPetsResponse200ApplicationHalJson = {
   data: Pets;
+  status: 200;
+};
+
+export type listPetsResponse200TextPlain = {
+  data: string;
   status: 200;
 };
 
@@ -86,7 +91,10 @@ export type listPetsResponseDefault = {
   status: Exclude<HTTPStatusCodes, 200>;
 };
 
-export type listPetsResponseSuccess = listPetsResponse200 & {
+export type listPetsResponseSuccess = (
+  | listPetsResponse200ApplicationHalJson
+  | listPetsResponse200TextPlain
+) & {
   headers: Headers;
 };
 export type listPetsResponseError = listPetsResponseDefault & {

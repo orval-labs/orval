@@ -55,6 +55,9 @@ paths:
             application/hal+json:
               schema:
                 $ref: '#/components/schemas/Pets'
+            text/plain:
+              schema:
+                type: string
         default:
           description: unexpected error
           content:

@@ -40,7 +40,7 @@ import { useCustomInstance } from '../../../mutators/use-custom-instance';
  * @summary List all pets
  */
 export const useListPetsHook = () => {
-  const listPets = useCustomInstance<Pets>();
+  const listPets = useCustomInstance<Pets | string>();
 
   return useCallback(
     (params: ListPetsParams, signal?: AbortSignal) => {
