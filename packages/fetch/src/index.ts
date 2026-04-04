@@ -193,7 +193,6 @@ ${
   const isContentTypeNdJson = (contentType: string) =>
     contentType === 'application/nd-json' ||
     contentType === 'application/x-ndjson';
-
   const isNdJson = response.contentTypes.some((contentType) =>
     isContentTypeNdJson(contentType),
   );
@@ -409,7 +408,9 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     isValidateResponse
       ? `const parsedBody = body ? JSON.parse(body${reviver}) : {}
   const data = ${schemaValueRef}.parse(parsedBody)`
-      : `const data: ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}`
+      : `
+      const resContentType = res.headers.get("content-type") ?? "";
+      const data: ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = resContentType.startsWith('text/') ? body ?? '' : body ? JSON.parse(body${reviver}) : {}`
   }
   ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : 'return data'}
 `;
