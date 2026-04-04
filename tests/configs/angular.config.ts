@@ -160,4 +160,16 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  multiContentQueryParams: {
+    output: {
+      target: '../generated/angular/multi-content-query-params/endpoints.ts',
+      schemas: '../generated/angular/multi-content-query-params/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/angular-multi-content-query-params.yaml',
+    },
+  },
 });
