@@ -78,6 +78,33 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  invalidatesSplitQueryKey: {
+    output: {
+      target:
+        '../generated/react-query/invalidates-split-query-key/endpoints.ts',
+      schemas: '../generated/react-query/invalidates-split-query-key/model',
+      client: 'react-query',
+      override: {
+        query: {
+          shouldSplitQueryKey: true,
+          mutationInvalidates: [
+            {
+              // shouldSplitQueryKey test: showPetById has required path
+              // param but no params mapping → should generate partial
+              // key matching with static route segments.
+              onMutations: ['createPets'],
+              invalidates: ['showPetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   zodSchemaResponse: {
     output: {
       target: '../generated/react-query/zod-schema-response/endpoints.ts',

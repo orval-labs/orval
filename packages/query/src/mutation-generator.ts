@@ -83,9 +83,8 @@ interface SpecParameter {
 
 /**
  * Look up an operation's route and path-parameter metadata from the OpenAPI
- * spec by operationId. Path parameters that carry a `default` value are
- * considered optional because the generated query-key function will use
- * that default – calling the function without arguments is therefore safe.
+ * spec. Matches against both the raw `operationId` and its camelCase form
+ * so that renamed/overridden operations are still found.
  */
 const findOperationInfo = (
   spec: Record<string, unknown> | undefined,
@@ -102,7 +101,10 @@ const findOperationInfo = (
 
     for (const method of HTTP_METHODS) {
       const operation = pathItem[method] as SpecOperation | undefined;
-      if (operation?.operationId !== operationName) continue;
+      const opId = operation?.operationId;
+      if (!opId) continue;
+      // Match both raw operationId and its camelCase generated name
+      if (opId !== operationName && camel(opId) !== operationName) continue;
 
       if (!routePath.includes('{')) {
         return { route: routePath, hasRequiredPathParams: false };
@@ -127,11 +129,20 @@ const findOperationInfo = (
 /**
  * Extract the static route prefix before the first path parameter.
  * e.g. "/pets/{petId}" → "/pets/", "/pets" → "/pets"
+ *
+ * Returns `undefined` when the prefix contains no meaningful literal
+ * segments (e.g. "/{tenantId}/pets") to avoid overly-broad invalidation.
  */
-const getStaticRoutePrefix = (route: string): string => {
+const getStaticRoutePrefix = (route: string): string | undefined => {
   const idx = route.indexOf('{');
   if (idx === -1) return route;
-  return route.slice(0, idx);
+  const prefix = route.slice(0, idx);
+  // Guard: a prefix like "/" has no stable literal segment and would
+  // match every route-style query key – fall back to the zero-arg call.
+  const hasLiteralSegment = prefix
+    .split('/')
+    .some((segment) => segment.length > 0);
+  return hasLiteralSegment ? prefix : undefined;
 };
 
 /**
@@ -140,11 +151,19 @@ const getStaticRoutePrefix = (route: string): string => {
  * parameters (without defaults), meaning we should use predicate-based broad
  * invalidation instead of calling the function without the required arguments.
  */
+const hasNonEmptyParams = (
+  params: string[] | Record<string, string> | undefined,
+): params is string[] | Record<string, string> => {
+  if (!params) return false;
+  if (Array.isArray(params)) return params.length > 0;
+  return Object.keys(params).length > 0;
+};
+
 const needsQueryKeyFnCall = (
   target: NormalizedTarget,
   spec: Record<string, unknown> | undefined,
 ): boolean => {
-  if (target.params) return true;
+  if (hasNonEmptyParams(target.params)) return true;
   const info = findOperationInfo(spec, target.query);
   if (info?.hasRequiredPathParams) return false;
   return true;
@@ -182,7 +201,7 @@ const createGenerateInvalidateCall = (
       target.invalidateMode === 'reset' ? 'resetQueries' : 'invalidateQueries';
     const queryKeyFn = camel(`get-${target.query}-query-key`);
 
-    if (target.params) {
+    if (hasNonEmptyParams(target.params)) {
       const args = generateParamArgs(target.params);
       return `    queryClient.${method}({ queryKey: ${queryKeyFn}(${args}) });`;
     }
@@ -196,20 +215,25 @@ const createGenerateInvalidateCall = (
       // the required arguments.
       const prefix = getStaticRoutePrefix(info.route);
 
-      if (shouldSplitQueryKey) {
-        // Split-key mode: query keys are arrays like ['pets', petId].
-        // Use partial key matching with static route segments.
-        const segments = prefix
-          .split('/')
-          .filter((s) => s !== '')
-          .map((s) => `'${s}'`)
-          .join(', ');
-        return `    queryClient.${method}({ queryKey: [${segments}] });`;
-      }
+      // When the prefix has no meaningful literal segments (e.g. route
+      // starts with a path param like /{tenantId}/...), fall through to
+      // the zero-arg call rather than generating an overly-broad match.
+      if (prefix !== undefined) {
+        if (shouldSplitQueryKey) {
+          // Split-key mode: query keys are arrays like ['pets', petId].
+          // Use partial key matching with static route segments.
+          const segments = prefix
+            .split('/')
+            .filter((s) => s !== '')
+            .map((s) => `'${s}'`)
+            .join(', ');
+          return `    queryClient.${method}({ queryKey: [${segments}] });`;
+        }
 
-      // Default mode: query keys are template strings like ['/pets/${petId}'].
-      // Use predicate with startsWith for broad matching.
-      return `    queryClient.${method}({ predicate: (query) => typeof query.queryKey[0] === 'string' && query.queryKey[0].startsWith('${prefix}') });`;
+        // Default mode: query keys are template strings like ['/pets/${petId}'].
+        // Use predicate with startsWith for broad matching.
+        return `    queryClient.${method}({ predicate: (query) => typeof query.queryKey[0] === 'string' && query.queryKey[0].startsWith('${prefix}') });`;
+      }
     }
 
     // No path params or route not found – call query key function without args

@@ -90,6 +90,9 @@ export async function writeSplitTagsMode({
         // output root (dirname) but the consuming file is one level deeper.
         // Resolve these paths so that the generated import is correct.
         const tagNames = new Set(tagEntries.map(([t]) => t));
+        const serviceSuffix =
+          OutputClient.ANGULAR === output.client ? '.service' : '';
+
         const adjustedImports = imports.map((imp) => {
           if (!imp.importPath) return imp;
 
@@ -100,11 +103,16 @@ export async function writeSplitTagsMode({
           const resolvedPath = path.resolve(dirname, imp.importPath);
           const targetBasename = path.basename(resolvedPath);
 
-          // When the resolved path points to a known tag, the actual file is
-          // dirname/tag/tag.ext (e.g. dirname/items/items.ts).
-          const targetFile = tagNames.has(targetBasename)
-            ? path.join(resolvedPath, targetBasename + extension)
-            : resolvedPath + extension;
+          let targetFile: string;
+          if (tagNames.has(targetBasename)) {
+            // Target is a known tag directory. Use the real generated
+            // filename which includes the Angular `.service` suffix when
+            // applicable (e.g. dirname/health/health.service.ts).
+            const tagFilename = targetBasename + serviceSuffix + extension;
+            targetFile = path.join(resolvedPath, tagFilename);
+          } else {
+            targetFile = resolvedPath + extension;
+          }
 
           const adjustedPath = upath.getRelativeImportPath(
             importerPath,
