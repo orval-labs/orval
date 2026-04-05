@@ -84,9 +84,39 @@ export async function writeSplitTagsMode({
             )
           : '../' + filename + '.schemas';
 
+        // In tags-split mode, each tag lives in its own subdirectory
+        // (dirname/tag/tag.ext). Imports with a custom `importPath` (from the
+        // `file` option in mutationInvalidates) are specified relative to the
+        // output root (dirname) but the consuming file is one level deeper.
+        // Resolve these paths so that the generated import is correct.
+        const tagNames = new Set(tagEntries.map(([t]) => t));
+        const adjustedImports = imports.map((imp) => {
+          if (!imp.importPath) return imp;
+
+          // Only adjust relative paths (./foo, ../bar). Package imports
+          // like 'rxjs' or '@tanstack/react-query' must be left as-is.
+          if (!imp.importPath.startsWith('.')) return imp;
+
+          const resolvedPath = path.resolve(dirname, imp.importPath);
+          const targetBasename = path.basename(resolvedPath);
+
+          // When the resolved path points to a known tag, the actual file is
+          // dirname/tag/tag.ext (e.g. dirname/items/items.ts).
+          const targetFile = tagNames.has(targetBasename)
+            ? path.join(resolvedPath, targetBasename + extension)
+            : resolvedPath + extension;
+
+          const adjustedPath = upath.getRelativeImportPath(
+            importerPath,
+            targetFile,
+          );
+
+          return { ...imp, importPath: adjustedPath };
+        });
+
         const importsForBuilder = generateImportsForBuilder(
           output,
-          imports,
+          adjustedImports,
           relativeSchemasPath,
         );
 

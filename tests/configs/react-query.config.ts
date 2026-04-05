@@ -27,18 +27,46 @@ export default defineConfig({
           mutationInvalidates: [
             {
               onMutations: ['createPets'],
-              invalidates: ['listPets'],
+              invalidates: [
+                'listPets',
+                // Bug 1 test: showPetById has required path param 'petId'
+                // but no params mapping → should generate predicate-based
+                // broad invalidation instead of broken getShowPetByIdQueryKey()
+                'showPetById',
+              ],
             },
             {
-              onMutations: ['deletePet', 'updatePet', 'patchPet'],
+              onMutations: ['deletePetById'],
               invalidates: [
                 'listPets',
                 { query: 'showPetById', params: ['petId'] },
               ],
             },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  invalidatesTagsSplit: {
+    output: {
+      target: '../generated/react-query/invalidates-tags-split/endpoints.ts',
+      schemas: '../generated/react-query/invalidates-tags-split/model',
+      client: 'react-query',
+      mode: 'tags-split',
+      override: {
+        query: {
+          mutationInvalidates: [
             {
-              onMutations: ['uploadFile'],
-              invalidates: ['listPets'],
+              // Bug 2 test: createPets (pets tag) invalidates healthCheck
+              // (health tag). In tags-split mode, file: './health' must
+              // resolve to '../health/health', not './health'.
+              onMutations: ['createPets'],
+              invalidates: [{ query: 'healthCheck', file: './health' }],
             },
           ],
         },
