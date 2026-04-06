@@ -6,7 +6,7 @@ import type {
   OpenApiSchemaObject,
   ReadonlyRequestBodiesMode,
 } from '../types';
-import { getBody, getBodiesByContentType } from './body';
+import { getBodiesByContentType, getBody } from './body';
 
 const schemaWithReadOnly: OpenApiSchemaObject = {
   type: 'object',

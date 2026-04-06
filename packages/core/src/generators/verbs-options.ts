@@ -1,6 +1,6 @@
 import {
-  getBody,
   getBodiesByContentType,
+  getBody,
   getOperationId,
   getParameters,
   getParams,
@@ -89,7 +89,7 @@ async function buildVerbOption({
   });
 
   const parameters = getParameters({
-    parameters: [...(verbParameters ?? []), ...(operation.parameters ?? [])],
+    parameters: [...verbParameters, ...(operation.parameters ?? [])],
     context,
   });
 
