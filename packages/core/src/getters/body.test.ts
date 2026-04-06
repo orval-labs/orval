@@ -6,7 +6,7 @@ import type {
   OpenApiSchemaObject,
   ReadonlyRequestBodiesMode,
 } from '../types';
-import { getBody } from './body';
+import { getBody, getBodiesByContentType } from './body';
 
 const schemaWithReadOnly: OpenApiSchemaObject = {
   type: 'object',
@@ -75,5 +75,112 @@ describe('getBody', () => {
 
     expect(result.definition).not.toContain('NonReadonly<');
     expect(result.definition).toBe('CreatePetBody');
+  });
+});
+
+describe('getBodiesByContentType', () => {
+  const multiContentTypeRequestBody: OpenApiRequestBodyObject = {
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+        },
+      },
+      'multipart/form-data': {
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+        },
+      },
+    },
+    required: true,
+  };
+
+  const singleContentTypeRequestBody: OpenApiRequestBodyObject = {
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+        },
+      },
+    },
+    required: true,
+  };
+
+  it('returns a single entry with empty suffix when only one content type', () => {
+    const result = getBodiesByContentType({
+      requestBody: singleContentTypeRequestBody,
+      operationName: 'updateProfile',
+      context: createContext(),
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].contentTypeSuffix).toBe('');
+  });
+
+  it('returns separate entries per content type when multiple content types', () => {
+    const result = getBodiesByContentType({
+      requestBody: multiContentTypeRequestBody,
+      operationName: 'updateProfile',
+      context: createContext(),
+    });
+
+    expect(result).toHaveLength(2);
+    expect(result[0].contentTypeSuffix).toBe('Json');
+    expect(result[1].contentTypeSuffix).toBe('FormData');
+  });
+
+  it('maps known content types to correct suffixes', () => {
+    const requestBody: OpenApiRequestBodyObject = {
+      content: {
+        'application/json': {
+          schema: { type: 'object', properties: { a: { type: 'string' } } },
+        },
+        'application/xml': {
+          schema: { type: 'object', properties: { a: { type: 'string' } } },
+        },
+        'application/octet-stream': {
+          schema: { type: 'string', format: 'binary' },
+        },
+      },
+      required: true,
+    };
+
+    const result = getBodiesByContentType({
+      requestBody,
+      operationName: 'testOp',
+      context: createContext(),
+    });
+
+    expect(result).toHaveLength(3);
+    expect(result[0].contentTypeSuffix).toBe('Json');
+    expect(result[1].contentTypeSuffix).toBe('Xml');
+    expect(result[2].contentTypeSuffix).toBe('Blob');
+  });
+
+  it('derives PascalCase suffix for unknown content types', () => {
+    const requestBody: OpenApiRequestBodyObject = {
+      content: {
+        'application/json': {
+          schema: { type: 'object', properties: { a: { type: 'string' } } },
+        },
+        'application/vnd.api+json': {
+          schema: { type: 'object', properties: { a: { type: 'string' } } },
+        },
+      },
+      required: true,
+    };
+
+    const result = getBodiesByContentType({
+      requestBody,
+      operationName: 'testOp',
+      context: createContext(),
+    });
+
+    expect(result).toHaveLength(2);
+    expect(result[0].contentTypeSuffix).toBe('Json');
+    expect(result[1].contentTypeSuffix).toBe('VndApiJson');
   });
 });
