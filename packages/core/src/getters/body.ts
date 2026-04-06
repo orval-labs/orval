@@ -110,11 +110,13 @@ export function getBodiesByContentType({
   operationName,
   context,
   contentType,
-}: GetBodyOptions): Array<GetterBody & { contentTypeSuffix: string }> {
+}: GetBodyOptions): (GetterBody & { contentTypeSuffix: string })[] {
   const allBodyTypes = getResReqTypes(
     [[context.output.override.components.requestBodies.suffix, requestBody]],
     operationName,
     context,
+    undefined,
+    (item) => `${item.value}::${item.contentType}`,
   );
 
   const filteredBodyTypes = filterByContentType(allBodyTypes, contentType);
