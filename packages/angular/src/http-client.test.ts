@@ -803,6 +803,65 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain('params: filteredParams');
     });
 
+    it('preserves query params for multi-content responses when requestOptions is false', () => {
+      const verbOption = createVerbOption({
+        operationId: 'listPets',
+        operationName: 'listPets',
+        route: '/pets',
+        pathRoute: '/pets',
+        params: [],
+        queryParams: {
+          schema: { name: 'ListPetsParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          name: 'params',
+          definition: 'params?: ListPetsParams',
+          implementation: 'params?: ListPetsParams',
+          default: false,
+          required: false,
+          type: GetterPropType.QUERY_PARAM,
+          requiredNullableKeys: [],
+        } as never,
+        props: [
+          {
+            name: 'params',
+            definition: 'params?: ListPetsParams',
+            implementation: 'params?: ListPetsParams',
+            default: false,
+            required: false,
+            type: GetterPropType.QUERY_PARAM,
+          },
+        ],
+        response: baseResponse({
+          definition: { success: 'Pet | string', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'application/xml'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'application/xml'],
+        }),
+        override: {
+          requestOptions: false,
+          formData: { disabled: true, arrayHandling: 'serialize' },
+          formUrlEncoded: true,
+          paramsSerializerOptions: undefined,
+          angular: angularOverride,
+        } as GeneratorVerbOptions['override'],
+      });
+      const options = createGeneratorOptions({ route: '/api/pets' });
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // Should include inline IIFE-based param filtering (not filterParams helper)
+      expect(impl).toContain('filteredParams');
+      expect(impl).toContain('params:');
+      // Should NOT use filterParams helper (not available when isRequestOptions=false)
+      expect(impl).not.toContain('filterParams(');
+    });
+
     it('validates Zod responses for response and event observe modes', () => {
       const output = createOutput({
         schemas: {
