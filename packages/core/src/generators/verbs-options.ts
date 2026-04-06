@@ -221,9 +221,7 @@ export async function generateVerbOptions({
   context,
 }: GenerateVerbOptionsParams): Promise<GeneratorVerbOptions[]> {
   const {
-    responses,
     requestBody,
-    parameters: operationParameters,
     tags: rawTags,
     deprecated: rawDeprecated,
     description: rawDescription,
