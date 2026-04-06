@@ -433,6 +433,7 @@ export async function normalizeOptions(
           outputOptions.override?.suppressReadonlyModifier ?? false,
         preserveReadonlyRequestBodies:
           outputOptions.override?.preserveReadonlyRequestBodies ?? 'strip',
+        splitByContentType: outputOptions.override?.splitByContentType ?? false,
         aliasCombinedTypes: outputOptions.override?.aliasCombinedTypes ?? false,
       },
       allParamsOptional: outputOptions.allParamsOptional ?? false,

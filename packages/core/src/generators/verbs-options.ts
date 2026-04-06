@@ -1,5 +1,6 @@
 import {
   getBody,
+  getBodiesByContentType,
   getOperationId,
   getParameters,
   getParams,
@@ -11,6 +12,7 @@ import type {
   ContextSpec,
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
+  GetterBody,
   NormalizedInputOptions,
   NormalizedMutator,
   NormalizedOperationOptions,
@@ -46,7 +48,7 @@ export interface GenerateVerbOptionsParams {
   context: ContextSpec;
 }
 
-export async function generateVerbOptions({
+async function buildVerbOption({
   verb,
   output,
   operation,
@@ -54,71 +56,40 @@ export async function generateVerbOptions({
   pathRoute,
   verbParameters = [],
   context,
-}: GenerateVerbOptionsParams): Promise<GeneratorVerbOptions> {
-  const {
-    responses,
-    requestBody,
-    parameters: operationParameters,
-    tags: rawTags,
-    deprecated: rawDeprecated,
-    description: rawDescription,
-    summary: rawSummary,
-  } = operation;
-
-  // Bridge assertions: OpenApiOperationObject has AnyOtherAttribute index signature
-  // which makes all destructured properties `any`. Assert to their declared types.
-  const tags = (rawTags ?? []) as string[];
-  const deprecated = rawDeprecated as boolean | undefined;
-  const description = rawDescription as string | undefined;
-  const summary = rawSummary as string | undefined;
-  const operationId = getOperationId(operation, route, verb);
-  const overrideOperation = output.override.operations[operationId];
-  let overrideTag: NormalizedOperationOptions = {};
-  for (const [tag, options] of Object.entries(output.override.tags)) {
-    if (tags.includes(tag) && options) {
-      overrideTag = mergeDeep(overrideTag, options);
-    }
-  }
-
-  const override = mergeDeep(
-    mergeDeep(output.override, overrideTag),
-    overrideOperation ?? {},
-  ) as NormalizedOverrideOutput;
-
-  const overrideOperationName =
-    overrideOperation?.operationName ?? output.override.operationName;
-  const operationName = overrideOperationName
-    ? overrideOperationName(operation, route, verb)
-    : sanitize(camel(operationId), { es5keyword: true });
-
+  body,
+  operationName,
+  operationId,
+  override,
+  tags,
+  deprecated,
+  description,
+  summary,
+}: {
+  verb: Verbs;
+  output: NormalizedOutputOptions;
+  operation: OpenApiOperationObject;
+  route: string;
+  pathRoute: string;
+  verbParameters: OpenApiPathItemObject['parameters'];
+  context: ContextSpec;
+  body: GetterBody;
+  operationName: string;
+  operationId: string;
+  override: NormalizedOverrideOutput;
+  tags: string[];
+  deprecated: boolean | undefined;
+  description: string | undefined;
+  summary: string | undefined;
+}): Promise<GeneratorVerbOptions> {
   const response = getResponse({
-    responses: responses ?? {},
+    responses: operation.responses ?? {},
     operationName,
     context,
     contentType: override.contentType,
   });
 
-  const body = requestBody
-    ? getBody({
-        requestBody,
-        operationName,
-        context,
-        contentType: override.contentType,
-      })
-    : {
-        originalSchema: {} as OpenApiRequestBodyObject,
-        definition: '',
-        implementation: '',
-        imports: [],
-        schemas: [],
-        formData: '',
-        formUrlEncoded: '',
-        contentType: '',
-        isOptional: false,
-      };
-
   const parameters = getParameters({
-    parameters: [...verbParameters, ...(operationParameters ?? [])],
+    parameters: [...(verbParameters ?? []), ...(operation.parameters ?? [])],
     context,
   });
 
@@ -140,7 +111,7 @@ export async function generateVerbOptions({
   const params = getParams({
     route,
     pathParams: parameters.path,
-    operationId: operationId,
+    operationId,
     context,
     output,
   });
@@ -208,7 +179,7 @@ export async function generateVerbOptions({
   const doc = jsDoc({ description, deprecated, summary });
 
   const verbOption: GeneratorVerbOptions = {
-    verb: verb,
+    verb,
     tags,
     route,
     pathRoute,
@@ -238,6 +209,130 @@ export async function generateVerbOptions({
   );
 
   return transformer ? transformer(verbOption) : verbOption;
+}
+
+export async function generateVerbOptions({
+  verb,
+  output,
+  operation,
+  route,
+  pathRoute,
+  verbParameters = [],
+  context,
+}: GenerateVerbOptionsParams): Promise<GeneratorVerbOptions[]> {
+  const {
+    responses,
+    requestBody,
+    parameters: operationParameters,
+    tags: rawTags,
+    deprecated: rawDeprecated,
+    description: rawDescription,
+    summary: rawSummary,
+  } = operation;
+
+  // Bridge assertions: OpenApiOperationObject has AnyOtherAttribute index signature
+  // which makes all destructured properties `any`. Assert to their declared types.
+  const tags = (rawTags ?? []) as string[];
+  const deprecated = rawDeprecated as boolean | undefined;
+  const description = rawDescription as string | undefined;
+  const summary = rawSummary as string | undefined;
+  const operationId = getOperationId(operation, route, verb);
+  const overrideOperation = output.override.operations[operationId];
+  let overrideTag: NormalizedOperationOptions = {};
+  for (const [tag, options] of Object.entries(output.override.tags)) {
+    if (tags.includes(tag) && options) {
+      overrideTag = mergeDeep(overrideTag, options);
+    }
+  }
+
+  const override = mergeDeep(
+    mergeDeep(output.override, overrideTag),
+    overrideOperation ?? {},
+  ) as NormalizedOverrideOutput;
+
+  const overrideOperationName =
+    overrideOperation?.operationName ?? output.override.operationName;
+  const operationName = overrideOperationName
+    ? overrideOperationName(operation, route, verb)
+    : sanitize(camel(operationId), { es5keyword: true });
+
+  const splitByContentType = override.splitByContentType;
+
+  if (splitByContentType && requestBody) {
+    const bodies = getBodiesByContentType({
+      requestBody,
+      operationName,
+      context,
+      contentType: override.contentType,
+    });
+
+    const results: GeneratorVerbOptions[] = [];
+    for (const bodyEntry of bodies) {
+      const { contentTypeSuffix, ...body } = bodyEntry;
+      const suffixedName = contentTypeSuffix
+        ? `${operationName}With${contentTypeSuffix}`
+        : operationName;
+
+      const verbOption = await buildVerbOption({
+        verb,
+        output,
+        operation,
+        route,
+        pathRoute,
+        verbParameters,
+        context,
+        body,
+        operationName: suffixedName,
+        operationId,
+        override,
+        tags,
+        deprecated,
+        description,
+        summary,
+      });
+      results.push(verbOption);
+    }
+    return results;
+  }
+
+  const body = requestBody
+    ? getBody({
+        requestBody,
+        operationName,
+        context,
+        contentType: override.contentType,
+      })
+    : {
+        originalSchema: {} as OpenApiRequestBodyObject,
+        definition: '',
+        implementation: '',
+        imports: [],
+        schemas: [],
+        formData: '',
+        formUrlEncoded: '',
+        contentType: '',
+        isOptional: false,
+      };
+
+  const verbOption = await buildVerbOption({
+    verb,
+    output,
+    operation,
+    route,
+    pathRoute,
+    verbParameters,
+    context,
+    body,
+    operationName,
+    operationId,
+    override,
+    tags,
+    deprecated,
+    description,
+    summary,
+  });
+
+  return [verbOption];
 }
 
 export interface GenerateVerbsOptionsParams {
@@ -271,7 +366,7 @@ export function generateVerbsOptions({
           context,
         });
 
-        acc.push(verbOptions);
+        acc.push(...verbOptions);
       }
 
       return acc;
