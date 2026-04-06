@@ -84,9 +84,47 @@ export async function writeSplitTagsMode({
             )
           : '../' + filename + '.schemas';
 
+        // In tags-split mode, each tag lives in its own subdirectory
+        // (dirname/tag/tag.ext). Imports with a custom `importPath` (from the
+        // `file` option in mutationInvalidates) are specified relative to the
+        // output root (dirname) but the consuming file is one level deeper.
+        // Resolve these paths so that the generated import is correct.
+        const tagNames = new Set(tagEntries.map(([t]) => t));
+        const serviceSuffix =
+          OutputClient.ANGULAR === output.client ? '.service' : '';
+
+        const adjustedImports = imports.map((imp) => {
+          if (!imp.importPath) return imp;
+
+          // Only adjust relative paths (./foo, ../bar). Package imports
+          // like 'rxjs' or '@tanstack/react-query' must be left as-is.
+          if (!imp.importPath.startsWith('.')) return imp;
+
+          const resolvedPath = path.resolve(dirname, imp.importPath);
+          const targetBasename = path.basename(resolvedPath);
+
+          let targetFile: string;
+          if (tagNames.has(targetBasename)) {
+            // Target is a known tag directory. Use the real generated
+            // filename which includes the Angular `.service` suffix when
+            // applicable (e.g. dirname/health/health.service.ts).
+            const tagFilename = targetBasename + serviceSuffix + extension;
+            targetFile = path.join(resolvedPath, tagFilename);
+          } else {
+            targetFile = resolvedPath + extension;
+          }
+
+          const adjustedPath = upath.getRelativeImportPath(
+            importerPath,
+            targetFile,
+          );
+
+          return { ...imp, importPath: adjustedPath };
+        });
+
         const importsForBuilder = generateImportsForBuilder(
           output,
-          imports,
+          adjustedImports,
           relativeSchemasPath,
         );
 

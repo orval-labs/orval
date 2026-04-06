@@ -20,24 +20,17 @@ import type {
   UseQueryResult,
 } from '@tanstack/react-query';
 
+import { getHealthCheckQueryKey } from '../health/health';
+
 import type {
   CreatePetsBody,
-  CreatePetsHeaders,
   CreatePetsParams,
   Error,
-  ListPetsHeaders,
   ListPetsParams,
   Pet,
   PetWithTag,
   Pets,
-} from './model';
-
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
-import type { Cat, Dachshund, Dog, Labradoodle } from './model';
+} from '../model';
 
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;
@@ -119,13 +112,11 @@ export const getListPetsUrl = (params: ListPetsParams) => {
 
 export const listPets = async (
   params: ListPetsParams,
-  headers: ListPetsHeaders,
   options?: RequestInit,
 ): Promise<listPetsResponse> => {
   const res = await fetch(getListPetsUrl(params), {
     ...options,
     method: 'GET',
-    headers: { ...headers, ...options?.headers },
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
@@ -143,7 +134,6 @@ export const getListPetsQueryOptions = <
   TError = Error,
 >(
   params: ListPetsParams,
-  headers: ListPetsHeaders,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -157,7 +147,7 @@ export const getListPetsQueryOptions = <
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
     signal,
-  }) => listPets(params, headers, { signal, ...fetchOptions });
+  }) => listPets(params, { signal, ...fetchOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
@@ -176,7 +166,6 @@ export function useListPets<
   TError = Error,
 >(
   params: ListPetsParams,
-  headers: ListPetsHeaders,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -200,7 +189,6 @@ export function useListPets<
   TError = Error,
 >(
   params: ListPetsParams,
-  headers: ListPetsHeaders,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -224,7 +212,6 @@ export function useListPets<
   TError = Error,
 >(
   params: ListPetsParams,
-  headers: ListPetsHeaders,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -244,7 +231,6 @@ export function useListPets<
   TError = Error,
 >(
   params: ListPetsParams,
-  headers: ListPetsHeaders,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -255,7 +241,7 @@ export function useListPets<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getListPetsQueryOptions(params, headers, options);
+  const queryOptions = getListPetsQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<
     TData,
@@ -306,17 +292,12 @@ export const getCreatePetsUrl = (params: CreatePetsParams) => {
 export const createPets = async (
   createPetsBody: CreatePetsBody,
   params: CreatePetsParams,
-  headers: CreatePetsHeaders,
   options?: RequestInit,
 ): Promise<createPetsResponse> => {
   const res = await fetch(getCreatePetsUrl(params), {
     ...options,
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-      ...options?.headers,
-    },
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(createPetsBody),
   });
 
@@ -339,11 +320,7 @@ export const getCreatePetsMutationOptions = <
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof createPets>>,
       TError,
-      {
-        data: CreatePetsBody;
-        params: CreatePetsParams;
-        headers: CreatePetsHeaders;
-      },
+      { data: CreatePetsBody; params: CreatePetsParams },
       TContext
     >;
     skipInvalidation?: boolean;
@@ -352,11 +329,7 @@ export const getCreatePetsMutationOptions = <
 ): UseMutationOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  {
-    data: CreatePetsBody;
-    params: CreatePetsParams;
-    headers: CreatePetsHeaders;
-  },
+  { data: CreatePetsBody; params: CreatePetsParams },
   TContext
 > => {
   const mutationKey = ['createPets'];
@@ -370,33 +343,20 @@ export const getCreatePetsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
-    {
-      data: CreatePetsBody;
-      params: CreatePetsParams;
-      headers: CreatePetsHeaders;
-    }
+    { data: CreatePetsBody; params: CreatePetsParams }
   > = (props) => {
-    const { data, params, headers } = props ?? {};
+    const { data, params } = props ?? {};
 
-    return createPets(data, params, headers, fetchOptions);
+    return createPets(data, params, fetchOptions);
   };
 
   const onSuccess = (
     data: Awaited<ReturnType<typeof createPets>>,
-    variables: {
-      data: CreatePetsBody;
-      params: CreatePetsParams;
-      headers: CreatePetsHeaders;
-    },
+    variables: { data: CreatePetsBody; params: CreatePetsParams },
     context: TContext,
   ) => {
     if (!options?.skipInvalidation) {
-      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
-      queryClient.invalidateQueries({
-        predicate: (query) =>
-          typeof query.queryKey[0] === 'string' &&
-          query.queryKey[0].startsWith('/pets/'),
-      });
+      queryClient.invalidateQueries({ queryKey: getHealthCheckQueryKey() });
     }
     mutationOptions?.onSuccess?.(data, variables, context);
   };
@@ -418,11 +378,7 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof createPets>>,
       TError,
-      {
-        data: CreatePetsBody;
-        params: CreatePetsParams;
-        headers: CreatePetsHeaders;
-      },
+      { data: CreatePetsBody; params: CreatePetsParams },
       TContext
     >;
     skipInvalidation?: boolean;
@@ -432,11 +388,7 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
 ): UseMutationResult<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  {
-    data: CreatePetsBody;
-    params: CreatePetsParams;
-    headers: CreatePetsHeaders;
-  },
+  { data: CreatePetsBody; params: CreatePetsParams },
   TContext
 > => {
   const backupQueryClient = useQueryClient();
@@ -445,7 +397,6 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
     queryClient,
   );
 };
-
 /**
  * @summary Info for a specific pet
  */
@@ -674,19 +625,15 @@ export const deletePetById = async (
 export const getDeletePetByIdMutationOptions = <
   TError = Error,
   TContext = unknown,
->(
-  queryClient: QueryClient,
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof deletePetById>>,
-      TError,
-      { petId: string },
-      TContext
-    >;
-    skipInvalidation?: boolean;
-    fetch?: RequestInit;
-  },
-): UseMutationOptions<
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePetById>>,
+    TError,
+    { petId: string },
+    TContext
+  >;
+  fetch?: RequestInit;
+}): UseMutationOptions<
   Awaited<ReturnType<typeof deletePetById>>,
   TError,
   { petId: string },
@@ -710,21 +657,7 @@ export const getDeletePetByIdMutationOptions = <
     return deletePetById(petId, fetchOptions);
   };
 
-  const onSuccess = (
-    data: Awaited<ReturnType<typeof deletePetById>>,
-    variables: { petId: string },
-    context: TContext,
-  ) => {
-    if (!options?.skipInvalidation) {
-      queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
-      queryClient.invalidateQueries({
-        queryKey: getShowPetByIdQueryKey(variables.petId),
-      });
-    }
-    mutationOptions?.onSuccess?.(data, variables, context);
-  };
-
-  return { ...mutationOptions, mutationFn, onSuccess };
+  return { mutationFn, ...mutationOptions };
 };
 
 export type DeletePetByIdMutationResult = NonNullable<
@@ -744,7 +677,6 @@ export const useDeletePetById = <TError = Error, TContext = unknown>(
       { petId: string },
       TContext
     >;
-    skipInvalidation?: boolean;
     fetch?: RequestInit;
   },
   queryClient?: QueryClient,
@@ -754,178 +686,8 @@ export const useDeletePetById = <TError = Error, TContext = unknown>(
   { petId: string },
   TContext
 > => {
-  const backupQueryClient = useQueryClient();
-  return useMutation(
-    getDeletePetByIdMutationOptions(queryClient ?? backupQueryClient, options),
-    queryClient,
-  );
+  return useMutation(getDeletePetByIdMutationOptions(options), queryClient);
 };
-
-/**
- * @summary health check
- */
-export type healthCheckResponse200 = {
-  data: string;
-  status: 200;
-};
-
-export type healthCheckResponseDefault = {
-  data: Error;
-  status: Exclude<HTTPStatusCodes, 200>;
-};
-
-export type healthCheckResponseSuccess = healthCheckResponse200 & {
-  headers: Headers;
-};
-export type healthCheckResponseError = healthCheckResponseDefault & {
-  headers: Headers;
-};
-
-export type healthCheckResponse =
-  | healthCheckResponseSuccess
-  | healthCheckResponseError;
-
-export const getHealthCheckUrl = () => {
-  return `/health`;
-};
-
-export const healthCheck = async (
-  options?: RequestInit,
-): Promise<healthCheckResponse> => {
-  const res = await fetch(getHealthCheckUrl(), {
-    ...options,
-    method: 'GET',
-  });
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: healthCheckResponse['data'] = body ? JSON.parse(body) : {};
-  return {
-    data,
-    status: res.status,
-    headers: res.headers,
-  } as healthCheckResponse;
-};
-
-export const getHealthCheckQueryKey = () => {
-  return [`/health`] as const;
-};
-
-export const getHealthCheckQueryOptions = <
-  TData = Awaited<ReturnType<typeof healthCheck>>,
-  TError = Error,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
-  >;
-  fetch?: RequestInit;
-}) => {
-  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getHealthCheckQueryKey();
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = ({
-    signal,
-  }) => healthCheck({ signal, ...fetchOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof healthCheck>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type HealthCheckQueryResult = NonNullable<
-  Awaited<ReturnType<typeof healthCheck>>
->;
-export type HealthCheckQueryError = Error;
-
-export function useHealthCheck<
-  TData = Awaited<ReturnType<typeof healthCheck>>,
-  TError = Error,
->(
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof healthCheck>>,
-          TError,
-          Awaited<ReturnType<typeof healthCheck>>
-        >,
-        'initialData'
-      >;
-    fetch?: RequestInit;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useHealthCheck<
-  TData = Awaited<ReturnType<typeof healthCheck>>,
-  TError = Error,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof healthCheck>>,
-          TError,
-          Awaited<ReturnType<typeof healthCheck>>
-        >,
-        'initialData'
-      >;
-    fetch?: RequestInit;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useHealthCheck<
-  TData = Awaited<ReturnType<typeof healthCheck>>,
-  TError = Error,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
-    >;
-    fetch?: RequestInit;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-/**
- * @summary health check
- */
-
-export function useHealthCheck<
-  TData = Awaited<ReturnType<typeof healthCheck>>,
-  TError = Error,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
-    >;
-    fetch?: RequestInit;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getHealthCheckQueryOptions(options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
 /**
  * @summary combinate nullable and $ref
  */
@@ -1123,459 +885,3 @@ export function useShowPetWithOwner<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-export const getListPetsResponseLabradoodleMock = (
-  overrideResponse: Partial<Labradoodle> = {},
-): Labradoodle => ({
-  ...{
-    cuteness: faker.number.int(),
-    breed: faker.helpers.arrayElement(['Labradoodle'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getListPetsResponseDachshundMock = (
-  overrideResponse: Partial<Dachshund> = {},
-): Dachshund => ({
-  ...{
-    length: faker.number.int(),
-    breed: faker.helpers.arrayElement(['Dachshund'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getListPetsResponseDogMock = (
-  overrideResponse: Omit<Partial<Dog>, 'breed'> = {},
-): Dog => ({
-  ...{
-    ...faker.helpers.arrayElement([
-      { ...getListPetsResponseLabradoodleMock() },
-      { ...getListPetsResponseDachshundMock() },
-    ]),
-    barksPerMinute: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    type: faker.helpers.arrayElement(['dog'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getListPetsResponseCatMock = (
-  overrideResponse: Partial<Cat> = {},
-): Cat => ({
-  ...{
-    petsRequested: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    type: faker.helpers.arrayElement(['cat'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getListPetsResponseMock = (): Pets =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() => ({
-    ...faker.helpers.arrayElement([
-      { ...getListPetsResponseDogMock() },
-      { ...getListPetsResponseCatMock() },
-    ]),
-    '@id': faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-    id: faker.number.int(),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    tag: faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-    callingCode: faker.helpers.arrayElement([
-      faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-      undefined,
-    ]),
-    country: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        "People's Republic of China",
-        'Uruguay',
-      ] as const),
-      undefined,
-    ]),
-  }));
-
-export const getCreatePetsResponseLabradoodleMock = (
-  overrideResponse: Partial<Labradoodle> = {},
-): Labradoodle => ({
-  ...{
-    cuteness: faker.number.int(),
-    breed: faker.helpers.arrayElement(['Labradoodle'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getCreatePetsResponseDachshundMock = (
-  overrideResponse: Partial<Dachshund> = {},
-): Dachshund => ({
-  ...{
-    length: faker.number.int(),
-    breed: faker.helpers.arrayElement(['Dachshund'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getCreatePetsResponseDogMock = (
-  overrideResponse: Omit<Partial<Dog>, 'breed'> = {},
-): Dog => ({
-  ...{
-    ...faker.helpers.arrayElement([
-      { ...getCreatePetsResponseLabradoodleMock() },
-      { ...getCreatePetsResponseDachshundMock() },
-    ]),
-    barksPerMinute: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    type: faker.helpers.arrayElement(['dog'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getCreatePetsResponseCatMock = (
-  overrideResponse: Partial<Cat> = {},
-): Cat => ({
-  ...{
-    petsRequested: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    type: faker.helpers.arrayElement(['cat'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getCreatePetsResponseMock = (): Pet => ({
-  ...faker.helpers.arrayElement([
-    { ...getCreatePetsResponseDogMock() },
-    { ...getCreatePetsResponseCatMock() },
-  ]),
-  '@id': faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  id: faker.number.int(),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  tag: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-  callingCode: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-    undefined,
-  ]),
-  country: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      "People's Republic of China",
-      'Uruguay',
-    ] as const),
-    undefined,
-  ]),
-});
-
-export const getShowPetByIdResponseLabradoodleMock = (
-  overrideResponse: Partial<Labradoodle> = {},
-): Labradoodle => ({
-  ...{
-    cuteness: faker.number.int(),
-    breed: faker.helpers.arrayElement(['Labradoodle'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetByIdResponseDachshundMock = (
-  overrideResponse: Partial<Dachshund> = {},
-): Dachshund => ({
-  ...{
-    length: faker.number.int(),
-    breed: faker.helpers.arrayElement(['Dachshund'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetByIdResponseDogMock = (
-  overrideResponse: Omit<Partial<Dog>, 'breed'> = {},
-): Dog => ({
-  ...{
-    ...faker.helpers.arrayElement([
-      { ...getShowPetByIdResponseLabradoodleMock() },
-      { ...getShowPetByIdResponseDachshundMock() },
-    ]),
-    barksPerMinute: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    type: faker.helpers.arrayElement(['dog'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetByIdResponseCatMock = (
-  overrideResponse: Partial<Cat> = {},
-): Cat => ({
-  ...{
-    petsRequested: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    type: faker.helpers.arrayElement(['cat'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetByIdResponseMock = (): Pet => ({
-  ...faker.helpers.arrayElement([
-    { ...getShowPetByIdResponseDogMock() },
-    { ...getShowPetByIdResponseCatMock() },
-  ]),
-  '@id': faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  id: faker.number.int(),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  tag: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-  callingCode: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-    undefined,
-  ]),
-  country: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      "People's Republic of China",
-      'Uruguay',
-    ] as const),
-    undefined,
-  ]),
-});
-
-export const getHealthCheckResponseMock = (): string => faker.word.sample();
-
-export const getShowPetWithOwnerResponseLabradoodleMock = (
-  overrideResponse: Partial<Labradoodle> = {},
-): Labradoodle => ({
-  ...{
-    cuteness: faker.number.int(),
-    breed: faker.helpers.arrayElement(['Labradoodle'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetWithOwnerResponseDachshundMock = (
-  overrideResponse: Partial<Dachshund> = {},
-): Dachshund => ({
-  ...{
-    length: faker.number.int(),
-    breed: faker.helpers.arrayElement(['Dachshund'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetWithOwnerResponseDogMock = (
-  overrideResponse: Omit<Partial<Dog>, 'breed'> = {},
-): Dog => ({
-  ...{
-    ...faker.helpers.arrayElement([
-      { ...getShowPetWithOwnerResponseLabradoodleMock() },
-      { ...getShowPetWithOwnerResponseDachshundMock() },
-    ]),
-    barksPerMinute: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    type: faker.helpers.arrayElement(['dog'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetWithOwnerResponseCatMock = (
-  overrideResponse: Partial<Cat> = {},
-): Cat => ({
-  ...{
-    petsRequested: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    type: faker.helpers.arrayElement(['cat'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetWithOwnerResponseMock = (
-  overrideResponse: Partial<Extract<PetWithTag, object>> = {},
-): PetWithTag => ({
-  tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  pet: {
-    ...faker.helpers.arrayElement([
-      { ...getShowPetWithOwnerResponseDogMock() },
-      { ...getShowPetWithOwnerResponseCatMock() },
-    ]),
-    '@id': faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-    id: faker.number.int(),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    tag: faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-    callingCode: faker.helpers.arrayElement([
-      faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-      undefined,
-    ]),
-    country: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        "People's Republic of China",
-        'Uruguay',
-      ] as const),
-      undefined,
-    ]),
-  },
-  ...overrideResponse,
-});
-
-export const getListPetsMockHandler = (
-  overrideResponse?:
-    | Pets
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pets> | Pets),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/pets',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getListPetsResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-
-export const getCreatePetsMockHandler = (
-  overrideResponse?:
-    | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<Pet> | Pet),
-  options?: RequestHandlerOptions,
-) => {
-  return http.post(
-    '*/pets',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getCreatePetsResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-
-export const getShowPetByIdMockHandler = (
-  overrideResponse?:
-    | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pet> | Pet),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/pets/:petId',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getShowPetByIdResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-
-export const getDeletePetByIdMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.delete>[1]>[0],
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions,
-) => {
-  return http.delete(
-    '*/pets/:petId',
-    async (info: Parameters<Parameters<typeof http.delete>[1]>[0]) => {
-      if (typeof overrideResponse === 'function') {
-        await overrideResponse(info);
-      }
-
-      return new HttpResponse(null, { status: 204 });
-    },
-    options,
-  );
-};
-
-export const getHealthCheckMockHandler = (
-  overrideResponse?:
-    | string
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<string> | string),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/health',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      const resolvedBody =
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getHealthCheckResponseMock();
-      const textBody =
-        typeof resolvedBody === 'string'
-          ? resolvedBody
-          : JSON.stringify(resolvedBody ?? null);
-      return HttpResponse.text(textBody, { status: 200 });
-    },
-    options,
-  );
-};
-
-export const getShowPetWithOwnerMockHandler = (
-  overrideResponse?:
-    | PetWithTag
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<PetWithTag> | PetWithTag),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/pets/:petId/owner',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getShowPetWithOwnerResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getSwaggerPetstoreMock = () => [
-  getListPetsMockHandler(),
-  getCreatePetsMockHandler(),
-  getShowPetByIdMockHandler(),
-  getDeletePetByIdMockHandler(),
-  getHealthCheckMockHandler(),
-  getShowPetWithOwnerMockHandler(),
-];
