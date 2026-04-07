@@ -263,10 +263,11 @@ const petName = computed(() => {
 });
 ```
 
-> [!TIP]
-> Prefer returning a fallback from a `computed()` when `hasValue()` is false
-> instead of reading `value()` unconditionally. That keeps loading and error
-> states safe in templates and component logic.
+<Callout title="Tip" type="info">
+Prefer returning a fallback from a `computed()` when `hasValue()` is false
+instead of reading `value()` unconditionally. That keeps loading and error
+states safe in templates and component logic.
+</Callout>
 
 ### Multiple content types
 
@@ -447,9 +448,10 @@ With `override.angular.runtimeValidation: true`, generated JSON resources also
 emit `parse: Schema.parse` and expose Zod output types such as `PetOutput` and
 `PetsOutput`.
 
-> [!NOTE]
-> Zod is a runtime dependency when you enable `schemas.type: 'zod'`.
-> Make sure your app installs `zod` (for example, `zod` in `dependencies`).
+<Callout type="info">
+Zod is a runtime dependency when you enable `schemas.type: 'zod'`.
+Make sure your app installs `zod` (for example, `zod` in `dependencies`).
+</Callout>
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
