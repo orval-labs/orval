@@ -903,9 +903,10 @@ export default defineConfig({
 Controls the Angular `@Injectable({ providedIn })` scope for generated service
 classes.
 
-> [!NOTE]
-> `provideIn` affects generated service classes only. `httpResource`
-> functions are plain exports, not injectables.
+<Callout type="info">
+`provideIn` affects generated service classes only. `httpResource`
+functions are plain exports, not injectables.
+</Callout>
 
 ### retrievalClient
 
@@ -1360,15 +1361,17 @@ export default defineConfig({
 });
 ```
 
-> [!TIP]
-> Prefer separate request and response schemas when your API semantics differ.
-> This option is mainly useful when a single schema is reused for both request
-> and response payloads.
+<Callout title="Tip" type="info">
+Prefer separate request and response schemas when your API semantics differ.
+This option is mainly useful when a single schema is reused for both request
+and response payloads.
+</Callout>
 
-> [!NOTE]
-> This setting applies to request bodies regardless of the generated Angular
-> style (`HttpClient` or `httpResource`). `httpResource` still sends request
-> payloads, so the same request-body guidance applies.
+<Callout type="info">
+This setting applies to request bodies regardless of the generated Angular
+style (`HttpClient` or `httpResource`). `httpResource` still sends request
+payloads, so the same request-body guidance applies.
+</Callout>
 
 ### useNullForOptional
 
