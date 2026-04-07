@@ -1,0 +1,67 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Angular Multi Content Query Params Test
+  description: Test spec for verifying query params are preserved with multiple response content types
+paths:
+  /items:
+    get:
+      summary: List items with multiple content types
+      operationId: listItems
+      tags:
+        - items
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of results
+          schema:
+            type: integer
+        - name: filter
+          in: query
+          required: true
+          description: Filter expression
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Items in multiple formats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Items'
+            text/plain:
+              schema:
+                type: string
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Item:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    Items:
+      type: array
+      items:
+        $ref: '#/components/schemas/Item'
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
