@@ -126,6 +126,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
       enumGenerationType: EnumGeneration.UNION,
       jsDoc: {},
       requestOptions: true,
+      splitByContentType: false,
       aliasCombinedTypes: false,
     },
   };

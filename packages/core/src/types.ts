@@ -143,6 +143,23 @@ export interface NormalizedOverrideOutput {
    * intentionally immutable and should remain readonly in generated types.
    */
   preserveReadonlyRequestBodies?: ReadonlyRequestBodiesMode;
+  /**
+   * When enabled, operations with multiple request body content-types
+   * (e.g. both `multipart/form-data` and `application/json`) will generate
+   * separate functions for each content type instead of a single function
+   * with a union type parameter.
+   *
+   * @example
+   * // With splitByContentType: true
+   * updateProfileWithFormData(body: FormDataType) => { ... }
+   * updateProfileWithJson(body: JsonType) => { ... }
+   *
+   * // With splitByContentType: false (default)
+   * updateProfile(body: FormDataType | JsonType) => { ... }
+   *
+   * @default false
+   */
+  splitByContentType: boolean;
   jsDoc: NormalizedJsDocOptions;
   aliasCombinedTypes: boolean;
   /**
@@ -531,6 +548,15 @@ export interface OverrideOutput {
    * intentionally immutable and should remain readonly in generated types.
    */
   preserveReadonlyRequestBodies?: ReadonlyRequestBodiesMode;
+  /**
+   * When enabled, operations with multiple request body content-types
+   * (e.g. both `multipart/form-data` and `application/json`) will generate
+   * separate functions for each content type instead of a single function
+   * with a union type parameter.
+   *
+   * @default false
+   */
+  splitByContentType?: boolean;
   jsDoc?: JsDocOptions;
   aliasCombinedTypes?: boolean;
   /**

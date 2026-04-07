@@ -103,6 +103,7 @@ const createOutput = (
         runtimeValidation: false,
       },
       enumGenerationType: 'const',
+      splitByContentType: false,
       aliasCombinedTypes: false,
       suppressReadonlyModifier: false,
     },
