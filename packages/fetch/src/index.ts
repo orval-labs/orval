@@ -312,7 +312,12 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     })
     .join(',');
 
-  const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}`;
+  const useRuntimeFetcher = override.fetch.useRuntimeFetcher;
+  const fetchFnParam =
+    useRuntimeFetcher && isRequestOptions && !mutator
+      ? ', fetchFn?: typeof globalThis.fetch'
+      : '';
+  const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}${fetchFnParam}`;
   const returnType =
     override.fetch.forceSuccessResponse && hasSuccess
       ? `Promise<${successName}>`
@@ -401,8 +406,10 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     err.status = ${isNdJson ? 'stream' : 'res'}.status;
     throw err;
   }`;
+  const fetchFnCall =
+    useRuntimeFetcher && isRequestOptions ? '(fetchFn ?? fetch)' : 'fetch';
   const fetchResponseImplementation = isNdJson
-    ? `  const stream = await fetch(${fetchFnOptions});
+    ? `  const stream = await ${fetchFnCall}(${fetchFnOptions});
   ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
   ${
     override.fetch.includeHttpResponseReturnType
@@ -410,7 +417,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       : `return stream`
   }
   `
-    : `const res = await fetch(${fetchFnOptions})
+    : `const res = await ${fetchFnCall}(${fetchFnOptions})
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}

@@ -336,6 +336,8 @@ export const generateMutationHook = async ({
   const hasInvalidation =
     uniqueInvalidates.length > 0 && adapter.supportsMutationInvalidation();
 
+  const useRuntimeFetcher = override.fetch.useRuntimeFetcher;
+
   const mutationArguments = adapter.generateQueryArguments({
     operationName,
     definitions,
@@ -343,6 +345,7 @@ export const generateMutationHook = async ({
     isRequestOptions,
     httpClient,
     hasInvalidation,
+    useRuntimeFetcher,
   });
 
   // Separate arguments for getMutationOptions function (includes http: HttpClient param for Angular)
@@ -354,6 +357,7 @@ export const generateMutationHook = async ({
     httpClient,
     forQueryOptions: true,
     hasInvalidation,
+    useRuntimeFetcher,
   });
 
   const mutationOptionsFnName = camel(
@@ -367,6 +371,7 @@ export const generateMutationHook = async ({
     httpClient,
     camel(operationName),
     mutator,
+    useRuntimeFetcher,
   );
 
   // For Angular, add http: HttpClient as FIRST param (required, before optional params)
@@ -395,7 +400,7 @@ ${hooksOptionImplementation}
 
           return  ${operationName}(${adapter.getMutationHttpPrefix(mutator)}${properties}${
             properties ? ',' : ''
-          }${getMutationRequestArgs(isRequestOptions, httpClient, mutator)})
+          }${getMutationRequestArgs(isRequestOptions, httpClient, mutator, useRuntimeFetcher)})
         }
 
 ${

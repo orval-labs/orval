@@ -414,6 +414,8 @@ export async function normalizeOptions(
             outputOptions.override?.fetch?.forceSuccessResponse ?? false,
           runtimeValidation:
             outputOptions.override?.fetch?.runtimeValidation ?? false,
+          useRuntimeFetcher:
+            outputOptions.override?.fetch?.useRuntimeFetcher ?? false,
           ...outputOptions.override?.fetch,
           ...(outputOptions.override?.fetch?.jsonReviver
             ? {

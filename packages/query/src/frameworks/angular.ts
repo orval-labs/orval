@@ -200,6 +200,7 @@ export const createAngularAdapter = ({
       httpClient,
       forQueryOptions = false,
       hasInvalidation,
+      useRuntimeFetcher,
     }): string {
       const definition = getQueryOptionsDefinition({
         operationName,
@@ -221,7 +222,11 @@ export const createAngularAdapter = ({
         }: ${definition}`;
       }
 
-      const requestType = getQueryArgumentsRequestType(httpClient, mutator);
+      const requestType = getQueryArgumentsRequestType(
+        httpClient,
+        mutator,
+        useRuntimeFetcher,
+      );
       const isQueryRequired = initialData === 'defined';
       const skipInvalidationProp =
         !type && hasInvalidation ? 'skipInvalidation?: boolean, ' : '';

@@ -1157,6 +1157,67 @@ Custom JSON reviver function (useful for date parsing).
 
 Enable Zod runtime validation for fetch client responses. Requires `schemas: { type: 'zod' }`. When enabled, JSON responses are validated via `Schema.parse()` before being returned.
 
+### useRuntimeFetcher
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Allow injecting a custom `fetch` function at runtime. When enabled, generated request functions accept an optional `fetchFn` parameter and call `(fetchFn ?? fetch)(...)` instead of the global `fetch(...)`. For query client hooks, a `fetcher` field is added to the options type. Has no effect on operations that use a custom mutator.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query', // also works with 'fetch', 'vue-query', 'svelte-query'
+      httpClient: 'fetch',
+      override: {
+        fetch: {
+          useRuntimeFetcher: true,
+        },
+      },
+    },
+  },
+});
+```
+
+**Generated output example**
+
+```ts
+// Request function — gains a fetchFn parameter
+export const listPets = async (
+  params: ListPetsParams,
+  options?: RequestInit,
+  fetchFn?: typeof globalThis.fetch,
+): Promise<listPetsResponse> => {
+  const res = await (fetchFn ?? fetch)(getListPetsUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+  // ...
+};
+
+// Query hook — gains a fetcher field in options
+export const useListPets = (
+  params: ListPetsParams,
+  options?: {
+    query?: UseQueryOptions<...>;
+    fetch?: RequestInit;
+    fetcher?: typeof globalThis.fetch;
+  },
+) => { ... };
+```
+
+**Usage — SSR with request-scoped fetch**
+
+```ts
+// SvelteKit — +page.ts
+export const load = async ({ fetch }) => {
+  const queryClient = new QueryClient();
+  await prefetchListPetsQuery(queryClient, params, { fetcher: fetch });
+  return { queryClient };
+};
+```
+
 ---
 
 ## Runtime validation support matrix

@@ -829,6 +829,7 @@ export interface NormalizedFetchOptions {
   forceSuccessResponse: boolean;
   jsonReviver?: Mutator;
   runtimeValidation: boolean;
+  useRuntimeFetcher: boolean;
 }
 
 export interface FetchOptions {
@@ -836,6 +837,7 @@ export interface FetchOptions {
   forceSuccessResponse?: boolean;
   jsonReviver?: Mutator;
   runtimeValidation?: boolean;
+  useRuntimeFetcher?: boolean;
 }
 
 export type InputTransformerFn = (spec: OpenApiDocument) => OpenApiDocument;
