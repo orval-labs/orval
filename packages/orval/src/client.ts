@@ -22,6 +22,7 @@ import type {
 import {
   asyncReduce,
   generateDependencyImports,
+  getBaseUrlRuntimeImports,
   isFunction,
   OutputClient,
   pascal,
@@ -254,6 +255,8 @@ export const generateOperations = (
   options: GeneratorOptions,
   output: NormalizedOutputOptions,
 ): Promise<GeneratorOperations> => {
+  const baseUrlImports = getBaseUrlRuntimeImports(output.baseUrl);
+
   return asyncReduce(
     verbsOptions,
     async (acc, verbOption) => {
@@ -293,7 +296,7 @@ export const generateOperations = (
         implementation: hasImplementation
           ? verbOption.doc + client.implementation
           : client.implementation,
-        imports: client.imports,
+        imports: [...baseUrlImports, ...client.imports],
         implementationMock: generatedMock.implementation,
         importsMock: generatedMock.imports,
         tags: verbOption.tags,

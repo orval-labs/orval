@@ -235,9 +235,71 @@ export default defineConfig({
 });
 ```
 
-### getBaseUrlFromSpecification
+### runtime {#runtime}
 
-Read URL from the OpenAPI `servers` field:
+Embed a JavaScript expression into generated request URLs so the same build can call different hosts at runtime (for example with Docker images and environment variables). The value is emitted inside template literals in generated clients; only use trusted expressions from your configuration.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      baseUrl: {
+        runtime: 'process.env.API_BASE_URL',
+      },
+    },
+  },
+});
+```
+
+#### runtime
+
+**Type:** `String`
+
+JavaScript expression used inside generated template literals for the request base URL. Set this to the expression only (for example `process.env.API_BASE_URL`), not including `` `${...}` ``; Orval wraps it for you.
+
+#### imports
+
+**Type:** `GeneratorImport[]`
+
+Optional. When `runtime` references a symbol from another module, list the imports Orval should emit into generated clients. Paths are relative to the generated file, same idea as mutator imports. The `runtime` expression must be valid where the generated code runs (after those imports).
+
+Use a default import:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      baseUrl: {
+        runtime: 'apiBase',
+        imports: [{ name: 'apiBase', importPath: '../config/api' }],
+      },
+    },
+  },
+});
+```
+
+Or a named export used as an object (for example `import { env } from '../../env'` and `env.API_BASE_URL` in application code) — set `runtime` to that property access and import the object under `name`:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      baseUrl: {
+        runtime: 'env.API_BASE_URL',
+        imports: [{ name: 'env', importPath: '../../env' }],
+      },
+    },
+  },
+});
+```
+
+Adjust `importPath` so it resolves from the generated client file to your module (the example assumes the client is nested deeper than `env.ts`).
+
+### getBaseUrlFromSpecification {#getbaseurlfromspecification}
+
+**Type:** `Boolean`
+
+Read the base URL from the OpenAPI `servers` field instead of a fixed string. When `true`, Orval resolves it from the spec’s `servers` entry (optionally with `variables` and `index` below).
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -254,11 +316,17 @@ export default defineConfig({
 });
 ```
 
-### index
+#### variables
+
+**Type:** `Record<string, string>`
+
+Values for variables used in server URL templates from the OpenAPI `servers` field.
+
+#### index
 
 **Type:** `Number`
 
-Select which server URL index to use (when `getBaseUrlFromSpecification: true`):
+Which `servers` entry to use (0-based) when multiple URLs are defined:
 
 ```ts title="orval.config.ts"
 export default defineConfig({
