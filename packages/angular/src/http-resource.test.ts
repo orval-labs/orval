@@ -114,6 +114,7 @@ const createOutput = (
         useRuntimeFetcher: false,
       },
       enumGenerationType: 'const',
+      splitByContentType: false,
       aliasCombinedTypes: false,
       suppressReadonlyModifier: false,
     },

@@ -903,9 +903,10 @@ export default defineConfig({
 Controls the Angular `@Injectable({ providedIn })` scope for generated service
 classes.
 
-> [!NOTE]
-> `provideIn` affects generated service classes only. `httpResource`
-> functions are plain exports, not injectables.
+<Callout type="info">
+`provideIn` affects generated service classes only. `httpResource`
+functions are plain exports, not injectables.
+</Callout>
 
 ### retrievalClient
 
@@ -1482,15 +1483,17 @@ export default defineConfig({
 });
 ```
 
-> [!TIP]
-> Prefer separate request and response schemas when your API semantics differ.
-> This option is mainly useful when a single schema is reused for both request
-> and response payloads.
+<Callout title="Tip" type="info">
+Prefer separate request and response schemas when your API semantics differ.
+This option is mainly useful when a single schema is reused for both request
+and response payloads.
+</Callout>
 
-> [!NOTE]
-> This setting applies to request bodies regardless of the generated Angular
-> style (`HttpClient` or `httpResource`). `httpResource` still sends request
-> payloads, so the same request-body guidance applies.
+<Callout type="info">
+This setting applies to request bodies regardless of the generated Angular
+style (`HttpClient` or `httpResource`). `httpResource` still sends request
+payloads, so the same request-body guidance applies.
+</Callout>
 
 ### useNullForOptional
 
@@ -1565,6 +1568,37 @@ export default defineConfig({
   },
 });
 ```
+
+### splitByContentType
+
+**Type:** `Boolean` **Default:** `false`
+
+When an endpoint's `requestBody` supports multiple content types (e.g. `application/json` and `multipart/form-data`), generate a separate function for each content type instead of combining them into a single function with a union type parameter.
+
+Each generated function is suffixed with the content type name (e.g. `WithJson`, `WithFormData`).
+
+```ts
+// Default (false) — single function with union body
+updateProfile(body: FormDataType | JsonType) => { ... }
+
+// With splitByContentType: true — separate function per content type
+updateProfileWithFormData(body: FormDataType) => { ... }
+updateProfileWithJson(body: JsonType) => { ... }
+```
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        splitByContentType: true,
+      },
+    },
+  },
+});
+```
+
+> If the endpoint only has a single content type, no suffix is added and the behavior is the same as the default.
 
 ### formData
 

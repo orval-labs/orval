@@ -121,6 +121,7 @@ function createMockContext(): ContextSpec {
         enumGenerationType: EnumGeneration.UNION,
         jsDoc: {},
         requestOptions: true,
+        splitByContentType: false,
         aliasCombinedTypes: false,
       },
     },

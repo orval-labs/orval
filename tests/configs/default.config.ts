@@ -681,4 +681,18 @@ export default defineConfig({
       target: '../specifications/boolean-discriminator.yaml',
     },
   },
+  'split-by-content-type': {
+    output: {
+      target: '../generated/default/split-by-content-type/endpoints.ts',
+      schemas: '../generated/default/split-by-content-type/model',
+      override: {
+        splitByContentType: true,
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/split-by-content-type.yaml',
+    },
+  },
 });
