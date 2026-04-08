@@ -1094,38 +1094,14 @@ Enable Zod runtime validation for fetch client responses. Requires `schemas: { t
 **Type:** `Boolean`
 **Default:** `false`
 
-Allow injecting a custom `fetch` function at runtime. When enabled:
-
-- Every generated request function gains an optional `fetchFn?: typeof globalThis.fetch` parameter and calls `(fetchFn ?? fetch)(...)` instead of `fetch(...)`.
-- For query clients (`react-query`, `vue-query`, `svelte-query`) with `httpClient: 'fetch'`, every generated query options helper, `useQuery` hook, `useMutation` hook, and prefetch function also gains a `fetcher?: typeof globalThis.fetch` field in its options type.
-
-Applies to the `fetch` client and all fetch-based query clients (`react-query`, `vue-query`, `svelte-query`). Has no effect on axios-based clients or any operation that uses a custom mutator.
-
-For the SWR client, the underlying request functions receive `fetchFn`, but SWR hook options do not include a `fetcher` field.
-
-The `angular` client (Angular HttpClient) is not affected.
+Allow injecting a custom `fetch` function at runtime. When enabled, generated request functions accept an optional `fetchFn` parameter and call `(fetchFn ?? fetch)(...)` instead of the global `fetch(...)`. For query client hooks, a `fetcher` field is added to the options type. Has no effect on operations that use a custom mutator.
 
 ```ts title="orval.config.ts"
-// With a query client (react-query / vue-query / svelte-query)
 export default defineConfig({
   petstore: {
     output: {
-      client: 'react-query',
+      client: 'react-query', // also works with 'fetch', 'vue-query', 'svelte-query'
       httpClient: 'fetch',
-      override: {
-        fetch: {
-          useRuntimeFetcher: true,
-        },
-      },
-    },
-  },
-});
-
-// With the standalone fetch client
-export default defineConfig({
-  petstore: {
-    output: {
-      client: 'fetch',
       override: {
         fetch: {
           useRuntimeFetcher: true,
@@ -1136,9 +1112,10 @@ export default defineConfig({
 });
 ```
 
-**Generated output (request function)**
+**Generated output example**
 
 ```ts
+// Request function — gains a fetchFn parameter
 export const listPets = async (
   params: ListPetsParams,
   options?: RequestInit,
@@ -1150,14 +1127,8 @@ export const listPets = async (
   });
   // ...
 };
-```
 
-**Generated output (query / mutation / prefetch options)**
-
-All generated helpers accept the same `fetcher` field:
-
-```ts
-// useQuery
+// Query hook — gains a fetcher field in options
 export const useListPets = (
   params: ListPetsParams,
   options?: {
@@ -1166,31 +1137,9 @@ export const useListPets = (
     fetcher?: typeof globalThis.fetch;
   },
 ) => { ... };
-
-// useMutation
-export const useCreatePets = (
-  options?: {
-    mutation?: UseMutationOptions<...>;
-    fetch?: RequestInit;
-    fetcher?: typeof globalThis.fetch;
-  },
-) => { ... };
-
-// prefetch
-export const prefetchListPetsQuery = async (
-  queryClient: QueryClient,
-  params: ListPetsParams,
-  options?: {
-    query?: UseQueryOptions<...>;
-    fetch?: RequestInit;
-    fetcher?: typeof globalThis.fetch;
-  },
-) => { ... };
 ```
 
-**Common use cases**
-
-This is useful in any context where you need to inject a custom `fetch` implementation — for example, SSR frameworks that provide a request-scoped `fetch`:
+**Usage — SSR with request-scoped fetch**
 
 ```ts
 // SvelteKit — +page.ts
@@ -1199,16 +1148,6 @@ export const load = async ({ fetch }) => {
   await prefetchListPetsQuery(queryClient, params, { fetcher: fetch });
   return { queryClient };
 };
-
-// Next.js App Router — page.tsx (server component)
-import { cache } from 'react';
-const getQueryClient = cache(() => new QueryClient());
-
-export default async function Page() {
-  const queryClient = getQueryClient();
-  await prefetchListPetsQuery(queryClient, params, { fetcher: fetch });
-  // ...
-}
 ```
 
 ---
