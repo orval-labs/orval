@@ -52,7 +52,7 @@ export interface NormalizedOutputOptions {
   packageJson?: PackageJson;
   headers: boolean;
   indexFiles: boolean;
-  baseUrl?: string | BaseUrlFromSpec | BaseUrlFromConstant;
+  baseUrl?: string | BaseUrlFromSpec | BaseUrlFromConstant | BaseUrlRuntime;
   allParamsOptional: boolean;
   urlEncodeParameters: boolean;
   unionAddMissingProperties: boolean;
@@ -232,6 +232,18 @@ export interface BaseUrlFromConstant {
   baseUrl: string;
 }
 
+/**
+ * Embed a runtime JavaScript expression into generated URL template literals
+ * (e.g. `process.env.API_BASE_URL`) so the same build can target different hosts at runtime.
+ */
+export interface BaseUrlRuntime {
+  runtime: string;
+  /** Named imports for symbols used in `runtime` (e.g. `{ name: 'apiBase', importPath: '../config' }`). */
+  imports?: GeneratorImport[];
+  getBaseUrlFromSpecification?: never;
+  baseUrl?: never;
+}
+
 export const PropertySortOrder = {
   ALPHABETICAL: 'Alphabetical',
   SPECIFICATION: 'Specification',
@@ -296,7 +308,7 @@ export interface OutputOptions {
   packageJson?: string;
   headers?: boolean;
   indexFiles?: boolean;
-  baseUrl?: string | BaseUrlFromSpec | BaseUrlFromConstant;
+  baseUrl?: string | BaseUrlFromSpec | BaseUrlFromConstant | BaseUrlRuntime;
   allParamsOptional?: boolean;
   urlEncodeParameters?: boolean;
   unionAddMissingProperties?: boolean;

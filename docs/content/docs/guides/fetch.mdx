@@ -29,6 +29,18 @@ export default defineConfig({
 });
 ```
 
+## Runtime base URL
+
+For a host that is only known at runtime (for example `process.env.API_BASE_URL` in Node or `import.meta.env.VITE_*` in Vite), use `baseUrl.runtime` instead of a fixed string. The built-in fetch client embeds the expression in generated URL template literals, so you can keep using `override.fetch` options such as `runtimeValidation` and `includeHttpResponseReturnType` without a custom mutator.
+
+```ts title="orval.config.ts"
+baseUrl: {
+  runtime: 'process.env.API_BASE_URL',
+},
+```
+
+See the [output `baseUrl` reference](/docs/reference/configuration/output#runtime) for `imports` and expressions such as `env.API_BASE_URL` from a shared module (for example `import { env } from '../../env'`). MSW mock host filtering uses the separate [`mock.baseUrl`](/docs/reference/configuration/output#mock-options) option.
+
 ## Generated Output
 
 Orval generates three things for each endpoint:

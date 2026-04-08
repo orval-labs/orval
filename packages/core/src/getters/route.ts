@@ -1,9 +1,32 @@
 import type {
   BaseUrlFromConstant,
   BaseUrlFromSpec,
+  BaseUrlRuntime,
+  GeneratorImport,
+  NormalizedOutputOptions,
   OpenApiServerObject,
 } from '../types';
-import { camel, isString, sanitize } from '../utils';
+import { camel, isObject, isString, sanitize } from '../utils';
+
+function isBaseUrlRuntime(
+  baseUrl: string | BaseUrlFromConstant | BaseUrlFromSpec | BaseUrlRuntime,
+): baseUrl is BaseUrlRuntime {
+  return (
+    isObject(baseUrl) &&
+    'runtime' in baseUrl &&
+    typeof baseUrl.runtime === 'string'
+  );
+}
+
+/**
+ * Wraps a runtime expression for generated URL template literals.
+ * Pass the expression only (e.g. `process.env.API_BASE_URL`), not a `${...}` fragment.
+ */
+function runtimeExpressionToUrlPrefix(expression: string): string {
+  const t = expression.trim();
+  if (!t) return '';
+  return '${' + t + '}';
+}
 
 const hasParam = (path: string): boolean => /[^{]*{[\w*_-]*}.*/.test(path);
 
@@ -44,11 +67,19 @@ export function getRoute(route: string) {
 export function getFullRoute(
   route: string,
   servers: OpenApiServerObject[] | undefined,
-  baseUrl: string | BaseUrlFromConstant | BaseUrlFromSpec | undefined,
+  baseUrl:
+    | string
+    | BaseUrlFromConstant
+    | BaseUrlFromSpec
+    | BaseUrlRuntime
+    | undefined,
 ): string {
   const getBaseUrl = (): string => {
     if (!baseUrl) return '';
     if (isString(baseUrl)) return baseUrl;
+    if (isBaseUrlRuntime(baseUrl)) {
+      return runtimeExpressionToUrlPrefix(baseUrl.runtime);
+    }
     if (baseUrl.getBaseUrlFromSpecification) {
       if (!servers) {
         throw new Error(
@@ -94,6 +125,17 @@ export function getFullRoute(
     fullRoute = `${base}${fullRoute}`;
   }
   return fullRoute;
+}
+
+/**
+ * Returns `GeneratorImport` entries for {@link BaseUrlRuntime.imports} when `baseUrl` is a runtime config.
+ */
+export function getBaseUrlRuntimeImports(
+  baseUrl?: NormalizedOutputOptions['baseUrl'],
+): GeneratorImport[] {
+  if (!baseUrl) return [];
+  if (!isBaseUrlRuntime(baseUrl)) return [];
+  return baseUrl.imports ?? [];
 }
 
 // Creates a mixed use array with path variables and string from template string route
