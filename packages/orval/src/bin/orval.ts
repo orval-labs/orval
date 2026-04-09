@@ -124,10 +124,17 @@ cli
         await startWatcher(
           options.watch,
           async () => {
+            resetWarnings();
             try {
               await generateSpec(process.cwd(), normalizedOptions);
             } catch (error) {
               logError(error);
+              process.exit(1);
+            }
+            if (options.failOnWarnings && getWarningCount() > 0) {
+              logError(
+                `Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`,
+              );
               process.exit(1);
             }
           },
@@ -178,10 +185,17 @@ cli
           await startWatcher(
             options.watch,
             async () => {
+              resetWarnings();
               try {
                 await generateSpec(workspace, normalizedOptions, projectName);
               } catch (error) {
                 logError(error, projectName);
+              }
+              if (options.failOnWarnings && getWarningCount() > 0) {
+                logError(
+                  `Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`,
+                );
+                process.exit(1);
               }
             },
             fileToWatch,

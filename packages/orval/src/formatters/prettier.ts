@@ -49,7 +49,7 @@ export async function formatWithPrettier(
             }
           } else {
             logWarning(
-              `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Failed to format file ${filePath}: unknown error}`,
+              `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Failed to format file ${filePath}: unknown error`,
             );
           }
         }
