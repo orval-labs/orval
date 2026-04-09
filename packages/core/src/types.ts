@@ -1351,6 +1351,7 @@ export interface WriteModeProps {
   projectName?: string;
   header: string;
   needSchema: boolean;
+  generateSchemasInline?: () => string;
 }
 
 export interface GeneratorApiOperations {

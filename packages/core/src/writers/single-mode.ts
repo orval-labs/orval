@@ -20,6 +20,7 @@ export async function writeSingleMode({
   projectName,
   header,
   needSchema,
+  generateSchemasInline,
 }: WriteModeProps): Promise<string[]> {
   try {
     const { path } = getFileInfo(output.target, {
@@ -173,7 +174,9 @@ export async function writeSingleMode({
     }
 
     if (!output.schemas && needSchema) {
-      data += generateModelsInline(builder.schemas);
+      data += generateSchemasInline
+        ? generateSchemasInline()
+        : generateModelsInline(builder.schemas);
     }
 
     data += `${implementation.trim()}\n`;

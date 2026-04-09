@@ -25,6 +25,7 @@ export async function writeSplitTagsMode({
   projectName,
   header,
   needSchema,
+  generateSchemasInline,
 }: WriteModeProps): Promise<string[]> {
   const { filename, dirname, extension } = getFileInfo(output.target, {
     backupFilename: conventionName(
@@ -164,7 +165,9 @@ export async function writeSplitTagsMode({
           : path.join(dirname, filename + '.schemas' + extension);
 
         if (schemasPath && needSchema) {
-          const schemasData = header + generateModelsInline(builder.schemas);
+          const schemasData = generateSchemasInline
+            ? header + generateSchemasInline()
+            : header + generateModelsInline(builder.schemas);
 
           await writeGeneratedFile(schemasPath, schemasData);
         }

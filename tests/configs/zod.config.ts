@@ -318,6 +318,15 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  'components-only': {
+    output: {
+      target: '../generated/zod/components-only/components-only.ts',
+      client: 'zod',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: '../specifications/components-only.yaml',
+  },
   'issue-3027-suffix': {
     output: {
       target: '../generated/zod/issue-3027-suffix/issue-3027.ts',
