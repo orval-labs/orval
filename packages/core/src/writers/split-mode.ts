@@ -61,7 +61,7 @@ export async function writeSplitMode({
             { extension: output.fileExtension },
           ).dirname,
         )
-      : './' + filename + '.schemas';
+      : './' + filename + '.schemas' + extension.replace(/\.ts$/, '');
 
     const isAllowSyntheticDefaultImports = isSyntheticDefaultImportsAllow(
       output.tsconfig,

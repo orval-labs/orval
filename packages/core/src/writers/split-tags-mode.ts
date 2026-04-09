@@ -82,7 +82,7 @@ export async function writeSplitTagsMode({
                 { extension: output.fileExtension },
               ).dirname,
             )
-          : '../' + filename + '.schemas';
+          : '../' + filename + '.schemas' + extension.replace(/\.ts$/, '');
 
         // In tags-split mode, each tag lives in its own subdirectory
         // (dirname/tag/tag.ext). Imports with a custom `importPath` (from the

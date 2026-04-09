@@ -695,4 +695,37 @@ export default defineConfig({
       target: '../specifications/split-by-content-type.yaml',
     },
   },
+  'file-extension-tags-split': {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/default/file-extension-tags-split',
+      mode: 'tags-split',
+      client: 'react-query',
+      fileExtension: '.generated.ts',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
+  'file-extension-tags': {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/default/file-extension-tags',
+      mode: 'tags',
+      client: 'react-query',
+      fileExtension: '.generated.ts',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
+  'file-extension-split': {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/default/file-extension-split',
+      mode: 'split',
+      client: 'react-query',
+      fileExtension: '.generated.ts',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
 });
