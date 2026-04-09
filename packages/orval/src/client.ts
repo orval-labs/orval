@@ -24,6 +24,7 @@ import {
   generateDependencyImports,
   getBaseUrlRuntimeImports,
   isFunction,
+  logWarning,
   OutputClient,
   pascal,
 } from '@orval/core';
@@ -168,8 +169,8 @@ export const generateClientFooter: GeneratorClientFooter = ({
         footer as unknown as (operationNames: string[]) => string
       )(operationNames);
       // being here means that the previous call worked
-      console.warn(
-        '[WARN] Passing an array of strings for operations names to the footer function is deprecated and will be removed in a future major release. Please pass them in an object instead: { operationNames: string[] }.',
+      logWarning(
+        '⚠️  Passing an array of strings for operations names to the footer function is deprecated and will be removed in a future major release. Please pass them in an object instead: { operationNames: string[] }.',
       );
     } else {
       implementation = footer({

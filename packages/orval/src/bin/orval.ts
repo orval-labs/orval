@@ -4,11 +4,13 @@ import path from 'node:path';
 import { Option, program } from '@commander-js/extra-typings';
 import {
   ErrorWithTag,
+  getWarningCount,
   isString,
   log,
   logError,
   OutputClient,
   OutputMode,
+  resetWarnings,
   setVerbose,
   startMessage,
   SupportedFormatter,
@@ -81,11 +83,16 @@ cli
   )
   .option('--tsconfig <path>', 'path to your tsconfig file')
   .option('--verbose', 'Enable verbose logging')
+  .option(
+    '--fail-on-warnings',
+    'Exit with error code 1 when warnings are emitted',
+  )
   .action(async (options) => {
     if (options.verbose) {
       setVerbose(true);
     }
 
+    resetWarnings();
     log(orvalMessage);
 
     if (isString(options.input) && isString(options.output)) {
@@ -117,10 +124,17 @@ cli
         await startWatcher(
           options.watch,
           async () => {
+            resetWarnings();
             try {
               await generateSpec(process.cwd(), normalizedOptions);
             } catch (error) {
               logError(error);
+              process.exit(1);
+            }
+            if (options.failOnWarnings && getWarningCount() > 0) {
+              logError(
+                `Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`,
+              );
               process.exit(1);
             }
           },
@@ -171,10 +185,17 @@ cli
           await startWatcher(
             options.watch,
             async () => {
+              resetWarnings();
               try {
                 await generateSpec(workspace, normalizedOptions, projectName);
               } catch (error) {
                 logError(error, projectName);
+              }
+              if (options.failOnWarnings && getWarningCount() > 0) {
+                logError(
+                  `Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`,
+                );
+                process.exit(1);
               }
             },
             fileToWatch,
@@ -186,6 +207,13 @@ cli
         logError('One or more project failed, see above for details');
         process.exit(1);
       }
+    }
+
+    if (options.failOnWarnings && getWarningCount() > 0) {
+      logError(
+        `Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`,
+      );
+      process.exit(1);
     }
   });
 

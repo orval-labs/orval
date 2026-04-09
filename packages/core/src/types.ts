@@ -938,6 +938,7 @@ export interface GlobalOptions {
   packageJson?: string;
   input?: string | string[];
   output?: string;
+  failOnWarnings?: boolean;
 }
 
 export interface Tsconfig {

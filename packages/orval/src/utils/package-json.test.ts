@@ -34,6 +34,7 @@ vi.mock('@orval/core', () => ({
   isString: isRemedaString,
   log: vi.fn(),
   logVerbose: vi.fn(),
+  logWarning: vi.fn(),
   resolveInstalledVersions: vi.fn(() => ({})),
 }));
 
@@ -41,7 +42,7 @@ vi.mock('./options', () => ({
   normalizePath: (p: string) => p,
 }));
 
-import { dynamicImport, log } from '@orval/core';
+import { dynamicImport, logWarning } from '@orval/core';
 import { findUp, findUpMultiple } from 'find-up';
 import fs from 'fs-extra';
 import yaml from 'js-yaml';
@@ -182,7 +183,7 @@ describe('loadPackageJson - catalog resolution', () => {
       const result = await loadPackageJson();
 
       expect(result?.dependencies?.lodash).toBe('catalog:');
-      expect(log).toHaveBeenCalledWith(
+      expect(logWarning).toHaveBeenCalledWith(
         expect.stringContaining('no matching package in the default catalog'),
       );
     });
@@ -378,7 +379,7 @@ describe('loadPackageJson - catalog resolution', () => {
       const result = await loadPackageJson();
 
       expect(result?.dependencies?.react).toBe('catalog:');
-      expect(log).toHaveBeenCalledWith(
+      expect(logWarning).toHaveBeenCalledWith(
         expect.stringContaining('no catalog source was found'),
       );
     });
@@ -446,7 +447,7 @@ describe('loadPackageJson - catalog resolution', () => {
       const result = await loadPackageJson();
 
       expect(result?.dependencies?.jest).toBe('catalog:nonexistent');
-      expect(log).toHaveBeenCalledWith(
+      expect(logWarning).toHaveBeenCalledWith(
         expect.stringContaining("no matching catalog named 'nonexistent'"),
       );
     });
@@ -605,7 +606,7 @@ describe('loadPackageJson - catalog resolution', () => {
       const result = await loadPackageJson();
 
       expect(result?.dependencies?.express).toBe('catalog:');
-      expect(log).toHaveBeenCalledWith(
+      expect(logWarning).toHaveBeenCalledWith(
         expect.stringContaining('no catalog source was found'),
       );
     });
@@ -662,7 +663,7 @@ describe('loadPackageJson - catalog resolution', () => {
       const result = await loadPackageJson();
 
       expect(result?.dependencies?.zod).toBe('catalog:');
-      expect(log).toHaveBeenCalledWith(
+      expect(logWarning).toHaveBeenCalledWith(
         expect.stringContaining('no catalog source was found'),
       );
     });

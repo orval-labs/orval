@@ -7,7 +7,7 @@ const FILE_PATH = path.resolve('/tmp/pets.service.ts');
 const mocks = vi.hoisted(() => ({
   execa: vi.fn(),
   format: vi.fn(),
-  log: vi.fn(),
+  logWarning: vi.fn(),
   readFile: vi.fn(),
   readdir: vi.fn(),
   resolveConfig: vi.fn(),
@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@orval/core', () => ({
-  log: mocks.log,
+  logWarning: mocks.logWarning,
 }));
 
 vi.mock('node:fs/promises', () => ({
@@ -66,7 +66,7 @@ describe('formatWithPrettier', () => {
       formatWithPrettier([FILE_PATH], 'petstore'),
     ).resolves.toBeUndefined();
 
-    expect(mocks.log).not.toHaveBeenCalled();
+    expect(mocks.logWarning).not.toHaveBeenCalled();
   });
 
   it('logs unexpected formatting failures', async () => {
@@ -74,8 +74,8 @@ describe('formatWithPrettier', () => {
 
     await formatWithPrettier([FILE_PATH], 'petstore');
 
-    expect(mocks.log).toHaveBeenCalledTimes(1);
-    expect(mocks.log).toHaveBeenCalledWith(
+    expect(mocks.logWarning).toHaveBeenCalledTimes(1);
+    expect(mocks.logWarning).toHaveBeenCalledWith(
       expect.stringContaining(
         `⚠️  petstore - Failed to format file ${FILE_PATH}: Error: Boom`,
       ),
