@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@orval/core', () => ({
+  getWarningCount: vi.fn().mockReturnValue(0),
   isString: (value: unknown) => typeof value === 'string',
   logError: vi.fn(),
+  resetWarnings: vi.fn(),
   setVerbose: vi.fn(),
 }));
 

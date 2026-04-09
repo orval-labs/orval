@@ -1,5 +1,4 @@
 import path from 'node:path';
-import { styleText } from 'node:util';
 
 import {
   createSuccessMessage,
@@ -10,7 +9,7 @@ import {
   isObject,
   isString,
   jsDoc,
-  log,
+  logWarning,
   type NormalizedOptions,
   type OpenApiInfoObject,
   OutputMode,
@@ -56,7 +55,7 @@ async function runExternalFormatter(
     } else {
       message = `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}${bin} failed`;
     }
-    log(styleText('yellow', message));
+    logWarning(message);
   }
 }
 
@@ -490,7 +489,7 @@ export async function writeSpecs(
           ? error.message
           : `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Unable to generate docs`;
 
-      log(styleText('yellow', message));
+      logWarning(message);
     }
   }
 
