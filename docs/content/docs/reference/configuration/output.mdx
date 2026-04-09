@@ -235,9 +235,12 @@ export default defineConfig({
 });
 ```
 
-### runtime {#runtime}
+### runtime
+
+**Type:** `String`
 
 Embed a JavaScript expression into generated request URLs so the same build can call different hosts at runtime (for example with Docker images and environment variables). The value is emitted inside template literals in generated clients; only use trusted expressions from your configuration.
+JavaScript expression used inside generated template literals for the request base URL. Set this to the expression only (for example `process.env.API_BASE_URL`), not including `` `${...}` ``; Orval wraps it for you.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -250,12 +253,6 @@ export default defineConfig({
   },
 });
 ```
-
-#### runtime
-
-**Type:** `String`
-
-JavaScript expression used inside generated template literals for the request base URL. Set this to the expression only (for example `process.env.API_BASE_URL`), not including `` `${...}` ``; Orval wraps it for you.
 
 #### imports
 
@@ -295,7 +292,7 @@ export default defineConfig({
 
 Adjust `importPath` so it resolves from the generated client file to your module (the example assumes the client is nested deeper than `env.ts`).
 
-### getBaseUrlFromSpecification {#getbaseurlfromspecification}
+### getBaseUrlFromSpecification
 
 **Type:** `Boolean`
 
