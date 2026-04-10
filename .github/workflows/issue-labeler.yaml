@@ -20,6 +20,7 @@ jobs:
       - name: Add label from issue form
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
           NUMBER: ${{ github.event.issue.number }}
           ISSUE_BODY: ${{ github.event.issue.body }}
         run: |
@@ -34,21 +35,28 @@ jobs:
             *" $client "*)
               label="$client"
 
-              # labels and output clients don't map 1:1, so we map to existing repo labels
-              if [ "$client" = "react-query" ]; then
-                label="tanstack-query"
-              elif [ "$client" = "angular-query" ]; then
-                label="angular"
-              elif [ "$client" = "solid-query" ] || [ "$client" = "solid-start" ]; then
-                label="solid"
-              elif [ "$client" = "svelte-query" ]; then
-                label="svelte"
-              fi
+              # labels and output clients don't map 1:1, so map to existing repo labels
+              case "$client" in
+                react-query)
+                  label="tanstack-query"
+                  ;;
+                angular-query)
+                  label="angular"
+                  ;;
+                solid-query|solid-start)
+                  label="solid"
+                  ;;
+                svelte-query)
+                  label="svelte"
+                  ;;
+              esac
 
-              gh issue edit "$NUMBER" --add-label "$label"
+              echo "Resolved issue label: '$label'"
+
+              gh issue edit "$NUMBER" --repo "$REPO" --add-label "$label"
               ;;
             *)
-              echo "Unsupported client label; skipping."
+              echo "Unsupported client label '$client'; skipping."
               exit 0
               ;;
           esac
