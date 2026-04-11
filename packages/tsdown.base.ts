@@ -9,5 +9,5 @@ export const baseConfig: UserConfig = {
   dts: {
     sourcemap: true,
   },
-  exports: { devExports: 'development' },
+  exports: true,
 };
