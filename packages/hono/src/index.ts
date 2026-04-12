@@ -294,12 +294,14 @@ const getVerbOptionGroupByTag = (
 const generateHandlerFile = async ({
   verbs,
   path,
+  header,
   validatorModule,
   zodModule,
   contextModule,
 }: {
   verbs: GeneratorVerbOptions[];
   path: string;
+  header: string;
   validatorModule?: string;
   zodModule: string;
   contextModule: string;
@@ -312,6 +314,10 @@ const generateHandlerFile = async ({
   const isExist = fs.existsSync(path);
 
   if (isExist) {
+    // Preserve the existing file (which may contain user edits) and only
+    // append handlers that have not been generated yet. The file header is
+    // intentionally left untouched so any previously customised header stays
+    // in place.
     const rawFile = await fs.readFile(path, 'utf8');
     let content = rawFile;
 
@@ -365,7 +371,7 @@ const generateHandlerFile = async ({
     );
   }
 
-  return `${imports.filter((imp) => imp !== '').join('\n')}
+  return `${header}${imports.filter((imp) => imp !== '').join('\n')}
 
 const factory = createFactory();${handlerCode}`;
 };
@@ -373,8 +379,10 @@ const factory = createFactory();${handlerCode}`;
 const generateHandlerFiles = async (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
+  context: ContextSpec,
   validatorModule: string,
 ) => {
+  const header = getHeader(output.override.header, getSpecInfo(context));
   const { extension, dirname, filename } = getFileInfo(output.target);
 
   // This function _does not control_ where the .zod and .context modules land.
@@ -395,6 +403,7 @@ const generateHandlerFiles = async (
         return {
           content: await generateHandlerFile({
             path,
+            header,
             verbs: [verbOption],
             validatorModule,
             zodModule:
@@ -426,6 +435,7 @@ const generateHandlerFiles = async (
         return {
           content: await generateHandlerFile({
             path: handlerPath,
+            header,
             verbs,
             validatorModule,
             zodModule:
@@ -453,6 +463,7 @@ const generateHandlerFiles = async (
     {
       content: await generateHandlerFile({
         path: handlerPath,
+        header,
         verbs: Object.values(verbOptions),
         validatorModule,
         zodModule: nodePath.join(dirname, `${filename}.zod`),
@@ -852,7 +863,7 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
     ? generateCompositeRoutes(verbOptions, output, context)
     : [];
   const [handlers, zods] = await Promise.all([
-    generateHandlerFiles(verbOptions, output, validator.path),
+    generateHandlerFiles(verbOptions, output, context, validator.path),
     generateZodFiles(verbOptions, output, context),
   ]);
 
