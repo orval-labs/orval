@@ -128,9 +128,14 @@ export const listPets = async (
     headers: { ...headers, ...options?.headers },
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listPetsResponse['data'] = body ? JSON.parse(body) : {};
+  const data: listPetsResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };
 
@@ -320,9 +325,14 @@ export const createPets = async (
     body: JSON.stringify(createPetsBody),
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: createPetsResponse['data'] = body ? JSON.parse(body) : {};
+  const data: createPetsResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -454,9 +464,14 @@ export const showPetById = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: showPetByIdResponse['data'] = body ? JSON.parse(body) : {};
+  const data: showPetByIdResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -632,9 +647,14 @@ export const deletePetById = async (
     method: 'DELETE',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: deletePetByIdResponse['data'] = body ? JSON.parse(body) : {};
+  const data: deletePetByIdResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -745,9 +765,14 @@ export const healthCheck = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: healthCheckResponse['data'] = body ? JSON.parse(body) : {};
+  const data: healthCheckResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -911,9 +936,14 @@ export const showPetWithOwner = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: showPetWithOwnerResponse['data'] = body ? JSON.parse(body) : {};
+  const data: showPetWithOwnerResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,

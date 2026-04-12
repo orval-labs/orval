@@ -37,9 +37,14 @@ export const createPet = async (
     body: JSON.stringify(requiredPetBodyBody),
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: createPetResponse['data'] = body ? JSON.parse(body) : {};
+  const data: createPetResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -104,9 +109,14 @@ export const getEcho = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getEchoResponse['data'] = body ? JSON.parse(body) : {};
+  const data: getEchoResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return { data, status: res.status, headers: res.headers } as getEchoResponse;
 };
 

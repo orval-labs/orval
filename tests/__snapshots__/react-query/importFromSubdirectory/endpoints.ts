@@ -44,9 +44,14 @@ export const postPets = async (
     method: 'POST',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: postPetsResponse['data'] = body ? JSON.parse(body) : {};
+  const data: postPetsResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return { data, status: res.status, headers: res.headers } as postPetsResponse;
 };
 
@@ -134,9 +139,14 @@ export const getPets = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getPetsResponse['data'] = body ? JSON.parse(body) : {};
+  const data: getPetsResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return { data, status: res.status, headers: res.headers } as getPetsResponse;
 };
 

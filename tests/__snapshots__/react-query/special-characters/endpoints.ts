@@ -122,9 +122,14 @@ export const listPets = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listPetsResponse['data'] = body ? JSON.parse(body) : {};
+  const data: listPetsResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };
 
@@ -293,9 +298,14 @@ export const createPets = async (
     body: JSON.stringify(createPetsBody),
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: createPetsResponse['data'] = body ? JSON.parse(body) : {};
+  const data: createPetsResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -423,10 +433,13 @@ export const listPetsNestedArray = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
   const data: listPetsNestedArrayResponse['data'] = body
-    ? JSON.parse(body)
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
     : {};
   return {
     data,
@@ -621,9 +634,14 @@ export const showPetById = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: showPetByIdResponse['data'] = body ? JSON.parse(body) : {};
+  const data: showPetByIdResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,

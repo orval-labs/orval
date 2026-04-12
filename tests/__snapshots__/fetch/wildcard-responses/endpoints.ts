@@ -100,9 +100,14 @@ export const getLoggedInUser = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getLoggedInUserResponse['data'] = body ? JSON.parse(body) : {};
+  const data: getLoggedInUserResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -154,9 +159,14 @@ export const listItems = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listItemsResponse['data'] = body ? JSON.parse(body) : {};
+  const data: listItemsResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -216,9 +226,14 @@ export const getMixedResponses = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getMixedResponsesResponse['data'] = body ? JSON.parse(body) : {};
+  const data: getMixedResponsesResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,

@@ -668,4 +668,34 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  mixedContentResponses: {
+    output: {
+      target: '../generated/fetch/mixed-content-responses/endpoints.ts',
+      schemas: '../generated/fetch/mixed-content-responses/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/mixed-content-responses.yaml',
+    },
+  },
+  mixedContentResponsesForceSuccess: {
+    output: {
+      target:
+        '../generated/fetch/mixed-content-responses-force-success/endpoints.ts',
+      schemas: '../generated/fetch/mixed-content-responses-force-success/model',
+      client: 'fetch',
+      override: {
+        fetch: {
+          forceSuccessResponse: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/mixed-content-responses.yaml',
+    },
+  },
 });

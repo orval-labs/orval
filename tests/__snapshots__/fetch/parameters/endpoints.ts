@@ -117,9 +117,14 @@ export const listPetsByCountry = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listPetsByCountryResponse['data'] = body ? JSON.parse(body) : {};
+  const data: listPetsByCountryResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -180,9 +185,14 @@ export const listPetsByAge = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listPetsByAgeResponse['data'] = body ? JSON.parse(body) : {};
+  const data: listPetsByAgeResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,

@@ -105,18 +105,27 @@ export const listPets = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   if (!res.ok) {
     const err: globalThis.Error & {
       info?: listPetsResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: listPetsResponseError['data'] = body ? JSON.parse(body) : {};
+    const data: listPetsResponseError['data'] = body
+      ? contentType.includes('json')
+        ? JSON.parse(body)
+        : body
+      : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: listPetsResponseSuccess['data'] = body ? JSON.parse(body) : {};
+  const data: listPetsResponseSuccess['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -208,18 +217,27 @@ export const createPets = async (
     body: JSON.stringify(createPetsBody),
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   if (!res.ok) {
     const err: globalThis.Error & {
       info?: createPetsResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: createPetsResponseError['data'] = body ? JSON.parse(body) : {};
+    const data: createPetsResponseError['data'] = body
+      ? contentType.includes('json')
+        ? JSON.parse(body)
+        : body
+      : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: createPetsResponseSuccess['data'] = body ? JSON.parse(body) : {};
+  const data: createPetsResponseSuccess['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -303,18 +321,27 @@ export const showPetById = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   if (!res.ok) {
     const err: globalThis.Error & {
       info?: showPetByIdResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: showPetByIdResponseError['data'] = body ? JSON.parse(body) : {};
+    const data: showPetByIdResponseError['data'] = body
+      ? contentType.includes('json')
+        ? JSON.parse(body)
+        : body
+      : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: showPetByIdResponseSuccess['data'] = body ? JSON.parse(body) : {};
+  const data: showPetByIdResponseSuccess['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -392,6 +419,7 @@ export const deletePetById = async (
     method: 'DELETE',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   if (!res.ok) {
     const err: globalThis.Error & {
@@ -399,14 +427,18 @@ export const deletePetById = async (
       status?: number;
     } = new globalThis.Error();
     const data: deletePetByIdResponseError['data'] = body
-      ? JSON.parse(body)
+      ? contentType.includes('json')
+        ? JSON.parse(body)
+        : body
       : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
   const data: deletePetByIdResponseSuccess['data'] = body
-    ? JSON.parse(body)
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
     : {};
   return {
     data,
@@ -491,6 +523,7 @@ export const showPetWithOwner = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   if (!res.ok) {
     const err: globalThis.Error & {
@@ -498,14 +531,18 @@ export const showPetWithOwner = async (
       status?: number;
     } = new globalThis.Error();
     const data: showPetWithOwnerResponseError['data'] = body
-      ? JSON.parse(body)
+      ? contentType.includes('json')
+        ? JSON.parse(body)
+        : body
       : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
   const data: showPetWithOwnerResponseSuccess['data'] = body
-    ? JSON.parse(body)
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
     : {};
   return {
     data,

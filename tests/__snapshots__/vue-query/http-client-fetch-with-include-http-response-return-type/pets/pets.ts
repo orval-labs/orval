@@ -56,9 +56,14 @@ export const listPets = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: Pets = body ? JSON.parse(body) : {};
+  const data: Pets = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return data;
 };
 
@@ -162,9 +167,14 @@ export const createPets = async (
     body: JSON.stringify(createPetsBody),
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: Pet = body ? JSON.parse(body) : {};
+  const data: Pet = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return data;
 };
 
@@ -250,9 +260,14 @@ export const showPetById = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: Pet = body ? JSON.parse(body) : {};
+  const data: Pet = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return data;
 };
 
@@ -344,9 +359,14 @@ export const deletePetById = async (
     method: 'DELETE',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: void = body ? JSON.parse(body) : {};
+  const data: void = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return data;
 };
 
@@ -432,9 +452,14 @@ export const showPetWithOwner = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: PetWithTag = body ? JSON.parse(body) : {};
+  const data: PetWithTag = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return data;
 };
 

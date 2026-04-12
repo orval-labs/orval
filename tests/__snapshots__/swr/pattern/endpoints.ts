@@ -41,9 +41,14 @@ export const getVversionExample = async (
     method: 'GET',
   });
 
+  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getVversionExampleResponse['data'] = body ? JSON.parse(body) : {};
+  const data: getVversionExampleResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
