@@ -382,17 +382,22 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? `body: ${requestBodyParams}`
       : `body: JSON.stringify(${requestBodyParams})`
     : '';
-  const fetchFnOptions = `${getUrlFnName}(${getUrlFnProperties}),
+  const rawFetchFnOptions = `${getUrlFnName}(${getUrlFnProperties}),
   {${globalFetchOptions ? '\n' : ''}      ${globalFetchOptions}
     ${isRequestOptions ? '...options,' : ''}
     ${fetchMethodOption}${fetchHeadersOption ? ',' : ''}
     ${fetchHeadersOption}${fetchBodyOption ? ',' : ''}
-    ${fetchBodyOption}
+    ${fetchBodyOption}`;
+  const fetchFnOptions = `${rawFetchFnOptions}
   }
 `;
-  const reviver = fetchReviver ? `, ${fetchReviver.name}` : '';
   const schemaValueRef =
     responseType === 'Error' ? 'ErrorSchema' : responseType;
+  const validateFetchFnOptions = `${rawFetchFnOptions}${isValidateResponse ? ',' : ''}
+    schema: ${schemaValueRef}
+  }    
+`;
+  const reviver = fetchReviver ? `, ${fetchReviver.name}` : '';
   const fetchResponseType =
     override.fetch.forceSuccessResponse && hasSuccess
       ? successName
@@ -433,7 +438,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       : 'return data'
   }
 `;
-  let customFetchResponseImplementation = `return ${mutator?.name}<${fetchResponseType}>(${fetchFnOptions});`;
+  let customFetchResponseImplementation = `return ${mutator?.name}<${fetchResponseType}>(${validateFetchFnOptions});`;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -455,7 +460,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       const ${formattedDeconstructor} = ${mutator.name}();
       return (${args}) => {
         ${bodyForm}
-        return ${fetchExportName}(${fetchFnOptions});
+        return ${fetchExportName}(${validateFetchFnOptions});
       }
   `;
   }
