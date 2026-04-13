@@ -168,6 +168,7 @@ export interface NormalizedOverrideOutput {
    * @default false
    */
   useNullForOptional?: boolean;
+  includeZodSchemaInArguments?: boolean;
 }
 
 export interface NormalizedMutator {
