@@ -446,8 +446,11 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 `;
   const schemaValueRef =
     responseType === 'Error' ? 'ErrorSchema' : responseType;
-  const validateFetchFnOptions = `${rawFetchFnOptions}${isValidateResponse ? ',' : ''}
-    ${isValidateResponse ? `schema: ${schemaValueRef}` : ''}
+  const includeZodSchema =
+    context.output.override.includeZodSchemaInArguments &&
+    schemaValueRef !== 'void';
+  const validateFetchFnOptions = `${rawFetchFnOptions}${includeZodSchema ? ',' : ''}
+    ${includeZodSchema ? `schema: ${schemaValueRef}` : ''}
   }    
 `;
   const reviver = fetchReviver ? `, ${fetchReviver.name}` : '';
