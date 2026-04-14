@@ -188,6 +188,8 @@ export const generateServer = (
   const serverPath = path.join(dirname, `server${extension}`);
   const header = getHeader(output.override.header, info);
 
+  const mcpServerOptions = output.override.mcp.server;
+
   const toolImplementations = Object.values(verbOptions)
     .map((verbOption) => {
       const pascalOperationName = pascal(verbOption.operationName);
@@ -246,21 +248,44 @@ server.tool(
     .join(`,\n`);
   const importHandlersImplementation = `import {\n${importHandlers}\n} from './handlers';`;
 
-  const importDependenciesImplementation = `import {
+  const createMcpServerImplementation = `
+const createMcpServer = () => {
+  const server = new McpServer({
+    name: '${camel(info.title)}Server',
+    version: '1.0.0',
+  });
+${toolImplementations}
+
+  return server;
+};
+`;
+
+  const serverFunctionName = mcpServerOptions?.name ?? 'customServer';
+  const relativeServerPath = mcpServerOptions
+    ? upath.getRelativeImportPath(serverPath, mcpServerOptions.path)
+    : '';
+  const importSpecifier = mcpServerOptions?.default
+    ? serverFunctionName
+    : `{ ${serverFunctionName} }`;
+
+  const importMcpServer = `import {
   McpServer
 } from '@modelcontextprotocol/sdk/server/mcp.js';
-  
-import {
+`;
+
+  const importTransport = mcpServerOptions
+    ? `import ${importSpecifier} from '${relativeServerPath}';`
+    : `import {
   StdioServerTransport
-} from '@modelcontextprotocol/sdk/server/stdio.js';  
+} from '@modelcontextprotocol/sdk/server/stdio.js';`;
+
+  const importDependenciesImplementation = `${importMcpServer}
+${importTransport}
 `;
-  const newMcpServerImplementation = `
-const server = new McpServer({
-  name: '${camel(info.title)}Server',
-  version: '1.0.0',
-});
-`;
-  const serverConnectImplementation = `
+
+  const customServerConnectImplementation = `\n${serverFunctionName}(createMcpServer);\n`;
+  const stdioServerConnectImplementation = `
+const server = createMcpServer();
 const transport = new StdioServerTransport();
 
 server.connect(transport).then(() => {
@@ -268,13 +293,16 @@ server.connect(transport).then(() => {
 }).catch(console.error);
 `;
 
+  const serverConnectImplementation = mcpServerOptions
+    ? customServerConnectImplementation
+    : stdioServerConnectImplementation;
+
   const content = [
     header,
     importDependenciesImplementation,
     importHandlersImplementation,
     importToolSchemasImplementation,
-    newMcpServerImplementation,
-    toolImplementations,
+    createMcpServerImplementation,
     serverConnectImplementation,
   ].join('\n');
 

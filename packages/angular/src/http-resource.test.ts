@@ -117,6 +117,7 @@ const createOutput = (
       splitByContentType: false,
       aliasCombinedTypes: false,
       suppressReadonlyModifier: false,
+      mcp: {},
     },
     client: 'angular',
     httpClient: 'angular',

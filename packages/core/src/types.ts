@@ -116,6 +116,7 @@ export interface NormalizedOverrideOutput {
     };
   };
   hono: NormalizedHonoOptions;
+  mcp: NormalizedMcpOptions;
   query: NormalizedQueryOptions;
   angular: NormalizedAngularOptions;
   swr: SwrOptions;
@@ -533,6 +534,7 @@ export interface OverrideOutput {
     };
   };
   hono?: HonoOptions;
+  mcp?: McpOptions;
   query?: QueryOptions;
   swr?: SwrOptions;
   angular?: AngularOptions;
@@ -705,6 +707,26 @@ export interface HonoOptions {
   compositeRoute?: string;
   validator?: boolean | 'hono';
   validatorOutputPath?: string;
+}
+
+export interface McpServerOptions {
+  path: string;
+  name?: string;
+  default?: boolean;
+}
+
+export interface NormalizedMcpServerOptions {
+  path: string;
+  name?: string;
+  default: boolean;
+}
+
+export interface McpOptions {
+  server?: McpServerOptions;
+}
+
+export interface NormalizedMcpOptions {
+  server?: NormalizedMcpServerOptions;
 }
 
 export interface NormalizedQueryOptions {

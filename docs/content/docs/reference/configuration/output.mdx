@@ -1108,6 +1108,58 @@ Generate a combined routes file.
 
 ---
 
+## override.mcp
+
+MCP server options:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        mcp: {
+          server: {
+            path: './custom-server.ts',
+            name: 'customServer',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+### server
+
+**Type:** `String | Object`
+
+Custom server function to use instead of the default `StdioServerTransport`. When set, the generated `server.ts` calls the function with `createMcpServer`.
+
+Example implementation using `@hono/mcp`:
+
+```ts title="custom-server.ts"
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPTransport } from '@hono/mcp';
+import { Hono } from 'hono';
+
+export const customServer = (createMcpServer: () => McpServer) => {
+  const app = new Hono();
+  const server = createMcpServer();
+  const transport = new StreamableHTTPTransport();
+
+  app.all('/mcp', async (c) => {
+    if (!server.isConnected()) {
+      await server.connect(transport);
+    }
+    return transport.handleRequest(c);
+  });
+
+  Bun.serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });
+};
+```
+
+---
+
 ## override.fetch
 
 Fetch client options:

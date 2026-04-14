@@ -45,114 +45,119 @@ import {
   DeleteUserParams,
 } from './tool-schemas.zod';
 
-const server = new McpServer({
-  name: 'swaggerPetstoreOpenAPI30Server',
-  version: '1.0.0',
-});
+const createMcpServer = () => {
+  const server = new McpServer({
+    name: 'swaggerPetstoreOpenAPI30Server',
+    version: '1.0.0',
+  });
 
-server.tool(
-  'findPetsByStatus',
-  'Finds Pets by status.',
-  {
-    queryParams: FindPetsByStatusQueryParams,
-  },
-  findPetsByStatusHandler,
-);
+  server.tool(
+    'findPetsByStatus',
+    'Finds Pets by status.',
+    {
+      queryParams: FindPetsByStatusQueryParams,
+    },
+    findPetsByStatusHandler,
+  );
 
-server.tool(
-  'findPetsByTags',
-  'Finds Pets by tags.',
-  {
-    queryParams: FindPetsByTagsQueryParams,
-  },
-  findPetsByTagsHandler,
-);
+  server.tool(
+    'findPetsByTags',
+    'Finds Pets by tags.',
+    {
+      queryParams: FindPetsByTagsQueryParams,
+    },
+    findPetsByTagsHandler,
+  );
 
-server.tool(
-  'getPetById',
-  'Find pet by ID.',
-  {
-    pathParams: GetPetByIdParams,
-  },
-  getPetByIdHandler,
-);
+  server.tool(
+    'getPetById',
+    'Find pet by ID.',
+    {
+      pathParams: GetPetByIdParams,
+    },
+    getPetByIdHandler,
+  );
 
-server.tool(
-  'updatePetWithForm',
-  'Updates a pet in the store with form data.',
-  {
-    pathParams: UpdatePetWithFormParams,
-    queryParams: UpdatePetWithFormQueryParams,
-  },
-  updatePetWithFormHandler,
-);
+  server.tool(
+    'updatePetWithForm',
+    'Updates a pet in the store with form data.',
+    {
+      pathParams: UpdatePetWithFormParams,
+      queryParams: UpdatePetWithFormQueryParams,
+    },
+    updatePetWithFormHandler,
+  );
 
-server.tool(
-  'deletePet',
-  'Deletes a pet.',
-  {
-    pathParams: DeletePetParams,
-  },
-  deletePetHandler,
-);
+  server.tool(
+    'deletePet',
+    'Deletes a pet.',
+    {
+      pathParams: DeletePetParams,
+    },
+    deletePetHandler,
+  );
 
-server.tool(
-  'getInventory',
-  'Returns pet inventories by status.',
-  getInventoryHandler,
-);
+  server.tool(
+    'getInventory',
+    'Returns pet inventories by status.',
+    getInventoryHandler,
+  );
 
-server.tool(
-  'getOrderById',
-  'Find purchase order by ID.',
-  {
-    pathParams: GetOrderByIdParams,
-  },
-  getOrderByIdHandler,
-);
+  server.tool(
+    'getOrderById',
+    'Find purchase order by ID.',
+    {
+      pathParams: GetOrderByIdParams,
+    },
+    getOrderByIdHandler,
+  );
 
-server.tool(
-  'deleteOrder',
-  'Delete purchase order by identifier.',
-  {
-    pathParams: DeleteOrderParams,
-  },
-  deleteOrderHandler,
-);
+  server.tool(
+    'deleteOrder',
+    'Delete purchase order by identifier.',
+    {
+      pathParams: DeleteOrderParams,
+    },
+    deleteOrderHandler,
+  );
 
-server.tool(
-  'loginUser',
-  'Logs user into the system.',
-  {
-    queryParams: LoginUserQueryParams,
-  },
-  loginUserHandler,
-);
+  server.tool(
+    'loginUser',
+    'Logs user into the system.',
+    {
+      queryParams: LoginUserQueryParams,
+    },
+    loginUserHandler,
+  );
 
-server.tool(
-  'logoutUser',
-  'Logs out current logged in user session.',
-  logoutUserHandler,
-);
+  server.tool(
+    'logoutUser',
+    'Logs out current logged in user session.',
+    logoutUserHandler,
+  );
 
-server.tool(
-  'getUserByName',
-  'Get user by user name.',
-  {
-    pathParams: GetUserByNameParams,
-  },
-  getUserByNameHandler,
-);
+  server.tool(
+    'getUserByName',
+    'Get user by user name.',
+    {
+      pathParams: GetUserByNameParams,
+    },
+    getUserByNameHandler,
+  );
 
-server.tool(
-  'deleteUser',
-  'Delete user resource.',
-  {
-    pathParams: DeleteUserParams,
-  },
-  deleteUserHandler,
-);
+  server.tool(
+    'deleteUser',
+    'Delete user resource.',
+    {
+      pathParams: DeleteUserParams,
+    },
+    deleteUserHandler,
+  );
 
+  return server;
+};
+
+const server = createMcpServer();
 const transport = new StdioServerTransport();
 
 server
