@@ -103,9 +103,18 @@ export function getMockObject({
   }
 
   if (Array.isArray(itemType)) {
+    // Spread the base schema into each type entry so that object properties
+    // (e.g. `properties`, `required`, `additionalProperties`) are preserved.
+    // Without this, `{ type: "object", properties: {...} }` collapses to
+    // `{ type: "object" }` and the mock generator returns `{}` instead of
+    // building the actual object shape. Mirrors the fix in core getters/object.ts.
+    const baseItem = schemaItem as Record<string, unknown>;
     return combineSchemasMock({
       item: {
-        anyOf: itemType.map((type) => ({ type })) as unknown as MockSchema[],
+        anyOf: itemType.map((type) => ({
+          ...baseItem,
+          type,
+        })) as unknown as MockSchema[],
         name: schemaItem.name,
       },
       separator: 'anyOf',
