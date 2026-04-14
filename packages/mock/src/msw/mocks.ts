@@ -204,7 +204,7 @@ export function getResponsesMockDefinition({
   };
 
   for (const response of responses) {
-    const { value: definition, example, examples, imports } = response;
+    const { value: definition, example, examples, imports, isRef } = response;
     let { originalSchema } = response;
 
     if (context.output.override.mock?.useExamples || mockOptions?.useExamples) {
@@ -246,6 +246,9 @@ export function getResponsesMockDefinition({
       item: {
         ...(resolvedSchema as Record<string, unknown>),
         name: definition,
+        ...(context.output.override.enumGenerationType === 'enum' && isRef
+          ? { isRef: true }
+          : {}),
       },
       imports,
       mockOptions: mockOptionsWithoutFunc,
