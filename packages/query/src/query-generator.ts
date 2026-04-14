@@ -391,6 +391,7 @@ const generateQueryImplementation = ({
   httpClient,
   isExactOptionalPropertyTypes,
   hasSignal,
+  useRuntimeFetcher,
   route,
   doc,
   usePrefetch,
@@ -398,6 +399,7 @@ const generateQueryImplementation = ({
   useInfinite,
   useInvalidate,
   useSetQueryData,
+  useGetQueryData,
   adapter,
 }: {
   queryOption: {
@@ -422,6 +424,7 @@ const generateQueryImplementation = ({
   httpClient: OutputHttpClient;
   isExactOptionalPropertyTypes: boolean;
   hasSignal: boolean;
+  useRuntimeFetcher?: boolean;
   route: string;
   doc?: string;
   usePrefetch?: boolean;
@@ -429,6 +432,7 @@ const generateQueryImplementation = ({
   useInfinite?: boolean;
   useInvalidate?: boolean;
   useSetQueryData?: boolean;
+  useGetQueryData?: boolean;
   adapter: FrameworkAdapter;
 }) => {
   const {
@@ -512,6 +516,7 @@ const generateQueryImplementation = ({
     queryParam,
     initialData: 'defined',
     httpClient,
+    useRuntimeFetcher,
   });
   const undefinedInitialDataQueryArguments = adapter.generateQueryArguments({
     operationName,
@@ -523,6 +528,7 @@ const generateQueryImplementation = ({
     queryParam,
     initialData: 'undefined',
     httpClient,
+    useRuntimeFetcher,
   });
   const queryArguments = adapter.generateQueryArguments({
     operationName,
@@ -533,6 +539,7 @@ const generateQueryImplementation = ({
     queryParams,
     queryParam,
     httpClient,
+    useRuntimeFetcher,
   });
 
   // Separate arguments for getQueryOptions function (includes http: HttpClient param for Angular)
@@ -546,6 +553,7 @@ const generateQueryImplementation = ({
     queryParam,
     httpClient,
     forQueryOptions: true,
+    useRuntimeFetcher,
   });
 
   const queryOptions = getQueryOptions({
@@ -555,12 +563,14 @@ const generateQueryImplementation = ({
     hasSignal,
     httpClient,
     hasSignalParam,
+    useRuntimeFetcher,
   });
 
   const hookOptions = getHookOptions({
     isRequestOptions,
     httpClient,
     mutator,
+    useRuntimeFetcher,
   });
 
   const queryFnArguments = getQueryFnArguments({
@@ -728,6 +738,13 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     'implementation',
   ).replaceAll('?:', ':');
 
+  const shouldGenerateGetQueryData = useGetQueryData && isPrimaryQueryType;
+  const getQueryDataFnName = isReactQuery
+    ? camel(`use-get-${name}-query-data`)
+    : camel(`get-${name}-query-data`);
+  const getQueryDataKeyExpr = setQueryDataKeyExpr;
+  const getQueryDataProps = setQueryDataProps;
+
   // Generate query init (e.g. const queryOptions = fn(...) or const http = inject(HttpClient))
   const queryInit = adapter.generateQueryInit({
     queryOptionsFnName,
@@ -801,6 +818,18 @@ ${
       : `${doc}export const ${setQueryDataFnName} = (queryClient: QueryClient, ${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
   queryClient.setQueryData(${setQueryDataKeyExpr}, updater);
 }\n`
+    : ''
+}
+${
+  shouldGenerateGetQueryData
+    ? isReactQuery
+      ? `${doc}export const ${getQueryDataFnName} = () => {
+  const queryClient = useQueryClient();
+  return (${getQueryDataProps}) =>
+    queryClient.getQueryData<${TData}>(${getQueryDataKeyExpr});
+}\n`
+      : `${doc}export const ${getQueryDataFnName} = (queryClient: QueryClient, ${getQueryDataProps}) =>
+  queryClient.getQueryData<${TData}>(${getQueryDataKeyExpr});\n`
     : ''
 }
 `;
@@ -1094,6 +1123,7 @@ ${queryKeyFns}`;
         hasSignal: getHasSignal({
           overrideQuerySignal: override.query.signal,
         }),
+        useRuntimeFetcher: override.fetch.useRuntimeFetcher,
         queryOptionsMutator,
         queryKeyMutator,
         route,
@@ -1104,6 +1134,8 @@ ${queryKeyFns}`;
         useInvalidate: query.useInvalidate,
         useSetQueryData:
           operationQueryOptions?.useSetQueryData ?? query.useSetQueryData,
+        useGetQueryData:
+          operationQueryOptions?.useGetQueryData ?? query.useGetQueryData,
         adapter,
       });
     }

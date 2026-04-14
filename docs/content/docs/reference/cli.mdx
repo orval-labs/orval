@@ -95,3 +95,11 @@ Enable verbose logging. Shows additional diagnostic output such as detected depe
 ```bash
 orval --verbose
 ```
+
+### --fail-on-warnings
+
+Exit with error code 1 when warnings are emitted during generation. Useful in CI pipelines to enforce warning-free builds:
+
+```bash
+orval --fail-on-warnings
+```

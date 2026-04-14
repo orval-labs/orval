@@ -44,6 +44,10 @@ export default defineConfig({
 });
 ```
 
+## Runtime base URL
+
+To resolve the API base URL when your app runs (for example from environment variables) while using Orval's generated fetch client and built-in `override.fetch` features, set [`baseUrl.runtime`](/docs/reference/configuration/output#runtime) in your output config. This is separate from [`mock.baseUrl`](/docs/reference/configuration/output#mock-options), which only affects generated MSW handlers.
+
 ## HTTP Client Configuration
 
 ### Axios

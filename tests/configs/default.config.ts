@@ -681,4 +681,51 @@ export default defineConfig({
       target: '../specifications/boolean-discriminator.yaml',
     },
   },
+  'split-by-content-type': {
+    output: {
+      target: '../generated/default/split-by-content-type/endpoints.ts',
+      schemas: '../generated/default/split-by-content-type/model',
+      override: {
+        splitByContentType: true,
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/split-by-content-type.yaml',
+    },
+  },
+  'file-extension-tags-split': {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/default/file-extension-tags-split',
+      mode: 'tags-split',
+      client: 'react-query',
+      fileExtension: '.generated.ts',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
+  'file-extension-tags': {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/default/file-extension-tags',
+      mode: 'tags',
+      client: 'react-query',
+      fileExtension: '.generated.ts',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
+  'file-extension-split': {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/default/file-extension-split',
+      mode: 'split',
+      client: 'react-query',
+      fileExtension: '.generated.ts',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
 });

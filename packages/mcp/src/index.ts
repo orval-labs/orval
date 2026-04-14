@@ -11,6 +11,7 @@ import {
   type GeneratorVerbOptions,
   getFileInfo,
   getFullRoute,
+  getParamsInPath,
   isObject,
   isString,
   jsDoc,
@@ -58,11 +59,7 @@ export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
   const basePath = schemaInfo?.dirname;
   const relativeSchemaImportPath = basePath
     ? isZodSchemaOutput && output.indexFiles
-      ? upath.getRelativeImportPath(
-          targetInfo.path,
-          path.join(basePath, 'index.zod'),
-          true,
-        )
+      ? upath.getRelativeImportPath(targetInfo.path, basePath, true)
       : upath.getRelativeImportPath(targetInfo.path, basePath)
     : './' + targetInfo.filename + '.schemas';
 
@@ -114,9 +111,10 @@ export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
 
 export const generateMcp: ClientBuilder = (verbOptions) => {
   const handlerArgsTypes = [];
+  const originalParamNames = getParamsInPath(verbOptions.pathRoute);
   const pathParamsType = verbOptions.params
-    .map((param) => {
-      const paramName = param.name.split(': ')[0];
+    .map((param, index) => {
+      const paramName = originalParamNames[index];
       const paramType = param.implementation.split(': ')[1];
       return `    ${paramName}: ${paramType}`;
     })
@@ -145,12 +143,8 @@ ${handlerArgsTypes.join('\n')}
 
   const fetchParams = [];
   if (verbOptions.params.length > 0) {
-    const pathParamsArgs = verbOptions.params
-      .map((param) => {
-        const paramName = param.name.split(': ')[0];
-
-        return `args.pathParams.${paramName}`;
-      })
+    const pathParamsArgs = originalParamNames
+      .map((paramName) => `args.pathParams.${paramName}`)
       .join(', ');
 
     fetchParams.push(pathParamsArgs);
@@ -393,11 +387,7 @@ const generateHttpClientFiles = async (
   const basePath = schemasPath ? getFileInfo(schemasPath).dirname : undefined;
   const relativeSchemasPath = basePath
     ? isZodSchemaOutput && output.indexFiles
-      ? upath.getRelativeImportPath(
-          targetPath,
-          path.join(basePath, 'index.zod'),
-          true,
-        )
+      ? upath.getRelativeImportPath(targetPath, basePath, true)
       : upath.getRelativeImportPath(targetPath, basePath)
     : './' + filename + '.schemas';
 

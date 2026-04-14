@@ -165,13 +165,31 @@ function generateDefinition(
     ? returnType.replaceAll(/\bBlob\b/g, 'ArrayBuffer')
     : returnType;
 
+  // Detect when the return type is a union containing void (e.g. "Resource | void"
+  // from endpoints with both 200 JSON and 204 No Content responses). In this case
+  // we need runtime branching so that void responses use `new HttpResponse(null)`
+  // instead of `HttpResponse.json()` which does not accept void/undefined.
+  const isVoidUnionType =
+    mockReturnType !== 'void' &&
+    mockReturnType.split('|').some((part) => part.trim() === 'void');
+  const noContentStatusCode = isVoidUnionType
+    ? (responses.find((r) => r.value === 'void')?.key ?? '204')
+    : undefined;
+  const nonVoidMockReturnType = isVoidUnionType
+    ? mockReturnType
+        .split('|')
+        .filter((part) => part.trim() !== 'void')
+        .join(' | ')
+        .trim()
+    : mockReturnType;
+
   const hasJsonContentType = contentTypesByPreference.some(
     (ct) => ct.includes('json') || ct.includes('+json'),
   );
   const hasStringReturnType =
     isTypeExactlyString(mockReturnType) ||
     isUnionContainingString(mockReturnType);
-  const overrideResponseType = `Partial<Extract<${mockReturnType}, object>>`;
+  const overrideResponseType = `Partial<Extract<${nonVoidMockReturnType}, object>>`;
   const shouldPreferJsonResponse = hasJsonContentType && !hasStringReturnType;
 
   // When the return type is a union containing both string and structured types
@@ -191,7 +209,7 @@ function generateDefinition(
         isResponseOverridable
           ? `overrideResponse: ${overrideResponseType} = {}`
           : ''
-      })${mockData ? '' : `: ${mockReturnType}`} => (${value})\n\n`
+      })${mockData ? '' : `: ${nonVoidMockReturnType}`} => (${value})\n\n`
     : mockImplementations;
 
   const delay = getDelay(override, isFunction(mock) ? undefined : mock);
@@ -236,7 +254,7 @@ function generateDefinition(
   let responsePrelude = '';
   if (isBinaryResponse) {
     responsePrelude = `const binaryBody = ${resolvedResponseExpr};`;
-  } else if (needsRuntimeContentTypeSwitch) {
+  } else if (isVoidUnionType || needsRuntimeContentTypeSwitch) {
     responsePrelude = `const resolvedBody = ${resolvedResponseExpr};`;
   } else if (isTextResponse && !shouldPreferJsonResponse) {
     responsePrelude = `const resolvedBody = ${resolvedResponseExpr};
@@ -254,6 +272,25 @@ function generateDefinition(
       { status: ${statusCode},
         headers: { 'Content-Type': '${binaryContentType}' }
       })`;
+  } else if (isVoidUnionType) {
+    // Runtime branching for void union types (e.g. 200 JSON + 204 No Content).
+    // When the resolved body is undefined, return an empty response with the
+    // no-content status code; otherwise use the appropriate response helper.
+    let nonVoidBody: string;
+    if (needsRuntimeContentTypeSwitch) {
+      nonVoidBody = `typeof resolvedBody === 'string'
+        ? HttpResponse.${textHelper}(resolvedBody, { status: ${statusCode} })
+        : HttpResponse.json(resolvedBody, { status: ${statusCode} })`;
+    } else if (isTextResponse && !shouldPreferJsonResponse) {
+      nonVoidBody = `HttpResponse.${textHelper}(
+        typeof resolvedBody === 'string' ? resolvedBody : JSON.stringify(resolvedBody ?? null),
+        { status: ${statusCode} })`;
+    } else {
+      nonVoidBody = `HttpResponse.json(resolvedBody, { status: ${statusCode} })`;
+    }
+    responseBody = `resolvedBody === undefined
+      ? new HttpResponse(null, { status: ${noContentStatusCode} })
+      : ${nonVoidBody}`;
   } else if (needsRuntimeContentTypeSwitch) {
     // Runtime branching: when the resolved value is a string, use the
     // appropriate text helper; otherwise fall back to HttpResponse.json()

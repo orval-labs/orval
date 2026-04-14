@@ -4,8 +4,8 @@ import {
   dynamicImport,
   isObject,
   isString,
-  log,
   logVerbose,
+  logWarning,
   type PackageJson,
   resolveInstalledVersions,
 } from '@orval/core';
@@ -171,8 +171,8 @@ const maybeReplaceCatalog = async (
     (await loadYarnrcCatalog(workspace));
 
   if (!catalogData) {
-    log(
-      `⚠️  ${styleText('yellow', 'package.json contains catalog: references, but no catalog source was found (checked: pnpm-workspace.yaml, package.json, .yarnrc.yml).')}`,
+    logWarning(
+      '⚠️  package.json contains catalog: references, but no catalog source was found (checked: pnpm-workspace.yaml, package.json, .yarnrc.yml).',
     );
     return pkg;
   }
@@ -192,15 +192,15 @@ const performSubstitution = (
   for (const [packageName, version] of Object.entries(dependencies)) {
     if (version === 'catalog:' || version === 'catalog:default') {
       if (!catalogData.catalog) {
-        log(
-          `⚠️  ${styleText('yellow', `catalog: substitution for the package '${packageName}' failed as there is no default catalog.`)}`,
+        logWarning(
+          `⚠️  catalog: substitution for the package '${packageName}' failed as there is no default catalog.`,
         );
         continue;
       }
       const sub = catalogData.catalog[packageName];
       if (!sub) {
-        log(
-          `⚠️  ${styleText('yellow', `catalog: substitution for the package '${packageName}' failed as there is no matching package in the default catalog.`)}`,
+        logWarning(
+          `⚠️  catalog: substitution for the package '${packageName}' failed as there is no matching package in the default catalog.`,
         );
         continue;
       }
@@ -209,15 +209,15 @@ const performSubstitution = (
       const catalogName = version.slice('catalog:'.length);
       const catalog = catalogData.catalogs?.[catalogName];
       if (!catalog) {
-        log(
-          `⚠️  ${styleText('yellow', `'${version}' substitution for the package '${packageName}' failed as there is no matching catalog named '${catalogName}'. (available named catalogs are: ${Object.keys(catalogData.catalogs ?? {}).join(', ')})`)}`,
+        logWarning(
+          `⚠️  '${version}' substitution for the package '${packageName}' failed as there is no matching catalog named '${catalogName}'. (available named catalogs are: ${Object.keys(catalogData.catalogs ?? {}).join(', ')})`,
         );
         continue;
       }
       const sub = catalog[packageName];
       if (!sub) {
-        log(
-          `⚠️  ${styleText('yellow', `'${version}' substitution for the package '${packageName}' failed as there is no package in the catalog named '${catalogName}'. (packages in the catalog are: ${Object.keys(catalog).join(', ')})`)}`,
+        logWarning(
+          `⚠️  '${version}' substitution for the package '${packageName}' failed as there is no package in the catalog named '${catalogName}'. (packages in the catalog are: ${Object.keys(catalog).join(', ')})`,
         );
         continue;
       }

@@ -5,7 +5,6 @@ import { styleText } from 'node:util';
 import {
   type ClientMockBuilder,
   type ConfigExternal,
-  createLogger,
   FormDataArrayHandling,
   type GlobalMockOptions,
   type GlobalOptions,
@@ -23,6 +22,7 @@ import {
   isString,
   isUrl,
   type JsDocOptions,
+  logWarning,
   type Mutator,
   NamingConvention,
   type NormalizedHonoOptions,
@@ -385,6 +385,8 @@ export async function normalizeOptions(
           },
           generateEachHttpStatus:
             outputOptions.override?.zod?.generateEachHttpStatus ?? false,
+          useBrandedTypes:
+            outputOptions.override?.zod?.useBrandedTypes ?? false,
           dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {},
           timeOptions: outputOptions.override?.zod?.timeOptions ?? {},
         },
@@ -412,6 +414,8 @@ export async function normalizeOptions(
             outputOptions.override?.fetch?.forceSuccessResponse ?? false,
           runtimeValidation:
             outputOptions.override?.fetch?.runtimeValidation ?? false,
+          useRuntimeFetcher:
+            outputOptions.override?.fetch?.useRuntimeFetcher ?? false,
           ...outputOptions.override?.fetch,
           ...(outputOptions.override?.fetch?.jsonReviver
             ? {
@@ -431,6 +435,7 @@ export async function normalizeOptions(
           outputOptions.override?.suppressReadonlyModifier ?? false,
         preserveReadonlyRequestBodies:
           outputOptions.override?.preserveReadonlyRequestBodies ?? 'strip',
+        splitByContentType: outputOptions.override?.splitByContentType ?? false,
         aliasCombinedTypes: outputOptions.override?.aliasCombinedTypes ?? false,
       },
       allParamsOptional: outputOptions.allParamsOptional ?? false,
@@ -706,6 +711,7 @@ function normalizeOperationsAndTags(
                         : {}),
                     },
                     generateEachHttpStatus: zod.generateEachHttpStatus ?? false,
+                    useBrandedTypes: zod.useBrandedTypes ?? false,
                     dateTimeOptions: zod.dateTimeOptions ?? {},
                     timeOptions: zod.timeOptions ?? {},
                   },
@@ -748,9 +754,7 @@ function normalizeOutputMode(mode?: OutputMode): OutputMode {
   }
 
   if (!Object.values(OutputMode).includes(mode)) {
-    createLogger().warn(
-      styleText('yellow', `Unknown provided mode => ${mode}`),
-    );
+    logWarning(`⚠️  Unknown provided mode => ${mode}`);
     return OutputMode.SINGLE;
   }
 
@@ -807,8 +811,8 @@ function normalizeQueryOptions(
   globalOptions: NormalizedQueryOptions = {},
 ): NormalizedQueryOptions {
   if (queryOptions.options) {
-    console.warn(
-      '[WARN] Using query options is deprecated and will be removed in a future major release. Please use queryOptions or mutationOptions instead.',
+    logWarning(
+      '⚠️  Using query options is deprecated and will be removed in a future major release. Please use queryOptions or mutationOptions instead.',
     );
   }
 
@@ -822,6 +826,9 @@ function normalizeQueryOptions(
     ...(isNullish(queryOptions.useSetQueryData)
       ? {}
       : { useSetQueryData: queryOptions.useSetQueryData }),
+    ...(isNullish(queryOptions.useGetQueryData)
+      ? {}
+      : { useGetQueryData: queryOptions.useGetQueryData }),
     ...(isNullish(queryOptions.useQuery)
       ? {}
       : { useQuery: queryOptions.useQuery }),

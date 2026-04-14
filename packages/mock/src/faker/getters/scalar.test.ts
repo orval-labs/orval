@@ -446,6 +446,122 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 });
 
+describe('getMockScalar (exclusiveMinimum/exclusiveMaximum handling)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+    context: { output: { override: {} } } as ContextSpec,
+  };
+
+  describe('OpenAPI 3.0 (boolean exclusiveMinimum/exclusiveMaximum)', () => {
+    it('should omit min when exclusiveMinimum is true but minimum is absent', () => {
+      const result = getMockScalar({
+        ...baseArg,
+        item: {
+          type: 'integer' as const,
+          exclusiveMinimum: true as unknown as number,
+          name: 'test-item',
+        },
+      });
+
+      expect(result.value).toBe('faker.number.int()');
+      expect(result.value).not.toContain('true');
+    });
+
+    it('should use minimum when exclusiveMinimum is true for integer type', () => {
+      const result = getMockScalar({
+        ...baseArg,
+        item: {
+          type: 'integer' as const,
+          minimum: 0,
+          exclusiveMinimum: true as unknown as number,
+          name: 'test-item',
+        },
+      });
+
+      expect(result.value).toBe('faker.number.int({min: 0})');
+      expect(result.value).not.toContain('true');
+    });
+
+    it('should use maximum when exclusiveMaximum is true for integer type', () => {
+      const result = getMockScalar({
+        ...baseArg,
+        item: {
+          type: 'integer' as const,
+          maximum: 100,
+          exclusiveMaximum: true as unknown as number,
+          name: 'test-item',
+        },
+      });
+
+      expect(result.value).toBe('faker.number.int({max: 100})');
+      expect(result.value).not.toContain('true');
+    });
+
+    it('should use minimum and maximum when both exclusive flags are true for number type', () => {
+      const result = getMockScalar({
+        ...baseArg,
+        item: {
+          type: 'number' as const,
+          minimum: 0,
+          maximum: 100,
+          exclusiveMinimum: true as unknown as number,
+          exclusiveMaximum: true as unknown as number,
+          name: 'test-item',
+        },
+      });
+
+      expect(result.value).toBe('faker.number.float({min: 0, max: 100})');
+      expect(result.value).not.toContain('true');
+    });
+  });
+
+  describe('OpenAPI 3.1 (numeric exclusiveMinimum/exclusiveMaximum)', () => {
+    it('should use exclusiveMinimum value directly for integer type', () => {
+      const result = getMockScalar({
+        ...baseArg,
+        item: {
+          type: 'integer' as const,
+          exclusiveMinimum: 5,
+          name: 'test-item',
+        },
+      });
+
+      expect(result.value).toBe('faker.number.int({min: 5})');
+    });
+
+    it('should use exclusiveMaximum value directly for integer type', () => {
+      const result = getMockScalar({
+        ...baseArg,
+        item: {
+          type: 'integer' as const,
+          exclusiveMaximum: 100,
+          name: 'test-item',
+        },
+      });
+
+      expect(result.value).toBe('faker.number.int({max: 100})');
+    });
+
+    it('should use exclusiveMinimum and exclusiveMaximum values directly for number type', () => {
+      const result = getMockScalar({
+        ...baseArg,
+        item: {
+          type: 'number' as const,
+          exclusiveMinimum: 0,
+          exclusiveMaximum: 100,
+          name: 'test-item',
+        },
+      });
+
+      expect(result.value).toBe('faker.number.float({min: 0, max: 100})');
+    });
+  });
+});
+
 describe('getMockScalar (@-prefixed property names)', () => {
   const baseArg = {
     imports: [],

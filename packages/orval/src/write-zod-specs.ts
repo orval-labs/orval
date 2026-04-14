@@ -166,7 +166,7 @@ async function writeZodSchemaIndex(
   shouldMergeExisting = false,
 ) {
   const importFileExtension = fileExtension.replace(/\.ts$/, '');
-  const indexPath = path.join(schemasPath, `index${fileExtension}`);
+  const indexPath = path.join(schemasPath, `index.ts`);
 
   let existingExports = '';
   if (shouldMergeExisting && (await fs.pathExists(indexPath))) {
@@ -194,6 +194,68 @@ async function writeZodSchemaIndex(
     .join('\n');
 
   await fs.outputFile(indexPath, `${header}\n${uniqueExports}\n`);
+}
+
+export function generateZodSchemasInline(
+  builder: WriteZodSchemasInput,
+  output: WriteZodOutputOptions,
+): string {
+  const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
+
+  if (schemasWithOpenApiDef.length === 0) {
+    return '';
+  }
+
+  const isZodV4 = !!output.packageJson && isZodVersionV4(output.packageJson);
+  const strict = output.override.zod.strict.body;
+  const coerce = output.override.zod.coerce.body;
+  const schemas: ZodSchemaFileEntry[] = [];
+
+  for (const { name, schema: schemaObject } of schemasWithOpenApiDef) {
+    if (!schemaObject) {
+      continue;
+    }
+
+    const context: ContextSpec = {
+      spec: builder.spec,
+      target: builder.target,
+      workspace: '',
+      output: output as ContextSpec['output'],
+    };
+
+    const dereferencedSchema = dereference(schemaObject, context);
+
+    const zodDefinition = generateZodValidationSchemaDefinition(
+      dereferencedSchema,
+      context,
+      name,
+      strict,
+      isZodV4,
+      {
+        required: true,
+      },
+    );
+
+    const parsedZodDefinition = parseZodValidationSchemaDefinition(
+      zodDefinition,
+      context,
+      coerce,
+      strict,
+      isZodV4,
+    );
+
+    schemas.push({
+      schemaName: name,
+      consts: parsedZodDefinition.consts,
+      zodExpression: parsedZodDefinition.zod,
+    });
+  }
+
+  if (schemas.length === 0) {
+    return '';
+  }
+
+  return generateZodSchemaFileContent('', schemas);
 }
 
 export async function writeZodSchemas(

@@ -1,8 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { styleText } from 'node:util';
 
-import { log } from '@orval/core';
+import { logWarning } from '@orval/core';
 import { execa } from 'execa';
 
 /**
@@ -44,19 +43,13 @@ export async function formatWithPrettier(
               // skip files with unsupported parsers
               // https://prettier.io/docs/options#parser
             } else {
-              log(
-                styleText(
-                  'yellow',
-                  `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Failed to format file ${filePath}: ${error.toString()}`,
-                ),
+              logWarning(
+                `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Failed to format file ${filePath}: ${error.toString()}`,
               );
             }
           } else {
-            log(
-              styleText(
-                'yellow',
-                `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Failed to format file ${filePath}: unknown error}`,
-              ),
+            logWarning(
+              `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Failed to format file ${filePath}: unknown error`,
             );
           }
         }
@@ -70,11 +63,8 @@ export async function formatWithPrettier(
   try {
     await execa('prettier', ['--write', ...paths]);
   } catch {
-    log(
-      styleText(
-        'yellow',
-        `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}prettier not found. Install it as a project dependency or globally.`,
-      ),
+    logWarning(
+      `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}prettier not found. Install it as a project dependency or globally.`,
     );
   }
 }

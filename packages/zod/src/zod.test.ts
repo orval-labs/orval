@@ -6223,3 +6223,510 @@ describe('generateZodValidationSchemaDefinition (contentMediaType: application/o
     });
   });
 });
+
+// --- useBrandedTypes tests ---
+
+const brandedZodOverride = {
+  zod: {
+    strict: {
+      param: false,
+      body: false,
+      response: false,
+      query: false,
+      header: false,
+    },
+    generate: {
+      param: true,
+      body: true,
+      response: true,
+      query: true,
+      header: true,
+    },
+    coerce: {
+      param: false,
+      body: false,
+      response: false,
+      query: false,
+      header: false,
+    },
+    generateEachHttpStatus: false,
+    dateTimeOptions: {},
+    timeOptions: {},
+    useBrandedTypes: true,
+  },
+};
+
+const brandedZodOverrideDisabled = {
+  zod: {
+    ...brandedZodOverride.zod,
+    useBrandedTypes: false,
+  },
+};
+
+describe('generateZod (useBrandedTypes)', () => {
+  // Group 1: Default behavior — no brand
+
+  it('does not append .brand() when useBrandedTypes is false', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: brandedZodOverrideDisabled,
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).not.toMatch(/\.brand[<(]/);
+  });
+
+  it('does not append .brand() when useBrandedTypes is not specified', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: true,
+              body: true,
+              response: true,
+              query: true,
+              header: true,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).not.toMatch(/\.brand[<(]/);
+  });
+
+  // Group 2: Brand appended (Zod v3 / v4)
+
+  it('appends .brand<"Name">() to all schemas when useBrandedTypes is true (zod v3)', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: brandedZodOverride,
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toBe(
+      'export const TestParams = zod.object({\n  "id": zod.string()\n}).brand<"TestParams">()\n\nexport const TestQueryParams = zod.object({\n  "page": zod.number().optional()\n}).brand<"TestQueryParams">()\n\nexport const TestHeader = zod.object({\n  "x-header": zod.string()\n}).brand<"TestHeader">()\n\nexport const TestBody = zod.object({\n  "name": zod.string().optional()\n}).brand<"TestBody">()\n\nexport const TestResponse = zod.object({\n  "name": zod.string().optional()\n}).brand<"TestResponse">()\n\n',
+    );
+  });
+
+  it('appends .brand("Name") to schemas when useBrandedTypes is true (zod v4)', async () => {
+    const v4ApiSchema = {
+      ...basicApiSchema,
+      context: {
+        ...basicApiSchema.context,
+        output: {
+          ...basicApiSchema.context.output,
+          packageJson: {
+            dependencies: {
+              zod: '^4.0.0',
+            },
+          },
+        },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: brandedZodOverride,
+      } as unknown as Parameters<typeof generateZod>[0],
+      v4ApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toBe(
+      'export const TestParams = zod.object({\n  "id": zod.string()\n}).brand("TestParams")\n\nexport const TestQueryParams = zod.object({\n  "page": zod.number().optional()\n}).brand("TestQueryParams")\n\nexport const TestHeader = zod.object({\n  "x-header": zod.string()\n}).brand("TestHeader")\n\nexport const TestBody = zod.object({\n  "name": zod.string().optional()\n}).brand("TestBody")\n\nexport const TestResponse = zod.object({\n  "name": zod.string().optional()\n}).brand("TestResponse")\n\n',
+    );
+  });
+
+  // Group 3: Array body/response
+
+  it('appends .brand() only to the array wrapper, not to the item schema (body)', async () => {
+    const arrayBodyApiSchema = {
+      pathRoute: '/cats',
+      context: {
+        spec: {
+          paths: {
+            '/cats': {
+              post: {
+                operationId: 'xyz',
+                requestBody: {
+                  required: true,
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            name: {
+                              type: 'string',
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'number' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: {
+          override: {
+            zod: {
+              generateEachHttpStatus: false,
+            },
+          },
+        },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverride.zod,
+            generate: {
+              param: false,
+              body: true,
+              response: false,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      arrayBodyApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toContain(
+      'export const TestBodyItem = zod.object({\n  "name": zod.string().optional()\n})',
+    );
+    expect(result.implementation).not.toContain(
+      'TestBodyItem = zod.object({\n  "name": zod.string().optional()\n}).brand',
+    );
+    expect(result.implementation).toContain(
+      'export const TestBody = zod.array(TestBodyItem).brand<"TestBody">()',
+    );
+  });
+
+  it('appends .brand() only to the array wrapper, not to the item schema (response)', async () => {
+    const arrayResponseApiSchema = {
+      pathRoute: '/cats',
+      context: {
+        spec: {
+          paths: {
+            '/cats': {
+              post: {
+                operationId: 'xyz',
+                requestBody: {
+                  required: true,
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          name: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              id: { type: 'number' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: {
+          override: {
+            zod: {
+              generateEachHttpStatus: false,
+            },
+          },
+        },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverride.zod,
+            generate: {
+              param: false,
+              body: false,
+              response: true,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      arrayResponseApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toContain('export const TestResponseItem = ');
+    expect(result.implementation).not.toMatch(
+      /TestResponseItem = zod\.object\([^)]*\)\s*\.brand/,
+    );
+    expect(result.implementation).toContain(
+      'export const TestResponse = zod.array(TestResponseItem).brand<"TestResponse">()',
+    );
+  });
+
+  // Group 4: Combination with other options
+
+  it('appends .brand() after .strict() when both strict and useBrandedTypes are enabled (zod v3)', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverride.zod,
+            strict: {
+              param: false,
+              body: true,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: false,
+              body: true,
+              response: false,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toContain('.strict().brand<"TestBody">()');
+  });
+
+  it('appends .brand() to each HTTP status response when generateEachHttpStatus is true', async () => {
+    const multiStatusApiSchema = {
+      pathRoute: '/cats',
+      context: {
+        spec: {
+          paths: {
+            '/cats': {
+              post: {
+                operationId: 'xyz',
+                requestBody: {
+                  required: true,
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          name: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'number' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                  '201': {
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'object',
+                          properties: {
+                            name: { type: 'string' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: {
+          override: {
+            zod: {
+              generateEachHttpStatus: true,
+            },
+          },
+        },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverride.zod,
+            generateEachHttpStatus: true,
+            generate: {
+              param: false,
+              body: false,
+              response: true,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      multiStatusApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toContain('.brand<"Test200Response">()');
+    expect(result.implementation).toContain('.brand<"Test201Response">()');
+  });
+
+  // Group 5: Partial generation with brand
+
+  it('appends .brand() when only response is generated', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverride.zod,
+            generate: {
+              param: false,
+              body: false,
+              response: true,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toBe(
+      'export const TestResponse = zod.object({\n  "name": zod.string().optional()\n}).brand<"TestResponse">()\n\n',
+    );
+  });
+
+  it('appends .brand() when only body is generated', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverride.zod,
+            generate: {
+              param: false,
+              body: true,
+              response: false,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toBe(
+      'export const TestBody = zod.object({\n  "name": zod.string().optional()\n}).brand<"TestBody">()\n\n',
+    );
+  });
+});

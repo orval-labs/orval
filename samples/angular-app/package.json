@@ -1,6 +1,6 @@
 {
   "name": "angular-app",
-  "version": "8.6.2",
+  "version": "8.7.0",
   "type": "module",
   "scripts": {
     "ng": "ng",
@@ -33,7 +33,7 @@
     "@angular/cli": "catalog:angular",
     "@angular/compiler-cli": "catalog:angular",
     "@faker-js/faker": "catalog:tooling",
-    "angular-eslint": "21.3.0",
+    "angular-eslint": "21.3.1",
     "eslint": "catalog:",
     "msw": "catalog:tooling",
     "orval": "workspace:*",

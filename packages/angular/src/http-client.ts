@@ -12,6 +12,7 @@ import {
   generateVerbImports,
   type GeneratorVerbOptions,
   getAngularFilteredParamsCallExpression,
+  getAngularFilteredParamsExpression,
   getAngularFilteredParamsHelperBody,
   getDefaultContentType,
   getEnumImplementation,
@@ -427,18 +428,30 @@ export const generateHttpClientImplementation = (
     : undefined;
 
   const needsObserveBranching = isRequestOptions && !hasMultipleContentTypes;
-  const angularParamsRef =
-    isRequestOptions && queryParams ? 'filteredParams' : undefined;
+  const angularParamsRef = queryParams ? 'filteredParams' : undefined;
 
   let paramsDeclaration = '';
   if (angularParamsRef && queryParams) {
-    const callExpr = getAngularFilteredParamsCallExpression(
-      '{...params, ...options?.params}',
-      queryParams.requiredNullableKeys ?? [],
-    );
-    paramsDeclaration = paramsSerializer
-      ? `const ${angularParamsRef} = ${paramsSerializer.name}(${callExpr});\n\n    `
-      : `const ${angularParamsRef} = ${callExpr};\n\n    `;
+    if (isRequestOptions) {
+      // Uses the shared filterParams helper emitted in the file header
+      const callExpr = getAngularFilteredParamsCallExpression(
+        '{...params, ...options?.params}',
+        queryParams.requiredNullableKeys ?? [],
+      );
+      paramsDeclaration = paramsSerializer
+        ? `const ${angularParamsRef} = ${paramsSerializer.name}(${callExpr});\n\n    `
+        : `const ${angularParamsRef} = ${callExpr};\n\n    `;
+    } else {
+      // No shared helper available; use inline IIFE filtering
+      const iifeExpr = getAngularFilteredParamsExpression(
+        'params ?? {}',
+        queryParams.requiredNullableKeys ?? [],
+        !!paramsSerializer,
+      );
+      paramsDeclaration = paramsSerializer
+        ? `const ${angularParamsRef} = ${paramsSerializer.name}(${iifeExpr});\n\n    `
+        : `const ${angularParamsRef} = ${iifeExpr};\n\n    `;
+    }
   }
 
   const optionsInput = {

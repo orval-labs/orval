@@ -48,6 +48,127 @@ const serializeTarget = (target: NormalizedTarget): string =>
     file: target.file ?? '',
   });
 
+const HTTP_METHODS = [
+  'get',
+  'post',
+  'put',
+  'delete',
+  'patch',
+  'options',
+  'head',
+  'trace',
+];
+
+interface OperationRouteInfo {
+  route: string;
+  /** true when the route has path params that lack a default value */
+  hasRequiredPathParams: boolean;
+}
+
+interface SpecPathItem {
+  parameters?: SpecParameter[];
+  [method: string]: unknown;
+}
+
+interface SpecOperation {
+  operationId?: string;
+  parameters?: SpecParameter[];
+}
+
+interface SpecParameter {
+  in?: string;
+  default?: unknown;
+  schema?: { default?: unknown };
+}
+
+/**
+ * Look up an operation's route and path-parameter metadata from the OpenAPI
+ * spec. Matches against both the raw `operationId` and its camelCase form
+ * so that renamed/overridden operations are still found.
+ */
+const findOperationInfo = (
+  spec: Record<string, unknown> | undefined,
+  operationName: string,
+): OperationRouteInfo | undefined => {
+  const paths = spec?.paths;
+  if (!paths || typeof paths !== 'object') return undefined;
+
+  for (const [routePath, rawPathItem] of Object.entries(
+    paths as Record<string, unknown>,
+  )) {
+    if (!rawPathItem || typeof rawPathItem !== 'object') continue;
+    const pathItem = rawPathItem as SpecPathItem;
+
+    for (const method of HTTP_METHODS) {
+      const operation = pathItem[method] as SpecOperation | undefined;
+      const opId = operation?.operationId;
+      if (!opId) continue;
+      // Match both raw operationId and its camelCase generated name
+      if (opId !== operationName && camel(opId) !== operationName) continue;
+
+      if (!routePath.includes('{')) {
+        return { route: routePath, hasRequiredPathParams: false };
+      }
+
+      // Collect path parameters from both path-level and operation-level
+      const pathParams = [
+        ...(Array.isArray(pathItem.parameters) ? pathItem.parameters : []),
+        ...(Array.isArray(operation.parameters) ? operation.parameters : []),
+      ].filter((p) => p.in === 'path');
+
+      const hasRequiredPathParams = pathParams.some(
+        (p) => p.schema?.default === undefined && p.default === undefined,
+      );
+
+      return { route: routePath, hasRequiredPathParams };
+    }
+  }
+  return undefined;
+};
+
+/**
+ * Extract the static route prefix before the first path parameter.
+ * e.g. "/pets/{petId}" → "/pets/", "/pets" → "/pets"
+ *
+ * Returns `undefined` when the prefix contains no meaningful literal
+ * segments (e.g. "/{tenantId}/pets") to avoid overly-broad invalidation.
+ */
+const getStaticRoutePrefix = (route: string): string | undefined => {
+  const idx = route.indexOf('{');
+  if (idx === -1) return route;
+  const prefix = route.slice(0, idx);
+  // Guard: a prefix like "/" has no stable literal segment and would
+  // match every route-style query key – fall back to the zero-arg call.
+  const hasLiteralSegment = prefix
+    .split('/')
+    .some((segment) => segment.length > 0);
+  return hasLiteralSegment ? prefix : undefined;
+};
+
+/**
+ * Check whether the target invalidation needs to call the query key function.
+ * Returns false when no params are specified and the route has required path
+ * parameters (without defaults), meaning we should use predicate-based broad
+ * invalidation instead of calling the function without the required arguments.
+ */
+const hasNonEmptyParams = (
+  params: string[] | Record<string, string> | undefined,
+): params is string[] | Record<string, string> => {
+  if (!params) return false;
+  if (Array.isArray(params)) return params.length > 0;
+  return Object.keys(params).length > 0;
+};
+
+const needsQueryKeyFnCall = (
+  target: NormalizedTarget,
+  spec: Record<string, unknown> | undefined,
+): boolean => {
+  if (hasNonEmptyParams(target.params)) return true;
+  const info = findOperationInfo(spec, target.query);
+  if (info?.hasRequiredPathParams) return false;
+  return true;
+};
+
 const generateVariableRef = (varName: string): string => {
   const parts = varName.split('.');
   if (parts.length === 1) {
@@ -67,10 +188,57 @@ const generateParamArgs = (
     .join(', ');
 };
 
-const generateInvalidateCall = (target: NormalizedTarget): string => {
-  const queryKeyFn = camel(`get-${target.query}-query-key`);
-  const args = target.params ? generateParamArgs(target.params) : '';
-  return `    queryClient.${target.invalidateMode === 'reset' ? 'resetQueries' : 'invalidateQueries'}({ queryKey: ${queryKeyFn}(${args}) });`;
+/**
+ * Create a generateInvalidateCall function that has access to the OpenAPI spec
+ * for intelligent route-based invalidation when params are not specified.
+ */
+const createGenerateInvalidateCall = (
+  spec: Record<string, unknown> | undefined,
+  shouldSplitQueryKey: boolean,
+) => {
+  return (target: NormalizedTarget): string => {
+    const method =
+      target.invalidateMode === 'reset' ? 'resetQueries' : 'invalidateQueries';
+    const queryKeyFn = camel(`get-${target.query}-query-key`);
+
+    if (hasNonEmptyParams(target.params)) {
+      const args = generateParamArgs(target.params);
+      return `    queryClient.${method}({ queryKey: ${queryKeyFn}(${args}) });`;
+    }
+
+    // No params specified – check if the target query has required path params
+    const info = findOperationInfo(spec, target.query);
+
+    if (info?.hasRequiredPathParams) {
+      // Route has required path parameters (no defaults) – use broad
+      // invalidation instead of calling the query key function without
+      // the required arguments.
+      const prefix = getStaticRoutePrefix(info.route);
+
+      // When the prefix has no meaningful literal segments (e.g. route
+      // starts with a path param like /{tenantId}/...), fall through to
+      // the zero-arg call rather than generating an overly-broad match.
+      if (prefix !== undefined) {
+        if (shouldSplitQueryKey) {
+          // Split-key mode: query keys are arrays like ['pets', petId].
+          // Use partial key matching with static route segments.
+          const segments = prefix
+            .split('/')
+            .filter((s) => s !== '')
+            .map((s) => `'${s}'`)
+            .join(', ');
+          return `    queryClient.${method}({ queryKey: [${segments}] });`;
+        }
+
+        // Default mode: query keys are template strings like ['/pets/${petId}'].
+        // Use predicate with startsWith for broad matching.
+        return `    queryClient.${method}({ predicate: (query) => typeof query.queryKey[0] === 'string' && query.queryKey[0].startsWith('${prefix}') });`;
+      }
+    }
+
+    // No path params or route not found – call query key function without args
+    return `    queryClient.${method}({ queryKey: ${queryKeyFn}() });`;
+  };
 };
 
 export interface MutationHookContext {
@@ -168,6 +336,8 @@ export const generateMutationHook = async ({
   const hasInvalidation =
     uniqueInvalidates.length > 0 && adapter.supportsMutationInvalidation();
 
+  const useRuntimeFetcher = override.fetch.useRuntimeFetcher;
+
   const mutationArguments = adapter.generateQueryArguments({
     operationName,
     definitions,
@@ -175,6 +345,7 @@ export const generateMutationHook = async ({
     isRequestOptions,
     httpClient,
     hasInvalidation,
+    useRuntimeFetcher,
   });
 
   // Separate arguments for getMutationOptions function (includes http: HttpClient param for Angular)
@@ -186,6 +357,7 @@ export const generateMutationHook = async ({
     httpClient,
     forQueryOptions: true,
     hasInvalidation,
+    useRuntimeFetcher,
   });
 
   const mutationOptionsFnName = camel(
@@ -199,6 +371,7 @@ export const generateMutationHook = async ({
     httpClient,
     camel(operationName),
     mutator,
+    useRuntimeFetcher,
   );
 
   // For Angular, add http: HttpClient as FIRST param (required, before optional params)
@@ -227,7 +400,7 @@ ${hooksOptionImplementation}
 
           return  ${operationName}(${adapter.getMutationHttpPrefix(mutator)}${properties}${
             properties ? ',' : ''
-          }${getMutationRequestArgs(isRequestOptions, httpClient, mutator)})
+          }${getMutationRequestArgs(isRequestOptions, httpClient, mutator, useRuntimeFetcher)})
         }
 
 ${
@@ -236,7 +409,10 @@ ${
         operationName,
         definitions,
         isRequestOptions,
-        generateInvalidateCall,
+        generateInvalidateCall: createGenerateInvalidateCall(
+          context.spec,
+          !!query.shouldSplitQueryKey,
+        ),
         uniqueInvalidates,
       })
     : ''
@@ -327,7 +503,7 @@ ${mutationHookBody}
 
   const imports: GeneratorImport[] = hasInvalidation
     ? uniqueInvalidates
-        .filter((i) => !!i.file)
+        .filter((i) => !!i.file && needsQueryKeyFnCall(i, context.spec))
         .map<GeneratorImport>((i) => ({
           name: camel(`get-${i.query}-query-key`),
           importPath: i.file,

@@ -312,7 +312,12 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     })
     .join(',');
 
-  const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}`;
+  const useRuntimeFetcher = override.fetch.useRuntimeFetcher;
+  const fetchFnParam =
+    useRuntimeFetcher && isRequestOptions && !mutator
+      ? ', fetchFn?: typeof globalThis.fetch'
+      : '';
+  const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}${fetchFnParam}`;
   const returnType =
     override.fetch.forceSuccessResponse && hasSuccess
       ? `Promise<${successName}>`
@@ -388,6 +393,11 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   const reviver = fetchReviver ? `, ${fetchReviver.name}` : '';
   const schemaValueRef =
     responseType === 'Error' ? 'ErrorSchema' : responseType;
+  const fetchResponseType =
+    override.fetch.forceSuccessResponse && hasSuccess
+      ? successName
+      : responseTypeName;
+
   const throwOnErrorImplementation = `if (!${isNdJson ? 'stream' : 'res'}.ok) {
     ${isNdJson ? 'const body = [204, 205, 304].includes(stream.status) ? null : await stream.text();' : ''}
     const err: globalThis.Error & {info?: ${hasError ? `${errorName}${override.fetch.includeHttpResponseReturnType ? "['data']" : ''}` : 'any'}, status?: number} = new globalThis.Error();
@@ -396,12 +406,18 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     err.status = ${isNdJson ? 'stream' : 'res'}.status;
     throw err;
   }`;
+  const fetchFnCall =
+    useRuntimeFetcher && isRequestOptions ? '(fetchFn ?? fetch)' : 'fetch';
   const fetchResponseImplementation = isNdJson
-    ? `  const stream = await fetch(${fetchFnOptions});
+    ? `  const stream = await ${fetchFnCall}(${fetchFnOptions});
   ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
-  ${override.fetch.includeHttpResponseReturnType ? `return { status: stream.status, stream, headers: stream.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : `return stream`}
+  ${
+    override.fetch.includeHttpResponseReturnType
+      ? `return { status: stream.status, stream, headers: stream.headers } as ${fetchResponseType}`
+      : `return stream`
+  }
   `
-    : `const res = await fetch(${fetchFnOptions})
+    : `const res = await ${fetchFnCall}(${fetchFnOptions})
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
@@ -409,11 +425,15 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     isValidateResponse
       ? `const parsedBody = body ? JSON.parse(body${reviver}) : {}
   const data = ${schemaValueRef}.parse(parsedBody)`
-      : `const data: ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}`
+      : `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}`
   }
-  ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : 'return data'}
+  ${
+    override.fetch.includeHttpResponseReturnType
+      ? `return { data, status: res.status, headers: res.headers } as ${fetchResponseType}`
+      : 'return data'
+  }
 `;
-  let customFetchResponseImplementation = `return ${mutator?.name}<${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}>(${fetchFnOptions});`;
+  let customFetchResponseImplementation = `return ${mutator?.name}<${fetchResponseType}>(${fetchFnOptions});`;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,

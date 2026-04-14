@@ -22,6 +22,7 @@ export async function writeSplitMode({
   projectName,
   header,
   needSchema,
+  generateSchemasInline,
 }: WriteModeProps): Promise<string[]> {
   try {
     const {
@@ -61,7 +62,7 @@ export async function writeSplitMode({
             { extension: output.fileExtension },
           ).dirname,
         )
-      : './' + filename + '.schemas';
+      : './' + filename + '.schemas' + extension.replace(/\.ts$/, '');
 
     const isAllowSyntheticDefaultImports = isSyntheticDefaultImportsAllow(
       output.tsconfig,
@@ -109,7 +110,9 @@ export async function writeSplitMode({
       : path.join(dirname, filename + '.schemas' + extension);
 
     if (schemasPath && needSchema) {
-      const schemasData = header + generateModelsInline(builder.schemas);
+      const schemasData = generateSchemasInline
+        ? header + generateSchemasInline()
+        : header + generateModelsInline(builder.schemas);
 
       await writeGeneratedFile(schemasPath, schemasData);
     }

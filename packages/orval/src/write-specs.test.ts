@@ -25,6 +25,7 @@ vi.mock('@orval/core', async (importOriginal) => {
   return {
     ...actual,
     log: vi.fn(),
+    logWarning: vi.fn(),
   };
 });
 
@@ -70,14 +71,14 @@ describe('runFormatter', () => {
   });
 
   it('logs a warning when binary is not found (ENOENT)', async () => {
-    const { log } = await import('@orval/core');
+    const { logWarning } = await import('@orval/core');
     const error = new MockExecaError('spawn oxfmt ENOENT');
     error.code = 'ENOENT';
     mockedExeca.mockRejectedValueOnce(error);
 
     await runFormatter(SupportedFormatter.OXFMT, paths, 'petstore');
 
-    expect(log).toHaveBeenCalledWith(
+    expect(logWarning).toHaveBeenCalledWith(
       expect.stringContaining('oxfmt not found'),
     );
   });

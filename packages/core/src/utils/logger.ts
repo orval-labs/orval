@@ -5,6 +5,21 @@ import { isString } from './assertion';
 
 export const log = console.log;
 
+let _warningCount = 0;
+
+export function logWarning(message: string) {
+  _warningCount++;
+  log(styleText('yellow', message));
+}
+
+export function getWarningCount(): number {
+  return _warningCount;
+}
+
+export function resetWarnings(): void {
+  _warningCount = 0;
+}
+
 let _verbose = false;
 
 export function setVerbose(v: boolean) {
@@ -60,13 +75,10 @@ export function logError(err: unknown, tag?: string) {
 }
 
 export function mismatchArgsMessage(mismatchArgs: string[]) {
-  log(
-    styleText(
-      'yellow',
-      `${mismatchArgs.join(', ')} ${
-        mismatchArgs.length === 1 ? 'is' : 'are'
-      } not defined in your configuration!`,
-    ),
+  logWarning(
+    `${mismatchArgs.join(', ')} ${
+      mismatchArgs.length === 1 ? 'is' : 'are'
+    } not defined in your configuration!`,
   );
 }
 

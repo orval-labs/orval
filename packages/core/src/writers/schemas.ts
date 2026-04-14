@@ -218,12 +218,11 @@ function normalizeCanonicalImportPaths(
       const canonical = canonicalByName ?? canonicalByPath;
       if (!canonical?.importPath) return imp;
 
-      const importPath = removeFileExtension(
+      const importPath = removeTSExtension(
         upath.relativeSafe(
           schemaPath,
           canonical.importPath.replaceAll('\\', '/'),
         ),
-        fileExtension,
       );
 
       return { ...imp, importPath };
@@ -264,10 +263,8 @@ function resolveImportKey(
     .replaceAll('\\', '/');
 }
 
-function removeFileExtension(path: string, fileExtension: string) {
-  return path.endsWith(fileExtension)
-    ? path.slice(0, path.length - fileExtension.length)
-    : path;
+function removeTSExtension(path: string) {
+  return path.endsWith('.ts') ? path.slice(0, -3) : path;
 }
 
 interface GetSchemaOptions {
@@ -417,7 +414,7 @@ export async function writeSchemas({
   }
 
   if (indexFiles) {
-    const schemaFilePath = nodePath.join(schemaPath, `index${fileExtension}`);
+    const schemaFilePath = nodePath.join(schemaPath, `index.ts`);
     await fs.ensureFile(schemaFilePath);
 
     // Ensure separate files are used for parallel schema writing.

@@ -22,7 +22,9 @@ import type {
 import {
   asyncReduce,
   generateDependencyImports,
+  getBaseUrlRuntimeImports,
   isFunction,
+  logWarning,
   OutputClient,
   pascal,
 } from '@orval/core';
@@ -167,8 +169,8 @@ export const generateClientFooter: GeneratorClientFooter = ({
         footer as unknown as (operationNames: string[]) => string
       )(operationNames);
       // being here means that the previous call worked
-      console.warn(
-        '[WARN] Passing an array of strings for operations names to the footer function is deprecated and will be removed in a future major release. Please pass them in an object instead: { operationNames: string[] }.',
+      logWarning(
+        '⚠️  Passing an array of strings for operations names to the footer function is deprecated and will be removed in a future major release. Please pass them in an object instead: { operationNames: string[] }.',
       );
     } else {
       implementation = footer({
@@ -254,6 +256,8 @@ export const generateOperations = (
   options: GeneratorOptions,
   output: NormalizedOutputOptions,
 ): Promise<GeneratorOperations> => {
+  const baseUrlImports = getBaseUrlRuntimeImports(output.baseUrl);
+
   return asyncReduce(
     verbsOptions,
     async (acc, verbOption) => {
@@ -293,7 +297,7 @@ export const generateOperations = (
         implementation: hasImplementation
           ? verbOption.doc + client.implementation
           : client.implementation,
-        imports: client.imports,
+        imports: [...baseUrlImports, ...client.imports],
         implementationMock: generatedMock.implementation,
         importsMock: generatedMock.imports,
         tags: verbOption.tags,

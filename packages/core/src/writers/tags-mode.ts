@@ -23,6 +23,7 @@ export async function writeTagsMode({
   projectName,
   header,
   needSchema,
+  generateSchemasInline,
 }: WriteModeProps): Promise<string[]> {
   const {
     path: targetPath,
@@ -69,7 +70,7 @@ export async function writeTagsMode({
                 { extension: output.fileExtension },
               ).dirname,
             )
-          : './' + filename + '.schemas';
+          : './' + filename + '.schemas' + extension.replace(/\.ts$/, '');
 
         const implementationImports = imports.filter((imp) => {
           const searchWords = [imp.alias, imp.name]
@@ -158,7 +159,9 @@ export async function writeTagsMode({
           : path.join(dirname, filename + '.schemas' + extension);
 
         if (schemasPath && needSchema) {
-          const schemasData = header + generateModelsInline(builder.schemas);
+          const schemasData = generateSchemasInline
+            ? header + generateSchemasInline()
+            : header + generateModelsInline(builder.schemas);
 
           await writeGeneratedFile(schemasPath, schemasData);
         }

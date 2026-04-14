@@ -149,6 +149,20 @@ export const useSetListPetsQueryData = () => {
 };
 ```
 
+## Get Query Data
+
+When `useGetQueryData: true` is set, Orval generates type-safe helper functions to read cached query data:
+
+```ts
+export const useGetListPetsQueryData = () => {
+  const queryClient = useQueryClient();
+  return (params: ListPetsParams) =>
+    queryClient.getQueryData<Awaited<ReturnType<typeof listPets>>>(
+      getListPetsQueryKey(params),
+    );
+};
+```
+
 ## Full Example
 
 See the [complete React Query example](https://github.com/orval-labs/orval/blob/master/samples/react-query/basic) on GitHub.

@@ -1,6 +1,6 @@
 {
   "name": "@hono/composite-routes-with-tags-split",
-  "version": "8.6.2",
+  "version": "8.7.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -19,6 +19,6 @@
     "orval": "workspace:*",
     "prettier": "catalog:",
     "vitest": "catalog:",
-    "wrangler": "^4.59.2"
+    "wrangler": "^4.79.0"
   }
 }

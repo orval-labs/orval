@@ -291,4 +291,17 @@ export default defineConfig({
       target: '../specifications/msw-mixed-content-union-vendor.yaml',
     },
   },
+  mixedSuccessStatus: {
+    output: {
+      target: '../generated/mock/mixed-success-status/endpoints.ts',
+      schemas: '../generated/mock/mixed-success-status/model',
+      client: 'axios',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/mixed-success-status.yaml',
+    },
+  },
 });

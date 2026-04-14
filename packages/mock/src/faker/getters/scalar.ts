@@ -151,12 +151,19 @@ export function getMockScalar({
         (item.format === 'int64' || item.format === 'uint64')
           ? 'bigInt'
           : 'int';
-      const numMin = (item.exclusiveMinimum ??
-        item.minimum ??
-        safeMockOptions.numberMin) as number | undefined;
-      const numMax = (item.exclusiveMaximum ??
-        item.maximum ??
-        safeMockOptions.numberMax) as number | undefined;
+      // Handle exclusiveMinimum/exclusiveMaximum for both OpenAPI 3.0 (boolean) and 3.1 (number).
+      // OpenAPI 3.0: booleans indicating whether minimum/maximum is exclusive — use minimum/maximum as the bound.
+      // OpenAPI 3.1: numbers representing the exclusive boundary value — use directly.
+      const numMin = (
+        typeof item.exclusiveMinimum === 'number'
+          ? item.exclusiveMinimum
+          : (item.minimum ?? safeMockOptions.numberMin)
+      ) as number | undefined;
+      const numMax = (
+        typeof item.exclusiveMaximum === 'number'
+          ? item.exclusiveMaximum
+          : (item.maximum ?? safeMockOptions.numberMax)
+      ) as number | undefined;
       const intParts: string[] = [];
       if (numMin !== undefined) intParts.push(`min: ${numMin}`);
       if (numMax !== undefined) intParts.push(`max: ${numMax}`);
