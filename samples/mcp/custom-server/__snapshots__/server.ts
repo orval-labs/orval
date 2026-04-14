@@ -15,7 +15,7 @@ Some useful links:
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { customServer } from '../custom-server';
 
 import {
   findPetsByStatusHandler,
@@ -157,12 +157,4 @@ const createMcpServer = () => {
   return server;
 };
 
-const server = createMcpServer();
-const transport = new StdioServerTransport();
-
-server
-  .connect(transport)
-  .then(() => {
-    console.error('MCP server running on stdio');
-  })
-  .catch(console.error);
+customServer(createMcpServer);

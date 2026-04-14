@@ -12,11 +12,8 @@ Some useful links:
 - [The source API definition for the Pet Store](https://github.com/swagger-api/swagger-petstore/blob/master/src/main/resources/openapi.yaml)
  * OpenAPI spec version: 1.0.27-SNAPSHOT
  */
-
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-
+import { customServer } from '../custom-server';
 import {
   findPetsByStatusHandler,
   findPetsByTagsHandler,
@@ -44,13 +41,11 @@ import {
   GetUserByNameParams,
   DeleteUserParams,
 } from './tool-schemas.zod';
-
 const createMcpServer = () => {
   const server = new McpServer({
     name: 'swaggerPetstoreOpenAPI30Server',
     version: '1.0.0',
   });
-
   server.tool(
     'findPetsByStatus',
     'Finds Pets by status.',
@@ -59,7 +54,6 @@ const createMcpServer = () => {
     },
     findPetsByStatusHandler,
   );
-
   server.tool(
     'findPetsByTags',
     'Finds Pets by tags.',
@@ -68,7 +62,6 @@ const createMcpServer = () => {
     },
     findPetsByTagsHandler,
   );
-
   server.tool(
     'getPetById',
     'Find pet by ID.',
@@ -77,7 +70,6 @@ const createMcpServer = () => {
     },
     getPetByIdHandler,
   );
-
   server.tool(
     'updatePetWithForm',
     'Updates a pet in the store with form data.',
@@ -87,7 +79,6 @@ const createMcpServer = () => {
     },
     updatePetWithFormHandler,
   );
-
   server.tool(
     'deletePet',
     'Deletes a pet.',
@@ -96,13 +87,11 @@ const createMcpServer = () => {
     },
     deletePetHandler,
   );
-
   server.tool(
     'getInventory',
     'Returns pet inventories by status.',
     getInventoryHandler,
   );
-
   server.tool(
     'getOrderById',
     'Find purchase order by ID.',
@@ -111,7 +100,6 @@ const createMcpServer = () => {
     },
     getOrderByIdHandler,
   );
-
   server.tool(
     'deleteOrder',
     'Delete purchase order by identifier.',
@@ -120,7 +108,6 @@ const createMcpServer = () => {
     },
     deleteOrderHandler,
   );
-
   server.tool(
     'loginUser',
     'Logs user into the system.',
@@ -129,13 +116,11 @@ const createMcpServer = () => {
     },
     loginUserHandler,
   );
-
   server.tool(
     'logoutUser',
     'Logs out current logged in user session.',
     logoutUserHandler,
   );
-
   server.tool(
     'getUserByName',
     'Get user by user name.',
@@ -144,7 +129,6 @@ const createMcpServer = () => {
     },
     getUserByNameHandler,
   );
-
   server.tool(
     'deleteUser',
     'Delete user resource.',
@@ -153,16 +137,6 @@ const createMcpServer = () => {
     },
     deleteUserHandler,
   );
-
   return server;
 };
-
-const server = createMcpServer();
-const transport = new StdioServerTransport();
-
-server
-  .connect(transport)
-  .then(() => {
-    console.error('MCP server running on stdio');
-  })
-  .catch(console.error);
+customServer(createMcpServer);
