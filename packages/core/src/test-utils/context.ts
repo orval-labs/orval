@@ -128,6 +128,7 @@ export function createTestContextSpec({
       requestOptions: true,
       splitByContentType: false,
       aliasCombinedTypes: false,
+      mcp: {},
     },
   };
 
