@@ -26,59 +26,64 @@ import {
   ShowPetWithOwnerParams,
 } from './tool-schemas.zod';
 
-const server = new McpServer({
-  name: 'swaggerPetstoreServer',
-  version: '1.0.0',
-});
+const createMcpServer = () => {
+  const server = new McpServer({
+    name: 'swaggerPetstoreServer',
+    version: '1.0.0',
+  });
 
-server.tool(
-  'listPets',
-  'List all pets',
-  {
-    queryParams: ListPetsQueryParams,
-  },
-  listPetsHandler,
-);
+  server.tool(
+    'listPets',
+    'List all pets',
+    {
+      queryParams: ListPetsQueryParams,
+    },
+    listPetsHandler,
+  );
 
-server.tool(
-  'createPets',
-  'Create a pet',
-  {
-    queryParams: CreatePetsQueryParams,
-    bodyParams: CreatePetsBody,
-  },
-  createPetsHandler,
-);
+  server.tool(
+    'createPets',
+    'Create a pet',
+    {
+      queryParams: CreatePetsQueryParams,
+      bodyParams: CreatePetsBody,
+    },
+    createPetsHandler,
+  );
 
-server.tool(
-  'showPetById',
-  'Info for a specific pet',
-  {
-    pathParams: ShowPetByIdParams,
-  },
-  showPetByIdHandler,
-);
+  server.tool(
+    'showPetById',
+    'Info for a specific pet',
+    {
+      pathParams: ShowPetByIdParams,
+    },
+    showPetByIdHandler,
+  );
 
-server.tool(
-  'deletePetById',
-  'Deletes a specific pet',
-  {
-    pathParams: DeletePetByIdParams,
-  },
-  deletePetByIdHandler,
-);
+  server.tool(
+    'deletePetById',
+    'Deletes a specific pet',
+    {
+      pathParams: DeletePetByIdParams,
+    },
+    deletePetByIdHandler,
+  );
 
-server.tool('healthCheck', 'health check', healthCheckHandler);
+  server.tool('healthCheck', 'health check', healthCheckHandler);
 
-server.tool(
-  'showPetWithOwner',
-  'combinate nullable and $ref',
-  {
-    pathParams: ShowPetWithOwnerParams,
-  },
-  showPetWithOwnerHandler,
-);
+  server.tool(
+    'showPetWithOwner',
+    'combinate nullable and $ref',
+    {
+      pathParams: ShowPetWithOwnerParams,
+    },
+    showPetWithOwnerHandler,
+  );
 
+  return server;
+};
+
+const server = createMcpServer();
 const transport = new StdioServerTransport();
 
 server
