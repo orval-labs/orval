@@ -560,7 +560,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   const schemaValueRef =
     responseType === 'Error' ? 'ErrorSchema' : responseType;
   const validateFetchFnOptions = `${rawFetchFnOptions}${isValidateResponse ? ',' : ''}
-    schema: ${schemaValueRef}
+    ${isValidateResponse ? `schema: ${schemaValueRef}` : ''}
   }    
 `;
   const reviver = fetchReviver ? `, ${fetchReviver.name}` : '';
