@@ -9,6 +9,8 @@ import {
   type GlobalMockOptions,
   type GlobalOptions,
   type HonoOptions,
+  type McpOptions,
+  type McpServerOptions,
   type Hook,
   type HookFunction,
   type HookOption,
@@ -26,6 +28,8 @@ import {
   type Mutator,
   NamingConvention,
   type NormalizedHonoOptions,
+  type NormalizedMcpOptions,
+  type NormalizedMcpServerOptions,
   type NormalizedHookOptions,
   type NormalizedJsDocOptions,
   type NormalizedMutator,
@@ -317,6 +321,7 @@ export async function normalizeOptions(
           },
         },
         hono: normalizeHonoOptions(outputOptions.override?.hono, workspace),
+        mcp: normalizeMcpOptions(outputOptions.override?.mcp, workspace),
         jsDoc: normalizeJSDocOptions(outputOptions.override?.jsDoc),
         query: globalQueryOptions,
         zod: {
@@ -794,6 +799,28 @@ function normalizeHonoOptions(
     validatorOutputPath: hono.validatorOutputPath
       ? nodePath.resolve(workspace, hono.validatorOutputPath)
       : '',
+  };
+}
+
+function normalizeMcpServerOptions(
+  server: McpServerOptions,
+  workspace: string,
+): NormalizedMcpServerOptions {
+  return {
+    path: nodePath.resolve(workspace, server.path),
+    name: server.name,
+    default: server.default ?? !server.name,
+  };
+}
+
+function normalizeMcpOptions(
+  mcp: McpOptions = {},
+  workspace: string,
+): NormalizedMcpOptions {
+  return {
+    ...(mcp.server
+      ? { server: normalizeMcpServerOptions(mcp.server, workspace) }
+      : {}),
   };
 }
 
