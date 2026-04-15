@@ -431,21 +431,28 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? successName
       : responseTypeName;
 
+  // Error response fallback always uses {} — error data types vary (e.g. `Error`)
+  // and {} satisfies them all without a type error, matching prior behaviour.
   const errorBodyExpression = hasMixedErrorContentTypes
     ? `errorBody !== null ? (errorContentType.includes('json') ? JSON.parse(errorBody${reviver}) : errorBody) : {}`
     : errorAlwaysJson
       ? `errorBody !== null ? JSON.parse(errorBody${reviver}) : {}`
-      : `errorBody !== null ? errorBody : ''`;
+      : `errorBody !== null ? errorBody : {}`;
+
+  // throwOnErrorDataExpression parses error response body using error content types.
+  // For blob/ndJson, use dedicated paths. Otherwise use error content type logic with `body`.
+  // Non-JSON error fallback uses '' (matches string type); JSON/unknown error fallback uses {}.
+  const throwOnErrorBodyExpression = hasMixedErrorContentTypes
+    ? `body !== null ? (errorContentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}`
+    : errorAlwaysJson
+      ? `body !== null ? JSON.parse(body${reviver}) : {}`
+      : `body !== null ? body : ''`;
 
   const throwOnErrorDataExpression = isNdJson
     ? `body !== null ? JSON.parse(body${reviver}) : {}`
     : isBlob
       ? errorBodyExpression
-      : hasMixedSuccessContentTypes
-        ? `body !== null ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}`
-        : successAlwaysJson
-          ? `body !== null ? JSON.parse(body${reviver}) : {}`
-          : `body !== null ? body : ''`;
+      : throwOnErrorBodyExpression;
 
   // In the forceSuccessResponse path, throwOnErrorImplementation is emitted AFTER
   // `contentType` and `body` are already declared in the outer scope, so we must
@@ -456,9 +463,11 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? `const errorBody = [204, 205, 304].includes(res.status) ? null : await res.text();
     ${hasMixedErrorContentTypes ? `const errorContentType = (res.headers.get('content-type') ?? '').toLowerCase();` : ''}`
       : override.fetch.forceSuccessResponse
-        ? ''
-        : hasMixedSuccessContentTypes
-          ? `const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
+        ? hasMixedErrorContentTypes
+          ? `const errorContentType = (res.headers.get('content-type') ?? '').toLowerCase();`
+          : ''
+        : hasMixedErrorContentTypes
+          ? `const errorContentType = (res.headers.get('content-type') ?? '').toLowerCase();
     const body = [204, 205, 304].includes(res.status) ? null : await res.text();`
           : 'const body = [204, 205, 304].includes(res.status) ? null : await res.text();';
 

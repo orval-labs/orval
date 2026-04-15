@@ -45,8 +45,7 @@ export const getData = async (
       info?: getDataResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: getDataResponseError['data'] =
-      body !== null ? JSON.parse(body) : {};
+    const data: getDataResponseError['data'] = body !== null ? body : '';
     err.info = data;
     err.status = res.status;
     throw err;
@@ -87,7 +86,7 @@ export const getText = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body !== null ? body : '';
+    const data = body !== null ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
@@ -181,12 +180,7 @@ export const getMixedSuccess = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data =
-      body !== null
-        ? contentType.includes('json')
-          ? JSON.parse(body)
-          : body
-        : {};
+    const data = body !== null ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
