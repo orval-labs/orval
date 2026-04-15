@@ -154,8 +154,8 @@ ${handlerArgsTypes.join('\n')}
 
   const handlerName = `${verbOptions.operationName}Handler`;
   const handlerImplementation = `
-export const ${handlerName} = async (${handlerArgsTypes.length > 0 ? `args: ${handlerArgsName}` : ''}) => {
-  const res = await ${verbOptions.operationName}(${fetchParams.join(', ')});
+export const ${handlerName} = async (${handlerArgsTypes.length > 0 ? `args: ${handlerArgsName}, ` : ''}options?: RequestInit) => {
+  const res = await ${verbOptions.operationName}(${fetchParams.length > 0 ? `${fetchParams.join(', ')}, ` : ''}options);
 
   return {
     content: [
@@ -210,11 +210,15 @@ export const generateServer = (
   },`
           : '';
 
+      const handlerCallImplementation = inputSchemaImplementation
+        ? `(args) => ${verbOption.operationName}Handler(args, options)`
+        : `() => ${verbOption.operationName}Handler(options)`;
+
       const toolImplementation = `
 server.tool(
   '${jsStringEscape(verbOption.operationName)}',
   '${jsStringEscape(verbOption.summary ?? '')}',${inputSchemaImplementation ? `\n${inputSchemaImplementation}` : ''}
-  ${jsStringEscape(verbOption.operationName)}Handler
+  ${handlerCallImplementation}
 );`;
 
       return toolImplementation;
@@ -249,7 +253,7 @@ server.tool(
   const importHandlersImplementation = `import {\n${importHandlers}\n} from './handlers';`;
 
   const createMcpServerImplementation = `
-const createMcpServer = () => {
+const createMcpServer = (options?: RequestInit) => {
   const server = new McpServer({
     name: '${camel(info.title)}Server',
     version: '1.0.0',

@@ -45,7 +45,7 @@ import {
   DeleteUserParams,
 } from './tool-schemas.zod';
 
-const createMcpServer = () => {
+const createMcpServer = (options?: RequestInit) => {
   const server = new McpServer({
     name: 'swaggerPetstoreOpenAPI30Server',
     version: '1.0.0',
@@ -57,7 +57,7 @@ const createMcpServer = () => {
     {
       queryParams: FindPetsByStatusQueryParams,
     },
-    findPetsByStatusHandler,
+    (args) => findPetsByStatusHandler(args, options),
   );
 
   server.tool(
@@ -66,7 +66,7 @@ const createMcpServer = () => {
     {
       queryParams: FindPetsByTagsQueryParams,
     },
-    findPetsByTagsHandler,
+    (args) => findPetsByTagsHandler(args, options),
   );
 
   server.tool(
@@ -75,7 +75,7 @@ const createMcpServer = () => {
     {
       pathParams: GetPetByIdParams,
     },
-    getPetByIdHandler,
+    (args) => getPetByIdHandler(args, options),
   );
 
   server.tool(
@@ -85,7 +85,7 @@ const createMcpServer = () => {
       pathParams: UpdatePetWithFormParams,
       queryParams: UpdatePetWithFormQueryParams,
     },
-    updatePetWithFormHandler,
+    (args) => updatePetWithFormHandler(args, options),
   );
 
   server.tool(
@@ -94,13 +94,11 @@ const createMcpServer = () => {
     {
       pathParams: DeletePetParams,
     },
-    deletePetHandler,
+    (args) => deletePetHandler(args, options),
   );
 
-  server.tool(
-    'getInventory',
-    'Returns pet inventories by status.',
-    getInventoryHandler,
+  server.tool('getInventory', 'Returns pet inventories by status.', () =>
+    getInventoryHandler(options),
   );
 
   server.tool(
@@ -109,7 +107,7 @@ const createMcpServer = () => {
     {
       pathParams: GetOrderByIdParams,
     },
-    getOrderByIdHandler,
+    (args) => getOrderByIdHandler(args, options),
   );
 
   server.tool(
@@ -118,7 +116,7 @@ const createMcpServer = () => {
     {
       pathParams: DeleteOrderParams,
     },
-    deleteOrderHandler,
+    (args) => deleteOrderHandler(args, options),
   );
 
   server.tool(
@@ -127,13 +125,11 @@ const createMcpServer = () => {
     {
       queryParams: LoginUserQueryParams,
     },
-    loginUserHandler,
+    (args) => loginUserHandler(args, options),
   );
 
-  server.tool(
-    'logoutUser',
-    'Logs out current logged in user session.',
-    logoutUserHandler,
+  server.tool('logoutUser', 'Logs out current logged in user session.', () =>
+    logoutUserHandler(options),
   );
 
   server.tool(
@@ -142,7 +138,7 @@ const createMcpServer = () => {
     {
       pathParams: GetUserByNameParams,
     },
-    getUserByNameHandler,
+    (args) => getUserByNameHandler(args, options),
   );
 
   server.tool(
@@ -151,7 +147,7 @@ const createMcpServer = () => {
     {
       pathParams: DeleteUserParams,
     },
-    deleteUserHandler,
+    (args) => deleteUserHandler(args, options),
   );
 
   return server;

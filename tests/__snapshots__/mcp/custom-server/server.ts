@@ -26,7 +26,7 @@ import {
   ShowPetWithOwnerParams,
 } from './tool-schemas.zod';
 
-const createMcpServer = () => {
+const createMcpServer = (options?: RequestInit) => {
   const server = new McpServer({
     name: 'swaggerPetstoreServer',
     version: '1.0.0',
@@ -38,7 +38,7 @@ const createMcpServer = () => {
     {
       queryParams: ListPetsQueryParams,
     },
-    listPetsHandler,
+    (args) => listPetsHandler(args, options),
   );
 
   server.tool(
@@ -48,7 +48,7 @@ const createMcpServer = () => {
       queryParams: CreatePetsQueryParams,
       bodyParams: CreatePetsBody,
     },
-    createPetsHandler,
+    (args) => createPetsHandler(args, options),
   );
 
   server.tool(
@@ -57,7 +57,7 @@ const createMcpServer = () => {
     {
       pathParams: ShowPetByIdParams,
     },
-    showPetByIdHandler,
+    (args) => showPetByIdHandler(args, options),
   );
 
   server.tool(
@@ -66,10 +66,10 @@ const createMcpServer = () => {
     {
       pathParams: DeletePetByIdParams,
     },
-    deletePetByIdHandler,
+    (args) => deletePetByIdHandler(args, options),
   );
 
-  server.tool('healthCheck', 'health check', healthCheckHandler);
+  server.tool('healthCheck', 'health check', () => healthCheckHandler(options));
 
   server.tool(
     'showPetWithOwner',
@@ -77,7 +77,7 @@ const createMcpServer = () => {
     {
       pathParams: ShowPetWithOwnerParams,
     },
-    showPetWithOwnerHandler,
+    (args) => showPetWithOwnerHandler(args, options),
   );
 
   return server;
