@@ -211,7 +211,9 @@ ${
 
   // Resolve parsing strategy at generation time based on spec-declared content types.
   // Only emit a runtime Content-Type check when success responses have mixed types.
-  const successHasJson = successContentTypes.some(isContentTypeJson);
+  const successHasJson = successContentTypes.some((ct) =>
+    isContentTypeJson(ct),
+  );
   const successHasNonJson = successContentTypes.some(
     (ct) => !isContentTypeJson(ct),
   );
@@ -220,7 +222,7 @@ ${
   const successAlwaysJson =
     successContentTypes.length === 0 || (successHasJson && !successHasNonJson);
 
-  const errorHasJson = errorContentTypes.some(isContentTypeJson);
+  const errorHasJson = errorContentTypes.some((ct) => isContentTypeJson(ct));
   const errorHasNonJson = errorContentTypes.some(
     (ct) => !isContentTypeJson(ct),
   );
