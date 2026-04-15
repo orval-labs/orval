@@ -83,27 +83,18 @@ export const healthCheck = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   if (!res.ok) {
     const err: globalThis.Error & {
       info?: healthCheckResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: healthCheckResponseError['data'] = body
-      ? contentType.includes('json')
-        ? JSON.parse(body)
-        : body
-      : {};
+    const data: healthCheckResponseError['data'] = body !== null ? body : '';
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: healthCheckResponseSuccess['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: healthCheckResponseSuccess['data'] = body !== null ? body : '';
   return {
     data,
     status: res.status,

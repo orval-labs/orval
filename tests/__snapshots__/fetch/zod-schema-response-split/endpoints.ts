@@ -105,15 +105,18 @@ export const listPets = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
+  const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const parsedBody = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
-  const data = Pets.parse(parsedBody);
+  const parsedBody =
+    body !== null
+      ? contentType.includes('json')
+        ? JSON.parse(body)
+        : body
+      : {};
+  const data = contentType.includes('json')
+    ? Pets.parse(parsedBody)
+    : parsedBody;
   return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };
 
@@ -167,15 +170,18 @@ export const createPets = async (
     body: JSON.stringify(createPetsBody),
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
+  const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const parsedBody = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
-  const data = Pet.parse(parsedBody);
+  const parsedBody =
+    body !== null
+      ? contentType.includes('json')
+        ? JSON.parse(body)
+        : body
+      : {};
+  const data = contentType.includes('json')
+    ? Pet.parse(parsedBody)
+    : parsedBody;
   return {
     data,
     status: res.status,
@@ -220,15 +226,18 @@ export const showPetById = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
+  const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const parsedBody = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
-  const data = Pet.parse(parsedBody);
+  const parsedBody =
+    body !== null
+      ? contentType.includes('json')
+        ? JSON.parse(body)
+        : body
+      : {};
+  const data = contentType.includes('json')
+    ? Pet.parse(parsedBody)
+    : parsedBody;
   return {
     data,
     status: res.status,
@@ -273,14 +282,10 @@ export const deletePetById = async (
     method: 'DELETE',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: deletePetByIdResponse['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: deletePetByIdResponse['data'] =
+    body !== null ? JSON.parse(body) : undefined;
   return {
     data,
     status: res.status,
@@ -324,14 +329,9 @@ export const healthCheck = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: healthCheckResponse['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: healthCheckResponse['data'] = body !== null ? body : '';
   return {
     data,
     status: res.status,
@@ -376,15 +376,18 @@ export const showPetWithOwner = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
+  const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const parsedBody = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
-  const data = PetWithTag.parse(parsedBody);
+  const parsedBody =
+    body !== null
+      ? contentType.includes('json')
+        ? JSON.parse(body)
+        : body
+      : {};
+  const data = contentType.includes('json')
+    ? PetWithTag.parse(parsedBody)
+    : parsedBody;
   return {
     data,
     status: res.status,

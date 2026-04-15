@@ -6,5 +6,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export * from './getData200';
-export * from './getMixedSuccess200';
+export type GetMixedSuccess200 = {
+  id?: number;
+  name?: string;
+};

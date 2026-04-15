@@ -194,10 +194,39 @@ ${
     contentType === 'application/nd-json' ||
     contentType === 'application/x-ndjson';
 
+  const isContentTypeJson = (contentType: string) =>
+    contentType.toLowerCase().includes('json');
+
   const isNdJson = response.contentTypes.some((contentType) =>
     isContentTypeNdJson(contentType),
   );
   const isBlob = response.isBlob;
+
+  const successContentTypes = response.types.success
+    .map((t) => t.contentType)
+    .filter(Boolean);
+  const errorContentTypes = response.types.errors
+    .map((t) => t.contentType)
+    .filter(Boolean);
+
+  // Resolve parsing strategy at generation time based on spec-declared content types.
+  // Only emit a runtime Content-Type check when success responses have mixed types.
+  const successHasJson = successContentTypes.some(isContentTypeJson);
+  const successHasNonJson = successContentTypes.some(
+    (ct) => !isContentTypeJson(ct),
+  );
+  const hasMixedSuccessContentTypes = successHasJson && successHasNonJson;
+  // No declared content types → fall back to JSON (preserve original behaviour)
+  const successAlwaysJson =
+    successContentTypes.length === 0 || (successHasJson && !successHasNonJson);
+
+  const errorHasJson = errorContentTypes.some(isContentTypeJson);
+  const errorHasNonJson = errorContentTypes.some(
+    (ct) => !isContentTypeJson(ct),
+  );
+  const hasMixedErrorContentTypes = errorHasJson && errorHasNonJson;
+  const errorAlwaysJson =
+    errorContentTypes.length === 0 || (errorHasJson && !errorHasNonJson);
   const responseTypeName = fetchResponseTypeName(
     override.fetch.includeHttpResponseReturnType,
     isNdJson ? 'Response' : response.definition.success,
@@ -205,6 +234,7 @@ ${
   );
 
   const responseType = response.definition.success;
+  const isVoidResponse = responseType === 'void';
 
   const isPrimitiveType = [
     'string',
@@ -399,20 +429,39 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? successName
       : responseTypeName;
 
+  const errorBodyExpression = hasMixedErrorContentTypes
+    ? `errorBody !== null ? (errorContentType.includes('json') ? JSON.parse(errorBody${reviver}) : errorBody) : {}`
+    : errorAlwaysJson
+      ? `errorBody !== null ? JSON.parse(errorBody${reviver}) : {}`
+      : `errorBody !== null ? errorBody : ''`;
+
   const throwOnErrorDataExpression = isNdJson
-    ? `body ? JSON.parse(body${reviver}) : {}`
+    ? `body !== null ? JSON.parse(body${reviver}) : {}`
     : isBlob
-      ? `errorBody ? (errorContentType.includes('json') ? JSON.parse(errorBody${reviver}) : errorBody) : {}`
-      : `body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}`;
+      ? errorBodyExpression
+      : hasMixedSuccessContentTypes
+        ? `body !== null ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}`
+        : successAlwaysJson
+          ? `body !== null ? JSON.parse(body${reviver}) : {}`
+          : `body !== null ? body : ''`;
+
+  // In the forceSuccessResponse path, throwOnErrorImplementation is emitted AFTER
+  // `contentType` and `body` are already declared in the outer scope, so we must
+  // NOT redeclare them here.
+  const throwOnErrorInnerDeclarations = isNdJson
+    ? 'const body = [204, 205, 304].includes(stream.status) ? null : await stream.text();'
+    : isBlob
+      ? `const errorBody = [204, 205, 304].includes(res.status) ? null : await res.text();
+    ${hasMixedErrorContentTypes ? `const errorContentType = (res.headers.get('content-type') ?? '').toLowerCase();` : ''}`
+      : override.fetch.forceSuccessResponse
+        ? ''
+        : hasMixedSuccessContentTypes
+          ? `const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
+    const body = [204, 205, 304].includes(res.status) ? null : await res.text();`
+          : 'const body = [204, 205, 304].includes(res.status) ? null : await res.text();';
+
   const throwOnErrorImplementation = `if (!${isNdJson ? 'stream' : 'res'}.ok) {
-    ${
-      isNdJson
-        ? 'const body = [204, 205, 304].includes(stream.status) ? null : await stream.text();'
-        : isBlob
-          ? `const errorBody = [204, 205, 304].includes(res.status) ? null : await res.text();
-    const errorContentType = res.headers.get('content-type') ?? '';`
-          : ''
-    }
+    ${throwOnErrorInnerDeclarations}
     const err: globalThis.Error & {info?: ${hasError ? `${errorName}${override.fetch.includeHttpResponseReturnType ? "['data']" : ''}` : 'any'}, status?: number} = new globalThis.Error();
     const data ${hasError ? `: ${errorName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''}` : ''} = ${throwOnErrorDataExpression}
     err.info = data;
@@ -445,14 +494,24 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? blobFetchResponseImplementation
       : `const res = await ${fetchFnCall}(${fetchFnOptions})
 
-  const contentType = res.headers.get('content-type') ?? '';
+  ${hasMixedSuccessContentTypes || (isValidateResponse && successAlwaysJson) ? `const contentType = (res.headers.get('content-type') ?? '').toLowerCase();` : ''}
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
   ${
     isValidateResponse
-      ? `const parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}
-  const data = ${schemaValueRef}.parse(parsedBody)`
-      : `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}`
+      ? hasMixedSuccessContentTypes
+        ? `const parsedBody = body !== null ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}
+  const data = contentType.includes('json') ? ${schemaValueRef}.parse(parsedBody) : parsedBody`
+        : successAlwaysJson
+          ? `const parsedBody = body !== null ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}
+  const data = contentType.includes('json') ? ${schemaValueRef}.parse(parsedBody) : parsedBody`
+          : `const parsedBody = body !== null ? body : ''
+  const data = parsedBody`
+      : hasMixedSuccessContentTypes
+        ? `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body !== null ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : ${isVoidResponse ? 'undefined' : '{}'}`
+        : successAlwaysJson
+          ? `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body !== null ? JSON.parse(body${reviver}) : ${isVoidResponse ? 'undefined' : '{}'}`
+          : `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body !== null ? body : ${isVoidResponse ? 'undefined' : "''"}`
   }
   ${
     override.fetch.includeHttpResponseReturnType

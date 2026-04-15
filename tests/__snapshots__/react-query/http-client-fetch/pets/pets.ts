@@ -115,27 +115,20 @@ export const listPets = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   if (!res.ok) {
     const err: globalThis.Error & {
       info?: listPetsResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: listPetsResponseError['data'] = body
-      ? contentType.includes('json')
-        ? JSON.parse(body)
-        : body
-      : {};
+    const data: listPetsResponseError['data'] =
+      body !== null ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: listPetsResponseSuccess['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: listPetsResponseSuccess['data'] =
+    body !== null ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -315,27 +308,20 @@ export const createPets = async (
     body: JSON.stringify(createPetsBody),
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   if (!res.ok) {
     const err: globalThis.Error & {
       info?: createPetsResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: createPetsResponseError['data'] = body
-      ? contentType.includes('json')
-        ? JSON.parse(body)
-        : body
-      : {};
+    const data: createPetsResponseError['data'] =
+      body !== null ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: createPetsResponseSuccess['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: createPetsResponseSuccess['data'] =
+    body !== null ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -442,27 +428,20 @@ export const showPetById = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   if (!res.ok) {
     const err: globalThis.Error & {
       info?: showPetByIdResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: showPetByIdResponseError['data'] = body
-      ? contentType.includes('json')
-        ? JSON.parse(body)
-        : body
-      : {};
+    const data: showPetByIdResponseError['data'] =
+      body !== null ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: showPetByIdResponseSuccess['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: showPetByIdResponseSuccess['data'] =
+    body !== null ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -634,27 +613,20 @@ export const deletePetById = async (
     method: 'DELETE',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   if (!res.ok) {
     const err: globalThis.Error & {
       info?: deletePetByIdResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: deletePetByIdResponseError['data'] = body
-      ? contentType.includes('json')
-        ? JSON.parse(body)
-        : body
-      : {};
+    const data: deletePetByIdResponseError['data'] =
+      body !== null ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: deletePetByIdResponseSuccess['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: deletePetByIdResponseSuccess['data'] =
+    body !== null ? JSON.parse(body) : undefined;
   return {
     data,
     status: res.status,
@@ -761,27 +733,20 @@ export const showPetWithOwner = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   if (!res.ok) {
     const err: globalThis.Error & {
       info?: showPetWithOwnerResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: showPetWithOwnerResponseError['data'] = body
-      ? contentType.includes('json')
-        ? JSON.parse(body)
-        : body
-      : {};
+    const data: showPetWithOwnerResponseError['data'] =
+      body !== null ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: showPetWithOwnerResponseSuccess['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: showPetWithOwnerResponseSuccess['data'] =
+    body !== null ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,

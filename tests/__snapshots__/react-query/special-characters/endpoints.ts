@@ -122,14 +122,9 @@ export const listPets = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listPetsResponse['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: listPetsResponse['data'] = body !== null ? JSON.parse(body) : {};
   return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };
 
@@ -298,14 +293,10 @@ export const createPets = async (
     body: JSON.stringify(createPetsBody),
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: createPetsResponse['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: createPetsResponse['data'] =
+    body !== null ? JSON.parse(body) : undefined;
   return {
     data,
     status: res.status,
@@ -433,14 +424,10 @@ export const listPetsNestedArray = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listPetsNestedArrayResponse['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: listPetsNestedArrayResponse['data'] =
+    body !== null ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -634,14 +621,10 @@ export const showPetById = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: showPetByIdResponse['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: showPetByIdResponse['data'] =
+    body !== null ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,

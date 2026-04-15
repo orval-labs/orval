@@ -33,14 +33,9 @@ export const getUsers = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getUsersResponse['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: getUsersResponse['data'] = body !== null ? JSON.parse(body) : {};
   return { data, status: res.status, headers: res.headers } as getUsersResponse;
 };
 
@@ -103,14 +98,9 @@ export const getUsers2 = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getUsers2Response['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: getUsers2Response['data'] = body !== null ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,

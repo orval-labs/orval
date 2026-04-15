@@ -33,13 +33,8 @@ export const listPets = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listPetsResponse['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: listPetsResponse['data'] = body !== null ? JSON.parse(body) : {};
   return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };

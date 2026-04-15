@@ -59,14 +59,10 @@ export const listPetsArray = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listPetsArrayResponse['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: listPetsArrayResponse['data'] =
+    body !== null ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -226,14 +222,10 @@ export const listPetsWrapped = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listPetsWrappedResponse['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: listPetsWrappedResponse['data'] =
+    body !== null ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -380,14 +372,10 @@ export const getPetSingle = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getPetSingleResponse['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: getPetSingleResponse['data'] =
+    body !== null ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,

@@ -39,14 +39,10 @@ export const createPets = async (
     body: JSON.stringify(requiredPetBodyBody),
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: createPetsResponse['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: createPetsResponse['data'] =
+    body !== null ? JSON.parse(body) : undefined;
   return {
     data,
     status: res.status,
@@ -113,14 +109,10 @@ export const updatePets = async (
     body: JSON.stringify(optionalPetBodyBody),
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: updatePetsResponse['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: updatePetsResponse['data'] =
+    body !== null ? JSON.parse(body) : undefined;
   return {
     data,
     status: res.status,
@@ -187,14 +179,10 @@ export const createCookies = async (
     body: JSON.stringify(cookie),
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: createCookiesResponse['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: createCookiesResponse['data'] =
+    body !== null ? JSON.parse(body) : undefined;
   return {
     data,
     status: res.status,
@@ -261,14 +249,10 @@ export const updateCookies = async (
     body: JSON.stringify(cookie),
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: updateCookiesResponse['data'] = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: updateCookiesResponse['data'] =
+    body !== null ? JSON.parse(body) : undefined;
   return {
     data,
     status: res.status,
