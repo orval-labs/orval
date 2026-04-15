@@ -46,14 +46,9 @@ export const listPets = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: Pets = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: Pets = body !== null ? JSON.parse(body) : {};
   return data;
 };
 
@@ -114,14 +109,9 @@ export const createPets = async (
     body: JSON.stringify(createPetsBody),
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: Pet = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: Pet = body !== null ? JSON.parse(body) : {};
   return data;
 };
 
@@ -179,14 +169,9 @@ export const showPetById = async (
     method: 'GET',
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: Pet = body
-    ? contentType.includes('json')
-      ? JSON.parse(body)
-      : body
-    : {};
+  const data: Pet = body !== null ? JSON.parse(body) : {};
   return data;
 };
 
