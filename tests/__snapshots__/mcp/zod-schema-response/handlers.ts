@@ -25,10 +25,11 @@ import {
 
 export type listPetsArgs = {
   queryParams: ListPetsParams;
+  options?: RequestInit;
 };
 
 export const listPetsHandler = async (args: listPetsArgs) => {
-  const res = await listPets(args.queryParams);
+  const res = await listPets(args.queryParams, args.options);
 
   return {
     content: [
@@ -47,10 +48,11 @@ export const listPetsHandler = async (args: listPetsArgs) => {
 export type createPetsArgs = {
   queryParams: CreatePetsParams;
   bodyParams: CreatePetsBody;
+  options?: RequestInit;
 };
 
 export const createPetsHandler = async (args: createPetsArgs) => {
-  const res = await createPets(args.bodyParams, args.queryParams);
+  const res = await createPets(args.bodyParams, args.queryParams, args.options);
 
   return {
     content: [
@@ -70,10 +72,11 @@ export type showPetByIdArgs = {
   pathParams: {
     petId: string;
   };
+  options?: RequestInit;
 };
 
 export const showPetByIdHandler = async (args: showPetByIdArgs) => {
-  const res = await showPetById(args.pathParams.petId);
+  const res = await showPetById(args.pathParams.petId, args.options);
 
   return {
     content: [
@@ -93,10 +96,11 @@ export type deletePetByIdArgs = {
   pathParams: {
     petId: string;
   };
+  options?: RequestInit;
 };
 
 export const deletePetByIdHandler = async (args: deletePetByIdArgs) => {
-  const res = await deletePetById(args.pathParams.petId);
+  const res = await deletePetById(args.pathParams.petId, args.options);
 
   return {
     content: [
@@ -112,8 +116,12 @@ export const deletePetByIdHandler = async (args: deletePetByIdArgs) => {
  * @summary health check
  */
 
-export const healthCheckHandler = async () => {
-  const res = await healthCheck();
+export type healthCheckArgs = {
+  options?: RequestInit;
+};
+
+export const healthCheckHandler = async (args: healthCheckArgs) => {
+  const res = await healthCheck(args.options);
 
   return {
     content: [
@@ -133,10 +141,11 @@ export type showPetWithOwnerArgs = {
   pathParams: {
     petId: string;
   };
+  options?: RequestInit;
 };
 
 export const showPetWithOwnerHandler = async (args: showPetWithOwnerArgs) => {
-  const res = await showPetWithOwner(args.pathParams.petId);
+  const res = await showPetWithOwner(args.pathParams.petId, args.options);
 
   return {
     content: [
