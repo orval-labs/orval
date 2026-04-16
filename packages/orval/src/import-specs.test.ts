@@ -82,6 +82,103 @@ const TEST_SPEC: OpenApiDocument = {
   },
 };
 
+const SSE_ITEM_SCHEMA_SPEC: OpenApiDocument = {
+  openapi: '3.1.0',
+  info: {
+    title: 'FastAPI',
+    version: '0.1.0',
+  },
+  paths: {
+    '/api/events/': {
+      post: {
+        tags: ['stream'],
+        summary: 'Sse Endpoint',
+        operationId: 'sse_endpoint',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'text/event-stream': {
+                itemSchema: {
+                  type: 'object',
+                  properties: {
+                    data: { type: 'string' },
+                    event: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/pets': {
+      get: {
+        tags: ['pets'],
+        summary: 'List Pets',
+        operationId: 'list_pets',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'integer' },
+                      name: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+describe('validation', () => {
+  it('should not throw on non-standard fields like itemSchema (warns instead)', async () => {
+    const workspace = 'test';
+    const normalizedOptions = await normalizeOptions(
+      {
+        output: { target: '' },
+        input: { target: SSE_ITEM_SCHEMA_SPEC },
+      },
+      workspace,
+      {},
+    );
+
+    const spec = await importSpecs(workspace, normalizedOptions);
+
+    expect(spec.verbOptions).toHaveProperty('sse_endpoint');
+    expect(spec.verbOptions).toHaveProperty('list_pets');
+  });
+
+  it('should skip validation when input.validation is false', async () => {
+    const workspace = 'test';
+    const normalizedOptions = await normalizeOptions(
+      {
+        output: { target: '' },
+        input: { target: SSE_ITEM_SCHEMA_SPEC, validation: false },
+      },
+      workspace,
+      {},
+    );
+
+    expect(normalizedOptions.input.validation).toBe(false);
+
+    const spec = await importSpecs(workspace, normalizedOptions);
+
+    expect(spec.verbOptions).toHaveProperty('sse_endpoint');
+    expect(spec.verbOptions).toHaveProperty('list_pets');
+  });
+});
+
 describe('optionsParamRequired', () => {
   it('should not require all params when optionsParamRequired is false', async () => {
     const workspace = 'test';

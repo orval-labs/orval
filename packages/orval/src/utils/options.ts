@@ -214,6 +214,7 @@ export async function normalizeOptions(
           workspace,
         ),
       },
+      validation: inputOptions.validation ?? true,
       filters: inputOptions.filters,
       parserOptions: inputOptions.parserOptions,
     },

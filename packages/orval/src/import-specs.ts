@@ -1,6 +1,7 @@
 import {
   isObject,
   isString,
+  logWarning,
   type NormalizedOptions,
   type OpenApiDocument,
   type WriteSpecBuilder,
@@ -25,6 +26,7 @@ async function resolveSpec(
       headers: Record<string, string>;
     }[];
   },
+  validation = true,
 ): Promise<OpenApiDocument> {
   const data = await bundle(input, {
     plugins: [
@@ -43,9 +45,14 @@ async function resolveSpec(
 
   validateComponentKeys(dereferencedData);
 
-  const { valid, errors } = await validateSpec(dereferencedData);
-  if (!valid) {
-    throw new Error('Validation failed', { cause: errors });
+  if (validation) {
+    const { valid, errors } = await validateSpec(dereferencedData);
+    if (!valid) {
+      logWarning(
+        `⚠️  OpenAPI spec validation warning:\n${JSON.stringify(errors, undefined, 2)}\n` +
+          `  To disable validation, set input.validation to false in your orval config.`,
+      );
+    }
   }
 
   const { specification } = upgrade(dereferencedData);
@@ -60,7 +67,11 @@ export async function importSpecs(
 ): Promise<WriteSpecBuilder> {
   const { input, output } = options;
 
-  const spec = await resolveSpec(input.target, input.parserOptions);
+  const spec = await resolveSpec(
+    input.target,
+    input.parserOptions,
+    input.validation ?? true,
+  );
 
   return importOpenApi({
     spec,

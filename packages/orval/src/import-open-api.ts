@@ -6,6 +6,7 @@ import {
   generateSchemasDefinition,
   type ImportOpenApi,
   type InputOptions,
+  logWarning,
   type NormalizedOutputOptions,
   type OpenApiComponentsObject,
   type OpenApiDocument,
@@ -28,6 +29,7 @@ export async function importOpenApi({
     spec,
     input.override.transformer,
     workspace,
+    input.validation ?? true,
   );
 
   const schemas = getApiSchemas({
@@ -65,6 +67,7 @@ async function applyTransformer(
   openApi: OpenApiDocument,
   transformer: OverrideInput['transformer'],
   workspace: string,
+  validation = true,
 ): Promise<OpenApiDocument> {
   const transformerFn = transformer
     ? await dynamicImport(transformer, workspace)
@@ -76,9 +79,14 @@ async function applyTransformer(
 
   const transformedOpenApi = transformerFn(openApi);
 
-  const { valid, errors } = await validate(transformedOpenApi);
-  if (!valid) {
-    throw new Error(`Validation failed`, { cause: errors });
+  if (validation) {
+    const { valid, errors } = await validate(transformedOpenApi);
+    if (!valid) {
+      logWarning(
+        `⚠️  Transformed OpenAPI spec validation warning:\n${JSON.stringify(errors, undefined, 2)}\n` +
+          `  To disable validation, set input.validation to false in your orval config.`,
+      );
+    }
   }
 
   return transformedOpenApi;
