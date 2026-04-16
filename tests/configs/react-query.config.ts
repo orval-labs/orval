@@ -42,6 +42,17 @@ export default defineConfig({
                 { query: 'showPetById', params: ['petId'] },
               ],
             },
+            {
+              // Issue #3152: literal string params (e.g. "@me") should be
+              // emitted as string literals, not variable references.
+              onMutations: ['createPets'],
+              invalidates: [
+                {
+                  query: 'showPetById',
+                  params: [{ literal: '@me' }],
+                },
+              ],
+            },
           ],
         },
       },

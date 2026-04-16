@@ -6,6 +6,7 @@ import type {
   GetterProp,
   GetterProps,
   GetterQueryParam,
+  InvalidateTargetParam,
   OutputClient,
   OutputHttpClient,
 } from '@orval/core';
@@ -56,7 +57,7 @@ export interface QueryInvocationContext {
 
 interface InvalidateTarget {
   query: string;
-  params?: string[] | Record<string, string>;
+  params?: InvalidateTargetParam[] | Record<string, InvalidateTargetParam>;
   invalidateMode: 'invalidate' | 'reset';
 }
 

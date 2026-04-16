@@ -686,11 +686,19 @@ export interface NormalizedZodOptions {
   timeOptions: ZodTimeOptions;
 }
 
+/**
+ * A single parameter value for `mutationInvalidates` params.
+ *
+ * - `string` – treated as a variable reference, e.g. `"petId"` → `variables.petId`
+ * - `{ literal: string }` – emitted as a string literal, e.g. `{ literal: "@me" }` → `"@me"`
+ */
+export type InvalidateTargetParam = string | { literal: string };
+
 export type InvalidateTarget =
   | string
   | {
       query: string;
-      params?: string[] | Record<string, string>;
+      params?: InvalidateTargetParam[] | Record<string, InvalidateTargetParam>;
       invalidateMode?: 'invalidate' | 'reset';
       file?: string;
     };
