@@ -257,6 +257,33 @@ export interface FrameworkAdapter {
     prop: GetterProp,
     body: { implementation: string },
   ): string;
+
+  // --- Prefetch Generation ---
+  /**
+   * Generate the prefetch function for a query.
+   * React: useQueryClient + useCallback (hook mutator) or plain async (non-hook).
+   * Angular: inject(QueryClient) based async function.
+   * Default: React-style (backward compatible).
+   */
+  generatePrefetch?(context: PrefetchContext): string;
+}
+
+export interface PrefetchContext {
+  operationName: string;
+  mutator?: GeneratorMutator;
+  type: (typeof QueryType)[keyof typeof QueryType];
+  usePrefetch?: boolean;
+  useQuery?: boolean;
+  useInfinite?: boolean;
+  doc?: string;
+  queryProps: string;
+  dataType: string;
+  errorType: string;
+  queryArguments: string;
+  queryOptionsVarName: string;
+  queryOptionsFnName: string;
+  queryProperties: string;
+  isRequestOptions: boolean;
 }
 
 /** Fields that have factory defaults in withDefaults(), so adapters only override what differs. */

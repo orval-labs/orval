@@ -1,4 +1,5 @@
 import {
+  camel,
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
@@ -17,6 +18,7 @@ import type {
   FrameworkAdapterConfig,
   MutationHookBodyContext,
   MutationReturnTypeContext,
+  PrefetchContext,
   QueryInitContext,
   QueryInvocationContext,
   QueryReturnStatementContext,
@@ -291,6 +293,58 @@ export const createAngularAdapter = ({
       options: GeneratorOptions,
     ): string {
       return generateAngularHttpRequestFunction(verbOptions, options);
+    },
+
+    generatePrefetch({
+      usePrefetch,
+      type,
+      useQuery,
+      useInfinite,
+      operationName,
+      mutator,
+      doc,
+      queryProps,
+      dataType,
+      errorType,
+      queryArguments,
+      queryOptionsVarName,
+      queryOptionsFnName,
+      queryProperties,
+      isRequestOptions,
+    }: PrefetchContext): string {
+      const shouldGeneratePrefetch =
+        usePrefetch &&
+        (type === QueryType.QUERY ||
+          type === QueryType.INFINITE ||
+          (type === QueryType.SUSPENSE_QUERY && !useQuery) ||
+          (type === QueryType.SUSPENSE_INFINITE && !useInfinite));
+
+      if (!shouldGeneratePrefetch) {
+        return '';
+      }
+
+      const prefetchType =
+        type === QueryType.QUERY || type === QueryType.SUSPENSE_QUERY
+          ? 'query'
+          : 'infinite-query';
+      const prefetchFnName = camel(`prefetch-${prefetchType}`);
+      const prefetchVarName = camel(
+        `prefetch-${operationName}-${prefetchType}`,
+      );
+
+      // Angular: plain async function with http param (no React hooks like useQueryClient/useCallback)
+      const httpParam =
+        !mutator || mutator.hasSecondArg ? 'http: HttpClient, ' : '';
+      return `${doc}export const ${prefetchVarName} = async <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n queryClient: QueryClient, ${httpParam}${queryProps} ${queryArguments}\n  ): Promise<QueryClient> => {
+
+  const ${queryOptionsVarName} = ${queryOptionsFnName}(${!mutator || mutator.hasSecondArg ? 'http, ' : ''}${queryProperties}${
+    queryProperties ? ',' : ''
+  }${isRequestOptions ? 'options' : 'queryOptions'})
+
+  await queryClient.${prefetchFnName}(${queryOptionsVarName});
+
+  return queryClient;
+}\n`;
     },
   };
 };
