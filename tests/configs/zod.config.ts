@@ -327,6 +327,18 @@ export default defineConfig({
     },
     input: '../specifications/components-only.yaml',
   },
+  'schemas-false': {
+    output: {
+      target: '../generated/zod/schemas-false/endpoints.ts',
+      client: 'zod',
+      schemas: false,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   'issue-3027-suffix': {
     output: {
       target: '../generated/zod/issue-3027-suffix/issue-3027.ts',
