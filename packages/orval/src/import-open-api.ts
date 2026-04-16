@@ -29,7 +29,7 @@ export async function importOpenApi({
     spec,
     input.override.transformer,
     workspace,
-    input.validation ?? true,
+    input.validation,
   );
 
   const schemas = getApiSchemas({

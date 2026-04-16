@@ -43,9 +43,9 @@ async function resolveSpec(
     data as Record<string, unknown>,
   );
 
-  validateComponentKeys(dereferencedData);
-
   if (validation) {
+    validateComponentKeys(dereferencedData);
+
     const { valid, errors } = await validateSpec(dereferencedData);
     if (!valid) {
       logWarning(
@@ -70,7 +70,7 @@ export async function importSpecs(
   const spec = await resolveSpec(
     input.target,
     input.parserOptions,
-    input.validation ?? true,
+    input.validation,
   );
 
   return importOpenApi({
