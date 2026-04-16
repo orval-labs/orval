@@ -276,6 +276,33 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('normalizes schemas: false to undefined', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            schemas: false,
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.schemas).toBeUndefined();
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('resolves hono compositeRoute relative to the workspace', async () => {
     const workspace = await createTempWorkspace();
 

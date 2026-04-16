@@ -103,7 +103,7 @@ function createFormData(
 }
 
 function normalizeSchemasOption(
-  schemas: string | SchemaOptions | undefined,
+  schemas: string | SchemaOptions | false | undefined,
   workspace: string,
 ): string | NormalizedSchemaOptions | undefined {
   if (!schemas) {
