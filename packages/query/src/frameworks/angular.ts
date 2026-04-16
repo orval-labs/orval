@@ -87,13 +87,18 @@ export const createAngularAdapter = ({
       props: GetterProps,
       queryParam: string,
       hasMutator: boolean,
+      requireQueryParam = false,
     ): string {
       let result = props
         .map((param) => {
           if (param.type === GetterPropType.NAMED_PATH_PARAMS)
             return param.destructured;
           return param.name === 'params'
-            ? `{...params, '${queryParam}': pageParam || params?.['${queryParam}']}`
+            ? `{...params, '${queryParam}': ${
+                requireQueryParam
+                  ? `pageParam ?? params?.['${queryParam}']`
+                  : `pageParam || params?.['${queryParam}']`
+              }}`
             : param.name;
         })
         .join(',');

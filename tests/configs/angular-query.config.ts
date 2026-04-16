@@ -57,4 +57,28 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  useInfiniteQueryParamImplicit: {
+    output: {
+      target:
+        '../generated/angular-query/use-infinite-query-param-implicit/endpoints.ts',
+      schemas:
+        '../generated/angular-query/use-infinite-query-param-implicit/model',
+      client: 'angular-query',
+      httpClient: 'angular',
+      override: {
+        query: {
+          signal: true,
+          useQuery: true,
+          useInfinite: true,
+          useSuspenseInfiniteQuery: true,
+          useInfiniteQueryParam: 'page',
+        },
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/infinite-query-param-implicit.yaml',
+    },
+  },
 });

@@ -239,6 +239,27 @@ export default defineConfig({
       target: '../specifications/form-data.yaml',
     },
   },
+  useInfiniteQueryParamImplicit: {
+    output: {
+      target:
+        '../generated/vue-query/use-infinite-query-param-implicit/endpoints.ts',
+      schemas: '../generated/vue-query/use-infinite-query-param-implicit/model',
+      client: 'vue-query',
+      httpClient: 'axios',
+      override: {
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'page',
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/infinite-query-param-implicit.yaml',
+    },
+  },
   useSetQueryData: {
     output: {
       target: '../generated/vue-query/use-set-query-data/endpoints.ts',

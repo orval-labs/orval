@@ -1,5 +1,6 @@
 import {
   camel,
+  createLogger,
   generateMutator,
   type GeneratorImport,
   type GeneratorMutator,
@@ -55,6 +56,237 @@ const getQueryFnArguments = ({
   }
 
   return `{ ${signalDestructure} }`;
+};
+
+const countPrecedingBackslashes = (value: string, index: number): number => {
+  let count = 0;
+
+  for (
+    let cursor = index - 1;
+    cursor >= 0 && value[cursor] === '\\';
+    cursor--
+  ) {
+    count++;
+  }
+
+  return count;
+};
+
+const isEscaped = (value: string, index: number): boolean =>
+  countPrecedingBackslashes(value, index) % 2 === 1;
+
+const parseTopLevelSegments = (
+  objectBody: string,
+): {
+  firstTopLevelObjectBody: string | undefined;
+  segments: string[];
+} => {
+  const segments: string[] = [];
+  let current = '';
+  let braceDepth = 0;
+  let bracketDepth = 0;
+  let parenDepth = 0;
+
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let inTemplateLiteral = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  let objectStart = -1;
+  let firstTopLevelObjectBody: string | undefined;
+
+  for (let index = 0; index < objectBody.length; index++) {
+    const char = objectBody[index];
+    const nextChar = objectBody[index + 1];
+
+    if (inLineComment) {
+      if (char === '\n') {
+        inLineComment = false;
+      }
+      current += char;
+      continue;
+    }
+
+    if (inBlockComment) {
+      if (char === '*' && nextChar === '/') {
+        inBlockComment = false;
+        current += '*/';
+        index++;
+        continue;
+      }
+      current += char;
+      continue;
+    }
+
+    if (!inSingleQuote && !inDoubleQuote && !inTemplateLiteral) {
+      if (char === '/' && nextChar === '/') {
+        inLineComment = true;
+        current += '//';
+        index++;
+        continue;
+      }
+
+      if (char === '/' && nextChar === '*') {
+        inBlockComment = true;
+        current += '/*';
+        index++;
+        continue;
+      }
+    }
+
+    if (
+      !inDoubleQuote &&
+      !inTemplateLiteral &&
+      char === "'" &&
+      !isEscaped(objectBody, index)
+    ) {
+      inSingleQuote = !inSingleQuote;
+      current += char;
+      continue;
+    }
+
+    if (
+      !inSingleQuote &&
+      !inTemplateLiteral &&
+      char === '"' &&
+      !isEscaped(objectBody, index)
+    ) {
+      inDoubleQuote = !inDoubleQuote;
+      current += char;
+      continue;
+    }
+
+    if (
+      !inSingleQuote &&
+      !inDoubleQuote &&
+      char === '`' &&
+      !isEscaped(objectBody, index)
+    ) {
+      inTemplateLiteral = !inTemplateLiteral;
+      current += char;
+      continue;
+    }
+
+    if (!inSingleQuote && !inDoubleQuote && !inTemplateLiteral) {
+      switch (char) {
+        case '{': {
+          if (objectStart === -1) {
+            objectStart = index;
+          }
+          braceDepth++;
+
+          break;
+        }
+        case '}': {
+          braceDepth--;
+
+          if (
+            objectStart !== -1 &&
+            braceDepth === 0 &&
+            firstTopLevelObjectBody === undefined
+          ) {
+            firstTopLevelObjectBody = objectBody.slice(objectStart + 1, index);
+          }
+
+          break;
+        }
+        case '[': {
+          bracketDepth++;
+
+          break;
+        }
+        case ']': {
+          bracketDepth--;
+
+          break;
+        }
+        case '(': {
+          parenDepth++;
+
+          break;
+        }
+        case ')': {
+          parenDepth--;
+
+          break;
+        }
+        // No default
+      }
+
+      if (
+        char === ';' &&
+        braceDepth === 0 &&
+        bracketDepth === 0 &&
+        parenDepth === 0
+      ) {
+        segments.push(current);
+        current = '';
+        continue;
+      }
+    }
+
+    current += char;
+  }
+
+  if (current.trim()) {
+    segments.push(current);
+  }
+
+  return {
+    firstTopLevelObjectBody,
+    segments,
+  };
+};
+
+const getTopLevelObjectBody = (model: string): string | undefined => {
+  return parseTopLevelSegments(model).firstTopLevelObjectBody;
+};
+
+const hasTopLevelProperty = (
+  objectBody: string,
+  queryParam: string,
+): boolean => {
+  const { segments } = parseTopLevelSegments(objectBody);
+
+  return segments.some((segment) => {
+    const member = segment.trim();
+    const normalizedMember = member.replace(
+      /^(?:(?:\/\*[\s\S]*?\*\/|\/\/.*(?:\n|$))\s*)+/,
+      '',
+    );
+
+    if (!normalizedMember || normalizedMember.startsWith('[')) {
+      return false;
+    }
+
+    const propertyMatch =
+      /^(?:readonly\s+)?(?:'([^']+)'|"([^"]+)"|([A-Za-z_$][\w$]*))\??\s*:/.exec(
+        normalizedMember,
+      );
+
+    const propertyName =
+      propertyMatch?.[1] ?? propertyMatch?.[2] ?? propertyMatch?.[3];
+
+    return propertyName === queryParam;
+  });
+};
+
+const hasQueryParamInSchema = (
+  queryParams: GetterQueryParam | undefined,
+  queryParam: string,
+): boolean => {
+  const schemaModel = queryParams?.schema.model;
+  if (!schemaModel) {
+    return false;
+  }
+
+  const topLevelObjectBody = getTopLevelObjectBody(schemaModel);
+  if (!topLevelObjectBody) {
+    return false;
+  }
+
+  return hasTopLevelProperty(topLevelObjectBody, queryParam);
 };
 
 const generatePrefetch = ({
@@ -137,7 +369,14 @@ const generatePrefetch = ({
 };
 
 const generateQueryImplementation = ({
-  queryOption: { name, queryParam, options, type, queryKeyFnName },
+  queryOption: {
+    name,
+    queryParam,
+    requireQueryParam,
+    options,
+    type,
+    queryKeyFnName,
+  },
   operationName,
   queryProperties,
   queryKeyProperties,
@@ -168,6 +407,7 @@ const generateQueryImplementation = ({
     options?: object | boolean;
     type: (typeof QueryType)[keyof typeof QueryType];
     queryParam?: string;
+    requireQueryParam?: boolean;
     queryKeyFnName: string;
   };
   isRequestOptions: boolean;
@@ -231,7 +471,12 @@ const generateQueryImplementation = ({
   const hasInfiniteQueryParam = queryParam && queryParams?.schema.name;
 
   const httpFunctionProps = queryParam
-    ? adapter.getInfiniteQueryHttpProps(props, queryParam, !!mutator)
+    ? adapter.getInfiniteQueryHttpProps(
+        props,
+        queryParam,
+        !!mutator,
+        !!requireQueryParam,
+      )
     : adapter.getHttpFunctionQueryProps(queryProperties, httpClient, !!mutator);
 
   const definedInitialDataReturnType = adapter.getQueryReturnType({
@@ -706,14 +951,44 @@ export const generateQueryHook = async (
       })
       .join(',');
 
+    const effectiveInfiniteQueryParam =
+      operationQueryOptions?.useInfiniteQueryParam ??
+      query.useInfiniteQueryParam;
+
+    const operationRequestsInfinite =
+      !!query.useInfinite ||
+      !!operationQueryOptions?.useInfinite ||
+      !!query.useSuspenseInfiniteQuery ||
+      !!operationQueryOptions?.useSuspenseInfiniteQuery;
+
+    const hasConfiguredInfiniteQueryParam =
+      !!effectiveInfiniteQueryParam &&
+      hasQueryParamInSchema(queryParams, effectiveInfiniteQueryParam);
+
+    if (
+      operationRequestsInfinite &&
+      effectiveInfiniteQueryParam &&
+      !hasConfiguredInfiniteQueryParam
+    ) {
+      createLogger().warn(
+        `query.useInfiniteQueryParam is set to "${effectiveInfiniteQueryParam}" for operation "${operationName}", but this query parameter was not found in the operation schema. Infinite query generation will be skipped for this operation.`,
+      );
+    }
+
+    const canGenerateInfiniteQuery = operationRequestsInfinite
+      ? !effectiveInfiniteQueryParam || hasConfiguredInfiniteQueryParam
+      : true;
+
     const queries = [
-      ...(query.useInfinite || operationQueryOptions?.useInfinite
+      ...(canGenerateInfiniteQuery &&
+      (query.useInfinite || operationQueryOptions?.useInfinite)
         ? [
             {
               name: camel(`${operationName}-infinite`),
               options: query.options,
               type: QueryType.INFINITE,
-              queryParam: query.useInfiniteQueryParam,
+              queryParam: effectiveInfiniteQueryParam,
+              requireQueryParam: !!effectiveInfiniteQueryParam,
               queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
@@ -738,14 +1013,16 @@ export const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query.useSuspenseInfiniteQuery ||
-      operationQueryOptions?.useSuspenseInfiniteQuery
+      ...(canGenerateInfiniteQuery &&
+      (query.useSuspenseInfiniteQuery ||
+        operationQueryOptions?.useSuspenseInfiniteQuery)
         ? [
             {
               name: camel(`${operationName}-suspense-infinite`),
               options: query.options,
               type: QueryType.SUSPENSE_INFINITE,
-              queryParam: query.useInfiniteQueryParam,
+              queryParam: effectiveInfiniteQueryParam,
+              requireQueryParam: !!effectiveInfiniteQueryParam,
               queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
