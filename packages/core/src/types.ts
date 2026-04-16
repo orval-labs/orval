@@ -287,7 +287,7 @@ export interface NormalizedSchemaOptions {
 export interface OutputOptions {
   workspace?: string;
   target: string;
-  schemas?: string | SchemaOptions;
+  schemas?: string | SchemaOptions | false;
   /**
    * Separate path for operation-derived types (params, bodies, responses).
    * When set, types matching operation patterns (e.g., *Params, *Body) are written here
