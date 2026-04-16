@@ -12,6 +12,7 @@
     "generate:default": "orval --config ./configs/default.config.ts",
     "generate:axios": "orval --config ./configs/axios.config.ts",
     "generate:angular": "orval --config ./configs/angular.config.ts",
+    "generate:angular-query": "orval --config ./configs/angular-query.config.ts",
     "generate:react-query": "orval --config ./configs/react-query.config.ts",
     "generate:svelte-query": "orval --config ./configs/svelte-query.config.ts",
     "generate:vue-query": "orval --config ./configs/vue-query.config.ts",
