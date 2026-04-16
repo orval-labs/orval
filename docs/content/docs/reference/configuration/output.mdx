@@ -723,6 +723,26 @@ export default defineConfig({
 });
 ```
 
+Each entry in `params` is either a **variable reference** (`string`) or a **literal value** (`{ literal: string }`):
+
+| Syntax | Generated code |
+|---|---|
+| `params: ['petId']` | `getShowPetByIdQueryKey(variables.petId)` |
+| `params: [{ literal: '@me' }]` | `getShowPetByIdQueryKey('@me')` |
+
+Use `{ literal: "..." }` for fixed values like `"@me"` that are not taken from mutation variables:
+
+```ts title="orval.config.ts"
+mutationInvalidates: [
+  {
+    onMutations: ['updateProfile'],
+    invalidates: [
+      { query: 'getProfile', params: [{ literal: '@me' }] },
+    ],
+  },
+],
+```
+
 When a user provides their own `onSuccess` callback, both the auto-invalidation and the user callback run — the generated `onSuccess` composes them together. To opt out of auto-invalidation at runtime, pass `skipInvalidation: true`:
 
 ```ts

@@ -397,6 +397,9 @@ export const getCreatePetsMutationOptions = <
           typeof query.queryKey[0] === 'string' &&
           query.queryKey[0].startsWith('/pets/'),
       });
+      queryClient.invalidateQueries({
+        queryKey: getShowPetByIdQueryKey('@me'),
+      });
     }
     mutationOptions?.onSuccess?.(data, variables, context);
   };
