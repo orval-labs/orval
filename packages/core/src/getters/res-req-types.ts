@@ -256,6 +256,24 @@ export function getResReqTypes(
               if (imports[0]?.name) {
                 effectivePropName = imports[0].name;
               }
+            } else if (mediaType.schema) {
+              // When schema is a oneOf/anyOf of $refs, concat schema names for consistent param naming
+              const combinedRefs =
+                getSchemaOneOf(mediaType.schema) ??
+                getSchemaAnyOf(mediaType.schema);
+              if (combinedRefs) {
+                const names: string[] = [];
+                for (const ref of combinedRefs) {
+                  if (!isReference(ref)) continue;
+                  const name = resolveSchemaRef(ref, context).imports[0]?.name;
+                  if (name) {
+                    names.push(name);
+                  }
+                }
+                if (names.length > 0) {
+                  effectivePropName = names.join('');
+                }
+              }
             }
 
             const isFormData = formDataContentTypes.has(contentType);
@@ -558,40 +576,50 @@ function getSchemaFormDataAndUrlEncoded({
     if (combinedSchemas) {
       const shouldCast = !!getSchemaOneOf(schema) || !!getSchemaAnyOf(schema);
 
-      const combinedSchemasFormData = combinedSchemas
-        .map((subSchema) => {
-          const { schema: combinedSchema, imports } = resolveSchemaRef(
-            subSchema,
-            context,
-          );
+      if (shouldCast) {
+        // oneOf/anyOf: iterate over actual properties at runtime to avoid duplicating
+        // fields shared across variants (TypeScript casts are erased at compile-time).
+        form += `Object.entries(${propName}).forEach(([key, value]) => {\n`;
+        form += `  if (value !== undefined) {\n`;
+        form += `    if (value instanceof File || value instanceof Blob || (typeof Buffer !== 'undefined' && Buffer.isBuffer(value))) {\n`;
+        form += `      ${variableName}.append(key, value);\n`;
+        form += `    } else if (Array.isArray(value)) {\n`;
+        form += `      value.forEach(v => ${variableName}.append(key, typeof v === 'object' ? JSON.stringify(v) : String(v)));\n`;
+        form += `    } else if (typeof value === 'object' && value !== null) {\n`;
+        form += `      ${variableName}.append(key, JSON.stringify(value));\n`;
+        form += `    } else {\n`;
+        form += `      ${variableName}.append(key, String(value));\n`;
+        form += `    }\n`;
+        form += `  }\n`;
+        form += `});\n`;
 
-          let newPropName = propName;
-          let newPropDefinition = '';
-
-          // If the schema is a union type (oneOf, anyOf) and includes a reference (has imports),
-          // we need to cast the property to the specific type to avoid TypeScript errors.
-          if (shouldCast && imports[0]) {
+        for (const subSchema of combinedSchemas) {
+          const { imports } = resolveSchemaRef(subSchema, context);
+          if (imports[0]) {
             additionalImports.push(imports[0]);
-            newPropName = `${propName}${pascal(imports[0].name)}`;
-            newPropDefinition = `const ${newPropName} = (${propName} as ${imports[0].name}${isRequestBodyOptional ? ' | undefined' : ''});\n`;
           }
-
-          return (
-            newPropDefinition +
-            resolveSchemaPropertiesToFormData({
+        }
+      } else {
+        const combinedSchemasFormData = combinedSchemas
+          .map((subSchema) => {
+            const { schema: combinedSchema } = resolveSchemaRef(
+              subSchema,
+              context,
+            );
+            return resolveSchemaPropertiesToFormData({
               schema: combinedSchema,
               variableName,
-              propName: newPropName,
+              propName,
               context,
               isRequestBodyOptional,
               encoding,
-            })
-          );
-        })
-        .filter(Boolean)
-        .join('\n');
+            });
+          })
+          .filter(Boolean)
+          .join('\n');
 
-      form += combinedSchemasFormData;
+        form += combinedSchemasFormData;
+      }
     }
 
     if (schema.properties) {
