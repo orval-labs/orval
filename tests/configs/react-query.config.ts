@@ -375,12 +375,11 @@ export default defineConfig({
       },
     },
   },
-  fetchMutatorOptionsParamRequired: {
+  fetchCustomMutatorTagsSplit: {
     output: {
       target:
-        '../generated/react-query/fetch-mutator-options-param-required/endpoints.ts',
-      schemas:
-        '../generated/react-query/fetch-mutator-options-param-required/model',
+        '../generated/react-query/fetch-custom-mutator-tags-split/endpoints.ts',
+      schemas: '../generated/react-query/fetch-custom-mutator-tags-split/model',
       client: 'react-query',
       mode: 'tags-split',
       override: {

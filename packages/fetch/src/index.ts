@@ -351,7 +351,9 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? ', fetchFn?: typeof globalThis.fetch'
       : '';
   const optionsType = mutator?.hasSecondArg
-    ? `SecondParameter<typeof ${mutator.name}>`
+    ? mutator.isHook
+      ? `SecondParameter<ReturnType<typeof ${mutator.name}>>`
+      : `SecondParameter<typeof ${mutator.name}>`
     : 'RequestInit';
   const optionsOptional = mutator?.hasSecondArg
     ? !context.output.optionsParamRequired
