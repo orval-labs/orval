@@ -95,7 +95,7 @@ export const getListPetsUrl = (params: ListPetsParams) => {
 
 export const listPets = async (
   params: ListPetsParams,
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetchWithScss>,
 ): Promise<listPetsResponse> => {
   return customFetchWithScss<listPetsResponse>(getListPetsUrl(params), {
     ...options,
@@ -144,7 +144,7 @@ export const getCreatePetsUrl = (params: CreatePetsParams) => {
 export const createPets = async (
   createPetsBody: CreatePetsBody,
   params: CreatePetsParams,
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetchWithScss>,
 ): Promise<createPetsResponse> => {
   return customFetchWithScss<createPetsResponse>(getCreatePetsUrl(params), {
     ...options,
@@ -184,7 +184,7 @@ export const getShowPetByIdUrl = (petId: string) => {
 
 export const showPetById = async (
   petId: string,
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetchWithScss>,
 ): Promise<showPetByIdResponse> => {
   return customFetchWithScss<showPetByIdResponse>(getShowPetByIdUrl(petId), {
     ...options,
@@ -222,7 +222,7 @@ export const getDeletePetByIdUrl = (petId: string) => {
 
 export const deletePetById = async (
   petId: string,
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetchWithScss>,
 ): Promise<deletePetByIdResponse> => {
   return customFetchWithScss<deletePetByIdResponse>(
     getDeletePetByIdUrl(petId),
@@ -262,7 +262,7 @@ export const getHealthCheckUrl = () => {
 };
 
 export const healthCheck = async (
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetchWithScss>,
 ): Promise<healthCheckResponse> => {
   return customFetchWithScss<healthCheckResponse>(getHealthCheckUrl(), {
     ...options,
@@ -300,7 +300,7 @@ export const getShowPetWithOwnerUrl = (petId: string) => {
 
 export const showPetWithOwner = async (
   petId: string,
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetchWithScss>,
 ): Promise<showPetWithOwnerResponse> => {
   return customFetchWithScss<showPetWithOwnerResponse>(
     getShowPetWithOwnerUrl(petId),

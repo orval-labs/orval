@@ -100,7 +100,7 @@ export const getListPetsUrl = (params: ListPetsParams) => {
 
 export const listPets = async (
   params: ListPetsParams,
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetch>,
 ): Promise<listPetsResponseSuccess> => {
   return customFetch<listPetsResponseSuccess>(getListPetsUrl(params), {
     ...options,
@@ -145,7 +145,7 @@ export const getCreatePetsUrl = (params: CreatePetsParams) => {
 export const createPets = async (
   createPetsBody: CreatePetsBody,
   params: CreatePetsParams,
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetch>,
 ): Promise<createPetsResponseSuccess> => {
   return customFetch<createPetsResponseSuccess>(getCreatePetsUrl(params), {
     ...options,
@@ -181,7 +181,7 @@ export const getShowPetByIdUrl = (petId: string) => {
 
 export const showPetById = async (
   petId: string,
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetch>,
 ): Promise<showPetByIdResponseSuccess> => {
   return customFetch<showPetByIdResponseSuccess>(getShowPetByIdUrl(petId), {
     ...options,
@@ -215,7 +215,7 @@ export const getDeletePetByIdUrl = (petId: string) => {
 
 export const deletePetById = async (
   petId: string,
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetch>,
 ): Promise<deletePetByIdResponseSuccess> => {
   return customFetch<deletePetByIdResponseSuccess>(getDeletePetByIdUrl(petId), {
     ...options,
@@ -248,7 +248,7 @@ export const getHealthCheckUrl = () => {
 };
 
 export const healthCheck = async (
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetch>,
 ): Promise<healthCheckResponseSuccess> => {
   return customFetch<healthCheckResponseSuccess>(getHealthCheckUrl(), {
     ...options,
@@ -282,7 +282,7 @@ export const getShowPetWithOwnerUrl = (petId: string) => {
 
 export const showPetWithOwner = async (
   petId: string,
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetch>,
 ): Promise<showPetWithOwnerResponseSuccess> => {
   return customFetch<showPetWithOwnerResponseSuccess>(
     getShowPetWithOwnerUrl(petId),

@@ -84,7 +84,7 @@ export const getCreatePetsUrl = () => {
 
 export const createPets = async (
   createPetsBody: CreatePetsBody,
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetch>,
 ): Promise<createPetsResponse> => {
   const formUrlEncoded = new URLSearchParams();
   formUrlEncoded.append(`name`, createPetsBody.name);

@@ -299,7 +299,19 @@ describe('getQueryOptions', () => {
       expect(result).toBe('http');
     });
 
-    it('should return just signal for mutator without hasSecondArg', () => {
+    it('should return separate signal for axios with mutator without hasSecondArg', () => {
+      const mutatorNoSecondArg = { ...mockMutator, hasSecondArg: false };
+      const result = getQueryOptions({
+        isRequestOptions: false,
+        mutator: mutatorNoSecondArg,
+        isExactOptionalPropertyTypes: false,
+        hasSignal: true,
+        httpClient: OutputHttpClient.AXIOS,
+      });
+      expect(result).toBe('signal');
+    });
+
+    it('should return just signal for angular mutator without hasSecondArg', () => {
       const mutatorNoSecondArg = { ...mockMutator, hasSecondArg: false };
       const result = getQueryOptions({
         isRequestOptions: true,

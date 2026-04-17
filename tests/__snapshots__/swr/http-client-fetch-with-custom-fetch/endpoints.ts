@@ -110,7 +110,7 @@ export const getListPetsUrl = (params: ListPetsParams) => {
 
 export const listPets = async (
   params: ListPetsParams,
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetch>,
 ): Promise<listPetsResponse> => {
   return customFetch<listPetsResponse>(getListPetsUrl(params), {
     ...options,
@@ -198,7 +198,7 @@ export const getCreatePetsUrl = (params: CreatePetsParams) => {
 export const createPets = async (
   createPetsBody: CreatePetsBody,
   params: CreatePetsParams,
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetch>,
 ): Promise<createPetsResponse> => {
   return customFetch<createPetsResponse>(getCreatePetsUrl(params), {
     ...options,
@@ -282,7 +282,7 @@ export const getShowPetByIdUrl = (petId: string) => {
 
 export const showPetById = async (
   petId: string,
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetch>,
 ): Promise<showPetByIdResponse> => {
   return customFetch<showPetByIdResponse>(getShowPetByIdUrl(petId), {
     ...options,
@@ -358,7 +358,7 @@ export const getDeletePetByIdUrl = (petId: string) => {
 
 export const deletePetById = async (
   petId: string,
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetch>,
 ): Promise<deletePetByIdResponse> => {
   return customFetch<deletePetByIdResponse>(getDeletePetByIdUrl(petId), {
     ...options,
@@ -439,7 +439,7 @@ export const getHealthCheckUrl = () => {
 };
 
 export const healthCheck = async (
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetch>,
 ): Promise<healthCheckResponse> => {
   return customFetch<healthCheckResponse>(getHealthCheckUrl(), {
     ...options,
@@ -512,7 +512,7 @@ export const getShowPetWithOwnerUrl = (petId: string) => {
 
 export const showPetWithOwner = async (
   petId: string,
-  options?: RequestInit,
+  options?: SecondParameter<typeof customFetch>,
 ): Promise<showPetWithOwnerResponse> => {
   return customFetch<showPetWithOwnerResponse>(getShowPetWithOwnerUrl(petId), {
     ...options,

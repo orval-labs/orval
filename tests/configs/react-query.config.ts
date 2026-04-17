@@ -375,6 +375,28 @@ export default defineConfig({
       },
     },
   },
+  fetchMutatorOptionsParamRequired: {
+    output: {
+      target:
+        '../generated/react-query/fetch-mutator-options-param-required/endpoints.ts',
+      schemas:
+        '../generated/react-query/fetch-mutator-options-param-required/model',
+      client: 'react-query',
+      mode: 'tags-split',
+      override: {
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+        },
+      },
+      optionsParamRequired: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   errorType: {
     output: {
       target: '../generated/react-query/error-type/endpoints.ts',

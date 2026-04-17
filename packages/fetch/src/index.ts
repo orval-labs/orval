@@ -350,7 +350,13 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     useRuntimeFetcher && isRequestOptions && !mutator
       ? ', fetchFn?: typeof globalThis.fetch'
       : '';
-  const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}${fetchFnParam}`;
+  const optionsType = mutator?.hasSecondArg
+    ? `SecondParameter<typeof ${mutator.name}>`
+    : 'RequestInit';
+  const optionsOptional = mutator?.hasSecondArg
+    ? !context.output.optionsParamRequired
+    : true;
+  const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options${optionsOptional ? '?' : ''}: ${optionsType}` : ''}${fetchFnParam}`;
   const returnType =
     override.fetch.forceSuccessResponse && hasSuccess
       ? `Promise<${successName}>`

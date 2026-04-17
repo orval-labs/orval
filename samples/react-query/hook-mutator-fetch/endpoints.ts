@@ -112,10 +112,13 @@ export const getListPetsUrl = (params?: ListPetsParams) => {
 
 export const useListPetsHook = (): ((
   params?: ListPetsParams,
-  options?: RequestInit,
+  options?: SecondParameter<typeof useCustomFetch>,
 ) => Promise<listPetsResponse>) => {
   const customFetcher = useCustomFetch();
-  return (params?: ListPetsParams, options?: RequestInit) => {
+  return (
+    params?: ListPetsParams,
+    options?: SecondParameter<typeof useCustomFetch>,
+  ) => {
     return customFetcher(getListPetsUrl(params), {
       ...options,
       method: 'GET',
@@ -220,10 +223,13 @@ export const getCreatePetsUrl = () => {
 
 export const useCreatePetsHook = (): ((
   createPetsBody: CreatePetsBody,
-  options?: RequestInit,
+  options?: SecondParameter<typeof useCustomFetch>,
 ) => Promise<createPetsResponse>) => {
   const customFetcher = useCustomFetch();
-  return (createPetsBody: CreatePetsBody, options?: RequestInit) => {
+  return (
+    createPetsBody: CreatePetsBody,
+    options?: SecondParameter<typeof useCustomFetch>,
+  ) => {
     return customFetcher(getCreatePetsUrl(), {
       ...options,
       method: 'POST',
@@ -345,10 +351,13 @@ export const getListPetsNestedArrayUrl = (
 
 export const useListPetsNestedArrayHook = (): ((
   params?: ListPetsNestedArrayParams,
-  options?: RequestInit,
+  options?: SecondParameter<typeof useCustomFetch>,
 ) => Promise<listPetsNestedArrayResponse>) => {
   const customFetcher = useCustomFetch();
-  return (params?: ListPetsNestedArrayParams, options?: RequestInit) => {
+  return (
+    params?: ListPetsNestedArrayParams,
+    options?: SecondParameter<typeof useCustomFetch>,
+  ) => {
     return customFetcher(getListPetsNestedArrayUrl(params), {
       ...options,
       method: 'GET',
@@ -457,10 +466,10 @@ export const getShowPetByIdUrl = (petId: string) => {
 
 export const useShowPetByIdHook = (): ((
   petId: string,
-  options?: RequestInit,
+  options?: SecondParameter<typeof useCustomFetch>,
 ) => Promise<showPetByIdResponse>) => {
   const customFetcher = useCustomFetch();
-  return (petId: string, options?: RequestInit) => {
+  return (petId: string, options?: SecondParameter<typeof useCustomFetch>) => {
     return customFetcher(getShowPetByIdUrl(petId), {
       ...options,
       method: 'GET',
