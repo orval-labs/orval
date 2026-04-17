@@ -257,7 +257,6 @@ export function getResReqTypes(
                 effectivePropName = imports[0].name;
               }
             } else if (mediaType.schema) {
-              // When schema is a oneOf/anyOf of $refs, concat schema names for consistent param naming
               const combinedRefs =
                 getSchemaOneOf(mediaType.schema) ??
                 getSchemaAnyOf(mediaType.schema);
@@ -265,9 +264,10 @@ export function getResReqTypes(
                 const names: string[] = [];
                 for (const ref of combinedRefs) {
                   if (!isReference(ref)) continue;
-                  const name = resolveSchemaRef(ref, context).imports[0]?.name;
-                  if (name) {
-                    names.push(name);
+                  const refName = resolveSchemaRef(ref, context).imports[0]
+                    ?.name;
+                  if (refName) {
+                    names.push(refName);
                   }
                 }
                 if (names.length > 0) {
@@ -561,7 +561,6 @@ function getSchemaFormDataAndUrlEncoded({
   const propName = camel(
     !isRef && isReference(schemaObject) ? imports[0].name : name,
   );
-  const additionalImports: GeneratorImport[] = [];
 
   const variableName = isUrlEncoded ? 'formUrlEncoded' : 'formData';
   let form = isUrlEncoded
@@ -577,28 +576,25 @@ function getSchemaFormDataAndUrlEncoded({
       const shouldCast = !!getSchemaOneOf(schema) || !!getSchemaAnyOf(schema);
 
       if (shouldCast) {
-        // oneOf/anyOf: iterate over actual properties at runtime to avoid duplicating
-        // fields shared across variants (TypeScript casts are erased at compile-time).
-        form += `Object.entries(${propName}).forEach(([key, value]) => {\n`;
-        form += `  if (value !== undefined) {\n`;
-        form += `    if (value instanceof File || value instanceof Blob || (typeof Buffer !== 'undefined' && Buffer.isBuffer(value))) {\n`;
+        form += `Object.entries(${propName} ?? {}).forEach(([key, value]) => {\n`;
+        form += `  if (value !== undefined && value !== null) {\n`;
+        form += `    if ((typeof File !== 'undefined' && value instanceof File) || value instanceof Blob || (typeof Buffer !== 'undefined' && Buffer.isBuffer(value))) {\n`;
         form += `      ${variableName}.append(key, value);\n`;
         form += `    } else if (Array.isArray(value)) {\n`;
-        form += `      value.forEach(v => ${variableName}.append(key, typeof v === 'object' ? JSON.stringify(v) : String(v)));\n`;
-        form += `    } else if (typeof value === 'object' && value !== null) {\n`;
+        form += `      value.forEach(v => {\n`;
+        form += `        if ((typeof File !== 'undefined' && v instanceof File) || v instanceof Blob || (typeof Buffer !== 'undefined' && Buffer.isBuffer(v))) {\n`;
+        form += `          ${variableName}.append(key, v);\n`;
+        form += `        } else {\n`;
+        form += `          ${variableName}.append(key, typeof v === 'object' ? JSON.stringify(v) : String(v));\n`;
+        form += `        }\n`;
+        form += `      });\n`;
+        form += `    } else if (typeof value === 'object') {\n`;
         form += `      ${variableName}.append(key, JSON.stringify(value));\n`;
         form += `    } else {\n`;
         form += `      ${variableName}.append(key, String(value));\n`;
         form += `    }\n`;
         form += `  }\n`;
         form += `});\n`;
-
-        for (const subSchema of combinedSchemas) {
-          const { imports } = resolveSchemaRef(subSchema, context);
-          if (imports[0]) {
-            additionalImports.push(imports[0]);
-          }
-        }
       } else {
         const combinedSchemasFormData = combinedSchemas
           .map((subSchema) => {

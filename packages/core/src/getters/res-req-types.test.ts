@@ -722,6 +722,112 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
         'formData.append(`logo`, uploadRequestBody.logo)',
       );
     });
+
+    it('oneOf with an optional body: FormData guards against undefined', () => {
+      const ctx: ContextSpec = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              OptionalBodyDto: {
+                type: 'object',
+                properties: {
+                  file: { type: 'string', format: 'binary' },
+                },
+              },
+            },
+          },
+        },
+      };
+
+      const reqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  oneOf: [{ $ref: '#/components/schemas/OptionalBodyDto' }],
+                },
+              },
+            },
+            required: false,
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(reqBody, 'Upload', ctx)[0];
+      const formData = result.formData;
+      if (!formData || !isString(formData)) {
+        throw new Error('Expected formData to be a defined string');
+      }
+
+      // The runtime loop must defend against an undefined body so callers can
+      // safely pass nothing when the body is optional.
+      expect(formData).toMatch(/Object\.entries\([^)]*\?\?\s*\{\}\)/);
+    });
+
+    it('oneOf with an array of binary files: FormData appends Blob items directly', () => {
+      const ctx: ContextSpec = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              MultiUploadV1: {
+                type: 'object',
+                properties: {
+                  files: {
+                    type: 'array',
+                    items: { type: 'string', format: 'binary' },
+                  },
+                },
+              },
+              MultiUploadV2: {
+                type: 'object',
+                properties: {
+                  files: {
+                    type: 'array',
+                    items: { type: 'string', format: 'binary' },
+                  },
+                  tag: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      };
+
+      const reqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  oneOf: [
+                    { $ref: '#/components/schemas/MultiUploadV1' },
+                    { $ref: '#/components/schemas/MultiUploadV2' },
+                  ],
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(reqBody, 'Upload', ctx)[0];
+      const formData = result.formData;
+      if (!formData || !isString(formData)) {
+        throw new Error('Expected formData to be a defined string');
+      }
+
+      // Array elements that are files must be appended directly. Without the
+      // per-element Blob/File/Buffer check, each binary item would have been
+      // serialized to "{}" via JSON.stringify.
+      expect(formData).toContain('value.forEach');
+      expect(formData).toContain('v instanceof Blob');
+    });
   });
 });
 
