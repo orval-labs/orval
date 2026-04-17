@@ -6,7 +6,6 @@ import {
   generateSchemasDefinition,
   type ImportOpenApi,
   type InputOptions,
-  logWarning,
   type NormalizedOutputOptions,
   type OpenApiComponentsObject,
   type OpenApiDocument,
@@ -82,9 +81,11 @@ async function applyTransformer(
   if (validation) {
     const { valid, errors } = await validate(transformedOpenApi);
     if (!valid) {
-      logWarning(
-        `⚠️  Transformed OpenAPI spec validation warning:\n${JSON.stringify(errors, undefined, 2)}\n` +
-          `  To disable validation, set input.validation to false in your orval config.`,
+      throw new Error(
+        `Transformed OpenAPI spec validation failed:\n${JSON.stringify(errors, undefined, 2)}\n\n` +
+          `If your spec uses non-standard extensions and you want to skip validation,\n` +
+          `set input.validation to false in your orval config.\n` +
+          `Note: no bug reports are accepted with validation disabled.`,
       );
     }
   }

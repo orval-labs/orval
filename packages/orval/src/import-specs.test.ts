@@ -1,5 +1,6 @@
 import type { OpenApiDocument } from '@orval/core';
-import { describe, expect, it } from 'vitest';
+import * as orvalCore from '@orval/core';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   dereferenceExternalRef,
@@ -142,7 +143,7 @@ const SSE_ITEM_SCHEMA_SPEC: OpenApiDocument = {
 };
 
 describe('validation', () => {
-  it('should not throw on non-standard fields like itemSchema (warns instead)', async () => {
+  it('should throw on non-standard fields like itemSchema by default', async () => {
     const workspace = 'test';
     const normalizedOptions = await normalizeOptions(
       {
@@ -153,10 +154,9 @@ describe('validation', () => {
       {},
     );
 
-    const spec = await importSpecs(workspace, normalizedOptions);
-
-    expect(spec.verbOptions).toHaveProperty('sse_endpoint');
-    expect(spec.verbOptions).toHaveProperty('list_pets');
+    await expect(importSpecs(workspace, normalizedOptions)).rejects.toThrow(
+      'OpenAPI spec validation failed',
+    );
   });
 
   it('should skip validation when input.validation is false', async () => {
@@ -172,10 +172,21 @@ describe('validation', () => {
 
     expect(normalizedOptions.input.validation).toBe(false);
 
-    const spec = await importSpecs(workspace, normalizedOptions);
+    const warnSpy = vi.spyOn(orvalCore, 'logWarning').mockImplementation(() => {
+      /* noop */
+    });
 
-    expect(spec.verbOptions).toHaveProperty('sse_endpoint');
-    expect(spec.verbOptions).toHaveProperty('list_pets');
+    try {
+      const spec = await importSpecs(workspace, normalizedOptions);
+
+      expect(spec.verbOptions).toHaveProperty('sse_endpoint');
+      expect(spec.verbOptions).toHaveProperty('list_pets');
+
+      const warnings = warnSpy.mock.calls.map(([msg]) => msg).join('\n');
+      expect(warnings).toContain('OpenAPI spec validation is disabled');
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 });
 

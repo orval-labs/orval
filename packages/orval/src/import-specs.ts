@@ -48,11 +48,19 @@ async function resolveSpec(
 
     const { valid, errors } = await validateSpec(dereferencedData);
     if (!valid) {
-      logWarning(
-        `⚠️  OpenAPI spec validation warning:\n${JSON.stringify(errors, undefined, 2)}\n` +
-          `  To disable validation, set input.validation to false in your orval config.`,
+      throw new Error(
+        `OpenAPI spec validation failed:\n${JSON.stringify(errors, undefined, 2)}\n\n` +
+          `If your spec uses non-standard extensions and you want to skip validation,\n` +
+          `set input.validation to false in your orval config.\n` +
+          `Note: no bug reports are accepted with validation disabled.`,
       );
     }
+  } else {
+    logWarning(
+      `🚨 OpenAPI spec validation is disabled (input.validation: false).\n` +
+        `  Code generation with invalid specs is not guaranteed to work and may break in minor updates.\n` +
+        `  Bug reports with validation disabled will not be accepted.`,
+    );
   }
 
   const { specification } = upgrade(dereferencedData);
