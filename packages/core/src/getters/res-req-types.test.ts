@@ -547,6 +547,181 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
       // allOf with $ref: intersection type (not union)
       expect(schema?.model).toContain('ClientUpdateDto & {');
     });
+
+    // Regression tests for #3242: multipart/form-data with oneOf/anyOf
+    // at the root of a request body (common with @nestjs/swagger or
+    // zod-to-openapi for versioned request schemas).
+    it('oneOf with a single $ref: FormData variable derives from the DTO name', () => {
+      const ctx: ContextSpec = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              ClientUpdateDto: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  logo: { type: 'string', format: 'binary' },
+                },
+                required: ['name', 'logo'],
+              },
+            },
+          },
+        },
+      };
+
+      const reqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  oneOf: [{ $ref: '#/components/schemas/ClientUpdateDto' }],
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(reqBody, 'Upload', ctx)[0];
+      const formData = result.formData;
+      if (!formData || !isString(formData)) {
+        throw new Error('Expected formData to be a defined string');
+      }
+
+      // Without the fix, effectivePropName fell back to the controller-derived
+      // name and the generated code referenced a variable that was never
+      // declared (e.g. uploadRequestBody).
+      expect(formData).toContain('clientUpdateDto');
+      expect(formData).not.toContain('uploadRequestBody');
+    });
+
+    it('oneOf with 2 $refs: FormData uses a runtime Object.entries loop', () => {
+      const ctx: ContextSpec = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              UploadDtoV1: {
+                type: 'object',
+                properties: {
+                  file: { type: 'string', format: 'binary' },
+                  metadata: { type: 'string' },
+                },
+                required: ['file'],
+              },
+              UploadDtoV2: {
+                type: 'object',
+                properties: {
+                  file: { type: 'string', format: 'binary' },
+                  metadata: {
+                    type: 'object',
+                    properties: { name: { type: 'string' } },
+                  },
+                },
+                required: ['file'],
+              },
+            },
+          },
+        },
+      };
+
+      const reqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  oneOf: [
+                    { $ref: '#/components/schemas/UploadDtoV1' },
+                    { $ref: '#/components/schemas/UploadDtoV2' },
+                  ],
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(reqBody, 'Upload', ctx)[0];
+      const formData = result.formData;
+      if (!formData || !isString(formData)) {
+        throw new Error('Expected formData to be a defined string');
+      }
+
+      // Shared fields used to be appended once per variant because TypeScript
+      // casts are erased at runtime. The runtime loop appends each key once.
+      expect(formData).toContain('Object.entries(');
+      const appendFileCount = (formData.match(/`file`/g) ?? []).length;
+      expect(appendFileCount).toBe(0);
+      expect(formData).not.toMatch(/as UploadDtoV[12]/);
+
+      // Variant types are still imported so they remain referenceable.
+      const importNames = result.imports.map((i) => i.name);
+      expect(importNames).toContain('UploadDtoV1');
+      expect(importNames).toContain('UploadDtoV2');
+    });
+
+    it('allOf: FormData still emits per-field appends (no regression)', () => {
+      const ctx: ContextSpec = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              BaseDto: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+                required: ['name'],
+              },
+            },
+          },
+        },
+      };
+
+      const reqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  allOf: [
+                    { $ref: '#/components/schemas/BaseDto' },
+                    {
+                      type: 'object',
+                      properties: {
+                        logo: { type: 'string', format: 'binary' },
+                      },
+                      required: ['logo'],
+                    },
+                  ],
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(reqBody, 'Upload', ctx)[0];
+      const formData = result.formData;
+      if (!formData || !isString(formData)) {
+        throw new Error('Expected formData to be a defined string');
+      }
+
+      expect(formData).not.toContain('Object.entries(');
+      expect(formData).toContain(
+        'formData.append(`name`, uploadRequestBody.name)',
+      );
+      expect(formData).toContain(
+        'formData.append(`logo`, uploadRequestBody.logo)',
+      );
+    });
   });
 });
 
