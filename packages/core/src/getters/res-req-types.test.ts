@@ -725,6 +725,79 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
       );
     });
 
+    it('oneOf alongside direct properties: loop skips direct keys to avoid duplicate appends', () => {
+      const ctx: ContextSpec = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              VariantA: {
+                type: 'object',
+                properties: {
+                  kind: { type: 'string', enum: ['a'] },
+                  extraA: { type: 'string' },
+                },
+                required: ['kind'],
+              },
+              VariantB: {
+                type: 'object',
+                properties: {
+                  kind: { type: 'string', enum: ['b'] },
+                  extraB: { type: 'string' },
+                },
+                required: ['kind'],
+              },
+            },
+          },
+        },
+      };
+
+      const reqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  oneOf: [
+                    { $ref: '#/components/schemas/VariantA' },
+                    { $ref: '#/components/schemas/VariantB' },
+                  ],
+                  properties: {
+                    name: { type: 'string' },
+                    owner: { type: 'string' },
+                  },
+                  required: ['name'],
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(reqBody, 'Upload', ctx)[0];
+      const formData = result.formData;
+      if (!formData || !isString(formData)) {
+        throw new Error('Expected formData to be a defined string');
+      }
+
+      // The Object.entries loop skips keys that the direct-properties branch
+      // already appends (`name`, `owner`), so those fields are not appended
+      // twice at runtime.
+      expect(formData).toContain('Object.entries(');
+      expect(formData).toContain('["name", "owner"].includes(key)');
+      const nameAppendCount = (
+        formData.match(/formData\.append\(`name`/g) ?? []
+      ).length;
+      const ownerAppendCount = (
+        formData.match(/formData\.append\(`owner`/g) ?? []
+      ).length;
+      expect(nameAppendCount).toBe(1);
+      expect(ownerAppendCount).toBe(1);
+    });
+
     it('oneOf with an optional body: FormData guards against undefined', () => {
       const ctx: ContextSpec = {
         ...context,

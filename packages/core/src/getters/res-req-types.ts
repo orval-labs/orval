@@ -576,14 +576,31 @@ function getSchemaFormDataAndUrlEncoded({
       const shouldCast = !!getSchemaOneOf(schema) || !!getSchemaAnyOf(schema);
 
       if (shouldCast) {
+        // If the outer schema also has direct properties, those are handled
+        // below by the dedicated properties branch. Skip them here to avoid
+        // appending the same key twice.
+        const directProperties = getSchemaProperties(schema);
+        const directKeys = directProperties
+          ? Object.keys(directProperties)
+          : [];
+        const skipLine =
+          directKeys.length > 0
+            ? `  if ([${directKeys.map((k) => JSON.stringify(k)).join(', ')}].includes(key)) return;\n`
+            : '';
+
         form += `Object.entries(${propName} ?? {}).forEach(([key, value]) => {\n`;
+        form += skipLine;
         form += `  if (value !== undefined && value !== null) {\n`;
-        form += `    if ((typeof File !== 'undefined' && value instanceof File) || value instanceof Blob || (typeof Buffer !== 'undefined' && Buffer.isBuffer(value))) {\n`;
+        form += `    if ((typeof File !== 'undefined' && value instanceof File) || value instanceof Blob) {\n`;
         form += `      ${variableName}.append(key, value);\n`;
+        form += `    } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) {\n`;
+        form += `      ${variableName}.append(key, new Blob([value as unknown as BlobPart]));\n`;
         form += `    } else if (Array.isArray(value)) {\n`;
         form += `      value.forEach(v => {\n`;
-        form += `        if ((typeof File !== 'undefined' && v instanceof File) || v instanceof Blob || (typeof Buffer !== 'undefined' && Buffer.isBuffer(v))) {\n`;
+        form += `        if ((typeof File !== 'undefined' && v instanceof File) || v instanceof Blob) {\n`;
         form += `          ${variableName}.append(key, v);\n`;
+        form += `        } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(v)) {\n`;
+        form += `          ${variableName}.append(key, new Blob([v as unknown as BlobPart]));\n`;
         form += `        } else {\n`;
         form += `          ${variableName}.append(key, typeof v === 'object' ? JSON.stringify(v) : String(v));\n`;
         form += `        }\n`;

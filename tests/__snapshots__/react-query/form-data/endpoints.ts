@@ -28,21 +28,24 @@ import { customInstance } from '../../../mutators/custom-instance';
 export const createPets = (pet: Pet, signal?: AbortSignal) => {
   const formData = new FormData();
   Object.entries(pet ?? {}).forEach(([key, value]) => {
+    if (['@id', 'email', 'callingCode', 'country'].includes(key)) return;
     if (value !== undefined && value !== null) {
       if (
         (typeof File !== 'undefined' && value instanceof File) ||
-        value instanceof Blob ||
-        (typeof Buffer !== 'undefined' && Buffer.isBuffer(value))
+        value instanceof Blob
       ) {
         formData.append(key, value);
+      } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) {
+        formData.append(key, new Blob([value as unknown as BlobPart]));
       } else if (Array.isArray(value)) {
         value.forEach((v) => {
           if (
             (typeof File !== 'undefined' && v instanceof File) ||
-            v instanceof Blob ||
-            (typeof Buffer !== 'undefined' && Buffer.isBuffer(v))
+            v instanceof Blob
           ) {
             formData.append(key, v);
+          } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(v)) {
+            formData.append(key, new Blob([v as unknown as BlobPart]));
           } else {
             formData.append(
               key,
