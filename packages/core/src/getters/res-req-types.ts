@@ -257,6 +257,12 @@ export function getResReqTypes(
                 effectivePropName = imports[0].name;
               }
             } else if (mediaType.schema) {
+              // When schema is a oneOf/anyOf of $refs, concat schema names
+              // so the FormData variable matches the function parameter.
+              // If the union only contains inline variants (no $ref), `names`
+              // stays empty and effectivePropName keeps the default
+              // `pascal(name) + pascal(key)` form; this is the original bug's
+              // shape, but the DTO-less case is outside this fix's scope.
               const combinedRefs =
                 getSchemaOneOf(mediaType.schema) ??
                 getSchemaAnyOf(mediaType.schema);
@@ -578,10 +584,17 @@ function getSchemaFormDataAndUrlEncoded({
       if (shouldCast) {
         // If the outer schema also has direct properties, those are handled
         // below by the dedicated properties branch. Skip them here to avoid
-        // appending the same key twice.
+        // appending the same key twice. Exclude readOnly direct properties
+        // so they can still flow through the runtime loop if a variant
+        // declares the same key as writable.
         const directProperties = getSchemaProperties(schema);
         const directKeys = directProperties
-          ? Object.keys(directProperties)
+          ? Object.entries(directProperties)
+              .filter(
+                ([, value]) =>
+                  !resolveSchemaRef(value, context).schema.readOnly,
+              )
+              .map(([key]) => key)
           : [];
         const skipLine =
           directKeys.length > 0
