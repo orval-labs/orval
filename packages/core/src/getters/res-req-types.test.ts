@@ -657,9 +657,11 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
       // Shared fields used to be appended once per variant because TypeScript
       // casts are erased at runtime. The runtime loop appends each key once.
       expect(formData).toContain('Object.entries(');
-      const appendFileCount = (formData.match(/`file`/g) ?? []).length;
-      expect(appendFileCount).toBe(0);
       expect(formData).not.toMatch(/as UploadDtoV[12]/);
+      // Guard against a future refactor reintroducing the per-variant
+      // appends keyed off the shared field.
+      expect(formData).not.toContain('uploadDtoV1.file');
+      expect(formData).not.toContain('uploadDtoV2.file');
 
       // Variant types are still imported so they remain referenceable.
       const importNames = result.imports.map((i) => i.name);

@@ -12,12 +12,14 @@ import type {
   UseMutationResult,
 } from '@tanstack/react-query';
 
-import type { Error, Pet, PetBase, PetExtended } from './model';
+import type { Error, Pet } from './model';
 
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
+
+import type { PetBase, PetExtended } from './model';
 
 import { customInstance } from '../../../mutators/custom-instance';
 /**
@@ -25,24 +27,36 @@ import { customInstance } from '../../../mutators/custom-instance';
  */
 export const createPets = (pet: Pet, signal?: AbortSignal) => {
   const formData = new FormData();
-  const petPetBase = pet as PetBase;
-  if (petPetBase.name !== undefined) {
-    formData.append(`name`, petPetBase.name);
-  }
-  if (petPetBase.tag !== undefined) {
-    formData.append(`tag`, petPetBase.tag);
-  }
-
-  const petPetExtended = pet as PetExtended;
-  if (petPetExtended.id !== undefined) {
-    formData.append(`id`, petPetExtended.id.toString());
-  }
-  if (petPetExtended.name !== undefined) {
-    formData.append(`name`, petPetExtended.name);
-  }
-  if (petPetExtended.tag !== undefined) {
-    formData.append(`tag`, petPetExtended.tag);
-  }
+  Object.entries(pet ?? {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      if (
+        (typeof File !== 'undefined' && value instanceof File) ||
+        value instanceof Blob ||
+        (typeof Buffer !== 'undefined' && Buffer.isBuffer(value))
+      ) {
+        formData.append(key, value);
+      } else if (Array.isArray(value)) {
+        value.forEach((v) => {
+          if (
+            (typeof File !== 'undefined' && v instanceof File) ||
+            v instanceof Blob ||
+            (typeof Buffer !== 'undefined' && Buffer.isBuffer(v))
+          ) {
+            formData.append(key, v);
+          } else {
+            formData.append(
+              key,
+              typeof v === 'object' ? JSON.stringify(v) : String(v),
+            );
+          }
+        });
+      } else if (typeof value === 'object') {
+        formData.append(key, JSON.stringify(value));
+      } else {
+        formData.append(key, String(value));
+      }
+    }
+  });
   if (pet['@id'] !== undefined) {
     formData.append(`@id`, pet['@id']);
   }
