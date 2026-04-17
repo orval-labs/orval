@@ -94,7 +94,7 @@ export const getHealthCheckUrl = () => {
 };
 
 export const healthCheck = async (
-  options: SecondParameter<typeof customFetch>,
+  options?: SecondParameter<typeof customFetch>,
 ): Promise<healthCheckResponse> => {
   return customFetch<healthCheckResponse>(getHealthCheckUrl(), {
     ...options,

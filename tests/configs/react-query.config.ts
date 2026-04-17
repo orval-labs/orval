@@ -389,7 +389,6 @@ export default defineConfig({
           name: 'customFetch',
         },
       },
-      optionsParamRequired: true,
       clean: true,
       formatter: 'prettier',
     },

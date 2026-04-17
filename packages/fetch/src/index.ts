@@ -654,9 +654,19 @@ export const generateFetchHeader: ClientHeaderBuilder = ({
   return needsStatusCodeTypes ? getHTTPStatusCodes() : '';
 };
 
+const generateStandaloneFetchHeader: ClientHeaderBuilder = (params) => {
+  const needsSecondParameter =
+    params.clientImplementation.includes('SecondParameter<');
+  return (
+    (needsSecondParameter
+      ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
+      : '') + generateFetchHeader(params)
+  );
+};
+
 const fetchClientBuilder: ClientGeneratorsBuilder = {
   client: generateClient,
-  header: generateFetchHeader,
+  header: generateStandaloneFetchHeader,
   dependencies: getFetchDependencies,
 };
 
