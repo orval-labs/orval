@@ -4,12 +4,14 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import type { Error, Pet, PetBase, PetExtended } from './model';
+import type { Error, Pet } from './model';
 
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
+
+import type { PetBase, PetExtended } from './model';
 
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;
@@ -87,24 +89,39 @@ export const createPets = async (
   options?: RequestInit,
 ): Promise<createPetsResponse> => {
   const formData = new FormData();
-  const petPetBase = pet as PetBase | undefined;
-  if (petPetBase?.name !== undefined) {
-    formData.append(`name`, petPetBase.name);
-  }
-  if (petPetBase?.tag !== undefined) {
-    formData.append(`tag`, petPetBase.tag);
-  }
-
-  const petPetExtended = pet as PetExtended | undefined;
-  if (petPetExtended?.id !== undefined) {
-    formData.append(`id`, petPetExtended.id.toString());
-  }
-  if (petPetExtended?.name !== undefined) {
-    formData.append(`name`, petPetExtended.name);
-  }
-  if (petPetExtended?.tag !== undefined) {
-    formData.append(`tag`, petPetExtended.tag);
-  }
+  Object.entries(pet ?? {}).forEach(([key, value]) => {
+    if (['@id', 'email', 'callingCode', 'country'].includes(key)) return;
+    if (value !== undefined && value !== null) {
+      if (
+        (typeof File !== 'undefined' && value instanceof File) ||
+        value instanceof Blob
+      ) {
+        formData.append(key, value);
+      } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) {
+        formData.append(key, new Blob([Uint8Array.from(value)]));
+      } else if (Array.isArray(value)) {
+        value.forEach((v) => {
+          if (
+            (typeof File !== 'undefined' && v instanceof File) ||
+            v instanceof Blob
+          ) {
+            formData.append(key, v);
+          } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(v)) {
+            formData.append(key, new Blob([Uint8Array.from(v)]));
+          } else {
+            formData.append(
+              key,
+              typeof v === 'object' ? JSON.stringify(v) : String(v),
+            );
+          }
+        });
+      } else if (typeof value === 'object') {
+        formData.append(key, JSON.stringify(value));
+      } else {
+        formData.append(key, String(value));
+      }
+    }
+  });
   if (pet?.['@id'] !== undefined) {
     formData.append(`@id`, pet['@id']);
   }

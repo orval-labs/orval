@@ -9,7 +9,12 @@ import { faker } from '@faker-js/faker';
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-import type { AnotherSchema, Pet } from './model';
+import type {
+  AnotherSchema,
+  AnotherSchema as __AnotherSchema,
+  Pet,
+  Pet as __Pet,
+} from './model';
 
 export const getPostPetsResponsePetMock = (
   overrideResponse: Partial<Pet> = {},
@@ -21,22 +26,22 @@ export const getPostPetsResponsePetMock = (
   ...overrideResponse,
 });
 
-export const getPostPetsResponseMock = (): Pet =>
+export const getPostPetsResponseMock = (): __Pet =>
   faker.helpers.arrayElement([{ ...getPostPetsResponsePetMock() }]);
 
 export const getGetPetsResponseAnotherSchemaMock = (
   overrideResponse: Partial<AnotherSchema> = {},
 ): AnotherSchema => ({ ...{ id: faker.number.int() }, ...overrideResponse });
 
-export const getGetPetsResponseMock = (): AnotherSchema =>
+export const getGetPetsResponseMock = (): __AnotherSchema =>
   faker.helpers.arrayElement([{ ...getGetPetsResponseAnotherSchemaMock() }]);
 
 export const getPostPetsMockHandler = (
   overrideResponse?:
-    | Pet
+    | __Pet
     | ((
         info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<Pet> | Pet),
+      ) => Promise<__Pet> | __Pet),
   options?: RequestHandlerOptions,
 ) => {
   return http.post(
@@ -57,10 +62,10 @@ export const getPostPetsMockHandler = (
 
 export const getGetPetsMockHandler = (
   overrideResponse?:
-    | AnotherSchema
+    | __AnotherSchema
     | ((
         info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<AnotherSchema> | AnotherSchema),
+      ) => Promise<__AnotherSchema> | __AnotherSchema),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(

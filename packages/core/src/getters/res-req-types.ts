@@ -256,6 +256,30 @@ export function getResReqTypes(
               if (imports[0]?.name) {
                 effectivePropName = imports[0].name;
               }
+            } else if (mediaType.schema) {
+              // When schema is a oneOf/anyOf of $refs, concat schema names
+              // so the FormData variable matches the function parameter.
+              // If the union only contains inline variants (no $ref), `names`
+              // stays empty and effectivePropName keeps the default
+              // `pascal(name) + pascal(key)` form; this is the original bug's
+              // shape, but the DTO-less case is outside this fix's scope.
+              const combinedRefs =
+                getSchemaOneOf(mediaType.schema) ??
+                getSchemaAnyOf(mediaType.schema);
+              if (combinedRefs) {
+                const names: string[] = [];
+                for (const ref of combinedRefs) {
+                  if (!isReference(ref)) continue;
+                  const refName = resolveSchemaRef(ref, context).imports[0]
+                    ?.name;
+                  if (refName) {
+                    names.push(refName);
+                  }
+                }
+                if (names.length > 0) {
+                  effectivePropName = names.join('');
+                }
+              }
             }
 
             const isFormData = formDataContentTypes.has(contentType);
@@ -543,7 +567,6 @@ function getSchemaFormDataAndUrlEncoded({
   const propName = camel(
     !isRef && isReference(schemaObject) ? imports[0].name : name,
   );
-  const additionalImports: GeneratorImport[] = [];
 
   const variableName = isUrlEncoded ? 'formUrlEncoded' : 'formData';
   let form = isUrlEncoded
@@ -558,40 +581,71 @@ function getSchemaFormDataAndUrlEncoded({
     if (combinedSchemas) {
       const shouldCast = !!getSchemaOneOf(schema) || !!getSchemaAnyOf(schema);
 
-      const combinedSchemasFormData = combinedSchemas
-        .map((subSchema) => {
-          const { schema: combinedSchema, imports } = resolveSchemaRef(
-            subSchema,
-            context,
-          );
+      if (shouldCast) {
+        // If the outer schema also has direct properties, those are handled
+        // below by the dedicated properties branch. Skip them here to avoid
+        // appending the same key twice. Exclude readOnly direct properties
+        // so they can still flow through the runtime loop if a variant
+        // declares the same key as writable.
+        const directProperties = getSchemaProperties(schema);
+        const directKeys = directProperties
+          ? Object.entries(directProperties)
+              .filter(
+                ([, value]) =>
+                  !resolveSchemaRef(value, context).schema.readOnly,
+              )
+              .map(([key]) => key)
+          : [];
+        const skipLine =
+          directKeys.length > 0
+            ? `  if ([${directKeys.map((k) => JSON.stringify(k)).join(', ')}].includes(key)) return;\n`
+            : '';
 
-          let newPropName = propName;
-          let newPropDefinition = '';
-
-          // If the schema is a union type (oneOf, anyOf) and includes a reference (has imports),
-          // we need to cast the property to the specific type to avoid TypeScript errors.
-          if (shouldCast && imports[0]) {
-            additionalImports.push(imports[0]);
-            newPropName = `${propName}${pascal(imports[0].name)}`;
-            newPropDefinition = `const ${newPropName} = (${propName} as ${imports[0].name}${isRequestBodyOptional ? ' | undefined' : ''});\n`;
-          }
-
-          return (
-            newPropDefinition +
-            resolveSchemaPropertiesToFormData({
+        form += `Object.entries(${propName} ?? {}).forEach(([key, value]) => {\n`;
+        form += skipLine;
+        form += `  if (value !== undefined && value !== null) {\n`;
+        form += `    if ((typeof File !== 'undefined' && value instanceof File) || value instanceof Blob) {\n`;
+        form += `      ${variableName}.append(key, value);\n`;
+        form += `    } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) {\n`;
+        form += `      ${variableName}.append(key, new Blob([Uint8Array.from(value)]));\n`;
+        form += `    } else if (Array.isArray(value)) {\n`;
+        form += `      value.forEach(v => {\n`;
+        form += `        if ((typeof File !== 'undefined' && v instanceof File) || v instanceof Blob) {\n`;
+        form += `          ${variableName}.append(key, v);\n`;
+        form += `        } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(v)) {\n`;
+        form += `          ${variableName}.append(key, new Blob([Uint8Array.from(v)]));\n`;
+        form += `        } else {\n`;
+        form += `          ${variableName}.append(key, typeof v === 'object' ? JSON.stringify(v) : String(v));\n`;
+        form += `        }\n`;
+        form += `      });\n`;
+        form += `    } else if (typeof value === 'object') {\n`;
+        form += `      ${variableName}.append(key, JSON.stringify(value));\n`;
+        form += `    } else {\n`;
+        form += `      ${variableName}.append(key, String(value));\n`;
+        form += `    }\n`;
+        form += `  }\n`;
+        form += `});\n`;
+      } else {
+        const combinedSchemasFormData = combinedSchemas
+          .map((subSchema) => {
+            const { schema: combinedSchema } = resolveSchemaRef(
+              subSchema,
+              context,
+            );
+            return resolveSchemaPropertiesToFormData({
               schema: combinedSchema,
               variableName,
-              propName: newPropName,
+              propName,
               context,
               isRequestBodyOptional,
               encoding,
-            })
-          );
-        })
-        .filter(Boolean)
-        .join('\n');
+            });
+          })
+          .filter(Boolean)
+          .join('\n');
 
-      form += combinedSchemasFormData;
+        form += combinedSchemasFormData;
+      }
     }
 
     if (schema.properties) {
