@@ -36,7 +36,7 @@ export const createPets = (pet: Pet, signal?: AbortSignal) => {
       ) {
         formData.append(key, value);
       } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) {
-        formData.append(key, new Blob([value as unknown as BlobPart]));
+        formData.append(key, new Blob([Uint8Array.from(value)]));
       } else if (Array.isArray(value)) {
         value.forEach((v) => {
           if (
@@ -45,7 +45,7 @@ export const createPets = (pet: Pet, signal?: AbortSignal) => {
           ) {
             formData.append(key, v);
           } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(v)) {
-            formData.append(key, new Blob([v as unknown as BlobPart]));
+            formData.append(key, new Blob([Uint8Array.from(v)]));
           } else {
             formData.append(
               key,

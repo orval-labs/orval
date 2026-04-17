@@ -594,13 +594,13 @@ function getSchemaFormDataAndUrlEncoded({
         form += `    if ((typeof File !== 'undefined' && value instanceof File) || value instanceof Blob) {\n`;
         form += `      ${variableName}.append(key, value);\n`;
         form += `    } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) {\n`;
-        form += `      ${variableName}.append(key, new Blob([value as unknown as BlobPart]));\n`;
+        form += `      ${variableName}.append(key, new Blob([Uint8Array.from(value)]));\n`;
         form += `    } else if (Array.isArray(value)) {\n`;
         form += `      value.forEach(v => {\n`;
         form += `        if ((typeof File !== 'undefined' && v instanceof File) || v instanceof Blob) {\n`;
         form += `          ${variableName}.append(key, v);\n`;
         form += `        } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(v)) {\n`;
-        form += `          ${variableName}.append(key, new Blob([v as unknown as BlobPart]));\n`;
+        form += `          ${variableName}.append(key, new Blob([Uint8Array.from(v)]));\n`;
         form += `        } else {\n`;
         form += `          ${variableName}.append(key, typeof v === 'object' ? JSON.stringify(v) : String(v));\n`;
         form += `        }\n`;
