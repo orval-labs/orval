@@ -123,7 +123,7 @@
     "prettier": "catalog:",
     "rimraf": "catalog:",
     "tsdown": "catalog:",
-    "turbo": "^2.8.12",
+    "turbo": "^2.9.6",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
     "vitest": "catalog:"

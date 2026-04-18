@@ -1,5 +1,5 @@
 {
-  "$schema": "https://turbo.build/schema.json",
+  "$schema": "https://v2-9-6.turborepo.dev/schema.json",
   "globalEnv": ["ORVAL_DEBUG_FILTER", "CI", "DEBUG"],
   "tasks": {
     "build": {
