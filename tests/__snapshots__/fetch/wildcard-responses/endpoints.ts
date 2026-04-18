@@ -102,8 +102,7 @@ export const getLoggedInUser = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getLoggedInUserResponse['data'] =
-    body !== null ? JSON.parse(body) : {};
+  const data: getLoggedInUserResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -157,7 +156,7 @@ export const listItems = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listItemsResponse['data'] = body !== null ? JSON.parse(body) : {};
+  const data: listItemsResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -219,8 +218,7 @@ export const getMixedResponses = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getMixedResponsesResponse['data'] =
-    body !== null ? JSON.parse(body) : {};
+  const data: getMixedResponsesResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,

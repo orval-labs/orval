@@ -43,8 +43,7 @@ export const getVversionExample = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getVversionExampleResponse['data'] =
-    body !== null ? JSON.parse(body) : {};
+  const data: getVversionExampleResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,

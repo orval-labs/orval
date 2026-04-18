@@ -433,23 +433,22 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 
   // Error response fallback always uses {} — error data types vary (e.g. `Error`)
   // and {} satisfies them all without a type error, matching prior behaviour.
+  // Use truthy `body` check before JSON.parse so empty string bodies fall back
+  // instead of throwing (`JSON.parse('')` is invalid).
   const errorBodyExpression = hasMixedErrorContentTypes
-    ? `errorBody !== null ? (errorContentType.includes('json') ? JSON.parse(errorBody${reviver}) : errorBody) : {}`
+    ? `errorBody ? (errorContentType.includes('json') ? JSON.parse(errorBody${reviver}) : errorBody) : {}`
     : errorAlwaysJson
-      ? `errorBody !== null ? JSON.parse(errorBody${reviver}) : {}`
+      ? `errorBody ? JSON.parse(errorBody${reviver}) : {}`
       : `errorBody !== null ? errorBody : {}`;
 
-  // throwOnErrorDataExpression parses error response body using error content types.
-  // For blob/ndJson, use dedicated paths. Otherwise use error content type logic with `body`.
-  // Non-JSON error fallback uses '' (matches string type); JSON/unknown error fallback uses {}.
   const throwOnErrorBodyExpression = hasMixedErrorContentTypes
-    ? `body !== null ? (errorContentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}`
+    ? `body ? (errorContentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}`
     : errorAlwaysJson
-      ? `body !== null ? JSON.parse(body${reviver}) : {}`
+      ? `body ? JSON.parse(body${reviver}) : {}`
       : `body !== null ? body : ''`;
 
   const throwOnErrorDataExpression = isNdJson
-    ? `body !== null ? JSON.parse(body${reviver}) : {}`
+    ? `body ? JSON.parse(body${reviver}) : {}`
     : isBlob
       ? errorBodyExpression
       : throwOnErrorBodyExpression;
@@ -511,17 +510,17 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   ${
     isValidateResponse
       ? hasMixedSuccessContentTypes
-        ? `const parsedBody = body !== null ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}
+        ? `const parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}
   const data = contentType.includes('json') ? ${schemaValueRef}.parse(parsedBody) : parsedBody`
         : successAlwaysJson
-          ? `const parsedBody = body !== null ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}
+          ? `const parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}
   const data = contentType.includes('json') ? ${schemaValueRef}.parse(parsedBody) : parsedBody`
           : `const parsedBody = body !== null ? body : ''
   const data = parsedBody`
       : hasMixedSuccessContentTypes
-        ? `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body !== null ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : ${isVoidResponse ? 'undefined' : '{}'}`
+        ? `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : ${isVoidResponse ? 'undefined' : '{}'}`
         : successAlwaysJson
-          ? `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body !== null ? JSON.parse(body${reviver}) : ${isVoidResponse ? 'undefined' : '{}'}`
+          ? `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : ${isVoidResponse ? 'undefined' : '{}'}`
           : `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body !== null ? body : ${isVoidResponse ? 'undefined' : "''"}`
   }
   ${

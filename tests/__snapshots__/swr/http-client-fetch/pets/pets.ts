@@ -111,14 +111,12 @@ export const listPets = async (
       info?: listPetsResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: listPetsResponseError['data'] =
-      body !== null ? JSON.parse(body) : {};
+    const data: listPetsResponseError['data'] = body ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: listPetsResponseSuccess['data'] =
-    body !== null ? JSON.parse(body) : {};
+  const data: listPetsResponseSuccess['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -216,14 +214,12 @@ export const createPets = async (
       info?: createPetsResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: createPetsResponseError['data'] =
-      body !== null ? JSON.parse(body) : {};
+    const data: createPetsResponseError['data'] = body ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: createPetsResponseSuccess['data'] =
-    body !== null ? JSON.parse(body) : {};
+  const data: createPetsResponseSuccess['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -313,14 +309,12 @@ export const showPetById = async (
       info?: showPetByIdResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: showPetByIdResponseError['data'] =
-      body !== null ? JSON.parse(body) : {};
+    const data: showPetByIdResponseError['data'] = body ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: showPetByIdResponseSuccess['data'] =
-    body !== null ? JSON.parse(body) : {};
+  const data: showPetByIdResponseSuccess['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -404,14 +398,16 @@ export const deletePetById = async (
       info?: deletePetByIdResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: deletePetByIdResponseError['data'] =
-      body !== null ? JSON.parse(body) : {};
+    const data: deletePetByIdResponseError['data'] = body
+      ? JSON.parse(body)
+      : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: deletePetByIdResponseSuccess['data'] =
-    body !== null ? JSON.parse(body) : undefined;
+  const data: deletePetByIdResponseSuccess['data'] = body
+    ? JSON.parse(body)
+    : undefined;
   return {
     data,
     status: res.status,
@@ -501,14 +497,16 @@ export const showPetWithOwner = async (
       info?: showPetWithOwnerResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: showPetWithOwnerResponseError['data'] =
-      body !== null ? JSON.parse(body) : {};
+    const data: showPetWithOwnerResponseError['data'] = body
+      ? JSON.parse(body)
+      : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: showPetWithOwnerResponseSuccess['data'] =
-    body !== null ? JSON.parse(body) : {};
+  const data: showPetWithOwnerResponseSuccess['data'] = body
+    ? JSON.parse(body)
+    : {};
   return {
     data,
     status: res.status,

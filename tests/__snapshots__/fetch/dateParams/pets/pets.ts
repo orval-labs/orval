@@ -119,8 +119,7 @@ export const listPetsByCountry = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listPetsByCountryResponse['data'] =
-    body !== null ? JSON.parse(body) : {};
+  const data: listPetsByCountryResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -190,8 +189,7 @@ export const listPetsByAge = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listPetsByAgeResponse['data'] =
-    body !== null ? JSON.parse(body) : {};
+  const data: listPetsByAgeResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,

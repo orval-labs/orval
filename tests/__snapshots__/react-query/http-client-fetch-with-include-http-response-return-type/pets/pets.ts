@@ -58,7 +58,7 @@ export const listPets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: Pets = body !== null ? JSON.parse(body) : {};
+  const data: Pets = body ? JSON.parse(body) : {};
   return data;
 };
 
@@ -219,7 +219,7 @@ export const createPets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: Pet = body !== null ? JSON.parse(body) : {};
+  const data: Pet = body ? JSON.parse(body) : {};
   return data;
 };
 
@@ -307,7 +307,7 @@ export const showPetById = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: Pet = body !== null ? JSON.parse(body) : {};
+  const data: Pet = body ? JSON.parse(body) : {};
   return data;
 };
 
@@ -460,7 +460,7 @@ export const deletePetById = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: void = body !== null ? JSON.parse(body) : undefined;
+  const data: void = body ? JSON.parse(body) : undefined;
   return data;
 };
 
@@ -548,7 +548,7 @@ export const showPetWithOwner = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: PetWithTag = body !== null ? JSON.parse(body) : {};
+  const data: PetWithTag = body ? JSON.parse(body) : {};
   return data;
 };
 

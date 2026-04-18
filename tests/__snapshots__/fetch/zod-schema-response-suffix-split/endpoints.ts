@@ -31,12 +31,11 @@ export const getPortfolio = async (
   const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const parsedBody =
-    body !== null
-      ? contentType.includes('json')
-        ? JSON.parse(body)
-        : body
-      : {};
+  const parsedBody = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   const data = contentType.includes('json')
     ? PortfolioResponseSchema.parse(parsedBody)
     : parsedBody;

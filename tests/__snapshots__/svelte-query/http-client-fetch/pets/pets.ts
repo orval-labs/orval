@@ -114,7 +114,7 @@ export const listPets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listPetsResponse['data'] = body !== null ? JSON.parse(body) : {};
+  const data: listPetsResponse['data'] = body ? JSON.parse(body) : {};
   return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };
 
@@ -238,8 +238,7 @@ export const createPets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: createPetsResponse['data'] =
-    body !== null ? JSON.parse(body) : {};
+  const data: createPetsResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -349,8 +348,7 @@ export const showPetById = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: showPetByIdResponse['data'] =
-    body !== null ? JSON.parse(body) : {};
+  const data: showPetByIdResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -470,8 +468,9 @@ export const deletePetById = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: deletePetByIdResponse['data'] =
-    body !== null ? JSON.parse(body) : undefined;
+  const data: deletePetByIdResponse['data'] = body
+    ? JSON.parse(body)
+    : undefined;
   return {
     data,
     status: res.status,
@@ -584,8 +583,7 @@ export const showPetWithOwner = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: showPetWithOwnerResponse['data'] =
-    body !== null ? JSON.parse(body) : {};
+  const data: showPetWithOwnerResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,

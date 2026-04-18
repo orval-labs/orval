@@ -131,12 +131,11 @@ export const findPetsByStatus = async (
   const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: findPetsByStatusResponse['data'] =
-    body !== null
-      ? contentType.includes('json')
-        ? JSON.parse(body)
-        : body
-      : {};
+  const data: findPetsByStatusResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -214,12 +213,11 @@ export const findPetsByTags = async (
   const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: findPetsByTagsResponse['data'] =
-    body !== null
-      ? contentType.includes('json')
-        ? JSON.parse(body)
-        : body
-      : {};
+  const data: findPetsByTagsResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -286,12 +284,11 @@ export const getPetById = async (
   const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getPetByIdResponse['data'] =
-    body !== null
-      ? contentType.includes('json')
-        ? JSON.parse(body)
-        : body
-      : {};
+  const data: getPetByIdResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -368,12 +365,11 @@ export const updatePetWithForm = async (
   const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: updatePetWithFormResponse['data'] =
-    body !== null
-      ? contentType.includes('json')
-        ? JSON.parse(body)
-        : body
-      : {};
+  const data: updatePetWithFormResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -425,8 +421,7 @@ export const deletePet = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: deletePetResponse['data'] =
-    body !== null ? JSON.parse(body) : undefined;
+  const data: deletePetResponse['data'] = body ? JSON.parse(body) : undefined;
   return {
     data,
     status: res.status,
@@ -469,8 +464,7 @@ export const getInventory = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getInventoryResponse['data'] =
-    body !== null ? JSON.parse(body) : {};
+  const data: getInventoryResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -537,12 +531,11 @@ export const getOrderById = async (
   const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getOrderByIdResponse['data'] =
-    body !== null
-      ? contentType.includes('json')
-        ? JSON.parse(body)
-        : body
-      : {};
+  const data: getOrderByIdResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -600,8 +593,7 @@ export const deleteOrder = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: deleteOrderResponse['data'] =
-    body !== null ? JSON.parse(body) : undefined;
+  const data: deleteOrderResponse['data'] = body ? JSON.parse(body) : undefined;
   return {
     data,
     status: res.status,
@@ -674,12 +666,11 @@ export const loginUser = async (
   const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: loginUserResponse['data'] =
-    body !== null
-      ? contentType.includes('json')
-        ? JSON.parse(body)
-        : body
-      : {};
+  const data: loginUserResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -722,8 +713,7 @@ export const logoutUser = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: logoutUserResponse['data'] =
-    body !== null ? JSON.parse(body) : undefined;
+  const data: logoutUserResponse['data'] = body ? JSON.parse(body) : undefined;
   return {
     data,
     status: res.status,
@@ -790,12 +780,11 @@ export const getUserByName = async (
   const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getUserByNameResponse['data'] =
-    body !== null
-      ? contentType.includes('json')
-        ? JSON.parse(body)
-        : body
-      : {};
+  const data: getUserByNameResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,
@@ -853,8 +842,7 @@ export const deleteUser = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: deleteUserResponse['data'] =
-    body !== null ? JSON.parse(body) : undefined;
+  const data: deleteUserResponse['data'] = body ? JSON.parse(body) : undefined;
   return {
     data,
     status: res.status,

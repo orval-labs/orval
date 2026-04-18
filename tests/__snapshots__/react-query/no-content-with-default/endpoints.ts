@@ -46,8 +46,7 @@ export const createItems = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: createItemsResponse['data'] =
-    body !== null ? JSON.parse(body) : {};
+  const data: createItemsResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,

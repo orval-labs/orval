@@ -35,6 +35,6 @@ export const listPets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: listPetsResponse['data'] = body !== null ? JSON.parse(body) : {};
+  const data: listPetsResponse['data'] = body ? JSON.parse(body) : {};
   return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };

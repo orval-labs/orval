@@ -50,8 +50,7 @@ export const getData = async (
     err.status = res.status;
     throw err;
   }
-  const data: getDataResponseSuccess['data'] =
-    body !== null ? JSON.parse(body) : {};
+  const data: getDataResponseSuccess['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -86,7 +85,7 @@ export const getText = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body !== null ? JSON.parse(body) : {};
+    const data = body ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
@@ -129,7 +128,7 @@ export const getImage = async (
 
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = errorBody !== null ? JSON.parse(errorBody) : {};
+    const data = errorBody ? JSON.parse(errorBody) : {};
     err.info = data;
     err.status = res.status;
     throw err;
@@ -180,17 +179,16 @@ export const getMixedSuccess = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body !== null ? JSON.parse(body) : {};
+    const data = body ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
   }
-  const data: getMixedSuccessResponseSuccess['data'] =
-    body !== null
-      ? contentType.includes('json')
-        ? JSON.parse(body)
-        : body
-      : {};
+  const data: getMixedSuccessResponseSuccess['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return {
     data,
     status: res.status,

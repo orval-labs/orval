@@ -99,8 +99,7 @@ export const healthCheck = async (
       info?: healthCheckResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: healthCheckResponseError['data'] =
-      body !== null ? JSON.parse(body) : {};
+    const data: healthCheckResponseError['data'] = body ? JSON.parse(body) : {};
     err.info = data;
     err.status = res.status;
     throw err;
