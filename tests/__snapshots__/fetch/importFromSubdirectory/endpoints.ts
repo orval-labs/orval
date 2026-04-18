@@ -4,10 +4,10 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import type { AnotherSchema, Pet } from './model';
+import type { AnotherSchema as __AnotherSchema, Pet as __Pet } from './model';
 
 export type postPetsResponse200 = {
-  data: Pet;
+  data: __Pet;
   status: 200;
 };
 
@@ -35,7 +35,7 @@ export const postPets = async (
 };
 
 export type getPetsResponse200 = {
-  data: AnotherSchema;
+  data: __AnotherSchema;
   status: 200;
 };
 

@@ -104,7 +104,7 @@ export const healthCheck = async (
     err.status = res.status;
     throw err;
   }
-  const data: healthCheckResponseSuccess['data'] = body !== null ? body : '';
+  const data: healthCheckResponseSuccess['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,

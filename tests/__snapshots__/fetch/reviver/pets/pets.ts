@@ -263,7 +263,7 @@ export const deletePetById = async (
 
   const data: deletePetByIdResponse['data'] = body
     ? JSON.parse(body, fetchReviverMutator)
-    : undefined;
+    : {};
   return {
     data,
     status: res.status,

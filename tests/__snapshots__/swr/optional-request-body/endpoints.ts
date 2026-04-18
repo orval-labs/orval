@@ -41,7 +41,7 @@ export const createPets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: createPetsResponse['data'] = body ? JSON.parse(body) : undefined;
+  const data: createPetsResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -110,7 +110,7 @@ export const updatePets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: updatePetsResponse['data'] = body ? JSON.parse(body) : undefined;
+  const data: updatePetsResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -179,9 +179,7 @@ export const createCookies = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: createCookiesResponse['data'] = body
-    ? JSON.parse(body)
-    : undefined;
+  const data: createCookiesResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -250,9 +248,7 @@ export const updateCookies = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: updateCookiesResponse['data'] = body
-    ? JSON.parse(body)
-    : undefined;
+  const data: updateCookiesResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,

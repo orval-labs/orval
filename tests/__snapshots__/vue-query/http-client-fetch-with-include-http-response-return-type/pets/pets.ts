@@ -346,7 +346,7 @@ export const deletePetById = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: void = body ? JSON.parse(body) : undefined;
+  const data: void = body ? JSON.parse(body) : {};
   return data;
 };
 

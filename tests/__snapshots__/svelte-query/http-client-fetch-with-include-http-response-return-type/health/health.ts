@@ -29,7 +29,7 @@ export const healthCheck = async (options?: RequestInit): Promise<string> => {
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: string = body !== null ? body : '';
+  const data: string = body ? JSON.parse(body) : {};
   return data;
 };
 
