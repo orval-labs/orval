@@ -303,6 +303,70 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('defaults zod dateTimeOptions to { offset: true } so RFC3339 offset values are accepted', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'zod',
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.zod.dateTimeOptions).toEqual({
+        offset: true,
+      });
+      expect(normalized.output.override.zod.timeOptions).toEqual({});
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves user-provided zod dateTimeOptions without merging defaults', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'zod',
+            override: {
+              zod: {
+                dateTimeOptions: { precision: 3 },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.zod.dateTimeOptions).toEqual({
+        precision: 3,
+      });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('resolves hono compositeRoute relative to the workspace', async () => {
     const workspace = await createTempWorkspace();
 
