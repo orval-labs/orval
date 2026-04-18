@@ -622,7 +622,7 @@ export const deletePetById = async (
   }
   const data: deletePetByIdResponseSuccess['data'] = body
     ? JSON.parse(body)
-    : {};
+    : undefined;
   return {
     data,
     status: res.status,

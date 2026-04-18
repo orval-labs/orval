@@ -209,6 +209,10 @@ export const prefetchListPetsQuery = async <
 ): Promise<QueryClient> => {
   const queryOptions = getListPetsQueryOptions(http, params, options);
 
+  if (queryOptions.enabled === false) {
+    return queryClient;
+  }
+
   await queryClient.prefetchQuery(queryOptions);
 
   return queryClient;
@@ -429,6 +433,10 @@ export const prefetchShowPetByIdQuery = async <
 ): Promise<QueryClient> => {
   const queryOptions = getShowPetByIdQueryOptions(http, petId, options);
 
+  if (queryOptions.enabled === false) {
+    return queryClient;
+  }
+
   await queryClient.prefetchQuery(queryOptions);
 
   return queryClient;
@@ -640,6 +648,10 @@ export const prefetchHealthCheckQuery = async <
 ): Promise<QueryClient> => {
   const queryOptions = getHealthCheckQueryOptions(http, options);
 
+  if (queryOptions.enabled === false) {
+    return queryClient;
+  }
+
   await queryClient.prefetchQuery(queryOptions);
 
   return queryClient;
@@ -776,6 +788,10 @@ export const prefetchShowPetWithOwnerQuery = async <
   },
 ): Promise<QueryClient> => {
   const queryOptions = getShowPetWithOwnerQueryOptions(http, petId, options);
+
+  if (queryOptions.enabled === false) {
+    return queryClient;
+  }
 
   await queryClient.prefetchQuery(queryOptions);
 

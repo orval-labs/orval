@@ -283,7 +283,7 @@ export const deletePetById = async (
   }
   const data: deletePetByIdResponseSuccess['data'] = body
     ? JSON.parse(body)
-    : {};
+    : undefined;
   return {
     data,
     status: res.status,
@@ -334,7 +334,7 @@ export const healthCheck = async (
     err.status = res.status;
     throw err;
   }
-  const data: healthCheckResponseSuccess['data'] = body ? JSON.parse(body) : {};
+  const data: healthCheckResponseSuccess['data'] = body !== null ? body : '';
   return {
     data,
     status: res.status,

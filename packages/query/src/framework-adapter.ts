@@ -261,8 +261,12 @@ export interface FrameworkAdapter {
   // --- Prefetch Generation ---
   /**
    * Generate the prefetch function for a query.
+   * Implementations receive a PrefetchContext and return source for an
+   * exported helper. The helper should accept the framework's QueryClient
+   * (and HttpClient when the framework requires it) as parameters rather
+   * than resolving them internally via DI/hooks.
    * React: useQueryClient + useCallback (hook mutator) or plain async (non-hook).
-   * Angular: inject(QueryClient) based async function.
+   * Angular: plain async function accepting QueryClient and HttpClient when needed.
    * Default: React-style (backward compatible).
    */
   generatePrefetch?(context: PrefetchContext): string;

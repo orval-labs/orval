@@ -257,7 +257,9 @@ export const deletePetById = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: deletePetByIdResponse['data'] = body ? JSON.parse(body) : {};
+  const data: deletePetByIdResponse['data'] = body
+    ? JSON.parse(body)
+    : undefined;
   return {
     data,
     status: res.status,
@@ -303,7 +305,7 @@ export const healthCheck = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: healthCheckResponse['data'] = body ? JSON.parse(body) : {};
+  const data: healthCheckResponse['data'] = body !== null ? body : '';
   return {
     data,
     status: res.status,

@@ -341,6 +341,10 @@ export const createAngularAdapter = ({
     queryProperties ? ',' : ''
   }${isRequestOptions ? 'options' : 'queryOptions'})
 
+  if (${queryOptionsVarName}.enabled === false) {
+    return queryClient;
+  }
+
   await queryClient.${prefetchFnName}(${queryOptionsVarName});
 
   return queryClient;
