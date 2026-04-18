@@ -892,6 +892,7 @@
         "@hono/zod-validator": "catalog:hono",
         "@modelcontextprotocol/sdk": "catalog:mcp",
         "@orval/core": "workspace:*",
+        "@tanstack/angular-query-experimental": "catalog:angular",
         "@tanstack/react-query": "catalog:react",
         "@tanstack/svelte-query": "catalog:svelte",
         "@tanstack/vue-query": "catalog:vue",
@@ -941,6 +942,7 @@
       "@angular/forms": "21.2.2",
       "@angular/platform-browser": "21.2.2",
       "@angular/router": "21.2.2",
+      "@tanstack/angular-query-experimental": "5.90.16",
       "rxjs": "7.8.2",
     },
     "axios": {
@@ -4444,6 +4446,8 @@
 
     "ora/string-width": ["string-width@8.2.0", "", { "dependencies": { "get-east-asian-width": "^1.5.0", "strip-ansi": "^7.1.2" } }, "sha512-6hJPQ8N0V0P3SNmP6h2J99RLuzrWz2gvT7VnK5tKvrNqJoyS9W4/Fb8mo31UiPvy00z7DQXkP2hnKBVav76thw=="],
 
+    "orval-tests/@tanstack/angular-query-experimental": ["@tanstack/angular-query-experimental@5.90.16", "", { "dependencies": { "@tanstack/query-core": "5.90.12" }, "optionalDependencies": { "@tanstack/query-devtools": "5.91.1" }, "peerDependencies": { "@angular/common": ">=16.0.0", "@angular/core": ">=16.0.0" } }, "sha512-ezXyxuaSA6kpwUxwrxo5Tf3B7KL7mb7cxhLnun/RMlw6h3ZQJzl1cJgrvN97+C0AeHoucmK7RwhEoIY12gY7WA=="],
+
     "parse-json/json-parse-even-better-errors": ["json-parse-even-better-errors@2.3.1", "", {}, "sha512-xyFwyhro/JEof6Ghe2iz2NcXoj2sloNsWr/XsERDK/oiPCfaNhl5ONfp+jQdAZRQQ0IJWNzH9zIZF7li91kh2w=="],
 
     "parse5/entities": ["entities@6.0.1", "", {}, "sha512-aN97NXWF6AWBTahfVOIrB/NShkzi5H7F9r1s9mD3cDj4Ko5f2qhhVoYMibXF7GlLveb/D2ioWay8lxI97Ven3g=="],
@@ -4987,6 +4991,10 @@
     "normalize-package-data/hosted-git-info/lru-cache": ["lru-cache@6.0.0", "", { "dependencies": { "yallist": "^4.0.0" } }, "sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA=="],
 
     "ora/string-width/strip-ansi": ["strip-ansi@7.2.0", "", { "dependencies": { "ansi-regex": "^6.2.2" } }, "sha512-yDPMNjp4WyfYBkHnjIRLfca1i6KMyGCtsVgoKe/z1+6vukgaENdgGBZt+ZmKPc4gavvEZ5OgHfHdrazhgNyG7w=="],
+
+    "orval-tests/@tanstack/angular-query-experimental/@tanstack/query-core": ["@tanstack/query-core@5.90.12", "", {}, "sha512-T1/8t5DhV/SisWjDnaiU2drl6ySvsHj1bHBCWNXd+/T+Hh1cf6JodyEYMd5sgwm+b/mETT4EV3H+zCVczCU5hg=="],
+
+    "orval-tests/@tanstack/angular-query-experimental/@tanstack/query-devtools": ["@tanstack/query-devtools@5.91.1", "", {}, "sha512-l8bxjk6BMsCaVQH6NzQEE/bEgFy1hAs5qbgXl0xhzezlaQbPk6Mgz9BqEg2vTLPOHD8N4k+w/gdgCbEzecGyNg=="],
 
     "read-pkg-up/find-up/locate-path": ["locate-path@5.0.0", "", { "dependencies": { "p-locate": "^4.1.0" } }, "sha512-t7hw9pI+WvuwNJXwk5zVHpyhIqzg2qTlklJOf0mVxGSbe3Fp2VieZcduNYjaLDoy6p9uGpQEGWG87WpMKlNq8g=="],
 
