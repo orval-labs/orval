@@ -135,7 +135,11 @@ export function getBaseUrlRuntimeImports(
 ): GeneratorImport[] {
   if (!baseUrl) return [];
   if (!isBaseUrlRuntime(baseUrl)) return [];
-  return baseUrl.imports ?? [];
+  return (baseUrl.imports ?? []).map((imp) => ({
+    ...imp,
+    // Used inside generated URL template literals at runtime (not as types).
+    values: imp.values ?? true,
+  }));
 }
 
 // Creates a mixed use array with path variables and string from template string route

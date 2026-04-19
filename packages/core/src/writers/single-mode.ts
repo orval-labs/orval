@@ -94,9 +94,13 @@ export async function writeSingleMode({
       }
     }
 
-    const importsForBuilder = schemasPath
-      ? generateImportsForBuilder(output, normalizedImports, schemasPath)
-      : [];
+    // When `schemas` is unset there is no schemasPath, but we must still emit
+    // imports that carry their own `importPath` (e.g. baseUrl.runtime imports).
+    const importsForBuilder = generateImportsForBuilder(
+      output,
+      normalizedImports,
+      schemasPath ?? '.',
+    );
 
     data += builder.imports({
       client: output.client,
@@ -115,20 +119,18 @@ export async function writeSingleMode({
     });
 
     if (output.mock) {
-      const importsMockForBuilder = schemasPath
-        ? generateImportsForBuilder(
-            output,
-            importsMock.filter(
-              (impMock) =>
-                !normalizedImports.some(
-                  (imp) =>
-                    imp.name === impMock.name &&
-                    (imp.alias ?? '') === (impMock.alias ?? ''),
-                ),
+      const importsMockForBuilder = generateImportsForBuilder(
+        output,
+        importsMock.filter(
+          (impMock) =>
+            !normalizedImports.some(
+              (imp) =>
+                imp.name === impMock.name &&
+                (imp.alias ?? '') === (impMock.alias ?? ''),
             ),
-            schemasPath,
-          )
-        : [];
+        ),
+        schemasPath ?? '.',
+      );
       data += builder.importsMock({
         implementation: implementationMock,
         imports: importsMockForBuilder,
