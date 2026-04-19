@@ -96,6 +96,12 @@ export async function writeSingleMode({
 
     // When `schemas` is unset there is no schemasPath, but we must still emit
     // imports that carry their own `importPath` (e.g. baseUrl.runtime imports).
+    // Use `.` only so `generateImportsForBuilder` receives a string; imports
+    // without `importPath` would be resolved relative to that path and can be
+    // wrong in no-`schemas` setups—typical single-file fetch + `baseUrl.imports`
+    // only uses entries with `importPath`. With `indexFiles`, schema buckets may
+    // list `dependency: '.'` and empty `exports`; `addDependency` then returns
+    // nothing and those entries are dropped from emitted import text.
     const importsForBuilder = generateImportsForBuilder(
       output,
       normalizedImports,
