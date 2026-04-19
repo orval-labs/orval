@@ -250,9 +250,9 @@ describe('getBaseUrlRuntimeImports', () => {
 
   it('preserves explicit values: false on baseUrl imports', () => {
     const imports = [{ name: 'x', importPath: './x', values: false as const }];
-    expect(
-      getBaseUrlRuntimeImports({ runtime: 'x', imports }),
-    ).toEqual(imports);
+    expect(getBaseUrlRuntimeImports({ runtime: 'x', imports })).toEqual(
+      imports,
+    );
   });
 });
 
