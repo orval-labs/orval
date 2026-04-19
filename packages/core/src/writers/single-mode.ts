@@ -94,19 +94,18 @@ export async function writeSingleMode({
       }
     }
 
-    // When `schemas` is unset there is no schemasPath, but we must still emit
-    // imports that carry their own `importPath` (e.g. baseUrl.runtime imports).
-    // Use `.` only so `generateImportsForBuilder` receives a string; imports
-    // without `importPath` would be resolved relative to that path and can be
-    // wrong in no-`schemas` setups—typical single-file fetch + `baseUrl.imports`
-    // only uses entries with `importPath`. With `indexFiles`, schema buckets may
-    // list `dependency: '.'` and empty `exports`; `addDependency` then returns
-    // nothing and those entries are dropped from emitted import text.
-    const importsForBuilder = generateImportsForBuilder(
-      output,
-      normalizedImports,
-      schemasPath ?? '.',
-    );
+    // When `schemas` is unset there is no schemasPath. We must still emit imports
+    // that carry `importPath` (e.g. baseUrl.runtime imports), but we must not
+    // pass `'.'` for schema-relative imports: that becomes `from '.'` and breaks
+    // TS (see samples with a real `schemas` path). So only `importPath` entries
+    // use the `.` placeholder when `schemasPath` is missing.
+    const importsForBuilder = schemasPath
+      ? generateImportsForBuilder(output, normalizedImports, schemasPath)
+      : generateImportsForBuilder(
+          output,
+          normalizedImports.filter((imp) => !!imp.importPath),
+          '.',
+        );
 
     data += builder.imports({
       client: output.client,
@@ -125,18 +124,21 @@ export async function writeSingleMode({
     });
 
     if (output.mock) {
-      const importsMockForBuilder = generateImportsForBuilder(
-        output,
-        importsMock.filter(
-          (impMock) =>
-            !normalizedImports.some(
-              (imp) =>
-                imp.name === impMock.name &&
-                (imp.alias ?? '') === (impMock.alias ?? ''),
-            ),
-        ),
-        schemasPath ?? '.',
+      const filteredMockImports = importsMock.filter(
+        (impMock) =>
+          !normalizedImports.some(
+            (imp) =>
+              imp.name === impMock.name &&
+              (imp.alias ?? '') === (impMock.alias ?? ''),
+          ),
       );
+      const importsMockForBuilder = schemasPath
+        ? generateImportsForBuilder(output, filteredMockImports, schemasPath)
+        : generateImportsForBuilder(
+            output,
+            filteredMockImports.filter((imp) => !!imp.importPath),
+            '.',
+          );
       data += builder.importsMock({
         implementation: implementationMock,
         imports: importsMockForBuilder,
