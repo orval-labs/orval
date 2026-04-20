@@ -88,9 +88,7 @@ export const healthCheck = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: healthCheckResponse['data'] = body
-    ? JSON.parse(body, fetchReviverMutator)
-    : {};
+  const data: healthCheckResponse['data'] = body !== null ? body : '';
   return {
     data,
     status: res.status,
