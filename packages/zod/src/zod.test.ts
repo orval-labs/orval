@@ -929,6 +929,73 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).not.toContain('.stringFormat([');
   });
 
+  it('places stringFormat before min/max when format and pattern and minLength are defined in v4', () => {
+    const schemaWithPatternFormatAndMin: OpenApiSchemaObject = {
+      type: 'string',
+      format: 'slug',
+      pattern: '^[a-z0-9-]+$',
+      minLength: 1,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithPatternFormatAndMin,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'slug',
+      false,
+      true,
+      { required: false },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      true,
+    );
+
+    // stringFormat must come before min so the chain is valid
+    const sfIndex = parsed.zod.indexOf('.stringFormat(');
+    const minIndex = parsed.zod.indexOf('.min(');
+    expect(sfIndex).toBeGreaterThanOrEqual(0);
+    expect(minIndex).toBeGreaterThan(sfIndex);
+  });
+
+  it('does not use stringFormat for format+pattern+minLength in v3', () => {
+    const result = generateZodValidationSchemaDefinition(
+      { type: 'string', format: 'slug', pattern: '^[a-z0-9-]+$', minLength: 1 },
+      { output: { override: { useDates: false } } } as ContextSpec,
+      'slug',
+      false,
+      false, // isZodV4 = false
+      { required: false },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      { output: { override: { useDates: false } } } as ContextSpec,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).not.toContain('.stringFormat(');
+    expect(parsed.zod).toContain('.regex(');
+    expect(parsed.zod).toContain('.min(');
+  });
+
   it('generates string when format and pattern is defined in v3', () => {
     const stringWithPatternAndFormat: OpenApiSchemaObject = {
       type: 'string',
@@ -3745,6 +3812,104 @@ describe('generateZodWithMultiTypeArray', () => {
     expect(parsed.zod).toBe(
       'zod.union([zod.string(),zod.number()]).optional()',
     );
+  });
+
+  it('does not chain stringFormat/regex on number in multi-type with pattern and format (Zod v4)', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+          zod: {},
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schemaWithMultiTypeAndPattern: OpenApiSchemaObject = {
+      type: ['integer', 'string'],
+      format: 'int64',
+      pattern: String.raw`^-?(?:0|[1-9]\d*)$`,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithMultiTypeAndPattern,
+      context,
+      'taskId',
+      false,
+      true,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      true,
+    );
+
+    // number branch must not have .stringFormat() chained
+    expect(parsed.zod).not.toContain('number().stringFormat');
+    // string branch should still use stringFormat for the custom format
+    expect(parsed.zod).toContain('.stringFormat(');
+    expect(parsed.zod).toContain('zod.union([');
+  });
+
+  it('emits regex (not stringFormat) for predefined format with pattern in v4', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+          zod: { dateTimeOptions: {}, timeOptions: {} },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const result = generateZodValidationSchemaDefinition(
+      { type: 'string', format: 'uuid', pattern: '^[0-9a-f-]+$' },
+      context,
+      'myId',
+      false,
+      true,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      true,
+    );
+
+    expect(parsed.zod).not.toContain('.stringFormat(');
+    expect(parsed.zod).toContain('.uuid(');
+    expect(parsed.zod).toContain('.regex(');
+  });
+
+  it('emits regex (not stringFormat) for pattern without format in v4', () => {
+    const context = {
+      output: { override: { useDates: false, zod: {} } },
+    } as unknown as ContextSpec;
+
+    const result = generateZodValidationSchemaDefinition(
+      { type: 'string', pattern: '^[a-z]+$' },
+      context,
+      'word',
+      false,
+      true,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      true,
+    );
+
+    expect(parsed.zod).not.toContain('.stringFormat(');
+    expect(parsed.zod).toContain('.regex(');
   });
 });
 
