@@ -4,6 +4,7 @@ import type { OpenApiSchemaObject } from '../types';
 const binaryApplicationTypes = new Set([
   'application/octet-stream',
   'application/pdf',
+  'application/zip',
 ]);
 
 /**
