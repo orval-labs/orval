@@ -1,4 +1,5 @@
 import {
+  camel,
   type ClientBuilder,
   type ClientDependenciesBuilder,
   type ClientExtraFilesBuilder,
@@ -1124,11 +1125,23 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
   provideIn,
   output,
   verbOptions,
+  tag,
 }) => {
   resetHttpClientReturnTypes();
   resourceReturnTypesRegistry.reset();
 
-  const retrievals = Object.values(verbOptions).filter((verbOption) =>
+  // When the output is emitted per-tag (modes: `tags`, `tags-split`) each file
+  // must only reference operations that belong to the current tag — otherwise
+  // the shared header duplicates helpers across every tag file and pulls in
+  // type names the file-local `imports` filter never sees, producing missing
+  // schema imports in the generated output.
+  const relevantVerbs = tag
+    ? Object.values(verbOptions).filter((verbOption) =>
+        verbOption.tags.some((t) => camel(t) === camel(tag)),
+      )
+    : Object.values(verbOptions);
+
+  const retrievals = relevantVerbs.filter((verbOption) =>
     isRetrievalVerb(
       verbOption.verb,
       verbOption.operationName,
@@ -1156,7 +1169,7 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
     retrievals.map((verbOption) => verbOption.operationName),
   );
 
-  const mutations = Object.values(verbOptions).filter((verbOption) =>
+  const mutations = relevantVerbs.filter((verbOption) =>
     isMutationVerb(
       verbOption.verb,
       verbOption.operationName,

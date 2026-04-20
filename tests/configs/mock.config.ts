@@ -322,4 +322,19 @@ export default defineConfig({
       target: '../specifications/enums-inline.yaml',
     },
   },
+  mswBinaryMultiContent: {
+    output: {
+      target: '../generated/mock/msw-binary-multi-content/endpoints.ts',
+      schemas: '../generated/mock/msw-binary-multi-content/model',
+      client: 'axios',
+      mock: {
+        type: 'msw',
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/msw-binary-multi-content.yaml',
+    },
+  },
 });

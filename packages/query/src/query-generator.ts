@@ -453,7 +453,7 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${d
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}`;
 
-  const prefetch = generatePrefetch({
+  const prefetchContext = {
     usePrefetch,
     type,
     useQuery,
@@ -469,7 +469,11 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     queryProperties,
     isRequestOptions,
     doc,
-  });
+  };
+
+  const prefetch = adapter.generatePrefetch
+    ? adapter.generatePrefetch(prefetchContext)
+    : generatePrefetch(prefetchContext);
 
   const isPrimaryQueryType =
     type === QueryType.QUERY ||

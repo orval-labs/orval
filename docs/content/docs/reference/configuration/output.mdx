@@ -945,7 +945,9 @@ Add preprocess functions to schemas.
 
 **Type:** `Object`
 
-Configure Zod datetime/time validation options.
+**Default (dateTimeOptions):** `{ offset: true }`
+
+Configure Zod datetime/time validation options. `dateTimeOptions` defaults to `{ offset: true }` so generated schemas accept RFC3339 timestamps with timezone offsets (e.g. `2026-03-27T12:00:00+01:00`) — matching the OpenAPI `format: date-time` contract. Pass an explicit object to override (e.g. `{ offset: false }` or `{ offset: true, precision: 3 }`).
 
 ### useBrandedTypes
 

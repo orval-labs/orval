@@ -16,7 +16,7 @@ export const ShowPetByIdParams = zod.object({
 export const ShowPetByIdResponse = zod.object({
   id: zod.number().optional(),
   birthDate: zod.string().date(),
-  createdAt: zod.string().datetime({}),
+  createdAt: zod.string().datetime({ offset: true }),
   age: zod.number().optional(),
   legCount: zod.number().optional(),
   weight: zod.number().optional(),
