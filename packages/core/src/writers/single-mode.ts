@@ -94,9 +94,18 @@ export async function writeSingleMode({
       }
     }
 
+    // When `schemas` is unset there is no schemasPath. We must still emit imports
+    // that carry `importPath` (e.g. baseUrl.runtime imports), but we must not
+    // pass `'.'` for schema-relative imports: that becomes `from '.'` and breaks
+    // TS (see samples with a real `schemas` path). So only `importPath` entries
+    // use the `.` placeholder when `schemasPath` is missing.
     const importsForBuilder = schemasPath
       ? generateImportsForBuilder(output, normalizedImports, schemasPath)
-      : [];
+      : generateImportsForBuilder(
+          output,
+          normalizedImports.filter((imp) => !!imp.importPath),
+          '.',
+        );
 
     data += builder.imports({
       client: output.client,
@@ -115,20 +124,21 @@ export async function writeSingleMode({
     });
 
     if (output.mock) {
+      const filteredMockImports = importsMock.filter(
+        (impMock) =>
+          !normalizedImports.some(
+            (imp) =>
+              imp.name === impMock.name &&
+              (imp.alias ?? '') === (impMock.alias ?? ''),
+          ),
+      );
       const importsMockForBuilder = schemasPath
-        ? generateImportsForBuilder(
+        ? generateImportsForBuilder(output, filteredMockImports, schemasPath)
+        : generateImportsForBuilder(
             output,
-            importsMock.filter(
-              (impMock) =>
-                !normalizedImports.some(
-                  (imp) =>
-                    imp.name === impMock.name &&
-                    (imp.alias ?? '') === (impMock.alias ?? ''),
-                ),
-            ),
-            schemasPath,
-          )
-        : [];
+            filteredMockImports.filter((imp) => !!imp.importPath),
+            '.',
+          );
       data += builder.importsMock({
         implementation: implementationMock,
         imports: importsMockForBuilder,

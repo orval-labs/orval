@@ -129,13 +129,20 @@ export function getFullRoute(
 
 /**
  * Returns `GeneratorImport` entries for {@link BaseUrlRuntime.imports} when `baseUrl` is a runtime config.
+ *
+ * Defaults `values` to true so symbols in `runtime` emit as value imports in the
+ * generated client. Set `values: false` explicitly only for unusual cases (e.g.
+ * type-only symbols referenced from the expression).
  */
 export function getBaseUrlRuntimeImports(
   baseUrl?: NormalizedOutputOptions['baseUrl'],
 ): GeneratorImport[] {
   if (!baseUrl) return [];
   if (!isBaseUrlRuntime(baseUrl)) return [];
-  return baseUrl.imports ?? [];
+  return (baseUrl.imports ?? []).map((imp) => ({
+    ...imp,
+    values: imp.values ?? true,
+  }));
 }
 
 // Creates a mixed use array with path variables and string from template string route

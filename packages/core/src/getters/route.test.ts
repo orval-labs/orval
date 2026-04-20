@@ -235,7 +235,7 @@ describe('getBaseUrlRuntimeImports', () => {
         runtime: 'apiBase',
         imports,
       }),
-    ).toEqual(imports);
+    ).toEqual([{ ...imports[0], values: true }]);
   });
 
   it('returns imports for env object pattern (runtime uses property access)', () => {
@@ -245,7 +245,14 @@ describe('getBaseUrlRuntimeImports', () => {
         runtime: 'env.API_BASE_URL',
         imports,
       }),
-    ).toEqual(imports);
+    ).toEqual([{ ...imports[0], values: true }]);
+  });
+
+  it('preserves explicit values: false on baseUrl imports', () => {
+    const imports = [{ name: 'x', importPath: './x', values: false as const }];
+    expect(getBaseUrlRuntimeImports({ runtime: 'x', imports })).toEqual(
+      imports,
+    );
   });
 });
 
