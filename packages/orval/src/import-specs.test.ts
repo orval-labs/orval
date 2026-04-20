@@ -159,18 +159,18 @@ describe('validation', () => {
     );
   });
 
-  it('should skip validation when input.validation is false', async () => {
+  it('should skip validation when input.unsafeDisableValidation is true', async () => {
     const workspace = 'test';
     const normalizedOptions = await normalizeOptions(
       {
         output: { target: '' },
-        input: { target: SSE_ITEM_SCHEMA_SPEC, validation: false },
+        input: { target: SSE_ITEM_SCHEMA_SPEC, unsafeDisableValidation: true },
       },
       workspace,
       {},
     );
 
-    expect(normalizedOptions.input.validation).toBe(false);
+    expect(normalizedOptions.input.unsafeDisableValidation).toBe(true);
 
     const warnSpy = vi.spyOn(orvalCore, 'logWarning').mockImplementation(() => {
       /* noop */

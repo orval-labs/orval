@@ -26,7 +26,7 @@ async function resolveSpec(
       headers: Record<string, string>;
     }[];
   },
-  validation = true,
+  unsafeDisableValidation = false,
 ): Promise<OpenApiDocument> {
   const data = await bundle(input, {
     plugins: [
@@ -43,24 +43,21 @@ async function resolveSpec(
     data as Record<string, unknown>,
   );
 
-  if (validation) {
+  if (unsafeDisableValidation) {
+    logWarning(
+      `🚨 OpenAPI spec validation is disabled.\n` +
+        `  Code generation with invalid specs is not guaranteed to work and may break in minor updates.\n` +
+        `  Bug reports with validation disabled will not be accepted.`,
+    );
+  } else {
     validateComponentKeys(dereferencedData);
 
     const { valid, errors } = await validateSpec(dereferencedData);
     if (!valid) {
       throw new Error(
-        `OpenAPI spec validation failed:\n${JSON.stringify(errors, undefined, 2)}\n\n` +
-          `If your spec uses non-standard extensions and you want to skip validation,\n` +
-          `set input.validation to false in your orval config.\n` +
-          `Note: no bug reports are accepted with validation disabled.`,
+        `OpenAPI spec validation failed:\n${JSON.stringify(errors, undefined, 2)}`,
       );
     }
-  } else {
-    logWarning(
-      `🚨 OpenAPI spec validation is disabled (input.validation: false).\n` +
-        `  Code generation with invalid specs is not guaranteed to work and may break in minor updates.\n` +
-        `  Bug reports with validation disabled will not be accepted.`,
-    );
   }
 
   const { specification } = upgrade(dereferencedData);
@@ -78,7 +75,7 @@ export async function importSpecs(
   const spec = await resolveSpec(
     input.target,
     input.parserOptions,
-    input.validation,
+    input.unsafeDisableValidation,
   );
 
   return importOpenApi({
