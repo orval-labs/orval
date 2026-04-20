@@ -971,6 +971,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     const minIndex = parsed.zod.indexOf('.min(');
     expect(sfIndex).toBeGreaterThanOrEqual(0);
     expect(minIndex).toBeGreaterThan(sfIndex);
+    expect(parsed.zod).not.toContain('.regex(');
   });
 
   it('does not use stringFormat for format+pattern+minLength in v3', () => {
@@ -3847,8 +3848,9 @@ describe('generateZodWithMultiTypeArray', () => {
       true,
     );
 
-    // number branch must not have .stringFormat() chained
+    // number branch must not have .stringFormat() or .regex() chained
     expect(parsed.zod).not.toContain('number().stringFormat');
+    expect(parsed.zod).not.toContain('number().regex');
     // string branch should still use stringFormat for the custom format
     expect(parsed.zod).toContain('.stringFormat(');
     expect(parsed.zod).toContain('zod.union([');
