@@ -206,6 +206,7 @@ export interface NormalizedOperationOptions {
 export interface NormalizedInputOptions {
   target: string | OpenApiDocument;
   override: OverrideInput;
+  unsafeDisableValidation: boolean;
   filters?: InputFiltersOptions;
   parserOptions?: {
     headers?: {
@@ -326,6 +327,16 @@ export interface InputFiltersOptions {
 export interface InputOptions {
   target: string | string[] | Record<string, unknown> | OpenApiDocument;
   override?: OverrideInput;
+  /**
+   * Disable OpenAPI spec validation.
+   *
+   * **Use at your own risk** — code generation with invalid specs is not guaranteed
+   * to work and may break in minor updates. Bug reports with validation disabled are
+   * not accepted.
+   *
+   * @default false
+   */
+  unsafeDisableValidation?: boolean;
   filters?: InputFiltersOptions;
   parserOptions?: {
     headers?: {

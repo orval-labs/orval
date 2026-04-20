@@ -28,6 +28,7 @@ export async function importOpenApi({
     spec,
     input.override.transformer,
     workspace,
+    input.unsafeDisableValidation,
   );
 
   const schemas = getApiSchemas({
@@ -65,6 +66,7 @@ async function applyTransformer(
   openApi: OpenApiDocument,
   transformer: OverrideInput['transformer'],
   workspace: string,
+  unsafeDisableValidation = false,
 ): Promise<OpenApiDocument> {
   const transformerFn = transformer
     ? await dynamicImport(transformer, workspace)
@@ -76,9 +78,11 @@ async function applyTransformer(
 
   const transformedOpenApi = transformerFn(openApi);
 
-  const { valid, errors } = await validate(transformedOpenApi);
-  if (!valid) {
-    throw new Error(`Validation failed`, { cause: errors });
+  if (!unsafeDisableValidation) {
+    const { valid, errors } = await validate(transformedOpenApi);
+    if (!valid) {
+      throw new Error(`Validation failed`, { cause: errors });
+    }
   }
 
   return transformedOpenApi;

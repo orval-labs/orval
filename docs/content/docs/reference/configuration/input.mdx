@@ -220,3 +220,36 @@ export default defineConfig({
   },
 });
 ```
+
+## unsafeDisableValidation
+
+Disable OpenAPI spec validation during code generation.
+
+**Type:** `boolean`
+**Default:** `false`
+
+<Callout type="warn">
+  **Use at your own risk.** Code generation from an invalid OpenAPI spec is not
+  guaranteed to work and may break in minor updates. Bug reports with validation
+  disabled will not be accepted.
+</Callout>
+
+When `true`, orval skips both spec-level validation (`@scalar/openapi-parser`)
+and the component-key check — including the post-transformer validation when
+`override.transformer` is used — and proceeds with code generation regardless
+of spec errors. Intended as an escape hatch for specs that use non-standard
+extensions (e.g. FastAPI's `itemSchema` on `text/event-stream` responses) which
+a compliant validator would otherwise reject.
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: './petstore.yaml',
+      unsafeDisableValidation: true,
+    },
+  },
+});
+```
