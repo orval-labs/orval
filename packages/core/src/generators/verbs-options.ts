@@ -35,6 +35,7 @@ import {
   mergeDeep,
   sanitize,
 } from '../utils';
+import { filteredVerbs } from './input-filters';
 import { generateMutator } from './mutator';
 
 export interface GenerateVerbOptionsParams {
@@ -351,7 +352,7 @@ export function generateVerbsOptions({
   context,
 }: GenerateVerbsOptionsParams): Promise<GeneratorVerbsOptions> {
   return asyncReduce(
-    _filteredVerbs(verbs, input.filters),
+    filteredVerbs(verbs, input.filters),
     async (acc, [verb, operation]: [string, OpenApiOperationObject]) => {
       if (isVerb(verb)) {
         const verbOptions = await generateVerbOptions({
@@ -370,32 +371,5 @@ export function generateVerbsOptions({
       return acc;
     },
     [] as GeneratorVerbsOptions,
-  );
-}
-
-export function _filteredVerbs(
-  verbs: OpenApiPathItemObject,
-  filters: NormalizedInputOptions['filters'],
-) {
-  if (filters?.tags === undefined) {
-    return Object.entries(verbs);
-  }
-
-  const filterTags = filters.tags;
-  const filterMode = filters.mode ?? 'include';
-
-  return Object.entries(verbs).filter(
-    ([, operation]: [string, OpenApiOperationObject]) => {
-      // Bridge assertion: operation.tags is `any` due to AnyOtherAttribute
-      const operationTags = (operation.tags ?? []) as string[];
-
-      const isMatch = operationTags.some((tag) =>
-        filterTags.some((filterTag) =>
-          filterTag instanceof RegExp ? filterTag.test(tag) : filterTag === tag,
-        ),
-      );
-
-      return filterMode === 'exclude' ? !isMatch : isMatch;
-    },
   );
 }

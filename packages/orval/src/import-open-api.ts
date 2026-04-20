@@ -1,10 +1,12 @@
 import {
+  collectReferencedSchemas,
   type ContextSpec,
   dynamicImport,
   generateComponentDefinition,
   generateParameterDefinition,
   generateSchemasDefinition,
   type ImportOpenApi,
+  type InputFiltersOptions,
   type InputOptions,
   type NormalizedOutputOptions,
   type OpenApiComponentsObject,
@@ -92,6 +94,25 @@ interface GetApiSchemasOptions {
   spec: OpenApiDocument;
 }
 
+function resolveEffectiveSchemasFilter(
+  spec: OpenApiDocument,
+  filters: InputFiltersOptions | undefined,
+): InputFiltersOptions | undefined {
+  const hasTagFilter = !!filters?.tags;
+  const hasSchemasFilter = !!filters?.schemas;
+
+  if (hasTagFilter && !hasSchemasFilter) {
+    const referencedSchemas = collectReferencedSchemas(
+      spec,
+      filters.tags,
+      filters.mode,
+    );
+    return { ...filters, schemas: referencedSchemas };
+  }
+
+  return filters;
+}
+
 function getApiSchemas({
   input,
   output,
@@ -106,11 +127,12 @@ function getApiSchemas({
     output,
   };
 
+  const effectiveFilters = resolveEffectiveSchemasFilter(spec, input.filters);
   const schemaDefinition = generateSchemasDefinition(
     spec.components?.schemas,
     context,
     output.override.components.schemas.suffix,
-    input.filters,
+    effectiveFilters,
   );
 
   const responseDefinition = generateComponentDefinition(
