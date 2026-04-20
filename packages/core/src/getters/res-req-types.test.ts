@@ -78,6 +78,7 @@ describe('isBinaryContentType', () => {
   it('should return true for binary content types', () => {
     expect(isBinaryContentType('application/octet-stream')).toBe(true);
     expect(isBinaryContentType('application/pdf')).toBe(true);
+    expect(isBinaryContentType('application/zip')).toBe(true);
     expect(isBinaryContentType('image/png')).toBe(true);
     expect(isBinaryContentType('image/jpeg')).toBe(true);
     expect(isBinaryContentType('audio/mp3')).toBe(true);
