@@ -98,10 +98,7 @@ function resolveEffectiveSchemasFilter(
   spec: OpenApiDocument,
   filters: InputFiltersOptions | undefined,
 ): InputFiltersOptions | undefined {
-  const hasTagFilter = !!filters?.tags;
-  const hasSchemasFilter = !!filters?.schemas;
-
-  if (hasTagFilter && !hasSchemasFilter) {
+  if (filters?.tags && !filters.schemas) {
     const referencedSchemas = collectReferencedSchemas(
       spec,
       filters.tags,

@@ -142,7 +142,7 @@ describe('collectReferencedSchemas', () => {
       },
     });
 
-    expect(collectReferencedSchemas(spec, ['users'])).toEqual([]);
+    expect(collectReferencedSchemas(spec, ['users'], 'include')).toEqual([]);
   });
 
   it('collects direct $ref from a matching operation', () => {
@@ -170,7 +170,7 @@ describe('collectReferencedSchemas', () => {
       },
     });
 
-    expect(collectReferencedSchemas(spec, ['pets'])).toEqual(
+    expect(collectReferencedSchemas(spec, ['pets'], 'include')).toEqual(
       expect.arrayContaining(['Pet']),
     );
   });
@@ -213,7 +213,7 @@ describe('collectReferencedSchemas', () => {
       },
     });
 
-    expect(collectReferencedSchemas(spec, ['pets'])).toEqual(
+    expect(collectReferencedSchemas(spec, ['pets'], 'include')).toEqual(
       expect.arrayContaining(['Pet', 'Tag', 'Category']),
     );
   });
@@ -249,7 +249,7 @@ describe('collectReferencedSchemas', () => {
       },
     });
 
-    expect(collectReferencedSchemas(spec, ['animals'])).toEqual(
+    expect(collectReferencedSchemas(spec, ['animals'], 'include')).toEqual(
       expect.arrayContaining(['Cat', 'Dog']),
     );
   });
@@ -284,7 +284,7 @@ describe('collectReferencedSchemas', () => {
       },
     });
 
-    expect(collectReferencedSchemas(spec, ['tree'])).toEqual(
+    expect(collectReferencedSchemas(spec, ['tree'], 'include')).toEqual(
       expect.arrayContaining(['TreeNode']),
     );
   });
@@ -329,7 +329,7 @@ describe('collectReferencedSchemas', () => {
       },
     });
 
-    expect(collectReferencedSchemas(spec, [/^pet/])).toEqual(
+    expect(collectReferencedSchemas(spec, [/^pet/], 'include')).toEqual(
       expect.arrayContaining(['Pet']),
     );
   });
@@ -356,7 +356,7 @@ describe('collectReferencedSchemas', () => {
       },
     });
 
-    expect(collectReferencedSchemas(spec, ['pets'])).toEqual([]);
+    expect(collectReferencedSchemas(spec, ['pets'], 'include')).toEqual([]);
   });
 
   it('excludes operations matching tags when mode is exclude', () => {
