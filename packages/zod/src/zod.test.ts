@@ -935,6 +935,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       format: 'slug',
       pattern: '^[a-z0-9-]+$',
       minLength: 1,
+      maxLength: 64,
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -969,8 +970,10 @@ describe('generateZodValidationSchemaDefinition`', () => {
     // stringFormat must come before min so the chain is valid
     const sfIndex = parsed.zod.indexOf('.stringFormat(');
     const minIndex = parsed.zod.indexOf('.min(');
+    const maxIndex = parsed.zod.indexOf('.max(');
     expect(sfIndex).toBeGreaterThanOrEqual(0);
     expect(minIndex).toBeGreaterThan(sfIndex);
+    expect(maxIndex).toBeGreaterThan(minIndex);
     expect(parsed.zod).not.toContain('.regex(');
   });
 
