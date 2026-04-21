@@ -4316,12 +4316,12 @@ describe('generateZodWithMultiTypeArray', () => {
       true,
     );
 
-    // number branch must not have .stringFormat() or .regex() chained
-    expect(parsed.zod).not.toContain('number().stringFormat');
-    expect(parsed.zod).not.toContain('number().regex');
-    // string branch should still use stringFormat for the custom format
-    expect(parsed.zod).toContain('.stringFormat(');
     expect(parsed.zod).toContain('zod.union([');
+    expect(parsed.zod).toContain('zod.number()');
+    expect(parsed.zod).not.toMatch(
+      /zod\.number\(\)[^,\]]*\.(?:stringFormat|regex)\(/,
+    );
+    expect(parsed.zod.match(/\.stringFormat\(/g) ?? []).toHaveLength(1);
   });
 
   it('emits regex (not stringFormat) for predefined format with pattern in v4', () => {
