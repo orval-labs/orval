@@ -3049,7 +3049,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     const schemaFormatPattern: OpenApiSchemaObject = {
       type: 'string',
       format: 'my-id',
-      pattern: '^[A-Z]{3}-\\d+$',
+      pattern: String.raw`^[A-Z]{3}-\d+$`,
     };
 
     const result = generateZodValidationSchemaDefinition(
@@ -3089,7 +3089,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
   it('emits string().regex() for pattern-only in v3', () => {
     const schemaPatternOnly: OpenApiSchemaObject = {
       type: 'string',
-      pattern: '^\\d{4}$',
+      pattern: String.raw`^\d{4}$`,
     };
 
     const result = generateZodValidationSchemaDefinition(
