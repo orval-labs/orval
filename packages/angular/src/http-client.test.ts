@@ -901,15 +901,20 @@ describe('angular HttpClient generator', () => {
 
       const impl = generateHttpClientImplementation(verbOption, options);
 
+      // The Zod validation path parses with `Pet.parse(...)` whose output type
+      // is `PetOutput`. Casting that to a caller-overridable `TData` would be
+      // unsound, so the generator no longer emits `as TData` on this path.
       expect(impl).toContain(
-        'response.clone({ body: Pet.parse(response.body) as TData })',
+        'response.clone({ body: Pet.parse(response.body) })',
       );
+      expect(impl).not.toContain('Pet.parse(response.body) as TData');
       expect(impl).toContain(
-        'event instanceof AngularHttpResponse ? event.clone({ body: Pet.parse(event.body) as TData }) : event',
+        'event instanceof AngularHttpResponse ? event.clone({ body: Pet.parse(event.body) }) : event',
       );
+      expect(impl).not.toContain('Pet.parse(event.body) as TData');
     });
 
-    it('uses Zod output types for default generics and client result aliases', () => {
+    it('uses Zod output types directly and drops the TData generic on validated methods', () => {
       const output = createOutput({
         schemas: {
           type: 'zod',
@@ -946,7 +951,16 @@ describe('angular HttpClient generator', () => {
       const impl = generateHttpClientImplementation(verbOption, options);
       const footer = getHttpClientReturnTypes(['getPetById']);
 
-      expect(impl).toContain('getPetById<TData = PetOutput>');
+      // The validated method no longer exposes a `<TData>` generic because the
+      // runtime value is fixed to `PetOutput` (the zod output type).
+      expect(impl).not.toContain('getPetById<TData');
+      expect(impl).toContain('getPetById(');
+      expect(impl).toContain('Observable<PetOutput>');
+      // The underlying HttpClient call is typed as `<PetOutput>` so the pipe
+      // flows naturally without an `as TData` cast.
+      expect(impl).toContain('this.http.get<PetOutput>');
+      expect(impl).toContain('.pipe(map(data => Pet.parse(data)))');
+      expect(impl).not.toContain('Pet.parse(data) as TData');
       expect(footer).toContain(
         'export type GetPetByIdClientResult = NonNullable<PetOutput>',
       );

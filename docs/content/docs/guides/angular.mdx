@@ -588,10 +588,10 @@ same validation hook through Angular's `HttpResourceOptions.parse`.
 
 ```ts
 // Generated code (simplified)
-getPet<TData = PetOutput>(options?: HttpClientBodyOptions): Observable<TData> {
+getPet(options?: HttpClientBodyOptions): Observable<PetOutput> {
   return this.http
-    .get<TData>(`/pet`, { observe: 'body' })
-    .pipe(map((data) => Pet.parse(data) as TData));
+    .get<PetOutput>(`/pet`, { observe: 'body' })
+    .pipe(map((data) => Pet.parse(data)));
 }
 
 showPetByIdResource(
