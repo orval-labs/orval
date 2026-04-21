@@ -170,13 +170,17 @@ export function listPetsResource(
   accept?: ListPetsAccept,
   params?: Signal<ListPetsParams>,
   version?: Signal<number>,
-  options?: OrvalHttpResourceOptions<PetsOutput | string, unknown, true>,
+  options?:
+    | OrvalHttpResourceOptions<PetsOutput, unknown, true>
+    | OrvalHttpResourceOptions<string, string, true>,
 ): HttpResourceRef<PetsOutput | string | undefined>;
 export function listPetsResource(
   accept: ListPetsAccept = 'application/json',
   params?: Signal<ListPetsParams>,
   version?: Signal<number>,
-  options?: OrvalHttpResourceOptions<PetsOutput | string, unknown, true>,
+  options?:
+    | OrvalHttpResourceOptions<PetsOutput, unknown, true>
+    | OrvalHttpResourceOptions<string, string, true>,
 ): HttpResourceRef<PetsOutput | string | undefined> {
   const request = {
     url: `/v${version?.() ?? 1}/pets`,
@@ -248,13 +252,17 @@ export function showPetByIdResource(
   petId: Signal<string>,
   accept?: ShowPetByIdAccept,
   version?: Signal<number>,
-  options?: OrvalHttpResourceOptions<string | PetOutput, unknown, true>,
+  options?:
+    | OrvalHttpResourceOptions<string, string, true>
+    | OrvalHttpResourceOptions<PetOutput, unknown, true>,
 ): HttpResourceRef<string | PetOutput | undefined>;
 export function showPetByIdResource(
   petId: Signal<string>,
   accept: ShowPetByIdAccept = 'application/json',
   version?: Signal<number>,
-  options?: OrvalHttpResourceOptions<string | PetOutput, unknown, true>,
+  options?:
+    | OrvalHttpResourceOptions<string, string, true>
+    | OrvalHttpResourceOptions<PetOutput, unknown, true>,
 ): HttpResourceRef<string | PetOutput | undefined> {
   const request = `/v${version?.() ?? 1}/pets/${petId()}`;
   const normalizedRequest: HttpResourceRequest = { url: request };

@@ -29,7 +29,7 @@ export const getCreatePetsUrl = () => {
 };
 
 export const createPets = async (
-  requiredPetBodyBody: RequiredPetBodyBody,
+  requiredPetBodyBody?: RequiredPetBodyBody,
   options?: RequestInit,
 ): Promise<createPetsResponse> => {
   const res = await fetch(getCreatePetsUrl(), {
@@ -167,7 +167,7 @@ export const getCreateCookiesUrl = () => {
 };
 
 export const createCookies = async (
-  cookie: Cookie,
+  cookie?: Cookie,
   options?: RequestInit,
 ): Promise<createCookiesResponse> => {
   const res = await fetch(getCreateCookiesUrl(), {

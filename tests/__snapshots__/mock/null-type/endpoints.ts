@@ -37,7 +37,7 @@ export const fetchNullableObject = (
  * @summary Nullable with multipart/form-data request
  */
 export const nullableWithMultipartFormRequest = (
-  nullableObject: NullableObject,
+  nullableObject?: NullableObject,
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<NullableObject>> => {
   const formData = new FormData();

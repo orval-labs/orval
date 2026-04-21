@@ -27,7 +27,7 @@ export const getCreatePetUrl = () => {
 };
 
 export const createPet = async (
-  requiredPetBodyBody: RequiredPetBodyBody,
+  requiredPetBodyBody?: RequiredPetBodyBody,
   options?: RequestInit,
 ): Promise<createPetResponse> => {
   const res = await fetch(getCreatePetUrl(), {

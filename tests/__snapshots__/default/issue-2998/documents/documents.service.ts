@@ -110,28 +110,28 @@ export class DocumentsService {
     module: 'requests' | 'procedures',
     referenceId: string,
     category: 'category_a' | 'category_b' | 'category_c',
-    addDocumentBody: AddDocumentBody,
+    addDocumentBody?: AddDocumentBody,
     options?: HttpClientBodyOptions,
   ): Observable<TData>;
   addDocument<TData = DocumentCollectionDTO>(
     module: 'requests' | 'procedures',
     referenceId: string,
     category: 'category_a' | 'category_b' | 'category_c',
-    addDocumentBody: AddDocumentBody,
+    addDocumentBody?: AddDocumentBody,
     options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   addDocument<TData = DocumentCollectionDTO>(
     module: 'requests' | 'procedures',
     referenceId: string,
     category: 'category_a' | 'category_b' | 'category_c',
-    addDocumentBody: AddDocumentBody,
+    addDocumentBody?: AddDocumentBody,
     options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   addDocument<TData = DocumentCollectionDTO>(
     module: 'requests' | 'procedures',
     referenceId: string,
     category: 'category_a' | 'category_b' | 'category_c',
-    addDocumentBody: AddDocumentBody,
+    addDocumentBody?: AddDocumentBody,
     options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     const formData = new FormData();

@@ -853,10 +853,31 @@ const buildHttpResourceFunction = (
       getHttpResourceRawType(
         getHttpResourceFactory(response, type.contentType, type.value),
       );
-    // Per-accept overloads pin `options` to the branch-specific value/raw types.
-    // This makes `defaultValue` / `parse` type-check against the actual content
-    // type instead of the wider union — e.g. passing a `string` default to the
-    // `application/json` overload is now a type error.
+    // Per-branch options types (one per distinct content-type branch).
+    // Deduped so text-like content types (text/plain, application/xml) that
+    // share the same factory don't produce duplicate union members.
+    const branchOptionsTypes = [
+      ...new Set(
+        successTypes
+          .filter((type) => type.contentType)
+          .map((type) =>
+            buildBranchOptionsType(
+              getBranchReturnType(type),
+              getBranchRawType(type),
+              omitParse,
+            ),
+          ),
+      ),
+    ];
+    // The implementation signature accepts the union of branch option types.
+    // This keeps each overload's narrow `options` assignable to the
+    // implementation signature (required for TS overload compatibility) while
+    // preventing mismatched `defaultValue`/`parse` across content types.
+    const implementationOptionsType = branchOptionsTypes.join(' | ');
+    // Per-accept overloads pin `options` to the branch-specific value/raw
+    // types so `defaultValue` / `parse` type-check against the actual content
+    // type — e.g. passing a `string` default to the `application/json`
+    // overload is now a type error.
     const branchOverloads = successTypes
       .filter((type) => type.contentType)
       .map((type) => {
@@ -873,14 +894,11 @@ const buildHttpResourceFunction = (
         return `export function ${resourceName}(${overloadArgs}): HttpResourceRef<${returnType} | undefined>;`;
       })
       .join('\n');
-    // The implementation signatures still accept the union because the body
-    // must handle every branch at runtime. Callers see only the per-accept
-    // overloads above.
     const implementationArgs = [
       requiredPart,
       `accept?: ${acceptTypeName}`,
       optionalPart,
-      `options?: ${buildBranchOptionsType(unionReturnType, 'unknown', omitParse)}`,
+      `options?: ${implementationOptionsType}`,
     ]
       .filter(Boolean)
       .join(',\n    ');
@@ -888,7 +906,7 @@ const buildHttpResourceFunction = (
       requiredPart,
       `accept: ${acceptTypeName} = '${defaultContentType}'`,
       optionalPart,
-      `options?: ${buildBranchOptionsType(unionReturnType, 'unknown', omitParse)}`,
+      `options?: ${implementationOptionsType}`,
     ]
       .filter(Boolean)
       .join(',\n    ');
