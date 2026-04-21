@@ -463,6 +463,42 @@ describe('angular httpResource generator', () => {
       expect(header).toContain('httpResource is experimental');
     });
 
+    it('scopes generated resources by tag when tag is provided', () => {
+      const petsVerb = createVerbOption({
+        tags: ['Pets'],
+      });
+      const healthVerb = createVerbOption({
+        operationId: 'getHealth',
+        operationName: 'getHealth',
+        route: '/health',
+        pathRoute: '/health',
+        tags: ['Health'],
+        params: [],
+        props: [],
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+      routeRegistry.set('getHealth', '/api/health');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: {
+          getPetById: petsVerb,
+          getHealth: healthVerb,
+        },
+        tag: 'health',
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('export function getHealthResource');
+      expect(header).not.toContain('export function getPetByIdResource');
+    });
+
     it('treats retrieval POST operations as httpResource functions', () => {
       const verbOption = createVerbOption({
         operationId: 'searchPets',
@@ -511,6 +547,54 @@ describe('angular httpResource generator', () => {
       expect(header).toContain('httpResource<Pet>');
       expect(header).toContain("method: 'POST'");
       expect(header).toContain('body: searchPetsBody()');
+    });
+
+    it('uses optional chaining for optional retrieval POST bodies', () => {
+      const verbOption = createVerbOption({
+        operationId: 'searchPets',
+        operationName: 'searchPets',
+        verb: 'post',
+        route: '/pets/search',
+        pathRoute: '/pets/search',
+        body: {
+          implementation: 'searchPetsBody',
+          definition: 'SearchPetsBody',
+          imports: [],
+          schemas: [],
+          originalSchema: {} as never,
+          contentType: 'application/json',
+          formData: '',
+          formUrlEncoded: '',
+          isOptional: true,
+        },
+        props: [
+          {
+            name: 'searchPetsBody',
+            definition: 'searchPetsBody?: SearchPetsBody',
+            implementation: 'searchPetsBody?: SearchPetsBody',
+            default: false,
+            required: false,
+            type: GetterPropType.BODY,
+          },
+        ],
+        params: [],
+      });
+      routeRegistry.set('searchPets', '/api/pets/search');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { searchPets: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('searchPetsBody?: Signal<SearchPetsBody>');
+      expect(header).toContain('body: searchPetsBody?.()');
     });
 
     it('keeps mutations in HttpClient service methods', () => {
@@ -2000,6 +2084,96 @@ describe('angular httpResource generator', () => {
       expect(extraFiles[0].content).toContain('getPetByIdResource');
       expect(extraFiles[0].content).not.toContain('createPet');
       expect(extraFiles[0].content).toContain('ResourceState');
+    });
+
+    it('generates per-tag .resource.ts files in both tags-split mode', async () => {
+      const petsVerb = createVerbOption({
+        tags: ['Pets'],
+      });
+      const healthVerb = createVerbOption({
+        operationId: 'getHealth',
+        operationName: 'getHealth',
+        route: '/health',
+        pathRoute: '/health',
+        tags: ['Health'],
+        params: [],
+        props: [],
+      });
+      const postVerb = createVerbOption({
+        operationId: 'createPet',
+        operationName: 'createPet',
+        verb: 'post',
+        route: '/pets',
+        pathRoute: '/pets',
+        tags: ['Pets'],
+        body: {
+          implementation: 'createPetBody',
+          definition: 'CreatePetBody',
+          imports: [],
+          schemas: [],
+          originalSchema: {} as never,
+          contentType: 'application/json',
+          formData: '',
+          formUrlEncoded: '',
+          isOptional: false,
+        },
+        props: [
+          {
+            name: 'createPetBody',
+            definition: 'createPetBody: CreatePetBody',
+            implementation: 'createPetBody: CreatePetBody',
+            default: false,
+            required: true,
+            type: GetterPropType.BODY,
+          },
+        ],
+        params: [],
+      });
+
+      const output = createOutput({
+        target: '/tmp/endpoints.ts',
+        mode: 'tags-split',
+        override: {
+          ...createOutput().override,
+          angular: {
+            ...angularOverride('both'),
+          },
+        },
+      });
+
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: '/tmp/endpoints.ts',
+        projectName: 'pets',
+      });
+
+      const extraFiles = await generateHttpResourceExtraFiles(
+        {
+          getPetById: petsVerb,
+          getHealth: healthVerb,
+          createPet: postVerb,
+        },
+        output,
+        context,
+      );
+
+      expect(extraFiles.map((file) => file.path).toSorted()).toEqual([
+        '/tmp/health/health.resource.ts',
+        '/tmp/pets/pets.resource.ts',
+      ]);
+
+      const petsFile = extraFiles.find(
+        (file) => file.path === '/tmp/pets/pets.resource.ts',
+      );
+      const healthFile = extraFiles.find(
+        (file) => file.path === '/tmp/health/health.resource.ts',
+      );
+
+      expect(petsFile?.content).toContain('getPetByIdResource');
+      expect(petsFile?.content).not.toContain('getHealthResource');
+      expect(petsFile?.content).not.toContain('createPet');
+      expect(healthFile?.content).toContain('getHealthResource');
+      expect(healthFile?.content).not.toContain('getPetByIdResource');
     });
   });
 });

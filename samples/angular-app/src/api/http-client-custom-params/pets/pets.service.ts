@@ -403,25 +403,25 @@ export class PetsService {
    */
   uploadFile<TData = void>(
     petId: number,
-    uploadFileBody: Blob,
+    uploadFileBody?: Blob,
     version?: number,
     options?: HttpClientBodyOptions,
   ): Observable<TData>;
   uploadFile<TData = void>(
     petId: number,
-    uploadFileBody: Blob,
+    uploadFileBody?: Blob,
     version?: number,
     options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   uploadFile<TData = void>(
     petId: number,
-    uploadFileBody: Blob,
+    uploadFileBody?: Blob,
     version?: number,
     options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   uploadFile<TData = void>(
     petId: number,
-    uploadFileBody: Blob,
+    uploadFileBody?: Blob,
     version: number = 1,
     options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {

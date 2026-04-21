@@ -151,13 +151,13 @@ export function listPetsResource(
   accept: 'application/json',
   params?: Signal<ListPetsParams>,
   version?: Signal<number>,
-  options?: OrvalHttpResourceOptions<Pets | string, unknown>,
+  options?: OrvalHttpResourceOptions<Pets, unknown>,
 ): HttpResourceRef<Pets | undefined>;
 export function listPetsResource(
   accept: 'application/xml',
   params?: Signal<ListPetsParams>,
   version?: Signal<number>,
-  options?: OrvalHttpResourceOptions<Pets | string, unknown>,
+  options?: OrvalHttpResourceOptions<string, string>,
 ): HttpResourceRef<string | undefined>;
 export function listPetsResource(
   accept?: ListPetsAccept,
@@ -201,12 +201,12 @@ export function listPetsResource(
     );
   }
 
-  return httpResource.text<string>(
+  return httpResource<Pets>(
     () => ({
       ...normalizedRequest,
       headers,
     }),
-    options as unknown as OrvalHttpResourceOptions<string, string>,
+    options as unknown as OrvalHttpResourceOptions<Pets, unknown>,
   );
 }
 
@@ -217,19 +217,19 @@ export function showPetByIdResource(
   petId: Signal<string>,
   accept: 'text/plain',
   version?: Signal<number>,
-  options?: OrvalHttpResourceOptions<string | Pet, unknown>,
+  options?: OrvalHttpResourceOptions<string, string>,
 ): HttpResourceRef<string | undefined>;
 export function showPetByIdResource(
   petId: Signal<string>,
   accept: 'application/xml',
   version?: Signal<number>,
-  options?: OrvalHttpResourceOptions<string | Pet, unknown>,
+  options?: OrvalHttpResourceOptions<string, string>,
 ): HttpResourceRef<string | undefined>;
 export function showPetByIdResource(
   petId: Signal<string>,
   accept: 'application/json',
   version?: Signal<number>,
-  options?: OrvalHttpResourceOptions<string | Pet, unknown>,
+  options?: OrvalHttpResourceOptions<Pet, unknown>,
 ): HttpResourceRef<Pet | undefined>;
 export function showPetByIdResource(
   petId: Signal<string>,
@@ -270,12 +270,12 @@ export function showPetByIdResource(
     );
   }
 
-  return httpResource.text<string>(
+  return httpResource<Pet>(
     () => ({
       ...normalizedRequest,
       headers,
     }),
-    options as unknown as OrvalHttpResourceOptions<string, string>,
+    options as unknown as OrvalHttpResourceOptions<Pet, unknown>,
   );
 }
 
@@ -417,25 +417,25 @@ export class PetsService {
 
   uploadFile<TData = void>(
     petId: number,
-    uploadFileBody: Blob,
+    uploadFileBody?: Blob,
     version?: number,
     options?: HttpClientBodyOptions,
   ): Observable<TData>;
   uploadFile<TData = void>(
     petId: number,
-    uploadFileBody: Blob,
+    uploadFileBody?: Blob,
     version?: number,
     options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   uploadFile<TData = void>(
     petId: number,
-    uploadFileBody: Blob,
+    uploadFileBody?: Blob,
     version?: number,
     options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   uploadFile<TData = void>(
     petId: number,
-    uploadFileBody: Blob,
+    uploadFileBody?: Blob,
     version: number = 1,
     options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {

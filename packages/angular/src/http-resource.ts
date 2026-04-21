@@ -22,8 +22,10 @@ import {
   isObject,
   isSyntheticDefaultImportsAllow,
   jsDoc,
+  kebab,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
+  OutputMode,
   pascal,
   type ResReqTypesValue,
   toObjectString,
@@ -49,6 +51,7 @@ import {
   createReturnTypesRegistry,
   createRouteRegistry,
   getDefaultSuccessType,
+  getSchemaOutputTypeRef,
   isMutationVerb,
   isPrimitiveType,
   isRetrievalVerb,
@@ -158,6 +161,37 @@ const resourceReturnTypesRegistry = createReturnTypesRegistry();
 
 /** @internal Exported for testing only */
 export const routeRegistry = createRouteRegistry();
+
+const getRelevantVerbOptions = (
+  verbOptions: Record<string, GeneratorVerbOptions>,
+  tag?: string,
+): GeneratorVerbOptions[] =>
+  tag
+    ? Object.values(verbOptions).filter((verbOption) =>
+        verbOption.tags.some((currentTag) => camel(currentTag) === camel(tag)),
+      )
+    : Object.values(verbOptions);
+
+const getVerbOptionsRecord = (
+  verbOptions: readonly GeneratorVerbOptions[],
+): Record<string, GeneratorVerbOptions> =>
+  Object.fromEntries(
+    verbOptions.map((verbOption) => [verbOption.operationId, verbOption]),
+  );
+
+const getPrimaryTag = (verbOption: GeneratorVerbOptions): string =>
+  kebab(verbOption.tags[0] ?? 'default');
+
+const hasRetrievalOperations = (
+  verbOptions: Record<string, GeneratorVerbOptions>,
+): boolean =>
+  Object.values(verbOptions).some((verbOption) =>
+    isRetrievalVerb(
+      verbOption.verb,
+      verbOption.operationName,
+      getClientOverride(verbOption),
+    ),
+  );
 
 const getHeader = (
   option: false | ((info: OpenApiInfoObject) => string | string[]),
@@ -492,9 +526,6 @@ const buildResourceRequest = (
   };
 };
 
-const getSchemaOutputTypeRef = (typeName: string): string =>
-  typeName === 'Error' ? 'ErrorOutput' : `${typeName}Output`;
-
 const getHttpResourceResponseImports = (
   response: GeneratorVerbOptions['response'],
 ): GeneratorImport[] => {
@@ -818,6 +849,14 @@ const buildHttpResourceFunction = (
           .map((type) => getBranchReturnType(type)),
       ),
     ].join(' | ');
+    const getBranchRawType = (type: ResReqTypesValue): string =>
+      getHttpResourceRawType(
+        getHttpResourceFactory(response, type.contentType, type.value),
+      );
+    // Per-accept overloads pin `options` to the branch-specific value/raw types.
+    // This makes `defaultValue` / `parse` type-check against the actual content
+    // type instead of the wider union — e.g. passing a `string` default to the
+    // `application/json` overload is now a type error.
     const branchOverloads = successTypes
       .filter((type) => type.contentType)
       .map((type) => {
@@ -826,7 +865,7 @@ const buildHttpResourceFunction = (
           requiredPart,
           `accept: '${type.contentType}'`,
           optionalPart,
-          `options?: ${buildBranchOptionsType(unionReturnType, 'unknown', omitParse)}`,
+          `options?: ${buildBranchOptionsType(returnType, getBranchRawType(type), omitParse)}`,
         ]
           .filter(Boolean)
           .join(',\n    ');
@@ -834,6 +873,9 @@ const buildHttpResourceFunction = (
         return `export function ${resourceName}(${overloadArgs}): HttpResourceRef<${returnType} | undefined>;`;
       })
       .join('\n');
+    // The implementation signatures still accept the union because the body
+    // must handle every branch at runtime. Callers see only the per-accept
+    // overloads above.
     const implementationArgs = [
       requiredPart,
       `accept?: ${acceptTypeName}`,
@@ -892,20 +934,29 @@ const buildHttpResourceFunction = (
       isResponseBlob(type.contentType, response.isBlob),
     );
 
-    const fallbackReturn = blobType
-      ? `return httpResource.blob<Blob>(() => ({
+    // Fallback path for unknown accept values must match the branch the
+    // default `accept` argument targets. `defaultContentType` prefers JSON
+    // when present, so JSON wins here too — otherwise fall back to the
+    // remaining branches in order.
+    const fallbackReturn = jsonType
+      ? `return httpResource<${getBranchReturnType(jsonType)}>(() => ({
+      ...normalizedRequest,
+      headers,
+    }), ${getBranchOptions(jsonType)});`
+      : blobType
+        ? `return httpResource.blob<Blob>(() => ({
       ...normalizedRequest,
       headers,
     }), ${getBranchOptions(blobType)});`
-      : textType
-        ? `return httpResource.text<string>(() => ({
+        : textType
+          ? `return httpResource.text<string>(() => ({
       ...normalizedRequest,
       headers,
     }), ${getBranchOptions(textType)});`
-        : `return httpResource<${jsonType ? getBranchReturnType(jsonType) : parsedDataType}>(() => ({
+          : `return httpResource<${parsedDataType}>(() => ({
       ...normalizedRequest,
       headers,
-    }), ${getBranchOptions(jsonType)});`;
+    }), ${getBranchOptions(undefined)});`;
 
     const normalizeRequest = isUrlOnly
       ? `const normalizedRequest: HttpResourceRequest = { url: request };`
@@ -1135,13 +1186,9 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
   // the shared header duplicates helpers across every tag file and pulls in
   // type names the file-local `imports` filter never sees, producing missing
   // schema imports in the generated output.
-  const relevantVerbs = tag
-    ? Object.values(verbOptions).filter((verbOption) =>
-        verbOption.tags.some((t) => camel(t) === camel(tag)),
-      )
-    : Object.values(verbOptions);
+  const relevantVerbOptions = getRelevantVerbOptions(verbOptions, tag);
 
-  const retrievals = relevantVerbs.filter((verbOption) =>
+  const retrievals = relevantVerbOptions.filter((verbOption) =>
     isRetrievalVerb(
       verbOption.verb,
       verbOption.operationName,
@@ -1169,7 +1216,7 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
     retrievals.map((verbOption) => verbOption.operationName),
   );
 
-  const mutations = relevantVerbs.filter((verbOption) =>
+  const mutations = relevantVerbOptions.filter((verbOption) =>
     isMutationVerb(
       verbOption.verb,
       verbOption.operationName,
@@ -1305,6 +1352,17 @@ const buildSchemaImportDependencies = (
     ...new Map(imports.map((imp) => [imp.name, imp])).values(),
   ];
 
+  if (!output.schemas) {
+    return [
+      {
+        exports: isZod
+          ? uniqueImports.map((imp) => ({ ...imp, values: true }))
+          : uniqueImports,
+        dependency: relativeSchemasPath,
+      },
+    ];
+  }
+
   if (!output.indexFiles) {
     return [...uniqueImports].map((imp) => {
       const baseName = imp.schemaName ?? imp.name;
@@ -1338,36 +1396,60 @@ const buildSchemaImportDependencies = (
   ];
 };
 
-/**
- * Generates the extra sibling resource file used by Angular `both` mode.
- *
- * @remarks
- * The main generated file keeps the `HttpClient` service class while retrieval
- * resources are emitted into `*.resource.ts` so consumers can opt into both
- * access patterns without mixing the generated surfaces.
- *
- * @returns A single extra file descriptor representing the generated resource file.
- */
-export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
-  verbOptions,
-  output,
-  context,
-) => {
+const getHttpResourceExtraFilePath = (
+  output: NormalizedOutputOptions,
+  tag?: string,
+): string => {
   const { extension, dirname, filename } = getFileInfo(output.target);
-  const outputPath = upath.join(dirname, `${filename}.resource${extension}`);
-  const header = getHeader(output.override.header, context.spec.info);
 
-  const implementation = buildHttpResourceFile(verbOptions, output, context);
+  switch (output.mode) {
+    case OutputMode.TAGS: {
+      const normalizedTag = kebab(tag ?? 'default');
+      return upath.joinSafe(dirname, `${normalizedTag}.resource${extension}`);
+    }
+    case OutputMode.TAGS_SPLIT: {
+      const normalizedTag = kebab(tag ?? 'default');
+      return upath.joinSafe(
+        dirname,
+        normalizedTag,
+        `${normalizedTag}.resource${extension}`,
+      );
+    }
+    default: {
+      return upath.joinSafe(dirname, `${filename}.resource${extension}`);
+    }
+  }
+};
 
+const getHttpResourceRelativeSchemasPath = (
+  output: NormalizedOutputOptions,
+  outputPath: string,
+): string => {
   const schemasPath =
     typeof output.schemas === 'string' ? output.schemas : output.schemas?.path;
-  const basePath = schemasPath ? getFileInfo(schemasPath).dirname : undefined;
-  const relativeSchemasPath = basePath
-    ? output.indexFiles
-      ? upath.relativeSafe(dirname, basePath)
-      : upath.relativeSafe(dirname, basePath)
-    : `./${filename}.schemas`;
 
+  if (schemasPath) {
+    return upath.getRelativeImportPath(
+      outputPath,
+      getFileInfo(schemasPath).dirname,
+    );
+  }
+
+  const { dirname, filename, extension } = getFileInfo(output.target);
+  return upath.getRelativeImportPath(
+    outputPath,
+    upath.joinSafe(dirname, `${filename}.schemas${extension}`),
+  );
+};
+
+const buildHttpResourceExtraFile = (
+  verbOptions: Record<string, GeneratorVerbOptions>,
+  outputPath: string,
+  output: NormalizedOutputOptions,
+  context: ContextSpec,
+  header: string,
+) => {
+  const implementation = buildHttpResourceFile(verbOptions, output, context);
   const schemaImports = buildSchemaImportDependencies(
     output,
     Object.values(verbOptions)
@@ -1379,7 +1461,7 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
         ),
       )
       .flatMap((verbOption) => getHttpResourceVerbImports(verbOption, output)),
-    relativeSchemasPath,
+    getHttpResourceRelativeSchemasPath(output, outputPath),
   );
 
   const dependencies = getAngularHttpResourceOnlyDependencies(false, false);
@@ -1421,16 +1503,77 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
     mutators.length > 0
       ? generateMutatorImports({
           mutators,
+          oneMore: output.mode === OutputMode.TAGS_SPLIT,
         })
       : '';
 
-  const content = `${header}${importImplementation}${mutatorImports}${implementation}`;
+  return {
+    content: `${header}${importImplementation}${mutatorImports}${implementation}`,
+    path: outputPath,
+  };
+};
+
+/**
+ * Generates the extra sibling resource files used by Angular `both` mode.
+ *
+ * @remarks
+ * The main generated file keeps the `HttpClient` service class while retrieval
+ * resources are emitted into `*.resource.ts` so consumers can opt into both
+ * access patterns without mixing the generated surfaces. In tag-based output
+ * modes this emits one sibling resource file per generated tag file.
+ *
+ * @returns One or more extra file descriptors representing generated resource files.
+ */
+export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
+  verbOptions,
+  output,
+  context,
+) => {
+  const header = getHeader(output.override.header, context.spec.info);
+
+  if (!hasRetrievalOperations(verbOptions)) {
+    return Promise.resolve([]);
+  }
+
+  if (
+    output.mode === OutputMode.TAGS ||
+    output.mode === OutputMode.TAGS_SPLIT
+  ) {
+    const groupedVerbOptions = new Map<
+      string,
+      Record<string, GeneratorVerbOptions>
+    >();
+
+    for (const verbOption of Object.values(verbOptions)) {
+      const tag = getPrimaryTag(verbOption);
+      const currentGroup = groupedVerbOptions.get(tag) ?? {};
+      currentGroup[verbOption.operationId] = verbOption;
+      groupedVerbOptions.set(tag, currentGroup);
+    }
+
+    return Promise.resolve(
+      [...groupedVerbOptions.entries()]
+        .filter(([, tagVerbOptions]) => hasRetrievalOperations(tagVerbOptions))
+        .map(([tag, tagVerbOptions]) =>
+          buildHttpResourceExtraFile(
+            tagVerbOptions,
+            getHttpResourceExtraFilePath(output, tag),
+            output,
+            context,
+            header,
+          ),
+        ),
+    );
+  }
 
   return Promise.resolve([
-    {
-      content,
-      path: outputPath,
-    },
+    buildHttpResourceExtraFile(
+      getVerbOptionsRecord(getRelevantVerbOptions(verbOptions)),
+      getHttpResourceExtraFilePath(output),
+      output,
+      context,
+      header,
+    ),
   ]);
 };
 

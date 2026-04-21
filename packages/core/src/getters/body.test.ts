@@ -76,6 +76,27 @@ describe('getBody', () => {
     expect(result.definition).not.toContain('NonReadonly<');
     expect(result.definition).toBe('CreatePetBody');
   });
+
+  it('treats request bodies without an explicit required flag as optional', () => {
+    const result = getBody({
+      requestBody: {
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                query: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+      operationName: 'searchPets',
+      context: createContext(),
+    });
+
+    expect(result.isOptional).toBe(true);
+  });
 });
 
 describe('getBodiesByContentType', () => {

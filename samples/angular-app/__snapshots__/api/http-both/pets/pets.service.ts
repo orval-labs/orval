@@ -23,8 +23,6 @@ import type {
   SearchPetsParams,
 } from '../model';
 
-import listPetsMutator from '../../../orval/mutator/response-type';
-
 interface HttpClientOptions {
   readonly headers?: HttpHeaders | Record<string, string | string[]>;
   readonly context?: HttpContext;
@@ -191,43 +189,62 @@ export class PetsService {
   /**
    * @summary List all pets
    */
-  listPets<TData = Pets>(params?: ListPetsParams, version: number = 1) {
-    return listPetsMutator<TData>(
-      {
-        url: `/v${version}/pets`,
-        method: 'GET',
-        params: (() => {
-          const requiredNullableParamKeys = new Set<string>([]);
-          const filteredParams: Record<
-            string,
-            string | number | boolean | Array<string | number | boolean>
-          > = {};
-          for (const [key, value] of Object.entries(params ?? {})) {
-            if (Array.isArray(value)) {
-              const filtered = value.filter(
-                (item) =>
-                  item != null &&
-                  (typeof item === 'string' ||
-                    typeof item === 'number' ||
-                    typeof item === 'boolean'),
-              ) as Array<string | number | boolean>;
-              if (filtered.length) {
-                filteredParams[key] = filtered;
-              }
-            } else if (
-              value != null &&
-              (typeof value === 'string' ||
-                typeof value === 'number' ||
-                typeof value === 'boolean')
-            ) {
-              filteredParams[key] = value;
-            }
-          }
-          return filteredParams;
-        })(),
-      },
-      this.http,
+  listPets(
+    accept: 'application/json',
+    params?: ListPetsParams,
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<Pets>;
+  listPets(
+    accept: 'application/xml',
+    params?: ListPetsParams,
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<string>;
+  listPets(
+    accept?: ListPetsAccept,
+    params?: ListPetsParams,
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<Pets | string>;
+  listPets(
+    accept: ListPetsAccept = 'application/json',
+    params?: ListPetsParams,
+    version: number = 1,
+    options?: HttpClientOptions,
+  ): Observable<Pets | string> {
+    const filteredParams = filterParams(
+      { ...params, ...options?.params },
+      new Set<string>([]),
     );
+
+    const headers =
+      options?.headers instanceof HttpHeaders
+        ? options.headers.set('Accept', accept)
+        : { ...(options?.headers ?? {}), Accept: accept };
+
+    if (accept.includes('json') || accept.includes('+json')) {
+      return this.http.get<Pets>(`/v${version}/pets`, {
+        ...options,
+        responseType: 'json',
+        headers,
+        params: filteredParams,
+      });
+    } else if (accept.startsWith('text/') || accept.includes('xml')) {
+      return this.http.get(`/v${version}/pets`, {
+        ...options,
+        responseType: 'text',
+        headers,
+        params: filteredParams,
+      }) as Observable<string>;
+    }
+
+    return this.http.get<Pets>(`/v${version}/pets`, {
+      ...options,
+      responseType: 'json',
+      headers,
+      params: filteredParams,
+    });
   }
   /**
    * @summary Create a pet
@@ -482,7 +499,7 @@ export class PetsService {
 }
 
 export type SearchPetsClientResult = NonNullable<Pets>;
-export type ListPetsClientResult = NonNullable<Pets>;
+export type ListPetsClientResult = NonNullable<Pets | string>;
 export type CreatePetsClientResult = NonNullable<void>;
 export type ShowPetByIdClientResult = NonNullable<string | Pet>;
 export type ShowPetTextClientResult = NonNullable<string>;
