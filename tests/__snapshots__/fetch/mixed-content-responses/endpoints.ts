@@ -41,9 +41,14 @@ export const getData = async (
     method: 'GET',
   });
 
+  const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: getDataResponse['data'] = body ? JSON.parse(body) : {};
+  const data: getDataResponse['data'] = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
   return { data, status: res.status, headers: res.headers } as getDataResponse;
 };
 
