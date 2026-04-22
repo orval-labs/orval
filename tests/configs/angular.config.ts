@@ -179,6 +179,25 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  httpResourceBothTagsSplit: {
+    output: {
+      target: '../generated/angular/http-resource-both-tags-split/endpoints.ts',
+      schemas: '../generated/angular/http-resource-both-tags-split/model',
+      client: 'angular',
+      mode: 'tags-split',
+      mock: false,
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'both',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/angular-http-resource-both.yaml',
+    },
+  },
   multiContentQueryParams: {
     output: {
       target: '../generated/angular/multi-content-query-params/endpoints.ts',

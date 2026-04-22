@@ -160,7 +160,7 @@ export const getCreatePetsMutationFetcher = (
   version: number = 1,
   options?: RequestInit,
 ) => {
-  return (_: Key, { arg }: { arg: Pet }) => {
+  return (_: Key, { arg }: { arg: Pet | undefined }) => {
     return createPets(arg, version, options);
   };
 };
@@ -181,7 +181,7 @@ export const useCreatePets = <TError = Promise<Error>>(
       Awaited<ReturnType<typeof createPets>>,
       TError,
       Key,
-      Pet,
+      Pet | undefined,
       Awaited<ReturnType<typeof createPets>>
     > & { swrKey?: string };
     fetch?: RequestInit;

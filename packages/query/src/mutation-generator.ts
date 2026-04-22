@@ -293,12 +293,13 @@ export const generateMutationHook = async ({
       })
     : undefined;
 
+  const bodyOptionalMark = body.isOptional ? '?' : '';
   const definitions = props
     .map(({ definition, type }) =>
       type === GetterPropType.BODY
         ? mutator?.bodyTypeName
-          ? `data: ${mutator.bodyTypeName}<${body.definition}>`
-          : `data: ${body.definition}`
+          ? `data${bodyOptionalMark}: ${mutator.bodyTypeName}<${body.definition}>`
+          : `data${bodyOptionalMark}: ${body.definition}`
         : definition,
     )
     .join(';');
@@ -493,7 +494,7 @@ ${mutationOptionsFn}
             mutator?.bodyTypeName
               ? `${mutator.bodyTypeName}<${body.definition}>`
               : body.definition
-          }`
+          }${body.isOptional ? ' | undefined' : ''}`
         : ''
     }
     export type ${pascal(operationName)}MutationError = ${errorType}

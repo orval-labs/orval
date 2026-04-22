@@ -55,11 +55,9 @@ function buildBody(
     if (isReference(requestBody)) {
       const { schema: bodySchema }: { schema: OpenApiRequestBodyObject } =
         resolveRef(requestBody, context);
-      if (bodySchema.required !== undefined) {
-        isOptional = !bodySchema.required;
-      }
-    } else if (requestBody.required !== undefined) {
-      isOptional = !requestBody.required;
+      isOptional = bodySchema.required !== true;
+    } else {
+      isOptional = requestBody.required !== true;
     }
   }
 

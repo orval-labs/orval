@@ -41,7 +41,7 @@ export const getNodeWithRequiredChild = (
  * @summary Add list
  */
 export const addList = (
-  addListBody: AddListBody,
+  addListBody?: AddListBody,
   params?: AddListParams,
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<void>> => {
