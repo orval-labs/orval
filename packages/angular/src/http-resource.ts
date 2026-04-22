@@ -953,25 +953,35 @@ const buildHttpResourceFunction = (
     );
 
     // Fallback path for unknown accept values must match the branch the
-    // default `accept` argument targets. `defaultContentType` prefers JSON
-    // when present, so JSON wins here too — otherwise fall back to the
-    // remaining branches in order.
-    const fallbackReturn = jsonType
-      ? `return httpResource<${getBranchReturnType(jsonType)}>(() => ({
+    // default `accept` argument targets — pick the success type whose content
+    // type is `defaultContentType`, then fall back to the remaining branches
+    // in the same priority order as the runtime dispatch above.
+    const fallbackType =
+      successTypes.find((type) => type.contentType === defaultContentType) ??
+      jsonType ??
+      textType ??
+      arrayBufferType ??
+      blobType;
+
+    const buildFallbackReturn = (type: ResReqTypesValue): string => {
+      const factory = getHttpResourceFactory(
+        response,
+        type.contentType,
+        type.value,
+      );
+      const returnType =
+        factory === 'httpResource'
+          ? getBranchReturnType(type)
+          : getHttpResourceRawType(factory);
+      return `return ${factory}<${returnType}>(() => ({
       ...normalizedRequest,
       headers,
-    }), ${getBranchOptions(jsonType)});`
-      : blobType
-        ? `return httpResource.blob<Blob>(() => ({
-      ...normalizedRequest,
-      headers,
-    }), ${getBranchOptions(blobType)});`
-        : textType
-          ? `return httpResource.text<string>(() => ({
-      ...normalizedRequest,
-      headers,
-    }), ${getBranchOptions(textType)});`
-          : `return httpResource<${parsedDataType}>(() => ({
+    }), ${getBranchOptions(type)});`;
+    };
+
+    const fallbackReturn = fallbackType
+      ? buildFallbackReturn(fallbackType)
+      : `return httpResource<${parsedDataType}>(() => ({
       ...normalizedRequest,
       headers,
     }), ${getBranchOptions()});`;
