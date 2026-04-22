@@ -21,7 +21,7 @@ export const getAddUrl = () => {
 };
 
 export const add = async (
-  form: Form,
+  form?: Form,
   options?: RequestInit,
 ): Promise<addResponse> => {
   const res = await fetch(getAddUrl(), {

@@ -47,6 +47,12 @@ export const isZodSchemaOutput = (output: NormalizedOutputOptions): boolean =>
 
 export const isDefined = <T>(v: T | null | undefined): v is T => v != undefined;
 
+/**
+ * Maps a schema type name to its Zod output-type reference (`${typeName}Output`).
+ */
+export const getSchemaOutputTypeRef = (typeName: string): string =>
+  `${typeName}Output`;
+
 export const generateAngularTitle = (title: string) => {
   const sanTitle = sanitize(title);
   return `${pascal(sanTitle)}Service`;

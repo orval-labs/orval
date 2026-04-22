@@ -29,6 +29,7 @@ import {
 } from './types';
 import {
   createReturnTypesRegistry,
+  getSchemaOutputTypeRef,
   isPrimitiveType,
   isZodSchemaOutput,
 } from './utils';
@@ -62,9 +63,6 @@ const hasSchemaImport = (
 
 const getSchemaValueRef = (typeName: string): string =>
   typeName === 'Error' ? 'ErrorSchema' : typeName;
-
-const getSchemaOutputTypeRef = (typeName: string): string =>
-  typeName === 'Error' ? 'ErrorOutput' : `${typeName}Output`;
 
 const getContentTypeReturnType = (
   contentType: string | undefined,
