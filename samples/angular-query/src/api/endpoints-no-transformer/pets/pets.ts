@@ -878,7 +878,7 @@ export const getUploadFileMutationOptions = <
     mutation?: CreateMutationOptions<
       Awaited<ReturnType<typeof uploadFile>>,
       TError,
-      { petId: number; data: Blob },
+      { petId: number; data?: Blob },
       TContext
     >;
     fetch?: RequestInit;
@@ -886,7 +886,7 @@ export const getUploadFileMutationOptions = <
 ): CreateMutationOptions<
   Awaited<ReturnType<typeof uploadFile>>,
   TError,
-  { petId: number; data: Blob },
+  { petId: number; data?: Blob },
   TContext
 > => {
   const mutationKey = ['uploadFile'];
@@ -900,7 +900,7 @@ export const getUploadFileMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof uploadFile>>,
-    { petId: number; data: Blob }
+    { petId: number; data?: Blob }
   > = (props) => {
     const { petId, data } = props ?? {};
 
@@ -913,7 +913,7 @@ export const getUploadFileMutationOptions = <
 export type UploadFileMutationResult = NonNullable<
   Awaited<ReturnType<typeof uploadFile>>
 >;
-export type UploadFileMutationBody = Blob;
+export type UploadFileMutationBody = Blob | undefined;
 export type UploadFileMutationError = void | Error;
 
 /**
@@ -926,14 +926,14 @@ export const injectUploadFile = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof uploadFile>>,
     TError,
-    { petId: number; data: Blob },
+    { petId: number; data?: Blob },
     TContext
   >;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof uploadFile>>,
   TError,
-  { petId: number; data: Blob },
+  { petId: number; data?: Blob },
   TContext
 > => {
   const http = inject(HttpClient);

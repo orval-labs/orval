@@ -1076,7 +1076,7 @@ export const getUploadFileMutationOptions = <
     mutation?: CreateMutationOptions<
       Awaited<ReturnType<typeof uploadFile>>,
       TError,
-      { petId: number; data: Blob; version?: number },
+      { petId: number; data?: Blob; version?: number },
       TContext
     >;
     skipInvalidation?: boolean;
@@ -1085,7 +1085,7 @@ export const getUploadFileMutationOptions = <
 ): CreateMutationOptions<
   Awaited<ReturnType<typeof uploadFile>>,
   TError,
-  { petId: number; data: Blob; version?: number },
+  { petId: number; data?: Blob; version?: number },
   TContext
 > => {
   const mutationKey = ['uploadFile'];
@@ -1099,7 +1099,7 @@ export const getUploadFileMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof uploadFile>>,
-    { petId: number; data: Blob; version?: number }
+    { petId: number; data?: Blob; version?: number }
   > = (props) => {
     const { petId, data, version } = props ?? {};
 
@@ -1108,7 +1108,7 @@ export const getUploadFileMutationOptions = <
 
   const onSuccess = (
     data: Awaited<ReturnType<typeof uploadFile>>,
-    variables: { petId: number; data: Blob; version?: number },
+    variables: { petId: number; data?: Blob; version?: number },
     onMutateResult: TContext,
     context: MutationFunctionContext,
   ) => {
@@ -1124,7 +1124,7 @@ export const getUploadFileMutationOptions = <
 export type UploadFileMutationResult = NonNullable<
   Awaited<ReturnType<typeof uploadFile>>
 >;
-export type UploadFileMutationBody = Blob;
+export type UploadFileMutationBody = Blob | undefined;
 export type UploadFileMutationError = void | Error;
 
 /**
@@ -1137,7 +1137,7 @@ export const injectUploadFile = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof uploadFile>>,
     TError,
-    { petId: number; data: Blob; version?: number },
+    { petId: number; data?: Blob; version?: number },
     TContext
   >;
   skipInvalidation?: boolean;
@@ -1145,7 +1145,7 @@ export const injectUploadFile = <
 }): CreateMutationResult<
   Awaited<ReturnType<typeof uploadFile>>,
   TError,
-  { petId: number; data: Blob; version?: number },
+  { petId: number; data?: Blob; version?: number },
   TContext
 > => {
   const http = inject(HttpClient);
