@@ -856,7 +856,7 @@ export function injectShowPetText<
 export const uploadFile = (
   http: HttpClient,
   petId: number,
-  uploadFileBody: Blob,
+  uploadFileBody?: Blob,
   options?: { signal?: AbortSignal | null },
 ): Promise<void> => {
   const url = `/pet/${petId}/uploadImage`;

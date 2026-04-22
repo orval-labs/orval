@@ -1052,7 +1052,7 @@ export const invalidateShowPetText = async (
 export const uploadFile = (
   http: HttpClient,
   petId: number,
-  uploadFileBody: Blob,
+  uploadFileBody?: Blob,
   version: number = 1,
   options?: { signal?: AbortSignal | null },
 ): Promise<void> => {

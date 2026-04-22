@@ -849,7 +849,7 @@ export function injectShowPetText<
  */
 export const uploadFile = (
   petId: number,
-  uploadFileBody: Blob,
+  uploadFileBody?: Blob,
   options?: SecondParameter<typeof responseType>,
   signal?: AbortSignal,
 ) => {
