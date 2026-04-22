@@ -193,9 +193,7 @@ export function getResReqTypes(
               name,
               schemaObject: mediaType.schema,
               context,
-              isRequestBodyOptional:
-                // Even though required is false by default, we only consider required to be false if specified. (See pull 1277)
-                'required' in bodySchema && bodySchema.required === false,
+              isRequestBodyOptional: bodySchema.required !== true,
               isRef: true,
               encoding: mediaType.encoding,
             })
@@ -206,8 +204,7 @@ export function getResReqTypes(
               name,
               schemaObject: mediaType.schema,
               context,
-              isRequestBodyOptional:
-                'required' in bodySchema && bodySchema.required === false,
+              isRequestBodyOptional: bodySchema.required !== true,
               isUrlEncoded: true,
               isRef: true,
               encoding: mediaType.encoding,
@@ -334,8 +331,7 @@ export function getResReqTypes(
                   name: effectivePropName,
                   schemaObject: mediaType.schema,
                   context,
-                  isRequestBodyOptional:
-                    'required' in res && res.required === false,
+                  isRequestBodyOptional: res.required !== true,
                   isRef: true,
                   encoding: mediaType.encoding,
                 })
@@ -347,8 +343,7 @@ export function getResReqTypes(
                   schemaObject: mediaType.schema,
                   context,
                   isUrlEncoded: true,
-                  isRequestBodyOptional:
-                    'required' in res && res.required === false,
+                  isRequestBodyOptional: res.required !== true,
                   isRef: true,
                   encoding: mediaType.encoding,
                 })

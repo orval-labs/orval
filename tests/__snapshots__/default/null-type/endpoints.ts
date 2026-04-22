@@ -36,17 +36,20 @@ export const nullableWithMultipartFormRequest = (
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<NullableObject>> => {
   const formData = new FormData();
-  if (nullableObject.name !== undefined && nullableObject.name !== null) {
+  if (nullableObject?.name !== undefined && nullableObject.name !== null) {
     formData.append(`name`, nullableObject.name);
   }
-  if (nullableObject.age !== undefined && nullableObject.age !== null) {
+  if (nullableObject?.age !== undefined && nullableObject.age !== null) {
     formData.append(`age`, nullableObject.age.toString());
   }
-  if (nullableObject.address !== undefined && nullableObject.address !== null) {
+  if (
+    nullableObject?.address !== undefined &&
+    nullableObject.address !== null
+  ) {
     formData.append(`address`, nullableObject.address);
   }
   if (
-    nullableObject.is_active !== undefined &&
+    nullableObject?.is_active !== undefined &&
     nullableObject.is_active !== null
   ) {
     formData.append(`is_active`, nullableObject.is_active.toString());
