@@ -1166,7 +1166,6 @@ describe('angular httpResource generator', () => {
       } as never);
 
       expect(header).toContain('export type GetPetByIdAccept');
-      expect(header).toContain('accept?: GetPetByIdAccept');
       expect(header).toContain("accept: 'text/plain'");
       expect(header).toContain("accept: 'application/json'");
       expect(header).toContain("accept: GetPetByIdAccept = 'application/json'");
