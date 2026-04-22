@@ -1,6 +1,6 @@
 {
   "name": "angular-query",
-  "version": "8.7.0",
+  "version": "8.8.1",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -21,7 +21,7 @@
     "@angular/forms": "catalog:angular",
     "@angular/platform-browser": "catalog:angular",
     "@angular/router": "catalog:angular",
-    "@tanstack/angular-query-experimental": "^5.90.16",
+    "@tanstack/angular-query-experimental": "catalog:angular",
     "rxjs": "catalog:angular",
     "tslib": "catalog:",
     "zod": "^4.3.6"

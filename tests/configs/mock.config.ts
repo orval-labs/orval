@@ -304,4 +304,37 @@ export default defineConfig({
       target: '../specifications/mixed-success-status.yaml',
     },
   },
+  enumsInlineTagsSplitNative: {
+    output: {
+      target: '../generated/mock/enums-inline-tags-split-native/endpoints.ts',
+      schemas: '../generated/mock/enums-inline-tags-split-native/model',
+      mode: 'tags-split',
+      mock: {
+        type: 'msw',
+      },
+      override: {
+        enumGenerationType: 'enum',
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/enums-inline.yaml',
+    },
+  },
+  mswBinaryMultiContent: {
+    output: {
+      target: '../generated/mock/msw-binary-multi-content/endpoints.ts',
+      schemas: '../generated/mock/msw-binary-multi-content/model',
+      client: 'axios',
+      mock: {
+        type: 'msw',
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/msw-binary-multi-content.yaml',
+    },
+  },
 });

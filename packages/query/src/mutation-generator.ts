@@ -7,6 +7,7 @@ import {
   type GeneratorVerbOptions,
   GetterPropType,
   type InvalidateTarget,
+  type InvalidateTargetParam,
   isString,
   type OutputHttpClient,
   pascal,
@@ -22,7 +23,7 @@ import { getQueryOptionsDefinition } from './query-options';
 
 interface NormalizedTarget {
   query: string;
-  params?: string[] | Record<string, string>;
+  params?: InvalidateTargetParam[] | Record<string, InvalidateTargetParam>;
   invalidateMode: 'invalidate' | 'reset';
   file?: string;
 }
@@ -152,8 +153,13 @@ const getStaticRoutePrefix = (route: string): string | undefined => {
  * invalidation instead of calling the function without the required arguments.
  */
 const hasNonEmptyParams = (
-  params: string[] | Record<string, string> | undefined,
-): params is string[] | Record<string, string> => {
+  params:
+    | InvalidateTargetParam[]
+    | Record<string, InvalidateTargetParam>
+    | undefined,
+): params is
+  | InvalidateTargetParam[]
+  | Record<string, InvalidateTargetParam> => {
   if (!params) return false;
   if (Array.isArray(params)) return params.length > 0;
   return Object.keys(params).length > 0;
@@ -169,22 +175,25 @@ const needsQueryKeyFnCall = (
   return true;
 };
 
-const generateVariableRef = (varName: string): string => {
-  const parts = varName.split('.');
+const generateParamArg = (param: InvalidateTargetParam): string => {
+  if (!isString(param)) {
+    return JSON.stringify(param.literal);
+  }
+  const parts = param.split('.');
   if (parts.length === 1) {
-    return `variables.${varName}`;
+    return `variables.${param}`;
   }
   return `variables.${parts[0]}?.${parts.slice(1).join('?.')}`;
 };
 
 const generateParamArgs = (
-  params: string[] | Record<string, string>,
+  params: InvalidateTargetParam[] | Record<string, InvalidateTargetParam>,
 ): string => {
   if (Array.isArray(params)) {
-    return params.map((v) => generateVariableRef(v)).join(', ');
+    return params.map((v) => generateParamArg(v)).join(', ');
   }
   return Object.values(params)
-    .map((v) => generateVariableRef(v))
+    .map((v) => generateParamArg(v))
     .join(', ');
 };
 
@@ -284,12 +293,13 @@ export const generateMutationHook = async ({
       })
     : undefined;
 
+  const bodyOptionalMark = body.isOptional ? '?' : '';
   const definitions = props
     .map(({ definition, type }) =>
       type === GetterPropType.BODY
         ? mutator?.bodyTypeName
-          ? `data: ${mutator.bodyTypeName}<${body.definition}>`
-          : `data: ${body.definition}`
+          ? `data${bodyOptionalMark}: ${mutator.bodyTypeName}<${body.definition}>`
+          : `data${bodyOptionalMark}: ${body.definition}`
         : definition,
     )
     .join(';');
@@ -484,7 +494,7 @@ ${mutationOptionsFn}
             mutator?.bodyTypeName
               ? `${mutator.bodyTypeName}<${body.definition}>`
               : body.definition
-          }`
+          }${body.isOptional ? ' | undefined' : ''}`
         : ''
     }
     export type ${pascal(operationName)}MutationError = ${errorType}

@@ -235,6 +235,67 @@ describe('generateMSW', () => {
       );
     });
 
+    // Regression: issue #3065
+    // When the OpenAPI upgrader converts `format: binary` to
+    // `contentMediaType: application/octet-stream` (OAS 3.0 → 3.1), the mock
+    // generator must still emit an ArrayBuffer — not `faker.string.alpha(...)` —
+    // even when the declared content type is JSON-like (e.g. application/json).
+    it('should generate ArrayBuffer mock for binary schema under JSON content types', () => {
+      const binaryJsonVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          imports: [],
+          definition: { success: 'Blob' },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: 'Blob',
+                contentType: 'application/json',
+                originalSchema: {
+                  type: 'string',
+                  contentMediaType: 'application/octet-stream',
+                },
+                imports: [],
+                schemas: [],
+                type: 'string',
+                isEnum: false,
+                isRef: false,
+                hasReadonlyProps: false,
+              },
+              {
+                key: '200',
+                value: 'Blob',
+                contentType: 'text/json',
+                originalSchema: {
+                  type: 'string',
+                  contentMediaType: 'application/octet-stream',
+                },
+                imports: [],
+                schemas: [],
+                type: 'string',
+                isEnum: false,
+                isRef: false,
+                hasReadonlyProps: false,
+              },
+            ],
+          },
+          contentTypes: ['application/json', 'text/json'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(binaryJsonVerbOptions, baseOptions);
+
+      expect(result.implementation.function).toContain('ArrayBuffer');
+      expect(result.implementation.function).not.toContain(
+        'faker.string.alpha',
+      );
+      expect(result.implementation.function).not.toContain(': Blob =>');
+      expect(result.implementation.handler).toContain(
+        'HttpResponse.arrayBuffer',
+      );
+    });
+
     it('should handle application/pdf as binary', () => {
       const pdfVerbOptions = {
         ...mockVerbOptions,

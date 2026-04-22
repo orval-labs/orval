@@ -1,0 +1,35 @@
+openapi: 3.0.0
+info:
+  title: Binary Multi Content
+  description: 'Response with format:binary across multiple content types (#3065)'
+  version: 1.0.0
+tags:
+  - name: binary
+    description: Binary
+servers:
+  - url: http://localhost
+paths:
+  /api/account/profile-picture-file/{id}:
+    get:
+      tags:
+        - binary
+      operationId: getProfilePicture
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+            text/json:
+              schema:
+                type: string
+                format: binary

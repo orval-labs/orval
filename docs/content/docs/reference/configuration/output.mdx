@@ -723,6 +723,26 @@ export default defineConfig({
 });
 ```
 
+Each entry in `params` is either a **variable reference** (`string`) or a **literal value** (`{ literal: string }`):
+
+| Syntax | Generated code |
+|---|---|
+| `params: ['petId']` | `getShowPetByIdQueryKey(variables.petId)` |
+| `params: [{ literal: '@me' }]` | `getShowPetByIdQueryKey('@me')` |
+
+Use `{ literal: "..." }` for fixed values like `"@me"` that are not taken from mutation variables:
+
+```ts title="orval.config.ts"
+mutationInvalidates: [
+  {
+    onMutations: ['updateProfile'],
+    invalidates: [
+      { query: 'getProfile', params: [{ literal: '@me' }] },
+    ],
+  },
+],
+```
+
 When a user provides their own `onSuccess` callback, both the auto-invalidation and the user callback run — the generated `onSuccess` composes them together. To opt out of auto-invalidation at runtime, pass `skipInvalidation: true`:
 
 ```ts
@@ -925,7 +945,9 @@ Add preprocess functions to schemas.
 
 **Type:** `Object`
 
-Configure Zod datetime/time validation options.
+**Default (dateTimeOptions):** `{ offset: true }`
+
+Configure Zod datetime/time validation options. `dateTimeOptions` defaults to `{ offset: true }` so generated schemas accept RFC3339 timestamps with timezone offsets (e.g. `2026-03-27T12:00:00+01:00`) — matching the OpenAPI `format: date-time` contract. Pass an explicit object to override (e.g. `{ offset: false }` or `{ offset: true, precision: 3 }`).
 
 ### useBrandedTypes
 
@@ -1105,6 +1127,58 @@ Changes the validator output path.
 **Type:** `String`
 
 Generate a combined routes file.
+
+---
+
+## override.mcp
+
+MCP server options:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        mcp: {
+          server: {
+            path: './custom-server.ts',
+            name: 'customServer',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+### server
+
+**Type:** `String | Object`
+
+Custom server function to use instead of the default `StdioServerTransport`. When set, the generated `server.ts` calls the function with `createMcpServer`.
+
+Example implementation using `@hono/mcp`:
+
+```ts title="custom-server.ts"
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPTransport } from '@hono/mcp';
+import { Hono } from 'hono';
+
+export const customServer = (createMcpServer: () => McpServer) => {
+  const app = new Hono();
+  const server = createMcpServer();
+  const transport = new StreamableHTTPTransport();
+
+  app.all('/mcp', async (c) => {
+    if (!server.isConnected()) {
+      await server.connect(transport);
+    }
+    return transport.handleRequest(c);
+  });
+
+  Bun.serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });
+};
+```
 
 ---
 

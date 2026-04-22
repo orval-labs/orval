@@ -130,12 +130,16 @@ describe('getResponse', () => {
   });
 
   describe('isBlob detection', () => {
-    it('should set isBlob to true for application/octet-stream response', () => {
+    it.each([
+      ['application/octet-stream'],
+      ['application/pdf'],
+      ['application/zip'],
+    ])('should set isBlob to true for %s response', (binaryApplicationType) => {
       const responses: OpenApiResponsesObject = {
         '200': {
           description: 'Binary file',
           content: {
-            'application/octet-stream': {
+            [binaryApplicationType]: {
               schema: { type: 'string', format: 'binary' },
             },
           },

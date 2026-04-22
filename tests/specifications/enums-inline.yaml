@@ -1,0 +1,76 @@
+openapi: 3.0.3
+info:
+  title: Enums Inline
+  description: Test spec with inline (dereferenced) enum properties
+  version: 1.0.0
+paths:
+  /api/user:
+    get:
+      tags:
+        - user
+      summary: get user
+      operationId: getUser
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /api/template:
+    get:
+      tags:
+        - template
+      summary: get template
+      operationId: getTemplate
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        countryCode:
+          type: string
+          description: country code
+          enum:
+            - US
+            - JP
+            - DE
+            - FR
+        language:
+          type: string
+          enum:
+            - EN
+            - JP
+      required:
+        - id
+        - name
+    Template:
+      type: object
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - PUBLISHED
+            - ARCHIVED
+        category:
+          type: string
+          enum:
+            - SOFTWARE
+            - CREATIVE
+            - BUSINESS
+      required:
+        - id

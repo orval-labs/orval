@@ -57,4 +57,22 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  usePrefetch: {
+    output: {
+      target: '../generated/angular-query/use-prefetch/endpoints.ts',
+      schemas: '../generated/angular-query/use-prefetch/model',
+      client: 'angular-query',
+      httpClient: 'angular',
+      override: {
+        query: {
+          usePrefetch: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

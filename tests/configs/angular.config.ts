@@ -140,6 +140,25 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  httpResourceTags: {
+    output: {
+      target: '../generated/angular/http-resource-tags/endpoints.ts',
+      schemas: '../generated/angular/http-resource-tags/model',
+      client: 'angular',
+      mode: 'tags',
+      mock: false,
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   httpResourceZodDisabled: {
     output: {
       target: '../generated/angular/http-resource-zod-disabled/endpoints.ts',
@@ -158,6 +177,25 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/petstore.yaml',
+    },
+  },
+  httpResourceBothTagsSplit: {
+    output: {
+      target: '../generated/angular/http-resource-both-tags-split/endpoints.ts',
+      schemas: '../generated/angular/http-resource-both-tags-split/model',
+      client: 'angular',
+      mode: 'tags-split',
+      mock: false,
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'both',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/angular-http-resource-both.yaml',
     },
   },
   multiContentQueryParams: {

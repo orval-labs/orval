@@ -23,11 +23,15 @@ import {
   isUrl,
   type JsDocOptions,
   logWarning,
+  type McpOptions,
+  type McpServerOptions,
   type Mutator,
   NamingConvention,
   type NormalizedHonoOptions,
   type NormalizedHookOptions,
   type NormalizedJsDocOptions,
+  type NormalizedMcpOptions,
+  type NormalizedMcpServerOptions,
   type NormalizedMutator,
   type NormalizedOperationOptions,
   type NormalizedOptions,
@@ -99,7 +103,7 @@ function createFormData(
 }
 
 function normalizeSchemasOption(
-  schemas: string | SchemaOptions | undefined,
+  schemas: string | SchemaOptions | false | undefined,
   workspace: string,
 ): string | NormalizedSchemaOptions | undefined {
   if (!schemas) {
@@ -210,6 +214,7 @@ export async function normalizeOptions(
           workspace,
         ),
       },
+      unsafeDisableValidation: inputOptions.unsafeDisableValidation ?? false,
       filters: inputOptions.filters,
       parserOptions: inputOptions.parserOptions,
     },
@@ -317,6 +322,7 @@ export async function normalizeOptions(
           },
         },
         hono: normalizeHonoOptions(outputOptions.override?.hono, workspace),
+        mcp: normalizeMcpOptions(outputOptions.override?.mcp, workspace),
         jsDoc: normalizeJSDocOptions(outputOptions.override?.jsDoc),
         query: globalQueryOptions,
         zod: {
@@ -387,7 +393,9 @@ export async function normalizeOptions(
             outputOptions.override?.zod?.generateEachHttpStatus ?? false,
           useBrandedTypes:
             outputOptions.override?.zod?.useBrandedTypes ?? false,
-          dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {},
+          dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {
+            offset: true,
+          },
           timeOptions: outputOptions.override?.zod?.timeOptions ?? {},
         },
         swr: {
@@ -712,7 +720,7 @@ function normalizeOperationsAndTags(
                     },
                     generateEachHttpStatus: zod.generateEachHttpStatus ?? false,
                     useBrandedTypes: zod.useBrandedTypes ?? false,
-                    dateTimeOptions: zod.dateTimeOptions ?? {},
+                    dateTimeOptions: zod.dateTimeOptions ?? { offset: true },
                     timeOptions: zod.timeOptions ?? {},
                   },
                 }
@@ -794,6 +802,28 @@ function normalizeHonoOptions(
     validatorOutputPath: hono.validatorOutputPath
       ? nodePath.resolve(workspace, hono.validatorOutputPath)
       : '',
+  };
+}
+
+function normalizeMcpServerOptions(
+  server: McpServerOptions,
+  workspace: string,
+): NormalizedMcpServerOptions {
+  return {
+    path: nodePath.resolve(workspace, server.path),
+    name: server.name,
+    default: server.default ?? !server.name,
+  };
+}
+
+function normalizeMcpOptions(
+  mcp: McpOptions = {},
+  workspace: string,
+): NormalizedMcpOptions {
+  return {
+    ...(mcp.server
+      ? { server: normalizeMcpServerOptions(mcp.server, workspace) }
+      : {}),
   };
 }
 

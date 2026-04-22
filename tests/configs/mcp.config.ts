@@ -26,4 +26,23 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  customServer: {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/mcp/custom-server/handlers.ts',
+      schemas: '../generated/mcp/custom-server/http-schemas',
+      mode: 'single',
+      client: 'mcp',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        mcp: {
+          server: {
+            path: '../mutators/mcp-custom-server.ts',
+            name: 'customServer',
+          },
+        },
+      },
+    },
+  },
 });

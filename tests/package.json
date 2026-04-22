@@ -1,6 +1,6 @@
 {
   "name": "orval-tests",
-  "version": "8.7.0",
+  "version": "8.8.1",
   "description": "",
   "author": "Victor Bury",
   "license": "ISC",
@@ -12,6 +12,7 @@
     "generate:default": "orval --config ./configs/default.config.ts",
     "generate:axios": "orval --config ./configs/axios.config.ts",
     "generate:angular": "orval --config ./configs/angular.config.ts",
+    "generate:angular-query": "orval --config ./configs/angular-query.config.ts",
     "generate:react-query": "orval --config ./configs/react-query.config.ts",
     "generate:svelte-query": "orval --config ./configs/svelte-query.config.ts",
     "generate:vue-query": "orval --config ./configs/vue-query.config.ts",
@@ -36,6 +37,7 @@
     "@faker-js/faker": "catalog:tooling",
     "@hono/zod-validator": "catalog:hono",
     "@modelcontextprotocol/sdk": "catalog:mcp",
+    "@tanstack/angular-query-experimental": "catalog:angular",
     "@tanstack/react-query": "catalog:react",
     "@tanstack/svelte-query": "catalog:svelte",
     "@tanstack/vue-query": "catalog:vue",

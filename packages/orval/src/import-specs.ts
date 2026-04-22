@@ -1,6 +1,7 @@
 import {
   isObject,
   isString,
+  logWarning,
   type NormalizedOptions,
   type OpenApiDocument,
   type WriteSpecBuilder,
@@ -25,6 +26,7 @@ async function resolveSpec(
       headers: Record<string, string>;
     }[];
   },
+  unsafeDisableValidation = false,
 ): Promise<OpenApiDocument> {
   const data = await bundle(input, {
     plugins: [
@@ -41,11 +43,21 @@ async function resolveSpec(
     data as Record<string, unknown>,
   );
 
-  validateComponentKeys(dereferencedData);
+  if (unsafeDisableValidation) {
+    logWarning(
+      `🚨 OpenAPI spec validation is disabled.\n` +
+        `  Code generation with invalid specs is not guaranteed to work and may break in minor updates.\n` +
+        `  Bug reports with validation disabled will not be accepted.`,
+    );
+  } else {
+    validateComponentKeys(dereferencedData);
 
-  const { valid, errors } = await validateSpec(dereferencedData);
-  if (!valid) {
-    throw new Error('Validation failed', { cause: errors });
+    const { valid, errors } = await validateSpec(dereferencedData);
+    if (!valid) {
+      throw new Error(
+        `OpenAPI spec validation failed:\n${JSON.stringify(errors, undefined, 2)}`,
+      );
+    }
   }
 
   const { specification } = upgrade(dereferencedData);
@@ -60,7 +72,11 @@ export async function importSpecs(
 ): Promise<WriteSpecBuilder> {
   const { input, output } = options;
 
-  const spec = await resolveSpec(input.target, input.parserOptions);
+  const spec = await resolveSpec(
+    input.target,
+    input.parserOptions,
+    input.unsafeDisableValidation,
+  );
 
   return importOpenApi({
     spec,

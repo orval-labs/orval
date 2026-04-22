@@ -17,25 +17,33 @@ import { getRefInfo } from './ref';
 
 /**
  * Extract enum values from propertyNames schema (OpenAPI 3.1)
- * Returns undefined if propertyNames doesn't have an enum
+ * Handles both `enum` and `const` (treated as a single-element enum)
+ * Returns undefined if propertyNames has neither
  */
 function getPropertyNamesEnum(item: OpenApiSchemaObject): string[] | undefined {
-  if (
-    'propertyNames' in item &&
-    item.propertyNames &&
-    'enum' in item.propertyNames
-  ) {
-    const propertyNames = item.propertyNames as { enum?: unknown[] };
-    if (Array.isArray(propertyNames.enum)) {
-      return propertyNames.enum.filter((val): val is string => isString(val));
-    }
+  if (!('propertyNames' in item) || !item.propertyNames) {
+    return undefined;
   }
+
+  const propertyNames = item.propertyNames as {
+    enum?: unknown[];
+    const?: unknown;
+  };
+
+  if (Array.isArray(propertyNames.enum)) {
+    return propertyNames.enum.filter((val): val is string => isString(val));
+  }
+
+  if (isString(propertyNames.const)) {
+    return [propertyNames.const];
+  }
+
   return undefined;
 }
 
 /**
- * Generate index signature key type based on propertyNames enum
- * Returns union type string like "'foo' | 'bar'" or 'string' if no enum
+ * Generate index signature key type based on propertyNames enum or const
+ * Returns union type string like "'foo' | 'bar'", "'x'", or 'string' if neither
  */
 function getIndexSignatureKey(item: OpenApiSchemaObject): string {
   const enumValues = getPropertyNamesEnum(item);
