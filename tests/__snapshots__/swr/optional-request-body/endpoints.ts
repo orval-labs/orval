@@ -50,7 +50,7 @@ export const createPets = async (
 };
 
 export const getCreatePetsMutationFetcher = (options?: RequestInit) => {
-  return (_: Key, { arg }: { arg: RequiredPetBodyBody }) => {
+  return (_: Key, { arg }: { arg: RequiredPetBodyBody | undefined }) => {
     return createPets(arg, options);
   };
 };
@@ -65,7 +65,7 @@ export const useCreatePets = <TError = Promise<unknown>>(options?: {
     Awaited<ReturnType<typeof createPets>>,
     TError,
     Key,
-    RequiredPetBodyBody,
+    RequiredPetBodyBody | undefined,
     Awaited<ReturnType<typeof createPets>>
   > & { swrKey?: string };
   fetch?: RequestInit;
@@ -119,7 +119,7 @@ export const updatePets = async (
 };
 
 export const getUpdatePetsMutationFetcher = (options?: RequestInit) => {
-  return (_: Key, { arg }: { arg: OptionalPetBodyBody }) => {
+  return (_: Key, { arg }: { arg: OptionalPetBodyBody | undefined }) => {
     return updatePets(arg, options);
   };
 };
@@ -134,7 +134,7 @@ export const useUpdatePets = <TError = Promise<unknown>>(options?: {
     Awaited<ReturnType<typeof updatePets>>,
     TError,
     Key,
-    OptionalPetBodyBody,
+    OptionalPetBodyBody | undefined,
     Awaited<ReturnType<typeof updatePets>>
   > & { swrKey?: string };
   fetch?: RequestInit;
@@ -190,7 +190,7 @@ export const createCookies = async (
 };
 
 export const getCreateCookiesMutationFetcher = (options?: RequestInit) => {
-  return (_: Key, { arg }: { arg: Cookie }) => {
+  return (_: Key, { arg }: { arg: Cookie | undefined }) => {
     return createCookies(arg, options);
   };
 };
@@ -205,7 +205,7 @@ export const useCreateCookies = <TError = Promise<unknown>>(options?: {
     Awaited<ReturnType<typeof createCookies>>,
     TError,
     Key,
-    Cookie,
+    Cookie | undefined,
     Awaited<ReturnType<typeof createCookies>>
   > & { swrKey?: string };
   fetch?: RequestInit;
@@ -261,7 +261,7 @@ export const updateCookies = async (
 };
 
 export const getUpdateCookiesMutationFetcher = (options?: RequestInit) => {
-  return (_: Key, { arg }: { arg: Cookie }) => {
+  return (_: Key, { arg }: { arg: Cookie | undefined }) => {
     return updateCookies(arg, options);
   };
 };
@@ -276,7 +276,7 @@ export const useUpdateCookies = <TError = Promise<unknown>>(options?: {
     Awaited<ReturnType<typeof updateCookies>>,
     TError,
     Key,
-    Cookie,
+    Cookie | undefined,
     Awaited<ReturnType<typeof updateCookies>>
   > & { swrKey?: string };
   fetch?: RequestInit;

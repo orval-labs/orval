@@ -48,7 +48,7 @@ export const createPet = async (
 };
 
 export const getCreatePetMutationFetcher = (options?: RequestInit) => {
-  return (_: Key, { arg }: { arg: RequiredPetBodyBody }) => {
+  return (_: Key, { arg }: { arg: RequiredPetBodyBody | undefined }) => {
     return createPet(arg, options);
   };
 };
@@ -64,7 +64,7 @@ export const useCreatePet = <TError = Promise<unknown>>(options?: {
     Awaited<ReturnType<typeof createPet>>,
     TError,
     Key,
-    RequiredPetBodyBody,
+    RequiredPetBodyBody | undefined,
     Awaited<ReturnType<typeof createPet>>
   > & { swrKey?: string };
   fetch?: RequestInit;
