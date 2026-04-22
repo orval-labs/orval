@@ -1471,6 +1471,7 @@ const getHttpResourceRelativeSchemasPath = (
   return upath.getRelativeImportPath(
     outputPath,
     upath.joinSafe(dirname, `${filename}.schemas${extension}`),
+    output.fileExtension !== '.ts',
   );
 };
 
