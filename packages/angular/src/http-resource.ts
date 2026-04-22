@@ -1418,7 +1418,9 @@ const getHttpResourceExtraFilePath = (
   output: NormalizedOutputOptions,
   tag?: string,
 ): string => {
-  const { extension, dirname, filename } = getFileInfo(output.target);
+  const { extension, dirname, filename } = getFileInfo(output.target, {
+    extension: output.fileExtension,
+  });
 
   switch (output.mode) {
     case OutputMode.TAGS: {
