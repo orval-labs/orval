@@ -1455,7 +1455,9 @@ const getHttpResourceRelativeSchemasPath = (
     );
   }
 
-  const { dirname, filename, extension } = getFileInfo(output.target);
+  const { dirname, filename, extension } = getFileInfo(output.target, {
+    extension: output.fileExtension,
+  });
   return upath.getRelativeImportPath(
     outputPath,
     upath.joinSafe(dirname, `${filename}.schemas${extension}`),
