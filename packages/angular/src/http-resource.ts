@@ -894,14 +894,6 @@ const buildHttpResourceFunction = (
         return `export function ${resourceName}(${overloadArgs}): HttpResourceRef<${returnType} | undefined>;`;
       })
       .join('\n');
-    const implementationArgs = [
-      requiredPart,
-      `accept?: ${acceptTypeName}`,
-      optionalPart,
-      `options?: ${implementationOptionsType}`,
-    ]
-      .filter(Boolean)
-      .join(',\n    ');
     const implementationArgsWithDefault = [
       requiredPart,
       `accept: ${acceptTypeName} = '${defaultContentType}'`,
@@ -986,6 +978,27 @@ const buildHttpResourceFunction = (
       headers,
     }), ${getBranchOptions()});`;
 
+    // Default-accept overload (when `accept` is omitted): narrow `options` to
+    // the branch the runtime falls back to, so callers that skip `accept`
+    // still get branch-specific typing instead of the broad options union.
+    const defaultOverloadOptionsType = fallbackType
+      ? buildBranchOptionsType(
+          getBranchReturnType(fallbackType),
+          getBranchRawType(fallbackType),
+          omitParse,
+        )
+      : implementationOptionsType;
+    const defaultOverloadReturnType = fallbackType
+      ? getBranchReturnType(fallbackType)
+      : unionReturnType;
+    const defaultOverloadArgs = [
+      requiredPart,
+      optionalPart,
+      `options?: ${defaultOverloadOptionsType}`,
+    ]
+      .filter(Boolean)
+      .join(',\n    ');
+
     const normalizeRequest = isUrlOnly
       ? `const normalizedRequest: HttpResourceRequest = { url: request };`
       : `const normalizedRequest: HttpResourceRequest = request;`;
@@ -995,8 +1008,8 @@ const buildHttpResourceFunction = (
  */
 ${branchOverloads}
 export function ${resourceName}(
-    ${implementationArgs}
-  ): HttpResourceRef<${unionReturnType} | undefined>;
+    ${defaultOverloadArgs}
+  ): HttpResourceRef<${defaultOverloadReturnType} | undefined>;
 export function ${resourceName}(
     ${implementationArgsWithDefault}
 ): HttpResourceRef<${unionReturnType} | undefined> {
