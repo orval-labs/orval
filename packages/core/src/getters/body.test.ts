@@ -97,6 +97,65 @@ describe('getBody', () => {
 
     expect(result.isOptional).toBe(true);
   });
+
+  it('treats referenced request bodies without an explicit required flag as optional', () => {
+    const context = createContext();
+    context.spec.components = {
+      ...context.spec.components,
+      requestBodies: {
+        SearchPetsBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  query: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = getBody({
+      requestBody: { $ref: '#/components/requestBodies/SearchPetsBody' },
+      operationName: 'searchPets',
+      context,
+    });
+
+    expect(result.isOptional).toBe(true);
+  });
+
+  it('treats referenced request bodies marked required as non-optional', () => {
+    const context = createContext();
+    context.spec.components = {
+      ...context.spec.components,
+      requestBodies: {
+        CreatePetsBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = getBody({
+      requestBody: { $ref: '#/components/requestBodies/CreatePetsBody' },
+      operationName: 'createPets',
+      context,
+    });
+
+    expect(result.isOptional).toBe(false);
+  });
 });
 
 describe('getBodiesByContentType', () => {
