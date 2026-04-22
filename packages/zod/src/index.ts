@@ -548,7 +548,24 @@ export const generateZodValidationSchemaDefinition = (
             if ('const' in schema) {
               functions.push(['literal', `"${schema.const}"`]);
             } else if (schema.pattern && schema.format) {
-              break;
+              const isStartWithSlash = schema.pattern.startsWith('/');
+              const isEndWithSlash = schema.pattern.endsWith('/');
+              const regexp = `new RegExp('${jsStringEscape(
+                schema.pattern.slice(
+                  isStartWithSlash ? 1 : 0,
+                  isEndWithSlash ? -1 : undefined,
+                ),
+              )}')`;
+              consts.push(
+                `export const ${name}RegExp${constsCounterValue} = ${regexp};\n`,
+              );
+              functions.push([
+                'stringFormat',
+                [
+                  `'${escape(schema.format)}'`,
+                  `${name}RegExp${constsCounterValue}`,
+                ],
+              ]);
             } else {
               functions.push([type as string, undefined]);
             }
@@ -753,7 +770,19 @@ export const generateZodValidationSchemaDefinition = (
     }
   }
 
-  if (matches && !hasNonArrayEnum) {
+  const stringFormatAlreadyEmitted =
+    isZodV4 &&
+    type === 'string' &&
+    !!matches &&
+    !!schema.format &&
+    !predefinedZodFormats.has(schema.format ?? '');
+
+  if (
+    matches &&
+    !hasNonArrayEnum &&
+    type === 'string' &&
+    !stringFormatAlreadyEmitted
+  ) {
     const isStartWithSlash = matches.startsWith('/');
     const isEndWithSlash = matches.endsWith('/');
 
