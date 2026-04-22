@@ -911,7 +911,7 @@ const buildHttpResourceFunction = (
       .filter(Boolean)
       .join(',\n    ');
 
-    const getBranchOptions = (type: ResReqTypesValue | undefined) => {
+    const getBranchOptions = (type?: ResReqTypesValue) => {
       if (!type) {
         return `options as ${buildBranchOptionsType(unionReturnType, 'unknown', omitParse)}`;
       }
@@ -974,7 +974,7 @@ const buildHttpResourceFunction = (
           : `return httpResource<${parsedDataType}>(() => ({
       ...normalizedRequest,
       headers,
-    }), ${getBranchOptions(undefined)});`;
+    }), ${getBranchOptions()});`;
 
     const normalizeRequest = isUrlOnly
       ? `const normalizedRequest: HttpResourceRequest = { url: request };`
