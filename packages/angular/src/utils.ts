@@ -48,14 +48,10 @@ export const isZodSchemaOutput = (output: NormalizedOutputOptions): boolean =>
 export const isDefined = <T>(v: T | null | undefined): v is T => v != undefined;
 
 /**
- * Maps a schema type name to its Zod output-type reference.
- *
- * The generic rule is `${typeName}Output`, but `Error` is special-cased because
- * the generator renames it to `ErrorSchema` on the value side to avoid clashing
- * with the global `Error` constructor.
+ * Maps a schema type name to its Zod output-type reference (`${typeName}Output`).
  */
 export const getSchemaOutputTypeRef = (typeName: string): string =>
-  typeName === 'Error' ? 'ErrorOutput' : `${typeName}Output`;
+  `${typeName}Output`;
 
 export const generateAngularTitle = (title: string) => {
   const sanTitle = sanitize(title);
