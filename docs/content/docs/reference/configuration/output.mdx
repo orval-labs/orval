@@ -437,7 +437,9 @@ export default defineConfig({
 **Type:** `Boolean | String[]`
 **Default:** `false`
 
-Clean generated files before regenerating.
+Clean generated files before regenerating. Removes every file in the `target` and `schemas` directories (`.d.ts` files are preserved).
+
+Keep hand-written files (mutators, transformers, app code) outside the `target` and `schemas` directories — use a dedicated subfolder such as `./gen/` for output so `clean` does not remove them.
 
 ## formatter
 

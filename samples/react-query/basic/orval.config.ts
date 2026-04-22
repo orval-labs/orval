@@ -10,6 +10,7 @@ export default defineConfig({
       client: 'react-query',
       httpClient: 'axios',
       mock: true,
+      clean: true,
       formatter: 'prettier',
       override: {
         mutator: {
