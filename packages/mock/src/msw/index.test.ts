@@ -384,6 +384,31 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).not.toContain('HttpResponse.text(');
     });
 
+    // Regression test for https://github.com/orval-labs/orval/issues/3270.
+    // When the response definition resolves to `unknown` (as with a 302
+    // redirect returning text/html that is not treated as a success body),
+    // no `*ResponseMock` helper is generated. The handler must not emit a
+    // `resolvedBody`/`textBody` prelude that references the missing helper.
+    it('should not reference a missing *ResponseMock for unknown text responses', () => {
+      const unknownHtmlVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'unknown' },
+          types: { success: [{ key: '302', value: 'unknown' }] },
+          contentTypes: ['text/html'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(unknownHtmlVerbOptions, baseOptions);
+
+      expect(result.implementation.function).toBe('');
+      expect(result.implementation.handler).not.toContain('ResponseMock()');
+      expect(result.implementation.handler).not.toContain('resolvedBody');
+      expect(result.implementation.handler).not.toContain('textBody');
+      expect(result.implementation.handler).toContain('new HttpResponse(null,');
+    });
+
     it('should use HttpResponse.xml for vendor +xml responses', () => {
       const vendorXmlVerbOptions = {
         ...mockVerbOptions,

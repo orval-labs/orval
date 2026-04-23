@@ -250,15 +250,19 @@ function generateDefinition(
 
   let responseBody: string;
   // Use a prelude to evaluate the override expression once into a temp variable
-  // (the expression contains `await` so must not be duplicated)
+  // (the expression contains `await` so must not be duplicated). Only emit it
+  // when we actually generate a `*ResponseMock()` helper — otherwise the
+  // prelude would reference a function that doesn't exist (issue #3270).
   let responsePrelude = '';
-  if (isBinaryResponse) {
-    responsePrelude = `const binaryBody = ${resolvedResponseExpr};`;
-  } else if (isVoidUnionType || needsRuntimeContentTypeSwitch) {
-    responsePrelude = `const resolvedBody = ${resolvedResponseExpr};`;
-  } else if (isTextResponse && !shouldPreferJsonResponse) {
-    responsePrelude = `const resolvedBody = ${resolvedResponseExpr};
+  if (isReturnHttpResponse) {
+    if (isBinaryResponse) {
+      responsePrelude = `const binaryBody = ${resolvedResponseExpr};`;
+    } else if (isVoidUnionType || needsRuntimeContentTypeSwitch) {
+      responsePrelude = `const resolvedBody = ${resolvedResponseExpr};`;
+    } else if (isTextResponse && !shouldPreferJsonResponse) {
+      responsePrelude = `const resolvedBody = ${resolvedResponseExpr};
     const textBody = typeof resolvedBody === 'string' ? resolvedBody : JSON.stringify(resolvedBody ?? null);`;
+    }
   }
   if (!isReturnHttpResponse) {
     responseBody = `new HttpResponse(null,
