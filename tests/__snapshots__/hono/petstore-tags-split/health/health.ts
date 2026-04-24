@@ -14,5 +14,4 @@ const app = new Hono()
    */
 
   .get('/health', ...healthCheckHandlers);
-
 export default app;

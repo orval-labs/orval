@@ -17,19 +17,23 @@ const app = new Hono()
    */
 
   .get('/pets', ...listPetsHandlers)
+
   /**
    * @summary Create a pet
    */
 
   .post('/pets', ...createPetsHandlers)
+
   /**
    * @summary Update a pet
    */
 
   .put('/pets', ...updatePetsHandlers)
+
   /**
    * @summary Info for a specific pet
    */
 
   .get('/pets/:petId', ...showPetByIdHandlers);
+
 export default app;

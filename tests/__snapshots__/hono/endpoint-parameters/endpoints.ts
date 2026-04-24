@@ -17,9 +17,11 @@ const app = new Hono()
    */
 
   .get('/pets-by-country/:country', ...listPetsByCountryHandlers)
+
   /**
    * @summary List all pets by age
    */
 
   .get('/pets-by-age/:age', ...listPetsByAgeHandlers);
+
 export default app;

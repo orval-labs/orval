@@ -169,29 +169,35 @@ const app = new Hono()
    */
 
   .get('/pets', ...listPetsHandlers)
+
   /**
    * @summary Create a pet
    */
 
   .post('/pets', ...createPetsHandlers)
+
   /**
    * @summary Info for a specific pet
    */
 
   .get('/pets/:petId', ...showPetByIdHandlers)
+
   /**
    * @summary Deletes a specific pet
    */
 
   .delete('/pets/:petId', ...deletePetByIdHandlers)
+
   /**
    * @summary health check
    */
 
   .get('/health', ...healthCheckHandlers)
+
   /**
    * @summary combinate nullable and $ref
    */
 
   .get('/pets/:petId/owner', ...showPetWithOwnerHandlers);
+
 export default app;
