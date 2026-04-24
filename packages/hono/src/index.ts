@@ -146,7 +146,7 @@ export const generateHono: ClientBuilder = (verbOptions, options) => {
   const routeImplementation = generateHonoRoute(verbOptions, options.pathRoute);
 
   return {
-    implementation: routeImplementation,
+    implementation: `${routeImplementation}\n`,
     imports: [
       ...verbOptions.params.flatMap((param) => param.imports),
       ...verbOptions.body.imports,
