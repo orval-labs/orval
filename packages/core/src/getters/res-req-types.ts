@@ -763,9 +763,7 @@ function resolveSchemaPropertiesToFormData({
               depth: depth + 1,
               encoding,
             })
-          : partContentType
-            ? `${variableName}.append(\`${keyPrefix}${key}\`, new Blob([JSON.stringify(${nonOptionalValueKey})], { type: '${partContentType}' }));\n`
-            : `${variableName}.append(\`${keyPrefix}${key}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
+          : `${variableName}.append(\`${keyPrefix}${key}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
     } else if (property.type === 'array') {
       let valueStr = 'value';
       let hasNonPrimitiveChild = false;
