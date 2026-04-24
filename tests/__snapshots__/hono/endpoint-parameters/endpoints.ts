@@ -11,18 +11,17 @@ import {
   listPetsByAgeHandlers,
 } from './endpoints.handlers';
 
-const app = new Hono();
+const app = new Hono()
+  /**
+   * @summary List all pets by country
+   */
 
-/**
- * @summary List all pets by country
- */
+  .get('/pets-by-country/:country', ...listPetsByCountryHandlers)
 
-app.get('/pets-by-country/:country', ...listPetsByCountryHandlers);
+  /**
+   * @summary List all pets by age
+   */
 
-/**
- * @summary List all pets by age
- */
-
-app.get('/pets-by-age/:age', ...listPetsByAgeHandlers);
+  .get('/pets-by-age/:age', ...listPetsByAgeHandlers);
 
 export default app;

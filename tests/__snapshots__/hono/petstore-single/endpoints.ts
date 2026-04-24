@@ -163,42 +163,41 @@ import {
   showPetWithOwnerHandlers,
 } from './endpoints.handlers';
 
-const app = new Hono();
+const app = new Hono()
+  /**
+   * @summary List all pets
+   */
 
-/**
- * @summary List all pets
- */
+  .get('/pets', ...listPetsHandlers)
 
-app.get('/pets', ...listPetsHandlers);
+  /**
+   * @summary Create a pet
+   */
 
-/**
- * @summary Create a pet
- */
+  .post('/pets', ...createPetsHandlers)
 
-app.post('/pets', ...createPetsHandlers);
+  /**
+   * @summary Info for a specific pet
+   */
 
-/**
- * @summary Info for a specific pet
- */
+  .get('/pets/:petId', ...showPetByIdHandlers)
 
-app.get('/pets/:petId', ...showPetByIdHandlers);
+  /**
+   * @summary Deletes a specific pet
+   */
 
-/**
- * @summary Deletes a specific pet
- */
+  .delete('/pets/:petId', ...deletePetByIdHandlers)
 
-app.delete('/pets/:petId', ...deletePetByIdHandlers);
+  /**
+   * @summary health check
+   */
 
-/**
- * @summary health check
- */
+  .get('/health', ...healthCheckHandlers)
 
-app.get('/health', ...healthCheckHandlers);
+  /**
+   * @summary combinate nullable and $ref
+   */
 
-/**
- * @summary combinate nullable and $ref
- */
-
-app.get('/pets/:petId/owner', ...showPetWithOwnerHandlers);
+  .get('/pets/:petId/owner', ...showPetWithOwnerHandlers);
 
 export default app;
