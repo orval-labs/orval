@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { NormalizedInputOptions, OpenApiDocument } from '../types';
-import { collectReferencedSchemas, filteredVerbs } from './input-filters';
+import { collectReferencedComponents, filteredVerbs } from './input-filters';
 
 const makeSpec = (overrides: Partial<OpenApiDocument> = {}): OpenApiDocument =>
   ({
@@ -11,6 +11,13 @@ const makeSpec = (overrides: Partial<OpenApiDocument> = {}): OpenApiDocument =>
     components: { schemas: {} },
     ...overrides,
   }) as OpenApiDocument;
+
+const emptyComponents = {
+  schemas: [],
+  responses: [],
+  parameters: [],
+  requestBodies: [],
+};
 
 describe('filteredVerbs', () => {
   it('should return all verbs if filters.tags is undefined', () => {
@@ -121,8 +128,8 @@ describe('filteredVerbs', () => {
   });
 });
 
-describe('collectReferencedSchemas', () => {
-  it('returns empty array when no operations match the tag filter', () => {
+describe('collectReferencedComponents', () => {
+  it('returns empty components when no operations match the tag filter', () => {
     const spec = makeSpec({
       paths: {
         '/pets': {
@@ -142,10 +149,12 @@ describe('collectReferencedSchemas', () => {
       },
     });
 
-    expect(collectReferencedSchemas(spec, ['users'], 'include')).toEqual([]);
+    expect(collectReferencedComponents(spec, ['users'], 'include')).toEqual(
+      emptyComponents,
+    );
   });
 
-  it('collects direct $ref from a matching operation', () => {
+  it('collects direct schema $ref from a matching operation', () => {
     const spec = makeSpec({
       paths: {
         '/pets': {
@@ -170,12 +179,11 @@ describe('collectReferencedSchemas', () => {
       },
     });
 
-    expect(collectReferencedSchemas(spec, ['pets'], 'include')).toEqual(
-      expect.arrayContaining(['Pet']),
-    );
+    const result = collectReferencedComponents(spec, ['pets'], 'include');
+    expect(result.schemas).toEqual(expect.arrayContaining(['Pet']));
   });
 
-  it('collects transitive $ref (A → B → C)', () => {
+  it('collects transitive schema $ref (A -> B -> C)', () => {
     const spec = makeSpec({
       paths: {
         '/pets': {
@@ -213,7 +221,8 @@ describe('collectReferencedSchemas', () => {
       },
     });
 
-    expect(collectReferencedSchemas(spec, ['pets'], 'include')).toEqual(
+    const result = collectReferencedComponents(spec, ['pets'], 'include');
+    expect(result.schemas).toEqual(
       expect.arrayContaining(['Pet', 'Tag', 'Category']),
     );
   });
@@ -249,12 +258,11 @@ describe('collectReferencedSchemas', () => {
       },
     });
 
-    expect(collectReferencedSchemas(spec, ['animals'], 'include')).toEqual(
-      expect.arrayContaining(['Cat', 'Dog']),
-    );
+    const result = collectReferencedComponents(spec, ['animals'], 'include');
+    expect(result.schemas).toEqual(expect.arrayContaining(['Cat', 'Dog']));
   });
 
-  it('does not loop infinitely on circular $ref (A → A)', () => {
+  it('does not loop infinitely on circular $ref (A -> A)', () => {
     const spec = makeSpec({
       paths: {
         '/tree': {
@@ -284,9 +292,8 @@ describe('collectReferencedSchemas', () => {
       },
     });
 
-    expect(collectReferencedSchemas(spec, ['tree'], 'include')).toEqual(
-      expect.arrayContaining(['TreeNode']),
-    );
+    const result = collectReferencedComponents(spec, ['tree'], 'include');
+    expect(result.schemas).toEqual(expect.arrayContaining(['TreeNode']));
   });
 
   it('matches tags using RegExp', () => {
@@ -329,9 +336,9 @@ describe('collectReferencedSchemas', () => {
       },
     });
 
-    expect(collectReferencedSchemas(spec, [/^pet/], 'include')).toEqual(
-      expect.arrayContaining(['Pet']),
-    );
+    const result = collectReferencedComponents(spec, [/^pet/], 'include');
+    expect(result.schemas).toEqual(expect.arrayContaining(['Pet']));
+    expect(result.schemas).not.toContain('User');
   });
 
   it('does not collect cross-file $ref and does not crash', () => {
@@ -356,7 +363,9 @@ describe('collectReferencedSchemas', () => {
       },
     });
 
-    expect(collectReferencedSchemas(spec, ['pets'], 'include')).toEqual([]);
+    expect(collectReferencedComponents(spec, ['pets'], 'include')).toEqual(
+      emptyComponents,
+    );
   });
 
   it('excludes operations matching tags when mode is exclude', () => {
@@ -399,8 +408,208 @@ describe('collectReferencedSchemas', () => {
       },
     });
 
-    expect(collectReferencedSchemas(spec, ['pets'], 'exclude')).toEqual(
-      expect.arrayContaining(['User']),
+    const result = collectReferencedComponents(spec, ['pets'], 'exclude');
+    expect(result.schemas).toEqual(expect.arrayContaining(['User']));
+    expect(result.schemas).not.toContain('Pet');
+  });
+
+  it('collects schemas referenced via #/components/responses/*', () => {
+    const spec = makeSpec({
+      paths: {
+        '/pets': {
+          get: {
+            tags: ['pets'],
+            responses: {
+              404: { $ref: '#/components/responses/NotFound' },
+            },
+          },
+        },
+      },
+      components: {
+        responses: {
+          NotFound: {
+            description: 'Not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+        schemas: {
+          Error: {
+            type: 'object',
+            properties: { message: { type: 'string' } },
+          },
+        },
+      },
+    });
+
+    const result = collectReferencedComponents(spec, ['pets'], 'include');
+    expect(result.responses).toEqual(expect.arrayContaining(['NotFound']));
+    expect(result.schemas).toEqual(expect.arrayContaining(['Error']));
+  });
+
+  it('collects schemas referenced via #/components/parameters/*', () => {
+    const spec = makeSpec({
+      paths: {
+        '/pets': {
+          get: {
+            tags: ['pets'],
+            parameters: [{ $ref: '#/components/parameters/PetFilter' }],
+            responses: { 200: { description: 'OK' } },
+          },
+        },
+      },
+      components: {
+        parameters: {
+          PetFilter: {
+            name: 'filter',
+            in: 'query',
+            schema: { $ref: '#/components/schemas/FilterQuery' },
+          },
+        },
+        schemas: {
+          FilterQuery: {
+            type: 'object',
+            properties: { status: { type: 'string' } },
+          },
+        },
+      },
+    });
+
+    const result = collectReferencedComponents(spec, ['pets'], 'include');
+    expect(result.parameters).toEqual(expect.arrayContaining(['PetFilter']));
+    expect(result.schemas).toEqual(expect.arrayContaining(['FilterQuery']));
+  });
+
+  it('collects schemas referenced via #/components/requestBodies/*', () => {
+    const spec = makeSpec({
+      paths: {
+        '/pets': {
+          post: {
+            tags: ['pets'],
+            requestBody: { $ref: '#/components/requestBodies/CreatePet' },
+            responses: { 201: { description: 'Created' } },
+          },
+        },
+      },
+      components: {
+        requestBodies: {
+          CreatePet: {
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/NewPet' },
+              },
+            },
+          },
+        },
+        schemas: {
+          NewPet: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+        },
+      },
+    });
+
+    const result = collectReferencedComponents(spec, ['pets'], 'include');
+    expect(result.requestBodies).toEqual(expect.arrayContaining(['CreatePet']));
+    expect(result.schemas).toEqual(expect.arrayContaining(['NewPet']));
+  });
+
+  it('collects refs from path-level parameters', () => {
+    const spec = makeSpec({
+      paths: {
+        '/pets/{petId}': {
+          parameters: [
+            {
+              name: 'petId',
+              in: 'path',
+              required: true,
+              schema: { $ref: '#/components/schemas/PetId' },
+            },
+          ],
+          get: {
+            tags: ['pets'],
+            responses: {
+              200: {
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/components/schemas/Pet' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      components: {
+        schemas: {
+          PetId: { type: 'string', format: 'uuid' },
+          Pet: {
+            type: 'object',
+            properties: {
+              id: { $ref: '#/components/schemas/PetId' },
+              name: { type: 'string' },
+            },
+          },
+        },
+      },
+    });
+
+    const result = collectReferencedComponents(spec, ['pets'], 'include');
+    expect(result.schemas).toEqual(expect.arrayContaining(['Pet', 'PetId']));
+  });
+
+  it('collects transitive schemas via responses -> schemas -> schemas', () => {
+    const spec = makeSpec({
+      paths: {
+        '/pets': {
+          get: {
+            tags: ['pets'],
+            responses: {
+              404: { $ref: '#/components/responses/NotFound' },
+            },
+          },
+        },
+      },
+      components: {
+        responses: {
+          NotFound: {
+            description: 'Not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+        schemas: {
+          Error: {
+            type: 'object',
+            properties: {
+              details: {
+                type: 'array',
+                items: { $ref: '#/components/schemas/ErrorDetail' },
+              },
+            },
+          },
+          ErrorDetail: {
+            type: 'object',
+            properties: {
+              field: { type: 'string' },
+              reason: { type: 'string' },
+            },
+          },
+        },
+      },
+    });
+
+    const result = collectReferencedComponents(spec, ['pets'], 'include');
+    expect(result.responses).toEqual(expect.arrayContaining(['NotFound']));
+    expect(result.schemas).toEqual(
+      expect.arrayContaining(['Error', 'ErrorDetail']),
     );
   });
 });

@@ -6,6 +6,15 @@ import type {
   OpenApiPathItemObject,
 } from '../types';
 
+const COMPONENT_TYPES = [
+  'schemas',
+  'responses',
+  'parameters',
+  'requestBodies',
+] as const;
+
+type ComponentType = (typeof COMPONENT_TYPES)[number];
+
 export function filteredVerbs(
   verbs: OpenApiPathItemObject,
   filters: NormalizedInputOptions['filters'],
@@ -44,44 +53,86 @@ function findRefs(value: unknown): string[] {
   return Object.values(obj).flatMap((val) => findRefs(val));
 }
 
-function getSchemaNames(refs: string[], schemaNames: string[]): string[] {
-  return refs
-    .map((ref) => ref.split('/').at(-1) ?? '')
-    .filter((name) => schemaNames.includes(name));
+function parseComponentRef(
+  ref: string,
+): { type: ComponentType; name: string } | undefined {
+  const parts = ref.split('/');
+
+  if (parts[0] !== '#' || parts[1] !== 'components' || parts.length < 4) {
+    return undefined;
+  }
+
+  const type = parts[2];
+  const name = parts[3];
+
+  if (!COMPONENT_TYPES.includes(type as ComponentType)) {
+    return undefined;
+  }
+
+  return { type: type as ComponentType, name };
 }
 
-function resolveReferencedSchemas(
+function getComponentNames(
   refs: string[],
   spec: OpenApiDocument,
-  resolved: string[],
-): string[] {
-  const specSchemas = spec.components?.schemas ?? {};
-  const schemaNames = Object.keys(specSchemas);
-  const newNames = getSchemaNames(refs, schemaNames).filter(
-    (name) => !resolved.includes(name),
-  );
-
-  if (newNames.length === 0) return resolved;
-
-  const nextRefs = newNames.flatMap((name) => findRefs(specSchemas[name]));
-
-  return resolveReferencedSchemas(nextRefs, spec, [...resolved, ...newNames]);
+): { type: ComponentType; name: string }[] {
+  return refs
+    .map((ref) => parseComponentRef(ref))
+    .filter(
+      (parsed): parsed is { type: ComponentType; name: string } =>
+        !!parsed && !!spec.components?.[parsed.type]?.[parsed.name],
+    );
 }
 
-export const collectReferencedSchemas = (
+function resolveReferencedComponents(
+  refs: string[],
+  spec: OpenApiDocument,
+  resolved: Record<ComponentType, string[]>,
+): Record<ComponentType, string[]> {
+  const newComponents = getComponentNames(refs, spec).filter(
+    ({ type, name }) => !resolved[type].includes(name),
+  );
+
+  if (newComponents.length === 0) return resolved;
+
+  const nextResolved: Record<ComponentType, string[]> = {
+    schemas: [...resolved.schemas],
+    responses: [...resolved.responses],
+    parameters: [...resolved.parameters],
+    requestBodies: [...resolved.requestBodies],
+  };
+
+  for (const { type, name } of newComponents) {
+    nextResolved[type].push(name);
+  }
+
+  const nextRefs = newComponents.flatMap(({ type, name }) =>
+    findRefs(spec.components?.[type]?.[name]),
+  );
+
+  return resolveReferencedComponents(nextRefs, spec, nextResolved);
+}
+
+export const collectReferencedComponents = (
   spec: OpenApiDocument,
   tags: (string | RegExp)[],
   mode: InputFiltersOptions['mode'],
-): string[] => {
+): Record<ComponentType, string[]> => {
   const filters = { tags, mode };
-  const operations = Object.values(spec.paths ?? {}).flatMap((pathItem) =>
-    pathItem
-      ? filteredVerbs(pathItem, filters).map(
-          ([, operation]) => operation as unknown,
-        )
-      : [],
-  );
-  const refs = operations.flatMap((op) => findRefs(op));
+  const refs = Object.values(spec.paths ?? {})
+    .filter((pathItem): pathItem is OpenApiPathItemObject => !!pathItem)
+    .flatMap((pathItem) => {
+      const verbs = filteredVerbs(pathItem, filters);
+      return [
+        ...verbs.flatMap(([, operation]) => findRefs(operation)),
+        ...findRefs(pathItem.parameters),
+      ];
+    });
 
-  return resolveReferencedSchemas(refs, spec, []);
+  return resolveReferencedComponents(refs, spec, {
+    schemas: [],
+    responses: [],
+    parameters: [],
+    requestBodies: [],
+  });
 };
