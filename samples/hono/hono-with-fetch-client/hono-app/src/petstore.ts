@@ -11,30 +11,25 @@ import { createPetsHandlers } from './handlers/createPets';
 import { updatePetsHandlers } from './handlers/updatePets';
 import { showPetByIdHandlers } from './handlers/showPetById';
 
-const app = new Hono();
+const app = new Hono()
+  /**
+   * @summary List all pets
+   */
 
-/**
- * @summary List all pets
- */
+  .get('/pets', ...listPetsHandlers)
+  /**
+   * @summary Create a pet
+   */
 
-app.get('/pets', ...listPetsHandlers);
+  .post('/pets', ...createPetsHandlers)
+  /**
+   * @summary Update a pet
+   */
 
-/**
- * @summary Create a pet
- */
+  .put('/pets', ...updatePetsHandlers)
+  /**
+   * @summary Info for a specific pet
+   */
 
-app.post('/pets', ...createPetsHandlers);
-
-/**
- * @summary Update a pet
- */
-
-app.put('/pets', ...updatePetsHandlers);
-
-/**
- * @summary Info for a specific pet
- */
-
-app.get('/pets/:petId', ...showPetByIdHandlers);
-
+  .get('/pets/:petId', ...showPetByIdHandlers);
 export default app;

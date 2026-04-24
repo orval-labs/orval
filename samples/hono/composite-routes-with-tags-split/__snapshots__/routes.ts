@@ -12,11 +12,10 @@ import {
   showPetByIdHandlers,
 } from './endpoints/pets/pets.handlers';
 
-const app = new Hono();
-
-app.get('/pets', ...listPetsHandlers);
-app.post('/pets', ...createPetsHandlers);
-app.put('/pets', ...updatePetsHandlers);
-app.get('/pets/:petId', ...showPetByIdHandlers);
+const app = new Hono()
+  .get('/pets', ...listPetsHandlers)
+  .post('/pets', ...createPetsHandlers)
+  .put('/pets', ...updatePetsHandlers)
+  .get('/pets/:petId', ...showPetByIdHandlers);
 
 export default app;

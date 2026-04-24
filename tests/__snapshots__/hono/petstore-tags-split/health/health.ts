@@ -8,12 +8,11 @@ import { Hono } from 'hono';
 
 import { healthCheckHandlers } from './health.handlers';
 
-const app = new Hono();
+const app = new Hono()
+  /**
+   * @summary health check
+   */
 
-/**
- * @summary health check
- */
-
-app.get('/health', ...healthCheckHandlers);
+  .get('/health', ...healthCheckHandlers);
 
 export default app;
