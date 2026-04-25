@@ -9,6 +9,7 @@ export default defineConfig({
       client: 'fetch',
       baseUrl: 'http://localhost:3000',
       mock: true,
+      clean: true,
       formatter: 'prettier',
       override: {
         mutator: {

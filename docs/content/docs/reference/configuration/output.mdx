@@ -437,7 +437,22 @@ export default defineConfig({
 **Type:** `Boolean | String[]`
 **Default:** `false`
 
-Clean generated files before regenerating.
+Clean generated files before regenerating. Removes every file in the `target` and `schemas` directories (`.d.ts` files are preserved).
+
+When set to a `String[]`, the array entries are extra glob patterns appended to the deletion list, applied to both the `target` and `schemas` directories. Use negated globs (prefixed with `!`) to preserve files from removal, or positive globs to also remove files that would otherwise be kept.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      // preserve `important.ts`, and also remove `.d.ts` files
+      clean: ['!**/important.ts', '**/*.d.ts'],
+    },
+  },
+});
+```
+
+Keep hand-written files (mutators, transformers, app code) outside the `target` and `schemas` directories — use a dedicated subfolder such as `./gen/` for output so `clean` does not remove them.
 
 ## formatter
 
