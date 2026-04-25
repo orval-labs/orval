@@ -129,3 +129,38 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(resultA.value).toBe(resultB.value);
   });
 });
+
+describe('combineSchemas (useTypeAlias for nullable unions)', () => {
+  it('sets useTypeAlias when oneOf has a single branch plus nullable', () => {
+    const schema: OpenApiSchemaObject = {
+      oneOf: [{ $ref: '#/components/schemas/Pet' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'NullablePet',
+      separator: 'oneOf',
+      context,
+      nullable: ' | null',
+    });
+
+    expect(result.useTypeAlias).toBe(true);
+    expect(result.value).toContain('| null');
+  });
+
+  it('does not set useTypeAlias for oneOf single branch without nullable', () => {
+    const schema: OpenApiSchemaObject = {
+      oneOf: [{ $ref: '#/components/schemas/Pet' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'SinglePet',
+      separator: 'oneOf',
+      context,
+      nullable: '',
+    });
+
+    expect(result.useTypeAlias).toBeUndefined();
+  });
+});

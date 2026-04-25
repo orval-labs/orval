@@ -49,15 +49,11 @@ export function getScalar({
   >[0];
   const schemaConst = item.const as string | undefined;
   const schemaFormat = item.format as string | undefined;
-  const schemaNullable = item.nullable as boolean | undefined;
   const schemaContentMediaType = item.contentMediaType as string | undefined;
   const schemaContentEncoding = item.contentEncoding as string | undefined;
 
   const nullable =
-    (isArray(schemaType) && schemaType.includes('null')) ||
-    schemaNullable === true
-      ? ' | null'
-      : '';
+    isArray(schemaType) && schemaType.includes('null') ? ' | null' : '';
 
   const enumItems = schemaEnum?.filter(
     (enumItem): enumItem is Exclude<SchemaEnumValue, null> => enumItem !== null,
