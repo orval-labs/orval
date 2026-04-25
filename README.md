@@ -60,7 +60,7 @@ Try Orval out for yourself using our [Playground](https://orval.dev/playground) 
 
 ## A note about AI
 
-First of all, we do not reject the use of AI agents outright. That said, please do not submit AI-generated output as a PR without reviewing it yourself. Every change must have a clear intent and purpose — do not submit changes you cannot explain in your own words. Making the effort to understand orval's codebase, TypeScript, and API clients beforehand, and reviewing what AI produces, is the contributor's responsibility, not the reviewer's. Finally, we will continue to welcome new contributors and actively support you through review and iteration.
+First of all, we do not reject the use of AI agents outright. That said, please do not submit AI-generated output in a PR without reviewing it yourself. Every change must have a clear intent and purpose — do not submit changes you cannot explain in your own words. Making the effort to understand orval's codebase, TypeScript, and API clients beforehand, and reviewing what AI produces, is the contributor's responsibility, not the reviewer's. Finally, we will continue to welcome new contributors and actively support you through review and iteration.
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 
