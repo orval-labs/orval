@@ -82,6 +82,7 @@ export const useCreatePetsHook = () => {
       return createPets({
         url: `/pets`,
         method: 'POST',
+        headers: { 'Content-Type': 'multipart/form-data' },
         data: formData,
         signal,
       });

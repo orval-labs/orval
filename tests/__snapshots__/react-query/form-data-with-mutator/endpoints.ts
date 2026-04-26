@@ -31,6 +31,7 @@ export const createPets = (pet: Pet, signal?: AbortSignal) => {
   return customInstance<Pet>({
     url: `/pets`,
     method: 'POST',
+    headers: { 'Content-Type': 'multipart/form-data' },
     data: formData,
     signal,
   });

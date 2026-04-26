@@ -499,7 +499,7 @@ export function generateMutatorConfig({
     queryParams,
   );
 
-  const ignoreContentTypes = ['multipart/form-data'];
+  const ignoreContentTypes = isAngular ? ['multipart/form-data'] : [];
   const shouldSetContentType =
     body.contentType && !ignoreContentTypes.includes(body.contentType);
 
