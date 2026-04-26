@@ -428,7 +428,9 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     responseType === 'Error' ? 'ErrorSchema' : responseType;
   const includeZodSchema =
     context.output.override.includeZodSchemaInArguments &&
-    schemaValueRef !== 'void';
+    schemaValueRef !== 'void' &&
+    typeof context.output.schemas === 'object' &&
+    context.output.schemas.type === 'zod';
   const validateFetchFnOptions = `${rawFetchFnOptions}${includeZodSchema ? ',' : ''}
     ${includeZodSchema ? `schema: ${schemaValueRef}` : ''}
   }    
