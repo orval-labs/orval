@@ -20,10 +20,10 @@ import type {
   UseQueryResult,
 } from '@tanstack/react-query';
 
-import type { AnotherSchema as __AnotherSchema, Pet as __Pet } from './model';
+import type { AnotherSchema, Pet } from './model';
 
 export type postPetsResponse200 = {
-  data: __Pet;
+  data: Pet;
   status: 200;
 };
 
@@ -113,7 +113,7 @@ export const usePostPets = <TError = unknown, TContext = unknown>(
 };
 
 export type getPetsResponse200 = {
-  data: __AnotherSchema;
+  data: AnotherSchema;
   status: 200;
 };
 

@@ -1,5 +1,6 @@
 import {
   type ClientMockGeneratorBuilder,
+  escapeRegExp,
   generateDependencyImports,
   type GenerateMockImports,
   type GeneratorDependency,
@@ -330,8 +331,17 @@ export const ${handlerName} = (overrideResponse?: ${mockReturnType} | ((${infoPa
   const includeResponseImports = [
     ...imports,
     ...response.imports.filter((r) => {
-      // Only include imports which are actually used in mock.
-      const reg = new RegExp(String.raw`\b${r.name}\b`);
+      // Only keep imports referenced in the mock. Aliased imports
+      // (`Foo as __Foo`) reference the alias rather than the bare name, so
+      // match against either. Mirrors `addDependency` in core/generators/imports.ts (#3269).
+      const searchWords = [r.alias, r.name]
+        .filter((p): p is string => Boolean(p?.length))
+        .map((part) => escapeRegExp(part))
+        .join('|');
+      if (!searchWords) {
+        return false;
+      }
+      const reg = new RegExp(String.raw`\b(${searchWords})\b`);
       return reg.test(handlerImplementation) || reg.test(mockImplementation);
     }),
   ];

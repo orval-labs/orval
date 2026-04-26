@@ -1,0 +1,47 @@
+openapi: 3.1.0
+info:
+  title: Issue 3269 - Nullable anyOf $ref + tags-split + msw
+  version: 0.0.1
+paths:
+  /widgets:
+    get:
+      tags: [widgets]
+      operationId: getWidget
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/Widget'
+                  - type: 'null'
+                title: Response Get Widget
+    post:
+      tags: [widgets]
+      operationId: createWidget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              anyOf:
+                - $ref: '#/components/schemas/Widget'
+                - type: 'null'
+              title: Widget Or Null
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+components:
+  schemas:
+    Widget:
+      type: object
+      title: Widget
+      required: [id, label]
+      properties:
+        id: { type: string }
+        label: { type: string }
