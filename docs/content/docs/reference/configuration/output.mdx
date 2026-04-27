@@ -637,8 +637,10 @@ export default defineConfig({
       override: {
         query: {
           useQuery: true,
+          useSuspenseQuery: true,
           useMutation: true,
           useInfinite: true,
+          useSuspenseInfiniteQuery: true,
           useInfiniteQueryParam: 'nextId',
           usePrefetch: true,
           useInvalidate: true,
@@ -662,6 +664,12 @@ export default defineConfig({
 
 Generate `useQuery` hooks.
 
+### useSuspenseQuery
+
+**Type:** `Boolean`
+
+Generate `useSuspenseQuery` hooks.
+
 ### useMutation
 
 **Type:** `Boolean`
@@ -673,6 +681,12 @@ Generate `useMutation` hooks for non-GET operations.
 **Type:** `Boolean`
 
 Generate `useInfiniteQuery` hooks.
+
+### useSuspenseInfiniteQuery
+
+**Type:** `Boolean`
+
+Generate `useSuspenseInfiniteQuery` hooks.
 
 ### useInfiniteQueryParam
 
