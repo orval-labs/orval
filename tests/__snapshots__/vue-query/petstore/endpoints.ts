@@ -4,18 +4,15 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/vue-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/vue-query';
 import type {
   DataTag,
   InfiniteData,
-  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UseInfiniteQueryOptions,
   UseInfiniteQueryReturnType,
-  UseMutationOptions,
-  UseMutationReturnType,
   UseQueryOptions,
   UseQueryReturnType,
 } from '@tanstack/vue-query';
@@ -276,72 +273,227 @@ export const createPets = (
   });
 };
 
-export const getCreatePetsMutationOptions = <
-  TError = AxiosError<Error>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createPets>>,
-    TError,
-    { data: CreatePetsBody; params: CreatePetsParams; version?: number },
-    TContext
-  >;
-  axios?: AxiosRequestConfig;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createPets>>,
-  TError,
-  { data: CreatePetsBody; params: CreatePetsParams; version?: number },
-  TContext
-> => {
-  const mutationKey = ['createPets'];
-  const { mutation: mutationOptions, axios: axiosOptions } = options
-    ? options.mutation &&
-      'mutationKey' in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, axios: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createPets>>,
-    { data: CreatePetsBody; params: CreatePetsParams; version?: number }
-  > = (props) => {
-    const { data, params, version } = props ?? {};
-
-    return createPets(data, params, version, axiosOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
+export const getCreatePetsInfiniteQueryKey = (
+  createPetsBody?: MaybeRef<CreatePetsBody>,
+  params?: MaybeRef<CreatePetsParams>,
+  version: MaybeRef<number> = 1,
+) => {
+  return [
+    'infinite',
+    'v',
+    version,
+    'pets',
+    ...(params ? [params] : []),
+    createPetsBody,
+  ] as const;
 };
 
-export type CreatePetsMutationResult = NonNullable<
+export const getCreatePetsQueryKey = (
+  createPetsBody?: MaybeRef<CreatePetsBody>,
+  params?: MaybeRef<CreatePetsParams>,
+  version: MaybeRef<number> = 1,
+) => {
+  return [
+    'v',
+    version,
+    'pets',
+    ...(params ? [params] : []),
+    createPetsBody,
+  ] as const;
+};
+
+export const getCreatePetsInfiniteQueryOptions = <
+  TData = InfiniteData<
+    Awaited<ReturnType<typeof createPets>>,
+    CreatePetsParams['limit']
+  >,
+  TError = AxiosError<Error>,
+>(
+  createPetsBody: MaybeRef<CreatePetsBody>,
+  params: MaybeRef<CreatePetsParams>,
+  version: MaybeRef<number> = 1,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof createPets>>,
+        TError,
+        TData,
+        QueryKey,
+        CreatePetsParams['limit']
+      >
+    >;
+    axios?: AxiosRequestConfig;
+  },
+) => {
+  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+
+  const queryKey = getCreatePetsInfiniteQueryKey(
+    createPetsBody,
+    params,
+    version,
+  );
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof createPets>>,
+    QueryKey,
+    CreatePetsParams['limit']
+  > = ({ signal, pageParam }) =>
+    createPets(
+      createPetsBody,
+      { ...unref(params), limit: pageParam || unref(params)?.['limit'] },
+      version,
+      { signal, ...axiosOptions },
+    );
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: computed(() => !!unref(version)),
+    ...queryOptions,
+  } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof createPets>>,
+    TError,
+    TData,
+    QueryKey,
+    CreatePetsParams['limit']
+  >;
+};
+
+export type CreatePetsInfiniteQueryResult = NonNullable<
   Awaited<ReturnType<typeof createPets>>
 >;
-export type CreatePetsMutationBody = CreatePetsBody;
-export type CreatePetsMutationError = AxiosError<Error>;
+export type CreatePetsInfiniteQueryError = AxiosError<Error>;
 
 /**
  * @summary Create a pet
  */
-export const useCreatePets = <TError = AxiosError<Error>, TContext = unknown>(
+
+export function useCreatePetsInfinite<
+  TData = InfiniteData<
+    Awaited<ReturnType<typeof createPets>>,
+    CreatePetsParams['limit']
+  >,
+  TError = AxiosError<Error>,
+>(
+  createPetsBody: MaybeRef<CreatePetsBody>,
+  params: MaybeRef<CreatePetsParams>,
+  version: MaybeRef<number> = 1,
   options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof createPets>>,
-      TError,
-      { data: CreatePetsBody; params: CreatePetsParams; version?: number },
-      TContext
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof createPets>>,
+        TError,
+        TData,
+        QueryKey,
+        CreatePetsParams['limit']
+      >
     >;
     axios?: AxiosRequestConfig;
   },
   queryClient?: QueryClient,
-): UseMutationReturnType<
-  Awaited<ReturnType<typeof createPets>>,
-  TError,
-  { data: CreatePetsBody; params: CreatePetsParams; version?: number },
-  TContext
-> => {
-  return useMutation(getCreatePetsMutationOptions(options), queryClient);
+): UseInfiniteQueryReturnType<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getCreatePetsInfiniteQueryOptions(
+    createPetsBody,
+    params,
+    version,
+    options,
+  );
+
+  const query = useInfiniteQuery(
+    queryOptions,
+    queryClient,
+  ) as UseInfiniteQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = unref(queryOptions).queryKey as DataTag<
+    QueryKey,
+    TData,
+    TError
+  >;
+
+  return query;
+}
+
+export const getCreatePetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof createPets>>,
+  TError = AxiosError<Error>,
+>(
+  createPetsBody: MaybeRef<CreatePetsBody>,
+  params: MaybeRef<CreatePetsParams>,
+  version: MaybeRef<number> = 1,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
+    >;
+    axios?: AxiosRequestConfig;
+  },
+) => {
+  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+
+  const queryKey = getCreatePetsQueryKey(createPetsBody, params, version);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof createPets>>> = ({
+    signal,
+  }) =>
+    createPets(createPetsBody, params, version, { signal, ...axiosOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: computed(() => !!unref(version)),
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>;
 };
+
+export type CreatePetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof createPets>>
+>;
+export type CreatePetsQueryError = AxiosError<Error>;
+
+/**
+ * @summary Create a pet
+ */
+
+export function useCreatePets<
+  TData = Awaited<ReturnType<typeof createPets>>,
+  TError = AxiosError<Error>,
+>(
+  createPetsBody: MaybeRef<CreatePetsBody>,
+  params: MaybeRef<CreatePetsParams>,
+  version: MaybeRef<number> = 1,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
+    >;
+    axios?: AxiosRequestConfig;
+  },
+  queryClient?: QueryClient,
+): UseQueryReturnType<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getCreatePetsQueryOptions(
+    createPetsBody,
+    params,
+    version,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = unref(queryOptions).queryKey as DataTag<
+    QueryKey,
+    TData,
+    TError
+  >;
+
+  return query;
+}
 
 /**
  * @summary Info for a specific pet
@@ -543,75 +695,181 @@ export const deletePetById = (
   return axios.delete(`/v${version}/pets/${petId}`, options);
 };
 
-export const getDeletePetByIdMutationOptions = <
-  TError = AxiosError<Error>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deletePetById>>,
-    TError,
-    { petId: string; version?: number },
-    TContext
-  >;
-  axios?: AxiosRequestConfig;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof deletePetById>>,
-  TError,
-  { petId: string; version?: number },
-  TContext
-> => {
-  const mutationKey = ['deletePetById'];
-  const { mutation: mutationOptions, axios: axiosOptions } = options
-    ? options.mutation &&
-      'mutationKey' in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, axios: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof deletePetById>>,
-    { petId: string; version?: number }
-  > = (props) => {
-    const { petId, version } = props ?? {};
-
-    return deletePetById(petId, version, axiosOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
+export const getDeletePetByIdInfiniteQueryKey = (
+  petId: MaybeRef<string>,
+  version: MaybeRef<number> = 1,
+) => {
+  return ['infinite', 'v', version, 'pets', petId] as const;
 };
 
-export type DeletePetByIdMutationResult = NonNullable<
+export const getDeletePetByIdQueryKey = (
+  petId: MaybeRef<string>,
+  version: MaybeRef<number> = 1,
+) => {
+  return ['v', version, 'pets', petId] as const;
+};
+
+export const getDeletePetByIdInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
+  TError = AxiosError<Error>,
+>(
+  petId: MaybeRef<string>,
+  version: MaybeRef<number> = 1,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof deletePetById>>,
+        TError,
+        TData
+      >
+    >;
+    axios?: AxiosRequestConfig;
+  },
+) => {
+  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+
+  const queryKey = getDeletePetByIdInfiniteQueryKey(petId, version);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof deletePetById>>> = ({
+    signal,
+  }) => deletePetById(petId, version, { signal, ...axiosOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: computed(() => !!(unref(version) && unref(petId))),
+    ...queryOptions,
+  } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof deletePetById>>,
+    TError,
+    TData
+  >;
+};
+
+export type DeletePetByIdInfiniteQueryResult = NonNullable<
   Awaited<ReturnType<typeof deletePetById>>
 >;
-
-export type DeletePetByIdMutationError = AxiosError<Error>;
+export type DeletePetByIdInfiniteQueryError = AxiosError<Error>;
 
 /**
  * @summary Deletes a specific pet
  */
-export const useDeletePetById = <
+
+export function useDeletePetByIdInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
   TError = AxiosError<Error>,
-  TContext = unknown,
 >(
+  petId: MaybeRef<string>,
+  version: MaybeRef<number> = 1,
   options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof deletePetById>>,
-      TError,
-      { petId: string; version?: number },
-      TContext
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof deletePetById>>,
+        TError,
+        TData
+      >
     >;
     axios?: AxiosRequestConfig;
   },
   queryClient?: QueryClient,
-): UseMutationReturnType<
-  Awaited<ReturnType<typeof deletePetById>>,
-  TError,
-  { petId: string; version?: number },
-  TContext
-> => {
-  return useMutation(getDeletePetByIdMutationOptions(options), queryClient);
+): UseInfiniteQueryReturnType<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getDeletePetByIdInfiniteQueryOptions(
+    petId,
+    version,
+    options,
+  );
+
+  const query = useInfiniteQuery(
+    queryOptions,
+    queryClient,
+  ) as UseInfiniteQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = unref(queryOptions).queryKey as DataTag<
+    QueryKey,
+    TData,
+    TError
+  >;
+
+  return query;
+}
+
+export const getDeletePetByIdQueryOptions = <
+  TData = Awaited<ReturnType<typeof deletePetById>>,
+  TError = AxiosError<Error>,
+>(
+  petId: MaybeRef<string>,
+  version: MaybeRef<number> = 1,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof deletePetById>>, TError, TData>
+    >;
+    axios?: AxiosRequestConfig;
+  },
+) => {
+  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+
+  const queryKey = getDeletePetByIdQueryKey(petId, version);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof deletePetById>>> = ({
+    signal,
+  }) => deletePetById(petId, version, { signal, ...axiosOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: computed(() => !!(unref(version) && unref(petId))),
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof deletePetById>>,
+    TError,
+    TData
+  >;
 };
+
+export type DeletePetByIdQueryResult = NonNullable<
+  Awaited<ReturnType<typeof deletePetById>>
+>;
+export type DeletePetByIdQueryError = AxiosError<Error>;
+
+/**
+ * @summary Deletes a specific pet
+ */
+
+export function useDeletePetById<
+  TData = Awaited<ReturnType<typeof deletePetById>>,
+  TError = AxiosError<Error>,
+>(
+  petId: MaybeRef<string>,
+  version: MaybeRef<number> = 1,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof deletePetById>>, TError, TData>
+    >;
+    axios?: AxiosRequestConfig;
+  },
+  queryClient?: QueryClient,
+): UseQueryReturnType<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getDeletePetByIdQueryOptions(petId, version, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = unref(queryOptions).queryKey as DataTag<
+    QueryKey,
+    TData,
+    TError
+  >;
+
+  return query;
+}
 
 /**
  * @summary health check

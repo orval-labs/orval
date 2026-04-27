@@ -181,8 +181,6 @@ export async function normalizeOptions(
   const defaultFileExtension = '.ts';
 
   const globalQueryOptions: NormalizedQueryOptions = {
-    useQuery: true,
-    useMutation: true,
     signal: true,
     shouldExportMutatorHooks: true,
     shouldExportHttpClient: true,

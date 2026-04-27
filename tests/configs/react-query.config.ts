@@ -856,6 +856,27 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Regression for issue #2376. Setting override.query.useQuery: true
+  // globally (without per-operation overrides) should produce Query hooks
+  // for non-GET verbs (POST/DELETE/etc) instead of falling back to Mutation.
+  globalUseQueryForAllVerbs: {
+    output: {
+      target:
+        '../generated/react-query/global-use-query-for-all-verbs/endpoints.ts',
+      schemas: '../generated/react-query/global-use-query-for-all-verbs/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useQuery: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   // Regression for issue #3269. tags-split + msw + OpenAPI 3.1 anyOf-nullable
   // ($ref + type:null) on both response and request body. Pre-fix this emitted
   // `__Widget` references in the .msw.ts file with no matching import.

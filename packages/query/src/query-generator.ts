@@ -649,17 +649,21 @@ export const generateQueryHook = async (
     operationQueryOptions?.useSuspenseInfiniteQuery,
   ].some(Boolean);
 
-  let isQuery =
-    (Verbs.GET === verb &&
-      [
-        override.query.useQuery,
-        override.query.useSuspenseQuery,
-        override.query.useInfinite,
-        override.query.useSuspenseInfiniteQuery,
-      ].some(Boolean)) ||
-    hasOperationQueryOption;
+  // Verb-aware defaults: when not explicitly set, GET defaults to a Query
+  // hook and non-GET defaults to a Mutation hook. Explicit user values in
+  // override.query propagate to all verbs (issue #2376).
+  const effectiveUseQuery = override.query.useQuery ?? verb === Verbs.GET;
+  const effectiveUseMutation = override.query.useMutation ?? verb !== Verbs.GET;
 
-  let isMutation = override.query.useMutation && verb !== Verbs.GET;
+  let isQuery =
+    [
+      effectiveUseQuery,
+      override.query.useSuspenseQuery,
+      override.query.useInfinite,
+      override.query.useSuspenseInfiniteQuery,
+    ].some(Boolean) || hasOperationQueryOption;
+
+  let isMutation = effectiveUseMutation && verb !== Verbs.GET;
 
   if (operationQueryOptions?.useMutation !== undefined) {
     isMutation = operationQueryOptions.useMutation;
@@ -722,7 +726,7 @@ export const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query.useQuery || operationQueryOptions?.useQuery
+      ...(effectiveUseQuery || operationQueryOptions?.useQuery
         ? [
             {
               name: operationName,
@@ -856,7 +860,7 @@ ${queryKeyFns}`;
         route,
         doc,
         usePrefetch: query.usePrefetch,
-        useQuery: query.useQuery,
+        useQuery: effectiveUseQuery,
         useInfinite: query.useInfinite,
         useInvalidate: query.useInvalidate,
         useSetQueryData:
