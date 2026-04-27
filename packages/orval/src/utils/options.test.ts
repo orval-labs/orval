@@ -529,6 +529,7 @@ describe('normalizeOptions', () => {
             output: {
               target: './generated.ts',
               httpClient: 'fetch',
+              optionsParamRequired: false,
             },
           },
           workspace,
