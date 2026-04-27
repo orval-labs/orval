@@ -246,6 +246,10 @@ export function getResReqTypes(
               propName = propName + pascal(getNumberWord(index + 1));
             }
 
+            const isFormData = formDataContentTypes.has(contentType);
+            const isFormUrlEncoded =
+              formUrlEncodedContentTypes.has(contentType);
+
             // When schema is a $ref, use schema name for consistent param naming
             let effectivePropName = propName;
             if (mediaType.schema && isReference(mediaType.schema)) {
@@ -253,13 +257,13 @@ export function getResReqTypes(
               if (imports[0]?.name) {
                 effectivePropName = imports[0].name;
               }
-            } else if (mediaType.schema) {
-              // When schema is a oneOf/anyOf of $refs, concat schema names
-              // so the FormData variable matches the function parameter.
-              // If the union only contains inline variants (no $ref), `names`
-              // stays empty and effectivePropName keeps the default
-              // `pascal(name) + pascal(key)` form; this is the original bug's
-              // shape, but the DTO-less case is outside this fix's scope.
+            } else if ((isFormData || isFormUrlEncoded) && mediaType.schema) {
+              // For form-data and url-encoded, the param name is also the
+              // runtime variable iterated by the FormData/URLSearchParams code.
+              // Derive it from the inner DTO names so it matches the function
+              // parameter (#3242). Scoped to these content types: forcing the
+              // schema name elsewhere aliases the import to `Foo as __Foo` in
+              // split mode and broke the MSW mock filter (#3269).
               const combinedRefs =
                 getSchemaOneOf(mediaType.schema) ??
                 getSchemaAnyOf(mediaType.schema);
@@ -278,8 +282,6 @@ export function getResReqTypes(
                 }
               }
             }
-
-            const isFormData = formDataContentTypes.has(contentType);
 
             const resolvedValue = getResReqContentTypes({
               mediaType,
@@ -307,9 +309,6 @@ export function getResReqTypes(
 
               return;
             }
-
-            const isFormUrlEncoded =
-              formUrlEncodedContentTypes.has(contentType);
 
             if (
               (!isFormData && !isFormUrlEncoded) ||
@@ -763,9 +762,7 @@ function resolveSchemaPropertiesToFormData({
               depth: depth + 1,
               encoding,
             })
-          : partContentType
-            ? `${variableName}.append(\`${keyPrefix}${key}\`, new Blob([JSON.stringify(${nonOptionalValueKey})], { type: '${partContentType}' }));\n`
-            : `${variableName}.append(\`${keyPrefix}${key}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
+          : `${variableName}.append(\`${keyPrefix}${key}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
     } else if (property.type === 'array') {
       let valueStr = 'value';
       let hasNonPrimitiveChild = false;

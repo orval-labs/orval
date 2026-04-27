@@ -465,6 +465,16 @@ export async function normalizeOptions(
     );
   }
 
+  if (
+    normalizedOptions.output.httpClient === OutputHttpClient.FETCH &&
+    normalizedOptions.output.optionsParamRequired &&
+    normalizedOptions.output.override.requestOptions !== false
+  ) {
+    logWarning(
+      `⚠️  With \`httpClient: 'fetch'\`, \`optionsParamRequired: true\` cannot make the generated \`options\` parameter required. The fetch \`options\` parameter remains optional with type \`RequestInit\` (\`optionsParamRequired\` may still affect other generated parameters). Set \`httpClient: 'axios'\` to make the \`options\` parameter required.`,
+    );
+  }
+
   return normalizedOptions;
 }
 

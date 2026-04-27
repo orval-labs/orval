@@ -405,7 +405,7 @@ formData.append(\`cmtText\`, bodyRequestBody.cmtText instanceof Blob ? bodyReque
 formData.append(\`encOverride\`, bodyRequestBody.encOverride instanceof Blob ? bodyRequestBody.encOverride : new Blob([bodyRequestBody.encOverride], { type: 'text/csv' }));
 formData.append(\`formatBinary\`, bodyRequestBody.formatBinary);
 formData.append(\`base64Field\`, bodyRequestBody.base64Field);
-formData.append(\`metadata\`, new Blob([JSON.stringify(bodyRequestBody.metadata)], { type: 'application/json' }));
+formData.append(\`metadata\`, JSON.stringify(bodyRequestBody.metadata));
 formData.append(\`wildcardFile\`, bodyRequestBody.wildcardFile instanceof Blob ? bodyRequestBody.wildcardFile : new Blob([bodyRequestBody.wildcardFile], { type: '*/*' }));
 bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
 `);

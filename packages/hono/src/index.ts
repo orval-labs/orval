@@ -120,11 +120,11 @@ export const getHonoHeader: ClientHeaderBuilder = ({
     handlers = `import {\n${importHandlerNames}\n} from './${tag ?? targetInfo.filename}.handlers';`;
   }
 
-  return `${handlers}\n\n
-const app = new Hono()\n\n`;
+  return `${handlers}\n\nconst app = new Hono()\n`;
 };
 
-export const getHonoFooter: ClientFooterBuilder = () => 'export default app';
+export const getHonoFooter: ClientFooterBuilder = () =>
+  ';\n\nexport default app;\n';
 
 const generateHonoRoute = (
   { operationName, verb }: GeneratorVerbOptions,
@@ -132,8 +132,7 @@ const generateHonoRoute = (
 ) => {
   const path = getRoute(pathRoute);
 
-  return `
-app.${verb.toLowerCase()}('${path}',...${operationName}Handlers)`;
+  return `\n  .${verb.toLowerCase()}('${path}', ...${operationName}Handlers)`;
 };
 
 export const generateHono: ClientBuilder = (verbOptions, options) => {
@@ -147,7 +146,7 @@ export const generateHono: ClientBuilder = (verbOptions, options) => {
   const routeImplementation = generateHonoRoute(verbOptions, options.pathRoute);
 
   return {
-    implementation: routeImplementation ? `${routeImplementation}\n\n` : '',
+    implementation: `${routeImplementation}\n`,
     imports: [
       ...verbOptions.params.flatMap((param) => param.imports),
       ...verbOptions.body.imports,
@@ -767,7 +766,7 @@ const generateCompositeRoutes = (
     .map((verbOption) => {
       return generateHonoRoute(verbOption, verbOption.pathRoute);
     })
-    .join(';');
+    .join('');
 
   const importHandlers = Object.values(verbOptions);
 
@@ -815,12 +814,11 @@ const generateCompositeRoutes = (
 
   const honoImport = `import { Hono } from 'hono';`;
   const honoInitialization = `\nconst app = new Hono()`;
-  const honoAppExport = `\nexport default app`;
+  const honoAppExport = `\nexport default app;`;
 
   const content = `${header}${honoImport}
 ${ImportHandlersImplementation}
-${honoInitialization}
-${routes}
+${honoInitialization}${routes};
 ${honoAppExport}
 `;
 
