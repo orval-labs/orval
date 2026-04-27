@@ -2,8 +2,19 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { getWarningCount, resetWarnings } from '@orval/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { logWarningSpy } = vi.hoisted(() => ({
+  logWarningSpy: vi.fn(),
+}));
+
+vi.mock('@orval/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@orval/core')>();
+  return {
+    ...actual,
+    logWarning: logWarningSpy,
+  };
+});
 
 import { normalizeOptions } from './options';
 
@@ -402,12 +413,15 @@ describe('normalizeOptions', () => {
   });
 
   describe('optionsParamRequired with fetch httpClient', () => {
+    const fetchOptionsRequiredWarningPattern =
+      /httpClient: 'fetch'.*optionsParamRequired.*cannot make.*options.*required/s;
+
     beforeEach(() => {
-      resetWarnings();
+      logWarningSpy.mockClear();
     });
 
     afterEach(() => {
-      resetWarnings();
+      logWarningSpy.mockClear();
     });
 
     it('warns when optionsParamRequired is true and httpClient is fetch', async () => {
@@ -432,7 +446,9 @@ describe('normalizeOptions', () => {
           workspace,
         );
 
-        expect(getWarningCount()).toBe(1);
+        expect(logWarningSpy).toHaveBeenCalledWith(
+          expect.stringMatching(fetchOptionsRequiredWarningPattern),
+        );
       } finally {
         await rm(workspace, { recursive: true, force: true });
       }
@@ -459,7 +475,9 @@ describe('normalizeOptions', () => {
           workspace,
         );
 
-        expect(getWarningCount()).toBe(1);
+        expect(logWarningSpy).toHaveBeenCalledWith(
+          expect.stringMatching(fetchOptionsRequiredWarningPattern),
+        );
       } finally {
         await rm(workspace, { recursive: true, force: true });
       }
@@ -487,7 +505,9 @@ describe('normalizeOptions', () => {
           workspace,
         );
 
-        expect(getWarningCount()).toBe(0);
+        expect(logWarningSpy).not.toHaveBeenCalledWith(
+          expect.stringMatching(fetchOptionsRequiredWarningPattern),
+        );
       } finally {
         await rm(workspace, { recursive: true, force: true });
       }
@@ -514,7 +534,42 @@ describe('normalizeOptions', () => {
           workspace,
         );
 
-        expect(getWarningCount()).toBe(0);
+        expect(logWarningSpy).not.toHaveBeenCalledWith(
+          expect.stringMatching(fetchOptionsRequiredWarningPattern),
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('does not warn when override.requestOptions is false with httpClient fetch', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        const validSpecPath = path.join(workspace, 'petstore.yaml');
+        await writeFile(
+          validSpecPath,
+          'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+        );
+
+        await normalizeOptions(
+          {
+            input: { target: validSpecPath },
+            output: {
+              target: './generated.ts',
+              httpClient: 'fetch',
+              optionsParamRequired: true,
+              override: {
+                requestOptions: false,
+              },
+            },
+          },
+          workspace,
+        );
+
+        expect(logWarningSpy).not.toHaveBeenCalledWith(
+          expect.stringMatching(fetchOptionsRequiredWarningPattern),
+        );
       } finally {
         await rm(workspace, { recursive: true, force: true });
       }
