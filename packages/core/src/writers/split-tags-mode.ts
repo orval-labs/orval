@@ -160,11 +160,12 @@ export async function writeSplitTagsMode({
           options: isFunction(output.mock) ? undefined : output.mock,
         });
 
-        const schemasPath = output.schemas
-          ? undefined
-          : path.join(dirname, filename + '.schemas' + extension);
+        const schemasPath =
+          !output.schemas && needSchema
+            ? path.join(dirname, filename + '.schemas' + extension)
+            : undefined;
 
-        if (schemasPath && needSchema) {
+        if (schemasPath) {
           const schemasData = generateSchemasInline
             ? header + generateSchemasInline()
             : header + generateModelsInline(builder.schemas);
