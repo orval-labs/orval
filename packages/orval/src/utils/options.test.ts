@@ -2,7 +2,8 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { describe, expect, it, vi } from 'vitest';
+import { getWarningCount, resetWarnings } from '@orval/core';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { normalizeOptions } from './options';
 
@@ -398,5 +399,125 @@ describe('normalizeOptions', () => {
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
+  });
+
+  describe('optionsParamRequired with fetch httpClient', () => {
+    beforeEach(() => {
+      resetWarnings();
+    });
+
+    afterEach(() => {
+      resetWarnings();
+    });
+
+    it('warns when optionsParamRequired is true and httpClient is fetch', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        const validSpecPath = path.join(workspace, 'petstore.yaml');
+        await writeFile(
+          validSpecPath,
+          'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+        );
+
+        await normalizeOptions(
+          {
+            input: { target: validSpecPath },
+            output: {
+              target: './generated.ts',
+              httpClient: 'fetch',
+              optionsParamRequired: true,
+            },
+          },
+          workspace,
+        );
+
+        expect(getWarningCount()).toBe(1);
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('warns when optionsParamRequired is true and httpClient defaults to fetch', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        const validSpecPath = path.join(workspace, 'petstore.yaml');
+        await writeFile(
+          validSpecPath,
+          'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+        );
+
+        await normalizeOptions(
+          {
+            input: { target: validSpecPath },
+            output: {
+              target: './generated.ts',
+              optionsParamRequired: true,
+            },
+          },
+          workspace,
+        );
+
+        expect(getWarningCount()).toBe(1);
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('does not warn when httpClient is axios', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        const validSpecPath = path.join(workspace, 'petstore.yaml');
+        await writeFile(
+          validSpecPath,
+          'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+        );
+
+        await normalizeOptions(
+          {
+            input: { target: validSpecPath },
+            output: {
+              target: './generated.ts',
+              httpClient: 'axios',
+              optionsParamRequired: true,
+            },
+          },
+          workspace,
+        );
+
+        expect(getWarningCount()).toBe(0);
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('does not warn when optionsParamRequired is false with httpClient fetch', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        const validSpecPath = path.join(workspace, 'petstore.yaml');
+        await writeFile(
+          validSpecPath,
+          'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+        );
+
+        await normalizeOptions(
+          {
+            input: { target: validSpecPath },
+            output: {
+              target: './generated.ts',
+              httpClient: 'fetch',
+            },
+          },
+          workspace,
+        );
+
+        expect(getWarningCount()).toBe(0);
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
   });
 });
