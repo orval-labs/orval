@@ -438,7 +438,7 @@ export const createPets = (
 };
 
 export const getCreatePetsQueryKey = (
-  createPetsBody?: CreatePetsBody,
+  createPetsBody?: BodyType<CreatePetsBody>,
   params?: CreatePetsParams,
   version: number = 1,
 ) => {
@@ -453,7 +453,7 @@ export const getCreatePetsQueryOptions = <
   TData = Awaited<ReturnType<typeof createPets>>,
   TError = ErrorType<Error>,
 >(
-  createPetsBody: CreatePetsBody,
+  createPetsBody: BodyType<CreatePetsBody>,
   params: CreatePetsParams,
   headers: CreatePetsHeaders,
   version: number = 1,
@@ -494,7 +494,7 @@ export function useCreatePets<
   TData = Awaited<ReturnType<typeof createPets>>,
   TError = ErrorType<Error>,
 >(
-  createPetsBody: CreatePetsBody,
+  createPetsBody: BodyType<CreatePetsBody>,
   params: CreatePetsParams,
   headers: CreatePetsHeaders,
   version: undefined | number,
@@ -519,7 +519,7 @@ export function useCreatePets<
   TData = Awaited<ReturnType<typeof createPets>>,
   TError = ErrorType<Error>,
 >(
-  createPetsBody: CreatePetsBody,
+  createPetsBody: BodyType<CreatePetsBody>,
   params: CreatePetsParams,
   headers: CreatePetsHeaders,
   version?: number,
@@ -544,7 +544,7 @@ export function useCreatePets<
   TData = Awaited<ReturnType<typeof createPets>>,
   TError = ErrorType<Error>,
 >(
-  createPetsBody: CreatePetsBody,
+  createPetsBody: BodyType<CreatePetsBody>,
   params: CreatePetsParams,
   headers: CreatePetsHeaders,
   version?: number,
@@ -565,7 +565,7 @@ export function useCreatePets<
   TData = Awaited<ReturnType<typeof createPets>>,
   TError = ErrorType<Error>,
 >(
-  createPetsBody: CreatePetsBody,
+  createPetsBody: BodyType<CreatePetsBody>,
   params: CreatePetsParams,
   headers: CreatePetsHeaders,
   version: number = 1,

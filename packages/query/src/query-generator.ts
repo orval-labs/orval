@@ -626,7 +626,30 @@ export const generateQueryHook = async (
   } = options;
 
   // Use adapter to transform props (Vue wraps with MaybeRef)
-  const props = adapter.transformProps(_props);
+  const transformedProps = adapter.transformProps(_props);
+
+  // When a custom mutator exposes a `BodyType` wrapper, the raw fetch
+  // function widens the body prop accordingly (see e.g. axios package).
+  // Mirror that wrapper in the generated query helpers so non-GET query
+  // hooks accept the same body shape as the underlying function — without
+  // it, options like `data?.headers` carried via `BodyType` are stripped
+  // from the public hook signature (#2376 follow-up).
+  const props =
+    mutator?.bodyTypeName && body.definition
+      ? transformedProps.map((prop) => {
+          if (prop.type !== GetterPropType.BODY) return prop;
+          const wrappedType = `${mutator.bodyTypeName}<${body.definition}>`;
+          const replaceTail = (s: string) =>
+            s.endsWith(`: ${body.definition}`)
+              ? `${s.slice(0, -body.definition.length)}${wrappedType}`
+              : s;
+          return {
+            ...prop,
+            implementation: replaceTail(prop.implementation),
+            definition: replaceTail(prop.definition),
+          };
+        })
+      : transformedProps;
 
   const query = override.query;
   const isRequestOptions = override.requestOptions !== false;
