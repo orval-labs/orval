@@ -877,6 +877,51 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Regression for issue #2376 (second bug case). Combining the global
+  // override `useQuery: true` with `useMutation: false` should still
+  // generate Query hooks for non-GET verbs (previously this combination
+  // suppressed all hooks).
+  globalUseQueryWithUseMutationFalse: {
+    output: {
+      target:
+        '../generated/react-query/global-use-query-with-use-mutation-false/endpoints.ts',
+      schemas:
+        '../generated/react-query/global-use-query-with-use-mutation-false/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useQuery: true,
+          useMutation: false,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // Regression for issue #2376 (matrix coverage). Setting only
+  // `useQuery: false` globally should leave non-GET verbs producing
+  // Mutation hooks (default for non-GET) and silently produce no hook
+  // for GET verbs (since Mutation is gated to non-GET only).
+  globalUseQueryFalse: {
+    output: {
+      target: '../generated/react-query/global-use-query-false/endpoints.ts',
+      schemas: '../generated/react-query/global-use-query-false/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useQuery: false,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   // Regression for issue #3269. tags-split + msw + OpenAPI 3.1 anyOf-nullable
   // ($ref + type:null) on both response and request body. Pre-fix this emitted
   // `__Widget` references in the .msw.ts file with no matching import.
