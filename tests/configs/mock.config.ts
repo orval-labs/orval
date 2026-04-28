@@ -276,6 +276,20 @@ export default defineConfig({
       target: '../specifications/msw-mixed-content-each-status.yaml',
     },
   },
+  mockConstraints: {
+    output: {
+      target: '../generated/mock/mock-constraints/endpoints.ts',
+      schemas: '../generated/mock/mock-constraints/model',
+      mock: {
+        type: 'msw',
+      },
+      clean: true,
+      prettier: true,
+    },
+    input: {
+      target: '../specifications/mock-constraints.yaml',
+    },
+  },
   mswMixedContentUnionVendor: {
     output: {
       target: '../generated/mock/msw-mixed-content-union-vendor/endpoints.ts',
