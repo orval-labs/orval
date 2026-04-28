@@ -89,7 +89,7 @@ export function getArray({
           ? 'readonly '
           : ''
       }${
-        resolvedObject.value.includes('|')
+        resolvedObject.value.includes('|') || resolvedObject.value.includes('&')
           ? `(${resolvedObject.value})[]`
           : `${resolvedObject.value}[]`
       }`,

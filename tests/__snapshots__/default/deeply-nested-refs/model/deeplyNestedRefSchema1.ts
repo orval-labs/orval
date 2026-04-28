@@ -12,9 +12,9 @@ import type { DeeplyNestedRefSchema5 } from './deeplyNestedRefSchema5';
 export interface DeeplyNestedRefSchema1 {
   item1?: DeeplyNestedRefSchema1[];
   item2?: DeeplyNestedRefSchema2[];
-  item_all?: DeeplyNestedRefSchema1 &
+  item_all?: (DeeplyNestedRefSchema1 &
     DeeplyNestedRefSchema2 &
     DeeplyNestedRefSchema3 &
     DeeplyNestedRefSchema4 &
-    DeeplyNestedRefSchema5[];
+    DeeplyNestedRefSchema5)[];
 }
