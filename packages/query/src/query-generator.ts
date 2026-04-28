@@ -651,16 +651,26 @@ export const generateQueryHook = async (
 
   // Verb-aware defaults: when not explicitly set, GET defaults to a Query
   // hook and non-GET defaults to a Mutation hook. Explicit user values in
-  // override.query propagate to all verbs (issue #2376).
+  // override.query.useQuery propagate to all verbs (issue #2376). The
+  // remaining query-style global flags (suspense/infinite) stay GET-only
+  // because applying them to write/delete verbs makes pagination/retries
+  // capable of replaying side effects; per-operation overrides remain the
+  // way to opt non-GET endpoints into those modes.
   const effectiveUseQuery = override.query.useQuery ?? verb === Verbs.GET;
   const effectiveUseMutation = override.query.useMutation ?? verb !== Verbs.GET;
+  const effectiveUseSuspenseQuery =
+    verb === Verbs.GET ? override.query.useSuspenseQuery : undefined;
+  const effectiveUseInfinite =
+    verb === Verbs.GET ? override.query.useInfinite : undefined;
+  const effectiveUseSuspenseInfiniteQuery =
+    verb === Verbs.GET ? override.query.useSuspenseInfiniteQuery : undefined;
 
   let isQuery =
     [
       effectiveUseQuery,
-      override.query.useSuspenseQuery,
-      override.query.useInfinite,
-      override.query.useSuspenseInfiniteQuery,
+      effectiveUseSuspenseQuery,
+      effectiveUseInfinite,
+      effectiveUseSuspenseInfiniteQuery,
     ].some(Boolean) || hasOperationQueryOption;
 
   let isMutation = effectiveUseMutation && verb !== Verbs.GET;
@@ -715,7 +725,7 @@ export const generateQueryHook = async (
       .join(',');
 
     const queries = [
-      ...(query.useInfinite || operationQueryOptions?.useInfinite
+      ...(effectiveUseInfinite || operationQueryOptions?.useInfinite
         ? [
             {
               name: camel(`${operationName}-infinite`),
@@ -736,7 +746,7 @@ export const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query.useSuspenseQuery || operationQueryOptions?.useSuspenseQuery
+      ...(effectiveUseSuspenseQuery || operationQueryOptions?.useSuspenseQuery
         ? [
             {
               name: camel(`${operationName}-suspense`),
@@ -746,7 +756,7 @@ export const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query.useSuspenseInfiniteQuery ||
+      ...(effectiveUseSuspenseInfiniteQuery ||
       operationQueryOptions?.useSuspenseInfiniteQuery
         ? [
             {
@@ -860,8 +870,12 @@ ${queryKeyFns}`;
         route,
         doc,
         usePrefetch: query.usePrefetch,
-        useQuery: effectiveUseQuery,
-        useInfinite: query.useInfinite,
+        // Fall back to operation-level overrides so that suspense/prefetch
+        // helpers correctly defer to a standard query hook generated only
+        // through `override.operations[*].query.*`.
+        useQuery: effectiveUseQuery || !!operationQueryOptions?.useQuery,
+        useInfinite:
+          !!effectiveUseInfinite || !!operationQueryOptions?.useInfinite,
         useInvalidate: query.useInvalidate,
         useSetQueryData:
           operationQueryOptions?.useSetQueryData ?? query.useSetQueryData,

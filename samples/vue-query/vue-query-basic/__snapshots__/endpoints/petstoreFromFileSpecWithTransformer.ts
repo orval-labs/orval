@@ -262,105 +262,12 @@ export const createPets = (
   });
 };
 
-export const getCreatePetsInfiniteQueryKey = (
-  createPetsBody?: MaybeRef<CreatePetsBody>,
-  version: MaybeRef<number | undefined | null> = 1,
-) => {
-  return ['infinite', 'v', version, 'pets', createPetsBody] as const;
-};
-
 export const getCreatePetsQueryKey = (
   createPetsBody?: MaybeRef<CreatePetsBody>,
   version: MaybeRef<number | undefined | null> = 1,
 ) => {
   return ['v', version, 'pets', createPetsBody] as const;
 };
-
-export const getCreatePetsInfiniteQueryOptions = <
-  TData = InfiniteData<Awaited<ReturnType<typeof createPets>>>,
-  TError = Error,
->(
-  createPetsBody: MaybeRef<CreatePetsBody>,
-  version: MaybeRef<number | undefined | null> = 1,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData
-      >
-    >;
-  },
-) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey = getCreatePetsInfiniteQueryKey(createPetsBody, version);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof createPets>>> = ({
-    signal,
-  }) => createPets(createPetsBody, version, signal);
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: computed(() => !!unref(version)),
-    ...queryOptions,
-  } as UseInfiniteQueryOptions<
-    Awaited<ReturnType<typeof createPets>>,
-    TError,
-    TData
-  >;
-};
-
-export type CreatePetsInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof createPets>>
->;
-export type CreatePetsInfiniteQueryError = Error;
-
-/**
- * @summary Create a pet
- */
-
-export function useCreatePetsInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof createPets>>>,
-  TError = Error,
->(
-  createPetsBody: MaybeRef<CreatePetsBody>,
-  version: MaybeRef<number | undefined | null> = 1,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryReturnType<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getCreatePetsInfiniteQueryOptions(
-    createPetsBody,
-    version,
-    options,
-  );
-
-  const query = useInfiniteQuery(
-    queryOptions,
-    queryClient,
-  ) as UseInfiniteQueryReturnType<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  query.queryKey = unref(queryOptions).queryKey as DataTag<
-    QueryKey,
-    TData,
-    TError
-  >;
-
-  return query;
-}
 
 export const getCreatePetsQueryOptions = <
   TData = Awaited<ReturnType<typeof createPets>>,
@@ -631,84 +538,9 @@ export const postApiV1UserLogout = (signal?: AbortSignal) => {
   });
 };
 
-export const getPostApiV1UserLogoutInfiniteQueryKey = () => {
-  return ['infinite', 'api', 'v1', 'user', 'logout'] as const;
-};
-
 export const getPostApiV1UserLogoutQueryKey = () => {
   return ['api', 'v1', 'user', 'logout'] as const;
 };
-
-export const getPostApiV1UserLogoutInfiniteQueryOptions = <
-  TData = InfiniteData<Awaited<ReturnType<typeof postApiV1UserLogout>>>,
-  TError = unknown,
->(options?: {
-  query?: Partial<
-    UseInfiniteQueryOptions<
-      Awaited<ReturnType<typeof postApiV1UserLogout>>,
-      TError,
-      TData
-    >
-  >;
-}) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey = getPostApiV1UserLogoutInfiniteQueryKey();
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof postApiV1UserLogout>>
-  > = ({ signal }) => postApiV1UserLogout(signal);
-
-  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
-    Awaited<ReturnType<typeof postApiV1UserLogout>>,
-    TError,
-    TData
-  >;
-};
-
-export type PostApiV1UserLogoutInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof postApiV1UserLogout>>
->;
-export type PostApiV1UserLogoutInfiniteQueryError = unknown;
-
-/**
- * @summary This is required to test case when there are no parameters (this path is ignored in add-version transformer), see https://github.com/orval-labs/orval/issues/857#issuecomment-1835317990
- */
-
-export function usePostApiV1UserLogoutInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof postApiV1UserLogout>>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof postApiV1UserLogout>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryReturnType<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getPostApiV1UserLogoutInfiniteQueryOptions(options);
-
-  const query = useInfiniteQuery(
-    queryOptions,
-    queryClient,
-  ) as UseInfiniteQueryReturnType<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  query.queryKey = unref(queryOptions).queryKey as DataTag<
-    QueryKey,
-    TData,
-    TError
-  >;
-
-  return query;
-}
 
 export const getPostApiV1UserLogoutQueryOptions = <
   TData = Awaited<ReturnType<typeof postApiV1UserLogout>>,

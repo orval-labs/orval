@@ -273,21 +273,6 @@ export const createPets = (
   });
 };
 
-export const getCreatePetsInfiniteQueryKey = (
-  createPetsBody?: MaybeRef<CreatePetsBody>,
-  params?: MaybeRef<CreatePetsParams>,
-  version: MaybeRef<number> = 1,
-) => {
-  return [
-    'infinite',
-    'v',
-    version,
-    'pets',
-    ...(params ? [params] : []),
-    createPetsBody,
-  ] as const;
-};
-
 export const getCreatePetsQueryKey = (
   createPetsBody?: MaybeRef<CreatePetsBody>,
   params?: MaybeRef<CreatePetsParams>,
@@ -301,121 +286,6 @@ export const getCreatePetsQueryKey = (
     createPetsBody,
   ] as const;
 };
-
-export const getCreatePetsInfiniteQueryOptions = <
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof createPets>>,
-    CreatePetsParams['limit']
-  >,
-  TError = AxiosError<Error>,
->(
-  createPetsBody: MaybeRef<CreatePetsBody>,
-  params: MaybeRef<CreatePetsParams>,
-  version: MaybeRef<number> = 1,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData,
-        QueryKey,
-        CreatePetsParams['limit']
-      >
-    >;
-    axios?: AxiosRequestConfig;
-  },
-) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
-
-  const queryKey = getCreatePetsInfiniteQueryKey(
-    createPetsBody,
-    params,
-    version,
-  );
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof createPets>>,
-    QueryKey,
-    CreatePetsParams['limit']
-  > = ({ signal, pageParam }) =>
-    createPets(
-      createPetsBody,
-      { ...unref(params), limit: pageParam || unref(params)?.['limit'] },
-      version,
-      { signal, ...axiosOptions },
-    );
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: computed(() => !!unref(version)),
-    ...queryOptions,
-  } as UseInfiniteQueryOptions<
-    Awaited<ReturnType<typeof createPets>>,
-    TError,
-    TData,
-    QueryKey,
-    CreatePetsParams['limit']
-  >;
-};
-
-export type CreatePetsInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof createPets>>
->;
-export type CreatePetsInfiniteQueryError = AxiosError<Error>;
-
-/**
- * @summary Create a pet
- */
-
-export function useCreatePetsInfinite<
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof createPets>>,
-    CreatePetsParams['limit']
-  >,
-  TError = AxiosError<Error>,
->(
-  createPetsBody: MaybeRef<CreatePetsBody>,
-  params: MaybeRef<CreatePetsParams>,
-  version: MaybeRef<number> = 1,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData,
-        QueryKey,
-        CreatePetsParams['limit']
-      >
-    >;
-    axios?: AxiosRequestConfig;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryReturnType<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getCreatePetsInfiniteQueryOptions(
-    createPetsBody,
-    params,
-    version,
-    options,
-  );
-
-  const query = useInfiniteQuery(
-    queryOptions,
-    queryClient,
-  ) as UseInfiniteQueryReturnType<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  query.queryKey = unref(queryOptions).queryKey as DataTag<
-    QueryKey,
-    TData,
-    TError
-  >;
-
-  return query;
-}
 
 export const getCreatePetsQueryOptions = <
   TData = Awaited<ReturnType<typeof createPets>>,
@@ -695,107 +565,12 @@ export const deletePetById = (
   return axios.delete(`/v${version}/pets/${petId}`, options);
 };
 
-export const getDeletePetByIdInfiniteQueryKey = (
-  petId: MaybeRef<string>,
-  version: MaybeRef<number> = 1,
-) => {
-  return ['infinite', 'v', version, 'pets', petId] as const;
-};
-
 export const getDeletePetByIdQueryKey = (
   petId: MaybeRef<string>,
   version: MaybeRef<number> = 1,
 ) => {
   return ['v', version, 'pets', petId] as const;
 };
-
-export const getDeletePetByIdInfiniteQueryOptions = <
-  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
-  TError = AxiosError<Error>,
->(
-  petId: MaybeRef<string>,
-  version: MaybeRef<number> = 1,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    >;
-    axios?: AxiosRequestConfig;
-  },
-) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
-
-  const queryKey = getDeletePetByIdInfiniteQueryKey(petId, version);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof deletePetById>>> = ({
-    signal,
-  }) => deletePetById(petId, version, { signal, ...axiosOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: computed(() => !!(unref(version) && unref(petId))),
-    ...queryOptions,
-  } as UseInfiniteQueryOptions<
-    Awaited<ReturnType<typeof deletePetById>>,
-    TError,
-    TData
-  >;
-};
-
-export type DeletePetByIdInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof deletePetById>>
->;
-export type DeletePetByIdInfiniteQueryError = AxiosError<Error>;
-
-/**
- * @summary Deletes a specific pet
- */
-
-export function useDeletePetByIdInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
-  TError = AxiosError<Error>,
->(
-  petId: MaybeRef<string>,
-  version: MaybeRef<number> = 1,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    >;
-    axios?: AxiosRequestConfig;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryReturnType<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getDeletePetByIdInfiniteQueryOptions(
-    petId,
-    version,
-    options,
-  );
-
-  const query = useInfiniteQuery(
-    queryOptions,
-    queryClient,
-  ) as UseInfiniteQueryReturnType<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  query.queryKey = unref(queryOptions).queryKey as DataTag<
-    QueryKey,
-    TData,
-    TError
-  >;
-
-  return query;
-}
 
 export const getDeletePetByIdQueryOptions = <
   TData = Awaited<ReturnType<typeof deletePetById>>,

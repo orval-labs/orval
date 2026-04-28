@@ -364,19 +364,6 @@ export const createPets = async (
   } as createPetsResponse;
 };
 
-export const getCreatePetsInfiniteQueryKey = (
-  createPetsBody?: CreatePetsBody,
-  params?: CreatePetsParams,
-  version: number = 1,
-) => {
-  return [
-    'infinite',
-    `/v${version}/pets`,
-    ...(params ? [params] : []),
-    createPetsBody,
-  ] as const;
-};
-
 export const getCreatePetsQueryKey = (
   createPetsBody?: CreatePetsBody,
   params?: CreatePetsParams,
@@ -388,93 +375,6 @@ export const getCreatePetsQueryKey = (
     createPetsBody,
   ] as const;
 };
-
-export const getCreatePetsInfiniteQueryOptions = <
-  TData = Awaited<ReturnType<typeof createPets>>,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version: number = 1,
-  options?: {
-    query?: CreateInfiniteQueryOptions<
-      Awaited<ReturnType<typeof createPets>>,
-      TError,
-      TData
-    >;
-    fetch?: RequestInit;
-  },
-) => {
-  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ??
-    getCreatePetsInfiniteQueryKey(createPetsBody, params, version);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof createPets>>> = ({
-    signal,
-    pageParam,
-  }) =>
-    createPets(
-      createPetsBody,
-      { ...params, limit: pageParam || params?.['limit'] },
-      version,
-      { signal, ...fetchOptions },
-    );
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!version,
-    ...queryOptions,
-  } as CreateInfiniteQueryOptions<
-    Awaited<ReturnType<typeof createPets>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type CreatePetsInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof createPets>>
->;
-export type CreatePetsInfiniteQueryError = Error;
-
-/**
- * @summary Create a pet
- */
-
-export function createCreatePetsInfinite<
-  TData = Awaited<ReturnType<typeof createPets>>,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version: number = 1,
-  options?: {
-    query?: CreateInfiniteQueryOptions<
-      Awaited<ReturnType<typeof createPets>>,
-      TError,
-      TData
-    >;
-    fetch?: RequestInit;
-  },
-): CreateInfiniteQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getCreatePetsInfiniteQueryOptions(
-    createPetsBody,
-    params,
-    version,
-    options,
-  );
-
-  const query = createInfiniteQuery(queryOptions) as CreateInfiniteQueryResult<
-    TData,
-    TError
-  > & { queryKey: QueryKey };
-
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
-}
 
 export const getCreatePetsQueryOptions = <
   TData = Awaited<ReturnType<typeof createPets>>,
@@ -814,95 +714,12 @@ export const deletePetById = async (
   } as deletePetByIdResponse;
 };
 
-export const getDeletePetByIdInfiniteQueryKey = (
-  petId: string,
-  version: number = 1,
-) => {
-  return ['infinite', `/v${version}/pets/${petId}`] as const;
-};
-
 export const getDeletePetByIdQueryKey = (
   petId: string,
   version: number = 1,
 ) => {
   return [`/v${version}/pets/${petId}`] as const;
 };
-
-export const getDeletePetByIdInfiniteQueryOptions = <
-  TData = Awaited<ReturnType<typeof deletePetById>>,
-  TError = Error,
->(
-  petId: string,
-  version: number = 1,
-  options?: {
-    query?: CreateInfiniteQueryOptions<
-      Awaited<ReturnType<typeof deletePetById>>,
-      TError,
-      TData
-    >;
-    fetch?: RequestInit;
-  },
-) => {
-  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getDeletePetByIdInfiniteQueryKey(petId, version);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof deletePetById>>> = ({
-    signal,
-  }) => deletePetById(petId, version, { signal, ...fetchOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!(version && petId),
-    ...queryOptions,
-  } as CreateInfiniteQueryOptions<
-    Awaited<ReturnType<typeof deletePetById>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type DeletePetByIdInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof deletePetById>>
->;
-export type DeletePetByIdInfiniteQueryError = Error;
-
-/**
- * @summary Deletes a specific pet
- */
-
-export function createDeletePetByIdInfinite<
-  TData = Awaited<ReturnType<typeof deletePetById>>,
-  TError = Error,
->(
-  petId: string,
-  version: number = 1,
-  options?: {
-    query?: CreateInfiniteQueryOptions<
-      Awaited<ReturnType<typeof deletePetById>>,
-      TError,
-      TData
-    >;
-    fetch?: RequestInit;
-  },
-): CreateInfiniteQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getDeletePetByIdInfiniteQueryOptions(
-    petId,
-    version,
-    options,
-  );
-
-  const query = createInfiniteQuery(queryOptions) as CreateInfiniteQueryResult<
-    TData,
-    TError
-  > & { queryKey: QueryKey };
-
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
-}
 
 export const getDeletePetByIdQueryOptions = <
   TData = Awaited<ReturnType<typeof deletePetById>>,

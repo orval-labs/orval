@@ -6,6 +6,7 @@
  */
 import {
   useInfiniteQuery,
+  useMutation,
   useQuery,
   useSuspenseInfiniteQuery,
   useSuspenseQuery,
@@ -16,12 +17,15 @@ import type {
   DefinedUseInfiniteQueryResult,
   DefinedUseQueryResult,
   InfiniteData,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
   UseInfiniteQueryOptions,
   UseInfiniteQueryResult,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
   UseSuspenseInfiniteQueryOptions,
@@ -733,559 +737,70 @@ export const createPets = (
   });
 };
 
-export const getCreatePetsInfiniteQueryKey = (
-  createPetsBody?: CreatePetsBody,
-  params?: CreatePetsParams,
-  version: number = 1,
-) => {
-  return [
-    'infinite',
-    `/v${version}/pets`,
-    ...(params ? [params] : []),
-    createPetsBody,
-  ] as const;
-};
-
-export const getCreatePetsQueryKey = (
-  createPetsBody?: CreatePetsBody,
-  params?: CreatePetsParams,
-  version: number = 1,
-) => {
-  return [
-    `/v${version}/pets`,
-    ...(params ? [params] : []),
-    createPetsBody,
-  ] as const;
-};
-
-export const getCreatePetsInfiniteQueryOptions = <
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof createPets>>,
-    CreatePetsParams['limit']
-  >,
+export const getCreatePetsMutationOptions = <
   TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version: number = 1,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof createPets>>,
-        QueryKey,
-        CreatePetsParams['limit']
-      >
-    >;
-  },
-) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ??
-    getCreatePetsInfiniteQueryKey(createPetsBody, params, version);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof createPets>>,
-    QueryKey,
-    CreatePetsParams['limit']
-  > = ({ signal, pageParam }) =>
-    createPets(
-      createPetsBody,
-      { ...params, limit: pageParam || params?.['limit'] },
-      version,
-      signal,
-    );
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!version,
-    ...queryOptions,
-  } as UseInfiniteQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createPets>>,
     TError,
-    TData,
+    { data: CreatePetsBody; params: CreatePetsParams; version?: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createPets>>,
+  TError,
+  { data: CreatePetsBody; params: CreatePetsParams; version?: number },
+  TContext
+> => {
+  const mutationKey = ['createPets'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
-    QueryKey,
-    CreatePetsParams['limit']
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    { data: CreatePetsBody; params: CreatePetsParams; version?: number }
+  > = (props) => {
+    const { data, params, version } = props ?? {};
+
+    return createPets(data, params, version);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type CreatePetsInfiniteQueryResult = NonNullable<
+export type CreatePetsMutationResult = NonNullable<
   Awaited<ReturnType<typeof createPets>>
 >;
-export type CreatePetsInfiniteQueryError = Error;
+export type CreatePetsMutationBody = CreatePetsBody;
+export type CreatePetsMutationError = Error;
 
-export function useCreatePetsInfinite<
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof createPets>>,
-    CreatePetsParams['limit']
-  >,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version: undefined | number,
-  options: {
-    query: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof createPets>>,
-        QueryKey,
-        CreatePetsParams['limit']
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof createPets>>,
-          TError,
-          Awaited<ReturnType<typeof createPets>>,
-          QueryKey
-        >,
-        'initialData'
-      >;
-  },
-  queryClient?: QueryClient,
-): DefinedUseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreatePetsInfinite<
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof createPets>>,
-    CreatePetsParams['limit']
-  >,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version?: number,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof createPets>>,
-        QueryKey,
-        CreatePetsParams['limit']
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof createPets>>,
-          TError,
-          Awaited<ReturnType<typeof createPets>>,
-          QueryKey
-        >,
-        'initialData'
-      >;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreatePetsInfinite<
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof createPets>>,
-    CreatePetsParams['limit']
-  >,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version?: number,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof createPets>>,
-        QueryKey,
-        CreatePetsParams['limit']
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Create a pet
  */
-
-export function useCreatePetsInfinite<
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof createPets>>,
-    CreatePetsParams['limit']
-  >,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version: number = 1,
+export const useCreatePets = <TError = Error, TContext = unknown>(
   options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof createPets>>,
-        QueryKey,
-        CreatePetsParams['limit']
-      >
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createPets>>,
+      TError,
+      { data: CreatePetsBody; params: CreatePetsParams; version?: number },
+      TContext
     >;
   },
   queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getCreatePetsInfiniteQueryOptions(
-    createPetsBody,
-    params,
-    version,
-    options,
-  );
-
-  const query = useInfiniteQuery(
-    queryOptions,
-    queryClient,
-  ) as UseInfiniteQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-export const getCreatePetsSuspenseQueryOptions = <
-  TData = Awaited<ReturnType<typeof createPets>>,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version: number = 1,
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData
-      >
-    >;
-  },
-) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ??
-    getCreatePetsQueryKey(createPetsBody, params, version);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof createPets>>> = ({
-    signal,
-  }) => createPets(createPetsBody, params, version, signal);
-
-  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
-    Awaited<ReturnType<typeof createPets>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+): UseMutationResult<
+  Awaited<ReturnType<typeof createPets>>,
+  TError,
+  { data: CreatePetsBody; params: CreatePetsParams; version?: number },
+  TContext
+> => {
+  return useMutation(getCreatePetsMutationOptions(options), queryClient);
 };
-
-export type CreatePetsSuspenseQueryResult = NonNullable<
-  Awaited<ReturnType<typeof createPets>>
->;
-export type CreatePetsSuspenseQueryError = Error;
-
-export function useCreatePetsSuspense<
-  TData = Awaited<ReturnType<typeof createPets>>,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version: undefined | number,
-  options: {
-    query: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreatePetsSuspense<
-  TData = Awaited<ReturnType<typeof createPets>>,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version?: number,
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreatePetsSuspense<
-  TData = Awaited<ReturnType<typeof createPets>>,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version?: number,
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-/**
- * @summary Create a pet
- */
-
-export function useCreatePetsSuspense<
-  TData = Awaited<ReturnType<typeof createPets>>,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version: number = 1,
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getCreatePetsSuspenseQueryOptions(
-    createPetsBody,
-    params,
-    version,
-    options,
-  );
-
-  const query = useSuspenseQuery(
-    queryOptions,
-    queryClient,
-  ) as UseSuspenseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-export const getCreatePetsSuspenseInfiniteQueryOptions = <
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof createPets>>,
-    CreatePetsParams['limit']
-  >,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version: number = 1,
-  options?: {
-    query?: Partial<
-      UseSuspenseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof createPets>>,
-        QueryKey,
-        CreatePetsParams['limit']
-      >
-    >;
-  },
-) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ??
-    getCreatePetsInfiniteQueryKey(createPetsBody, params, version);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof createPets>>,
-    QueryKey,
-    CreatePetsParams['limit']
-  > = ({ signal, pageParam }) =>
-    createPets(
-      createPetsBody,
-      { ...params, limit: pageParam || params?.['limit'] },
-      version,
-      signal,
-    );
-
-  return {
-    queryKey,
-    queryFn,
-    ...queryOptions,
-  } as UseSuspenseInfiniteQueryOptions<
-    Awaited<ReturnType<typeof createPets>>,
-    TError,
-    TData,
-    Awaited<ReturnType<typeof createPets>>,
-    QueryKey,
-    CreatePetsParams['limit']
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type CreatePetsSuspenseInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof createPets>>
->;
-export type CreatePetsSuspenseInfiniteQueryError = Error;
-
-export function useCreatePetsSuspenseInfinite<
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof createPets>>,
-    CreatePetsParams['limit']
-  >,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version: undefined | number,
-  options: {
-    query: Partial<
-      UseSuspenseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof createPets>>,
-        QueryKey,
-        CreatePetsParams['limit']
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseSuspenseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreatePetsSuspenseInfinite<
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof createPets>>,
-    CreatePetsParams['limit']
-  >,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version?: number,
-  options?: {
-    query?: Partial<
-      UseSuspenseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof createPets>>,
-        QueryKey,
-        CreatePetsParams['limit']
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseSuspenseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreatePetsSuspenseInfinite<
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof createPets>>,
-    CreatePetsParams['limit']
-  >,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version?: number,
-  options?: {
-    query?: Partial<
-      UseSuspenseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof createPets>>,
-        QueryKey,
-        CreatePetsParams['limit']
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseSuspenseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-/**
- * @summary Create a pet
- */
-
-export function useCreatePetsSuspenseInfinite<
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof createPets>>,
-    CreatePetsParams['limit']
-  >,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  version: number = 1,
-  options?: {
-    query?: Partial<
-      UseSuspenseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof createPets>>,
-        QueryKey,
-        CreatePetsParams['limit']
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseSuspenseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getCreatePetsSuspenseInfiniteQueryOptions(
-    createPetsBody,
-    params,
-    version,
-    options,
-  );
-
-  const query = useSuspenseInfiniteQuery(
-    queryOptions,
-    queryClient,
-  ) as UseSuspenseInfiniteQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
 
 /**
  * @summary Info for a specific pet
@@ -1880,443 +1395,70 @@ export const deletePetById = (
   });
 };
 
-export const getDeletePetByIdInfiniteQueryKey = (
-  petId: string,
-  version: number = 1,
-) => {
-  return ['infinite', `/v${version}/pets/${petId}`] as const;
-};
-
-export const getDeletePetByIdQueryKey = (
-  petId: string,
-  version: number = 1,
-) => {
-  return [`/v${version}/pets/${petId}`] as const;
-};
-
-export const getDeletePetByIdInfiniteQueryOptions = <
-  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
+export const getDeletePetByIdMutationOptions = <
   TError = Error,
->(
-  petId: string,
-  version: number = 1,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    >;
-  },
-) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getDeletePetByIdInfiniteQueryKey(petId, version);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof deletePetById>>> = ({
-    signal,
-  }) => deletePetById(petId, version, signal);
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!(version && petId),
-    ...queryOptions,
-  } as UseInfiniteQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deletePetById>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    { petId: string; version?: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deletePetById>>,
+  TError,
+  { petId: string; version?: number },
+  TContext
+> => {
+  const mutationKey = ['deletePetById'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deletePetById>>,
+    { petId: string; version?: number }
+  > = (props) => {
+    const { petId, version } = props ?? {};
+
+    return deletePetById(petId, version);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type DeletePetByIdInfiniteQueryResult = NonNullable<
+export type DeletePetByIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deletePetById>>
 >;
-export type DeletePetByIdInfiniteQueryError = Error;
 
-export function useDeletePetByIdInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
-  TError = Error,
->(
-  petId: string,
-  version: undefined | number,
-  options: {
-    query: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deletePetById>>,
-          TError,
-          Awaited<ReturnType<typeof deletePetById>>
-        >,
-        'initialData'
-      >;
-  },
-  queryClient?: QueryClient,
-): DefinedUseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeletePetByIdInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
-  TError = Error,
->(
-  petId: string,
-  version?: number,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deletePetById>>,
-          TError,
-          Awaited<ReturnType<typeof deletePetById>>
-        >,
-        'initialData'
-      >;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeletePetByIdInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
-  TError = Error,
->(
-  petId: string,
-  version?: number,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
+export type DeletePetByIdMutationError = Error;
+
 /**
  * @summary Deletes a specific pet
  */
-
-export function useDeletePetByIdInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
-  TError = Error,
->(
-  petId: string,
-  version: number = 1,
+export const useDeletePetById = <TError = Error, TContext = unknown>(
   options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deletePetById>>,
+      TError,
+      { petId: string; version?: number },
+      TContext
     >;
   },
   queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getDeletePetByIdInfiniteQueryOptions(
-    petId,
-    version,
-    options,
-  );
-
-  const query = useInfiniteQuery(
-    queryOptions,
-    queryClient,
-  ) as UseInfiniteQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-export const getDeletePetByIdSuspenseQueryOptions = <
-  TData = Awaited<ReturnType<typeof deletePetById>>,
-  TError = Error,
->(
-  petId: string,
-  version: number = 1,
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    >;
-  },
-) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getDeletePetByIdQueryKey(petId, version);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof deletePetById>>> = ({
-    signal,
-  }) => deletePetById(petId, version, signal);
-
-  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
-    Awaited<ReturnType<typeof deletePetById>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+): UseMutationResult<
+  Awaited<ReturnType<typeof deletePetById>>,
+  TError,
+  { petId: string; version?: number },
+  TContext
+> => {
+  return useMutation(getDeletePetByIdMutationOptions(options), queryClient);
 };
-
-export type DeletePetByIdSuspenseQueryResult = NonNullable<
-  Awaited<ReturnType<typeof deletePetById>>
->;
-export type DeletePetByIdSuspenseQueryError = Error;
-
-export function useDeletePetByIdSuspense<
-  TData = Awaited<ReturnType<typeof deletePetById>>,
-  TError = Error,
->(
-  petId: string,
-  version: undefined | number,
-  options: {
-    query: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeletePetByIdSuspense<
-  TData = Awaited<ReturnType<typeof deletePetById>>,
-  TError = Error,
->(
-  petId: string,
-  version?: number,
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeletePetByIdSuspense<
-  TData = Awaited<ReturnType<typeof deletePetById>>,
-  TError = Error,
->(
-  petId: string,
-  version?: number,
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-/**
- * @summary Deletes a specific pet
- */
-
-export function useDeletePetByIdSuspense<
-  TData = Awaited<ReturnType<typeof deletePetById>>,
-  TError = Error,
->(
-  petId: string,
-  version: number = 1,
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getDeletePetByIdSuspenseQueryOptions(
-    petId,
-    version,
-    options,
-  );
-
-  const query = useSuspenseQuery(
-    queryOptions,
-    queryClient,
-  ) as UseSuspenseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-export const getDeletePetByIdSuspenseInfiniteQueryOptions = <
-  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
-  TError = Error,
->(
-  petId: string,
-  version: number = 1,
-  options?: {
-    query?: Partial<
-      UseSuspenseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    >;
-  },
-) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getDeletePetByIdInfiniteQueryKey(petId, version);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof deletePetById>>> = ({
-    signal,
-  }) => deletePetById(petId, version, signal);
-
-  return {
-    queryKey,
-    queryFn,
-    ...queryOptions,
-  } as UseSuspenseInfiniteQueryOptions<
-    Awaited<ReturnType<typeof deletePetById>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type DeletePetByIdSuspenseInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof deletePetById>>
->;
-export type DeletePetByIdSuspenseInfiniteQueryError = Error;
-
-export function useDeletePetByIdSuspenseInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
-  TError = Error,
->(
-  petId: string,
-  version: undefined | number,
-  options: {
-    query: Partial<
-      UseSuspenseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseSuspenseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeletePetByIdSuspenseInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
-  TError = Error,
->(
-  petId: string,
-  version?: number,
-  options?: {
-    query?: Partial<
-      UseSuspenseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseSuspenseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeletePetByIdSuspenseInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
-  TError = Error,
->(
-  petId: string,
-  version?: number,
-  options?: {
-    query?: Partial<
-      UseSuspenseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseSuspenseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-/**
- * @summary Deletes a specific pet
- */
-
-export function useDeletePetByIdSuspenseInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
-  TError = Error,
->(
-  petId: string,
-  version: number = 1,
-  options?: {
-    query?: Partial<
-      UseSuspenseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient,
-): UseSuspenseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getDeletePetByIdSuspenseInfiniteQueryOptions(
-    petId,
-    version,
-    options,
-  );
-
-  const query = useSuspenseInfiniteQuery(
-    queryOptions,
-    queryClient,
-  ) as UseSuspenseInfiniteQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
 
 /**
  * @summary health check

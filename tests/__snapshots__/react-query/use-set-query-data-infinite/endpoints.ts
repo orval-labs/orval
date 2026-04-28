@@ -6,6 +6,7 @@
  */
 import {
   useInfiniteQuery,
+  useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
@@ -15,12 +16,15 @@ import type {
   DefinedUseInfiniteQueryResult,
   DefinedUseQueryResult,
   InfiniteData,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
   UseInfiniteQueryOptions,
   UseInfiniteQueryResult,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from '@tanstack/react-query';
@@ -553,248 +557,71 @@ export const createPets = async (
   } as createPetsResponse;
 };
 
-export const getCreatePetsInfiniteQueryKey = (
-  createPetsBody?: CreatePetsBody,
-  params?: CreatePetsParams,
-) => {
-  return [
-    'infinite',
-    `/pets`,
-    ...(params ? [params] : []),
-    createPetsBody,
-  ] as const;
-};
-
-export const getCreatePetsInfiniteQueryOptions = <
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof createPets>>,
-    CreatePetsParams['limit']
-  >,
+export const getCreatePetsMutationOptions = <
   TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof createPets>>,
-        QueryKey,
-        CreatePetsParams['limit']
-      >
-    >;
-    fetch?: RequestInit;
-  },
-) => {
-  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ??
-    getCreatePetsInfiniteQueryKey(createPetsBody, params);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof createPets>>,
-    QueryKey,
-    CreatePetsParams['limit']
-  > = ({ signal, pageParam }) =>
-    createPets(
-      createPetsBody,
-      { ...params, limit: pageParam || params?.['limit'] },
-      { signal, ...fetchOptions },
-    );
-
-  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createPets>>,
     TError,
-    TData,
+    { data: CreatePetsBody; params: CreatePetsParams },
+    TContext
+  >;
+  fetch?: RequestInit;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createPets>>,
+  TError,
+  { data: CreatePetsBody; params: CreatePetsParams },
+  TContext
+> => {
+  const mutationKey = ['createPets'];
+  const { mutation: mutationOptions, fetch: fetchOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, fetch: undefined };
+
+  const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
-    QueryKey,
-    CreatePetsParams['limit']
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    { data: CreatePetsBody; params: CreatePetsParams }
+  > = (props) => {
+    const { data, params } = props ?? {};
+
+    return createPets(data, params, fetchOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type CreatePetsInfiniteQueryResult = NonNullable<
+export type CreatePetsMutationResult = NonNullable<
   Awaited<ReturnType<typeof createPets>>
 >;
-export type CreatePetsInfiniteQueryError = Error;
-
-export function useCreatePetsInfinite<
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof createPets>>,
-    CreatePetsParams['limit']
-  >,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  options: {
-    query: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof createPets>>,
-        QueryKey,
-        CreatePetsParams['limit']
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof createPets>>,
-          TError,
-          Awaited<ReturnType<typeof createPets>>,
-          QueryKey
-        >,
-        'initialData'
-      >;
-    fetch?: RequestInit;
-  },
-  queryClient?: QueryClient,
-): DefinedUseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreatePetsInfinite<
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof createPets>>,
-    CreatePetsParams['limit']
-  >,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof createPets>>,
-        QueryKey,
-        CreatePetsParams['limit']
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof createPets>>,
-          TError,
-          Awaited<ReturnType<typeof createPets>>,
-          QueryKey
-        >,
-        'initialData'
-      >;
-    fetch?: RequestInit;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreatePetsInfinite<
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof createPets>>,
-    CreatePetsParams['limit']
-  >,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof createPets>>,
-        QueryKey,
-        CreatePetsParams['limit']
-      >
-    >;
-    fetch?: RequestInit;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-/**
- * @summary Create a pet
- */
-
-export function useCreatePetsInfinite<
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof createPets>>,
-    CreatePetsParams['limit']
-  >,
-  TError = Error,
->(
-  createPetsBody: CreatePetsBody,
-  params: CreatePetsParams,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof createPets>>,
-        QueryKey,
-        CreatePetsParams['limit']
-      >
-    >;
-    fetch?: RequestInit;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getCreatePetsInfiniteQueryOptions(
-    createPetsBody,
-    params,
-    options,
-  );
-
-  const query = useInfiniteQuery(
-    queryOptions,
-    queryClient,
-  ) as UseInfiniteQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
+export type CreatePetsMutationBody = CreatePetsBody;
+export type CreatePetsMutationError = Error;
 
 /**
  * @summary Create a pet
  */
-export const useSetCreatePetsInfiniteQueryData = () => {
-  const queryClient = useQueryClient();
-  return (
-    createPetsBody: CreatePetsBody,
-    params: CreatePetsParams,
-    updater:
-      | InfiniteData<
-          Awaited<ReturnType<typeof createPets>>,
-          CreatePetsParams['limit']
-        >
-      | undefined
-      | ((
-          old:
-            | InfiniteData<
-                Awaited<ReturnType<typeof createPets>>,
-                CreatePetsParams['limit']
-              >
-            | undefined,
-        ) =>
-          | InfiniteData<
-              Awaited<ReturnType<typeof createPets>>,
-              CreatePetsParams['limit']
-            >
-          | undefined),
-  ) => {
-    queryClient.setQueryData(
-      getCreatePetsInfiniteQueryKey(createPetsBody, params),
-      updater,
-    );
-  };
+export const useCreatePets = <TError = Error, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createPets>>,
+      TError,
+      { data: CreatePetsBody; params: CreatePetsParams },
+      TContext
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof createPets>>,
+  TError,
+  { data: CreatePetsBody; params: CreatePetsParams },
+  TContext
+> => {
+  return useMutation(getCreatePetsMutationOptions(options), queryClient);
 };
 
 /**
@@ -1216,180 +1043,71 @@ export const deletePetById = async (
   } as deletePetByIdResponse;
 };
 
-export const getDeletePetByIdInfiniteQueryKey = (petId: string) => {
-  return ['infinite', `/pets/${petId}`] as const;
-};
-
-export const getDeletePetByIdInfiniteQueryOptions = <
-  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
+export const getDeletePetByIdMutationOptions = <
   TError = Error,
->(
-  petId: string,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    >;
-    fetch?: RequestInit;
-  },
-) => {
-  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getDeletePetByIdInfiniteQueryKey(petId);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof deletePetById>>> = ({
-    signal,
-  }) => deletePetById(petId, { signal, ...fetchOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!petId,
-    ...queryOptions,
-  } as UseInfiniteQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deletePetById>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    { petId: string },
+    TContext
+  >;
+  fetch?: RequestInit;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deletePetById>>,
+  TError,
+  { petId: string },
+  TContext
+> => {
+  const mutationKey = ['deletePetById'];
+  const { mutation: mutationOptions, fetch: fetchOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, fetch: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deletePetById>>,
+    { petId: string }
+  > = (props) => {
+    const { petId } = props ?? {};
+
+    return deletePetById(petId, fetchOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type DeletePetByIdInfiniteQueryResult = NonNullable<
+export type DeletePetByIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deletePetById>>
 >;
-export type DeletePetByIdInfiniteQueryError = Error;
 
-export function useDeletePetByIdInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
-  TError = Error,
->(
-  petId: string,
-  options: {
-    query: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deletePetById>>,
-          TError,
-          Awaited<ReturnType<typeof deletePetById>>
-        >,
-        'initialData'
-      >;
-    fetch?: RequestInit;
-  },
-  queryClient?: QueryClient,
-): DefinedUseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeletePetByIdInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
-  TError = Error,
->(
-  petId: string,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deletePetById>>,
-          TError,
-          Awaited<ReturnType<typeof deletePetById>>
-        >,
-        'initialData'
-      >;
-    fetch?: RequestInit;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeletePetByIdInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
-  TError = Error,
->(
-  petId: string,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    >;
-    fetch?: RequestInit;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-/**
- * @summary Deletes a specific pet
- */
-
-export function useDeletePetByIdInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof deletePetById>>>,
-  TError = Error,
->(
-  petId: string,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof deletePetById>>,
-        TError,
-        TData
-      >
-    >;
-    fetch?: RequestInit;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getDeletePetByIdInfiniteQueryOptions(petId, options);
-
-  const query = useInfiniteQuery(
-    queryOptions,
-    queryClient,
-  ) as UseInfiniteQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
+export type DeletePetByIdMutationError = Error;
 
 /**
  * @summary Deletes a specific pet
  */
-export const useSetDeletePetByIdInfiniteQueryData = () => {
-  const queryClient = useQueryClient();
-  return (
-    petId: string,
-    updater:
-      | InfiniteData<Awaited<ReturnType<typeof deletePetById>>>
-      | undefined
-      | ((
-          old:
-            | InfiniteData<Awaited<ReturnType<typeof deletePetById>>>
-            | undefined,
-        ) =>
-          | InfiniteData<Awaited<ReturnType<typeof deletePetById>>>
-          | undefined),
-  ) => {
-    queryClient.setQueryData(getDeletePetByIdInfiniteQueryKey(petId), updater);
-  };
+export const useDeletePetById = <TError = Error, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deletePetById>>,
+      TError,
+      { petId: string },
+      TContext
+    >;
+    fetch?: RequestInit;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof deletePetById>>,
+  TError,
+  { petId: string },
+  TContext
+> => {
+  return useMutation(getDeletePetByIdMutationOptions(options), queryClient);
 };
 
 /**
