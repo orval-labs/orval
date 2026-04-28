@@ -856,4 +856,21 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Regression for issue #3269. tags-split + msw + OpenAPI 3.1 anyOf-nullable
+  // ($ref + type:null) on both response and request body. Pre-fix this emitted
+  // `__Widget` references in the .msw.ts file with no matching import.
+  issue3269: {
+    output: {
+      target: '../generated/react-query/issue-3269/endpoints.ts',
+      schemas: '../generated/react-query/issue-3269/model',
+      client: 'react-query',
+      mode: 'tags-split',
+      mock: { type: 'msw' },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3269.yaml',
+    },
+  },
 });

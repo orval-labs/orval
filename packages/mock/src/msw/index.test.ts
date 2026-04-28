@@ -384,6 +384,31 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).not.toContain('HttpResponse.text(');
     });
 
+    // Regression test for https://github.com/orval-labs/orval/issues/3270.
+    // When the response definition resolves to `unknown` (as with a 302
+    // redirect returning text/html that is not treated as a success body),
+    // no `*ResponseMock` helper is generated. The handler must not emit a
+    // `resolvedBody`/`textBody` prelude that references the missing helper.
+    it('should not reference a missing *ResponseMock for unknown text responses', () => {
+      const unknownHtmlVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'unknown' },
+          types: { success: [{ key: '302', value: 'unknown' }] },
+          contentTypes: ['text/html'],
+        },
+      } as GeneratorVerbOptions;
+
+      const result = generateMSW(unknownHtmlVerbOptions, baseOptions);
+
+      expect(result.implementation.function).toBe('');
+      expect(result.implementation.handler).not.toContain('ResponseMock()');
+      expect(result.implementation.handler).not.toContain('resolvedBody');
+      expect(result.implementation.handler).not.toContain('textBody');
+      expect(result.implementation.handler).toContain('new HttpResponse(null,');
+    });
+
     it('should use HttpResponse.xml for vendor +xml responses', () => {
       const vendorXmlVerbOptions = {
         ...mockVerbOptions,
@@ -1127,6 +1152,80 @@ describe('generateMSW', () => {
       expect(result.implementation.handler).not.toContain(
         "typeof resolvedBody === 'string'\n      ? HttpResponse",
       );
+    });
+  });
+
+  // Regression: issue #3269
+  // When a response import is aliased (e.g. `Widget as __Widget`, produced by
+  // split mode when the function param name collides with the schema name),
+  // the generated mock code references the alias (`__Widget`) rather than the
+  // bare name. The import filter must match against the alias, otherwise the
+  // import is dropped and the mock file references an undeclared identifier
+  // (TS2304).
+  describe('aliased import filter (issue #3269)', () => {
+    it('should include an aliased import that is referenced only by its alias', () => {
+      const aliasedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          imports: [{ name: 'Widget', alias: '__Widget' }],
+          definition: { success: '__Widget | null' },
+          types: {
+            success: [{ key: '200', value: '__Widget | null' }],
+          },
+          contentTypes: ['application/json'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(aliasedVerbOptions, baseOptions);
+
+      expect(result.imports).toContainEqual(
+        expect.objectContaining({ name: 'Widget', alias: '__Widget' }),
+      );
+    });
+
+    it('should drop an aliased import that is not referenced anywhere', () => {
+      const unusedAliasVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          imports: [{ name: 'User' }, { name: 'Unused', alias: '__Unused' }],
+          definition: { success: 'User' },
+          types: { success: [{ key: '200', value: 'User' }] },
+          contentTypes: ['application/json'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(unusedAliasVerbOptions, baseOptions);
+
+      // Positive control: the bare-name import that IS referenced is kept.
+      expect(result.imports).toContainEqual(
+        expect.objectContaining({ name: 'User' }),
+      );
+      // The unused aliased import is filtered out.
+      expect(result.imports).not.toContainEqual(
+        expect.objectContaining({ name: 'Unused' }),
+      );
+    });
+
+    it('should keep both entries when bare and aliased forms appear in the code', () => {
+      // Defensive: if a future change reintroduces dual entries (one bare,
+      // one aliased) for the same schema in a single verb's imports, both
+      // must survive the filter when the code references each form.
+      const dualVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          imports: [{ name: 'Pet' }, { name: 'Pet', alias: '__Pet' }],
+          definition: { success: 'Pet | __Pet' },
+          types: { success: [{ key: '200', value: 'Pet | __Pet' }] },
+          contentTypes: ['application/json'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(dualVerbOptions, baseOptions);
+
+      const petEntries = result.imports.filter((i) => i.name === 'Pet');
+      expect(petEntries).toHaveLength(2);
+      expect(petEntries.some((i) => !i.alias)).toBe(true);
+      expect(petEntries.some((i) => i.alias === '__Pet')).toBe(true);
     });
   });
 });

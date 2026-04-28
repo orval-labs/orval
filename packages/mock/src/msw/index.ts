@@ -1,5 +1,6 @@
 import {
   type ClientMockGeneratorBuilder,
+  escapeRegExp,
   generateDependencyImports,
   type GenerateMockImports,
   type GeneratorDependency,
@@ -250,15 +251,19 @@ function generateDefinition(
 
   let responseBody: string;
   // Use a prelude to evaluate the override expression once into a temp variable
-  // (the expression contains `await` so must not be duplicated)
+  // (the expression contains `await` so must not be duplicated). Only emit it
+  // when we actually generate a `*ResponseMock()` helper — otherwise the
+  // prelude would reference a function that doesn't exist (issue #3270).
   let responsePrelude = '';
-  if (isBinaryResponse) {
-    responsePrelude = `const binaryBody = ${resolvedResponseExpr};`;
-  } else if (isVoidUnionType || needsRuntimeContentTypeSwitch) {
-    responsePrelude = `const resolvedBody = ${resolvedResponseExpr};`;
-  } else if (isTextResponse && !shouldPreferJsonResponse) {
-    responsePrelude = `const resolvedBody = ${resolvedResponseExpr};
+  if (isReturnHttpResponse) {
+    if (isBinaryResponse) {
+      responsePrelude = `const binaryBody = ${resolvedResponseExpr};`;
+    } else if (isVoidUnionType || needsRuntimeContentTypeSwitch) {
+      responsePrelude = `const resolvedBody = ${resolvedResponseExpr};`;
+    } else if (isTextResponse && !shouldPreferJsonResponse) {
+      responsePrelude = `const resolvedBody = ${resolvedResponseExpr};
     const textBody = typeof resolvedBody === 'string' ? resolvedBody : JSON.stringify(resolvedBody ?? null);`;
+    }
   }
   if (!isReturnHttpResponse) {
     responseBody = `new HttpResponse(null,
@@ -326,8 +331,17 @@ export const ${handlerName} = (overrideResponse?: ${mockReturnType} | ((${infoPa
   const includeResponseImports = [
     ...imports,
     ...response.imports.filter((r) => {
-      // Only include imports which are actually used in mock.
-      const reg = new RegExp(String.raw`\b${r.name}\b`);
+      // Only keep imports referenced in the mock. Aliased imports
+      // (`Foo as __Foo`) reference the alias rather than the bare name, so
+      // match against either. Mirrors `addDependency` in core/generators/imports.ts (#3269).
+      const searchWords = [r.alias, r.name]
+        .filter((p): p is string => Boolean(p?.length))
+        .map((part) => escapeRegExp(part))
+        .join('|');
+      if (!searchWords) {
+        return false;
+      }
+      const reg = new RegExp(String.raw`\b(${searchWords})\b`);
       return reg.test(handlerImplementation) || reg.test(mockImplementation);
     }),
   ];

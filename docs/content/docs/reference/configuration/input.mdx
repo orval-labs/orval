@@ -138,11 +138,15 @@ export default defineConfig({
 });
 ```
 
+When `tags` is set and `schemas` is not, orval automatically limits the output to only the schemas referenced (directly or transitively) by the matching operations. This prevents unrelated schemas from appearing in the generated output.
+
+If you also specify `schemas`, it takes precedence and the automatic inference is skipped. To filter endpoints by tags while still outputting all schemas, use `schemas: [/.*/]`.
+
 ### schemas
 
 **Type:** `(String | RegExp)[]`
 
-Filter by schema names:
+Filter by schema names explicitly:
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';

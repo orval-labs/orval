@@ -255,4 +255,49 @@ export default defineConfig({
       },
     },
   },
+  petstoreHttpBoth: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/http-both/petstore.ts',
+      schemas: 'src/api/http-both/model',
+      client: 'angular',
+      mock: { type: 'msw', indexMockFiles: true },
+      tsconfig: './tsconfig.app.json',
+      formatter: 'prettier',
+      clean: true,
+      override: {
+        angular: {
+          retrievalClient: 'both',
+        },
+        operations: {
+          listPets: {
+            mock: {
+              properties: () => {
+                return {
+                  id: () => faker.number.int({ min: 1, max: 99999 }),
+                };
+              },
+            },
+          },
+          showPetById: {
+            mock: {
+              data: createShowPetMock,
+            },
+          },
+        },
+        mock: {
+          properties: {
+            '/tag|name/': () => faker.person.lastName(),
+            '/phone/': createValidPhone,
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+      override: {
+        transformer: 'src/orval/transformer/add-version.ts',
+      },
+    },
+  },
 });

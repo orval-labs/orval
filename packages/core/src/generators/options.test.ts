@@ -516,7 +516,7 @@ describe('generateMutatorConfig', () => {
       expect(result).toContain("'Content-Type': 'application/json'");
     });
 
-    it('should not set Content-Type header for multipart/form-data', () => {
+    it('should not set Content-Type header for multipart/form-data in Angular', () => {
       const result = generateMutatorConfig({
         route: '/api/test',
         body: { ...minimalBody, contentType: 'multipart/form-data' },
@@ -528,12 +528,30 @@ describe('generateMutatorConfig', () => {
         isFormUrlEncoded: false,
         hasSignal: false,
         isExactOptionalPropertyTypes: false,
+        isAngular: true,
       });
       expect(result).not.toContain('Content-Type');
       expect(result).not.toContain('multipart/form-data');
     });
 
-    it('should skip Content-Type but include headers for multipart/form-data with headers', () => {
+    it('should set Content-Type header for multipart/form-data when not Angular', () => {
+      const result = generateMutatorConfig({
+        route: '/api/test',
+        body: { ...minimalBody, contentType: 'multipart/form-data' },
+        headers: undefined,
+        queryParams: undefined,
+        response: minimalResponse,
+        verb: Verbs.POST,
+        isFormData: true,
+        isFormUrlEncoded: false,
+        hasSignal: false,
+        isExactOptionalPropertyTypes: false,
+        isAngular: false,
+      });
+      expect(result).toContain("'Content-Type': 'multipart/form-data'");
+    });
+
+    it('should skip Content-Type but include headers for multipart/form-data with headers in Angular', () => {
       const result = generateMutatorConfig({
         route: '/api/test',
         body: { ...minimalBody, contentType: 'multipart/form-data' },
@@ -545,6 +563,7 @@ describe('generateMutatorConfig', () => {
         isFormUrlEncoded: false,
         hasSignal: false,
         isExactOptionalPropertyTypes: false,
+        isAngular: true,
       });
       expect(result).not.toContain('Content-Type');
       expect(result).toContain('headers');

@@ -1,5 +1,6 @@
 export * from './component-definition';
 export * from './imports';
+export * from './input-filters';
 export * from './models-inline';
 export * from './mutator';
 export * from './options';

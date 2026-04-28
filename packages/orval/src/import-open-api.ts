@@ -1,4 +1,5 @@
 import {
+  collectReferencedComponents,
   type ContextSpec,
   dynamicImport,
   generateComponentDefinition,
@@ -13,8 +14,40 @@ import {
   type WriteSpecBuilder,
 } from '@orval/core';
 import { validate } from '@scalar/openapi-parser';
+import { pick } from 'remeda';
 
 import { getApiBuilder } from './api';
+
+function filterSpecComponents(
+  spec: OpenApiDocument,
+  input: InputOptions,
+): OpenApiDocument {
+  const filters = input.filters;
+  if (!filters?.tags || filters.schemas) return spec;
+
+  const referenced = collectReferencedComponents(
+    spec,
+    filters.tags,
+    filters.mode,
+  );
+
+  return {
+    ...spec,
+    components: {
+      ...spec.components,
+      schemas: pick(spec.components?.schemas ?? {}, referenced.schemas),
+      responses: pick(spec.components?.responses ?? {}, referenced.responses),
+      parameters: pick(
+        spec.components?.parameters ?? {},
+        referenced.parameters,
+      ),
+      requestBodies: pick(
+        spec.components?.requestBodies ?? {},
+        referenced.requestBodies,
+      ),
+    },
+  };
+}
 
 export async function importOpenApi({
   spec,
@@ -31,12 +64,14 @@ export async function importOpenApi({
     input.unsafeDisableValidation,
   );
 
+  const filteredSpec = filterSpecComponents(transformedOpenApi, input);
+
   const schemas = getApiSchemas({
     input,
     output,
     target,
     workspace,
-    spec: transformedOpenApi,
+    spec: filteredSpec,
   });
 
   const api = await getApiBuilder({
@@ -46,7 +81,7 @@ export async function importOpenApi({
       projectName,
       target,
       workspace,
-      spec: transformedOpenApi,
+      spec: filteredSpec,
       output,
     } satisfies ContextSpec,
   });
@@ -57,8 +92,8 @@ export async function importOpenApi({
     target,
     // a valid spec will have info
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    info: transformedOpenApi.info!,
-    spec: transformedOpenApi,
+    info: filteredSpec.info!,
+    spec: filteredSpec,
   };
 }
 

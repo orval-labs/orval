@@ -29,6 +29,7 @@ import {
 } from './types';
 import {
   createReturnTypesRegistry,
+  getSchemaOutputTypeRef,
   isPrimitiveType,
   isZodSchemaOutput,
 } from './utils';
@@ -62,9 +63,6 @@ const hasSchemaImport = (
 
 const getSchemaValueRef = (typeName: string): string =>
   typeName === 'Error' ? 'ErrorSchema' : typeName;
-
-const getSchemaOutputTypeRef = (typeName: string): string =>
-  typeName === 'Error' ? 'ErrorOutput' : `${typeName}Output`;
 
 const getContentTypeReturnType = (
   contentType: string | undefined,
@@ -341,14 +339,20 @@ export const generateHttpClientImplementation = (
   const schemaValueRef = shouldValidateResponse
     ? getSchemaValueRef(dataType)
     : dataType;
+  // When Zod runtime validation is enabled the emitted method signature exposes
+  // `parsedDataType` (e.g. `PetsOutput`) directly instead of a caller-overridable
+  // `TData` generic. Casting `Schema.parse(data)` to `TData` is unsound because
+  // `TData` can be widened/narrowed by callers while the runtime value is always
+  // `PetsOutput`. We therefore drop the cast on the validation path and let the
+  // inferred return type flow naturally.
   const validationPipe = shouldValidateResponse
-    ? `.pipe(map(data => ${schemaValueRef}.parse(data) as TData))`
+    ? `.pipe(map(data => ${schemaValueRef}.parse(data)))`
     : '';
   const responseValidationPipe = shouldValidateResponse
-    ? `.pipe(map(response => response.clone({ body: ${schemaValueRef}.parse(response.body) as TData })))`
+    ? `.pipe(map(response => response.clone({ body: ${schemaValueRef}.parse(response.body) })))`
     : '';
   const eventValidationPipe = shouldValidateResponse
-    ? `.pipe(map(event => event instanceof AngularHttpResponse ? event.clone({ body: ${schemaValueRef}.parse(event.body) as TData }) : event))`
+    ? `.pipe(map(event => event instanceof AngularHttpResponse ? event.clone({ body: ${schemaValueRef}.parse(event.body) }) : event))`
     : '';
 
   returnTypesRegistry.set(
@@ -547,8 +551,13 @@ export const generateHttpClientImplementation = (
 
   const isModelType =
     dataType !== 'Blob' && dataType !== 'string' && dataType !== 'ArrayBuffer';
+  // When the response goes through a Zod runtime validation pipe the runtime
+  // value is fixed to `parsedDataType` (e.g. `PetsOutput`), so we avoid
+  // exposing a caller-overridable `<TData>` generic on that path.
+  const hasTDataGeneric =
+    isModelType && !hasMultipleContentTypes && !shouldValidateResponse;
   let functionName = operationName;
-  if (isModelType && !hasMultipleContentTypes) {
+  if (hasTDataGeneric) {
     functionName += `<TData = ${parsedDataType}>`;
   }
 
@@ -589,12 +598,12 @@ export const generateHttpClientImplementation = (
 
   const observeOverloads =
     isRequestOptions && !hasMultipleContentTypes
-      ? `${functionName}(${propsDefinition} options?: HttpClientBodyOptions): Observable<${isModelType ? 'TData' : parsedDataType}>;\n ${functionName}(${propsDefinition} options?: HttpClientEventOptions): Observable<HttpEvent<${isModelType ? 'TData' : parsedDataType}>>;\n ${functionName}(${propsDefinition} options?: HttpClientResponseOptions): Observable<AngularHttpResponse<${isModelType ? 'TData' : parsedDataType}>>;`
+      ? `${functionName}(${propsDefinition} options?: HttpClientBodyOptions): Observable<${hasTDataGeneric ? 'TData' : parsedDataType}>;\n ${functionName}(${propsDefinition} options?: HttpClientEventOptions): Observable<HttpEvent<${hasTDataGeneric ? 'TData' : parsedDataType}>>;\n ${functionName}(${propsDefinition} options?: HttpClientResponseOptions): Observable<AngularHttpResponse<${hasTDataGeneric ? 'TData' : parsedDataType}>>;`
       : '';
 
   const overloads = contentTypeOverloads || observeOverloads;
 
-  const observableDataType = isModelType ? 'TData' : parsedDataType;
+  const observableDataType = hasTDataGeneric ? 'TData' : parsedDataType;
   const singleImplementationReturnType = isRequestOptions
     ? `Observable<${observableDataType} | HttpEvent<${observableDataType}> | AngularHttpResponse<${observableDataType}>>`
     : `Observable<${observableDataType}>`;
@@ -662,17 +671,25 @@ export const generateHttpClientImplementation = (
 `;
   }
 
+  // When the validation pipe is active the runtime payload is always the
+  // parsed output type, so we emit `HttpClient.<verb><PetsOutput>(...)`
+  // rather than threading a caller-overridable `TData` through the call.
+  const httpTypeArg = hasTDataGeneric
+    ? '<TData>'
+    : shouldValidateResponse && isModelType
+      ? `<${parsedDataType}>`
+      : '';
   const observeImplementation = isRequestOptions
     ? `${paramsDeclaration}if (options?.observe === 'events') {
-      return this.http.${verb}${isModelType ? '<TData>' : ''}(${observeOptions?.events ?? options})${eventValidationPipe};
+      return this.http.${verb}${httpTypeArg}(${observeOptions?.events ?? options})${eventValidationPipe};
     }
 
     if (options?.observe === 'response') {
-      return this.http.${verb}${isModelType ? '<TData>' : ''}(${observeOptions?.response ?? options})${responseValidationPipe};
+      return this.http.${verb}${httpTypeArg}(${observeOptions?.response ?? options})${responseValidationPipe};
     }
 
-    return this.http.${verb}${isModelType ? '<TData>' : ''}(${observeOptions?.body ?? options})${validationPipe};`
-    : `return this.http.${verb}${isModelType ? '<TData>' : ''}(${options})${validationPipe};`;
+    return this.http.${verb}${httpTypeArg}(${observeOptions?.body ?? options})${validationPipe};`
+    : `return this.http.${verb}${httpTypeArg}(${options})${validationPipe};`;
 
   return ` ${overloads}
   ${functionName}(

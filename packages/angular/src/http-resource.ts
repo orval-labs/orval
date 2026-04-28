@@ -22,8 +22,10 @@ import {
   isObject,
   isSyntheticDefaultImportsAllow,
   jsDoc,
+  kebab,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
+  OutputMode,
   pascal,
   type ResReqTypesValue,
   toObjectString,
@@ -49,6 +51,7 @@ import {
   createReturnTypesRegistry,
   createRouteRegistry,
   getDefaultSuccessType,
+  getSchemaOutputTypeRef,
   isMutationVerb,
   isPrimitiveType,
   isRetrievalVerb,
@@ -158,6 +161,37 @@ const resourceReturnTypesRegistry = createReturnTypesRegistry();
 
 /** @internal Exported for testing only */
 export const routeRegistry = createRouteRegistry();
+
+const getRelevantVerbOptions = (
+  verbOptions: Record<string, GeneratorVerbOptions>,
+  tag?: string,
+): GeneratorVerbOptions[] =>
+  tag
+    ? Object.values(verbOptions).filter((verbOption) =>
+        verbOption.tags.some((currentTag) => camel(currentTag) === camel(tag)),
+      )
+    : Object.values(verbOptions);
+
+const getVerbOptionsRecord = (
+  verbOptions: readonly GeneratorVerbOptions[],
+): Record<string, GeneratorVerbOptions> =>
+  Object.fromEntries(
+    verbOptions.map((verbOption) => [verbOption.operationId, verbOption]),
+  );
+
+const getPrimaryTag = (verbOption: GeneratorVerbOptions): string =>
+  kebab(verbOption.tags[0] ?? 'default');
+
+const hasRetrievalOperations = (
+  verbOptions: Record<string, GeneratorVerbOptions>,
+): boolean =>
+  Object.values(verbOptions).some((verbOption) =>
+    isRetrievalVerb(
+      verbOption.verb,
+      verbOption.operationName,
+      getClientOverride(verbOption),
+    ),
+  );
 
 const getHeader = (
   option: false | ((info: OpenApiInfoObject) => string | string[]),
@@ -492,9 +526,6 @@ const buildResourceRequest = (
   };
 };
 
-const getSchemaOutputTypeRef = (typeName: string): string =>
-  typeName === 'Error' ? 'ErrorOutput' : `${typeName}Output`;
-
 const getHttpResourceResponseImports = (
   response: GeneratorVerbOptions['response'],
 ): GeneratorImport[] => {
@@ -818,6 +849,35 @@ const buildHttpResourceFunction = (
           .map((type) => getBranchReturnType(type)),
       ),
     ].join(' | ');
+    const getBranchRawType = (type: ResReqTypesValue): string =>
+      getHttpResourceRawType(
+        getHttpResourceFactory(response, type.contentType, type.value),
+      );
+    // Per-branch options types (one per distinct content-type branch).
+    // Deduped so text-like content types (text/plain, application/xml) that
+    // share the same factory don't produce duplicate union members.
+    const branchOptionsTypes = [
+      ...new Set(
+        successTypes
+          .filter((type) => type.contentType)
+          .map((type) =>
+            buildBranchOptionsType(
+              getBranchReturnType(type),
+              getBranchRawType(type),
+              omitParse,
+            ),
+          ),
+      ),
+    ];
+    // The implementation signature accepts the union of branch option types.
+    // This keeps each overload's narrow `options` assignable to the
+    // implementation signature (required for TS overload compatibility) while
+    // preventing mismatched `defaultValue`/`parse` across content types.
+    const implementationOptionsType = branchOptionsTypes.join(' | ');
+    // Per-accept overloads pin `options` to the branch-specific value/raw
+    // types so `defaultValue` / `parse` type-check against the actual content
+    // type — e.g. passing a `string` default to the `application/json`
+    // overload is now a type error.
     const branchOverloads = successTypes
       .filter((type) => type.contentType)
       .map((type) => {
@@ -826,7 +886,7 @@ const buildHttpResourceFunction = (
           requiredPart,
           `accept: '${type.contentType}'`,
           optionalPart,
-          `options?: ${buildBranchOptionsType(unionReturnType, 'unknown', omitParse)}`,
+          `options?: ${buildBranchOptionsType(returnType, getBranchRawType(type), omitParse)}`,
         ]
           .filter(Boolean)
           .join(',\n    ');
@@ -834,24 +894,16 @@ const buildHttpResourceFunction = (
         return `export function ${resourceName}(${overloadArgs}): HttpResourceRef<${returnType} | undefined>;`;
       })
       .join('\n');
-    const implementationArgs = [
-      requiredPart,
-      `accept?: ${acceptTypeName}`,
-      optionalPart,
-      `options?: ${buildBranchOptionsType(unionReturnType, 'unknown', omitParse)}`,
-    ]
-      .filter(Boolean)
-      .join(',\n    ');
     const implementationArgsWithDefault = [
       requiredPart,
       `accept: ${acceptTypeName} = '${defaultContentType}'`,
       optionalPart,
-      `options?: ${buildBranchOptionsType(unionReturnType, 'unknown', omitParse)}`,
+      `options?: ${implementationOptionsType}`,
     ]
       .filter(Boolean)
       .join(',\n    ');
 
-    const getBranchOptions = (type: ResReqTypesValue | undefined) => {
+    const getBranchOptions = (type?: ResReqTypesValue) => {
       if (!type) {
         return `options as ${buildBranchOptionsType(unionReturnType, 'unknown', omitParse)}`;
       }
@@ -892,20 +944,60 @@ const buildHttpResourceFunction = (
       isResponseBlob(type.contentType, response.isBlob),
     );
 
-    const fallbackReturn = blobType
-      ? `return httpResource.blob<Blob>(() => ({
+    // Fallback path for unknown accept values must match the branch the
+    // default `accept` argument targets — pick the success type whose content
+    // type is `defaultContentType`, then fall back to the remaining branches
+    // in the same priority order as the runtime dispatch above.
+    const fallbackType =
+      successTypes.find((type) => type.contentType === defaultContentType) ??
+      jsonType ??
+      textType ??
+      arrayBufferType ??
+      blobType;
+
+    const buildFallbackReturn = (type: ResReqTypesValue): string => {
+      const factory = getHttpResourceFactory(
+        response,
+        type.contentType,
+        type.value,
+      );
+      const returnType =
+        factory === 'httpResource'
+          ? getBranchReturnType(type)
+          : getHttpResourceRawType(factory);
+      return `return ${factory}<${returnType}>(() => ({
       ...normalizedRequest,
       headers,
-    }), ${getBranchOptions(blobType)});`
-      : textType
-        ? `return httpResource.text<string>(() => ({
+    }), ${getBranchOptions(type)});`;
+    };
+
+    const fallbackReturn = fallbackType
+      ? buildFallbackReturn(fallbackType)
+      : `return httpResource<${parsedDataType}>(() => ({
       ...normalizedRequest,
       headers,
-    }), ${getBranchOptions(textType)});`
-        : `return httpResource<${jsonType ? getBranchReturnType(jsonType) : parsedDataType}>(() => ({
-      ...normalizedRequest,
-      headers,
-    }), ${getBranchOptions(jsonType)});`;
+    }), ${getBranchOptions()});`;
+
+    // Default-accept overload (when `accept` is omitted): narrow `options` to
+    // the branch the runtime falls back to, so callers that skip `accept`
+    // still get branch-specific typing instead of the broad options union.
+    const defaultOverloadOptionsType = fallbackType
+      ? buildBranchOptionsType(
+          getBranchReturnType(fallbackType),
+          getBranchRawType(fallbackType),
+          omitParse,
+        )
+      : implementationOptionsType;
+    const defaultOverloadReturnType = fallbackType
+      ? getBranchReturnType(fallbackType)
+      : unionReturnType;
+    const defaultOverloadArgs = [
+      requiredPart,
+      optionalPart,
+      `options?: ${defaultOverloadOptionsType}`,
+    ]
+      .filter(Boolean)
+      .join(',\n    ');
 
     const normalizeRequest = isUrlOnly
       ? `const normalizedRequest: HttpResourceRequest = { url: request };`
@@ -916,8 +1008,8 @@ const buildHttpResourceFunction = (
  */
 ${branchOverloads}
 export function ${resourceName}(
-    ${implementationArgs}
-  ): HttpResourceRef<${unionReturnType} | undefined>;
+    ${defaultOverloadArgs}
+  ): HttpResourceRef<${defaultOverloadReturnType} | undefined>;
 export function ${resourceName}(
     ${implementationArgsWithDefault}
 ): HttpResourceRef<${unionReturnType} | undefined> {
@@ -1135,13 +1227,9 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
   // the shared header duplicates helpers across every tag file and pulls in
   // type names the file-local `imports` filter never sees, producing missing
   // schema imports in the generated output.
-  const relevantVerbs = tag
-    ? Object.values(verbOptions).filter((verbOption) =>
-        verbOption.tags.some((t) => camel(t) === camel(tag)),
-      )
-    : Object.values(verbOptions);
+  const relevantVerbOptions = getRelevantVerbOptions(verbOptions, tag);
 
-  const retrievals = relevantVerbs.filter((verbOption) =>
+  const retrievals = relevantVerbOptions.filter((verbOption) =>
     isRetrievalVerb(
       verbOption.verb,
       verbOption.operationName,
@@ -1169,7 +1257,7 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
     retrievals.map((verbOption) => verbOption.operationName),
   );
 
-  const mutations = relevantVerbs.filter((verbOption) =>
+  const mutations = relevantVerbOptions.filter((verbOption) =>
     isMutationVerb(
       verbOption.verb,
       verbOption.operationName,
@@ -1305,6 +1393,17 @@ const buildSchemaImportDependencies = (
     ...new Map(imports.map((imp) => [imp.name, imp])).values(),
   ];
 
+  if (!output.schemas) {
+    return [
+      {
+        exports: isZod
+          ? uniqueImports.map((imp) => ({ ...imp, values: true }))
+          : uniqueImports,
+        dependency: relativeSchemasPath,
+      },
+    ];
+  }
+
   if (!output.indexFiles) {
     return [...uniqueImports].map((imp) => {
       const baseName = imp.schemaName ?? imp.name;
@@ -1338,36 +1437,65 @@ const buildSchemaImportDependencies = (
   ];
 };
 
-/**
- * Generates the extra sibling resource file used by Angular `both` mode.
- *
- * @remarks
- * The main generated file keeps the `HttpClient` service class while retrieval
- * resources are emitted into `*.resource.ts` so consumers can opt into both
- * access patterns without mixing the generated surfaces.
- *
- * @returns A single extra file descriptor representing the generated resource file.
- */
-export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
-  verbOptions,
-  output,
-  context,
-) => {
-  const { extension, dirname, filename } = getFileInfo(output.target);
-  const outputPath = upath.join(dirname, `${filename}.resource${extension}`);
-  const header = getHeader(output.override.header, context.spec.info);
+const getHttpResourceExtraFilePath = (
+  output: NormalizedOutputOptions,
+  tag?: string,
+): string => {
+  const { extension, dirname, filename } = getFileInfo(output.target, {
+    extension: output.fileExtension,
+  });
 
-  const implementation = buildHttpResourceFile(verbOptions, output, context);
+  switch (output.mode) {
+    case OutputMode.TAGS: {
+      const normalizedTag = kebab(tag ?? 'default');
+      return upath.joinSafe(dirname, `${normalizedTag}.resource${extension}`);
+    }
+    case OutputMode.TAGS_SPLIT: {
+      const normalizedTag = kebab(tag ?? 'default');
+      return upath.joinSafe(
+        dirname,
+        normalizedTag,
+        `${normalizedTag}.resource${extension}`,
+      );
+    }
+    default: {
+      return upath.joinSafe(dirname, `${filename}.resource${extension}`);
+    }
+  }
+};
 
+const getHttpResourceRelativeSchemasPath = (
+  output: NormalizedOutputOptions,
+  outputPath: string,
+): string => {
   const schemasPath =
     typeof output.schemas === 'string' ? output.schemas : output.schemas?.path;
-  const basePath = schemasPath ? getFileInfo(schemasPath).dirname : undefined;
-  const relativeSchemasPath = basePath
-    ? output.indexFiles
-      ? upath.relativeSafe(dirname, basePath)
-      : upath.relativeSafe(dirname, basePath)
-    : `./${filename}.schemas`;
 
+  if (schemasPath) {
+    return upath.getRelativeImportPath(
+      outputPath,
+      getFileInfo(schemasPath).dirname,
+    );
+  }
+
+  const { dirname, filename, extension } = getFileInfo(output.target, {
+    extension: output.fileExtension,
+  });
+  return upath.getRelativeImportPath(
+    outputPath,
+    upath.joinSafe(dirname, `${filename}.schemas${extension}`),
+    output.fileExtension !== '.ts',
+  );
+};
+
+const buildHttpResourceExtraFile = (
+  verbOptions: Record<string, GeneratorVerbOptions>,
+  outputPath: string,
+  output: NormalizedOutputOptions,
+  context: ContextSpec,
+  header: string,
+) => {
+  const implementation = buildHttpResourceFile(verbOptions, output, context);
   const schemaImports = buildSchemaImportDependencies(
     output,
     Object.values(verbOptions)
@@ -1379,7 +1507,7 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
         ),
       )
       .flatMap((verbOption) => getHttpResourceVerbImports(verbOption, output)),
-    relativeSchemasPath,
+    getHttpResourceRelativeSchemasPath(output, outputPath),
   );
 
   const dependencies = getAngularHttpResourceOnlyDependencies(false, false);
@@ -1421,16 +1549,77 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
     mutators.length > 0
       ? generateMutatorImports({
           mutators,
+          oneMore: output.mode === OutputMode.TAGS_SPLIT,
         })
       : '';
 
-  const content = `${header}${importImplementation}${mutatorImports}${implementation}`;
+  return {
+    content: `${header}${importImplementation}${mutatorImports}${implementation}`,
+    path: outputPath,
+  };
+};
+
+/**
+ * Generates the extra sibling resource files used by Angular `both` mode.
+ *
+ * @remarks
+ * The main generated file keeps the `HttpClient` service class while retrieval
+ * resources are emitted into `*.resource.ts` so consumers can opt into both
+ * access patterns without mixing the generated surfaces. In tag-based output
+ * modes this emits one sibling resource file per generated tag file.
+ *
+ * @returns One or more extra file descriptors representing generated resource files.
+ */
+export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
+  verbOptions,
+  output,
+  context,
+) => {
+  const header = getHeader(output.override.header, context.spec.info);
+
+  if (!hasRetrievalOperations(verbOptions)) {
+    return Promise.resolve([]);
+  }
+
+  if (
+    output.mode === OutputMode.TAGS ||
+    output.mode === OutputMode.TAGS_SPLIT
+  ) {
+    const groupedVerbOptions = new Map<
+      string,
+      Record<string, GeneratorVerbOptions>
+    >();
+
+    for (const verbOption of Object.values(verbOptions)) {
+      const tag = getPrimaryTag(verbOption);
+      const currentGroup = groupedVerbOptions.get(tag) ?? {};
+      currentGroup[verbOption.operationId] = verbOption;
+      groupedVerbOptions.set(tag, currentGroup);
+    }
+
+    return Promise.resolve(
+      [...groupedVerbOptions.entries()]
+        .filter(([, tagVerbOptions]) => hasRetrievalOperations(tagVerbOptions))
+        .map(([tag, tagVerbOptions]) =>
+          buildHttpResourceExtraFile(
+            tagVerbOptions,
+            getHttpResourceExtraFilePath(output, tag),
+            output,
+            context,
+            header,
+          ),
+        ),
+    );
+  }
 
   return Promise.resolve([
-    {
-      content,
-      path: outputPath,
-    },
+    buildHttpResourceExtraFile(
+      getVerbOptionsRecord(getRelevantVerbOptions(verbOptions)),
+      getHttpResourceExtraFilePath(output),
+      output,
+      context,
+      header,
+    ),
   ]);
 };
 

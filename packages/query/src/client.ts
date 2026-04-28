@@ -143,6 +143,7 @@ export const generateAngularHttpRequestFunction = (
       hasSignalParam,
       isExactOptionalPropertyTypes,
       isVue: false,
+      isAngular: context.output.httpClient === OutputHttpClient.ANGULAR,
     });
 
     const requestOptions = isRequestOptions
