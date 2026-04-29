@@ -119,6 +119,16 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  'all-of-array-items': {
+    input: '../specifications/all-of-array-items.yaml',
+    output: {
+      schemas: '../generated/default/all-of-array-items/model',
+      target: '../generated/default/all-of-array-items/endpoints.ts',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
   'all-of-one-of': {
     input: '../specifications/all-of-one-of.yaml',
     output: {
