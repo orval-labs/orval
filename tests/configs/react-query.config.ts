@@ -762,6 +762,29 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  useInvalidateWithQueryOptionsMutator: {
+    output: {
+      target:
+        '../generated/react-query/use-invalidate-with-query-options-mutator/endpoints.ts',
+      schemas:
+        '../generated/react-query/use-invalidate-with-query-options-mutator/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useInvalidate: true,
+          queryOptions: {
+            path: '../mutators/custom-query-options.ts',
+            name: 'customQueryOptions',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   useSetQueryData: {
     output: {
       target: '../generated/react-query/use-set-query-data/endpoints.ts',
