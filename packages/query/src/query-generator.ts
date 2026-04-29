@@ -647,7 +647,30 @@ export const generateQueryHook = async (
   } = options;
 
   // Use adapter to transform props (Vue wraps with MaybeRef)
-  const props = adapter.transformProps(_props);
+  const transformedProps = adapter.transformProps(_props);
+
+  // When a custom mutator exposes a `BodyType` wrapper, the raw fetch
+  // function widens the body prop accordingly (see e.g. axios package).
+  // Mirror that wrapper in the generated query helpers so non-GET query
+  // hooks accept the same body shape as the underlying function — without
+  // it, options like `data?.headers` carried via `BodyType` are stripped
+  // from the public hook signature (#2376 follow-up).
+  const props =
+    mutator?.bodyTypeName && body.definition
+      ? transformedProps.map((prop) => {
+          if (prop.type !== GetterPropType.BODY) return prop;
+          const wrappedType = `${mutator.bodyTypeName}<${body.definition}>`;
+          const replaceTail = (s: string) =>
+            s.endsWith(`: ${body.definition}`)
+              ? `${s.slice(0, -body.definition.length)}${wrappedType}`
+              : s;
+          return {
+            ...prop,
+            implementation: replaceTail(prop.implementation),
+            definition: replaceTail(prop.definition),
+          };
+        })
+      : transformedProps;
 
   const query = override.query;
   const isRequestOptions = override.requestOptions !== false;
@@ -670,17 +693,31 @@ export const generateQueryHook = async (
     operationQueryOptions?.useSuspenseInfiniteQuery,
   ].some(Boolean);
 
-  let isQuery =
-    (Verbs.GET === verb &&
-      [
-        override.query.useQuery,
-        override.query.useSuspenseQuery,
-        override.query.useInfinite,
-        override.query.useSuspenseInfiniteQuery,
-      ].some(Boolean)) ||
-    hasOperationQueryOption;
+  // Verb-aware defaults: when not explicitly set, GET defaults to a Query
+  // hook and non-GET defaults to a Mutation hook. Explicit user values in
+  // override.query.useQuery propagate to all verbs (issue #2376). The
+  // remaining query-style global flags (suspense/infinite) stay GET-only
+  // because applying them to write/delete verbs makes pagination/retries
+  // capable of replaying side effects; per-operation overrides remain the
+  // way to opt non-GET endpoints into those modes.
+  const effectiveUseQuery = override.query.useQuery ?? verb === Verbs.GET;
+  const effectiveUseMutation = override.query.useMutation ?? verb !== Verbs.GET;
+  const effectiveUseSuspenseQuery =
+    verb === Verbs.GET ? override.query.useSuspenseQuery : undefined;
+  const effectiveUseInfinite =
+    verb === Verbs.GET ? override.query.useInfinite : undefined;
+  const effectiveUseSuspenseInfiniteQuery =
+    verb === Verbs.GET ? override.query.useSuspenseInfiniteQuery : undefined;
 
-  let isMutation = override.query.useMutation && verb !== Verbs.GET;
+  let isQuery =
+    [
+      effectiveUseQuery,
+      effectiveUseSuspenseQuery,
+      effectiveUseInfinite,
+      effectiveUseSuspenseInfiniteQuery,
+    ].some(Boolean) || hasOperationQueryOption;
+
+  let isMutation = effectiveUseMutation && verb !== Verbs.GET;
 
   if (operationQueryOptions?.useMutation !== undefined) {
     isMutation = operationQueryOptions.useMutation;
@@ -732,7 +769,7 @@ export const generateQueryHook = async (
       .join(',');
 
     const queries = [
-      ...(query.useInfinite || operationQueryOptions?.useInfinite
+      ...(effectiveUseInfinite || operationQueryOptions?.useInfinite
         ? [
             {
               name: camel(`${operationName}-infinite`),
@@ -743,7 +780,7 @@ export const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query.useQuery || operationQueryOptions?.useQuery
+      ...(effectiveUseQuery || operationQueryOptions?.useQuery
         ? [
             {
               name: operationName,
@@ -753,7 +790,7 @@ export const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query.useSuspenseQuery || operationQueryOptions?.useSuspenseQuery
+      ...(effectiveUseSuspenseQuery || operationQueryOptions?.useSuspenseQuery
         ? [
             {
               name: camel(`${operationName}-suspense`),
@@ -763,7 +800,7 @@ export const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query.useSuspenseInfiniteQuery ||
+      ...(effectiveUseSuspenseInfiniteQuery ||
       operationQueryOptions?.useSuspenseInfiniteQuery
         ? [
             {
@@ -877,8 +914,12 @@ ${queryKeyFns}`;
         route,
         doc,
         usePrefetch: query.usePrefetch,
-        useQuery: query.useQuery,
-        useInfinite: query.useInfinite,
+        // Fall back to operation-level overrides so that suspense/prefetch
+        // helpers correctly defer to a standard query hook generated only
+        // through `override.operations[*].query.*`.
+        useQuery: effectiveUseQuery || !!operationQueryOptions?.useQuery,
+        useInfinite:
+          !!effectiveUseInfinite || !!operationQueryOptions?.useInfinite,
         useInvalidate: query.useInvalidate,
         useSetQueryData:
           operationQueryOptions?.useSetQueryData ?? query.useSetQueryData,

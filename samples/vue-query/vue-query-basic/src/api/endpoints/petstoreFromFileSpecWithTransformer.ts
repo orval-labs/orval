@@ -4,18 +4,15 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/vue-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/vue-query';
 import type {
   DataTag,
   InfiniteData,
-  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UseInfiniteQueryOptions,
   UseInfiniteQueryReturnType,
-  UseMutationOptions,
-  UseMutationReturnType,
   UseQueryOptions,
   UseQueryReturnType,
 } from '@tanstack/vue-query';
@@ -265,70 +262,84 @@ export const createPets = (
   });
 };
 
-export const getCreatePetsMutationOptions = <
-  TError = Error,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createPets>>,
-    TError,
-    { data: CreatePetsBody; version?: number | undefined | null },
-    TContext
-  >;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createPets>>,
-  TError,
-  { data: CreatePetsBody; version?: number | undefined | null },
-  TContext
-> => {
-  const mutationKey = ['createPets'];
-  const { mutation: mutationOptions } = options
-    ? options.mutation &&
-      'mutationKey' in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey } };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createPets>>,
-    { data: CreatePetsBody; version?: number | undefined | null }
-  > = (props) => {
-    const { data, version } = props ?? {};
-
-    return createPets(data, version);
-  };
-
-  return { mutationFn, ...mutationOptions };
+export const getCreatePetsQueryKey = (
+  createPetsBody?: MaybeRef<CreatePetsBody>,
+  version: MaybeRef<number | undefined | null> = 1,
+) => {
+  return ['v', version, 'pets', createPetsBody] as const;
 };
 
-export type CreatePetsMutationResult = NonNullable<
+export const getCreatePetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof createPets>>,
+  TError = Error,
+>(
+  createPetsBody: MaybeRef<CreatePetsBody>,
+  version: MaybeRef<number | undefined | null> = 1,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
+    >;
+  },
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = getCreatePetsQueryKey(createPetsBody, version);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof createPets>>> = ({
+    signal,
+  }) => createPets(createPetsBody, version, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: computed(() => !!unref(version)),
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>;
+};
+
+export type CreatePetsQueryResult = NonNullable<
   Awaited<ReturnType<typeof createPets>>
 >;
-export type CreatePetsMutationBody = CreatePetsBody;
-export type CreatePetsMutationError = Error;
+export type CreatePetsQueryError = Error;
 
 /**
  * @summary Create a pet
  */
-export const useCreatePets = <TError = Error, TContext = unknown>(
+
+export function useCreatePets<
+  TData = Awaited<ReturnType<typeof createPets>>,
+  TError = Error,
+>(
+  createPetsBody: MaybeRef<CreatePetsBody>,
+  version: MaybeRef<number | undefined | null> = 1,
   options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof createPets>>,
-      TError,
-      { data: CreatePetsBody; version?: number | undefined | null },
-      TContext
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
     >;
   },
   queryClient?: QueryClient,
-): UseMutationReturnType<
-  Awaited<ReturnType<typeof createPets>>,
-  TError,
-  { data: CreatePetsBody; version?: number | undefined | null },
-  TContext
-> => {
-  return useMutation(getCreatePetsMutationOptions(options), queryClient);
-};
+): UseQueryReturnType<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getCreatePetsQueryOptions(
+    createPetsBody,
+    version,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = unref(queryOptions).queryKey as DataTag<
+    QueryKey,
+    TData,
+    TError
+  >;
+
+  return query;
+}
 
 /**
  * @summary Info for a specific pet
@@ -527,68 +538,75 @@ export const postApiV1UserLogout = (signal?: AbortSignal) => {
   });
 };
 
-export const getPostApiV1UserLogoutMutationOptions = <
-  TError = unknown,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof postApiV1UserLogout>>,
-    TError,
-    void,
-    TContext
-  >;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof postApiV1UserLogout>>,
-  TError,
-  void,
-  TContext
-> => {
-  const mutationKey = ['postApiV1UserLogout'];
-  const { mutation: mutationOptions } = options
-    ? options.mutation &&
-      'mutationKey' in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey } };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof postApiV1UserLogout>>,
-    void
-  > = () => {
-    return postApiV1UserLogout();
-  };
-
-  return { mutationFn, ...mutationOptions };
+export const getPostApiV1UserLogoutQueryKey = () => {
+  return ['api', 'v1', 'user', 'logout'] as const;
 };
 
-export type PostApiV1UserLogoutMutationResult = NonNullable<
+export const getPostApiV1UserLogoutQueryOptions = <
+  TData = Awaited<ReturnType<typeof postApiV1UserLogout>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<
+      Awaited<ReturnType<typeof postApiV1UserLogout>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = getPostApiV1UserLogoutQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof postApiV1UserLogout>>
+  > = ({ signal }) => postApiV1UserLogout(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof postApiV1UserLogout>>,
+    TError,
+    TData
+  >;
+};
+
+export type PostApiV1UserLogoutQueryResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1UserLogout>>
 >;
-
-export type PostApiV1UserLogoutMutationError = unknown;
+export type PostApiV1UserLogoutQueryError = unknown;
 
 /**
  * @summary This is required to test case when there are no parameters (this path is ignored in add-version transformer), see https://github.com/orval-labs/orval/issues/857#issuecomment-1835317990
  */
-export const usePostApiV1UserLogout = <TError = unknown, TContext = unknown>(
+
+export function usePostApiV1UserLogout<
+  TData = Awaited<ReturnType<typeof postApiV1UserLogout>>,
+  TError = unknown,
+>(
   options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof postApiV1UserLogout>>,
-      TError,
-      void,
-      TContext
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof postApiV1UserLogout>>,
+        TError,
+        TData
+      >
     >;
   },
   queryClient?: QueryClient,
-): UseMutationReturnType<
-  Awaited<ReturnType<typeof postApiV1UserLogout>>,
-  TError,
-  void,
-  TContext
-> => {
-  return useMutation(
-    getPostApiV1UserLogoutMutationOptions(options),
-    queryClient,
-  );
-};
+): UseQueryReturnType<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getPostApiV1UserLogoutQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = unref(queryOptions).queryKey as DataTag<
+    QueryKey,
+    TData,
+    TError
+  >;
+
+  return query;
+}
