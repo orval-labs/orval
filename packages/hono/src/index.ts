@@ -97,12 +97,14 @@ export const getHonoHeader: ClientHeaderBuilder = ({
     const handlerFileInfo = getFileInfo(output.override.hono.handlers);
     handlers = importHandlers
       .map((verbOption) => {
-        const isTagMode =
-          output.mode === 'tags' || output.mode === 'tags-split';
+        // Only `tags-split` puts each tag's client file inside its own
+        // sub-directory. `tags` mode flattens them next to `target`, so the
+        // import must be resolved from `targetInfo.dirname` directly.
+        const isSplitDir = output.mode === 'tags-split';
         const tag = kebab(verbOption.tags[0] ?? 'default');
 
         const handlersPath = upath.relativeSafe(
-          nodePath.join(targetInfo.dirname, isTagMode ? tag : ''),
+          nodePath.join(targetInfo.dirname, isSplitDir ? tag : ''),
           nodePath.join(
             handlerFileInfo.dirname,
             `./${verbOption.operationName}`,
@@ -310,35 +312,10 @@ const generateHandlerFile = async ({
       ? ('hono' as const)
       : validatorModule != undefined;
 
-  const isExist = fs.existsSync(path);
+  const verbList = Object.values(verbs);
 
-  if (isExist) {
-    // Preserve the existing file (which may contain user edits) and only
-    // append handlers that have not been generated yet. The file header is
-    // intentionally left untouched so any previously customised header stays
-    // in place.
-    const rawFile = await fs.readFile(path, 'utf8');
-    let content = rawFile;
-
-    for (const verbOption of Object.values(verbs)) {
-      const handlerName = `${verbOption.operationName}Handlers`;
-      const contextTypeName = `${pascal(verbOption.operationName)}Context`;
-
-      if (!rawFile.includes(handlerName)) {
-        content += getHonoHandlers({
-          handlerName,
-          contextTypeName,
-          verbOption,
-          validator,
-        })[0];
-      }
-    }
-
-    return content;
-  }
-
-  const [handlerCode, hasZValidator] = getHonoHandlers(
-    ...Object.values(verbs).map((verbOption) => ({
+  const [, hasZValidator] = getHonoHandlers(
+    ...verbList.map((verbOption) => ({
       handlerName: `${verbOption.operationName}Handlers`,
       contextTypeName: `${pascal(verbOption.operationName)}Context`,
       verbOption,
@@ -355,7 +332,7 @@ const generateHandlerFile = async ({
   }
 
   imports.push(
-    `import { ${Object.values(verbs)
+    `import { ${verbList
       .map((verb) => `${pascal(verb.operationName)}Context`)
       .join(',\n')} } from '${generateModuleSpecifier(path, contextModule)}';`,
   );
@@ -363,16 +340,91 @@ const generateHandlerFile = async ({
   if (hasZValidator) {
     imports.push(
       getZvalidatorImports(
-        Object.values(verbs),
+        verbList,
         generateModuleSpecifier(path, zodModule),
         validatorModule === '@hono/zod-validator',
       ),
     );
   }
 
-  return `${header}${imports.filter((imp) => imp !== '').join('\n')}
+  const preamble = `${header}${imports.filter((imp) => imp !== '').join('\n')}\n\nconst factory = createFactory();`;
 
-const factory = createFactory();${handlerCode}`;
+  if (fs.existsSync(path)) {
+    // Preserve user edits inside existing handler bodies but always refresh
+    // the generated preamble (header + imports + factory) so that import paths
+    // and casing follow the latest configuration. Any handler that has not
+    // been emitted yet is appended at the end.
+    const rawFile = await fs.readFile(path, 'utf8');
+    const existingHandlers = extractExistingHandlers(rawFile);
+
+    let content = preamble;
+    for (const verbOption of verbList) {
+      const handlerName = `${verbOption.operationName}Handlers`;
+      const contextTypeName = `${pascal(verbOption.operationName)}Context`;
+
+      const existing = existingHandlers.get(handlerName);
+      content +=
+        existing == undefined
+          ? getHonoHandlers({
+              handlerName,
+              contextTypeName,
+              verbOption,
+              validator,
+            })[0]
+          : `\n${existing}`;
+    }
+
+    return content;
+  }
+
+  const [handlerCode] = getHonoHandlers(
+    ...verbList.map((verbOption) => ({
+      handlerName: `${verbOption.operationName}Handlers`,
+      contextTypeName: `${pascal(verbOption.operationName)}Context`,
+      verbOption,
+      validator,
+    })),
+  );
+
+  return `${preamble}${handlerCode}`;
+};
+
+/**
+ * extractExistingHandlers scans a previously generated handler file and
+ * returns each `export const xxxHandlers = factory.createHandlers(...);`
+ * block keyed by handler name. The match is brace/parenthesis aware so
+ * user edits inside handler bodies are preserved verbatim.
+ */
+export const extractExistingHandlers = (
+  source: string,
+): Map<string, string> => {
+  const handlers = new Map<string, string>();
+  const exportRegex =
+    /export\s+const\s+(\w+Handlers)\s*=\s*factory\.createHandlers\s*\(/g;
+
+  let match: RegExpExecArray | null;
+  while ((match = exportRegex.exec(source)) !== null) {
+    const start = match.index;
+    let depth = 0;
+    let i = match.index + match[0].length - 1; // points at the opening '('
+
+    for (; i < source.length; i++) {
+      const ch = source[i];
+      if (ch === '(') depth++;
+      else if (ch === ')') {
+        depth--;
+        if (depth === 0) {
+          i++;
+          break;
+        }
+      }
+    }
+
+    if (source[i] === ';') i++;
+    handlers.set(match[1], source.slice(start, i));
+  }
+
+  return handlers;
 };
 
 const generateHandlerFiles = async (
@@ -399,20 +451,29 @@ const generateHandlerFiles = async (
           `./${verbOption.operationName}` + extension,
         );
 
+        // Mirror the layout used by generateZodFiles/generateContextFiles so
+        // imports resolve to the actual emitted modules.
+        let zodModule: string;
+        let contextModule: string;
+        if (output.mode === 'tags') {
+          zodModule = nodePath.join(dirname, `${kebab(tag)}.zod`);
+          contextModule = nodePath.join(dirname, `${kebab(tag)}.context`);
+        } else if (output.mode === 'tags-split') {
+          zodModule = nodePath.join(dirname, tag, tag + '.zod');
+          contextModule = nodePath.join(dirname, tag, tag + '.context');
+        } else {
+          zodModule = nodePath.join(dirname, `${filename}.zod`);
+          contextModule = nodePath.join(dirname, `${filename}.context`);
+        }
+
         return {
           content: await generateHandlerFile({
             path,
             header,
             verbs: [verbOption],
             validatorModule,
-            zodModule:
-              output.mode === 'tags'
-                ? nodePath.join(dirname, `${kebab(tag)}.zod`)
-                : nodePath.join(dirname, tag, tag + '.zod'),
-            contextModule:
-              output.mode === 'tags'
-                ? nodePath.join(dirname, `${kebab(tag)}.context`)
-                : nodePath.join(dirname, tag, tag + '.context'),
+            zodModule,
+            contextModule,
           }),
           path,
         };
