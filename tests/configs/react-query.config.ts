@@ -762,6 +762,29 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  useInvalidateWithQueryOptionsMutator: {
+    output: {
+      target:
+        '../generated/react-query/use-invalidate-with-query-options-mutator/endpoints.ts',
+      schemas:
+        '../generated/react-query/use-invalidate-with-query-options-mutator/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useInvalidate: true,
+          queryOptions: {
+            path: '../mutators/custom-query-options.ts',
+            name: 'customQueryOptions',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   useSetQueryData: {
     output: {
       target: '../generated/react-query/use-set-query-data/endpoints.ts',
@@ -854,6 +877,23 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/petstore.yaml',
+    },
+  },
+  // Regression for issue #3269. tags-split + msw + OpenAPI 3.1 anyOf-nullable
+  // ($ref + type:null) on both response and request body. Pre-fix this emitted
+  // `__Widget` references in the .msw.ts file with no matching import.
+  issue3269: {
+    output: {
+      target: '../generated/react-query/issue-3269/endpoints.ts',
+      schemas: '../generated/react-query/issue-3269/model',
+      client: 'react-query',
+      mode: 'tags-split',
+      mock: { type: 'msw' },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3269.yaml',
     },
   },
 });

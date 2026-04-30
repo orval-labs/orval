@@ -481,17 +481,38 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     (type === QueryType.SUSPENSE_QUERY && !useQuery) ||
     (type === QueryType.SUSPENSE_INFINITE && !useInfinite);
 
+  const buildBaseQueryKeyExpr = () =>
+    queryKeyMutator
+      ? `${queryKeyMutator.name}({ ${queryProperties} }${
+          queryKeyMutator.hasSecondArg ? `, { url: \`${route}\` }` : ''
+        })`
+      : `${queryKeyFnName}(${queryKeyProperties})`;
+
+  // queryOptions mutator may augment the queryKey (e.g. tenant prefix).
+  // Route invalidate through the mutator so the key matches what the
+  // query hook actually wrote into the cache. Hook-shaped mutators are
+  // skipped because the invalidate helper is a plain async function.
+  const applyQueryOptionsMutator = (baseExpr: string) =>
+    queryOptionsMutator && !queryOptionsMutator.isHook
+      ? `${queryOptionsMutator.name}({ queryKey: ${baseExpr} }${
+          queryOptionsMutator.hasSecondArg ? `, { ${queryProperties} }` : ''
+        }${
+          queryOptionsMutator.hasThirdArg ? `, { url: \`${route}\` }` : ''
+        }).queryKey`
+      : baseExpr;
+
   const shouldGenerateInvalidate = useInvalidate && isPrimaryQueryType;
   const invalidateFnName = camel(`invalidate-${name}`);
+  const invalidateQueryKeyExpr = applyQueryOptionsMutator(
+    buildBaseQueryKeyExpr(),
+  );
 
   const shouldGenerateSetQueryData = useSetQueryData && isPrimaryQueryType;
   const isReactQuery = adapter.outputClient === OutputClient.REACT_QUERY;
   const setQueryDataFnName = isReactQuery
     ? camel(`use-set-${name}-query-data`)
     : camel(`set-${name}-query-data`);
-  const setQueryDataKeyExpr = queryKeyMutator
-    ? `${queryKeyMutator.name}({ ${queryProperties} }${queryKeyMutator.hasSecondArg ? `, { url: \`${route}\` }` : ''})`
-    : `${queryKeyFnName}(${queryKeyProperties})`;
+  const setQueryDataKeyExpr = buildBaseQueryKeyExpr();
   const setQueryDataProps = toObjectString(
     props.filter((prop) => prop.type !== GetterPropType.HEADER),
     'implementation',
@@ -559,7 +580,7 @@ ${
   shouldGenerateInvalidate
     ? `${doc}export const ${invalidateFnName} = async (\n queryClient: QueryClient, ${queryProps} options?: InvalidateOptions\n  ): Promise<QueryClient> => {
 
-  await queryClient.invalidateQueries({ queryKey: ${queryKeyFnName}(${queryKeyProperties}) }, options);
+  await queryClient.invalidateQueries({ queryKey: ${invalidateQueryKeyExpr} }, options);
 
   return queryClient;
 }\n`

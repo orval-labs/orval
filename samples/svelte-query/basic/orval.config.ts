@@ -10,6 +10,7 @@ export default defineConfig({
       client: 'svelte-query',
       httpClient: 'axios',
       mock: true,
+      clean: true,
       formatter: 'prettier',
       override: {
         mutator: {

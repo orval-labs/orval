@@ -9,6 +9,7 @@ export default defineConfig({
       client: 'solid-query',
       baseUrl: 'http://localhost:8000',
       mock: true,
+      clean: true,
       formatter: 'prettier',
       override: {
         mutator: {
