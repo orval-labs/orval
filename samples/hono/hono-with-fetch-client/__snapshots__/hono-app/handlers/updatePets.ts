@@ -11,7 +11,7 @@ import { UpdatePetsBody, UpdatePetsResponse } from '../petstore.zod';
 
 const factory = createFactory();
 export const updatePetsHandlers = factory.createHandlers(
-  zValidator('json', updatePetsBody),
-  zValidator('response', updatePetsResponse),
+  zValidator('json', UpdatePetsBody),
+  zValidator('response', UpdatePetsResponse),
   async (c: UpdatePetsContext) => {},
 );

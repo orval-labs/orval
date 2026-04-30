@@ -11,8 +11,8 @@ import { ListPetsQueryParams, ListPetsResponse } from '../petstore.zod';
 
 const factory = createFactory();
 export const listPetsHandlers = factory.createHandlers(
-  zValidator('query', listPetsQueryParams),
-  zValidator('response', listPetsResponse),
+  zValidator('query', ListPetsQueryParams),
+  zValidator('response', ListPetsResponse),
   async (c: ListPetsContext) => {
     return c.json([
       {

@@ -172,11 +172,13 @@ export const zValidator =
       if (typeof hookResult === 'object' && hookResult != null) {
         if (hookResult instanceof Response) {
           c.res = new Response(hookResult.body, hookResult);
+          return;
         } else if (
           'response' in hookResult &&
           hookResult.response instanceof Response
         ) {
           c.res = new Response(hookResult.response.body, hookResult.response);
+          return;
         }
       }
     }

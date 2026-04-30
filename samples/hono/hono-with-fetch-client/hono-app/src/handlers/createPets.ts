@@ -11,7 +11,7 @@ import { CreatePetsBody, CreatePetsResponse } from '../petstore.zod';
 
 const factory = createFactory();
 export const createPetsHandlers = factory.createHandlers(
-  zValidator('json', createPetsBody),
-  zValidator('response', createPetsResponse),
+  zValidator('json', CreatePetsBody),
+  zValidator('response', CreatePetsResponse),
   async (c: CreatePetsContext) => {},
 );
