@@ -896,4 +896,25 @@ export default defineConfig({
       target: '../specifications/issue-3269.yaml',
     },
   },
+  // Regression for issue #3066. zod schemas + tags-split + non-JSON request
+  // body (multipart/form-data and application/x-www-form-urlencoded). Pre-fix
+  // the endpoints imported `${OperationName}Body` from a zod schemas index
+  // that never re-exported it, since `writeZodSchemasFromVerbs` only scanned
+  // `application/json` bodies.
+  issue3066: {
+    output: {
+      target: '../generated/react-query/issue-3066/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/react-query/issue-3066/model',
+      },
+      client: 'react-query',
+      mode: 'tags-split',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3066.yaml',
+    },
+  },
 });
