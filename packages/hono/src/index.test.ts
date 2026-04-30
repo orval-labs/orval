@@ -1,15 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
-import { extractExistingHandlers } from './index';
+import { extractExistingHandlerBodies } from './index';
 
-describe('extractExistingHandlers', () => {
-  it('returns each generated handler block keyed by name', () => {
+describe('extractExistingHandlerBodies', () => {
+  it('returns the body of each handler keyed by name', () => {
     const source = `
 import { createFactory } from 'hono/factory';
 
 const factory = createFactory();
 export const listPetsHandlers = factory.createHandlers(
-  async (c: ListPetsContext) => {},
+  async (c: ListPetsContext) => {
+    return c.json([]);
+  },
 );
 export const createPetsHandlers = factory.createHandlers(
   zValidator('json', CreatePetsBody),
@@ -17,33 +19,49 @@ export const createPetsHandlers = factory.createHandlers(
 );
 `;
 
-    const handlers = extractExistingHandlers(source);
+    const bodies = extractExistingHandlerBodies(source);
 
-    expect([...handlers.keys()]).toEqual([
+    expect([...bodies.keys()]).toEqual([
       'listPetsHandlers',
       'createPetsHandlers',
     ]);
-    expect(handlers.get('listPetsHandlers')).toContain(
-      'async (c: ListPetsContext) => {}',
-    );
-    expect(handlers.get('createPetsHandlers')).toContain(
-      "zValidator('json', CreatePetsBody)",
-    );
+    expect(bodies.get('listPetsHandlers')).toContain('return c.json([]);');
+    expect(bodies.get('createPetsHandlers')).toBe('');
   });
 
-  it('preserves user edits inside handler bodies, including nested parens', () => {
+  it('preserves nested syntax inside the handler body', () => {
     const source = `export const listPetsHandlers = factory.createHandlers(
   async (c: ListPetsContext) => {
     const limit = Number(c.req.query('limit') ?? 10);
-    return c.json({ items: pets.slice(0, limit) });
+    if (limit > 0) { return c.json({ items: pets.slice(0, limit) }); }
   },
 );`;
 
-    const handlers = extractExistingHandlers(source);
-    expect(handlers.get('listPetsHandlers')).toBe(source);
+    const body = extractExistingHandlerBodies(source).get('listPetsHandlers');
+    expect(body).toContain("Number(c.req.query('limit') ?? 10)");
+    expect(body).toContain('{ items: pets.slice(0, limit) }');
+  });
+
+  it('is not confused by parentheses or braces inside strings, templates, comments, and regex', () => {
+    const source = `export const trickyHandlers = factory.createHandlers(
+  async (c: TrickyContext) => {
+    const a = ")"; // a paren in a string — must not close the call
+    const b = '}';
+    const c1 = \`tpl ) { } \${'} )'} end\`;
+    const re = /\\)\\}\\(/g;
+    /* block comment with ) and } and ( */
+    // line comment with ) }
+    return c.text(a + b + c1);
+  },
+);`;
+
+    const body = extractExistingHandlerBodies(source).get('trickyHandlers');
+    expect(body).toBeDefined();
+    expect(body).toContain('return c.text(a + b + c1);');
+    expect(body).toContain('/* block comment with ) and } and ( */');
   });
 
   it('returns an empty map when no handlers are present', () => {
-    expect(extractExistingHandlers('// nothing here').size).toBe(0);
+    expect(extractExistingHandlerBodies('// nothing here').size).toBe(0);
   });
 });

@@ -167,12 +167,21 @@ export const generateHono: ClientBuilder = (verbOptions, options) => {
  * getHonoHandlers generates TypeScript code for the given verbs and reports
  * whether the code requires zValidator.
  */
+const DEFAULT_HANDLER_BODY = '\n\n  ';
+
 const getHonoHandlers = (
   ...opts: {
     handlerName: string;
     contextTypeName: string;
     verbOption: GeneratorVerbOptions;
     validator: boolean | 'hono' | NormalizedMutator;
+    /**
+     * Optional async-handler body to splice into the generated wrapper. When
+     * supplied the validator chain is still rebuilt from the current verb
+     * options, but the body inside `async (c) => { ... }` is taken verbatim
+     * from the existing file so user logic survives regeneration.
+     */
+    bodyOverride?: string;
   }[]
 ): [
   /** The combined TypeScript handler code snippets. */
@@ -183,7 +192,13 @@ const getHonoHandlers = (
   let code = '';
   let hasZValidator = false;
 
-  for (const { handlerName, contextTypeName, verbOption, validator } of opts) {
+  for (const {
+    handlerName,
+    contextTypeName,
+    verbOption,
+    validator,
+    bodyOverride,
+  } of opts) {
     let currentValidator = '';
 
     if (validator) {
@@ -212,11 +227,11 @@ const getHonoHandlers = (
       }
     }
 
+    const body = bodyOverride ?? DEFAULT_HANDLER_BODY;
+
     code += `
 export const ${handlerName} = factory.createHandlers(
-${currentValidator}async (c: ${contextTypeName}) => {
-
-  },
+${currentValidator}async (c: ${contextTypeName}) => {${body}},
 );`;
 
     hasZValidator ||= currentValidator !== '';
@@ -349,40 +364,22 @@ const generateHandlerFile = async ({
 
   const preamble = `${header}${imports.filter((imp) => imp !== '').join('\n')}\n\nconst factory = createFactory();`;
 
-  if (fs.existsSync(path)) {
-    // Preserve user edits inside existing handler bodies but always refresh
-    // the generated preamble (header + imports + factory) so that import paths
-    // and casing follow the latest configuration. Any handler that has not
-    // been emitted yet is appended at the end.
-    const rawFile = await fs.readFile(path, 'utf8');
-    const existingHandlers = extractExistingHandlers(rawFile);
+  const existingBodies = fs.existsSync(path)
+    ? extractExistingHandlerBodies(await fs.readFile(path, 'utf8'))
+    : new Map<string, string>();
 
-    let content = preamble;
-    for (const verbOption of verbList) {
-      const handlerName = `${verbOption.operationName}Handlers`;
-      const contextTypeName = `${pascal(verbOption.operationName)}Context`;
-
-      const existing = existingHandlers.get(handlerName);
-      content +=
-        existing == undefined
-          ? getHonoHandlers({
-              handlerName,
-              contextTypeName,
-              verbOption,
-              validator,
-            })[0]
-          : `\n${existing}`;
-    }
-
-    return content;
-  }
-
+  // Always rebuild the preamble (header + imports + factory) and the validator
+  // chain from current metadata so import paths, casing, and middleware match
+  // the latest configuration. We only splice the user-authored async body
+  // back in — preserving the wrapper would risk keeping stale `zValidator`
+  // calls whose imports we just rewrote.
   const [handlerCode] = getHonoHandlers(
     ...verbList.map((verbOption) => ({
       handlerName: `${verbOption.operationName}Handlers`,
       contextTypeName: `${pascal(verbOption.operationName)}Context`,
       verbOption,
       validator,
+      bodyOverride: existingBodies.get(`${verbOption.operationName}Handlers`),
     })),
   );
 
@@ -390,41 +387,165 @@ const generateHandlerFile = async ({
 };
 
 /**
- * extractExistingHandlers scans a previously generated handler file and
- * returns each `export const xxxHandlers = factory.createHandlers(...);`
- * block keyed by handler name. The match is brace/parenthesis aware so
- * user edits inside handler bodies are preserved verbatim.
+ * extractExistingHandlerBodies scans a previously generated handler file and
+ * returns the user-authored body of each
+ * `async (c: ...) => { /* body *\/ }` block keyed by handler name.
+ *
+ * We deliberately preserve only the inner body — not the surrounding
+ * `factory.createHandlers(...)` call — so the regenerated wrapper always
+ * reflects the current validator chain and imports. The scanner is
+ * lex-aware: it skips strings, template literals, regex literals, and
+ * comments while counting parentheses/braces, so user code containing
+ * `)` or `}` characters in those contexts does not confuse the matcher.
  */
-export const extractExistingHandlers = (
+export const extractExistingHandlerBodies = (
   source: string,
 ): Map<string, string> => {
-  const handlers = new Map<string, string>();
+  const bodies = new Map<string, string>();
   const exportRegex =
     /export\s+const\s+(\w+Handlers)\s*=\s*factory\.createHandlers\s*\(/g;
 
   let match: RegExpExecArray | null;
   while ((match = exportRegex.exec(source)) !== null) {
-    const start = match.index;
-    let depth = 0;
-    let i = match.index + match[0].length - 1; // points at the opening '('
+    const handlerName = match[1];
+    const callOpenIdx = match.index + match[0].length - 1; // points at '('
+    const callCloseIdx = findMatchingClose(source, callOpenIdx, '(', ')');
+    if (callCloseIdx === -1) continue;
 
-    for (; i < source.length; i++) {
-      const ch = source[i];
-      if (ch === '(') depth++;
-      else if (ch === ')') {
-        depth--;
-        if (depth === 0) {
-          i++;
-          break;
-        }
-      }
+    const callBody = source.slice(callOpenIdx + 1, callCloseIdx);
+    const body = extractAsyncArrowBody(callBody);
+    if (body !== undefined) {
+      bodies.set(handlerName, body);
     }
-
-    if (source[i] === ';') i++;
-    handlers.set(match[1], source.slice(start, i));
   }
 
-  return handlers;
+  return bodies;
+};
+
+/**
+ * findMatchingClose returns the index of the closing bracket that pairs with
+ * the opening bracket at `openIdx`, or -1 if unbalanced. The scan skips
+ * strings, template literals, regex literals, and comments so brackets in
+ * those contexts do not affect depth.
+ */
+const findMatchingClose = (
+  source: string,
+  openIdx: number,
+  open: '(' | '{',
+  close: ')' | '}',
+): number => {
+  let depth = 0;
+  let i = openIdx;
+  while (i < source.length) {
+    const ch = source[i];
+    const next = source[i + 1];
+
+    // Line comment
+    if (ch === '/' && next === '/') {
+      const nl = source.indexOf('\n', i + 2);
+      i = nl === -1 ? source.length : nl + 1;
+      continue;
+    }
+    // Block comment
+    if (ch === '/' && next === '*') {
+      const end = source.indexOf('*/', i + 2);
+      i = end === -1 ? source.length : end + 2;
+      continue;
+    }
+    // String / template literal
+    if (ch === "'" || ch === '"' || ch === '`') {
+      i = skipString(source, i, ch);
+      continue;
+    }
+    // Regex literal — only when a regex is syntactically possible. A `/`
+    // following an identifier or closing bracket is division, not a regex.
+    if (ch === '/' && isRegexContext(source, i)) {
+      i = skipRegex(source, i);
+      continue;
+    }
+
+    if (ch === open) depth++;
+    else if (ch === close) {
+      depth--;
+      if (depth === 0) return i;
+    }
+    i++;
+  }
+  return -1;
+};
+
+const skipString = (
+  source: string,
+  start: number,
+  quote: "'" | '"' | '`',
+): number => {
+  let i = start + 1;
+  while (i < source.length) {
+    const ch = source[i];
+    if (ch === '\\') {
+      i += 2;
+      continue;
+    }
+    if (quote === '`' && ch === '$' && source[i + 1] === '{') {
+      const end = findMatchingClose(source, i + 1, '{', '}');
+      i = end === -1 ? source.length : end + 1;
+      continue;
+    }
+    if (ch === quote) return i + 1;
+    i++;
+  }
+  return source.length;
+};
+
+const skipRegex = (source: string, start: number): number => {
+  let i = start + 1;
+  let inClass = false;
+  while (i < source.length) {
+    const ch = source[i];
+    if (ch === '\\') {
+      i += 2;
+      continue;
+    }
+    if (ch === '[') inClass = true;
+    else if (ch === ']') inClass = false;
+    else if (ch === '/' && !inClass) {
+      i++;
+      while (i < source.length && /[gimsuy]/.test(source[i])) i++;
+      return i;
+    }
+    if (ch === '\n') return start + 1; // not a regex after all; bail
+    i++;
+  }
+  return source.length;
+};
+
+const isRegexContext = (source: string, slashIdx: number): boolean => {
+  for (let j = slashIdx - 1; j >= 0; j--) {
+    const c = source[j];
+    if (c === ' ' || c === '\t' || c === '\n') continue;
+    return !/[\w)\]]/.test(c);
+  }
+  return true;
+};
+
+/**
+ * extractAsyncArrowBody finds the trailing `async (c: ...) => { ... }`
+ * argument inside `factory.createHandlers(...)` and returns the inner body
+ * (without the surrounding braces). Returns undefined when the call does not
+ * end with the expected arrow function shape.
+ */
+const extractAsyncArrowBody = (callBody: string): string | undefined => {
+  const arrowIdx = callBody.lastIndexOf('=>');
+  if (arrowIdx === -1) return undefined;
+
+  let i = arrowIdx + 2;
+  while (i < callBody.length && /\s/.test(callBody[i])) i++;
+  if (callBody[i] !== '{') return undefined;
+
+  const closeIdx = findMatchingClose(callBody, i, '{', '}');
+  if (closeIdx === -1) return undefined;
+
+  return callBody.slice(i + 1, closeIdx);
 };
 
 const generateHandlerFiles = async (
