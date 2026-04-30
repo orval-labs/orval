@@ -66,4 +66,53 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  petstoreSplitWithHandlers: {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/hono/petstore-split-with-handlers/endpoints.ts',
+      mode: 'split',
+      client: 'hono',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        hono: {
+          handlers:
+            '../generated/hono/petstore-split-with-handlers/src/handlers',
+        },
+      },
+    },
+  },
+  petstoreTagsWithHandlers: {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/hono/petstore-tags-with-handlers/endpoints.ts',
+      mode: 'tags',
+      client: 'hono',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        hono: {
+          handlers:
+            '../generated/hono/petstore-tags-with-handlers/src/handlers',
+        },
+      },
+    },
+  },
+  petstoreTagsSplitWithHandlers: {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target:
+        '../generated/hono/petstore-tags-split-with-handlers/endpoints.ts',
+      mode: 'tags-split',
+      client: 'hono',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        hono: {
+          handlers:
+            '../generated/hono/petstore-tags-split-with-handlers/src/handlers',
+        },
+      },
+    },
+  },
 });
