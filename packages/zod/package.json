@@ -14,10 +14,7 @@
   "type": "module",
   "types": "./dist/index.d.mts",
   "exports": {
-    ".": {
-      "development": "./src/index.ts",
-      "default": "./dist/index.mjs"
-    },
+    ".": "./dist/index.mjs",
     "./package.json": "./package.json"
   },
   "files": [
@@ -44,11 +41,5 @@
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
-  },
-  "publishConfig": {
-    "exports": {
-      ".": "./dist/index.mjs",
-      "./package.json": "./package.json"
-    }
   }
 }

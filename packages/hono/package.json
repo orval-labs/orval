@@ -14,10 +14,7 @@
   "type": "module",
   "types": "./dist/index.d.mts",
   "exports": {
-    ".": {
-      "development": "./src/index.ts",
-      "default": "./dist/index.mjs"
-    },
+    ".": "./dist/index.mjs",
     "./package.json": "./package.json"
   },
   "files": [
@@ -50,11 +47,5 @@
     "typescript": "catalog:",
     "vitest": "catalog:",
     "zod": "catalog:zod3"
-  },
-  "publishConfig": {
-    "exports": {
-      ".": "./dist/index.mjs",
-      "./package.json": "./package.json"
-    }
   }
 }

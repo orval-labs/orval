@@ -12,14 +12,8 @@
   "bin": "./dist/bin/orval.mjs",
   "types": "./dist/index.d.mts",
   "exports": {
-    ".": {
-      "development": "./src/index.ts",
-      "default": "./dist/index.mjs"
-    },
-    "./bin/orval": {
-      "development": "./src/bin/orval.ts",
-      "default": "./dist/bin/orval.mjs"
-    },
+    ".": "./dist/index.mjs",
+    "./bin/orval": "./dist/bin/orval.mjs",
     "./package.json": "./package.json"
   },
   "engines": {
@@ -116,13 +110,6 @@
   "peerDependenciesMeta": {
     "prettier": {
       "optional": true
-    }
-  },
-  "publishConfig": {
-    "exports": {
-      ".": "./dist/index.mjs",
-      "./bin/orval": "./dist/bin/orval.mjs",
-      "./package.json": "./package.json"
     }
   }
 }
