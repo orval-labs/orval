@@ -14,9 +14,11 @@ import {
 } from '@orval/core';
 import {
   dereference,
+  generateFormDataZodSchema,
   generateZodValidationSchemaDefinition,
   isZodVersionV4,
   parseZodValidationSchemaDefinition,
+  type ZodValidationSchemaDefinition,
 } from '@orval/zod';
 import fs from 'fs-extra';
 
@@ -367,15 +369,34 @@ export async function writeZodSchemasFromVerbs(
       requestBody && 'content' in requestBody
         ? (requestBody as OpenApiRequestBodyObject).content
         : undefined;
-    const bodySchema = requestBodyContent?.['application/json']?.schema as
-      | OpenApiSchemaObject
-      | undefined;
+    // Pick the first available body media type. JSON wins; otherwise fall back
+    // to form-data / urlencoded so we still generate a `*Body` schema for
+    // operations whose only payload is multipart (e.g. file uploads). Without
+    // this, endpoints that import `${OperationName}Body` from the zod schemas
+    // path resolve to a missing export. (issue #3066)
+    const jsonBodyMedia = requestBodyContent?.['application/json'];
+    const formDataBodyMedia = requestBodyContent?.['multipart/form-data'];
+    const formUrlEncodedBodyMedia =
+      requestBodyContent?.['application/x-www-form-urlencoded'];
+    const [bodyContentType, bodyMedia] = jsonBodyMedia
+      ? (['application/json', jsonBodyMedia] as const)
+      : formDataBodyMedia
+        ? (['multipart/form-data', formDataBodyMedia] as const)
+        : formUrlEncodedBodyMedia
+          ? ([
+              'application/x-www-form-urlencoded',
+              formUrlEncodedBodyMedia,
+            ] as const)
+          : [undefined, undefined];
+    const bodySchema = bodyMedia?.schema as OpenApiSchemaObject | undefined;
 
     const bodySchemas = bodySchema
       ? [
           {
             name: `${pascal(verbOption.operationName)}Body`,
             schema: dereference(bodySchema, zodContext),
+            bodyContentType,
+            encoding: bodyMedia?.encoding,
           },
         ]
       : [];
@@ -469,20 +490,40 @@ export async function writeZodSchemasFromVerbs(
   const uniqueVerbsSchemas = dedupeSchemasByName(generateVerbsSchemas);
   const schemasToWrite: ZodSchemaFileToWrite[] = [];
 
-  for (const { name, schema } of uniqueVerbsSchemas) {
+  for (const entry of uniqueVerbsSchemas) {
+    const { name, schema } = entry;
     const fileName = conventionName(name, output.namingConvention);
     const filePath = path.join(schemasPath, `${fileName}${fileExtension}`);
 
-    const zodDefinition = generateZodValidationSchemaDefinition(
-      schema,
-      zodContext,
-      name,
-      strict,
-      isZodV4,
-      {
-        required: true,
-      },
-    );
+    // multipart/form-data bodies need file-aware overrides so binary fields
+    // become `z.instanceof(File)` instead of plain strings.
+    const isFormDataBody =
+      'bodyContentType' in entry &&
+      entry.bodyContentType === 'multipart/form-data';
+
+    const zodDefinition: ZodValidationSchemaDefinition = isFormDataBody
+      ? generateFormDataZodSchema(
+          schema,
+          zodContext,
+          name,
+          strict,
+          isZodV4,
+          'encoding' in entry
+            ? (entry.encoding as
+                | Record<string, { contentType?: string }>
+                | undefined)
+            : undefined,
+        )
+      : generateZodValidationSchemaDefinition(
+          schema,
+          zodContext,
+          name,
+          strict,
+          isZodV4,
+          {
+            required: true,
+          },
+        );
 
     const parsedZodDefinition = parseZodValidationSchemaDefinition(
       zodDefinition,
