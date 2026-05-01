@@ -27,7 +27,7 @@
     "eslint-config-next": "16.1.6",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
-    "postcss": "8.5.6",
+    "postcss": "8.5.13",
     "prettier": "catalog:",
     "tailwindcss": "^3.4.17",
     "typescript": "catalog:",
