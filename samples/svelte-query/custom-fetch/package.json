@@ -15,7 +15,7 @@
   },
   "devDependencies": {
     "@faker-js/faker": "catalog:tooling",
-    "@sveltejs/vite-plugin-svelte": "^5.1.1",
+    "@sveltejs/vite-plugin-svelte": "^7.0.0",
     "@tsconfig/svelte": "^5.0.6",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
