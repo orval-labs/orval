@@ -19,7 +19,7 @@
     "@types/react": "catalog:react",
     "@types/react-dom": "^18.3.7",
     "msw": "catalog:tooling",
-    "postcss": "8.5.6",
+    "postcss": "8.5.13",
     "tailwindcss": "^3.4.17",
     "typescript": "catalog:"
   }
