@@ -24,7 +24,7 @@
     "@tanstack/angular-query-experimental": "catalog:angular",
     "rxjs": "catalog:angular",
     "tslib": "catalog:",
-    "zod": "^4.3.6"
+    "zod": "^4.4.1"
   },
   "devDependencies": {
     "@angular-eslint/builder": "21.3.0",
