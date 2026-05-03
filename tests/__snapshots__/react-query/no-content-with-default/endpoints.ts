@@ -19,9 +19,6 @@ import type {
 
 import type { ErrorResponse } from './model';
 
-/**
- * @summary Get an Error Item
- */
 export type createItemsResponseDefault = {
   data: ErrorResponse;
   status: number;
@@ -36,6 +33,9 @@ export const getCreateItemsUrl = () => {
   return `/error`;
 };
 
+/**
+ * @summary Get an Error Item
+ */
 export const createItems = async (
   options?: RequestInit,
 ): Promise<createItemsResponse> => {

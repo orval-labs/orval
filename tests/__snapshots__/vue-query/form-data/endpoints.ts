@@ -56,9 +56,6 @@ export type HTTPStatusCodes =
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
 
-/**
- * @summary Create a pet
- */
 export type createPetsResponse200 = {
   data: Pet;
   status: 200;
@@ -84,6 +81,9 @@ export const getCreatePetsUrl = () => {
   return `/pets`;
 };
 
+/**
+ * @summary Create a pet
+ */
 export const createPets = async (
   pet: Pet,
   options?: RequestInit,

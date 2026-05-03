@@ -16,9 +16,6 @@ import { faker } from '@faker-js/faker';
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-/**
- * @summary sample
- */
 export type postApiSampleResponse200 = {
   data: ResSampleModel;
   status: 200;
@@ -33,6 +30,9 @@ export const getPostApiSampleUrl = () => {
   return `/api/sample`;
 };
 
+/**
+ * @summary sample
+ */
 export const postApiSample = async (
   options?: RequestInit,
 ): Promise<postApiSampleResponse> => {

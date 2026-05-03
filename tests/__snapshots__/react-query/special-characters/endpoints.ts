@@ -77,9 +77,6 @@ export type HTTPStatusCodes =
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
 
-/**
- * @summary List all pets
- */
 export type listPetsResponse200 = {
   data: _PetsArrAy;
   status: 200;
@@ -113,6 +110,9 @@ export const getListPetsUrl = (params?: ListPetsParams) => {
   return stringifiedParams.length > 0 ? `/pets?${stringifiedParams}` : `/pets`;
 };
 
+/**
+ * @summary List all pets
+ */
 export const listPets = async (
   params?: ListPetsParams,
   options?: RequestInit,
@@ -254,9 +254,6 @@ export function useListPets<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * @summary Create a pet
- */
 export type createPetsResponse201 = {
   data: void;
   status: 201;
@@ -282,6 +279,9 @@ export const getCreatePetsUrl = () => {
   return `/pets`;
 };
 
+/**
+ * @summary Create a pet
+ */
 export const createPets = async (
   createPetsBody: CreatePetsBody,
   options?: RequestInit,
@@ -370,9 +370,6 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
   return useMutation(getCreatePetsMutationOptions(options), queryClient);
 };
 
-/**
- * @summary List all pets as nested array
- */
 export type listPetsNestedArrayResponse200 = {
   data: N42PetsNestedArray;
   status: 200;
@@ -414,6 +411,9 @@ export const getListPetsNestedArrayUrl = (
     : `/pets-nested-array`;
 };
 
+/**
+ * @summary List all pets as nested array
+ */
 export const listPetsNestedArray = async (
   params?: ListPetsNestedArrayParams,
   options?: RequestInit,
@@ -584,9 +584,6 @@ export function useListPetsNestedArray<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * @summary Info for a specific pet
- */
 export type showPetByIdResponse200 = {
   data: Pet;
   status: 200;
@@ -612,6 +609,9 @@ export const getShowPetByIdUrl = (petId: string) => {
   return `/pets/${petId}`;
 };
 
+/**
+ * @summary Info for a specific pet
+ */
 export const showPetById = async (
   petId: string,
   options?: RequestInit,

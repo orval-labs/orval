@@ -56,9 +56,6 @@ export type HTTPStatusCodes =
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
 
-/**
- * @summary Get an Error Item
- */
 export type createItemsResponse200 = {
   data: Item;
   status: 200;
@@ -92,6 +89,9 @@ export const getCreateItemsUrl = () => {
   return `/error`;
 };
 
+/**
+ * @summary Get an Error Item
+ */
 export const createItems = async (
   options?: RequestInit,
 ): Promise<createItemsResponse> => {
