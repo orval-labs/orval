@@ -376,7 +376,7 @@ export class PetsService {
     options?: HttpClientObserveOptions,
   ): Observable<string | HttpEvent<string> | AngularHttpResponse<string>> {
     if (options?.observe === 'events') {
-      return this.http.get(`/v${version}/pets/${petId}/text`, {
+      return this.http.get<string>(`/v${version}/pets/${petId}/text`, {
         responseType: 'text',
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'events',
@@ -384,14 +384,14 @@ export class PetsService {
     }
 
     if (options?.observe === 'response') {
-      return this.http.get(`/v${version}/pets/${petId}/text`, {
+      return this.http.get<string>(`/v${version}/pets/${petId}/text`, {
         responseType: 'text',
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'response',
       });
     }
 
-    return this.http.get(`/v${version}/pets/${petId}/text`, {
+    return this.http.get<string>(`/v${version}/pets/${petId}/text`, {
       responseType: 'text',
       ...(options as Omit<NonNullable<typeof options>, 'observe'>),
       observe: 'body',
@@ -481,7 +481,7 @@ export class PetsService {
     options?: HttpClientObserveOptions,
   ): Observable<Blob | HttpEvent<Blob> | AngularHttpResponse<Blob>> {
     if (options?.observe === 'events') {
-      return this.http.get(`/v${version}/pet/${petId}/downloadImage`, {
+      return this.http.get<Blob>(`/v${version}/pet/${petId}/downloadImage`, {
         responseType: 'blob',
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'events',
@@ -489,14 +489,14 @@ export class PetsService {
     }
 
     if (options?.observe === 'response') {
-      return this.http.get(`/v${version}/pet/${petId}/downloadImage`, {
+      return this.http.get<Blob>(`/v${version}/pet/${petId}/downloadImage`, {
         responseType: 'blob',
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'response',
       });
     }
 
-    return this.http.get(`/v${version}/pet/${petId}/downloadImage`, {
+    return this.http.get<Blob>(`/v${version}/pet/${petId}/downloadImage`, {
       responseType: 'blob',
       ...(options as Omit<NonNullable<typeof options>, 'observe'>),
       observe: 'body',

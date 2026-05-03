@@ -39,9 +39,9 @@ export const getBinaryBlob = async (
     method: 'GET',
   });
 
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: getBinaryBlobResponse['data'] = body ? JSON.parse(body) : {};
+  const body = [204, 205, 304].includes(res.status) ? null : await res.blob();
+  const data: getBinaryBlobResponse['data'] =
+    body as getBinaryBlobResponse['data'];
   return {
     data,
     status: res.status,
