@@ -1,6 +1,10 @@
+import { Verbs } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
-import { getMutationInvalidatesConflictWarning } from './query-generator';
+import {
+  getMutationInvalidatesConflictWarning,
+  getQueryKeyVerbPrefix,
+} from './query-generator';
 
 const ruleFor = (op: string) => ({
   onMutations: [op],
@@ -101,5 +105,61 @@ describe('getMutationInvalidatesConflictWarning', () => {
 
     expect(message).toBeDefined();
     expect(message).toContain("'createPets'");
+  });
+});
+
+describe('getQueryKeyVerbPrefix', () => {
+  it('returns undefined for GET so existing GET keys remain unchanged', () => {
+    expect(
+      getQueryKeyVerbPrefix({
+        verb: Verbs.GET,
+        useOperationIdAsQueryKey: false,
+      }),
+    ).toBeUndefined();
+  });
+
+  it('returns the uppercased verb for non-GET verbs to disambiguate cache keys', () => {
+    expect(
+      getQueryKeyVerbPrefix({
+        verb: Verbs.POST,
+        useOperationIdAsQueryKey: false,
+      }),
+    ).toBe('POST');
+    expect(
+      getQueryKeyVerbPrefix({
+        verb: Verbs.PUT,
+        useOperationIdAsQueryKey: false,
+      }),
+    ).toBe('PUT');
+    expect(
+      getQueryKeyVerbPrefix({
+        verb: Verbs.PATCH,
+        useOperationIdAsQueryKey: false,
+      }),
+    ).toBe('PATCH');
+    expect(
+      getQueryKeyVerbPrefix({
+        verb: Verbs.DELETE,
+        useOperationIdAsQueryKey: false,
+      }),
+    ).toBe('DELETE');
+  });
+
+  it('returns undefined when useOperationIdAsQueryKey is true (operation IDs are already verb+path unique)', () => {
+    expect(
+      getQueryKeyVerbPrefix({
+        verb: Verbs.POST,
+        useOperationIdAsQueryKey: true,
+      }),
+    ).toBeUndefined();
+  });
+
+  it('treats undefined useOperationIdAsQueryKey as falsy', () => {
+    expect(
+      getQueryKeyVerbPrefix({
+        verb: Verbs.POST,
+        useOperationIdAsQueryKey: undefined,
+      }),
+    ).toBe('POST');
   });
 });

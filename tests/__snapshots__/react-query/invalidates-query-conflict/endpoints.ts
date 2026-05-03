@@ -313,7 +313,12 @@ export const getCreatePetsQueryKey = (
   createPetsBody?: CreatePetsBody,
   params?: CreatePetsParams,
 ) => {
-  return [`/pets`, ...(params ? [params] : []), createPetsBody] as const;
+  return [
+    'POST',
+    `/pets`,
+    ...(params ? [params] : []),
+    createPetsBody,
+  ] as const;
 };
 
 export const getCreatePetsQueryOptions = <

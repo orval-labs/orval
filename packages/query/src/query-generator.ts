@@ -74,6 +74,32 @@ export const getMutationInvalidatesConflictWarning = ({
   );
 };
 
+/**
+ * Computes a verb prefix segment for query keys when a non-GET operation is
+ * routed to a Query hook. Without this prefix, two operations sharing a path
+ * (e.g. `GET /pets` and `POST /pets`) would generate cache keys that both
+ * begin with `'/pets'`, so TanStack Query would mix their cached data and
+ * `invalidateQueries({ queryKey: ['/pets'] })` would match both.
+ *
+ * Skipped for GET (preserves existing keys) and when
+ * `useOperationIdAsQueryKey` is enabled (operation IDs are already unique
+ * across verb + path, so the prefix would be redundant).
+ *
+ * Returns the uppercased verb when a prefix should be inserted, or
+ * `undefined` when no prefix is needed.
+ */
+export const getQueryKeyVerbPrefix = ({
+  verb,
+  useOperationIdAsQueryKey,
+}: {
+  verb: Verbs;
+  useOperationIdAsQueryKey: boolean | undefined;
+}): string | undefined => {
+  if (useOperationIdAsQueryKey) return undefined;
+  if (verb === Verbs.GET) return undefined;
+  return verb.toUpperCase();
+};
+
 const getQueryFnArguments = ({
   hasQueryParam,
   hasSignal,
@@ -887,6 +913,11 @@ export const generateQueryHook = async (
           .map((p) => `...(${p.name} ? [${p.name}] : [])`)
           .join(', ');
 
+        const verbPrefix = getQueryKeyVerbPrefix({
+          verb,
+          useOperationIdAsQueryKey: override.query.useOperationIdAsQueryKey,
+        });
+
         // Note: do not unref() params in Vue - this will make key lose reactivity
         queryKeyFns += `
 ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.queryKeyFnName} = (${queryKeyProps}) => {
@@ -896,6 +927,7 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
       queryOption.type === QueryType.SUSPENSE_INFINITE
         ? `'infinite'`
         : '',
+      verbPrefix ? `'${verbPrefix}'` : '',
       queryKeyIdentifier,
       queryKeyParams,
       body.implementation,
