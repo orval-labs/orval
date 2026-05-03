@@ -294,16 +294,20 @@ export function addDependency({
                     v.name === t.name && (v.alias ?? '') === (t.alias ?? ''),
                 ),
             );
-            dep += '\n';
           }
-          dep += generateDependency({
-            deps: uniqueTypes,
-            isAllowSyntheticDefaultImports,
-            dependency,
-            projectName,
-            key,
-            onlyTypes: true,
-          });
+          if (uniqueTypes.length > 0) {
+            if (values.length > 0) {
+              dep += '\n';
+            }
+            dep += generateDependency({
+              deps: uniqueTypes,
+              isAllowSyntheticDefaultImports,
+              dependency,
+              projectName,
+              key,
+              onlyTypes: true,
+            });
+          }
         }
 
         return dep;
