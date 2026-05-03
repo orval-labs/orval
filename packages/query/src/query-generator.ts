@@ -69,8 +69,8 @@ export const getMutationInvalidatesConflictWarning = ({
     `mutationInvalidates rule references '${operationName}', but that ` +
     `operation is generated as a ${generatedAs}, not a Mutation. The ` +
     `invalidation will not fire. Either remove '${operationName}' from the ` +
-    `rule's onMutations list, or remove the override that suppresses the ` +
-    `Mutation hook for this operation.`
+    `rule's onMutations list, or configure '${operationName}' so that it ` +
+    `is generated as a Mutation hook.`
   );
 };
 
