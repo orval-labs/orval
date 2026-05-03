@@ -156,6 +156,72 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Verifies that when a `mutationInvalidates` rule targets a non-GET
+  // operation that has been routed to a Query hook (and thus carries the
+  // verb-prefixed cache key), the broad-invalidation fallback path emits
+  // a predicate / partial key that accounts for the verb prefix —
+  // otherwise `queryKey[0].startsWith('/pets/')` would never match
+  // `['DELETE', '/pets/${petId}']` and the invalidation would silently
+  // no-op.
+  invalidatesNonGetQueryTarget: {
+    output: {
+      target:
+        '../generated/react-query/invalidates-non-get-query-target/endpoints.ts',
+      schemas:
+        '../generated/react-query/invalidates-non-get-query-target/model',
+      client: 'react-query',
+      override: {
+        operations: {
+          deletePetById: {
+            query: { useQuery: true },
+          },
+        },
+        query: {
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['deletePetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  invalidatesNonGetQueryTargetSplitKey: {
+    output: {
+      target:
+        '../generated/react-query/invalidates-non-get-query-target-split-key/endpoints.ts',
+      schemas:
+        '../generated/react-query/invalidates-non-get-query-target-split-key/model',
+      client: 'react-query',
+      override: {
+        operations: {
+          deletePetById: {
+            query: { useQuery: true },
+          },
+        },
+        query: {
+          shouldSplitQueryKey: true,
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['deletePetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   zodSchemaResponse: {
     output: {
       target: '../generated/react-query/zod-schema-response/endpoints.ts',

@@ -143,6 +143,12 @@ describe('getQueryKeyVerbPrefix', () => {
         useOperationIdAsQueryKey: false,
       }),
     ).toBe('DELETE');
+    expect(
+      getQueryKeyVerbPrefix({
+        verb: Verbs.HEAD,
+        useOperationIdAsQueryKey: false,
+      }),
+    ).toBe('HEAD');
   });
 
   it('returns undefined when useOperationIdAsQueryKey is true (operation IDs are already verb+path unique)', () => {
