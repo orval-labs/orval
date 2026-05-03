@@ -8,9 +8,6 @@ export interface Dog {
   type?: string;
 }
 
-/**
- * @summary List all pets
- */
 export type listPetsResponseDefault = {
   data: Dog;
   status: number;
@@ -25,6 +22,9 @@ export const getListPetsUrl = () => {
   return `/pets`;
 };
 
+/**
+ * @summary List all pets
+ */
 export const listPets = async (
   options?: RequestInit,
 ): Promise<listPetsResponse> => {

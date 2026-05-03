@@ -360,6 +360,8 @@ export function getObject({
               const keyType = getIndexSignatureKey(schemaItem);
               acc.value += `\n  [key: ${keyType}]: ${resolvedValue.value};\n}`;
             }
+            acc.imports.push(...resolvedValue.imports);
+            acc.schemas.push(...resolvedValue.schemas);
             acc.dependencies.push(...resolvedValue.dependencies);
           }
         } else {

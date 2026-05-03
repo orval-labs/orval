@@ -5,6 +5,7 @@ import {
   generateVerbImports,
   mergeDeep,
   type NormalizedOutputOptions,
+  OutputHttpClient,
   type QueryOptions,
 } from '@orval/core';
 
@@ -100,10 +101,14 @@ export const generateQuery: ClientBuilder = async (
     adapter,
   );
 
+  const isFetchHttpClient =
+    options.context.output.httpClient !== OutputHttpClient.AXIOS;
+
   return {
     implementation: `${functionImplementation}\n\n${hookImplementation}`,
     imports: [...imports, ...hookImports],
     mutators,
+    ...(isFetchHttpClient && { docComment: '' }),
   };
 };
 

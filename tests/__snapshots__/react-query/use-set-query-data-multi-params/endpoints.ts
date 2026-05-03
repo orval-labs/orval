@@ -19,10 +19,6 @@ import type {
 
 import type { GetUsersUserIdOrdersParams } from './model';
 
-/**
- * Retrieves a list of orders for a specific user with optional filtering
- * @summary Get user orders
- */
 export type getUsersUserIdOrdersResponse200 = {
   data: string[];
   status: 200;
@@ -53,6 +49,10 @@ export const getGetUsersUserIdOrdersUrl = (
     : `/users/${userId}/orders`;
 };
 
+/**
+ * Retrieves a list of orders for a specific user with optional filtering
+ * @summary Get user orders
+ */
 export const getUsersUserIdOrders = async (
   userId: number,
   params?: GetUsersUserIdOrdersParams,

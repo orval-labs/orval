@@ -13,9 +13,6 @@ import { faker } from '@faker-js/faker';
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-/**
- * @summary Binary Blob response
- */
 export type getBinaryBlobResponse200 = {
   data: Blob;
   status: 200;
@@ -30,6 +27,9 @@ export const getGetBinaryBlobUrl = (version: number = 1) => {
   return `/v${version}/binary-blob`;
 };
 
+/**
+ * @summary Binary Blob response
+ */
 export const getBinaryBlob = async (
   version: number = 1,
   options?: RequestInit,

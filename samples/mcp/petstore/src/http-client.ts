@@ -119,6 +119,10 @@ export const getFindPetsByStatusUrl = (params?: FindPetsByStatusParams) => {
     : `https://petstore3.swagger.io/api/v3/pet/findByStatus`;
 };
 
+/**
+ * Multiple status values can be provided with comma separated strings.
+ * @summary Finds Pets by status.
+ */
 export const findPetsByStatus = async (
   params?: FindPetsByStatusParams,
   options?: RequestInit,
@@ -201,6 +205,10 @@ export const getFindPetsByTagsUrl = (params?: FindPetsByTagsParams) => {
     : `https://petstore3.swagger.io/api/v3/pet/findByTags`;
 };
 
+/**
+ * Multiple tags can be provided with comma separated strings. Use tag1, tag2, tag3 for testing.
+ * @summary Finds Pets by tags.
+ */
 export const findPetsByTags = async (
   params?: FindPetsByTagsParams,
   options?: RequestInit,
@@ -272,6 +280,10 @@ export const getGetPetByIdUrl = (petId: number) => {
   return `https://petstore3.swagger.io/api/v3/pet/${petId}`;
 };
 
+/**
+ * Returns a single pet.
+ * @summary Find pet by ID.
+ */
 export const getPetById = async (
   petId: number,
   options?: RequestInit,
@@ -352,6 +364,10 @@ export const getUpdatePetWithFormUrl = (
     : `https://petstore3.swagger.io/api/v3/pet/${petId}`;
 };
 
+/**
+ * Updates a pet resource based on the form data.
+ * @summary Updates a pet in the store with form data.
+ */
 export const updatePetWithForm = async (
   petId: number,
   params?: UpdatePetWithFormParams,
@@ -410,6 +426,10 @@ export const getDeletePetUrl = (petId: number) => {
   return `https://petstore3.swagger.io/api/v3/pet/${petId}`;
 };
 
+/**
+ * Delete a pet.
+ * @summary Deletes a pet.
+ */
 export const deletePet = async (
   petId: number,
   options?: RequestInit,
@@ -454,6 +474,10 @@ export const getGetInventoryUrl = () => {
   return `https://petstore3.swagger.io/api/v3/store/inventory`;
 };
 
+/**
+ * Returns a map of status codes to quantities.
+ * @summary Returns pet inventories by status.
+ */
 export const getInventory = async (
   options?: RequestInit,
 ): Promise<getInventoryResponse> => {
@@ -519,6 +543,10 @@ export const getGetOrderByIdUrl = (orderId: number) => {
   return `https://petstore3.swagger.io/api/v3/store/order/${orderId}`;
 };
 
+/**
+ * For valid response try integer IDs with value <= 5 or > 10. Other values will generate exceptions.
+ * @summary Find purchase order by ID.
+ */
 export const getOrderById = async (
   orderId: number,
   options?: RequestInit,
@@ -582,6 +610,10 @@ export const getDeleteOrderUrl = (orderId: number) => {
   return `https://petstore3.swagger.io/api/v3/store/order/${orderId}`;
 };
 
+/**
+ * For valid response try integer IDs with value < 1000. Anything above 1000 or non-integers will generate API errors.
+ * @summary Delete purchase order by identifier.
+ */
 export const deleteOrder = async (
   orderId: number,
   options?: RequestInit,
@@ -654,6 +686,10 @@ export const getLoginUserUrl = (params?: LoginUserParams) => {
     : `https://petstore3.swagger.io/api/v3/user/login`;
 };
 
+/**
+ * Log into the system.
+ * @summary Logs user into the system.
+ */
 export const loginUser = async (
   params?: LoginUserParams,
   options?: RequestInit,
@@ -703,6 +739,10 @@ export const getLogoutUserUrl = () => {
   return `https://petstore3.swagger.io/api/v3/user/logout`;
 };
 
+/**
+ * Log user out of the system.
+ * @summary Logs out current logged in user session.
+ */
 export const logoutUser = async (
   options?: RequestInit,
 ): Promise<logoutUserResponse> => {
@@ -768,6 +808,10 @@ export const getGetUserByNameUrl = (username: string) => {
   return `https://petstore3.swagger.io/api/v3/user/${username}`;
 };
 
+/**
+ * Get user detail based on username.
+ * @summary Get user by user name.
+ */
 export const getUserByName = async (
   username: string,
   options?: RequestInit,
@@ -831,6 +875,10 @@ export const getDeleteUserUrl = (username: string) => {
   return `https://petstore3.swagger.io/api/v3/user/${username}`;
 };
 
+/**
+ * This can only be done by the logged in user.
+ * @summary Delete user resource.
+ */
 export const deleteUser = async (
   username: string,
   options?: RequestInit,

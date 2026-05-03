@@ -56,9 +56,6 @@ export type HTTPStatusCodes =
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
 
-/**
- * @summary Fetch the current logged in user
- */
 export type getLoggedInUserResponse2xx = {
   data: UserDto;
   status: HTTPStatusCode2xx;
@@ -92,6 +89,9 @@ export const getGetLoggedInUserUrl = () => {
   return `/api/users/me`;
 };
 
+/**
+ * @summary Fetch the current logged in user
+ */
 export const getLoggedInUser = async (
   options?: RequestInit,
 ): Promise<getLoggedInUserResponse> => {
@@ -110,9 +110,6 @@ export const getLoggedInUser = async (
   } as getLoggedInUserResponse;
 };
 
-/**
- * @summary List all items
- */
 export type listItemsResponse200 = {
   data: ItemDto[];
   status: 200;
@@ -146,6 +143,9 @@ export const getListItemsUrl = () => {
   return `/api/items`;
 };
 
+/**
+ * @summary List all items
+ */
 export const listItems = async (
   options?: RequestInit,
 ): Promise<listItemsResponse> => {
@@ -164,9 +164,6 @@ export const listItems = async (
   } as listItemsResponse;
 };
 
-/**
- * @summary Endpoint with both specific and wildcard codes
- */
 export type getMixedResponsesResponse200 = {
   data: SuccessDto;
   status: 200;
@@ -208,6 +205,9 @@ export const getGetMixedResponsesUrl = () => {
   return `/api/mixed`;
 };
 
+/**
+ * @summary Endpoint with both specific and wildcard codes
+ */
 export const getMixedResponses = async (
   options?: RequestInit,
 ): Promise<getMixedResponsesResponse> => {
