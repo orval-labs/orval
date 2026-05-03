@@ -20,9 +20,6 @@ import type { RequestHandlerOptions } from 'msw';
 
 import type { Cat, Dachshund, Dog, Labradoodle } from './model';
 
-/**
- * @summary List all pets
- */
 export const getListPetsUrl = (params: ListPetsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -37,6 +34,9 @@ export const getListPetsUrl = (params: ListPetsParams) => {
   return stringifiedParams.length > 0 ? `/pets?${stringifiedParams}` : `/pets`;
 };
 
+/**
+ * @summary List all pets
+ */
 export const listPets = async (
   params: ListPetsParams,
   options?: RequestInit,
@@ -52,9 +52,6 @@ export const listPets = async (
   return data;
 };
 
-/**
- * @summary Create a pet
- */
 export const getCreatePetsUrl = (params: CreatePetsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -69,6 +66,9 @@ export const getCreatePetsUrl = (params: CreatePetsParams) => {
   return stringifiedParams.length > 0 ? `/pets?${stringifiedParams}` : `/pets`;
 };
 
+/**
+ * @summary Create a pet
+ */
 export const createPets = async (
   createPetsBody: CreatePetsBody,
   params: CreatePetsParams,
@@ -87,13 +87,13 @@ export const createPets = async (
   return data;
 };
 
-/**
- * @summary Info for a specific pet
- */
 export const getShowPetByIdUrl = (petId: string) => {
   return `/pets/${petId}`;
 };
 
+/**
+ * @summary Info for a specific pet
+ */
 export const showPetById = async (
   petId: string,
   options?: RequestInit,
@@ -109,13 +109,13 @@ export const showPetById = async (
   return data;
 };
 
-/**
- * @summary Deletes a specific pet
- */
 export const getDeletePetByIdUrl = (petId: string) => {
   return `/pets/${petId}`;
 };
 
+/**
+ * @summary Deletes a specific pet
+ */
 export const deletePetById = async (
   petId: string,
   options?: RequestInit,
@@ -131,13 +131,13 @@ export const deletePetById = async (
   return data;
 };
 
-/**
- * @summary health check
- */
 export const getHealthCheckUrl = () => {
   return `/health`;
 };
 
+/**
+ * @summary health check
+ */
 export const healthCheck = async (options?: RequestInit): Promise<string> => {
   const res = await fetch(getHealthCheckUrl(), {
     ...options,
@@ -150,13 +150,13 @@ export const healthCheck = async (options?: RequestInit): Promise<string> => {
   return data;
 };
 
-/**
- * @summary combinate nullable and $ref
- */
 export const getShowPetWithOwnerUrl = (petId: string) => {
   return `/pets/${petId}/owner`;
 };
 
+/**
+ * @summary combinate nullable and $ref
+ */
 export const showPetWithOwner = async (
   petId: string,
   options?: RequestInit,

@@ -64,9 +64,6 @@ export type HTTPStatusCodes =
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
 
-/**
- * @summary List all pets
- */
 export type listPetsResponse200 = {
   data: Pets;
   status: 200;
@@ -105,6 +102,9 @@ export const getListPetsUrl = (
     : `/v${version}/pets`;
 };
 
+/**
+ * @summary List all pets
+ */
 export const listPets = async (
   params?: ListPetsParams,
   version: number = 1,
@@ -196,9 +196,6 @@ export const useListPetsSuspense = <TError = Error>(
   };
 };
 
-/**
- * @summary Create a pet
- */
 export type createPetsResponse200 = {
   data: Pet;
   status: 200;
@@ -224,6 +221,9 @@ export const getCreatePetsUrl = (version: number = 1) => {
   return `/v${version}/pets`;
 };
 
+/**
+ * @summary Create a pet
+ */
 export const createPets = async (
   createPetsBody: CreatePetsBody,
   version: number = 1,
@@ -281,9 +281,6 @@ export const useCreatePets = <TError = Error>(
   };
 };
 
-/**
- * @summary Info for a specific pet
- */
 export type showPetByIdResponse200 = {
   data: Pet;
   status: 200;
@@ -309,6 +306,9 @@ export const getShowPetByIdUrl = (petId: string, version: number = 1) => {
   return `/v${version}/pets/${petId}`;
 };
 
+/**
+ * @summary Info for a specific pet
+ */
 export const showPetById = async (
   petId: string,
   version: number = 1,

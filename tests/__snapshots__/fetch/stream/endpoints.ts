@@ -10,9 +10,6 @@ interface TypedResponse<T> extends Response {
   json(): Promise<T>;
 }
 
-/**
- * Stream results
- */
 export type streamResponse200 = {
   stream: TypedResponse<StreamEntry>;
   status: 200;
@@ -27,6 +24,9 @@ export const getStreamUrl = () => {
   return `/stream`;
 };
 
+/**
+ * Stream results
+ */
 export const stream = async (
   options?: RequestInit,
 ): Promise<streamResponse> => {

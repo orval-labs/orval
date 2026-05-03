@@ -88,9 +88,6 @@ function filterParams(
   }
   return filteredParams;
 }
-/**
- * @summary List all pets
- */
 export const listPets = (
   http: HttpClient,
   params: ListPetsParams,
@@ -218,9 +215,6 @@ export const prefetchListPetsQuery = async <
   return queryClient;
 };
 
-/**
- * @summary Create a pet
- */
 export const createPets = (
   http: HttpClient,
   createPetsBody: CreatePetsBody,
@@ -310,9 +304,6 @@ export const injectCreatePets = <TError = Error, TContext = unknown>(options?: {
   return injectMutation(() => createPetsMutationOptions);
 };
 
-/**
- * @summary Info for a specific pet
- */
 export const showPetById = (
   http: HttpClient,
   petId: string,
@@ -442,9 +433,6 @@ export const prefetchShowPetByIdQuery = async <
   return queryClient;
 };
 
-/**
- * @summary Deletes a specific pet
- */
 export const deletePetById = (
   http: HttpClient,
   petId: string,
@@ -536,9 +524,6 @@ export const injectDeletePetById = <
   return injectMutation(() => deletePetByIdMutationOptions);
 };
 
-/**
- * @summary health check
- */
 export const healthCheck = (
   http: HttpClient,
   options?: { signal?: AbortSignal | null },
@@ -657,9 +642,6 @@ export const prefetchHealthCheckQuery = async <
   return queryClient;
 };
 
-/**
- * @summary combinate nullable and $ref
- */
 export const showPetWithOwner = (
   http: HttpClient,
   petId: string,

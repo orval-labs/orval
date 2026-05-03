@@ -53,9 +53,6 @@ export type HTTPStatusCodes =
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
 
-/**
- * @summary health check
- */
 export type healthCheckResponse200 = {
   data: string;
   status: 200;
@@ -81,6 +78,9 @@ export const getHealthCheckUrl = () => {
   return `/health`;
 };
 
+/**
+ * @summary health check
+ */
 export const healthCheck = async (
   options?: RequestInit,
 ): Promise<healthCheckResponse> => {
