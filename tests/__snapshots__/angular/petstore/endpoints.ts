@@ -339,7 +339,7 @@ export class SwaggerPetstoreService {
     options?: HttpClientObserveOptions,
   ): Observable<string | HttpEvent<string> | AngularHttpResponse<string>> {
     if (options?.observe === 'events') {
-      return this.http.get<string>(`/v${version}/health`, {
+      return this.http.get(`/v${version}/health`, {
         responseType: 'text',
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'events',
@@ -347,14 +347,14 @@ export class SwaggerPetstoreService {
     }
 
     if (options?.observe === 'response') {
-      return this.http.get<string>(`/v${version}/health`, {
+      return this.http.get(`/v${version}/health`, {
         responseType: 'text',
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'response',
       });
     }
 
-    return this.http.get<string>(`/v${version}/health`, {
+    return this.http.get(`/v${version}/health`, {
       responseType: 'text',
       ...(options as Omit<NonNullable<typeof options>, 'observe'>),
       observe: 'body',
