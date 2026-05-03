@@ -657,4 +657,45 @@ export type ConstEnum = typeof ConstEnumValue;
       expect(result[0].model).not.toContain('string | string');
     });
   });
+
+  it('should include imports from additionalProperties $ref when properties exist', () => {
+    const contextWithRef = withContext({
+      spec: {
+        components: {
+          schemas: {
+            ItemDetail: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        summary: {
+          type: 'string',
+        },
+      },
+      additionalProperties: {
+        $ref: '#/components/schemas/ItemDetail',
+      },
+    };
+
+    const result = generateInterface({
+      name: 'ThingsResponse',
+      context: contextWithRef,
+      schema,
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].model).toContain('ItemDetail');
+    expect(result[0].imports).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'ItemDetail' })]),
+    );
+  });
 });
