@@ -31,6 +31,49 @@ import {
 } from './query-options';
 import { getHasSignal } from './utils';
 
+/**
+ * Decide whether the current operation's configuration conflicts with a
+ * `mutationInvalidates` rule. The rule wires its invalidation through the
+ * Mutation hook's `onSuccess`, so referencing an operation that is not
+ * generated as a Mutation (either forced into a Query via per-operation
+ * `useQuery: true`, or suppressed entirely) makes the rule a silent no-op.
+ *
+ * Returns the warning message when the conflict applies, or `undefined`
+ * when the configuration is consistent.
+ */
+export const getMutationInvalidatesConflictWarning = ({
+  operationName,
+  isMutation,
+  isQuery,
+  mutationInvalidates,
+}: {
+  operationName: string;
+  isMutation: boolean | undefined;
+  isQuery: boolean;
+  mutationInvalidates:
+    | NonNullable<
+        GeneratorVerbOptions['override']['query']['mutationInvalidates']
+      >
+    | undefined;
+}): string | undefined => {
+  if (isMutation) return undefined;
+  if (!mutationInvalidates?.length) return undefined;
+
+  const referencingRule = mutationInvalidates.find((rule) =>
+    rule.onMutations.includes(operationName),
+  );
+  if (!referencingRule) return undefined;
+
+  const generatedAs = isQuery ? 'Query hook' : 'plain function (no hook)';
+  return (
+    `mutationInvalidates rule references '${operationName}', but that ` +
+    `operation is generated as a ${generatedAs}, not a Mutation. The ` +
+    `invalidation will not fire. Either remove '${operationName}' from the ` +
+    `rule's onMutations list, or remove the override that suppresses the ` +
+    `Mutation hook for this operation.`
+  );
+};
+
 const getQueryFnArguments = ({
   hasQueryParam,
   hasSignal,
@@ -702,17 +745,14 @@ export const generateQueryHook = async (
   // is wired up in mutation-generator and only fires for Mutation hooks, so
   // referencing a Query-emitted operation is a silent no-op — surface that
   // misconfiguration explicitly.
-  if (!isMutation && override.query.mutationInvalidates) {
-    const referencingRule = override.query.mutationInvalidates.find((rule) =>
-      rule.onMutations.includes(operationName),
-    );
-    if (referencingRule) {
-      logWarning(
-        `mutationInvalidates rule references '${operationName}', but that operation is generated as a ${
-          isQuery ? 'Query hook' : 'plain function (no hook)'
-        }, not a Mutation. The invalidation will not fire. Either remove '${operationName}' from the rule's onMutations list, or remove the override that suppresses the Mutation hook for this operation.`,
-      );
-    }
+  const conflictWarning = getMutationInvalidatesConflictWarning({
+    operationName,
+    isMutation,
+    isQuery,
+    mutationInvalidates: override.query.mutationInvalidates,
+  });
+  if (conflictWarning) {
+    logWarning(conflictWarning);
   }
 
   if (isQuery) {
