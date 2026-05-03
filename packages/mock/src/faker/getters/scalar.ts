@@ -99,16 +99,27 @@ export function getMockScalar({
   }
 
   if (
-    (context.output.override.mock?.useExamples ||
-      safeMockOptions.useExamples) &&
-    item.example !== undefined
+    context.output.override.mock?.useExamples ||
+    safeMockOptions.useExamples
   ) {
-    return {
-      value: JSON.stringify(item.example),
-      imports: [],
-      name: item.name,
-      overrided: true,
-    };
+    // OAS 3.0 inputs go through @scalar/openapi-parser's upgrade(), which
+    // rewrites property-level `example: <value>` into `examples: [<value>]`
+    // and deletes the singular field. Fall back to the array form so this
+    // option keeps working post-upgrade.
+    const propertyExample =
+      item.example === undefined
+        ? Array.isArray(item.examples) && item.examples.length > 0
+          ? item.examples[0]
+          : undefined
+        : item.example;
+    if (propertyExample !== undefined) {
+      return {
+        value: JSON.stringify(propertyExample),
+        imports: [],
+        name: item.name,
+        overrided: true,
+      };
+    }
   }
 
   const formatOverrides = safeMockOptions.format ?? {};

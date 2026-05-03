@@ -632,3 +632,32 @@ describe('getMockScalar (pattern-backed string escaping)', () => {
     );
   });
 });
+
+describe('getMockScalar (post-upgrader OAS 3.0 example handling)', () => {
+  // OAS 3.0 inputs go through @scalar/openapi-parser's upgrade(), which
+  // rewrites property-level `example: <value>` into `examples: [<value>]`
+  // and deletes the singular field. The scalar getter must read the array
+  // form so that useExamples keeps working for OAS 3.0 specs.
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+    mockOptions: { useExamples: true },
+    context: { output: { override: {} } } as ContextSpec,
+  };
+
+  it('uses examples[0] for a string property when useExamples is true', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        name: 'slug',
+        examples: ['relaxation'],
+      } as Parameters<typeof getMockScalar>[0]['item'],
+    });
+
+    expect(result.value).toBe('"relaxation"');
+  });
+});
