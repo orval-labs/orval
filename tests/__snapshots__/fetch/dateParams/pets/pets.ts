@@ -86,7 +86,7 @@ export const getListPetsByCountryUrl = (
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    const explodeParameters = ['tag'];
+    const explodeParameters = ['q', 'tag'];
 
     if (Array.isArray(value) && explodeParameters.includes(key)) {
       value.forEach((v) => {
