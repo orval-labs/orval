@@ -14,13 +14,13 @@ import type {
 
 import type { Error } from '../model';
 
-/**
- * @summary health check
- */
 export const getHealthCheckUrl = () => {
   return `/health`;
 };
 
+/**
+ * @summary health check
+ */
 export const healthCheck = async (options?: RequestInit): Promise<string> => {
   const res = await fetch(getHealthCheckUrl(), {
     ...options,

@@ -80,9 +80,6 @@ export type HTTPStatusCodes =
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
 
-/**
- * @summary List all pets
- */
 export type listPetsResponse200 = {
   data: Pets;
   status: 200;
@@ -118,6 +115,9 @@ export const getListPetsUrl = (params: ListPetsParams, version: number = 1) => {
     : `/v${version}/pets`;
 };
 
+/**
+ * @summary List all pets
+ */
 export const listPets = async (
   params: ListPetsParams,
   version: number = 1,
@@ -305,9 +305,6 @@ export function createListPets<
   return query;
 }
 
-/**
- * @summary Create a pet
- */
 export type createPetsResponse200 = {
   data: Pet;
   status: 200;
@@ -348,6 +345,9 @@ export const getCreatePetsUrl = (
     : `/v${version}/pets`;
 };
 
+/**
+ * @summary Create a pet
+ */
 export const createPets = async (
   createPetsBody: CreatePetsBody,
   params: CreatePetsParams,
@@ -435,9 +435,6 @@ export const createCreatePets = <TError = Error, TContext = unknown>(options?: {
   return createMutation(getCreatePetsMutationOptions(options));
 };
 
-/**
- * @summary Info for a specific pet
- */
 export type showPetByIdResponse200 = {
   data: Pet;
   status: 200;
@@ -463,6 +460,9 @@ export const getShowPetByIdUrl = (petId: string, version: number = 1) => {
   return `/v${version}/pets/${petId}`;
 };
 
+/**
+ * @summary Info for a specific pet
+ */
 export const showPetById = async (
   petId: string,
   version: number = 1,
@@ -642,9 +642,6 @@ export function createShowPetById<
   return query;
 }
 
-/**
- * @summary Deletes a specific pet
- */
 export type deletePetByIdResponse204 = {
   data: void;
   status: 204;
@@ -670,6 +667,9 @@ export const getDeletePetByIdUrl = (petId: string, version: number = 1) => {
   return `/v${version}/pets/${petId}`;
 };
 
+/**
+ * @summary Deletes a specific pet
+ */
 export const deletePetById = async (
   petId: string,
   version: number = 1,
@@ -759,9 +759,6 @@ export const createDeletePetById = <
   return createMutation(getDeletePetByIdMutationOptions(options));
 };
 
-/**
- * @summary health check
- */
 export type healthCheckResponse200 = {
   data: string;
   status: 200;
@@ -787,6 +784,9 @@ export const getHealthCheckUrl = (version: number = 1) => {
   return `/v${version}/health`;
 };
 
+/**
+ * @summary health check
+ */
 export const healthCheck = async (
   version: number = 1,
   options?: RequestInit,
@@ -953,9 +953,6 @@ export function createHealthCheck<
   return query;
 }
 
-/**
- * @summary combinate nullable and $ref
- */
 export type showPetWithOwnerResponse200 = {
   data: PetWithTag;
   status: 200;
@@ -981,6 +978,9 @@ export const getShowPetWithOwnerUrl = (petId: string, version: number = 1) => {
   return `/v${version}/pets/${petId}/owner`;
 };
 
+/**
+ * @summary combinate nullable and $ref
+ */
 export const showPetWithOwner = async (
   petId: string,
   version: number = 1,
