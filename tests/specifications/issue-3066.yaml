@@ -1,0 +1,72 @@
+openapi: 3.0.0
+info:
+  title: Issue 3066
+  version: 1.0.0
+paths:
+  /api/app/oss-identity-user/import-users-from-file:
+    post:
+      tags:
+        - OssIdentityUser
+      operationId: postApiAppOssIdentityUserImportUsersFromFile
+      parameters:
+        - name: FileType
+          in: query
+          schema:
+            $ref: '#/components/schemas/ImportUsersFromFileType'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                File:
+                  type: string
+                  format: binary
+            encoding:
+              File:
+                style: form
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportUsersFromFileOutput'
+  /api/app/oss-identity-user/sign-in:
+    post:
+      tags:
+        - OssIdentityUser
+      operationId: postApiAppOssIdentityUserSignIn
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportUsersFromFileOutput'
+components:
+  schemas:
+    ImportUsersFromFileType:
+      type: string
+      enum:
+        - Csv
+        - Excel
+    ImportUsersFromFileOutput:
+      type: object
+      properties:
+        success:
+          type: boolean

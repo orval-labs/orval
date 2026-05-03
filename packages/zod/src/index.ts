@@ -1231,7 +1231,7 @@ export const dereference = (
  * Handles file type detection for top-level properties based on encoding.contentType
  * and contentMediaType. Mirrors type gen's resolveFormDataRootObject.
  */
-const generateFormDataZodSchema = (
+export const generateFormDataZodSchema = (
   schema: OpenApiSchemaObject,
   context: ContextSpec,
   name: string,
