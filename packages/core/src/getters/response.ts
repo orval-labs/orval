@@ -71,9 +71,10 @@ export function getResponse({
       success: success || (defaultType ?? 'unknown'),
       errors: errors || (defaultType ?? 'unknown'),
     },
-    isBlob: groupedByStatus.success.some(
-      (t) => !!t.contentType && isBinaryContentType(t.contentType),
-    ),
+    isBlob:
+      groupedByStatus.success.some(
+        (t) => !!t.contentType && isBinaryContentType(t.contentType),
+      ) || groupedByStatus.success.some((t) => t.value === 'Blob'),
     types: groupedByStatus,
     contentTypes,
     schemas,

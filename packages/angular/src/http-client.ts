@@ -678,7 +678,9 @@ export const generateHttpClientImplementation = (
     ? '<TData>'
     : shouldValidateResponse && isModelType
       ? `<${parsedDataType}>`
-      : '';
+      : !isModelType && parsedDataType !== 'unknown'
+        ? `<${parsedDataType}>`
+        : '';
   const observeImplementation = isRequestOptions
     ? `${paramsDeclaration}if (options?.observe === 'events') {
       return this.http.${verb}${httpTypeArg}(${observeOptions?.events ?? options})${eventValidationPipe};
