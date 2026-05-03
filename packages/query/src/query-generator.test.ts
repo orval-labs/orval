@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import { getMutationInvalidatesConflictWarning } from './query-generator';
 
-const ruleFor = (op: string) =>
-  ({ onMutations: [op], invalidates: ['listPets'] }) as const;
+const ruleFor = (op: string) => ({
+  onMutations: [op],
+  invalidates: ['listPets'],
+});
 
 describe('getMutationInvalidatesConflictWarning', () => {
   it('returns undefined when mutationInvalidates is missing', () => {
