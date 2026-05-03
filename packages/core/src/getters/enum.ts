@@ -54,11 +54,28 @@ function replaceSpecialCharacters(key: string): string {
 export function getEnumNames(schemaObject: OpenApiSchemaObject | undefined) {
   const names = (schemaObject?.['x-enumNames'] ??
     schemaObject?.['x-enumnames'] ??
-    schemaObject?.['x-enum-varnames']) as string[] | undefined;
+    schemaObject?.['x-enum-varnames']) as
+    | string[]
+    | Record<string, string>
+    | undefined;
 
   if (!names) return;
 
-  return names.map((name: string) => jsStringEscape(name));
+  if (Array.isArray(names)) {
+    return names.map((name: string) => jsStringEscape(name));
+  }
+
+  // Object/Map format: keys correspond to enum values, values are the names.
+  // Convert to an array ordered by the schema's enum values.
+  if (typeof names === 'object') {
+    const enumValues = (schemaObject?.enum ?? []) as SchemaEnumValue[];
+    return enumValues.map((enumVal) => {
+      const key = String(enumVal);
+      return key in names ? jsStringEscape(names[key]) : undefined;
+    });
+  }
+
+  return;
 }
 
 export function getEnumDescriptions(
@@ -66,19 +83,40 @@ export function getEnumDescriptions(
 ) {
   const descriptions = (schemaObject?.['x-enumDescriptions'] ??
     schemaObject?.['x-enumdescriptions'] ??
-    schemaObject?.['x-enum-descriptions']) as string[] | undefined;
+    schemaObject?.['x-enum-descriptions']) as
+    | string[]
+    | Record<string, string>
+    | undefined;
 
   if (!descriptions) return;
 
-  return descriptions.map((description: string) => jsStringEscape(description));
+  if (Array.isArray(descriptions)) {
+    return descriptions.map((description: string) =>
+      jsStringEscape(description),
+    );
+  }
+
+  // Object/Map format: keys correspond to enum values, values are the descriptions.
+  // Convert to an array ordered by the schema's enum values.
+  if (typeof descriptions === 'object') {
+    const enumValues = (schemaObject?.enum ?? []) as SchemaEnumValue[];
+    return enumValues.map((enumVal) => {
+      const key = String(enumVal);
+      return key in descriptions
+        ? jsStringEscape(descriptions[key])
+        : undefined;
+    });
+  }
+
+  return;
 }
 
 export function getEnum(
   value: string,
   enumName: string,
-  names: string[] | undefined,
+  names: (string | undefined)[] | undefined,
   enumGenerationType: EnumGeneration,
-  descriptions?: string[],
+  descriptions?: (string | undefined)[],
   enumNamingConvention?: NamingConvention,
 ) {
   if (enumGenerationType === EnumGeneration.CONST)
@@ -97,8 +135,8 @@ export function getEnum(
 const getTypeConstEnum = (
   value: string,
   enumName: string,
-  names?: string[],
-  descriptions?: string[],
+  names?: (string | undefined)[],
+  descriptions?: (string | undefined)[],
   enumNamingConvention?: NamingConvention,
 ) => {
   let enumValue = `export type ${enumName} = typeof ${enumName}[keyof typeof ${enumName}]`;
@@ -164,8 +202,8 @@ function deriveEnumKey(
 
 export function getEnumImplementation(
   value: string,
-  names?: string[],
-  descriptions?: string[],
+  names?: (string | undefined)[],
+  descriptions?: (string | undefined)[],
   enumNamingConvention?: NamingConvention,
 ) {
   // empty enum or null-only enum
@@ -206,7 +244,7 @@ export function getEnumImplementation(
 const getNativeEnum = (
   value: string,
   enumName: string,
-  names?: string[],
+  names?: (string | undefined)[],
   enumNamingConvention?: NamingConvention,
 ) => {
   const enumItems = getNativeEnumItems(value, names, enumNamingConvention);
@@ -217,7 +255,7 @@ const getNativeEnum = (
 
 const getNativeEnumItems = (
   value: string,
-  names?: string[],
+  names?: (string | undefined)[],
   enumNamingConvention?: NamingConvention,
 ) => {
   if (value === '') return '';
