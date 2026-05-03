@@ -155,7 +155,7 @@ describe('getEnumDescriptions', () => {
 
     const result = getEnumDescriptions(schema);
     expect(result).toBeDefined();
-    expect(result![0]).toBe("It\\'s a test");
+    expect(result?.[0]).toBe(String.raw`It\'s a test`);
   });
 
   it('should escape special characters in descriptions (object format)', () => {
@@ -168,7 +168,7 @@ describe('getEnumDescriptions', () => {
 
     const result = getEnumDescriptions(schema);
     expect(result).toBeDefined();
-    expect(result![0]).toBe("It\\'s a test");
+    expect(result?.[0]).toBe(String.raw`It\'s a test`);
   });
 
   it('should support x-enumdescriptions (lowercase) in object format', () => {
