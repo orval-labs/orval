@@ -877,9 +877,13 @@ export const generateSwr: ClientBuilder = (verbOptions, options) => {
   );
   const hookImplementation = generateSwrHook(verbOptions, options);
 
+  const isFetchHttpClient =
+    options.context.output.httpClient !== OutputHttpClient.AXIOS;
+
   return {
     implementation: `${functionImplementation}\n\n${hookImplementation}`,
     imports,
+    ...(isFetchHttpClient && { docComment: '' }),
   };
 };
 

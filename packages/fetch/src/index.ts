@@ -66,6 +66,7 @@ export const generateRequestFunction = (
     formData,
     formUrlEncoded,
     override,
+    doc,
   }: GeneratorVerbOptions,
   { route, context, pathRoute }: GeneratorOptions,
 ) => {
@@ -573,7 +574,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   return (
     responseTypeImplementation +
     `${getUrlFnImplementation}\n` +
-    `${fetchImplementation}\n`
+    `${doc}${fetchImplementation}\n`
   );
 };
 
@@ -626,6 +627,7 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
   return {
     implementation: `${functionImplementation}\n`,
     imports,
+    docComment: '',
   };
 };
 

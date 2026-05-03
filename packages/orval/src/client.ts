@@ -295,7 +295,7 @@ export const generateOperations = (
 
       acc[operationKey] = {
         implementation: hasImplementation
-          ? verbOption.doc + client.implementation
+          ? (client.docComment ?? verbOption.doc) + client.implementation
           : client.implementation,
         imports: [...baseUrlImports, ...client.imports],
         implementationMock: generatedMock.implementation,
