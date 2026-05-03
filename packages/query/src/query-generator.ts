@@ -12,6 +12,7 @@ import {
   type GetterQueryParam,
   type GetterResponse,
   jsDoc,
+  logWarning,
   OutputClient,
   type OutputClientFunc,
   type OutputHttpClient,
@@ -694,6 +695,24 @@ export const generateQueryHook = async (
   // If both query and mutation are true for a GET operation, prioritize mutation
   if (verb === Verbs.GET && isMutation) {
     isQuery = false;
+  }
+
+  // Warn when an operation referenced by a `mutationInvalidates` rule's
+  // `onMutations` list is generated as a Query (or no hook at all). The rule
+  // is wired up in mutation-generator and only fires for Mutation hooks, so
+  // referencing a Query-emitted operation is a silent no-op — surface that
+  // misconfiguration explicitly.
+  if (!isMutation && override.query.mutationInvalidates) {
+    const referencingRule = override.query.mutationInvalidates.find((rule) =>
+      rule.onMutations.includes(operationName),
+    );
+    if (referencingRule) {
+      logWarning(
+        `mutationInvalidates rule references '${operationName}', but that operation is generated as a ${
+          isQuery ? 'Query hook' : 'plain function (no hook)'
+        }, not a Mutation. The invalidation will not fire. Either remove '${operationName}' from the rule's onMutations list, or remove the override that suppresses the Mutation hook for this operation.`,
+      );
+    }
   }
 
   if (isQuery) {

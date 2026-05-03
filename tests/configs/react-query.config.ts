@@ -116,6 +116,46 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Verifies that when a `mutationInvalidates` rule's `onMutations` list
+  // references an operation that is forced into a Query hook via
+  // `override.operations[*].query.useQuery`, the rule silently does not
+  // fire (because it is wired only on Mutation hooks). Generation should
+  // emit a logWarning explaining the misconfiguration. The snapshot
+  // captures the resulting output: `createPets` is a Query hook with no
+  // invalidation wiring, while `deletePetById` keeps its Mutation +
+  // invalidation as usual.
+  invalidatesQueryConflict: {
+    output: {
+      target:
+        '../generated/react-query/invalidates-query-conflict/endpoints.ts',
+      schemas: '../generated/react-query/invalidates-query-conflict/model',
+      client: 'react-query',
+      override: {
+        operations: {
+          createPets: {
+            query: { useQuery: true },
+          },
+        },
+        query: {
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['listPets'],
+            },
+            {
+              onMutations: ['deletePetById'],
+              invalidates: ['listPets'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   zodSchemaResponse: {
     output: {
       target: '../generated/react-query/zod-schema-response/endpoints.ts',
