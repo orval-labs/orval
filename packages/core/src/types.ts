@@ -1143,6 +1143,8 @@ export interface GeneratorClient {
   implementation: string;
   imports: GeneratorImport[];
   mutators?: GeneratorMutator[];
+  /** When set, overrides the default verbOption.doc prepended to the implementation */
+  docComment?: string;
 }
 
 export interface GeneratorMutatorParsingInfo {

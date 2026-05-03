@@ -21,9 +21,6 @@ import { takeUntil } from 'rxjs/operators';
 
 import type { Error } from '../model';
 
-/**
- * @summary health check
- */
 export const healthCheck = (
   http: HttpClient,
   options?: { signal?: AbortSignal | null },

@@ -102,9 +102,6 @@ export type HTTPStatusCodes =
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
 
-/**
- * @summary List all pets
- */
 export type listPetsResponse200 = {
   data: Pets;
   status: 200;
@@ -131,6 +128,9 @@ export const getListPetsUrl = (params?: ListPetsParams) => {
     : `http://localhost:8000/pets`;
 };
 
+/**
+ * @summary List all pets
+ */
 export const listPets = async (
   params?: ListPetsParams,
   options?: RequestInit,
@@ -267,9 +267,6 @@ export function useListPets<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * @summary Create a pet
- */
 export type createPetsResponse200 = {
   data: Pet;
   status: 200;
@@ -295,6 +292,9 @@ export const getCreatePetsUrl = () => {
   return `http://localhost:8000/pets`;
 };
 
+/**
+ * @summary Create a pet
+ */
 export const createPets = async (
   createPetsBodyItem: CreatePetsBodyItem[],
   options?: RequestInit,
@@ -373,9 +373,6 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
 > => {
   return useMutation(getCreatePetsMutationOptions(options), queryClient);
 };
-/**
- * @summary Update a pet
- */
 export type updatePetsResponse200 = {
   data: Pet;
   status: 200;
@@ -401,6 +398,9 @@ export const getUpdatePetsUrl = () => {
   return `http://localhost:8000/pets`;
 };
 
+/**
+ * @summary Update a pet
+ */
 export const updatePets = async (
   pet: NonReadonly<Pet>,
   options?: RequestInit,
@@ -479,9 +479,6 @@ export const useUpdatePets = <TError = Error, TContext = unknown>(
 > => {
   return useMutation(getUpdatePetsMutationOptions(options), queryClient);
 };
-/**
- * @summary Info for a specific pet
- */
 export type showPetByIdResponse200 = {
   data: Pet;
   status: 200;
@@ -507,6 +504,9 @@ export const getShowPetByIdUrl = (petId: string) => {
   return `http://localhost:8000/pets/${petId}`;
 };
 
+/**
+ * @summary Info for a specific pet
+ */
 export const showPetById = async (
   petId: string,
   options?: RequestInit,

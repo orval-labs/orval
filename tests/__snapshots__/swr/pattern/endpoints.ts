@@ -14,9 +14,6 @@ import { faker } from '@faker-js/faker';
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
-/**
- * @summary Example
- */
 export type getVversionExampleResponse200 = {
   data: Node;
   status: 200;
@@ -32,6 +29,9 @@ export const getGetVversionExampleUrl = (version: number = 1) => {
   return `/v${version}/example`;
 };
 
+/**
+ * @summary Example
+ */
 export const getVversionExample = async (
   version: number = 1,
   options?: RequestInit,

@@ -116,6 +116,46 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Verifies that when a `mutationInvalidates` rule's `onMutations` list
+  // references an operation that is forced into a Query hook via
+  // `override.operations[*].query.useQuery`, the rule silently does not
+  // fire (because it is wired only on Mutation hooks). Generation should
+  // emit a logWarning explaining the misconfiguration. The snapshot
+  // captures the resulting output: `createPets` is a Query hook with no
+  // invalidation wiring, while `deletePetById` keeps its Mutation hook
+  // and the invalidation wiring as usual.
+  invalidatesQueryConflict: {
+    output: {
+      target:
+        '../generated/react-query/invalidates-query-conflict/endpoints.ts',
+      schemas: '../generated/react-query/invalidates-query-conflict/model',
+      client: 'react-query',
+      override: {
+        operations: {
+          createPets: {
+            query: { useQuery: true },
+          },
+        },
+        query: {
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['listPets'],
+            },
+            {
+              onMutations: ['deletePetById'],
+              invalidates: ['listPets'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   zodSchemaResponse: {
     output: {
       target: '../generated/react-query/zod-schema-response/endpoints.ts',
@@ -762,6 +802,29 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  useInvalidateWithQueryOptionsMutator: {
+    output: {
+      target:
+        '../generated/react-query/use-invalidate-with-query-options-mutator/endpoints.ts',
+      schemas:
+        '../generated/react-query/use-invalidate-with-query-options-mutator/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useInvalidate: true,
+          queryOptions: {
+            path: '../mutators/custom-query-options.ts',
+            name: 'customQueryOptions',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   useSetQueryData: {
     output: {
       target: '../generated/react-query/use-set-query-data/endpoints.ts',
@@ -871,6 +934,27 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3269.yaml',
+    },
+  },
+  // Regression for issue #3066. zod schemas + tags-split + non-JSON request
+  // body (multipart/form-data and application/x-www-form-urlencoded). Pre-fix
+  // the endpoints imported `${OperationName}Body` from a zod schemas index
+  // that never re-exported it, since `writeZodSchemasFromVerbs` only scanned
+  // `application/json` bodies.
+  issue3066: {
+    output: {
+      target: '../generated/react-query/issue-3066/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/react-query/issue-3066/model',
+      },
+      client: 'react-query',
+      mode: 'tags-split',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3066.yaml',
     },
   },
 });

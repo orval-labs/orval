@@ -91,9 +91,6 @@ function filterParams(
   }
   return filteredParams;
 }
-/**
- * @summary search by query params
- */
 export const searchPets = (
   http: HttpClient,
   params: SearchPetsParams,
@@ -231,9 +228,6 @@ export const invalidateSearchPets = async (
   return queryClient;
 };
 
-/**
- * @summary List all pets
- */
 export const listPets = (
   http: HttpClient,
   params?: ListPetsParams,
@@ -359,9 +353,6 @@ export const invalidateListPets = async (
   return queryClient;
 };
 
-/**
- * @summary Create a pet
- */
 export const createPets = (
   http: HttpClient,
   createPetsBody: CreatePetsBody,
@@ -467,9 +458,6 @@ export const injectCreatePets = <TError = Error, TContext = unknown>(options?: {
 
   return injectMutation(() => createPetsMutationOptions);
 };
-/**
- * @summary Info for a specific pet
- */
 export const showPetById = (
   http: HttpClient,
   petId: string,
@@ -593,9 +581,6 @@ export const invalidateShowPetById = async (
   return queryClient;
 };
 
-/**
- * @summary Delete a pet
- */
 export const deletePet = (
   http: HttpClient,
   petId: string,
@@ -701,9 +686,6 @@ export const injectDeletePet = <TError = Error, TContext = unknown>(options?: {
 
   return injectMutation(() => deletePetMutationOptions);
 };
-/**
- * @summary Update a pet
- */
 export const updatePet = (
   http: HttpClient,
   petId: string,
@@ -810,9 +792,6 @@ export const injectUpdatePet = <TError = Error, TContext = unknown>(options?: {
 
   return injectMutation(() => updatePetMutationOptions);
 };
-/**
- * @summary Partially update a pet
- */
 export const patchPet = (
   http: HttpClient,
   petId: string,
@@ -919,9 +898,6 @@ export const injectPatchPet = <TError = Error, TContext = unknown>(options?: {
 
   return injectMutation(() => patchPetMutationOptions);
 };
-/**
- * @summary Info for a specific pet
- */
 export const showPetText = (
   http: HttpClient,
   petId: string,
@@ -1045,10 +1021,6 @@ export const invalidateShowPetText = async (
   return queryClient;
 };
 
-/**
- * Upload image of the pet.
- * @summary Uploads an image.
- */
 export const uploadFile = (
   http: HttpClient,
   petId: number,
@@ -1158,10 +1130,6 @@ export const injectUploadFile = <
 
   return injectMutation(() => uploadFileMutationOptions);
 };
-/**
- * Upload a file for a pet using multipart/form-data.
- * @summary Upload a file via multipart form data.
- */
 export const uploadFormData = (
   http: HttpClient,
   petId: number,
@@ -1262,10 +1230,6 @@ export const injectUploadFormData = <
 
   return injectMutation(() => uploadFormDataMutationOptions);
 };
-/**
- * Download image of the pet.
- * @summary Download an image.
- */
 export const downloadFile = (
   http: HttpClient,
   petId: number,
@@ -1393,9 +1357,6 @@ export const invalidateDownloadFile = async (
   return queryClient;
 };
 
-/**
- * @summary Health check
- */
 export const healthCheck = (
   http: HttpClient,
   version: number = 1,

@@ -18,9 +18,6 @@ import type {
   Pets,
 } from '../models';
 
-/**
- * @summary List all pets
- */
 export const getListPetsUrl = (params?: ListPetsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -37,6 +34,9 @@ export const getListPetsUrl = (params?: ListPetsParams) => {
     : `http://localhost:8000/pets`;
 };
 
+/**
+ * @summary List all pets
+ */
 export const listPets = async (
   params?: ListPetsParams,
   options?: RequestInit,
@@ -91,13 +91,13 @@ export const useListPets = <TError = Promise<Error>>(
   };
 };
 
-/**
- * @summary Create a pet
- */
 export const getCreatePetsUrl = () => {
   return `http://localhost:8000/pets`;
 };
 
+/**
+ * @summary Create a pet
+ */
 export const createPets = async (
   createPetsBody: CreatePetsBody,
   options?: RequestInit,
@@ -153,13 +153,13 @@ export const useCreatePets = <TError = Promise<Error>>(options?: {
   };
 };
 
-/**
- * @summary Info for a specific pet
- */
 export const getShowPetByIdUrl = (petId: string) => {
   return `http://localhost:8000/pets/${petId}`;
 };
 
+/**
+ * @summary Info for a specific pet
+ */
 export const showPetById = async (
   petId: string,
   options?: RequestInit,

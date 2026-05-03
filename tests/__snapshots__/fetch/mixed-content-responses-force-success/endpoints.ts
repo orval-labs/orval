@@ -7,9 +7,6 @@
  */
 import type { GetData200, GetMixedSuccess200 } from './model';
 
-/**
- * @summary Returns JSON on success, plain text on rate limit
- */
 export type getDataResponse200 = {
   data: GetData200;
   status: 200;
@@ -31,6 +28,9 @@ export const getGetDataUrl = () => {
   return `/data`;
 };
 
+/**
+ * @summary Returns JSON on success, plain text on rate limit
+ */
 export const getData = async (
   options?: RequestInit,
 ): Promise<getDataResponseSuccess> => {
@@ -58,9 +58,6 @@ export const getData = async (
   } as getDataResponseSuccess;
 };
 
-/**
- * @summary Returns plain text
- */
 export type getTextResponse200 = {
   data: string;
   status: 200;
@@ -73,6 +70,9 @@ export const getGetTextUrl = () => {
   return `/text`;
 };
 
+/**
+ * @summary Returns plain text
+ */
 export const getText = async (
   options?: RequestInit,
 ): Promise<getTextResponseSuccess> => {
@@ -98,9 +98,6 @@ export const getText = async (
   } as getTextResponseSuccess;
 };
 
-/**
- * @summary Returns a binary image
- */
 export type getImageResponse200 = {
   data: Blob;
   status: 200;
@@ -113,6 +110,9 @@ export const getGetImageUrl = () => {
   return `/image`;
 };
 
+/**
+ * @summary Returns a binary image
+ */
 export const getImage = async (
   options?: RequestInit,
 ): Promise<getImageResponseSuccess> => {
@@ -143,9 +143,6 @@ export const getImage = async (
   } as getImageResponseSuccess;
 };
 
-/**
- * @summary Returns JSON on full success, plain text on partial success
- */
 export type getMixedSuccessResponse200 = {
   data: GetMixedSuccess200;
   status: 200;
@@ -166,6 +163,9 @@ export const getGetMixedSuccessUrl = () => {
   return `/mixed-success`;
 };
 
+/**
+ * @summary Returns JSON on full success, plain text on partial success
+ */
 export const getMixedSuccess = async (
   options?: RequestInit,
 ): Promise<getMixedSuccessResponseSuccess> => {

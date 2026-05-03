@@ -89,9 +89,6 @@ function filterParams(
   }
   return filteredParams;
 }
-/**
- * @summary search by query params
- */
 export const searchPets = (
   params: SearchPetsParams,
   options?: SecondParameter<typeof responseType>,
@@ -220,9 +217,6 @@ export function injectSearchPets<
   return query;
 }
 
-/**
- * @summary List all pets
- */
 export const listPets = (
   params?: ListPetsParams,
   options?: SecondParameter<typeof responseType>,
@@ -348,9 +342,6 @@ export function injectListPets<
   return query;
 }
 
-/**
- * @summary Create a pet
- */
 export const createPets = (
   createPetsBody: CreatePetsBody,
   options?: SecondParameter<typeof responseType>,
@@ -440,9 +431,6 @@ export const injectCreatePets = <
 
   return injectMutation(() => createPetsMutationOptions);
 };
-/**
- * @summary Info for a specific pet
- */
 export const showPetById = (
   petId: string,
   options?: SecondParameter<typeof responseType>,
@@ -540,9 +528,6 @@ export function injectShowPetById<
   return query;
 }
 
-/**
- * @summary Delete a pet
- */
 export const deletePet = (
   petId: string,
   options?: SecondParameter<typeof responseType>,
@@ -626,9 +611,6 @@ export const injectDeletePet = <
 
   return injectMutation(() => deletePetMutationOptions);
 };
-/**
- * @summary Update a pet
- */
 export const updatePet = (
   petId: string,
   pet: Pet,
@@ -719,9 +701,6 @@ export const injectUpdatePet = <
 
   return injectMutation(() => updatePetMutationOptions);
 };
-/**
- * @summary Partially update a pet
- */
 export const patchPet = (
   petId: string,
   patchPetBody: PatchPetBody,
@@ -812,9 +791,6 @@ export const injectPatchPet = <
 
   return injectMutation(() => patchPetMutationOptions);
 };
-/**
- * @summary Info for a specific pet
- */
 export const showPetText = (
   petId: string,
   options?: SecondParameter<typeof responseType>,
@@ -912,10 +888,6 @@ export function injectShowPetText<
   return query;
 }
 
-/**
- * Upload image of the pet.
- * @summary Uploads an image.
- */
 export const uploadFile = (
   petId: number,
   uploadFileBody?: Blob,
@@ -1006,10 +978,6 @@ export const injectUploadFile = <
 
   return injectMutation(() => uploadFileMutationOptions);
 };
-/**
- * Upload a file for a pet using multipart/form-data.
- * @summary Upload a file via multipart form data.
- */
 export const uploadFormData = (
   petId: number,
   uploadFormDataBody: UploadFormDataBody,
@@ -1110,10 +1078,6 @@ export const injectUploadFormData = <
 
   return injectMutation(() => uploadFormDataMutationOptions);
 };
-/**
- * Download image of the pet.
- * @summary Download an image.
- */
 export const downloadFile = (
   petId: number,
   options?: SecondParameter<typeof responseType>,
@@ -1220,9 +1184,6 @@ export function injectDownloadFile<
   return query;
 }
 
-/**
- * @summary Health check
- */
 export const healthCheck = (
   options?: SecondParameter<typeof responseType>,
   signal?: AbortSignal,
