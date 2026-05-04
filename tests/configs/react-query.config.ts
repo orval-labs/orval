@@ -192,6 +192,48 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Verifies that when a non-GET operation is routed to a Query hook
+  // (today via per-operation `useQuery: true`, soon globally via the fix
+  // for #2376), and the user has configured a custom mutator that exports
+  // a `BodyType<T>` wrapper, the generated Query helpers wrap the body
+  // type with `BodyType<...>` to stay consistent with the request
+  // function's signature. Without this, callers would hit a type error
+  // (`CreatePetsBody` is not assignable to `BodyType<CreatePetsBody>`).
+  // The mutator deliberately uses a strict `BodyType<T> = { payload: T; metadata: ... }`
+  // envelope so that any generated Query helper that still emits the raw body
+  // type (rather than `BodyType<CreatePetsBody>`) would fail to compile. This
+  // locks in that every user-facing surface — overload signatures, hook
+  // implementation, getXxxQueryOptions, getXxxQueryKey, setQueryData /
+  // getQueryData — wraps consistently with the request function's signature.
+  bodyTypeWrapNonGetQuery: {
+    output: {
+      target:
+        '../generated/react-query/body-type-wrap-non-get-query/endpoints.ts',
+      schemas: '../generated/react-query/body-type-wrap-non-get-query/model',
+      client: 'react-query',
+      httpClient: 'axios',
+      override: {
+        mutator: {
+          path: '../mutators/custom-client-strict-body.ts',
+          name: 'customClientStrictBody',
+        },
+        operations: {
+          createPets: {
+            query: {
+              useQuery: true,
+              useSetQueryData: true,
+              useGetQueryData: true,
+            },
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   invalidatesNonGetQueryTargetSplitKey: {
     output: {
       target:

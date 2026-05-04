@@ -1,9 +1,11 @@
+import type { GeneratorMutator, GetterBody } from '@orval/core';
 import { Verbs } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
 import {
   getMutationInvalidatesConflictWarning,
   getQueryKeyVerbPrefix,
+  wrapPropsBodyWithMutatorBodyType,
 } from './query-generator';
 
 const ruleFor = (op: string) => ({
@@ -167,5 +169,104 @@ describe('getQueryKeyVerbPrefix', () => {
         useOperationIdAsQueryKey: undefined,
       }),
     ).toBe('POST');
+  });
+});
+
+describe('wrapPropsBodyWithMutatorBodyType', () => {
+  const mutatorWithBodyType = {
+    bodyTypeName: 'BodyType',
+  } as unknown as GeneratorMutator;
+  const bodyOf = (definition: string): GetterBody =>
+    ({ definition }) as unknown as GetterBody;
+
+  it('returns propsString unchanged when mutator is undefined', () => {
+    expect(
+      wrapPropsBodyWithMutatorBodyType({
+        propsString: 'createPetsBody: CreatePetsBody',
+        body: bodyOf('CreatePetsBody'),
+        mutator: undefined,
+      }),
+    ).toBe('createPetsBody: CreatePetsBody');
+  });
+
+  it('returns propsString unchanged when mutator has no bodyTypeName', () => {
+    expect(
+      wrapPropsBodyWithMutatorBodyType({
+        propsString: 'createPetsBody: CreatePetsBody',
+        body: bodyOf('CreatePetsBody'),
+        mutator: {} as unknown as GeneratorMutator,
+      }),
+    ).toBe('createPetsBody: CreatePetsBody');
+  });
+
+  it('returns propsString unchanged when body has no definition', () => {
+    expect(
+      wrapPropsBodyWithMutatorBodyType({
+        propsString: 'foo: number',
+        body: bodyOf(''),
+        mutator: mutatorWithBodyType,
+      }),
+    ).toBe('foo: number');
+  });
+
+  it('wraps a required body parameter', () => {
+    expect(
+      wrapPropsBodyWithMutatorBodyType({
+        propsString: 'createPetsBody: CreatePetsBody, params: P',
+        body: bodyOf('CreatePetsBody'),
+        mutator: mutatorWithBodyType,
+      }),
+    ).toBe('createPetsBody: BodyType<CreatePetsBody>, params: P');
+  });
+
+  it('wraps an optional body parameter while preserving the `?`', () => {
+    expect(
+      wrapPropsBodyWithMutatorBodyType({
+        propsString: 'createPetsBody?: CreatePetsBody, params?: P',
+        body: bodyOf('CreatePetsBody'),
+        mutator: mutatorWithBodyType,
+      }),
+    ).toBe('createPetsBody?: BodyType<CreatePetsBody>, params?: P');
+  });
+
+  it('wraps a `undefined | T` body parameter (the definedInitialData transform)', () => {
+    expect(
+      wrapPropsBodyWithMutatorBodyType({
+        propsString:
+          'createPetsBody: undefined | CreatePetsBody, params: undefined | P',
+        body: bodyOf('CreatePetsBody'),
+        mutator: mutatorWithBodyType,
+      }),
+    ).toBe(
+      'createPetsBody: undefined | BodyType<CreatePetsBody>, params: undefined | P',
+    );
+  });
+
+  it('escapes regex metacharacters in body.definition (e.g. arrays, unions)', () => {
+    expect(
+      wrapPropsBodyWithMutatorBodyType({
+        propsString: 'pets: Pet[]',
+        body: bodyOf('Pet[]'),
+        mutator: mutatorWithBodyType,
+      }),
+    ).toBe('pets: BodyType<Pet[]>');
+
+    expect(
+      wrapPropsBodyWithMutatorBodyType({
+        propsString: 'animal: Pet | Cat',
+        body: bodyOf('Pet | Cat'),
+        mutator: mutatorWithBodyType,
+      }),
+    ).toBe('animal: BodyType<Pet | Cat>');
+  });
+
+  it('only wraps the body prop, not other props with similar shapes', () => {
+    expect(
+      wrapPropsBodyWithMutatorBodyType({
+        propsString: 'params: SomethingElse, createPetsBody: CreatePetsBody',
+        body: bodyOf('CreatePetsBody'),
+        mutator: mutatorWithBodyType,
+      }),
+    ).toBe('params: SomethingElse, createPetsBody: BodyType<CreatePetsBody>');
   });
 });

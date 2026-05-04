@@ -5,6 +5,7 @@ import {
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  type GetterBody,
   type GetterParams,
   type GetterProp,
   type GetterProps,
@@ -71,6 +72,51 @@ export const getMutationInvalidatesConflictWarning = ({
     `invalidation will not fire. Either remove '${operationName}' from the ` +
     `rule's onMutations list, or configure '${operationName}' so that it ` +
     `is generated as a Mutation hook.`
+  );
+};
+
+const escapeRegExpMetaChars = (value: string): string =>
+  value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+
+/**
+ * Wraps the body parameter's type in a property string with the mutator's
+ * `BodyType<T>` envelope so that user-facing Query helpers (hook signature,
+ * `getXxxQueryOptions`, `getXxxQueryKey`, prefetch / invalidate / set+get
+ * QueryData) match the request function's signature, which is already
+ * wrapped by `client.ts`. Without this, callers that pass a plain body to
+ * a non-GET Query hook (possible after #2376 routes non-GET verbs to
+ * Query hooks) would hit a type mismatch against the underlying request
+ * function.
+ *
+ * The pattern handles three prop shapes that the various
+ * `toObjectString(props, ...)` callers can emit:
+ *   - `name: T`                — required body
+ *   - `name?: T`               — optional body
+ *   - `name: undefined | T`    — `definedInitialData` overload transform
+ *
+ * `body.definition` is fully regex-escaped so types containing metachars
+ * (e.g. `Pet[]`, `Foo | Bar`, anonymous object types) are matched
+ * verbatim rather than reinterpreted as regex syntax.
+ *
+ * No-op when the operation has no body or the mutator does not export a
+ * `BodyType<T>` wrapper, so existing GET-only Query keys are unchanged.
+ */
+export const wrapPropsBodyWithMutatorBodyType = ({
+  propsString,
+  body,
+  mutator,
+}: {
+  propsString: string;
+  body: GetterBody;
+  mutator: GeneratorMutator | undefined;
+}): string => {
+  if (!mutator?.bodyTypeName || !body.definition) return propsString;
+  const bodyDefinitionPattern = escapeRegExpMetaChars(body.definition);
+  return propsString.replace(
+    new RegExp(
+      String.raw`(\w+\??:\s*(?:undefined\s*\|\s*)?)${bodyDefinitionPattern}`,
+    ),
+    `$1${mutator.bodyTypeName}<${body.definition}>`,
   );
 };
 
@@ -214,6 +260,7 @@ const generateQueryImplementation = ({
   queryParams,
   params,
   props,
+  body,
   mutator,
   queryOptionsMutator,
   queryKeyMutator,
@@ -246,6 +293,7 @@ const generateQueryImplementation = ({
   queryKeyProperties: string;
   params: GetterParams;
   props: GetterProps;
+  body: GetterBody;
   response: GetterResponse;
   queryParams?: GetterQueryParam;
   mutator?: GeneratorMutator;
@@ -276,27 +324,40 @@ const generateQueryImplementation = ({
     (prop: GetterProp) => prop.name === 'signal',
   );
 
-  const queryPropDefinitions = toObjectString(props, 'definition');
-  const definedInitialDataQueryPropsDefinitions = toObjectString(
-    props.map((prop) => {
-      const regex = new RegExp(String.raw`^${prop.name}\s*\?:`);
+  const queryPropDefinitions = wrapPropsBodyWithMutatorBodyType({
+    propsString: toObjectString(props, 'definition'),
+    body,
+    mutator,
+  });
+  const definedInitialDataQueryPropsDefinitions =
+    wrapPropsBodyWithMutatorBodyType({
+      propsString: toObjectString(
+        props.map((prop) => {
+          const regex = new RegExp(String.raw`^${prop.name}\s*\?:`);
 
-      if (!regex.test(prop.definition)) {
-        return prop;
-      }
+          if (!regex.test(prop.definition)) {
+            return prop;
+          }
 
-      const definitionWithUndefined = prop.definition.replace(
-        regex,
-        `${prop.name}: undefined | `,
-      );
-      return {
-        ...prop,
-        definition: definitionWithUndefined,
-      };
-    }),
-    'definition',
-  );
-  const queryProps = toObjectString(props, 'implementation');
+          const definitionWithUndefined = prop.definition.replace(
+            regex,
+            `${prop.name}: undefined | `,
+          );
+          return {
+            ...prop,
+            definition: definitionWithUndefined,
+          };
+        }),
+        'definition',
+      ),
+      body,
+      mutator,
+    });
+  const queryProps = wrapPropsBodyWithMutatorBodyType({
+    propsString: toObjectString(props, 'implementation'),
+    body,
+    mutator,
+  });
 
   const hasInfiniteQueryParam = queryParam && queryParams?.schema.name;
 
@@ -583,10 +644,14 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     ? camel(`use-set-${name}-query-data`)
     : camel(`set-${name}-query-data`);
   const setQueryDataKeyExpr = buildBaseQueryKeyExpr();
-  const setQueryDataProps = toObjectString(
-    props.filter((prop) => prop.type !== GetterPropType.HEADER),
-    'implementation',
-  ).replaceAll('?:', ':');
+  const setQueryDataProps = wrapPropsBodyWithMutatorBodyType({
+    propsString: toObjectString(
+      props.filter((prop) => prop.type !== GetterPropType.HEADER),
+      'implementation',
+    ).replaceAll('?:', ':'),
+    body,
+    mutator,
+  });
 
   const shouldGenerateGetQueryData = useGetQueryData && isPrimaryQueryType;
   const getQueryDataFnName = isReactQuery
@@ -628,8 +693,12 @@ export type ${pascal(name)}QueryError = ${errorType}
 
 ${adapter.shouldGenerateOverrideTypes() ? overrideTypes : ''}
 ${doc}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${adapter.getHookPropsDefinitions(
-    props,
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${wrapPropsBodyWithMutatorBodyType(
+    {
+      propsString: adapter.getHookPropsDefinitions(props),
+      body,
+      mutator,
+    },
   )} ${queryArguments} ${optionalQueryClientArgument} \n ): ${returnType} {
 
   ${queryInit}
@@ -877,19 +946,23 @@ export const generateQueryHook = async (
           return impl.replace(/^(\w+):\s*/, '$1?: ');
         };
 
-        const queryKeyProps = toObjectString(
-          props
-            .filter((prop) => prop.type !== GetterPropType.HEADER)
-            .map((prop) => ({
-              ...prop,
-              implementation:
-                prop.type === GetterPropType.PARAM ||
-                prop.type === GetterPropType.NAMED_PATH_PARAMS
-                  ? prop.implementation
-                  : makeOptionalParam(prop.implementation),
-            })),
-          'implementation',
-        );
+        const queryKeyProps = wrapPropsBodyWithMutatorBodyType({
+          propsString: toObjectString(
+            props
+              .filter((prop) => prop.type !== GetterPropType.HEADER)
+              .map((prop) => ({
+                ...prop,
+                implementation:
+                  prop.type === GetterPropType.PARAM ||
+                  prop.type === GetterPropType.NAMED_PATH_PARAMS
+                    ? prop.implementation
+                    : makeOptionalParam(prop.implementation),
+              })),
+            'implementation',
+          ),
+          body,
+          mutator,
+        });
 
         const routeString = adapter.getQueryKeyRouteString(
           route,
@@ -953,6 +1026,7 @@ ${queryKeyFns}`;
         queryKeyProperties,
         params,
         props,
+        body,
         mutator,
         isRequestOptions,
         queryParams,
