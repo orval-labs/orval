@@ -4,7 +4,7 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
@@ -30,13 +30,21 @@ import type {
   Pets,
 } from './model';
 
-import { customClient } from '../../../mutators/custom-client';
-import type { ErrorType, BodyType } from '../../../mutators/custom-client';
+import { customClientStrictBody } from '../../../mutators/custom-client-strict-body';
+import type {
+  ErrorType,
+  BodyType,
+} from '../../../mutators/custom-client-strict-body';
 /**
  * @summary List all pets
  */
 export const listPets = (params: ListPetsParams, signal?: AbortSignal) => {
-  return customClient<Pets>({ url: `/pets`, method: 'GET', params, signal });
+  return customClientStrictBody<Pets>({
+    url: `/pets`,
+    method: 'GET',
+    params,
+    signal,
+  });
 };
 
 export const getListPetsQueryKey = (params?: ListPetsParams) => {
@@ -168,7 +176,7 @@ export const createPets = (
   params: CreatePetsParams,
   signal?: AbortSignal,
 ) => {
-  return customClient<Pet>({
+  return customClientStrictBody<Pet>({
     url: `/pets`,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -292,7 +300,7 @@ export function useCreatePets<
   TData = Awaited<ReturnType<typeof createPets>>,
   TError = ErrorType<Error>,
 >(
-  createPetsBody: CreatePetsBody,
+  createPetsBody: BodyType<CreatePetsBody>,
   params: CreatePetsParams,
   options?: {
     query?: Partial<
@@ -318,10 +326,47 @@ export function useCreatePets<
 }
 
 /**
+ * @summary Create a pet
+ */
+export const useSetCreatePetsQueryData = () => {
+  const queryClient = useQueryClient();
+  return (
+    createPetsBody: BodyType<CreatePetsBody>,
+    params: CreatePetsParams,
+    updater:
+      | Awaited<ReturnType<typeof createPets>>
+      | undefined
+      | ((
+          old: Awaited<ReturnType<typeof createPets>> | undefined,
+        ) => Awaited<ReturnType<typeof createPets>> | undefined),
+  ) => {
+    queryClient.setQueryData(
+      getCreatePetsQueryKey(createPetsBody, params),
+      updater,
+    );
+  };
+};
+
+/**
+ * @summary Create a pet
+ */
+export const useGetCreatePetsQueryData = () => {
+  const queryClient = useQueryClient();
+  return (createPetsBody: BodyType<CreatePetsBody>, params: CreatePetsParams) =>
+    queryClient.getQueryData<Awaited<ReturnType<typeof createPets>>>(
+      getCreatePetsQueryKey(createPetsBody, params),
+    );
+};
+
+/**
  * @summary Info for a specific pet
  */
 export const showPetById = (petId: string, signal?: AbortSignal) => {
-  return customClient<Pet>({ url: `/pets/${petId}`, method: 'GET', signal });
+  return customClientStrictBody<Pet>({
+    url: `/pets/${petId}`,
+    method: 'GET',
+    signal,
+  });
 };
 
 export const getShowPetByIdQueryKey = (petId: string) => {
@@ -454,7 +499,7 @@ export function useShowPetById<
  * @summary Deletes a specific pet
  */
 export const deletePetById = (petId: string, signal?: AbortSignal) => {
-  return customClient<void>({
+  return customClientStrictBody<void>({
     url: `/pets/${petId}`,
     method: 'DELETE',
     signal,
@@ -530,7 +575,11 @@ export const useDeletePetById = <TError = ErrorType<Error>, TContext = unknown>(
  * @summary health check
  */
 export const healthCheck = (signal?: AbortSignal) => {
-  return customClient<string>({ url: `/health`, method: 'GET', signal });
+  return customClientStrictBody<string>({
+    url: `/health`,
+    method: 'GET',
+    signal,
+  });
 };
 
 export const getHealthCheckQueryKey = () => {
@@ -651,7 +700,7 @@ export function useHealthCheck<
  * @summary combinate nullable and $ref
  */
 export const showPetWithOwner = (petId: string, signal?: AbortSignal) => {
-  return customClient<PetWithTag>({
+  return customClientStrictBody<PetWithTag>({
     url: `/pets/${petId}/owner`,
     method: 'GET',
     signal,

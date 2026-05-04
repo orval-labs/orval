@@ -199,6 +199,12 @@ export default defineConfig({
   // type with `BodyType<...>` to stay consistent with the request
   // function's signature. Without this, callers would hit a type error
   // (`CreatePetsBody` is not assignable to `BodyType<CreatePetsBody>`).
+  // The mutator deliberately uses a strict `BodyType<T> = { payload: T; metadata: ... }`
+  // envelope so that any generated Query helper that still emits the raw body
+  // type (rather than `BodyType<CreatePetsBody>`) would fail to compile. This
+  // locks in that every user-facing surface — overload signatures, hook
+  // implementation, getXxxQueryOptions, getXxxQueryKey, setQueryData /
+  // getQueryData — wraps consistently with the request function's signature.
   bodyTypeWrapNonGetQuery: {
     output: {
       target:
@@ -208,12 +214,16 @@ export default defineConfig({
       httpClient: 'axios',
       override: {
         mutator: {
-          path: '../mutators/custom-client.ts',
-          name: 'customClient',
+          path: '../mutators/custom-client-strict-body.ts',
+          name: 'customClientStrictBody',
         },
         operations: {
           createPets: {
-            query: { useQuery: true },
+            query: {
+              useQuery: true,
+              useSetQueryData: true,
+              useGetQueryData: true,
+            },
           },
         },
       },

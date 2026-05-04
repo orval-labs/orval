@@ -629,10 +629,14 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     ? camel(`use-set-${name}-query-data`)
     : camel(`set-${name}-query-data`);
   const setQueryDataKeyExpr = buildBaseQueryKeyExpr();
-  const setQueryDataProps = toObjectString(
-    props.filter((prop) => prop.type !== GetterPropType.HEADER),
-    'implementation',
-  ).replaceAll('?:', ':');
+  const setQueryDataProps = wrapPropsBodyWithMutatorBodyType({
+    propsString: toObjectString(
+      props.filter((prop) => prop.type !== GetterPropType.HEADER),
+      'implementation',
+    ).replaceAll('?:', ':'),
+    body,
+    mutator,
+  });
 
   const shouldGenerateGetQueryData = useGetQueryData && isPrimaryQueryType;
   const getQueryDataFnName = isReactQuery
@@ -674,8 +678,12 @@ export type ${pascal(name)}QueryError = ${errorType}
 
 ${adapter.shouldGenerateOverrideTypes() ? overrideTypes : ''}
 ${doc}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${adapter.getHookPropsDefinitions(
-    props,
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${wrapPropsBodyWithMutatorBodyType(
+    {
+      propsString: adapter.getHookPropsDefinitions(props),
+      body,
+      mutator,
+    },
   )} ${queryArguments} ${optionalQueryClientArgument} \n ): ${returnType} {
 
   ${queryInit}
