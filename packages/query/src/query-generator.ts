@@ -75,15 +75,28 @@ export const getMutationInvalidatesConflictWarning = ({
   );
 };
 
+const escapeRegExpMetaChars = (value: string): string =>
+  value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+
 /**
  * Wraps the body parameter's type in a property string with the mutator's
  * `BodyType<T>` envelope so that user-facing Query helpers (hook signature,
  * `getXxxQueryOptions`, `getXxxQueryKey`, prefetch / invalidate / set+get
  * QueryData) match the request function's signature, which is already
- * wrapped by `client.ts` via the same regex. Without this, callers that
- * pass a plain body to a non-GET Query hook (possible after #2376 routes
- * non-GET verbs to Query hooks) would hit a type mismatch against the
- * underlying request function.
+ * wrapped by `client.ts`. Without this, callers that pass a plain body to
+ * a non-GET Query hook (possible after #2376 routes non-GET verbs to
+ * Query hooks) would hit a type mismatch against the underlying request
+ * function.
+ *
+ * The pattern handles three prop shapes that the various
+ * `toObjectString(props, ...)` callers can emit:
+ *   - `name: T`                — required body
+ *   - `name?: T`               — optional body
+ *   - `name: undefined | T`    — `definedInitialData` overload transform
+ *
+ * `body.definition` is fully regex-escaped so types containing metachars
+ * (e.g. `Pet[]`, `Foo | Bar`, anonymous object types) are matched
+ * verbatim rather than reinterpreted as regex syntax.
  *
  * No-op when the operation has no body or the mutator does not export a
  * `BodyType<T>` wrapper, so existing GET-only Query keys are unchanged.
@@ -98,10 +111,12 @@ export const wrapPropsBodyWithMutatorBodyType = ({
   mutator: GeneratorMutator | undefined;
 }): string => {
   if (!mutator?.bodyTypeName || !body.definition) return propsString;
-  const bodyDefinition = body.definition.replace('[]', String.raw`\[\]`);
+  const bodyDefinitionPattern = escapeRegExpMetaChars(body.definition);
   return propsString.replace(
-    new RegExp(String.raw`(\w*):\s?${bodyDefinition}`),
-    `$1: ${mutator.bodyTypeName}<${body.definition}>`,
+    new RegExp(
+      String.raw`(\w+\??:\s*(?:undefined\s*\|\s*)?)${bodyDefinitionPattern}`,
+    ),
+    `$1${mutator.bodyTypeName}<${body.definition}>`,
   );
 };
 
