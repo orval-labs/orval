@@ -11,6 +11,7 @@ import {
   isString,
   type OutputHttpClient,
   pascal,
+  type Verbs,
 } from '@orval/core';
 
 import {
@@ -19,6 +20,7 @@ import {
   getQueryErrorType,
 } from './client';
 import type { FrameworkAdapter } from './framework-adapter';
+import { getQueryKeyVerbPrefix } from './query-generator';
 import { getQueryOptionsDefinition } from './query-options';
 
 interface NormalizedTarget {
@@ -235,11 +237,16 @@ const createGenerateInvalidateCall = (
         // Mirror the verb prefix that `getQueryKeyVerbPrefix` injects into
         // non-GET Query keys; without this, the predicate / partial key
         // would never match a verb-prefixed cache key and the broad
-        // invalidation would silently no-op.
-        const verbPrefix =
-          info.method !== 'get' && !useOperationIdAsQueryKey
-            ? info.method.toUpperCase()
-            : undefined;
+        // invalidation would silently no-op. We share the helper from
+        // `query-generator.ts` so both sites stay in sync.
+        // `info.method` is narrowed by the spec walker to one of HTTP_METHODS
+        // (a superset of `Verbs` that also includes `options`/`trace`); the
+        // helper only branches on `Verbs.GET`, so the cast is safe for any
+        // non-GET method.
+        const verbPrefix = getQueryKeyVerbPrefix({
+          verb: info.method as Verbs,
+          useOperationIdAsQueryKey,
+        });
 
         if (shouldSplitQueryKey) {
           // Split-key mode: query keys are arrays like ['pets', petId]
