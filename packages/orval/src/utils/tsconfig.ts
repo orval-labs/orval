@@ -1,9 +1,33 @@
 import { isNullish, isObject, isString, type Tsconfig } from '@orval/core';
 import { findUp } from 'find-up';
 import fs from 'fs-extra';
-import { parse } from 'tsconfck';
+import {
+  parseTsconfig,
+  type TsConfigJson,
+  type TsConfigJsonResolved,
+} from 'get-tsconfig';
 
 import { normalizePath } from './options';
+
+type LowercaseString<T extends string> = T extends `${infer First}${infer Rest}`
+  ? `${Lowercase<First>}${LowercaseString<Rest>}`
+  : T;
+
+const convertTarget = (config: TsConfigJsonResolved): Tsconfig => {
+  if (!config.compilerOptions?.target) {
+    return {
+      baseUrl: config.compilerOptions?.baseUrl,
+      ...config,
+    } as Tsconfig;
+  }
+  const lowercaseTarget =
+    config.compilerOptions.target.toLowerCase() as LowercaseString<TsConfigJson.CompilerOptions.Target>;
+  return {
+    baseUrl: config.compilerOptions.baseUrl,
+    ...config,
+    compilerOptions: { ...config.compilerOptions, target: lowercaseTarget },
+  };
+};
 
 export const loadTsconfig = async (
   tsconfig?: Tsconfig | string,
@@ -14,8 +38,8 @@ export const loadTsconfig = async (
       cwd: workspace,
     });
     if (configPath) {
-      const config = await parse(configPath);
-      return config.tsconfig as Tsconfig;
+      const config = parseTsconfig(configPath);
+      return convertTarget(config);
     }
     return;
   }
@@ -23,13 +47,8 @@ export const loadTsconfig = async (
   if (isString(tsconfig)) {
     const normalizedPath = normalizePath(tsconfig, workspace);
     if (fs.existsSync(normalizedPath)) {
-      const config = await parse(normalizedPath);
-
-      const tsconfig = (config.referenced?.find(
-        ({ tsconfigFile }) => tsconfigFile === normalizedPath,
-      )?.tsconfig ?? config.tsconfig) as Tsconfig;
-
-      return tsconfig;
+      const config = parseTsconfig(normalizedPath);
+      return convertTarget(config);
     }
     return;
   }
