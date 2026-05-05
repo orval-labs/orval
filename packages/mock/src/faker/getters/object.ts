@@ -140,7 +140,7 @@ export function getMockObject({
     const entries = Object.entries(itemProperties);
     if (context.output.propertySortOrder === PropertySortOrder.ALPHABETICAL) {
       entries.sort((a, b) => {
-        return a[0].localeCompare(b[0]);
+        return a[0].localeCompare(b[0], 'en', { numeric: true });
       });
     }
     const propertyScalars = entries

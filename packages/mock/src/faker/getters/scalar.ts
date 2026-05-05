@@ -77,7 +77,7 @@ export function getMockScalar({
     properties: {},
   };
   const sortedTags = Object.entries(safeMockOptions.tags ?? {}).toSorted(
-    (a, b) => a[0].localeCompare(b[0]),
+    (a, b) => a[0].localeCompare(b[0], 'en', { numeric: true }),
   );
   for (const [tag, options] of sortedTags) {
     if (!tags.includes(tag)) {

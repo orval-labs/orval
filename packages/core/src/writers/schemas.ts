@@ -435,7 +435,7 @@ export async function writeSchemas({
       // Create export statements
       const currentExports = uniqueSchemaNames
         .map((schemaName) => `export * from './${schemaName}${ext}';`)
-        .toSorted((a, b) => a.localeCompare(b));
+        .toSorted((a, b) => a.localeCompare(b, 'en', { numeric: true }));
 
       const exports = currentExports.join('\n');
 
