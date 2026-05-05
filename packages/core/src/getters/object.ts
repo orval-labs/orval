@@ -183,7 +183,11 @@ export function getObject({
     const entries = Object.entries(itemProperties);
     if (context.output.propertySortOrder === PropertySortOrder.ALPHABETICAL) {
       entries.sort((a, b) => {
-        return a[0].localeCompare(b[0]);
+        return a[0].localeCompare(b[0], undefined, {
+          usage: 'sort',
+          sensitivity: 'variant', // distinguishes æ/ø/å from a/o, etc.
+          numeric: true,
+        });
       });
     }
     const acc: ScalarValue = {
@@ -321,11 +325,7 @@ export function getObject({
       if (entries.length - 1 === index) {
         // Bridge assertion: additionalProperties is boolean | ReferenceObject | SchemaObject
         // but AnyOtherAttribute infects property access
-        const additionalProps = schemaItem.additionalProperties as
-          | boolean
-          | OpenApiSchemaObject
-          | OpenApiReferenceObject
-          | undefined;
+        const additionalProps = schemaItem.additionalProperties;
         if (additionalProps) {
           if (additionalProps === true) {
             const recordType = getPropertyNamesRecordType(
@@ -342,9 +342,7 @@ export function getObject({
             }
           } else {
             const resolvedValue = resolveValue({
-              schema: additionalProps as
-                | OpenApiSchemaObject
-                | OpenApiReferenceObject,
+              schema: additionalProps,
               name,
               context,
             });
@@ -375,11 +373,7 @@ export function getObject({
   }
 
   // Bridge assertion: additionalProperties is boolean | ReferenceObject | SchemaObject
-  const outerAdditionalProps = schemaItem.additionalProperties as
-    | boolean
-    | OpenApiSchemaObject
-    | OpenApiReferenceObject
-    | undefined;
+  const outerAdditionalProps = schemaItem.additionalProperties;
   const readOnlyFlag = schemaItem.readOnly as boolean | undefined;
   if (outerAdditionalProps) {
     if (outerAdditionalProps === true) {
@@ -411,9 +405,7 @@ export function getObject({
       };
     }
     const resolvedValue = resolveValue({
-      schema: outerAdditionalProps as
-        | OpenApiSchemaObject
-        | OpenApiReferenceObject,
+      schema: outerAdditionalProps,
       name,
       context,
     });

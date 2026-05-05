@@ -151,11 +151,21 @@ const groupSchemasByFilePath = <T extends { filePath: string }>(
   }
 
   const sortedGroups = [...grouped.values()].map((group) =>
-    [...group].toSorted((a, b) => a.filePath.localeCompare(b.filePath)),
+    [...group].toSorted((a, b) =>
+      a.filePath.localeCompare(b.filePath, undefined, {
+        usage: 'sort',
+        sensitivity: 'variant', // distinguishes æ/ø/å from a/o, etc.
+        numeric: true,
+      }),
+    ),
   );
 
   return sortedGroups.toSorted((a, b) =>
-    a[0].filePath.localeCompare(b[0].filePath),
+    a[0].filePath.localeCompare(b[0].filePath, undefined, {
+      usage: 'sort',
+      sensitivity: 'variant', // distinguishes æ/ø/å from a/o, etc.
+      numeric: true,
+    }),
   );
 };
 
@@ -388,7 +398,7 @@ export async function writeZodSchemasFromVerbs(
               formUrlEncodedBodyMedia,
             ] as const)
           : [undefined, undefined];
-    const bodySchema = bodyMedia?.schema as OpenApiSchemaObject | undefined;
+    const bodySchema = bodyMedia?.schema;
 
     const bodySchemas = bodySchema
       ? [

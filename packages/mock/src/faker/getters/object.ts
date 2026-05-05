@@ -80,11 +80,7 @@ export function getMockObject({
     | Record<string, OpenApiReferenceObject | OpenApiSchemaObject>
     | undefined;
   const itemRequired = schemaItem.required as string[] | undefined;
-  const itemAdditionalProperties = schemaItem.additionalProperties as
-    | boolean
-    | OpenApiReferenceObject
-    | OpenApiSchemaObject
-    | undefined;
+  const itemAdditionalProperties = schemaItem.additionalProperties;
 
   if (itemAllOf || itemOneOf || itemAnyOf) {
     const separator = itemAllOf ? 'allOf' : itemOneOf ? 'oneOf' : 'anyOf';
@@ -140,7 +136,11 @@ export function getMockObject({
     const entries = Object.entries(itemProperties);
     if (context.output.propertySortOrder === PropertySortOrder.ALPHABETICAL) {
       entries.sort((a, b) => {
-        return a[0].localeCompare(b[0]);
+        return a[0].localeCompare(b[0], undefined, {
+          usage: 'sort',
+          sensitivity: 'variant', // distinguishes æ/ø/å from a/o, etc.
+          numeric: true,
+        });
       });
     }
     const propertyScalars = entries
