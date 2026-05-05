@@ -92,11 +92,11 @@
     "execa": "^9.6.1",
     "find-up": "8.0.0",
     "fs-extra": "^11.3.2",
+    "get-tsconfig": "^4.14.0",
     "jiti": "^2.6.1",
     "js-yaml": "4.1.1",
     "remeda": "^2.33.6",
     "string-argv": "^0.3.2",
-    "tsconfck": "^3.1.6",
     "typedoc": "^0.28.17",
     "typedoc-plugin-coverage": "^4.0.2",
     "typedoc-plugin-markdown": "^4.10.0"
