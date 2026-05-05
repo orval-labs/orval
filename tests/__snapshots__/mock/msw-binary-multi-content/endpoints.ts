@@ -18,10 +18,10 @@ export const getBinaryMultiContent = (axiosInstance: AxiosInstance = axios) => {
     id: string,
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<Blob>> => {
-    return axiosInstance.get(
-      `/api/account/profile-picture-file/${id}`,
-      options,
-    );
+    return axiosInstance.get(`/api/account/profile-picture-file/${id}`, {
+      responseType: 'blob',
+      ...options,
+    });
   };
 
   return { getProfilePicture };
