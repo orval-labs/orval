@@ -398,7 +398,7 @@ export async function writeZodSchemasFromVerbs(
               formUrlEncodedBodyMedia,
             ] as const)
           : [undefined, undefined];
-    const bodySchema = bodyMedia?.schema;
+    const bodySchema = bodyMedia?.schema as OpenApiSchemaObject | undefined;
 
     const bodySchemas = bodySchema
       ? [

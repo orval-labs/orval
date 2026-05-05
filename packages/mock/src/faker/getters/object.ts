@@ -80,7 +80,11 @@ export function getMockObject({
     | Record<string, OpenApiReferenceObject | OpenApiSchemaObject>
     | undefined;
   const itemRequired = schemaItem.required as string[] | undefined;
-  const itemAdditionalProperties = schemaItem.additionalProperties;
+  const itemAdditionalProperties = schemaItem.additionalProperties as
+    | boolean
+    | OpenApiReferenceObject
+    | OpenApiSchemaObject
+    | undefined;
 
   if (itemAllOf || itemOneOf || itemAnyOf) {
     const separator = itemAllOf ? 'allOf' : itemOneOf ? 'oneOf' : 'anyOf';

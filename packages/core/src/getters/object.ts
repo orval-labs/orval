@@ -325,7 +325,11 @@ export function getObject({
       if (entries.length - 1 === index) {
         // Bridge assertion: additionalProperties is boolean | ReferenceObject | SchemaObject
         // but AnyOtherAttribute infects property access
-        const additionalProps = schemaItem.additionalProperties;
+        const additionalProps = schemaItem.additionalProperties as
+          | boolean
+          | OpenApiSchemaObject
+          | OpenApiReferenceObject
+          | undefined;
         if (additionalProps) {
           if (additionalProps === true) {
             const recordType = getPropertyNamesRecordType(
@@ -342,7 +346,9 @@ export function getObject({
             }
           } else {
             const resolvedValue = resolveValue({
-              schema: additionalProps,
+              schema: additionalProps as
+                | OpenApiSchemaObject
+                | OpenApiReferenceObject,
               name,
               context,
             });
@@ -373,7 +379,11 @@ export function getObject({
   }
 
   // Bridge assertion: additionalProperties is boolean | ReferenceObject | SchemaObject
-  const outerAdditionalProps = schemaItem.additionalProperties;
+  const outerAdditionalProps = schemaItem.additionalProperties as
+    | boolean
+    | OpenApiSchemaObject
+    | OpenApiReferenceObject
+    | undefined;
   const readOnlyFlag = schemaItem.readOnly as boolean | undefined;
   if (outerAdditionalProps) {
     if (outerAdditionalProps === true) {
@@ -405,7 +415,9 @@ export function getObject({
       };
     }
     const resolvedValue = resolveValue({
-      schema: outerAdditionalProps,
+      schema: outerAdditionalProps as
+        | OpenApiSchemaObject
+        | OpenApiReferenceObject,
       name,
       context,
     });
