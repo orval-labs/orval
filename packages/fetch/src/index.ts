@@ -211,17 +211,25 @@ ${
     .filter(Boolean);
 
   // Resolve parsing strategy at generation time based on spec-declared content types.
-  // Only emit a runtime Content-Type check when success responses have mixed types.
-  const successHasJson = successContentTypes.some((ct) =>
+  // Only emit a runtime Content-Type check when responses have mixed types.
+  //
+  // When `forceSuccessResponse` is false the same parse block handles both 2xx
+  // and error status codes, so its strategy must cover error content types too
+  // (otherwise e.g. 200 application/json + 429 text/plain still JSON.parses text).
+  const parseTimeContentTypes = override.fetch.forceSuccessResponse
+    ? successContentTypes
+    : [...successContentTypes, ...errorContentTypes];
+  const successHasJson = parseTimeContentTypes.some((ct) =>
     isContentTypeJson(ct),
   );
-  const successHasNonJson = successContentTypes.some(
+  const successHasNonJson = parseTimeContentTypes.some(
     (ct) => !isContentTypeJson(ct),
   );
   const hasMixedSuccessContentTypes = successHasJson && successHasNonJson;
   // No declared content types → fall back to JSON (preserve original behaviour)
   const successAlwaysJson =
-    successContentTypes.length === 0 || (successHasJson && !successHasNonJson);
+    parseTimeContentTypes.length === 0 ||
+    (successHasJson && !successHasNonJson);
 
   const errorHasJson = errorContentTypes.some((ct) => isContentTypeJson(ct));
   const errorHasNonJson = errorContentTypes.some(
