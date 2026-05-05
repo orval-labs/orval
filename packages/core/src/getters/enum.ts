@@ -17,14 +17,65 @@ import {
 /** Bridge type for enum values from AnyOtherAttribute-infected schema extensions */
 type SchemaEnumValue = string | number | boolean | null;
 
+/**
+ * Map of special characters to semantic word replacements.
+ *
+ * Applied before naming convention transforms (PascalCase, camelCase, …) so
+ * that characters which would otherwise be stripped still contribute a unique
+ * segment to the generated key.  Without this, values like "created_at" and
+ * "-created_at" both PascalCase to "CreatedAt", silently overwriting one
+ * another in the generated const/enum object.
+ *
+ * Only characters that appear as leading/trailing modifiers in real-world
+ * OpenAPI enums are mapped — the list is intentionally conservative to avoid
+ * changing output for schemas that don't hit collisions.
+ */
+const ENUM_SPECIAL_CHARACTER_MAP: Record<string, string> = {
+  '-': 'minus',
+  '+': 'plus',
+};
+
+/**
+ * Replace special characters with semantic words (plus an underscore separator)
+ * so that naming convention transforms (PascalCase, etc.) produce unique keys.
+ *
+ * The trailing underscore acts as a word boundary so that PascalCase treats the
+ * replacement as a separate word: "-created_at" → "minus_created_at" → "MinusCreatedAt".
+ */
+function replaceSpecialCharacters(key: string): string {
+  let result = '';
+  for (const char of key) {
+    const replacement = ENUM_SPECIAL_CHARACTER_MAP[char];
+    result += replacement ? replacement + '_' : char;
+  }
+  return result;
+}
+
 export function getEnumNames(schemaObject: OpenApiSchemaObject | undefined) {
   const names = (schemaObject?.['x-enumNames'] ??
     schemaObject?.['x-enumnames'] ??
-    schemaObject?.['x-enum-varnames']) as string[] | undefined;
+    schemaObject?.['x-enum-varnames']) as
+    | string[]
+    | Record<string, string>
+    | undefined;
 
   if (!names) return;
 
-  return names.map((name: string) => jsStringEscape(name));
+  if (Array.isArray(names)) {
+    return names.map((name: string) => jsStringEscape(name));
+  }
+
+  // Object/Map format: keys correspond to enum values, values are the names.
+  // Convert to an array ordered by the schema's enum values.
+  if (typeof names === 'object') {
+    const enumValues = (schemaObject?.enum ?? []) as SchemaEnumValue[];
+    return enumValues.map((enumVal) => {
+      const key = String(enumVal);
+      return key in names ? jsStringEscape(names[key]) : undefined;
+    });
+  }
+
+  return;
 }
 
 export function getEnumDescriptions(
@@ -32,19 +83,40 @@ export function getEnumDescriptions(
 ) {
   const descriptions = (schemaObject?.['x-enumDescriptions'] ??
     schemaObject?.['x-enumdescriptions'] ??
-    schemaObject?.['x-enum-descriptions']) as string[] | undefined;
+    schemaObject?.['x-enum-descriptions']) as
+    | string[]
+    | Record<string, string>
+    | undefined;
 
   if (!descriptions) return;
 
-  return descriptions.map((description: string) => jsStringEscape(description));
+  if (Array.isArray(descriptions)) {
+    return descriptions.map((description: string) =>
+      jsStringEscape(description),
+    );
+  }
+
+  // Object/Map format: keys correspond to enum values, values are the descriptions.
+  // Convert to an array ordered by the schema's enum values.
+  if (typeof descriptions === 'object') {
+    const enumValues = (schemaObject?.enum ?? []) as SchemaEnumValue[];
+    return enumValues.map((enumVal) => {
+      const key = String(enumVal);
+      return key in descriptions
+        ? jsStringEscape(descriptions[key])
+        : undefined;
+    });
+  }
+
+  return;
 }
 
 export function getEnum(
   value: string,
   enumName: string,
-  names: string[] | undefined,
+  names: (string | undefined)[] | undefined,
   enumGenerationType: EnumGeneration,
-  descriptions?: string[],
+  descriptions?: (string | undefined)[],
   enumNamingConvention?: NamingConvention,
 ) {
   if (enumGenerationType === EnumGeneration.CONST)
@@ -63,8 +135,8 @@ export function getEnum(
 const getTypeConstEnum = (
   value: string,
   enumName: string,
-  names?: string[],
-  descriptions?: string[],
+  names?: (string | undefined)[],
+  descriptions?: (string | undefined)[],
   enumNamingConvention?: NamingConvention,
 ) => {
   let enumValue = `export type ${enumName} = typeof ${enumName}[keyof typeof ${enumName}]`;
@@ -90,16 +162,63 @@ const getTypeConstEnum = (
   return enumValue;
 };
 
+/**
+ * Derive the object/enum key for a single enum value.
+ *
+ * Handles numeric prefixes, sanitization, and optional naming convention
+ * transforms.  When `disambiguate` is true, special characters (-/+) are
+ * replaced with semantic words before the convention transform to prevent
+ * key collisions.
+ */
+function deriveEnumKey(
+  val: string,
+  enumNamingConvention?: NamingConvention,
+  disambiguate = false,
+): string {
+  let key = val.startsWith("'") ? val.slice(1, -1) : val;
+
+  if (isNumeric(key)) {
+    key = toNumberKey(key);
+  }
+
+  if (key.length > 1) {
+    key = sanitize(key, {
+      whitespace: '_',
+      underscore: true,
+      dash: true,
+      special: true,
+    });
+  }
+
+  if (enumNamingConvention) {
+    if (disambiguate) {
+      key = replaceSpecialCharacters(key);
+    }
+    key = conventionName(key, enumNamingConvention);
+  }
+
+  return key;
+}
+
 export function getEnumImplementation(
   value: string,
-  names?: string[],
-  descriptions?: string[],
+  names?: (string | undefined)[],
+  descriptions?: (string | undefined)[],
   enumNamingConvention?: NamingConvention,
 ) {
   // empty enum or null-only enum
   if (value === '') return '';
 
   const uniqueValues = [...new Set(value.split(' | '))];
+
+  // Check whether the naming convention produces duplicate keys.
+  // Only apply special-character disambiguation when it does,
+  // so that existing output is preserved for non-colliding enums.
+  const disambiguate =
+    !!enumNamingConvention &&
+    new Set(uniqueValues.map((v) => deriveEnumKey(v, enumNamingConvention)))
+      .size < uniqueValues.length;
+
   let result = '';
   for (const [index, val] of uniqueValues.entries()) {
     const name = names?.[index];
@@ -113,26 +232,7 @@ export function getEnumImplementation(
       continue;
     }
 
-    let key = val.startsWith("'") ? val.slice(1, -1) : val;
-
-    const isNumber = isNumeric(key);
-
-    if (isNumber) {
-      key = toNumberKey(key);
-    }
-
-    if (key.length > 1) {
-      key = sanitize(key, {
-        whitespace: '_',
-        underscore: true,
-        dash: true,
-        special: true,
-      });
-    }
-
-    if (enumNamingConvention) {
-      key = conventionName(key, enumNamingConvention);
-    }
+    const key = deriveEnumKey(val, enumNamingConvention, disambiguate);
 
     result +=
       comment +
@@ -144,7 +244,7 @@ export function getEnumImplementation(
 const getNativeEnum = (
   value: string,
   enumName: string,
-  names?: string[],
+  names?: (string | undefined)[],
   enumNamingConvention?: NamingConvention,
 ) => {
   const enumItems = getNativeEnumItems(value, names, enumNamingConvention);
@@ -155,12 +255,18 @@ const getNativeEnum = (
 
 const getNativeEnumItems = (
   value: string,
-  names?: string[],
+  names?: (string | undefined)[],
   enumNamingConvention?: NamingConvention,
 ) => {
   if (value === '') return '';
 
   const uniqueValues = [...new Set(value.split(' | '))];
+
+  const disambiguate =
+    !!enumNamingConvention &&
+    new Set(uniqueValues.map((v) => deriveEnumKey(v, enumNamingConvention)))
+      .size < uniqueValues.length;
+
   let result = '';
   for (const [index, val] of uniqueValues.entries()) {
     const name = names?.[index];
@@ -169,26 +275,7 @@ const getNativeEnumItems = (
       continue;
     }
 
-    let key = val.startsWith("'") ? val.slice(1, -1) : val;
-
-    const isNumber = isNumeric(key);
-
-    if (isNumber) {
-      key = toNumberKey(key);
-    }
-
-    if (key.length > 1) {
-      key = sanitize(key, {
-        whitespace: '_',
-        underscore: true,
-        dash: true,
-        special: true,
-      });
-    }
-
-    if (enumNamingConvention) {
-      key = conventionName(key, enumNamingConvention);
-    }
+    const key = deriveEnumKey(val, enumNamingConvention, disambiguate);
 
     result += `  ${keyword.isIdentifierNameES5(key) ? key : `'${key}'`}= ${val},\n`;
   }

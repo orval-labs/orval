@@ -1,8 +1,10 @@
 import {
+  getWarningCount,
   type GlobalOptions,
   isString,
   logError,
   type OptionsExport,
+  resetWarnings,
   setVerbose,
 } from '@orval/core';
 
@@ -17,6 +19,7 @@ export async function generate(
   options?: GlobalOptions,
 ) {
   setVerbose(!!options?.verbose);
+  resetWarnings();
 
   if (!optionsExport || isString(optionsExport)) {
     const configFilePath = findConfigFile(optionsExport);
@@ -32,14 +35,14 @@ export async function generate(
         options,
       );
 
-      if (options?.watch === undefined) {
-        try {
-          await generateSpec(workspace, normalizedOptions, projectName);
-        } catch (error) {
-          hasErrors = true;
-          logError(error, projectName);
-        }
-      } else {
+      try {
+        await generateSpec(workspace, normalizedOptions, projectName);
+      } catch (error) {
+        hasErrors = true;
+        logError(error, projectName);
+      }
+
+      if (options?.watch !== undefined) {
         const fileToWatch = isString(normalizedOptions.input.target)
           ? normalizedOptions.input.target
           : undefined;
@@ -47,10 +50,16 @@ export async function generate(
         await startWatcher(
           options.watch,
           async () => {
+            resetWarnings();
             try {
               await generateSpec(workspace, normalizedOptions, projectName);
             } catch (error) {
               logError(error, projectName);
+            }
+            if (options.failOnWarnings && getWarningCount() > 0) {
+              throw new Error(
+                `Process failed with ${getWarningCount()} warning(s) due to failOnWarnings option`,
+              );
             }
           },
           fileToWatch,
@@ -61,6 +70,12 @@ export async function generate(
     if (hasErrors)
       logError('One or more project failed, see above for details');
 
+    if (options?.failOnWarnings && getWarningCount() > 0) {
+      throw new Error(
+        `Process failed with ${getWarningCount()} warning(s) due to failOnWarnings option`,
+      );
+    }
+
     return;
   }
 
@@ -70,23 +85,35 @@ export async function generate(
     options,
   );
 
+  try {
+    await generateSpec(workspace, normalizedOptions);
+  } catch (error) {
+    logError(error);
+  }
+
   if (options?.watch) {
     await startWatcher(
       options.watch,
       async () => {
+        resetWarnings();
         try {
           await generateSpec(workspace, normalizedOptions);
         } catch (error) {
           logError(error);
         }
+        if (options.failOnWarnings && getWarningCount() > 0) {
+          throw new Error(
+            `Process failed with ${getWarningCount()} warning(s) due to failOnWarnings option`,
+          );
+        }
       },
       normalizedOptions.input.target as string,
     );
-  } else {
-    try {
-      await generateSpec(workspace, normalizedOptions);
-    } catch (error) {
-      logError(error);
-    }
+  }
+
+  if (options?.failOnWarnings && getWarningCount() > 0) {
+    throw new Error(
+      `Process failed with ${getWarningCount()} warning(s) due to failOnWarnings option`,
+    );
   }
 }

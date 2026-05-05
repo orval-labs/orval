@@ -1,7 +1,7 @@
 {
   "name": "orval",
   "description": "A swagger client generator for typescript",
-  "version": "8.5.3",
+  "version": "8.9.1",
   "license": "MIT",
   "type": "module",
   "files": [
@@ -57,6 +57,10 @@
     "type": "git",
     "url": "git+https://github.com/orval-labs/orval.git"
   },
+  "homepage": "https://orval.dev",
+  "bugs": {
+    "url": "https://github.com/orval-labs/orval/issues"
+  },
   "scripts": {
     "build": "tsdown --config-loader unrun",
     "dev": "tsdown --config-loader unrun --watch src",
@@ -79,8 +83,8 @@
     "@orval/solid-start": "workspace:*",
     "@orval/swr": "workspace:*",
     "@orval/zod": "workspace:*",
-    "@scalar/json-magic": "^0.11.5",
-    "@scalar/openapi-parser": "^0.24.13",
+    "@scalar/json-magic": "^0.12.8",
+    "@scalar/openapi-parser": "^0.25.12",
     "@scalar/openapi-types": "catalog:",
     "chokidar": "^5.0.0",
     "commander": "^14.0.2",

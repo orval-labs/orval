@@ -99,6 +99,39 @@ export default defineConfig({
 });
 ```
 
+## Set Query Data
+
+When `useSetQueryData: true` is set, Orval generates type-safe helper functions to update cached query data:
+
+```ts
+export const setListPetsQueryData = (
+  queryClient: QueryClient,
+  params: ListPetsParams,
+  updater:
+    | Awaited<ReturnType<typeof listPets>>
+    | undefined
+    | ((
+        old: Awaited<ReturnType<typeof listPets>> | undefined,
+      ) => Awaited<ReturnType<typeof listPets>> | undefined),
+) => {
+  queryClient.setQueryData(getListPetsQueryKey(params), updater);
+};
+```
+
+## Get Query Data
+
+When `useGetQueryData: true` is set, Orval generates type-safe helper functions to read cached query data:
+
+```ts
+export const getListPetsQueryData = (
+  queryClient: QueryClient,
+  params: ListPetsParams,
+) =>
+  queryClient.getQueryData<Awaited<ReturnType<typeof listPets>>>(
+    getListPetsQueryKey(params),
+  );
+```
+
 ## Full Example
 
 See the [complete Svelte Query example](https://github.com/orval-labs/orval/tree/master/samples/svelte-query) on GitHub.

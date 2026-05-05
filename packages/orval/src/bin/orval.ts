@@ -4,13 +4,16 @@ import path from 'node:path';
 import { Option, program } from '@commander-js/extra-typings';
 import {
   ErrorWithTag,
+  getWarningCount,
   isString,
   log,
   logError,
   OutputClient,
   OutputMode,
+  resetWarnings,
   setVerbose,
   startMessage,
+  SupportedFormatter,
 } from '@orval/core';
 
 import pkg from '../../package.json';
@@ -72,15 +75,24 @@ cli
   )
   .option('--mock', 'activate the mock')
   .option('--clean [paths...]', 'Clean output directory')
-  .option('--prettier', 'Prettier generated files')
-  .option('--biome', 'biome generated files')
+  .addOption(
+    new Option(
+      '--formatter <name>',
+      'Format generated files (prettier, biome, oxfmt)',
+    ).choices(Object.values(SupportedFormatter)),
+  )
   .option('--tsconfig <path>', 'path to your tsconfig file')
   .option('--verbose', 'Enable verbose logging')
+  .option(
+    '--fail-on-warnings',
+    'Exit with error code 1 when warnings are emitted',
+  )
   .action(async (options) => {
     if (options.verbose) {
       setVerbose(true);
     }
 
+    resetWarnings();
     log(orvalMessage);
 
     if (isString(options.input) && isString(options.output)) {
@@ -89,8 +101,7 @@ cli
         output: {
           target: options.output,
           clean: options.clean,
-          prettier: options.prettier,
-          biome: options.biome,
+          formatter: options.formatter,
           mock: options.mock,
           client: options.client,
           mode: options.mode,
@@ -98,30 +109,37 @@ cli
         },
       });
 
+      try {
+        await generateSpec(process.cwd(), normalizedOptions);
+      } catch (error) {
+        if (error instanceof ErrorWithTag) {
+          logError(error.cause, error.tag);
+        } else {
+          logError(error);
+        }
+        process.exit(1);
+      }
+
       if (options.watch) {
         await startWatcher(
           options.watch,
           async () => {
+            resetWarnings();
             try {
               await generateSpec(process.cwd(), normalizedOptions);
             } catch (error) {
               logError(error);
               process.exit(1);
             }
+            if (options.failOnWarnings && getWarningCount() > 0) {
+              logError(
+                `Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`,
+              );
+              process.exit(1);
+            }
           },
           normalizedOptions.input.target as string,
         );
-      } else {
-        try {
-          await generateSpec(process.cwd(), normalizedOptions);
-        } catch (error) {
-          if (error instanceof ErrorWithTag) {
-            logError(error.cause, error.tag);
-          } else {
-            logError(error);
-          }
-          process.exit(1);
-        }
       }
     } else {
       const configFilePath = findConfigFile(options.config);
@@ -152,14 +170,14 @@ cli
           options,
         );
 
-        if (options.watch === undefined) {
-          try {
-            await generateSpec(workspace, normalizedOptions, projectName);
-          } catch (error) {
-            hasErrors = true;
-            logError(error, projectName);
-          }
-        } else {
+        try {
+          await generateSpec(workspace, normalizedOptions, projectName);
+        } catch (error) {
+          hasErrors = true;
+          logError(error, projectName);
+        }
+
+        if (options.watch !== undefined) {
           const fileToWatch = isString(normalizedOptions.input.target)
             ? normalizedOptions.input.target
             : undefined;
@@ -167,10 +185,17 @@ cli
           await startWatcher(
             options.watch,
             async () => {
+              resetWarnings();
               try {
                 await generateSpec(workspace, normalizedOptions, projectName);
               } catch (error) {
                 logError(error, projectName);
+              }
+              if (options.failOnWarnings && getWarningCount() > 0) {
+                logError(
+                  `Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`,
+                );
+                process.exit(1);
               }
             },
             fileToWatch,
@@ -182,6 +207,13 @@ cli
         logError('One or more project failed, see above for details');
         process.exit(1);
       }
+    }
+
+    if (options.failOnWarnings && getWarningCount() > 0) {
+      logError(
+        `Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`,
+      );
+      process.exit(1);
     }
   });
 

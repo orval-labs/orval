@@ -5,6 +5,7 @@ import {
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  type GetterBody,
   type GetterParams,
   type GetterProp,
   type GetterProps,
@@ -12,7 +13,8 @@ import {
   type GetterQueryParam,
   type GetterResponse,
   jsDoc,
-  type OutputClient,
+  logWarning,
+  OutputClient,
   type OutputClientFunc,
   type OutputHttpClient,
   pascal,
@@ -29,6 +31,120 @@ import {
   QueryType,
 } from './query-options';
 import { getHasSignal } from './utils';
+
+/**
+ * Decide whether the current operation's configuration conflicts with a
+ * `mutationInvalidates` rule. The rule wires its invalidation through the
+ * Mutation hook's `onSuccess`, so referencing an operation that is not
+ * generated as a Mutation (either forced into a Query via per-operation
+ * `useQuery: true`, or suppressed entirely) makes the rule a silent no-op.
+ *
+ * Returns the warning message when the conflict applies, or `undefined`
+ * when the configuration is consistent.
+ */
+export const getMutationInvalidatesConflictWarning = ({
+  operationName,
+  isMutation,
+  isQuery,
+  mutationInvalidates,
+}: {
+  operationName: string;
+  isMutation: boolean | undefined;
+  isQuery: boolean;
+  mutationInvalidates:
+    | NonNullable<
+        GeneratorVerbOptions['override']['query']['mutationInvalidates']
+      >
+    | undefined;
+}): string | undefined => {
+  if (isMutation) return undefined;
+  if (!mutationInvalidates?.length) return undefined;
+
+  const referencingRule = mutationInvalidates.find((rule) =>
+    rule.onMutations.includes(operationName),
+  );
+  if (!referencingRule) return undefined;
+
+  const generatedAs = isQuery ? 'Query hook' : 'plain function (no hook)';
+  return (
+    `mutationInvalidates rule references '${operationName}', but that ` +
+    `operation is generated as a ${generatedAs}, not a Mutation. The ` +
+    `invalidation will not fire. Either remove '${operationName}' from the ` +
+    `rule's onMutations list, or configure '${operationName}' so that it ` +
+    `is generated as a Mutation hook.`
+  );
+};
+
+const escapeRegExpMetaChars = (value: string): string =>
+  value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+
+/**
+ * Wraps the body parameter's type in a property string with the mutator's
+ * `BodyType<T>` envelope so that user-facing Query helpers (hook signature,
+ * `getXxxQueryOptions`, `getXxxQueryKey`, prefetch / invalidate / set+get
+ * QueryData) match the request function's signature, which is already
+ * wrapped by `client.ts`. Without this, callers that pass a plain body to
+ * a non-GET Query hook (possible after #2376 routes non-GET verbs to
+ * Query hooks) would hit a type mismatch against the underlying request
+ * function.
+ *
+ * The pattern handles three prop shapes that the various
+ * `toObjectString(props, ...)` callers can emit:
+ *   - `name: T`                — required body
+ *   - `name?: T`               — optional body
+ *   - `name: undefined | T`    — `definedInitialData` overload transform
+ *
+ * `body.definition` is fully regex-escaped so types containing metachars
+ * (e.g. `Pet[]`, `Foo | Bar`, anonymous object types) are matched
+ * verbatim rather than reinterpreted as regex syntax.
+ *
+ * No-op when the operation has no body or the mutator does not export a
+ * `BodyType<T>` wrapper, so existing GET-only Query keys are unchanged.
+ */
+export const wrapPropsBodyWithMutatorBodyType = ({
+  propsString,
+  body,
+  mutator,
+}: {
+  propsString: string;
+  body: GetterBody;
+  mutator: GeneratorMutator | undefined;
+}): string => {
+  if (!mutator?.bodyTypeName || !body.definition) return propsString;
+  const bodyDefinitionPattern = escapeRegExpMetaChars(body.definition);
+  return propsString.replace(
+    new RegExp(
+      String.raw`(\w+\??:\s*(?:undefined\s*\|\s*)?)${bodyDefinitionPattern}`,
+    ),
+    `$1${mutator.bodyTypeName}<${body.definition}>`,
+  );
+};
+
+/**
+ * Computes a verb prefix segment for query keys when a non-GET operation is
+ * routed to a Query hook. Without this prefix, two operations sharing a path
+ * (e.g. `GET /pets` and `POST /pets`) would generate cache keys that both
+ * begin with `'/pets'`, so TanStack Query would mix their cached data and
+ * `invalidateQueries({ queryKey: ['/pets'] })` would match both.
+ *
+ * Skipped for GET (preserves existing keys) and when
+ * `useOperationIdAsQueryKey` is enabled (operation IDs are already unique
+ * across verb + path, so the prefix would be redundant).
+ *
+ * Returns the uppercased verb when a prefix should be inserted, or
+ * `undefined` when no prefix is needed.
+ */
+export const getQueryKeyVerbPrefix = ({
+  verb,
+  useOperationIdAsQueryKey,
+}: {
+  verb: Verbs;
+  useOperationIdAsQueryKey: boolean | undefined;
+}): string | undefined => {
+  if (useOperationIdAsQueryKey) return undefined;
+  if (verb === Verbs.GET) return undefined;
+  return verb.toUpperCase();
+};
 
 const getQueryFnArguments = ({
   hasQueryParam,
@@ -144,6 +260,7 @@ const generateQueryImplementation = ({
   queryParams,
   params,
   props,
+  body,
   mutator,
   queryOptionsMutator,
   queryKeyMutator,
@@ -152,12 +269,15 @@ const generateQueryImplementation = ({
   httpClient,
   isExactOptionalPropertyTypes,
   hasSignal,
+  useRuntimeFetcher,
   route,
   doc,
   usePrefetch,
   useQuery,
   useInfinite,
   useInvalidate,
+  useSetQueryData,
+  useGetQueryData,
   adapter,
 }: {
   queryOption: {
@@ -173,6 +293,7 @@ const generateQueryImplementation = ({
   queryKeyProperties: string;
   params: GetterParams;
   props: GetterProps;
+  body: GetterBody;
   response: GetterResponse;
   queryParams?: GetterQueryParam;
   mutator?: GeneratorMutator;
@@ -181,12 +302,15 @@ const generateQueryImplementation = ({
   httpClient: OutputHttpClient;
   isExactOptionalPropertyTypes: boolean;
   hasSignal: boolean;
+  useRuntimeFetcher?: boolean;
   route: string;
   doc?: string;
   usePrefetch?: boolean;
   useQuery?: boolean;
   useInfinite?: boolean;
   useInvalidate?: boolean;
+  useSetQueryData?: boolean;
+  useGetQueryData?: boolean;
   adapter: FrameworkAdapter;
 }) => {
   const {
@@ -200,27 +324,40 @@ const generateQueryImplementation = ({
     (prop: GetterProp) => prop.name === 'signal',
   );
 
-  const queryPropDefinitions = toObjectString(props, 'definition');
-  const definedInitialDataQueryPropsDefinitions = toObjectString(
-    props.map((prop) => {
-      const regex = new RegExp(String.raw`^${prop.name}\s*\?:`);
+  const queryPropDefinitions = wrapPropsBodyWithMutatorBodyType({
+    propsString: toObjectString(props, 'definition'),
+    body,
+    mutator,
+  });
+  const definedInitialDataQueryPropsDefinitions =
+    wrapPropsBodyWithMutatorBodyType({
+      propsString: toObjectString(
+        props.map((prop) => {
+          const regex = new RegExp(String.raw`^${prop.name}\s*\?:`);
 
-      if (!regex.test(prop.definition)) {
-        return prop;
-      }
+          if (!regex.test(prop.definition)) {
+            return prop;
+          }
 
-      const definitionWithUndefined = prop.definition.replace(
-        regex,
-        `${prop.name}: undefined | `,
-      );
-      return {
-        ...prop,
-        definition: definitionWithUndefined,
-      };
-    }),
-    'definition',
-  );
-  const queryProps = toObjectString(props, 'implementation');
+          const definitionWithUndefined = prop.definition.replace(
+            regex,
+            `${prop.name}: undefined | `,
+          );
+          return {
+            ...prop,
+            definition: definitionWithUndefined,
+          };
+        }),
+        'definition',
+      ),
+      body,
+      mutator,
+    });
+  const queryProps = wrapPropsBodyWithMutatorBodyType({
+    propsString: toObjectString(props, 'implementation'),
+    body,
+    mutator,
+  });
 
   const hasInfiniteQueryParam = queryParam && queryParams?.schema.name;
 
@@ -265,6 +402,7 @@ const generateQueryImplementation = ({
     queryParam,
     initialData: 'defined',
     httpClient,
+    useRuntimeFetcher,
   });
   const undefinedInitialDataQueryArguments = adapter.generateQueryArguments({
     operationName,
@@ -276,6 +414,7 @@ const generateQueryImplementation = ({
     queryParam,
     initialData: 'undefined',
     httpClient,
+    useRuntimeFetcher,
   });
   const queryArguments = adapter.generateQueryArguments({
     operationName,
@@ -286,6 +425,7 @@ const generateQueryImplementation = ({
     queryParams,
     queryParam,
     httpClient,
+    useRuntimeFetcher,
   });
 
   // Separate arguments for getQueryOptions function (includes http: HttpClient param for Angular)
@@ -299,6 +439,7 @@ const generateQueryImplementation = ({
     queryParam,
     httpClient,
     forQueryOptions: true,
+    useRuntimeFetcher,
   });
 
   const queryOptions = getQueryOptions({
@@ -308,12 +449,14 @@ const generateQueryImplementation = ({
     hasSignal,
     httpClient,
     hasSignalParam,
+    useRuntimeFetcher,
   });
 
   const hookOptions = getHookOptions({
     isRequestOptions,
     httpClient,
     mutator,
+    useRuntimeFetcher,
   });
 
   const queryFnArguments = getQueryFnArguments({
@@ -441,7 +584,7 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${d
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}`;
 
-  const prefetch = generatePrefetch({
+  const prefetchContext = {
     usePrefetch,
     type,
     useQuery,
@@ -457,15 +600,65 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     queryProperties,
     isRequestOptions,
     doc,
+  };
+
+  const prefetch = adapter.generatePrefetch
+    ? adapter.generatePrefetch(prefetchContext)
+    : generatePrefetch(prefetchContext);
+
+  const isPrimaryQueryType =
+    type === QueryType.QUERY ||
+    type === QueryType.INFINITE ||
+    (type === QueryType.SUSPENSE_QUERY && !useQuery) ||
+    (type === QueryType.SUSPENSE_INFINITE && !useInfinite);
+
+  const buildBaseQueryKeyExpr = () =>
+    queryKeyMutator
+      ? `${queryKeyMutator.name}({ ${queryProperties} }${
+          queryKeyMutator.hasSecondArg ? `, { url: \`${route}\` }` : ''
+        })`
+      : `${queryKeyFnName}(${queryKeyProperties})`;
+
+  // queryOptions mutator may augment the queryKey (e.g. tenant prefix).
+  // Route invalidate through the mutator so the key matches what the
+  // query hook actually wrote into the cache. Hook-shaped mutators are
+  // skipped because the invalidate helper is a plain async function.
+  const applyQueryOptionsMutator = (baseExpr: string) =>
+    queryOptionsMutator && !queryOptionsMutator.isHook
+      ? `${queryOptionsMutator.name}({ queryKey: ${baseExpr} }${
+          queryOptionsMutator.hasSecondArg ? `, { ${queryProperties} }` : ''
+        }${
+          queryOptionsMutator.hasThirdArg ? `, { url: \`${route}\` }` : ''
+        }).queryKey`
+      : baseExpr;
+
+  const shouldGenerateInvalidate = useInvalidate && isPrimaryQueryType;
+  const invalidateFnName = camel(`invalidate-${name}`);
+  const invalidateQueryKeyExpr = applyQueryOptionsMutator(
+    buildBaseQueryKeyExpr(),
+  );
+
+  const shouldGenerateSetQueryData = useSetQueryData && isPrimaryQueryType;
+  const isReactQuery = adapter.outputClient === OutputClient.REACT_QUERY;
+  const setQueryDataFnName = isReactQuery
+    ? camel(`use-set-${name}-query-data`)
+    : camel(`set-${name}-query-data`);
+  const setQueryDataKeyExpr = buildBaseQueryKeyExpr();
+  const setQueryDataProps = wrapPropsBodyWithMutatorBodyType({
+    propsString: toObjectString(
+      props.filter((prop) => prop.type !== GetterPropType.HEADER),
+      'implementation',
+    ).replaceAll('?:', ':'),
+    body,
+    mutator,
   });
 
-  const shouldGenerateInvalidate =
-    useInvalidate &&
-    (type === QueryType.QUERY ||
-      type === QueryType.INFINITE ||
-      (type === QueryType.SUSPENSE_QUERY && !useQuery) ||
-      (type === QueryType.SUSPENSE_INFINITE && !useInfinite));
-  const invalidateFnName = camel(`invalidate-${name}`);
+  const shouldGenerateGetQueryData = useGetQueryData && isPrimaryQueryType;
+  const getQueryDataFnName = isReactQuery
+    ? camel(`use-get-${name}-query-data`)
+    : camel(`get-${name}-query-data`);
+  const getQueryDataKeyExpr = setQueryDataKeyExpr;
+  const getQueryDataProps = setQueryDataProps;
 
   // Generate query init (e.g. const queryOptions = fn(...) or const http = inject(HttpClient))
   const queryInit = adapter.generateQueryInit({
@@ -500,8 +693,12 @@ export type ${pascal(name)}QueryError = ${errorType}
 
 ${adapter.shouldGenerateOverrideTypes() ? overrideTypes : ''}
 ${doc}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${adapter.getHookPropsDefinitions(
-    props,
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${wrapPropsBodyWithMutatorBodyType(
+    {
+      propsString: adapter.getHookPropsDefinitions(props),
+      body,
+      mutator,
+    },
   )} ${queryArguments} ${optionalQueryClientArgument} \n ): ${returnType} {
 
   ${queryInit}
@@ -522,10 +719,36 @@ ${
   shouldGenerateInvalidate
     ? `${doc}export const ${invalidateFnName} = async (\n queryClient: QueryClient, ${queryProps} options?: InvalidateOptions\n  ): Promise<QueryClient> => {
 
-  await queryClient.invalidateQueries({ queryKey: ${queryKeyFnName}(${queryKeyProperties}) }, options);
+  await queryClient.invalidateQueries({ queryKey: ${invalidateQueryKeyExpr} }, options);
 
   return queryClient;
 }\n`
+    : ''
+}
+${
+  shouldGenerateSetQueryData
+    ? isReactQuery
+      ? `${doc}export const ${setQueryDataFnName} = () => {
+  const queryClient = useQueryClient();
+  return (${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
+    queryClient.setQueryData(${setQueryDataKeyExpr}, updater);
+  };
+}\n`
+      : `${doc}export const ${setQueryDataFnName} = (queryClient: QueryClient, ${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
+  queryClient.setQueryData(${setQueryDataKeyExpr}, updater);
+}\n`
+    : ''
+}
+${
+  shouldGenerateGetQueryData
+    ? isReactQuery
+      ? `${doc}export const ${getQueryDataFnName} = () => {
+  const queryClient = useQueryClient();
+  return (${getQueryDataProps}) =>
+    queryClient.getQueryData<${TData}>(${getQueryDataKeyExpr});
+}\n`
+      : `${doc}export const ${getQueryDataFnName} = (queryClient: QueryClient, ${getQueryDataProps}) =>
+  queryClient.getQueryData<${TData}>(${getQueryDataKeyExpr});\n`
     : ''
 }
 `;
@@ -610,6 +833,21 @@ export const generateQueryHook = async (
   // If both query and mutation are true for a GET operation, prioritize mutation
   if (verb === Verbs.GET && isMutation) {
     isQuery = false;
+  }
+
+  // Warn when an operation referenced by a `mutationInvalidates` rule's
+  // `onMutations` list is generated as a Query (or no hook at all). The rule
+  // is wired up in mutation-generator and only fires for Mutation hooks, so
+  // referencing a Query-emitted operation is a silent no-op — surface that
+  // misconfiguration explicitly.
+  const conflictWarning = getMutationInvalidatesConflictWarning({
+    operationName,
+    isMutation,
+    isQuery,
+    mutationInvalidates: override.query.mutationInvalidates,
+  });
+  if (conflictWarning) {
+    logWarning(conflictWarning);
   }
 
   if (isQuery) {
@@ -708,19 +946,23 @@ export const generateQueryHook = async (
           return impl.replace(/^(\w+):\s*/, '$1?: ');
         };
 
-        const queryKeyProps = toObjectString(
-          props
-            .filter((prop) => prop.type !== GetterPropType.HEADER)
-            .map((prop) => ({
-              ...prop,
-              implementation:
-                prop.type === GetterPropType.PARAM ||
-                prop.type === GetterPropType.NAMED_PATH_PARAMS
-                  ? prop.implementation
-                  : makeOptionalParam(prop.implementation),
-            })),
-          'implementation',
-        );
+        const queryKeyProps = wrapPropsBodyWithMutatorBodyType({
+          propsString: toObjectString(
+            props
+              .filter((prop) => prop.type !== GetterPropType.HEADER)
+              .map((prop) => ({
+                ...prop,
+                implementation:
+                  prop.type === GetterPropType.PARAM ||
+                  prop.type === GetterPropType.NAMED_PATH_PARAMS
+                    ? prop.implementation
+                    : makeOptionalParam(prop.implementation),
+              })),
+            'implementation',
+          ),
+          body,
+          mutator,
+        });
 
         const routeString = adapter.getQueryKeyRouteString(
           route,
@@ -744,6 +986,11 @@ export const generateQueryHook = async (
           .map((p) => `...(${p.name} ? [${p.name}] : [])`)
           .join(', ');
 
+        const verbPrefix = getQueryKeyVerbPrefix({
+          verb,
+          useOperationIdAsQueryKey: override.query.useOperationIdAsQueryKey,
+        });
+
         // Note: do not unref() params in Vue - this will make key lose reactivity
         queryKeyFns += `
 ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.queryKeyFnName} = (${queryKeyProps}) => {
@@ -753,6 +1000,7 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
       queryOption.type === QueryType.SUSPENSE_INFINITE
         ? `'infinite'`
         : '',
+      verbPrefix ? `'${verbPrefix}'` : '',
       queryKeyIdentifier,
       queryKeyParams,
       body.implementation,
@@ -778,6 +1026,7 @@ ${queryKeyFns}`;
         queryKeyProperties,
         params,
         props,
+        body,
         mutator,
         isRequestOptions,
         queryParams,
@@ -787,6 +1036,7 @@ ${queryKeyFns}`;
         hasSignal: getHasSignal({
           overrideQuerySignal: override.query.signal,
         }),
+        useRuntimeFetcher: override.fetch.useRuntimeFetcher,
         queryOptionsMutator,
         queryKeyMutator,
         route,
@@ -795,6 +1045,10 @@ ${queryKeyFns}`;
         useQuery: query.useQuery,
         useInfinite: query.useInfinite,
         useInvalidate: query.useInvalidate,
+        useSetQueryData:
+          operationQueryOptions?.useSetQueryData ?? query.useSetQueryData,
+        useGetQueryData:
+          operationQueryOptions?.useGetQueryData ?? query.useGetQueryData,
         adapter,
       });
     }

@@ -1,7 +1,5 @@
 import path from 'node:path';
 
-import fs from 'fs-extra';
-
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import { OutputClient, type WriteModeProps } from '../types';
 import {
@@ -13,6 +11,7 @@ import {
   upath,
 } from '../utils';
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
+import { writeGeneratedFile } from './file';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
@@ -23,6 +22,7 @@ export async function writeSplitMode({
   projectName,
   header,
   needSchema,
+  generateSchemasInline,
 }: WriteModeProps): Promise<string[]> {
   try {
     const {
@@ -62,7 +62,7 @@ export async function writeSplitMode({
             { extension: output.fileExtension },
           ).dirname,
         )
-      : './' + filename + '.schemas';
+      : './' + filename + '.schemas' + extension.replace(/\.ts$/, '');
 
     const isAllowSyntheticDefaultImports = isSyntheticDefaultImportsAllow(
       output.tsconfig,
@@ -105,14 +105,17 @@ export async function writeSplitMode({
       options: isFunction(output.mock) ? undefined : output.mock,
     });
 
-    const schemasPath = output.schemas
-      ? undefined
-      : path.join(dirname, filename + '.schemas' + extension);
+    const schemasPath =
+      !output.schemas && needSchema
+        ? path.join(dirname, filename + '.schemas' + extension)
+        : undefined;
 
-    if (schemasPath && needSchema) {
-      const schemasData = header + generateModelsInline(builder.schemas);
+    if (schemasPath) {
+      const schemasData = generateSchemasInline
+        ? header + generateSchemasInline()
+        : header + generateModelsInline(builder.schemas);
 
-      await fs.outputFile(schemasPath, schemasData);
+      await writeGeneratedFile(schemasPath, schemasData);
     }
 
     if (mutators) {
@@ -169,7 +172,7 @@ export async function writeSplitMode({
       extension;
 
     const implementationPath = path.join(dirname, implementationFilename);
-    await fs.outputFile(implementationPath, implementationData);
+    await writeGeneratedFile(implementationPath, implementationData);
 
     const mockPath = output.mock
       ? path.join(
@@ -182,7 +185,7 @@ export async function writeSplitMode({
       : undefined;
 
     if (mockPath) {
-      await fs.outputFile(mockPath, mockData);
+      await writeGeneratedFile(mockPath, mockData);
     }
 
     return [

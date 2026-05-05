@@ -1,6 +1,6 @@
 {
   "name": "vue-query-basic",
-  "version": "8.5.3",
+  "version": "8.9.1",
   "type": "module",
   "private": true,
   "scripts": {
@@ -21,8 +21,8 @@
   "devDependencies": {
     "@testing-library/vue": "^8.1.0",
     "@vitejs/plugin-vue": "^6.0.1",
-    "@vue/compiler-sfc": "^3.5.26",
-    "jsdom": "^27.1.0",
+    "@vue/compiler-sfc": "^3.5.33",
+    "jsdom": "^29.0.1",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
     "prettier": "catalog:",

@@ -1,5 +1,3 @@
-import fs from 'fs-extra';
-
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import type { WriteModeProps } from '../types';
 import {
@@ -10,6 +8,8 @@ import {
   isSyntheticDefaultImportsAllow,
   upath,
 } from '../utils';
+import { escapeRegExp } from '../utils/string';
+import { writeGeneratedFile } from './file';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
@@ -20,6 +20,7 @@ export async function writeSingleMode({
   projectName,
   header,
   needSchema,
+  generateSchemasInline,
 }: WriteModeProps): Promise<string[]> {
   try {
     const { path } = getFileInfo(output.target, {
@@ -59,15 +60,52 @@ export async function writeSingleMode({
       output.tsconfig,
     );
 
+    const implementationImports = imports.filter((imp) => {
+      const searchWords = [imp.alias, imp.name]
+        .filter((part): part is string => Boolean(part?.length))
+        .map((part) => escapeRegExp(part))
+        .join('|');
+      if (!searchWords) {
+        return false;
+      }
+
+      return new RegExp(String.raw`\b(${searchWords})\b`, 'g').test(
+        implementation,
+      );
+    });
+
+    const normalizedImports = implementationImports.map((imp) => ({ ...imp }));
+    for (const mockImport of importsMock) {
+      const matchingImport = normalizedImports.find(
+        (imp) =>
+          imp.name === mockImport.name &&
+          (imp.alias ?? '') === (mockImport.alias ?? ''),
+      );
+      if (!matchingImport) continue;
+
+      const mockNeedsRuntimeValue =
+        !!mockImport.values ||
+        !!mockImport.isConstant ||
+        !!mockImport.default ||
+        !!mockImport.namespaceImport ||
+        !!mockImport.syntheticDefaultImport;
+      if (mockNeedsRuntimeValue) {
+        matchingImport.values = true;
+      }
+    }
+
+    // When `schemas` is unset there is no schemasPath. We must still emit imports
+    // that carry `importPath` (e.g. baseUrl.runtime imports), but we must not
+    // pass `'.'` for schema-relative imports: that becomes `from '.'` and breaks
+    // TS (see samples with a real `schemas` path). So only `importPath` entries
+    // use the `.` placeholder when `schemasPath` is missing.
     const importsForBuilder = schemasPath
-      ? generateImportsForBuilder(
+      ? generateImportsForBuilder(output, normalizedImports, schemasPath)
+      : generateImportsForBuilder(
           output,
-          imports.filter(
-            (imp) => !importsMock.some((impMock) => imp.name === impMock.name),
-          ),
-          schemasPath,
-        )
-      : [];
+          normalizedImports.filter((imp) => !!imp.importPath),
+          '.',
+        );
 
     data += builder.imports({
       client: output.client,
@@ -86,9 +124,21 @@ export async function writeSingleMode({
     });
 
     if (output.mock) {
+      const filteredMockImports = importsMock.filter(
+        (impMock) =>
+          !normalizedImports.some(
+            (imp) =>
+              imp.name === impMock.name &&
+              (imp.alias ?? '') === (impMock.alias ?? ''),
+          ),
+      );
       const importsMockForBuilder = schemasPath
-        ? generateImportsForBuilder(output, importsMock, schemasPath)
-        : [];
+        ? generateImportsForBuilder(output, filteredMockImports, schemasPath)
+        : generateImportsForBuilder(
+            output,
+            filteredMockImports.filter((imp) => !!imp.importPath),
+            '.',
+          );
       data += builder.importsMock({
         implementation: implementationMock,
         imports: importsMockForBuilder,
@@ -134,7 +184,9 @@ export async function writeSingleMode({
     }
 
     if (!output.schemas && needSchema) {
-      data += generateModelsInline(builder.schemas);
+      data += generateSchemasInline
+        ? generateSchemasInline()
+        : generateModelsInline(builder.schemas);
     }
 
     data += `${implementation.trim()}\n`;
@@ -144,7 +196,7 @@ export async function writeSingleMode({
       data += implementationMock;
     }
 
-    await fs.outputFile(path, data);
+    await writeGeneratedFile(path, data);
 
     return [path];
   } catch (error) {

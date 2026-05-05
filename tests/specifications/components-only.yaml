@@ -1,0 +1,30 @@
+openapi: 3.0.3
+info:
+  title: Components Only
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    User:
+      type: object
+      required:
+        - email
+        - type
+      properties:
+        email:
+          type: string
+        type:
+          type: string
+          enum:
+            - INTERNAL
+            - EXTERNAL
+            - SYSTEM
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+        city:
+          type: string
+        zipCode:
+          type: string

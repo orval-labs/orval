@@ -58,6 +58,12 @@ You can find some samples below:
 
 Try Orval out for yourself using our [Playground](https://orval.dev/playground) application!
 
+## A note about AI
+
+First of all, we do not reject the use of AI agents outright. That said, please do not submit AI-generated output in a PR without reviewing it yourself. Every change must have a clear intent and purpose — do not submit changes you cannot explain in your own words. Making the effort to understand orval's codebase, TypeScript, and API clients beforehand, and reviewing what AI produces, is the contributor's responsibility, not the reviewer's. Finally, we will continue to welcome new contributors and actively support you through review and iteration.
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
+
 ## Developers
 
 This project uses [Bun](https://bun.sh/) for package management and building. Bun [install guide](https://bun.sh/docs/installation).
@@ -126,6 +132,9 @@ Support us with a one-time donation and help us continue our activities on [Open
 </a>
 <a href="https://opencollective.com/orval">
   <img src="https://orval.dev/images/emblem.svg" width="50" height="50" alt="Backer" />
+</a>
+<a href="https://github.com/tatsuya-asami">
+  <img src="https://github.com/tatsuya-asami.png" width="50" height="50" alt="tatsuya-asami" />
 </a>
 
 **Note:** After becoming a sponsor or backer, please contact us on [Discord](https://discord.gg/6fC2sjDU7w) to upload your logo.

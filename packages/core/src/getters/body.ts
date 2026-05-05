@@ -6,6 +6,7 @@ import type {
   OpenApiReferenceObject,
   OpenApiRequestBodyObject,
   OverrideOutputContentType,
+  ResReqTypesValue,
 } from '../types';
 import { camel, filterByContentType, isReference, sanitize } from '../utils';
 import { getResReqTypes } from './res-req-types';
@@ -17,27 +18,23 @@ interface GetBodyOptions {
   contentType?: OverrideOutputContentType;
 }
 
-export function getBody({
-  requestBody,
-  operationName,
-  context,
-  contentType,
-}: GetBodyOptions): GetterBody {
-  const allBodyTypes = getResReqTypes(
-    [[context.output.override.components.requestBodies.suffix, requestBody]],
-    operationName,
-    context,
-  );
-
-  const filteredBodyTypes = filterByContentType(allBodyTypes, contentType);
-
+function buildBody(
+  filteredBodyTypes: ResReqTypesValue[],
+  requestBody: OpenApiReferenceObject | OpenApiRequestBodyObject,
+  operationName: string,
+  context: ContextSpec,
+): GetterBody {
   const imports = filteredBodyTypes.flatMap(({ imports }) => imports);
   const schemas = filteredBodyTypes.flatMap(({ schemas }) => schemas);
 
   const definition = filteredBodyTypes.map(({ value }) => value).join(' | ');
   const hasReadonlyProps = filteredBodyTypes.some((x) => x.hasReadonlyProps);
   const nonReadonlyDefinition =
-    hasReadonlyProps && definition ? `NonReadonly<${definition}>` : definition;
+    hasReadonlyProps &&
+    definition &&
+    context.output.override.preserveReadonlyRequestBodies !== 'preserve'
+      ? `NonReadonly<${definition}>`
+      : definition;
 
   let implementation =
     generalJSTypesWithArray.includes(definition.toLowerCase()) ||
@@ -56,15 +53,11 @@ export function getBody({
       es5IdentifierName: true,
     });
     if (isReference(requestBody)) {
-      const { schema: bodySchema } = resolveRef<OpenApiRequestBodyObject>(
-        requestBody,
-        context,
-      );
-      if (bodySchema.required !== undefined) {
-        isOptional = !bodySchema.required;
-      }
-    } else if (requestBody.required !== undefined) {
-      isOptional = !requestBody.required;
+      const { schema: bodySchema }: { schema: OpenApiRequestBodyObject } =
+        resolveRef(requestBody, context);
+      isOptional = bodySchema.required !== true;
+    } else {
+      isOptional = requestBody.required !== true;
     }
   }
 
@@ -87,4 +80,83 @@ export function getBody({
           contentType: '',
         }),
   };
+}
+
+export function getBody({
+  requestBody,
+  operationName,
+  context,
+  contentType,
+}: GetBodyOptions): GetterBody {
+  const allBodyTypes = getResReqTypes(
+    [[context.output.override.components.requestBodies.suffix, requestBody]],
+    operationName,
+    context,
+  );
+
+  const filteredBodyTypes = filterByContentType(allBodyTypes, contentType);
+
+  return buildBody(filteredBodyTypes, requestBody, operationName, context);
+}
+
+/**
+ * Returns per-content-type bodies when `splitByContentType` is enabled.
+ * Each entry includes a `contentTypeSuffix` for generating distinct function names.
+ */
+export function getBodiesByContentType({
+  requestBody,
+  operationName,
+  context,
+  contentType,
+}: GetBodyOptions): (GetterBody & { contentTypeSuffix: string })[] {
+  const allBodyTypes = getResReqTypes(
+    [[context.output.override.components.requestBodies.suffix, requestBody]],
+    operationName,
+    context,
+    undefined,
+    (item) => `${item.value}::${item.contentType}`,
+  );
+
+  const filteredBodyTypes = filterByContentType(allBodyTypes, contentType);
+
+  // If there's only one content type, no need to split
+  if (filteredBodyTypes.length <= 1) {
+    return [
+      {
+        ...buildBody(filteredBodyTypes, requestBody, operationName, context),
+        contentTypeSuffix: '',
+      },
+    ];
+  }
+
+  return filteredBodyTypes.map((bodyType) => {
+    const suffix = getContentTypeSuffix(bodyType.contentType);
+    const body = buildBody([bodyType], requestBody, operationName, context);
+    return {
+      ...body,
+      contentTypeSuffix: suffix,
+    };
+  });
+}
+
+const CONTENT_TYPE_SUFFIX_MAP: Record<string, string> = {
+  'application/json': 'Json',
+  'multipart/form-data': 'FormData',
+  'application/x-www-form-urlencoded': 'UrlEncoded',
+  'text/plain': 'Text',
+  'application/xml': 'Xml',
+  'text/xml': 'Xml',
+  'application/octet-stream': 'Blob',
+};
+
+function getContentTypeSuffix(contentType: string): string {
+  if (CONTENT_TYPE_SUFFIX_MAP[contentType]) {
+    return CONTENT_TYPE_SUFFIX_MAP[contentType];
+  }
+  // For unknown content types, derive a PascalCase suffix from the subtype
+  const subtype = contentType.split('/')[1] ?? contentType;
+  return subtype
+    .split(/[-+.]/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('');
 }

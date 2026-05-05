@@ -1,5 +1,6 @@
 import {
   type ClientMockGeneratorBuilder,
+  escapeRegExp,
   generateDependencyImports,
   type GenerateMockImports,
   type GeneratorDependency,
@@ -165,13 +166,31 @@ function generateDefinition(
     ? returnType.replaceAll(/\bBlob\b/g, 'ArrayBuffer')
     : returnType;
 
+  // Detect when the return type is a union containing void (e.g. "Resource | void"
+  // from endpoints with both 200 JSON and 204 No Content responses). In this case
+  // we need runtime branching so that void responses use `new HttpResponse(null)`
+  // instead of `HttpResponse.json()` which does not accept void/undefined.
+  const isVoidUnionType =
+    mockReturnType !== 'void' &&
+    mockReturnType.split('|').some((part) => part.trim() === 'void');
+  const noContentStatusCode = isVoidUnionType
+    ? (responses.find((r) => r.value === 'void')?.key ?? '204')
+    : undefined;
+  const nonVoidMockReturnType = isVoidUnionType
+    ? mockReturnType
+        .split('|')
+        .filter((part) => part.trim() !== 'void')
+        .join(' | ')
+        .trim()
+    : mockReturnType;
+
   const hasJsonContentType = contentTypesByPreference.some(
     (ct) => ct.includes('json') || ct.includes('+json'),
   );
   const hasStringReturnType =
     isTypeExactlyString(mockReturnType) ||
     isUnionContainingString(mockReturnType);
-  const overrideResponseType = `Partial<Extract<${mockReturnType}, object>>`;
+  const overrideResponseType = `Partial<Extract<${nonVoidMockReturnType}, object>>`;
   const shouldPreferJsonResponse = hasJsonContentType && !hasStringReturnType;
 
   // When the return type is a union containing both string and structured types
@@ -191,7 +210,7 @@ function generateDefinition(
         isResponseOverridable
           ? `overrideResponse: ${overrideResponseType} = {}`
           : ''
-      })${mockData ? '' : `: ${mockReturnType}`} => (${value})\n\n`
+      })${mockData ? '' : `: ${nonVoidMockReturnType}`} => (${value})\n\n`
     : mockImplementations;
 
   const delay = getDelay(override, isFunction(mock) ? undefined : mock);
@@ -232,15 +251,19 @@ function generateDefinition(
 
   let responseBody: string;
   // Use a prelude to evaluate the override expression once into a temp variable
-  // (the expression contains `await` so must not be duplicated)
+  // (the expression contains `await` so must not be duplicated). Only emit it
+  // when we actually generate a `*ResponseMock()` helper — otherwise the
+  // prelude would reference a function that doesn't exist (issue #3270).
   let responsePrelude = '';
-  if (isBinaryResponse) {
-    responsePrelude = `const binaryBody = ${resolvedResponseExpr};`;
-  } else if (needsRuntimeContentTypeSwitch) {
-    responsePrelude = `const resolvedBody = ${resolvedResponseExpr};`;
-  } else if (isTextResponse && !shouldPreferJsonResponse) {
-    responsePrelude = `const resolvedBody = ${resolvedResponseExpr};
+  if (isReturnHttpResponse) {
+    if (isBinaryResponse) {
+      responsePrelude = `const binaryBody = ${resolvedResponseExpr};`;
+    } else if (isVoidUnionType || needsRuntimeContentTypeSwitch) {
+      responsePrelude = `const resolvedBody = ${resolvedResponseExpr};`;
+    } else if (isTextResponse && !shouldPreferJsonResponse) {
+      responsePrelude = `const resolvedBody = ${resolvedResponseExpr};
     const textBody = typeof resolvedBody === 'string' ? resolvedBody : JSON.stringify(resolvedBody ?? null);`;
+    }
   }
   if (!isReturnHttpResponse) {
     responseBody = `new HttpResponse(null,
@@ -254,6 +277,25 @@ function generateDefinition(
       { status: ${statusCode},
         headers: { 'Content-Type': '${binaryContentType}' }
       })`;
+  } else if (isVoidUnionType) {
+    // Runtime branching for void union types (e.g. 200 JSON + 204 No Content).
+    // When the resolved body is undefined, return an empty response with the
+    // no-content status code; otherwise use the appropriate response helper.
+    let nonVoidBody: string;
+    if (needsRuntimeContentTypeSwitch) {
+      nonVoidBody = `typeof resolvedBody === 'string'
+        ? HttpResponse.${textHelper}(resolvedBody, { status: ${statusCode} })
+        : HttpResponse.json(resolvedBody, { status: ${statusCode} })`;
+    } else if (isTextResponse && !shouldPreferJsonResponse) {
+      nonVoidBody = `HttpResponse.${textHelper}(
+        typeof resolvedBody === 'string' ? resolvedBody : JSON.stringify(resolvedBody ?? null),
+        { status: ${statusCode} })`;
+    } else {
+      nonVoidBody = `HttpResponse.json(resolvedBody, { status: ${statusCode} })`;
+    }
+    responseBody = `resolvedBody === undefined
+      ? new HttpResponse(null, { status: ${noContentStatusCode} })
+      : ${nonVoidBody}`;
   } else if (needsRuntimeContentTypeSwitch) {
     // Runtime branching: when the resolved value is a string, use the
     // appropriate text helper; otherwise fall back to HttpResponse.json()
@@ -289,8 +331,17 @@ export const ${handlerName} = (overrideResponse?: ${mockReturnType} | ((${infoPa
   const includeResponseImports = [
     ...imports,
     ...response.imports.filter((r) => {
-      // Only include imports which are actually used in mock.
-      const reg = new RegExp(String.raw`\b${r.name}\b`);
+      // Only keep imports referenced in the mock. Aliased imports
+      // (`Foo as __Foo`) reference the alias rather than the bare name, so
+      // match against either. Mirrors `addDependency` in core/generators/imports.ts (#3269).
+      const searchWords = [r.alias, r.name]
+        .filter((p): p is string => Boolean(p?.length))
+        .map((part) => escapeRegExp(part))
+        .join('|');
+      if (!searchWords) {
+        return false;
+      }
+      const reg = new RegExp(String.raw`\b(${searchWords})\b`);
       return reg.test(handlerImplementation) || reg.test(mockImplementation);
     }),
   ];

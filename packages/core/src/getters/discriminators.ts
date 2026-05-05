@@ -61,16 +61,31 @@ export function resolveDiscriminators(
             ? enumProperty.value
             : undefined;
 
+        const propertyType =
+          (schemaProperty?.type as string | undefined) ?? 'string';
+
+        let typedMappingKey: string | number | boolean = mappingKey;
+        if (propertyType === 'boolean') {
+          typedMappingKey = mappingKey === 'true';
+        } else if (propertyType === 'number' || propertyType === 'integer') {
+          const parsed = Number(mappingKey);
+          if (!Number.isNaN(parsed)) {
+            typedMappingKey = parsed;
+          }
+        }
+
         const mergedEnumValues = [
-          ...(enumValues ?? []).filter((value) => value !== mappingKey),
-          mappingKey,
+          ...(enumValues ?? []).filter((value) => value !== typedMappingKey),
+          typedMappingKey,
         ];
 
+        // @see https://github.com/orval-labs/orval/issues/3139
         const mergedProperty = {
           ...schemaProperty,
-          type: 'string',
+          type: propertyType,
           enum: mergedEnumValues,
         };
+        delete (mergedProperty as Record<string, unknown>).const;
 
         subTypeSchema.properties = {
           ...subTypeSchema.properties,

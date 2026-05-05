@@ -446,6 +446,122 @@ describe('getMockScalar (undefined filtering)', () => {
   });
 });
 
+describe('getMockScalar (exclusiveMinimum/exclusiveMaximum handling)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+    context: { output: { override: {} } } as ContextSpec,
+  };
+
+  describe('OpenAPI 3.0 (boolean exclusiveMinimum/exclusiveMaximum)', () => {
+    it('should omit min when exclusiveMinimum is true but minimum is absent', () => {
+      const result = getMockScalar({
+        ...baseArg,
+        item: {
+          type: 'integer' as const,
+          exclusiveMinimum: true as unknown as number,
+          name: 'test-item',
+        },
+      });
+
+      expect(result.value).toBe('faker.number.int()');
+      expect(result.value).not.toContain('true');
+    });
+
+    it('should use minimum when exclusiveMinimum is true for integer type', () => {
+      const result = getMockScalar({
+        ...baseArg,
+        item: {
+          type: 'integer' as const,
+          minimum: 0,
+          exclusiveMinimum: true as unknown as number,
+          name: 'test-item',
+        },
+      });
+
+      expect(result.value).toBe('faker.number.int({min: 0})');
+      expect(result.value).not.toContain('true');
+    });
+
+    it('should use maximum when exclusiveMaximum is true for integer type', () => {
+      const result = getMockScalar({
+        ...baseArg,
+        item: {
+          type: 'integer' as const,
+          maximum: 100,
+          exclusiveMaximum: true as unknown as number,
+          name: 'test-item',
+        },
+      });
+
+      expect(result.value).toBe('faker.number.int({max: 100})');
+      expect(result.value).not.toContain('true');
+    });
+
+    it('should use minimum and maximum when both exclusive flags are true for number type', () => {
+      const result = getMockScalar({
+        ...baseArg,
+        item: {
+          type: 'number' as const,
+          minimum: 0,
+          maximum: 100,
+          exclusiveMinimum: true as unknown as number,
+          exclusiveMaximum: true as unknown as number,
+          name: 'test-item',
+        },
+      });
+
+      expect(result.value).toBe('faker.number.float({min: 0, max: 100})');
+      expect(result.value).not.toContain('true');
+    });
+  });
+
+  describe('OpenAPI 3.1 (numeric exclusiveMinimum/exclusiveMaximum)', () => {
+    it('should use exclusiveMinimum value directly for integer type', () => {
+      const result = getMockScalar({
+        ...baseArg,
+        item: {
+          type: 'integer' as const,
+          exclusiveMinimum: 5,
+          name: 'test-item',
+        },
+      });
+
+      expect(result.value).toBe('faker.number.int({min: 5})');
+    });
+
+    it('should use exclusiveMaximum value directly for integer type', () => {
+      const result = getMockScalar({
+        ...baseArg,
+        item: {
+          type: 'integer' as const,
+          exclusiveMaximum: 100,
+          name: 'test-item',
+        },
+      });
+
+      expect(result.value).toBe('faker.number.int({max: 100})');
+    });
+
+    it('should use exclusiveMinimum and exclusiveMaximum values directly for number type', () => {
+      const result = getMockScalar({
+        ...baseArg,
+        item: {
+          type: 'number' as const,
+          exclusiveMinimum: 0,
+          exclusiveMaximum: 100,
+          name: 'test-item',
+        },
+      });
+
+      expect(result.value).toBe('faker.number.float({min: 0, max: 100})');
+    });
+  });
+});
+
 describe('getMockScalar (@-prefixed property names)', () => {
   const baseArg = {
     imports: [],
@@ -475,41 +591,73 @@ describe('getMockScalar (@-prefixed property names)', () => {
   });
 });
 
-describe('getMockScalar (pattern escaping)', () => {
+describe('getMockScalar (pattern-backed string escaping)', () => {
+  it('escapes regex patterns when generating faker.helpers.fromRegExp()', () => {
+    const result = getMockScalar({
+      item: {
+        type: 'string' as const,
+        pattern: String.raw`^\+?[1-9]\d{1,14}$`,
+        name: 'phone',
+      },
+      imports: [],
+      operationId: 'test-operation',
+      tags: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+      context: { output: { override: {} } } as ContextSpec,
+    });
+
+    expect(result.value).toBe(
+      String.raw`faker.helpers.fromRegExp("^\\+?[1-9]\\d{1,14}$")`,
+    );
+  });
+
+  it('preserves single quotes in regex patterns when stringifying them', () => {
+    const result = getMockScalar({
+      item: {
+        type: 'string' as const,
+        pattern: String.raw`^[a-zA-Z0-9']*$`,
+        name: 'username',
+      },
+      imports: [],
+      operationId: 'test-operation',
+      tags: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+      context: { output: { override: {} } } as ContextSpec,
+    });
+
+    expect(result.value).toBe(
+      String.raw`faker.helpers.fromRegExp("^[a-zA-Z0-9']*$")`,
+    );
+  });
+});
+
+describe('getMockScalar (post-upgrader OAS 3.0 example handling)', () => {
+  // OAS 3.0 inputs go through @scalar/openapi-parser's upgrade(), which
+  // rewrites property-level `example: <value>` into `examples: [<value>]`
+  // and deletes the singular field. The scalar getter must read the array
+  // form so that useExamples keeps working for OAS 3.0 specs.
   const baseArg = {
     imports: [],
     operationId: 'test-operation',
     tags: [],
     existingReferencedProperties: [],
     splitMockImplementations: [],
+    mockOptions: { useExamples: true },
     context: { output: { override: {} } } as ContextSpec,
   };
 
-  it('should escape single quotes in pattern when generating faker.helpers.fromRegExp call', () => {
+  it('uses examples[0] for a string property when useExamples is true', () => {
     const result = getMockScalar({
       ...baseArg,
       item: {
         type: 'string' as const,
-        name: 'pattern-item',
-        pattern: "^[a-zA-Z0-9']*$",
-      },
+        name: 'slug',
+        examples: ['relaxation'],
+      } as Parameters<typeof getMockScalar>[0]['item'],
     });
 
-    expect(result.value).toBe(
-      String.raw`faker.helpers.fromRegExp('^[a-zA-Z0-9\']*$')`,
-    );
-  });
-
-  it('should escape multiple single quotes in pattern when generating faker.helpers.fromRegExp call', () => {
-    const result = getMockScalar({
-      ...baseArg,
-      item: {
-        type: 'string' as const,
-        name: 'pattern-item-multiple',
-        pattern: "a'''b",
-      },
-    });
-
-    expect(result.value).toBe(String.raw`faker.helpers.fromRegExp('a\'\'\'b')`);
+    expect(result.value).toBe('"relaxation"');
   });
 });

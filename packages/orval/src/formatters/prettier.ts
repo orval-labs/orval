@@ -1,8 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { styleText } from 'node:util';
 
-import { log } from '@orval/core';
+import { logWarning } from '@orval/core';
 import { execa } from 'execa';
 
 /**
@@ -17,12 +16,16 @@ export async function formatWithPrettier(
   const prettier = await tryImportPrettier();
 
   if (prettier) {
-    const filePaths = await collectFilePaths(paths);
-    const config = await prettier.resolveConfig(filePaths[0]);
+    const filePaths = [...new Set(await collectFilePaths(paths))];
+    if (filePaths.length === 0) {
+      return;
+    }
+
+    const config = (await prettier.resolveConfig(filePaths[0])) ?? {};
     await Promise.all(
       filePaths.map(async (filePath) => {
-        const content = await fs.readFile(filePath, 'utf8');
         try {
+          const content = await fs.readFile(filePath, 'utf8');
           const formatted = await prettier.format(content, {
             ...config,
             // options.filepath can be specified for Prettier to infer the parser from the file extension
@@ -30,25 +33,23 @@ export async function formatWithPrettier(
           });
           await fs.writeFile(filePath, formatted);
         } catch (error) {
+          if (isMissingFileError(error)) {
+            return;
+          }
+
           if (error instanceof Error) {
             // prettier currently doesn't export UndefinedParserError, so having to do it the crude way
             if (error.name === 'UndefinedParserError') {
               // skip files with unsupported parsers
               // https://prettier.io/docs/options#parser
             } else {
-              log(
-                styleText(
-                  'yellow',
-                  `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Failed to format file ${filePath}: ${error.toString()}`,
-                ),
+              logWarning(
+                `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Failed to format file ${filePath}: ${error.toString()}`,
               );
             }
           } else {
-            log(
-              styleText(
-                'yellow',
-                `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Failed to format file ${filePath}: unknown error}`,
-              ),
+            logWarning(
+              `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Failed to format file ${filePath}: unknown error`,
             );
           }
         }
@@ -62,13 +63,19 @@ export async function formatWithPrettier(
   try {
     await execa('prettier', ['--write', ...paths]);
   } catch {
-    log(
-      styleText(
-        'yellow',
-        `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}prettier not found. Install it as a project dependency or globally.`,
-      ),
+    logWarning(
+      `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}prettier not found. Install it as a project dependency or globally.`,
     );
   }
+}
+
+function isMissingFileError(error: unknown): error is NodeJS.ErrnoException {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'ENOENT'
+  );
 }
 
 /**

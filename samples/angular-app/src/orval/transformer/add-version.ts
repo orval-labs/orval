@@ -28,23 +28,31 @@ export default defineTransformer((inputSchema) => ({
             !operation ||
             typeof operation !== 'object'
           ) {
-            return { ...pathItemAcc, [verb]: operation };
+            return {
+              ...pathItemAcc,
+              [verb]: operation,
+            };
           }
 
-          const safeParameters = (operation as { parameters?: unknown })
-            .parameters;
-          const operationParameters = Array.isArray(safeParameters)
-            ? (safeParameters as OperationParameter[])
+          const existingParameters = Array.isArray(operation.parameters)
+            ? (operation.parameters as OperationParameter[])
             : [];
+
+          const filteredParameters = existingParameters.filter(
+            (parameter) =>
+              !(
+                parameter &&
+                parameter.in === 'path' &&
+                parameter.name === 'version'
+              ),
+          );
 
           return {
             ...pathItemAcc,
             [verb]: {
               ...operation,
               parameters: [
-                ...operationParameters.filter(
-                  (p) => !(p.name === 'version' && p.in === 'path'),
-                ),
+                ...filteredParameters,
                 {
                   name: 'version',
                   in: 'path',

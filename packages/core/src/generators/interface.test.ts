@@ -379,6 +379,92 @@ export type ConstEnum = typeof ConstEnumValue;
     expect(got).toEqual(want);
   });
 
+  it('should generate Record type with propertyNames const (OpenAPI 3.1)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      propertyNames: {
+        type: 'string',
+        const: 'singleKey',
+      },
+      additionalProperties: {
+        type: 'number',
+      },
+    };
+
+    const got = generateInterface({
+      name: 'MyObject',
+      context,
+      schema,
+    });
+    const want: GeneratorSchema[] = [
+      {
+        name: 'MyObject',
+        model: `export type MyObject = Partial<Record<'singleKey', number>>;\n`,
+        imports: [],
+        dependencies: [],
+        schema,
+      },
+    ];
+    expect(got).toEqual(want);
+  });
+
+  it('should handle propertyNames const with additionalProperties as boolean', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      propertyNames: {
+        type: 'string',
+        const: 'onlyKey',
+      },
+      additionalProperties: true,
+    };
+
+    const got = generateInterface({
+      name: 'MyObject',
+      context,
+      schema,
+    });
+    const want: GeneratorSchema[] = [
+      {
+        name: 'MyObject',
+        model: `export type MyObject = Partial<Record<'onlyKey', unknown>>;\n`,
+        imports: [],
+        dependencies: [],
+        schema,
+      },
+    ];
+    expect(got).toEqual(want);
+  });
+
+  it('should handle propertyNames const with properties already defined', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        existingProp: {
+          type: 'string',
+        },
+      },
+      propertyNames: {
+        type: 'string',
+        const: 'extraKey',
+      },
+      additionalProperties: {
+        type: 'number',
+      },
+      required: ['existingProp'],
+    };
+
+    const got = generateInterface({
+      name: 'MyObject',
+      context,
+      schema: schema as unknown as OpenApiSchemaObject,
+    });
+
+    expect(got).toHaveLength(1);
+    expect(got[0].name).toBe('MyObject');
+    expect(got[0].model).toContain('existingProp: string');
+    expect(got[0].model).toContain("} & Partial<Record<'extraKey', number>>");
+  });
+
   it('should handle propertyNames enum with properties already defined', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -570,5 +656,46 @@ export type ConstEnum = typeof ConstEnumValue;
 
       expect(result[0].model).not.toContain('string | string');
     });
+  });
+
+  it('should include imports from additionalProperties $ref when properties exist', () => {
+    const contextWithRef = withContext({
+      spec: {
+        components: {
+          schemas: {
+            ItemDetail: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        summary: {
+          type: 'string',
+        },
+      },
+      additionalProperties: {
+        $ref: '#/components/schemas/ItemDetail',
+      },
+    };
+
+    const result = generateInterface({
+      name: 'ThingsResponse',
+      context: contextWithRef,
+      schema,
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].model).toContain('ItemDetail');
+    expect(result[0].imports).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'ItemDetail' })]),
+    );
   });
 });

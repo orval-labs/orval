@@ -6,6 +6,7 @@ import type {
   GetterProp,
   GetterProps,
   GetterQueryParam,
+  InvalidateTargetParam,
   OutputClient,
   OutputHttpClient,
 } from '@orval/core';
@@ -56,7 +57,7 @@ export interface QueryInvocationContext {
 
 interface InvalidateTarget {
   query: string;
-  params?: string[] | Record<string, string>;
+  params?: InvalidateTargetParam[] | Record<string, InvalidateTargetParam>;
   invalidateMode: 'invalidate' | 'reset';
 }
 
@@ -216,6 +217,7 @@ export interface FrameworkAdapter {
     httpClient: OutputHttpClient;
     forQueryOptions?: boolean;
     hasInvalidation?: boolean;
+    useRuntimeFetcher?: boolean;
   }): string;
 
   // --- Mutation Hook Generation ---
@@ -255,6 +257,37 @@ export interface FrameworkAdapter {
     prop: GetterProp,
     body: { implementation: string },
   ): string;
+
+  // --- Prefetch Generation ---
+  /**
+   * Generate the prefetch function for a query.
+   * Implementations receive a PrefetchContext and return source for an
+   * exported helper. The helper should accept the framework's QueryClient
+   * (and HttpClient when the framework requires it) as parameters rather
+   * than resolving them internally via DI/hooks.
+   * React: useQueryClient + useCallback (hook mutator) or plain async (non-hook).
+   * Angular: plain async function accepting QueryClient and HttpClient when needed.
+   * Default: React-style (backward compatible).
+   */
+  generatePrefetch?(context: PrefetchContext): string;
+}
+
+export interface PrefetchContext {
+  operationName: string;
+  mutator?: GeneratorMutator;
+  type: (typeof QueryType)[keyof typeof QueryType];
+  usePrefetch?: boolean;
+  useQuery?: boolean;
+  useInfinite?: boolean;
+  doc?: string;
+  queryProps: string;
+  dataType: string;
+  errorType: string;
+  queryArguments: string;
+  queryOptionsVarName: string;
+  queryOptionsFnName: string;
+  queryProperties: string;
+  isRequestOptions: boolean;
 }
 
 /** Fields that have factory defaults in withDefaults(), so adapters only override what differs. */

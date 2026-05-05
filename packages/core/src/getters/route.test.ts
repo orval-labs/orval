@@ -3,9 +3,15 @@ import { describe, expect, it, test } from 'vitest';
 import type {
   BaseUrlFromConstant,
   BaseUrlFromSpec,
+  BaseUrlRuntime,
   OpenApiServerObject,
 } from '../types';
-import { getFullRoute, getRoute, getRouteAsArray } from './route';
+import {
+  getBaseUrlRuntimeImports,
+  getFullRoute,
+  getRoute,
+  getRouteAsArray,
+} from './route';
 
 describe('getRoute getter', () => {
   for (const [input, expected] of [
@@ -139,6 +145,31 @@ describe('getFullRoute getter', () => {
       expect(getFullRoute(path, servers, config)).toBe(expected);
     });
   }
+  for (const [path, servers, config, expected] of [
+    [
+      '/pets',
+      undefined,
+      { runtime: 'process.env.API_BASE_URL' },
+      '${process.env.API_BASE_URL}/pets',
+    ],
+    [
+      '/pets',
+      undefined,
+      { runtime: 'import.meta.env.VITE_API_URL' },
+      '${import.meta.env.VITE_API_URL}/pets',
+    ],
+    [
+      '/pets',
+      undefined,
+      { runtime: 'env.API_BASE_URL' },
+      '${env.API_BASE_URL}/pets',
+    ],
+    ['/path', undefined, { runtime: '' }, '/path'],
+  ] as [string, OpenApiServerObject[] | undefined, BaseUrlRuntime, string][]) {
+    it(`should make path ${path} with runtime baseUrl ${JSON.stringify(config)} be ${expected}`, () => {
+      expect(getFullRoute(path, servers, config)).toBe(expected);
+    });
+  }
   for (const [path, servers, config, error] of [
     [
       '/path',
@@ -167,6 +198,62 @@ describe('getFullRoute getter', () => {
       expect(() => getFullRoute(path, servers, config)).toThrow(error);
     });
   }
+});
+
+describe('getBaseUrlRuntimeImports', () => {
+  it('returns [] when baseUrl is omitted', () => {
+    expect(getBaseUrlRuntimeImports()).toEqual([]);
+  });
+
+  it('returns [] for string baseUrl', () => {
+    expect(getBaseUrlRuntimeImports('https://api.example.com')).toEqual([]);
+  });
+
+  it('returns [] for BaseUrlFromSpec', () => {
+    expect(
+      getBaseUrlRuntimeImports({ getBaseUrlFromSpecification: true }),
+    ).toEqual([]);
+  });
+
+  it('returns [] for BaseUrlFromConstant', () => {
+    expect(
+      getBaseUrlRuntimeImports({
+        getBaseUrlFromSpecification: false,
+        baseUrl: 'https://x.com',
+      }),
+    ).toEqual([]);
+  });
+
+  it('returns [] for BaseUrlRuntime without imports', () => {
+    expect(getBaseUrlRuntimeImports({ runtime: 'process.env.X' })).toEqual([]);
+  });
+
+  it('returns imports for BaseUrlRuntime with imports', () => {
+    const imports = [{ name: 'apiBase', importPath: '../config/api' }];
+    expect(
+      getBaseUrlRuntimeImports({
+        runtime: 'apiBase',
+        imports,
+      }),
+    ).toEqual([{ ...imports[0], values: true }]);
+  });
+
+  it('returns imports for env object pattern (runtime uses property access)', () => {
+    const imports = [{ name: 'env', importPath: '../../env' }];
+    expect(
+      getBaseUrlRuntimeImports({
+        runtime: 'env.API_BASE_URL',
+        imports,
+      }),
+    ).toEqual([{ ...imports[0], values: true }]);
+  });
+
+  it('preserves explicit values: false on baseUrl imports', () => {
+    const imports = [{ name: 'x', importPath: './x', values: false as const }];
+    expect(getBaseUrlRuntimeImports({ runtime: 'x', imports })).toEqual(
+      imports,
+    );
+  });
 });
 
 describe('getRouteAsArray getter', () => {

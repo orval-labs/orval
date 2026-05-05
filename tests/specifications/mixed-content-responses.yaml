@@ -1,0 +1,73 @@
+openapi: 3.1.0
+info:
+  title: Mixed Content Responses
+  description: API with endpoints returning different content types per status code
+  version: 1.0.0
+paths:
+  /data:
+    get:
+      summary: Returns JSON on success, plain text on rate limit
+      operationId: getData
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+        '429':
+          description: Too Many Requests
+          content:
+            text/plain:
+              schema:
+                type: string
+  /text:
+    get:
+      summary: Returns plain text
+      operationId: getText
+      responses:
+        '200':
+          description: Plain text response
+          content:
+            text/plain:
+              schema:
+                type: string
+  /image:
+    get:
+      summary: Returns a binary image
+      operationId: getImage
+      responses:
+        '200':
+          description: Binary image response
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+  /mixed-success:
+    get:
+      summary: Returns JSON on full success, plain text on partial success
+      operationId: getMixedSuccess
+      responses:
+        '200':
+          description: Full success with JSON
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+        '206':
+          description: Partial content as plain text
+          content:
+            text/plain:
+              schema:
+                type: string

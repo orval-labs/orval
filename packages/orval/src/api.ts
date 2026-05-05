@@ -46,7 +46,10 @@ export async function getApiBuilder({
       let resolvedVerbs: OpenApiPathItemObject = verbs;
 
       if (isReference(verbs)) {
-        const { schema } = resolveRef<OpenApiPathItemObject>(verbs, context);
+        const { schema }: { schema: OpenApiPathItemObject } = resolveRef(
+          verbs,
+          context,
+        );
 
         resolvedVerbs = schema;
       }

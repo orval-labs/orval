@@ -12,8 +12,14 @@ import {
   generateZod,
   generateZodValidationSchemaDefinition,
   parseZodValidationSchemaDefinition,
+  predefinedZodFormats,
   type ZodValidationSchemaDefinition,
 } from '.';
+import {
+  getZodDateFormat,
+  getZodDateTimeFormat,
+  getZodTimeFormat,
+} from './compatible-v4';
 
 const testOutput = {} as unknown as Parameters<typeof generateZod>[2];
 
@@ -744,7 +750,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).toContain('.strict()');
     // Should be a single object, not multiple objects
     expect(parsed.zod).toMatch(
-      /zod\.object\(\{[^}]*"name"[^}]*"swimming"[^}]*\}\)\.strict\(\)/,
+      /zod\.object\(\{[^}]*"name"[^}]*"swimming"[^}]*}\)\.strict\(\)/,
     );
   });
 
@@ -816,7 +822,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).toContain('strictObject');
     // Should be a single object, not multiple objects
     expect(parsed.zod).toMatch(
-      /zod\.strictObject\(\{[^}]*"name"[^}]*"swimming"[^}]*\}\)/,
+      /zod\.strictObject\(\{[^}]*"name"[^}]*"swimming"[^}]*}\)/,
     );
   });
 
@@ -923,6 +929,77 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).not.toContain('.stringFormat([');
   });
 
+  it('places stringFormat before min/max when format and pattern and minLength are defined in v4', () => {
+    const schemaWithPatternFormatAndMin: OpenApiSchemaObject = {
+      type: 'string',
+      format: 'slug',
+      pattern: '^[a-z0-9-]+$',
+      minLength: 1,
+      maxLength: 64,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithPatternFormatAndMin,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'slug',
+      false,
+      true,
+      { required: false },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      true,
+    );
+
+    // stringFormat must come before min so the chain is valid
+    const sfIndex = parsed.zod.indexOf('.stringFormat(');
+    const minIndex = parsed.zod.indexOf('.min(');
+    const maxIndex = parsed.zod.indexOf('.max(');
+    expect(sfIndex).toBeGreaterThanOrEqual(0);
+    expect(minIndex).toBeGreaterThan(sfIndex);
+    expect(maxIndex).toBeGreaterThan(minIndex);
+    expect(parsed.zod).not.toContain('.regex(');
+  });
+
+  it('does not use stringFormat for format+pattern+minLength in v3', () => {
+    const result = generateZodValidationSchemaDefinition(
+      { type: 'string', format: 'slug', pattern: '^[a-z0-9-]+$', minLength: 1 },
+      { output: { override: { useDates: false } } } as ContextSpec,
+      'slug',
+      false,
+      false, // isZodV4 = false
+      { required: false },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      { output: { override: { useDates: false } } } as ContextSpec,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).not.toContain('.stringFormat(');
+    expect(parsed.zod).toContain('.regex(');
+    expect(parsed.zod).toContain('.min(');
+  });
+
   it('generates string when format and pattern is defined in v3', () => {
     const stringWithPatternAndFormat: OpenApiSchemaObject = {
       type: 'string',
@@ -965,6 +1042,144 @@ describe('generateZodValidationSchemaDefinition`', () => {
     );
 
     expect(parsed.zod).not.toContain("'my-guid'");
+  });
+
+  it('uses regex after predefined format validator in v4', () => {
+    const expectedZodFormatByOpenApiFormat = new Map([
+      ['date', getZodDateFormat(true)],
+      ['time', getZodTimeFormat(true)],
+      ['date-time', getZodDateTimeFormat(true)],
+      ['email', 'email'],
+      ['uri', 'url'],
+      ['hostname', 'hostname'],
+      ['uuid', 'uuid'],
+    ]);
+
+    for (const format of predefinedZodFormats) {
+      const zodFormat = expectedZodFormatByOpenApiFormat.get(format);
+      expect(zodFormat).toBeDefined();
+
+      const schema: OpenApiSchemaObject = {
+        type: 'string',
+        format: format,
+        pattern: '^[0-9a-f-]+$',
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        {
+          output: {
+            override: {
+              useDates: false,
+              zod: {
+                dateTimeOptions: {},
+                timeOptions: {},
+              },
+            },
+          },
+        } as ContextSpec,
+        'testFormatPattern',
+        true,
+        true,
+        { required: true },
+      );
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        {
+          output: {
+            override: {
+              useDates: false,
+            },
+          },
+        } as ContextSpec,
+        true,
+        true,
+        true,
+      );
+
+      expect(parsed.zod).toContain(`.${zodFormat}(`);
+      expect(parsed.zod).toContain('.regex(');
+      expect(parsed.zod).not.toContain('.stringFormat(');
+    }
+  });
+
+  it('generates hostname validator in v4 for hostname format', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      format: 'hostname',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'testHostnameV4',
+      true,
+      true, // Zod v4
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      true,
+      true,
+    );
+
+    expect(parsed.zod).toContain('.hostname()');
+    expect(parsed.zod).not.toContain('.url()');
+  });
+
+  it('falls back to url validator for hostname format in v3', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      format: 'hostname',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'testHostnameV3',
+      true,
+      false, // Zod v3
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      true,
+      false,
+    );
+
+    expect(parsed.zod).toContain('.url()');
+    expect(parsed.zod).not.toContain('.hostname()');
   });
 
   describe('description handling', () => {
@@ -1464,6 +1679,73 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
       expect(parsed.consts).toContain('export const petAgeMax = 30;');
     });
+
+    it('does not leak const suffix counters across repeated top-level generations', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'object',
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['available', 'pending', 'sold'],
+            default: 'available',
+          },
+          age: {
+            type: 'number',
+            minimum: 0,
+            maximum: 30,
+          },
+        },
+      };
+
+      const firstResult = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'pet',
+        false,
+        false,
+        { required: true },
+      );
+
+      const secondResult = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'pet',
+        false,
+        false,
+        { required: true },
+      );
+
+      const firstParsed = parseZodValidationSchemaDefinition(
+        firstResult,
+        context,
+        false,
+        false,
+        false,
+      );
+
+      const secondParsed = parseZodValidationSchemaDefinition(
+        secondResult,
+        context,
+        false,
+        false,
+        false,
+      );
+
+      expect(firstParsed.consts).toContain(
+        'export const petStatusDefault = `available`;',
+      );
+      expect(firstParsed.consts).toContain('export const petAgeMax = 30;');
+      expect(firstParsed.consts).not.toContain('petStatusDefaultOne');
+      expect(firstParsed.consts).not.toContain('petAgeMaxOne');
+
+      expect(secondParsed.consts).toContain(
+        'export const petStatusDefault = `available`;',
+      );
+      expect(secondParsed.consts).toContain('export const petAgeMax = 30;');
+      expect(secondParsed.consts).not.toContain('petStatusDefaultOne');
+      expect(secondParsed.consts).not.toContain('petAgeMaxOne');
+      expect(secondParsed.consts).toBe(firstParsed.consts);
+    });
   });
 
   describe('enum handling', () => {
@@ -1537,6 +1819,267 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
       );
       expect(parsed.zod).toBe("zod.enum(['+33', '+420']).optional()");
+    });
+
+    it('skips string constraints for direct enums with minLength/maxLength (#3024)', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'string',
+        enum: ['cat', 'dog'],
+        minLength: 2,
+        maxLength: 3,
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumStringMinLength',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['enum', "['cat', 'dog']"],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+
+      expect(parsed.zod).toBe("zod.enum(['cat', 'dog']).optional()");
+      expect(parsed.zod).not.toContain('zod.min(');
+      expect(parsed.zod).not.toContain('.min(');
+      expect(parsed.zod).not.toContain('.max(');
+    });
+
+    it('skips constraints for dereferenced enum schemas with sibling minLength (#3024)', () => {
+      const dereferenceContext = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              PetStatus: {
+                type: 'string',
+                enum: ['available', 'sold'],
+              },
+            },
+          },
+        },
+      } as ContextSpec;
+
+      const resolvedSchema = dereference(
+        {
+          $ref: '#/components/schemas/PetStatus',
+          minLength: 1,
+        },
+        dereferenceContext,
+      );
+
+      const result = generateZodValidationSchemaDefinition(
+        resolvedSchema,
+        dereferenceContext,
+        'testDereferencedEnumStringMinLength',
+        false,
+        false,
+        { required: true },
+      );
+
+      expect(result).toEqual({
+        functions: [['enum', "['available', 'sold']"]],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        dereferenceContext,
+        false,
+        false,
+        false,
+      );
+
+      expect(parsed.zod).toBe("zod.enum(['available', 'sold'])");
+      expect(parsed.zod).not.toContain('zod.min(');
+      expect(parsed.zod).not.toContain('.min(');
+    });
+
+    it('skips pattern chains for enums to avoid invalid regex-enum output (#3024)', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'string',
+        enum: ['cat', 'dog'],
+        pattern: '^[a-z]+$',
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumStringPattern',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['enum', "['cat', 'dog']"],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+
+      expect(parsed.zod).toBe("zod.enum(['cat', 'dog']).optional()");
+      expect(parsed.zod).not.toContain('.regex(');
+      expect(parsed.consts).toBe('');
+    });
+
+    it('skips stringFormat emission for enums in Zod v4 when format and pattern are both present (#3024)', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'string',
+        enum: ['cat', 'dog'],
+        format: 'pet-kind',
+        pattern: '^[a-z]+$',
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumStringPatternV4',
+        false,
+        true,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['enum', "['cat', 'dog']"],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        true,
+      );
+
+      expect(parsed.zod).toBe("zod.enum(['cat', 'dog']).optional()");
+      expect(parsed.zod).not.toContain('.regex(');
+      expect(parsed.zod).not.toContain('.stringFormat(');
+      expect(parsed.consts).toBe('');
+    });
+
+    it('preserves default while skipping min/max on enums (#3024)', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'string',
+        enum: ['EUR', 'USD'],
+        minLength: 3,
+        maxLength: 3,
+        default: 'EUR',
+        description: 'Currency code for the order.',
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumStringDefault',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['enum', "['EUR', 'USD']"],
+          ['default', 'testEnumStringDefaultDefault'],
+          ['describe', "'Currency code for the order.'"],
+        ],
+        consts: ['export const testEnumStringDefaultDefault = `EUR`;'],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+
+      expect(parsed.zod).toBe(
+        "zod.enum(['EUR', 'USD']).default(testEnumStringDefaultDefault).describe('Currency code for the order.')",
+      );
+      expect(parsed.zod).not.toContain('zod.min(');
+      expect(parsed.zod).not.toContain('.min(');
+      expect(parsed.zod).not.toContain('.max(');
+      expect(parsed.consts).toBe(
+        'export const testEnumStringDefaultDefault = `EUR`;',
+      );
+    });
+
+    it('skips numeric constraints for enum literal unions (#3024)', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'number',
+        enum: [1, 2],
+        minimum: 1,
+        maximum: 2,
+        multipleOf: 1,
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumNumberConstraints',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          [
+            'oneOf',
+            [
+              { functions: [['literal', 1]], consts: [] },
+              { functions: [['literal', 2]], consts: [] },
+            ],
+          ],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+
+      expect(parsed.zod).toBe(
+        'zod.union([zod.literal(1),zod.literal(2)]).optional()',
+      );
+      expect(parsed.zod).not.toContain('.min(');
+      expect(parsed.zod).not.toContain('.max(');
+      expect(parsed.zod).not.toContain('.multipleOf(');
+      expect(parsed.consts).toBe('');
     });
 
     it('generates an enum for a number', () => {
@@ -2316,6 +2859,474 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'zod.number().min(testNumberMinMaxMultipleMin).max(testNumberMinMaxMultipleMax).multipleOf(testNumberMinMaxMultipleMultipleOf).optional()',
       );
     });
+  });
+
+  it('does not emit stringFormat when custom format has no pattern in v4', () => {
+    const schemaFormatOnly: OpenApiSchemaObject = {
+      type: 'string',
+      format: 'slug',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaFormatOnly,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'slug',
+      false,
+      true,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      true,
+    );
+
+    expect(parsed.zod).not.toContain('.stringFormat(');
+    expect(parsed.zod).not.toContain('.regex(');
+  });
+
+  it('does not emit stringFormat twice when format+pattern+minLength in v4', () => {
+    const schemaFormatPatternMin: OpenApiSchemaObject = {
+      type: 'string',
+      format: 'slug',
+      pattern: '^[a-z0-9-]+$',
+      minLength: 1,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaFormatPatternMin,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'slug',
+      false,
+      true,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      true,
+    );
+
+    const count = (parsed.zod.match(/\.stringFormat\(/g) ?? []).length;
+    expect(count).toBe(1);
+    expect(parsed.zod).not.toContain('.regex(');
+  });
+
+  it('does not emit a duplicate RegExp const when format+pattern+minLength in v4', () => {
+    const schemaFormatPatternMin: OpenApiSchemaObject = {
+      type: 'string',
+      format: 'slug',
+      pattern: '^[a-z0-9-]+$',
+      minLength: 1,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaFormatPatternMin,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'slug',
+      false,
+      true,
+      { required: true },
+    );
+
+    const regexpConsts = result.consts.filter((c) => c.includes('RegExp'));
+    expect(regexpConsts).toHaveLength(1);
+  });
+
+  it('does not emit stringFormat for custom format+pattern in v3', () => {
+    const schemaFormatPattern: OpenApiSchemaObject = {
+      type: 'string',
+      format: 'slug',
+      pattern: '^[a-z0-9-]+$',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaFormatPattern,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'slug',
+      false,
+      false, // Zod v3
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).not.toContain('.stringFormat(');
+    expect(parsed.zod).toContain('.regex(');
+  });
+
+  it('does not emit stringFormat for pattern-only in v3', () => {
+    const schemaPatternOnly: OpenApiSchemaObject = {
+      type: 'string',
+      pattern: '^[a-z]+$',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaPatternOnly,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'word',
+      false,
+      false, // Zod v3
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).not.toContain('.stringFormat(');
+    expect(parsed.zod).toContain('.regex(');
+  });
+
+  it('emits string().regex() for custom format+pattern in v3', () => {
+    const schemaFormatPattern: OpenApiSchemaObject = {
+      type: 'string',
+      format: 'my-id',
+      pattern: String.raw`^[A-Z]{3}-\d+$`,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaFormatPattern,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'myId',
+      false,
+      false, // Zod v3
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('zod.string()');
+    expect(parsed.zod).toContain('.regex(');
+    expect(parsed.zod).not.toContain('.stringFormat(');
+  });
+
+  it('emits string().regex() for pattern-only in v3', () => {
+    const schemaPatternOnly: OpenApiSchemaObject = {
+      type: 'string',
+      pattern: String.raw`^\d{4}$`,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaPatternOnly,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'code',
+      false,
+      false, // Zod v3
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('zod.string()');
+    expect(parsed.zod).toContain('.regex(');
+    expect(parsed.zod).not.toContain('.stringFormat(');
+  });
+
+  it('emits string().email() for email format in v3', () => {
+    const schemaEmail: OpenApiSchemaObject = {
+      type: 'string',
+      format: 'email',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaEmail,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'email',
+      false,
+      false, // Zod v3
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('.email(');
+    expect(parsed.zod).not.toContain('.stringFormat(');
+  });
+
+  it('emits string().uuid() for uuid format in v3', () => {
+    const schemaUuid: OpenApiSchemaObject = {
+      type: 'string',
+      format: 'uuid',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaUuid,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'id',
+      false,
+      false, // Zod v3
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('.uuid(');
+    expect(parsed.zod).not.toContain('.stringFormat(');
+  });
+
+  it('emits string().url() for uri format in v3', () => {
+    const schemaUri: OpenApiSchemaObject = {
+      type: 'string',
+      format: 'uri',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaUri,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'url',
+      false,
+      false, // Zod v3
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('.url(');
+    expect(parsed.zod).not.toContain('.stringFormat(');
+  });
+
+  it('emits string().min().max() for minLength+maxLength without pattern in v3', () => {
+    const schemaMinMax: OpenApiSchemaObject = {
+      type: 'string',
+      minLength: 2,
+      maxLength: 50,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaMinMax,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'name',
+      false,
+      false, // Zod v3
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('.min(');
+    expect(parsed.zod).toContain('.max(');
+    expect(parsed.zod).not.toContain('.stringFormat(');
+    expect(parsed.zod).not.toContain('.regex(');
+  });
+
+  it('emits string().regex().min() for pattern+minLength in v3', () => {
+    const schemaPatternMin: OpenApiSchemaObject = {
+      type: 'string',
+      pattern: '^[a-z]+$',
+      minLength: 1,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaPatternMin,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'slug',
+      false,
+      false, // Zod v3
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('.regex(');
+    expect(parsed.zod).toContain('.min(');
+    expect(parsed.zod).not.toContain('.stringFormat(');
   });
 });
 
@@ -3273,6 +4284,105 @@ describe('generateZodWithMultiTypeArray', () => {
     expect(parsed.zod).toBe(
       'zod.union([zod.string(),zod.number()]).optional()',
     );
+  });
+
+  it('does not chain stringFormat/regex on number in multi-type with pattern and format (Zod v4)', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+          zod: {},
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schemaWithMultiTypeAndPattern: OpenApiSchemaObject = {
+      type: ['integer', 'string'],
+      format: 'int64',
+      pattern: String.raw`^-?(?:0|[1-9]\d*)$`,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithMultiTypeAndPattern,
+      context,
+      'taskId',
+      false,
+      true,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      true,
+    );
+
+    expect(parsed.zod).toContain('zod.union([');
+    expect(parsed.zod).toContain('zod.number()');
+    expect(parsed.zod).not.toMatch(
+      /zod\.number\(\)[^,\]]*\.(?:stringFormat|regex)\(/,
+    );
+    expect(parsed.zod.match(/\.stringFormat\(/g) ?? []).toHaveLength(1);
+  });
+
+  it('emits regex (not stringFormat) for predefined format with pattern in v4', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+          zod: { dateTimeOptions: {}, timeOptions: {} },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const result = generateZodValidationSchemaDefinition(
+      { type: 'string', format: 'uuid', pattern: '^[0-9a-f-]+$' },
+      context,
+      'myId',
+      false,
+      true,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      true,
+    );
+
+    expect(parsed.zod).not.toContain('.stringFormat(');
+    expect(parsed.zod).toContain('.uuid(');
+    expect(parsed.zod).toContain('.regex(');
+  });
+
+  it('emits regex (not stringFormat) for pattern without format in v4', () => {
+    const context = {
+      output: { override: { useDates: false, zod: {} } },
+    } as unknown as ContextSpec;
+
+    const result = generateZodValidationSchemaDefinition(
+      { type: 'string', pattern: '^[a-z]+$' },
+      context,
+      'word',
+      false,
+      true,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      true,
+    );
+
+    expect(parsed.zod).not.toContain('.stringFormat(');
+    expect(parsed.zod).toContain('.regex(');
   });
 });
 
@@ -5749,5 +6859,512 @@ describe('generateZodValidationSchemaDefinition (contentMediaType: application/o
       functions: [['string', undefined]],
       consts: [],
     });
+  });
+});
+
+// --- useBrandedTypes tests ---
+
+const brandedZodOverride = {
+  zod: {
+    strict: {
+      param: false,
+      body: false,
+      response: false,
+      query: false,
+      header: false,
+    },
+    generate: {
+      param: true,
+      body: true,
+      response: true,
+      query: true,
+      header: true,
+    },
+    coerce: {
+      param: false,
+      body: false,
+      response: false,
+      query: false,
+      header: false,
+    },
+    generateEachHttpStatus: false,
+    dateTimeOptions: {},
+    timeOptions: {},
+    useBrandedTypes: true,
+  },
+};
+
+const brandedZodOverrideDisabled = {
+  zod: {
+    ...brandedZodOverride.zod,
+    useBrandedTypes: false,
+  },
+};
+
+describe('generateZod (useBrandedTypes)', () => {
+  // Group 1: Default behavior — no brand
+
+  it('does not append .brand() when useBrandedTypes is false', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: brandedZodOverrideDisabled,
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).not.toMatch(/\.brand[<(]/);
+  });
+
+  it('does not append .brand() when useBrandedTypes is not specified', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: true,
+              body: true,
+              response: true,
+              query: true,
+              header: true,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).not.toMatch(/\.brand[<(]/);
+  });
+
+  // Group 2: Brand appended (Zod v3 / v4)
+
+  it('appends .brand<"Name">() to all schemas when useBrandedTypes is true (zod v3)', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: brandedZodOverride,
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toBe(
+      'export const TestParams = zod.object({\n  "id": zod.string()\n}).brand<"TestParams">()\n\nexport const TestQueryParams = zod.object({\n  "page": zod.number().optional()\n}).brand<"TestQueryParams">()\n\nexport const TestHeader = zod.object({\n  "x-header": zod.string()\n}).brand<"TestHeader">()\n\nexport const TestBody = zod.object({\n  "name": zod.string().optional()\n}).brand<"TestBody">()\n\nexport const TestResponse = zod.object({\n  "name": zod.string().optional()\n}).brand<"TestResponse">()\n\n',
+    );
+  });
+
+  it('appends .brand("Name") to schemas when useBrandedTypes is true (zod v4)', async () => {
+    const v4ApiSchema = {
+      ...basicApiSchema,
+      context: {
+        ...basicApiSchema.context,
+        output: {
+          ...basicApiSchema.context.output,
+          packageJson: {
+            dependencies: {
+              zod: '^4.0.0',
+            },
+          },
+        },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: brandedZodOverride,
+      } as unknown as Parameters<typeof generateZod>[0],
+      v4ApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toBe(
+      'export const TestParams = zod.object({\n  "id": zod.string()\n}).brand("TestParams")\n\nexport const TestQueryParams = zod.object({\n  "page": zod.number().optional()\n}).brand("TestQueryParams")\n\nexport const TestHeader = zod.object({\n  "x-header": zod.string()\n}).brand("TestHeader")\n\nexport const TestBody = zod.object({\n  "name": zod.string().optional()\n}).brand("TestBody")\n\nexport const TestResponse = zod.object({\n  "name": zod.string().optional()\n}).brand("TestResponse")\n\n',
+    );
+  });
+
+  // Group 3: Array body/response
+
+  it('appends .brand() only to the array wrapper, not to the item schema (body)', async () => {
+    const arrayBodyApiSchema = {
+      pathRoute: '/cats',
+      context: {
+        spec: {
+          paths: {
+            '/cats': {
+              post: {
+                operationId: 'xyz',
+                requestBody: {
+                  required: true,
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            name: {
+                              type: 'string',
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'number' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: {
+          override: {
+            zod: {
+              generateEachHttpStatus: false,
+            },
+          },
+        },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverride.zod,
+            generate: {
+              param: false,
+              body: true,
+              response: false,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      arrayBodyApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toContain(
+      'export const TestBodyItem = zod.object({\n  "name": zod.string().optional()\n})',
+    );
+    expect(result.implementation).not.toContain(
+      'TestBodyItem = zod.object({\n  "name": zod.string().optional()\n}).brand',
+    );
+    expect(result.implementation).toContain(
+      'export const TestBody = zod.array(TestBodyItem).brand<"TestBody">()',
+    );
+  });
+
+  it('appends .brand() only to the array wrapper, not to the item schema (response)', async () => {
+    const arrayResponseApiSchema = {
+      pathRoute: '/cats',
+      context: {
+        spec: {
+          paths: {
+            '/cats': {
+              post: {
+                operationId: 'xyz',
+                requestBody: {
+                  required: true,
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          name: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              id: { type: 'number' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: {
+          override: {
+            zod: {
+              generateEachHttpStatus: false,
+            },
+          },
+        },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverride.zod,
+            generate: {
+              param: false,
+              body: false,
+              response: true,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      arrayResponseApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toContain('export const TestResponseItem = ');
+    expect(result.implementation).not.toMatch(
+      /TestResponseItem = zod\.object\([^)]*\)\s*\.brand/,
+    );
+    expect(result.implementation).toContain(
+      'export const TestResponse = zod.array(TestResponseItem).brand<"TestResponse">()',
+    );
+  });
+
+  // Group 4: Combination with other options
+
+  it('appends .brand() after .strict() when both strict and useBrandedTypes are enabled (zod v3)', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverride.zod,
+            strict: {
+              param: false,
+              body: true,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: false,
+              body: true,
+              response: false,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toContain('.strict().brand<"TestBody">()');
+  });
+
+  it('appends .brand() to each HTTP status response when generateEachHttpStatus is true', async () => {
+    const multiStatusApiSchema = {
+      pathRoute: '/cats',
+      context: {
+        spec: {
+          paths: {
+            '/cats': {
+              post: {
+                operationId: 'xyz',
+                requestBody: {
+                  required: true,
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          name: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'number' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                  '201': {
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'object',
+                          properties: {
+                            name: { type: 'string' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: {
+          override: {
+            zod: {
+              generateEachHttpStatus: true,
+            },
+          },
+        },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverride.zod,
+            generateEachHttpStatus: true,
+            generate: {
+              param: false,
+              body: false,
+              response: true,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      multiStatusApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toContain('.brand<"Test200Response">()');
+    expect(result.implementation).toContain('.brand<"Test201Response">()');
+  });
+
+  // Group 5: Partial generation with brand
+
+  it('appends .brand() when only response is generated', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverride.zod,
+            generate: {
+              param: false,
+              body: false,
+              response: true,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toBe(
+      'export const TestResponse = zod.object({\n  "name": zod.string().optional()\n}).brand<"TestResponse">()\n\n',
+    );
+  });
+
+  it('appends .brand() when only body is generated', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverride.zod,
+            generate: {
+              param: false,
+              body: true,
+              response: false,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toBe(
+      'export const TestBody = zod.object({\n  "name": zod.string().optional()\n}).brand<"TestBody">()\n\n',
+    );
   });
 });

@@ -34,4 +34,10 @@ describe('getRoute getter', () => {
   it('should use empty string base URL when explicitly set', () => {
     expect(getRouteMSW('/pets/{petId}', '')).toBe('/pets/:petId');
   });
+
+  it('should escape colons with double backslashes', () => {
+    expect(getRouteMSW('/pets/{petId}:cmd', '')).toBe(
+      String.raw`/pets/:petId\\:cmd`,
+    );
+  });
 });

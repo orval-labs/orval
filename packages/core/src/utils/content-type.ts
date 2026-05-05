@@ -1,48 +1,27 @@
 import type { OpenApiSchemaObject } from '../types';
 
+// Known binary application/* types — add new entries here as needed
+const binaryApplicationTypes = new Set([
+  'application/octet-stream',
+  'application/pdf',
+  'application/zip',
+]);
+
 /**
- * Determine if a content type is binary (vs text-based).
+ * Determine if a content type is binary.
+ * Only known binary types return true. Unknown types default to false (non-binary)
+ * so that schema type information is preserved rather than being overridden with Blob.
  */
 export function isBinaryContentType(contentType: string): boolean {
-  if (contentType === 'application/octet-stream') return true;
+  // Strip parameters (e.g., "; charset=utf-8") to get the base MIME type
+  const baseType = contentType.split(';')[0].trim();
 
-  if (contentType.startsWith('image/')) return true;
-  if (contentType.startsWith('audio/')) return true;
-  if (contentType.startsWith('video/')) return true;
-  if (contentType.startsWith('font/')) return true;
+  if (baseType.startsWith('image/')) return true;
+  if (baseType.startsWith('audio/')) return true;
+  if (baseType.startsWith('video/')) return true;
+  if (baseType.startsWith('font/')) return true;
 
-  // text/* types are not binary
-  if (contentType.startsWith('text/')) return false;
-
-  // text-based suffixes (RFC 6838)
-  const textSuffixes = [
-    '+json',
-    '-json',
-    '+xml',
-    '-xml',
-    '+yaml',
-    '-yaml',
-    '+rss',
-    '-rss',
-    '+csv',
-    '-csv',
-  ];
-  if (textSuffixes.some((suffix) => contentType.includes(suffix))) {
-    return false;
-  }
-
-  // text-based whitelist - these are NOT binary
-  const textApplicationTypes = new Set([
-    'application/json',
-    'application/xml',
-    'application/yaml',
-    'application/x-www-form-urlencoded',
-    'application/javascript',
-    'application/ecmascript',
-    'application/graphql',
-  ]);
-
-  return !textApplicationTypes.has(contentType);
+  return binaryApplicationTypes.has(baseType);
 }
 
 /**

@@ -10,6 +10,7 @@ import {
   NamingConvention,
 } from '../types';
 import { conventionName, upath } from '../utils';
+import { writeGeneratedFile } from './file';
 
 type CanonicalInfo = Pick<GeneratorImport, 'importPath' | 'name'>;
 
@@ -217,12 +218,11 @@ function normalizeCanonicalImportPaths(
       const canonical = canonicalByName ?? canonicalByPath;
       if (!canonical?.importPath) return imp;
 
-      const importPath = removeFileExtension(
+      const importPath = removeTSExtension(
         upath.relativeSafe(
           schemaPath,
           canonical.importPath.replaceAll('\\', '/'),
         ),
-        fileExtension,
       );
 
       return { ...imp, importPath };
@@ -263,10 +263,8 @@ function resolveImportKey(
     .replaceAll('\\', '/');
 }
 
-function removeFileExtension(path: string, fileExtension: string) {
-  return path.endsWith(fileExtension)
-    ? path.slice(0, path.length - fileExtension.length)
-    : path;
+function removeTSExtension(path: string) {
+  return path.endsWith('.ts') ? path.slice(0, -3) : path;
 }
 
 interface GetSchemaOptions {
@@ -331,7 +329,7 @@ export async function writeSchema({
   const name = conventionName(schema.name, namingConvention);
 
   try {
-    await fs.outputFile(
+    await writeGeneratedFile(
       getPath(path, name, fileExtension),
       getSchema({
         schema,
@@ -416,7 +414,7 @@ export async function writeSchemas({
   }
 
   if (indexFiles) {
-    const schemaFilePath = nodePath.join(schemaPath, `index${fileExtension}`);
+    const schemaFilePath = nodePath.join(schemaPath, `index.ts`);
     await fs.ensureFile(schemaFilePath);
 
     // Ensure separate files are used for parallel schema writing.
@@ -443,7 +441,7 @@ export async function writeSchemas({
 
       const fileContent = `${header}\n${exports}\n`;
 
-      await fs.writeFile(schemaFilePath, fileContent, { encoding: 'utf8' });
+      await writeGeneratedFile(schemaFilePath, fileContent);
     } catch (error) {
       throw new Error(
         `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${String(error)}`,

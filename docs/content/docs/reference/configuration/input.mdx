@@ -138,11 +138,15 @@ export default defineConfig({
 });
 ```
 
+When `tags` is set and `schemas` is not, orval automatically limits the output to only the schemas referenced (directly or transitively) by the matching operations. This prevents unrelated schemas from appearing in the generated output.
+
+If you also specify `schemas`, it takes precedence and the automatic inference is skipped. To filter endpoints by tags while still outputting all schemas, use `schemas: [/.*/]`.
+
 ### schemas
 
 **Type:** `(String | RegExp)[]`
 
-Filter by schema names:
+Filter by schema names explicitly:
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -216,6 +220,39 @@ export default defineConfig({
           },
         ],
       },
+    },
+  },
+});
+```
+
+## unsafeDisableValidation
+
+Disable OpenAPI spec validation during code generation.
+
+**Type:** `boolean`
+**Default:** `false`
+
+<Callout type="warn">
+  **Use at your own risk.** Code generation from an invalid OpenAPI spec is not
+  guaranteed to work and may break in minor updates. Bug reports with validation
+  disabled will not be accepted.
+</Callout>
+
+When `true`, orval skips both spec-level validation (`@scalar/openapi-parser`)
+and the component-key check — including the post-transformer validation when
+`override.transformer` is used — and proceeds with code generation regardless
+of spec errors. Intended as an escape hatch for specs that use non-standard
+extensions (e.g. FastAPI's `itemSchema` on `text/event-stream` responses) which
+a compliant validator would otherwise reject.
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: './petstore.yaml',
+      unsafeDisableValidation: true,
     },
   },
 });

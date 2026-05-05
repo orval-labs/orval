@@ -1,0 +1,62 @@
+name: Issue Labeler
+
+on:
+  issues:
+    types:
+      - reopened
+      - opened
+
+env:
+  OUTPUT_CLIENTS: >-
+    axios fetch hono angular angular-query react-query vue-query svelte-query
+    solid-query solid-start swr zod mcp
+
+jobs:
+  label-issue:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Add label from issue form
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          client="$(printf '%s\n' "$ISSUE_BODY" | awk 'BEGIN{IGNORECASE=1} /^### Output client[[:space:]]*$/{while (getline) {gsub(/\r/, ""); line=$0; gsub(/^[[:space:]]+|[[:space:]]+$/, "", line); if (line != "") {print tolower(line); exit}}}')"
+
+          if [ -z "$client" ]; then
+            echo "No output client label; skipping."
+            exit 0
+          fi
+
+          case " $OUTPUT_CLIENTS " in
+            *" $client "*)
+              label="$client"
+
+              # labels and output clients don't map 1:1, so map to existing repo labels
+              case "$client" in
+                react-query)
+                  label="tanstack-query"
+                  ;;
+                angular-query)
+                  label="angular"
+                  ;;
+                solid-query|solid-start)
+                  label="solid"
+                  ;;
+                svelte-query)
+                  label="svelte"
+                  ;;
+              esac
+
+              echo "Resolved issue label: '$label'"
+
+              gh issue edit "$NUMBER" --repo "$REPO" --add-label "$label"
+              ;;
+            *)
+              echo "Unsupported client label '$client'; skipping."
+              exit 0
+              ;;
+          esac

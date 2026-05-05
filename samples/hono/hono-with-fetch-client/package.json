@@ -1,6 +1,6 @@
 {
   "name": "hono-with-fetch-client",
-  "version": "8.5.3",
+  "version": "8.9.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,6 +9,7 @@
     "test:snapshots:update": "bun run test:snapshots --update"
   },
   "devDependencies": {
+    "msw": "catalog:tooling",
     "orval": "workspace:*",
     "prettier": "catalog:",
     "vitest": "catalog:"

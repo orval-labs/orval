@@ -14,9 +14,11 @@ import {
 } from '@orval/core';
 import {
   dereference,
+  generateFormDataZodSchema,
   generateZodValidationSchemaDefinition,
   isZodVersionV4,
   parseZodValidationSchemaDefinition,
+  type ZodValidationSchemaDefinition,
 } from '@orval/zod';
 import fs from 'fs-extra';
 
@@ -103,7 +105,8 @@ function generateZodSchemaFileContent(
 
       return `${schemaConsts}export const ${schemaName} = ${zodExpression}
 
-export type ${schemaName} = zod.input<typeof ${schemaName}>;`;
+export type ${schemaName} = zod.input<typeof ${schemaName}>;
+export type ${schemaName}Output = zod.output<typeof ${schemaName}>;`;
     })
     .join('\n\n');
 
@@ -165,7 +168,7 @@ async function writeZodSchemaIndex(
   shouldMergeExisting = false,
 ) {
   const importFileExtension = fileExtension.replace(/\.ts$/, '');
-  const indexPath = path.join(schemasPath, `index${fileExtension}`);
+  const indexPath = path.join(schemasPath, `index.ts`);
 
   let existingExports = '';
   if (shouldMergeExisting && (await fs.pathExists(indexPath))) {
@@ -193,6 +196,68 @@ async function writeZodSchemaIndex(
     .join('\n');
 
   await fs.outputFile(indexPath, `${header}\n${uniqueExports}\n`);
+}
+
+export function generateZodSchemasInline(
+  builder: WriteZodSchemasInput,
+  output: WriteZodOutputOptions,
+): string {
+  const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
+
+  if (schemasWithOpenApiDef.length === 0) {
+    return '';
+  }
+
+  const isZodV4 = !!output.packageJson && isZodVersionV4(output.packageJson);
+  const strict = output.override.zod.strict.body;
+  const coerce = output.override.zod.coerce.body;
+  const schemas: ZodSchemaFileEntry[] = [];
+
+  for (const { name, schema: schemaObject } of schemasWithOpenApiDef) {
+    if (!schemaObject) {
+      continue;
+    }
+
+    const context: ContextSpec = {
+      spec: builder.spec,
+      target: builder.target,
+      workspace: '',
+      output: output as ContextSpec['output'],
+    };
+
+    const dereferencedSchema = dereference(schemaObject, context);
+
+    const zodDefinition = generateZodValidationSchemaDefinition(
+      dereferencedSchema,
+      context,
+      name,
+      strict,
+      isZodV4,
+      {
+        required: true,
+      },
+    );
+
+    const parsedZodDefinition = parseZodValidationSchemaDefinition(
+      zodDefinition,
+      context,
+      coerce,
+      strict,
+      isZodV4,
+    );
+
+    schemas.push({
+      schemaName: name,
+      consts: parsedZodDefinition.consts,
+      zodExpression: parsedZodDefinition.zod,
+    });
+  }
+
+  if (schemas.length === 0) {
+    return '';
+  }
+
+  return generateZodSchemaFileContent('', schemas);
 }
 
 export async function writeZodSchemas(
@@ -304,15 +369,34 @@ export async function writeZodSchemasFromVerbs(
       requestBody && 'content' in requestBody
         ? (requestBody as OpenApiRequestBodyObject).content
         : undefined;
-    const bodySchema = requestBodyContent?.['application/json']?.schema as
-      | OpenApiSchemaObject
-      | undefined;
+    // Pick the first available body media type. JSON wins; otherwise fall back
+    // to form-data / urlencoded so we still generate a `*Body` schema for
+    // operations whose only payload is multipart (e.g. file uploads). Without
+    // this, endpoints that import `${OperationName}Body` from the zod schemas
+    // path resolve to a missing export. (issue #3066)
+    const jsonBodyMedia = requestBodyContent?.['application/json'];
+    const formDataBodyMedia = requestBodyContent?.['multipart/form-data'];
+    const formUrlEncodedBodyMedia =
+      requestBodyContent?.['application/x-www-form-urlencoded'];
+    const [bodyContentType, bodyMedia] = jsonBodyMedia
+      ? (['application/json', jsonBodyMedia] as const)
+      : formDataBodyMedia
+        ? (['multipart/form-data', formDataBodyMedia] as const)
+        : formUrlEncodedBodyMedia
+          ? ([
+              'application/x-www-form-urlencoded',
+              formUrlEncodedBodyMedia,
+            ] as const)
+          : [undefined, undefined];
+    const bodySchema = bodyMedia?.schema as OpenApiSchemaObject | undefined;
 
     const bodySchemas = bodySchema
       ? [
           {
             name: `${pascal(verbOption.operationName)}Body`,
             schema: dereference(bodySchema, zodContext),
+            bodyContentType,
+            encoding: bodyMedia?.encoding,
           },
         ]
       : [];
@@ -406,20 +490,40 @@ export async function writeZodSchemasFromVerbs(
   const uniqueVerbsSchemas = dedupeSchemasByName(generateVerbsSchemas);
   const schemasToWrite: ZodSchemaFileToWrite[] = [];
 
-  for (const { name, schema } of uniqueVerbsSchemas) {
+  for (const entry of uniqueVerbsSchemas) {
+    const { name, schema } = entry;
     const fileName = conventionName(name, output.namingConvention);
     const filePath = path.join(schemasPath, `${fileName}${fileExtension}`);
 
-    const zodDefinition = generateZodValidationSchemaDefinition(
-      schema,
-      zodContext,
-      name,
-      strict,
-      isZodV4,
-      {
-        required: true,
-      },
-    );
+    // multipart/form-data bodies need file-aware overrides so binary fields
+    // become `z.instanceof(File)` instead of plain strings.
+    const isFormDataBody =
+      'bodyContentType' in entry &&
+      entry.bodyContentType === 'multipart/form-data';
+
+    const zodDefinition: ZodValidationSchemaDefinition = isFormDataBody
+      ? generateFormDataZodSchema(
+          schema,
+          zodContext,
+          name,
+          strict,
+          isZodV4,
+          'encoding' in entry
+            ? (entry.encoding as
+                | Record<string, { contentType?: string }>
+                | undefined)
+            : undefined,
+        )
+      : generateZodValidationSchemaDefinition(
+          schema,
+          zodContext,
+          name,
+          strict,
+          isZodV4,
+          {
+            required: true,
+          },
+        );
 
     const parsedZodDefinition = parseZodValidationSchemaDefinition(
       zodDefinition,

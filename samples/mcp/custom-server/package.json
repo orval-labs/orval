@@ -1,0 +1,26 @@
+{
+  "name": "mcp-custom-server",
+  "version": "8.9.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noCheck",
+    "dev": "bun src/server.ts",
+    "generate-api": "orval",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "bun run test:snapshots --update"
+  },
+  "dependencies": {
+    "@hono/mcp": "^0.2.5",
+    "@modelcontextprotocol/sdk": "catalog:mcp",
+    "hono": "^4.12.12",
+    "zod": "catalog:zod3"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "orval": "workspace:*",
+    "prettier": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,47 +1,32 @@
 {
   "name": "react-app",
-  "version": "8.5.3",
+  "version": "8.9.1",
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "eject": "react-scripts eject",
+    "dev": "vite --host",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
     "generate-api": "orval",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
     "test:snapshots:update": "bun run test:snapshots --update"
   },
-  "eslintConfig": {
-    "extends": "react-app"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
   "dependencies": {
-    "@faker-js/faker": "catalog:tooling",
-    "@types/node": "catalog:",
-    "@types/react": "catalog:react",
-    "@types/react-dom": "^18.3.7",
     "axios": "catalog:axios",
     "react": "catalog:react",
     "react-dom": "^18.3.1",
-    "react-query": "^3.39.3",
-    "react-scripts": "^5.0.1",
-    "typescript": "catalog:"
+    "react-query": "^3.39.3"
   },
   "devDependencies": {
+    "@faker-js/faker": "catalog:tooling",
+    "@types/react": "catalog:react",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^5.1.2",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
     "prettier": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
     "vitest": "catalog:"
   },
   "dependenciesMeta": {

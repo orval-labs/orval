@@ -1,3 +1,4 @@
+import { HttpEventType } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -8,7 +9,10 @@ import {
 import { JsonPipe } from '@angular/common';
 import { z } from 'zod';
 import { PetsService as ZodPetsService } from '../api/endpoints-zod/pets/pets.service';
-import type { Pets } from '../api/model-zod/index.zod';
+import type { Pets } from '../api/endpoints-zod/model';
+import { DemoPageFrameComponent } from './demo-page-frame.component';
+import { BadgeComponent } from './ui/badge.component';
+import { PetCardComponent } from './ui/pet-card.component';
 
 /**
  * Demo component showing Zod runtime validation with Angular HttpClient services.
@@ -18,37 +22,38 @@ import type { Pets } from '../api/model-zod/index.zod';
  *   - `schemas: { type: 'zod' }`
  *   - `override.angular.runtimeValidation: true`
  *
- * Every JSON body response is piped through `Schema.parse()` in the RxJS pipeline,
- * which means invalid responses throw a ZodError at runtime.
+ * Eligible JSON responses are piped through `Schema.parse()` in the RxJS
+ * pipeline, which means invalid responses throw a ZodError at runtime.
  */
 @Component({
   selector: 'app-zod-validation-demo',
-  imports: [JsonPipe],
+  imports: [JsonPipe, BadgeComponent, DemoPageFrameComponent, PetCardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="zod-demo">
-      <div class="page-header">
-        <div class="page-title-row">
-          <h1 class="page-title">Runtime Validation</h1>
-          <span class="badge">ZOD</span>
-        </div>
-        <p class="page-desc">
-          Services generated with <code>runtimeValidation: true</code> pipe
-          every JSON response body through <code>Schema.parse()</code> — invalid
-          data throws a <code>ZodError</code> before reaching your component.
-        </p>
-      </div>
-
-      <div class="panels">
+    <app-demo-page-frame
+      eyebrow="Runtime validation playground"
+      title="Zod runtime validation"
+      description="This page showcases generated Angular HttpClient services with runtimeValidation enabled, so eligible JSON responses are validated at runtime and malformed data throws a ZodError before it reaches your UI code."
+      why="Use this mode when compile-time types are not enough and you want the generated client to guard your components against invalid backend payloads."
+      badge="ZOD"
+      [highlights]="highlights"
+    >
+      <div class="zod-demo panels">
         <!-- Section 1 -->
         <div class="panel">
           <div class="panel-header">
             <span class="panel-num">01</span>
             <span class="panel-title">searchPets()</span>
-            <span
-              class="panel-badge"
-              [class.badge-error]="searchError()"
-              [class.badge-ok]="!searchError() && searchPets().length"
+            <app-badge
+              shape="tag"
+              size="xs"
+              [tone]="
+                searchError()
+                  ? 'error'
+                  : searchPets().length
+                    ? 'success'
+                    : 'neutral'
+              "
             >
               {{
                 searchError()
@@ -57,7 +62,7 @@ import type { Pets } from '../api/model-zod/index.zod';
                     ? 'valid'
                     : '…'
               }}
-            </span>
+            </app-badge>
           </div>
           <div class="panel-meta">
             Response validated via <code>Pets.parse(data)</code>
@@ -69,17 +74,15 @@ import type { Pets } from '../api/model-zod/index.zod';
                 <span>{{ searchError() }}</span>
               </div>
             } @else if (searchPets().length) {
-              <ul class="pet-list" role="list">
+              <div
+                class="pet-grid"
+                role="list"
+                aria-label="Validated pets list"
+              >
                 @for (pet of searchPets(); track pet.id) {
-                  <li class="pet-row" role="listitem">
-                    <span class="pet-id">#{{ pet.id }}</span>
-                    <span class="pet-name">{{ pet.name }}</span>
-                    @if (pet.tag) {
-                      <span class="pet-tag">{{ pet.tag }}</span>
-                    }
-                  </li>
+                  <app-pet-card [pet]="pet" />
                 }
-              </ul>
+              </div>
             } @else {
               <div class="loading" aria-busy="true">
                 <span class="loading-dot"></span>
@@ -96,10 +99,12 @@ import type { Pets } from '../api/model-zod/index.zod';
           <div class="panel-header">
             <span class="panel-num">02</span>
             <span class="panel-title">showPetById()</span>
-            <span
-              class="panel-badge"
-              [class.badge-error]="showPetError()"
-              [class.badge-ok]="!showPetError() && singlePet()"
+            <app-badge
+              shape="tag"
+              size="xs"
+              [tone]="
+                showPetError() ? 'error' : singlePet() ? 'success' : 'neutral'
+              "
             >
               {{
                 showPetError()
@@ -108,7 +113,7 @@ import type { Pets } from '../api/model-zod/index.zod';
                     ? 'valid'
                     : '…'
               }}
-            </span>
+            </app-badge>
           </div>
           <div class="panel-meta">
             Multi-content-type — JSON branch runs <code>Pet.parse(data)</code>
@@ -137,7 +142,7 @@ import type { Pets } from '../api/model-zod/index.zod';
           <div class="panel-header">
             <span class="panel-num">03</span>
             <span class="panel-title">createPets()</span>
-            <span class="panel-badge badge-neutral">void</span>
+            <app-badge shape="tag" size="xs" tone="neutral">void</app-badge>
           </div>
           <div class="panel-meta">
             Response is <code>void</code> — <code>.parse()</code> is correctly
@@ -172,11 +177,13 @@ import type { Pets } from '../api/model-zod/index.zod';
           <div class="panel-header">
             <span class="panel-num">04</span>
             <span class="panel-title">Observe Modes</span>
-            <span class="panel-badge badge-neutral">3 requests</span>
+            <app-badge shape="tag" size="xs" tone="neutral"
+              >3 requests</app-badge
+            >
           </div>
           <div class="panel-meta">
-            Only <code>body</code> mode validates — <code>events</code> &amp;
-            <code>response</code> skip <code>.parse()</code>
+            <code>body</code>, terminal <code>events</code>, and
+            <code>response</code> flows all validate eligible JSON payloads
           </div>
           <div class="panel-body">
             @if (observeResults().length) {
@@ -204,61 +211,12 @@ import type { Pets } from '../api/model-zod/index.zod';
           </div>
         </div>
       </div>
-    </div>
+    </app-demo-page-frame>
   `,
   styles: `
     .zod-demo {
-      max-width: 900px;
-      margin: 0 auto;
-    }
-
-    /* ── Page header ── */
-    .page-header {
-      margin-bottom: 36px;
-    }
-
-    .page-title-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 10px;
-    }
-
-    .page-title {
-      font-family: var(--font-display);
-      font-size: 2.2rem;
-      font-weight: 800;
-      color: var(--text);
-      letter-spacing: -0.03em;
-    }
-
-    .badge {
-      font-family: var(--font-mono);
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      padding: 3px 8px;
-      border-radius: 4px;
-      background: var(--accent-dim);
-      color: var(--accent);
-      border: 1px solid var(--accent-glow);
-      align-self: center;
-    }
-
-    .page-desc {
-      color: var(--text-2);
-      font-size: 0.9rem;
-      line-height: 1.7;
-      max-width: 620px;
-    }
-
-    .page-desc code {
-      font-family: var(--font-mono);
-      font-size: 0.82em;
-      color: var(--accent);
-      background: var(--accent-dim);
-      padding: 1px 5px;
-      border-radius: 3px;
+      display: grid;
+      gap: 16px;
     }
 
     /* ── Panels ── */
@@ -312,34 +270,6 @@ import type { Pets } from '../api/model-zod/index.zod';
       flex: 1;
     }
 
-    .panel-badge {
-      font-family: var(--font-mono);
-      font-size: 0.65rem;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      padding: 2px 7px;
-      border-radius: 3px;
-      text-transform: uppercase;
-
-      &.badge-error {
-        background: var(--error-dim);
-        color: var(--error);
-        border: 1px solid oklch(0.68 0.22 22 / 0.3);
-      }
-
-      &.badge-ok {
-        background: var(--success-dim);
-        color: var(--success);
-        border: 1px solid oklch(0.75 0.16 148 / 0.3);
-      }
-
-      &.badge-neutral {
-        background: var(--surface);
-        color: var(--text-3);
-        border: 1px solid var(--border-2);
-      }
-    }
-
     .panel-meta {
       padding: 8px 16px;
       font-size: 0.8rem;
@@ -383,45 +313,10 @@ import type { Pets } from '../api/model-zod/index.zod';
     }
 
     /* ── Pet list ── */
-    .pet-list {
-      list-style: none;
+    .pet-grid {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-    }
-
-    .pet-row {
-      display: flex;
-      align-items: center;
       gap: 10px;
-      padding: 8px 12px;
-      border-radius: 6px;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      font-size: 0.875rem;
-      animation: slideIn 0.2s ease;
-    }
-
-    .pet-id {
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      color: var(--text-3);
-      min-width: 28px;
-    }
-
-    .pet-name {
-      font-weight: 500;
-      color: var(--text);
-    }
-
-    .pet-tag {
-      font-family: var(--font-mono);
-      font-size: 0.72rem;
-      color: var(--accent);
-      background: var(--accent-dim);
-      padding: 1px 6px;
-      border-radius: 3px;
-      margin-left: auto;
     }
 
     /* ── Code block ── */
@@ -607,7 +502,7 @@ import type { Pets } from '../api/model-zod/index.zod';
       }
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 860px) {
       .panels {
         grid-template-columns: 1fr;
       }
@@ -619,6 +514,13 @@ import type { Pets } from '../api/model-zod/index.zod';
 })
 export class ZodValidationDemo implements OnInit {
   private readonly petsService = inject(ZodPetsService);
+  private readonly demoVersion = 1;
+
+  protected readonly highlights = [
+    'Generated Angular HttpClient services with runtimeValidation enabled',
+    'How ZodError surfaces for invalid JSON responses before component code consumes them',
+    'How body, response, and terminal events flows each validate eligible JSON responses',
+  ] as const;
 
   protected readonly searchPets = signal<Pets>([]);
   protected readonly searchError = signal<string | null>(null);
@@ -649,7 +551,7 @@ export class ZodValidationDemo implements OnInit {
 
   private loadSearchPets() {
     this.petsService
-      .searchPets(this.DEMO_PARAMS, {
+      .searchPets(this.DEMO_PARAMS, this.demoVersion, {
         params: {
           demoValidation: '1',
           demoMode: 'search',
@@ -663,7 +565,7 @@ export class ZodValidationDemo implements OnInit {
 
   private loadSinglePet() {
     this.petsService
-      .showPetById('1', 'application/json', {
+      .showPetById('1', 'application/json', this.demoVersion, {
         params: {
           demoValidation: '1',
         },
@@ -675,19 +577,28 @@ export class ZodValidationDemo implements OnInit {
   }
 
   private loadObserveModes() {
-    const results: { mode: string; status: string }[] = [];
-    let completed = 0;
-    const totalModes = 3;
+    const results = new Map<string, string>();
 
-    const updateResults = () => {
-      if (++completed === totalModes) {
-        this.observeResults.set([...results]);
+    const updateResults = (mode: string, status: string) => {
+      if (results.has(mode)) {
+        return;
+      }
+
+      results.set(mode, status);
+
+      if (results.size === 3) {
+        this.observeResults.set(
+          ['body', 'events', 'response'].map((orderedMode) => ({
+            mode: orderedMode,
+            status: results.get(orderedMode) ?? 'Pending',
+          })),
+        );
       }
     };
 
     // Body mode - validates
     this.petsService
-      .searchPets(this.DEMO_PARAMS, {
+      .searchPets(this.DEMO_PARAMS, this.demoVersion, {
         observe: 'body',
         params: {
           demoValidation: '1',
@@ -696,24 +607,16 @@ export class ZodValidationDemo implements OnInit {
       })
       .subscribe({
         next: () => {
-          results.push({
-            mode: 'body',
-            status: '✅ Validated & received',
-          });
-          updateResults();
+          updateResults('body', '✅ Validated & received');
         },
         error: (err) => {
-          results.push({
-            mode: 'body',
-            status: `❌ ${this.formatZodError(err)}`,
-          });
-          updateResults();
+          updateResults('body', `❌ ${this.formatZodError(err)}`);
         },
       });
 
-    // Events mode - no validation
+    // Events mode - validates on the terminal HttpResponse event
     this.petsService
-      .searchPets(this.DEMO_PARAMS, {
+      .searchPets(this.DEMO_PARAMS, this.demoVersion, {
         observe: 'events',
         params: {
           demoValidation: '1',
@@ -721,25 +624,21 @@ export class ZodValidationDemo implements OnInit {
         },
       })
       .subscribe({
-        next: () => {
-          results.push({
-            mode: 'events',
-            status: '✅ Received (no validation)',
-          });
-          updateResults();
+        next: (event) => {
+          if (event.type !== HttpEventType.Response) {
+            return;
+          }
+
+          updateResults('events', '✅ Validated terminal response event');
         },
         error: (err) => {
-          results.push({
-            mode: 'events',
-            status: `❌ ${this.formatZodError(err)}`,
-          });
-          updateResults();
+          updateResults('events', `❌ ${this.formatZodError(err)}`);
         },
       });
 
-    // Response mode - no validation
+    // Response mode - validates cloned response bodies
     this.petsService
-      .searchPets(this.DEMO_PARAMS, {
+      .searchPets(this.DEMO_PARAMS, this.demoVersion, {
         observe: 'response',
         params: {
           demoValidation: '1',
@@ -748,18 +647,10 @@ export class ZodValidationDemo implements OnInit {
       })
       .subscribe({
         next: () => {
-          results.push({
-            mode: 'response',
-            status: '✅ Received (no validation)',
-          });
-          updateResults();
+          updateResults('response', '✅ Validated response body');
         },
         error: (err) => {
-          results.push({
-            mode: 'response',
-            status: `❌ ${this.formatZodError(err)}`,
-          });
-          updateResults();
+          updateResults('response', `❌ ${this.formatZodError(err)}`);
         },
       });
   }

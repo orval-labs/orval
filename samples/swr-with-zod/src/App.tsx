@@ -2,7 +2,7 @@ import './App.css';
 
 import { Pet } from './gen/models';
 import { useListPets, useCreatePets } from './gen/endpoints/pets/pets';
-import { createPetsBodyItem } from './gen/endpoints/pets/pets.zod';
+import { CreatePetsBodyItem } from './gen/endpoints/pets/pets.zod';
 
 function App() {
   const { data } = useListPets();
@@ -13,7 +13,7 @@ function App() {
     const pet = { name: '123', tag: 'test' };
 
     try {
-      const parsedPet = createPetsBodyItem.parse(pet);
+      const parsedPet = CreatePetsBodyItem.parse(pet);
 
       await trigger([parsedPet]);
     } catch (error) {

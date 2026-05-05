@@ -19,9 +19,15 @@ import {
   stringify,
   toObjectString,
 } from '@orval/core';
-import { isDereferenced } from '@scalar/openapi-types/helpers';
 
 const WILDCARD_STATUS_CODE_REGEX = /^[1-5]XX$/i;
+const resolveSchemaRef = (
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: GeneratorOptions['context'],
+) =>
+  resolveRef(schema, context) as {
+    schema: OpenApiSchemaObject;
+  };
 
 const getStatusCodeType = (key: string): string => {
   if (WILDCARD_STATUS_CODE_REGEX.test(key)) {
@@ -60,6 +66,7 @@ export const generateRequestFunction = (
     formData,
     formUrlEncoded,
     override,
+    doc,
   }: GeneratorVerbOptions,
   { route, context, pathRoute }: GeneratorOptions,
 ) => {
@@ -80,18 +87,17 @@ export const generateRequestFunction = (
 
   const spec = context.spec.paths?.[pathRoute];
   const parameters = spec?.[verb]?.parameters ?? [];
+  const parameterObjects = parameters.map((parameter) => {
+    const { schema } = resolveRef(parameter, context);
+    return schema as OpenApiParameterObject;
+  });
 
-  const explodeParameters = parameters.filter((parameter) => {
-    const { schema: parameterObject } = resolveRef<OpenApiParameterObject>(
-      parameter,
-      context,
-    );
-
+  const explodeParameters = parameterObjects.filter((parameterObject) => {
     if (!parameterObject.schema) {
       return false;
     }
 
-    const { schema: schemaObject } = resolveRef<OpenApiSchemaObject>(
+    const { schema: schemaObject } = resolveSchemaRef(
       parameterObject.schema,
       context,
     );
@@ -102,42 +108,36 @@ export const generateRequestFunction = (
         (schemaObject.oneOf as
           | (OpenApiSchemaObject | OpenApiReferenceObject)[]
           | undefined) ?? []
-      ).some(
-        (s) =>
-          resolveRef<OpenApiSchemaObject>(s, context).schema.type === 'array',
-      ) ||
+      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array') ||
       (
         (schemaObject.anyOf as
           | (OpenApiSchemaObject | OpenApiReferenceObject)[]
           | undefined) ?? []
-      ).some(
-        (s) =>
-          resolveRef<OpenApiSchemaObject>(s, context).schema.type === 'array',
-      ) ||
+      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array') ||
       (
         (schemaObject.allOf as
           | (OpenApiSchemaObject | OpenApiReferenceObject)[]
           | undefined) ?? []
-      ).some(
-        (s) =>
-          resolveRef<OpenApiSchemaObject>(s, context).schema.type === 'array',
-      );
+      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array');
 
     return (
       parameterObject.in === 'query' && isArrayLike && parameterObject.explode
     );
   });
 
-  const explodeParametersNames = explodeParameters.map((parameter) => {
-    const { schema } = resolveRef<OpenApiParameterObject>(parameter, context);
-
-    return schema.name;
-  });
+  const explodeParametersNames = explodeParameters.map(
+    (parameter) => parameter.name,
+  );
   const hasExplodedDateParams =
     context.output.override.useDates &&
-    explodeParameters.some(
-      (p) => isDereferenced(p) && p.schema?.format === 'date-time',
-    );
+    explodeParameters.some((parameter) => {
+      if (!parameter.schema) {
+        return false;
+      }
+
+      const { schema } = resolveSchemaRef(parameter.schema, context);
+      return schema.format === 'date-time';
+    });
 
   const explodeArrayImplementation =
     explodeParameters.length > 0
@@ -157,9 +157,14 @@ export const generateRequestFunction = (
 
   const hasDateParams =
     context.output.override.useDates &&
-    parameters.some(
-      (p) => isDereferenced(p) && p.schema?.format === 'date-time',
-    );
+    parameterObjects.some((parameter) => {
+      if (!parameter.schema) {
+        return false;
+      }
+
+      const { schema } = resolveSchemaRef(parameter.schema, context);
+      return schema.format === 'date-time';
+    });
 
   const normalParamsImplementation = `if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : ${hasDateParams ? 'value instanceof Date ? value.toISOString() : ' : ''}value.toString())
@@ -190,9 +195,41 @@ ${
     contentType === 'application/nd-json' ||
     contentType === 'application/x-ndjson';
 
+  const isContentTypeJson = (contentType: string) =>
+    contentType.toLowerCase().includes('json');
+
   const isNdJson = response.contentTypes.some((contentType) =>
     isContentTypeNdJson(contentType),
   );
+  const isBlob = response.isBlob;
+
+  const successContentTypes = response.types.success
+    .map((t) => t.contentType)
+    .filter(Boolean);
+  const errorContentTypes = response.types.errors
+    .map((t) => t.contentType)
+    .filter(Boolean);
+
+  // Resolve parsing strategy at generation time based on spec-declared content types.
+  // Only emit a runtime Content-Type check when success responses have mixed types.
+  const successHasJson = successContentTypes.some((ct) =>
+    isContentTypeJson(ct),
+  );
+  const successHasNonJson = successContentTypes.some(
+    (ct) => !isContentTypeJson(ct),
+  );
+  const hasMixedSuccessContentTypes = successHasJson && successHasNonJson;
+  // No declared content types → fall back to JSON (preserve original behaviour)
+  const successAlwaysJson =
+    successContentTypes.length === 0 || (successHasJson && !successHasNonJson);
+
+  const errorHasJson = errorContentTypes.some((ct) => isContentTypeJson(ct));
+  const errorHasNonJson = errorContentTypes.some(
+    (ct) => !isContentTypeJson(ct),
+  );
+  const hasMixedErrorContentTypes = errorHasJson && errorHasNonJson;
+  const errorAlwaysJson =
+    errorContentTypes.length === 0 || (errorHasJson && !errorHasNonJson);
   const responseTypeName = fetchResponseTypeName(
     override.fetch.includeHttpResponseReturnType,
     isNdJson ? 'Response' : response.definition.success,
@@ -200,6 +237,7 @@ ${
   );
 
   const responseType = response.definition.success;
+  const isVoidResponse = responseType === 'void';
 
   const isPrimitiveType = [
     'string',
@@ -308,7 +346,12 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     })
     .join(',');
 
-  const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}`;
+  const useRuntimeFetcher = override.fetch.useRuntimeFetcher;
+  const fetchFnParam =
+    useRuntimeFetcher && isRequestOptions && !mutator
+      ? ', fetchFn?: typeof globalThis.fetch'
+      : '';
+  const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}${fetchFnParam}`;
   const returnType =
     override.fetch.forceSuccessResponse && hasSuccess
       ? `Promise<${successName}>`
@@ -384,32 +427,110 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   const reviver = fetchReviver ? `, ${fetchReviver.name}` : '';
   const schemaValueRef =
     responseType === 'Error' ? 'ErrorSchema' : responseType;
+  const fetchResponseType =
+    override.fetch.forceSuccessResponse && hasSuccess
+      ? successName
+      : responseTypeName;
+
+  // Error response fallback always uses {} — error data types vary (e.g. `Error`)
+  // and {} satisfies them all without a type error, matching prior behaviour.
+  // Use truthy `body` check before JSON.parse so empty string bodies fall back
+  // instead of throwing (`JSON.parse('')` is invalid).
+  const errorBodyExpression = hasMixedErrorContentTypes
+    ? `errorBody ? (errorContentType.includes('json') ? JSON.parse(errorBody${reviver}) : errorBody) : {}`
+    : errorAlwaysJson
+      ? `errorBody ? JSON.parse(errorBody${reviver}) : {}`
+      : `errorBody !== null ? errorBody : {}`;
+
+  const throwOnErrorBodyExpression = hasMixedErrorContentTypes
+    ? `body ? (errorContentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}`
+    : errorAlwaysJson
+      ? `body ? JSON.parse(body${reviver}) : {}`
+      : `body !== null ? body : ''`;
+
+  const throwOnErrorDataExpression = isNdJson
+    ? `body ? JSON.parse(body${reviver}) : {}`
+    : isBlob
+      ? errorBodyExpression
+      : throwOnErrorBodyExpression;
+
+  // In the forceSuccessResponse path, throwOnErrorImplementation is emitted AFTER
+  // `contentType` and `body` are already declared in the outer scope, so we must
+  // NOT redeclare them here.
+  const throwOnErrorInnerDeclarations = isNdJson
+    ? 'const body = [204, 205, 304].includes(stream.status) ? null : await stream.text();'
+    : isBlob
+      ? `const errorBody = [204, 205, 304].includes(res.status) ? null : await res.text();
+    ${hasMixedErrorContentTypes ? `const errorContentType = (res.headers.get('content-type') ?? '').toLowerCase();` : ''}`
+      : override.fetch.forceSuccessResponse
+        ? hasMixedErrorContentTypes
+          ? `const errorContentType = (res.headers.get('content-type') ?? '').toLowerCase();`
+          : ''
+        : hasMixedErrorContentTypes
+          ? `const errorContentType = (res.headers.get('content-type') ?? '').toLowerCase();
+    const body = [204, 205, 304].includes(res.status) ? null : await res.text();`
+          : 'const body = [204, 205, 304].includes(res.status) ? null : await res.text();';
+
   const throwOnErrorImplementation = `if (!${isNdJson ? 'stream' : 'res'}.ok) {
-    ${isNdJson ? 'const body = [204, 205, 304].includes(stream.status) ? null : await stream.text();' : ''}
+    ${throwOnErrorInnerDeclarations}
     const err: globalThis.Error & {info?: ${hasError ? `${errorName}${override.fetch.includeHttpResponseReturnType ? "['data']" : ''}` : 'any'}, status?: number} = new globalThis.Error();
-    const data ${hasError ? `: ${errorName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''}` : ''} = body ? JSON.parse(body${reviver}) : {}
+    const data ${hasError ? `: ${errorName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''}` : ''} = ${throwOnErrorDataExpression}
     err.info = data;
     err.status = ${isNdJson ? 'stream' : 'res'}.status;
     throw err;
   }`;
-  const fetchResponseImplementation = isNdJson
-    ? `  const stream = await fetch(${fetchFnOptions});
-  ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
-  ${override.fetch.includeHttpResponseReturnType ? `return { status: stream.status, stream, headers: stream.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : `return stream`}
-  `
-    : `const res = await fetch(${fetchFnOptions})
+  const fetchFnCall =
+    useRuntimeFetcher && isRequestOptions ? '(fetchFn ?? fetch)' : 'fetch';
+  const blobFetchResponseImplementation = `const res = await ${fetchFnCall}(${fetchFnOptions})
 
+  ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
+  const body = [204, 205, 304].includes(res.status) ? null : await res.blob();
+  const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body as ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''}
+  ${
+    override.fetch.includeHttpResponseReturnType
+      ? `return { data, status: res.status, headers: res.headers } as ${fetchResponseType}`
+      : 'return data'
+  }
+`;
+  const fetchResponseImplementation = isNdJson
+    ? `  const stream = await ${fetchFnCall}(${fetchFnOptions});
+  ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
+  ${
+    override.fetch.includeHttpResponseReturnType
+      ? `return { status: stream.status, stream, headers: stream.headers } as ${fetchResponseType}`
+      : `return stream`
+  }
+  `
+    : isBlob
+      ? blobFetchResponseImplementation
+      : `const res = await ${fetchFnCall}(${fetchFnOptions})
+
+  ${hasMixedSuccessContentTypes || (isValidateResponse && successAlwaysJson) ? `const contentType = (res.headers.get('content-type') ?? '').toLowerCase();` : ''}
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
   ${
     isValidateResponse
-      ? `const parsedBody = body ? JSON.parse(body${reviver}) : {}
-  const data = ${schemaValueRef}.parse(parsedBody)`
-      : `const data: ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}`
+      ? hasMixedSuccessContentTypes
+        ? `const parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}
+  const data = contentType.includes('json') ? ${schemaValueRef}.parse(parsedBody) : parsedBody`
+        : successAlwaysJson
+          ? `const parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}
+  const data = contentType.includes('json') ? ${schemaValueRef}.parse(parsedBody) : parsedBody`
+          : `const parsedBody = body !== null ? body : ''
+  const data = parsedBody`
+      : hasMixedSuccessContentTypes
+        ? `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : ${isVoidResponse ? 'undefined' : '{}'}`
+        : successAlwaysJson
+          ? `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : ${isVoidResponse ? 'undefined' : '{}'}`
+          : `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body !== null ? body : ${isVoidResponse ? 'undefined' : "''"}`
   }
-  ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : 'return data'}
+  ${
+    override.fetch.includeHttpResponseReturnType
+      ? `return { data, status: res.status, headers: res.headers } as ${fetchResponseType}`
+      : 'return data'
+  }
 `;
-  let customFetchResponseImplementation = `return ${mutator?.name}<${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}>(${fetchFnOptions});`;
+  let customFetchResponseImplementation = `return ${mutator?.name}<${fetchResponseType}>(${fetchFnOptions});`;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -453,7 +574,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   return (
     responseTypeImplementation +
     `${getUrlFnImplementation}\n` +
-    `${fetchImplementation}\n`
+    `${doc}${fetchImplementation}\n`
   );
 };
 
@@ -506,6 +627,7 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
   return {
     implementation: `${functionImplementation}\n`,
     imports,
+    docComment: '',
   };
 };
 

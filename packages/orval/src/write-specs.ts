@@ -1,5 +1,4 @@
 import path from 'node:path';
-import { styleText } from 'node:util';
 
 import {
   createSuccessMessage,
@@ -10,11 +9,12 @@ import {
   isObject,
   isString,
   jsDoc,
-  log,
+  logWarning,
   type NormalizedOptions,
   type OpenApiInfoObject,
   OutputMode,
   splitSchemasByType,
+  SupportedFormatter,
   upath,
   writeSchemas,
   writeSingleMode,
@@ -30,7 +30,59 @@ import type { TypeDocOptions } from 'typedoc';
 
 import { formatWithPrettier } from './formatters/prettier';
 import { executeHook } from './utils';
-import { writeZodSchemas, writeZodSchemasFromVerbs } from './write-zod-specs';
+import {
+  generateZodSchemasInline,
+  writeZodSchemas,
+  writeZodSchemasFromVerbs,
+} from './write-zod-specs';
+
+async function runExternalFormatter(
+  bin: string,
+  args: string[],
+  projectTitle?: string,
+): Promise<void> {
+  try {
+    await execa(bin, args);
+  } catch (error) {
+    let message: string;
+    if (error instanceof ExecaError) {
+      message =
+        error.code === 'ENOENT'
+          ? `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}${bin} not found`
+          : error.message;
+    } else if (error instanceof Error) {
+      message = error.message;
+    } else {
+      message = `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}${bin} failed`;
+    }
+    logWarning(message);
+  }
+}
+
+export async function runFormatter(
+  formatter: SupportedFormatter | undefined,
+  paths: string[],
+  projectTitle?: string,
+): Promise<void> {
+  switch (formatter) {
+    case SupportedFormatter.PRETTIER: {
+      await formatWithPrettier(paths, projectTitle);
+      break;
+    }
+    case SupportedFormatter.BIOME: {
+      await runExternalFormatter(
+        SupportedFormatter.BIOME,
+        ['check', '--write', ...paths],
+        projectTitle,
+      );
+      break;
+    }
+    case SupportedFormatter.OXFMT: {
+      await runExternalFormatter(SupportedFormatter.OXFMT, paths, projectTitle);
+      break;
+    }
+  }
+}
 
 function getHeader(
   option: false | ((info: OpenApiInfoObject) => string | string[]),
@@ -51,10 +103,9 @@ function getHeader(
 async function addOperationSchemasReExport(
   schemaPath: string,
   operationSchemasPath: string,
-  fileExtension: string,
   header: string,
 ): Promise<void> {
-  const schemaIndexPath = path.join(schemaPath, `index${fileExtension}`);
+  const schemaIndexPath = path.join(schemaPath, `index.ts`);
   const esmImportPath = upath.getRelativeImportPath(
     schemaIndexPath,
     operationSchemasPath,
@@ -154,7 +205,6 @@ export async function writeSpecs(
             await addOperationSchemasReExport(
               schemaPath,
               output.operationSchemas,
-              fileExtension,
               header,
             );
           }
@@ -229,7 +279,6 @@ export async function writeSpecs(
               await addOperationSchemasReExport(
                 output.schemas.path,
                 output.operationSchemas,
-                fileExtension,
                 header,
               );
             }
@@ -278,13 +327,21 @@ export async function writeSpecs(
 
   if (output.target) {
     const writeMode = getWriteMode(output.mode);
+    const isZodClient = output.client === 'zod';
+    const hasOperations = Object.keys(builder.operations).length > 0;
+    const needZodSchemasInline =
+      isZodClient && !output.schemas && !hasOperations;
+
     implementationPaths = await writeMode({
       builder,
       workspace,
       output,
       projectName,
       header,
-      needSchema: !output.schemas && output.client !== 'zod',
+      needSchema: (!output.schemas && !isZodClient) || needZodSchemasInline,
+      generateSchemasInline: needZodSchemasInline
+        ? () => generateZodSchemasInline(builder, output)
+        : undefined,
     });
   }
 
@@ -384,21 +441,7 @@ export async function writeSpecs(
     );
   }
 
-  if (output.prettier) {
-    await formatWithPrettier(paths, projectTitle);
-  }
-
-  if (output.biome) {
-    try {
-      await execa('biome', ['check', '--write', ...paths]);
-    } catch (error) {
-      let message = `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}biome not found`;
-      if (error instanceof ExecaError && error.exitCode === 1)
-        message = error.message;
-
-      log(styleText('yellow', message));
-    }
-  }
+  await runFormatter(output.formatter, paths, projectTitle);
 
   if (output.docs) {
     try {
@@ -436,9 +479,7 @@ export async function writeSpecs(
         const outputPath = app.options.getValue('out');
         await app.generateDocs(project, outputPath);
 
-        if (output.prettier) {
-          await formatWithPrettier([outputPath], projectTitle);
-        }
+        await runFormatter(output.formatter, [outputPath], projectTitle);
       } else {
         throw new Error('TypeDoc not initialized');
       }
@@ -448,7 +489,7 @@ export async function writeSpecs(
           ? error.message
           : `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Unable to generate docs`;
 
-      log(styleText('yellow', message));
+      logWarning(message);
     }
   }
 

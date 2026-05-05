@@ -7,9 +7,11 @@ import {
   type GeneratorVerbOptions,
   GetterPropType,
   type InvalidateTarget,
+  type InvalidateTargetParam,
   isString,
   type OutputHttpClient,
   pascal,
+  type Verbs,
 } from '@orval/core';
 
 import {
@@ -18,19 +20,28 @@ import {
   getQueryErrorType,
 } from './client';
 import type { FrameworkAdapter } from './framework-adapter';
+import { getQueryKeyVerbPrefix } from './query-generator';
 import { getQueryOptionsDefinition } from './query-options';
 
 interface NormalizedTarget {
   query: string;
-  params?: string[] | Record<string, string>;
+  params?: InvalidateTargetParam[] | Record<string, InvalidateTargetParam>;
   invalidateMode: 'invalidate' | 'reset';
   file?: string;
 }
 
+const normalizeInvalidateMode = (
+  invalidateMode: string | undefined,
+): NormalizedTarget['invalidateMode'] =>
+  invalidateMode === 'reset' ? 'reset' : 'invalidate';
+
 const normalizeTarget = (target: InvalidateTarget): NormalizedTarget =>
   isString(target)
     ? { query: target, invalidateMode: 'invalidate' }
-    : { ...target, invalidateMode: target.invalidateMode ?? 'invalidate' };
+    : {
+        ...target,
+        invalidateMode: normalizeInvalidateMode(target.invalidateMode),
+      };
 
 const serializeTarget = (target: NormalizedTarget): string =>
   JSON.stringify({
@@ -40,29 +51,232 @@ const serializeTarget = (target: NormalizedTarget): string =>
     file: target.file ?? '',
   });
 
-const generateVariableRef = (varName: string): string => {
-  const parts = varName.split('.');
+const HTTP_METHODS = [
+  'get',
+  'post',
+  'put',
+  'delete',
+  'patch',
+  'options',
+  'head',
+  'trace',
+];
+
+interface OperationRouteInfo {
+  route: string;
+  /** HTTP method (lowercase) — needed to mirror the verb prefix that
+   * `getQueryKeyVerbPrefix` adds to non-GET cache keys. */
+  method: string;
+  /** true when the route has path params that lack a default value */
+  hasRequiredPathParams: boolean;
+}
+
+interface SpecPathItem {
+  parameters?: SpecParameter[];
+  [method: string]: unknown;
+}
+
+interface SpecOperation {
+  operationId?: string;
+  parameters?: SpecParameter[];
+}
+
+interface SpecParameter {
+  in?: string;
+  default?: unknown;
+  schema?: { default?: unknown };
+}
+
+/**
+ * Look up an operation's route and path-parameter metadata from the OpenAPI
+ * spec. Matches against both the raw `operationId` and its camelCase form
+ * so that renamed/overridden operations are still found.
+ */
+const findOperationInfo = (
+  spec: Record<string, unknown> | undefined,
+  operationName: string,
+): OperationRouteInfo | undefined => {
+  const paths = spec?.paths;
+  if (!paths || typeof paths !== 'object') return undefined;
+
+  for (const [routePath, rawPathItem] of Object.entries(
+    paths as Record<string, unknown>,
+  )) {
+    if (!rawPathItem || typeof rawPathItem !== 'object') continue;
+    const pathItem = rawPathItem as SpecPathItem;
+
+    for (const method of HTTP_METHODS) {
+      const operation = pathItem[method] as SpecOperation | undefined;
+      const opId = operation?.operationId;
+      if (!opId) continue;
+      // Match both raw operationId and its camelCase generated name
+      if (opId !== operationName && camel(opId) !== operationName) continue;
+
+      if (!routePath.includes('{')) {
+        return { route: routePath, method, hasRequiredPathParams: false };
+      }
+
+      // Collect path parameters from both path-level and operation-level
+      const pathParams = [
+        ...(Array.isArray(pathItem.parameters) ? pathItem.parameters : []),
+        ...(Array.isArray(operation.parameters) ? operation.parameters : []),
+      ].filter((p) => p.in === 'path');
+
+      const hasRequiredPathParams = pathParams.some(
+        (p) => p.schema?.default === undefined && p.default === undefined,
+      );
+
+      return { route: routePath, method, hasRequiredPathParams };
+    }
+  }
+  return undefined;
+};
+
+/**
+ * Extract the static route prefix before the first path parameter.
+ * e.g. "/pets/{petId}" → "/pets/", "/pets" → "/pets"
+ *
+ * Returns `undefined` when the prefix contains no meaningful literal
+ * segments (e.g. "/{tenantId}/pets") to avoid overly-broad invalidation.
+ */
+const getStaticRoutePrefix = (route: string): string | undefined => {
+  const idx = route.indexOf('{');
+  if (idx === -1) return route;
+  const prefix = route.slice(0, idx);
+  // Guard: a prefix like "/" has no stable literal segment and would
+  // match every route-style query key – fall back to the zero-arg call.
+  const hasLiteralSegment = prefix
+    .split('/')
+    .some((segment) => segment.length > 0);
+  return hasLiteralSegment ? prefix : undefined;
+};
+
+/**
+ * Check whether the target invalidation needs to call the query key function.
+ * Returns false when no params are specified and the route has required path
+ * parameters (without defaults), meaning we should use predicate-based broad
+ * invalidation instead of calling the function without the required arguments.
+ */
+const hasNonEmptyParams = (
+  params:
+    | InvalidateTargetParam[]
+    | Record<string, InvalidateTargetParam>
+    | undefined,
+): params is
+  | InvalidateTargetParam[]
+  | Record<string, InvalidateTargetParam> => {
+  if (!params) return false;
+  if (Array.isArray(params)) return params.length > 0;
+  return Object.keys(params).length > 0;
+};
+
+const needsQueryKeyFnCall = (
+  target: NormalizedTarget,
+  spec: Record<string, unknown> | undefined,
+): boolean => {
+  if (hasNonEmptyParams(target.params)) return true;
+  const info = findOperationInfo(spec, target.query);
+  if (info?.hasRequiredPathParams) return false;
+  return true;
+};
+
+const generateParamArg = (param: InvalidateTargetParam): string => {
+  if (!isString(param)) {
+    return JSON.stringify(param.literal);
+  }
+  const parts = param.split('.');
   if (parts.length === 1) {
-    return `variables.${varName}`;
+    return `variables.${param}`;
   }
   return `variables.${parts[0]}?.${parts.slice(1).join('?.')}`;
 };
 
 const generateParamArgs = (
-  params: string[] | Record<string, string>,
+  params: InvalidateTargetParam[] | Record<string, InvalidateTargetParam>,
 ): string => {
   if (Array.isArray(params)) {
-    return params.map((v) => generateVariableRef(v)).join(', ');
+    return params.map((v) => generateParamArg(v)).join(', ');
   }
   return Object.values(params)
-    .map((v) => generateVariableRef(v))
+    .map((v) => generateParamArg(v))
     .join(', ');
 };
 
-const generateInvalidateCall = (target: NormalizedTarget): string => {
-  const queryKeyFn = camel(`get-${target.query}-query-key`);
-  const args = target.params ? generateParamArgs(target.params) : '';
-  return `    queryClient.${target.invalidateMode === 'reset' ? 'resetQueries' : 'invalidateQueries'}({ queryKey: ${queryKeyFn}(${args}) });`;
+/**
+ * Create a generateInvalidateCall function that has access to the OpenAPI spec
+ * for intelligent route-based invalidation when params are not specified.
+ */
+const createGenerateInvalidateCall = (
+  spec: Record<string, unknown> | undefined,
+  shouldSplitQueryKey: boolean,
+  useOperationIdAsQueryKey: boolean,
+) => {
+  return (target: NormalizedTarget): string => {
+    const method =
+      target.invalidateMode === 'reset' ? 'resetQueries' : 'invalidateQueries';
+    const queryKeyFn = camel(`get-${target.query}-query-key`);
+
+    if (hasNonEmptyParams(target.params)) {
+      const args = generateParamArgs(target.params);
+      return `    queryClient.${method}({ queryKey: ${queryKeyFn}(${args}) });`;
+    }
+
+    // No params specified – check if the target query has required path params
+    const info = findOperationInfo(spec, target.query);
+
+    if (info?.hasRequiredPathParams) {
+      // Route has required path parameters (no defaults) – use broad
+      // invalidation instead of calling the query key function without
+      // the required arguments.
+      const prefix = getStaticRoutePrefix(info.route);
+
+      // When the prefix has no meaningful literal segments (e.g. route
+      // starts with a path param like /{tenantId}/...), fall through to
+      // the zero-arg call rather than generating an overly-broad match.
+      if (prefix !== undefined) {
+        // Mirror the verb prefix that `getQueryKeyVerbPrefix` injects into
+        // non-GET Query keys; without this, the predicate / partial key
+        // would never match a verb-prefixed cache key and the broad
+        // invalidation would silently no-op. We share the helper from
+        // `query-generator.ts` so both sites stay in sync.
+        // `info.method` is narrowed by the spec walker to one of HTTP_METHODS
+        // (a superset of `Verbs` that also includes `options`/`trace`); the
+        // helper only branches on `Verbs.GET`, so the cast is safe for any
+        // non-GET method.
+        const verbPrefix = getQueryKeyVerbPrefix({
+          verb: info.method as Verbs,
+          useOperationIdAsQueryKey,
+        });
+
+        if (shouldSplitQueryKey) {
+          // Split-key mode: query keys are arrays like ['pets', petId]
+          // (or ['DELETE', 'pets', petId] for non-GET Query keys).
+          // Use partial key matching with static route segments.
+          const segments = prefix
+            .split('/')
+            .filter((s) => s !== '')
+            .map((s) => `'${s}'`)
+            .join(', ');
+          const keyArr = verbPrefix
+            ? `['${verbPrefix}', ${segments}]`
+            : `[${segments}]`;
+          return `    queryClient.${method}({ queryKey: ${keyArr} });`;
+        }
+
+        // Default mode: query keys are template strings like
+        // ['/pets/${petId}'] (or ['DELETE', '/pets/${petId}'] for non-GET
+        // Query keys). Use a predicate that knows where the route segment
+        // lives in the tuple.
+        if (verbPrefix) {
+          return `    queryClient.${method}({ predicate: (query) => query.queryKey[0] === '${verbPrefix}' && typeof query.queryKey[1] === 'string' && query.queryKey[1].startsWith('${prefix}') });`;
+        }
+        return `    queryClient.${method}({ predicate: (query) => typeof query.queryKey[0] === 'string' && query.queryKey[0].startsWith('${prefix}') });`;
+      }
+    }
+
+    // No path params or route not found – call query key function without args
+    return `    queryClient.${method}({ queryKey: ${queryKeyFn}() });`;
+  };
 };
 
 export interface MutationHookContext {
@@ -108,12 +322,13 @@ export const generateMutationHook = async ({
       })
     : undefined;
 
+  const bodyOptionalMark = body.isOptional ? '?' : '';
   const definitions = props
     .map(({ definition, type }) =>
       type === GetterPropType.BODY
         ? mutator?.bodyTypeName
-          ? `data: ${mutator.bodyTypeName}<${body.definition}>`
-          : `data: ${body.definition}`
+          ? `data${bodyOptionalMark}: ${mutator.bodyTypeName}<${body.definition}>`
+          : `data${bodyOptionalMark}: ${body.definition}`
         : definition,
     )
     .join(';');
@@ -160,6 +375,8 @@ export const generateMutationHook = async ({
   const hasInvalidation =
     uniqueInvalidates.length > 0 && adapter.supportsMutationInvalidation();
 
+  const useRuntimeFetcher = override.fetch.useRuntimeFetcher;
+
   const mutationArguments = adapter.generateQueryArguments({
     operationName,
     definitions,
@@ -167,6 +384,7 @@ export const generateMutationHook = async ({
     isRequestOptions,
     httpClient,
     hasInvalidation,
+    useRuntimeFetcher,
   });
 
   // Separate arguments for getMutationOptions function (includes http: HttpClient param for Angular)
@@ -178,6 +396,7 @@ export const generateMutationHook = async ({
     httpClient,
     forQueryOptions: true,
     hasInvalidation,
+    useRuntimeFetcher,
   });
 
   const mutationOptionsFnName = camel(
@@ -191,6 +410,7 @@ export const generateMutationHook = async ({
     httpClient,
     camel(operationName),
     mutator,
+    useRuntimeFetcher,
   );
 
   // For Angular, add http: HttpClient as FIRST param (required, before optional params)
@@ -219,7 +439,7 @@ ${hooksOptionImplementation}
 
           return  ${operationName}(${adapter.getMutationHttpPrefix(mutator)}${properties}${
             properties ? ',' : ''
-          }${getMutationRequestArgs(isRequestOptions, httpClient, mutator)})
+          }${getMutationRequestArgs(isRequestOptions, httpClient, mutator, useRuntimeFetcher)})
         }
 
 ${
@@ -228,7 +448,11 @@ ${
         operationName,
         definitions,
         isRequestOptions,
-        generateInvalidateCall,
+        generateInvalidateCall: createGenerateInvalidateCall(
+          context.spec,
+          !!query.shouldSplitQueryKey,
+          !!query.useOperationIdAsQueryKey,
+        ),
         uniqueInvalidates,
       })
     : ''
@@ -300,7 +524,7 @@ ${mutationOptionsFn}
             mutator?.bodyTypeName
               ? `${mutator.bodyTypeName}<${body.definition}>`
               : body.definition
-          }`
+          }${body.isOptional ? ' | undefined' : ''}`
         : ''
     }
     export type ${pascal(operationName)}MutationError = ${errorType}
@@ -319,7 +543,7 @@ ${mutationHookBody}
 
   const imports: GeneratorImport[] = hasInvalidation
     ? uniqueInvalidates
-        .filter((i) => !!i.file)
+        .filter((i) => !!i.file && needsQueryKeyFnCall(i, context.spec))
         .map<GeneratorImport>((i) => ({
           name: camel(`get-${i.query}-query-key`),
           importPath: i.file,

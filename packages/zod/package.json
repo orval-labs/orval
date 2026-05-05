@@ -1,7 +1,16 @@
 {
   "name": "@orval/zod",
-  "version": "8.5.3",
+  "version": "8.9.1",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/orval-labs/orval.git",
+    "directory": "packages/zod"
+  },
+  "homepage": "https://orval.dev/docs/guides/zod",
+  "bugs": {
+    "url": "https://github.com/orval-labs/orval/issues"
+  },
   "type": "module",
   "types": "./dist/index.d.mts",
   "exports": {

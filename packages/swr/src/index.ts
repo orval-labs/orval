@@ -813,10 +813,13 @@ export const ${swrMutationFetcherName} = (${queryKeyProps} ${swrMutationFetcherO
       ? '{ arg }'
       : '__';
 
+    const bodyProp = props.find((prop) => prop.type === GetterPropType.BODY);
+    const baseSwrBodyType =
+      bodyProp?.implementation.split(': ')[1] ?? 'Arguments';
     const swrBodyType =
-      props
-        .find((prop) => prop.type === GetterPropType.BODY)
-        ?.implementation.split(': ')[1] ?? 'Arguments';
+      bodyProp && !bodyProp.required
+        ? `${baseSwrBodyType} | undefined`
+        : baseSwrBodyType;
 
     const swrMutationFetcherFn = `
 export const ${swrMutationFetcherName} = (${swrProps} ${swrMutationFetcherOptions}) => {
@@ -874,9 +877,13 @@ export const generateSwr: ClientBuilder = (verbOptions, options) => {
   );
   const hookImplementation = generateSwrHook(verbOptions, options);
 
+  const isFetchHttpClient =
+    options.context.output.httpClient !== OutputHttpClient.AXIOS;
+
   return {
     implementation: `${functionImplementation}\n\n${hookImplementation}`,
     imports,
+    ...(isFetchHttpClient && { docComment: '' }),
   };
 };
 

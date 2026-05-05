@@ -99,16 +99,27 @@ export function getMockScalar({
   }
 
   if (
-    (context.output.override.mock?.useExamples ||
-      safeMockOptions.useExamples) &&
-    item.example !== undefined
+    context.output.override.mock?.useExamples ||
+    safeMockOptions.useExamples
   ) {
-    return {
-      value: JSON.stringify(item.example),
-      imports: [],
-      name: item.name,
-      overrided: true,
-    };
+    // OAS 3.0 inputs go through @scalar/openapi-parser's upgrade(), which
+    // rewrites property-level `example: <value>` into `examples: [<value>]`
+    // and deletes the singular field. Fall back to the array form so this
+    // option keeps working post-upgrade.
+    const propertyExample =
+      item.example === undefined
+        ? Array.isArray(item.examples) && item.examples.length > 0
+          ? item.examples[0]
+          : undefined
+        : item.example;
+    if (propertyExample !== undefined) {
+      return {
+        value: JSON.stringify(propertyExample),
+        imports: [],
+        name: item.name,
+        overrided: true,
+      };
+    }
   }
 
   const formatOverrides = safeMockOptions.format ?? {};
@@ -122,6 +133,23 @@ export function getMockScalar({
   };
 
   const isNullable = Array.isArray(item.type) && item.type.includes('null');
+  // The @scalar/openapi-parser upgrader rewrites `format: binary` to
+  // `contentMediaType: application/octet-stream` when upgrading OAS 3.0 → 3.1;
+  // treat both equivalently so the mock emits the binary format value
+  // (ArrayBuffer) instead of falling through to the string case.
+  const schemaContentMediaType = (item as OpenApiSchemaObject).contentMediaType;
+  if (
+    !item.format &&
+    schemaContentMediaType === 'application/octet-stream' &&
+    ALL_FORMAT.binary
+  ) {
+    return {
+      value: getNullable(ALL_FORMAT.binary, isNullable),
+      imports: [],
+      name: item.name,
+      overrided: false,
+    };
+  }
   if (item.format && ALL_FORMAT[item.format]) {
     let value = ALL_FORMAT[item.format];
 
@@ -151,12 +179,19 @@ export function getMockScalar({
         (item.format === 'int64' || item.format === 'uint64')
           ? 'bigInt'
           : 'int';
-      const numMin = (item.exclusiveMinimum ??
-        item.minimum ??
-        safeMockOptions.numberMin) as number | undefined;
-      const numMax = (item.exclusiveMaximum ??
-        item.maximum ??
-        safeMockOptions.numberMax) as number | undefined;
+      // Handle exclusiveMinimum/exclusiveMaximum for both OpenAPI 3.0 (boolean) and 3.1 (number).
+      // OpenAPI 3.0: booleans indicating whether minimum/maximum is exclusive — use minimum/maximum as the bound.
+      // OpenAPI 3.1: numbers representing the exclusive boundary value — use directly.
+      const numMin = (
+        typeof item.exclusiveMinimum === 'number'
+          ? item.exclusiveMinimum
+          : (item.minimum ?? safeMockOptions.numberMin)
+      ) as number | undefined;
+      const numMax = (
+        typeof item.exclusiveMaximum === 'number'
+          ? item.exclusiveMaximum
+          : (item.maximum ?? safeMockOptions.numberMax)
+      ) as number | undefined;
       const intParts: string[] = [];
       if (numMin !== undefined) intParts.push(`min: ${numMin}`);
       if (numMax !== undefined) intParts.push(`max: ${numMax}`);
@@ -313,7 +348,7 @@ export function getMockScalar({
           'string',
         );
       } else if (item.pattern) {
-        value = `faker.helpers.fromRegExp('${escape(item.pattern)}')`;
+        value = `faker.helpers.fromRegExp(${JSON.stringify(item.pattern)})`;
       } else if ('const' in item) {
         value = JSON.stringify((item as OpenApiSchemaObject).const);
       }

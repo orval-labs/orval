@@ -1,0 +1,48 @@
+<app-demo-page-frame
+  eyebrow="HttpClient variant"
+  title="HttpClient with custom params"
+  description="This page still uses generated HttpClient services, but it layers in a consumer-owned query params serializer for APIs that need bespoke parameter encoding."
+  why="Reach for this variant when the default HttpClient client is the right fit, but your backend expects query strings that need custom serialization logic."
+  [highlights]="highlights"
+>
+  <div class="demo-grid">
+    <app-demo-panel
+      title="Configured query params"
+      description="The object passed into the generated search method."
+    >
+      <app-badge panel-badge>serializer</app-badge>
+
+      <pre>{{ queryParams | json }}</pre>
+      <p class="panel-note">
+        Powered by
+        <code>src/orval/mutator/custom-params-serializer.ts</code>.
+      </p>
+    </app-demo-panel>
+
+    <app-demo-panel
+      title="searchPets()"
+      description="Generated HttpClient method with custom query serialization."
+    >
+      @if (searchState$ | async; as searchState) {
+      <app-badge panel-badge>Status: {{ searchState.status }}</app-badge>
+      } @if (searchState$ | async; as searchState) { @if (searchState.status ===
+      'loading') {
+      <p class="muted">Loading pets…</p>
+      } @else if (searchState.status === 'error') {
+      <p class="error">{{ searchState.error }}</p>
+      } @else if (searchState.data.length) {
+      <div
+        class="pet-grid"
+        role="list"
+        aria-label="Pets list from searchPets()"
+      >
+        @for (pet of searchState.data; track pet.id) {
+        <app-pet-card [pet]="pet" />
+        }
+      </div>
+      } @else {
+      <p class="muted">No pets returned.</p>
+      } }
+    </app-demo-panel>
+  </div>
+</app-demo-page-frame>

@@ -67,7 +67,7 @@ export type MyError = Error;
 
       const dep = addDependency({
         implementation,
-        dependency: '../models/index.zod',
+        dependency: '../models',
         projectName: undefined,
         hasSchemaDir: true,
         isAllowSyntheticDefaultImports: true,
@@ -78,9 +78,55 @@ export type MyError = Error;
       });
 
       expect(dep).toBe(
-        "import {\n  Error as ErrorSchema\n} from '../models/index.zod';\n" +
-          "import type {\n  Error\n} from '../models/index.zod';\n",
+        "import {\n  Error as ErrorSchema\n} from '../models';\n" +
+          "import type {\n  Error\n} from '../models';\n",
       );
+    });
+
+    it('does not emit an empty type-only import when all types are already covered by value imports', () => {
+      const implementation = 'const status = MyEnum.Active;';
+
+      const dep = addDependency({
+        implementation,
+        dependency: './types',
+        projectName: undefined,
+        hasSchemaDir: true,
+        isAllowSyntheticDefaultImports: true,
+        exports: [{ name: 'MyEnum', values: true }],
+      });
+
+      expect(dep).toBe("import {\n  MyEnum\n} from './types';\n");
+      expect(dep).not.toContain('import type');
+    });
+
+    it('does not emit an empty type-only import when enum $ref types are filtered out by value imports', () => {
+      const implementation = 'const val = MyEnum.Foo;';
+
+      const dep = addDependency({
+        implementation,
+        dependency: './types',
+        projectName: undefined,
+        hasSchemaDir: true,
+        isAllowSyntheticDefaultImports: true,
+        exports: [{ name: 'MyEnum', values: true }, { name: 'MyEnum' }],
+      });
+
+      // Should only have the value import, not an empty "import type  from './types';"
+      expect(dep).toBe("import {\n  MyEnum\n} from './types';\n");
+      expect(dep).not.toMatch(/import type\s+from/);
+    });
+
+    it('escapes regex metacharacters when matching referenced imports', () => {
+      const dep = addDependency({
+        implementation: 'const value = schema$Value.parse(data);',
+        dependency: '../models',
+        projectName: undefined,
+        hasSchemaDir: true,
+        isAllowSyntheticDefaultImports: true,
+        exports: [{ name: 'schema$Value', values: true }],
+      });
+
+      expect(dep).toBe("import {\n  schema$Value\n} from '../models';\n");
     });
   });
 });

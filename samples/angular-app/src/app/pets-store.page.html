@@ -1,55 +1,160 @@
-<div class="pets-page">
-  <div class="page-header">
-    <div class="page-header-inner">
-      <div class="logo-glow">
-        <img
-          ngSrc="logo.svg"
-          width="40"
-          height="40"
-          priority
-          alt="Orval logo"
-        />
-      </div>
-      <div>
-        <h1 class="page-title">{{ title() }}</h1>
-        <p class="page-sub">
-          Browse pets from the default generated Angular client
-        </p>
-      </div>
+<app-demo-page-frame
+  eyebrow="Default generated Angular service"
+  [title]="title()"
+  description="This merged page keeps the polished pet-list presentation while also exposing the same generated HttpClient service calls, overload behavior, and create mutation flow that used to live on a separate page."
+  why="Use this page as the single source of truth for the default Angular HttpClient output, then compare it against the custom params, signal-first, and Zod-powered variants without repeating the same baseline story twice."
+  [highlights]="highlights"
+>
+  <div class="pets-page">
+    <div class="demo-grid">
+      <app-demo-panel
+        class="panel--wide"
+        title="listPets()"
+        description="Friendly baseline UI rendered from the default generated HttpClient service."
+      >
+        @if (petsState$ | async; as petsState) {
+        <app-badge panel-badge>Status: {{ petsState.status }}</app-badge>
+        } @if (petsState$ | async; as petsState) { @if (petsState.status ===
+        'loading') {
+        <div class="loading-state" aria-live="polite">
+          <span class="loading-dot"></span>
+          <span class="loading-dot"></span>
+          <span class="loading-dot"></span>
+          <span>Loading pets…</span>
+        </div>
+        } @else if (petsState.status === 'error') {
+        <p class="error">{{ petsState.error }}</p>
+        } @else if (petsState.data.length) {
+        <div class="pets-grid" role="list" aria-label="Pets list">
+          @for (pet of petsState.data; track pet.id) {
+          <app-pet-card [pet]="pet" />
+          }
+        </div>
+        } @else {
+        <p class="muted">No pets returned.</p>
+        } }
+      </app-demo-panel>
+
+      <section class="panel-stack">
+        <app-demo-panel
+          title="createPets()"
+          description="Use the generated mutation to add a pet to the in-browser demo store."
+          compact
+        >
+          <app-badge panel-badge>Mutation</app-badge>
+
+          <form class="pet-form" (submit)="createPet($event)">
+            <label class="field">
+              <span>Name</span>
+              <input
+                type="text"
+                [value]="draftName()"
+                (input)="updateDraftName($event)"
+                placeholder="Buddy"
+              />
+            </label>
+
+            <label class="field">
+              <span>Tag</span>
+              <input
+                type="text"
+                [value]="draftTag()"
+                (input)="updateDraftTag($event)"
+                placeholder="demo"
+              />
+            </label>
+
+            <button class="btn" type="submit" [disabled]="!canSubmitCreate()">
+              <span class="btn-icon">{{ createLoading() ? '⟳' : '+' }}</span>
+              {{ createLoading() ? 'Creating…' : 'Create pet' }}
+            </button>
+          </form>
+
+          @if (createResult(); as result) {
+          <p
+            class="inline-result"
+            [class.success]="result.success"
+            [class.failure]="!result.success"
+          >
+            {{ result.message }}
+          </p>
+          }
+        </app-demo-panel>
+
+        <app-demo-panel
+          title="showPetById()"
+          description="Compare the generated content-type overloads in one place."
+          compact
+        >
+          <app-badge panel-badge>Overloads</app-badge>
+
+          <div class="overload-stack">
+            <section class="overload-card">
+              <div class="overload-meta">
+                <h3>text/plain</h3>
+                @if (petTextState$ | async; as petTextState) {
+                <app-badge size="xs" panel-badge
+                  >{{ petTextState.status }}</app-badge
+                >
+                }
+              </div>
+              @if (petTextState$ | async; as petTextState) { @if
+              (petTextState.status === 'error') {
+              <p class="error">{{ petTextState.error }}</p>
+              }
+
+              <pre>{{ petTextState.data }}</pre>
+              }
+            </section>
+
+            <section class="overload-card">
+              <div class="overload-meta">
+                <h3>application/xml</h3>
+                @if (petXmlState$ | async; as petXmlState) {
+                <app-badge size="xs" panel-badge
+                  >{{ petXmlState.status }}</app-badge
+                >
+                }
+              </div>
+              @if (petXmlState$ | async; as petXmlState) { @if
+              (petXmlState.status === 'error') {
+              <p class="error">{{ petXmlState.error }}</p>
+              }
+
+              <pre>{{ petXmlState.data | json }}</pre>
+              }
+            </section>
+
+            <section class="overload-card">
+              <div class="overload-meta">
+                <h3>application/json</h3>
+                @if (petJsonState$ | async; as petJsonState) {
+                <app-badge size="xs" panel-badge
+                  >{{ petJsonState.status }}</app-badge
+                >
+                }
+              </div>
+              @if (petJsonState$ | async; as petJsonState) { @if
+              (petJsonState.status === 'error') {
+              <p class="error">{{ petJsonState.error }}</p>
+              }
+
+              <pre>{{ petJsonState.data | json }}</pre>
+              }
+            </section>
+          </div>
+        </app-demo-panel>
+      </section>
+    </div>
+
+    <div class="devnote">
+      <app-badge shape="tag" size="xs" tone="neutral">DEV</app-badge>
+      <span>
+        This single page now covers the default HttpClient story end-to-end:
+        list rendering, content-type overloads, and a real createPets() call.
+        The browser mock keeps created pets in memory so refreshes from the
+        generated service reflect your mutation.
+      </span>
     </div>
   </div>
-
-  @if (pets$ | async; as pets) {
-  <div class="pets-grid" role="list" aria-label="Pets list">
-    @for (pet of pets; track pet.id) {
-    <article class="pet-card" role="listitem">
-      <div class="pet-card-header">
-        <span class="pet-card-id">#{{ pet.id }}</span>
-        @if (pet.status) {
-        <span class="status-dot" [class]="'status-' + pet.status"></span>
-        }
-      </div>
-      <h2 class="pet-card-name">{{ pet.name }}</h2>
-      @if (pet.tag) {
-      <span class="pet-card-tag">{{ pet.tag }}</span>
-      }
-    </article>
-    }
-  </div>
-  } @else {
-  <div class="loading-state" aria-live="polite">
-    <span class="loading-dot"></span>
-    <span class="loading-dot"></span>
-    <span class="loading-dot"></span>
-    <span>Loading pets…</span>
-  </div>
-  }
-
-  <div class="devnote">
-    <span class="devnote-badge">DEV</span>
-    <span
-      >Content type overload tests (issue #2243) — check browser console for
-      text/xml/json/default response shapes.</span
-    >
-  </div>
-</div>
+</app-demo-page-frame>

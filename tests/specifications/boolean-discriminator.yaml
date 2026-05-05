@@ -1,0 +1,85 @@
+openapi: '3.0.0'
+info:
+  title: Boolean Discriminator Test
+  version: 1.0.0
+paths:
+  /api/result:
+    get:
+      operationId: getResult
+      responses:
+        '200':
+          description: A result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+  /api/status:
+    get:
+      operationId: getStatus
+      responses:
+        '200':
+          description: A status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResult'
+components:
+  schemas:
+    ApiResult:
+      oneOf:
+        - $ref: '#/components/schemas/SuccessResult'
+        - $ref: '#/components/schemas/ErrorResult'
+      discriminator:
+        propertyName: success
+        mapping:
+          'true': '#/components/schemas/SuccessResult'
+          'false': '#/components/schemas/ErrorResult'
+    SuccessResult:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+        data:
+          type: string
+    ErrorResult:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
+    StatusResult:
+      oneOf:
+        - $ref: '#/components/schemas/ActiveStatus'
+        - $ref: '#/components/schemas/InactiveStatus'
+      discriminator:
+        propertyName: code
+        mapping:
+          '1': '#/components/schemas/ActiveStatus'
+          '0': '#/components/schemas/InactiveStatus'
+    ActiveStatus:
+      type: object
+      required:
+        - code
+        - details
+      properties:
+        code:
+          type: integer
+        details:
+          type: string
+    InactiveStatus:
+      type: object
+      required:
+        - code
+        - reason
+      properties:
+        code:
+          type: integer
+        reason:
+          type: string

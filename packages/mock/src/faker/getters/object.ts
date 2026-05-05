@@ -17,6 +17,12 @@ import { combineSchemasMock } from './combine';
 
 export const overrideVarName = 'overrideResponse';
 
+function getReferenceName(ref?: string): string {
+  if (!ref) return '';
+
+  return pascal(ref.split('/').pop() ?? '');
+}
+
 interface GetMockObjectOptions {
   item: MockSchemaObject;
   operationId: string;
@@ -97,9 +103,18 @@ export function getMockObject({
   }
 
   if (Array.isArray(itemType)) {
+    // Spread the base schema into each type entry so that object properties
+    // (e.g. `properties`, `required`, `additionalProperties`) are preserved.
+    // Without this, `{ type: "object", properties: {...} }` collapses to
+    // `{ type: "object" }` and the mock generator returns `{}` instead of
+    // building the actual object shape. Mirrors the fix in core getters/object.ts.
+    const baseItem = schemaItem as Record<string, unknown>;
     return combineSchemasMock({
       item: {
-        anyOf: itemType.map((type) => ({ type })) as unknown as MockSchema[],
+        anyOf: itemType.map((type) => ({
+          ...baseItem,
+          type,
+        })) as unknown as MockSchema[],
         name: schemaItem.name,
       },
       separator: 'anyOf',
@@ -148,9 +163,7 @@ export function getMockObject({
           // Fixes issue #910
           if (
             isReference(prop) &&
-            existingReferencedProperties.includes(
-              pascal((prop.$ref ?? '').split('/').pop() ?? ''),
-            )
+            existingReferencedProperties.includes(getReferenceName(prop.$ref))
           ) {
             if (isRequired) {
               const keyDefinition = getKey(key);
@@ -223,7 +236,7 @@ export function getMockObject({
     if (
       isReference(additionalProperties) &&
       existingReferencedProperties.includes(
-        pascal((additionalProperties.$ref ?? '').split('/').pop() ?? ''),
+        getReferenceName(additionalProperties.$ref),
       )
     ) {
       return { value: `{}`, imports: [], name: schemaItem.name };

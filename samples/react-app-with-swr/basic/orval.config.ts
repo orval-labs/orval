@@ -8,7 +8,8 @@ export default defineConfig({
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
       client: 'swr',
-      prettier: true,
+      clean: true,
+      formatter: 'prettier',
       mock: true,
       override: {
         mutator: {

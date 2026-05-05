@@ -9,7 +9,7 @@ export default defineConfig({
       mock: true,
       headers: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -27,24 +27,238 @@ export default defineConfig({
           mutationInvalidates: [
             {
               onMutations: ['createPets'],
-              invalidates: ['listPets'],
+              invalidates: [
+                'listPets',
+                // Bug 1 test: showPetById has required path param 'petId'
+                // but no params mapping → should generate predicate-based
+                // broad invalidation instead of broken getShowPetByIdQueryKey()
+                'showPetById',
+              ],
             },
             {
-              onMutations: ['deletePet', 'updatePet', 'patchPet'],
+              onMutations: ['deletePetById'],
               invalidates: [
                 'listPets',
                 { query: 'showPetById', params: ['petId'] },
               ],
             },
             {
-              onMutations: ['uploadFile'],
+              // Issue #3152: literal string params (e.g. "@me") should be
+              // emitted as string literals, not variable references.
+              onMutations: ['createPets'],
+              invalidates: [
+                {
+                  query: 'showPetById',
+                  params: [{ literal: '@me' }],
+                },
+              ],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  invalidatesTagsSplit: {
+    output: {
+      target: '../generated/react-query/invalidates-tags-split/endpoints.ts',
+      schemas: '../generated/react-query/invalidates-tags-split/model',
+      client: 'react-query',
+      mode: 'tags-split',
+      override: {
+        query: {
+          mutationInvalidates: [
+            {
+              // Bug 2 test: createPets (pets tag) invalidates healthCheck
+              // (health tag). In tags-split mode, file: './health' must
+              // resolve to '../health/health', not './health'.
+              onMutations: ['createPets'],
+              invalidates: [{ query: 'healthCheck', file: './health' }],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  invalidatesSplitQueryKey: {
+    output: {
+      target:
+        '../generated/react-query/invalidates-split-query-key/endpoints.ts',
+      schemas: '../generated/react-query/invalidates-split-query-key/model',
+      client: 'react-query',
+      override: {
+        query: {
+          shouldSplitQueryKey: true,
+          mutationInvalidates: [
+            {
+              // shouldSplitQueryKey test: showPetById has required path
+              // param but no params mapping → should generate partial
+              // key matching with static route segments.
+              onMutations: ['createPets'],
+              invalidates: ['showPetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // Verifies that when a `mutationInvalidates` rule's `onMutations` list
+  // references an operation that is forced into a Query hook via
+  // `override.operations[*].query.useQuery`, the rule silently does not
+  // fire (because it is wired only on Mutation hooks). Generation should
+  // emit a logWarning explaining the misconfiguration. The snapshot
+  // captures the resulting output: `createPets` is a Query hook with no
+  // invalidation wiring, while `deletePetById` keeps its Mutation hook
+  // and the invalidation wiring as usual.
+  invalidatesQueryConflict: {
+    output: {
+      target:
+        '../generated/react-query/invalidates-query-conflict/endpoints.ts',
+      schemas: '../generated/react-query/invalidates-query-conflict/model',
+      client: 'react-query',
+      override: {
+        operations: {
+          createPets: {
+            query: { useQuery: true },
+          },
+        },
+        query: {
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['listPets'],
+            },
+            {
+              onMutations: ['deletePetById'],
               invalidates: ['listPets'],
             },
           ],
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // Verifies that when a `mutationInvalidates` rule targets a non-GET
+  // operation that has been routed to a Query hook (and thus carries the
+  // verb-prefixed cache key), the broad-invalidation fallback path emits
+  // a predicate / partial key that accounts for the verb prefix —
+  // otherwise `queryKey[0].startsWith('/pets/')` would never match
+  // `['DELETE', '/pets/${petId}']` and the invalidation would silently
+  // no-op.
+  invalidatesNonGetQueryTarget: {
+    output: {
+      target:
+        '../generated/react-query/invalidates-non-get-query-target/endpoints.ts',
+      schemas:
+        '../generated/react-query/invalidates-non-get-query-target/model',
+      client: 'react-query',
+      override: {
+        operations: {
+          deletePetById: {
+            query: { useQuery: true },
+          },
+        },
+        query: {
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['deletePetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // Verifies that when a non-GET operation is routed to a Query hook
+  // (today via per-operation `useQuery: true`, soon globally via the fix
+  // for #2376), and the user has configured a custom mutator that exports
+  // a `BodyType<T>` wrapper, the generated Query helpers wrap the body
+  // type with `BodyType<...>` to stay consistent with the request
+  // function's signature. Without this, callers would hit a type error
+  // (`CreatePetsBody` is not assignable to `BodyType<CreatePetsBody>`).
+  // The mutator deliberately uses a strict `BodyType<T> = { payload: T; metadata: ... }`
+  // envelope so that any generated Query helper that still emits the raw body
+  // type (rather than `BodyType<CreatePetsBody>`) would fail to compile. This
+  // locks in that every user-facing surface — overload signatures, hook
+  // implementation, getXxxQueryOptions, getXxxQueryKey, setQueryData /
+  // getQueryData — wraps consistently with the request function's signature.
+  bodyTypeWrapNonGetQuery: {
+    output: {
+      target:
+        '../generated/react-query/body-type-wrap-non-get-query/endpoints.ts',
+      schemas: '../generated/react-query/body-type-wrap-non-get-query/model',
+      client: 'react-query',
+      httpClient: 'axios',
+      override: {
+        mutator: {
+          path: '../mutators/custom-client-strict-body.ts',
+          name: 'customClientStrictBody',
+        },
+        operations: {
+          createPets: {
+            query: {
+              useQuery: true,
+              useSetQueryData: true,
+              useGetQueryData: true,
+            },
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  invalidatesNonGetQueryTargetSplitKey: {
+    output: {
+      target:
+        '../generated/react-query/invalidates-non-get-query-target-split-key/endpoints.ts',
+      schemas:
+        '../generated/react-query/invalidates-non-get-query-target-split-key/model',
+      client: 'react-query',
+      override: {
+        operations: {
+          deletePetById: {
+            query: { useQuery: true },
+          },
+        },
+        query: {
+          shouldSplitQueryKey: true,
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['deletePetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -60,7 +274,7 @@ export default defineConfig({
       mock: true,
       client: 'react-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -79,7 +293,7 @@ export default defineConfig({
       },
       headers: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/no-content-with-default.yaml',
@@ -93,7 +307,7 @@ export default defineConfig({
       mode: 'tags-split',
       client: 'react-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -107,7 +321,7 @@ export default defineConfig({
       mode: 'split',
       client: 'react-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -121,7 +335,7 @@ export default defineConfig({
       mode: 'tags',
       client: 'react-query',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -138,7 +352,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -158,7 +372,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -176,7 +390,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -196,7 +410,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -222,7 +436,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -251,7 +465,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -275,7 +489,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -300,7 +514,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -328,7 +542,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -350,7 +564,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -372,7 +586,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -393,7 +607,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -416,7 +630,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -436,7 +650,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/form-data.yaml',
@@ -456,7 +670,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/form-data.yaml',
@@ -480,7 +694,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/form-data.yaml',
@@ -500,7 +714,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/form-url-encoded.yaml',
@@ -524,7 +738,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/form-url-encoded.yaml',
@@ -538,7 +752,7 @@ export default defineConfig({
       mode: 'split',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: '../specifications/import-from-subdirectory/petstore.yaml',
   },
@@ -552,7 +766,7 @@ export default defineConfig({
         useDeprecatedOperations: false,
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: '../specifications/deprecated.yaml',
   },
@@ -569,7 +783,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -585,7 +799,7 @@ export default defineConfig({
         delay: false,
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -599,7 +813,7 @@ export default defineConfig({
       mock: true,
       headers: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/polymorphic.yaml',
@@ -614,7 +828,7 @@ export default defineConfig({
         useNamedParameters: true,
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -630,7 +844,7 @@ export default defineConfig({
       client: 'react-query',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/models-with-special-char.yaml',
@@ -649,7 +863,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -673,7 +887,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -690,10 +904,165 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
+    },
+  },
+  useInvalidateWithQueryOptionsMutator: {
+    output: {
+      target:
+        '../generated/react-query/use-invalidate-with-query-options-mutator/endpoints.ts',
+      schemas:
+        '../generated/react-query/use-invalidate-with-query-options-mutator/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useInvalidate: true,
+          queryOptions: {
+            path: '../mutators/custom-query-options.ts',
+            name: 'customQueryOptions',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  useSetQueryData: {
+    output: {
+      target: '../generated/react-query/use-set-query-data/endpoints.ts',
+      schemas: '../generated/react-query/use-set-query-data/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useSetQueryData: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  useSetQueryDataMultiParams: {
+    output: {
+      target:
+        '../generated/react-query/use-set-query-data-multi-params/endpoints.ts',
+      schemas: '../generated/react-query/use-set-query-data-multi-params/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useSetQueryData: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/multi-query-params.yaml',
+    },
+  },
+  useSetQueryDataNamedParams: {
+    output: {
+      target:
+        '../generated/react-query/use-set-query-data-named-params/endpoints.ts',
+      schemas: '../generated/react-query/use-set-query-data-named-params/model',
+      client: 'react-query',
+      override: {
+        useNamedParameters: true,
+        query: {
+          useSetQueryData: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
+  useSetQueryDataInfinite: {
+    output: {
+      target:
+        '../generated/react-query/use-set-query-data-infinite/endpoints.ts',
+      schemas: '../generated/react-query/use-set-query-data-infinite/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useInfinite: true,
+          useInfiniteQueryParam: 'limit',
+          useSetQueryData: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  useGetQueryData: {
+    output: {
+      target: '../generated/react-query/use-get-query-data/endpoints.ts',
+      schemas: '../generated/react-query/use-get-query-data/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useGetQueryData: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // Regression for issue #3269. tags-split + msw + OpenAPI 3.1 anyOf-nullable
+  // ($ref + type:null) on both response and request body. Pre-fix this emitted
+  // `__Widget` references in the .msw.ts file with no matching import.
+  issue3269: {
+    output: {
+      target: '../generated/react-query/issue-3269/endpoints.ts',
+      schemas: '../generated/react-query/issue-3269/model',
+      client: 'react-query',
+      mode: 'tags-split',
+      mock: { type: 'msw' },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3269.yaml',
+    },
+  },
+  // Regression for issue #3066. zod schemas + tags-split + non-JSON request
+  // body (multipart/form-data and application/x-www-form-urlencoded). Pre-fix
+  // the endpoints imported `${OperationName}Body` from a zod schemas index
+  // that never re-exported it, since `writeZodSchemasFromVerbs` only scanned
+  // `application/json` bodies.
+  issue3066: {
+    output: {
+      target: '../generated/react-query/issue-3066/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/react-query/issue-3066/model',
+      },
+      client: 'react-query',
+      mode: 'tags-split',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3066.yaml',
     },
   },
 });

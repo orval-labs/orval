@@ -10,7 +10,8 @@ export default defineConfig({
       client: 'react-query',
       httpClient: 'axios',
       mock: true,
-      prettier: true,
+      clean: true,
+      formatter: 'prettier',
       override: {
         mutator: {
           path: './src/api/mutator/custom-instance.ts',

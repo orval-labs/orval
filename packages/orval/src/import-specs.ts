@@ -1,6 +1,7 @@
 import {
   isObject,
   isString,
+  logWarning,
   type NormalizedOptions,
   type OpenApiDocument,
   type WriteSpecBuilder,
@@ -25,6 +26,7 @@ async function resolveSpec(
       headers: Record<string, string>;
     }[];
   },
+  unsafeDisableValidation = false,
 ): Promise<OpenApiDocument> {
   const data = await bundle(input, {
     plugins: [
@@ -40,9 +42,22 @@ async function resolveSpec(
   const dereferencedData = dereferenceExternalRef(
     data as Record<string, unknown>,
   );
-  const { valid, errors } = await validateSpec(dereferencedData);
-  if (!valid) {
-    throw new Error('Validation failed', { cause: errors });
+
+  if (unsafeDisableValidation) {
+    logWarning(
+      `🚨 OpenAPI spec validation is disabled.\n` +
+        `  Code generation with invalid specs is not guaranteed to work and may break in minor updates.\n` +
+        `  Bug reports with validation disabled will not be accepted.`,
+    );
+  } else {
+    validateComponentKeys(dereferencedData);
+
+    const { valid, errors } = await validateSpec(dereferencedData);
+    if (!valid) {
+      throw new Error(
+        `OpenAPI spec validation failed:\n${JSON.stringify(errors, undefined, 2)}`,
+      );
+    }
   }
 
   const { specification } = upgrade(dereferencedData);
@@ -57,7 +72,11 @@ export async function importSpecs(
 ): Promise<WriteSpecBuilder> {
   const { input, output } = options;
 
-  const spec = await resolveSpec(input.target, input.parserOptions);
+  const spec = await resolveSpec(
+    input.target,
+    input.parserOptions,
+    input.unsafeDisableValidation,
+  );
 
   return importOpenApi({
     spec,
@@ -67,6 +86,55 @@ export async function importSpecs(
     workspace,
     projectName,
   });
+}
+
+const COMPONENT_KEY_PATTERN = /^[a-zA-Z0-9.\-_]+$/;
+
+const COMPONENT_SECTIONS = [
+  'schemas',
+  'responses',
+  'parameters',
+  'examples',
+  'requestBodies',
+  'headers',
+  'securitySchemes',
+  'links',
+  'callbacks',
+  'pathItems', // OAS 3.1.0+
+] as const;
+
+/**
+ * Validate that all component keys conform to the OAS regex: ^[a-zA-Z0-9.\-_]+$
+ * @see https://spec.openapis.org/oas/v3.0.3.html#fixed-fields-5
+ * @see https://spec.openapis.org/oas/v3.1.0#fixed-fields-5
+ */
+export function validateComponentKeys(data: Record<string, unknown>): void {
+  const components = data.components;
+  if (!isObject(components)) return;
+
+  const invalidKeys: string[] = [];
+
+  for (const section of COMPONENT_SECTIONS) {
+    const sectionObj = components[section];
+    if (!isObject(sectionObj)) continue;
+
+    for (const key of Object.keys(sectionObj)) {
+      if (!COMPONENT_KEY_PATTERN.test(key)) {
+        invalidKeys.push(`components.${section}.${key}`);
+      }
+    }
+  }
+
+  if (invalidKeys.length > 0) {
+    throw new Error(
+      `Invalid component key${invalidKeys.length > 1 ? 's' : ''} found. ` +
+        `OpenAPI component keys must match the pattern ${COMPONENT_KEY_PATTERN} ` +
+        `(non-ASCII characters are not allowed per the spec).\n` +
+        `  See: https://spec.openapis.org/oas/v3.0.3.html#components-object\n` +
+        `  Invalid keys:\n` +
+        invalidKeys.map((k) => `    - ${k}`).join('\n'),
+    );
+  }
 }
 
 /**

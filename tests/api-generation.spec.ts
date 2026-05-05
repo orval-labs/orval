@@ -8,6 +8,7 @@ const generated = (...segments: string[]) =>
 await describeApiGenerationSnapshots({
   dirs: [
     generated('angular'),
+    generated('angular-query'),
     generated('axios'),
     generated('cli'),
     generated('default'),

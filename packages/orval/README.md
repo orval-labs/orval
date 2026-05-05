@@ -3,7 +3,7 @@
 [![tests](https://github.com/orval-labs/orval/actions/workflows/tests.yaml/badge.svg)](https://github.com/orval-labs/orval/actions/workflows/tests.yaml)
 
 <p align="center">
-  <img src="./logo/orval-logo-horizontal.svg?raw=true" width="500" height="160" alt="orval - Restfull Client Generator" />
+  <img src="https://raw.githubusercontent.com/orval-labs/orval/master/logo/orval-logo-horizontal.svg" width="500" height="160" alt="orval - Restfull Client Generator" />
 </p>
 <h1 align="center">
   Visit <a href="https://orval.dev" target="_blank">orval.dev</a> for docs, guides, API and beer!

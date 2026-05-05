@@ -129,6 +129,104 @@ describe('getResponse', () => {
     // (responses parameter is typed as non-optional OpenApiResponsesObject)
   });
 
+  describe('isBlob detection', () => {
+    it.each([
+      ['application/octet-stream'],
+      ['application/pdf'],
+      ['application/zip'],
+    ])('should set isBlob to true for %s response', (binaryApplicationType) => {
+      const responses: OpenApiResponsesObject = {
+        '200': {
+          description: 'Binary file',
+          content: {
+            [binaryApplicationType]: {
+              schema: { type: 'string', format: 'binary' },
+            },
+          },
+        },
+      };
+
+      const result = getResponse({
+        responses,
+        operationName: 'downloadFile',
+        context,
+      });
+
+      expect(result.isBlob).toBe(true);
+    });
+
+    it('should set isBlob to true when success has both json and octet-stream responses', () => {
+      const responses: OpenApiResponsesObject = {
+        '200': {
+          description: 'Binary file',
+          content: {
+            'application/octet-stream': {
+              schema: { type: 'string', format: 'binary' },
+            },
+          },
+        },
+        '400': {
+          description: 'Error',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Error' },
+            },
+          },
+        },
+      };
+
+      const result = getResponse({
+        responses,
+        operationName: 'downloadFileWithError',
+        context,
+      });
+
+      expect(result.isBlob).toBe(true);
+    });
+
+    it('should set isBlob to false for application/json response', () => {
+      const responses: OpenApiResponsesObject = {
+        '200': {
+          description: 'JSON response',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Pet' },
+            },
+          },
+        },
+      };
+
+      const result = getResponse({
+        responses,
+        operationName: 'getPet',
+        context,
+      });
+
+      expect(result.isBlob).toBe(false);
+    });
+
+    it('should set isBlob to true for image content type', () => {
+      const responses: OpenApiResponsesObject = {
+        '200': {
+          description: 'Image file',
+          content: {
+            'image/png': {
+              schema: { type: 'string', format: 'binary' },
+            },
+          },
+        },
+      };
+
+      const result = getResponse({
+        responses,
+        operationName: 'getImage',
+        context,
+      });
+
+      expect(result.isBlob).toBe(true);
+    });
+  });
+
   describe('duplicate union types', () => {
     it('should dedupe success types when multiple status codes reference the same schema', () => {
       const responses: OpenApiResponsesObject = {

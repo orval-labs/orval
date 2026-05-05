@@ -1,7 +1,12 @@
 import type { OpenApiDocument } from '@orval/core';
-import { describe, expect, it } from 'vitest';
+import * as orvalCore from '@orval/core';
+import { describe, expect, it, vi } from 'vitest';
 
-import { dereferenceExternalRef, importSpecs } from './import-specs';
+import {
+  dereferenceExternalRef,
+  importSpecs,
+  validateComponentKeys,
+} from './import-specs';
 import { normalizeOptions } from './utils';
 
 const TEST_SPEC: OpenApiDocument = {
@@ -77,6 +82,113 @@ const TEST_SPEC: OpenApiDocument = {
     },
   },
 };
+
+const SSE_ITEM_SCHEMA_SPEC: OpenApiDocument = {
+  openapi: '3.1.0',
+  info: {
+    title: 'FastAPI',
+    version: '0.1.0',
+  },
+  paths: {
+    '/api/events/': {
+      post: {
+        tags: ['stream'],
+        summary: 'Sse Endpoint',
+        operationId: 'sse_endpoint',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'text/event-stream': {
+                itemSchema: {
+                  type: 'object',
+                  properties: {
+                    data: { type: 'string' },
+                    event: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/pets': {
+      get: {
+        tags: ['pets'],
+        summary: 'List Pets',
+        operationId: 'list_pets',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'integer' },
+                      name: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+describe('validation', () => {
+  it('should throw on non-standard fields like itemSchema by default', async () => {
+    const workspace = 'test';
+    const normalizedOptions = await normalizeOptions(
+      {
+        output: { target: '' },
+        input: { target: SSE_ITEM_SCHEMA_SPEC },
+      },
+      workspace,
+      {},
+    );
+
+    await expect(importSpecs(workspace, normalizedOptions)).rejects.toThrow(
+      'OpenAPI spec validation failed',
+    );
+  });
+
+  it('should skip validation when input.unsafeDisableValidation is true', async () => {
+    const workspace = 'test';
+    const normalizedOptions = await normalizeOptions(
+      {
+        output: { target: '' },
+        input: { target: SSE_ITEM_SCHEMA_SPEC, unsafeDisableValidation: true },
+      },
+      workspace,
+      {},
+    );
+
+    expect(normalizedOptions.input.unsafeDisableValidation).toBe(true);
+
+    const warnSpy = vi.spyOn(orvalCore, 'logWarning').mockImplementation(() => {
+      /* noop */
+    });
+
+    try {
+      const spec = await importSpecs(workspace, normalizedOptions);
+
+      expect(spec.verbOptions).toHaveProperty('sse_endpoint');
+      expect(spec.verbOptions).toHaveProperty('list_pets');
+
+      const warnings = warnSpy.mock.calls.map(([msg]) => msg).join('\n');
+      expect(warnings).toContain('OpenAPI spec validation is disabled');
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+});
 
 describe('optionsParamRequired', () => {
   it('should not require all params when optionsParamRequired is false', async () => {
@@ -738,5 +850,62 @@ describe('dereferenceExternalRefs', () => {
     const result = dereferenceExternalRef(input);
 
     expect(result).not.toHaveProperty('components');
+  });
+});
+
+describe('validateComponentKeys', () => {
+  it('should pass for valid ASCII component keys', () => {
+    const data = {
+      components: {
+        schemas: {
+          User: { type: 'object' },
+          User_v2: { type: 'object' },
+          'my.org.User': { type: 'object' },
+          'user-name': { type: 'object' },
+        },
+      },
+    };
+    expect(() => {
+      validateComponentKeys(data);
+    }).not.toThrow();
+  });
+
+  it('should report all invalid keys at once', () => {
+    const data = {
+      components: {
+        schemas: {
+          Användare: { type: 'object' },
+          상품: { type: 'object' },
+        },
+      },
+    };
+    expect(() => {
+      validateComponentKeys(data);
+    }).toThrow(/Invalid component keys/);
+  });
+
+  it.each([
+    ['schemas', { Ünvalid: {} }],
+    ['responses', { Réponse: {} }],
+    ['parameters', { パラメータ: {} }],
+    ['examples', { 例子: {} }],
+    ['requestBodies', { тело: {} }],
+    ['headers', { κεφαλίδα: {} }],
+    ['securitySchemes', { sécurité: {} }],
+    ['links', { länk: {} }],
+    ['callbacks', { رد: {} }],
+    ['pathItems', { เส้นทาง: {} }],
+  ])('should reject invalid key in %s', (section, value) => {
+    const data = { components: { [section]: value } };
+    expect(() => {
+      validateComponentKeys(data);
+    }).toThrow(new RegExp(String.raw`components\.${section}\.`));
+  });
+
+  it('should pass when no components exist', () => {
+    const data = { openapi: '3.0.0', paths: {} };
+    expect(() => {
+      validateComponentKeys(data);
+    }).not.toThrow();
   });
 });

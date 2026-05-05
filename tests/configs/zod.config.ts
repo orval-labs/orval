@@ -6,7 +6,7 @@ export default defineConfig({
       target: '../generated/zod/basic',
       client: 'zod',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/circular.yaml',
@@ -19,7 +19,7 @@ export default defineConfig({
       client: 'zod',
       mock: true,
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -36,7 +36,7 @@ export default defineConfig({
       mode: 'tags-split',
       client: 'zod',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -50,7 +50,7 @@ export default defineConfig({
       mode: 'split',
       client: 'zod',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -64,7 +64,7 @@ export default defineConfig({
       mode: 'tags',
       client: 'zod',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -75,7 +75,7 @@ export default defineConfig({
       target: '../generated/zod/nested-arrays',
       client: 'zod',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/arrays.yaml',
@@ -97,7 +97,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/circular.yaml',
@@ -119,7 +119,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/circular.yaml',
@@ -156,7 +156,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -167,7 +167,7 @@ export default defineConfig({
       target: '../generated/zod/additional-properties',
       client: 'zod',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/translation.yaml',
@@ -179,7 +179,7 @@ export default defineConfig({
         '../generated/zod/typed-arrays-tuples-v3-1/typed-arrays-tuples-v3-1.ts',
       client: 'zod',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/typed-arrays-tuples-v3-1.yaml',
@@ -191,7 +191,7 @@ export default defineConfig({
         '../generated/zod/import-from-subdirectory/import-from-subdirectory.ts',
       client: 'zod',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: '../specifications/import-from-subdirectory/petstore.yaml',
   },
@@ -208,7 +208,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/format.yaml',
@@ -226,7 +226,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/format.yaml',
@@ -237,7 +237,7 @@ export default defineConfig({
       target: '../generated/zod/enums/enums.ts',
       client: 'zod',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/enums.yaml',
@@ -248,7 +248,7 @@ export default defineConfig({
       target: '../generated/zod/nullable-any-of-refs/nullable-any-of-refs.ts',
       client: 'zod',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/nullable-any-of-refs.yaml',
@@ -259,7 +259,7 @@ export default defineConfig({
       target: '../generated/zod/nullable-oneof-enums/nullable-oneof-enums.ts',
       client: 'zod',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: {
       target: '../specifications/nullable-oneof-enums.yaml',
@@ -270,7 +270,7 @@ export default defineConfig({
       target: '../generated/zod/multiline-default/multiline-default.ts',
       client: 'zod',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: '../specifications/multiline-default.yaml',
   },
@@ -279,7 +279,7 @@ export default defineConfig({
       target: '../generated/zod/pattern/pattern.ts',
       client: 'zod',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: '../specifications/pattern.yaml',
   },
@@ -288,7 +288,7 @@ export default defineConfig({
       target: '../generated/zod/pattern-and-format/pattern-and-format.ts',
       client: 'zod',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: '../specifications/pattern-and-format.yaml',
   },
@@ -298,9 +298,46 @@ export default defineConfig({
         '../generated/zod/required-default-values/required-default-values.ts',
       client: 'zod',
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: '../specifications/zod-required-default-values.yaml',
+  },
+  brandedTypes: {
+    output: {
+      target: '../generated/zod/branded-types/branded-types.ts',
+      client: 'zod',
+      override: {
+        zod: {
+          useBrandedTypes: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  'components-only': {
+    output: {
+      target: '../generated/zod/components-only/components-only.ts',
+      client: 'zod',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: '../specifications/components-only.yaml',
+  },
+  'schemas-false': {
+    output: {
+      target: '../generated/zod/schemas-false/endpoints.ts',
+      client: 'zod',
+      schemas: false,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
   },
   'issue-3027-suffix': {
     output: {
@@ -314,7 +351,7 @@ export default defineConfig({
         },
       },
       clean: true,
-      prettier: true,
+      formatter: 'prettier',
     },
     input: '../specifications/issue-3027/issue-3027.yaml',
   },

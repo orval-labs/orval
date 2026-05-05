@@ -120,11 +120,11 @@ export const getHonoHeader: ClientHeaderBuilder = ({
     handlers = `import {\n${importHandlerNames}\n} from './${tag ?? targetInfo.filename}.handlers';`;
   }
 
-  return `${handlers}\n\n
-const app = new Hono()\n\n`;
+  return `${handlers}\n\nconst app = new Hono()\n`;
 };
 
-export const getHonoFooter: ClientFooterBuilder = () => 'export default app';
+export const getHonoFooter: ClientFooterBuilder = () =>
+  ';\n\nexport default app;\n';
 
 const generateHonoRoute = (
   { operationName, verb }: GeneratorVerbOptions,
@@ -132,8 +132,7 @@ const generateHonoRoute = (
 ) => {
   const path = getRoute(pathRoute);
 
-  return `
-app.${verb.toLowerCase()}('${path}',...${operationName}Handlers)`;
+  return `\n  .${verb.toLowerCase()}('${path}', ...${operationName}Handlers)`;
 };
 
 export const generateHono: ClientBuilder = (verbOptions, options) => {
@@ -147,7 +146,7 @@ export const generateHono: ClientBuilder = (verbOptions, options) => {
   const routeImplementation = generateHonoRoute(verbOptions, options.pathRoute);
 
   return {
-    implementation: routeImplementation ? `${routeImplementation}\n\n` : '',
+    implementation: `${routeImplementation}\n`,
     imports: [
       ...verbOptions.params.flatMap((param) => param.imports),
       ...verbOptions.body.imports,
@@ -294,12 +293,14 @@ const getVerbOptionGroupByTag = (
 const generateHandlerFile = async ({
   verbs,
   path,
+  header,
   validatorModule,
   zodModule,
   contextModule,
 }: {
   verbs: GeneratorVerbOptions[];
   path: string;
+  header: string;
   validatorModule?: string;
   zodModule: string;
   contextModule: string;
@@ -312,6 +313,10 @@ const generateHandlerFile = async ({
   const isExist = fs.existsSync(path);
 
   if (isExist) {
+    // Preserve the existing file (which may contain user edits) and only
+    // append handlers that have not been generated yet. The file header is
+    // intentionally left untouched so any previously customised header stays
+    // in place.
     const rawFile = await fs.readFile(path, 'utf8');
     let content = rawFile;
 
@@ -365,7 +370,7 @@ const generateHandlerFile = async ({
     );
   }
 
-  return `${imports.filter((imp) => imp !== '').join('\n')}
+  return `${header}${imports.filter((imp) => imp !== '').join('\n')}
 
 const factory = createFactory();${handlerCode}`;
 };
@@ -373,8 +378,10 @@ const factory = createFactory();${handlerCode}`;
 const generateHandlerFiles = async (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
+  context: ContextSpec,
   validatorModule: string,
 ) => {
+  const header = getHeader(output.override.header, getSpecInfo(context));
   const { extension, dirname, filename } = getFileInfo(output.target);
 
   // This function _does not control_ where the .zod and .context modules land.
@@ -395,6 +402,7 @@ const generateHandlerFiles = async (
         return {
           content: await generateHandlerFile({
             path,
+            header,
             verbs: [verbOption],
             validatorModule,
             zodModule:
@@ -426,6 +434,7 @@ const generateHandlerFiles = async (
         return {
           content: await generateHandlerFile({
             path: handlerPath,
+            header,
             verbs,
             validatorModule,
             zodModule:
@@ -453,6 +462,7 @@ const generateHandlerFiles = async (
     {
       content: await generateHandlerFile({
         path: handlerPath,
+        header,
         verbs: Object.values(verbOptions),
         validatorModule,
         zodModule: nodePath.join(dirname, `${filename}.zod`),
@@ -756,7 +766,7 @@ const generateCompositeRoutes = (
     .map((verbOption) => {
       return generateHonoRoute(verbOption, verbOption.pathRoute);
     })
-    .join(';');
+    .join('');
 
   const importHandlers = Object.values(verbOptions);
 
@@ -804,12 +814,11 @@ const generateCompositeRoutes = (
 
   const honoImport = `import { Hono } from 'hono';`;
   const honoInitialization = `\nconst app = new Hono()`;
-  const honoAppExport = `\nexport default app`;
+  const honoAppExport = `\nexport default app;`;
 
   const content = `${header}${honoImport}
 ${ImportHandlersImplementation}
-${honoInitialization}
-${routes}
+${honoInitialization}${routes};
 ${honoAppExport}
 `;
 
@@ -829,18 +838,13 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
   const { path, pathWithoutExtension } = getFileInfo(output.target);
   const validator = generateZvalidator(output, context);
   let schemaModule: string;
-  const isZodSchemaOutput =
-    isObject(output.schemas) && output.schemas.type === 'zod';
 
   if (output.schemas != undefined) {
     const schemasPath = (
       isObject(output.schemas) ? output.schemas.path : output.schemas
     ) as string;
     const basePath = getFileInfo(schemasPath).dirname;
-    schemaModule =
-      isZodSchemaOutput && output.indexFiles
-        ? upath.joinSafe(basePath, 'index.zod')
-        : basePath;
+    schemaModule = basePath;
   } else if (output.mode === 'single') {
     schemaModule = path;
   } else {
@@ -857,7 +861,7 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
     ? generateCompositeRoutes(verbOptions, output, context)
     : [];
   const [handlers, zods] = await Promise.all([
-    generateHandlerFiles(verbOptions, output, validator.path),
+    generateHandlerFiles(verbOptions, output, context, validator.path),
     generateZodFiles(verbOptions, output, context),
   ]);
 

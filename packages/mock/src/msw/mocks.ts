@@ -7,7 +7,6 @@ import {
   type MockOptions,
   type NormalizedOverrideOutput,
   type OpenApiDocument,
-  type OpenApiSchemaObject,
   resolveRef,
   type ResReqTypesValue,
   stringify,
@@ -205,7 +204,7 @@ export function getResponsesMockDefinition({
   };
 
   for (const response of responses) {
-    const { value: definition, example, examples, imports } = response;
+    const { value: definition, example, examples, imports, isRef } = response;
     let { originalSchema } = response;
 
     if (context.output.override.mock?.useExamples || mockOptions?.useExamples) {
@@ -241,15 +240,15 @@ export function getResponsesMockDefinition({
       continue;
     }
 
-    const resolvedSchema = resolveRef<OpenApiSchemaObject>(
-      originalSchema,
-      context,
-    ).schema;
+    const resolvedSchema = resolveRef(originalSchema, context).schema;
 
     const scalar = getMockScalar({
       item: {
         ...(resolvedSchema as Record<string, unknown>),
         name: definition,
+        ...(context.output.override.enumGenerationType === 'enum' && isRef
+          ? { isRef: true }
+          : {}),
       },
       imports,
       mockOptions: mockOptionsWithoutFunc,

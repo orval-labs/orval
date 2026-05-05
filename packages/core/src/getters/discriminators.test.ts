@@ -136,6 +136,167 @@ describe('resolveDiscriminators getter', () => {
     }
   });
 
+  it('strips const from discriminator property to prevent DogValue object bug (#3139)', () => {
+    const schemas: OpenApiSchemasObject = {
+      Pet: {
+        oneOf: [
+          { $ref: '#/components/schemas/Cat' },
+          { $ref: '#/components/schemas/Dog' },
+        ],
+        discriminator: {
+          propertyName: 'type',
+          mapping: {
+            cat: '#/components/schemas/Cat',
+            dog: '#/components/schemas/Dog',
+          },
+        },
+      },
+      Cat: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['type', 'name'],
+        properties: {
+          type: { const: 'cat' },
+          name: { type: 'string' },
+        },
+      },
+      Dog: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['type'],
+        properties: {
+          type: { const: 'dog', description: 'animal type' },
+        },
+      },
+    };
+
+    const result = resolveDiscriminators(structuredClone(schemas), context);
+    const dogSchema = result.Dog as NonNullable<OpenApiSchemasObject[string]>;
+    const dogProps = dogSchema.properties as
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+      | undefined;
+    const typeProp = dogProps?.type as OpenApiSchemaObject | undefined;
+
+    // The merged property must NOT retain `const` — otherwise interface.ts
+    // generates `const DogValue = { type: DogType }` where DogType is the
+    // runtime enum object instead of the string literal.
+    expect(typeProp).toBeDefined();
+    expect(typeProp).not.toHaveProperty('const');
+    expect(typeProp?.enum).toEqual(['dog']);
+    expect(typeProp?.type).toBe('string');
+    expect((typeProp as Record<string, unknown>).description).toBe(
+      'animal type',
+    );
+  });
+
+  it('preserves boolean type for boolean discriminator', () => {
+    const schemas: OpenApiSchemasObject = {
+      ApiResult: {
+        type: 'object',
+        discriminator: {
+          propertyName: 'success',
+          mapping: {
+            true: '#/components/schemas/SuccessResult',
+            false: '#/components/schemas/ErrorResult',
+          },
+        },
+      },
+      SuccessResult: {
+        type: 'object',
+        properties: {
+          success: {
+            type: 'boolean',
+          },
+        },
+      },
+      ErrorResult: {
+        type: 'object',
+        properties: {
+          success: {
+            type: 'boolean',
+          },
+        },
+      },
+    };
+
+    const result = resolveDiscriminators(structuredClone(schemas), context);
+    const successSchema = result.SuccessResult as NonNullable<
+      OpenApiSchemasObject[string]
+    >;
+    const errorSchema = result.ErrorResult as NonNullable<
+      OpenApiSchemasObject[string]
+    >;
+    const successProps = successSchema.properties as
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+      | undefined;
+    const errorProps = errorSchema.properties as
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+      | undefined;
+
+    expect(successProps?.success).toMatchObject({
+      type: 'boolean',
+      enum: [true],
+    });
+    expect(errorProps?.success).toMatchObject({
+      type: 'boolean',
+      enum: [false],
+    });
+  });
+
+  it('preserves integer type for number discriminator', () => {
+    const schemas: OpenApiSchemasObject = {
+      StatusResult: {
+        type: 'object',
+        discriminator: {
+          propertyName: 'code',
+          mapping: {
+            '1': '#/components/schemas/ActiveStatus',
+            '0': '#/components/schemas/InactiveStatus',
+          },
+        },
+      },
+      ActiveStatus: {
+        type: 'object',
+        properties: {
+          code: {
+            type: 'integer',
+          },
+        },
+      },
+      InactiveStatus: {
+        type: 'object',
+        properties: {
+          code: {
+            type: 'integer',
+          },
+        },
+      },
+    };
+
+    const result = resolveDiscriminators(structuredClone(schemas), context);
+    const activeSchema = result.ActiveStatus as NonNullable<
+      OpenApiSchemasObject[string]
+    >;
+    const inactiveSchema = result.InactiveStatus as NonNullable<
+      OpenApiSchemasObject[string]
+    >;
+    const activeProps = activeSchema.properties as
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+      | undefined;
+    const inactiveProps = inactiveSchema.properties as
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+      | undefined;
+
+    expect(activeProps?.code).toMatchObject({
+      type: 'integer',
+      enum: [1],
+    });
+    expect(inactiveProps?.code).toMatchObject({
+      type: 'integer',
+      enum: [0],
+    });
+  });
+
   it('hoists oneOf from discriminator when nested incorrectly', () => {
     const schemas: OpenApiSchemasObject = {
       Animal: {

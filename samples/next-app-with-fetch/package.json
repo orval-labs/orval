@@ -1,6 +1,6 @@
 {
   "name": "next-app-with-fetch",
-  "version": "8.5.3",
+  "version": "8.9.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -27,7 +27,7 @@
     "eslint-config-next": "16.1.6",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
-    "postcss": "8.5.6",
+    "postcss": "8.5.13",
     "prettier": "catalog:",
     "tailwindcss": "^3.4.17",
     "typescript": "catalog:",
