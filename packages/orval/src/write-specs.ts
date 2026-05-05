@@ -12,6 +12,7 @@ import {
   logWarning,
   type NormalizedOptions,
   type OpenApiInfoObject,
+  OutputClient,
   OutputMode,
   splitSchemasByType,
   SupportedFormatter,
@@ -144,8 +145,9 @@ export async function writeSpecs(
   const projectTitle = projectName ?? info.title;
 
   const header = getHeader(output.override.header, info);
+  const isDart = output.client === OutputClient.DART;
 
-  if (output.schemas) {
+  if (output.schemas && !isDart) {
     if (isString(output.schemas)) {
       const fileExtension = output.fileExtension || '.ts';
       const schemaPath = output.schemas;
@@ -325,7 +327,7 @@ export async function writeSpecs(
 
   let implementationPaths: string[] = [];
 
-  if (output.target) {
+  if (output.target && !isDart) {
     const writeMode = getWriteMode(output.mode);
     const isZodClient = output.client === 'zod';
     const hasOperations = Object.keys(builder.operations).length > 0;
@@ -345,7 +347,7 @@ export async function writeSpecs(
     });
   }
 
-  if (output.workspace) {
+  if (output.workspace && !isDart) {
     const workspacePath = output.workspace;
     const indexFile = path.join(workspacePath, 'index.ts');
     const imports = implementationPaths

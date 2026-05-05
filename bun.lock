@@ -89,6 +89,20 @@
         "@faker-js/faker",
       ],
     },
+    "packages/dart": {
+      "name": "@orval/dart",
+      "version": "8.9.1",
+      "dependencies": {
+        "@orval/core": "workspace:*",
+      },
+      "devDependencies": {
+        "eslint": "catalog:",
+        "rimraf": "catalog:",
+        "tsdown": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
     "packages/fetch": {
       "name": "@orval/fetch",
       "version": "8.9.1",
@@ -165,6 +179,7 @@
         "@orval/angular": "workspace:*",
         "@orval/axios": "workspace:*",
         "@orval/core": "workspace:*",
+        "@orval/dart": "workspace:*",
         "@orval/fetch": "workspace:*",
         "@orval/hono": "workspace:*",
         "@orval/mcp": "workspace:*",
@@ -1521,6 +1536,8 @@
     "@orval/axios": ["@orval/axios@workspace:packages/axios"],
 
     "@orval/core": ["@orval/core@workspace:packages/core"],
+
+    "@orval/dart": ["@orval/dart@workspace:packages/dart"],
 
     "@orval/fetch": ["@orval/fetch@workspace:packages/fetch"],
 
