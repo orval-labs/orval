@@ -55,13 +55,7 @@ export function generateImports({
   );
 
   return Object.entries(grouped)
-    .toSorted(([a], [b]) =>
-      a.localeCompare(b, undefined, {
-        usage: 'sort',
-        sensitivity: 'variant', // distinguishes æ/ø/å from a/o, etc.
-        numeric: true,
-      }),
-    )
+    .toSorted(([a], [b]) => a.localeCompare(b, 'en', { numeric: true }))
     .map(([, group]) => {
       const sample = group[0];
       const canAggregate =
