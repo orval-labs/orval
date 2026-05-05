@@ -15,11 +15,15 @@ type LowercaseString<T extends string> = T extends `${infer First}${infer Rest}`
 
 const convertTarget = (config: TsConfigJsonResolved): Tsconfig => {
   if (!config.compilerOptions?.target) {
-    return config as Tsconfig;
+    return {
+      baseUrl: config.compilerOptions?.baseUrl,
+      ...config,
+    } as Tsconfig;
   }
   const lowercaseTarget =
     config.compilerOptions.target.toLowerCase() as LowercaseString<TsConfigJson.CompilerOptions.Target>;
   return {
+    baseUrl: config.compilerOptions?.baseUrl,
     ...config,
     compilerOptions: { ...config.compilerOptions, target: lowercaseTarget },
   };
