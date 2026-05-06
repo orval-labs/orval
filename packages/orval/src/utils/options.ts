@@ -180,9 +180,9 @@ export async function normalizeOptions(
 
   const defaultFileExtension = '.ts';
 
+  // `useQuery` / `useMutation` defaults are applied per-verb in
+  // `query-generator.ts` so we can tell "unset" from "explicit true" (#2376).
   const globalQueryOptions: NormalizedQueryOptions = {
-    useQuery: true,
-    useMutation: true,
     signal: true,
     shouldExportMutatorHooks: true,
     shouldExportHttpClient: true,

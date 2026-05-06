@@ -4,19 +4,12 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import {
-  createInfiniteQuery,
-  createMutation,
-  createQuery,
-} from '@tanstack/svelte-query';
+import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
 import type {
   CreateInfiniteQueryOptions,
   CreateInfiniteQueryResult,
-  CreateMutationOptions,
-  CreateMutationResult,
   CreateQueryOptions,
   CreateQueryResult,
-  MutationFunction,
   QueryFunction,
   QueryKey,
 } from '@tanstack/svelte-query';
@@ -374,89 +367,102 @@ export const createPets = async (
   } as createPetsResponse;
 };
 
-export const getCreatePetsMutationOptions = <
-  TError = Error,
-  TContext = unknown,
->(options?: {
-  mutation?: CreateMutationOptions<
-    Awaited<ReturnType<typeof createPets>>,
-    TError,
-    {
-      pathParams: CreatePetsPathParameters;
-      data: CreatePetsBody;
-      params: CreatePetsParams;
-    },
-    TContext
-  >;
-  fetch?: RequestInit;
-}): CreateMutationOptions<
-  Awaited<ReturnType<typeof createPets>>,
-  TError,
-  {
-    pathParams: CreatePetsPathParameters;
-    data: CreatePetsBody;
-    params: CreatePetsParams;
-  },
-  TContext
-> => {
-  const mutationKey = ['createPets'];
-  const { mutation: mutationOptions, fetch: fetchOptions } = options
-    ? options.mutation &&
-      'mutationKey' in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, fetch: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createPets>>,
-    {
-      pathParams: CreatePetsPathParameters;
-      data: CreatePetsBody;
-      params: CreatePetsParams;
-    }
-  > = (props) => {
-    const { pathParams, data, params } = props ?? {};
-
-    return createPets(pathParams, data, params, fetchOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
+export const getCreatePetsQueryKey = (
+  { version = 1 }: CreatePetsPathParameters = {},
+  createPetsBody?: CreatePetsBody,
+  params?: CreatePetsParams,
+) => {
+  return [
+    'POST',
+    `/v${version}/pets`,
+    ...(params ? [params] : []),
+    createPetsBody,
+  ] as const;
 };
 
-export type CreatePetsMutationResult = NonNullable<
+export const getCreatePetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof createPets>>,
+  TError = Error,
+>(
+  { version = 1 }: CreatePetsPathParameters = {},
+  createPetsBody: CreatePetsBody,
+  params: CreatePetsParams,
+  options?: {
+    query?: CreateQueryOptions<
+      Awaited<ReturnType<typeof createPets>>,
+      TError,
+      TData
+    >;
+    fetch?: RequestInit;
+  },
+) => {
+  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getCreatePetsQueryKey({ version }, createPetsBody, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof createPets>>> = ({
+    signal,
+  }) =>
+    createPets({ version }, createPetsBody, params, {
+      signal,
+      ...fetchOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!version,
+    ...queryOptions,
+  } as CreateQueryOptions<
+    Awaited<ReturnType<typeof createPets>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CreatePetsQueryResult = NonNullable<
   Awaited<ReturnType<typeof createPets>>
 >;
-export type CreatePetsMutationBody = CreatePetsBody;
-export type CreatePetsMutationError = Error;
+export type CreatePetsQueryError = Error;
 
 /**
  * @summary Create a pet
  */
-export const createCreatePets = <TError = Error, TContext = unknown>(options?: {
-  mutation?: CreateMutationOptions<
-    Awaited<ReturnType<typeof createPets>>,
-    TError,
-    {
-      pathParams: CreatePetsPathParameters;
-      data: CreatePetsBody;
-      params: CreatePetsParams;
-    },
-    TContext
-  >;
-  fetch?: RequestInit;
-}): CreateMutationResult<
-  Awaited<ReturnType<typeof createPets>>,
-  TError,
-  {
-    pathParams: CreatePetsPathParameters;
-    data: CreatePetsBody;
-    params: CreatePetsParams;
+
+export function createCreatePets<
+  TData = Awaited<ReturnType<typeof createPets>>,
+  TError = Error,
+>(
+  { version = 1 }: CreatePetsPathParameters = {},
+  createPetsBody: CreatePetsBody,
+  params: CreatePetsParams,
+  options?: {
+    query?: CreateQueryOptions<
+      Awaited<ReturnType<typeof createPets>>,
+      TError,
+      TData
+    >;
+    fetch?: RequestInit;
   },
-  TContext
-> => {
-  return createMutation(getCreatePetsMutationOptions(options));
-};
+): CreateQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCreatePetsQueryOptions(
+    { version },
+    createPetsBody,
+    params,
+    options,
+  );
+
+  const query = createQuery(queryOptions) as CreateQueryResult<
+    TData,
+    TError
+  > & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
 
 export type showPetByIdResponse200 = {
   data: Pet;
@@ -718,72 +724,85 @@ export const deletePetById = async (
   } as deletePetByIdResponse;
 };
 
-export const getDeletePetByIdMutationOptions = <
-  TError = Error,
-  TContext = unknown,
->(options?: {
-  mutation?: CreateMutationOptions<
-    Awaited<ReturnType<typeof deletePetById>>,
-    TError,
-    { pathParams: DeletePetByIdPathParameters },
-    TContext
-  >;
-  fetch?: RequestInit;
-}): CreateMutationOptions<
-  Awaited<ReturnType<typeof deletePetById>>,
-  TError,
-  { pathParams: DeletePetByIdPathParameters },
-  TContext
-> => {
-  const mutationKey = ['deletePetById'];
-  const { mutation: mutationOptions, fetch: fetchOptions } = options
-    ? options.mutation &&
-      'mutationKey' in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, fetch: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof deletePetById>>,
-    { pathParams: DeletePetByIdPathParameters }
-  > = (props) => {
-    const { pathParams } = props ?? {};
-
-    return deletePetById(pathParams, fetchOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
+export const getDeletePetByIdQueryKey = ({
+  version = 1,
+  petId,
+}: DeletePetByIdPathParameters) => {
+  return ['DELETE', `/v${version}/pets/${petId}`] as const;
 };
 
-export type DeletePetByIdMutationResult = NonNullable<
+export const getDeletePetByIdQueryOptions = <
+  TData = Awaited<ReturnType<typeof deletePetById>>,
+  TError = Error,
+>(
+  { version = 1, petId }: DeletePetByIdPathParameters,
+  options?: {
+    query?: CreateQueryOptions<
+      Awaited<ReturnType<typeof deletePetById>>,
+      TError,
+      TData
+    >;
+    fetch?: RequestInit;
+  },
+) => {
+  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getDeletePetByIdQueryKey({ version, petId });
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof deletePetById>>> = ({
+    signal,
+  }) => deletePetById({ version, petId }, { signal, ...fetchOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(version && petId),
+    ...queryOptions,
+  } as CreateQueryOptions<
+    Awaited<ReturnType<typeof deletePetById>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DeletePetByIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof deletePetById>>
 >;
-
-export type DeletePetByIdMutationError = Error;
+export type DeletePetByIdQueryError = Error;
 
 /**
  * @summary Deletes a specific pet
  */
-export const createDeletePetById = <
+
+export function createDeletePetById<
+  TData = Awaited<ReturnType<typeof deletePetById>>,
   TError = Error,
-  TContext = unknown,
->(options?: {
-  mutation?: CreateMutationOptions<
-    Awaited<ReturnType<typeof deletePetById>>,
-    TError,
-    { pathParams: DeletePetByIdPathParameters },
-    TContext
-  >;
-  fetch?: RequestInit;
-}): CreateMutationResult<
-  Awaited<ReturnType<typeof deletePetById>>,
-  TError,
-  { pathParams: DeletePetByIdPathParameters },
-  TContext
-> => {
-  return createMutation(getDeletePetByIdMutationOptions(options));
-};
+>(
+  { version = 1, petId }: DeletePetByIdPathParameters,
+  options?: {
+    query?: CreateQueryOptions<
+      Awaited<ReturnType<typeof deletePetById>>,
+      TError,
+      TData
+    >;
+    fetch?: RequestInit;
+  },
+): CreateQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDeletePetByIdQueryOptions(
+    { version, petId },
+    options,
+  );
+
+  const query = createQuery(queryOptions) as CreateQueryResult<
+    TData,
+    TError
+  > & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
 
 export type healthCheckResponse200 = {
   data: string;

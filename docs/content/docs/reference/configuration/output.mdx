@@ -662,31 +662,64 @@ export default defineConfig({
 
 **Type:** `Boolean`
 
-Generate `useQuery` hooks.
+**Default:** `true` for `GET` operations; `false` otherwise.
+
+Generate `useQuery` hooks. When set explicitly, applies to **all
+operations regardless of HTTP verb** — setting `useQuery: true` routes
+`POST`, `PUT`, `PATCH`, and `DELETE` operations to `useQuery` hooks as
+well. This is useful for APIs that use `POST` for read-style endpoints
+(e.g. complex search bodies, GraphQL-style single-endpoint APIs).
+
+Cache keys for non-`GET` operations are automatically namespaced by
+HTTP verb to avoid collisions with `GET` operations on the same path
+(e.g. `['POST', '/pets', body]`).
+
+Set to `false` to suppress `useQuery` hook generation; pair with
+`useMutation: true` (default for non-`GET`) if you want the request to
+be wired up as a Mutation instead.
 
 ### useSuspenseQuery
 
 **Type:** `Boolean`
 
-Generate `useSuspenseQuery` hooks.
+**Default:** unset — opt-in.
+
+Generate `useSuspenseQuery` hooks. When set globally, this only applies
+to `GET` operations; per-operation overrides
+(`override.operations.<id>.query.useSuspenseQuery`) bypass that
+restriction for individual operations.
 
 ### useMutation
 
 **Type:** `Boolean`
 
-Generate `useMutation` hooks for non-GET operations.
+**Default:** `true` for non-`GET` operations.
+
+Generate `useMutation` hooks for non-`GET` operations. Set to `false`
+to suppress Mutation hook generation; pair with `useQuery: true` if
+you want non-`GET` operations to be generated as Query hooks instead.
 
 ### useInfinite
 
 **Type:** `Boolean`
 
-Generate `useInfiniteQuery` hooks.
+**Default:** unset — opt-in.
+
+Generate `useInfiniteQuery` hooks. When set globally, this only
+applies to `GET` operations; per-operation overrides
+(`override.operations.<id>.query.useInfinite`) bypass that
+restriction for individual operations.
 
 ### useSuspenseInfiniteQuery
 
 **Type:** `Boolean`
 
-Generate `useSuspenseInfiniteQuery` hooks.
+**Default:** unset — opt-in.
+
+Generate `useSuspenseInfiniteQuery` hooks. When set globally, this
+only applies to `GET` operations; per-operation overrides
+(`override.operations.<id>.query.useSuspenseInfiniteQuery`) bypass
+that restriction for individual operations.
 
 ### useInfiniteQueryParam
 

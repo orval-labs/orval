@@ -800,30 +800,40 @@ export const generateQueryHook = async (
   let implementation = '';
   let mutators: GeneratorMutator[] | undefined;
 
-  // Allows operationQueryOptions (which is the Orval config override for the operationId)
-  // to override non-GET verbs
-  const hasOperationQueryOption = [
-    operationQueryOptions?.useQuery,
-    operationQueryOptions?.useSuspenseQuery,
-    operationQueryOptions?.useInfinite,
-    operationQueryOptions?.useSuspenseInfiniteQuery,
-  ].some(Boolean);
+  // Precedence: per-operation override > global > per-verb default.
+  // `?? false` lets per-op `false` actually disable a globally enabled
+  // hook (the previous `[…].some(Boolean)` masked op-level false).
+  const effectiveUseQuery =
+    operationQueryOptions?.useQuery ??
+    override.query.useQuery ??
+    verb === Verbs.GET;
+  const effectiveUseMutation =
+    operationQueryOptions?.useMutation ??
+    override.query.useMutation ??
+    verb !== Verbs.GET;
+
+  // Suspense / Infinite have no per-verb default; global is GET-only,
+  // per-op overrides bypass that restriction in either direction.
+  const globalSuspenseOrInfiniteOnlyForGet = (
+    flag: boolean | undefined,
+  ): boolean => flag === true && verb === Verbs.GET;
+  const effectiveUseSuspenseQuery =
+    operationQueryOptions?.useSuspenseQuery ??
+    globalSuspenseOrInfiniteOnlyForGet(override.query.useSuspenseQuery);
+  const effectiveUseInfinite =
+    operationQueryOptions?.useInfinite ??
+    globalSuspenseOrInfiniteOnlyForGet(override.query.useInfinite);
+  const effectiveUseSuspenseInfiniteQuery =
+    operationQueryOptions?.useSuspenseInfiniteQuery ??
+    globalSuspenseOrInfiniteOnlyForGet(override.query.useSuspenseInfiniteQuery);
 
   let isQuery =
-    (Verbs.GET === verb &&
-      [
-        override.query.useQuery,
-        override.query.useSuspenseQuery,
-        override.query.useInfinite,
-        override.query.useSuspenseInfiniteQuery,
-      ].some(Boolean)) ||
-    hasOperationQueryOption;
+    effectiveUseQuery ||
+    effectiveUseSuspenseQuery ||
+    effectiveUseInfinite ||
+    effectiveUseSuspenseInfiniteQuery;
 
-  let isMutation = override.query.useMutation && verb !== Verbs.GET;
-
-  if (operationQueryOptions?.useMutation !== undefined) {
-    isMutation = operationQueryOptions.useMutation;
-  }
+  let isMutation = effectiveUseMutation && verb !== Verbs.GET;
 
   // If both query and mutation are true for a non-GET operation, prioritize query
   if (verb !== Verbs.GET && isQuery) {
@@ -886,7 +896,7 @@ export const generateQueryHook = async (
       .join(',');
 
     const queries = [
-      ...(query.useInfinite || operationQueryOptions?.useInfinite
+      ...(effectiveUseInfinite
         ? [
             {
               name: camel(`${operationName}-infinite`),
@@ -897,7 +907,7 @@ export const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query.useQuery || operationQueryOptions?.useQuery
+      ...(effectiveUseQuery
         ? [
             {
               name: operationName,
@@ -907,7 +917,7 @@ export const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query.useSuspenseQuery || operationQueryOptions?.useSuspenseQuery
+      ...(effectiveUseSuspenseQuery
         ? [
             {
               name: camel(`${operationName}-suspense`),
@@ -917,8 +927,7 @@ export const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query.useSuspenseInfiniteQuery ||
-      operationQueryOptions?.useSuspenseInfiniteQuery
+      ...(effectiveUseSuspenseInfiniteQuery
         ? [
             {
               name: camel(`${operationName}-suspense-infinite`),
@@ -1042,8 +1051,8 @@ ${queryKeyFns}`;
         route,
         doc,
         usePrefetch: query.usePrefetch,
-        useQuery: query.useQuery,
-        useInfinite: query.useInfinite,
+        useQuery: effectiveUseQuery,
+        useInfinite: effectiveUseInfinite,
         useInvalidate: query.useInvalidate,
         useSetQueryData:
           operationQueryOptions?.useSetQueryData ?? query.useSetQueryData,
