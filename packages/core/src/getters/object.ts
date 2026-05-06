@@ -84,7 +84,11 @@ function getPropertyNamesKeyType(
     context,
   });
 
-  if (!resolvedValue.isEnum || resolvedValue.type !== 'string') {
+  const resolvedConst = resolvedValue.originalSchema.const as unknown;
+  const isStringConst =
+    resolvedValue.type === 'string' && isString(resolvedConst);
+
+  if (!resolvedValue.isEnum && !isStringConst) {
     return undefined;
   }
 

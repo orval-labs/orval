@@ -455,6 +455,46 @@ export type ConstEnum = typeof ConstEnumValue;
     expect(got).toEqual(want);
   });
 
+  it('should generate Record type with propertyNames referenced const (OpenAPI 3.1)', () => {
+    const testContext = withContext({
+      spec: {
+        components: {
+          schemas: {
+            Key: {
+              type: 'string',
+              const: 'key1',
+            },
+          },
+        },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      propertyNames: {
+        $ref: '#/components/schemas/Key',
+      },
+      additionalProperties: {
+        type: 'string',
+      },
+    };
+
+    const got = generateInterface({
+      name: 'MyObject',
+      context: testContext,
+      schema,
+    });
+    const want: GeneratorSchema[] = [
+      {
+        name: 'MyObject',
+        model: `export type MyObject = Partial<Record<Key, string>>;\n`,
+        imports: [{ name: 'Key', schemaName: 'Key' }],
+        dependencies: ['Key'],
+        schema,
+      },
+    ];
+    expect(got).toEqual(want);
+  });
+
   it('should handle propertyNames const with additionalProperties as boolean', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
