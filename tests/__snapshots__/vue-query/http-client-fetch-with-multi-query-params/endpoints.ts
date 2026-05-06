@@ -114,7 +114,7 @@ export const getGetUsersUserIdOrdersQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: computed(() => !!unref(userId)),
+    enabled: computed(() => unref(userId) != null),
     ...queryOptions,
   } as UseQueryOptions<
     Awaited<ReturnType<typeof getUsersUserIdOrders>>,

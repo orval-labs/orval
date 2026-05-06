@@ -177,7 +177,7 @@ export const getListPetsInfiniteQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!version,
+    enabled: version != null,
     ...queryOptions,
   } as CreateInfiniteQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
@@ -253,7 +253,7 @@ export const getListPetsQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!version,
+    enabled: version != null,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
@@ -544,7 +544,7 @@ export const getShowPetByIdInfiniteQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!(version && petId),
+    enabled: version != null && petId != null,
     ...queryOptions,
   } as CreateInfiniteQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,
@@ -620,7 +620,7 @@ export const getShowPetByIdQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!(version && petId),
+    enabled: version != null && petId != null,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,
@@ -880,7 +880,7 @@ export const getHealthCheckInfiniteQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!version,
+    enabled: version != null,
     ...queryOptions,
   } as CreateInfiniteQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,
@@ -949,7 +949,7 @@ export const getHealthCheckQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!version,
+    enabled: version != null,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,
@@ -1084,7 +1084,7 @@ export const getShowPetWithOwnerInfiniteQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!(version && petId),
+    enabled: version != null && petId != null,
     ...queryOptions,
   } as CreateInfiniteQueryOptions<
     Awaited<ReturnType<typeof showPetWithOwner>>,
@@ -1161,7 +1161,7 @@ export const getShowPetWithOwnerQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!(version && petId),
+    enabled: version != null && petId != null,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof showPetWithOwner>>,

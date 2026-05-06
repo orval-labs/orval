@@ -248,7 +248,7 @@ export const getShowPetByIdQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: computed(() => !!unref(petId)),
+    enabled: computed(() => unref(petId) != null),
     ...queryOptions,
   } as UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>;
 };
@@ -417,7 +417,7 @@ export const getShowPetWithOwnerQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: computed(() => !!unref(petId)),
+    enabled: computed(() => unref(petId) != null),
     ...queryOptions,
   } as UseQueryOptions<
     Awaited<ReturnType<typeof showPetWithOwner>>,

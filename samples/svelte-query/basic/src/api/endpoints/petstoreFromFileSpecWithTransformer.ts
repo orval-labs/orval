@@ -74,7 +74,7 @@ export const getListPetsQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!version,
+    enabled: version != null,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
@@ -242,7 +242,7 @@ export const getShowPetByIdQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!(version && petId),
+    enabled: version != null && petId != null,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,

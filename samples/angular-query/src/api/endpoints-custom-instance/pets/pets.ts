@@ -470,7 +470,7 @@ export const getShowPetByIdQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!petId,
+    enabled: petId != null,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,
@@ -830,7 +830,7 @@ export const getShowPetTextQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!petId,
+    enabled: petId != null,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof showPetText>>,
@@ -1126,7 +1126,7 @@ export const getDownloadFileQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!petId,
+    enabled: petId != null,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof downloadFile>>,

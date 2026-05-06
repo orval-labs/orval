@@ -73,7 +73,7 @@ export const useGetVversionExample = <TError = Promise<unknown>>(
 ) => {
   const { swr: swrOptions, fetch: fetchOptions } = options ?? {};
 
-  const isEnabled = swrOptions?.enabled !== false && !!version;
+  const isEnabled = swrOptions?.enabled !== false && version != null;
   const swrKey =
     swrOptions?.swrKey ??
     (() => (isEnabled ? getGetVversionExampleKey(version) : null));
