@@ -707,7 +707,7 @@ export const getShowPetByIdInfiniteQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!petId,
+    enabled: petId != null,
     ...queryOptions,
   } as UseInfiniteQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,
@@ -872,7 +872,7 @@ export const getShowPetByIdQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!petId,
+    enabled: petId != null,
     ...queryOptions,
   } as UseQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,
@@ -1540,7 +1540,7 @@ export const getShowPetWithOwnerInfiniteQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!petId,
+    enabled: petId != null,
     ...queryOptions,
   } as UseInfiniteQueryOptions<
     Awaited<ReturnType<typeof showPetWithOwner>>,
@@ -1714,7 +1714,7 @@ export const getShowPetWithOwnerQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!petId,
+    enabled: petId != null,
     ...queryOptions,
   } as UseQueryOptions<
     Awaited<ReturnType<typeof showPetWithOwner>>,

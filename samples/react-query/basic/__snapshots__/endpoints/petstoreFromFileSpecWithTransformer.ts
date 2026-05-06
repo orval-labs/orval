@@ -123,7 +123,7 @@ export const getListPetsInfiniteQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!version,
+    enabled: version != null,
     ...queryOptions,
   } as UseInfiniteQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
@@ -319,7 +319,7 @@ export const getListPetsQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!version,
+    enabled: version != null,
     ...queryOptions,
   } as UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -884,7 +884,7 @@ export const getListPetsNestedArrayQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!version,
+    enabled: version != null,
     ...queryOptions,
   } as UseQueryOptions<
     Awaited<ReturnType<typeof listPetsNestedArray>>,
@@ -1051,7 +1051,7 @@ export const getShowPetByIdQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!(version && petId),
+    enabled: version != null && petId != null,
     ...queryOptions,
   } as UseQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,

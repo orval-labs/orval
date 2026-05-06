@@ -167,7 +167,7 @@ export const getListPetsQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!version,
+    enabled: version != null,
     ...queryOptions,
   } as UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -507,7 +507,7 @@ export const getShowPetByIdQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!(version && petId),
+    enabled: version != null && petId != null,
     ...queryOptions,
   } as UseQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,
@@ -814,7 +814,7 @@ export const getHealthCheckQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!version,
+    enabled: version != null,
     ...queryOptions,
   } as UseQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,
@@ -1004,7 +1004,7 @@ export const getShowPetWithOwnerQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!(version && petId),
+    enabled: version != null && petId != null,
     ...queryOptions,
   } as UseQueryOptions<
     Awaited<ReturnType<typeof showPetWithOwner>>,

@@ -116,7 +116,7 @@ export const getListPetsInfiniteQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: computed(() => !!unref(version)),
+    enabled: computed(() => unref(version) != null),
     ...queryOptions,
   } as UseInfiniteQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
@@ -205,7 +205,7 @@ export const getListPetsQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: computed(() => !!unref(version)),
+    enabled: computed(() => unref(version) != null),
     ...queryOptions,
   } as UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>;
 };
@@ -422,7 +422,7 @@ export const getShowPetByIdInfiniteQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: computed(() => !!(unref(version) && unref(petId))),
+    enabled: computed(() => unref(version) != null && unref(petId) != null),
     ...queryOptions,
   } as UseInfiniteQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,
@@ -504,7 +504,7 @@ export const getShowPetByIdQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: computed(() => !!(unref(version) && unref(petId))),
+    enabled: computed(() => unref(version) != null && unref(petId) != null),
     ...queryOptions,
   } as UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>;
 };
@@ -698,7 +698,7 @@ export const getHealthCheckInfiniteQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: computed(() => !!unref(version)),
+    enabled: computed(() => unref(version) != null),
     ...queryOptions,
   } as UseInfiniteQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,
@@ -774,7 +774,7 @@ export const getHealthCheckQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: computed(() => !!unref(version)),
+    enabled: computed(() => unref(version) != null),
     ...queryOptions,
   } as UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>;
 };
@@ -877,7 +877,7 @@ export const getShowPetWithOwnerInfiniteQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: computed(() => !!(unref(version) && unref(petId))),
+    enabled: computed(() => unref(version) != null && unref(petId) != null),
     ...queryOptions,
   } as UseInfiniteQueryOptions<
     Awaited<ReturnType<typeof showPetWithOwner>>,
@@ -963,7 +963,7 @@ export const getShowPetWithOwnerQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: computed(() => !!(unref(version) && unref(petId))),
+    enabled: computed(() => unref(version) != null && unref(petId) != null),
     ...queryOptions,
   } as UseQueryOptions<
     Awaited<ReturnType<typeof showPetWithOwner>>,

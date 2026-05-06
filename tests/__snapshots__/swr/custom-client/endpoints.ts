@@ -62,7 +62,7 @@ export const useListPets = <TError = ErrorType<Error>>(
 ) => {
   const { swr: swrOptions } = options ?? {};
 
-  const isEnabled = swrOptions?.enabled !== false && !!version;
+  const isEnabled = swrOptions?.enabled !== false && version != null;
   const swrKey =
     swrOptions?.swrKey ??
     (() => (isEnabled ? getListPetsKey(params, version) : null));
@@ -176,7 +176,8 @@ export const useShowPetById = <TError = ErrorType<Error>>(
 ) => {
   const { swr: swrOptions } = options ?? {};
 
-  const isEnabled = swrOptions?.enabled !== false && !!(version && petId);
+  const isEnabled =
+    swrOptions?.enabled !== false && version != null && petId != null;
   const swrKey =
     swrOptions?.swrKey ??
     (() => (isEnabled ? getShowPetByIdKey(petId, version) : null));
@@ -279,7 +280,7 @@ export const useHealthCheck = <TError = ErrorType<Error>>(
 ) => {
   const { swr: swrOptions } = options ?? {};
 
-  const isEnabled = swrOptions?.enabled !== false && !!version;
+  const isEnabled = swrOptions?.enabled !== false && version != null;
   const swrKey =
     swrOptions?.swrKey ??
     (() => (isEnabled ? getHealthCheckKey(version) : null));
@@ -329,7 +330,8 @@ export const useShowPetWithOwner = <TError = ErrorType<Error>>(
 ) => {
   const { swr: swrOptions } = options ?? {};
 
-  const isEnabled = swrOptions?.enabled !== false && !!(version && petId);
+  const isEnabled =
+    swrOptions?.enabled !== false && version != null && petId != null;
   const swrKey =
     swrOptions?.swrKey ??
     (() => (isEnabled ? getShowPetWithOwnerKey(petId, version) : null));
