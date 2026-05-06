@@ -15,12 +15,15 @@ import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getKey } from './keys';
 import { getRefInfo } from './ref';
 
-/**
- * Extract enum values from propertyNames schema (OpenAPI 3.1)
- * Handles both `enum` and `const` (treated as a single-element enum)
- * Returns undefined if propertyNames has neither
- */
-function getPropertyNamesEnum(item: OpenApiSchemaObject): string[] | undefined {
+interface PropertyNamesKeyType {
+  value: string;
+  imports: GeneratorImport[];
+  dependencies: string[];
+}
+
+function getPropertyNamesEnumKeyType(
+  item: OpenApiSchemaObject,
+): PropertyNamesKeyType | undefined {
   if (!('propertyNames' in item) || !item.propertyNames) {
     return undefined;
   }
@@ -31,14 +34,65 @@ function getPropertyNamesEnum(item: OpenApiSchemaObject): string[] | undefined {
   };
 
   if (Array.isArray(propertyNames.enum)) {
-    return propertyNames.enum.filter((val): val is string => isString(val));
+    const enumValues = propertyNames.enum.filter((val): val is string =>
+      isString(val),
+    );
+
+    if (enumValues.length > 0) {
+      return {
+        value: enumValues.map((val) => `'${escape(val)}'`).join(' | '),
+        imports: [],
+        dependencies: [],
+      };
+    }
   }
 
   if (isString(propertyNames.const)) {
-    return [propertyNames.const];
+    return {
+      value: `'${escape(propertyNames.const)}'`,
+      imports: [],
+      dependencies: [],
+    };
   }
 
   return undefined;
+}
+
+/**
+ * Resolve a narrowed key type from OpenAPI 3.1 propertyNames.
+ * Supports inline enum/const and $ref string enums.
+ */
+function getPropertyNamesKeyType(
+  item: OpenApiSchemaObject,
+  context: ContextSpec,
+): PropertyNamesKeyType | undefined {
+  const inlineKeyType = getPropertyNamesEnumKeyType(item);
+  if (inlineKeyType) {
+    return inlineKeyType;
+  }
+
+  const propertyNames = item.propertyNames as
+    | OpenApiSchemaObject
+    | OpenApiReferenceObject
+    | undefined;
+  if (!propertyNames || !isReference(propertyNames)) {
+    return undefined;
+  }
+
+  const resolvedValue = resolveValue({
+    schema: propertyNames,
+    context,
+  });
+
+  if (!resolvedValue.isEnum || resolvedValue.type !== 'string') {
+    return undefined;
+  }
+
+  return {
+    value: resolvedValue.value,
+    imports: resolvedValue.imports,
+    dependencies: resolvedValue.dependencies,
+  };
 }
 
 /**
@@ -46,24 +100,23 @@ function getPropertyNamesEnum(item: OpenApiSchemaObject): string[] | undefined {
  * Returns union type string like "'foo' | 'bar'", "'x'", or 'string' if neither
  */
 function getIndexSignatureKey(item: OpenApiSchemaObject): string {
-  const enumValues = getPropertyNamesEnum(item);
-  if (enumValues && enumValues.length > 0) {
-    return enumValues.map((val) => `'${val}'`).join(' | ');
-  }
-  return 'string';
+  return getPropertyNamesEnumKeyType(item)?.value ?? 'string';
 }
 
 function getPropertyNamesRecordType(
   item: OpenApiSchemaObject,
   valueType: string,
-): string | undefined {
-  const enumValues = getPropertyNamesEnum(item);
-  if (!enumValues || enumValues.length === 0) {
+  context: ContextSpec,
+): (PropertyNamesKeyType & { value: string }) | undefined {
+  const keyType = getPropertyNamesKeyType(item, context);
+  if (!keyType) {
     return undefined;
   }
 
-  const keyType = enumValues.map((val) => `'${val}'`).join(' | ');
-  return `Partial<Record<${keyType}, ${valueType}>>`;
+  return {
+    ...keyType,
+    value: `Partial<Record<${keyType.value}, ${valueType}>>`,
+  };
 }
 
 /**
@@ -333,11 +386,14 @@ export function getObject({
             const recordType = getPropertyNamesRecordType(
               schemaItem,
               'unknown',
+              context,
             );
             if (recordType) {
               acc.value += '\n}';
-              acc.value += ` & ${recordType}`;
+              acc.value += ` & ${recordType.value}`;
               acc.useTypeAlias = true;
+              acc.imports.push(...recordType.imports);
+              acc.dependencies.push(...recordType.dependencies);
             } else {
               const keyType = getIndexSignatureKey(schemaItem);
               acc.value += `\n  [key: ${keyType}]: unknown;\n }`;
@@ -353,11 +409,14 @@ export function getObject({
             const recordType = getPropertyNamesRecordType(
               schemaItem,
               resolvedValue.value,
+              context,
             );
             if (recordType) {
               acc.value += '\n}';
-              acc.value += ` & ${recordType}`;
+              acc.value += ` & ${recordType.value}`;
               acc.useTypeAlias = true;
+              acc.imports.push(...recordType.imports);
+              acc.dependencies.push(...recordType.dependencies);
             } else {
               const keyType = getIndexSignatureKey(schemaItem);
               acc.value += `\n  [key: ${keyType}]: ${resolvedValue.value};\n}`;
@@ -385,18 +444,22 @@ export function getObject({
   const readOnlyFlag = schemaItem.readOnly as boolean | undefined;
   if (outerAdditionalProps) {
     if (outerAdditionalProps === true) {
-      const recordType = getPropertyNamesRecordType(schemaItem, 'unknown');
+      const recordType = getPropertyNamesRecordType(
+        schemaItem,
+        'unknown',
+        context,
+      );
       if (recordType) {
         return {
-          value: recordType + nullable,
-          imports: [],
+          value: recordType.value + nullable,
+          imports: recordType.imports,
           schemas: [],
           isEnum: false,
           type: 'object',
           isRef: false,
           hasReadonlyProps: readOnlyFlag ?? false,
           useTypeAlias: true,
-          dependencies: [],
+          dependencies: recordType.dependencies,
         };
       }
       const keyType = getIndexSignatureKey(schemaItem);
@@ -422,18 +485,22 @@ export function getObject({
     const recordType = getPropertyNamesRecordType(
       schemaItem,
       resolvedValue.value,
+      context,
     );
     if (recordType) {
       return {
-        value: recordType + nullable,
-        imports: resolvedValue.imports,
+        value: recordType.value + nullable,
+        imports: [...recordType.imports, ...resolvedValue.imports],
         schemas: resolvedValue.schemas,
         isEnum: false,
         type: 'object',
         isRef: false,
         hasReadonlyProps: resolvedValue.hasReadonlyProps,
         useTypeAlias: true,
-        dependencies: resolvedValue.dependencies,
+        dependencies: [
+          ...recordType.dependencies,
+          ...resolvedValue.dependencies,
+        ],
       };
     }
     const keyType = getIndexSignatureKey(schemaItem);
@@ -484,18 +551,18 @@ export function getObject({
 
   const keyType =
     itemType === 'object' ? getIndexSignatureKey(schemaItem) : 'string';
-  const recordType = getPropertyNamesRecordType(schemaItem, 'unknown');
+  const recordType = getPropertyNamesRecordType(schemaItem, 'unknown', context);
   if (itemType === 'object' && recordType) {
     return {
-      value: recordType + nullable,
-      imports: [],
+      value: recordType.value + nullable,
+      imports: recordType.imports,
       schemas: [],
       isEnum: false,
       type: 'object',
       isRef: false,
       hasReadonlyProps: readOnlyFlag ?? false,
       useTypeAlias: true,
-      dependencies: [],
+      dependencies: recordType.dependencies,
     };
   }
   return {
