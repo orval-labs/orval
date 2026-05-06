@@ -809,17 +809,37 @@ export const generateQueryHook = async (
     operationQueryOptions?.useSuspenseInfiniteQuery,
   ].some(Boolean);
 
+  // Apply per-verb defaults at the consumption site so we can distinguish
+  // "user did not set this" (`undefined`) from "user explicitly set it"
+  // (`true` / `false`). The defaults match the long-standing implicit
+  // behaviour: GET → Query hook, non-GET → Mutation hook. Users that
+  // explicitly opt non-GET into a Query hook (e.g. POST search APIs) now
+  // see their setting respected globally rather than silently dropped on
+  // the GET-only gate. Closes #2376.
+  const effectiveUseQuery = override.query.useQuery ?? verb === Verbs.GET;
+  const effectiveUseMutation = override.query.useMutation ?? verb !== Verbs.GET;
+
+  // `useSuspenseQuery` / `useInfinite` / `useSuspenseInfiniteQuery` are
+  // intentionally kept GET-only when set globally — they have no
+  // meaningful default for non-GET verbs (a "suspense infinite POST"
+  // makes little sense) and silently emitting them on every verb after
+  // lifting the `useQuery` gate would be a much larger BC than #2376
+  // intends. Per-operation overrides (`hasOperationQueryOption`) still
+  // let users opt a specific non-GET operation into one of these.
+  const globalSuspenseOrInfiniteForGet =
+    verb === Verbs.GET &&
+    [
+      override.query.useSuspenseQuery,
+      override.query.useInfinite,
+      override.query.useSuspenseInfiniteQuery,
+    ].some(Boolean);
+
   let isQuery =
-    (Verbs.GET === verb &&
-      [
-        override.query.useQuery,
-        override.query.useSuspenseQuery,
-        override.query.useInfinite,
-        override.query.useSuspenseInfiniteQuery,
-      ].some(Boolean)) ||
+    effectiveUseQuery ||
+    globalSuspenseOrInfiniteForGet ||
     hasOperationQueryOption;
 
-  let isMutation = override.query.useMutation && verb !== Verbs.GET;
+  let isMutation = effectiveUseMutation && verb !== Verbs.GET;
 
   if (operationQueryOptions?.useMutation !== undefined) {
     isMutation = operationQueryOptions.useMutation;
@@ -885,8 +905,17 @@ export const generateQueryHook = async (
       })
       .join(',');
 
+    // Mirror the `isQuery` decision: globally-set Suspense / Infinite
+    // flags only apply to GET verbs; per-operation overrides bypass that
+    // restriction.
+    const globalUseInfiniteApplies = !!query.useInfinite && verb === Verbs.GET;
+    const globalUseSuspenseQueryApplies =
+      !!query.useSuspenseQuery && verb === Verbs.GET;
+    const globalUseSuspenseInfiniteQueryApplies =
+      !!query.useSuspenseInfiniteQuery && verb === Verbs.GET;
+
     const queries = [
-      ...(query.useInfinite || operationQueryOptions?.useInfinite
+      ...(globalUseInfiniteApplies || operationQueryOptions?.useInfinite
         ? [
             {
               name: camel(`${operationName}-infinite`),
@@ -897,7 +926,7 @@ export const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query.useQuery || operationQueryOptions?.useQuery
+      ...(effectiveUseQuery || operationQueryOptions?.useQuery
         ? [
             {
               name: operationName,
@@ -907,7 +936,8 @@ export const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query.useSuspenseQuery || operationQueryOptions?.useSuspenseQuery
+      ...(globalUseSuspenseQueryApplies ||
+      operationQueryOptions?.useSuspenseQuery
         ? [
             {
               name: camel(`${operationName}-suspense`),
@@ -917,7 +947,7 @@ export const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query.useSuspenseInfiniteQuery ||
+      ...(globalUseSuspenseInfiniteQueryApplies ||
       operationQueryOptions?.useSuspenseInfiniteQuery
         ? [
             {
@@ -1042,8 +1072,9 @@ ${queryKeyFns}`;
         route,
         doc,
         usePrefetch: query.usePrefetch,
-        useQuery: query.useQuery,
-        useInfinite: query.useInfinite,
+        useQuery: effectiveUseQuery,
+        useInfinite:
+          globalUseInfiniteApplies || !!operationQueryOptions?.useInfinite,
         useInvalidate: query.useInvalidate,
         useSetQueryData:
           operationQueryOptions?.useSetQueryData ?? query.useSetQueryData,

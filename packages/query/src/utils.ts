@@ -24,7 +24,21 @@ export const normalizeQueryOptions = (
     ...(queryOptions.useInvalidate ? { useInvalidate: true } : {}),
     ...(queryOptions.useSetQueryData ? { useSetQueryData: true } : {}),
     ...(queryOptions.useGetQueryData ? { useGetQueryData: true } : {}),
-    ...(queryOptions.useQuery ? { useQuery: true } : {}),
+    // `useQuery` and `useMutation` preserve explicit `false` so that
+    // users can opt out per-output. Without this, `useQuery: false` /
+    // `useMutation: false` would be silently dropped and behaviour
+    // would fall back to the per-verb default in `query-generator.ts`,
+    // making the toggles silent no-ops (#2376).
+    ...(queryOptions.useQuery === undefined
+      ? {}
+      : { useQuery: queryOptions.useQuery }),
+    ...(queryOptions.useMutation === undefined
+      ? {}
+      : { useMutation: queryOptions.useMutation }),
+    ...(queryOptions.useSuspenseQuery ? { useSuspenseQuery: true } : {}),
+    ...(queryOptions.useSuspenseInfiniteQuery
+      ? { useSuspenseInfiniteQuery: true }
+      : {}),
     ...(queryOptions.useInfinite ? { useInfinite: true } : {}),
     ...(queryOptions.useInfiniteQueryParam
       ? { useInfiniteQueryParam: queryOptions.useInfiniteQueryParam }
