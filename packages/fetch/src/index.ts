@@ -85,8 +85,22 @@ export const generateRequestFunction = (
     'implementation',
   );
 
-  const spec = context.spec.paths?.[pathRoute];
-  const parameters = spec?.[verb]?.parameters ?? [];
+  const pathItem = context.spec.paths?.[pathRoute];
+  const operation = pathItem?.[verb];
+  const mergedParameters = [
+    ...(pathItem?.parameters ?? []),
+    ...(operation?.parameters ?? []),
+  ] as (OpenApiParameterObject | OpenApiReferenceObject)[];
+  const byKey = new Map<
+    string,
+    OpenApiParameterObject | OpenApiReferenceObject
+  >();
+  for (const parameter of mergedParameters) {
+    const { schema } = resolveRef(parameter, context);
+    const parameterObject = schema as OpenApiParameterObject;
+    byKey.set(`${parameterObject.in}:${parameterObject.name}`, parameter);
+  }
+  const parameters = [...byKey.values()];
   const parameterObjects = parameters.map((parameter) => {
     const { schema } = resolveRef(parameter, context);
     return schema as OpenApiParameterObject;
@@ -152,8 +166,57 @@ export const generateRequestFunction = (
       `
       : '';
 
+  const deepObjectParameters = parameterObjects.filter(
+    (parameterObject) =>
+      parameterObject.in === 'query' && parameterObject.style === 'deepObject',
+  );
+
+  const deepObjectParameterNames = deepObjectParameters.map(
+    (parameter) => parameter.name,
+  );
+
+  const hasDeepObjectDateParams =
+    context.output.override.useDates &&
+    deepObjectParameters.some((parameter) => {
+      if (!parameter.schema) {
+        return false;
+      }
+
+      const { schema } = resolveSchemaRef(parameter.schema, context);
+
+      if (!schema.properties) {
+        return false;
+      }
+
+      return Object.values(
+        schema.properties as Record<
+          string,
+          OpenApiSchemaObject | OpenApiReferenceObject
+        >,
+      ).some((prop) => {
+        const { schema: propSchema } = resolveSchemaRef(prop, context);
+        return propSchema.format === 'date-time';
+      });
+    });
+
+  const deepObjectImplementation =
+    deepObjectParameters.length > 0
+      ? `const deepObjectParameters = ${JSON.stringify(deepObjectParameterNames)};
+
+    if (typeof value === 'object' && value !== null && !Array.isArray(value) && deepObjectParameters.includes(key)) {
+      Object.entries(value).forEach(([subKey, subValue]) => {
+        if (subValue !== undefined) {
+          deepObjectEntries.push(encodeURIComponent(key) + '[' + encodeURIComponent(subKey) + ']=' + (subValue === null ? 'null' : encodeURIComponent(${hasDeepObjectDateParams ? 'subValue instanceof Date ? subValue.toISOString() : ' : ''}subValue.toString())));
+        }
+      });
+      return;
+    }
+      `
+      : '';
+
   const isExplodeParametersOnly =
-    explodeParameters.length === parameters.length;
+    explodeParameters.length + deepObjectParameters.length ===
+    parameters.length;
 
   const hasDateParams =
     context.output.override.useDates &&
@@ -174,15 +237,16 @@ export const generateRequestFunction = (
 ${
   queryParams
     ? `  const normalizedParams = new URLSearchParams();
-
+${deepObjectParameters.length > 0 ? '  const deepObjectEntries = [];\n' : ''}
   Object.entries(params || {}).forEach(([key, value]) => {
     ${explodeArrayImplementation}
+    ${deepObjectImplementation}
     ${isExplodeParametersOnly ? '' : normalParamsImplementation}
   });`
     : ''
 }
 
-  ${queryParams ? `const stringifiedParams = normalizedParams.toString();` : ``}
+  ${queryParams ? (deepObjectParameters.length > 0 ? `const stringifiedParams = [normalizedParams.toString(), deepObjectEntries.join('&')].filter(Boolean).join('&');` : `const stringifiedParams = normalizedParams.toString();`) : ``}
 
   ${
     queryParams
