@@ -795,8 +795,12 @@ describe('dereferenceExternalRefs', () => {
 
     const result = dereferenceExternalRef(input) as OpenApiDocument;
 
-    // The Switch schema from the external doc should be merged into main components
-    expect(result.components?.schemas).toHaveProperty('Switch');
+    // The Switch schema from the external doc should be merged into main
+    // components with its content intact
+    expect(result.components?.schemas?.Switch).toEqual({
+      type: 'string',
+      enum: ['on', 'off'],
+    });
 
     // The parameter should be inlined where the x-ext ref was, and its
     // internal $ref must still point to Switch (now in the main spec)
