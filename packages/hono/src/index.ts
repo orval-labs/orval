@@ -97,12 +97,14 @@ export const getHonoHeader: ClientHeaderBuilder = ({
     const handlerFileInfo = getFileInfo(output.override.hono.handlers);
     handlers = importHandlers
       .map((verbOption) => {
-        const isTagMode =
-          output.mode === 'tags' || output.mode === 'tags-split';
+        // Only `tags-split` puts each tag's client file inside its own
+        // sub-directory. `tags` mode flattens them next to `target`, so the
+        // import must be resolved from `targetInfo.dirname` directly.
+        const isSplitDir = output.mode === 'tags-split';
         const tag = kebab(verbOption.tags[0] ?? 'default');
 
         const handlersPath = upath.relativeSafe(
-          nodePath.join(targetInfo.dirname, isTagMode ? tag : ''),
+          nodePath.join(targetInfo.dirname, isSplitDir ? tag : ''),
           nodePath.join(
             handlerFileInfo.dirname,
             `./${verbOption.operationName}`,
@@ -165,12 +167,21 @@ export const generateHono: ClientBuilder = (verbOptions, options) => {
  * getHonoHandlers generates TypeScript code for the given verbs and reports
  * whether the code requires zValidator.
  */
+const DEFAULT_HANDLER_BODY = '\n\n  ';
+
 const getHonoHandlers = (
   ...opts: {
     handlerName: string;
     contextTypeName: string;
     verbOption: GeneratorVerbOptions;
     validator: boolean | 'hono' | NormalizedMutator;
+    /**
+     * Optional async-handler body to splice into the generated wrapper. When
+     * supplied the validator chain is still rebuilt from the current verb
+     * options, but the body inside `async (c) => { ... }` is taken verbatim
+     * from the existing file so user logic survives regeneration.
+     */
+    bodyOverride?: string;
   }[]
 ): [
   /** The combined TypeScript handler code snippets. */
@@ -181,7 +192,13 @@ const getHonoHandlers = (
   let code = '';
   let hasZValidator = false;
 
-  for (const { handlerName, contextTypeName, verbOption, validator } of opts) {
+  for (const {
+    handlerName,
+    contextTypeName,
+    verbOption,
+    validator,
+    bodyOverride,
+  } of opts) {
     let currentValidator = '';
 
     if (validator) {
@@ -210,11 +227,11 @@ const getHonoHandlers = (
       }
     }
 
+    const body = bodyOverride ?? DEFAULT_HANDLER_BODY;
+
     code += `
 export const ${handlerName} = factory.createHandlers(
-${currentValidator}async (c: ${contextTypeName}) => {
-
-  },
+${currentValidator}async (c: ${contextTypeName}) => {${body}},
 );`;
 
     hasZValidator ||= currentValidator !== '';
@@ -310,35 +327,10 @@ const generateHandlerFile = async ({
       ? ('hono' as const)
       : validatorModule != undefined;
 
-  const isExist = fs.existsSync(path);
+  const verbList = Object.values(verbs);
 
-  if (isExist) {
-    // Preserve the existing file (which may contain user edits) and only
-    // append handlers that have not been generated yet. The file header is
-    // intentionally left untouched so any previously customised header stays
-    // in place.
-    const rawFile = await fs.readFile(path, 'utf8');
-    let content = rawFile;
-
-    for (const verbOption of Object.values(verbs)) {
-      const handlerName = `${verbOption.operationName}Handlers`;
-      const contextTypeName = `${pascal(verbOption.operationName)}Context`;
-
-      if (!rawFile.includes(handlerName)) {
-        content += getHonoHandlers({
-          handlerName,
-          contextTypeName,
-          verbOption,
-          validator,
-        })[0];
-      }
-    }
-
-    return content;
-  }
-
-  const [handlerCode, hasZValidator] = getHonoHandlers(
-    ...Object.values(verbs).map((verbOption) => ({
+  const [, hasZValidator] = getHonoHandlers(
+    ...verbList.map((verbOption) => ({
       handlerName: `${verbOption.operationName}Handlers`,
       contextTypeName: `${pascal(verbOption.operationName)}Context`,
       verbOption,
@@ -355,7 +347,7 @@ const generateHandlerFile = async ({
   }
 
   imports.push(
-    `import { ${Object.values(verbs)
+    `import { ${verbList
       .map((verb) => `${pascal(verb.operationName)}Context`)
       .join(',\n')} } from '${generateModuleSpecifier(path, contextModule)}';`,
   );
@@ -363,16 +355,276 @@ const generateHandlerFile = async ({
   if (hasZValidator) {
     imports.push(
       getZvalidatorImports(
-        Object.values(verbs),
+        verbList,
         generateModuleSpecifier(path, zodModule),
         validatorModule === '@hono/zod-validator',
       ),
     );
   }
 
-  return `${header}${imports.filter((imp) => imp !== '').join('\n')}
+  const preamble = `${header}${imports.filter((imp) => imp !== '').join('\n')}\n\nconst factory = createFactory();`;
 
-const factory = createFactory();${handlerCode}`;
+  const existingBodies = fs.existsSync(path)
+    ? extractExistingHandlerBodies(await fs.readFile(path, 'utf8'))
+    : new Map<string, string>();
+
+  // Always rebuild the preamble (header + imports + factory) and the validator
+  // chain from current metadata so import paths, casing, and middleware match
+  // the latest configuration. We only splice the user-authored async body
+  // back in — preserving the wrapper would risk keeping stale `zValidator`
+  // calls whose imports we just rewrote.
+  const [handlerCode] = getHonoHandlers(
+    ...verbList.map((verbOption) => ({
+      handlerName: `${verbOption.operationName}Handlers`,
+      contextTypeName: `${pascal(verbOption.operationName)}Context`,
+      verbOption,
+      validator,
+      bodyOverride: existingBodies.get(`${verbOption.operationName}Handlers`),
+    })),
+  );
+
+  return `${preamble}${handlerCode}`;
+};
+
+/**
+ * extractExistingHandlerBodies scans a previously generated handler file and
+ * returns the user-authored body of each
+ * `async (c: ...) => { /* body *\/ }` block keyed by handler name.
+ *
+ * We deliberately preserve only the inner body — not the surrounding
+ * `factory.createHandlers(...)` call — so the regenerated wrapper always
+ * reflects the current validator chain and imports. The scanner is
+ * lex-aware: it skips strings, template literals, regex literals, and
+ * comments while counting parentheses/braces, so user code containing
+ * `)` or `}` characters in those contexts does not confuse the matcher.
+ */
+export const extractExistingHandlerBodies = (
+  source: string,
+): Map<string, string> => {
+  const bodies = new Map<string, string>();
+  const exportRegex =
+    /export\s+const\s+(\w+Handlers)\s*=\s*factory\.createHandlers\s*\(/g;
+
+  let match: RegExpExecArray | null;
+  while ((match = exportRegex.exec(source)) !== null) {
+    const handlerName = match[1];
+    const callOpenIdx = match.index + match[0].length - 1; // points at '('
+    const callCloseIdx = findMatchingClose(source, callOpenIdx, '(', ')');
+    if (callCloseIdx === -1) continue;
+
+    const callBody = source.slice(callOpenIdx + 1, callCloseIdx);
+    const body = extractAsyncArrowBody(callBody);
+    if (body !== undefined) {
+      bodies.set(handlerName, body);
+    }
+  }
+
+  return bodies;
+};
+
+/**
+ * findMatchingClose returns the index of the closing bracket that pairs with
+ * the opening bracket at `openIdx`, or -1 if unbalanced. The scan skips
+ * strings, template literals, regex literals, and comments so brackets in
+ * those contexts do not affect depth.
+ */
+const findMatchingClose = (
+  source: string,
+  openIdx: number,
+  open: '(' | '{',
+  close: ')' | '}',
+): number => {
+  let depth = 0;
+  let i = openIdx;
+  while (i < source.length) {
+    const ch = source[i];
+    const next = source[i + 1];
+
+    // Line comment
+    if (ch === '/' && next === '/') {
+      const nl = source.indexOf('\n', i + 2);
+      i = nl === -1 ? source.length : nl + 1;
+      continue;
+    }
+    // Block comment
+    if (ch === '/' && next === '*') {
+      const end = source.indexOf('*/', i + 2);
+      i = end === -1 ? source.length : end + 2;
+      continue;
+    }
+    // String / template literal
+    if (ch === "'" || ch === '"' || ch === '`') {
+      i = skipString(source, i, ch);
+      continue;
+    }
+    // Regex literal — only when a regex is syntactically possible. A `/`
+    // following an identifier or closing bracket is division, not a regex.
+    if (ch === '/' && isRegexContext(source, i)) {
+      i = skipRegex(source, i);
+      continue;
+    }
+
+    if (ch === open) depth++;
+    else if (ch === close) {
+      depth--;
+      if (depth === 0) return i;
+    }
+    i++;
+  }
+  return -1;
+};
+
+const skipString = (
+  source: string,
+  start: number,
+  quote: "'" | '"' | '`',
+): number => {
+  let i = start + 1;
+  while (i < source.length) {
+    const ch = source[i];
+    if (ch === '\\') {
+      i += 2;
+      continue;
+    }
+    if (quote === '`' && ch === '$' && source[i + 1] === '{') {
+      const end = findMatchingClose(source, i + 1, '{', '}');
+      i = end === -1 ? source.length : end + 1;
+      continue;
+    }
+    if (ch === quote) return i + 1;
+    i++;
+  }
+  return source.length;
+};
+
+const skipRegex = (source: string, start: number): number => {
+  let i = start + 1;
+  let inClass = false;
+  while (i < source.length) {
+    const ch = source[i];
+    if (ch === '\\') {
+      i += 2;
+      continue;
+    }
+    if (ch === '[') inClass = true;
+    else if (ch === ']') inClass = false;
+    else if (ch === '/' && !inClass) {
+      i++;
+      while (i < source.length && /[gimsuy]/.test(source[i])) i++;
+      return i;
+    }
+    if (ch === '\n') return start + 1; // not a regex after all; bail
+    i++;
+  }
+  return source.length;
+};
+
+const REGEX_PRECEDING_KEYWORDS = new Set([
+  'return',
+  'throw',
+  'yield',
+  'await',
+  'case',
+  'new',
+  'typeof',
+  'void',
+  'delete',
+  'in',
+  'of',
+  'instanceof',
+]);
+
+const isRegexContext = (source: string, slashIdx: number): boolean => {
+  let j = slashIdx - 1;
+  while (
+    j >= 0 &&
+    (source[j] === ' ' || source[j] === '\t' || source[j] === '\n')
+  ) {
+    j--;
+  }
+  if (j < 0) return true;
+
+  const c = source[j];
+
+  // Spread `...` allows a regex literal as the spread target.
+  if (c === '.') {
+    if (j >= 2 && source[j - 1] === '.' && source[j - 2] === '.') return true;
+    return false;
+  }
+
+  // Identifier char: scan backward to extract token, check keyword set.
+  if (/[A-Za-z0-9_$]/.test(c)) {
+    let k = j;
+    while (k >= 0 && /[A-Za-z0-9_$]/.test(source[k])) k--;
+    const token = source.slice(k + 1, j + 1);
+    return REGEX_PRECEDING_KEYWORDS.has(token);
+  }
+
+  // Closing brackets imply a value precedes — division.
+  if (c === ')' || c === ']') return false;
+
+  return true;
+};
+
+/**
+ * extractAsyncArrowBody finds the trailing `async (c: ...) => { ... }`
+ * argument inside `factory.createHandlers(...)` and returns the inner body
+ * (without the surrounding braces). Returns undefined when the call does not
+ * end with the expected arrow function shape.
+ */
+const extractAsyncArrowBody = (callBody: string): string | undefined => {
+  // Walk the argument list at depth 0 only, skipping strings, templates,
+  // regex literals, comments, and nested parens/braces, so arrows inside
+  // user-authored callbacks (e.g. `pets.map(p => p.id)`) are ignored.
+  let i = 0;
+  let lastTopLevelArrow = -1;
+  while (i < callBody.length) {
+    const ch = callBody[i];
+    const next = callBody[i + 1];
+
+    if (ch === '/' && next === '/') {
+      const nl = callBody.indexOf('\n', i + 2);
+      i = nl === -1 ? callBody.length : nl + 1;
+      continue;
+    }
+    if (ch === '/' && next === '*') {
+      const end = callBody.indexOf('*/', i + 2);
+      i = end === -1 ? callBody.length : end + 2;
+      continue;
+    }
+    if (ch === "'" || ch === '"' || ch === '`') {
+      i = skipString(callBody, i, ch);
+      continue;
+    }
+    if (ch === '/' && isRegexContext(callBody, i)) {
+      i = skipRegex(callBody, i);
+      continue;
+    }
+    if (ch === '(' || ch === '{') {
+      const open = ch;
+      const close = ch === '(' ? ')' : '}';
+      const end = findMatchingClose(callBody, i, open, close);
+      i = end === -1 ? callBody.length : end + 1;
+      continue;
+    }
+    if (ch === '=' && next === '>') {
+      lastTopLevelArrow = i;
+      i += 2;
+      continue;
+    }
+    i++;
+  }
+
+  if (lastTopLevelArrow === -1) return undefined;
+
+  let j = lastTopLevelArrow + 2;
+  while (j < callBody.length && /\s/.test(callBody[j])) j++;
+  if (callBody[j] !== '{') return undefined;
+
+  const closeIdx = findMatchingClose(callBody, j, '{', '}');
+  if (closeIdx === -1) return undefined;
+
+  return callBody.slice(j + 1, closeIdx);
 };
 
 const generateHandlerFiles = async (
@@ -399,20 +651,29 @@ const generateHandlerFiles = async (
           `./${verbOption.operationName}` + extension,
         );
 
+        // Mirror the layout used by generateZodFiles/generateContextFiles so
+        // imports resolve to the actual emitted modules.
+        let zodModule: string;
+        let contextModule: string;
+        if (output.mode === 'tags') {
+          zodModule = nodePath.join(dirname, `${kebab(tag)}.zod`);
+          contextModule = nodePath.join(dirname, `${kebab(tag)}.context`);
+        } else if (output.mode === 'tags-split') {
+          zodModule = nodePath.join(dirname, tag, tag + '.zod');
+          contextModule = nodePath.join(dirname, tag, tag + '.context');
+        } else {
+          zodModule = nodePath.join(dirname, `${filename}.zod`);
+          contextModule = nodePath.join(dirname, `${filename}.context`);
+        }
+
         return {
           content: await generateHandlerFile({
             path,
             header,
             verbs: [verbOption],
             validatorModule,
-            zodModule:
-              output.mode === 'tags'
-                ? nodePath.join(dirname, `${kebab(tag)}.zod`)
-                : nodePath.join(dirname, tag, tag + '.zod'),
-            contextModule:
-              output.mode === 'tags'
-                ? nodePath.join(dirname, `${kebab(tag)}.context`)
-                : nodePath.join(dirname, tag, tag + '.context'),
+            zodModule,
+            contextModule,
           }),
           path,
         };
