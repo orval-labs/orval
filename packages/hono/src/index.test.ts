@@ -61,6 +61,30 @@ export const createPetsHandlers = factory.createHandlers(
     expect(body).toContain('/* block comment with ) and } and ( */');
   });
 
+  it('preserves bodies containing nested arrow functions', () => {
+    const source = `export const listPetsHandlers = factory.createHandlers(
+  async (c: ListPetsContext) => {
+    const ids = pets.map((p) => p.id);
+    return c.json(ids);
+  },
+);`;
+
+    const body = extractExistingHandlerBodies(source).get('listPetsHandlers');
+    expect(body).toContain('pets.map((p) => p.id)');
+    expect(body).toContain('return c.json(ids);');
+  });
+
+  it('preserves bodies containing regex literals after keywords', () => {
+    const source = `export const listPetsHandlers = factory.createHandlers(
+  async (c: ListPetsContext) => {
+    return /[)]/.test(c.req.query('q') ?? '');
+  },
+);`;
+
+    const body = extractExistingHandlerBodies(source).get('listPetsHandlers');
+    expect(body).toContain('/[)]/.test');
+  });
+
   it('returns an empty map when no handlers are present', () => {
     expect(extractExistingHandlerBodies('// nothing here').size).toBe(0);
   });

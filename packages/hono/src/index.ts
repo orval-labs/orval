@@ -519,12 +519,50 @@ const skipRegex = (source: string, start: number): number => {
   return source.length;
 };
 
+const REGEX_PRECEDING_KEYWORDS = new Set([
+  'return',
+  'throw',
+  'yield',
+  'await',
+  'case',
+  'new',
+  'typeof',
+  'void',
+  'delete',
+  'in',
+  'of',
+  'instanceof',
+]);
+
 const isRegexContext = (source: string, slashIdx: number): boolean => {
-  for (let j = slashIdx - 1; j >= 0; j--) {
-    const c = source[j];
-    if (c === ' ' || c === '\t' || c === '\n') continue;
-    return !/[\w)\]]/.test(c);
+  let j = slashIdx - 1;
+  while (
+    j >= 0 &&
+    (source[j] === ' ' || source[j] === '\t' || source[j] === '\n')
+  ) {
+    j--;
   }
+  if (j < 0) return true;
+
+  const c = source[j];
+
+  // Spread `...` allows a regex literal as the spread target.
+  if (c === '.') {
+    if (j >= 2 && source[j - 1] === '.' && source[j - 2] === '.') return true;
+    return false;
+  }
+
+  // Identifier char: scan backward to extract token, check keyword set.
+  if (/[A-Za-z0-9_$]/.test(c)) {
+    let k = j;
+    while (k >= 0 && /[A-Za-z0-9_$]/.test(source[k])) k--;
+    const token = source.slice(k + 1, j + 1);
+    return REGEX_PRECEDING_KEYWORDS.has(token);
+  }
+
+  // Closing brackets imply a value precedes — division.
+  if (c === ')' || c === ']') return false;
+
   return true;
 };
 
@@ -535,17 +573,58 @@ const isRegexContext = (source: string, slashIdx: number): boolean => {
  * end with the expected arrow function shape.
  */
 const extractAsyncArrowBody = (callBody: string): string | undefined => {
-  const arrowIdx = callBody.lastIndexOf('=>');
-  if (arrowIdx === -1) return undefined;
+  // Walk the argument list at depth 0 only, skipping strings, templates,
+  // regex literals, comments, and nested parens/braces, so arrows inside
+  // user-authored callbacks (e.g. `pets.map(p => p.id)`) are ignored.
+  let i = 0;
+  let lastTopLevelArrow = -1;
+  while (i < callBody.length) {
+    const ch = callBody[i];
+    const next = callBody[i + 1];
 
-  let i = arrowIdx + 2;
-  while (i < callBody.length && /\s/.test(callBody[i])) i++;
-  if (callBody[i] !== '{') return undefined;
+    if (ch === '/' && next === '/') {
+      const nl = callBody.indexOf('\n', i + 2);
+      i = nl === -1 ? callBody.length : nl + 1;
+      continue;
+    }
+    if (ch === '/' && next === '*') {
+      const end = callBody.indexOf('*/', i + 2);
+      i = end === -1 ? callBody.length : end + 2;
+      continue;
+    }
+    if (ch === "'" || ch === '"' || ch === '`') {
+      i = skipString(callBody, i, ch);
+      continue;
+    }
+    if (ch === '/' && isRegexContext(callBody, i)) {
+      i = skipRegex(callBody, i);
+      continue;
+    }
+    if (ch === '(' || ch === '{') {
+      const open = ch;
+      const close = ch === '(' ? ')' : '}';
+      const end = findMatchingClose(callBody, i, open, close);
+      i = end === -1 ? callBody.length : end + 1;
+      continue;
+    }
+    if (ch === '=' && next === '>') {
+      lastTopLevelArrow = i;
+      i += 2;
+      continue;
+    }
+    i++;
+  }
 
-  const closeIdx = findMatchingClose(callBody, i, '{', '}');
+  if (lastTopLevelArrow === -1) return undefined;
+
+  let j = lastTopLevelArrow + 2;
+  while (j < callBody.length && /\s/.test(callBody[j])) j++;
+  if (callBody[j] !== '{') return undefined;
+
+  const closeIdx = findMatchingClose(callBody, j, '{', '}');
   if (closeIdx === -1) return undefined;
 
-  return callBody.slice(i + 1, closeIdx);
+  return callBody.slice(j + 1, closeIdx);
 };
 
 const generateHandlerFiles = async (
