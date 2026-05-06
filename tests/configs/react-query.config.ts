@@ -251,6 +251,37 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Per-operation override now wins over a globally enabled hook
+  // (#2376). Without this, `override.operations.<id>.query.useQuery:
+  // false` was silently ignored when global `useQuery: true` was set,
+  // contradicting the docs example for `override.operations` that uses
+  // `useInfinite: false` to opt a single operation out.
+  perOperationFalseDisablesGlobalTrue: {
+    output: {
+      target:
+        '../generated/react-query/per-operation-false-disables-global-true/endpoints.ts',
+      schemas:
+        '../generated/react-query/per-operation-false-disables-global-true/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useQuery: true,
+        },
+        operations: {
+          createPets: {
+            query: {
+              useQuery: false,
+            },
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   // Closes #2376 — explicit `override.query.useQuery: false` now
   // suppresses Query hook generation even for GET operations, falling
   // back to the Mutation hook (which is rarely useful for GET but is
