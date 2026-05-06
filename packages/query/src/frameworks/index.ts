@@ -72,7 +72,7 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => ({
 
   generateEnabledOption(params, options) {
     if (!isObject(options) || !Object.hasOwn(options, 'enabled')) {
-      return `enabled: !!(${params.map(({ name }) => name).join(' && ')}),`;
+      return `enabled: ${params.map(({ name }) => `${name} != null`).join(' && ')},`;
     }
     return '';
   },
