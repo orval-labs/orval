@@ -60,7 +60,7 @@ export const useShowPetById = <
   const query = useQuery<AsyncReturnType<typeof queryFn>, TError, TData>(
     queryKey,
     queryFn,
-    { enabled: !!petId, ...queryOptions },
+    { enabled: petId != null, ...queryOptions },
   );
 
   return {

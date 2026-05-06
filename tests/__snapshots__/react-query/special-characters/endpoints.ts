@@ -658,7 +658,7 @@ export const getShowPetByIdQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!petId,
+    enabled: petId != null,
     ...queryOptions,
   } as UseQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,
