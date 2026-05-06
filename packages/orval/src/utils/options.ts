@@ -180,13 +180,8 @@ export async function normalizeOptions(
 
   const defaultFileExtension = '.ts';
 
-  // `useQuery` and `useMutation` deliberately do NOT have a default here.
-  // Their per-verb defaults are applied at the consumption site
-  // (`packages/query/src/query-generator.ts`) so that we can distinguish
-  // "user did not set this" from "user explicitly set it to true". Without
-  // that distinction, lifting the GET-only gate for global `useQuery: true`
-  // would silently route every non-GET operation to a Query hook for
-  // every existing user — see #2376.
+  // `useQuery` / `useMutation` defaults are applied per-verb in
+  // `query-generator.ts` so we can tell "unset" from "explicit true" (#2376).
   const globalQueryOptions: NormalizedQueryOptions = {
     signal: true,
     shouldExportMutatorHooks: true,

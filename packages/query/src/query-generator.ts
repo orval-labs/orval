@@ -809,23 +809,13 @@ export const generateQueryHook = async (
     operationQueryOptions?.useSuspenseInfiniteQuery,
   ].some(Boolean);
 
-  // Apply per-verb defaults at the consumption site so we can distinguish
-  // "user did not set this" (`undefined`) from "user explicitly set it"
-  // (`true` / `false`). The defaults match the long-standing implicit
-  // behaviour: GET → Query hook, non-GET → Mutation hook. Users that
-  // explicitly opt non-GET into a Query hook (e.g. POST search APIs) now
-  // see their setting respected globally rather than silently dropped on
-  // the GET-only gate. Closes #2376.
+  // Per-verb default: GET → Query, non-GET → Mutation. Explicit user
+  // settings now propagate to every verb (#2376).
   const effectiveUseQuery = override.query.useQuery ?? verb === Verbs.GET;
   const effectiveUseMutation = override.query.useMutation ?? verb !== Verbs.GET;
 
-  // `useSuspenseQuery` / `useInfinite` / `useSuspenseInfiniteQuery` are
-  // intentionally kept GET-only when set globally — they have no
-  // meaningful default for non-GET verbs (a "suspense infinite POST"
-  // makes little sense) and silently emitting them on every verb after
-  // lifting the `useQuery` gate would be a much larger BC than #2376
-  // intends. Per-operation overrides (`hasOperationQueryOption`) still
-  // let users opt a specific non-GET operation into one of these.
+  // Suspense / Infinite stay GET-only when set globally (no sensible
+  // non-GET default); per-operation overrides bypass this.
   const globalSuspenseOrInfiniteForGet =
     verb === Verbs.GET &&
     [
@@ -905,9 +895,8 @@ export const generateQueryHook = async (
       })
       .join(',');
 
-    // Mirror the `isQuery` decision: globally-set Suspense / Infinite
-    // flags only apply to GET verbs; per-operation overrides bypass that
-    // restriction.
+    // Mirror `isQuery`: global Suspense / Infinite stay GET-only, op
+    // overrides bypass.
     const globalUseInfiniteApplies = !!query.useInfinite && verb === Verbs.GET;
     const globalUseSuspenseQueryApplies =
       !!query.useSuspenseQuery && verb === Verbs.GET;
