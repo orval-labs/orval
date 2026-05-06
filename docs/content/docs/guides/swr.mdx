@@ -99,7 +99,7 @@ Disable the hook conditionally:
 ```tsx
 const { data } = useShowPetById(petId, {
   swr: {
-    enabled: !!petId, // Only fetch when petId is defined
+    enabled: petId != null, // Only fetch when petId is defined
   },
 });
 ```
