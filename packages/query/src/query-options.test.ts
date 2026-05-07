@@ -22,7 +22,7 @@ describe('generateQueryOptions enabled emission (issue #3241)', () => {
       type: QueryType.QUERY,
       adapter,
     });
-    expect(out).toContain('enabled: petId != null,');
+    expect(out).toContain('enabled: petId !== null && petId !== undefined,');
     expect(out).not.toContain('!!');
   });
 
@@ -34,7 +34,9 @@ describe('generateQueryOptions enabled emission (issue #3241)', () => {
       type: QueryType.QUERY,
       adapter,
     });
-    expect(out).toContain('enabled: version != null && petId != null,');
+    expect(out).toContain(
+      'enabled: version !== null && version !== undefined && petId !== null && petId !== undefined,',
+    );
   });
 
   it('wraps with computed and unref for vue-query', () => {
@@ -45,7 +47,9 @@ describe('generateQueryOptions enabled emission (issue #3241)', () => {
       type: QueryType.QUERY,
       adapter,
     });
-    expect(out).toContain('enabled: computed(() => unref(petId) != null),');
+    expect(out).toContain(
+      'enabled: computed(() => unref(petId) !== null && unref(petId) !== undefined),',
+    );
   });
 
   it('respects user-provided enabled option (no auto-emit)', () => {
@@ -56,6 +60,6 @@ describe('generateQueryOptions enabled emission (issue #3241)', () => {
       type: QueryType.QUERY,
       adapter,
     });
-    expect(out).not.toContain('petId != null');
+    expect(out).not.toContain('petId !== null');
   });
 });
