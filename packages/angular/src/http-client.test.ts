@@ -867,62 +867,64 @@ describe('angular HttpClient generator', () => {
     });
 
     it('places body in options (not positional arg) for DELETE with multiple response types', () => {
-  const verbOption = createVerbOption({
-    operationId: 'deletePet',
-    operationName: 'deletePet',
-    verb: 'delete',
-    route: '/pets/${petId}',
-    pathRoute: '/pets/{petId}',
-    body: {
-      implementation: 'deletePetBody',
-      definition: 'DeletePetBody',
-      imports: [],
-      schemas: [],
-      originalSchema: {} as never,
-      contentType: 'application/json',
-      formData: '',
-      formUrlEncoded: '',
-      isOptional: false,
-    },
-    props: [
-      {
-        name: 'petId',
-        definition: 'petId: string',
-        implementation: 'petId: string',
-        default: false,
-        required: true,
-        type: GetterPropType.PARAM,
-      },
-      {
-        name: 'deletePetBody',
-        definition: 'deletePetBody: DeletePetBody',
-        implementation: 'deletePetBody: DeletePetBody',
-        default: false,
-        required: true,
-        type: GetterPropType.BODY,
-      },
-    ],
-    response: baseResponse({
-      definition: { success: 'Pet | string', errors: 'Error' },
-      types: {
-        success: [
-          createSuccessType('Pet', 'application/json'),
-          createSuccessType('string', 'text/plain'),
+      const verbOption = createVerbOption({
+        operationId: 'deletePet',
+        operationName: 'deletePet',
+        verb: 'delete',
+        route: '/pets/${petId}',
+        pathRoute: '/pets/{petId}',
+        body: {
+          implementation: 'deletePetBody',
+          definition: 'DeletePetBody',
+          imports: [],
+          schemas: [],
+          originalSchema: {} as never,
+          contentType: 'application/json',
+          formData: '',
+          formUrlEncoded: '',
+          isOptional: false,
+        },
+        props: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: false,
+            required: true,
+            type: GetterPropType.PARAM,
+          },
+          {
+            name: 'deletePetBody',
+            definition: 'deletePetBody: DeletePetBody',
+            implementation: 'deletePetBody: DeletePetBody',
+            default: false,
+            required: true,
+            type: GetterPropType.BODY,
+          },
         ],
-        errors: [],
-      },
-      contentTypes: ['application/json', 'text/plain'],
-    }),
-  });
-  const options = createGeneratorOptions({ route: '/api/pets/${petId}' });
+        response: baseResponse({
+          definition: { success: 'Pet | string', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'text/plain'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'text/plain'],
+        }),
+      });
+      const options = createGeneratorOptions({ route: '/api/pets/${petId}' });
 
-  const impl = generateHttpClientImplementation(verbOption, options);
+      const impl = generateHttpClientImplementation(verbOption, options);
 
-  // Body must be in options, not a positional argument
-  expect(impl).toContain('body: deletePetBody');
-  // DELETE must NOT get a positional body argument
-  expect(impl).not.toContain('this.http.delete(`/api/pets/${petId}`, deletePetBody,');
-});
+      // Body must be in options, not a positional argument
+      expect(impl).toContain('body: deletePetBody');
+      // DELETE must NOT get a positional body argument
+      expect(impl).not.toContain(
+        'this.http.delete(`/api/pets/${petId}`, deletePetBody,',
+      );
+    });
 
     it('preserves query params for multi-content responses when requestOptions is false', () => {
       const verbOption = createVerbOption({

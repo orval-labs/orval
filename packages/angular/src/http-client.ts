@@ -611,9 +611,8 @@ export const generateHttpClientImplementation = (
     : `Observable<${observableDataType}>`;
 
   if (hasMultipleContentTypes) {
-    const bodyArgument = generateBodyOptions(body, isFormData, isFormUrlEncoded)
-      .trim()
-      .replace(/,$/, '');
+    const bodyArgument =
+      generateBodyOptions(body, isFormData, isFormUrlEncoded) ?? '';
     const deleteBodyOption =
       verb === 'delete' && bodyArgument ? `body: ${bodyArgument},` : '';
     const buildOptionsObject = (responseType: string) => `{
