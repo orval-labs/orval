@@ -45,7 +45,7 @@
     "globby": "16.1.0",
     "jiti": "^2.6.1",
     "remeda": "^2.33.6",
-    "typedoc": "^0.28.17"
+    "typedoc": "^0.28.19"
   },
   "devDependencies": {
     "@faker-js/faker": "catalog:tooling",
