@@ -139,7 +139,8 @@ export const useListPets = <TError = Error>(
 ) => {
   const { swr: swrOptions, request: requestOptions } = options ?? {};
 
-  const isEnabled = swrOptions?.enabled !== false && version != null;
+  const isEnabled =
+    swrOptions?.enabled !== false && version !== null && version !== undefined;
   const swrKey =
     swrOptions?.swrKey ??
     (() => (isEnabled ? getListPetsKey(params, version) : null));
@@ -177,7 +178,8 @@ export const useListPetsSuspense = <TError = Error>(
 ) => {
   const { swr: swrOptions, request: requestOptions } = options ?? {};
 
-  const isEnabled = swrOptions?.enabled !== false && version != null;
+  const isEnabled =
+    swrOptions?.enabled !== false && version !== null && version !== undefined;
   const swrKey =
     swrOptions?.swrKey ??
     (() => (isEnabled ? getListPetsKey(params, version) : null));
@@ -347,7 +349,11 @@ export const useShowPetById = <TError = Error>(
   const { swr: swrOptions, request: requestOptions } = options ?? {};
 
   const isEnabled =
-    swrOptions?.enabled !== false && version != null && petId != null;
+    swrOptions?.enabled !== false &&
+    version !== null &&
+    version !== undefined &&
+    petId !== null &&
+    petId !== undefined;
   const swrKey =
     swrOptions?.swrKey ??
     (() => (isEnabled ? getShowPetByIdKey(petId, version) : null));
@@ -386,7 +392,11 @@ export const useShowPetByIdSuspense = <TError = Error>(
   const { swr: swrOptions, request: requestOptions } = options ?? {};
 
   const isEnabled =
-    swrOptions?.enabled !== false && version != null && petId != null;
+    swrOptions?.enabled !== false &&
+    version !== null &&
+    version !== undefined &&
+    petId !== null &&
+    petId !== undefined;
   const swrKey =
     swrOptions?.swrKey ??
     (() => (isEnabled ? getShowPetByIdKey(petId, version) : null));

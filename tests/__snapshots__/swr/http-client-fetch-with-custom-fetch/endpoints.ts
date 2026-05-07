@@ -311,7 +311,8 @@ export const useShowPetById = <TError = Error>(
 ) => {
   const { swr: swrOptions, request: requestOptions } = options ?? {};
 
-  const isEnabled = swrOptions?.enabled !== false && petId != null;
+  const isEnabled =
+    swrOptions?.enabled !== false && petId !== null && petId !== undefined;
   const swrKey =
     swrOptions?.swrKey ?? (() => (isEnabled ? getShowPetByIdKey(petId) : null));
   const swrFn = () => showPetById(petId, requestOptions);
@@ -542,7 +543,8 @@ export const useShowPetWithOwner = <TError = Error>(
 ) => {
   const { swr: swrOptions, request: requestOptions } = options ?? {};
 
-  const isEnabled = swrOptions?.enabled !== false && petId != null;
+  const isEnabled =
+    swrOptions?.enabled !== false && petId !== null && petId !== undefined;
   const swrKey =
     swrOptions?.swrKey ??
     (() => (isEnabled ? getShowPetWithOwnerKey(petId) : null));

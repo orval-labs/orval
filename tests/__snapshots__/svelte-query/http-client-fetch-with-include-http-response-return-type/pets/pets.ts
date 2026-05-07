@@ -274,7 +274,7 @@ export const getShowPetByIdQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: petId != null,
+    enabled: petId !== null && petId !== undefined,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,
@@ -457,7 +457,7 @@ export const getShowPetWithOwnerQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: petId != null,
+    enabled: petId !== null && petId !== undefined,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof showPetWithOwner>>,

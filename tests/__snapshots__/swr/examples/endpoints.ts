@@ -58,7 +58,8 @@ export const useGetUsers = <TError = Promise<unknown>>(
 ) => {
   const { swr: swrOptions, fetch: fetchOptions } = options ?? {};
 
-  const isEnabled = swrOptions?.enabled !== false && version != null;
+  const isEnabled =
+    swrOptions?.enabled !== false && version !== null && version !== undefined;
   const swrKey =
     swrOptions?.swrKey ?? (() => (isEnabled ? getGetUsersKey(version) : null));
   const swrFn = () => getUsers(version, fetchOptions);
@@ -127,7 +128,8 @@ export const useGetUsers2 = <TError = Promise<unknown>>(
 ) => {
   const { swr: swrOptions, fetch: fetchOptions } = options ?? {};
 
-  const isEnabled = swrOptions?.enabled !== false && version != null;
+  const isEnabled =
+    swrOptions?.enabled !== false && version !== null && version !== undefined;
   const swrKey =
     swrOptions?.swrKey ?? (() => (isEnabled ? getGetUsers2Key(version) : null));
   const swrFn = () => getUsers2(version, fetchOptions);

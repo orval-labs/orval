@@ -180,7 +180,7 @@ export const getListPetsInfiniteQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: version != null,
+    enabled: version !== null && version !== undefined,
     ...queryOptions,
   } as CreateInfiniteQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
@@ -256,7 +256,7 @@ export const getListPetsQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: version != null,
+    enabled: version !== null && version !== undefined,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
@@ -413,7 +413,7 @@ export const getCreatePetsQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!version,
+    enabled: version !== null && version !== undefined,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof createPets>>,
@@ -555,7 +555,11 @@ export const getShowPetByIdInfiniteQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: version != null && petId != null,
+    enabled:
+      version !== null &&
+      version !== undefined &&
+      petId !== null &&
+      petId !== undefined,
     ...queryOptions,
   } as CreateInfiniteQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,
@@ -628,7 +632,11 @@ export const getShowPetByIdQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: version != null && petId != null,
+    enabled:
+      version !== null &&
+      version !== undefined &&
+      petId !== null &&
+      petId !== undefined,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,
@@ -757,7 +765,11 @@ export const getDeletePetByIdQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!(version && petId),
+    enabled:
+      version !== null &&
+      version !== undefined &&
+      petId !== null &&
+      petId !== undefined,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof deletePetById>>,
@@ -896,7 +908,7 @@ export const getHealthCheckInfiniteQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: version != null,
+    enabled: version !== null && version !== undefined,
     ...queryOptions,
   } as CreateInfiniteQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,
@@ -966,7 +978,7 @@ export const getHealthCheckQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: version != null,
+    enabled: version !== null && version !== undefined,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,
@@ -1102,7 +1114,11 @@ export const getShowPetWithOwnerInfiniteQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: version != null && petId != null,
+    enabled:
+      version !== null &&
+      version !== undefined &&
+      petId !== null &&
+      petId !== undefined,
     ...queryOptions,
   } as CreateInfiniteQueryOptions<
     Awaited<ReturnType<typeof showPetWithOwner>>,
@@ -1176,7 +1192,11 @@ export const getShowPetWithOwnerQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: version != null && petId != null,
+    enabled:
+      version !== null &&
+      version !== undefined &&
+      petId !== null &&
+      petId !== undefined,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof showPetWithOwner>>,

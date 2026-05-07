@@ -441,7 +441,8 @@ export const useShowPetByIdInfinite = <TError = Promise<Error>>(
 ) => {
   const { swr: swrOptions, fetch: fetchOptions } = options ?? {};
 
-  const isEnabled = swrOptions?.enabled !== false && petId != null;
+  const isEnabled =
+    swrOptions?.enabled !== false && petId !== null && petId !== undefined;
   const swrKeyLoader =
     swrOptions?.swrKeyLoader ??
     (isEnabled ? getShowPetByIdInfiniteKeyLoader(petId) : () => null);
@@ -478,7 +479,8 @@ export const useShowPetById = <TError = Promise<Error>>(
 ) => {
   const { swr: swrOptions, fetch: fetchOptions } = options ?? {};
 
-  const isEnabled = swrOptions?.enabled !== false && petId != null;
+  const isEnabled =
+    swrOptions?.enabled !== false && petId !== null && petId !== undefined;
   const swrKey =
     swrOptions?.swrKey ?? (() => (isEnabled ? getShowPetByIdKey(petId) : null));
   const swrFn = () => showPetById(petId, fetchOptions);
@@ -835,7 +837,8 @@ export const useShowPetWithOwnerInfinite = <TError = Promise<Error>>(
 ) => {
   const { swr: swrOptions, fetch: fetchOptions } = options ?? {};
 
-  const isEnabled = swrOptions?.enabled !== false && petId != null;
+  const isEnabled =
+    swrOptions?.enabled !== false && petId !== null && petId !== undefined;
   const swrKeyLoader =
     swrOptions?.swrKeyLoader ??
     (isEnabled ? getShowPetWithOwnerInfiniteKeyLoader(petId) : () => null);
@@ -872,7 +875,8 @@ export const useShowPetWithOwner = <TError = Promise<Error>>(
 ) => {
   const { swr: swrOptions, fetch: fetchOptions } = options ?? {};
 
-  const isEnabled = swrOptions?.enabled !== false && petId != null;
+  const isEnabled =
+    swrOptions?.enabled !== false && petId !== null && petId !== undefined;
   const swrKey =
     swrOptions?.swrKey ??
     (() => (isEnabled ? getShowPetWithOwnerKey(petId) : null));

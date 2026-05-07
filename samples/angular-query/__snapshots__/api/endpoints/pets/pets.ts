@@ -151,7 +151,7 @@ export const getSearchPetsQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: version != null,
+    enabled: version !== null && version !== undefined,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof searchPets>>,
@@ -280,7 +280,7 @@ export const getListPetsQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: version != null,
+    enabled: version !== null && version !== undefined,
     ...queryOptions,
   } as CreateQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>;
 };
@@ -504,7 +504,11 @@ export const getShowPetByIdQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: version != null && petId != null,
+    enabled:
+      version !== null &&
+      version !== undefined &&
+      petId !== null &&
+      petId !== undefined,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,
@@ -944,7 +948,11 @@ export const getShowPetTextQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: version != null && petId != null,
+    enabled:
+      version !== null &&
+      version !== undefined &&
+      petId !== null &&
+      petId !== undefined,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof showPetText>>,
@@ -1280,7 +1288,11 @@ export const getDownloadFileQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: version != null && petId != null,
+    enabled:
+      version !== null &&
+      version !== undefined &&
+      petId !== null &&
+      petId !== undefined,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof downloadFile>>,
@@ -1400,7 +1412,7 @@ export const getHealthCheckQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: version != null,
+    enabled: version !== null && version !== undefined,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,

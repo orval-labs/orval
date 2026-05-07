@@ -112,7 +112,7 @@ export const getGetUsersUserIdOrdersQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: userId != null,
+    enabled: userId !== null && userId !== undefined,
     ...queryOptions,
   } as UseQueryOptions<
     Awaited<ReturnType<typeof getUsersUserIdOrders>>,

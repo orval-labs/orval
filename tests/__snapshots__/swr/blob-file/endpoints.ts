@@ -71,7 +71,8 @@ export const useGetBinaryBlob = <TError = Promise<unknown>>(
 ) => {
   const { swr: swrOptions, fetch: fetchOptions } = options ?? {};
 
-  const isEnabled = swrOptions?.enabled !== false && version != null;
+  const isEnabled =
+    swrOptions?.enabled !== false && version !== null && version !== undefined;
   const swrKey =
     swrOptions?.swrKey ??
     (() => (isEnabled ? getGetBinaryBlobKey(version) : null));
