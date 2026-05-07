@@ -611,10 +611,13 @@ export const generateHttpClientImplementation = (
     : `Observable<${observableDataType}>`;
 
   if (hasMultipleContentTypes) {
-    const bodyArgument =
-      generateBodyOptions(body, isFormData, isFormUrlEncoded) ?? '';
+    const bodyIdentifier = generateBodyOptions(
+      body,
+      isFormData,
+      isFormUrlEncoded,
+    );
     const deleteBodyOption =
-      verb === 'delete' && bodyArgument ? `body: ${bodyArgument}` : '';
+      verb === 'delete' && bodyIdentifier ? `body: ${bodyIdentifier}` : '';
     const buildOptionsObject = (responseType: string) => `{
         ...options,
         responseType: '${responseType}',
@@ -624,7 +627,7 @@ export const generateHttpClientImplementation = (
       }`;
     const buildHttpClientCall = (typeArg: string, optionsObject: string) =>
       getIsBodyVerb(verb) && verb !== 'delete'
-        ? `this.http.${verb}${typeArg}(\`${route}\`, ${bodyArgument || 'undefined'}, ${optionsObject})`
+        ? `this.http.${verb}${typeArg}(\`${route}\`, ${bodyIdentifier ?? 'undefined'}, ${optionsObject})`
         : `this.http.${verb}${typeArg}(\`${route}\`, ${optionsObject})`;
 
     const requiredPart = props

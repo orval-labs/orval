@@ -408,7 +408,13 @@ describe('generateAxiosOptions', () => {
 
 describe('generateBodyOptions', () => {
   it('should return a plain body identifier without formatting', () => {
-    expect(generateBodyOptions(minimalBody, false, false)).toBe('data');
+    expect(
+      generateBodyOptions(
+        { ...minimalBody, implementation: 'data' },
+        false,
+        false,
+      ),
+    ).toBe('data');
   });
 
   it('should return undefined when no request body is available', () => {
