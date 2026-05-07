@@ -407,6 +407,26 @@ describe('generateAxiosOptions', () => {
 });
 
 describe('generateBodyOptions', () => {
+  it('should return formData when form data handling is enabled', () => {
+    expect(
+      generateBodyOptions(
+        { ...minimalBody, formData: 'something' },
+        true,
+        false,
+      ),
+    ).toBe('formData');
+  });
+
+  it('should return formUrlEncoded when url encoded handling is enabled', () => {
+    expect(
+      generateBodyOptions(
+        { ...minimalBody, formUrlEncoded: 'something' },
+        false,
+        true,
+      ),
+    ).toBe('formUrlEncoded');
+  });
+
   it('should return a plain body identifier without formatting', () => {
     expect(
       generateBodyOptions(
