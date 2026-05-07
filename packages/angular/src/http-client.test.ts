@@ -757,6 +757,66 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain("accept: GetPetFileAccept = 'application/json'");
     });
 
+    it('passes request bodies for PUT operations with multiple response types', () => {
+      const verbOption = createVerbOption({
+        operationId: 'updatePet',
+        operationName: 'updatePet',
+        verb: 'put',
+        route: '/pets/${petId}',
+        pathRoute: '/pets/{petId}',
+        body: {
+          implementation: 'updatePetBody',
+          definition: 'UpdatePetBody',
+          imports: [],
+          schemas: [],
+          originalSchema: {} as never,
+          contentType: 'application/json',
+          formData: '',
+          formUrlEncoded: '',
+          isOptional: false,
+        },
+        props: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: false,
+            required: true,
+            type: GetterPropType.PARAM,
+          },
+          {
+            name: 'updatePetBody',
+            definition: 'updatePetBody: UpdatePetBody',
+            implementation: 'updatePetBody: UpdatePetBody',
+            default: false,
+            required: true,
+            type: GetterPropType.BODY,
+          },
+        ],
+        response: baseResponse({
+          definition: { success: 'Pet | string', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'text/plain'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'text/plain'],
+        }),
+      });
+      const options = createGeneratorOptions({ route: '/api/pets/${petId}' });
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain(
+        'this.http.put<Pet>(`/api/pets/${petId}`, updatePetBody, {',
+      );
+      expect(impl).toContain(
+        'this.http.put(`/api/pets/${petId}`, updatePetBody, {',
+      );
+    });
+
     it('preserves query params for multi-content responses', () => {
       const verbOption = createVerbOption({
         operationId: 'listPets',
