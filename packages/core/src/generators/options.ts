@@ -394,10 +394,9 @@ export function generateOptions({
     const deleteBodyOptions = isRawOptionsArgument
       ? `...${optionsArgument}`
       : axiosOptions;
+    const deleteBodyField = `${isAngular ? 'body' : 'data'}: ${bodyIdentifier}`;
 
-    return `\n      \`${route}\`,{${
-      isAngular ? 'body' : 'data'
-    }: ${bodyIdentifier}${axiosOptions ? `,${deleteBodyOptions}` : ''}}\n    `;
+    return `\n      \`${route}\`,{${deleteBodyField}${axiosOptions ? `,${deleteBodyOptions}` : ''}}\n    `;
   }
 
   const bodyOrOptions = getIsBodyVerb(verb)

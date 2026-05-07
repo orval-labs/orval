@@ -614,13 +614,13 @@ export const generateHttpClientImplementation = (
     const bodyArgument =
       generateBodyOptions(body, isFormData, isFormUrlEncoded) ?? '';
     const deleteBodyOption =
-      verb === 'delete' && bodyArgument ? `body: ${bodyArgument},` : '';
+      verb === 'delete' && bodyArgument ? `body: ${bodyArgument}` : '';
     const buildOptionsObject = (responseType: string) => `{
         ...options,
         responseType: '${responseType}',
         headers,
         ${angularParamsRef ? `params: ${angularParamsRef},` : ''}
-        ${deleteBodyOption}
+        ${deleteBodyOption ? `${deleteBodyOption},` : ''}
       }`;
     const buildHttpClientCall = (typeArg: string, optionsObject: string) =>
       getIsBodyVerb(verb) && verb !== 'delete'
