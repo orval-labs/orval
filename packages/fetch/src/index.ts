@@ -121,7 +121,9 @@ export const generateRequestFunction = (
       ).some((s) => resolveSchemaRef(s, context).schema.type === 'array');
 
     return (
-      parameterObject.in === 'query' && isArrayLike && parameterObject.explode
+      parameterObject.in === 'query' &&
+      isArrayLike &&
+      (parameterObject.explode ?? true)
     );
   });
 
