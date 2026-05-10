@@ -903,6 +903,52 @@ describe('dereferenceExternalRefs', () => {
     expect(result).not.toHaveProperty('x-ext');
   });
 
+  it('should break cycles when an external ref recursively points back to itself (#1642)', () => {
+    // A self-referencing x-ext entry outside components.schemas would
+    // otherwise inline forever and OOM; the inner ref must collapse to `{}`.
+    const warnSpy = vi.spyOn(orvalCore, 'logWarning').mockImplementation(() => {
+      /* noop */
+    });
+
+    const input = {
+      openapi: '3.0.0',
+      components: {
+        schemas: {
+          Foo: { $ref: '#/x-ext/abc/Foo' },
+        },
+      },
+      'x-ext': {
+        abc: {
+          Foo: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              self: { $ref: '#/x-ext/abc/Foo' },
+            },
+          },
+        },
+      },
+    };
+
+    const result = dereferenceExternalRef(input) as {
+      components: { schemas: { Foo: Record<string, unknown> } };
+    };
+
+    expect(result.components.schemas.Foo).toEqual({
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        self: {},
+      },
+    });
+    expect(result).not.toHaveProperty('x-ext');
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('circular external $ref'),
+    );
+
+    warnSpy.mockRestore();
+  });
+
   it('should not inject components into Swagger 2.0 spec when no external refs exist', () => {
     const input = {
       swagger: '2.0',
