@@ -23,6 +23,7 @@ import {
   pascal,
   sanitize,
 } from '../utils';
+import { generateFactory } from './factory';
 import { generateInterface } from './interface';
 
 /**
@@ -69,6 +70,31 @@ export function generateSchemasDefinition(
     );
     if (!seenNames.has(normalizedName)) {
       seenNames.add(normalizedName);
+
+      if (context.output.factoryMethods.generate && schema.schema) {
+        const factoryData = generateFactory(
+          schema.schema,
+          schema.name,
+          context,
+        );
+        if (factoryData) {
+          if (context.output.factoryMethods.mode === 'inline-with-schema') {
+            schema.model += `\n${factoryData.model}`;
+            for (const imp of factoryData.imports) {
+              if (
+                !schema.imports.some((existing) => existing.name === imp.name)
+              ) {
+                schema.imports.push(imp);
+              }
+            }
+          } else {
+            schema.factory = factoryData.model;
+            schema.factoryImports = factoryData.imports;
+            schema.factoryMode = context.output.factoryMethods.mode;
+          }
+        }
+      }
+
       deduplicatedModels.push(schema);
     }
   }

@@ -135,6 +135,13 @@ const createOutput = (
     optionsParamRequired: false,
     unionAddMissingProperties: false,
     propertySortOrder: 'Specification',
+    factoryMethods: {
+      generate: false,
+      functionNamePrefix: 'create',
+      mode: 'inline-with-schema',
+      outputDirectory: '',
+      optionalPropertyStrategy: 'omit',
+    },
     ...overrides,
   } satisfies NormalizedOutputOptions;
 

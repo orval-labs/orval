@@ -319,6 +319,7 @@ export async function writeSpecs(
             header,
             indexFiles: output.indexFiles,
             tsconfig: output.tsconfig,
+            factoryOutputDirectory: output.factoryMethods.outputDirectory,
           });
         }
 
@@ -333,6 +334,7 @@ export async function writeSpecs(
             header,
             indexFiles: output.indexFiles,
             tsconfig: output.tsconfig,
+            factoryOutputDirectory: output.factoryMethods.outputDirectory,
           });
 
           // Add re-export from operations in the main schemas index
@@ -354,6 +356,7 @@ export async function writeSpecs(
           header,
           indexFiles: output.indexFiles,
           tsconfig: output.tsconfig,
+          factoryOutputDirectory: output.factoryMethods.outputDirectory,
         });
       }
     } else {
@@ -399,6 +402,7 @@ export async function writeSpecs(
               header,
               indexFiles: output.indexFiles,
               tsconfig: output.tsconfig,
+              factoryOutputDirectory: output.factoryMethods.outputDirectory,
             });
           }
 
@@ -412,6 +416,7 @@ export async function writeSpecs(
               header,
               indexFiles: output.indexFiles,
               tsconfig: output.tsconfig,
+              factoryOutputDirectory: output.factoryMethods.outputDirectory,
             });
 
             // Add re-export from operations in the main schemas index
@@ -433,6 +438,7 @@ export async function writeSpecs(
             header,
             indexFiles: output.indexFiles,
             tsconfig: output.tsconfig,
+            factoryOutputDirectory: output.factoryMethods.outputDirectory,
           });
         }
       } else {

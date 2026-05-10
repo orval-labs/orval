@@ -203,8 +203,11 @@ function normalizeCanonicalImportPaths(
   namingConvention: NamingConvention,
   fileExtension: string,
   tsconfig?: Tsconfig,
+  factoryOutputDirectory?: string,
 ) {
   const importExtension = getImportExtension(fileExtension, tsconfig);
+  const factoryDir = factoryOutputDirectory ?? schemaPath;
+
   for (const schema of schemas) {
     schema.imports = schema.imports.map((imp) => {
       const canonicalByName = canonicalNameMap.get(imp.name);
@@ -233,6 +236,32 @@ function normalizeCanonicalImportPaths(
 
       return { ...imp, importPath };
     });
+
+    if (schema.factoryImports) {
+      schema.factoryImports = schema.factoryImports.map((imp) => {
+        const canonicalByName = canonicalNameMap.get(imp.name);
+
+        const resolvedImportKey = resolveImportKey(
+          factoryDir,
+          imp.importPath ?? `./${conventionName(imp.name, namingConvention)}`,
+          fileExtension,
+        );
+        const canonicalByPath = canonicalPathMap.get(resolvedImportKey);
+        const canonical = canonicalByName ?? canonicalByPath;
+        if (!canonical?.importPath) return imp;
+
+        const relative = upath.relativeSafe(
+          factoryDir,
+          canonical.importPath.replaceAll('\\', '/'),
+        );
+        const withoutFileExtension = relative.endsWith(fileExtension)
+          ? relative.slice(0, -fileExtension.length)
+          : relative.replace(/\.ts$/, '');
+        const importPath = `${withoutFileExtension}${importExtension}`;
+
+        return { ...imp, importPath };
+      });
+    }
   }
 }
 
@@ -249,12 +278,28 @@ function mergeSchemaGroup(schemas: GeneratorSchema[]): GeneratorSchema {
   const mergedDependencies = [
     ...new Set(schemas.flatMap((schema) => schema.dependencies ?? [])),
   ];
+
+  const mergedFactory = schemas
+    .map((s) => s.factory)
+    .filter(Boolean)
+    .join('\n');
+  const mergedFactoryImports = [
+    ...new Map(
+      schemas
+        .flatMap((schema) => schema.factoryImports ?? [])
+        .map((imp) => [JSON.stringify(imp), imp] as [string, GeneratorImport]),
+    ).values(),
+  ];
+
   return {
     name: baseSchemaName,
     schema: baseSchema,
     model: schemas.map((schema) => schema.model).join('\n'),
     imports: mergedImports,
     dependencies: mergedDependencies,
+    factory: mergedFactory || undefined,
+    factoryImports: mergedFactoryImports,
+    factoryMode: schemas[0].factoryMode,
   };
 }
 
@@ -363,6 +408,43 @@ interface WriteSchemasOptions {
   header: string;
   indexFiles: boolean;
   tsconfig?: Tsconfig;
+  factoryOutputDirectory?: string;
+}
+
+async function emitFactoryForSchema(
+  schema: GeneratorSchema,
+  namingConvention: NamingConvention,
+  header: string,
+  factoryDir: string,
+  fileExtension: string,
+  helpers: {
+    separateFactoryNames: string[];
+    combinedFactoryContent: { value: string };
+    combinedFactoryImports: GeneratorImport[];
+    isCombined: { value: boolean };
+  },
+) {
+  if (schema.factory && schema.factoryMode) {
+    const mode = schema.factoryMode;
+    if (mode === 'separate-file') {
+      const baseName = conventionName(schema.name, namingConvention);
+      const factoryName = `${baseName}.factory`;
+      helpers.separateFactoryNames.push(factoryName);
+      const factoryImportsStr = generateImports({
+        imports: schema.factoryImports ?? [],
+        namingConvention,
+      });
+      const factoryFile = `${header}\n${factoryImportsStr}\n\n${schema.factory}`;
+      await writeGeneratedFile(
+        getPath(factoryDir, factoryName, fileExtension),
+        factoryFile,
+      );
+    } else if (mode === 'combined-separate-file') {
+      helpers.isCombined.value = true;
+      helpers.combinedFactoryContent.value += `${schema.factory}\n`;
+      helpers.combinedFactoryImports.push(...(schema.factoryImports ?? []));
+    }
+  }
 }
 
 export async function writeSchemas({
@@ -374,6 +456,7 @@ export async function writeSchemas({
   header,
   indexFiles,
   tsconfig,
+  factoryOutputDirectory,
 }: WriteSchemasOptions) {
   const schemaGroups = getSchemaGroups(
     schemaPath,
@@ -397,7 +480,22 @@ export async function writeSchemas({
     namingConvention,
     fileExtension,
     tsconfig,
+    factoryOutputDirectory,
   );
+
+  const factoryDir = factoryOutputDirectory ?? schemaPath;
+
+  const combinedFactoryContent = { value: '' };
+  const combinedFactoryImports: GeneratorImport[] = [];
+  const isCombined = { value: false };
+  const separateFactoryNames: string[] = [];
+
+  const factoryHelpers = {
+    separateFactoryNames,
+    combinedFactoryContent,
+    combinedFactoryImports,
+    isCombined,
+  };
 
   for (const groupSchemas of Object.values(schemaGroups)) {
     if (groupSchemas.length === 1) {
@@ -410,6 +508,16 @@ export async function writeSchemas({
         header,
         tsconfig,
       });
+
+      const singleSchema = groupSchemas[0];
+      await emitFactoryForSchema(
+        singleSchema,
+        namingConvention,
+        header,
+        factoryDir,
+        fileExtension,
+        factoryHelpers,
+      );
       continue;
     }
 
@@ -424,6 +532,28 @@ export async function writeSchemas({
       header,
       tsconfig,
     });
+
+    await emitFactoryForSchema(
+      mergedSchema,
+      namingConvention,
+      header,
+      factoryDir,
+      fileExtension,
+      factoryHelpers,
+    );
+  }
+
+  if (isCombined.value) {
+    const factoryFileName = conventionName('factoryMethods', namingConvention);
+    const factoryFileImports = generateImports({
+      imports: combinedFactoryImports,
+      namingConvention,
+    });
+    const factoryFile = `${header}\n${factoryFileImports}\n\n${combinedFactoryContent.value}`;
+    await writeGeneratedFile(
+      getPath(factoryDir, factoryFileName, fileExtension),
+      factoryFile,
+    );
   }
 
   if (indexFiles) {
@@ -444,11 +574,50 @@ export async function writeSchemas({
       const uniqueSchemaNames = [...conventionNamesSet];
 
       // Create export statements
-      const currentExports = uniqueSchemaNames
-        .map((schemaName) => `export * from './${schemaName}${ext}';`)
-        .toSorted((a, b) => a.localeCompare(b, 'en', { numeric: true }));
+      const currentExports = uniqueSchemaNames.map(
+        (schemaName) => `export * from './${schemaName}${ext}';`,
+      );
 
-      const exports = currentExports.join('\n');
+      if (
+        factoryOutputDirectory &&
+        upath.normalizeSafe(factoryOutputDirectory) !==
+          upath.normalizeSafe(schemaPath) &&
+        (isCombined.value || separateFactoryNames.length > 0)
+      ) {
+        const factoryIndexFilePath = nodePath.join(
+          factoryOutputDirectory,
+          `index.ts`,
+        );
+        await fs.ensureFile(factoryIndexFilePath);
+        const factoryExports: string[] = [];
+        if (isCombined.value) {
+          const factoryFileName = conventionName(
+            'factoryMethods',
+            namingConvention,
+          );
+          factoryExports.push(`export * from './${factoryFileName}${ext}';`);
+        }
+        for (const fName of separateFactoryNames) {
+          factoryExports.push(`export * from './${fName}${ext}';`);
+        }
+        const content = `${header}\n${factoryExports.join('\n')}\n`;
+        await writeGeneratedFile(factoryIndexFilePath, content);
+      } else {
+        if (isCombined.value) {
+          const factoryFileName = conventionName(
+            'factoryMethods',
+            namingConvention,
+          );
+          currentExports.push(`export * from './${factoryFileName}${ext}';`);
+        }
+        for (const fName of separateFactoryNames) {
+          currentExports.push(`export * from './${fName}${ext}';`);
+        }
+      }
+
+      const exports = [...new Set(currentExports)]
+        .toSorted((a, b) => a.localeCompare(b, 'en', { numeric: true }))
+        .join('\n');
 
       const fileContent = `${header}\n${exports}\n`;
 

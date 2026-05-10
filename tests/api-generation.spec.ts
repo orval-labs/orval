@@ -13,6 +13,7 @@ await describeApiGenerationSnapshots({
     generated('angular'),
     generated('angular-query'),
     generated('axios'),
+    generated('factory-methods'),
     generated('cli'),
     generated('default'),
     generated('fetch'),
