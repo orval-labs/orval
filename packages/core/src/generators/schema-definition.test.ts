@@ -11,8 +11,15 @@ describe('generateSchemasDefinition', () => {
   const context = {
     output: {
       override: { namingConvention: {} },
+      factoryMethods: {
+        generate: false,
+        functionNamePrefix: 'create',
+        mode: 'separate-file',
+        optionalPropertyStrategy: 'include',
+      },
     },
     target: 'typescript',
+    workspace: '',
     spec: {},
   } as unknown as ContextSpec;
 
@@ -138,8 +145,15 @@ describe('generateSchemasDefinition', () => {
             enum: 'PascalCase',
           },
         },
+        factoryMethods: {
+          generate: false,
+          functionNamePrefix: 'create',
+          mode: 'separate-file',
+          optionalPropertyStrategy: 'include',
+        },
       },
       target: 'typescript',
+      workspace: '',
       spec: {},
     } as unknown as ContextSpec;
 
@@ -235,6 +249,7 @@ describe('generateSchemasDefinition', () => {
     const specContext = {
       ...context,
       output: {
+        ...context.output,
         override: { enumGenerationType: 'const', namingConvention: {} },
       },
       spec: {
@@ -280,6 +295,7 @@ describe('generateSchemasDefinition', () => {
     const specContext = {
       ...context,
       output: {
+        ...context.output,
         override: { enumGenerationType: 'const', namingConvention: {} },
       },
       spec: {
@@ -337,6 +353,7 @@ describe('generateSchemasDefinition', () => {
     const specContext = {
       ...context,
       output: {
+        ...context.output,
         override: { enumGenerationType: 'const', namingConvention: {} },
       },
       spec: {

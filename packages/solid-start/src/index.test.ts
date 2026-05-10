@@ -41,6 +41,13 @@ function makeOutput(useDates = false): ContextSpec['output'] {
     unionAddMissingProperties: false,
     optionsParamRequired: false,
     propertySortOrder: PropertySortOrder.ALPHABETICAL,
+    factoryMethods: {
+      generate: false,
+      functionNamePrefix: 'create',
+      mode: 'inline-with-schema',
+      outputDirectory: '',
+      optionalPropertyStrategy: 'omit',
+    },
     override: {
       title: undefined,
       transformer: undefined,

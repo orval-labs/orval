@@ -27,6 +27,7 @@ import {
   type McpServerOptions,
   type Mutator,
   NamingConvention,
+  type NormalizedFactoryMethodsOptions,
   type NormalizedHonoOptions,
   type NormalizedHookOptions,
   type NormalizedJsDocOptions,
@@ -180,6 +181,38 @@ export async function normalizeOptions(
 
   const defaultFileExtension = '.ts';
 
+  const factoryMethodsConfig = outputOptions.factoryMethods;
+  let factoryMethods: NormalizedFactoryMethodsOptions = {
+    generate: false,
+    functionNamePrefix: 'create',
+    mode: 'separate-file',
+    optionalPropertyStrategy: 'include',
+    outputDirectory: outputOptions.schemas
+      ? normalizePath(
+          isString(outputOptions.schemas)
+            ? outputOptions.schemas
+            : outputOptions.schemas.path,
+          outputWorkspace,
+        )
+      : normalizePath(outputWorkspace, outputWorkspace), // default to workspace
+  };
+
+  if (factoryMethodsConfig) {
+    factoryMethods = {
+      generate: factoryMethodsConfig.generate ?? factoryMethods.generate,
+      functionNamePrefix:
+        factoryMethodsConfig.functionNamePrefix ??
+        factoryMethods.functionNamePrefix,
+      mode: factoryMethodsConfig.mode ?? factoryMethods.mode,
+      outputDirectory: factoryMethodsConfig.outputDirectory
+        ? normalizePath(factoryMethodsConfig.outputDirectory, outputWorkspace)
+        : factoryMethods.outputDirectory,
+      optionalPropertyStrategy:
+        factoryMethodsConfig.optionalPropertyStrategy ??
+        factoryMethods.optionalPropertyStrategy,
+    };
+  }
+
   // `useQuery` / `useMutation` defaults are applied per-verb in
   // `query-generator.ts` so we can tell "unset" from "explicit true" (#2376).
   const globalQueryOptions: NormalizedQueryOptions = {
@@ -250,6 +283,7 @@ export async function normalizeOptions(
       baseUrl: outputOptions.baseUrl,
       unionAddMissingProperties:
         outputOptions.unionAddMissingProperties ?? false,
+      factoryMethods,
       override: {
         ...outputOptions.override,
         mock: {
