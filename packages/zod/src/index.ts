@@ -366,7 +366,10 @@ export const generateZodValidationSchemaDefinition = (
             return `${key}: ${value}`;
         })
         .join(', ');
-      defaultValue = `{ ${entries} }`;
+      // `as const` preserves literal types so `zod.enum([...])` properties
+      // accept the emitted default (#3244).
+      defaultValue =
+        entries.length === 0 ? `{} as const` : `{ ${entries} } as const`;
     } else {
       // OpenApiSchemaObject defines default as 'any'
       const rawStringified = stringify(schema.default);
