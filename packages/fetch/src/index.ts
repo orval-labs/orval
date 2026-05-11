@@ -37,6 +37,83 @@ const getStatusCodeType = (key: string): string => {
   return key;
 };
 
+// Per OpenAPI 3.0/3.1, the default `style` depends on `in`:
+// query, cookie -> "form"; path, header -> "simple".
+// https://swagger.io/specification/
+const getDefaultStyle = (parameterIn: string | undefined): string => {
+  switch (parameterIn) {
+    case 'query':
+    case 'cookie': {
+      return 'form';
+    }
+    case 'path':
+    case 'header': {
+      return 'simple';
+    }
+    default: {
+      return 'form';
+    }
+  }
+};
+
+// Per OpenAPI 3.0/3.1, the default `explode` is `true` when `style` is `form`,
+// otherwise `false`. https://swagger.io/specification/
+const getDefaultExplode = (style: string): boolean => style === 'form';
+
+const isArrayLikeSchema = (
+  schemaObject: OpenApiSchemaObject,
+  context: GeneratorOptions['context'],
+): boolean => {
+  if (schemaObject.type === 'array') {
+    return true;
+  }
+
+  const variants: (keyof Pick<
+    OpenApiSchemaObject,
+    'oneOf' | 'anyOf' | 'allOf'
+  >)[] = ['oneOf', 'anyOf', 'allOf'];
+
+  return variants.some((key) => {
+    const subSchemas = schemaObject[key] as
+      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+      | undefined;
+    if (!Array.isArray(subSchemas) || subSchemas.length === 0) {
+      return false;
+    }
+    return subSchemas.some(
+      (s) => resolveSchemaRef(s, context).schema.type === 'array',
+    );
+  });
+};
+
+const shouldExplodeArrayQueryParameter = (
+  parameterObject: OpenApiParameterObject,
+  context: GeneratorOptions['context'],
+): boolean => {
+  if (parameterObject.in !== 'query' || !parameterObject.schema) {
+    return false;
+  }
+
+  const { schema: schemaObject } = resolveSchemaRef(
+    parameterObject.schema,
+    context,
+  );
+
+  if (!isArrayLikeSchema(schemaObject, context)) {
+    return false;
+  }
+
+  const style = parameterObject.style ?? getDefaultStyle(parameterObject.in);
+  // Only `form` style supports explode semantics in a way orval currently
+  // emits (repeated `key=value` pairs). Other styles (spaceDelimited,
+  // pipeDelimited, deepObject) are intentionally not exploded here.
+  if (style !== 'form') {
+    return false;
+  }
+
+  return parameterObject.explode ?? getDefaultExplode(style);
+};
+
 const FETCH_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
@@ -92,43 +169,9 @@ export const generateRequestFunction = (
     return schema as OpenApiParameterObject;
   });
 
-  const explodeParameters = parameterObjects.filter((parameterObject) => {
-    if (!parameterObject.schema) {
-      return false;
-    }
-
-    const { schema: schemaObject } = resolveSchemaRef(
-      parameterObject.schema,
-      context,
-    );
-
-    const isArrayLike =
-      schemaObject.type === 'array' ||
-      (
-        (schemaObject.oneOf as
-          | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-          | undefined) ?? []
-      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array') ||
-      (
-        (schemaObject.anyOf as
-          | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-          | undefined) ?? []
-      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array') ||
-      (
-        (schemaObject.allOf as
-          | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-          | undefined) ?? []
-      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array');
-
-    const style = parameterObject.style ?? 'form';
-
-    return (
-      parameterObject.in === 'query' &&
-      isArrayLike &&
-      style === 'form' &&
-      (parameterObject.explode ?? true)
-    );
-  });
+  const explodeParameters = parameterObjects.filter((parameterObject) =>
+    shouldExplodeArrayQueryParameter(parameterObject, context),
+  );
 
   const explodeParametersNames = explodeParameters.map(
     (parameter) => parameter.name,
