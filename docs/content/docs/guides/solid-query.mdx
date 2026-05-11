@@ -65,7 +65,7 @@ export const createShowPetById = <
     () => ({
       queryKey,
       queryFn,
-      enabled: !!petId,
+      enabled: petId !== null && petId !== undefined,
       ...queryOptions,
     }),
   );

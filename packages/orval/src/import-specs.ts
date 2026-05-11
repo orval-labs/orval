@@ -301,18 +301,21 @@ function updateInternalRefs(
 }
 
 /**
- * Replace x-ext refs with either standard component refs or inlined content
+ * Replace x-ext refs with standard component refs, or inline the content.
+ * `inliningRefs` tracks the inline chain to break cycles in recursive
+ * external schemas that aren't under `components.schemas` (#1642).
  */
 function replaceXExtRefs(
   obj: unknown,
   extensions: Record<string, unknown>,
   schemaNameMappings: Record<string, Record<string, string>>,
+  inliningRefs = new Set<string>(),
 ): unknown {
   if (isNullish(obj)) return obj;
 
   if (Array.isArray(obj)) {
     return obj.map((element) =>
-      replaceXExtRefs(element, extensions, schemaNameMappings),
+      replaceXExtRefs(element, extensions, schemaNameMappings, inliningRefs),
     );
   }
 
@@ -342,7 +345,17 @@ function replaceXExtRefs(
             return { $ref: `#/components/schemas/${finalName}` };
           }
 
-          // Otherwise, inline the referenced content
+          // Otherwise inline the content; break cycles with `{}`.
+          if (inliningRefs.has(refValue)) {
+            logWarning(
+              `Detected a circular external $ref while inlining "${refValue}". ` +
+                `Replacing with an empty schema to avoid infinite recursion. ` +
+                `Move the schema under "components.schemas" in its source file ` +
+                `or pre-bundle the spec to keep the recursion intact.`,
+            );
+            return {};
+          }
+
           const extDoc = extensions[extKey];
           let refObj: unknown = extDoc;
           for (const p of parts) {
@@ -360,7 +373,14 @@ function replaceXExtRefs(
 
           if (refObj) {
             const cleaned = scrubUnwantedKeys(refObj);
-            return replaceXExtRefs(cleaned, extensions, schemaNameMappings);
+            const nextInlining = new Set(inliningRefs);
+            nextInlining.add(refValue);
+            return replaceXExtRefs(
+              cleaned,
+              extensions,
+              schemaNameMappings,
+              nextInlining,
+            );
           }
         }
       }
@@ -369,7 +389,12 @@ function replaceXExtRefs(
     // Recursively process all properties
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(record)) {
-      result[key] = replaceXExtRefs(value, extensions, schemaNameMappings);
+      result[key] = replaceXExtRefs(
+        value,
+        extensions,
+        schemaNameMappings,
+        inliningRefs,
+      );
     }
     return result;
   }

@@ -24,7 +24,17 @@ export const normalizeQueryOptions = (
     ...(queryOptions.useInvalidate ? { useInvalidate: true } : {}),
     ...(queryOptions.useSetQueryData ? { useSetQueryData: true } : {}),
     ...(queryOptions.useGetQueryData ? { useGetQueryData: true } : {}),
-    ...(queryOptions.useQuery ? { useQuery: true } : {}),
+    // Preserve explicit `false` so the toggles aren't silent no-ops (#2376).
+    ...(queryOptions.useQuery === undefined
+      ? {}
+      : { useQuery: queryOptions.useQuery }),
+    ...(queryOptions.useMutation === undefined
+      ? {}
+      : { useMutation: queryOptions.useMutation }),
+    ...(queryOptions.useSuspenseQuery ? { useSuspenseQuery: true } : {}),
+    ...(queryOptions.useSuspenseInfiniteQuery
+      ? { useSuspenseInfiniteQuery: true }
+      : {}),
     ...(queryOptions.useInfinite ? { useInfinite: true } : {}),
     ...(queryOptions.useInfiniteQueryParam
       ? { useInfiniteQueryParam: queryOptions.useInfiniteQueryParam }

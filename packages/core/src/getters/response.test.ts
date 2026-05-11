@@ -205,6 +205,27 @@ describe('getResponse', () => {
       expect(result.isBlob).toBe(false);
     });
 
+    it('should set isBlob to true for text/csv with format: binary schema', () => {
+      const responses: OpenApiResponsesObject = {
+        '200': {
+          description: 'CSV binary file',
+          content: {
+            'text/csv': {
+              schema: { type: 'string', format: 'binary' },
+            },
+          },
+        },
+      };
+
+      const result = getResponse({
+        responses,
+        operationName: 'downloadCsv',
+        context,
+      });
+
+      expect(result.isBlob).toBe(true);
+    });
+
     it('should set isBlob to true for image content type', () => {
       const responses: OpenApiResponsesObject = {
         '200': {

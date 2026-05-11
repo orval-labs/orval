@@ -139,10 +139,14 @@ export const createVueAdapter = ({
     params: GetterParams,
     options?: object | boolean,
   ): string {
+    if (params.length === 0) return '';
     if (!isObject(options) || !Object.hasOwn(options, 'enabled')) {
-      return `enabled: computed(() => !!(${params
-        .map(({ name }) => `unref(${name})`)
-        .join(' && ')})),`;
+      return `enabled: computed(() => ${params
+        .map(
+          ({ name }) =>
+            `unref(${name}) !== null && unref(${name}) !== undefined`,
+        )
+        .join(' && ')}),`;
     }
     return '';
   },

@@ -156,6 +156,222 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Verifies that when a `mutationInvalidates` rule targets a non-GET
+  // operation that has been routed to a Query hook (and thus carries the
+  // verb-prefixed cache key), the broad-invalidation fallback path emits
+  // a predicate / partial key that accounts for the verb prefix —
+  // otherwise `queryKey[0].startsWith('/pets/')` would never match
+  // `['DELETE', '/pets/${petId}']` and the invalidation would silently
+  // no-op.
+  invalidatesNonGetQueryTarget: {
+    output: {
+      target:
+        '../generated/react-query/invalidates-non-get-query-target/endpoints.ts',
+      schemas:
+        '../generated/react-query/invalidates-non-get-query-target/model',
+      client: 'react-query',
+      override: {
+        operations: {
+          deletePetById: {
+            query: { useQuery: true },
+          },
+        },
+        query: {
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['deletePetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // Verifies that when a non-GET operation is routed to a Query hook
+  // (today via per-operation `useQuery: true`, soon globally via the fix
+  // for #2376), and the user has configured a custom mutator that exports
+  // a `BodyType<T>` wrapper, the generated Query helpers wrap the body
+  // type with `BodyType<...>` to stay consistent with the request
+  // function's signature. Without this, callers would hit a type error
+  // (`CreatePetsBody` is not assignable to `BodyType<CreatePetsBody>`).
+  // Closes #2376 — verifies the global `override.query.useQuery: true`
+  // setting now propagates to non-GET verbs (POST/PUT/DELETE/PATCH) and
+  // emits Query hooks for them, instead of being silently dropped on the
+  // old `Verbs.GET ===` gate. The PR-D / PR-C / PR-B preparation PRs
+  // ensure cache key collisions, custom-mutator BodyType, and
+  // mutationInvalidates conflict warnings are already handled before
+  // this gate is lifted.
+  globalUseQueryAppliesToNonGet: {
+    output: {
+      target:
+        '../generated/react-query/global-use-query-applies-to-non-get/endpoints.ts',
+      schemas:
+        '../generated/react-query/global-use-query-applies-to-non-get/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useQuery: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // Closes #2376 — verifies the previously-silent
+  // `override.query.useMutation: false` setting now actually suppresses
+  // Mutation hook generation for non-GET operations. Combined with
+  // `useQuery: true`, it routes every non-GET operation to a Query hook
+  // exclusively, which is the typical setup for APIs that use POST as a
+  // read mechanism (e.g. complex search bodies).
+  globalUseMutationFalseSuppressesMutationHooks: {
+    output: {
+      target:
+        '../generated/react-query/global-use-mutation-false-suppresses-mutation-hooks/endpoints.ts',
+      schemas:
+        '../generated/react-query/global-use-mutation-false-suppresses-mutation-hooks/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useQuery: true,
+          useMutation: false,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // Per-operation override now wins over a globally enabled hook
+  // (#2376). Without this, `override.operations.<id>.query.useQuery:
+  // false` was silently ignored when global `useQuery: true` was set,
+  // contradicting the docs example for `override.operations` that uses
+  // `useInfinite: false` to opt a single operation out.
+  perOperationFalseDisablesGlobalTrue: {
+    output: {
+      target:
+        '../generated/react-query/per-operation-false-disables-global-true/endpoints.ts',
+      schemas:
+        '../generated/react-query/per-operation-false-disables-global-true/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useQuery: true,
+        },
+        operations: {
+          createPets: {
+            query: {
+              useQuery: false,
+            },
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // Closes #2376 — explicit `override.query.useQuery: false` now
+  // suppresses Query hook generation even for GET operations, falling
+  // back to the Mutation hook (which is rarely useful for GET but is
+  // the documented inverse behaviour and was previously silently
+  // ignored). This is the defensive matrix entry that guards the
+  // `useQuery: false` semantics.
+  globalUseQueryFalseSuppressesGetQueryHooks: {
+    output: {
+      target:
+        '../generated/react-query/global-use-query-false-suppresses-get-query-hooks/endpoints.ts',
+      schemas:
+        '../generated/react-query/global-use-query-false-suppresses-get-query-hooks/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useQuery: false,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // The mutator deliberately uses a strict `BodyType<T> = { payload: T; metadata: ... }`
+  // envelope so that any generated Query helper that still emits the raw body
+  // type (rather than `BodyType<CreatePetsBody>`) would fail to compile. This
+  // locks in that every user-facing surface — overload signatures, hook
+  // implementation, getXxxQueryOptions, getXxxQueryKey, setQueryData /
+  // getQueryData — wraps consistently with the request function's signature.
+  bodyTypeWrapNonGetQuery: {
+    output: {
+      target:
+        '../generated/react-query/body-type-wrap-non-get-query/endpoints.ts',
+      schemas: '../generated/react-query/body-type-wrap-non-get-query/model',
+      client: 'react-query',
+      httpClient: 'axios',
+      override: {
+        mutator: {
+          path: '../mutators/custom-client-strict-body.ts',
+          name: 'customClientStrictBody',
+        },
+        operations: {
+          createPets: {
+            query: {
+              useQuery: true,
+              useSetQueryData: true,
+              useGetQueryData: true,
+            },
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  invalidatesNonGetQueryTargetSplitKey: {
+    output: {
+      target:
+        '../generated/react-query/invalidates-non-get-query-target-split-key/endpoints.ts',
+      schemas:
+        '../generated/react-query/invalidates-non-get-query-target-split-key/model',
+      client: 'react-query',
+      override: {
+        operations: {
+          deletePetById: {
+            query: { useQuery: true },
+          },
+        },
+        query: {
+          shouldSplitQueryKey: true,
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['deletePetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   zodSchemaResponse: {
     output: {
       target: '../generated/react-query/zod-schema-response/endpoints.ts',

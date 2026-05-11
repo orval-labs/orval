@@ -11,6 +11,7 @@ import {
   isString,
   type OutputHttpClient,
   pascal,
+  type Verbs,
 } from '@orval/core';
 
 import {
@@ -19,6 +20,7 @@ import {
   getQueryErrorType,
 } from './client';
 import type { FrameworkAdapter } from './framework-adapter';
+import { getQueryKeyVerbPrefix } from './query-generator';
 import { getQueryOptionsDefinition } from './query-options';
 
 interface NormalizedTarget {
@@ -62,6 +64,9 @@ const HTTP_METHODS = [
 
 interface OperationRouteInfo {
   route: string;
+  /** HTTP method (lowercase) — needed to mirror the verb prefix that
+   * `getQueryKeyVerbPrefix` adds to non-GET cache keys. */
+  method: string;
   /** true when the route has path params that lack a default value */
   hasRequiredPathParams: boolean;
 }
@@ -108,7 +113,7 @@ const findOperationInfo = (
       if (opId !== operationName && camel(opId) !== operationName) continue;
 
       if (!routePath.includes('{')) {
-        return { route: routePath, hasRequiredPathParams: false };
+        return { route: routePath, method, hasRequiredPathParams: false };
       }
 
       // Collect path parameters from both path-level and operation-level
@@ -121,7 +126,7 @@ const findOperationInfo = (
         (p) => p.schema?.default === undefined && p.default === undefined,
       );
 
-      return { route: routePath, hasRequiredPathParams };
+      return { route: routePath, method, hasRequiredPathParams };
     }
   }
   return undefined;
@@ -204,6 +209,7 @@ const generateParamArgs = (
 const createGenerateInvalidateCall = (
   spec: Record<string, unknown> | undefined,
   shouldSplitQueryKey: boolean,
+  useOperationIdAsQueryKey: boolean,
 ) => {
   return (target: NormalizedTarget): string => {
     const method =
@@ -228,19 +234,42 @@ const createGenerateInvalidateCall = (
       // starts with a path param like /{tenantId}/...), fall through to
       // the zero-arg call rather than generating an overly-broad match.
       if (prefix !== undefined) {
+        // Mirror the verb prefix that `getQueryKeyVerbPrefix` injects into
+        // non-GET Query keys; without this, the predicate / partial key
+        // would never match a verb-prefixed cache key and the broad
+        // invalidation would silently no-op. We share the helper from
+        // `query-generator.ts` so both sites stay in sync.
+        // `info.method` is narrowed by the spec walker to one of HTTP_METHODS
+        // (a superset of `Verbs` that also includes `options`/`trace`); the
+        // helper only branches on `Verbs.GET`, so the cast is safe for any
+        // non-GET method.
+        const verbPrefix = getQueryKeyVerbPrefix({
+          verb: info.method as Verbs,
+          useOperationIdAsQueryKey,
+        });
+
         if (shouldSplitQueryKey) {
-          // Split-key mode: query keys are arrays like ['pets', petId].
+          // Split-key mode: query keys are arrays like ['pets', petId]
+          // (or ['DELETE', 'pets', petId] for non-GET Query keys).
           // Use partial key matching with static route segments.
           const segments = prefix
             .split('/')
             .filter((s) => s !== '')
             .map((s) => `'${s}'`)
             .join(', ');
-          return `    queryClient.${method}({ queryKey: [${segments}] });`;
+          const keyArr = verbPrefix
+            ? `['${verbPrefix}', ${segments}]`
+            : `[${segments}]`;
+          return `    queryClient.${method}({ queryKey: ${keyArr} });`;
         }
 
-        // Default mode: query keys are template strings like ['/pets/${petId}'].
-        // Use predicate with startsWith for broad matching.
+        // Default mode: query keys are template strings like
+        // ['/pets/${petId}'] (or ['DELETE', '/pets/${petId}'] for non-GET
+        // Query keys). Use a predicate that knows where the route segment
+        // lives in the tuple.
+        if (verbPrefix) {
+          return `    queryClient.${method}({ predicate: (query) => query.queryKey[0] === '${verbPrefix}' && typeof query.queryKey[1] === 'string' && query.queryKey[1].startsWith('${prefix}') });`;
+        }
         return `    queryClient.${method}({ predicate: (query) => typeof query.queryKey[0] === 'string' && query.queryKey[0].startsWith('${prefix}') });`;
       }
     }
@@ -422,6 +451,7 @@ ${
         generateInvalidateCall: createGenerateInvalidateCall(
           context.spec,
           !!query.shouldSplitQueryKey,
+          !!query.useOperationIdAsQueryKey,
         ),
         uniqueInvalidates,
       })

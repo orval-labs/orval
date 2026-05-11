@@ -350,6 +350,53 @@ export type ConstEnum = typeof ConstEnumValue;
     expect(got).toEqual(want);
   });
 
+  it('should generate Record type with propertyNames referenced enum (OpenAPI 3.1)', () => {
+    const testContext = withContext({
+      spec: {
+        components: {
+          schemas: {
+            Key: {
+              type: 'string',
+              enum: ['key1', 'key2'],
+            },
+            Value: {
+              type: 'string',
+              enum: ['value1', 'value2'],
+            },
+          },
+        },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      propertyNames: {
+        $ref: '#/components/schemas/Key',
+      },
+      additionalProperties: {
+        $ref: '#/components/schemas/Value',
+      },
+    };
+
+    const got = generateInterface({
+      name: 'MyObject',
+      context: testContext,
+      schema,
+    });
+    const want: GeneratorSchema[] = [
+      {
+        name: 'MyObject',
+        model: `export type MyObject = Partial<Record<Key, Value>>;\n`,
+        imports: [
+          { name: 'Key', schemaName: 'Key' },
+          { name: 'Value', schemaName: 'Value' },
+        ],
+        dependencies: ['Key', 'Value'],
+        schema,
+      },
+    ];
+    expect(got).toEqual(want);
+  });
+
   it('should use string when propertyNames has no enum', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -402,6 +449,46 @@ export type ConstEnum = typeof ConstEnumValue;
         model: `export type MyObject = Partial<Record<'singleKey', number>>;\n`,
         imports: [],
         dependencies: [],
+        schema,
+      },
+    ];
+    expect(got).toEqual(want);
+  });
+
+  it('should generate Record type with propertyNames referenced const (OpenAPI 3.1)', () => {
+    const testContext = withContext({
+      spec: {
+        components: {
+          schemas: {
+            Key: {
+              type: 'string',
+              const: 'key1',
+            },
+          },
+        },
+      },
+    });
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      propertyNames: {
+        $ref: '#/components/schemas/Key',
+      },
+      additionalProperties: {
+        type: 'string',
+      },
+    };
+
+    const got = generateInterface({
+      name: 'MyObject',
+      context: testContext,
+      schema,
+    });
+    const want: GeneratorSchema[] = [
+      {
+        name: 'MyObject',
+        model: `export type MyObject = Partial<Record<Key, string>>;\n`,
+        imports: [{ name: 'Key', schemaName: 'Key' }],
+        dependencies: ['Key'],
         schema,
       },
     ];

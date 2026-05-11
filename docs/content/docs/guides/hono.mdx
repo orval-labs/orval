@@ -78,6 +78,11 @@ export const listPetsHandlers = factory.createHandlers(
 
 Add your business logic to the generated handlers:
 
+> Re-running orval refreshes the file header, imports, and `factory` line so
+> changes to your config (paths, validators, etc.) take effect — but the body
+> of each `factory.createHandlers(...)` call is preserved verbatim, so your
+> business logic is safe across regeneration.
+
 ```ts title="src/handlers/listPets.ts"
 export const listPetsHandlers = factory.createHandlers(
   zValidator('query', listPetsQueryParams),

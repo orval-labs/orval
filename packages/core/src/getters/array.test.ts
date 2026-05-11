@@ -37,6 +37,45 @@ describe('getArray', () => {
     expect(result.schemas).toHaveLength(0);
   });
 
+  it('should wrap intersection type in parens when items use allOf with $refs', () => {
+    const contextWithSchemas = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            PartOne: {
+              type: 'object',
+              properties: { id: { type: 'integer' } },
+              required: ['id'],
+            },
+            PartTwo: {
+              type: 'object',
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+          },
+        },
+      },
+    });
+
+    const schema: OpenApiSchemaObject = {
+      type: 'array',
+      items: {
+        allOf: [
+          { $ref: '#/components/schemas/PartOne' },
+          { $ref: '#/components/schemas/PartTwo' },
+        ],
+      },
+    };
+
+    const result = getArray({
+      schema,
+      name: 'MyArray',
+      context: contextWithSchemas,
+    });
+
+    expect(result.value).toEqual('(PartOne & PartTwo)[]');
+  });
+
   it('should generate named schemas when name is provided', () => {
     const schema: OpenApiSchemaObject = {
       type: 'array',

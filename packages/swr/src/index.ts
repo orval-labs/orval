@@ -196,7 +196,9 @@ const generateSwrImplementation = ({
 
   const enabledImplementation = `const isEnabled = swrOptions?.enabled !== false${
     params.length > 0
-      ? ` && !!(${params.map(({ name }) => name).join(' && ')})`
+      ? ` && ${params
+          .map(({ name }) => `${name} !== null && ${name} !== undefined`)
+          .join(' && ')}`
       : ''
   }`;
   const swrKeyImplementation = `const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? ${swrKeyFnName}(${swrKeyProperties}) : null);`;
@@ -339,7 +341,9 @@ const generateSwrSuspenseImplementation = ({
 
   const enabledImplementation = `const isEnabled = swrOptions?.enabled !== false${
     params.length > 0
-      ? ` && !!(${params.map(({ name }) => name).join(' && ')})`
+      ? ` && ${params
+          .map(({ name }) => `${name} !== null && ${name} !== undefined`)
+          .join(' && ')}`
       : ''
   }`;
   const swrKeyImplementation = `const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? ${swrKeyFnName}(${swrKeyProperties}) : null);`;

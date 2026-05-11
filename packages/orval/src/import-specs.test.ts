@@ -752,6 +752,70 @@ describe('dereferenceExternalRefs', () => {
     expect(result).not.toHaveProperty('x-ext');
   });
 
+  // Regression test for https://github.com/orval-labs/orval/issues/394
+  it('should resolve internal $ref inside an external parameter against the external doc', () => {
+    const input = {
+      openapi: '3.0.2',
+      info: { title: 'Demo', version: '0.0.0' },
+      paths: {
+        '/path': {
+          get: {
+            parameters: [{ $ref: '#/x-ext/refs/components/parameters/switch' }],
+            responses: {
+              '200': {
+                description: 'ok',
+                content: {
+                  'application/json': { schema: { type: 'string' } },
+                },
+              },
+            },
+          },
+        },
+      },
+      'x-ext': {
+        refs: {
+          components: {
+            schemas: {
+              Switch: {
+                type: 'string',
+                enum: ['on', 'off'],
+              },
+            },
+            parameters: {
+              switch: {
+                name: 'switch',
+                in: 'query',
+                schema: { $ref: '#/components/schemas/Switch' },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = dereferenceExternalRef(input) as OpenApiDocument;
+
+    // The Switch schema from the external doc should be merged into main
+    // components with its content intact
+    expect(result.components?.schemas?.Switch).toEqual({
+      type: 'string',
+      enum: ['on', 'off'],
+    });
+
+    // The parameter should be inlined where the x-ext ref was, and its
+    // internal $ref must still point to Switch (now in the main spec)
+    const params = result.paths?.['/path']?.get?.parameters;
+    expect(params).toEqual([
+      expect.objectContaining({
+        name: 'switch',
+        in: 'query',
+        schema: { $ref: '#/components/schemas/Switch' },
+      }),
+    ]);
+
+    expect(result).not.toHaveProperty('x-ext');
+  });
+
   it('should handle schema name collisions - add suffix to external schema', () => {
     const input = {
       openapi: '3.0.3',
@@ -837,6 +901,52 @@ describe('dereferenceExternalRefs', () => {
     );
 
     expect(result).not.toHaveProperty('x-ext');
+  });
+
+  it('should break cycles when an external ref recursively points back to itself (#1642)', () => {
+    // A self-referencing x-ext entry outside components.schemas would
+    // otherwise inline forever and OOM; the inner ref must collapse to `{}`.
+    const warnSpy = vi.spyOn(orvalCore, 'logWarning').mockImplementation(() => {
+      /* noop */
+    });
+
+    const input = {
+      openapi: '3.0.0',
+      components: {
+        schemas: {
+          Foo: { $ref: '#/x-ext/abc/Foo' },
+        },
+      },
+      'x-ext': {
+        abc: {
+          Foo: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              self: { $ref: '#/x-ext/abc/Foo' },
+            },
+          },
+        },
+      },
+    };
+
+    const result = dereferenceExternalRef(input) as {
+      components: { schemas: { Foo: Record<string, unknown> } };
+    };
+
+    expect(result.components.schemas.Foo).toEqual({
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        self: {},
+      },
+    });
+    expect(result).not.toHaveProperty('x-ext');
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('circular external $ref'),
+    );
+
+    warnSpy.mockRestore();
   });
 
   it('should not inject components into Swagger 2.0 spec when no external refs exist', () => {

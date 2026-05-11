@@ -62,7 +62,7 @@ export const generateQueryOptions = ({
   const enabledOption = adapter
     ? adapter.generateEnabledOption(params, options)
     : !isObject(options) || !Object.hasOwn(options, 'enabled')
-      ? `enabled: !!(${params.map(({ name }) => name).join(' && ')}),`
+      ? `enabled: ${params.map(({ name }) => `${name} != null`).join(' && ')},`
       : '';
 
   return `${enabledOption}${queryConfig} ...queryOptions`;

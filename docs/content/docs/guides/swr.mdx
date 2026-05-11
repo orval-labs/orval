@@ -54,7 +54,10 @@ export const useShowPetById = <TError = Error>(
 ) => {
   const { swr: swrOptions, axios: axiosOptions } = options ?? {};
 
-  const isEnabled = swrOptions?.enabled !== false && !!petId;
+  const isEnabled =
+    swrOptions?.enabled !== false &&
+    petId !== null &&
+    petId !== undefined;
   const swrKey =
     swrOptions?.swrKey ?? (() => (isEnabled ? getShowPetByIdKey(petId) : null));
   const swrFn = () => showPetById(petId, axiosOptions);
@@ -99,7 +102,7 @@ Disable the hook conditionally:
 ```tsx
 const { data } = useShowPetById(petId, {
   swr: {
-    enabled: !!petId, // Only fetch when petId is defined
+    enabled: petId !== null && petId !== undefined, // Only fetch when petId is defined
   },
 });
 ```
