@@ -463,6 +463,12 @@ export async function writeSpecs(
       const app = await Application.bootstrapWithPlugins({
         entryPoints: paths.map((x) => upath.toUnix(x)),
         theme: 'markdown',
+        // Skip TypeScript diagnostics on the consuming project: TypeDoc would
+        // otherwise pick up the user's tsconfig and surface errors from files
+        // unrelated to the generated entry points (e.g. a demo `App.tsx`
+        // with an unused `React` default import under the new JSX transform —
+        // see #3338). User-overridable via the `docs` option below.
+        skipErrorChecking: true,
         // Set the custom config location if it has been provided.
         ...config,
         plugin: ['typedoc-plugin-markdown', ...(config.plugin ?? [])],

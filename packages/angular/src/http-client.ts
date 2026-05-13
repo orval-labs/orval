@@ -5,6 +5,7 @@ import {
   type ClientFooterBuilder,
   type ClientHeaderBuilder,
   type ContextSpec,
+  generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
@@ -16,6 +17,7 @@ import {
   getAngularFilteredParamsHelperBody,
   getDefaultContentType,
   getEnumImplementation,
+  getIsBodyVerb,
   isBoolean,
   pascal,
   toObjectString,
@@ -609,6 +611,25 @@ export const generateHttpClientImplementation = (
     : `Observable<${observableDataType}>`;
 
   if (hasMultipleContentTypes) {
+    const bodyIdentifier = generateBodyOptions(
+      body,
+      isFormData,
+      isFormUrlEncoded,
+    );
+    const deleteBodyOption =
+      verb === 'delete' && bodyIdentifier ? `body: ${bodyIdentifier}` : '';
+    const buildOptionsObject = (responseType: string) => `{
+        ...options,
+        responseType: '${responseType}',
+        headers,
+        ${angularParamsRef ? `params: ${angularParamsRef},` : ''}
+        ${deleteBodyOption ? `${deleteBodyOption},` : ''}
+      }`;
+    const buildHttpClientCall = (typeArg: string, optionsObject: string) =>
+      getIsBodyVerb(verb) && verb !== 'delete'
+        ? `this.http.${verb}${typeArg}(\`${route}\`, ${bodyIdentifier ?? 'undefined'}, ${optionsObject})`
+        : `this.http.${verb}${typeArg}(\`${route}\`, ${optionsObject})`;
+
     const requiredPart = props
       .filter((p) => p.required && !p.default)
       .map((p) => p.implementation)
@@ -635,37 +656,17 @@ export const generateHttpClientImplementation = (
       : { ...(options?.headers ?? {}), Accept: accept };
 
     if (accept.includes('json') || accept.includes('+json')) {
-      return this.http.${verb}<${parsedJsonReturnType}>(\`${route}\`, {
-        ...options,
-        responseType: 'json',
-        headers,
-        ${angularParamsRef ? `params: ${angularParamsRef},` : ''}
-      })${jsonValidationPipe};
+      return ${buildHttpClientCall(`<${parsedJsonReturnType}>`, buildOptionsObject('json'))}${jsonValidationPipe};
     } else if (accept.startsWith('text/') || accept.includes('xml')) {
-      return this.http.${verb}(\`${route}\`, {
-        ...options,
-        responseType: 'text',
-        headers,
-        ${angularParamsRef ? `params: ${angularParamsRef},` : ''}
-      }) as Observable<string>;
+      return ${buildHttpClientCall('', buildOptionsObject('text'))} as Observable<string>;
     }${
       blobSuccessTypes.length > 0
         ? ` else {
-      return this.http.${verb}(\`${route}\`, {
-        ...options,
-        responseType: 'blob',
-        headers,
-        ${angularParamsRef ? `params: ${angularParamsRef},` : ''}
-      }) as Observable<Blob>;
+      return ${buildHttpClientCall('', buildOptionsObject('blob'))} as Observable<Blob>;
     }`
         : `
 
-    return this.http.${verb}<${parsedJsonReturnType}>(\`${route}\`, {
-      ...options,
-      responseType: 'json',
-      headers,
-      ${angularParamsRef ? `params: ${angularParamsRef},` : ''}
-    })${jsonValidationPipe};`
+    return ${buildHttpClientCall(`<${parsedJsonReturnType}>`, buildOptionsObject('json'))}${jsonValidationPipe};`
     }
   }
 `;
