@@ -1,0 +1,70 @@
+openapi: 3.0.4
+info:
+  title: Recursive discriminator with allOf base
+  version: 0.1.0
+paths:
+  /derived1:
+    get:
+      operationId: getDerived1
+      responses:
+        '200':
+          description: Derived1 response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Derived1'
+  /derived2:
+    get:
+      operationId: getDerived2
+      responses:
+        '200':
+          description: Derived2 response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Derived2'
+components:
+  schemas:
+    Base:
+      type: object
+      required:
+        - $type
+        - BaseProp
+      properties:
+        discriminator:
+          type: string
+        BaseProp:
+          type: string
+          nullable: true
+        Parent:
+          oneOf:
+            - $ref: '#/components/schemas/Derived1'
+            - $ref: '#/components/schemas/Derived2'
+          nullable: true
+      discriminator:
+        propertyName: $type
+        mapping:
+          Derived1: '#/components/schemas/Derived1'
+          Derived2: '#/components/schemas/Derived2'
+      additionalProperties: false
+    Derived1:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - type: object
+          required:
+            - Derived1Prop
+          properties:
+            Derived1Prop:
+              type: integer
+              format: int32
+          additionalProperties: false
+    Derived2:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - type: object
+          required:
+            - Derived2Prop
+          properties:
+            Derived2Prop:
+              type: string
+          additionalProperties: false

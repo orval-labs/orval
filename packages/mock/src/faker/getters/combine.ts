@@ -96,13 +96,16 @@ export function combineSchemasMock({
     const refName = isReference(val) ? getReferenceName(val.$ref) : '';
     // For allOf: skip if refName is in existingRefs AND this is an inline schema (not a top-level ref)
     // This allows top-level schemas (item.isRef=true) to get base properties from allOf
-    // while preventing circular allOf chains in inline property schemas
+    // while preventing circular allOf chains in inline property schemas.
+    // For oneOf/anyOf: skip variants that point back to an already-visited schema,
+    // otherwise polymorphic recursion (e.g. Base.Parent → oneOf [Derived → allOf [Base]])
+    // would infinitely re-expand.
     const shouldSkipRef =
       separator === 'allOf'
         ? refName &&
           (refName === item.name ||
             (existingReferencedProperties.includes(refName) && !item.isRef))
-        : false;
+        : refName && existingReferencedProperties.includes(refName);
 
     if (shouldSkipRef) {
       if (separatorItems.length === 1) {
