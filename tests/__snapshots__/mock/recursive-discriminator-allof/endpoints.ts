@@ -46,10 +46,7 @@ export const getGetDerived1ResponseDerived2Mock = (
           ]),
           null,
         ]),
-        Parent: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([]),
-          null,
-        ]),
+        Parent: faker.helpers.arrayElement([undefined, null]),
       },
       ...{ Derived2Prop: faker.string.alpha({ length: { min: 10, max: 20 } }) },
     },
@@ -133,10 +130,7 @@ export const getGetDerived2ResponseDerived2Mock = (
           ]),
           null,
         ]),
-        Parent: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([]),
-          null,
-        ]),
+        Parent: faker.helpers.arrayElement([undefined, null]),
       },
       ...{ Derived2Prop: faker.string.alpha({ length: { min: 10, max: 20 } }) },
     },

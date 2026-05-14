@@ -183,9 +183,16 @@ export function combineSchemasMock({
 
     value += `${resolvedValue.value},`;
   }
+  // When every oneOf/anyOf variant was skipped (e.g. all $refs were already on
+  // the resolution stack) the loop leaves `value` at its initial opener. Emit
+  // `undefined` instead of closing it as `faker.helpers.arrayElement([])`,
+  // which throws at runtime.
+  const isEmptyArrayElement =
+    separator !== 'allOf' && value === 'faker.helpers.arrayElement([';
+
   let finalValue =
-    value === 'undefined'
-      ? value
+    value === 'undefined' || isEmptyArrayElement
+      ? 'undefined'
       : // containsOnlyPrimitiveValues isn't just true, it's being set to false inside the above reduce and the type system doesn't detect it
         `${separator === 'allOf' && !containsOnlyPrimitiveValues ? '{' : ''}${value}${separator === 'allOf' ? (containsOnlyPrimitiveValues ? '' : '}') : '])'}`;
   if (itemResolvedValue) {
