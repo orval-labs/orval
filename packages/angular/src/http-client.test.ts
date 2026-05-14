@@ -888,6 +888,74 @@ describe('angular HttpClient generator', () => {
       );
     });
 
+    it('places required body before accept in overloads for multi-content responses', () => {
+      const verbOption = createVerbOption({
+        operationId: 'updatePet',
+        operationName: 'updatePet',
+        verb: 'put',
+        route: '/pets/${petId}',
+        pathRoute: '/pets/{petId}',
+        body: {
+          implementation: 'pet',
+          definition: 'Pet',
+          imports: [],
+          schemas: [],
+          originalSchema: {} as never,
+          contentType: 'application/json',
+          formData: '',
+          formUrlEncoded: '',
+          isOptional: false,
+        },
+        props: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: false,
+            required: true,
+            type: GetterPropType.PARAM,
+          },
+          {
+            name: 'pet',
+            definition: 'pet: Pet',
+            implementation: 'pet: Pet',
+            default: false,
+            required: true,
+            type: GetterPropType.BODY,
+          },
+        ],
+        response: baseResponse({
+          definition: { success: 'Pet | string', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'text/plain'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'text/plain'],
+        }),
+      });
+      const options = createGeneratorOptions({
+        route: '/api/pets/${petId}',
+      });
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // Body must come before accept in all overload and implementation signatures.
+      const bodyIdx = impl.indexOf('pet: Pet');
+      const acceptIdx = impl.indexOf("accept: 'application/json'");
+      expect(bodyIdx).toBeGreaterThanOrEqual(0);
+      expect(acceptIdx).toBeGreaterThanOrEqual(0);
+      expect(bodyIdx).toBeLessThan(acceptIdx);
+
+      // Required body must NOT be widened to `Pet | undefined`.
+      expect(impl).not.toContain('Pet | undefined');
+
+      // The HTTP call must pass the body as the positional argument.
+      expect(impl).toContain('this.http.put<Pet>(`/api/pets/${petId}`, pet, {');
+    });
+
     it('preserves query params for multi-content responses', () => {
       const verbOption = createVerbOption({
         operationId: 'listPets',
