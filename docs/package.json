@@ -47,5 +47,5 @@
     "vite-tsconfig-paths": "^6.0.4",
     "wrangler": "^4.46.0"
   },
-  "version": "8.9.1"
+  "version": "8.10.0"
 }

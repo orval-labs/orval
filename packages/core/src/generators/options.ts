@@ -141,20 +141,20 @@ export function generateBodyOptions(
   body: GetterBody,
   isFormData: boolean,
   isFormUrlEncoded: boolean,
-) {
+): string | undefined {
   if (isFormData && body.formData) {
-    return '\n      formData,';
+    return 'formData';
   }
 
   if (isFormUrlEncoded && body.formUrlEncoded) {
-    return '\n      formUrlEncoded,';
+    return 'formUrlEncoded';
   }
 
   if (body.implementation) {
-    return `\n      ${body.implementation},`;
+    return body.implementation;
   }
 
-  return '';
+  return undefined;
 }
 
 interface GenerateAxiosOptions {
@@ -352,9 +352,9 @@ export function generateOptions({
   paramsSerializer,
   paramsSerializerOptions,
 }: GenerateOptionsOptions) {
-  const bodyOptions = getIsBodyVerb(verb)
+  const bodyIdentifier = getIsBodyVerb(verb)
     ? generateBodyOptions(body, isFormData, isFormUrlEncoded)
-    : '';
+    : undefined;
 
   const axiosOptions = generateAxiosOptions({
     response,
@@ -387,20 +387,21 @@ export function generateOptions({
     : '';
 
   if (verb === Verbs.DELETE) {
-    if (!bodyOptions) {
+    if (!bodyIdentifier) {
       return `\n      \`${route}\`${optionsArgument ? `,${optionsArgument}` : ''}\n    `;
     }
 
     const deleteBodyOptions = isRawOptionsArgument
       ? `...${optionsArgument}`
       : axiosOptions;
+    const deleteBodyField = `${isAngular ? 'body' : 'data'}: ${bodyIdentifier}`;
 
-    return `\n      \`${route}\`,{${
-      isAngular ? 'body' : 'data'
-    }:${bodyOptions} ${axiosOptions ? deleteBodyOptions : ''}}\n    `;
+    return `\n      \`${route}\`,{${deleteBodyField}${axiosOptions ? `,${deleteBodyOptions}` : ''}}\n    `;
   }
 
-  const bodyOrOptions = getIsBodyVerb(verb) ? bodyOptions || 'undefined,' : '';
+  const bodyOrOptions = getIsBodyVerb(verb)
+    ? `\n      ${bodyIdentifier ?? 'undefined'},`
+    : '';
   const separator = bodyOrOptions || optionsArgument ? ',' : '';
 
   return `\n      \`${route}\`${separator}${bodyOrOptions}${optionsArgument}\n    `;

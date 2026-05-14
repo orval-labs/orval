@@ -757,6 +757,66 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain("accept: GetPetFileAccept = 'application/json'");
     });
 
+    it('passes request bodies for PUT operations with multiple response types', () => {
+      const verbOption = createVerbOption({
+        operationId: 'updatePet',
+        operationName: 'updatePet',
+        verb: 'put',
+        route: '/pets/${petId}',
+        pathRoute: '/pets/{petId}',
+        body: {
+          implementation: 'updatePetBody',
+          definition: 'UpdatePetBody',
+          imports: [],
+          schemas: [],
+          originalSchema: {} as never,
+          contentType: 'application/json',
+          formData: '',
+          formUrlEncoded: '',
+          isOptional: false,
+        },
+        props: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: false,
+            required: true,
+            type: GetterPropType.PARAM,
+          },
+          {
+            name: 'updatePetBody',
+            definition: 'updatePetBody: UpdatePetBody',
+            implementation: 'updatePetBody: UpdatePetBody',
+            default: false,
+            required: true,
+            type: GetterPropType.BODY,
+          },
+        ],
+        response: baseResponse({
+          definition: { success: 'Pet | string', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'text/plain'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'text/plain'],
+        }),
+      });
+      const options = createGeneratorOptions({ route: '/api/pets/${petId}' });
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain(
+        'this.http.put<Pet>(`/api/pets/${petId}`, updatePetBody, {',
+      );
+      expect(impl).toContain(
+        'this.http.put(`/api/pets/${petId}`, updatePetBody, {',
+      );
+    });
+
     it('preserves query params for multi-content responses', () => {
       const verbOption = createVerbOption({
         operationId: 'listPets',
@@ -804,6 +864,66 @@ describe('angular HttpClient generator', () => {
 
       expect(impl).toContain('const filteredParams =');
       expect(impl).toContain('params: filteredParams');
+    });
+
+    it('places body in options (not positional arg) for DELETE with multiple response types', () => {
+      const verbOption = createVerbOption({
+        operationId: 'deletePet',
+        operationName: 'deletePet',
+        verb: 'delete',
+        route: '/pets/${petId}',
+        pathRoute: '/pets/{petId}',
+        body: {
+          implementation: 'deletePetBody',
+          definition: 'DeletePetBody',
+          imports: [],
+          schemas: [],
+          originalSchema: {} as never,
+          contentType: 'application/json',
+          formData: '',
+          formUrlEncoded: '',
+          isOptional: false,
+        },
+        props: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: false,
+            required: true,
+            type: GetterPropType.PARAM,
+          },
+          {
+            name: 'deletePetBody',
+            definition: 'deletePetBody: DeletePetBody',
+            implementation: 'deletePetBody: DeletePetBody',
+            default: false,
+            required: true,
+            type: GetterPropType.BODY,
+          },
+        ],
+        response: baseResponse({
+          definition: { success: 'Pet | string', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'text/plain'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'text/plain'],
+        }),
+      });
+      const options = createGeneratorOptions({ route: '/api/pets/${petId}' });
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // Body must be in options, not a positional argument
+      expect(impl).toContain('body: deletePetBody');
+      // DELETE must NOT get a positional body argument
+      expect(impl).not.toContain(
+        'this.http.delete(`/api/pets/${petId}`, deletePetBody,',
+      );
     });
 
     it('preserves query params for multi-content responses when requestOptions is false', () => {

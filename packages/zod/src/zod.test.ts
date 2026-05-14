@@ -1574,7 +1574,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['default', 'testObjectDefaultDefault'],
         ],
         consts: [
-          'export const testObjectDefaultDefault = { name: "Fluffy", age: 3 };',
+          'export const testObjectDefaultDefault = { name: "Fluffy", age: 3 } as const;',
         ],
       });
 
@@ -1589,7 +1589,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'zod.object({\n  "name": zod.string().optional(),\n  "age": zod.number().optional()\n}).default(testObjectDefaultDefault)',
       );
       expect(parsed.consts).toBe(
-        'export const testObjectDefaultDefault = { name: "Fluffy", age: 3 };',
+        'export const testObjectDefaultDefault = { name: "Fluffy", age: 3 } as const;',
       );
     });
 
@@ -2327,6 +2327,35 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(parsed.zod).toBe(
         "zod.array(zod.enum(['A', 'B', 'C'])).default([`A`])",
       );
+    });
+
+    it('appends "as const" to object defaults so enum properties keep literal types (#3244)', () => {
+      const schemaWithObjectEnumDefault: OpenApiSchemaObject = {
+        type: 'object',
+        required: ['enabled', 'value'],
+        properties: {
+          enabled: { type: 'boolean' },
+          value: { type: 'string', enum: ['a', 'b', 'c'] },
+        },
+        default: { enabled: true, value: 'a' },
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithObjectEnumDefault,
+        context,
+        'enumPropertiesObject',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result.consts).toEqual([
+        'export const enumPropertiesObjectDefault = { enabled: true, value: "a" } as const;',
+      ]);
+      expect(result.functions).toContainEqual([
+        'default',
+        'enumPropertiesObjectDefault',
+      ]);
     });
 
     it('does not append trailing enum chain for arrays with enum items and constraints (#2765)', () => {

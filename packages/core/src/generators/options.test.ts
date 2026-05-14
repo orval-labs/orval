@@ -10,6 +10,7 @@ import {
 } from '../types';
 import {
   generateAxiosOptions,
+  generateBodyOptions,
   generateMutatorConfig,
   generateOptions,
 } from './options';
@@ -402,6 +403,53 @@ describe('generateAxiosOptions', () => {
       );
       expect(result).not.toContain('false &&');
     });
+  });
+});
+
+describe('generateBodyOptions', () => {
+  it('should return formData when form data handling is enabled', () => {
+    expect(
+      generateBodyOptions(
+        { ...minimalBody, formData: 'something' },
+        true,
+        false,
+      ),
+    ).toBe('formData');
+  });
+
+  it('should return formUrlEncoded when url encoded handling is enabled', () => {
+    expect(
+      generateBodyOptions(
+        { ...minimalBody, formUrlEncoded: 'something' },
+        false,
+        true,
+      ),
+    ).toBe('formUrlEncoded');
+  });
+
+  it('should return a plain body identifier without formatting', () => {
+    expect(
+      generateBodyOptions(
+        { ...minimalBody, implementation: 'data' },
+        false,
+        false,
+      ),
+    ).toBe('data');
+  });
+
+  it('should return undefined when no request body is available', () => {
+    expect(
+      generateBodyOptions(
+        {
+          ...minimalBody,
+          implementation: '',
+          formData: '',
+          formUrlEncoded: '',
+        },
+        false,
+        false,
+      ),
+    ).toBeUndefined();
   });
 });
 
