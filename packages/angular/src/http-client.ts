@@ -18,6 +18,7 @@ import {
   getDefaultContentType,
   getEnumImplementation,
   getIsBodyVerb,
+  type GetterProp,
   GetterPropType,
   isBoolean,
   pascal,
@@ -66,6 +67,36 @@ const hasSchemaImport = (
 
 const getSchemaValueRef = (typeName: string): string =>
   typeName === 'Error' ? 'ErrorSchema' : typeName;
+
+/**
+ * Partition props into the three buckets used by per-content-type overload
+ * rendering: required non-body params, body params, and optional non-body
+ * params. The body always sits between the required and optional non-body
+ * params so that the per-content-type overloads can insert a required
+ * `accept` literal immediately after the body without violating TS1016
+ * (required parameter cannot follow an optional one).
+ */
+const partitionPropsForMultiContent = (
+  props: readonly GetterProp[],
+): {
+  requiredNonBody: GetterProp[];
+  body: GetterProp[];
+  optionalNonBody: GetterProp[];
+} => {
+  const requiredNonBody: GetterProp[] = [];
+  const body: GetterProp[] = [];
+  const optionalNonBody: GetterProp[] = [];
+  for (const p of props) {
+    if (p.type === GetterPropType.BODY) {
+      body.push(p);
+    } else if (p.required && !p.default) {
+      requiredNonBody.push(p);
+    } else {
+      optionalNonBody.push(p);
+    }
+  }
+  return { requiredNonBody, body, optionalNonBody };
+};
 
 const getContentTypeReturnType = (
   contentType: string | undefined,
@@ -566,22 +597,22 @@ export const generateHttpClientImplementation = (
 
   let contentTypeOverloads = '';
   if (hasMultipleContentTypes && isRequestOptions) {
-    const requiredNonBodyPart = props
-      .filter((p) => p.required && !p.default && p.type !== GetterPropType.BODY)
+    const {
+      requiredNonBody: requiredNonBodyProps,
+      body: bodyProps,
+      optionalNonBody: optionalNonBodyProps,
+    } = partitionPropsForMultiContent(props);
+    const requiredNonBodyPart = requiredNonBodyProps
       .map((p) => p.definition)
       .join(',\n    ');
-    const bodyPart = props
-      .filter((p) => p.type === GetterPropType.BODY)
-      .map((p) => p.definition)
-      .join(',\n    ');
+    const bodyPart = bodyProps.map((p) => p.definition).join(',\n    ');
     // Per-content-type overloads have a required `accept` literal after the body.
     // TS1016 forbids required params after optional ones, so optional body params
     // are rendered as positionally required (`name: Type | undefined`) here.
     // The `?` is removed via an identifier-anchored replacement so we only
     // affect the parameter's own optional marker, never a `?:` that may appear
     // elsewhere in the type (e.g. mapped or conditional types).
-    const bodyOverloadPart = props
-      .filter((p) => p.type === GetterPropType.BODY)
+    const bodyOverloadPart = bodyProps
       .map((p) => {
         const optionalMarker = `${p.name}?:`;
         if (!p.required && p.definition.startsWith(optionalMarker)) {
@@ -593,10 +624,7 @@ export const generateHttpClientImplementation = (
         return p.definition;
       })
       .join(',\n    ');
-    const optionalNonBodyPart = props
-      .filter(
-        (p) => (!p.required || p.default) && p.type !== GetterPropType.BODY,
-      )
+    const optionalNonBodyPart = optionalNonBodyProps
       .map((p) => p.definition)
       .join(',\n    ');
     const branchOverloads = successTypes
@@ -658,18 +686,18 @@ export const generateHttpClientImplementation = (
         ? `this.http.${verb}${typeArg}(\`${route}\`, ${bodyIdentifier ?? 'undefined'}, ${optionsObject})`
         : `this.http.${verb}${typeArg}(\`${route}\`, ${optionsObject})`;
 
-    const requiredNonBodyImplPart = props
-      .filter((p) => p.required && !p.default && p.type !== GetterPropType.BODY)
+    const {
+      requiredNonBody: requiredNonBodyImplProps,
+      body: bodyImplProps,
+      optionalNonBody: optionalNonBodyImplProps,
+    } = partitionPropsForMultiContent(props);
+    const requiredNonBodyImplPart = requiredNonBodyImplProps
       .map((p) => p.implementation)
       .join(',\n    ');
-    const bodyImplPart = props
-      .filter((p) => p.type === GetterPropType.BODY)
+    const bodyImplPart = bodyImplProps
       .map((p) => p.implementation)
       .join(',\n    ');
-    const optionalNonBodyImplPart = props
-      .filter(
-        (p) => (!p.required || p.default) && p.type !== GetterPropType.BODY,
-      )
+    const optionalNonBodyImplPart = optionalNonBodyImplProps
       .map((p) => p.implementation)
       .join(',\n    ');
     const allParams = [
