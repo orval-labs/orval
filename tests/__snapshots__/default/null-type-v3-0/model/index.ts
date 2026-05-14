@@ -9,6 +9,7 @@
 export * from './nullableAnyObject';
 export * from './nullableNumberEnum';
 export * from './nullableObject';
+export * from './nullableOnly';
 export * from './nullableStringEnum';
 export * from './nullOnlyNumberEnum';
 export * from './nullOnlyStringEnum';

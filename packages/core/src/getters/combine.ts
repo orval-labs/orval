@@ -449,6 +449,13 @@ export function combineSchemas({
     parentSchema: normalizedSchema,
   });
 
+  // Union types (oneOf/anyOf) cannot be expressed as TypeScript interfaces.
+  // A single branch + nullable also produces a union (T | null).
+  const isUnionResult =
+    separator !== 'allOf' &&
+    (resolvedData.values.length > 1 ||
+      (resolvedData.values.length === 1 && nullable !== ''));
+
   return {
     value: dedupeUnionType(value + nullable),
     imports: resolvedValue
@@ -466,6 +473,7 @@ export function combineSchemas({
     hasReadonlyProps:
       resolvedData.hasReadonlyProps ||
       (resolvedValue?.hasReadonlyProps ?? false),
+    ...(isUnionResult && { useTypeAlias: true }),
     example: schema.example as unknown,
     examples: resolveExampleRefs(
       schema.examples as

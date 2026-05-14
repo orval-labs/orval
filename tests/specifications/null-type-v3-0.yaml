@@ -107,3 +107,7 @@ components:
       nullable: true
       enum:
         - null
+
+    # Nullable-only schemas (no type field) — should generate `export type X = unknown | null;`
+    NullableOnly:
+      nullable: true
