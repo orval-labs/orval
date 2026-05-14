@@ -882,6 +882,20 @@ describe('angular HttpClient generator', () => {
       expect(acceptIdx).toBeGreaterThanOrEqual(0);
       expect(bodyIdx).toBeLessThan(acceptIdx);
 
+      // TS1016 regression guard: per-content-type overloads must render the
+      // optional body as a positionally required parameter — the `?` is
+      // dropped and the type is widened with `| undefined` so a required
+      // `accept` literal can follow it. The catch-all fallback overload
+      // legitimately keeps `confirmReservationBody?:` because no required
+      // parameter follows it there, so we only forbid the optional body
+      // form when it's directly followed by a required `accept` literal.
+      expect(impl).toMatch(
+        /confirmReservationBody:\s*ConfirmReservationBody\s*\|\s*null\s*\|\s*undefined,\s*\n\s*accept:\s*'/,
+      );
+      expect(impl).not.toMatch(
+        /confirmReservationBody\?:[^\n]*\n\s*accept:\s*'/,
+      );
+
       // The HTTP call itself must still pass the body as the positional argument
       expect(impl).toContain(
         'this.http.post<Pet>(`/api/reservations/${token}`, confirmReservationBody, {',
