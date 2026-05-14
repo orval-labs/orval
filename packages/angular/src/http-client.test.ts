@@ -817,6 +817,77 @@ describe('angular HttpClient generator', () => {
       );
     });
 
+    // Regression test for https://github.com/orval-labs/orval/issues/3349
+    it('places optional body before accept in overloads for multi-content responses', () => {
+      const verbOption = createVerbOption({
+        operationId: 'confirmReservation',
+        operationName: 'confirmReservation',
+        verb: 'post',
+        route: '/reservations/${token}',
+        pathRoute: '/reservations/{token}',
+        body: {
+          implementation: 'confirmReservationBody',
+          definition: 'ConfirmReservationBody',
+          imports: [],
+          schemas: [],
+          originalSchema: {} as never,
+          contentType: 'application/json',
+          formData: '',
+          formUrlEncoded: '',
+          isOptional: true,
+        },
+        props: [
+          {
+            name: 'token',
+            definition: 'token: string',
+            implementation: 'token: string',
+            default: false,
+            required: true,
+            type: GetterPropType.PARAM,
+          },
+          {
+            name: 'confirmReservationBody',
+            definition:
+              'confirmReservationBody?: ConfirmReservationBody | null',
+            implementation:
+              'confirmReservationBody?: ConfirmReservationBody | null',
+            default: false,
+            required: false,
+            type: GetterPropType.BODY,
+          },
+        ],
+        response: baseResponse({
+          definition: { success: 'Pet | string', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'text/plain'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'text/plain'],
+        }),
+      });
+      const options = createGeneratorOptions({
+        route: '/api/reservations/${token}',
+      });
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // Body must come before accept in all overload and implementation signatures.
+      // Check the first occurrence of each — body must appear first.
+      const bodyIdx = impl.indexOf('confirmReservationBody');
+      const acceptIdx = impl.indexOf("accept: 'application/json'");
+      expect(bodyIdx).toBeGreaterThanOrEqual(0);
+      expect(acceptIdx).toBeGreaterThanOrEqual(0);
+      expect(bodyIdx).toBeLessThan(acceptIdx);
+
+      // The HTTP call itself must still pass the body as the positional argument
+      expect(impl).toContain(
+        'this.http.post<Pet>(`/api/reservations/${token}`, confirmReservationBody, {',
+      );
+    });
+
     it('preserves query params for multi-content responses', () => {
       const verbOption = createVerbOption({
         operationId: 'listPets',

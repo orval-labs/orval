@@ -18,6 +18,7 @@ import {
   getDefaultContentType,
   getEnumImplementation,
   getIsBodyVerb,
+  GetterPropType,
   isBoolean,
   pascal,
   toObjectString,
@@ -565,12 +566,33 @@ export const generateHttpClientImplementation = (
 
   let contentTypeOverloads = '';
   if (hasMultipleContentTypes && isRequestOptions) {
-    const requiredPart = props
-      .filter((p) => p.required && !p.default)
+    const requiredNonBodyPart = props
+      .filter((p) => p.required && !p.default && p.type !== GetterPropType.BODY)
       .map((p) => p.definition)
       .join(',\n    ');
-    const optionalPart = props
-      .filter((p) => !p.required || p.default)
+    const bodyPart = props
+      .filter((p) => p.type === GetterPropType.BODY)
+      .map((p) => p.definition)
+      .join(',\n    ');
+    // Per-content-type overloads have a required `accept` literal after the body.
+    // TS1016 forbids required params after optional ones, so optional body params
+    // are rendered as positionally required (`name: Type | undefined`) here.
+    const bodyOverloadPart = props
+      .filter((p) => p.type === GetterPropType.BODY)
+      .map((p) => {
+        if (!p.required && p.definition.includes('?:')) {
+          const required = p.definition.replace('?:', ':');
+          return required.includes('undefined')
+            ? required
+            : `${required} | undefined`;
+        }
+        return p.definition;
+      })
+      .join(',\n    ');
+    const optionalNonBodyPart = props
+      .filter(
+        (p) => (!p.required || p.default) && p.type !== GetterPropType.BODY,
+      )
       .map((p) => p.definition)
       .join(',\n    ');
     const branchOverloads = successTypes
@@ -578,9 +600,10 @@ export const generateHttpClientImplementation = (
       .map(({ contentType, value }) => {
         const returnType = getGeneratedResponseType(value, contentType);
         const overloadParams = [
-          requiredPart,
+          requiredNonBodyPart,
+          bodyOverloadPart,
           `accept: '${contentType}'`,
-          optionalPart,
+          optionalNonBodyPart,
         ]
           .filter(Boolean)
           .join(',\n    ');
@@ -589,9 +612,10 @@ export const generateHttpClientImplementation = (
       })
       .join('\n  ');
     const allParams = [
-      requiredPart,
+      requiredNonBodyPart,
+      bodyPart,
       `accept?: ${acceptTypeName ?? 'string'}`,
-      optionalPart,
+      optionalNonBodyPart,
     ]
       .filter(Boolean)
       .join(',\n    ');
@@ -630,18 +654,25 @@ export const generateHttpClientImplementation = (
         ? `this.http.${verb}${typeArg}(\`${route}\`, ${bodyIdentifier ?? 'undefined'}, ${optionsObject})`
         : `this.http.${verb}${typeArg}(\`${route}\`, ${optionsObject})`;
 
-    const requiredPart = props
-      .filter((p) => p.required && !p.default)
+    const requiredNonBodyImplPart = props
+      .filter((p) => p.required && !p.default && p.type !== GetterPropType.BODY)
       .map((p) => p.implementation)
       .join(',\n    ');
-    const optionalPart = props
-      .filter((p) => !p.required || p.default)
+    const bodyImplPart = props
+      .filter((p) => p.type === GetterPropType.BODY)
+      .map((p) => p.implementation)
+      .join(',\n    ');
+    const optionalNonBodyImplPart = props
+      .filter(
+        (p) => (!p.required || p.default) && p.type !== GetterPropType.BODY,
+      )
       .map((p) => p.implementation)
       .join(',\n    ');
     const allParams = [
-      requiredPart,
+      requiredNonBodyImplPart,
+      bodyImplPart,
       `accept: ${acceptTypeName ?? 'string'} = '${defaultContentType}'`,
-      optionalPart,
+      optionalNonBodyImplPart,
     ]
       .filter(Boolean)
       .join(',\n    ');
