@@ -577,11 +577,15 @@ export const generateHttpClientImplementation = (
     // Per-content-type overloads have a required `accept` literal after the body.
     // TS1016 forbids required params after optional ones, so optional body params
     // are rendered as positionally required (`name: Type | undefined`) here.
+    // The `?` is removed via an identifier-anchored replacement so we only
+    // affect the parameter's own optional marker, never a `?:` that may appear
+    // elsewhere in the type (e.g. mapped or conditional types).
     const bodyOverloadPart = props
       .filter((p) => p.type === GetterPropType.BODY)
       .map((p) => {
-        if (!p.required && p.definition.includes('?:')) {
-          const required = p.definition.replace('?:', ':');
+        const optionalMarker = `${p.name}?:`;
+        if (!p.required && p.definition.startsWith(optionalMarker)) {
+          const required = `${p.name}:${p.definition.slice(optionalMarker.length)}`;
           return required.includes('undefined')
             ? required
             : `${required} | undefined`;

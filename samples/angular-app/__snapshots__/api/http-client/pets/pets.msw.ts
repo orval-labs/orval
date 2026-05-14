@@ -158,6 +158,98 @@ export const getShowPetByIdResponseMock = () =>
     ]),
   }))();
 
+export const getUpdatePetByIdResponseMock = (
+  overrideResponse: Partial<Extract<Pet | string, object>> = {},
+): Pet | string =>
+  faker.helpers.arrayElement([
+    {
+      id: faker.number.int({ min: 1 }),
+      name: (() => faker.person.lastName())(),
+      tag: (() => faker.person.lastName())(),
+      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+      status: faker.helpers.arrayElement([
+        'available',
+        'pending',
+        'sold',
+      ] as const),
+      age: faker.helpers.arrayElement([
+        faker.number.int({ min: 0, max: 30 }),
+        undefined,
+      ]),
+      rating: faker.helpers.arrayElement([
+        faker.number.float({ min: 0, max: 5, multipleOf: 0.5 }),
+        undefined,
+      ]),
+      phone: (() =>
+        faker.helpers.arrayElement([
+          `+1${faker.string.numeric({ length: 10 })}`,
+          undefined,
+        ]))(),
+      requiredNullableString: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
+        null,
+      ]),
+      optionalNullableString: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
+        undefined,
+      ]),
+      ...overrideResponse,
+    },
+    faker.word.sample(),
+  ]);
+
+export const getPatchPetByIdResponseMock = (
+  overrideResponse: Partial<Extract<Pet | string, object>> = {},
+): Pet | string =>
+  faker.helpers.arrayElement([
+    {
+      id: faker.number.int({ min: 1 }),
+      name: (() => faker.person.lastName())(),
+      tag: (() => faker.person.lastName())(),
+      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+      status: faker.helpers.arrayElement([
+        'available',
+        'pending',
+        'sold',
+      ] as const),
+      age: faker.helpers.arrayElement([
+        faker.number.int({ min: 0, max: 30 }),
+        undefined,
+      ]),
+      rating: faker.helpers.arrayElement([
+        faker.number.float({ min: 0, max: 5, multipleOf: 0.5 }),
+        undefined,
+      ]),
+      phone: (() =>
+        faker.helpers.arrayElement([
+          `+1${faker.string.numeric({ length: 10 })}`,
+          undefined,
+        ]))(),
+      requiredNullableString: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
+        null,
+      ]),
+      optionalNullableString: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
+        undefined,
+      ]),
+      ...overrideResponse,
+    },
+    faker.word.sample(),
+  ]);
+
 export const getShowPetTextResponseMock = (): string => faker.word.sample();
 
 export const getDownloadFileResponseMock = (): ArrayBuffer =>
@@ -258,6 +350,58 @@ export const getShowPetByIdMockHandler = (
   );
 };
 
+export const getUpdatePetByIdMockHandler = (
+  overrideResponse?:
+    | Pet
+    | string
+    | ((
+        info: Parameters<Parameters<typeof http.put>[1]>[0],
+      ) => Promise<Pet | string> | Pet | string),
+  options?: RequestHandlerOptions,
+) => {
+  return http.put(
+    '*/v:version/pets/:petId/update',
+    async (info: Parameters<Parameters<typeof http.put>[1]>[0]) => {
+      const resolvedBody =
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getUpdatePetByIdResponseMock();
+      return typeof resolvedBody === 'string'
+        ? HttpResponse.text(resolvedBody, { status: 200 })
+        : HttpResponse.json(resolvedBody, { status: 200 });
+    },
+    options,
+  );
+};
+
+export const getPatchPetByIdMockHandler = (
+  overrideResponse?:
+    | Pet
+    | string
+    | ((
+        info: Parameters<Parameters<typeof http.patch>[1]>[0],
+      ) => Promise<Pet | string> | Pet | string),
+  options?: RequestHandlerOptions,
+) => {
+  return http.patch(
+    '*/v:version/pets/:petId/update',
+    async (info: Parameters<Parameters<typeof http.patch>[1]>[0]) => {
+      const resolvedBody =
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getPatchPetByIdResponseMock();
+      return typeof resolvedBody === 'string'
+        ? HttpResponse.text(resolvedBody, { status: 200 })
+        : HttpResponse.json(resolvedBody, { status: 200 });
+    },
+    options,
+  );
+};
+
 export const getShowPetTextMockHandler = (
   overrideResponse?:
     | string
@@ -339,6 +483,8 @@ export const getPetsMock = () => [
   getListPetsMockHandler(),
   getCreatePetsMockHandler(),
   getShowPetByIdMockHandler(),
+  getUpdatePetByIdMockHandler(),
+  getPatchPetByIdMockHandler(),
   getShowPetTextMockHandler(),
   getUploadFileMockHandler(),
   getDownloadFileMockHandler(),
