@@ -133,6 +133,22 @@ export const ShowPetByIdAccept = {
   application_json: 'application/json',
 } as const;
 
+export type UpdatePetByIdAccept =
+  (typeof UpdatePetByIdAccept)[keyof typeof UpdatePetByIdAccept];
+
+export const UpdatePetByIdAccept = {
+  application_json: 'application/json',
+  text_plain: 'text/plain',
+} as const;
+
+export type PatchPetByIdAccept =
+  (typeof PatchPetByIdAccept)[keyof typeof PatchPetByIdAccept];
+
+export const PatchPetByIdAccept = {
+  application_json: 'application/json',
+  text_plain: 'text/plain',
+} as const;
+
 @Injectable({ providedIn: 'root' })
 export class PetsService {
   private readonly http = inject(HttpClient);
@@ -347,6 +363,118 @@ export class PetsService {
     });
   }
   /**
+   * @summary Replace a pet (required body, multi-content response)
+   */
+  updatePetById(
+    petId: string,
+    pet: Pet,
+    accept: 'application/json',
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<Pet>;
+  updatePetById(
+    petId: string,
+    pet: Pet,
+    accept: 'text/plain',
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<string>;
+  updatePetById(
+    petId: string,
+    pet: Pet,
+    accept?: UpdatePetByIdAccept,
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<Pet | string>;
+  updatePetById(
+    petId: string,
+    pet: Pet,
+    accept: UpdatePetByIdAccept = 'application/json',
+    version: number = 1,
+    options?: HttpClientOptions,
+  ): Observable<Pet | string> {
+    const headers =
+      options?.headers instanceof HttpHeaders
+        ? options.headers.set('Accept', accept)
+        : { ...(options?.headers ?? {}), Accept: accept };
+
+    if (accept.includes('json') || accept.includes('+json')) {
+      return this.http.put<Pet>(`/v${version}/pets/${petId}/update`, pet, {
+        ...options,
+        responseType: 'json',
+        headers,
+      });
+    } else if (accept.startsWith('text/') || accept.includes('xml')) {
+      return this.http.put(`/v${version}/pets/${petId}/update`, pet, {
+        ...options,
+        responseType: 'text',
+        headers,
+      }) as Observable<string>;
+    }
+
+    return this.http.put<Pet>(`/v${version}/pets/${petId}/update`, pet, {
+      ...options,
+      responseType: 'json',
+      headers,
+    });
+  }
+  /**
+   * @summary Partially update a pet (optional body, multi-content response)
+   */
+  patchPetById(
+    petId: string,
+    pet: Pet | undefined,
+    accept: 'application/json',
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<Pet>;
+  patchPetById(
+    petId: string,
+    pet: Pet | undefined,
+    accept: 'text/plain',
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<string>;
+  patchPetById(
+    petId: string,
+    pet?: Pet,
+    accept?: PatchPetByIdAccept,
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<Pet | string>;
+  patchPetById(
+    petId: string,
+    pet?: Pet,
+    accept: PatchPetByIdAccept = 'application/json',
+    version: number = 1,
+    options?: HttpClientOptions,
+  ): Observable<Pet | string> {
+    const headers =
+      options?.headers instanceof HttpHeaders
+        ? options.headers.set('Accept', accept)
+        : { ...(options?.headers ?? {}), Accept: accept };
+
+    if (accept.includes('json') || accept.includes('+json')) {
+      return this.http.patch<Pet>(`/v${version}/pets/${petId}/update`, pet, {
+        ...options,
+        responseType: 'json',
+        headers,
+      });
+    } else if (accept.startsWith('text/') || accept.includes('xml')) {
+      return this.http.patch(`/v${version}/pets/${petId}/update`, pet, {
+        ...options,
+        responseType: 'text',
+        headers,
+      }) as Observable<string>;
+    }
+
+    return this.http.patch<Pet>(`/v${version}/pets/${petId}/update`, pet, {
+      ...options,
+      responseType: 'json',
+      headers,
+    });
+  }
+  /**
    * @summary Info for a specific pet as plain text
    */
   showPetText(
@@ -502,6 +630,8 @@ export type SearchPetsClientResult = NonNullable<Pets>;
 export type ListPetsClientResult = NonNullable<Pets | string>;
 export type CreatePetsClientResult = NonNullable<void>;
 export type ShowPetByIdClientResult = NonNullable<string | Pet>;
+export type UpdatePetByIdClientResult = NonNullable<Pet | string>;
+export type PatchPetByIdClientResult = NonNullable<Pet | string>;
 export type ShowPetTextClientResult = NonNullable<string>;
 export type UploadFileClientResult = NonNullable<void>;
 export type DownloadFileClientResult = NonNullable<Blob>;

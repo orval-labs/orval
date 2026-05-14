@@ -6,8 +6,6 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export * from './confirmReservationBody';
-export * from './error';
-export * from './item';
-export * from './items';
-export * from './listItemsParams';
+export interface ConfirmReservationBody {
+  notes?: string;
+}

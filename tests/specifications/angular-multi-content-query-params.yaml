@@ -4,6 +4,40 @@ info:
   title: Angular Multi Content Query Params Test
   description: Test spec for verifying query params are preserved with multiple response content types
 paths:
+  /reservations/{token}/confirm:
+    post:
+      summary: Confirm a reservation with optional body and multiple response content types
+      operationId: confirmReservation
+      tags:
+        - reservations
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmReservationBody'
+      responses:
+        '200':
+          description: Reservation confirmed in multiple formats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+            text/plain:
+              schema:
+                type: string
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /items:
     get:
       summary: List items with multiple content types
@@ -41,6 +75,11 @@ paths:
                 $ref: '#/components/schemas/Error'
 components:
   schemas:
+    ConfirmReservationBody:
+      type: object
+      properties:
+        notes:
+          type: string
     Item:
       type: object
       required:

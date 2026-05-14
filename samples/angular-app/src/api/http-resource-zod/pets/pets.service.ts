@@ -33,6 +33,8 @@ import type {
   SearchPetsParams,
 } from '../model';
 
+import { map } from 'rxjs';
+
 export type OrvalHttpResourceOptions<
   TValue,
   TRaw = unknown,
@@ -436,6 +438,122 @@ export class PetsService {
     });
   }
 
+  updatePetById(
+    petId: string,
+    pet: Pet,
+    accept: 'application/json',
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<PetOutput>;
+  updatePetById(
+    petId: string,
+    pet: Pet,
+    accept: 'text/plain',
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<string>;
+  updatePetById(
+    petId: string,
+    pet: Pet,
+    accept?: UpdatePetByIdAccept,
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<PetOutput | string>;
+  updatePetById(
+    petId: string,
+    pet: Pet,
+    accept: UpdatePetByIdAccept = 'application/json',
+    version: number = 1,
+    options?: HttpClientOptions,
+  ): Observable<PetOutput | string> {
+    const headers =
+      options?.headers instanceof HttpHeaders
+        ? options.headers.set('Accept', accept)
+        : { ...(options?.headers ?? {}), Accept: accept };
+
+    if (accept.includes('json') || accept.includes('+json')) {
+      return this.http
+        .put<PetOutput>(`/v${version}/pets/${petId}/update`, pet, {
+          ...options,
+          responseType: 'json',
+          headers,
+        })
+        .pipe(map((data) => Pet.parse(data)));
+    } else if (accept.startsWith('text/') || accept.includes('xml')) {
+      return this.http.put(`/v${version}/pets/${petId}/update`, pet, {
+        ...options,
+        responseType: 'text',
+        headers,
+      }) as Observable<string>;
+    }
+
+    return this.http
+      .put<PetOutput>(`/v${version}/pets/${petId}/update`, pet, {
+        ...options,
+        responseType: 'json',
+        headers,
+      })
+      .pipe(map((data) => Pet.parse(data)));
+  }
+
+  patchPetById(
+    petId: string,
+    pet: Pet | undefined,
+    accept: 'application/json',
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<PetOutput>;
+  patchPetById(
+    petId: string,
+    pet: Pet | undefined,
+    accept: 'text/plain',
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<string>;
+  patchPetById(
+    petId: string,
+    pet?: Pet,
+    accept?: PatchPetByIdAccept,
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<PetOutput | string>;
+  patchPetById(
+    petId: string,
+    pet?: Pet,
+    accept: PatchPetByIdAccept = 'application/json',
+    version: number = 1,
+    options?: HttpClientOptions,
+  ): Observable<PetOutput | string> {
+    const headers =
+      options?.headers instanceof HttpHeaders
+        ? options.headers.set('Accept', accept)
+        : { ...(options?.headers ?? {}), Accept: accept };
+
+    if (accept.includes('json') || accept.includes('+json')) {
+      return this.http
+        .patch<PetOutput>(`/v${version}/pets/${petId}/update`, pet, {
+          ...options,
+          responseType: 'json',
+          headers,
+        })
+        .pipe(map((data) => Pet.parse(data)));
+    } else if (accept.startsWith('text/') || accept.includes('xml')) {
+      return this.http.patch(`/v${version}/pets/${petId}/update`, pet, {
+        ...options,
+        responseType: 'text',
+        headers,
+      }) as Observable<string>;
+    }
+
+    return this.http
+      .patch<PetOutput>(`/v${version}/pets/${petId}/update`, pet, {
+        ...options,
+        responseType: 'json',
+        headers,
+      })
+      .pipe(map((data) => Pet.parse(data)));
+  }
+
   uploadFile<TData = void>(
     petId: number,
     uploadFileBody?: Blob,
@@ -500,6 +618,8 @@ export type ShowPetTextResourceResult = NonNullable<string>;
 export type DownloadFileResourceResult = NonNullable<Blob>;
 
 export type CreatePetsClientResult = NonNullable<void>;
+export type UpdatePetByIdClientResult = NonNullable<Pet | string>;
+export type PatchPetByIdClientResult = NonNullable<Pet | string>;
 export type UploadFileClientResult = NonNullable<void>;
 
 /**

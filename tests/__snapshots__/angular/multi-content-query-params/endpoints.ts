@@ -12,7 +12,12 @@ import { Injectable, inject } from '@angular/core';
 
 import { Observable } from 'rxjs';
 
-import type { Items, ListItemsParams } from './model';
+import type {
+  ConfirmReservationBody,
+  Item,
+  Items,
+  ListItemsParams,
+} from './model';
 
 interface HttpClientOptions {
   readonly headers?: HttpHeaders | Record<string, string | string[]>;
@@ -107,6 +112,14 @@ function filterParams(
   return filteredParams;
 }
 
+export type ConfirmReservationAccept =
+  (typeof ConfirmReservationAccept)[keyof typeof ConfirmReservationAccept];
+
+export const ConfirmReservationAccept = {
+  application_json: 'application/json',
+  text_plain: 'text/plain',
+} as const;
+
 export type ListItemsAccept =
   (typeof ListItemsAccept)[keyof typeof ListItemsAccept];
 
@@ -118,6 +131,71 @@ export const ListItemsAccept = {
 @Injectable({ providedIn: 'root' })
 export class AngularMultiContentQueryParamsTestService {
   private readonly http = inject(HttpClient);
+  /**
+   * @summary Confirm a reservation with optional body and multiple response content types
+   */
+  confirmReservation(
+    token: string,
+    confirmReservationBody: ConfirmReservationBody | undefined,
+    accept: 'application/json',
+    options?: HttpClientOptions,
+  ): Observable<Item>;
+  confirmReservation(
+    token: string,
+    confirmReservationBody: ConfirmReservationBody | undefined,
+    accept: 'text/plain',
+    options?: HttpClientOptions,
+  ): Observable<string>;
+  confirmReservation(
+    token: string,
+    confirmReservationBody?: ConfirmReservationBody,
+    accept?: ConfirmReservationAccept,
+    options?: HttpClientOptions,
+  ): Observable<Item | string>;
+  confirmReservation(
+    token: string,
+    confirmReservationBody?: ConfirmReservationBody,
+    accept: ConfirmReservationAccept = 'application/json',
+    options?: HttpClientOptions,
+  ): Observable<Item | string> {
+    const headers =
+      options?.headers instanceof HttpHeaders
+        ? options.headers.set('Accept', accept)
+        : { ...(options?.headers ?? {}), Accept: accept };
+
+    if (accept.includes('json') || accept.includes('+json')) {
+      return this.http.post<Item>(
+        `/reservations/${token}/confirm`,
+        confirmReservationBody,
+        {
+          ...options,
+          responseType: 'json',
+          headers,
+        },
+      );
+    } else if (accept.startsWith('text/') || accept.includes('xml')) {
+      return this.http.post(
+        `/reservations/${token}/confirm`,
+        confirmReservationBody,
+        {
+          ...options,
+          responseType: 'text',
+          headers,
+        },
+      ) as Observable<string>;
+    }
+
+    return this.http.post<Item>(
+      `/reservations/${token}/confirm`,
+      confirmReservationBody,
+      {
+        ...options,
+        responseType: 'json',
+        headers,
+      },
+    );
+  }
+
   /**
    * @summary List items with multiple content types
    */

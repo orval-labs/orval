@@ -417,6 +417,114 @@ export class PetsService {
     });
   }
 
+  updatePetById(
+    petId: string,
+    pet: Pet,
+    accept: 'application/json',
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<Pet>;
+  updatePetById(
+    petId: string,
+    pet: Pet,
+    accept: 'text/plain',
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<string>;
+  updatePetById(
+    petId: string,
+    pet: Pet,
+    accept?: UpdatePetByIdAccept,
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<Pet | string>;
+  updatePetById(
+    petId: string,
+    pet: Pet,
+    accept: UpdatePetByIdAccept = 'application/json',
+    version: number = 1,
+    options?: HttpClientOptions,
+  ): Observable<Pet | string> {
+    const headers =
+      options?.headers instanceof HttpHeaders
+        ? options.headers.set('Accept', accept)
+        : { ...(options?.headers ?? {}), Accept: accept };
+
+    if (accept.includes('json') || accept.includes('+json')) {
+      return this.http.put<Pet>(`/v${version}/pets/${petId}/update`, pet, {
+        ...options,
+        responseType: 'json',
+        headers,
+      });
+    } else if (accept.startsWith('text/') || accept.includes('xml')) {
+      return this.http.put(`/v${version}/pets/${petId}/update`, pet, {
+        ...options,
+        responseType: 'text',
+        headers,
+      }) as Observable<string>;
+    }
+
+    return this.http.put<Pet>(`/v${version}/pets/${petId}/update`, pet, {
+      ...options,
+      responseType: 'json',
+      headers,
+    });
+  }
+
+  patchPetById(
+    petId: string,
+    pet: Pet | undefined,
+    accept: 'application/json',
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<Pet>;
+  patchPetById(
+    petId: string,
+    pet: Pet | undefined,
+    accept: 'text/plain',
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<string>;
+  patchPetById(
+    petId: string,
+    pet?: Pet,
+    accept?: PatchPetByIdAccept,
+    version?: number,
+    options?: HttpClientOptions,
+  ): Observable<Pet | string>;
+  patchPetById(
+    petId: string,
+    pet?: Pet,
+    accept: PatchPetByIdAccept = 'application/json',
+    version: number = 1,
+    options?: HttpClientOptions,
+  ): Observable<Pet | string> {
+    const headers =
+      options?.headers instanceof HttpHeaders
+        ? options.headers.set('Accept', accept)
+        : { ...(options?.headers ?? {}), Accept: accept };
+
+    if (accept.includes('json') || accept.includes('+json')) {
+      return this.http.patch<Pet>(`/v${version}/pets/${petId}/update`, pet, {
+        ...options,
+        responseType: 'json',
+        headers,
+      });
+    } else if (accept.startsWith('text/') || accept.includes('xml')) {
+      return this.http.patch(`/v${version}/pets/${petId}/update`, pet, {
+        ...options,
+        responseType: 'text',
+        headers,
+      }) as Observable<string>;
+    }
+
+    return this.http.patch<Pet>(`/v${version}/pets/${petId}/update`, pet, {
+      ...options,
+      responseType: 'json',
+      headers,
+    });
+  }
+
   uploadFile<TData = void>(
     petId: number,
     uploadFileBody?: Blob,
