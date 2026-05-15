@@ -698,6 +698,153 @@ this.petService.getPet().subscribe({
 For generated `httpResource` helpers, read the error through the resource's
 `error()` signal and keep `value()` reads guarded with `hasValue()`.
 
+## Query parameter filtering
+
+Angular's `HttpParams` only accepts primitives (`string`, `number`, `boolean`,
+and arrays of those). Anything else — objects, arrays of objects, `null`,
+`undefined` — is rejected or silently stringified to `"[object Object]"`. To
+make `HttpParams` safe, the generated Angular client passes every query
+parameter through an internal `filterParams` helper before handing it to
+`HttpClient`.
+
+### Default behaviour (schema-aware passthrough)
+
+Two things happen automatically — no configuration needed:
+
+1. **Primitive params** keep the existing nullish-stripping. `null`/`undefined`
+   values are removed, arrays are filtered to primitives only.
+2. **Schema-declared object / array-of-object params** are passed through
+   untouched, so a downstream `paramsSerializer` or `mutator` can handle them.
+   This restores parity with the axios and fetch generators, which never
+   filtered these values in the first place.
+
+```yaml title="openapi.yaml"
+parameters:
+  - name: filters
+    in: query
+    schema:
+      type: object
+      additionalProperties:
+        type: string
+```
+
+With the spec above, the generated client preserves `filters` so that your
+`paramsSerializer` (e.g. `qs.stringify`) or `mutator` (e.g. one that flattens
+the object into bracketed keys) actually receives it. See
+[issue #3326](https://github.com/orval-labs/orval/issues/3326) for the
+motivating bug.
+
+### Custom filter with `override.paramsFilter`
+
+When the schema cannot describe what you need — for example you want to
+preserve empty strings, encode arrays differently, or rename keys before
+they hit the wire — supply a `paramsFilter` mutator. It **completely
+replaces** the built-in `filterParams` for every operation that resolves
+to it; you own nullish-stripping and any non-primitive handling.
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'angular',
+      target: './src/api/petstore.ts',
+      override: {
+        paramsFilter: {
+          path: './src/api/params-filter.ts',
+          name: 'filterPetstoreParams',
+        },
+      },
+    },
+  },
+});
+```
+
+```ts title="src/api/params-filter.ts"
+// You are now the filter. orval will not strip null, undefined, or object
+// values for you — return exactly the shape Angular's HttpParams should see.
+export const filterPetstoreParams = (
+  params: Record<string, unknown>,
+): Record<string, unknown> => {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined) continue;
+    result[key] = value;
+  }
+  return result;
+};
+```
+
+#### What you take over when you opt in
+
+The built-in helper is **not** called alongside your filter. In particular,
+you are responsible for:
+
+- stripping `undefined` (Angular's `HttpParams` constructor will throw)
+- handling `null` (Angular treats it as the literal string `"null"`)
+- filtering arrays (`new HttpParams({ fromObject: { tags: [{}] } })` is
+  invalid)
+- coercing or flattening any object-valued params into a shape `HttpParams`
+  understands — or relying on a downstream `paramsSerializer` to do it
+
+The exact rules the default helper applies — useful as a starting point you
+can adapt:
+
+```ts title="default-filter-behaviour.ts"
+// This is the logic orval emits when no `paramsFilter` is configured.
+// Copy/adapt the parts you want; drop the rest.
+type Primitive = string | number | boolean;
+type Value = Primitive | Primitive[] | null;
+
+export const defaultFilter = (
+  params: Record<string, unknown>,
+  requiredNullableKeys = new Set<string>(),
+  passthroughKeys = new Set<string>(),
+): Record<string, Value | unknown> => {
+  const out: Record<string, Value | unknown> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (passthroughKeys.has(key)) {
+      if (value !== undefined) out[key] = value;
+      continue;
+    }
+    if (Array.isArray(value)) {
+      const filtered = value.filter(
+        (item): item is Primitive =>
+          item != null &&
+          (typeof item === 'string' ||
+            typeof item === 'number' ||
+            typeof item === 'boolean'),
+      );
+      if (filtered.length) out[key] = filtered;
+    } else if (value === null && requiredNullableKeys.has(key)) {
+      out[key] = null;
+    } else if (
+      value != null &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean')
+    ) {
+      out[key] = value;
+    }
+  }
+  return out;
+};
+```
+
+#### Composing with `paramsSerializer`
+
+If you configure both, orval calls them in this order so the serializer
+operates on the filtered result:
+
+```
+raw params → paramsFilter → paramsSerializer → HttpParams
+```
+
+`paramsFilter` controls *which keys/values reach the request*;
+`paramsSerializer` controls *how the surviving values are encoded into the
+URL*. Both are optional and independent.
+
 ## Advanced helpers
 
 Generated `httpResource` files also include small convenience helpers such as
