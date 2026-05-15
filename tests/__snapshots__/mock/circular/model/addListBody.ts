@@ -9,6 +9,8 @@ export type AddListBody = {
   /**
    * @minItems 1
    * @maxItems 10
+   * @items.minimum 1
+   * @items.maximum 10
    */
   list: number[];
 };
