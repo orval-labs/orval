@@ -408,6 +408,33 @@ describe('angular HttpClient generator', () => {
 
       expect(header).not.toContain('type ThirdParameter');
     });
+
+    it('emits filterParams helper for untagged operations in tags-split default file (#3103)', () => {
+      const queryParams = {
+        schema: { name: 'GetApiProductParams', imports: [], ...({} as never) },
+        deps: [],
+        imports: [],
+        originalSchema: {} as never,
+        requiredNullableKeys: [],
+      };
+      const verbOptionWithQueryParams = createVerbOption({
+        tags: [],
+        queryParams,
+      });
+
+      const header = generateAngularHeader({
+        title: 'DefaultService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        verbOptions: { getApiProduct: verbOptionWithQueryParams },
+        tag: 'default',
+      } as never);
+
+      expect(header).toContain('function filterParams(');
+    });
   });
 
   // ── Footer ────────────────────────────────────────────────────────────

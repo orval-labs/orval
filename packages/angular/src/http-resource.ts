@@ -167,8 +167,12 @@ const getRelevantVerbOptions = (
   tag?: string,
 ): GeneratorVerbOptions[] =>
   tag
-    ? Object.values(verbOptions).filter((verbOption) =>
-        verbOption.tags.some((currentTag) => camel(currentTag) === camel(tag)),
+    ? Object.values(verbOptions).filter(
+        (verbOption) =>
+          verbOption.tags.some(
+            (currentTag) => camel(currentTag) === camel(tag),
+          ) ||
+          (camel(tag) === 'default' && verbOption.tags.length === 0),
       )
     : Object.values(verbOptions);
 
