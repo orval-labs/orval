@@ -617,7 +617,7 @@ export const generateHttpClientImplementation = (
         const optionalMarker = `${p.name}?:`;
         if (!p.required && p.definition.startsWith(optionalMarker)) {
           const required = `${p.name}:${p.definition.slice(optionalMarker.length)}`;
-          return required.includes('undefined')
+          return /\bundefined\b/.test(required)
             ? required
             : `${required} | undefined`;
         }
