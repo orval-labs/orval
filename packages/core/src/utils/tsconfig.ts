@@ -13,7 +13,7 @@ export function isSyntheticDefaultImportsAllow(config?: Tsconfig) {
 
 const NODE_NEXT_MODULES = new Set(['nodenext', 'node16']);
 
-const NODE_NEXT_EXTENSION_MAP: ReadonlyArray<readonly [string, string]> = [
+const NODE_NEXT_EXTENSION_MAP: readonly (readonly [string, string])[] = [
   ['.tsx', '.jsx'],
   ['.mts', '.mjs'],
   ['.cts', '.cjs'],
