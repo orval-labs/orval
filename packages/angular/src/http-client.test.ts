@@ -410,16 +410,15 @@ describe('angular HttpClient generator', () => {
     });
 
     it('emits filterParams helper for untagged operations in tags-split default file (#3103)', () => {
-      const queryParams = {
-        schema: { name: 'GetApiProductParams', imports: [], ...({} as never) },
-        deps: [],
-        imports: [],
-        originalSchema: {} as never,
-        requiredNullableKeys: [],
-      };
       const verbOptionWithQueryParams = createVerbOption({
         tags: [],
-        queryParams,
+        queryParams: {
+          schema: { name: 'GetApiProductParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+        },
       });
 
       const header = generateAngularHeader({
