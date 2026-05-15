@@ -823,8 +823,8 @@ describe('angular HttpClient generator', () => {
         operationId: 'confirmReservation',
         operationName: 'confirmReservation',
         verb: 'post',
-        route: '/reservations/${token}',
-        pathRoute: '/reservations/{token}',
+        route: '/reservations/${token}/confirm',
+        pathRoute: '/reservations/{token}/confirm',
         body: {
           implementation: 'confirmReservationBody',
           definition: 'ConfirmReservationBody',
@@ -869,7 +869,7 @@ describe('angular HttpClient generator', () => {
         }),
       });
       const options = createGeneratorOptions({
-        route: '/api/reservations/${token}',
+        route: '/api/reservations/${token}/confirm',
       });
 
       const impl = generateHttpClientImplementation(verbOption, options);
@@ -898,7 +898,7 @@ describe('angular HttpClient generator', () => {
 
       // The HTTP call itself must still pass the body as the positional argument
       expect(impl).toContain(
-        'this.http.post<Pet>(`/api/reservations/${token}`, confirmReservationBody, {',
+        'this.http.post<Pet>(`/api/reservations/${token}/confirm`, confirmReservationBody, {',
       );
     });
 
