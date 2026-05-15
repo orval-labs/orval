@@ -693,11 +693,20 @@ restriction for individual operations.
 
 **Type:** `Boolean`
 
-**Default:** `true` for non-`GET` operations.
+**Default:** `true` for non-`GET` operations; `false` otherwise.
 
-Generate `useMutation` hooks for non-`GET` operations. Set to `false`
-to suppress Mutation hook generation; pair with `useQuery: true` if
-you want non-`GET` operations to be generated as Query hooks instead.
+Generate `useMutation` hooks. When set explicitly, applies to **all
+operations regardless of HTTP verb** — setting `useMutation: true`
+(globally or via `override.operations.<id>.query.useMutation`) routes
+a `GET` operation to a `useMutation` hook as well. This is useful for
+`GET` endpoints that you want to trigger imperatively rather than on
+render.
+
+Set to `false` to suppress Mutation hook generation; pair with
+`useQuery: true` if you want non-`GET` operations to be generated as
+Query hooks instead. When both `useQuery` and `useMutation` resolve to
+`true` for the same operation, the Mutation hook wins for `GET` and the
+Query hook wins for non-`GET`.
 
 ### useInfinite
 

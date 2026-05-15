@@ -833,7 +833,12 @@ export const generateQueryHook = async (
     effectiveUseInfinite ||
     effectiveUseSuspenseInfiniteQuery;
 
-  let isMutation = effectiveUseMutation && verb !== Verbs.GET;
+  // No verb gate here: `effectiveUseMutation` already encodes the
+  // per-verb default (`verb !== Verbs.GET`), so an explicit
+  // `useMutation: true` — global or per-operation — must be honoured for
+  // GET operations too, mirroring how `isQuery` honours `useQuery: true`
+  // for non-GET verbs (#3358).
+  let isMutation = effectiveUseMutation;
 
   // If both query and mutation are true for a non-GET operation, prioritize query
   if (verb !== Verbs.GET && isQuery) {
