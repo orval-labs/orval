@@ -210,4 +210,17 @@ export default defineConfig({
       target: '../specifications/angular-multi-content-query-params.yaml',
     },
   },
+  issue3103: {
+    output: {
+      target: '../generated/angular/issue-3103/endpoints.ts',
+      schemas: '../generated/angular/issue-3103/model',
+      client: 'angular',
+      mode: 'tags-split',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3103.yaml',
+    },
+  },
 });

@@ -19,6 +19,44 @@ interface JsDocSchema extends Record<string, unknown> {
   maxItems?: number;
   type?: string | string[];
   pattern?: string;
+  items?: JsDocSchema;
+}
+
+interface JsDocEntry {
+  key: string;
+  value: boolean | number | string;
+}
+
+const itemValidationKeys = [
+  'minLength',
+  'maxLength',
+  'minimum',
+  'maximum',
+  'exclusiveMinimum',
+  'exclusiveMaximum',
+  'minItems',
+  'maxItems',
+  'pattern',
+] as const satisfies readonly (keyof JsDocSchema)[];
+
+function getItemValidationDocEntries(
+  schema?: JsDocSchema,
+  prefix = 'items',
+): JsDocEntry[] {
+  if (!schema) {
+    return [];
+  }
+
+  const entries = itemValidationKeys.flatMap((key) => {
+    const value = schema[key];
+
+    return value === undefined ? [] : [{ key: `${prefix}.${key}`, value }];
+  });
+
+  return [
+    ...entries,
+    ...getItemValidationDocEntries(schema.items, `${prefix}.items`),
+  ];
 }
 
 export function jsDoc(
@@ -49,6 +87,7 @@ export function jsDoc(
   const isNullable =
     schema.type === 'null' ||
     (Array.isArray(schema.type) && schema.type.includes('null'));
+  const itemValidationDocEntries = getItemValidationDocEntries(schema.items);
   // Ensure there aren't any comment terminations in doc
   const lines = (
     Array.isArray(description)
@@ -70,6 +109,7 @@ export function jsDoc(
     maxItems?.toString(),
     isNullable ? 'null' : '',
     pattern,
+    ...itemValidationDocEntries.map(({ value }) => value.toString()),
   ].filter(Boolean).length;
 
   if (!count) {
@@ -130,6 +170,18 @@ export function jsDoc(
   tryAppendNumberDocLine('maxItems', maxItems);
   tryAppendBooleanDocLine('nullable', isNullable);
   tryAppendStringDocLine('pattern', pattern);
+
+  for (const { key, value } of itemValidationDocEntries) {
+    if (typeof value === 'string') {
+      tryAppendStringDocLine(key, value);
+      continue;
+    }
+    if (typeof value === 'number') {
+      tryAppendNumberDocLine(key, value);
+      continue;
+    }
+    tryAppendBooleanDocLine(key, value);
+  }
 
   doc += oneLine ? ' ' : `\n ${tryOneLine ? '  ' : ''}`;
 

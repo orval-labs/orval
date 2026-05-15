@@ -97,6 +97,7 @@ export interface NormalizedOverrideOutput {
   formUrlEncoded: boolean | NormalizedMutator;
   paramsSerializer?: NormalizedMutator;
   paramsSerializerOptions?: NormalizedParamsSerializerOptions;
+  paramsFilter?: NormalizedMutator;
   namingConvention: {
     enum?: NamingConvention;
   };
@@ -200,6 +201,7 @@ export interface NormalizedOperationOptions {
   formData?: NormalizedFormDataType<NormalizedMutator>;
   formUrlEncoded?: boolean | NormalizedMutator;
   paramsSerializer?: NormalizedMutator;
+  paramsFilter?: NormalizedMutator;
   requestOptions?: object | boolean;
 }
 
@@ -526,6 +528,7 @@ export interface OverrideOutput {
   formUrlEncoded?: boolean | Mutator;
   paramsSerializer?: Mutator;
   paramsSerializerOptions?: ParamsSerializerOptions;
+  paramsFilter?: Mutator;
   namingConvention?: {
     enum?: NamingConvention;
   };
@@ -909,6 +912,7 @@ export interface OperationOptions {
   formData?: boolean | Mutator | FormDataType<Mutator>;
   formUrlEncoded?: boolean | Mutator;
   paramsSerializer?: Mutator;
+  paramsFilter?: Mutator;
   requestOptions?: object | boolean;
 }
 
@@ -1062,6 +1066,7 @@ export interface GeneratorTarget {
   formData?: GeneratorMutator[];
   formUrlEncoded?: GeneratorMutator[];
   paramsSerializer?: GeneratorMutator[];
+  paramsFilter?: GeneratorMutator[];
   fetchReviver?: GeneratorMutator[];
 }
 
@@ -1079,6 +1084,7 @@ export interface GeneratorTargetFull {
   formData?: GeneratorMutator[];
   formUrlEncoded?: GeneratorMutator[];
   paramsSerializer?: GeneratorMutator[];
+  paramsFilter?: GeneratorMutator[];
   fetchReviver?: GeneratorMutator[];
 }
 
@@ -1097,6 +1103,7 @@ export interface GeneratorOperation {
   formData?: GeneratorMutator;
   formUrlEncoded?: GeneratorMutator;
   paramsSerializer?: GeneratorMutator;
+  paramsFilter?: GeneratorMutator;
   fetchReviver?: GeneratorMutator;
   operationName: string;
   types?: {
@@ -1123,6 +1130,7 @@ export interface GeneratorVerbOptions {
   formData?: GeneratorMutator;
   formUrlEncoded?: GeneratorMutator;
   paramsSerializer?: GeneratorMutator;
+  paramsFilter?: GeneratorMutator;
   fetchReviver?: GeneratorMutator;
   override: NormalizedOverrideOutput;
   deprecated?: boolean;
@@ -1192,6 +1200,7 @@ export type ClientHeaderBuilder = (params: {
   output: NormalizedOutputOptions;
   verbOptions: Record<string, GeneratorVerbOptions>;
   tag?: string;
+  isDefaultTagBucket?: boolean;
   clientImplementation: string;
 }) => string;
 
@@ -1296,7 +1305,8 @@ export interface GetterQueryParam {
    * Names of query parameters whose declared schema is non-primitive
    * (object, array of objects, or untyped). Used by Angular generators to
    * preserve these values through the default `filterParams` helper instead
-   * of silently dropping them — see issue #3326.
+   * of silently dropping them — the user's `paramsSerializer`, `mutator`, or
+   * `paramsFilter` is then responsible for handling them. See issue #3326.
    */
   nonPrimitiveKeys?: string[];
 }
@@ -1437,6 +1447,7 @@ export type GeneratorClientHeader = (data: {
   output: NormalizedOutputOptions;
   verbOptions: Record<string, GeneratorVerbOptions>;
   tag?: string;
+  isDefaultTagBucket?: boolean;
   clientImplementation: string;
 }) => GeneratorClientExtra;
 

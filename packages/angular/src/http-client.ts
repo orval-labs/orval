@@ -1,5 +1,5 @@
 import {
-  camel,
+  buildAngularParamsFilterExpression,
   type ClientBuilder,
   type ClientDependenciesBuilder,
   type ClientFooterBuilder,
@@ -12,8 +12,6 @@ import {
   generateOptions,
   generateVerbImports,
   type GeneratorVerbOptions,
-  getAngularFilteredParamsCallExpression,
-  getAngularFilteredParamsExpression,
   getAngularFilteredParamsHelperBody,
   getDefaultContentType,
   getEnumImplementation,
@@ -33,6 +31,7 @@ import {
 } from './types';
 import {
   createReturnTypesRegistry,
+  getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
   isPrimitiveType,
   isZodSchemaOutput,
@@ -226,16 +225,22 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
   provideIn,
   verbOptions,
   tag,
+  isDefaultTagBucket,
   output,
 }) => {
   returnTypesRegistry.reset();
 
-  const relevantVerbs = tag
-    ? Object.values(verbOptions).filter((v) =>
-        v.tags.some((t) => camel(t) === camel(tag)),
-      )
-    : Object.values(verbOptions);
-  const hasQueryParams = relevantVerbs.some((v) => v.queryParams);
+  const relevantVerbs = getRelevantVerbOptionsForTag(
+    verbOptions,
+    tag,
+    isDefaultTagBucket,
+  );
+  // Only emit the shared `filterParams` helper when at least one operation in
+  // this file will actually call it. If every operation with queryParams has
+  // its own `paramsFilter` mutator, the helper would be dead code.
+  const hasBuiltInFilteredQueryParams = relevantVerbs.some(
+    (v) => v.queryParams && !v.paramsFilter,
+  );
   const acceptHelpers = buildAcceptHelpers(relevantVerbs, output);
 
   return `
@@ -245,7 +250,7 @@ ${
 
 ${HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE}
 
-${hasQueryParams ? getAngularFilteredParamsHelperBody() : ''}`
+${hasBuiltInFilteredQueryParams ? getAngularFilteredParamsHelperBody() : ''}`
     : ''
 }
 
@@ -314,6 +319,7 @@ export const generateHttpClientImplementation = (
     formData,
     formUrlEncoded,
     paramsSerializer,
+    paramsFilter,
   }: GeneratorVerbOptions,
   { route, context }: HttpClientGeneratorContext,
 ) => {
@@ -409,6 +415,7 @@ export const generateHttpClientImplementation = (
       hasSignal: false,
       isExactOptionalPropertyTypes,
       isAngular: true,
+      paramsFilter,
     });
 
     const requestOptions = isRequestOptions
@@ -451,6 +458,7 @@ export const generateHttpClientImplementation = (
     isFormUrlEncoded,
     paramsSerializer,
     paramsSerializerOptions: override.paramsSerializerOptions,
+    paramsFilter,
     isAngular: true,
     isExactOptionalPropertyTypes,
     hasSignal: false,
@@ -470,26 +478,21 @@ export const generateHttpClientImplementation = (
 
   let paramsDeclaration = '';
   if (angularParamsRef && queryParams) {
-    if (isRequestOptions) {
-      // Uses the shared filterParams helper emitted in the file header
-      const callExpr = getAngularFilteredParamsCallExpression(
-        '{...params, ...options?.params}',
-        queryParams.requiredNullableKeys ?? [],
-      );
-      paramsDeclaration = paramsSerializer
-        ? `const ${angularParamsRef} = ${paramsSerializer.name}(${callExpr});\n\n    `
-        : `const ${angularParamsRef} = ${callExpr};\n\n    `;
-    } else {
-      // No shared helper available; use inline IIFE filtering
-      const iifeExpr = getAngularFilteredParamsExpression(
-        'params ?? {}',
-        queryParams.requiredNullableKeys ?? [],
-        !!paramsSerializer,
-      );
-      paramsDeclaration = paramsSerializer
-        ? `const ${angularParamsRef} = ${paramsSerializer.name}(${iifeExpr});\n\n    `
-        : `const ${angularParamsRef} = ${iifeExpr};\n\n    `;
-    }
+    const filterExpr = buildAngularParamsFilterExpression({
+      paramsExpression: isRequestOptions
+        ? '{...params, ...options?.params}'
+        : 'params ?? {}',
+      requiredNullableParamKeys: queryParams.requiredNullableKeys ?? [],
+      preserveRequiredNullables: !isRequestOptions && !!paramsSerializer,
+      nonPrimitiveKeys: queryParams.nonPrimitiveKeys ?? [],
+      paramsFilter,
+      // Request-options path uses the shared `filterParams` helper emitted in
+      // the file header; the non-request-options path inlines an IIFE.
+      useSharedHelper: isRequestOptions,
+    });
+    paramsDeclaration = paramsSerializer
+      ? `const ${angularParamsRef} = ${paramsSerializer.name}(${filterExpr});\n\n    `
+      : `const ${angularParamsRef} = ${filterExpr};\n\n    `;
   }
 
   const optionsInput = {

@@ -1,4 +1,6 @@
 import {
+  camel,
+  type GeneratorVerbOptions,
   getAngularFilteredParamsHelperBody,
   getDefaultContentType,
   isBoolean,
@@ -123,6 +125,22 @@ export const createRouteRegistry = () => {
       return routes.get(operationName) ?? fallback;
     },
   };
+};
+
+export const getRelevantVerbOptionsForTag = (
+  verbOptions: Record<string, GeneratorVerbOptions>,
+  tag?: string,
+  isDefaultTagBucket = false,
+): GeneratorVerbOptions[] => {
+  if (!tag) return Object.values(verbOptions);
+
+  const camelTag = camel(tag);
+
+  return Object.values(verbOptions).filter(
+    (verbOption) =>
+      verbOption.tags.some((currentTag) => camel(currentTag) === camelTag) ||
+      (isDefaultTagBucket && verbOption.tags.length === 0),
+  );
 };
 
 export const createReturnTypesRegistry = () => {

@@ -6,5 +6,9 @@
  */
 
 export interface ResSampleModel {
+  /**
+   * @items.minItems 2
+   * @items.maxItems 5
+   */
   items: string[][];
 }
