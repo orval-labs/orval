@@ -1292,6 +1292,13 @@ export interface GetterQueryParam {
   isOptional: boolean;
   originalSchema?: OpenApiSchemaObject;
   requiredNullableKeys?: string[];
+  /**
+   * Names of query parameters whose declared schema is non-primitive
+   * (object, array of objects, or untyped). Used by Angular generators to
+   * preserve these values through the default `filterParams` helper instead
+   * of silently dropping them — see issue #3326.
+   */
+  nonPrimitiveKeys?: string[];
 }
 
 export type GetterPropType =
