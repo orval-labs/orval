@@ -293,6 +293,10 @@ export async function normalizeOptions(
           outputWorkspace,
           outputOptions.override?.paramsSerializer,
         ),
+        paramsFilter: normalizeMutator(
+          outputWorkspace,
+          outputOptions.override?.paramsFilter,
+        ),
         header:
           outputOptions.override?.header === false
             ? false
@@ -634,6 +638,7 @@ function normalizeOperationsAndTags(
           formData,
           formUrlEncoded,
           paramsSerializer,
+          paramsFilter,
           query,
           angular,
           zod,
@@ -757,6 +762,11 @@ function normalizeOperationsAndTags(
                     workspace,
                     paramsSerializer,
                   ),
+                }
+              : {}),
+            ...(paramsFilter
+              ? {
+                  paramsFilter: normalizeMutator(workspace, paramsFilter),
                 }
               : {}),
           },
