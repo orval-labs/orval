@@ -27,8 +27,21 @@ export const getAngularFilteredParamsExpression = (
   paramsExpression: string,
   requiredNullableParamKeys: string[] = [],
   preserveRequiredNullables = false,
+  nonPrimitiveKeys: string[] = [],
 ): string => {
-  const filteredParamValueType = `string | number | boolean${preserveRequiredNullables ? ' | null' : ''} | Array<string | number | boolean>`;
+  const hasPassthrough = nonPrimitiveKeys.length > 0;
+  const filteredParamValueType = hasPassthrough
+    ? 'unknown'
+    : `string | number | boolean${preserveRequiredNullables ? ' | null' : ''} | Array<string | number | boolean>`;
+  const passthroughBranch = hasPassthrough
+    ? `    if (passthroughKeys.has(key)) {
+      if (value !== undefined) {
+        filteredParams[key] = value;
+      }
+      continue;
+    }
+`
+    : '';
   const preserveNullableBranch = preserveRequiredNullables
     ? `    } else if (value === null && requiredNullableParamKeys.has(key)) {
       filteredParams[key] = null;
@@ -43,12 +56,15 @@ export const getAngularFilteredParamsExpression = (
       filteredParams[key] = value;
     }
 `;
+  const passthroughDecl = hasPassthrough
+    ? `  const passthroughKeys = new Set<string>(${JSON.stringify(nonPrimitiveKeys)});\n`
+    : '';
 
   return `(() => {
-  const requiredNullableParamKeys = new Set<string>(${JSON.stringify(requiredNullableParamKeys)});
+${passthroughDecl}  const requiredNullableParamKeys = new Set<string>(${JSON.stringify(requiredNullableParamKeys)});
   const filteredParams: Record<string, ${filteredParamValueType}> = {};
   for (const [key, value] of Object.entries(${paramsExpression})) {
-    if (Array.isArray(value)) {
+${passthroughBranch}    if (Array.isArray(value)) {
       const filtered = value.filter(
         (item) =>
           item != null &&
@@ -77,19 +93,34 @@ function filterParams(
   params: Record<string, unknown>,
   requiredNullableKeys?: ReadonlySet<string>,
   preserveRequiredNullables?: false,
+  passthroughKeys?: undefined,
 ): Record<string, AngularHttpParamValue>;
 function filterParams(
   params: Record<string, unknown>,
   requiredNullableKeys: ReadonlySet<string> | undefined,
   preserveRequiredNullables: true,
+  passthroughKeys?: undefined,
 ): Record<string, AngularHttpParamValueWithNullable>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> | undefined,
+  preserveRequiredNullables: boolean | undefined,
+  passthroughKeys: ReadonlySet<string>,
+): Record<string, unknown>;
 function filterParams(
   params: Record<string, unknown>,
   requiredNullableKeys: ReadonlySet<string> = new Set(),
   preserveRequiredNullables = false,
-): Record<string, AngularHttpParamValueWithNullable> {
-  const filteredParams: Record<string, AngularHttpParamValueWithNullable> = {};
+  passthroughKeys: ReadonlySet<string> = new Set(),
+): Record<string, unknown> {
+  const filteredParams: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(params)) {
+    if (passthroughKeys.has(key)) {
+      if (value !== undefined) {
+        filteredParams[key] = value;
+      }
+      continue;
+    }
     if (Array.isArray(value)) {
       const filtered = value.filter(
         (item) =>
@@ -126,8 +157,14 @@ export const getAngularFilteredParamsCallExpression = (
   paramsExpression: string,
   requiredNullableParamKeys: string[] = [],
   preserveRequiredNullables = false,
-): string =>
-  `filterParams(${paramsExpression}, new Set<string>(${JSON.stringify(requiredNullableParamKeys)})${preserveRequiredNullables ? ', true' : ''})`;
+  nonPrimitiveKeys: string[] = [],
+): string => {
+  const baseArgs = `${paramsExpression}, new Set<string>(${JSON.stringify(requiredNullableParamKeys)})`;
+  if (nonPrimitiveKeys.length > 0) {
+    return `filterParams(${baseArgs}, ${preserveRequiredNullables}, new Set<string>(${JSON.stringify(nonPrimitiveKeys)}))`;
+  }
+  return `filterParams(${baseArgs}${preserveRequiredNullables ? ', true' : ''})`;
+};
 
 interface GenerateFormDataAndUrlEncodedFunctionOptions {
   body: GetterBody;
