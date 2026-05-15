@@ -7,9 +7,14 @@ import { getQueryParams } from './query-params';
 const context: ContextSpec = {
   spec: {},
   output: {
-    // @ts-expect-error -- partial mock: only override.useDates needed for test
+    // @ts-expect-error -- partial mock; only fields read by getters are defined
     override: {
       useDates: true,
+      components: {
+        schemas: { itemSuffix: 'Item' },
+      },
+      namingConvention: {},
+      enumGenerationType: 'const',
     },
   },
 };
@@ -246,5 +251,127 @@ describe('getQueryParams getter', () => {
     expect(result?.requiredNullableKeys).toEqual([
       'requiredOneOfNullableParam',
     ]);
+  });
+
+  // Tracking non-primitive keys lets Angular generators preserve schema-
+  // declared object/array-of-object params through the default filterParams
+  // helper instead of silently dropping them. See issue #3326.
+  describe('nonPrimitiveKeys (Angular passthrough)', () => {
+    it('flags object-typed query params', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'filters',
+              in: 'query',
+              required: false,
+              schema: { type: 'object' },
+            },
+            imports: [],
+          },
+          {
+            parameter: {
+              name: 'limit',
+              in: 'query',
+              required: false,
+              schema: { type: 'integer' },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toEqual(['filters']);
+    });
+
+    it('flags arrays of objects', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'items',
+              in: 'query',
+              required: false,
+              schema: {
+                type: 'array',
+                items: { type: 'object' },
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toEqual(['items']);
+    });
+
+    it('flags object via oneOf composition', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'either',
+              in: 'query',
+              required: false,
+              schema: {
+                oneOf: [{ type: 'string' }, { type: 'object' }],
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toEqual(['either']);
+    });
+
+    it('omits the field when all params are primitive', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'id',
+              in: 'query',
+              required: true,
+              schema: { type: 'string' },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toBeUndefined();
+    });
+
+    it('does not flag arrays of primitives', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'tags',
+              in: 'query',
+              required: false,
+              schema: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toBeUndefined();
+    });
   });
 });

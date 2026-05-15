@@ -879,6 +879,122 @@ describe('angular httpResource generator', () => {
         1,
       );
     });
+
+    // Issue #3326 — schema-aware passthrough + custom paramsFilter mutator
+    describe('query parameter filtering (#3326)', () => {
+      const customFilter = {
+        name: 'myFilter',
+        path: './my-filter',
+        default: false,
+        hasErrorType: false,
+        errorTypeName: '',
+        hasSecondArg: false,
+        hasThirdArg: false,
+        isHook: false,
+      };
+
+      it('preserves nonPrimitiveKeys through the built-in filter', () => {
+        const verbOption = createVerbOption({
+          queryParams: {
+            schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+            deps: [],
+            isOptional: true,
+            originalSchema: {} as never,
+            requiredNullableKeys: [],
+            nonPrimitiveKeys: ['filters'],
+          },
+        });
+        routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+        const header = generateHttpResourceHeader({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          output: createOutput(),
+          verbOptions: { getPetById: verbOption },
+          clientImplementation: '',
+        } as never);
+
+        // Passthrough set surfaces as the fourth filterParams argument.
+        expect(header).toContain('new Set<string>(["filters"])');
+      });
+
+      it('replaces the built-in filter with the user-supplied paramsFilter', () => {
+        const verbOption = createVerbOption({
+          queryParams: {
+            schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+            deps: [],
+            isOptional: true,
+            originalSchema: {} as never,
+            requiredNullableKeys: [],
+          },
+          paramsFilter: customFilter,
+        });
+        routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+        const header = generateHttpResourceHeader({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          output: createOutput(),
+          verbOptions: { getPetById: verbOption },
+          clientImplementation: '',
+        } as never);
+
+        // The user's filter is invoked directly with `params?.()`.
+        expect(header).toContain('myFilter(params?.() ?? {})');
+        // No built-in helper body is emitted when every retrieval has paramsFilter.
+        expect(header).not.toContain('function filterParams(');
+      });
+
+      it('emits the shared helper when at least one retrieval lacks paramsFilter', () => {
+        const verbA = createVerbOption({
+          operationName: 'a',
+          queryParams: {
+            schema: { name: 'AParams', model: '', imports: [] },
+            deps: [],
+            isOptional: true,
+            originalSchema: {} as never,
+            requiredNullableKeys: [],
+          },
+          paramsFilter: customFilter,
+        });
+        const verbB = createVerbOption({
+          operationName: 'b',
+          queryParams: {
+            schema: { name: 'BParams', model: '', imports: [] },
+            deps: [],
+            isOptional: true,
+            originalSchema: {} as never,
+            requiredNullableKeys: [],
+          },
+        });
+        routeRegistry.set('a', '/api/a');
+        routeRegistry.set('b', '/api/b');
+
+        const header = generateHttpResourceHeader({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          output: createOutput(),
+          verbOptions: { a: verbA, b: verbB },
+          clientImplementation: '',
+        } as never);
+
+        // Helper present (for verbB) AND user filter referenced (for verbA).
+        expect(header).toContain('function filterParams(');
+        expect(header).toContain('myFilter(params?.() ?? {})');
+      });
+    });
   });
 
   // ─── Tag scoping (modes: tags, tags-split) ────────────────────────

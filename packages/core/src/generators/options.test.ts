@@ -50,6 +50,17 @@ const minimalParamsSerializer: GeneratorMutator = {
   isHook: false,
 };
 
+const minimalParamsFilter: GeneratorMutator = {
+  name: 'paramsFilterMutator',
+  path: './paramsFilterMutator',
+  default: false,
+  hasErrorType: false,
+  errorTypeName: '',
+  hasSecondArg: false,
+  hasThirdArg: false,
+  isHook: false,
+};
+
 const buildScalarValue = (
   overrides: Partial<ResReqTypesValue>,
 ): ResReqTypesValue => ({
@@ -402,6 +413,71 @@ describe('generateAxiosOptions', () => {
         '} else if (value === null && requiredNullableParamKeys.has(key)) {',
       );
       expect(result).not.toContain('false &&');
+    });
+
+    // Issue #3326: schema-declared object/array-of-object query params used to
+    // be silently dropped. With nonPrimitiveQueryParamKeys they are passed
+    // through so a downstream paramsSerializer/mutator/paramsFilter can handle
+    // them.
+    it('passes nonPrimitiveKeys through the shared filter helper', () => {
+      const result = generateAxiosOptions({
+        response: minimalResponse,
+        isExactOptionalPropertyTypes: false,
+        queryParams: minimalSchema,
+        nonPrimitiveQueryParamKeys: ['filters'],
+        headers: undefined,
+        requestOptions: true,
+        hasSignal: false,
+        isVue: false,
+        isAngular: true,
+        paramsSerializer: undefined,
+        paramsSerializerOptions: undefined,
+      });
+
+      // Passthrough set is forwarded as the fourth argument to filterParams.
+      expect(result).toContain('new Set<string>(["filters"])');
+    });
+
+    it('replaces the built-in filter when paramsFilter is configured', () => {
+      const result = generateAxiosOptions({
+        response: minimalResponse,
+        isExactOptionalPropertyTypes: false,
+        queryParams: minimalSchema,
+        headers: undefined,
+        requestOptions: true,
+        hasSignal: false,
+        isVue: false,
+        isAngular: true,
+        paramsSerializer: undefined,
+        paramsSerializerOptions: undefined,
+        paramsFilter: minimalParamsFilter,
+      });
+
+      expect(result).toContain(
+        'params: paramsFilterMutator({...params, ...options?.params})',
+      );
+      expect(result).not.toContain('filterParams(');
+    });
+
+    it('composes paramsSerializer around paramsFilter when both are set', () => {
+      const result = generateAxiosOptions({
+        response: minimalResponse,
+        isExactOptionalPropertyTypes: false,
+        queryParams: minimalSchema,
+        headers: undefined,
+        requestOptions: true,
+        hasSignal: false,
+        isVue: false,
+        isAngular: true,
+        paramsSerializer: minimalParamsSerializer,
+        paramsSerializerOptions: undefined,
+        paramsFilter: minimalParamsFilter,
+      });
+
+      expect(result).toContain(
+        'params: paramsSerializerMutator(paramsFilterMutator({...params, ...options?.params}))',
+      );
+      expect(result).not.toContain('filterParams(');
     });
   });
 });
