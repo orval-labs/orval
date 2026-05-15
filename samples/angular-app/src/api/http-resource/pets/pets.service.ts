@@ -109,6 +109,22 @@ export const ShowPetByIdAccept = {
   application_json: 'application/json',
 } as const;
 
+export type UpdatePetByIdAccept =
+  (typeof UpdatePetByIdAccept)[keyof typeof UpdatePetByIdAccept];
+
+export const UpdatePetByIdAccept = {
+  application_json: 'application/json',
+  text_plain: 'text/plain',
+} as const;
+
+export type PatchPetByIdAccept =
+  (typeof PatchPetByIdAccept)[keyof typeof PatchPetByIdAccept];
+
+export const PatchPetByIdAccept = {
+  application_json: 'application/json',
+  text_plain: 'text/plain',
+} as const;
+
 /**
  * @experimental httpResource is experimental (Angular v19.2+)
  */
