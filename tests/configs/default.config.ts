@@ -670,6 +670,17 @@ export default defineConfig({
       target: '../specifications/issue-2998.yaml',
     },
   },
+  'issue-398-encoded-path-ref': {
+    output: {
+      target: '../generated/default/issue-398-encoded-path-ref/endpoints.ts',
+      schemas: '../generated/default/issue-398-encoded-path-ref/model',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-398-encoded-path-ref.yaml',
+    },
+  },
   'boolean-discriminator': {
     output: {
       target: '../generated/default/boolean-discriminator/endpoints.ts',

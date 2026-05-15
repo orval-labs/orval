@@ -1,5 +1,6 @@
 import { getScalar } from '../getters';
 import type { FormDataContext } from '../getters/object';
+import { isComponentRef } from '../getters/ref';
 import type {
   ContextSpec,
   GeneratorImport,
@@ -25,6 +26,7 @@ export function resolveValue({
   formDataContext,
 }: ResolveValueOptions): ResolverValue {
   if (isReference(schema)) {
+    const refValue = (schema as { $ref?: string }).$ref;
     const {
       schema: schemaObject,
       imports,
@@ -32,6 +34,20 @@ export function resolveValue({
       schema: OpenApiSchemaObject;
       imports: GeneratorImport[];
     } = resolveRef(schema, context);
+
+    // Refs that don't target a named component slot (e.g. bundler-emitted
+    // `#/paths/.../schema`) have no corresponding `export type`, so emitting
+    // a named import would dangle. Inline the resolved schema instead.
+    // See issue #398.
+    if (refValue && !isComponentRef(refValue)) {
+      const scalar = getScalar({
+        item: schemaObject,
+        name,
+        context,
+        formDataContext,
+      });
+      return { ...scalar, originalSchema: schemaObject, isRef: false };
+    }
 
     const resolvedImport = imports[0];
 

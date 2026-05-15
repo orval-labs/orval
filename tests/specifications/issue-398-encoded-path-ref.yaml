@@ -1,0 +1,21 @@
+openapi: 3.0.3
+info:
+  title: Issue 398 — encoded path ref
+  version: 1.0.0
+paths:
+  /{id}:
+    get:
+      operationId: getById
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/paths/~1%7Bid%7D/get/parameters/0/schema'
