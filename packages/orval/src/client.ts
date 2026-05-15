@@ -308,6 +308,7 @@ export const generateOperations = (
         formData: verbOption.formData,
         formUrlEncoded: verbOption.formUrlEncoded,
         paramsSerializer: verbOption.paramsSerializer,
+        paramsFilter: verbOption.paramsFilter,
         operationName: verbOption.operationName,
         fetchReviver: verbOption.fetchReviver,
       };

@@ -223,4 +223,34 @@ export default defineConfig({
       target: '../specifications/issue-3103.yaml',
     },
   },
+  issue3326: {
+    output: {
+      target: '../generated/angular/issue-3326/endpoints.ts',
+      schemas: '../generated/angular/issue-3326/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3326.yaml',
+    },
+  },
+  issue3326Filter: {
+    output: {
+      target: '../generated/angular/issue-3326-filter/endpoints.ts',
+      schemas: '../generated/angular/issue-3326-filter/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        paramsFilter: {
+          path: '../mutators/params-filter.ts',
+          name: 'flattenParamsFilter',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-3326.yaml',
+    },
+  },
 });

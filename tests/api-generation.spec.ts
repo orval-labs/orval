@@ -45,3 +45,23 @@ test('angular issue-3103 emits filterParams in tags-split default service', asyn
   expect(content).toContain('function filterParams(');
   expect(content).toContain('const filteredParams = filterParams(');
 });
+
+test('angular issue-3326 preserves object query params through default filter', async () => {
+  // Schema-declared object params must survive the built-in filterParams so a
+  // downstream paramsSerializer/mutator can handle them. See #3326.
+  const file = generated('angular', 'issue-3326', 'endpoints.ts');
+  const content = await readFile(file, 'utf8');
+
+  expect(content).toContain('function filterParams(');
+  // The object-typed `filters` key is forwarded as a passthrough set.
+  expect(content).toContain("new Set<string>(['filters'])");
+});
+
+test('angular issue-3326 paramsFilter replaces the built-in filter', async () => {
+  const file = generated('angular', 'issue-3326-filter', 'endpoints.ts');
+  const content = await readFile(file, 'utf8');
+
+  // The user mutator is imported and called; the built-in helper is gone.
+  expect(content).toContain('flattenParamsFilter');
+  expect(content).not.toContain('function filterParams(');
+});
