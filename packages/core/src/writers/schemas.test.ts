@@ -698,6 +698,90 @@ describe('writeSchemas indexFiles', () => {
     }
   });
 
+  it('emits .js import suffixes when tsconfig module is NodeNext', async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'orval-schema-nodenext-'),
+    );
+    const schemaPath = path.join(tempDir, 'schemas');
+
+    try {
+      await writeSchemas({
+        schemaPath,
+        schemas: [
+          createMockSchema('Pet'),
+          {
+            name: 'Owner',
+            model: 'export type Owner = { pet: Pet };',
+            imports: [{ name: 'Pet' }],
+            schema: {},
+          },
+        ],
+        target: 'src/api',
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.ts',
+        header: '// nodenext',
+        indexFiles: true,
+        tsconfig: { compilerOptions: { module: 'NodeNext' } },
+      });
+
+      const ownerContent = await fs.readFile(
+        path.join(schemaPath, 'owner.ts'),
+        'utf8',
+      );
+      expect(ownerContent).toContain("from './pet.js';");
+
+      const indexContent = await fs.readFile(
+        path.join(schemaPath, 'index.ts'),
+        'utf8',
+      );
+      expect(indexContent).toContain("export * from './pet.js';");
+      expect(indexContent).toContain("export * from './owner.js';");
+    } finally {
+      await fs.remove(tempDir);
+    }
+  });
+
+  it('keeps the .ts file extension on imports when allowImportingTsExtensions is true', async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'orval-schema-allow-ts-'),
+    );
+    const schemaPath = path.join(tempDir, 'schemas');
+
+    try {
+      await writeSchemas({
+        schemaPath,
+        schemas: [
+          createMockSchema('Pet'),
+          {
+            name: 'Owner',
+            model: 'export type Owner = { pet: Pet };',
+            imports: [{ name: 'Pet' }],
+            schema: {},
+          },
+        ],
+        target: 'src/api',
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.gen.ts',
+        header: '// allowImportingTsExtensions',
+        indexFiles: true,
+        tsconfig: {
+          compilerOptions: {
+            module: 'NodeNext',
+            allowImportingTsExtensions: true,
+          },
+        },
+      });
+
+      const ownerContent = await fs.readFile(
+        path.join(schemaPath, 'owner.gen.ts'),
+        'utf8',
+      );
+      expect(ownerContent).toContain("from './pet.gen.ts';");
+    } finally {
+      await fs.remove(tempDir);
+    }
+  });
+
   it('normalizes imports to schema name canonical file when importPath is stale', async () => {
     const tempDir = await fs.mkdtemp(
       path.join(os.tmpdir(), 'orval-schema-import-normalize-'),
