@@ -165,16 +165,15 @@ export const routeRegistry = createRouteRegistry();
 const getRelevantVerbOptions = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   tag?: string,
-): GeneratorVerbOptions[] =>
-  tag
-    ? Object.values(verbOptions).filter(
-        (verbOption) =>
-          verbOption.tags.some(
-            (currentTag) => camel(currentTag) === camel(tag),
-          ) ||
-          (camel(tag) === 'default' && verbOption.tags.length === 0),
-      )
-    : Object.values(verbOptions);
+): GeneratorVerbOptions[] => {
+  if (!tag) return Object.values(verbOptions);
+  const camelTag = camel(tag);
+  return Object.values(verbOptions).filter(
+    (verbOption) =>
+      verbOption.tags.some((currentTag) => camel(currentTag) === camelTag) ||
+      (camelTag === 'default' && verbOption.tags.length === 0),
+  );
+};
 
 const getVerbOptionsRecord = (
   verbOptions: readonly GeneratorVerbOptions[],

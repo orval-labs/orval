@@ -230,11 +230,12 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
 }) => {
   returnTypesRegistry.reset();
 
-  const relevantVerbs = tag
+  const camelTag = tag ? camel(tag) : undefined;
+  const relevantVerbs = camelTag
     ? Object.values(verbOptions).filter(
         (v) =>
-          v.tags.some((t) => camel(t) === camel(tag)) ||
-          (camel(tag) === 'default' && v.tags.length === 0),
+          v.tags.some((t) => camel(t) === camelTag) ||
+          (camelTag === 'default' && v.tags.length === 0),
       )
     : Object.values(verbOptions);
   const hasQueryParams = relevantVerbs.some((v) => v.queryParams);

@@ -1075,6 +1075,39 @@ describe('angular httpResource generator', () => {
       expect(header).toContain('getPetByIdResource');
       expect(header).toContain('healthCheckResource');
     });
+
+    it('emits filterParams helper for untagged operations in tags-split default file (#3103)', () => {
+      const verbOptionWithQueryParams = createVerbOption({
+        tags: [],
+        queryParams: {
+          schema: { name: 'GetApiProductParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          name: 'params',
+          definition: 'params: GetApiProductParams',
+          implementation: 'params: GetApiProductParams',
+          default: false,
+          required: false,
+          type: GetterPropType.QUERY_PARAM,
+        } as never,
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'DefaultService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOptionWithQueryParams },
+        tag: 'default',
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('function filterParams(');
+    });
   });
 
   // ─── Response type factories ──────────────────────────────────────
