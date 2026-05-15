@@ -875,7 +875,9 @@ describe('angular httpResource generator', () => {
       } as never);
 
       expect(header.match(/type AngularHttpParamValue =/g)).toHaveLength(1);
-      expect(header.match(/function filterParams\(/g)).toHaveLength(3);
+      expect(header.match(/preserveRequiredNullables = false,/g)).toHaveLength(
+        1,
+      );
     });
   });
 
@@ -1103,10 +1105,52 @@ describe('angular httpResource generator', () => {
         output: createOutput(),
         verbOptions: { getPetById: verbOptionWithQueryParams },
         tag: 'default',
+        isDefaultTagBucket: true,
         clientImplementation: '',
       } as never);
 
       expect(header).toContain('function filterParams(');
+    });
+
+    it('does not treat a literal default tag as the untagged bucket', () => {
+      const untaggedVerb = createVerbOption({
+        operationId: 'getUntaggedProduct',
+        tags: [],
+        queryParams: {
+          schema: { name: 'GetApiProductParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          name: 'params',
+          definition: 'params: GetApiProductParams',
+          implementation: 'params: GetApiProductParams',
+          default: false,
+          required: false,
+          type: GetterPropType.QUERY_PARAM,
+        } as never,
+      });
+      const explicitDefaultVerb = createVerbOption({
+        operationId: 'getTaggedDefaultProduct',
+        tags: ['default'],
+      });
+
+      const header = generateHttpResourceHeader({
+        title: 'DefaultService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: {
+          getUntaggedProduct: untaggedVerb,
+          getTaggedDefaultProduct: explicitDefaultVerb,
+        },
+        tag: 'default',
+        isDefaultTagBucket: false,
+        clientImplementation: '',
+      } as never);
+
+      expect(header).not.toContain('function filterParams(');
     });
   });
 

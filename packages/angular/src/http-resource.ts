@@ -1,5 +1,5 @@
 import {
-  camel,
+  buildAngularParamsFilterExpression,
   type ClientBuilder,
   type ClientDependenciesBuilder,
   type ClientExtraFilesBuilder,
@@ -14,7 +14,6 @@ import {
   type GeneratorDependency,
   type GeneratorImport,
   type GeneratorVerbOptions,
-  getAngularFilteredParamsCallExpression,
   getAngularFilteredParamsHelperBody,
   getFileInfo,
   getFullRoute,
@@ -51,6 +50,7 @@ import {
   createReturnTypesRegistry,
   createRouteRegistry,
   getDefaultSuccessType,
+  getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
   isMutationVerb,
   isPrimitiveType,
@@ -161,19 +161,6 @@ const resourceReturnTypesRegistry = createReturnTypesRegistry();
 
 /** @internal Exported for testing only */
 export const routeRegistry = createRouteRegistry();
-
-const getRelevantVerbOptions = (
-  verbOptions: Record<string, GeneratorVerbOptions>,
-  tag?: string,
-): GeneratorVerbOptions[] => {
-  if (!tag) return Object.values(verbOptions);
-  const camelTag = camel(tag);
-  return Object.values(verbOptions).filter(
-    (verbOption) =>
-      verbOption.tags.some((currentTag) => camel(currentTag) === camelTag) ||
-      (camelTag === 'default' && verbOption.tags.length === 0),
-  );
-};
 
 const getVerbOptionsRecord = (
   verbOptions: readonly GeneratorVerbOptions[],
@@ -460,6 +447,7 @@ const buildResourceRequest = (
     headers,
     queryParams,
     paramsSerializer,
+    paramsFilter,
     override,
     formData,
     formUrlEncoded,
@@ -494,11 +482,14 @@ const buildResourceRequest = (
   const paramsAccess = queryParams ? 'params?.()' : undefined;
   const headersAccess = headers ? 'headers?.()' : undefined;
   const filteredParamsValue = paramsAccess
-    ? getAngularFilteredParamsCallExpression(
-        `${paramsAccess} ?? {}`,
-        queryParams?.requiredNullableKeys ?? [],
-        !!paramsSerializer,
-      )
+    ? buildAngularParamsFilterExpression({
+        paramsExpression: `${paramsAccess} ?? {}`,
+        requiredNullableParamKeys: queryParams?.requiredNullableKeys ?? [],
+        preserveRequiredNullables: !!paramsSerializer,
+        nonPrimitiveKeys: queryParams?.nonPrimitiveKeys ?? [],
+        paramsFilter,
+        useSharedHelper: true,
+      })
     : undefined;
   const paramsValue = paramsAccess
     ? paramsSerializer
@@ -1221,6 +1212,7 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
   output,
   verbOptions,
   tag,
+  isDefaultTagBucket,
 }) => {
   resetHttpClientReturnTypes();
   resourceReturnTypesRegistry.reset();
@@ -1230,7 +1222,11 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
   // the shared header duplicates helpers across every tag file and pulls in
   // type names the file-local `imports` filter never sees, producing missing
   // schema imports in the generated output.
-  const relevantVerbOptions = getRelevantVerbOptions(verbOptions, tag);
+  const relevantVerbOptions = getRelevantVerbOptionsForTag(
+    verbOptions,
+    tag,
+    isDefaultTagBucket,
+  );
 
   const retrievals = relevantVerbOptions.filter((verbOption) =>
     isRetrievalVerb(
@@ -1239,10 +1235,13 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
       getClientOverride(verbOption),
     ),
   );
-  const hasResourceQueryParams = retrievals.some(
-    (verbOption) => !!verbOption.queryParams,
+  // Emit the shared `filterParams` helper only when at least one retrieval
+  // with query params lacks its own `paramsFilter` mutator — otherwise the
+  // helper would be dead code.
+  const hasBuiltInFilteredQueryParams = retrievals.some(
+    (verbOption) => !!verbOption.queryParams && !verbOption.paramsFilter,
   );
-  const filterParamsHelper = hasResourceQueryParams
+  const filterParamsHelper = hasBuiltInFilteredQueryParams
     ? `\n${getAngularFilteredParamsHelperBody()}\n`
     : '';
   const resources = retrievals
@@ -1269,8 +1268,11 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
     [...retrievals, ...mutations],
     output,
   );
-  const hasMutationQueryParams = mutations.some(
-    (verbOption) => !!verbOption.queryParams,
+  // Mutations need the built-in helper only when at least one mutation lacks
+  // its own `paramsFilter`. If the resource section already emits the helper
+  // for retrievals, we suppress the mutation-side emission to avoid duplication.
+  const hasMutationBuiltInFilteredQueryParams = mutations.some(
+    (verbOption) => !!verbOption.queryParams && !verbOption.paramsFilter,
   );
 
   const mutationImplementation = mutations
@@ -1296,7 +1298,8 @@ ${buildServiceClassOpen({
   isMutator,
   isGlobalMutator,
   provideIn,
-  hasQueryParams: hasMutationQueryParams && !hasResourceQueryParams,
+  hasQueryParams:
+    hasMutationBuiltInFilteredQueryParams && !hasBuiltInFilteredQueryParams,
 })}
 ${mutationImplementation}
 };
@@ -1361,10 +1364,13 @@ const buildHttpResourceFile = (
     ),
   );
 
-  const hasResourceQueryParams = retrievals.some(
-    (verbOption) => !!verbOption.queryParams,
+  // Emit the shared `filterParams` helper only when at least one retrieval
+  // with query params lacks its own `paramsFilter` mutator — otherwise the
+  // helper would be dead code.
+  const hasBuiltInFilteredQueryParams = retrievals.some(
+    (verbOption) => !!verbOption.queryParams && !verbOption.paramsFilter,
   );
-  const filterParamsHelper = hasResourceQueryParams
+  const filterParamsHelper = hasBuiltInFilteredQueryParams
     ? `\n${getAngularFilteredParamsHelperBody()}\n`
     : '';
 
@@ -1619,7 +1625,7 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
 
   return Promise.resolve([
     buildHttpResourceExtraFile(
-      getVerbOptionsRecord(getRelevantVerbOptions(verbOptions)),
+      getVerbOptionsRecord(getRelevantVerbOptionsForTag(verbOptions)),
       getHttpResourceExtraFilePath(output),
       output,
       context,

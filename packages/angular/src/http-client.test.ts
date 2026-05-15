@@ -430,6 +430,124 @@ describe('angular HttpClient generator', () => {
         hasAwaitedType: false,
         verbOptions: { getApiProduct: verbOptionWithQueryParams },
         tag: 'default',
+        isDefaultTagBucket: true,
+      } as never);
+
+      expect(header).toContain('function filterParams(');
+    });
+
+    it('does not treat a literal default tag as the untagged bucket', () => {
+      const untaggedVerb = createVerbOption({
+        operationId: 'getUntaggedProduct',
+        tags: [],
+        queryParams: {
+          schema: { name: 'GetApiProductParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+        },
+      });
+      const explicitDefaultVerb = createVerbOption({
+        operationId: 'getTaggedDefaultProduct',
+        tags: ['default'],
+      });
+
+      const header = generateAngularHeader({
+        title: 'DefaultService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        verbOptions: {
+          getUntaggedProduct: untaggedVerb,
+          getTaggedDefaultProduct: explicitDefaultVerb,
+        },
+        tag: 'default',
+        isDefaultTagBucket: false,
+      } as never);
+
+      expect(header).not.toContain('function filterParams(');
+    });
+
+    // Issue #3326: a user-supplied `paramsFilter` mutator owns the filter
+    // logic entirely, so the shared built-in helper would be dead code if
+    // every operation overrides it.
+    it('suppresses the shared filterParams helper when every operation has paramsFilter', () => {
+      const verbOptionWithCustomFilter = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+        },
+        paramsFilter: {
+          name: 'myFilter',
+          path: './my-filter',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+
+      const header = generateAngularHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        verbOptions: { getPetById: verbOptionWithCustomFilter },
+      } as never);
+
+      expect(header).not.toContain('function filterParams(');
+    });
+
+    it('still emits the shared helper when at least one operation lacks paramsFilter', () => {
+      const verbWithFilter = createVerbOption({
+        operationName: 'a',
+        queryParams: {
+          schema: { name: 'AParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+        },
+        paramsFilter: {
+          name: 'myFilter',
+          path: './my-filter',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+      const verbWithoutFilter = createVerbOption({
+        operationName: 'b',
+        queryParams: {
+          schema: { name: 'BParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+        },
+      });
+
+      const header = generateAngularHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        verbOptions: { a: verbWithFilter, b: verbWithoutFilter },
       } as never);
 
       expect(header).toContain('function filterParams(');
@@ -485,6 +603,94 @@ describe('angular HttpClient generator', () => {
   });
 
   // ── Implementation — GET ──────────────────────────────────────────────
+
+  // ── paramsFilter + nonPrimitiveKeys (issue #3326) ─────────────────────
+
+  describe('query parameter filtering (#3326)', () => {
+    const customFilter = {
+      name: 'myFilter',
+      path: './my-filter',
+      default: false,
+      hasErrorType: false,
+      errorTypeName: '',
+      hasSecondArg: false,
+      hasThirdArg: false,
+      isHook: false,
+    };
+
+    it('preserves nonPrimitiveKeys through the built-in filter', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+          nonPrimitiveKeys: ['filters'],
+        },
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // The shared `filterParams` is invoked with the passthrough set so
+      // `filters` survives.
+      expect(impl).toContain('new Set<string>(["filters"])');
+    });
+
+    it('replaces the built-in filter with the user-supplied paramsFilter', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+        },
+        paramsFilter: customFilter,
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // Filtered params come from `myFilter(...)`; the built-in helper is
+      // not called for this operation.
+      expect(impl).toContain(
+        'const filteredParams = myFilter({...params, ...options?.params})',
+      );
+      expect(impl).not.toContain('filterParams({...params');
+    });
+
+    it('wraps a configured paramsSerializer around the custom paramsFilter', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+        },
+        paramsFilter: customFilter,
+        paramsSerializer: {
+          name: 'mySerializer',
+          path: './my-serializer',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain(
+        'const filteredParams = mySerializer(myFilter({...params, ...options?.params}))',
+      );
+    });
+  });
 
   describe('generateHttpClientImplementation', () => {
     it('generates a GET method with typed return', () => {

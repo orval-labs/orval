@@ -31,6 +31,8 @@ await describeApiGenerationSnapshots({
 });
 
 test('angular issue-3103 emits filterParams in tags-split default service', async () => {
+  // Keep this focused assertion alongside the snapshot so #3103 fails with a
+  // targeted message instead of a full-file snapshot diff.
   const defaultServiceFile = generated(
     'angular',
     'issue-3103',

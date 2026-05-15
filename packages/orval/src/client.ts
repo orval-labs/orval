@@ -123,6 +123,7 @@ export const generateClientHeader: GeneratorClientHeader = ({
   output,
   verbOptions,
   tag,
+  isDefaultTagBucket,
   clientImplementation,
 }) => {
   const { header } = getGeneratorClient(outputClient, output);
@@ -138,6 +139,7 @@ export const generateClientHeader: GeneratorClientHeader = ({
           output,
           verbOptions,
           tag,
+          isDefaultTagBucket,
           clientImplementation,
         })
       : '',
