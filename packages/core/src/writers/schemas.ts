@@ -222,6 +222,10 @@ function normalizeCanonicalImportPaths(
         schemaPath,
         canonical.importPath.replaceAll('\\', '/'),
       );
+      // `relative` derives from canonical.importPath (built via getPath) so it
+      // normally ends with `fileExtension`; the `.ts$` branch is a defensive
+      // fallback for legacy/hardcoded `.ts` paths that don't match the
+      // configured fileExtension (e.g. `.gen.ts`).
       const withoutFileExtension = relative.endsWith(fileExtension)
         ? relative.slice(0, -fileExtension.length)
         : relative.replace(/\.ts$/, '');

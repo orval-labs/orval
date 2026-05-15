@@ -13,6 +13,13 @@ export function isSyntheticDefaultImportsAllow(config?: Tsconfig) {
 
 const NODE_NEXT_MODULES = new Set(['nodenext', 'node16']);
 
+const NODE_NEXT_EXTENSION_MAP: ReadonlyArray<readonly [string, string]> = [
+  ['.tsx', '.jsx'],
+  ['.mts', '.mjs'],
+  ['.cts', '.cjs'],
+  ['.ts', '.js'],
+];
+
 export function getImportExtension(
   fileExtension: string,
   tsconfig?: Tsconfig,
@@ -29,9 +36,12 @@ export function getImportExtension(
     (module && NODE_NEXT_MODULES.has(module)) ||
     (moduleResolution && NODE_NEXT_MODULES.has(moduleResolution))
   ) {
-    return fileExtension.endsWith('.ts')
-      ? `${fileExtension.slice(0, -3)}.js`
-      : fileExtension;
+    for (const [from, to] of NODE_NEXT_EXTENSION_MAP) {
+      if (fileExtension.endsWith(from)) {
+        return `${fileExtension.slice(0, -from.length)}${to}`;
+      }
+    }
+    return fileExtension;
   }
 
   return fileExtension.replace(/\.ts$/, '') || '';
