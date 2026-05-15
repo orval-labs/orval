@@ -646,6 +646,86 @@ describe('angular httpResource generator', () => {
       expect(header).toContain('this.http.post');
     });
 
+    it('emits Accept helpers for multi-content mutations', () => {
+      const verbOption = createVerbOption({
+        operationId: 'updatePetById',
+        operationName: 'updatePetById',
+        verb: 'put',
+        route: '/pets/${petId}',
+        pathRoute: '/pets/{petId}',
+        body: {
+          implementation: 'updatePetByIdBody',
+          definition: 'CreatePetBody',
+          imports: [],
+          schemas: [],
+          originalSchema: {} as never,
+          contentType: 'application/json',
+          formData: '',
+          formUrlEncoded: '',
+          isOptional: false,
+        },
+        props: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: false,
+            required: true,
+            type: GetterPropType.PARAM,
+          },
+          {
+            name: 'updatePetByIdBody',
+            definition: 'updatePetByIdBody: CreatePetBody',
+            implementation: 'updatePetByIdBody: CreatePetBody',
+            default: false,
+            required: true,
+            type: GetterPropType.BODY,
+          },
+        ],
+        params: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: false,
+            required: true,
+            imports: [],
+          },
+        ],
+        response: baseResponse({
+          definition: { success: 'Pet | string', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'text/plain'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'text/plain'],
+        }),
+      });
+      routeRegistry.set('updatePetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { updatePetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('export type UpdatePetByIdAccept');
+      expect(header).toContain("accept: 'application/json'");
+      expect(header).toContain("accept: 'text/plain'");
+      expect(header).toContain(
+        "accept: UpdatePetByIdAccept = 'application/json'",
+      );
+    });
+
     it('generates both resources and service class for mixed GET + mutation', () => {
       const getVerb = createVerbOption();
       const postVerb = createVerbOption({

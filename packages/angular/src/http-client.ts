@@ -89,7 +89,7 @@ const partitionPropsForMultiContent = (
   for (const p of props) {
     if (p.type === GetterPropType.BODY) {
       body.push(p);
-    } else if (p.required && p.default == null) {
+    } else if (p.required && !p.default) {
       requiredNonBody.push(p);
     } else {
       optionalNonBody.push(p);

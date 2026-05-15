@@ -1242,8 +1242,6 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
   const filterParamsHelper = hasResourceQueryParams
     ? `\n${getAngularFilteredParamsHelperBody()}\n`
     : '';
-  const acceptHelpers = buildAcceptHelpers(retrievals, output);
-
   const resources = retrievals
     .map((verbOption) => {
       const fullRoute = routeRegistry.get(
@@ -1263,6 +1261,10 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
       verbOption.operationName,
       getClientOverride(verbOption),
     ),
+  );
+  const acceptHelpers = buildAcceptHelpers(
+    [...retrievals, ...mutations],
+    output,
   );
   const hasMutationQueryParams = mutations.some(
     (verbOption) => !!verbOption.queryParams,
