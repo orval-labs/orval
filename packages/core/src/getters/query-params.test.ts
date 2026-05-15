@@ -4,20 +4,20 @@ import type { ContextSpec, OpenApiParameterObject } from '../types';
 import { getQueryParams } from './query-params';
 
 // Mock context for getQueryParams
-const context: ContextSpec = {
+// partial mock; only fields read by getQueryParams/resolveValue are defined
+const context = {
   spec: {},
   output: {
-    // @ts-expect-error -- partial mock; only fields read by getters are defined
     override: {
       useDates: true,
       components: {
-        schemas: { itemSuffix: 'Item' },
+        schemas: { suffix: '', itemSuffix: 'Item' },
       },
       namingConvention: {},
       enumGenerationType: 'const',
     },
   },
-};
+} as unknown as ContextSpec;
 
 const queryParams: {
   parameter: OpenApiParameterObject;
