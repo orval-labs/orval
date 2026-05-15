@@ -95,4 +95,43 @@ describe('resolveValue', () => {
     expect(result.imports).toHaveLength(0);
     expect(result.isRef).toBe(false);
   });
+
+  // Defensive guard: a self-referential path-ref would otherwise recurse via
+  // getScalar -> resolveValue forever, since the named-ref cycle tracker keys
+  // off `resolvedImport.name` and not the ref string.
+  it('breaks cycles on self-referential path-based refs', () => {
+    const selfRef =
+      '#/paths/~1self/get/responses/200/content/application~1json/schema';
+    const context = createContext({
+      openapi: '3.0.3',
+      paths: {
+        '/self': {
+          get: {
+            responses: {
+              '200': {
+                description: 'OK',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        child: { $ref: selfRef },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    } as unknown as OpenApiDocument);
+
+    expect(() =>
+      resolveValue({
+        schema: { $ref: selfRef } as OpenApiReferenceObject,
+        context,
+      }),
+    ).not.toThrow();
+  });
 });
