@@ -8,8 +8,9 @@ import {
   type GeneratorImport,
   type GeneratorSchema,
   NamingConvention,
+  type Tsconfig,
 } from '../types';
-import { conventionName, upath } from '../utils';
+import { conventionName, getImportExtension, upath } from '../utils';
 import { writeGeneratedFile } from './file';
 
 type CanonicalInfo = Pick<GeneratorImport, 'importPath' | 'name'>;
@@ -60,14 +61,6 @@ export function splitSchemasByType(schemas: GeneratorSchema[]): {
 }
 
 /**
- * Get the import extension from a file extension.
- * Removes `.ts` suffix since TypeScript doesn't need it in imports.
- */
-function getImportExtension(fileExtension: string): string {
-  return fileExtension.replace(/\.ts$/, '') || '';
-}
-
-/**
  * Fix cross-directory imports when schemas reference other schemas in a different directory.
  * Updates import paths to use correct relative paths between directories.
  */
@@ -78,9 +71,10 @@ function fixSchemaImports(
   toPath: string,
   namingConvention: NamingConvention,
   fileExtension: string,
+  tsconfig?: Tsconfig,
 ): void {
   const relativePath = upath.relativeSafe(fromPath, toPath);
-  const importExtension = getImportExtension(fileExtension);
+  const importExtension = getImportExtension(fileExtension, tsconfig);
 
   for (const schema of schemas) {
     schema.imports = schema.imports.map((imp) => {
@@ -106,6 +100,7 @@ export function fixCrossDirectoryImports(
   operationSchemaPath: string,
   namingConvention: NamingConvention,
   fileExtension: string,
+  tsconfig?: Tsconfig,
 ): void {
   fixSchemaImports(
     operationSchemas,
@@ -114,6 +109,7 @@ export function fixCrossDirectoryImports(
     schemaPath,
     namingConvention,
     fileExtension,
+    tsconfig,
   );
 }
 
@@ -127,6 +123,7 @@ export function fixRegularSchemaImports(
   operationSchemaPath: string,
   namingConvention: NamingConvention,
   fileExtension: string,
+  tsconfig?: Tsconfig,
 ): void {
   fixSchemaImports(
     regularSchemas,
@@ -135,6 +132,7 @@ export function fixRegularSchemaImports(
     operationSchemaPath,
     namingConvention,
     fileExtension,
+    tsconfig,
   );
 }
 
@@ -204,7 +202,9 @@ function normalizeCanonicalImportPaths(
   schemaPath: string,
   namingConvention: NamingConvention,
   fileExtension: string,
+  tsconfig?: Tsconfig,
 ) {
+  const importExtension = getImportExtension(fileExtension, tsconfig);
   for (const schema of schemas) {
     schema.imports = schema.imports.map((imp) => {
       const canonicalByName = canonicalNameMap.get(imp.name);
@@ -218,12 +218,18 @@ function normalizeCanonicalImportPaths(
       const canonical = canonicalByName ?? canonicalByPath;
       if (!canonical?.importPath) return imp;
 
-      const importPath = removeTSExtension(
-        upath.relativeSafe(
-          schemaPath,
-          canonical.importPath.replaceAll('\\', '/'),
-        ),
+      const relative = upath.relativeSafe(
+        schemaPath,
+        canonical.importPath.replaceAll('\\', '/'),
       );
+      // `relative` derives from canonical.importPath (built via getPath) so it
+      // normally ends with `fileExtension`; the `.ts$` branch is a defensive
+      // fallback for legacy/hardcoded `.ts` paths that don't match the
+      // configured fileExtension (e.g. `.gen.ts`).
+      const withoutFileExtension = relative.endsWith(fileExtension)
+        ? relative.slice(0, -fileExtension.length)
+        : relative.replace(/\.ts$/, '');
+      const importPath = `${withoutFileExtension}${importExtension}`;
 
       return { ...imp, importPath };
     });
@@ -263,21 +269,19 @@ function resolveImportKey(
     .replaceAll('\\', '/');
 }
 
-function removeTSExtension(path: string) {
-  return path.endsWith('.ts') ? path.slice(0, -3) : path;
-}
-
 interface GetSchemaOptions {
   schema: GeneratorSchema;
   target: string;
   header: string;
   namingConvention?: NamingConvention;
+  importExtension?: string;
 }
 
 function getSchema({
   schema: { imports, model },
   header,
   namingConvention = NamingConvention.CAMEL_CASE,
+  importExtension,
 }: GetSchemaOptions): string {
   let file = header;
   file += generateImports({
@@ -287,6 +291,7 @@ function getSchema({
         !model.includes(`interface ${imp.alias ?? imp.name} {`),
     ),
     namingConvention,
+    importExtension,
   });
   file += imports.length > 0 ? '\n\n' : '\n';
   file += model;
@@ -316,6 +321,7 @@ interface WriteSchemaOptions {
   namingConvention: NamingConvention;
   fileExtension: string;
   header: string;
+  tsconfig?: Tsconfig;
 }
 
 export async function writeSchema({
@@ -325,6 +331,7 @@ export async function writeSchema({
   namingConvention,
   fileExtension,
   header,
+  tsconfig,
 }: WriteSchemaOptions) {
   const name = conventionName(schema.name, namingConvention);
 
@@ -336,6 +343,7 @@ export async function writeSchema({
         target,
         header,
         namingConvention,
+        importExtension: getImportExtension(fileExtension, tsconfig),
       }),
     );
   } catch (error) {
@@ -354,6 +362,7 @@ interface WriteSchemasOptions {
   fileExtension: string;
   header: string;
   indexFiles: boolean;
+  tsconfig?: Tsconfig;
 }
 
 export async function writeSchemas({
@@ -364,6 +373,7 @@ export async function writeSchemas({
   fileExtension,
   header,
   indexFiles,
+  tsconfig,
 }: WriteSchemasOptions) {
   const schemaGroups = getSchemaGroups(
     schemaPath,
@@ -386,6 +396,7 @@ export async function writeSchemas({
     schemaPath,
     namingConvention,
     fileExtension,
+    tsconfig,
   );
 
   for (const groupSchemas of Object.values(schemaGroups)) {
@@ -397,6 +408,7 @@ export async function writeSchemas({
         namingConvention,
         fileExtension,
         header,
+        tsconfig,
       });
       continue;
     }
@@ -410,6 +422,7 @@ export async function writeSchemas({
       namingConvention,
       fileExtension,
       header,
+      tsconfig,
     });
   }
 
@@ -419,9 +432,7 @@ export async function writeSchemas({
 
     // Ensure separate files are used for parallel schema writing.
     // Throw an exception if duplicates are detected (using convention names)
-    const ext = fileExtension.endsWith('.ts')
-      ? fileExtension.slice(0, -3)
-      : fileExtension;
+    const ext = getImportExtension(fileExtension, tsconfig);
     const conventionNamesSet = new Set(
       Object.values(schemaGroups).map((group) =>
         conventionName(group[0].name, namingConvention),
