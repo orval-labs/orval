@@ -320,6 +320,29 @@ describe('getQueryParams getter', () => {
       expect(result?.nonPrimitiveKeys).toEqual(['items']);
     });
 
+    it('flags nullable arrays of objects', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'items',
+              in: 'query',
+              required: false,
+              schema: {
+                type: ['array', 'null'],
+                items: { type: 'object' },
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toEqual(['items']);
+    });
+
     it('flags object via oneOf composition', () => {
       const result = getQueryParams({
         queryParams: [
@@ -340,6 +363,28 @@ describe('getQueryParams getter', () => {
       });
 
       expect(result?.nonPrimitiveKeys).toEqual(['either']);
+    });
+
+    it('flags type-less schemas with additionalProperties', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'filters',
+              in: 'query',
+              required: false,
+              schema: {
+                additionalProperties: { type: 'string' },
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toEqual(['filters']);
     });
 
     it('omits the field when all params are primitive', () => {

@@ -65,11 +65,13 @@ const isSchemaNonPrimitive = (schema: OpenApiSchemaObject): boolean => {
   const type = Array.isArray(schemaType)
     ? schemaType.filter((variant) => variant !== 'null')
     : schemaType;
+  const additionalProperties = (schema as { additionalProperties?: unknown })
+    .additionalProperties;
 
   if (type === 'object') {
     return true;
   }
-  if (type === 'array') {
+  if (type === 'array' || (Array.isArray(type) && type.includes('array'))) {
     const items = (schema as { items?: unknown }).items;
     if (isOpenApiSchemaObject(items)) {
       return isSchemaNonPrimitive(items);
@@ -92,7 +94,11 @@ const isSchemaNonPrimitive = (schema: OpenApiSchemaObject): boolean => {
     );
   }
 
-  if (!type && (schema as { properties?: unknown }).properties !== undefined) {
+  if (
+    !type &&
+    ((schema as { properties?: unknown }).properties !== undefined ||
+      (additionalProperties !== undefined && additionalProperties !== false))
+  ) {
     return true;
   }
 
