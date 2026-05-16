@@ -19,6 +19,7 @@ import {
   getAngularHttpResourceOnlyDependencies,
   routeRegistry,
 } from './http-resource';
+import { createQueryParams } from './test-helpers';
 
 interface AngularOverride {
   provideIn: 'root' | 'any' | boolean;
@@ -175,17 +176,6 @@ const createGeneratorOptions = (
 
   return options;
 };
-
-const createQueryParams = (
-  overrides: Partial<NonNullable<GeneratorVerbOptions['queryParams']>> = {},
-): NonNullable<GeneratorVerbOptions['queryParams']> => ({
-  schema: { name: 'GetPetByIdParams', model: '', imports: [] },
-  deps: [],
-  isOptional: true,
-  originalSchema: { type: 'object' },
-  requiredNullableKeys: [],
-  ...overrides,
-});
 
 const createSuccessType = (
   value: string,
@@ -1116,14 +1106,13 @@ describe('angular httpResource generator', () => {
           title: 'DefaultService',
           verbOptions: { getPetById: verbOptionWithQueryParams },
           tag: 'default',
-          isDefaultTagBucket: true,
         }),
       );
 
       expect(header).toContain('function filterParams(');
     });
 
-    it('does not treat a literal default tag as the untagged bucket', () => {
+    it('includes both explicit default-tagged and untagged operations in the default bucket', () => {
       const untaggedVerb = createVerbOption({
         operationId: 'getUntaggedProduct',
         tags: [],
@@ -1144,7 +1133,24 @@ describe('angular httpResource generator', () => {
             getTaggedDefaultProduct: explicitDefaultVerb,
           },
           tag: 'default',
-          isDefaultTagBucket: false,
+        }),
+      );
+
+      expect(header).toContain('function filterParams(');
+    });
+
+    it('does not enable the implicit default bucket when only explicit default tags exist', () => {
+      const explicitDefaultVerb = createVerbOption({
+        operationId: 'getTaggedDefaultProduct',
+        tags: ['default'],
+      });
+      routeRegistry.set('getTaggedDefaultProduct', '/api/products/default');
+
+      const header = generateHttpResourceHeader(
+        createHeaderParams({
+          title: 'DefaultService',
+          verbOptions: { getTaggedDefaultProduct: explicitDefaultVerb },
+          tag: 'default',
         }),
       );
 

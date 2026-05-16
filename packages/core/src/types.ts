@@ -948,6 +948,11 @@ export const Verbs = {
   HEAD: 'head' as Verbs,
 };
 
+/**
+ * Canonical tag name used for the generated bucket that collects untagged operations.
+ */
+export const DefaultTag = 'default' as const;
+
 export interface ImportOpenApi {
   spec: OpenApiDocument;
   input: NormalizedInputOptions;
@@ -990,8 +995,8 @@ export interface Tsconfig {
     exactOptionalPropertyTypes?: boolean;
     paths?: Record<string, string[]>;
     target?: TsConfigTarget;
-    module?: string;
-    moduleResolution?: string;
+    module?: TsConfigModule;
+    moduleResolution?: TsConfigModuleResolution;
     allowImportingTsExtensions?: boolean;
   };
 }
@@ -1012,6 +1017,47 @@ export type TsConfigTarget =
   | 'es2024'
   | 'es2025'
   | 'esnext'; // https://www.typescriptlang.org/tsconfig#target
+
+/** Accepts both the canonical casing and the all-lowercase variant of a string literal. */
+type CaseInsensitive<T extends string> = T | Lowercase<T>;
+
+/**
+ * Valid values for the TypeScript `compilerOptions.module` setting.
+ *
+ * Both title-case (e.g. `"NodeNext"`) and lower-case (e.g. `"nodenext"`) are
+ * accepted, matching TypeScript's own case-insensitive parsing.
+ *
+ * @see {@link https://www.typescriptlang.org/tsconfig#module}
+ */
+export type TsConfigModule = CaseInsensitive<
+  | 'None'
+  | 'CommonJS'
+  | 'AMD'
+  | 'UMD'
+  | 'System'
+  | 'ES6'
+  | 'ES2015'
+  | 'ES2020'
+  | 'ES2022'
+  | 'ESNext'
+  | 'Node16'
+  | 'Node18'
+  | 'Node20'
+  | 'NodeNext'
+  | 'Preserve'
+>;
+
+/**
+ * Valid values for the TypeScript `compilerOptions.moduleResolution` setting.
+ *
+ * Both title-case (e.g. `"NodeNext"`) and lower-case (e.g. `"nodenext"`) are
+ * accepted, matching TypeScript's own case-insensitive parsing.
+ *
+ * @see https://www.typescriptlang.org/tsconfig#moduleResolution
+ */
+export type TsConfigModuleResolution = CaseInsensitive<
+  'Classic' | 'Node' | 'Node10' | 'Node16' | 'NodeNext' | 'Bundler'
+>;
 
 export interface PackageJson {
   dependencies?: Record<string, string>;
@@ -1195,7 +1241,6 @@ export type ClientHeaderBuilder = (params: {
   output: NormalizedOutputOptions;
   verbOptions: Record<string, GeneratorVerbOptions>;
   tag?: string;
-  isDefaultTagBucket?: boolean;
   clientImplementation: string;
 }) => string;
 
@@ -1434,7 +1479,6 @@ export type GeneratorClientHeader = (data: {
   output: NormalizedOutputOptions;
   verbOptions: Record<string, GeneratorVerbOptions>;
   tag?: string;
-  isDefaultTagBucket?: boolean;
   clientImplementation: string;
 }) => GeneratorClientExtra;
 

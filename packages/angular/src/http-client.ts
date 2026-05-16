@@ -226,16 +226,11 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
   provideIn,
   verbOptions,
   tag,
-  isDefaultTagBucket,
   output,
 }) => {
   returnTypesRegistry.reset();
 
-  const relevantVerbs = getRelevantVerbOptionsForTag(
-    verbOptions,
-    tag,
-    isDefaultTagBucket,
-  );
+  const relevantVerbs = getRelevantVerbOptionsForTag(verbOptions, tag);
   const hasQueryParams = relevantVerbs.some((v) => v.queryParams);
   const acceptHelpers = buildAcceptHelpers(relevantVerbs, output);
 
