@@ -173,9 +173,18 @@ export const setShowPetByIdQueryData = (
         old: Awaited<ReturnType<typeof showPetById>> | undefined,
       ) => Awaited<ReturnType<typeof showPetById>> | undefined),
 ) => {
-  queryClient.setQueryData(getShowPetByIdQueryKey(petId), updater);
+  queryClient.setQueriesData<Awaited<ReturnType<typeof showPetById>>>(
+    { queryKey: getShowPetByIdQueryKey(petId) },
+    updater,
+  );
 };
 ```
+
+The helper uses [`setQueriesData`](https://tanstack.com/query/latest/docs/reference/QueryClient#queryclientsetqueriesdata) so query keys are matched by prefix. For endpoints with query params or a body, those args are widened to accept `undefined` — pass `undefined` to update every cached entry sharing the same path; the updater is invoked once per matched entry.
+
+<Callout type="warn">
+  Prior to this change the helper called `setQueryData`, which writes (and creates) a single exact-key entry. `setQueriesData` only updates entries that already exist and matches by prefix, so calls with a fully-specified key may behave differently — review existing call sites when upgrading.
+</Callout>
 
 ## Get Query Data
 

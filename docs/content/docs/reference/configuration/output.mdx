@@ -743,7 +743,9 @@ Generate query invalidation helpers.
 
 **Type:** `Boolean`
 
-Generate type-safe setQueryData helpers.
+Generate type-safe helpers that update cached query data via [`setQueriesData`](https://tanstack.com/query/latest/docs/reference/QueryClient#queryclientsetqueriesdata).
+
+Query keys are matched by prefix, so query params and body arguments are widened to accept `undefined`. Passing `undefined` updates every cached entry that shares the same path.
 
 ### useGetQueryData
 
