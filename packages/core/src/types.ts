@@ -994,6 +994,9 @@ export interface Tsconfig {
     exactOptionalPropertyTypes?: boolean;
     paths?: Record<string, string[]>;
     target?: TsConfigTarget;
+    module?: string;
+    moduleResolution?: string;
+    allowImportingTsExtensions?: boolean;
   };
 }
 

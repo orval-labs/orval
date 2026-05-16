@@ -31,6 +31,24 @@ const isOpenApiSchemaObject = (
   return !('$ref' in value);
 };
 
+const getSchemaType = (
+  schema: OpenApiSchemaObject,
+): string | string[] | undefined => {
+  const type = (schema as { type?: unknown }).type;
+
+  if (typeof type === 'string') {
+    return type;
+  }
+
+  if (
+    Array.isArray(type) &&
+    type.every((variant): variant is string => typeof variant === 'string')
+  ) {
+    return type;
+  }
+
+  return undefined;
+};
 /**
  * Detects whether a query parameter's resolved schema is non-primitive — i.e.
  * an object, an array of objects, or a composition (oneOf/anyOf/allOf) that
@@ -42,24 +60,25 @@ const isOpenApiSchemaObject = (
  * `paramsFilter` may need the raw object to flatten or stringify it.
  */
 const isSchemaNonPrimitive = (schema: OpenApiSchemaObject): boolean => {
-  const rawType: unknown = schema.type;
-  const types: string[] = Array.isArray(rawType)
-    ? (rawType as unknown[]).filter(
-        (t): t is string => typeof t === 'string' && t !== 'null',
-      )
-    : typeof rawType === 'string'
-      ? [rawType]
-      : [];
+  const schemaType = getSchemaType(schema);
+  const type = Array.isArray(schemaType)
+    ? schemaType.filter((variant) => variant !== 'null')
+    : schemaType;
+  const additionalProperties = (schema as { additionalProperties?: unknown })
+    .additionalProperties;
 
-  if (types.includes('object')) {
+  if (type === 'object') {
     return true;
   }
-  if (types.includes('array')) {
+  if (type === 'array' || (Array.isArray(type) && type.includes('array'))) {
     const items = (schema as { items?: unknown }).items;
     if (isOpenApiSchemaObject(items)) {
       return isSchemaNonPrimitive(items);
     }
     return false;
+  }
+  if (Array.isArray(type) && type.includes('object')) {
+    return true;
   }
 
   const compositions = [
@@ -74,6 +93,13 @@ const isSchemaNonPrimitive = (schema: OpenApiSchemaObject): boolean => {
     );
   }
 
+  if (
+    !type &&
+    ((schema as { properties?: unknown }).properties !== undefined ||
+      (additionalProperties !== undefined && additionalProperties !== false))
+  ) {
+    return true;
+  }
   return false;
 };
 
@@ -255,6 +281,9 @@ export function getQueryParams({
       ({ required, originalSchema }) =>
         required && isSchemaNullable(originalSchema),
     )
+    .map(({ name }) => name);
+  const nonPrimitiveKeys = types
+    .filter(({ originalSchema }) => isSchemaNonPrimitive(originalSchema))
     .map(({ name }) => name);
 
   const schema = {

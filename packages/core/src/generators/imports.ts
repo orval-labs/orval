@@ -13,11 +13,13 @@ import { escapeRegExp } from '../utils/string';
 interface GenerateImportsOptions {
   imports: readonly GeneratorImport[];
   namingConvention?: NamingConvention;
+  importExtension?: string;
 }
 
 export function generateImports({
   imports,
   namingConvention = NamingConvention.CAMEL_CASE,
+  importExtension = '',
 }: GenerateImportsOptions) {
   if (imports.length === 0) {
     return '';
@@ -37,7 +39,8 @@ export function generateImports({
   ).map((imp) => ({
     ...imp,
     importPath:
-      imp.importPath ?? `./${conventionName(imp.name, namingConvention)}`,
+      imp.importPath ??
+      `./${conventionName(imp.name, namingConvention)}${importExtension}`,
   }));
 
   const grouped = groupBy(normalized, (imp) =>

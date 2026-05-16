@@ -416,10 +416,30 @@ describe('generateAxiosOptions', () => {
     });
 
     // Issue #3326: schema-declared object/array-of-object query params used to
-    // be silently dropped. With nonPrimitiveQueryParamKeys they are passed
-    // through so a downstream paramsSerializer/mutator/paramsFilter can handle
-    // them.
-    it('passes nonPrimitiveKeys through the shared filter helper', () => {
+    // be silently dropped by `filterParams`. With nonPrimitiveQueryParamKeys
+    // they are passed through so a downstream paramsSerializer/mutator/
+    // paramsFilter can handle them.
+    it('passes nonPrimitiveKeys through the shared filter helper when a paramsSerializer is configured', () => {
+      const result = generateAxiosOptions({
+        response: minimalResponse,
+        isExactOptionalPropertyTypes: false,
+        queryParams: minimalSchema,
+        nonPrimitiveQueryParamKeys: ['filters'],
+        headers: undefined,
+        requestOptions: true,
+        hasSignal: false,
+        isVue: false,
+        isAngular: true,
+        paramsSerializer: minimalParamsSerializer,
+        paramsSerializerOptions: undefined,
+      });
+
+      // The shared helper is invoked with the passthrough set as the fourth
+      // argument so `filters` survives filtering.
+      expect(result).toContain('new Set<string>(["filters"])');
+    });
+
+    it('keeps shared Angular HttpClient params primitive-only without a downstream serializer', () => {
       const result = generateAxiosOptions({
         response: minimalResponse,
         isExactOptionalPropertyTypes: false,
@@ -434,8 +454,27 @@ describe('generateAxiosOptions', () => {
         paramsSerializerOptions: undefined,
       });
 
-      // Passthrough set is forwarded as the fourth argument to filterParams.
-      expect(result).toContain('new Set<string>(["filters"])');
+      expect(result).not.toContain('new Set<string>(["filters"])');
+    });
+
+    it('keeps inline Angular HttpClient params primitive-only without a downstream serializer', () => {
+      const result = generateAxiosOptions({
+        response: minimalResponse,
+        isExactOptionalPropertyTypes: false,
+        queryParams: minimalSchema,
+        nonPrimitiveQueryParamKeys: ['filters'],
+        headers: undefined,
+        requestOptions: false,
+        hasSignal: false,
+        isVue: false,
+        isAngular: true,
+        paramsSerializer: undefined,
+        paramsSerializerOptions: undefined,
+      });
+
+      expect(result).not.toContain(
+        'const passthroughKeys = new Set<string>(["filters"])',
+      );
     });
 
     it('replaces the built-in filter when paramsFilter is configured', () => {
@@ -453,6 +492,8 @@ describe('generateAxiosOptions', () => {
         paramsFilter: minimalParamsFilter,
       });
 
+      // The user's paramsFilter is the sole filter — `filterParams(...)` is
+      // not emitted alongside it.
       expect(result).toContain(
         'params: paramsFilterMutator({...params, ...options?.params})',
       );

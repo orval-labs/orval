@@ -172,8 +172,9 @@ export const getAngularFilteredParamsCallExpression = (
  * mutator, the built-in `filterParams` is bypassed entirely and the user's
  * function is called with the raw params — they own nullish-stripping and
  * any object/array handling. Otherwise the built-in filter is used (either
- * the shared helper or an inline IIFE), and `nonPrimitiveKeys` keeps schema-
- * declared object/array-of-object params from being silently dropped.
+ * the shared helper or an inline IIFE), and callers should only pass
+ * `nonPrimitiveKeys` when a downstream serializer or custom consumer can
+ * legally handle raw object/array values.
  */
 export const buildAngularParamsFilterExpression = ({
   paramsExpression,
@@ -275,6 +276,9 @@ export function generateAxiosOptions({
   paramsFilter,
 }: GenerateAxiosOptions) {
   const isRequestOptions = requestOptions !== false;
+  const angularPassthroughQueryParamKeys = paramsSerializer
+    ? nonPrimitiveQueryParamKeys
+    : [];
   // Use querySignal if API has a param named "signal" to avoid conflict
   const signalVar = hasSignalParam ? 'querySignal' : 'signal';
   const signalProp = hasSignalParam ? `signal: ${signalVar}` : 'signal';
@@ -312,7 +316,7 @@ export function generateAxiosOptions({
           paramsExpression: 'params ?? {}',
           requiredNullableParamKeys: requiredNullableQueryParamKeys,
           preserveRequiredNullables: !!paramsSerializer,
-          nonPrimitiveKeys: nonPrimitiveQueryParamKeys,
+          nonPrimitiveKeys: angularPassthroughQueryParamKeys,
           paramsFilter,
           useSharedHelper: false,
         });
@@ -368,7 +372,7 @@ export function generateAxiosOptions({
           paramsExpression: '{...params, ...options?.params}',
           requiredNullableParamKeys: requiredNullableQueryParamKeys,
           preserveRequiredNullables: true,
-          nonPrimitiveKeys: nonPrimitiveQueryParamKeys,
+          nonPrimitiveKeys: angularPassthroughQueryParamKeys,
           paramsFilter,
           useSharedHelper: true,
         });
@@ -377,7 +381,7 @@ export function generateAxiosOptions({
         const callExpr = buildAngularParamsFilterExpression({
           paramsExpression: '{...params, ...options?.params}',
           requiredNullableParamKeys: requiredNullableQueryParamKeys,
-          nonPrimitiveKeys: nonPrimitiveQueryParamKeys,
+          nonPrimitiveKeys: angularPassthroughQueryParamKeys,
           paramsFilter,
           useSharedHelper: true,
         });
