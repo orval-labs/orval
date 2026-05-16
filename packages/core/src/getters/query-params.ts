@@ -292,10 +292,6 @@ export function getQueryParams({
     imports,
   };
 
-  const nonPrimitiveKeys = types
-    .filter(({ originalSchema }) => isSchemaNonPrimitive(originalSchema))
-    .map(({ name }) => name);
-
   return {
     schema,
     deps: schemas,
