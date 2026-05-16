@@ -716,9 +716,10 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
   // queryOptions mutator may augment the queryKey (e.g. tenant prefix).
   // Route invalidate / set / get helpers through the mutator so the key
   // matches what the query hook actually wrote into the cache. Hook-shaped
-  // mutators are skipped uniformly: invalidate / non-React set / non-React
-  // get are plain functions and cannot call hooks, and the React set / get
-  // helpers follow the same gate so all four helpers target the same key.
+  // mutators are skipped here because none of these helpers can legally
+  // call a hook at the right time — set/get helpers stop being emitted
+  // entirely in that case (see `hasHookMutator` below), and invalidate
+  // falls back to the unmutated base key for backwards compatibility.
   const applyQueryOptionsMutator = (baseExpr: string) =>
     queryOptionsMutator && !queryOptionsMutator.isHook
       ? `${queryOptionsMutator.name}({ queryKey: ${baseExpr} }${
@@ -728,13 +729,28 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
         }).queryKey`
       : baseExpr;
 
+  // Hook-shaped queryOptions mutators rewrite the queryKey at hook-call
+  // time, but the set/get helpers cannot call a hook to recover that key.
+  // Emitting them would silently target a different cache slot than the
+  // query hook actually wrote into, so we skip generation in that case and
+  // surface a warning to the user. Invalidate is left alone for backwards
+  // compatibility — it has shipped with the same gap and changing its
+  // contract is out of scope here.
+  const hasHookMutator = !!queryOptionsMutator?.isHook;
+  if (hasHookMutator && (useSetQueryData || useGetQueryData)) {
+    logWarning(
+      `'${name}' has a hook-based queryOptions mutator, so the requested set/get-query-data helpers were skipped to avoid a cache-key mismatch with the query hook.`,
+    );
+  }
+
   const shouldGenerateInvalidate = useInvalidate && isPrimaryQueryType;
   const invalidateFnName = camel(`invalidate-${name}`);
   const invalidateQueryKeyExpr = applyQueryOptionsMutator(
     buildBaseQueryKeyExpr(),
   );
 
-  const shouldGenerateSetQueryData = useSetQueryData && isPrimaryQueryType;
+  const shouldGenerateSetQueryData =
+    useSetQueryData && isPrimaryQueryType && !hasHookMutator;
   const isReactQuery = adapter.outputClient === OutputClient.REACT_QUERY;
   const setQueryDataFnName = isReactQuery
     ? camel(`use-set-${name}-query-data`)
@@ -756,7 +772,8 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     widenNonPath: allowUndefinedParam,
   });
 
-  const shouldGenerateGetQueryData = useGetQueryData && isPrimaryQueryType;
+  const shouldGenerateGetQueryData =
+    useGetQueryData && isPrimaryQueryType && !hasHookMutator;
   const getQueryDataFnName = isReactQuery
     ? camel(`use-get-${name}-query-data`)
     : camel(`get-${name}-query-data`);

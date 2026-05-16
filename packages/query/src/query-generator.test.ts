@@ -337,4 +337,22 @@ describe('allowUndefinedParam', () => {
   it('returns empty input unchanged', () => {
     expect(allowUndefinedParam('')).toBe('');
   });
+
+  // Regression for the pipeline that drives `set*QueryData` props: an
+  // optional body prop is widened to `body: T | undefined`, then
+  // `wrapPropsBodyWithMutatorBodyType` must still wrap the body type as
+  // `BodyType<T>`. If the union order ever swaps to `undefined | T`, the
+  // wrap regex would still match — but verify the happy path explicitly so
+  // future regex tweaks cannot break body wrapping silently.
+  it('composes with wrapPropsBodyWithMutatorBodyType for optional body params', () => {
+    const widened = allowUndefinedParam('createPetsBody?: CreatePetsBody');
+    expect(widened).toBe('createPetsBody: CreatePetsBody | undefined');
+    expect(
+      wrapPropsBodyWithMutatorBodyType({
+        propsString: widened,
+        body: { definition: 'CreatePetsBody' } as unknown as GetterBody,
+        mutator: { bodyTypeName: 'BodyType' } as unknown as GeneratorMutator,
+      }),
+    ).toBe('createPetsBody: BodyType<CreatePetsBody> | undefined');
+  });
 });
