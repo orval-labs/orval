@@ -121,6 +121,100 @@ export const wrapPropsBodyWithMutatorBodyType = ({
 };
 
 /**
+ * Widens a parameter signature to be optional. Skips params that already
+ * carry a default value (`= ...`), since those are syntactically optional
+ * and adding `?` on top would be a TypeScript error.
+ */
+export const makeOptionalParam = (impl: string) => {
+  if (impl.includes('=')) return impl;
+  return impl.replace(/^(\w+):\s*/, '$1?: ');
+};
+
+/**
+ * Widens a parameter type to also accept `undefined`. Already-optional
+ * (`?:`) signatures are normalized to required-with-undefined, and params
+ * with a default value pass through unchanged.
+ */
+export const allowUndefinedParam = (impl: string) => {
+  if (impl.includes('=')) return impl;
+  const optional = /^(\w+)\?:\s*(.+)$/.exec(impl);
+  if (optional) return `${optional[1]}: ${optional[2]} | undefined`;
+  return impl.replace(/^(\w+):\s*(.+)$/, '$1: $2 | undefined');
+};
+
+/**
+ * Renders the `setXxxQueryData` helper as either a React hook (returns a
+ * setter) or a plain function taking `queryClient`. Both shapes share the
+ * same body and signature, so this collapses what would otherwise be two
+ * near-identical template literals.
+ */
+const renderSetQueryDataHelper = ({
+  doc,
+  isReactQuery,
+  fnName,
+  propsSig,
+  body,
+}: {
+  doc: string | undefined;
+  isReactQuery: boolean;
+  fnName: string;
+  propsSig: string;
+  body: string;
+}) => {
+  const docPrefix = doc ?? '';
+  if (isReactQuery) {
+    return `${docPrefix}export const ${fnName} = () => {
+  const queryClient = useQueryClient();
+  return (${propsSig}) => {
+    ${body}
+  };
+}\n`;
+  }
+  return `${docPrefix}export const ${fnName} = (queryClient: QueryClient, ${propsSig}) => {
+  ${body}
+}\n`;
+};
+
+/**
+ * Renders the prop list shared by `getXxxQueryKey`, `setXxxQueryData` and
+ * `getXxxQueryData` helpers: headers are dropped, path params stay required,
+ * non-path params (query params, body) are passed through `widenNonPath`
+ * (defaults to identity — pass `makeOptionalParam` or `allowUndefinedParam`
+ * to relax the signature).
+ *
+ * Centralising this prevents the three call sites from drifting apart on
+ * how they treat the same props.
+ */
+const buildKeyShapedProps = ({
+  props,
+  body,
+  mutator,
+  widenNonPath = (impl) => impl,
+}: {
+  props: GetterProps;
+  body: GetterBody;
+  mutator: GeneratorMutator | undefined;
+  widenNonPath?: (impl: string) => string;
+}) =>
+  wrapPropsBodyWithMutatorBodyType({
+    propsString: toObjectString(
+      props
+        .filter((prop) => prop.type !== GetterPropType.HEADER)
+        .map((prop) => ({
+          ...prop,
+          implementation:
+            prop.type === GetterPropType.PARAM ||
+            prop.type === GetterPropType.NAMED_PATH_PARAMS
+              ? prop.implementation
+              : widenNonPath(prop.implementation),
+        })),
+      'implementation',
+    ),
+    body,
+    mutator,
+  });
+
+/**
  * Computes a verb prefix segment for query keys when a non-GET operation is
  * routed to a Query hook. Without this prefix, two operations sharing a path
  * (e.g. `GET /pets` and `POST /pets`) would generate cache keys that both
@@ -620,9 +714,11 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
       : `${queryKeyFnName}(${queryKeyProperties})`;
 
   // queryOptions mutator may augment the queryKey (e.g. tenant prefix).
-  // Route invalidate through the mutator so the key matches what the
-  // query hook actually wrote into the cache. Hook-shaped mutators are
-  // skipped because the invalidate helper is a plain async function.
+  // Route invalidate / set / get helpers through the mutator so the key
+  // matches what the query hook actually wrote into the cache. Hook-shaped
+  // mutators are skipped uniformly: invalidate / non-React set / non-React
+  // get are plain functions and cannot call hooks, and the React set / get
+  // helpers follow the same gate so all four helpers target the same key.
   const applyQueryOptionsMutator = (baseExpr: string) =>
     queryOptionsMutator && !queryOptionsMutator.isHook
       ? `${queryOptionsMutator.name}({ queryKey: ${baseExpr} }${
@@ -643,22 +739,30 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
   const setQueryDataFnName = isReactQuery
     ? camel(`use-set-${name}-query-data`)
     : camel(`set-${name}-query-data`);
-  const setQueryDataKeyExpr = buildBaseQueryKeyExpr();
-  const setQueryDataProps = wrapPropsBodyWithMutatorBodyType({
-    propsString: toObjectString(
-      props.filter((prop) => prop.type !== GetterPropType.HEADER),
-      'implementation',
-    ).replaceAll('?:', ':'),
+  // Route the set-query-data key through the same mutator as invalidate so
+  // that any user-applied prefix (e.g. tenant) is honoured. Without this,
+  // `setQueriesData` and `invalidateQueries` would target different keys.
+  const setQueryDataKeyExpr = applyQueryOptionsMutator(buildBaseQueryKeyExpr());
+  // `setQueriesData` matches by query-key prefix, so non-path props (query
+  // params, body) are widened to `T | undefined` — passing `undefined`
+  // updates every cached entry sharing the path prefix, matching what
+  // `getXxxQueryKey()` already allows. `T | undefined` is used instead of
+  // `?:` because the `updater` parameter follows and TS1016 forbids a
+  // required parameter after an optional one.
+  const setQueryDataProps = buildKeyShapedProps({
+    props,
     body,
     mutator,
+    widenNonPath: allowUndefinedParam,
   });
 
   const shouldGenerateGetQueryData = useGetQueryData && isPrimaryQueryType;
   const getQueryDataFnName = isReactQuery
     ? camel(`use-get-${name}-query-data`)
     : camel(`get-${name}-query-data`);
-  const getQueryDataKeyExpr = setQueryDataKeyExpr;
-  const getQueryDataProps = setQueryDataProps;
+  // `getQueryData` reads a single cache entry — keep every prop required and
+  // reuse `setQueryDataKeyExpr` so read and write target the same slot.
+  const getQueryDataProps = buildKeyShapedProps({ props, body, mutator });
 
   // Generate query init (e.g. const queryOptions = fn(...) or const http = inject(HttpClient))
   const queryInit = adapter.generateQueryInit({
@@ -727,16 +831,13 @@ ${
 }
 ${
   shouldGenerateSetQueryData
-    ? isReactQuery
-      ? `${doc}export const ${setQueryDataFnName} = () => {
-  const queryClient = useQueryClient();
-  return (${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
-    queryClient.setQueryData(${setQueryDataKeyExpr}, updater);
-  };
-}\n`
-      : `${doc}export const ${setQueryDataFnName} = (queryClient: QueryClient, ${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)) => {
-  queryClient.setQueryData(${setQueryDataKeyExpr}, updater);
-}\n`
+    ? renderSetQueryDataHelper({
+        doc,
+        isReactQuery,
+        fnName: setQueryDataFnName,
+        propsSig: `${setQueryDataProps}updater: ${TData} | undefined | ((old: ${TData} | undefined) => ${TData} | undefined)`,
+        body: `queryClient.setQueriesData<${TData}>({ queryKey: ${setQueryDataKeyExpr} }, updater);`,
+      })
     : ''
 }
 ${
@@ -745,10 +846,10 @@ ${
       ? `${doc}export const ${getQueryDataFnName} = () => {
   const queryClient = useQueryClient();
   return (${getQueryDataProps}) =>
-    queryClient.getQueryData<${TData}>(${getQueryDataKeyExpr});
+    queryClient.getQueryData<${TData}>(${setQueryDataKeyExpr});
 }\n`
       : `${doc}export const ${getQueryDataFnName} = (queryClient: QueryClient, ${getQueryDataProps}) =>
-  queryClient.getQueryData<${TData}>(${getQueryDataKeyExpr});\n`
+  queryClient.getQueryData<${TData}>(${setQueryDataKeyExpr});\n`
     : ''
 }
 `;
@@ -950,27 +1051,11 @@ export const generateQueryHook = async (
 
     if (!queryKeyMutator) {
       for (const queryOption of uniqueQueryOptionsByKeys) {
-        const makeOptionalParam = (impl: string) => {
-          if (impl.includes('=')) return impl;
-          return impl.replace(/^(\w+):\s*/, '$1?: ');
-        };
-
-        const queryKeyProps = wrapPropsBodyWithMutatorBodyType({
-          propsString: toObjectString(
-            props
-              .filter((prop) => prop.type !== GetterPropType.HEADER)
-              .map((prop) => ({
-                ...prop,
-                implementation:
-                  prop.type === GetterPropType.PARAM ||
-                  prop.type === GetterPropType.NAMED_PATH_PARAMS
-                    ? prop.implementation
-                    : makeOptionalParam(prop.implementation),
-              })),
-            'implementation',
-          ),
+        const queryKeyProps = buildKeyShapedProps({
+          props,
           body,
           mutator,
+          widenNonPath: makeOptionalParam,
         });
 
         const routeString = adapter.getQueryKeyRouteString(
