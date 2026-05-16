@@ -159,7 +159,7 @@ export const getRelevantVerbOptionsForTag = (
 
   const camelTag = camel(tag);
   const includeUntaggedOperations =
-    camelTag === DefaultTag &&
+    tag === DefaultTag &&
     allVerbOptions.some((verbOption) => verbOption.tags.length === 0);
 
   return allVerbOptions.filter(

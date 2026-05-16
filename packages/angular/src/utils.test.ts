@@ -11,13 +11,13 @@ import {
   createRouteRegistry,
   generateAngularTitle,
   getDefaultSuccessType,
+  getRelevantVerbOptionsForTag,
+  getSchemaOutputTypeRef,
   isDefined,
   isMutationVerb,
   isPrimitiveType,
   isRetrievalVerb,
   isZodSchemaOutput,
-  getRelevantVerbOptionsForTag,
-  getSchemaOutputTypeRef,
 } from './utils';
 
 // ---------------------------------------------------------------------------

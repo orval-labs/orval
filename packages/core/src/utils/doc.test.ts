@@ -46,6 +46,7 @@ describe('jsDoc', () => {
 
   it('stops traversing circular item schemas', () => {
     interface CircularItems {
+      [key: string]: unknown;
       items?: CircularItems;
       maxLength: number;
       type: string;
