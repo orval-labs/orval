@@ -88,6 +88,26 @@ export default defineConfig({
       },
     },
   },
+  petstoreTagsSplitMutator: {
+    output: {
+      target: '../generated/axios/petstore-tags-split-mutator/endpoints.ts',
+      schemas: '../generated/axios/petstore-tags-split-mutator/model',
+      mock: true,
+      mode: 'tags-split',
+      client: 'axios',
+      override: {
+        mutator: '../mutators/custom-client.ts',
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
   petstoreSplit: {
     output: {
       target: '../generated/axios/split/endpoints.ts',

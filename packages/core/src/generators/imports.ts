@@ -106,7 +106,13 @@ export function generateMutatorImports({
     mutators,
     (a, b) => a.name === b.name && a.default === b.default,
   )) {
-    const path = `${oneMore ? '../' : ''}${mutator.path}`;
+    // Relative mutator paths are written relative to the output root, so in
+    // tags-split mode (`oneMore`) they need an extra `../` to reach the file
+    // from the deeper per-tag directory. Bare specifiers (e.g. `@scope/axios`)
+    // and absolute paths do not depend on the importer's location and must be
+    // left untouched.
+    const isRelativeImport = mutator.path.startsWith('.');
+    const path = `${oneMore && isRelativeImport ? '../' : ''}${mutator.path}`;
     const importDefault = mutator.default
       ? mutator.name
       : `{ ${mutator.name} }`;

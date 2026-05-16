@@ -255,7 +255,7 @@ export function useListPets<
 export const useSetListPetsQueryData = () => {
   const queryClient = useQueryClient();
   return (
-    params: ListPetsParams,
+    params: ListPetsParams | undefined,
     updater:
       | Awaited<ReturnType<typeof listPets>>
       | undefined
@@ -263,7 +263,10 @@ export const useSetListPetsQueryData = () => {
           old: Awaited<ReturnType<typeof listPets>> | undefined,
         ) => Awaited<ReturnType<typeof listPets>> | undefined),
   ) => {
-    queryClient.setQueryData(getListPetsQueryKey(params), updater);
+    queryClient.setQueriesData<Awaited<ReturnType<typeof listPets>>>(
+      { queryKey: getListPetsQueryKey(params) },
+      updater,
+    );
   };
 };
 
@@ -586,7 +589,10 @@ export const useSetShowPetByIdQueryData = () => {
           old: Awaited<ReturnType<typeof showPetById>> | undefined,
         ) => Awaited<ReturnType<typeof showPetById>> | undefined),
   ) => {
-    queryClient.setQueryData(getShowPetByIdQueryKey(petId), updater);
+    queryClient.setQueriesData<Awaited<ReturnType<typeof showPetById>>>(
+      { queryKey: getShowPetByIdQueryKey(petId) },
+      updater,
+    );
   };
 };
 
@@ -889,7 +895,10 @@ export const useSetHealthCheckQueryData = () => {
           old: Awaited<ReturnType<typeof healthCheck>> | undefined,
         ) => Awaited<ReturnType<typeof healthCheck>> | undefined),
   ) => {
-    queryClient.setQueryData(getHealthCheckQueryKey(), updater);
+    queryClient.setQueriesData<Awaited<ReturnType<typeof healthCheck>>>(
+      { queryKey: getHealthCheckQueryKey() },
+      updater,
+    );
   };
 };
 
@@ -1105,6 +1114,9 @@ export const useSetShowPetWithOwnerQueryData = () => {
           old: Awaited<ReturnType<typeof showPetWithOwner>> | undefined,
         ) => Awaited<ReturnType<typeof showPetWithOwner>> | undefined),
   ) => {
-    queryClient.setQueryData(getShowPetWithOwnerQueryKey(petId), updater);
+    queryClient.setQueriesData<Awaited<ReturnType<typeof showPetWithOwner>>>(
+      { queryKey: getShowPetWithOwnerQueryKey(petId) },
+      updater,
+    );
   };
 };

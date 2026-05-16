@@ -109,7 +109,7 @@ When `useSetQueryData: true` is set, Orval generates type-safe helper functions 
 ```ts
 export const setListPetsQueryData = (
   queryClient: QueryClient,
-  params: ListPetsParams,
+  params: ListPetsParams | undefined,
   updater:
     | Awaited<ReturnType<typeof listPets>>
     | undefined
@@ -117,9 +117,18 @@ export const setListPetsQueryData = (
         old: Awaited<ReturnType<typeof listPets>> | undefined,
       ) => Awaited<ReturnType<typeof listPets>> | undefined),
 ) => {
-  queryClient.setQueryData(getListPetsQueryKey(params), updater);
+  queryClient.setQueriesData<Awaited<ReturnType<typeof listPets>>>(
+    { queryKey: getListPetsQueryKey(params) },
+    updater,
+  );
 };
 ```
+
+The helper uses [`setQueriesData`](https://tanstack.com/query/latest/docs/reference/QueryClient#queryclientsetqueriesdata) so query keys are matched by prefix. Pass `undefined` for query params or body to update every cached entry sharing the same path; the updater is invoked once per matched entry.
+
+<Callout type="warn">
+  Prior to this change the helper called `setQueryData`, which writes (and creates) a single exact-key entry. `setQueriesData` only updates entries that already exist and matches by prefix, so calls with a fully-specified key may behave differently — review existing call sites when upgrading.
+</Callout>
 
 ## Get Query Data
 
