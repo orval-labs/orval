@@ -58,7 +58,6 @@ export async function writeTagsMode({
           formUrlEncoded,
           fetchReviver,
           paramsSerializer,
-          paramsFilter,
         } = target;
 
         let data = header;
@@ -188,10 +187,6 @@ export async function writeTagsMode({
 
         if (paramsSerializer) {
           data += generateMutatorImports({ mutators: paramsSerializer });
-        }
-
-        if (paramsFilter) {
-          data += generateMutatorImports({ mutators: paramsFilter });
         }
 
         if (fetchReviver) {

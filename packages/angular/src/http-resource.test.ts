@@ -875,9 +875,7 @@ describe('angular httpResource generator', () => {
       } as never);
 
       expect(header.match(/type AngularHttpParamValue =/g)).toHaveLength(1);
-      expect(header.match(/preserveRequiredNullables = false,/g)).toHaveLength(
-        1,
-      );
+      expect(header.match(/function filterParams\(/g)).toHaveLength(3);
     });
   });
 

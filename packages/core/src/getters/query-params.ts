@@ -31,80 +31,6 @@ const isOpenApiSchemaObject = (
   return !('$ref' in value);
 };
 
-const getSchemaType = (
-  schema: OpenApiSchemaObject,
-): string | string[] | undefined => {
-  const type = (schema as { type?: unknown }).type;
-
-  if (typeof type === 'string') {
-    return type;
-  }
-
-  if (
-    Array.isArray(type) &&
-    type.every((variant): variant is string => typeof variant === 'string')
-  ) {
-    return type;
-  }
-
-  return undefined;
-};
-
-/**
- * Detects whether a query parameter's resolved schema is non-primitive — i.e.
- * an object, an array of objects, or a composition (oneOf/anyOf/allOf) that
- * resolves to a non-primitive shape.
- *
- * Used by Angular generators so the default `filterParams` helper preserves
- * such values instead of silently dropping them. Angular's `HttpParams` only
- * accepts primitives, but a user-provided `paramsSerializer`, `mutator`, or
- * `paramsFilter` may need the raw object to flatten or stringify it.
- */
-const isSchemaNonPrimitive = (schema: OpenApiSchemaObject): boolean => {
-  const schemaType = getSchemaType(schema);
-  const type = Array.isArray(schemaType)
-    ? schemaType.filter((variant) => variant !== 'null')
-    : schemaType;
-  const additionalProperties = (schema as { additionalProperties?: unknown })
-    .additionalProperties;
-
-  if (type === 'object') {
-    return true;
-  }
-  if (type === 'array' || (Array.isArray(type) && type.includes('array'))) {
-    const items = (schema as { items?: unknown }).items;
-    if (isOpenApiSchemaObject(items)) {
-      return isSchemaNonPrimitive(items);
-    }
-    return false;
-  }
-  if (Array.isArray(type) && type.includes('object')) {
-    return true;
-  }
-
-  const compositions = [
-    ...(Array.isArray(schema.oneOf) ? (schema.oneOf as unknown[]) : []),
-    ...(Array.isArray(schema.anyOf) ? (schema.anyOf as unknown[]) : []),
-    ...(Array.isArray(schema.allOf) ? (schema.allOf as unknown[]) : []),
-  ];
-  if (compositions.length > 0) {
-    return compositions.some(
-      (variant) =>
-        isOpenApiSchemaObject(variant) && isSchemaNonPrimitive(variant),
-    );
-  }
-
-  if (
-    !type &&
-    ((schema as { properties?: unknown }).properties !== undefined ||
-      (additionalProperties !== undefined && additionalProperties !== false))
-  ) {
-    return true;
-  }
-
-  return false;
-};
-
 const isSchemaNullable = (schema: OpenApiSchemaObject): boolean => {
   if (schema.nullable === true) {
     return true;
@@ -284,9 +210,6 @@ export function getQueryParams({
         required && isSchemaNullable(originalSchema),
     )
     .map(({ name }) => name);
-  const nonPrimitiveKeys = types
-    .filter(({ originalSchema }) => isSchemaNonPrimitive(originalSchema))
-    .map(({ name }) => name);
 
   const schema = {
     name,
@@ -299,6 +222,5 @@ export function getQueryParams({
     deps: schemas,
     isOptional: allOptional,
     requiredNullableKeys,
-    ...(nonPrimitiveKeys.length > 0 ? { nonPrimitiveKeys } : {}),
   };
 }

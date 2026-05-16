@@ -69,7 +69,6 @@ export async function writeSplitTagsMode({
           fetchReviver,
           formUrlEncoded,
           paramsSerializer,
-          paramsFilter,
         } = target;
 
         let implementationData = header;
@@ -204,12 +203,6 @@ export async function writeSplitTagsMode({
         if (paramsSerializer) {
           implementationData += generateMutatorImports({
             mutators: paramsSerializer,
-            oneMore: true,
-          });
-        }
-        if (paramsFilter) {
-          implementationData += generateMutatorImports({
-            mutators: paramsFilter,
             oneMore: true,
           });
         }

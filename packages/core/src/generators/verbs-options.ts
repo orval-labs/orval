@@ -167,17 +167,6 @@ async function buildVerbOption({
         })
       : undefined;
 
-  const paramsFilter =
-    isString(override.paramsFilter) || isObject(override.paramsFilter)
-      ? await generateMutator({
-          output: output.target,
-          name: 'paramsFilter',
-          mutator: override.paramsFilter as NormalizedMutator,
-          workspace: context.workspace,
-          tsconfig: context.output.tsconfig,
-        })
-      : undefined;
-
   const fetchReviver =
     isString(override.fetch.jsonReviver) || isObject(override.fetch.jsonReviver)
       ? await generateMutator({
@@ -208,7 +197,6 @@ async function buildVerbOption({
     formData,
     formUrlEncoded,
     paramsSerializer,
-    paramsFilter,
     fetchReviver,
     override,
     doc,

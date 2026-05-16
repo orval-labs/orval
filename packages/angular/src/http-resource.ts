@@ -1,5 +1,4 @@
 import {
-  buildAngularParamsFilterExpression,
   type ClientBuilder,
   type ClientDependenciesBuilder,
   type ClientExtraFilesBuilder,
@@ -14,6 +13,7 @@ import {
   type GeneratorDependency,
   type GeneratorImport,
   type GeneratorVerbOptions,
+  getAngularFilteredParamsCallExpression,
   getAngularFilteredParamsHelperBody,
   getFileInfo,
   getFullRoute,
@@ -447,7 +447,6 @@ const buildResourceRequest = (
     headers,
     queryParams,
     paramsSerializer,
-    paramsFilter,
     override,
     formData,
     formUrlEncoded,
@@ -482,14 +481,11 @@ const buildResourceRequest = (
   const paramsAccess = queryParams ? 'params?.()' : undefined;
   const headersAccess = headers ? 'headers?.()' : undefined;
   const filteredParamsValue = paramsAccess
-    ? buildAngularParamsFilterExpression({
-        paramsExpression: `${paramsAccess} ?? {}`,
-        requiredNullableParamKeys: queryParams?.requiredNullableKeys ?? [],
-        preserveRequiredNullables: !!paramsSerializer,
-        nonPrimitiveKeys: queryParams?.nonPrimitiveKeys ?? [],
-        paramsFilter,
-        useSharedHelper: true,
-      })
+    ? getAngularFilteredParamsCallExpression(
+        `${paramsAccess} ?? {}`,
+        queryParams?.requiredNullableKeys ?? [],
+        !!paramsSerializer,
+      )
     : undefined;
   const paramsValue = paramsAccess
     ? paramsSerializer
@@ -1235,13 +1231,10 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
       getClientOverride(verbOption),
     ),
   );
-  // Emit the shared `filterParams` helper only when at least one retrieval
-  // with query params lacks its own `paramsFilter` mutator — otherwise the
-  // helper would be dead code.
-  const hasBuiltInFilteredQueryParams = retrievals.some(
-    (verbOption) => !!verbOption.queryParams && !verbOption.paramsFilter,
+  const hasResourceQueryParams = retrievals.some(
+    (verbOption) => !!verbOption.queryParams,
   );
-  const filterParamsHelper = hasBuiltInFilteredQueryParams
+  const filterParamsHelper = hasResourceQueryParams
     ? `\n${getAngularFilteredParamsHelperBody()}\n`
     : '';
   const resources = retrievals
@@ -1268,11 +1261,8 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
     [...retrievals, ...mutations],
     output,
   );
-  // Mutations need the built-in helper only when at least one mutation lacks
-  // its own `paramsFilter`. If the resource section already emits the helper
-  // for retrievals, we suppress the mutation-side emission to avoid duplication.
-  const hasMutationBuiltInFilteredQueryParams = mutations.some(
-    (verbOption) => !!verbOption.queryParams && !verbOption.paramsFilter,
+  const hasMutationQueryParams = mutations.some(
+    (verbOption) => !!verbOption.queryParams,
   );
 
   const mutationImplementation = mutations
@@ -1298,8 +1288,7 @@ ${buildServiceClassOpen({
   isMutator,
   isGlobalMutator,
   provideIn,
-  hasQueryParams:
-    hasMutationBuiltInFilteredQueryParams && !hasBuiltInFilteredQueryParams,
+  hasQueryParams: hasMutationQueryParams && !hasResourceQueryParams,
 })}
 ${mutationImplementation}
 };
@@ -1364,13 +1353,10 @@ const buildHttpResourceFile = (
     ),
   );
 
-  // Emit the shared `filterParams` helper only when at least one retrieval
-  // with query params lacks its own `paramsFilter` mutator — otherwise the
-  // helper would be dead code.
-  const hasBuiltInFilteredQueryParams = retrievals.some(
-    (verbOption) => !!verbOption.queryParams && !verbOption.paramsFilter,
+  const hasResourceQueryParams = retrievals.some(
+    (verbOption) => !!verbOption.queryParams,
   );
-  const filterParamsHelper = hasBuiltInFilteredQueryParams
+  const filterParamsHelper = hasResourceQueryParams
     ? `\n${getAngularFilteredParamsHelperBody()}\n`
     : '';
 

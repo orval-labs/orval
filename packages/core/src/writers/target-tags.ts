@@ -188,7 +188,6 @@ export function generateTargetForTags(
           formData: target.formData,
           formUrlEncoded: target.formUrlEncoded,
           paramsSerializer: target.paramsSerializer,
-          paramsFilter: target.paramsFilter,
           fetchReviver: target.fetchReviver,
         };
       }

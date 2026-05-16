@@ -41,7 +41,6 @@ export async function writeSingleMode({
       formData,
       formUrlEncoded,
       paramsSerializer,
-      paramsFilter,
       fetchReviver,
     } = generateTarget(builder, output);
 
@@ -168,10 +167,6 @@ export async function writeSingleMode({
 
     if (paramsSerializer) {
       data += generateMutatorImports({ mutators: paramsSerializer });
-    }
-
-    if (paramsFilter) {
-      data += generateMutatorImports({ mutators: paramsFilter });
     }
 
     if (fetchReviver) {
