@@ -42,22 +42,24 @@ const isOpenApiSchemaObject = (
  * `paramsFilter` may need the raw object to flatten or stringify it.
  */
 const isSchemaNonPrimitive = (schema: OpenApiSchemaObject): boolean => {
-  const type = Array.isArray(schema.type)
-    ? schema.type.filter((t) => t !== 'null')
-    : schema.type;
+  const rawType: unknown = schema.type;
+  const types: string[] = Array.isArray(rawType)
+    ? (rawType as unknown[]).filter(
+        (t): t is string => typeof t === 'string' && t !== 'null',
+      )
+    : typeof rawType === 'string'
+      ? [rawType]
+      : [];
 
-  if (type === 'object') {
+  if (types.includes('object')) {
     return true;
   }
-  if (type === 'array') {
+  if (types.includes('array')) {
     const items = (schema as { items?: unknown }).items;
     if (isOpenApiSchemaObject(items)) {
       return isSchemaNonPrimitive(items);
     }
     return false;
-  }
-  if (Array.isArray(type) && type.includes('object')) {
-    return true;
   }
 
   const compositions = [
