@@ -40,13 +40,23 @@ const PRIMITIVE_TYPE_LOOKUP = {
   unknown: true,
 } as const satisfies Record<PrimitiveType, true>;
 
+/**
+ * Narrows a schema type string to the primitive set supported by the Angular
+ * generators' query/header helpers.
+ */
 export const isPrimitiveType = (t: string | undefined): t is PrimitiveType =>
   t != undefined &&
   Object.prototype.hasOwnProperty.call(PRIMITIVE_TYPE_LOOKUP, t);
 
+/**
+ * Indicates whether the configured schema output target is Zod-based.
+ */
 export const isZodSchemaOutput = (output: NormalizedOutputOptions): boolean =>
   isObject(output.schemas) && output.schemas.type === 'zod';
 
+/**
+ * Removes `null` and `undefined` from a value in a type-safe way.
+ */
 export const isDefined = <T>(v: T | null | undefined): v is T => v != undefined;
 
 /**
@@ -55,6 +65,9 @@ export const isDefined = <T>(v: T | null | undefined): v is T => v != undefined;
 export const getSchemaOutputTypeRef = (typeName: string): string =>
   `${typeName}Output`;
 
+/**
+ * Converts an operation/tag title into the generated Angular service class name.
+ */
 export const generateAngularTitle = (title: string) => {
   const sanTitle = sanitize(title);
   return `${pascal(sanTitle)}Service`;
@@ -127,6 +140,14 @@ export const createRouteRegistry = () => {
   };
 };
 
+/**
+ * Returns only the operations that belong to the current tag output.
+ *
+ * In `tags` / `tags-split` mode the writer may route untagged operations into
+ * the implicit `default` bucket. Callers must pass `isDefaultTagBucket: true`
+ * only for that synthetic bucket; a literal user-defined `default` tag should
+ * keep the default `false` value so untagged operations stay excluded.
+ */
 export const getRelevantVerbOptionsForTag = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   tag?: string,
@@ -143,6 +164,10 @@ export const getRelevantVerbOptionsForTag = (
   );
 };
 
+/**
+ * Tracks deferred `ClientResult` aliases emitted while individual operations
+ * are rendered, then flushes only the aliases needed by the current file.
+ */
 export const createReturnTypesRegistry = () => {
   const returnTypesToWrite = new Map<string, string>();
 
@@ -219,6 +244,11 @@ export function isMutationVerb(
   return !isRetrievalVerb(verb, operationName, clientOverride);
 }
 
+/**
+ * Selects the preferred success payload type for Angular `httpResource`
+ * generation, favouring JSON responses and otherwise falling back to the
+ * generator's default content-type rules.
+ */
 export function getDefaultSuccessType(
   successTypes: ResReqTypesValue[],
   fallback: string,

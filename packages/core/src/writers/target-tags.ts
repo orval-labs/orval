@@ -34,7 +34,6 @@ function generateTargetTags(
       paramsSerializer: operation.paramsSerializer
         ? [operation.paramsSerializer]
         : [],
-      paramsFilter: operation.paramsFilter ? [operation.paramsFilter] : [],
       fetchReviver: operation.fetchReviver ? [operation.fetchReviver] : [],
       implementation: operation.implementation,
       implementationMock: {
@@ -86,9 +85,6 @@ function generateTargetTags(
           operation.paramsSerializer,
         ]
       : currentOperation.paramsSerializer,
-    paramsFilter: operation.paramsFilter
-      ? [...(currentOperation.paramsFilter ?? []), operation.paramsFilter]
-      : currentOperation.paramsFilter,
     fetchReviver: operation.fetchReviver
       ? [...(currentOperation.fetchReviver ?? []), operation.fetchReviver]
       : currentOperation.fetchReviver,
@@ -101,6 +97,9 @@ export function generateTargetForTags(
   options: NormalizedOutputOptions,
 ) {
   const isAngularClient = options.client === OutputClient.ANGULAR;
+  const hasUntaggedOperations = Object.values(builder.operations).some(
+    (operation) => operation.tags.length === 0,
+  );
 
   const operations = Object.values(builder.operations).map((operation) =>
     addDefaultTagIfEmpty(operation),
@@ -159,11 +158,7 @@ export function generateTargetForTags(
           output: options,
           verbOptions: builder.verbOptions,
           tag,
-          isDefaultTagBucket:
-            tag === 'default' &&
-            Object.values(builder.operations).some(
-              (operation) => operation.tags.length === 0,
-            ),
+          isDefaultTagBucket: tag === 'default' && hasUntaggedOperations,
           clientImplementation: target.implementation,
         });
 

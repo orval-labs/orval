@@ -130,6 +130,17 @@ const createOutput = (
   return output;
 };
 
+const createQueryParams = (
+  overrides: Partial<NonNullable<GeneratorVerbOptions['queryParams']>> = {},
+): NonNullable<GeneratorVerbOptions['queryParams']> => ({
+  schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+  deps: [],
+  isOptional: true,
+  originalSchema: { type: 'object' },
+  requiredNullableKeys: [],
+  ...overrides,
+});
+
 const createSuccessType = (
   value: string,
   contentType: string,
@@ -180,7 +191,7 @@ const createVerbOption = (
       definition: '',
       imports: [],
       schemas: [],
-      originalSchema: {} as never,
+      originalSchema: { type: 'object' },
       contentType: '',
       formData: '',
       formUrlEncoded: '',
@@ -224,6 +235,21 @@ const createVerbOption = (
     originalOperation: {} as GeneratorVerbOptions['originalOperation'],
     ...overrides,
   }) as GeneratorVerbOptions;
+
+const createHeaderParams = (
+  overrides: Partial<Parameters<typeof generateAngularHeader>[0]> = {},
+): Parameters<typeof generateAngularHeader>[0] => ({
+  title: 'PetService',
+  isRequestOptions: true,
+  isMutator: false,
+  isGlobalMutator: false,
+  provideIn: 'root',
+  hasAwaitedType: false,
+  output: createOutput(),
+  verbOptions: { getPetById: createVerbOption() },
+  clientImplementation: '',
+  ...overrides,
+});
 
 const createContextSpec = (output: NormalizedOutputOptions): ContextSpec => {
   const spec = {
@@ -412,26 +438,19 @@ describe('angular HttpClient generator', () => {
     it('emits filterParams helper for untagged operations in tags-split default file (#3103)', () => {
       const verbOptionWithQueryParams = createVerbOption({
         tags: [],
-        queryParams: {
+        queryParams: createQueryParams({
           schema: { name: 'GetApiProductParams', model: '', imports: [] },
-          deps: [],
-          isOptional: true,
-          originalSchema: {} as never,
-          requiredNullableKeys: [],
-        },
+        }),
       });
 
-      const header = generateAngularHeader({
-        title: 'DefaultService',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: 'root',
-        hasAwaitedType: false,
-        verbOptions: { getApiProduct: verbOptionWithQueryParams },
-        tag: 'default',
-        isDefaultTagBucket: true,
-      } as never);
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'DefaultService',
+          verbOptions: { getApiProduct: verbOptionWithQueryParams },
+          tag: 'default',
+          isDefaultTagBucket: true,
+        }),
+      );
 
       expect(header).toContain('function filterParams(');
     });
@@ -440,33 +459,26 @@ describe('angular HttpClient generator', () => {
       const untaggedVerb = createVerbOption({
         operationId: 'getUntaggedProduct',
         tags: [],
-        queryParams: {
+        queryParams: createQueryParams({
           schema: { name: 'GetApiProductParams', model: '', imports: [] },
-          deps: [],
-          isOptional: true,
-          originalSchema: {} as never,
-          requiredNullableKeys: [],
-        },
+        }),
       });
       const explicitDefaultVerb = createVerbOption({
         operationId: 'getTaggedDefaultProduct',
         tags: ['default'],
       });
 
-      const header = generateAngularHeader({
-        title: 'DefaultService',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: 'root',
-        hasAwaitedType: false,
-        verbOptions: {
-          getUntaggedProduct: untaggedVerb,
-          getTaggedDefaultProduct: explicitDefaultVerb,
-        },
-        tag: 'default',
-        isDefaultTagBucket: false,
-      } as never);
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'DefaultService',
+          verbOptions: {
+            getUntaggedProduct: untaggedVerb,
+            getTaggedDefaultProduct: explicitDefaultVerb,
+          },
+          tag: 'default',
+          isDefaultTagBucket: false,
+        }),
+      );
 
       expect(header).not.toContain('function filterParams(');
     });
