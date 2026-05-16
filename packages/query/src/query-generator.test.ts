@@ -3,8 +3,10 @@ import { Verbs } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
 import {
+  allowUndefinedParam,
   getMutationInvalidatesConflictWarning,
   getQueryKeyVerbPrefix,
+  makeOptionalParam,
   wrapPropsBodyWithMutatorBodyType,
 } from './query-generator';
 
@@ -268,5 +270,71 @@ describe('wrapPropsBodyWithMutatorBodyType', () => {
         mutator: mutatorWithBodyType,
       }),
     ).toBe('params: SomethingElse, createPetsBody: BodyType<CreatePetsBody>');
+  });
+});
+
+describe('makeOptionalParam', () => {
+  it('rewrites a required name to optional', () => {
+    expect(makeOptionalParam('params: ListPetsParams')).toBe(
+      'params?: ListPetsParams',
+    );
+  });
+
+  it('leaves params with a default value untouched', () => {
+    expect(makeOptionalParam('params: ListPetsParams = {}')).toBe(
+      'params: ListPetsParams = {}',
+    );
+  });
+
+  it('passes through generics with `<...>` payload', () => {
+    expect(makeOptionalParam('params: MaybeRef<ListPetsParams>')).toBe(
+      'params?: MaybeRef<ListPetsParams>',
+    );
+  });
+
+  // Pin: destructured params without a default fall through unchanged (the
+  // leading `\w+` anchor fails to match). Toolchain only emits destructured
+  // params *with* defaults today, but pin the behaviour so a future regex
+  // tweak cannot silently change it.
+  it('leaves destructured params without a default unchanged', () => {
+    expect(makeOptionalParam('{ a }: T')).toBe('{ a }: T');
+  });
+
+  it('returns empty input unchanged', () => {
+    expect(makeOptionalParam('')).toBe('');
+  });
+});
+
+describe('allowUndefinedParam', () => {
+  it('widens required `name: T` to `name: T | undefined`', () => {
+    expect(allowUndefinedParam('params: ListPetsParams')).toBe(
+      'params: ListPetsParams | undefined',
+    );
+  });
+
+  it('normalises optional `name?: T` to required `name: T | undefined`', () => {
+    expect(allowUndefinedParam('params?: ListPetsParams')).toBe(
+      'params: ListPetsParams | undefined',
+    );
+  });
+
+  it('leaves params with a default value untouched', () => {
+    expect(
+      allowUndefinedParam('{ version = 1 }: ListPetsPathParameters = {}'),
+    ).toBe('{ version = 1 }: ListPetsPathParameters = {}');
+  });
+
+  it('preserves generic payload', () => {
+    expect(allowUndefinedParam('params: MaybeRef<ListPetsParams>')).toBe(
+      'params: MaybeRef<ListPetsParams> | undefined',
+    );
+  });
+
+  it('leaves destructured params without a default unchanged', () => {
+    expect(allowUndefinedParam('{ a }: T')).toBe('{ a }: T');
+  });
+
+  it('returns empty input unchanged', () => {
+    expect(allowUndefinedParam('')).toBe('');
   });
 });
