@@ -485,6 +485,30 @@ export async function normalizeOptions(
       ),
     );
   }
+  if (!usesAngularGenerator) {
+    const offendingOperation = Object.entries(
+      normalizedOptions.output.override.operations,
+    ).find(([, opOverride]) => opOverride.paramsFilter)?.[0];
+    if (offendingOperation) {
+      throw new Error(
+        styleText(
+          'red',
+          `\`override.operations["${offendingOperation}"].paramsFilter\` is only supported by the Angular generator (the \`angular\` client, or \`angular-query\` with \`httpClient: 'angular'\`). It has no effect for other clients — use \`override.paramsSerializer\` instead.`,
+        ),
+      );
+    }
+    const offendingTag = Object.entries(
+      normalizedOptions.output.override.tags,
+    ).find(([, tagOverride]) => tagOverride.paramsFilter)?.[0];
+    if (offendingTag) {
+      throw new Error(
+        styleText(
+          'red',
+          `\`override.tags["${offendingTag}"].paramsFilter\` is only supported by the Angular generator (the \`angular\` client, or \`angular-query\` with \`httpClient: 'angular'\`). It has no effect for other clients — use \`override.paramsSerializer\` instead.`,
+        ),
+      );
+    }
+  }
 
   if (
     normalizedOptions.output.httpClient === OutputHttpClient.FETCH &&

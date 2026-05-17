@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpec, OpenApiParameterObject } from '../types';
+import { createTestContextSpec } from '../test-utils/context';
+import type { OpenApiParameterObject } from '../types';
 import { getQueryParams } from './query-params';
 
-// Mock context for getQueryParams
-// Partial mock; only fields read by getQueryParams/resolveValue are defined.
-const context = {
+// Fully-typed context via the shared factory — no unsafe cast, so missing
+// or renamed fields surface at compile time if getQueryParams starts
+// reading additional context. `Filter` backs the $ref test cases below.
+const context = createTestContextSpec({
   spec: {
     components: {
       schemas: {
@@ -16,27 +18,16 @@ const context = {
       },
     },
   },
-  output: {
-    override: {
-      useDates: true,
-      components: {
-        schemas: {
-          suffix: 'Dto',
-          itemSuffix: 'Item',
-        },
-        responses: {
-          suffix: 'Response',
-        },
-        parameters: {
-          suffix: 'Params',
-        },
-        requestBodies: {
-          suffix: 'Body',
-        },
-      },
+  override: {
+    useDates: true,
+    components: {
+      schemas: { suffix: 'Dto', itemSuffix: 'Item' },
+      responses: { suffix: 'Response' },
+      parameters: { suffix: 'Params' },
+      requestBodies: { suffix: 'Body' },
     },
   },
-} as unknown as ContextSpec;
+});
 
 const queryParams: {
   parameter: OpenApiParameterObject;
