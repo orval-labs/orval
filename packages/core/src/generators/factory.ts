@@ -31,10 +31,10 @@ function getSchemaImportPath(
   refName: string,
   context: ContextSpec,
 ): string | undefined {
-  if (context.output.factoryMethods.mode === 'inline-with-schema') {
+  if (context.output.factoryMethods?.mode === 'single') {
     return undefined;
   }
-  let outputDir = context.output.factoryMethods.outputDirectory;
+  let outputDir = context.output.factoryMethods?.outputDirectory;
   let schemasPath = getSchemasPath(context);
 
   if (context.output.workspace) {
@@ -128,14 +128,15 @@ export function generateFactory(
   name: string,
   context: ContextSpec,
 ): { model: string; imports: GeneratorImport[] } | undefined {
-  if (!canGenerateSchema(schema)) return undefined;
+  if (!canGenerateSchema(schema) || !context.output.factoryMethods)
+    return undefined;
 
   const { functionNamePrefix, mode } = context.output.factoryMethods;
   const factoryName = `${functionNamePrefix}${pascal(name)}`;
   const imports: GeneratorImport[] = [];
   const payload = buildPayload(schema, context, [name], imports);
 
-  if (mode !== 'inline-with-schema') {
+  if (mode !== 'single') {
     const schemaImportPath = getSchemaImportPath(name, context);
     imports.push({ name, importPath: schemaImportPath });
   }
@@ -287,10 +288,11 @@ function buildRefPayload(
     return `{} as ${refName}`;
   }
 
-  const { functionNamePrefix, mode } = context.output.factoryMethods;
+  const { functionNamePrefix = 'create', mode = 'single' } =
+    context.output.factoryMethods ?? {};
   const refFactoryName = `${functionNamePrefix}${pascal(refName)}`;
 
-  if (mode !== 'combined-separate-file') {
+  if (mode !== 'single-split') {
     const importPath = resolveImportPath(mode, refName, context);
     imports.push({ name: refFactoryName, importPath, isConstant: true });
   }
@@ -310,13 +312,13 @@ function resolveImportPath(
 ): string | undefined {
   const baseName = conventionName(refName, context.output.namingConvention);
   switch (mode) {
-    case 'separate-file': {
+    case 'split': {
       return `./${baseName}.factory`;
     }
-    case 'combined-separate-file': {
+    case 'single-split': {
       return `./${conventionName('factoryMethods', context.output.namingConvention)}`;
     }
-    case 'inline-with-schema': {
+    case 'single': {
       return `./${baseName}`;
     }
   }
@@ -350,7 +352,8 @@ function buildObjectPayload(
   parents: string[],
   imports: GeneratorImport[],
 ): string {
-  const { optionalPropertyStrategy } = context.output.factoryMethods;
+  const { includeOptionalProperty = false } =
+    context.output.factoryMethods ?? {};
   const props = getProperties(schema);
   const requiredProps: string[] =
     (schema.required as string[] | undefined) ?? [];
@@ -360,7 +363,7 @@ function buildObjectPayload(
     entries.sort(([a], [b]) => a.localeCompare(b));
   }
 
-  const includeOptional = optionalPropertyStrategy === 'include';
+  const includeOptional = includeOptionalProperty;
   const lines: string[] = [];
 
   for (const [key, prop] of entries) {

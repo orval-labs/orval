@@ -182,34 +182,24 @@ export async function normalizeOptions(
   const defaultFileExtension = '.ts';
 
   const factoryMethodsConfig = outputOptions.factoryMethods;
-  let factoryMethods: NormalizedFactoryMethodsOptions = {
-    generate: false,
-    functionNamePrefix: 'create',
-    mode: 'separate-file',
-    optionalPropertyStrategy: 'include',
-    outputDirectory: outputOptions.schemas
-      ? normalizePath(
-          isString(outputOptions.schemas)
-            ? outputOptions.schemas
-            : outputOptions.schemas.path,
-          outputWorkspace,
-        )
-      : normalizePath(outputWorkspace, outputWorkspace), // default to workspace
-  };
+  let factoryMethods: NormalizedFactoryMethodsOptions | undefined = undefined;
 
   if (factoryMethodsConfig) {
     factoryMethods = {
-      generate: factoryMethodsConfig.generate ?? factoryMethods.generate,
-      functionNamePrefix:
-        factoryMethodsConfig.functionNamePrefix ??
-        factoryMethods.functionNamePrefix,
-      mode: factoryMethodsConfig.mode ?? factoryMethods.mode,
+      functionNamePrefix: factoryMethodsConfig.functionNamePrefix ?? 'create',
+      mode: factoryMethodsConfig.mode ?? 'split',
       outputDirectory: factoryMethodsConfig.outputDirectory
         ? normalizePath(factoryMethodsConfig.outputDirectory, outputWorkspace)
-        : factoryMethods.outputDirectory,
-      optionalPropertyStrategy:
-        factoryMethodsConfig.optionalPropertyStrategy ??
-        factoryMethods.optionalPropertyStrategy,
+        : outputOptions.schemas
+          ? normalizePath(
+              isString(outputOptions.schemas)
+                ? outputOptions.schemas
+                : outputOptions.schemas.path,
+              outputWorkspace,
+            )
+          : normalizePath(outputWorkspace, outputWorkspace),
+      includeOptionalProperty:
+        factoryMethodsConfig.includeOptionalProperty ?? true,
     };
   }
 

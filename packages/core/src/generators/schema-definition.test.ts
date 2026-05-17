@@ -11,15 +11,9 @@ describe('generateSchemasDefinition', () => {
   const context = {
     output: {
       override: { namingConvention: {} },
-      factoryMethods: {
-        generate: false,
-        functionNamePrefix: 'create',
-        mode: 'separate-file',
-        optionalPropertyStrategy: 'include',
-      },
+      factoryMethods: undefined,
     },
     target: 'typescript',
-    workspace: '',
     spec: {},
   } as unknown as ContextSpec;
 
@@ -145,15 +139,9 @@ describe('generateSchemasDefinition', () => {
             enum: 'PascalCase',
           },
         },
-        factoryMethods: {
-          generate: false,
-          functionNamePrefix: 'create',
-          mode: 'separate-file',
-          optionalPropertyStrategy: 'include',
-        },
+        factoryMethods: undefined,
       },
       target: 'typescript',
-      workspace: '',
       spec: {},
     } as unknown as ContextSpec;
 

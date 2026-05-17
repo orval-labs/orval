@@ -5,20 +5,19 @@ import { normalizeOptions } from './options';
 describe('normalizeOptions factoryMethods', () => {
   const baseInput = { target: 'petstore.yaml' };
 
-  it('should use defaults when factoryMethods has generate: true', async () => {
+  it('should use defaults when factoryMethods is an empty object', async () => {
     const options = await normalizeOptions({
       input: baseInput,
       output: {
         target: 'api.ts',
-        factoryMethods: { generate: true },
+        factoryMethods: {},
       },
     });
 
     expect(options.output.factoryMethods).toEqual({
-      generate: true,
       functionNamePrefix: 'create',
-      mode: 'separate-file',
-      optionalPropertyStrategy: 'include',
+      mode: 'split',
+      includeOptionalProperty: true,
       outputDirectory: process.cwd(),
     });
   });
@@ -29,19 +28,17 @@ describe('normalizeOptions factoryMethods', () => {
       output: {
         target: 'api.ts',
         factoryMethods: {
-          generate: true,
           functionNamePrefix: 'build',
-          mode: 'inline-with-schema',
-          optionalPropertyStrategy: 'omit',
+          mode: 'single',
+          includeOptionalProperty: false,
         },
       },
     });
 
     expect(options.output.factoryMethods).toEqual({
-      generate: true,
       functionNamePrefix: 'build',
-      mode: 'inline-with-schema',
-      optionalPropertyStrategy: 'omit',
+      mode: 'single',
+      includeOptionalProperty: false,
       outputDirectory: process.cwd(),
     });
   });
@@ -52,22 +49,20 @@ describe('normalizeOptions factoryMethods', () => {
       output: {
         target: 'api.ts',
         factoryMethods: {
-          generate: true,
           functionNamePrefix: 'make',
         },
       },
     });
 
     expect(options.output.factoryMethods).toEqual({
-      generate: true,
       functionNamePrefix: 'make',
-      mode: 'separate-file',
-      optionalPropertyStrategy: 'include',
+      mode: 'split',
+      includeOptionalProperty: true,
       outputDirectory: process.cwd(),
     });
   });
 
-  it('should default to generate: false if factoryMethods is not provided', async () => {
+  it('should default to undefined if factoryMethods is not provided', async () => {
     const options = await normalizeOptions({
       input: baseInput,
       output: {
@@ -75,12 +70,6 @@ describe('normalizeOptions factoryMethods', () => {
       },
     });
 
-    expect(options.output.factoryMethods).toEqual({
-      generate: false,
-      functionNamePrefix: 'create',
-      mode: 'separate-file',
-      optionalPropertyStrategy: 'include',
-      outputDirectory: process.cwd(),
-    });
+    expect(options.output.factoryMethods).toBeUndefined();
   });
 });

@@ -58,7 +58,7 @@ export interface NormalizedOutputOptions {
   unionAddMissingProperties: boolean;
   optionsParamRequired: boolean;
   propertySortOrder: PropertySortOrder;
-  factoryMethods: NormalizedFactoryMethodsOptions;
+  factoryMethods?: NormalizedFactoryMethodsOptions;
 }
 
 export interface NormalizedParamsSerializerOptions {
@@ -278,26 +278,20 @@ export type EnumGeneration =
 
 export type SchemaGenerationType = 'typescript' | 'zod';
 
-export type FactoryMethodsOptionalPropertyStrategy = 'include' | 'omit';
-export type FactoryMethodsMode =
-  | 'inline-with-schema'
-  | 'separate-file'
-  | 'combined-separate-file';
+export type FactoryMethodsMode = 'single' | 'split' | 'single-split';
 
 export interface FactoryMethodsOptions {
-  generate?: boolean;
   functionNamePrefix?: string;
   mode?: FactoryMethodsMode;
   outputDirectory?: string;
-  optionalPropertyStrategy?: FactoryMethodsOptionalPropertyStrategy;
+  includeOptionalProperty?: boolean;
 }
 
 export interface NormalizedFactoryMethodsOptions {
-  generate: boolean;
   functionNamePrefix: string;
   mode: FactoryMethodsMode;
   outputDirectory: string;
-  optionalPropertyStrategy: FactoryMethodsOptionalPropertyStrategy;
+  includeOptionalProperty: boolean;
 }
 
 export interface SchemaOptions {

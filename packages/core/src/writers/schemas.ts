@@ -426,7 +426,7 @@ async function emitFactoryForSchema(
 ) {
   if (schema.factory && schema.factoryMode) {
     const mode = schema.factoryMode;
-    if (mode === 'separate-file') {
+    if (mode === 'split') {
       const baseName = conventionName(schema.name, namingConvention);
       const factoryName = `${baseName}.factory`;
       helpers.separateFactoryNames.push(factoryName);
@@ -439,7 +439,7 @@ async function emitFactoryForSchema(
         getPath(factoryDir, factoryName, fileExtension),
         factoryFile,
       );
-    } else if (mode === 'combined-separate-file') {
+    } else if (mode === 'single-split') {
       helpers.isCombined.value = true;
       helpers.combinedFactoryContent.value += `${schema.factory}\n`;
       helpers.combinedFactoryImports.push(...(schema.factoryImports ?? []));

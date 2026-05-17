@@ -42,11 +42,10 @@ function makeOutput(useDates = false): ContextSpec['output'] {
     optionsParamRequired: false,
     propertySortOrder: PropertySortOrder.ALPHABETICAL,
     factoryMethods: {
-      generate: false,
       functionNamePrefix: 'create',
-      mode: 'inline-with-schema',
+      mode: 'single',
       outputDirectory: '',
-      optionalPropertyStrategy: 'omit',
+      includeOptionalProperty: false,
     },
     override: {
       title: undefined,

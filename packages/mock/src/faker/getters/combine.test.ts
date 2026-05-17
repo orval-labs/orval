@@ -37,11 +37,10 @@ function createMockContext(): ContextSpec {
       optionsParamRequired: false,
       propertySortOrder: PropertySortOrder.ALPHABETICAL,
       factoryMethods: {
-        generate: false,
         functionNamePrefix: 'create',
-        mode: 'inline-with-schema',
+        mode: 'single',
         outputDirectory: '',
-        optionalPropertyStrategy: 'omit',
+        includeOptionalProperty: false,
       },
       override: {
         title: undefined,

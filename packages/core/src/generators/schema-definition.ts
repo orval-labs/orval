@@ -71,14 +71,14 @@ export function generateSchemasDefinition(
     if (!seenNames.has(normalizedName)) {
       seenNames.add(normalizedName);
 
-      if (context.output.factoryMethods.generate && schema.schema) {
+      if (context.output.factoryMethods && schema.schema) {
         const factoryData = generateFactory(
           schema.schema,
           schema.name,
           context,
         );
         if (factoryData) {
-          if (context.output.factoryMethods.mode === 'inline-with-schema') {
+          if (context.output.factoryMethods.mode === 'single') {
             schema.model += `\n${factoryData.model}`;
             for (const imp of factoryData.imports) {
               if (
