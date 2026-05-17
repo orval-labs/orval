@@ -1,0 +1,29 @@
+openapi: 3.0.4
+info:
+  title: Issue 3103 - Angular tags-split default service query params
+  version: 1.0.0
+paths:
+  /api/Product:
+    get:
+      operationId: getApiProduct
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32

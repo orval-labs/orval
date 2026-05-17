@@ -1,5 +1,4 @@
 import {
-  camel,
   type ClientBuilder,
   type ClientDependenciesBuilder,
   type ClientFooterBuilder,
@@ -33,6 +32,7 @@ import {
 } from './types';
 import {
   createReturnTypesRegistry,
+  getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
   isPrimitiveType,
   isZodSchemaOutput,
@@ -230,11 +230,7 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
 }) => {
   returnTypesRegistry.reset();
 
-  const relevantVerbs = tag
-    ? Object.values(verbOptions).filter((v) =>
-        v.tags.some((t) => camel(t) === camel(tag)),
-      )
-    : Object.values(verbOptions);
+  const relevantVerbs = getRelevantVerbOptionsForTag(verbOptions, tag);
   const hasQueryParams = relevantVerbs.some((v) => v.queryParams);
   const acceptHelpers = buildAcceptHelpers(relevantVerbs, output);
 
@@ -471,7 +467,6 @@ export const generateHttpClientImplementation = (
   let paramsDeclaration = '';
   if (angularParamsRef && queryParams) {
     if (isRequestOptions) {
-      // Uses the shared filterParams helper emitted in the file header
       const callExpr = getAngularFilteredParamsCallExpression(
         '{...params, ...options?.params}',
         queryParams.requiredNullableKeys ?? [],
@@ -480,7 +475,6 @@ export const generateHttpClientImplementation = (
         ? `const ${angularParamsRef} = ${paramsSerializer.name}(${callExpr});\n\n    `
         : `const ${angularParamsRef} = ${callExpr};\n\n    `;
     } else {
-      // No shared helper available; use inline IIFE filtering
       const iifeExpr = getAngularFilteredParamsExpression(
         'params ?? {}',
         queryParams.requiredNullableKeys ?? [],

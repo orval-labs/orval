@@ -1,5 +1,4 @@
 import {
-  camel,
   type ClientBuilder,
   type ClientDependenciesBuilder,
   type ClientExtraFilesBuilder,
@@ -51,6 +50,7 @@ import {
   createReturnTypesRegistry,
   createRouteRegistry,
   getDefaultSuccessType,
+  getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
   isMutationVerb,
   isPrimitiveType,
@@ -161,16 +161,6 @@ const resourceReturnTypesRegistry = createReturnTypesRegistry();
 
 /** @internal Exported for testing only */
 export const routeRegistry = createRouteRegistry();
-
-const getRelevantVerbOptions = (
-  verbOptions: Record<string, GeneratorVerbOptions>,
-  tag?: string,
-): GeneratorVerbOptions[] =>
-  tag
-    ? Object.values(verbOptions).filter((verbOption) =>
-        verbOption.tags.some((currentTag) => camel(currentTag) === camel(tag)),
-      )
-    : Object.values(verbOptions);
 
 const getVerbOptionsRecord = (
   verbOptions: readonly GeneratorVerbOptions[],
@@ -1227,7 +1217,7 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
   // the shared header duplicates helpers across every tag file and pulls in
   // type names the file-local `imports` filter never sees, producing missing
   // schema imports in the generated output.
-  const relevantVerbOptions = getRelevantVerbOptions(verbOptions, tag);
+  const relevantVerbOptions = getRelevantVerbOptionsForTag(verbOptions, tag);
 
   const retrievals = relevantVerbOptions.filter((verbOption) =>
     isRetrievalVerb(
@@ -1616,7 +1606,7 @@ export const generateHttpResourceExtraFiles: ClientExtraFilesBuilder = (
 
   return Promise.resolve([
     buildHttpResourceExtraFile(
-      getVerbOptionsRecord(getRelevantVerbOptions(verbOptions)),
+      getVerbOptionsRecord(getRelevantVerbOptionsForTag(verbOptions)),
       getHttpResourceExtraFilePath(output),
       output,
       context,

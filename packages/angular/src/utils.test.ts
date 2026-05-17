@@ -1,4 +1,9 @@
-import type { ResReqTypesValue, Verbs } from '@orval/core';
+import type {
+  GeneratorVerbOptions,
+  ResReqTypesValue,
+  Verbs,
+} from '@orval/core';
+import { GetterPropType } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -6,8 +11,13 @@ import {
   createRouteRegistry,
   generateAngularTitle,
   getDefaultSuccessType,
+  getRelevantVerbOptionsForTag,
+  getSchemaOutputTypeRef,
+  isDefined,
   isMutationVerb,
+  isPrimitiveType,
   isRetrievalVerb,
+  isZodSchemaOutput,
 } from './utils';
 
 // ---------------------------------------------------------------------------
@@ -266,5 +276,228 @@ describe('getDefaultSuccessType', () => {
   it('uses fallback value when no matching type is found', () => {
     const result = getDefaultSuccessType([], 'FallbackType');
     expect(result.value).toBe('FallbackType');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isPrimitiveType
+// ---------------------------------------------------------------------------
+
+describe('isPrimitiveType', () => {
+  it.each(['string', 'number', 'boolean', 'void', 'unknown'])(
+    'returns true for primitive "%s"',
+    (t) => {
+      expect(isPrimitiveType(t)).toBe(true);
+    },
+  );
+
+  it.each(['Pet', 'object', 'array', 'null', ''])(
+    'returns false for non-primitive "%s"',
+    (t) => {
+      expect(isPrimitiveType(t)).toBe(false);
+    },
+  );
+
+  it('returns false for undefined', () => {
+    const value = undefined as string | undefined;
+    expect(isPrimitiveType(value)).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isDefined
+// ---------------------------------------------------------------------------
+
+describe('isDefined', () => {
+  it('returns true for truthy values', () => {
+    expect(isDefined('hello')).toBe(true);
+    expect(isDefined(0)).toBe(true);
+    expect(isDefined(false)).toBe(true);
+  });
+
+  it('returns false for null', () => {
+    // eslint-disable-next-line unicorn/no-null -- testing null handling explicitly
+    const value = null as string | null;
+    expect(isDefined(value)).toBe(false);
+  });
+
+  it('returns false for undefined', () => {
+    const value = undefined as string | undefined;
+    expect(isDefined(value)).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getSchemaOutputTypeRef
+// ---------------------------------------------------------------------------
+
+describe('getSchemaOutputTypeRef', () => {
+  it('appends Output to the type name', () => {
+    expect(getSchemaOutputTypeRef('Pet')).toBe('PetOutput');
+  });
+
+  it('handles already-suffixed names', () => {
+    expect(getSchemaOutputTypeRef('PetOutput')).toBe('PetOutputOutput');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isZodSchemaOutput
+// ---------------------------------------------------------------------------
+
+describe('isZodSchemaOutput', () => {
+  const makeOutput = (schemas: unknown) =>
+    ({ schemas }) as Parameters<typeof isZodSchemaOutput>[0];
+
+  it('returns true when schemas.type is "zod"', () => {
+    expect(isZodSchemaOutput(makeOutput({ type: 'zod' }))).toBe(true);
+  });
+
+  it('returns false when schemas.type is not "zod"', () => {
+    expect(isZodSchemaOutput(makeOutput({ type: 'ts' }))).toBe(false);
+  });
+
+  it('returns false when schemas is a string path', () => {
+    expect(isZodSchemaOutput(makeOutput('/tmp/schemas'))).toBe(false);
+  });
+
+  it('returns false when schemas is undefined', () => {
+    const value = undefined as unknown;
+    expect(isZodSchemaOutput(makeOutput(value))).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getRelevantVerbOptionsForTag
+// ---------------------------------------------------------------------------
+
+const makeVerb = (operationId: string, tags: string[]): GeneratorVerbOptions =>
+  ({
+    operationId,
+    operationName: operationId,
+    verb: 'get' as Verbs,
+    route: `/api/${operationId}`,
+    pathRoute: `/api/${operationId}`,
+    tags,
+    summary: '',
+    doc: '',
+    response: {
+      imports: [],
+      definition: { success: 'void', errors: '' },
+      types: { success: [], errors: [] },
+      contentTypes: [],
+      isBlob: false,
+      schemas: [],
+    } as GeneratorVerbOptions['response'],
+    body: {
+      implementation: '',
+      definition: '',
+      imports: [],
+      schemas: [],
+      originalSchema: {},
+      contentType: '',
+      formData: '',
+      formUrlEncoded: '',
+      isOptional: true,
+    },
+    headers: undefined,
+    queryParams: undefined,
+    params: [],
+    props: [
+      {
+        name: 'id',
+        definition: 'id: string',
+        implementation: 'id: string',
+        default: false,
+        required: true,
+        type: GetterPropType.PARAM,
+      },
+    ],
+    mutator: undefined,
+    formData: undefined,
+    formUrlEncoded: undefined,
+    paramsSerializer: undefined,
+    fetchReviver: undefined,
+    override: {
+      requestOptions: true,
+      formData: { disabled: false, arrayHandling: 'serialize' },
+      formUrlEncoded: true,
+      paramsSerializerOptions: undefined,
+      angular: {
+        provideIn: 'root',
+        client: 'httpClient',
+        runtimeValidation: false,
+      },
+    } as GeneratorVerbOptions['override'],
+    deprecated: false,
+    originalOperation: {} as GeneratorVerbOptions['originalOperation'],
+  }) as GeneratorVerbOptions;
+
+describe('getRelevantVerbOptionsForTag', () => {
+  it('returns all verbs when no tag is given', () => {
+    const verbOptions = {
+      op1: makeVerb('op1', ['pets']),
+      op2: makeVerb('op2', ['users']),
+    };
+    expect(getRelevantVerbOptionsForTag(verbOptions)).toHaveLength(2);
+  });
+
+  it('filters verbs to those matching the requested tag', () => {
+    const verbOptions = {
+      op1: makeVerb('op1', ['pets']),
+      op2: makeVerb('op2', ['users']),
+    };
+    const result = getRelevantVerbOptionsForTag(verbOptions, 'pets');
+    expect(result).toHaveLength(1);
+    expect(result[0].operationId).toBe('op1');
+  });
+
+  it('includes untagged operations in the implicit default bucket', () => {
+    const verbOptions = {
+      tagged: makeVerb('tagged', ['default']),
+      untagged: makeVerb('untagged', []),
+    };
+    const result = getRelevantVerbOptionsForTag(verbOptions, 'default');
+    expect(result).toHaveLength(2);
+    expect(result.map((v) => v.operationId)).toContain('untagged');
+  });
+
+  it('does not pull in untagged ops when target tag is default but no untagged ops exist', () => {
+    const verbOptions = {
+      op1: makeVerb('op1', ['default']),
+      op2: makeVerb('op2', ['pets']),
+    };
+    const result = getRelevantVerbOptionsForTag(verbOptions, 'default');
+    expect(result).toHaveLength(1);
+    expect(result[0].operationId).toBe('op1');
+  });
+
+  it('does not include untagged operations for non-default tags', () => {
+    const verbOptions = {
+      untagged: makeVerb('untagged', []),
+      op1: makeVerb('op1', ['pets']),
+    };
+    const result = getRelevantVerbOptionsForTag(verbOptions, 'pets');
+    expect(result).toHaveLength(1);
+    expect(result[0].operationId).toBe('op1');
+  });
+
+  it('matches tags case-insensitively via camelCase normalisation', () => {
+    const verbOptions = {
+      op1: makeVerb('op1', ['Pet-Store']),
+    };
+    const result = getRelevantVerbOptionsForTag(verbOptions, 'pet-store');
+    expect(result).toHaveLength(1);
+  });
+
+  it('returns empty array when no verbs match the tag', () => {
+    const verbOptions = {
+      op1: makeVerb('op1', ['pets']),
+    };
+    expect(getRelevantVerbOptionsForTag(verbOptions, 'users')).toHaveLength(0);
+  });
+
+  it('returns empty array for empty verbOptions', () => {
+    expect(getRelevantVerbOptionsForTag({}, 'pets')).toHaveLength(0);
   });
 });
