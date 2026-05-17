@@ -299,7 +299,8 @@ describe('isPrimitiveType', () => {
   );
 
   it('returns false for undefined', () => {
-    expect(isPrimitiveType(undefined)).toBe(false);
+    const value = undefined as string | undefined;
+    expect(isPrimitiveType(value)).toBe(false);
   });
 });
 
@@ -315,11 +316,14 @@ describe('isDefined', () => {
   });
 
   it('returns false for null', () => {
-    expect(isDefined(null)).toBe(false);
+    // eslint-disable-next-line unicorn/no-null -- testing null handling explicitly
+    const value = null as string | null;
+    expect(isDefined(value)).toBe(false);
   });
 
   it('returns false for undefined', () => {
-    expect(isDefined(undefined)).toBe(false);
+    const value = undefined as string | undefined;
+    expect(isDefined(value)).toBe(false);
   });
 });
 
@@ -358,7 +362,8 @@ describe('isZodSchemaOutput', () => {
   });
 
   it('returns false when schemas is undefined', () => {
-    expect(isZodSchemaOutput(makeOutput(undefined))).toBe(false);
+    const value = undefined as unknown;
+    expect(isZodSchemaOutput(makeOutput(value))).toBe(false);
   });
 });
 
