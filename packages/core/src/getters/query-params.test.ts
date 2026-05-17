@@ -6,7 +6,16 @@ import { getQueryParams } from './query-params';
 // Mock context for getQueryParams
 // Partial mock; only fields read by getQueryParams/resolveValue are defined.
 const context = {
-  spec: {},
+  spec: {
+    components: {
+      schemas: {
+        Filter: {
+          type: 'object',
+          properties: { field: { type: 'string' } },
+        },
+      },
+    },
+  },
   output: {
     override: {
       useDates: true,
@@ -402,6 +411,57 @@ describe('getQueryParams getter', () => {
       });
 
       expect(result?.nonPrimitiveKeys).toBeUndefined();
+    });
+
+    it('flags arrays whose items are a $ref', () => {
+      // `items` is a reference object, not an inline schema. It almost
+      // always points at a component object and must survive the filter
+      // (when a paramsSerializer is configured). See #3326.
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'filters',
+              in: 'query',
+              required: false,
+              schema: {
+                type: 'array',
+                items: { $ref: '#/components/schemas/Filter' },
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toEqual(['filters']);
+    });
+
+    it('flags a $ref variant inside a composition', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'either',
+              in: 'query',
+              required: false,
+              schema: {
+                oneOf: [
+                  { type: 'string' },
+                  { $ref: '#/components/schemas/Filter' },
+                ],
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toEqual(['either']);
     });
 
     it('does not flag arrays of primitives', () => {

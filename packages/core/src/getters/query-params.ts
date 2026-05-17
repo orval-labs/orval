@@ -31,6 +31,17 @@ const isOpenApiSchemaObject = (
   return !('$ref' in value);
 };
 
+/**
+ * A `$ref` schema object (e.g. array `items` or a oneOf/anyOf/allOf variant
+ * pointing at a component). We don't resolve the reference here, but a query
+ * parameter behind a `$ref` is virtually always a complex (object-like) type,
+ * so it must be treated as non-primitive. Over-flagging is harmless: the only
+ * consumer (the Angular `nonPrimitiveKeys` passthrough) is gated on a
+ * configured `paramsSerializer`, which is precisely what handles raw values.
+ */
+const isRefObject = (value: unknown): boolean =>
+  !!value && typeof value === 'object' && '$ref' in value;
+
 const getSchemaType = (
   schema: OpenApiSchemaObject,
 ): string | string[] | undefined => {
@@ -75,7 +86,9 @@ const isSchemaNonPrimitive = (schema: OpenApiSchemaObject): boolean => {
     if (isOpenApiSchemaObject(items)) {
       return isSchemaNonPrimitive(items);
     }
-    return false;
+    // `items` is a `$ref` (rejected by isOpenApiSchemaObject) — an array of
+    // referenced objects must still be flagged so it survives the filter.
+    return isRefObject(items);
   }
   if (Array.isArray(type) && type.includes('object')) {
     return true;
@@ -87,9 +100,10 @@ const isSchemaNonPrimitive = (schema: OpenApiSchemaObject): boolean => {
     ...(Array.isArray(schema.allOf) ? (schema.allOf as unknown[]) : []),
   ];
   if (compositions.length > 0) {
-    return compositions.some(
-      (variant) =>
-        isOpenApiSchemaObject(variant) && isSchemaNonPrimitive(variant),
+    return compositions.some((variant) =>
+      isOpenApiSchemaObject(variant)
+        ? isSchemaNonPrimitive(variant)
+        : isRefObject(variant),
     );
   }
 

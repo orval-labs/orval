@@ -469,6 +469,23 @@ export async function normalizeOptions(
     );
   }
 
+  // `paramsFilter` is only consumed by the Angular generator. That runs for
+  // the `angular` client (regardless of `httpClient`, which stays at its
+  // `fetch` default there) and for `angular-query` when it resolves to the
+  // Angular HttpClient. For any other client the mutator would be imported
+  // but never called, so fail fast instead of emitting a dead import.
+  const usesAngularGenerator =
+    normalizedOptions.output.client === OutputClient.ANGULAR ||
+    normalizedOptions.output.httpClient === OutputHttpClient.ANGULAR;
+  if (normalizedOptions.output.override.paramsFilter && !usesAngularGenerator) {
+    throw new Error(
+      styleText(
+        'red',
+        `\`override.paramsFilter\` is only supported by the Angular generator (the \`angular\` client, or \`angular-query\` with \`httpClient: 'angular'\`). It has no effect for other clients — use \`override.paramsSerializer\` instead.`,
+      ),
+    );
+  }
+
   if (
     normalizedOptions.output.httpClient === OutputHttpClient.FETCH &&
     normalizedOptions.output.optionsParamRequired &&
