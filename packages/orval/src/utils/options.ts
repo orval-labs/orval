@@ -488,7 +488,7 @@ export async function normalizeOptions(
   if (!usesAngularGenerator) {
     const offendingOperation = Object.entries(
       normalizedOptions.output.override.operations,
-    ).find(([, opOverride]) => opOverride.paramsFilter)?.[0];
+    ).find(([, opOverride]) => opOverride?.paramsFilter)?.[0];
     if (offendingOperation) {
       throw new Error(
         styleText(
@@ -499,7 +499,7 @@ export async function normalizeOptions(
     }
     const offendingTag = Object.entries(
       normalizedOptions.output.override.tags,
-    ).find(([, tagOverride]) => tagOverride.paramsFilter)?.[0];
+    ).find(([, tagOverride]) => tagOverride?.paramsFilter)?.[0];
     if (offendingTag) {
       throw new Error(
         styleText(
