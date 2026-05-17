@@ -18,6 +18,7 @@ import {
   getHttpClientReturnTypes,
   resetHttpClientReturnTypes,
 } from './http-client';
+import { createQueryParams } from './test-helpers';
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -180,7 +181,7 @@ const createVerbOption = (
       definition: '',
       imports: [],
       schemas: [],
-      originalSchema: {} as never,
+      originalSchema: { type: 'object' },
       contentType: '',
       formData: '',
       formUrlEncoded: '',
@@ -224,6 +225,21 @@ const createVerbOption = (
     originalOperation: {} as GeneratorVerbOptions['originalOperation'],
     ...overrides,
   }) as GeneratorVerbOptions;
+
+const createHeaderParams = (
+  overrides: Partial<Parameters<typeof generateAngularHeader>[0]> = {},
+): Parameters<typeof generateAngularHeader>[0] => ({
+  title: 'PetService',
+  isRequestOptions: true,
+  isMutator: false,
+  isGlobalMutator: false,
+  provideIn: 'root',
+  hasAwaitedType: false,
+  output: createOutput(),
+  verbOptions: { getPetById: createVerbOption() },
+  clientImplementation: '',
+  ...overrides,
+});
 
 const createContextSpec = (output: NormalizedOutputOptions): ContextSpec => {
   const spec = {
@@ -412,61 +428,62 @@ describe('angular HttpClient generator', () => {
     it('emits filterParams helper for untagged operations in tags-split default file (#3103)', () => {
       const verbOptionWithQueryParams = createVerbOption({
         tags: [],
-        queryParams: {
+        queryParams: createQueryParams({
           schema: { name: 'GetApiProductParams', model: '', imports: [] },
-          deps: [],
-          isOptional: true,
-          originalSchema: {} as never,
-          requiredNullableKeys: [],
-        },
+        }),
       });
 
-      const header = generateAngularHeader({
-        title: 'DefaultService',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: 'root',
-        hasAwaitedType: false,
-        verbOptions: { getApiProduct: verbOptionWithQueryParams },
-        tag: 'default',
-        isDefaultTagBucket: true,
-      } as never);
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'DefaultService',
+          verbOptions: { getApiProduct: verbOptionWithQueryParams },
+          tag: 'default',
+        }),
+      );
 
       expect(header).toContain('function filterParams(');
     });
 
-    it('does not treat a literal default tag as the untagged bucket', () => {
+    it('includes both explicit default-tagged and untagged operations in the default bucket', () => {
       const untaggedVerb = createVerbOption({
         operationId: 'getUntaggedProduct',
         tags: [],
-        queryParams: {
+        queryParams: createQueryParams({
           schema: { name: 'GetApiProductParams', model: '', imports: [] },
-          deps: [],
-          isOptional: true,
-          originalSchema: {} as never,
-          requiredNullableKeys: [],
-        },
+        }),
       });
       const explicitDefaultVerb = createVerbOption({
         operationId: 'getTaggedDefaultProduct',
         tags: ['default'],
       });
 
-      const header = generateAngularHeader({
-        title: 'DefaultService',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: 'root',
-        hasAwaitedType: false,
-        verbOptions: {
-          getUntaggedProduct: untaggedVerb,
-          getTaggedDefaultProduct: explicitDefaultVerb,
-        },
-        tag: 'default',
-        isDefaultTagBucket: false,
-      } as never);
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'DefaultService',
+          verbOptions: {
+            getUntaggedProduct: untaggedVerb,
+            getTaggedDefaultProduct: explicitDefaultVerb,
+          },
+          tag: 'default',
+        }),
+      );
+
+      expect(header).toContain('function filterParams(');
+    });
+
+    it('does not enable the implicit default bucket when only explicit default tags exist', () => {
+      const explicitDefaultVerb = createVerbOption({
+        operationId: 'getTaggedDefaultProduct',
+        tags: ['default'],
+      });
+
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'DefaultService',
+          verbOptions: { getTaggedDefaultProduct: explicitDefaultVerb },
+          tag: 'default',
+        }),
+      );
 
       expect(header).not.toContain('function filterParams(');
     });
@@ -476,13 +493,9 @@ describe('angular HttpClient generator', () => {
     // every operation overrides it.
     it('suppresses the shared filterParams helper when every operation has paramsFilter', () => {
       const verbOptionWithCustomFilter = createVerbOption({
-        queryParams: {
+        queryParams: createQueryParams({
           schema: { name: 'GetPetByIdParams', model: '', imports: [] },
-          deps: [],
-          isOptional: true,
-          originalSchema: {} as never,
-          requiredNullableKeys: [],
-        },
+        }),
         paramsFilter: {
           name: 'myFilter',
           path: './my-filter',
@@ -495,15 +508,12 @@ describe('angular HttpClient generator', () => {
         },
       });
 
-      const header = generateAngularHeader({
-        title: 'PetService',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: 'root',
-        hasAwaitedType: false,
-        verbOptions: { getPetById: verbOptionWithCustomFilter },
-      } as never);
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'PetService',
+          verbOptions: { getPetById: verbOptionWithCustomFilter },
+        }),
+      );
 
       expect(header).not.toContain('function filterParams(');
     });
@@ -511,13 +521,9 @@ describe('angular HttpClient generator', () => {
     it('still emits the shared helper when at least one operation lacks paramsFilter', () => {
       const verbWithFilter = createVerbOption({
         operationName: 'a',
-        queryParams: {
+        queryParams: createQueryParams({
           schema: { name: 'AParams', model: '', imports: [] },
-          deps: [],
-          isOptional: true,
-          originalSchema: {} as never,
-          requiredNullableKeys: [],
-        },
+        }),
         paramsFilter: {
           name: 'myFilter',
           path: './my-filter',
@@ -531,24 +537,17 @@ describe('angular HttpClient generator', () => {
       });
       const verbWithoutFilter = createVerbOption({
         operationName: 'b',
-        queryParams: {
+        queryParams: createQueryParams({
           schema: { name: 'BParams', model: '', imports: [] },
-          deps: [],
-          isOptional: true,
-          originalSchema: {} as never,
-          requiredNullableKeys: [],
-        },
+        }),
       });
 
-      const header = generateAngularHeader({
-        title: 'PetService',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: 'root',
-        hasAwaitedType: false,
-        verbOptions: { a: verbWithFilter, b: verbWithoutFilter },
-      } as never);
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'PetService',
+          verbOptions: { a: verbWithFilter, b: verbWithoutFilter },
+        }),
+      );
 
       expect(header).toContain('function filterParams(');
     });

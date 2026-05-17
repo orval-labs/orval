@@ -42,10 +42,15 @@ const itemValidationKeys = [
 function getItemValidationDocEntries(
   schema?: JsDocSchema,
   prefix = 'items',
+  visited = new WeakSet<JsDocSchema>(),
 ): JsDocEntry[] {
   if (!schema) {
     return [];
   }
+  if (visited.has(schema)) {
+    return [];
+  }
+  visited.add(schema);
 
   const entries = itemValidationKeys.flatMap((key) => {
     const value = schema[key];
@@ -55,7 +60,7 @@ function getItemValidationDocEntries(
 
   return [
     ...entries,
-    ...getItemValidationDocEntries(schema.items, `${prefix}.items`),
+    ...getItemValidationDocEntries(schema.items, `${prefix}.items`, visited),
   ];
 }
 

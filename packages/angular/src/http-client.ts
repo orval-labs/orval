@@ -225,16 +225,11 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
   provideIn,
   verbOptions,
   tag,
-  isDefaultTagBucket,
   output,
 }) => {
   returnTypesRegistry.reset();
 
-  const relevantVerbs = getRelevantVerbOptionsForTag(
-    verbOptions,
-    tag,
-    isDefaultTagBucket,
-  );
+  const relevantVerbs = getRelevantVerbOptionsForTag(verbOptions, tag);
   // Only emit the shared `filterParams` helper when at least one operation in
   // this file will actually call it. If every operation with queryParams has
   // its own `paramsFilter` mutator, the helper would be dead code.

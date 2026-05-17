@@ -19,6 +19,7 @@ import {
   getAngularHttpResourceOnlyDependencies,
   routeRegistry,
 } from './http-resource';
+import { createQueryParams } from './test-helpers';
 
 interface AngularOverride {
   provideIn: 'root' | 'any' | boolean;
@@ -226,7 +227,7 @@ const createVerbOption = (
       definition: '',
       imports: [],
       schemas: [],
-      originalSchema: {} as never,
+      originalSchema: { type: 'object' },
       contentType: '',
       formData: '',
       formUrlEncoded: '',
@@ -272,6 +273,21 @@ const createVerbOption = (
     ...overrides,
   } as GeneratorVerbOptions;
 };
+
+const createHeaderParams = (
+  overrides: Partial<Parameters<typeof generateHttpResourceHeader>[0]> = {},
+): Parameters<typeof generateHttpResourceHeader>[0] => ({
+  title: 'PetService',
+  isRequestOptions: true,
+  isMutator: false,
+  isGlobalMutator: false,
+  provideIn: 'root',
+  hasAwaitedType: false,
+  output: createOutput(),
+  verbOptions: { getPetById: createVerbOption() },
+  clientImplementation: '',
+  ...overrides,
+});
 
 describe('angular httpResource generator', () => {
   beforeEach(() => {
@@ -1197,74 +1213,64 @@ describe('angular httpResource generator', () => {
     it('emits filterParams helper for untagged operations in tags-split default file (#3103)', () => {
       const verbOptionWithQueryParams = createVerbOption({
         tags: [],
-        queryParams: {
+        queryParams: createQueryParams({
           schema: { name: 'GetApiProductParams', model: '', imports: [] },
-          deps: [],
-          isOptional: true,
-          name: 'params',
-          definition: 'params: GetApiProductParams',
-          implementation: 'params: GetApiProductParams',
-          default: false,
-          required: false,
-          type: GetterPropType.QUERY_PARAM,
-        } as never,
+        }),
       });
       routeRegistry.set('getPetById', '/api/pets/${petId}');
 
-      const header = generateHttpResourceHeader({
-        title: 'DefaultService',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: 'root',
-        hasAwaitedType: false,
-        output: createOutput(),
-        verbOptions: { getPetById: verbOptionWithQueryParams },
-        tag: 'default',
-        isDefaultTagBucket: true,
-        clientImplementation: '',
-      } as never);
+      const header = generateHttpResourceHeader(
+        createHeaderParams({
+          title: 'DefaultService',
+          verbOptions: { getPetById: verbOptionWithQueryParams },
+          tag: 'default',
+        }),
+      );
 
       expect(header).toContain('function filterParams(');
     });
 
-    it('does not treat a literal default tag as the untagged bucket', () => {
+    it('includes both explicit default-tagged and untagged operations in the default bucket', () => {
       const untaggedVerb = createVerbOption({
         operationId: 'getUntaggedProduct',
         tags: [],
-        queryParams: {
+        queryParams: createQueryParams({
           schema: { name: 'GetApiProductParams', model: '', imports: [] },
-          deps: [],
-          isOptional: true,
-          name: 'params',
-          definition: 'params: GetApiProductParams',
-          implementation: 'params: GetApiProductParams',
-          default: false,
-          required: false,
-          type: GetterPropType.QUERY_PARAM,
-        } as never,
+        }),
       });
       const explicitDefaultVerb = createVerbOption({
         operationId: 'getTaggedDefaultProduct',
         tags: ['default'],
       });
 
-      const header = generateHttpResourceHeader({
-        title: 'DefaultService',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: 'root',
-        hasAwaitedType: false,
-        output: createOutput(),
-        verbOptions: {
-          getUntaggedProduct: untaggedVerb,
-          getTaggedDefaultProduct: explicitDefaultVerb,
-        },
-        tag: 'default',
-        isDefaultTagBucket: false,
-        clientImplementation: '',
-      } as never);
+      const header = generateHttpResourceHeader(
+        createHeaderParams({
+          title: 'DefaultService',
+          verbOptions: {
+            getUntaggedProduct: untaggedVerb,
+            getTaggedDefaultProduct: explicitDefaultVerb,
+          },
+          tag: 'default',
+        }),
+      );
+
+      expect(header).toContain('function filterParams(');
+    });
+
+    it('does not enable the implicit default bucket when only explicit default tags exist', () => {
+      const explicitDefaultVerb = createVerbOption({
+        operationId: 'getTaggedDefaultProduct',
+        tags: ['default'],
+      });
+      routeRegistry.set('getTaggedDefaultProduct', '/api/products/default');
+
+      const header = generateHttpResourceHeader(
+        createHeaderParams({
+          title: 'DefaultService',
+          verbOptions: { getTaggedDefaultProduct: explicitDefaultVerb },
+          tag: 'default',
+        }),
+      );
 
       expect(header).not.toContain('function filterParams(');
     });

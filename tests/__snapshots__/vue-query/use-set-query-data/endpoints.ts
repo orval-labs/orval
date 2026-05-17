@@ -199,7 +199,7 @@ export function useListPets<
  */
 export const setListPetsQueryData = (
   queryClient: QueryClient,
-  params: MaybeRef<ListPetsParams>,
+  params: MaybeRef<ListPetsParams> | undefined,
   updater:
     | Awaited<ReturnType<typeof listPets>>
     | undefined
@@ -207,7 +207,10 @@ export const setListPetsQueryData = (
         old: Awaited<ReturnType<typeof listPets>> | undefined,
       ) => Awaited<ReturnType<typeof listPets>> | undefined),
 ) => {
-  queryClient.setQueryData(getListPetsQueryKey(params), updater);
+  queryClient.setQueriesData<Awaited<ReturnType<typeof listPets>>>(
+    { queryKey: getListPetsQueryKey(params) },
+    updater,
+  );
 };
 
 export type createPetsResponse200 = {
@@ -471,7 +474,10 @@ export const setShowPetByIdQueryData = (
         old: Awaited<ReturnType<typeof showPetById>> | undefined,
       ) => Awaited<ReturnType<typeof showPetById>> | undefined),
 ) => {
-  queryClient.setQueryData(getShowPetByIdQueryKey(petId), updater);
+  queryClient.setQueriesData<Awaited<ReturnType<typeof showPetById>>>(
+    { queryKey: getShowPetByIdQueryKey(petId) },
+    updater,
+  );
 };
 
 export type deletePetByIdResponse204 = {
@@ -720,7 +726,10 @@ export const setHealthCheckQueryData = (
         old: Awaited<ReturnType<typeof healthCheck>> | undefined,
       ) => Awaited<ReturnType<typeof healthCheck>> | undefined),
 ) => {
-  queryClient.setQueryData(getHealthCheckQueryKey(), updater);
+  queryClient.setQueriesData<Awaited<ReturnType<typeof healthCheck>>>(
+    { queryKey: getHealthCheckQueryKey() },
+    updater,
+  );
 };
 
 export type showPetWithOwnerResponse200 = {
@@ -870,5 +879,8 @@ export const setShowPetWithOwnerQueryData = (
         old: Awaited<ReturnType<typeof showPetWithOwner>> | undefined,
       ) => Awaited<ReturnType<typeof showPetWithOwner>> | undefined),
 ) => {
-  queryClient.setQueryData(getShowPetWithOwnerQueryKey(petId), updater);
+  queryClient.setQueriesData<Awaited<ReturnType<typeof showPetWithOwner>>>(
+    { queryKey: getShowPetWithOwnerQueryKey(petId) },
+    updater,
+  );
 };

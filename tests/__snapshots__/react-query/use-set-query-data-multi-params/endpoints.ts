@@ -247,7 +247,7 @@ export const useSetGetUsersUserIdOrdersQueryData = () => {
   const queryClient = useQueryClient();
   return (
     userId: number,
-    params: GetUsersUserIdOrdersParams,
+    params: GetUsersUserIdOrdersParams | undefined,
     updater:
       | Awaited<ReturnType<typeof getUsersUserIdOrders>>
       | undefined
@@ -255,9 +255,8 @@ export const useSetGetUsersUserIdOrdersQueryData = () => {
           old: Awaited<ReturnType<typeof getUsersUserIdOrders>> | undefined,
         ) => Awaited<ReturnType<typeof getUsersUserIdOrders>> | undefined),
   ) => {
-    queryClient.setQueryData(
-      getGetUsersUserIdOrdersQueryKey(userId, params),
-      updater,
-    );
+    queryClient.setQueriesData<
+      Awaited<ReturnType<typeof getUsersUserIdOrders>>
+    >({ queryKey: getGetUsersUserIdOrdersQueryKey(userId, params) }, updater);
   };
 };

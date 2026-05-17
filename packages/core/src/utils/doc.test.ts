@@ -43,4 +43,29 @@ describe('jsDoc', () => {
  */
 `);
   });
+
+  it('stops traversing circular item schemas', () => {
+    interface CircularItems {
+      [key: string]: unknown;
+      items?: CircularItems;
+      maxLength: number;
+      type: string;
+    }
+
+    const circularItems: CircularItems = {
+      type: 'string',
+      maxLength: 50,
+    };
+    circularItems.items = circularItems;
+
+    expect(
+      jsDoc({
+        type: 'array',
+        items: circularItems,
+      }),
+    ).toBe(`/**
+ * @items.maxLength 50
+ */
+`);
+  });
 });

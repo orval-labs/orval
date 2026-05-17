@@ -1,4 +1,5 @@
 import {
+  DefaultTag,
   type GeneratorOperation,
   type GeneratorTarget,
   type GeneratorTargetFull,
@@ -8,10 +9,16 @@ import {
 } from '../types';
 import { compareVersions, kebab, pascal } from '../utils';
 
+/**
+ * Ensures every operation has at least one tag by falling back to the
+ * {@link DefaultTag} constant for untagged operations, so the tag-routing
+ * logic in {@link generateTargetTags} always has a bucket to assign the
+ * operation to.
+ */
 function addDefaultTagIfEmpty(operation: GeneratorOperation) {
   return {
     ...operation,
-    tags: operation.tags.length > 0 ? operation.tags : ['default'],
+    tags: operation.tags.length > 0 ? operation.tags : [DefaultTag],
   };
 }
 

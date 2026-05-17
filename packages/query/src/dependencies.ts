@@ -285,8 +285,25 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
 
 const getSolidQueryImports = (
   prefix: 'use' | 'create',
+  hasRenamedOptionsTypes: boolean,
 ): GeneratorDependency[] => {
   const capitalized = prefix === 'use' ? 'Use' : 'Create';
+  // Solid Query renamed the plain options interfaces in v5.100.6, dropping the
+  // `Solid` prefix: `SolidQueryOptions` → `QueryOptions`, `SolidInfiniteQueryOptions` →
+  // `InfiniteQueryOptions`, `SolidMutationOptions` → `MutationOptions`. The
+  // `Use*Options` / `Create*Options` Accessor aliases keep their names but
+  // are still imported because queries use them as the user-facing
+  // `options.query` param type (Solid's `useQuery` overloads rely on that
+  // shape so the `initialData?` discrimination keeps working).
+  const queryOptionsTypeName = hasRenamedOptionsTypes
+    ? 'QueryOptions'
+    : 'SolidQueryOptions';
+  const infiniteQueryOptionsTypeName = hasRenamedOptionsTypes
+    ? 'InfiniteQueryOptions'
+    : 'SolidInfiniteQueryOptions';
+  const mutationOptionsTypeName = hasRenamedOptionsTypes
+    ? 'MutationOptions'
+    : 'SolidMutationOptions';
   return [
     {
       exports: [
@@ -295,10 +312,9 @@ const getSolidQueryImports = (
         { name: `${prefix}Mutation`, values: true },
         { name: `${capitalized}QueryOptions` },
         { name: `${capitalized}InfiniteQueryOptions` },
-        { name: `${capitalized}MutationOptions` },
-        { name: 'SolidQueryOptions' },
-        { name: 'SolidInfiniteQueryOptions' },
-        { name: 'SolidMutationOptions' },
+        { name: queryOptionsTypeName },
+        { name: infiniteQueryOptionsTypeName },
+        { name: mutationOptionsTypeName },
         { name: 'QueryFunction' },
         { name: 'MutationFunction' },
         { name: `${capitalized}QueryResult` },
@@ -393,6 +409,7 @@ export const getSolidQueryDependencies: ClientDependenciesBuilder = (
     ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
     ...getSolidQueryImports(
       isSolidQueryWithUsePrefix(packageJson) ? 'use' : 'create',
+      isSolidQueryWithRenamedOptionsTypes(packageJson),
     ),
   ];
 };
@@ -559,6 +576,33 @@ export const isSolidQueryWithUsePrefix = (
 
   // https://github.com/TanStack/query/blob/v5.71.5/packages/solid-query/src/index.ts
   return compareVersions(withoutRc, '5.71.5');
+};
+
+/**
+ * Solid Query renamed its plain options interfaces in v5.100.6, dropping the
+ * `Solid` prefix:
+ *   - `SolidQueryOptions` → `QueryOptions`
+ *   - `SolidInfiniteQueryOptions` → `InfiniteQueryOptions`
+ *   - `SolidMutationOptions` → `MutationOptions`
+ *
+ * The Accessor wrappers `UseQueryOptions` / `UseInfiniteQueryOptions` /
+ * `UseMutationOptions` keep the same names but reference the renamed
+ * interfaces internally.
+ *
+ * https://github.com/TanStack/query/commit/<rename-commit>
+ */
+export const isSolidQueryWithRenamedOptionsTypes = (
+  packageJson: PackageJson | undefined,
+) => {
+  const version = getPackageByQueryClient(packageJson, 'solid-query');
+
+  if (!version) {
+    return false;
+  }
+
+  const withoutRc = version.split('-')[0];
+
+  return compareVersions(withoutRc, '5.100.6');
 };
 
 const getPackageByQueryClient = (

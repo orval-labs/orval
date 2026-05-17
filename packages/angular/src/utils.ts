@@ -1,5 +1,6 @@
 import {
   camel,
+  DefaultTag,
   type GeneratorVerbOptions,
   getAngularFilteredParamsHelperBody,
   getDefaultContentType,
@@ -40,13 +41,23 @@ const PRIMITIVE_TYPE_LOOKUP = {
   unknown: true,
 } as const satisfies Record<PrimitiveType, true>;
 
+/**
+ * Narrows a schema type string to the primitive set supported by the Angular
+ * generators' query/header helpers.
+ */
 export const isPrimitiveType = (t: string | undefined): t is PrimitiveType =>
   t != undefined &&
   Object.prototype.hasOwnProperty.call(PRIMITIVE_TYPE_LOOKUP, t);
 
+/**
+ * Indicates whether the configured schema output target is Zod-based.
+ */
 export const isZodSchemaOutput = (output: NormalizedOutputOptions): boolean =>
   isObject(output.schemas) && output.schemas.type === 'zod';
 
+/**
+ * Removes `null` and `undefined` from a value in a type-safe way.
+ */
 export const isDefined = <T>(v: T | null | undefined): v is T => v != undefined;
 
 /**
@@ -55,6 +66,9 @@ export const isDefined = <T>(v: T | null | undefined): v is T => v != undefined;
 export const getSchemaOutputTypeRef = (typeName: string): string =>
   `${typeName}Output`;
 
+/**
+ * Converts an operation/tag title into the generated Angular service class name.
+ */
 export const generateAngularTitle = (title: string) => {
   const sanTitle = sanitize(title);
   return `${pascal(sanTitle)}Service`;
@@ -126,20 +140,31 @@ export const createRouteRegistry = () => {
     },
   };
 };
-
+/**
+ * Returns only the operations that belong to the current tag output.
+ *
+ * In `tags` / `tags-split` mode the writer may route untagged operations into
+ * the implicit `default` bucket. When a generated tag file targets that bucket
+ * we also include operations whose original tag list was empty; a literal
+ * user-defined `default` tag is treated like any other tag unless untagged
+ * operations are present in the same output.
+ */
 export const getRelevantVerbOptionsForTag = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   tag?: string,
-  isDefaultTagBucket = false,
 ): GeneratorVerbOptions[] => {
-  if (!tag) return Object.values(verbOptions);
+  const allVerbOptions = Object.values(verbOptions);
+  if (!tag) return allVerbOptions;
 
   const camelTag = camel(tag);
+  const includeUntaggedOperations =
+    tag === DefaultTag &&
+    allVerbOptions.some((verbOption) => verbOption.tags.length === 0);
 
-  return Object.values(verbOptions).filter(
+  return allVerbOptions.filter(
     (verbOption) =>
       verbOption.tags.some((currentTag) => camel(currentTag) === camelTag) ||
-      (isDefaultTagBucket && verbOption.tags.length === 0),
+      (includeUntaggedOperations && verbOption.tags.length === 0),
   );
 };
 
@@ -219,6 +244,11 @@ export function isMutationVerb(
   return !isRetrievalVerb(verb, operationName, clientOverride);
 }
 
+/**
+ * Selects the preferred success payload type for Angular `httpResource`
+ * generation, favouring JSON responses and otherwise falling back to the
+ * generator's default content-type rules.
+ */
 export function getDefaultSuccessType(
   successTypes: ResReqTypesValue[],
   fallback: string,

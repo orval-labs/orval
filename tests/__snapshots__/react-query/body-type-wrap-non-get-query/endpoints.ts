@@ -331,8 +331,8 @@ export function useCreatePets<
 export const useSetCreatePetsQueryData = () => {
   const queryClient = useQueryClient();
   return (
-    createPetsBody: BodyType<CreatePetsBody>,
-    params: CreatePetsParams,
+    createPetsBody: BodyType<CreatePetsBody> | undefined,
+    params: CreatePetsParams | undefined,
     updater:
       | Awaited<ReturnType<typeof createPets>>
       | undefined
@@ -340,8 +340,8 @@ export const useSetCreatePetsQueryData = () => {
           old: Awaited<ReturnType<typeof createPets>> | undefined,
         ) => Awaited<ReturnType<typeof createPets>> | undefined),
   ) => {
-    queryClient.setQueryData(
-      getCreatePetsQueryKey(createPetsBody, params),
+    queryClient.setQueriesData<Awaited<ReturnType<typeof createPets>>>(
+      { queryKey: getCreatePetsQueryKey(createPetsBody, params) },
       updater,
     );
   };

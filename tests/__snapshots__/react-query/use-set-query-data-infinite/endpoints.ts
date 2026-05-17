@@ -332,7 +332,7 @@ export function useListPetsInfinite<
 export const useSetListPetsInfiniteQueryData = () => {
   const queryClient = useQueryClient();
   return (
-    params: ListPetsParams,
+    params: ListPetsParams | undefined,
     updater:
       | InfiniteData<
           Awaited<ReturnType<typeof listPets>>,
@@ -353,7 +353,12 @@ export const useSetListPetsInfiniteQueryData = () => {
             >
           | undefined),
   ) => {
-    queryClient.setQueryData(getListPetsInfiniteQueryKey(params), updater);
+    queryClient.setQueriesData<
+      InfiniteData<
+        Awaited<ReturnType<typeof listPets>>,
+        ListPetsParams['limit']
+      >
+    >({ queryKey: getListPetsInfiniteQueryKey(params) }, updater);
   };
 };
 
@@ -485,7 +490,7 @@ export function useListPets<
 export const useSetListPetsQueryData = () => {
   const queryClient = useQueryClient();
   return (
-    params: ListPetsParams,
+    params: ListPetsParams | undefined,
     updater:
       | Awaited<ReturnType<typeof listPets>>
       | undefined
@@ -493,7 +498,10 @@ export const useSetListPetsQueryData = () => {
           old: Awaited<ReturnType<typeof listPets>> | undefined,
         ) => Awaited<ReturnType<typeof listPets>> | undefined),
   ) => {
-    queryClient.setQueryData(getListPetsQueryKey(params), updater);
+    queryClient.setQueriesData<Awaited<ReturnType<typeof listPets>>>(
+      { queryKey: getListPetsQueryKey(params) },
+      updater,
+    );
   };
 };
 
@@ -845,7 +853,9 @@ export const useSetShowPetByIdInfiniteQueryData = () => {
             | undefined,
         ) => InfiniteData<Awaited<ReturnType<typeof showPetById>>> | undefined),
   ) => {
-    queryClient.setQueryData(getShowPetByIdInfiniteQueryKey(petId), updater);
+    queryClient.setQueriesData<
+      InfiniteData<Awaited<ReturnType<typeof showPetById>>>
+    >({ queryKey: getShowPetByIdInfiniteQueryKey(petId) }, updater);
   };
 };
 
@@ -990,7 +1000,10 @@ export const useSetShowPetByIdQueryData = () => {
           old: Awaited<ReturnType<typeof showPetById>> | undefined,
         ) => Awaited<ReturnType<typeof showPetById>> | undefined),
   ) => {
-    queryClient.setQueryData(getShowPetByIdQueryKey(petId), updater);
+    queryClient.setQueriesData<Awaited<ReturnType<typeof showPetById>>>(
+      { queryKey: getShowPetByIdQueryKey(petId) },
+      updater,
+    );
   };
 };
 
@@ -1321,7 +1334,9 @@ export const useSetHealthCheckInfiniteQueryData = () => {
             | undefined,
         ) => InfiniteData<Awaited<ReturnType<typeof healthCheck>>> | undefined),
   ) => {
-    queryClient.setQueryData(getHealthCheckInfiniteQueryKey(), updater);
+    queryClient.setQueriesData<
+      InfiniteData<Awaited<ReturnType<typeof healthCheck>>>
+    >({ queryKey: getHealthCheckInfiniteQueryKey() }, updater);
   };
 };
 
@@ -1453,7 +1468,10 @@ export const useSetHealthCheckQueryData = () => {
           old: Awaited<ReturnType<typeof healthCheck>> | undefined,
         ) => Awaited<ReturnType<typeof healthCheck>> | undefined),
   ) => {
-    queryClient.setQueryData(getHealthCheckQueryKey(), updater);
+    queryClient.setQueriesData<Awaited<ReturnType<typeof healthCheck>>>(
+      { queryKey: getHealthCheckQueryKey() },
+      updater,
+    );
   };
 };
 
@@ -1680,10 +1698,9 @@ export const useSetShowPetWithOwnerInfiniteQueryData = () => {
           | InfiniteData<Awaited<ReturnType<typeof showPetWithOwner>>>
           | undefined),
   ) => {
-    queryClient.setQueryData(
-      getShowPetWithOwnerInfiniteQueryKey(petId),
-      updater,
-    );
+    queryClient.setQueriesData<
+      InfiniteData<Awaited<ReturnType<typeof showPetWithOwner>>>
+    >({ queryKey: getShowPetWithOwnerInfiniteQueryKey(petId) }, updater);
   };
 };
 
@@ -1848,6 +1865,9 @@ export const useSetShowPetWithOwnerQueryData = () => {
           old: Awaited<ReturnType<typeof showPetWithOwner>> | undefined,
         ) => Awaited<ReturnType<typeof showPetWithOwner>> | undefined),
   ) => {
-    queryClient.setQueryData(getShowPetWithOwnerQueryKey(petId), updater);
+    queryClient.setQueriesData<Awaited<ReturnType<typeof showPetWithOwner>>>(
+      { queryKey: getShowPetWithOwnerQueryKey(petId) },
+      updater,
+    );
   };
 };

@@ -1212,7 +1212,6 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
   output,
   verbOptions,
   tag,
-  isDefaultTagBucket,
 }) => {
   resetHttpClientReturnTypes();
   resourceReturnTypesRegistry.reset();
@@ -1222,11 +1221,7 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
   // the shared header duplicates helpers across every tag file and pulls in
   // type names the file-local `imports` filter never sees, producing missing
   // schema imports in the generated output.
-  const relevantVerbOptions = getRelevantVerbOptionsForTag(
-    verbOptions,
-    tag,
-    isDefaultTagBucket,
-  );
+  const relevantVerbOptions = getRelevantVerbOptionsForTag(verbOptions, tag);
 
   const retrievals = relevantVerbOptions.filter((verbOption) =>
     isRetrievalVerb(
