@@ -1706,30 +1706,22 @@ Generate factory methods for DTOs (Data Transfer Objects) initialized with safe 
 Functionality handles OpenAPI `readOnly` and `writeOnly` flags to generate appropriate payload structures:
 - **Required properties:** Always included in the factory output, regardless of their visibility flags.
 - **Optional `readOnly` properties:** Always omitted from the factory output, as they would be dropped by the server.
-- **Optional `writeOnly` properties:** Always included in the factory output (even if `optionalPropertyStrategy` is set to `'omit'`).
+- **Optional `writeOnly` properties:** Always included in the factory output (even if `includeOptionalProperty` is set to `false`).
 
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
     output: {
       factoryMethods: {
-        generate: true,
         functionNamePrefix: 'create',
-        mode: 'separate-file',
-        optionalPropertyStrategy: 'include',
+        mode: 'split',
+        includeOptionalProperty: true,
         outputDirectory: `#output.workspace.schemas`,
       },
     },
   },
 });
 ```
-
-### generate
-
-**Type:** `Boolean`
-**Default:** `false`
-
-Enables or disables factory generation.
 
 ### functionNamePrefix
 
@@ -1740,18 +1732,18 @@ Prefix for the generated factory function names.
 
 ### mode
 
-**Type:** `'inline-with-schema' | 'separate-file' | 'combined-separate-file'`
-**Default:** `'separate-file'`
+**Type:** `'single' | 'split' | 'single-split'`
+**Default:** `'split'`
 
 Where to generate the factory methods:
-- `inline-with-schema`: Appends the factory function to the schema file.
-- `separate-file`: Creates a `{schema}.factory.ts` with factory method. By default it is placed next to schema file.
-- `combined-separate-file`: Aggregates all factory methods into a single `factoryMethods.ts` file.
+- `single`: Appends the factory function to the schema file.
+- `split`: Creates a `{schema}.factory.ts` with factory method. By default it is placed next to schema file.
+- `single-split`: Aggregates all factory methods into a single `factoryMethods.ts` file.
 
-### optionalPropertyStrategy
+### includeOptionalProperty
 
-**Type:** `'include' | 'omit'`
-**Default:** `'include'`
+**Type:** `boolean`
+**Default:** `true`
 
 Determines whether optional schema properties are included in the default factory output.
 
@@ -1762,7 +1754,7 @@ Determines whether optional schema properties are included in the default factor
 
 Defaults to the value configured in `#output.workspace.schemas`.
 Determines where factory methods will be generated (can be used to generated methods away from schema directory).
-Takes effect only when used `mode` is `separate-file` or `combined-separate-file`.
+Takes effect only when used `mode` is `split` or `single-split`.
 ---
 
 ## Other Options

@@ -9,11 +9,10 @@ import { NamingConvention } from '../types';
 import { generateFactory } from './factory';
 
 const baseFactoryMethods = {
-  generate: true,
   functionNamePrefix: 'create',
-  mode: 'inline-with-schema',
+  mode: 'single',
   outputDirectory: '',
-  optionalPropertyStrategy: 'omit',
+  includeOptionalProperty: false,
 };
 
 const baseOverride = {
@@ -141,7 +140,7 @@ describe('generateFactory', () => {
       createMockContext({
         factoryMethods: {
           ...baseFactoryMethods,
-          optionalPropertyStrategy: 'include',
+          includeOptionalProperty: true,
         },
       }),
     );
@@ -205,7 +204,7 @@ describe('generateFactory', () => {
     expect(result?.imports).toContainEqual({ name: 'RefTarget' });
   });
 
-  it('handles mode: separate-file import paths', () => {
+  it('handles mode: split import paths', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
       required: ['target'],
@@ -218,7 +217,7 @@ describe('generateFactory', () => {
       schema,
       'WithRef',
       createMockContext({
-        factoryMethods: { ...baseFactoryMethods, mode: 'separate-file' },
+        factoryMethods: { ...baseFactoryMethods, mode: 'split' },
       }),
     );
     expect(result?.imports).toContainEqual({
@@ -228,7 +227,7 @@ describe('generateFactory', () => {
     });
   });
 
-  it('handles mode: combined-separate-file import paths', () => {
+  it('handles mode: single-split import paths', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
       required: ['target'],
@@ -243,7 +242,7 @@ describe('generateFactory', () => {
       createMockContext({
         factoryMethods: {
           ...baseFactoryMethods,
-          mode: 'combined-separate-file',
+          mode: 'single-split',
         },
       }),
     );

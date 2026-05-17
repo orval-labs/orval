@@ -136,11 +136,10 @@ const createOutput = (
     unionAddMissingProperties: false,
     propertySortOrder: 'Specification',
     factoryMethods: {
-      generate: false,
       functionNamePrefix: 'create',
-      mode: 'inline-with-schema',
+      mode: 'single',
       outputDirectory: '',
-      optionalPropertyStrategy: 'omit',
+      includeOptionalProperty: false,
     },
     ...overrides,
   } satisfies NormalizedOutputOptions;

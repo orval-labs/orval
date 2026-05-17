@@ -7,8 +7,7 @@ export default defineConfig({
       target: '../generated/factory-methods/inline/endpoints.ts',
       schemas: '../generated/factory-methods/inline/model',
       factoryMethods: {
-        generate: true,
-        mode: 'inline-with-schema',
+        mode: 'single',
       },
       clean: true,
       prettier: true,
@@ -20,8 +19,7 @@ export default defineConfig({
       target: '../generated/factory-methods/separate/endpoints.ts',
       schemas: '../generated/factory-methods/separate/model',
       factoryMethods: {
-        generate: true,
-        mode: 'separate-file',
+        mode: 'split',
       },
       clean: true,
       prettier: true,
@@ -33,8 +31,7 @@ export default defineConfig({
       target: '../generated/factory-methods/combined/endpoints.ts',
       schemas: '../generated/factory-methods/combined/model',
       factoryMethods: {
-        generate: true,
-        mode: 'combined-separate-file',
+        mode: 'single-split',
       },
       clean: true,
       prettier: true,
