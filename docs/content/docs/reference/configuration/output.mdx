@@ -1913,11 +1913,12 @@ before handing params to `HttpParams`. When set, orval does **not** strip
 `null`/`undefined` or non-primitive values for you — your function returns
 exactly the object `HttpParams` (or a configured `paramsSerializer`) receives.
 
-By default (without this option) orval already preserves schema-declared
-object and array-of-object params so a `paramsSerializer`/`mutator` can
-handle them — see the
+When a `paramsSerializer` is configured, orval already preserves
+schema-declared object and array-of-object params so the serializer can
+handle them; without a serializer those params are dropped. See the
 [Angular guide](/docs/guides/angular#query-parameter-filtering). Use
-`paramsFilter` only when you need control the schema cannot express.
+`paramsFilter` when you need the raw object without a serializer, or any
+control the schema cannot express.
 
 ```ts title="orval.config.ts"
 export default defineConfig({

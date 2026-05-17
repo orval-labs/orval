@@ -709,14 +709,14 @@ parameter through an internal `filterParams` helper before handing it to
 
 ### Default behaviour (schema-aware passthrough)
 
-Two things happen automatically — no configuration needed:
-
 1. **Primitive params** keep the existing nullish-stripping. `null`/`undefined`
    values are removed, arrays are filtered to primitives only.
 2. **Schema-declared object / array-of-object params** are passed through
-   untouched, so a downstream `paramsSerializer` or `mutator` can handle them.
-   This restores parity with the axios and fetch generators, which never
-   filtered these values in the first place.
+   untouched **only when a `paramsSerializer` is configured** — that serializer
+   is the consumer that turns the raw object into something `HttpParams` can
+   send. Without a serializer (or a `paramsFilter`, see below) there is no
+   consumer that can handle a raw object, so the param is dropped: passing it
+   straight to `HttpParams` would stringify it to `"[object Object]"`.
 
 ```yaml title="openapi.yaml"
 parameters:
@@ -728,9 +728,11 @@ parameters:
         type: string
 ```
 
-With the spec above, the generated client preserves `filters` so that your
-`paramsSerializer` (e.g. `qs.stringify`) or `mutator` (e.g. one that flattens
-the object into bracketed keys) actually receives it. See
+With the spec above and a configured `paramsSerializer` (e.g. `qs.stringify`),
+the generated client preserves `filters` and forwards it to the serializer
+instead of dropping it. If you need the raw object even without a serializer —
+for example a `mutator` that flattens it into bracketed keys — use
+`override.paramsFilter` (see below). See
 [issue #3326](https://github.com/orval-labs/orval/issues/3326) for the
 motivating bug.
 
@@ -793,6 +795,8 @@ can adapt:
 
 ```ts title="default-filter-behaviour.ts"
 // This is the logic orval emits when no `paramsFilter` is configured.
+// `passthroughKeys` is only non-empty when a `paramsSerializer` is also
+// configured (it carries the schema-declared object/array-of-object keys).
 // Copy/adapt the parts you want; drop the rest.
 type Primitive = string | number | boolean;
 type Value = Primitive | Primitive[] | null;
