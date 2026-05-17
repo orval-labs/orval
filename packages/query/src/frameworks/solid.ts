@@ -24,6 +24,7 @@ export const createSolidAdapter = ({
   hasQueryV5WithMutationContextOnSuccess,
   hasQueryV5WithRequiredContextOnSuccess,
   hasSolidQueryUsePrefix,
+  hasSolidQueryRenamedOptionsTypes,
 }: {
   hasQueryV5: boolean;
   hasQueryV5WithDataTagError: boolean;
@@ -31,6 +32,7 @@ export const createSolidAdapter = ({
   hasQueryV5WithMutationContextOnSuccess: boolean;
   hasQueryV5WithRequiredContextOnSuccess: boolean;
   hasSolidQueryUsePrefix: boolean;
+  hasSolidQueryRenamedOptionsTypes: boolean;
 }): FrameworkAdapterConfig => ({
   outputClient: OutputClient.SOLID_QUERY,
   hookPrefix: hasSolidQueryUsePrefix ? 'use' : 'create',
@@ -47,11 +49,26 @@ export const createSolidAdapter = ({
   getOptionsReturnTypeName(
     type: 'query' | 'infiniteQuery' | 'mutation',
   ): string | undefined {
-    // Solid Query uses SolidQueryOptions for queries, SolidInfiniteQueryOptions for infinite queries,
-    // and SolidMutationOptions for mutations (these are accessors)
-    if (type === 'mutation') return 'SolidMutationOptions';
-    if (type === 'infiniteQuery') return 'SolidInfiniteQueryOptions';
-    return 'SolidQueryOptions';
+    // Solid Query exposes plain (non-Accessor) options interfaces. The
+    // Accessor-wrapped `Use*Options` / `Create*Options` variants cannot be
+    // used here because the generated code passes options as a plain object
+    // (`{ ...options.mutation }`) before the call site wraps the whole result
+    // in an accessor (`useMutation(() => mutationOptions(...))`).
+    //
+    // v5.100.6 renamed these interfaces to drop the `Solid` prefix.
+    if (type === 'mutation') {
+      return hasSolidQueryRenamedOptionsTypes
+        ? 'MutationOptions'
+        : 'SolidMutationOptions';
+    }
+    if (type === 'infiniteQuery') {
+      return hasSolidQueryRenamedOptionsTypes
+        ? 'InfiniteQueryOptions'
+        : 'SolidInfiniteQueryOptions';
+    }
+    return hasSolidQueryRenamedOptionsTypes
+      ? 'QueryOptions'
+      : 'SolidQueryOptions';
   },
 
   getQueryKeyPrefix(): string {

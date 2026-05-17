@@ -129,7 +129,12 @@ export const getQueryOptionsDefinition = ({
       >`
         : '';
 
-    // Use adapter's custom options type name for return types if available
+    // Use adapter's custom options type name for return types if available.
+    // For the user-facing query param (isReturnType: false), keep the
+    // prefix-based fallback — Solid Query intentionally emits its `Use*Options`
+    // Accessor type there so the discriminator at the `useQuery` call site
+    // (which only has `UndefinedInitialDataOptions` / `DefinedInitialDataOptions`
+    // overloads) keeps working. See [issue #3365] for the mutation-side fix.
     const optionsTypeName =
       isReturnType && adapter?.getOptionsReturnTypeName
         ? adapter.getOptionsReturnTypeName(
@@ -166,11 +171,12 @@ export const getQueryOptionsDefinition = ({
     }${optionTypeInitialDataPostfix}`;
   }
 
-  // Mutation options
-  const mutationOptionsTypeName =
-    isReturnType && adapter?.getOptionsReturnTypeName
-      ? adapter.getOptionsReturnTypeName('mutation')
-      : undefined;
+  // Mutation options — use the adapter's plain-options type name for both
+  // helper return type and user-facing `options.mutation` param (see comment
+  // above for the Solid Query rationale).
+  const mutationOptionsTypeName = adapter?.getOptionsReturnTypeName
+    ? adapter.getOptionsReturnTypeName('mutation')
+    : undefined;
 
   return mutationOptionsTypeName
     ? `${mutationOptionsTypeName}<Awaited<ReturnType<${

@@ -185,8 +185,26 @@ export interface FrameworkAdapter {
   getQueryOptionsDefinitionPrefix(): string;
 
   /**
-   * Get the options type name for return types of getOptions functions.
-   * Solid: 'SolidQueryOptions' / 'SolidMutationOptions'. Others: use prefix + type.
+   * Get the plain (non-Accessor) options interface name for this framework.
+   *
+   * Used as:
+   *   - the helper function's return type for queries, infinite queries, and
+   *     mutations (`isReturnType: true`), AND
+   *   - the user-facing `options.mutation` parameter type
+   *     (`isReturnType: false`, mutation only — issue #3365).
+   *
+   * Queries intentionally keep the prefix-based `Use*Options` / `Create*Options`
+   * for the user-facing param: in Solid Query that aliases an `Accessor<…>`,
+   * which is the shape `useQuery`'s `Undefined/DefinedInitialDataOptions`
+   * overloads accept, preserving the `initialData?` discrimination at the call
+   * site.
+   *
+   * Solid Query overrides this with `SolidQueryOptions` / `SolidMutationOptions`
+   * (pre-v5.100.6) or `QueryOptions` / `MutationOptions` (v5.100.6+).
+   *
+   * Other adapters can leave this undefined and fall back to the prefix-based
+   * default (`UseMutationOptions`, `CreateMutationOptions`, …), which IS the
+   * plain options shape in their target libraries.
    */
   getOptionsReturnTypeName?(
     type: 'query' | 'infiniteQuery' | 'mutation',

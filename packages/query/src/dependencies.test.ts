@@ -5,6 +5,8 @@ import {
   isQueryV5,
   isQueryV5WithDataTagError,
   isQueryV5WithInfiniteQueryOptionsError,
+  isSolidQueryWithRenamedOptionsTypes,
+  isSolidQueryWithUsePrefix,
 } from './dependencies';
 
 describe('isQueryV5', () => {
@@ -110,5 +112,59 @@ describe('isQueryV5WithDataTagError', () => {
 
     // ^5.0.0 stripped to 5.0.0 by compareVersions, which is < 5.62.0
     expect(isQueryV5WithDataTagError(packageJson, 'react-query')).toBe(false);
+  });
+});
+
+describe('isSolidQueryWithUsePrefix', () => {
+  it('should return true for 5.71.5 (boundary)', () => {
+    const packageJson: PackageJson = {
+      resolvedVersions: { '@tanstack/solid-query': '5.71.5' },
+    };
+    expect(isSolidQueryWithUsePrefix(packageJson)).toBe(true);
+  });
+
+  it('should return false for 5.71.4', () => {
+    const packageJson: PackageJson = {
+      resolvedVersions: { '@tanstack/solid-query': '5.71.4' },
+    };
+    expect(isSolidQueryWithUsePrefix(packageJson)).toBe(false);
+  });
+
+  it('should return false when solid-query is not installed', () => {
+    expect(isSolidQueryWithUsePrefix({})).toBe(false);
+  });
+});
+
+describe('isSolidQueryWithRenamedOptionsTypes', () => {
+  it('should return true for 5.100.6 (boundary — Solid prefix dropped)', () => {
+    const packageJson: PackageJson = {
+      resolvedVersions: { '@tanstack/solid-query': '5.100.6' },
+    };
+    expect(isSolidQueryWithRenamedOptionsTypes(packageJson)).toBe(true);
+  });
+
+  it('should return true for 5.100.10', () => {
+    const packageJson: PackageJson = {
+      resolvedVersions: { '@tanstack/solid-query': '5.100.10' },
+    };
+    expect(isSolidQueryWithRenamedOptionsTypes(packageJson)).toBe(true);
+  });
+
+  it('should return false for 5.100.5 (just below boundary)', () => {
+    const packageJson: PackageJson = {
+      resolvedVersions: { '@tanstack/solid-query': '5.100.5' },
+    };
+    expect(isSolidQueryWithRenamedOptionsTypes(packageJson)).toBe(false);
+  });
+
+  it('should return false for 5.90.21 (well below boundary)', () => {
+    const packageJson: PackageJson = {
+      resolvedVersions: { '@tanstack/solid-query': '5.90.21' },
+    };
+    expect(isSolidQueryWithRenamedOptionsTypes(packageJson)).toBe(false);
+  });
+
+  it('should return false when solid-query is not installed', () => {
+    expect(isSolidQueryWithRenamedOptionsTypes({})).toBe(false);
   });
 });

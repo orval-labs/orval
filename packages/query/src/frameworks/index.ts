@@ -18,6 +18,7 @@ import {
   isQueryV5WithInfiniteQueryOptionsError,
   isQueryV5WithMutationContextOnSuccess,
   isQueryV5WithRequiredContextOnSuccess,
+  isSolidQueryWithRenamedOptionsTypes,
   isSolidQueryWithUsePrefix,
   isSvelteQueryV3,
   isSvelteQueryV6,
@@ -143,6 +144,7 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => ({
       queryParam,
       isReturnType: false,
       initialData,
+      adapter: adapter as FrameworkAdapter,
     });
 
     if (!isRequestOptions) {
@@ -297,6 +299,8 @@ export const createFrameworkAdapter = ({
 
     case OutputClientConst.SOLID_QUERY: {
       const hasSolidQueryWithUsePrefix = isSolidQueryWithUsePrefix(packageJson);
+      const hasSolidQueryWithRenamedOptionsTypes =
+        isSolidQueryWithRenamedOptionsTypes(packageJson);
       return withDefaults(
         createSolidAdapter({
           hasQueryV5: _hasQueryV5,
@@ -308,6 +312,8 @@ export const createFrameworkAdapter = ({
           hasQueryV5WithRequiredContextOnSuccess:
             _hasQueryV5WithRequiredContextOnSuccess,
           hasSolidQueryUsePrefix: hasSolidQueryWithUsePrefix,
+          hasSolidQueryRenamedOptionsTypes:
+            hasSolidQueryWithRenamedOptionsTypes,
         }),
       );
     }
