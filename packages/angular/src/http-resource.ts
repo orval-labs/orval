@@ -486,7 +486,14 @@ const buildResourceRequest = (
         paramsExpression: `${paramsAccess} ?? {}`,
         requiredNullableParamKeys: queryParams?.requiredNullableKeys ?? [],
         preserveRequiredNullables: !!paramsSerializer,
-        nonPrimitiveKeys: queryParams?.nonPrimitiveKeys ?? [],
+        // Only pass non-primitive params through the built-in `filterParams`
+        // when a `paramsSerializer` can legally consume the raw object/array.
+        // Without one, the helper's `unknown` return type is not assignable
+        // to `HttpClient`'s params, so keep them filtered out. The
+        // `paramsFilter` branch bypasses the built-in helper entirely.
+        nonPrimitiveKeys: paramsSerializer
+          ? (queryParams?.nonPrimitiveKeys ?? [])
+          : [],
         paramsFilter,
         useSharedHelper: true,
       })

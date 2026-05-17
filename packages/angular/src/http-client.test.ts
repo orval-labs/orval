@@ -617,7 +617,7 @@ describe('angular HttpClient generator', () => {
       isHook: false,
     };
 
-    it('preserves nonPrimitiveKeys through the built-in filter', () => {
+    it('does not emit a passthrough set without a paramsSerializer', () => {
       const verbOption = createVerbOption({
         queryParams: {
           schema: { name: 'GetPetByIdParams', model: '', imports: [] },
@@ -632,8 +632,39 @@ describe('angular HttpClient generator', () => {
 
       const impl = generateHttpClientImplementation(verbOption, options);
 
-      // The shared `filterParams` is invoked with the passthrough set so
-      // `filters` survives.
+      // Without a consumer that can handle a raw object, the passthrough set
+      // would make `filterParams` return `unknown` (uncompilable against
+      // HttpClient). `filters` is dropped instead. See #3326.
+      expect(impl).not.toContain('new Set<string>(["filters"])');
+    });
+
+    it('passes nonPrimitiveKeys through when a paramsSerializer is configured', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+          nonPrimitiveKeys: ['filters'],
+        },
+        paramsSerializer: {
+          name: 'mySerializer',
+          path: './my-serializer',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // The serializer can consume the raw object, so `filters` survives the
+      // built-in filter via the passthrough set.
       expect(impl).toContain('new Set<string>(["filters"])');
     });
 

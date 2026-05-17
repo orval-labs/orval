@@ -17,6 +17,7 @@ import { Observable } from 'rxjs';
 
 import type { SearchParams, SearchResult } from './model';
 
+import { customParamsSerializer } from '../../../mutators/params-serializer';
 interface HttpClientOptions {
   readonly headers?: HttpHeaders | Record<string, string | string[]>;
   readonly context?: HttpContext;
@@ -144,9 +145,13 @@ export class Issue3326AngularObjectQueryParameterSupportService {
     params?: SearchParams,
     options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
-    const filteredParams = filterParams(
-      { ...params, ...options?.params },
-      new Set<string>([]),
+    const filteredParams = customParamsSerializer(
+      filterParams(
+        { ...params, ...options?.params },
+        new Set<string>([]),
+        false,
+        new Set<string>(['filters']),
+      ),
     );
 
     if (options?.observe === 'events') {

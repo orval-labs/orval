@@ -909,7 +909,7 @@ describe('angular httpResource generator', () => {
         isHook: false,
       };
 
-      it('preserves nonPrimitiveKeys through the built-in filter', () => {
+      it('does not emit a passthrough set without a paramsSerializer', () => {
         const verbOption = createVerbOption({
           queryParams: {
             schema: { name: 'GetPetByIdParams', model: '', imports: [] },
@@ -934,7 +934,48 @@ describe('angular httpResource generator', () => {
           clientImplementation: '',
         } as never);
 
-        // Passthrough set surfaces as the fourth filterParams argument.
+        // Without a serializer the passthrough set would make `filterParams`
+        // return `unknown` (uncompilable against HttpClient). See #3326.
+        expect(header).not.toContain('new Set<string>(["filters"])');
+      });
+
+      it('passes nonPrimitiveKeys through when a paramsSerializer is configured', () => {
+        const verbOption = createVerbOption({
+          queryParams: {
+            schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+            deps: [],
+            isOptional: true,
+            originalSchema: {} as never,
+            requiredNullableKeys: [],
+            nonPrimitiveKeys: ['filters'],
+          },
+          paramsSerializer: {
+            name: 'mySerializer',
+            path: './my-serializer',
+            default: false,
+            hasErrorType: false,
+            errorTypeName: '',
+            hasSecondArg: false,
+            hasThirdArg: false,
+            isHook: false,
+          },
+        });
+        routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+        const header = generateHttpResourceHeader({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          output: createOutput(),
+          verbOptions: { getPetById: verbOption },
+          clientImplementation: '',
+        } as never);
+
+        // The serializer can consume the raw object, so the passthrough set
+        // surfaces as the fourth filterParams argument.
         expect(header).toContain('new Set<string>(["filters"])');
       });
 

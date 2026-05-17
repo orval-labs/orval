@@ -253,4 +253,22 @@ export default defineConfig({
       target: '../specifications/issue-3326.yaml',
     },
   },
+  issue3326Serializer: {
+    output: {
+      target: '../generated/angular/issue-3326-serializer/endpoints.ts',
+      schemas: '../generated/angular/issue-3326-serializer/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        paramsSerializer: {
+          path: '../mutators/params-serializer.ts',
+          name: 'customParamsSerializer',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-3326.yaml',
+    },
+  },
 });
