@@ -75,7 +75,13 @@ export default defineConfig({
 });
 ```
 
-The transformer function receives an `OpenApiDocument` and should return a transformed `OpenApiDocument`. You can use the `defineTransformer` helper from `orval` for type inference.
+The transformer runs **before** spec validation (and before the internal
+OpenAPI 2.0 → 3.1 upgrade), so you can use it to repair malformed specs (e.g.
+fix non-compliant fields) without having to disable validation entirely. If
+your spec is OpenAPI 2.0 (Swagger), the transformer receives the 2.0
+document — not the upgraded 3.1 form.
+
+The transformer function receives an `OpenApiDocument` and should return a transformed `OpenApiDocument`. You may mutate the input in place or return a new object. You can use the `defineTransformer` helper from `orval` for type inference.
 
 ```ts title="transformer.ts"
 import { defineTransformer } from 'orval';
@@ -239,11 +245,12 @@ Disable OpenAPI spec validation during code generation.
 </Callout>
 
 When `true`, orval skips both spec-level validation (`@scalar/openapi-parser`)
-and the component-key check — including the post-transformer validation when
-`override.transformer` is used — and proceeds with code generation regardless
-of spec errors. Intended as an escape hatch for specs that use non-standard
+and the component-key check, and proceeds with code generation regardless of
+spec errors. Intended as an escape hatch for specs that use non-standard
 extensions (e.g. FastAPI's `itemSchema` on `text/event-stream` responses) which
-a compliant validator would otherwise reject.
+a compliant validator would otherwise reject. Prefer
+[`override.transformer`](#transformer) — which runs before validation — when
+the spec can be repaired in-place.
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
