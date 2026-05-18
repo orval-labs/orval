@@ -48,6 +48,7 @@ export async function writeSplitMode({
       formData,
       formUrlEncoded,
       paramsSerializer,
+      paramsFilter,
       fetchReviver,
     } = generateTarget(builder, output);
 
@@ -144,6 +145,12 @@ export async function writeSplitMode({
     if (paramsSerializer) {
       implementationData += generateMutatorImports({
         mutators: paramsSerializer,
+      });
+    }
+
+    if (paramsFilter) {
+      implementationData += generateMutatorImports({
+        mutators: paramsFilter,
       });
     }
 

@@ -46,6 +46,41 @@ test('angular issue-3103 emits filterParams in tags-split default service', asyn
   expect(content).toContain('const filteredParams = filterParams(');
 });
 
+test('angular issue-3326 keeps the default filter type-safe (no passthrough)', async () => {
+  // Without a paramsSerializer/paramsFilter there is no consumer that can
+  // handle a raw object, and Angular's HttpParams only accepts primitives.
+  // The built-in filter must NOT emit a passthrough set here — doing so
+  // makes filterParams return `unknown`, which fails to compile against
+  // HttpClient. The object param is dropped instead. See #3326.
+  // Compilation of this fixture is enforced by scripts/typecheck-generated.mjs.
+  const file = generated('angular', 'issue-3326', 'endpoints.ts');
+  const content = await readFile(file, 'utf8');
+
+  expect(content).toContain('function filterParams(');
+  expect(content).not.toContain("new Set<string>(['filters'])");
+});
+
+test('angular issue-3326 passes object params through to a paramsSerializer', async () => {
+  // With a paramsSerializer that can consume the raw object, the schema-
+  // declared object param survives the built-in filter via the passthrough
+  // set instead of being dropped. See #3326.
+  const file = generated('angular', 'issue-3326-serializer', 'endpoints.ts');
+  const content = await readFile(file, 'utf8');
+
+  expect(content).toContain('function filterParams(');
+  expect(content).toContain("new Set<string>(['filters'])");
+  expect(content).toContain('customParamsSerializer(');
+});
+
+test('angular issue-3326 paramsFilter replaces the built-in filter', async () => {
+  const file = generated('angular', 'issue-3326-filter', 'endpoints.ts');
+  const content = await readFile(file, 'utf8');
+
+  // The user mutator is imported and called; the built-in helper is gone.
+  expect(content).toContain('flattenParamsFilter');
+  expect(content).not.toContain('function filterParams(');
+});
+
 test('react-query issue-708 isolates the infinite query key from the regular one', async () => {
   // Regression for #708: an operation generated as both a regular and an
   // infinite query must not share a query key, otherwise React Query serves

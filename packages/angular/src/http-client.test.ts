@@ -487,6 +487,70 @@ describe('angular HttpClient generator', () => {
 
       expect(header).not.toContain('function filterParams(');
     });
+
+    // Issue #3326: a user-supplied `paramsFilter` mutator owns the filter
+    // logic entirely, so the shared built-in helper would be dead code if
+    // every operation overrides it.
+    it('suppresses the shared filterParams helper when every operation has paramsFilter', () => {
+      const verbOptionWithCustomFilter = createVerbOption({
+        queryParams: createQueryParams({
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+        }),
+        paramsFilter: {
+          name: 'myFilter',
+          path: './my-filter',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'PetService',
+          verbOptions: { getPetById: verbOptionWithCustomFilter },
+        }),
+      );
+
+      expect(header).not.toContain('function filterParams(');
+    });
+
+    it('still emits the shared helper when at least one operation lacks paramsFilter', () => {
+      const verbWithFilter = createVerbOption({
+        operationName: 'a',
+        queryParams: createQueryParams({
+          schema: { name: 'AParams', model: '', imports: [] },
+        }),
+        paramsFilter: {
+          name: 'myFilter',
+          path: './my-filter',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+      const verbWithoutFilter = createVerbOption({
+        operationName: 'b',
+        queryParams: createQueryParams({
+          schema: { name: 'BParams', model: '', imports: [] },
+        }),
+      });
+
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'PetService',
+          verbOptions: { a: verbWithFilter, b: verbWithoutFilter },
+        }),
+      );
+
+      expect(header).toContain('function filterParams(');
+    });
   });
 
   // ── Footer ────────────────────────────────────────────────────────────
@@ -538,6 +602,154 @@ describe('angular HttpClient generator', () => {
   });
 
   // ── Implementation — GET ──────────────────────────────────────────────
+
+  // ── paramsFilter + nonPrimitiveKeys (issue #3326) ─────────────────────
+
+  describe('query parameter filtering (#3326)', () => {
+    const customFilter = {
+      name: 'myFilter',
+      path: './my-filter',
+      default: false,
+      hasErrorType: false,
+      errorTypeName: '',
+      hasSecondArg: false,
+      hasThirdArg: false,
+      isHook: false,
+    };
+
+    it('does not emit a passthrough set without a paramsSerializer', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+          nonPrimitiveKeys: ['filters'],
+        },
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // Without a consumer that can handle a raw object, the passthrough set
+      // would make `filterParams` return `unknown` (uncompilable against
+      // HttpClient). `filters` is dropped instead. See #3326.
+      expect(impl).not.toContain('new Set<string>(["filters"])');
+    });
+
+    it('passes nonPrimitiveKeys through when a paramsSerializer is configured', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+          nonPrimitiveKeys: ['filters'],
+        },
+        paramsSerializer: {
+          name: 'mySerializer',
+          path: './my-serializer',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // The serializer can consume the raw object, so `filters` survives the
+      // built-in filter via the passthrough set.
+      expect(impl).toContain('new Set<string>(["filters"])');
+    });
+
+    it('replaces the built-in filter with the user-supplied paramsFilter', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+        },
+        paramsFilter: customFilter,
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // Filtered params come from `myFilter(...)`; the built-in helper is
+      // not called for this operation.
+      expect(impl).toContain(
+        'const filteredParams = myFilter({...params, ...options?.params})',
+      );
+      expect(impl).not.toContain('filterParams({...params');
+    });
+
+    it('wraps a configured paramsSerializer around the custom paramsFilter', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+        },
+        paramsFilter: customFilter,
+        paramsSerializer: {
+          name: 'mySerializer',
+          path: './my-serializer',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain(
+        'const filteredParams = mySerializer(myFilter({...params, ...options?.params}))',
+      );
+    });
+
+    it('preserves required nullable params in request-options mode when a paramsSerializer is configured', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: ['filters'],
+        },
+        paramsSerializer: {
+          name: 'mySerializer',
+          path: './my-serializer',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain(
+        'const filteredParams = mySerializer(filterParams({...params, ...options?.params}, new Set<string>(["filters"]), true))',
+      );
+    });
+  });
 
   describe('generateHttpClientImplementation', () => {
     it('generates a GET method with typed return', () => {

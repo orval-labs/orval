@@ -1,18 +1,33 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpec, OpenApiParameterObject } from '../types';
+import { createTestContextSpec } from '../test-utils/context';
+import type { OpenApiParameterObject } from '../types';
 import { getQueryParams } from './query-params';
 
-// Mock context for getQueryParams
-const context: ContextSpec = {
-  spec: {},
-  output: {
-    // @ts-expect-error -- partial mock: only override.useDates needed for test
-    override: {
-      useDates: true,
+// Fully-typed context via the shared factory — no unsafe cast, so missing
+// or renamed fields surface at compile time if getQueryParams starts
+// reading additional context. `Filter` backs the $ref test cases below.
+const context = createTestContextSpec({
+  spec: {
+    components: {
+      schemas: {
+        Filter: {
+          type: 'object',
+          properties: { field: { type: 'string' } },
+        },
+      },
     },
   },
-};
+  override: {
+    useDates: true,
+    components: {
+      schemas: { suffix: 'Dto', itemSuffix: 'Item' },
+      responses: { suffix: 'Response' },
+      parameters: { suffix: 'Params' },
+      requestBodies: { suffix: 'Body' },
+    },
+  },
+});
 
 const queryParams: {
   parameter: OpenApiParameterObject;
@@ -246,5 +261,243 @@ describe('getQueryParams getter', () => {
     expect(result?.requiredNullableKeys).toEqual([
       'requiredOneOfNullableParam',
     ]);
+  });
+
+  // Tracking non-primitive keys lets Angular generators preserve schema-
+  // declared object/array-of-object params through the default filterParams
+  // helper instead of silently dropping them. See issue #3326.
+  describe('nonPrimitiveKeys (Angular passthrough)', () => {
+    it('flags object-typed query params', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'filters',
+              in: 'query',
+              required: false,
+              schema: { type: 'object' },
+            },
+            imports: [],
+          },
+          {
+            parameter: {
+              name: 'limit',
+              in: 'query',
+              required: false,
+              schema: { type: 'integer' },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toEqual(['filters']);
+    });
+
+    it('flags arrays of objects', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'items',
+              in: 'query',
+              required: false,
+              schema: {
+                type: 'array',
+                items: { type: 'object' },
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toEqual(['items']);
+    });
+
+    it('flags nullable arrays of objects', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'items',
+              in: 'query',
+              required: false,
+              schema: {
+                type: ['array', 'null'],
+                items: { type: 'object' },
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toEqual(['items']);
+    });
+    it('flags object via oneOf composition', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'either',
+              in: 'query',
+              required: false,
+              schema: {
+                oneOf: [{ type: 'string' }, { type: 'object' }],
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toEqual(['either']);
+    });
+
+    it('flags type-less schemas with additionalProperties', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'filters',
+              in: 'query',
+              required: false,
+              schema: {
+                additionalProperties: { type: 'string' },
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toEqual(['filters']);
+    });
+    it('omits the field when all params are primitive', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'id',
+              in: 'query',
+              required: true,
+              schema: { type: 'string' },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toBeUndefined();
+    });
+
+    it('flags arrays whose items are a $ref', () => {
+      // `items` is a reference object, not an inline schema. It almost
+      // always points at a component object and must survive the filter
+      // (when a paramsSerializer is configured). See #3326.
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'filters',
+              in: 'query',
+              required: false,
+              schema: {
+                type: 'array',
+                items: { $ref: '#/components/schemas/Filter' },
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toEqual(['filters']);
+    });
+
+    it('flags arrays without an items schema', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'filters',
+              in: 'query',
+              required: false,
+              schema: {
+                type: 'array',
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toEqual(['filters']);
+    });
+
+    it('flags a $ref variant inside a composition', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'either',
+              in: 'query',
+              required: false,
+              schema: {
+                oneOf: [
+                  { type: 'string' },
+                  { $ref: '#/components/schemas/Filter' },
+                ],
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toEqual(['either']);
+    });
+
+    it('does not flag arrays of primitives', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'tags',
+              in: 'query',
+              required: false,
+              schema: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toBeUndefined();
+    });
   });
 });

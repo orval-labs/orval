@@ -140,7 +140,6 @@ export const createRouteRegistry = () => {
     },
   };
 };
-
 /**
  * Returns only the operations that belong to the current tag output.
  *
@@ -169,10 +168,6 @@ export const getRelevantVerbOptionsForTag = (
   );
 };
 
-/**
- * Tracks deferred `ClientResult` aliases emitted while individual operations
- * are rendered, then flushes only the aliases needed by the current file.
- */
 export const createReturnTypesRegistry = () => {
   const returnTypesToWrite = new Map<string, string>();
 

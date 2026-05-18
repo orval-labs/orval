@@ -293,6 +293,10 @@ export async function normalizeOptions(
           outputWorkspace,
           outputOptions.override?.paramsSerializer,
         ),
+        paramsFilter: normalizeMutator(
+          outputWorkspace,
+          outputOptions.override?.paramsFilter,
+        ),
         header:
           outputOptions.override?.header === false
             ? false
@@ -465,6 +469,48 @@ export async function normalizeOptions(
     );
   }
 
+  // `paramsFilter` is only consumed by the Angular generator. That runs for
+  // the `angular` client (regardless of `httpClient`, which stays at its
+  // `fetch` default there) and for `angular-query` when it resolves to the
+  // Angular HttpClient. For any other client the mutator would be imported
+  // but never called, so fail fast instead of emitting a dead import.
+  const usesAngularGenerator =
+    normalizedOptions.output.client === OutputClient.ANGULAR ||
+    (normalizedOptions.output.client === OutputClient.ANGULAR_QUERY &&
+      normalizedOptions.output.httpClient === OutputHttpClient.ANGULAR);
+  if (normalizedOptions.output.override.paramsFilter && !usesAngularGenerator) {
+    throw new Error(
+      styleText(
+        'red',
+        `\`override.paramsFilter\` is only supported by the Angular generator (the \`angular\` client, or \`angular-query\` with \`httpClient: 'angular'\`). It has no effect for other clients — use \`override.paramsSerializer\` instead.`,
+      ),
+    );
+  }
+  if (!usesAngularGenerator) {
+    const offendingOperation = Object.entries(
+      normalizedOptions.output.override.operations,
+    ).find(([, opOverride]) => opOverride?.paramsFilter)?.[0];
+    if (offendingOperation) {
+      throw new Error(
+        styleText(
+          'red',
+          `\`override.operations["${offendingOperation}"].paramsFilter\` is only supported by the Angular generator (the \`angular\` client, or \`angular-query\` with \`httpClient: 'angular'\`). It has no effect for other clients — use \`override.paramsSerializer\` instead.`,
+        ),
+      );
+    }
+    const offendingTag = Object.entries(
+      normalizedOptions.output.override.tags,
+    ).find(([, tagOverride]) => tagOverride?.paramsFilter)?.[0];
+    if (offendingTag) {
+      throw new Error(
+        styleText(
+          'red',
+          `\`override.tags["${offendingTag}"].paramsFilter\` is only supported by the Angular generator (the \`angular\` client, or \`angular-query\` with \`httpClient: 'angular'\`). It has no effect for other clients — use \`override.paramsSerializer\` instead.`,
+        ),
+      );
+    }
+  }
+
   if (
     normalizedOptions.output.httpClient === OutputHttpClient.FETCH &&
     normalizedOptions.output.optionsParamRequired &&
@@ -634,6 +680,7 @@ function normalizeOperationsAndTags(
           formData,
           formUrlEncoded,
           paramsSerializer,
+          paramsFilter,
           query,
           angular,
           zod,
@@ -757,6 +804,11 @@ function normalizeOperationsAndTags(
                     workspace,
                     paramsSerializer,
                   ),
+                }
+              : {}),
+            ...(paramsFilter
+              ? {
+                  paramsFilter: normalizeMutator(workspace, paramsFilter),
                 }
               : {}),
           },

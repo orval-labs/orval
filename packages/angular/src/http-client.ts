@@ -1,4 +1,5 @@
 import {
+  buildAngularParamsFilterExpression,
   type ClientBuilder,
   type ClientDependenciesBuilder,
   type ClientFooterBuilder,
@@ -11,8 +12,6 @@ import {
   generateOptions,
   generateVerbImports,
   type GeneratorVerbOptions,
-  getAngularFilteredParamsCallExpression,
-  getAngularFilteredParamsExpression,
   getAngularFilteredParamsHelperBody,
   getDefaultContentType,
   getEnumImplementation,
@@ -231,7 +230,12 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
   returnTypesRegistry.reset();
 
   const relevantVerbs = getRelevantVerbOptionsForTag(verbOptions, tag);
-  const hasQueryParams = relevantVerbs.some((v) => v.queryParams);
+  // Only emit the shared `filterParams` helper when at least one operation in
+  // this file will actually call it. If every operation with queryParams has
+  // its own `paramsFilter` mutator, the helper would be dead code.
+  const hasBuiltInFilteredQueryParams = relevantVerbs.some(
+    (v) => v.queryParams && !v.paramsFilter,
+  );
   const acceptHelpers = buildAcceptHelpers(relevantVerbs, output);
 
   return `
@@ -241,7 +245,7 @@ ${
 
 ${HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE}
 
-${hasQueryParams ? getAngularFilteredParamsHelperBody() : ''}`
+${hasBuiltInFilteredQueryParams ? getAngularFilteredParamsHelperBody() : ''}`
     : ''
 }
 
@@ -310,6 +314,7 @@ export const generateHttpClientImplementation = (
     formData,
     formUrlEncoded,
     paramsSerializer,
+    paramsFilter,
   }: GeneratorVerbOptions,
   { route, context }: HttpClientGeneratorContext,
 ) => {
@@ -405,6 +410,7 @@ export const generateHttpClientImplementation = (
       hasSignal: false,
       isExactOptionalPropertyTypes,
       isAngular: true,
+      paramsFilter,
     });
 
     const requestOptions = isRequestOptions
@@ -447,6 +453,7 @@ export const generateHttpClientImplementation = (
     isFormUrlEncoded,
     paramsSerializer,
     paramsSerializerOptions: override.paramsSerializerOptions,
+    paramsFilter,
     isAngular: true,
     isExactOptionalPropertyTypes,
     hasSignal: false,
@@ -466,24 +473,29 @@ export const generateHttpClientImplementation = (
 
   let paramsDeclaration = '';
   if (angularParamsRef && queryParams) {
-    if (isRequestOptions) {
-      const callExpr = getAngularFilteredParamsCallExpression(
-        '{...params, ...options?.params}',
-        queryParams.requiredNullableKeys ?? [],
-      );
-      paramsDeclaration = paramsSerializer
-        ? `const ${angularParamsRef} = ${paramsSerializer.name}(${callExpr});\n\n    `
-        : `const ${angularParamsRef} = ${callExpr};\n\n    `;
-    } else {
-      const iifeExpr = getAngularFilteredParamsExpression(
-        'params ?? {}',
-        queryParams.requiredNullableKeys ?? [],
-        !!paramsSerializer,
-      );
-      paramsDeclaration = paramsSerializer
-        ? `const ${angularParamsRef} = ${paramsSerializer.name}(${iifeExpr});\n\n    `
-        : `const ${angularParamsRef} = ${iifeExpr};\n\n    `;
-    }
+    const filterExpr = buildAngularParamsFilterExpression({
+      paramsExpression: isRequestOptions
+        ? '{...params, ...options?.params}'
+        : 'params ?? {}',
+      requiredNullableParamKeys: queryParams.requiredNullableKeys ?? [],
+      preserveRequiredNullables: !!paramsSerializer,
+      // Only pass non-primitive params through the built-in `filterParams`
+      // when a `paramsSerializer` can legally consume the raw object/array.
+      // Without one, Angular's `HttpParams` would stringify it to
+      // `[object Object]` and the helper's `unknown` return type is not
+      // assignable to `HttpClient`'s params — so keep them filtered out.
+      // The `paramsFilter` branch bypasses the built-in helper entirely.
+      nonPrimitiveKeys: paramsSerializer
+        ? (queryParams.nonPrimitiveKeys ?? [])
+        : [],
+      paramsFilter,
+      // Request-options path uses the shared `filterParams` helper emitted in
+      // the file header; the non-request-options path inlines an IIFE.
+      useSharedHelper: isRequestOptions,
+    });
+    paramsDeclaration = paramsSerializer
+      ? `const ${angularParamsRef} = ${paramsSerializer.name}(${filterExpr});\n\n    `
+      : `const ${angularParamsRef} = ${filterExpr};\n\n    `;
   }
 
   const optionsInput = {
