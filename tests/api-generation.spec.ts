@@ -76,7 +76,14 @@ test('react-query issue-708 isolates the infinite query key from the regular one
   expect(queryKeyFn('Infinite')).toContain("'infinite'");
   expect(queryKeyFn('')).not.toContain("'infinite'");
 
-  // Each hook must consume its own key fn.
-  expect(content).toContain('getGetListInfiniteQueryKey(params)');
-  expect(content).toContain('getGetListQueryKey(params)');
+  // Each hook must consume its own key fn. Assert on the full `queryKey`
+  // assignment rather than the bare call: `getGetListQueryKey(params)` is a
+  // suffix of `getGetListInfiniteQueryKey(params)`, so a bare-call check would
+  // pass even if the regular hook never invoked its own key fn.
+  expect(content).toContain(
+    'queryOptions?.queryKey ?? getGetListInfiniteQueryKey(params)',
+  );
+  expect(content).toContain(
+    'queryOptions?.queryKey ?? getGetListQueryKey(params)',
+  );
 });
