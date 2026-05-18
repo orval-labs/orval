@@ -80,3 +80,38 @@ test('angular issue-3326 paramsFilter replaces the built-in filter', async () =>
   expect(content).toContain('flattenParamsFilter');
   expect(content).not.toContain('function filterParams(');
 });
+
+test('react-query issue-708 isolates the infinite query key from the regular one', async () => {
+  // Regression for #708: an operation generated as both a regular and an
+  // infinite query must not share a query key, otherwise React Query serves
+  // one query's cached data for the other. Keep this focused assertion
+  // alongside the snapshot so #708 fails with a targeted message instead of a
+  // full-file snapshot diff.
+  const content = await readFile(
+    generated('react-query', 'issue-708', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // Slices out a single `getGetList[Infinite]QueryKey` declaration.
+  const queryKeyFn = (variant: 'Infinite' | '') => {
+    const marker = `getGetList${variant}QueryKey = (`;
+    const start = content.indexOf(marker);
+    expect(start, `${marker} should be generated`).toBeGreaterThan(-1);
+    const end = content.indexOf('as const', start);
+    expect(end, `${marker} body should be terminated`).toBeGreaterThan(start);
+    return content.slice(start, end);
+  };
+
+  // Both key fns must exist as separate functions.
+  expect(content).toContain('getGetListInfiniteQueryKey = (');
+  expect(content).toContain('getGetListQueryKey = (');
+
+  // The infinite key carries an 'infinite' segment; the regular one must not,
+  // otherwise the two query keys would be identical and collide in the cache.
+  expect(queryKeyFn('Infinite')).toContain("'infinite'");
+  expect(queryKeyFn('')).not.toContain("'infinite'");
+
+  // Each hook must consume its own key fn.
+  expect(content).toContain('getGetListInfiniteQueryKey(params)');
+  expect(content).toContain('getGetListQueryKey(params)');
+});

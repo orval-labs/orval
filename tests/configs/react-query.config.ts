@@ -1202,4 +1202,31 @@ export default defineConfig({
       target: '../specifications/issue-3066.yaml',
     },
   },
+  // Regression for issue #708. When an operation generates both a regular
+  // query and an infinite query, the two must not share a query key, otherwise
+  // React Query serves one query's cached data for the other (the infinite
+  // `{ pages, pageParams }` shape leaking into the regular query, and vice
+  // versa). The infinite query key fn (`getGetListInfiniteQueryKey`) must be
+  // distinct from the regular one (`getGetListQueryKey`) and carry an
+  // `'infinite'` segment so the cache entries never collide.
+  issue708: {
+    output: {
+      target: '../generated/react-query/issue-708/endpoints.ts',
+      schemas: '../generated/react-query/issue-708/model',
+      client: 'react-query',
+      mode: 'single',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'page',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-708.yaml',
+    },
+  },
 });

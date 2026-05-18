@@ -1,0 +1,35 @@
+openapi: 3.1.0
+info:
+  title: Issue 708 - Infinite query key must not collide with the regular query key
+  version: 0.0.1
+paths:
+  /path_with_query:
+    get:
+      operationId: getList
+      parameters:
+        - in: query
+          name: page
+          required: false
+          schema:
+            default: 0
+            format: int32
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResult'
+components:
+  schemas:
+    ListResult:
+      type: object
+      required: [pageNumber, data]
+      properties:
+        pageNumber:
+          type: integer
+        data:
+          type: array
+          items:
+            type: string
