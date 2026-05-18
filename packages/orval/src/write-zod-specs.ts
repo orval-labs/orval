@@ -379,8 +379,10 @@ export async function writeZodSchemasFromVerbs(
 
   const generateVerbsSchemas = verbOptionsArray.flatMap((verbOption) => {
     const operation = verbOption.originalOperation;
-    const shouldGenerate =
-      verbOption.override?.zod.generate ?? output.override.zod.generate;
+    const shouldGenerate = {
+      ...output.override.zod.generate,
+      ...verbOption.override?.zod.generate,
+    };
 
     const requestBody = operation.requestBody;
     const requestBodyContent =

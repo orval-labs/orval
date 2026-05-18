@@ -1425,7 +1425,7 @@ const getSingleResponse = (
     | undefined,
 ) => {
   if (!responses) {
-    return undefined;
+    return;
   }
 
   return responses['200'] ?? responses['2XX'] ?? responses['2xx'];
