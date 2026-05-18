@@ -176,3 +176,36 @@ test('default issue-873 does not duplicate multi-tag operations across tag files
     ).not.toContain(marker);
   }
 });
+
+test('vue-query issue-1026 keeps header params out of the query key getter', async () => {
+  // Regression for #1026: with `headers: true` the Vue Query key getter used to
+  // emit `headers = unref(headers);` even though `headers` is not one of its
+  // parameters, throwing `ReferenceError: headers is not defined` at runtime.
+  // The getter must never unref params (that would also break key reactivity);
+  // `headers` is only unref'd inside the HTTP function where it is a parameter.
+  // Keep this focused assertion alongside the snapshot so #1026 fails with a
+  // targeted message instead of a full-file snapshot diff.
+  const content = await readFile(
+    generated('vue-query', 'issue-1026', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // Slice out the `getGetSomeEndpointQueryKey` declaration body.
+  const marker = 'export const getGetSomeEndpointQueryKey = (';
+  const start = content.indexOf(marker);
+  expect(start, `${marker} should be generated`).toBeGreaterThan(-1);
+  const end = content.indexOf('as const', start);
+  expect(end, `${marker} body should be terminated`).toBeGreaterThan(start);
+  const queryKeyFn = content.slice(start, end);
+
+  // The getter must not reference `headers` as an identifier: that was the
+  // #1026 bug (`headers = unref(headers);`) and unref-ing a param would also
+  // break query-key reactivity. A word-boundary regex keeps the intent precise
+  // rather than matching `headers` as a loose substring.
+  expect(queryKeyFn).not.toMatch(/\bheaders\b/);
+
+  // Sanity check: the HTTP function still receives and unrefs `headers`, so the
+  // assertion above is not passing simply because headers support is missing.
+  expect(content).toContain('headers?: MaybeRef<GetSomeEndpointHeaders>');
+  expect(content).toContain('headers = unref(headers);');
+});

@@ -1,0 +1,41 @@
+openapi: 3.0.0
+info:
+  title: Issue 1026 - Vue Query header parameters
+  version: 1.0.0
+paths:
+  /api/v1/someEndPoint:
+    get:
+      operationId: getSomeEndpoint
+      tags:
+        - things
+      summary: Get something with header parameters
+      parameters:
+        - name: Language-Id
+          in: header
+          style: simple
+          schema:
+            type: integer
+        - name: Country-Id
+          in: header
+          style: simple
+          schema:
+            type: integer
+        - name: TimeZone
+          in: header
+          style: simple
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SomeEndpointResult'
+components:
+  schemas:
+    SomeEndpointResult:
+      type: object
+      properties:
+        value:
+          type: string
