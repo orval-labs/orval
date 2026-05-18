@@ -881,7 +881,9 @@ export interface FetchOptions {
   useRuntimeFetcher?: boolean;
 }
 
-export type InputTransformerFn = (spec: OpenApiDocument) => OpenApiDocument;
+export type InputTransformerFn = (
+  spec: OpenApiDocument,
+) => OpenApiDocument | Promise<OpenApiDocument>;
 
 type InputTransformer = string | InputTransformerFn;
 
