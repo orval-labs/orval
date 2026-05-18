@@ -81,7 +81,12 @@ fix non-compliant fields) without having to disable validation entirely. If
 your spec is OpenAPI 2.0 (Swagger), the transformer receives the 2.0
 document — not the upgraded 3.1 form.
 
-The transformer function receives an `OpenApiDocument` and should return a transformed `OpenApiDocument`. You may mutate the input in place or return a new object. You can use the `defineTransformer` helper from `orval` for type inference.
+The transformer function receives an `OpenApiDocument` and must return an
+`OpenApiDocument` or a `Promise<OpenApiDocument>` — async transformers are
+supported, so you can fetch overrides or run any awaitable repair step inside.
+You may mutate the input in place or return a new object. The
+`defineTransformer` helper from `orval` provides type inference for both sync
+and async returns.
 
 ```ts title="transformer.ts"
 import { defineTransformer } from 'orval';
@@ -93,6 +98,19 @@ export default defineTransformer((inputSchema) => ({
     title: `${inputSchema.info?.title} - Custom`,
   },
 }));
+```
+
+Async example:
+
+```ts title="transformer.ts"
+import { defineTransformer } from 'orval';
+
+export default defineTransformer(async (inputSchema) => {
+  const overrides = await fetch('https://example.com/overrides.json').then(
+    (r) => r.json(),
+  );
+  return { ...inputSchema, ...overrides };
+});
 ```
 
 See [example transformer](https://github.com/orval-labs/orval/blob/master/samples/basic/api/transformer/add-version.js).
