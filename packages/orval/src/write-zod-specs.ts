@@ -3,6 +3,7 @@ import path from 'node:path';
 import {
   type ContextSpec,
   conventionName,
+  type GeneratorVerbOptions,
   type NamingConvention,
   type NormalizedOutputOptions,
   type OpenApiParameterObject,
@@ -65,19 +66,10 @@ interface WriteZodVerbResponseType {
 
 type WriteZodSchemasFromVerbsInput = Record<
   string,
-  {
-    operationName: string;
-    originalOperation: {
-      requestBody?: OpenApiRequestBodyObject | OpenApiReferenceObject;
-      parameters?: (OpenApiParameterObject | OpenApiReferenceObject)[];
-    };
-    response: {
-      types: {
-        success: WriteZodVerbResponseType[];
-        errors: WriteZodVerbResponseType[];
-      };
-    };
-  }
+  Pick<
+    GeneratorVerbOptions,
+    'operationName' | 'originalOperation' | 'response' | 'override'
+  >
 >;
 
 interface WriteZodSchemasFromVerbsContext {
@@ -365,6 +357,8 @@ export async function writeZodSchemasFromVerbs(
 
   const generateVerbsSchemas = verbOptionsArray.flatMap((verbOption) => {
     const operation = verbOption.originalOperation;
+    const shouldGenerate =
+      verbOption.override?.zod.generate ?? output.override.zod.generate;
 
     const requestBody = operation.requestBody;
     const requestBodyContent =
@@ -392,16 +386,17 @@ export async function writeZodSchemasFromVerbs(
           : [undefined, undefined];
     const bodySchema = bodyMedia?.schema as OpenApiSchemaObject | undefined;
 
-    const bodySchemas = bodySchema
-      ? [
-          {
-            name: `${pascal(verbOption.operationName)}Body`,
-            schema: dereference(bodySchema, zodContext),
-            bodyContentType,
-            encoding: bodyMedia?.encoding,
-          },
-        ]
-      : [];
+    const bodySchemas =
+      shouldGenerate.body && bodySchema
+        ? [
+            {
+              name: `${pascal(verbOption.operationName)}Body`,
+              schema: dereference(bodySchema, zodContext),
+              bodyContentType,
+              encoding: bodyMedia?.encoding,
+            },
+          ]
+        : [];
 
     const parameters = operation.parameters;
 
@@ -410,7 +405,7 @@ export async function writeZodSchemasFromVerbs(
     );
 
     const queryParamsSchemas =
-      queryParams && queryParams.length > 0
+      shouldGenerate.query && queryParams && queryParams.length > 0
         ? [
             {
               name: `${pascal(verbOption.operationName)}Params`,
@@ -438,7 +433,7 @@ export async function writeZodSchemasFromVerbs(
     );
 
     const headerParamsSchemas =
-      headerParams && headerParams.length > 0
+      shouldGenerate.header && headerParams && headerParams.length > 0
         ? [
             {
               name: `${pascal(verbOption.operationName)}Headers`,
@@ -461,25 +456,27 @@ export async function writeZodSchemasFromVerbs(
           ]
         : [];
 
-    const responseSchemas = [
-      ...verbOption.response.types.success,
-      ...verbOption.response.types.errors,
-    ]
-      .filter(
-        (
-          responseType,
-        ): responseType is typeof responseType & {
-          originalSchema: OpenApiSchemaObject;
-        } =>
-          !!responseType.originalSchema &&
-          !responseType.isRef &&
-          isValidSchemaIdentifier(responseType.value) &&
-          !isPrimitiveSchemaName(responseType.value),
-      )
-      .map((responseType) => ({
-        name: responseType.value,
-        schema: dereference(responseType.originalSchema, zodContext),
-      }));
+    const responseSchemas = shouldGenerate.response
+      ? [
+          ...verbOption.response.types.success,
+          ...verbOption.response.types.errors,
+        ]
+          .filter(
+            (
+              responseType,
+            ): responseType is typeof responseType & {
+              originalSchema: OpenApiSchemaObject;
+            } =>
+              !!responseType.originalSchema &&
+              !responseType.isRef &&
+              isValidSchemaIdentifier(responseType.value) &&
+              !isPrimitiveSchemaName(responseType.value),
+          )
+          .map((responseType) => ({
+            name: responseType.value,
+            schema: dereference(responseType.originalSchema, zodContext),
+          }))
+      : [];
 
     return dedupeSchemasByName([
       ...bodySchemas,

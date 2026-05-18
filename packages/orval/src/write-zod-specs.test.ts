@@ -29,6 +29,12 @@ const createOutputOptions = (): Parameters<typeof writeZodSchemas>[4] =>
         strict: {
           body: true,
         },
+        generate: {
+          body: true,
+          query: true,
+          header: true,
+          response: true,
+        },
         coerce: {
           body: false,
         },
@@ -233,6 +239,82 @@ describe('write-zod-specs regressions', () => {
     expect(fileContent).not.toContain(
       'export const DefaultedSchema = export const',
     );
+
+    await fs.remove(root);
+  });
+
+  it('honors response generate override in split zod output', async () => {
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
+    const schemasPath = path.join(root, 'schemas');
+
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+          zod: {
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      },
+      spec: {},
+      target: '',
+      workspace: root,
+    } satisfies MinimalVerbsContext;
+
+    const verbOptions = {
+      getPet: {
+        operationName: 'getPet',
+        originalOperation: {
+          parameters: [],
+        },
+        override: {
+          ...createOutputOptions().override,
+          zod: {
+            ...createOutputOptions().override.zod,
+            generate: {
+              body: true,
+              query: true,
+              header: true,
+              response: false,
+            },
+          },
+        },
+        response: {
+          types: {
+            success: [
+              {
+                value: 'GetPetResponse',
+                originalSchema: {
+                  type: 'object',
+                  properties: {
+                    id: {
+                      type: 'string',
+                    },
+                  },
+                },
+              },
+            ],
+            errors: [],
+          },
+        },
+      },
+    } satisfies Parameters<typeof writeZodSchemasFromVerbs>[0];
+
+    await writeZodSchemasFromVerbs(
+      verbOptions,
+      schemasPath,
+      '.ts',
+      '',
+      createOutputOptions(),
+      context,
+    );
+
+    if (await fs.pathExists(schemasPath)) {
+      const directoryFiles = await fs.readdir(schemasPath);
+
+      expect(directoryFiles).not.toContain('GetPetResponse.ts');
+    }
 
     await fs.remove(root);
   });
