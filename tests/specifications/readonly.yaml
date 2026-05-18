@@ -74,6 +74,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReadonlyObject'
+  /readonly-nested:
+    post:
+      tags:
+        - readonly
+      summary: Create object with a nested readonly object
+      operationId: createNestedReadonly
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NestedReadonlyObject'
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NestedReadonlyObject'
 components:
   schemas:
     ReadonlyObject:
@@ -84,3 +102,10 @@ components:
           readOnly: true
         name:
           type: string
+    NestedReadonlyObject:
+      type: object
+      properties:
+        name:
+          type: string
+        child:
+          $ref: '#/components/schemas/ReadonlyObject'

@@ -7,5 +7,6 @@
  */
 
 export * from './createReadonlyFreeObjectBody';
+export * from './nestedReadonlyObject';
 export * from './readonlyObject';
 export * from './updateReadonlyBody';
