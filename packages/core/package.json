@@ -42,7 +42,7 @@
     "esbuild": "^0.27.4",
     "esutils": "2.0.3",
     "fs-extra": "^11.3.2",
-    "globby": "16.1.0",
+    "tinyglobby": "^0.2.16",
     "jiti": "^2.6.1",
     "remeda": "^2.33.6",
     "typedoc": "^0.28.19"
