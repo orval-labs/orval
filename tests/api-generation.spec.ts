@@ -111,7 +111,31 @@ test('react-query issue-708 isolates the infinite query key from the regular one
   expect(queryKeyFn('Infinite')).toContain("'infinite'");
   expect(queryKeyFn('')).not.toContain("'infinite'");
 
-  // Each hook must consume its own key fn.
-  expect(content).toContain('getGetListInfiniteQueryKey(params)');
-  expect(content).toContain('getGetListQueryKey(params)');
+  // Each hook must consume its own key fn. Assert on the full `queryKey`
+  // assignment rather than the bare call: `getGetListQueryKey(params)` is a
+  // suffix of `getGetListInfiniteQueryKey(params)`, so a bare-call check would
+  // pass even if the regular hook never invoked its own key fn.
+  expect(content).toContain(
+    'queryOptions?.queryKey ?? getGetListInfiniteQueryKey(params)',
+  );
+  expect(content).toContain(
+    'queryOptions?.queryKey ?? getGetListQueryKey(params)',
+  );
+});
+
+test('default issue-826 wraps bodies whose readonly props come from nested schemas', async () => {
+  // Regression for #826: an object schema with no direct `readOnly` property
+  // but a property referencing a schema that does have readonly props must
+  // still wrap the request body in `NonReadonly<>`, otherwise the nested
+  // readonly modifier leaks into the request type. Keep this focused assertion
+  // alongside the snapshot so #826 fails with a targeted message instead of a
+  // full-file snapshot diff.
+  const content = await readFile(
+    generated('default', 'readonly', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toContain(
+    'nestedReadonlyObject?: NonReadonly<NestedReadonlyObject>',
+  );
 });
