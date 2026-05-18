@@ -322,7 +322,12 @@ export function getObject({
             .join('\n')}\n`
         : '';
 
-      if (isReadOnly) {
+      // Propagate readonly state from nested schemas ($ref targets or inline
+      // objects), not just this property's own readOnly flag. Otherwise an
+      // object whose readonly props come solely from nested schemas is never
+      // wrapped in `NonReadonly<>`, leaking the readonly modifier into request
+      // body types. See issue #826.
+      if (isReadOnly || resolvedValue.hasReadonlyProps) {
         acc.hasReadonlyProps = true;
       }
 
