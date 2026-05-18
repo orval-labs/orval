@@ -771,6 +771,10 @@ describe('dereferenceExternalRefs', () => {
         '/pets/{petId}': {
           $ref: '#/x-ext/abc1234/paths/~1pets~1%7BpetId%7D',
         },
+        // `~0` is the JSON Pointer escape for a literal `~` (RFC 6901).
+        '/pets~dogs': {
+          $ref: '#/x-ext/abc1234/paths/~1pets~0dogs',
+        },
       },
       'x-ext': {
         abc1234: {
@@ -792,6 +796,12 @@ describe('dereferenceExternalRefs', () => {
                     schema: { type: 'string' },
                   },
                 ],
+                responses: { '200': { description: 'ok' } },
+              },
+            },
+            '/pets~dogs': {
+              get: {
+                operationId: 'listPetsDogs',
                 responses: { '200': { description: 'ok' } },
               },
             },
@@ -819,6 +829,12 @@ describe('dereferenceExternalRefs', () => {
             schema: { type: 'string' },
           },
         ],
+        responses: { '200': { description: 'ok' } },
+      },
+    });
+    expect(result.paths?.['/pets~dogs']).toEqual({
+      get: {
+        operationId: 'listPetsDogs',
         responses: { '200': { description: 'ok' } },
       },
     });
