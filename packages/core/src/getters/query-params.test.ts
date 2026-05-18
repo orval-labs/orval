@@ -430,6 +430,28 @@ describe('getQueryParams getter', () => {
       expect(result?.nonPrimitiveKeys).toEqual(['filters']);
     });
 
+    it('flags arrays without an items schema', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'filters',
+              in: 'query',
+              required: false,
+              schema: {
+                type: 'array',
+              },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+      });
+
+      expect(result?.nonPrimitiveKeys).toEqual(['filters']);
+    });
+
     it('flags a $ref variant inside a composition', () => {
       const result = getQueryParams({
         queryParams: [

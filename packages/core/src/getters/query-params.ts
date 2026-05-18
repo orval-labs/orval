@@ -89,9 +89,11 @@ const isSchemaNonPrimitive = (schema: OpenApiSchemaObject): boolean => {
     if (isOpenApiSchemaObject(items)) {
       return isSchemaNonPrimitive(items);
     }
-    // `items` is a `$ref` (rejected by isOpenApiSchemaObject) — an array of
-    // referenced objects must still be flagged so it survives the filter.
-    return isRefObject(items);
+    // Arrays with missing/unknown `items` are still non-primitive for our
+    // Angular passthrough purposes: without a serializer/filter, HttpParams
+    // cannot safely represent them. `$ref` items also land here because
+    // isOpenApiSchemaObject rejects references.
+    return true;
   }
 
   const compositions = [

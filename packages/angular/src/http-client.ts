@@ -478,7 +478,7 @@ export const generateHttpClientImplementation = (
         ? '{...params, ...options?.params}'
         : 'params ?? {}',
       requiredNullableParamKeys: queryParams.requiredNullableKeys ?? [],
-      preserveRequiredNullables: !isRequestOptions && !!paramsSerializer,
+      preserveRequiredNullables: !!paramsSerializer,
       // Only pass non-primitive params through the built-in `filterParams`
       // when a `paramsSerializer` can legally consume the raw object/array.
       // Without one, Angular's `HttpParams` would stringify it to

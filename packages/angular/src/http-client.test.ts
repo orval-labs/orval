@@ -720,6 +720,35 @@ describe('angular HttpClient generator', () => {
         'const filteredParams = mySerializer(myFilter({...params, ...options?.params}))',
       );
     });
+
+    it('preserves required nullable params in request-options mode when a paramsSerializer is configured', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: ['filters'],
+        },
+        paramsSerializer: {
+          name: 'mySerializer',
+          path: './my-serializer',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain(
+        'const filteredParams = mySerializer(filterParams({...params, ...options?.params}, new Set<string>(["filters"]), true))',
+      );
+    });
   });
 
   describe('generateHttpClientImplementation', () => {
