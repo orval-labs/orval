@@ -149,7 +149,7 @@ export class Issue3326AngularObjectQueryParameterSupportService {
       filterParams(
         { ...params, ...options?.params },
         new Set<string>([]),
-        false,
+        true,
         new Set<string>(['filters']),
       ),
     );

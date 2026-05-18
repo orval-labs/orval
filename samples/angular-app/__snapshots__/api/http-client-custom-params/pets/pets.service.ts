@@ -199,6 +199,7 @@ export class PetsService {
           'requirednullableString',
           'requirednullableStringTwo',
         ]),
+        true,
       ),
     );
 
@@ -252,7 +253,11 @@ export class PetsService {
     options?: HttpClientOptions,
   ): Observable<Pets | string> {
     const filteredParams = paramsSerializerMutator(
-      filterParams({ ...params, ...options?.params }, new Set<string>([])),
+      filterParams(
+        { ...params, ...options?.params },
+        new Set<string>([]),
+        true,
+      ),
     );
 
     const headers =
