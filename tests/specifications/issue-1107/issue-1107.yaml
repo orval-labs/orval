@@ -20,6 +20,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 components:
+  # Regression for #1107: every top-level schema here is itself a cross-file
+  # `$ref`. `Pet` is intentionally not referenced by any path — it is reached
+  # only transitively (`Pets` resolves to `Pet[]` in the external file), which
+  # exercises emitting an export for a referenced-but-not-path-used schema.
   schemas:
     Pet:
       $ref: './issue-1107-petstore.yaml#/components/schemas/Pet'
