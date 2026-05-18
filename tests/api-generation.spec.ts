@@ -234,6 +234,26 @@ test('fetch useDates with only date-time query params coerces via String(value)'
   );
 });
 
+test('vue-query custom fetch infinite queries unref non-pagination params', async () => {
+  // Regression for #3385:
+  // functions accept plain values, while Vue query hooks expose MaybeRef<T>.
+  // The infinite query path already unwraps `params` to merge the page param,
+  // but must also unwrap the remaining props before calling the request
+  // function or the generated output fails TypeScript compilation.
+  const content = await readFile(
+    generated('vue-query', 'infinite-query-with-custom-fetch', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toContain(
+    `getUsersUserIdOrders(
+      unref(userId),
+      { ...unref(params), limit: pageParam || unref(params)?.['limit'] },
+      { signal, ...requestOptions },
+    );`,
+  );
+});
+
 test('default issue-1107 emits exports for schemas defined via cross-file $ref', async () => {
   // Regression for #1107: a top-level `components.schemas.X` that is itself a
   // cross-file `$ref` (X -> another file's X) used to generate a schema file

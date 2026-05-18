@@ -88,6 +88,7 @@ export const createAngularAdapter = ({
     getInfiniteQueryHttpProps(
       props: GetterProps,
       queryParam: string,
+      _httpClient: OutputHttpClient,
       hasMutator: boolean,
     ): string {
       let result = props
