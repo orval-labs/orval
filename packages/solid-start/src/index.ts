@@ -289,7 +289,7 @@ const generateImplementation = (
 
       if (Array.isArray(value) && explodeParameters.includes(key)) {
         value.forEach((v) => {
-          normalizedParams.append(key, v === null ? 'null' : ${hasExplodedDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}v.toString());
+          normalizedParams.append(key, v === null ? 'null' : ${hasExplodedDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}String(v));
         });
         return;
       }
@@ -297,7 +297,7 @@ const generateImplementation = (
       : '';
 
   const normalParamsImplementation = `if (value !== undefined) {
-        normalizedParams.append(key, Array.isArray(value) ? value.map(v => v === null ? 'null' : ${hasDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}String(v)).join(',') : value === null ? 'null' : ${hasDateParams ? 'value instanceof Date ? value.toISOString() : ' : ''}value.toString())
+        normalizedParams.append(key, Array.isArray(value) ? value.map(v => v === null ? 'null' : ${hasDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}String(v)).join(',') : value === null ? 'null' : ${hasDateParams ? 'value instanceof Date ? value.toISOString() : ' : ''}String(value))
       }`;
 
   // Build query params string
