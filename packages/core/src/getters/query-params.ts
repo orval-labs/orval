@@ -81,6 +81,9 @@ const isSchemaNonPrimitive = (schema: OpenApiSchemaObject): boolean => {
   if (type === 'object') {
     return true;
   }
+  if (Array.isArray(type) && type.includes('object')) {
+    return true;
+  }
   if (type === 'array' || (Array.isArray(type) && type.includes('array'))) {
     const items = (schema as { items?: unknown }).items;
     if (isOpenApiSchemaObject(items)) {
@@ -89,9 +92,6 @@ const isSchemaNonPrimitive = (schema: OpenApiSchemaObject): boolean => {
     // `items` is a `$ref` (rejected by isOpenApiSchemaObject) — an array of
     // referenced objects must still be flagged so it survives the filter.
     return isRefObject(items);
-  }
-  if (Array.isArray(type) && type.includes('object')) {
-    return true;
   }
 
   const compositions = [

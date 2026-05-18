@@ -783,7 +783,7 @@ export const filterPetstoreParams = (
 The built-in helper is **not** called alongside your filter. In particular,
 you are responsible for:
 
-- stripping `undefined` (Angular's `HttpParams` constructor will throw)
+- stripping `undefined` (Angular's `HttpParams` does not safely represent it for query encoding; handle it explicitly)
 - handling `null` (Angular treats it as the literal string `"null"`)
 - filtering arrays (`new HttpParams({ fromObject: { tags: [{}] } })` is
   invalid)

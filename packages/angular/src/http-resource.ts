@@ -1553,6 +1553,7 @@ const buildHttpResourceExtraFile = (
         verbOption.formData,
         verbOption.formUrlEncoded,
         verbOption.paramsSerializer,
+        verbOption.paramsFilter,
       ].filter(
         (value): value is NonNullable<typeof value> => value !== undefined,
       );

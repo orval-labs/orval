@@ -476,7 +476,8 @@ export async function normalizeOptions(
   // but never called, so fail fast instead of emitting a dead import.
   const usesAngularGenerator =
     normalizedOptions.output.client === OutputClient.ANGULAR ||
-    normalizedOptions.output.httpClient === OutputHttpClient.ANGULAR;
+    (normalizedOptions.output.client === OutputClient.ANGULAR_QUERY &&
+      normalizedOptions.output.httpClient === OutputHttpClient.ANGULAR);
   if (normalizedOptions.output.override.paramsFilter && !usesAngularGenerator) {
     throw new Error(
       styleText(
