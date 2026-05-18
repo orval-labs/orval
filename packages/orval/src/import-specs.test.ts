@@ -159,6 +159,77 @@ describe('validation', () => {
     );
   });
 
+  it('should run override.transformer before validation so users can repair malformed specs', async () => {
+    const workspace = 'test';
+    const normalizedOptions = await normalizeOptions(
+      {
+        output: { target: '' },
+        input: {
+          target: SSE_ITEM_SCHEMA_SPEC,
+          override: {
+            transformer: (spec: OpenApiDocument) => {
+              // Strip the non-standard `itemSchema` field that would otherwise
+              // fail validation, replacing it with a compliant `schema` field.
+              type MediaContent = Record<string, Record<string, unknown>>;
+              const next = structuredClone(spec);
+              const sseResponse = next.paths?.['/api/events/']?.post
+                ?.responses?.['200'] as { content?: MediaContent } | undefined;
+              const eventStream = sseResponse?.content?.['text/event-stream'];
+              if (eventStream && 'itemSchema' in eventStream) {
+                eventStream.schema = eventStream.itemSchema;
+                delete eventStream.itemSchema;
+              }
+              return next;
+            },
+          },
+        },
+      },
+      workspace,
+      {},
+    );
+
+    const spec = await importSpecs(workspace, normalizedOptions);
+    expect(spec.verbOptions).toHaveProperty('sse_endpoint');
+    expect(spec.verbOptions).toHaveProperty('list_pets');
+    // The transformer rewrote `itemSchema` -> `schema`, so the SSE response
+    // should resolve to a real generated type rather than the default `void`.
+    // Resolve the schema dynamically from the verb's response type instead of
+    // hard-coding the synthesized name so this doesn't break if orval's
+    // response-schema naming convention changes.
+    const sseReturn = spec.verbOptions.sse_endpoint.response.definition.success;
+    expect(sseReturn).not.toBe('void');
+    const sseSchema = spec.schemas.find((s) => s.name === sseReturn);
+    expect(sseSchema?.model).toContain('data');
+    expect(sseSchema?.model).toContain('event');
+  });
+
+  it('should throw a clear error when override.transformer returns nothing', async () => {
+    const workspace = 'test';
+    const normalizedOptions = await normalizeOptions(
+      {
+        output: { target: '' },
+        input: {
+          target: SSE_ITEM_SCHEMA_SPEC,
+          override: {
+            transformer: (() =>
+              undefined as unknown as OpenApiDocument) satisfies (
+              spec: OpenApiDocument,
+            ) => OpenApiDocument,
+          },
+        },
+      },
+      workspace,
+      {},
+    );
+
+    // JS assigns `.name` from the property key when an inline function is
+    // bound to an object literal, so the source pointer is `transformer`
+    // here. A truly anonymous function falls back to `<inline function>`.
+    await expect(importSpecs(workspace, normalizedOptions)).rejects.toThrow(
+      /input\.override\.transformer must return an OpenAPI document object; got undefined from transformer/,
+    );
+  });
+
   it('should skip validation when input.unsafeDisableValidation is true', async () => {
     const workspace = 'test';
     const normalizedOptions = await normalizeOptions(
