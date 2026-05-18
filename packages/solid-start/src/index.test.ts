@@ -389,9 +389,7 @@ describe('generateSolidStart — query string serialization', () => {
     expect(implementation).toContain('const explodeParameters = ["country"]');
     expect(implementation).toContain('Array.isArray(value)');
     // scalar fallback still present (the ternary after the Array.isArray branch)
-    expect(implementation).toContain(
-      "value === null ? 'null' : value.toString()",
-    );
+    expect(implementation).toContain("value === null ? 'null' : String(value)");
   });
 
   it('generates per-element append for an array param declared via oneOf', async () => {

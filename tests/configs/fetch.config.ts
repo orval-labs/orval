@@ -301,6 +301,21 @@ export default defineConfig({
       target: '../specifications/parameters.yaml',
     },
   },
+  usedatesOnlyDateParams: {
+    output: {
+      target: '../generated/fetch/usedates-only-date-params/endpoints.ts',
+      schemas: '../generated/fetch/usedates-only-date-params/model',
+      client: 'fetch',
+      override: {
+        useDates: true,
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/usedates-only-date-params.yaml',
+    },
+  },
   forceSuccessResponse: {
     output: {
       target: '../generated/fetch/force-success-response/endpoints.ts',

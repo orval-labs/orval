@@ -210,6 +210,30 @@ test('vue-query issue-1026 keeps header params out of the query key getter', asy
   expect(content).toContain('headers = unref(headers);');
 });
 
+test('fetch useDates with only date-time query params coerces via String(value)', async () => {
+  // Regression: with `useDates: true` and every param typed `Date`, the old
+  // URL builder emitted `value.toString()` as the non-Date fallback. TS
+  // narrowed that branch to `never`, and at runtime it called
+  // `Date.prototype.toString()` (local string) instead of `toISOString()`.
+  // The fallback must coerce via `String(value)`.
+  const file = (...segments: string[]) =>
+    readFile(
+      generated('fetch', 'usedates-only-date-params', ...segments),
+      'utf8',
+    );
+  const endpoints = await file('endpoints.ts');
+  const paramsModel = await file('model', 'thingsListParams.ts');
+
+  expect(paramsModel).toMatch(/start_time\??:\s*Date/);
+  expect(paramsModel).toMatch(/end_time\??:\s*Date/);
+
+  expect(endpoints).toContain('String(value)');
+  expect(endpoints).not.toContain('value.toString()');
+  expect(endpoints).toMatch(
+    /value instanceof Date\s*\?\s*value\.toISOString\(\)/,
+  );
+});
+
 test('default issue-1107 emits exports for schemas defined via cross-file $ref', async () => {
   // Regression for #1107: a top-level `components.schemas.X` that is itself a
   // cross-file `$ref` (X -> another file's X) used to generate a schema file
