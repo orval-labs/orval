@@ -198,9 +198,11 @@ test('vue-query issue-1026 keeps header params out of the query key getter', asy
   expect(end, `${marker} body should be terminated`).toBeGreaterThan(start);
   const queryKeyFn = content.slice(start, end);
 
-  // The getter must not reference `headers` at all - it is neither a parameter
-  // nor a query-key segment here.
-  expect(queryKeyFn).not.toContain('headers');
+  // The getter must not reference `headers` as an identifier: that was the
+  // #1026 bug (`headers = unref(headers);`) and unref-ing a param would also
+  // break query-key reactivity. A word-boundary regex keeps the intent precise
+  // rather than matching `headers` as a loose substring.
+  expect(queryKeyFn).not.toMatch(/\bheaders\b/);
 
   // Sanity check: the HTTP function still receives and unrefs `headers`, so the
   // assertion above is not passing simply because headers support is missing.
