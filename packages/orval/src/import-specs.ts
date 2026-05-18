@@ -345,6 +345,26 @@ function updateInternalRefs(
 }
 
 /**
+ * Decode a single JSON Pointer reference token taken from an x-ext `$ref`.
+ *
+ * The token carries two layers of encoding: it sits in a URI fragment, so it
+ * may be percent-encoded (e.g. `%7B` for `{` in templated paths), and it is a
+ * JSON Pointer token, so `~1`/`~0` stand for `/`/`~` (RFC 6901). Percent-
+ * encoding is the outer layer and is removed first; a malformed sequence is
+ * left as-is rather than throwing. Without this, tokens such as `~1pets`
+ * never match the real `/pets` key and the external `$ref` fails to resolve.
+ */
+function decodeRefToken(token: string): string {
+  let decoded = token;
+  try {
+    decoded = decodeURIComponent(token);
+  } catch {
+    // Malformed percent-encoding — fall back to the raw token.
+  }
+  return decoded.replaceAll('~1', '/').replaceAll('~0', '~');
+}
+
+/**
  * Replace x-ext refs with standard component refs, or inline the content.
  * `inliningRefs` tracks the inline chain to break cycles in recursive
  * external schemas that aren't under `components.schemas` (#1642).
@@ -402,7 +422,8 @@ function replaceXExtRefs(
 
           const extDoc = extensions[extKey];
           let refObj: unknown = extDoc;
-          for (const p of parts) {
+          for (const rawPart of parts) {
+            const p = decodeRefToken(rawPart);
             if (
               refObj &&
               (isObject(refObj) || Array.isArray(refObj)) &&

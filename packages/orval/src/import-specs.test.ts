@@ -756,6 +756,91 @@ describe('dereferenceExternalRefs', () => {
     expect(result).not.toHaveProperty('x-ext');
   });
 
+  it('should resolve external path-item refs with escaped JSON Pointer tokens (#3380)', () => {
+    // A cross-file path-item `$ref` (e.g. `common.yaml#/paths/~1pets`) is
+    // bundled into an x-ext ref whose pointer keeps the JSON Pointer escape
+    // `~1` (for `/`) and percent-encoding (`%7B`/`%7D` for `{`/`}` in
+    // templated paths). Both must be decoded before walking the external doc.
+    const input = {
+      openapi: '3.0.0',
+      info: { version: '1.0.0', title: 'API' },
+      paths: {
+        '/pets': {
+          $ref: '#/x-ext/abc1234/paths/~1pets',
+        },
+        '/pets/{petId}': {
+          $ref: '#/x-ext/abc1234/paths/~1pets~1%7BpetId%7D',
+        },
+        // `~0` is the JSON Pointer escape for a literal `~` (RFC 6901).
+        '/pets~dogs': {
+          $ref: '#/x-ext/abc1234/paths/~1pets~0dogs',
+        },
+      },
+      'x-ext': {
+        abc1234: {
+          paths: {
+            '/pets': {
+              get: {
+                operationId: 'listPets',
+                responses: { '200': { description: 'ok' } },
+              },
+            },
+            '/pets/{petId}': {
+              get: {
+                operationId: 'getPet',
+                parameters: [
+                  {
+                    name: 'petId',
+                    in: 'path',
+                    required: true,
+                    schema: { type: 'string' },
+                  },
+                ],
+                responses: { '200': { description: 'ok' } },
+              },
+            },
+            '/pets~dogs': {
+              get: {
+                operationId: 'listPetsDogs',
+                responses: { '200': { description: 'ok' } },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = dereferenceExternalRef(input) as OpenApiDocument;
+
+    expect(result.paths?.['/pets']).toEqual({
+      get: {
+        operationId: 'listPets',
+        responses: { '200': { description: 'ok' } },
+      },
+    });
+    expect(result.paths?.['/pets/{petId}']).toEqual({
+      get: {
+        operationId: 'getPet',
+        parameters: [
+          {
+            name: 'petId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: { '200': { description: 'ok' } },
+      },
+    });
+    expect(result.paths?.['/pets~dogs']).toEqual({
+      get: {
+        operationId: 'listPetsDogs',
+        responses: { '200': { description: 'ok' } },
+      },
+    });
+    expect(result).not.toHaveProperty('x-ext');
+  });
+
   it('should dereference external doc schemas with internal refs', () => {
     const input = {
       openapi: '3.0.3',

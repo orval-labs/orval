@@ -1,0 +1,34 @@
+openapi: 3.0.0
+info:
+  title: Issue 3380 - external paths
+  version: 1.0.0
+paths:
+  /pets:
+    get:
+      operationId: listPets
+      responses:
+        '200':
+          description: A list of pet names
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /pets/{petId}:
+    get:
+      operationId: getPet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A pet name
+          content:
+            application/json:
+              schema:
+                type: string
+components: {}

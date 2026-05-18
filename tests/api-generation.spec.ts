@@ -233,3 +233,22 @@ test('default issue-1107 emits exports for schemas defined via cross-file $ref',
   expect(pets).toContain("import type { Pet } from './pet';");
   expect(pets).toContain('export type Pets = Pet[];');
 });
+
+test('default issue-3380 resolves external path-item $refs with escaped pointers', async () => {
+  // Regression for #3380: path items defined via a cross-file `$ref`
+  // (`#/paths/~1pets` and `#/paths/~1pets~1%7BpetId%7D`) used to abort
+  // generation with "Can't resolve reference" because the JSON Pointer escape
+  // `~1` and percent-encoding `%7B`/`%7D` were not decoded before resolving
+  // the external document. Both operations must now be generated.
+  // Keep this focused assertion alongside the snapshot so #3380 fails with a
+  // targeted message instead of a full-file snapshot diff.
+  const content = await readFile(
+    generated('default', 'issue-3380-external-path-ref', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toContain('export const listPets = (');
+  expect(content).toContain('export const getPet = (');
+  // The templated path ref (`~1pets~1%7BpetId%7D`) decodes to `/pets/{petId}`.
+  expect(content).toContain('`/pets/${petId}`');
+});
