@@ -3526,6 +3526,9 @@ describe('generatePartOfSchemaGenerateZod', () => {
   });
 
   it('falls back to 2XX response when 200 is not present', async () => {
+    const basePostOperation =
+      basicApiSchema.context.spec.paths?.['/cats']?.post ?? {};
+
     const wildcardResponseApiSchema = {
       ...basicApiSchema,
       context: {
@@ -3535,7 +3538,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
           paths: {
             '/cats': {
               post: {
-                ...basicApiSchema.context.spec.paths['/cats'].post,
+                ...basePostOperation,
                 responses: {
                   '2XX': {
                     content: {

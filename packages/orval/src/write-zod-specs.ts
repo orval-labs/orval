@@ -3,7 +3,6 @@ import path from 'node:path';
 import {
   type ContextSpec,
   conventionName,
-  type GeneratorVerbOptions,
   type NamingConvention,
   type NormalizedOutputOptions,
   type OpenApiParameterObject,
@@ -42,6 +41,13 @@ interface WriteZodOutputOptions {
       strict: {
         body: boolean;
       };
+      generate: {
+        param: boolean;
+        query: boolean;
+        header: boolean;
+        body: boolean;
+        response: boolean;
+      };
       coerce: {
         body: boolean | ZodCoerceType[];
       };
@@ -64,12 +70,28 @@ interface WriteZodVerbResponseType {
   originalSchema?: OpenApiSchemaObject;
 }
 
+interface WriteZodSchemasFromVerbsEntry {
+  operationName: string;
+  originalOperation: {
+    requestBody?: OpenApiRequestBodyObject | OpenApiReferenceObject;
+    parameters?: (OpenApiParameterObject | OpenApiReferenceObject)[];
+  };
+  response: {
+    types: {
+      success: WriteZodVerbResponseType[];
+      errors: WriteZodVerbResponseType[];
+    };
+  };
+  override?: {
+    zod: {
+      generate: WriteZodOutputOptions['override']['zod']['generate'];
+    };
+  };
+}
+
 type WriteZodSchemasFromVerbsInput = Record<
   string,
-  Pick<
-    GeneratorVerbOptions,
-    'operationName' | 'originalOperation' | 'response' | 'override'
-  >
+  WriteZodSchemasFromVerbsEntry
 >;
 
 interface WriteZodSchemasFromVerbsContext {

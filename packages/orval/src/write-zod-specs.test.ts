@@ -273,6 +273,7 @@ describe('write-zod-specs regressions', () => {
           zod: {
             ...createOutputOptions().override.zod,
             generate: {
+              param: true,
               body: true,
               query: true,
               header: true,
