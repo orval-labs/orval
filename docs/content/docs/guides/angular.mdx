@@ -744,6 +744,11 @@ they hit the wire — supply a `paramsFilter` mutator. It **completely
 replaces** the built-in `filterParams` for every operation that resolves
 to it; you own nullish-stripping and any non-primitive handling.
 
+Even though `paramsFilter` is Angular-only, it lives at `override.paramsFilter`
+instead of `override.angular.paramsFilter` so you can keep using the standard
+global / per-operation / per-tag override pattern that Orval already uses for
+request shaping.
+
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
 

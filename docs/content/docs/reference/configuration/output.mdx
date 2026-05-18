@@ -1055,6 +1055,14 @@ export default defineConfig({
 });
 ```
 
+<Callout type="info">
+`override.angular` is reserved for Angular generator settings such as retrieval
+mode, DI scope, and runtime validation. Angular-only request pipeline overrides
+like [`override.paramsFilter`](#paramsfilter) still live on `override` so they
+can also be applied consistently via `override.operations[...]` and
+`override.tags[...]`, alongside `mutator` and `paramsSerializer`.
+</Callout>
+
 ### provideIn
 
 **Type:** `'root' | 'any' | boolean`
@@ -1913,6 +1921,11 @@ before handing params to `HttpParams`. When set, orval does **not** strip
 `null`/`undefined` or non-primitive values for you — your function returns
 exactly the object `HttpParams` (or a configured `paramsSerializer`) receives.
 
+This option intentionally lives at `override.paramsFilter` rather than
+`override.angular.paramsFilter` so the same request-shaping override can be used
+globally or narrowed per operation/tag, just like `mutator` and
+`paramsSerializer`.
+
 When a `paramsSerializer` is configured, orval already preserves
 schema-declared object and array-of-object params so the serializer can
 handle them; without a serializer those params are dropped. See the
@@ -2079,4 +2092,3 @@ export interface Pet {
   name: string;
 }
 ```
-
