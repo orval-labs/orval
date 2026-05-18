@@ -1,0 +1,29 @@
+openapi: 3.0.0
+info:
+  title: Issue 1107 - cross-file $ref type alias exports
+  version: 1.0.0
+paths:
+  /pets:
+    get:
+      operationId: listPets
+      responses:
+        '200':
+          description: A list of pets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pets'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Pet:
+      $ref: './issue-1107-petstore.yaml#/components/schemas/Pet'
+    Pets:
+      $ref: './issue-1107-petstore.yaml#/components/schemas/Pets'
+    Error:
+      $ref: './issue-1107-petstore.yaml#/components/schemas/Error'

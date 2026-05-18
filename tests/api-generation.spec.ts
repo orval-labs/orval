@@ -209,3 +209,27 @@ test('vue-query issue-1026 keeps header params out of the query key getter', asy
   expect(content).toContain('headers?: MaybeRef<GetSomeEndpointHeaders>');
   expect(content).toContain('headers = unref(headers);');
 });
+
+test('default issue-1107 emits exports for schemas defined via cross-file $ref', async () => {
+  // Regression for #1107: a top-level `components.schemas.X` that is itself a
+  // cross-file `$ref` (X -> another file's X) used to generate a schema file
+  // with the import but no `export` for X, producing a dangling, unusable
+  // module. Each referenced schema must still be a usable exported type.
+  // Keep this focused assertion alongside the snapshot so #1107 fails with a
+  // targeted message instead of a full-file snapshot diff.
+  const model = (file: string) =>
+    readFile(
+      generated('default', 'issue-1107-cross-file-ref', 'model', file),
+      'utf8',
+    );
+
+  // Object schemas reached through a cross-file `$ref` are exported as types.
+  expect(await model('pet.ts')).toContain('export interface Pet {');
+  expect(await model('error.ts')).toContain('export interface Error {');
+
+  // The array schema both imports its item type and exports its own alias;
+  // the missing `export type` line was the #1107 bug.
+  const pets = await model('pets.ts');
+  expect(pets).toContain("import type { Pet } from './pet';");
+  expect(pets).toContain('export type Pets = Pet[];');
+});
