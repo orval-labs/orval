@@ -139,3 +139,40 @@ test('default issue-826 wraps bodies whose readonly props come from nested schem
     'nestedReadonlyObject?: NonReadonly<NestedReadonlyObject>',
   );
 });
+
+test('default issue-873 does not duplicate multi-tag operations across tag files', async () => {
+  // Regression for #873: an operation declaring multiple tags
+  // (`listPets` has `tags: [cats, dogs]` in multiple-tags.yaml) must be
+  // emitted only under its first tag. Emitting it under every tag duplicated
+  // the operation across tag files and made the workspace index re-export the
+  // same symbol twice, so the generated code failed to compile. Keep this
+  // focused assertion alongside the snapshot so #873 fails with a targeted
+  // message instead of a full-file snapshot diff.
+  const marker = 'export const listPets = (';
+
+  // [mode, first-tag file, later-tag file]
+  const modes = [
+    ['multiple-tags', ['cats.ts'], ['dogs.ts']],
+    ['multiple-tags-split', ['cats', 'cats.ts'], ['dogs', 'dogs.ts']],
+  ] as const;
+
+  for (const [mode, firstTag, laterTag] of modes) {
+    const firstTagContent = await readFile(
+      generated('default', mode, ...firstTag),
+      'utf8',
+    );
+    const laterTagContent = await readFile(
+      generated('default', mode, ...laterTag),
+      'utf8',
+    );
+
+    expect(
+      firstTagContent,
+      `${mode}: listPets should be emitted under its first tag`,
+    ).toContain(marker);
+    expect(
+      laterTagContent,
+      `${mode}: listPets must not be duplicated into a later tag`,
+    ).not.toContain(marker);
+  }
+});
