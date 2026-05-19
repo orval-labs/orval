@@ -12,7 +12,7 @@ import type {
   UseMutationResult,
 } from '@tanstack/react-query';
 
-import type { CreatePetsBody, Error, Pet } from './model';
+import type { CreatePetsBody, Error, Pet, UploadPetContentBody } from './model';
 
 import { faker } from '@faker-js/faker';
 
@@ -103,7 +103,117 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
   return useMutation(getCreatePetsMutationOptions(options), queryClient);
 };
 
+/**
+ * @summary Upload pet content as url-encoded form
+ */
+export const uploadPetContent = (
+  uploadPetContentBody: UploadPetContentBody,
+  signal?: AbortSignal,
+) => {
+  const formUrlEncoded = customFormUrlEncoded(uploadPetContentBody);
+  return customInstance<Pet>({
+    url: `/pets/upload`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    data: formUrlEncoded,
+    signal,
+  });
+};
+
+export const getUploadPetContentMutationOptions = <
+  TError = Error,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uploadPetContent>>,
+    TError,
+    { data: UploadPetContentBody },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof uploadPetContent>>,
+  TError,
+  { data: UploadPetContentBody },
+  TContext
+> => {
+  const mutationKey = ['uploadPetContent'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof uploadPetContent>>,
+    { data: UploadPetContentBody }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return uploadPetContent(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UploadPetContentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof uploadPetContent>>
+>;
+export type UploadPetContentMutationBody = UploadPetContentBody;
+export type UploadPetContentMutationError = Error;
+
+/**
+ * @summary Upload pet content as url-encoded form
+ */
+export const useUploadPetContent = <TError = Error, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof uploadPetContent>>,
+      TError,
+      { data: UploadPetContentBody },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof uploadPetContent>>,
+  TError,
+  { data: UploadPetContentBody },
+  TContext
+> => {
+  return useMutation(getUploadPetContentMutationOptions(options), queryClient);
+};
+
 export const getCreatePetsResponseMock = (
+  overrideResponse: Partial<Extract<Pet, object>> = {},
+): Pet => ({
+  '@id': faker.helpers.arrayElement([
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    undefined,
+  ]),
+  id: faker.number.int(),
+  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  tag: faker.helpers.arrayElement([
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    undefined,
+  ]),
+  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+  callingCode: faker.helpers.arrayElement([
+    faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
+    undefined,
+  ]),
+  country: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([
+      "People's Republic of China",
+      'Uruguay',
+    ] as const),
+    undefined,
+  ]),
+  ...overrideResponse,
+});
+
+export const getUploadPetContentResponseMock = (
   overrideResponse: Partial<Extract<Pet, object>> = {},
 ): Pet => ({
   '@id': faker.helpers.arrayElement([
@@ -154,4 +264,31 @@ export const getCreatePetsMockHandler = (
     options,
   );
 };
-export const getSwaggerPetstoreMock = () => [getCreatePetsMockHandler()];
+
+export const getUploadPetContentMockHandler = (
+  overrideResponse?:
+    | Pet
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0],
+      ) => Promise<Pet> | Pet),
+  options?: RequestHandlerOptions,
+) => {
+  return http.post(
+    '*/pets/upload',
+    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getUploadPetContentResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
+export const getSwaggerPetstoreMock = () => [
+  getCreatePetsMockHandler(),
+  getUploadPetContentMockHandler(),
+];

@@ -173,7 +173,12 @@ export function getScalar({
         isEnum = true;
       }
 
-      if (schemaFormat === 'binary') {
+      if (formDataContext?.urlEncoded) {
+        // application/x-www-form-urlencoded bodies are built with
+        // URLSearchParams, whose values are always strings. Keep file/binary
+        // fields as `string` instead of `Blob` (#1624).
+        value = 'string';
+      } else if (schemaFormat === 'binary') {
         value = 'Blob';
       } else if (formDataContext?.atPart) {
         const fileType = getFormDataFieldFileType(

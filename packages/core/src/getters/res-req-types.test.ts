@@ -432,6 +432,98 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
     });
   });
 
+  // application/x-www-form-urlencoded is a text-only serialization built with
+  // URLSearchParams, whose append() only accepts strings. Binary fields must
+  // therefore be typed and appended as strings, not Blob (#1624).
+  describe('x-www-form-urlencoded with binary fields (#1624)', () => {
+    const urlEncodedReqBody: [string, OpenApiRequestBodyObject][] = [
+      [
+        'requestBody',
+        {
+          content: {
+            'application/x-www-form-urlencoded': {
+              schema: {
+                type: 'object',
+                properties: {
+                  // format: binary → would be Blob under multipart
+                  content_file: { type: 'string', format: 'binary' },
+                  // contentMediaType text file → Blob | string under multipart
+                  content_xml: {
+                    type: 'string',
+                    contentMediaType: 'application/xml',
+                  },
+                  content_string: { type: 'string' },
+                },
+              },
+            },
+          },
+          required: true,
+        },
+      ],
+    ];
+
+    it('types binary and file url-encoded fields as string, not Blob', () => {
+      const result = getResReqTypes(urlEncodedReqBody, 'Asset', context)[0];
+
+      const bodySchema = result.schemas.find(
+        (s) => s.name === 'AssetRequestBody',
+      );
+      expect(bodySchema).toBeDefined();
+      expect(bodySchema?.model).toContain('content_file?: string;');
+      expect(bodySchema?.model).toContain('content_xml?: string;');
+      expect(bodySchema?.model).not.toContain('Blob');
+    });
+
+    it('appends binary and file url-encoded fields directly as strings', () => {
+      const result = getResReqTypes(urlEncodedReqBody, 'Asset', context)[0];
+
+      expect(result.formUrlEncoded).toContain(
+        'formUrlEncoded.append(`content_file`, assetRequestBody.content_file)',
+      );
+      expect(result.formUrlEncoded).toContain(
+        'formUrlEncoded.append(`content_xml`, assetRequestBody.content_xml)',
+      );
+      expect(result.formUrlEncoded).not.toContain('Blob');
+    });
+
+    it('uses a string-only runtime loop for oneOf/anyOf url-encoded bodies', () => {
+      const oneOfReqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'application/x-www-form-urlencoded': {
+                schema: {
+                  oneOf: [
+                    {
+                      type: 'object',
+                      properties: {
+                        content_file: { type: 'string', format: 'binary' },
+                      },
+                    },
+                    {
+                      type: 'object',
+                      properties: { other: { type: 'string' } },
+                    },
+                  ],
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(oneOfReqBody, 'Asset', context)[0];
+
+      // URLSearchParams holds strings only — no File/Blob/Buffer branches
+      expect(result.formUrlEncoded).toContain('formUrlEncoded.append(key,');
+      expect(result.formUrlEncoded).not.toContain('Blob');
+      expect(result.formUrlEncoded).not.toContain('Buffer');
+      expect(result.formUrlEncoded).not.toContain('instanceof File');
+    });
+  });
+
   describe('FormData with schema composition (oneOf/anyOf/allOf)', () => {
     // Covers: anyOf at root, nested oneOf, allOf with $ref (#2873)
     it('anyOf at root with scalar, array, oneOf, and allOf branches', () => {

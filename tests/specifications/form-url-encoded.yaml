@@ -40,6 +40,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /pets/upload:
+    post:
+      summary: Upload pet content as url-encoded form
+      operationId: uploadPetContent
+      tags:
+        - pets
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - 'name'
+              properties:
+                name:
+                  type: string
+                # format: binary field in a url-encoded body must be typed and
+                # appended as a string, not Blob (#1624)
+                content:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Created Pet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 components:
   schemas:
     Pet:

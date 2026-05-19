@@ -124,10 +124,11 @@ function getPropertyNamesRecordType(
 }
 
 /**
- * Context for multipart/form-data type generation.
+ * Context for form request body (multipart/form-data and
+ * application/x-www-form-urlencoded) type generation.
  * Discriminated union with two states:
  *
- * 1. `{ atPart: false, encoding }` - At form-data root, before property iteration
+ * 1. `{ atPart: false, encoding }` - At form root, before property iteration
  *    - May traverse through allOf/anyOf/oneOf to reach properties
  *    - Carries encoding map so getObject can look up `encoding[key]`
  *
@@ -136,11 +137,19 @@ function getPropertyNamesRecordType(
  *    - Used by getScalar for file type detection (precedence over contentMediaType)
  *    - Arrays pass this through to items; combiners inside arrays also get context
  *
- * `undefined` means not in form-data context (or nested inside plain object field = JSON)
+ * `urlEncoded` marks an application/x-www-form-urlencoded body. Such bodies are
+ * built with URLSearchParams, whose values are always strings, so getScalar
+ * keeps file/binary fields as `string` instead of `Blob` (#1624).
+ *
+ * `undefined` means not in form context (or nested inside plain object field = JSON)
  */
 export type FormDataContext =
-  | { atPart: false; encoding: Record<string, { contentType?: string }> }
-  | { atPart: true; partContentType?: string };
+  | {
+      atPart: false;
+      encoding: Record<string, { contentType?: string }>;
+      urlEncoded?: boolean;
+    }
+  | { atPart: true; partContentType?: string; urlEncoded?: boolean };
 
 interface GetObjectOptions {
   item: OpenApiSchemaObject;
@@ -289,13 +298,15 @@ export function getObject({
         propName = propName + 'Property';
       }
 
-      // Transition multipart context: atPart: false → atPart: true
-      // Look up encoding[key].contentType and pass to property resolution
+      // Transition form context: atPart: false → atPart: true
+      // Look up encoding[key].contentType and pass to property resolution.
+      // The urlEncoded flag is carried through so nested scalars stay strings.
       const propertyFormDataContext: FormDataContext | undefined =
         formDataContext && !formDataContext.atPart
           ? {
               atPart: true,
               partContentType: formDataContext.encoding[key]?.contentType, // eslint-disable-line @typescript-eslint/no-unnecessary-condition -- Record index access can return undefined at runtime
+              urlEncoded: formDataContext.urlEncoded,
             }
           : undefined;
 
