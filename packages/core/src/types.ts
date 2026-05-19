@@ -424,6 +424,8 @@ export interface GlobalMockOptions {
   // Preferred response content type when multiple success content types exist
   preferredContentType?: string;
   indexMockFiles?: boolean;
+  // When false, only mock data generators are produced (no MSW request handlers or aggregated handler array)
+  generateHandlers?: boolean;
 }
 
 export type OverrideMockOptions = Partial<GlobalMockOptions> & {

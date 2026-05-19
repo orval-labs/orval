@@ -127,6 +127,11 @@ export const generateClientHeader: GeneratorClientHeader = ({
   clientImplementation,
 }) => {
   const { header } = getGeneratorClient(outputClient, output);
+  const handlersDisabled =
+    output.mock &&
+    !isFunction(output.mock) &&
+    output.mock.generateHandlers === false;
+
   return {
     implementation: header
       ? header({
@@ -143,7 +148,9 @@ export const generateClientHeader: GeneratorClientHeader = ({
           clientImplementation,
         })
       : '',
-    implementationMock: `export const ${titles.implementationMock} = () => [\n`,
+    implementationMock: handlersDisabled
+      ? ''
+      : `export const ${titles.implementationMock} = () => [\n`,
   };
 };
 
@@ -157,10 +164,15 @@ export const generateClientFooter: GeneratorClientFooter = ({
 }) => {
   const { footer } = getGeneratorClient(outputClient, output);
 
+  const handlersDisabled =
+    output.mock &&
+    !isFunction(output.mock) &&
+    output.mock.generateHandlers === false;
+
   if (!footer) {
     return {
       implementation: '',
-      implementationMock: `\n]\n`,
+      implementationMock: handlersDisabled ? '' : `\n]\n`,
     };
   }
 
@@ -193,7 +205,7 @@ export const generateClientFooter: GeneratorClientFooter = ({
 
   return {
     implementation,
-    implementationMock: `]\n`,
+    implementationMock: handlersDisabled ? '' : `]\n`,
   };
 };
 
