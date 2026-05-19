@@ -44,6 +44,57 @@ describe('jsDoc', () => {
 `);
   });
 
+  it('prefixes each line of a multi-line description with *', () => {
+    expect(
+      jsDoc({
+        description: 'line one\nline two\nline three',
+      }),
+    ).toBe(`/**
+ * line one
+ * line two
+ * line three
+ */
+`);
+  });
+
+  it('prefixes each line of multi-line array descriptions with *', () => {
+    expect(
+      jsDoc({
+        description: ['first\nsecond', 'third'],
+      }),
+    ).toBe(`/**
+ * first
+ * second
+ * third
+ */
+`);
+  });
+
+  it('handles CRLF line endings in description', () => {
+    expect(
+      jsDoc({
+        description: 'line one\r\nline two\r\nline three',
+      }),
+    ).toBe(`/**
+ * line one
+ * line two
+ * line three
+ */
+`);
+  });
+
+  it('escapes */ in multi-line descriptions', () => {
+    expect(
+      jsDoc({
+        description: 'line with /* comment\nline with */ end',
+      }),
+    ).toBe(`/**
+ * line with /* comment
+ * line with *\\/ end
+ */
+`);
+  });
+
   it('stops traversing circular item schemas', () => {
     interface CircularItems {
       [key: string]: unknown;
