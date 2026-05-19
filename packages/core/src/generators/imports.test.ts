@@ -1,7 +1,22 @@
 import { describe, expect, it } from 'vitest';
 
-import type { GeneratorVerbOptions } from '../types';
-import { addDependency, generateVerbImports } from './imports';
+import type { GeneratorMutator, GeneratorVerbOptions } from '../types';
+import {
+  addDependency,
+  generateMutatorImports,
+  generateVerbImports,
+} from './imports';
+
+const makeMutator = (path: string): GeneratorMutator => ({
+  name: 'customInstance',
+  path,
+  default: false,
+  hasErrorType: false,
+  errorTypeName: 'ErrorType',
+  hasSecondArg: false,
+  hasThirdArg: false,
+  isHook: false,
+});
 
 describe('imports generator helpers', () => {
   describe('generateVerbImports', () => {
@@ -127,6 +142,47 @@ export type MyError = Error;
       });
 
       expect(dep).toBe("import {\n  schema$Value\n} from '../models';\n");
+    });
+  });
+
+  // `oneMore` is set only by the tags-split writer (split-tags-mode.ts),
+  // where generated files live one directory deeper than the output root.
+  describe('generateMutatorImports', () => {
+    it('prepends ../ to a relative mutator path when oneMore is set', () => {
+      const imports = generateMutatorImports({
+        mutators: [makeMutator('../api/mutator/custom-instance')],
+        oneMore: true,
+      });
+
+      expect(imports).toBe(
+        "import { customInstance } from '../../api/mutator/custom-instance';\n",
+      );
+    });
+
+    it('does not prepend ../ to a scoped package mutator path when oneMore is set', () => {
+      const imports = generateMutatorImports({
+        mutators: [makeMutator('@scope/axios')],
+        oneMore: true,
+      });
+
+      expect(imports).toBe("import { customInstance } from '@scope/axios';\n");
+    });
+
+    it('does not prepend ../ to a bare package mutator path when oneMore is set', () => {
+      const imports = generateMutatorImports({
+        mutators: [makeMutator('axios')],
+        oneMore: true,
+      });
+
+      expect(imports).toBe("import { customInstance } from 'axios';\n");
+    });
+
+    it('leaves a package mutator path untouched when oneMore is not set', () => {
+      const imports = generateMutatorImports({
+        mutators: [makeMutator('@scope/axios')],
+      });
+
+      expect(imports).toBe("import { customInstance } from '@scope/axios';\n");
     });
   });
 });

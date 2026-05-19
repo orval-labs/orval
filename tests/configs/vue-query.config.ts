@@ -169,6 +169,53 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  infiniteQueryWithCustomFetch: {
+    output: {
+      target:
+        '../generated/vue-query/infinite-query-with-custom-fetch/endpoints.ts',
+      schemas: '../generated/vue-query/infinite-query-with-custom-fetch/model',
+      client: 'vue-query',
+      mock: true,
+      override: {
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+        },
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'limit',
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/multi-query-params.yaml',
+    },
+  },
+  infiniteQueryWithBuiltInFetch: {
+    output: {
+      target:
+        '../generated/vue-query/infinite-query-with-built-in-fetch/endpoints.ts',
+      schemas:
+        '../generated/vue-query/infinite-query-with-built-in-fetch/model',
+      client: 'vue-query',
+      mock: true,
+      override: {
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'limit',
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/multi-query-params.yaml',
+    },
+  },
   allParamsOptional: {
     output: {
       target: '../generated/vue-query/all-params-optional/endpoints.ts',
@@ -249,6 +296,21 @@ export default defineConfig({
       formatter: 'prettier',
     },
     input: { target: '../specifications/petstore.yaml' },
+  },
+  issue1026: {
+    output: {
+      target: '../generated/vue-query/issue-1026/endpoints.ts',
+      schemas: '../generated/vue-query/issue-1026/model',
+      client: 'vue-query',
+      httpClient: 'axios',
+      mode: 'split',
+      headers: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-1026.yaml',
+    },
   },
   // Unsupported for now, see for context: https://github.com/orval-labs/orval/pull/931#issuecomment-1752355686
   // namedParameters: {

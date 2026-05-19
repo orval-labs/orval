@@ -165,6 +165,7 @@ export async function writeSpecs(
           output.operationSchemas,
           output.namingConvention,
           fileExtension,
+          output.tsconfig,
         );
         fixRegularSchemaImports(
           regularSchemas,
@@ -173,6 +174,7 @@ export async function writeSpecs(
           output.operationSchemas,
           output.namingConvention,
           fileExtension,
+          output.tsconfig,
         );
 
         // Write regular schemas to schemas path
@@ -185,6 +187,7 @@ export async function writeSpecs(
             fileExtension,
             header,
             indexFiles: output.indexFiles,
+            tsconfig: output.tsconfig,
           });
         }
 
@@ -198,6 +201,7 @@ export async function writeSpecs(
             fileExtension,
             header,
             indexFiles: output.indexFiles,
+            tsconfig: output.tsconfig,
           });
 
           // Add re-export from operations in the main schemas index
@@ -218,6 +222,7 @@ export async function writeSpecs(
           fileExtension,
           header,
           indexFiles: output.indexFiles,
+          tsconfig: output.tsconfig,
         });
       }
     } else {
@@ -241,6 +246,7 @@ export async function writeSpecs(
             output.operationSchemas,
             output.namingConvention,
             fileExtension,
+            output.tsconfig,
           );
           fixRegularSchemaImports(
             regularSchemas,
@@ -249,6 +255,7 @@ export async function writeSpecs(
             output.operationSchemas,
             output.namingConvention,
             fileExtension,
+            output.tsconfig,
           );
 
           if (regularSchemas.length > 0) {
@@ -260,6 +267,7 @@ export async function writeSpecs(
               fileExtension,
               header,
               indexFiles: output.indexFiles,
+              tsconfig: output.tsconfig,
             });
           }
 
@@ -272,6 +280,7 @@ export async function writeSpecs(
               fileExtension,
               header,
               indexFiles: output.indexFiles,
+              tsconfig: output.tsconfig,
             });
 
             // Add re-export from operations in the main schemas index
@@ -292,6 +301,7 @@ export async function writeSpecs(
             fileExtension,
             header,
             indexFiles: output.indexFiles,
+            tsconfig: output.tsconfig,
           });
         }
       } else {

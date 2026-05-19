@@ -1,9 +1,11 @@
 import {
+  dynamicImport,
   isObject,
   isString,
   logWarning,
   type NormalizedOptions,
   type OpenApiDocument,
+  type OverrideInput,
   type WriteSpecBuilder,
 } from '@orval/core';
 import { bundle } from '@scalar/json-magic/bundle';
@@ -18,15 +20,26 @@ import { isNullish } from 'remeda';
 
 import { importOpenApi } from './import-open-api';
 
-async function resolveSpec(
-  input: string | Record<string, unknown>,
+interface ResolveSpecOptions {
   parserOptions?: {
     headers?: {
       domains: string[];
       headers: Record<string, string>;
     }[];
-  },
-  unsafeDisableValidation = false,
+  };
+  transformer?: OverrideInput['transformer'];
+  workspace: string;
+  unsafeDisableValidation?: boolean;
+}
+
+async function resolveSpec(
+  input: string | Record<string, unknown>,
+  {
+    parserOptions,
+    transformer,
+    workspace,
+    unsafeDisableValidation = false,
+  }: ResolveSpecOptions,
 ): Promise<OpenApiDocument> {
   const data = await bundle(input, {
     plugins: [
@@ -43,6 +56,14 @@ async function resolveSpec(
     data as Record<string, unknown>,
   );
 
+  // Apply user-provided transformer before validation so users can repair
+  // malformed specs in-place. The transformer is typed against
+  // `OpenApiDocument`, but we pass the raw bundled object — repairing a spec
+  // necessarily means it does not yet conform to the type at call time.
+  const transformedData = transformer
+    ? await applyInputTransformer(dereferencedData, transformer, workspace)
+    : dereferencedData;
+
   if (unsafeDisableValidation) {
     logWarning(
       `🚨 OpenAPI spec validation is disabled.\n` +
@@ -50,9 +71,9 @@ async function resolveSpec(
         `  Bug reports with validation disabled will not be accepted.`,
     );
   } else {
-    validateComponentKeys(dereferencedData);
+    validateComponentKeys(transformedData);
 
-    const { valid, errors } = await validateSpec(dereferencedData);
+    const { valid, errors } = await validateSpec(transformedData);
     if (!valid) {
       throw new Error(
         `OpenAPI spec validation failed:\n${JSON.stringify(errors, undefined, 2)}`,
@@ -60,9 +81,31 @@ async function resolveSpec(
     }
   }
 
-  const { specification } = upgrade(dereferencedData);
+  const { specification } = upgrade(transformedData);
 
   return specification;
+}
+
+async function applyInputTransformer(
+  data: Record<string, unknown>,
+  transformer: NonNullable<OverrideInput['transformer']>,
+  workspace: string,
+): Promise<Record<string, unknown>> {
+  const transformerFn = await dynamicImport(transformer, workspace);
+  const result: unknown = await transformerFn(
+    data as unknown as OpenApiDocument,
+  );
+  if (!isObject(result)) {
+    const source = isString(transformer)
+      ? transformer
+      : transformerFn.name || '<inline function>';
+    throw new Error(
+      `input.override.transformer must return an OpenAPI document object; ` +
+        `got ${result === undefined ? 'undefined' : typeof result} from ${source}. ` +
+        `Ensure your transformer returns the (possibly modified) spec.`,
+    );
+  }
+  return result;
 }
 
 export async function importSpecs(
@@ -72,11 +115,12 @@ export async function importSpecs(
 ): Promise<WriteSpecBuilder> {
   const { input, output } = options;
 
-  const spec = await resolveSpec(
-    input.target,
-    input.parserOptions,
-    input.unsafeDisableValidation,
-  );
+  const spec = await resolveSpec(input.target, {
+    parserOptions: input.parserOptions,
+    transformer: input.override.transformer,
+    workspace,
+    unsafeDisableValidation: input.unsafeDisableValidation,
+  });
 
   return importOpenApi({
     spec,
@@ -301,6 +345,26 @@ function updateInternalRefs(
 }
 
 /**
+ * Decode a single JSON Pointer reference token taken from an x-ext `$ref`.
+ *
+ * The token carries two layers of encoding: it sits in a URI fragment, so it
+ * may be percent-encoded (e.g. `%7B` for `{` in templated paths), and it is a
+ * JSON Pointer token, so `~1`/`~0` stand for `/`/`~` (RFC 6901). Percent-
+ * encoding is the outer layer and is removed first; a malformed sequence is
+ * left as-is rather than throwing. Without this, tokens such as `~1pets`
+ * never match the real `/pets` key and the external `$ref` fails to resolve.
+ */
+function decodeRefToken(token: string): string {
+  let decoded = token;
+  try {
+    decoded = decodeURIComponent(token);
+  } catch {
+    // Malformed percent-encoding — fall back to the raw token.
+  }
+  return decoded.replaceAll('~1', '/').replaceAll('~0', '~');
+}
+
+/**
  * Replace x-ext refs with standard component refs, or inline the content.
  * `inliningRefs` tracks the inline chain to break cycles in recursive
  * external schemas that aren't under `components.schemas` (#1642).
@@ -358,7 +422,8 @@ function replaceXExtRefs(
 
           const extDoc = extensions[extKey];
           let refObj: unknown = extDoc;
-          for (const p of parts) {
+          for (const rawPart of parts) {
+            const p = decodeRefToken(rawPart);
             if (
               refObj &&
               (isObject(refObj) || Array.isArray(refObj)) &&

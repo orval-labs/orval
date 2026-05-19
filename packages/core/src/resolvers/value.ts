@@ -1,5 +1,6 @@
 import { getScalar } from '../getters';
 import type { FormDataContext } from '../getters/object';
+import { isComponentRef } from '../getters/ref';
 import type {
   ContextSpec,
   GeneratorImport,
@@ -25,6 +26,7 @@ export function resolveValue({
   formDataContext,
 }: ResolveValueOptions): ResolverValue {
   if (isReference(schema)) {
+    const refValue = schema.$ref;
     const {
       schema: schemaObject,
       imports,
@@ -32,6 +34,41 @@ export function resolveValue({
       schema: OpenApiSchemaObject;
       imports: GeneratorImport[];
     } = resolveRef(schema, context);
+
+    // Refs that don't target a named component slot (e.g. bundler-emitted
+    // `#/paths/.../schema`) have no corresponding `export type`, so emitting
+    // a named import would dangle. Inline the resolved schema instead.
+    // See issue #398.
+    if (refValue && !isComponentRef(refValue)) {
+      // Inlining walks nested $refs via getScalar -> resolveValue. A
+      // self-referential path-ref would recurse forever because the named-ref
+      // cycle guard below tracks `resolvedImport.name`, not the ref string.
+      // Fall back to `unknown` to break the chain — anonymous recursive types
+      // can't be expressed in TypeScript anyway.
+      if (context.parents?.includes(refValue)) {
+        return {
+          value: 'unknown',
+          imports: [],
+          schemas: [],
+          type: 'unknown',
+          isEnum: false,
+          originalSchema: schemaObject,
+          hasReadonlyProps: false,
+          isRef: false,
+          dependencies: [],
+        };
+      }
+      const scalar = getScalar({
+        item: schemaObject,
+        name,
+        context: {
+          ...context,
+          parents: [...(context.parents ?? []), refValue],
+        },
+        formDataContext,
+      });
+      return { ...scalar, originalSchema: schemaObject, isRef: false };
+    }
 
     const resolvedImport = imports[0];
 

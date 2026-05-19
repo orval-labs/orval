@@ -139,7 +139,7 @@ When `useSetQueryData: true` is set, Orval generates type-safe helper functions 
 export const useSetListPetsQueryData = () => {
   const queryClient = useQueryClient();
   return (
-    params: ListPetsParams,
+    params: ListPetsParams | undefined,
     updater:
       | Awaited<ReturnType<typeof listPets>>
       | undefined
@@ -147,10 +147,27 @@ export const useSetListPetsQueryData = () => {
           old: Awaited<ReturnType<typeof listPets>> | undefined,
         ) => Awaited<ReturnType<typeof listPets>> | undefined),
   ) => {
-    queryClient.setQueryData(getListPetsQueryKey(params), updater);
+    queryClient.setQueriesData<Awaited<ReturnType<typeof listPets>>>(
+      { queryKey: getListPetsQueryKey(params) },
+      updater,
+    );
   };
 };
 ```
+
+The helper uses [`setQueriesData`](https://tanstack.com/query/latest/docs/reference/QueryClient#queryclientsetqueriesdata) so query keys are matched by prefix. Pass `undefined` for query params or body to update every cached entry that shares the same path — useful when a mutation should patch a record across all filter/pagination variants:
+
+```ts
+const updatePetList = useSetListPetsQueryData();
+updatePetList(undefined, (old) =>
+  // invoked once per matched cache entry — return the new shape for that entry
+  old?.map((pet) => (pet.id === updated.id ? updated : pet)),
+);
+```
+
+<Callout type="warn">
+  Prior to this change the helper called `setQueryData`, which writes (and creates) a single exact-key entry. `setQueriesData` only updates entries that already exist and matches by prefix, so calls with a fully-specified key may behave differently — review existing call sites when upgrading.
+</Callout>
 
 ## Get Query Data
 

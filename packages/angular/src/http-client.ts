@@ -1,5 +1,5 @@
 import {
-  camel,
+  buildAngularParamsFilterExpression,
   type ClientBuilder,
   type ClientDependenciesBuilder,
   type ClientFooterBuilder,
@@ -12,12 +12,12 @@ import {
   generateOptions,
   generateVerbImports,
   type GeneratorVerbOptions,
-  getAngularFilteredParamsCallExpression,
-  getAngularFilteredParamsExpression,
   getAngularFilteredParamsHelperBody,
   getDefaultContentType,
   getEnumImplementation,
   getIsBodyVerb,
+  type GetterProp,
+  GetterPropType,
   isBoolean,
   pascal,
   toObjectString,
@@ -31,6 +31,7 @@ import {
 } from './types';
 import {
   createReturnTypesRegistry,
+  getRelevantVerbOptionsForTag,
   getSchemaOutputTypeRef,
   isPrimitiveType,
   isZodSchemaOutput,
@@ -65,6 +66,36 @@ const hasSchemaImport = (
 
 const getSchemaValueRef = (typeName: string): string =>
   typeName === 'Error' ? 'ErrorSchema' : typeName;
+
+/**
+ * Partition props into the three buckets used by per-content-type overload
+ * rendering: required non-body params, body params, and optional non-body
+ * params. The body always sits between the required and optional non-body
+ * params so that the per-content-type overloads can insert a required
+ * `accept` literal immediately after the body without violating TS1016
+ * (required parameter cannot follow an optional one).
+ */
+const partitionPropsForMultiContent = (
+  props: readonly GetterProp[],
+): {
+  requiredNonBody: GetterProp[];
+  body: GetterProp[];
+  optionalNonBody: GetterProp[];
+} => {
+  const requiredNonBody: GetterProp[] = [];
+  const body: GetterProp[] = [];
+  const optionalNonBody: GetterProp[] = [];
+  for (const p of props) {
+    if (p.type === GetterPropType.BODY) {
+      body.push(p);
+    } else if (p.required && !p.default) {
+      requiredNonBody.push(p);
+    } else {
+      optionalNonBody.push(p);
+    }
+  }
+  return { requiredNonBody, body, optionalNonBody };
+};
 
 const getContentTypeReturnType = (
   contentType: string | undefined,
@@ -198,12 +229,13 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
 }) => {
   returnTypesRegistry.reset();
 
-  const relevantVerbs = tag
-    ? Object.values(verbOptions).filter((v) =>
-        v.tags.some((t) => camel(t) === camel(tag)),
-      )
-    : Object.values(verbOptions);
-  const hasQueryParams = relevantVerbs.some((v) => v.queryParams);
+  const relevantVerbs = getRelevantVerbOptionsForTag(verbOptions, tag);
+  // Only emit the shared `filterParams` helper when at least one operation in
+  // this file will actually call it. If every operation with queryParams has
+  // its own `paramsFilter` mutator, the helper would be dead code.
+  const hasBuiltInFilteredQueryParams = relevantVerbs.some(
+    (v) => v.queryParams && !v.paramsFilter,
+  );
   const acceptHelpers = buildAcceptHelpers(relevantVerbs, output);
 
   return `
@@ -213,7 +245,7 @@ ${
 
 ${HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE}
 
-${hasQueryParams ? getAngularFilteredParamsHelperBody() : ''}`
+${hasBuiltInFilteredQueryParams ? getAngularFilteredParamsHelperBody() : ''}`
     : ''
 }
 
@@ -282,6 +314,7 @@ export const generateHttpClientImplementation = (
     formData,
     formUrlEncoded,
     paramsSerializer,
+    paramsFilter,
   }: GeneratorVerbOptions,
   { route, context }: HttpClientGeneratorContext,
 ) => {
@@ -377,6 +410,7 @@ export const generateHttpClientImplementation = (
       hasSignal: false,
       isExactOptionalPropertyTypes,
       isAngular: true,
+      paramsFilter,
     });
 
     const requestOptions = isRequestOptions
@@ -419,6 +453,7 @@ export const generateHttpClientImplementation = (
     isFormUrlEncoded,
     paramsSerializer,
     paramsSerializerOptions: override.paramsSerializerOptions,
+    paramsFilter,
     isAngular: true,
     isExactOptionalPropertyTypes,
     hasSignal: false,
@@ -438,26 +473,29 @@ export const generateHttpClientImplementation = (
 
   let paramsDeclaration = '';
   if (angularParamsRef && queryParams) {
-    if (isRequestOptions) {
-      // Uses the shared filterParams helper emitted in the file header
-      const callExpr = getAngularFilteredParamsCallExpression(
-        '{...params, ...options?.params}',
-        queryParams.requiredNullableKeys ?? [],
-      );
-      paramsDeclaration = paramsSerializer
-        ? `const ${angularParamsRef} = ${paramsSerializer.name}(${callExpr});\n\n    `
-        : `const ${angularParamsRef} = ${callExpr};\n\n    `;
-    } else {
-      // No shared helper available; use inline IIFE filtering
-      const iifeExpr = getAngularFilteredParamsExpression(
-        'params ?? {}',
-        queryParams.requiredNullableKeys ?? [],
-        !!paramsSerializer,
-      );
-      paramsDeclaration = paramsSerializer
-        ? `const ${angularParamsRef} = ${paramsSerializer.name}(${iifeExpr});\n\n    `
-        : `const ${angularParamsRef} = ${iifeExpr};\n\n    `;
-    }
+    const filterExpr = buildAngularParamsFilterExpression({
+      paramsExpression: isRequestOptions
+        ? '{...params, ...options?.params}'
+        : 'params ?? {}',
+      requiredNullableParamKeys: queryParams.requiredNullableKeys ?? [],
+      preserveRequiredNullables: !!paramsSerializer,
+      // Only pass non-primitive params through the built-in `filterParams`
+      // when a `paramsSerializer` can legally consume the raw object/array.
+      // Without one, Angular's `HttpParams` would stringify it to
+      // `[object Object]` and the helper's `unknown` return type is not
+      // assignable to `HttpClient`'s params — so keep them filtered out.
+      // The `paramsFilter` branch bypasses the built-in helper entirely.
+      nonPrimitiveKeys: paramsSerializer
+        ? (queryParams.nonPrimitiveKeys ?? [])
+        : [],
+      paramsFilter,
+      // Request-options path uses the shared `filterParams` helper emitted in
+      // the file header; the non-request-options path inlines an IIFE.
+      useSharedHelper: isRequestOptions,
+    });
+    paramsDeclaration = paramsSerializer
+      ? `const ${angularParamsRef} = ${paramsSerializer.name}(${filterExpr});\n\n    `
+      : `const ${angularParamsRef} = ${filterExpr};\n\n    `;
   }
 
   const optionsInput = {
@@ -565,12 +603,34 @@ export const generateHttpClientImplementation = (
 
   let contentTypeOverloads = '';
   if (hasMultipleContentTypes && isRequestOptions) {
-    const requiredPart = props
-      .filter((p) => p.required && !p.default)
+    const {
+      requiredNonBody: requiredNonBodyProps,
+      body: bodyProps,
+      optionalNonBody: optionalNonBodyProps,
+    } = partitionPropsForMultiContent(props);
+    const requiredNonBodyPart = requiredNonBodyProps
       .map((p) => p.definition)
       .join(',\n    ');
-    const optionalPart = props
-      .filter((p) => !p.required || p.default)
+    const bodyPart = bodyProps.map((p) => p.definition).join(',\n    ');
+    // Per-content-type overloads have a required `accept` literal after the body.
+    // TS1016 forbids required params after optional ones, so optional body params
+    // are rendered as positionally required (`name: Type | undefined`) here.
+    // The `?` is removed via an identifier-anchored replacement so we only
+    // affect the parameter's own optional marker, never a `?:` that may appear
+    // elsewhere in the type (e.g. mapped or conditional types).
+    const bodyOverloadPart = bodyProps
+      .map((p) => {
+        const optionalMarker = `${p.name}?:`;
+        if (!p.required && p.definition.startsWith(optionalMarker)) {
+          const required = `${p.name}:${p.definition.slice(optionalMarker.length)}`;
+          return /\bundefined\b/.test(required)
+            ? required
+            : `${required} | undefined`;
+        }
+        return p.definition;
+      })
+      .join(',\n    ');
+    const optionalNonBodyPart = optionalNonBodyProps
       .map((p) => p.definition)
       .join(',\n    ');
     const branchOverloads = successTypes
@@ -578,9 +638,10 @@ export const generateHttpClientImplementation = (
       .map(({ contentType, value }) => {
         const returnType = getGeneratedResponseType(value, contentType);
         const overloadParams = [
-          requiredPart,
+          requiredNonBodyPart,
+          bodyOverloadPart,
           `accept: '${contentType}'`,
-          optionalPart,
+          optionalNonBodyPart,
         ]
           .filter(Boolean)
           .join(',\n    ');
@@ -589,9 +650,10 @@ export const generateHttpClientImplementation = (
       })
       .join('\n  ');
     const allParams = [
-      requiredPart,
+      requiredNonBodyPart,
+      bodyPart,
       `accept?: ${acceptTypeName ?? 'string'}`,
-      optionalPart,
+      optionalNonBodyPart,
     ]
       .filter(Boolean)
       .join(',\n    ');
@@ -630,18 +692,25 @@ export const generateHttpClientImplementation = (
         ? `this.http.${verb}${typeArg}(\`${route}\`, ${bodyIdentifier ?? 'undefined'}, ${optionsObject})`
         : `this.http.${verb}${typeArg}(\`${route}\`, ${optionsObject})`;
 
-    const requiredPart = props
-      .filter((p) => p.required && !p.default)
+    const {
+      requiredNonBody: requiredNonBodyImplProps,
+      body: bodyImplProps,
+      optionalNonBody: optionalNonBodyImplProps,
+    } = partitionPropsForMultiContent(props);
+    const requiredNonBodyImplPart = requiredNonBodyImplProps
       .map((p) => p.implementation)
       .join(',\n    ');
-    const optionalPart = props
-      .filter((p) => !p.required || p.default)
+    const bodyImplPart = bodyImplProps
+      .map((p) => p.implementation)
+      .join(',\n    ');
+    const optionalNonBodyImplPart = optionalNonBodyImplProps
       .map((p) => p.implementation)
       .join(',\n    ');
     const allParams = [
-      requiredPart,
+      requiredNonBodyImplPart,
+      bodyImplPart,
       `accept: ${acceptTypeName ?? 'string'} = '${defaultContentType}'`,
-      optionalPart,
+      optionalNonBodyImplPart,
     ]
       .filter(Boolean)
       .join(',\n    ');

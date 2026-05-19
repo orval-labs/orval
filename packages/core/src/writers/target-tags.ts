@@ -1,4 +1,5 @@
 import {
+  DefaultTag,
   type GeneratorOperation,
   type GeneratorTarget,
   type GeneratorTargetFull,
@@ -8,10 +9,16 @@ import {
 } from '../types';
 import { compareVersions, kebab, pascal } from '../utils';
 
+/**
+ * Ensures every operation has at least one tag by falling back to the
+ * {@link DefaultTag} constant for untagged operations, so the tag-routing
+ * logic in {@link generateTargetTags} always has a bucket to assign the
+ * operation to.
+ */
 function addDefaultTagIfEmpty(operation: GeneratorOperation) {
   return {
     ...operation,
-    tags: operation.tags.length > 0 ? operation.tags : ['default'],
+    tags: operation.tags.length > 0 ? operation.tags : [DefaultTag],
   };
 }
 
@@ -34,6 +41,7 @@ function generateTargetTags(
       paramsSerializer: operation.paramsSerializer
         ? [operation.paramsSerializer]
         : [],
+      paramsFilter: operation.paramsFilter ? [operation.paramsFilter] : [],
       fetchReviver: operation.fetchReviver ? [operation.fetchReviver] : [],
       implementation: operation.implementation,
       implementationMock: {
@@ -85,6 +93,9 @@ function generateTargetTags(
           operation.paramsSerializer,
         ]
       : currentOperation.paramsSerializer,
+    paramsFilter: operation.paramsFilter
+      ? [...(currentOperation.paramsFilter ?? []), operation.paramsFilter]
+      : currentOperation.paramsFilter,
     fetchReviver: operation.fetchReviver
       ? [...(currentOperation.fetchReviver ?? []), operation.fetchReviver]
       : currentOperation.fetchReviver,
@@ -155,6 +166,11 @@ export function generateTargetForTags(
           output: options,
           verbOptions: builder.verbOptions,
           tag,
+          isDefaultTagBucket:
+            tag === 'default' &&
+            Object.values(builder.operations).some(
+              (operation) => operation.tags.length === 0,
+            ),
           clientImplementation: target.implementation,
         });
 
@@ -179,6 +195,7 @@ export function generateTargetForTags(
           formData: target.formData,
           formUrlEncoded: target.formUrlEncoded,
           paramsSerializer: target.paramsSerializer,
+          paramsFilter: target.paramsFilter,
           fetchReviver: target.fetchReviver,
         };
       }

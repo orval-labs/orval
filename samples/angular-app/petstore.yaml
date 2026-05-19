@@ -189,6 +189,75 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /pets/{petId}/update:
+    put:
+      summary: Replace a pet (required body, multi-content response)
+      operationId: updatePetById
+      tags:
+        - pets
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          description: The id of the pet to update
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pet'
+      responses:
+        '200':
+          description: Updated pet in requested format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+            text/plain:
+              schema:
+                type: string
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    patch:
+      summary: Partially update a pet (optional body, multi-content response)
+      operationId: patchPetById
+      tags:
+        - pets
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          description: The id of the pet to patch
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pet'
+      responses:
+        '200':
+          description: Patched pet in requested format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+            text/plain:
+              schema:
+                type: string
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /pets/{petId}/text:
     get:
       summary: Info for a specific pet as plain text

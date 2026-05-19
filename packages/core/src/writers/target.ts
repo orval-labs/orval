@@ -37,6 +37,7 @@ export function generateTarget(
     formData: [],
     formUrlEncoded: [],
     paramsSerializer: [],
+    paramsFilter: [],
     fetchReviver: [],
   };
   const operations = Object.values(builder.operations);
@@ -64,6 +65,9 @@ export function generateTarget(
     }
     if (operation.paramsSerializer) {
       target.paramsSerializer.push(operation.paramsSerializer);
+    }
+    if (operation.paramsFilter) {
+      target.paramsFilter.push(operation.paramsFilter);
     }
 
     if (operation.clientMutators) {

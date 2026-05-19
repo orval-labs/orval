@@ -1,0 +1,26 @@
+openapi: 3.0.0
+info:
+  title: useDates only-date params
+  version: 0.0.0
+paths:
+  /things:
+    get:
+      operationId: thingsList
+      parameters:
+        - name: start_time
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end_time
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object

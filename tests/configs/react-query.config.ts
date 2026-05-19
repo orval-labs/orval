@@ -282,6 +282,35 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Closes #3358 — a per-operation `override.operations.<id>.query.
+  // useMutation: true` now routes a GET operation to a Mutation hook.
+  // Previously the verb gate in `query-generator.ts` discarded explicit
+  // `useMutation: true` for GET, so the operation stayed a Query hook —
+  // the inverse asymmetry of the per-operation `useQuery: true` path
+  // that already worked for non-GET verbs.
+  perOperationUseMutationOnGet: {
+    output: {
+      target:
+        '../generated/react-query/per-operation-use-mutation-on-get/endpoints.ts',
+      schemas:
+        '../generated/react-query/per-operation-use-mutation-on-get/model',
+      client: 'react-query',
+      override: {
+        operations: {
+          showPetById: {
+            query: {
+              useMutation: true,
+            },
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   // Closes #2376 — explicit `override.query.useQuery: false` now
   // suppresses Query hook generation even for GET operations, falling
   // back to the Mutation hook (which is rarely useful for GET but is
@@ -1171,6 +1200,33 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3066.yaml',
+    },
+  },
+  // Regression for issue #708. When an operation generates both a regular
+  // query and an infinite query, the two must not share a query key, otherwise
+  // React Query serves one query's cached data for the other (the infinite
+  // `{ pages, pageParams }` shape leaking into the regular query, and vice
+  // versa). The infinite query key fn (`getGetListInfiniteQueryKey`) must be
+  // distinct from the regular one (`getGetListQueryKey`) and carry an
+  // `'infinite'` segment so the cache entries never collide.
+  issue708: {
+    output: {
+      target: '../generated/react-query/issue-708/endpoints.ts',
+      schemas: '../generated/react-query/issue-708/model',
+      client: 'react-query',
+      mode: 'single',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'page',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-708.yaml',
     },
   },
 });

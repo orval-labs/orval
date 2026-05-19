@@ -3525,6 +3525,86 @@ describe('generatePartOfSchemaGenerateZod', () => {
     );
   });
 
+  it('falls back to 2XX response when 200 is not present', async () => {
+    const basePostOperation =
+      basicApiSchema.context.spec.paths?.['/cats']?.post ?? {};
+
+    const wildcardResponseApiSchema = {
+      ...basicApiSchema,
+      context: {
+        ...basicApiSchema.context,
+        spec: {
+          ...basicApiSchema.context.spec,
+          paths: {
+            '/cats': {
+              post: {
+                ...basePostOperation,
+                responses: {
+                  '2XX': {
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'object',
+                          properties: {
+                            name: {
+                              type: 'string',
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    } as typeof basicApiSchema;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: false,
+              body: false,
+              response: true,
+              query: false,
+              header: false,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      wildcardResponseApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toBe(
+      'export const TestResponse = zod.object({\n  "name": zod.string().optional()\n})\n\n',
+    );
+  });
+
   it('Only generate request body', async () => {
     const result = await generateZod(
       {

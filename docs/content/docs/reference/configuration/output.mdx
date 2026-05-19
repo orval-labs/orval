@@ -693,11 +693,20 @@ restriction for individual operations.
 
 **Type:** `Boolean`
 
-**Default:** `true` for non-`GET` operations.
+**Default:** `true` for non-`GET` operations; `false` otherwise.
 
-Generate `useMutation` hooks for non-`GET` operations. Set to `false`
-to suppress Mutation hook generation; pair with `useQuery: true` if
-you want non-`GET` operations to be generated as Query hooks instead.
+Generate `useMutation` hooks. When set explicitly, applies to **all
+operations regardless of HTTP verb** — setting `useMutation: true`
+(globally or via `override.operations.<id>.query.useMutation`) routes
+a `GET` operation to a `useMutation` hook as well. This is useful for
+`GET` endpoints that you want to trigger imperatively rather than on
+render.
+
+Set to `false` to suppress Mutation hook generation; pair with
+`useQuery: true` if you want non-`GET` operations to be generated as
+Query hooks instead. When both `useQuery` and `useMutation` resolve to
+`true` for the same operation, the Mutation hook wins for `GET` and the
+Query hook wins for non-`GET`.
 
 ### useInfinite
 
@@ -743,7 +752,9 @@ Generate query invalidation helpers.
 
 **Type:** `Boolean`
 
-Generate type-safe setQueryData helpers.
+Generate type-safe helpers that update cached query data via [`setQueriesData`](https://tanstack.com/query/latest/docs/reference/QueryClient#queryclientsetqueriesdata).
+
+Query keys are matched by prefix, so query params and body arguments are widened to accept `undefined`. Passing `undefined` updates every cached entry that shares the same path.
 
 ### useGetQueryData
 
@@ -1043,6 +1054,14 @@ export default defineConfig({
   },
 });
 ```
+
+<Callout type="info">
+`override.angular` is reserved for Angular generator settings such as retrieval
+mode, DI scope, and runtime validation. Angular-only request pipeline overrides
+like [`override.paramsFilter`](#paramsfilter) still live on `override` so they
+can also be applied consistently via `override.operations[...]` and
+`override.tags[...]`, alongside `mutator` and `paramsSerializer`.
+</Callout>
 
 ### provideIn
 
@@ -1891,6 +1910,58 @@ export default defineConfig({
 });
 ```
 
+### paramsFilter
+
+**Type:** `String | Object`
+
+> **Note:** Only valid for the `angular` client, or `angular-query` when `httpClient: 'angular'`.
+
+Replaces the built-in query-parameter filter that the Angular client applies
+before handing params to `HttpParams`. When set, orval does **not** strip
+`null`/`undefined` or non-primitive values for you — your function returns
+exactly the object `HttpParams` (or a configured `paramsSerializer`) receives.
+
+This option intentionally lives at `override.paramsFilter` rather than
+`override.angular.paramsFilter` so the same request-shaping override can be used
+globally or narrowed per operation/tag, just like `mutator` and
+`paramsSerializer`.
+
+When a `paramsSerializer` is configured, orval already preserves
+schema-declared object and array-of-object params so the serializer can
+handle them; without a serializer those params are dropped. See the
+[Angular guide](/docs/guides/angular#query-parameter-filtering). Use
+`paramsFilter` when you need the raw object without a serializer, or for
+any control that the schema cannot express.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        paramsFilter: {
+          path: './api/mutator/custom-params-filter-fn.ts',
+          name: 'customParamsFilterFn',
+        },
+      },
+    },
+  },
+});
+```
+
+```ts title="custom-params-filter-fn.ts"
+export const customParamsFilterFn = (
+  params: Record<string, unknown>,
+): Record<string, unknown> => {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result;
+};
+```
+
 ### useDates
 
 **Type:** `Boolean`
@@ -2021,4 +2092,3 @@ export interface Pet {
   name: string;
 }
 ```
-

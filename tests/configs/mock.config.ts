@@ -227,6 +227,18 @@ export default defineConfig({
       target: '../specifications/circular.yaml',
     },
   },
+  recursiveDiscriminatorAllof: {
+    output: {
+      target: '../generated/mock/recursive-discriminator-allof/endpoints.ts',
+      schemas: '../generated/mock/recursive-discriminator-allof/model',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/recursive-discriminator-allof.yaml',
+    },
+  },
   mswMixedContentUnion: {
     output: {
       target: '../generated/mock/msw-mixed-content-union/endpoints.ts',

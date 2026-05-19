@@ -5,7 +5,7 @@ import type {
   GeneratorImport,
   NormalizedOutputOptions,
 } from '../types';
-import { conventionName, isObject, upath } from '../utils';
+import { conventionName, getImportExtension, isObject, upath } from '../utils';
 
 export function generateImportsForBuilder(
   output: NormalizedOutputOptions,
@@ -39,7 +39,10 @@ export function generateImportsForBuilder(
         : (schemaImport.schemaName ?? schemaImport.name);
       const normalizedName = conventionName(baseName, output.namingConvention);
       const suffix = isZodSchemaOutput ? '.zod' : '';
-      const importExtension = output.fileExtension.replace(/\.ts$/, '') || '';
+      const importExtension = getImportExtension(
+        output.fileExtension,
+        output.tsconfig,
+      );
       const dependency = upath.joinSafe(
         relativeSchemasPath,
         `${normalizedName}${suffix}${importExtension}`,

@@ -670,6 +670,38 @@ export default defineConfig({
       target: '../specifications/issue-2998.yaml',
     },
   },
+  'issue-398-encoded-path-ref': {
+    output: {
+      target: '../generated/default/issue-398-encoded-path-ref/endpoints.ts',
+      schemas: '../generated/default/issue-398-encoded-path-ref/model',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-398-encoded-path-ref.yaml',
+    },
+  },
+  'issue-1107-cross-file-ref': {
+    output: {
+      target: '../generated/default/issue-1107-cross-file-ref/endpoints.ts',
+      schemas: '../generated/default/issue-1107-cross-file-ref/model',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-1107/issue-1107.yaml',
+    },
+  },
+  'issue-3380-external-path-ref': {
+    output: {
+      target: '../generated/default/issue-3380-external-path-ref/endpoints.ts',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3380/issue-3380.yaml',
+    },
+  },
   'boolean-discriminator': {
     output: {
       target: '../generated/default/boolean-discriminator/endpoints.ts',

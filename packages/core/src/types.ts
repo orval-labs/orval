@@ -97,6 +97,7 @@ export interface NormalizedOverrideOutput {
   formUrlEncoded: boolean | NormalizedMutator;
   paramsSerializer?: NormalizedMutator;
   paramsSerializerOptions?: NormalizedParamsSerializerOptions;
+  paramsFilter?: NormalizedMutator;
   namingConvention: {
     enum?: NamingConvention;
   };
@@ -200,6 +201,7 @@ export interface NormalizedOperationOptions {
   formData?: NormalizedFormDataType<NormalizedMutator>;
   formUrlEncoded?: boolean | NormalizedMutator;
   paramsSerializer?: NormalizedMutator;
+  paramsFilter?: NormalizedMutator;
   requestOptions?: object | boolean;
 }
 
@@ -526,6 +528,7 @@ export interface OverrideOutput {
   formUrlEncoded?: boolean | Mutator;
   paramsSerializer?: Mutator;
   paramsSerializerOptions?: ParamsSerializerOptions;
+  paramsFilter?: Mutator;
   namingConvention?: {
     enum?: NamingConvention;
   };
@@ -881,7 +884,9 @@ export interface FetchOptions {
   useRuntimeFetcher?: boolean;
 }
 
-export type InputTransformerFn = (spec: OpenApiDocument) => OpenApiDocument;
+export type InputTransformerFn = (
+  spec: OpenApiDocument,
+) => OpenApiDocument | Promise<OpenApiDocument>;
 
 type InputTransformer = string | InputTransformerFn;
 
@@ -909,6 +914,7 @@ export interface OperationOptions {
   formData?: boolean | Mutator | FormDataType<Mutator>;
   formUrlEncoded?: boolean | Mutator;
   paramsSerializer?: Mutator;
+  paramsFilter?: Mutator;
   requestOptions?: object | boolean;
 }
 
@@ -947,6 +953,11 @@ export const Verbs = {
   DELETE: 'delete' as Verbs,
   HEAD: 'head' as Verbs,
 };
+
+/**
+ * Canonical tag name used for the generated bucket that collects untagged operations.
+ */
+export const DefaultTag = 'default' as const;
 
 export interface ImportOpenApi {
   spec: OpenApiDocument;
@@ -990,6 +1001,9 @@ export interface Tsconfig {
     exactOptionalPropertyTypes?: boolean;
     paths?: Record<string, string[]>;
     target?: TsConfigTarget;
+    module?: TsConfigModule;
+    moduleResolution?: TsConfigModuleResolution;
+    allowImportingTsExtensions?: boolean;
   };
 }
 
@@ -1009,6 +1023,47 @@ export type TsConfigTarget =
   | 'es2024'
   | 'es2025'
   | 'esnext'; // https://www.typescriptlang.org/tsconfig#target
+
+/** Accepts both the canonical casing and the all-lowercase variant of a string literal. */
+type CaseInsensitive<T extends string> = T | Lowercase<T>;
+
+/**
+ * Valid values for the TypeScript `compilerOptions.module` setting.
+ *
+ * Both title-case (e.g. `"NodeNext"`) and lower-case (e.g. `"nodenext"`) are
+ * accepted, matching TypeScript's own case-insensitive parsing.
+ *
+ * @see {@link https://www.typescriptlang.org/tsconfig#module}
+ */
+export type TsConfigModule = CaseInsensitive<
+  | 'None'
+  | 'CommonJS'
+  | 'AMD'
+  | 'UMD'
+  | 'System'
+  | 'ES6'
+  | 'ES2015'
+  | 'ES2020'
+  | 'ES2022'
+  | 'ESNext'
+  | 'Node16'
+  | 'Node18'
+  | 'Node20'
+  | 'NodeNext'
+  | 'Preserve'
+>;
+
+/**
+ * Valid values for the TypeScript `compilerOptions.moduleResolution` setting.
+ *
+ * Both title-case (e.g. `"NodeNext"`) and lower-case (e.g. `"nodenext"`) are
+ * accepted, matching TypeScript's own case-insensitive parsing.
+ *
+ * @see https://www.typescriptlang.org/tsconfig#moduleResolution
+ */
+export type TsConfigModuleResolution = CaseInsensitive<
+  'Classic' | 'Node' | 'Node10' | 'Node16' | 'NodeNext' | 'Bundler'
+>;
 
 export interface PackageJson {
   dependencies?: Record<string, string>;
@@ -1062,6 +1117,7 @@ export interface GeneratorTarget {
   formData?: GeneratorMutator[];
   formUrlEncoded?: GeneratorMutator[];
   paramsSerializer?: GeneratorMutator[];
+  paramsFilter?: GeneratorMutator[];
   fetchReviver?: GeneratorMutator[];
 }
 
@@ -1079,6 +1135,7 @@ export interface GeneratorTargetFull {
   formData?: GeneratorMutator[];
   formUrlEncoded?: GeneratorMutator[];
   paramsSerializer?: GeneratorMutator[];
+  paramsFilter?: GeneratorMutator[];
   fetchReviver?: GeneratorMutator[];
 }
 
@@ -1097,6 +1154,7 @@ export interface GeneratorOperation {
   formData?: GeneratorMutator;
   formUrlEncoded?: GeneratorMutator;
   paramsSerializer?: GeneratorMutator;
+  paramsFilter?: GeneratorMutator;
   fetchReviver?: GeneratorMutator;
   operationName: string;
   types?: {
@@ -1123,6 +1181,7 @@ export interface GeneratorVerbOptions {
   formData?: GeneratorMutator;
   formUrlEncoded?: GeneratorMutator;
   paramsSerializer?: GeneratorMutator;
+  paramsFilter?: GeneratorMutator;
   fetchReviver?: GeneratorMutator;
   override: NormalizedOverrideOutput;
   deprecated?: boolean;
@@ -1192,6 +1251,7 @@ export type ClientHeaderBuilder = (params: {
   output: NormalizedOutputOptions;
   verbOptions: Record<string, GeneratorVerbOptions>;
   tag?: string;
+  isDefaultTagBucket?: boolean;
   clientImplementation: string;
 }) => string;
 
@@ -1292,6 +1352,14 @@ export interface GetterQueryParam {
   isOptional: boolean;
   originalSchema?: OpenApiSchemaObject;
   requiredNullableKeys?: string[];
+  /**
+   * Names of query parameters whose declared schema is non-primitive
+   * (object, array of objects, or untyped). Used by Angular generators to
+   * preserve these values through the default `filterParams` helper instead
+   * of silently dropping them — the user's `paramsSerializer`, `mutator`, or
+   * `paramsFilter` is then responsible for handling them. See issue #3326.
+   */
+  nonPrimitiveKeys?: string[];
 }
 
 export type GetterPropType =
@@ -1430,6 +1498,7 @@ export type GeneratorClientHeader = (data: {
   output: NormalizedOutputOptions;
   verbOptions: Record<string, GeneratorVerbOptions>;
   tag?: string;
+  isDefaultTagBucket?: boolean;
   clientImplementation: string;
 }) => GeneratorClientExtra;
 

@@ -1419,6 +1419,18 @@ const parseBodyAndResponse = ({
   };
 };
 
+const getSingleResponse = (
+  responses:
+    | Record<string, OpenApiResponseObject | OpenApiReferenceObject | undefined>
+    | undefined,
+) => {
+  if (!responses) {
+    return;
+  }
+
+  return responses['200'] ?? responses['2XX'] ?? responses['2xx'];
+};
+
 /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 
 export const parseParameters = ({
@@ -1639,7 +1651,7 @@ const generateZodRoute = async (
   const responses = (
     context.output.override.zod.generateEachHttpStatus
       ? Object.entries(spec[verb]?.responses ?? {})
-      : [['', spec[verb]?.responses?.[200]]]
+      : [['', getSingleResponse(spec[verb]?.responses)]]
   ) as [string, OpenApiResponseObject | OpenApiReferenceObject][];
   const parsedResponses = responses.map(([code, response]) =>
     parseBodyAndResponse({

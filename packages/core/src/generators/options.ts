@@ -27,8 +27,21 @@ export const getAngularFilteredParamsExpression = (
   paramsExpression: string,
   requiredNullableParamKeys: string[] = [],
   preserveRequiredNullables = false,
+  nonPrimitiveKeys: string[] = [],
 ): string => {
-  const filteredParamValueType = `string | number | boolean${preserveRequiredNullables ? ' | null' : ''} | Array<string | number | boolean>`;
+  const hasPassthrough = nonPrimitiveKeys.length > 0;
+  const filteredParamValueType = hasPassthrough
+    ? 'unknown'
+    : `string | number | boolean${preserveRequiredNullables ? ' | null' : ''} | Array<string | number | boolean>`;
+  const passthroughBranch = hasPassthrough
+    ? `    if (passthroughKeys.has(key)) {
+      if (value !== undefined) {
+        filteredParams[key] = value;
+      }
+      continue;
+    }
+`
+    : '';
   const preserveNullableBranch = preserveRequiredNullables
     ? `    } else if (value === null && requiredNullableParamKeys.has(key)) {
       filteredParams[key] = null;
@@ -43,12 +56,15 @@ export const getAngularFilteredParamsExpression = (
       filteredParams[key] = value;
     }
 `;
+  const passthroughDecl = hasPassthrough
+    ? `  const passthroughKeys = new Set<string>(${JSON.stringify(nonPrimitiveKeys)});\n`
+    : '';
 
   return `(() => {
-  const requiredNullableParamKeys = new Set<string>(${JSON.stringify(requiredNullableParamKeys)});
+${passthroughDecl}  const requiredNullableParamKeys = new Set<string>(${JSON.stringify(requiredNullableParamKeys)});
   const filteredParams: Record<string, ${filteredParamValueType}> = {};
   for (const [key, value] of Object.entries(${paramsExpression})) {
-    if (Array.isArray(value)) {
+${passthroughBranch}    if (Array.isArray(value)) {
       const filtered = value.filter(
         (item) =>
           item != null &&
@@ -77,19 +93,34 @@ function filterParams(
   params: Record<string, unknown>,
   requiredNullableKeys?: ReadonlySet<string>,
   preserveRequiredNullables?: false,
+  passthroughKeys?: undefined,
 ): Record<string, AngularHttpParamValue>;
 function filterParams(
   params: Record<string, unknown>,
   requiredNullableKeys: ReadonlySet<string> | undefined,
   preserveRequiredNullables: true,
+  passthroughKeys?: undefined,
 ): Record<string, AngularHttpParamValueWithNullable>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> | undefined,
+  preserveRequiredNullables: boolean | undefined,
+  passthroughKeys: ReadonlySet<string>,
+): Record<string, unknown>;
 function filterParams(
   params: Record<string, unknown>,
   requiredNullableKeys: ReadonlySet<string> = new Set(),
   preserveRequiredNullables = false,
-): Record<string, AngularHttpParamValueWithNullable> {
-  const filteredParams: Record<string, AngularHttpParamValueWithNullable> = {};
+  passthroughKeys: ReadonlySet<string> = new Set(),
+): Record<string, unknown> {
+  const filteredParams: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(params)) {
+    if (passthroughKeys.has(key)) {
+      if (value !== undefined) {
+        filteredParams[key] = value;
+      }
+      continue;
+    }
     if (Array.isArray(value)) {
       const filtered = value.filter(
         (item) =>
@@ -126,8 +157,58 @@ export const getAngularFilteredParamsCallExpression = (
   paramsExpression: string,
   requiredNullableParamKeys: string[] = [],
   preserveRequiredNullables = false,
-): string =>
-  `filterParams(${paramsExpression}, new Set<string>(${JSON.stringify(requiredNullableParamKeys)})${preserveRequiredNullables ? ', true' : ''})`;
+  nonPrimitiveKeys: string[] = [],
+): string => {
+  const baseArgs = `${paramsExpression}, new Set<string>(${JSON.stringify(requiredNullableParamKeys)})`;
+  if (nonPrimitiveKeys.length > 0) {
+    return `filterParams(${baseArgs}, ${preserveRequiredNullables}, new Set<string>(${JSON.stringify(nonPrimitiveKeys)}))`;
+  }
+  return `filterParams(${baseArgs}${preserveRequiredNullables ? ', true' : ''})`;
+};
+
+/**
+ * Returns the filter call/IIFE used to massage query params before passing
+ * them to Angular's HttpParams. When the user supplied a `paramsFilter`
+ * mutator, the built-in `filterParams` is bypassed entirely and the user's
+ * function is called with the raw params — they own nullish-stripping and
+ * any object/array handling. Otherwise the built-in filter is used (either
+ * the shared helper or an inline IIFE), and callers should only pass
+ * `nonPrimitiveKeys` when a downstream serializer or custom consumer can
+ * legally handle raw object/array values.
+ */
+export const buildAngularParamsFilterExpression = ({
+  paramsExpression,
+  requiredNullableParamKeys = [],
+  preserveRequiredNullables = false,
+  nonPrimitiveKeys = [],
+  paramsFilter,
+  useSharedHelper,
+}: {
+  paramsExpression: string;
+  requiredNullableParamKeys?: string[];
+  preserveRequiredNullables?: boolean;
+  nonPrimitiveKeys?: string[];
+  paramsFilter?: GeneratorMutator;
+  useSharedHelper: boolean;
+}): string => {
+  if (paramsFilter) {
+    return `${paramsFilter.name}(${paramsExpression})`;
+  }
+  if (useSharedHelper) {
+    return getAngularFilteredParamsCallExpression(
+      paramsExpression,
+      requiredNullableParamKeys,
+      preserveRequiredNullables,
+      nonPrimitiveKeys,
+    );
+  }
+  return getAngularFilteredParamsExpression(
+    paramsExpression,
+    requiredNullableParamKeys,
+    preserveRequiredNullables,
+    nonPrimitiveKeys,
+  );
+};
 
 interface GenerateFormDataAndUrlEncodedFunctionOptions {
   body: GetterBody;
@@ -163,6 +244,7 @@ interface GenerateAxiosOptions {
   angularObserve?: 'body' | 'events' | 'response';
   angularParamsRef?: string;
   requiredNullableQueryParamKeys?: string[];
+  nonPrimitiveQueryParamKeys?: string[];
   queryParams?: GeneratorSchema;
   headers?: GeneratorSchema;
   requestOptions?: object | boolean;
@@ -172,6 +254,7 @@ interface GenerateAxiosOptions {
   isAngular: boolean;
   paramsSerializer?: GeneratorMutator;
   paramsSerializerOptions?: ParamsSerializerOptions;
+  paramsFilter?: GeneratorMutator;
 }
 
 export function generateAxiosOptions({
@@ -180,6 +263,7 @@ export function generateAxiosOptions({
   angularObserve,
   angularParamsRef,
   requiredNullableQueryParamKeys,
+  nonPrimitiveQueryParamKeys,
   queryParams,
   headers,
   requestOptions,
@@ -189,8 +273,12 @@ export function generateAxiosOptions({
   isAngular,
   paramsSerializer,
   paramsSerializerOptions,
+  paramsFilter,
 }: GenerateAxiosOptions) {
   const isRequestOptions = requestOptions !== false;
+  const angularPassthroughQueryParamKeys = paramsSerializer
+    ? nonPrimitiveQueryParamKeys
+    : [];
   // Use querySignal if API has a param named "signal" to avoid conflict
   const signalVar = hasSignalParam ? 'querySignal' : 'signal';
   const signalProp = hasSignalParam ? `signal: ${signalVar}` : 'signal';
@@ -224,11 +312,14 @@ export function generateAxiosOptions({
   if (!isRequestOptions) {
     if (queryParams) {
       if (isAngular) {
-        const iifeExpr = getAngularFilteredParamsExpression(
-          'params ?? {}',
-          requiredNullableQueryParamKeys,
-          !!paramsSerializer,
-        );
+        const iifeExpr = buildAngularParamsFilterExpression({
+          paramsExpression: 'params ?? {}',
+          requiredNullableParamKeys: requiredNullableQueryParamKeys,
+          preserveRequiredNullables: !!paramsSerializer,
+          nonPrimitiveKeys: angularPassthroughQueryParamKeys,
+          paramsFilter,
+          useSharedHelper: false,
+        });
         value += paramsSerializer
           ? `\n        params: ${paramsSerializer.name}(${iifeExpr}),`
           : `\n        params: ${iifeExpr},`;
@@ -277,14 +368,24 @@ export function generateAxiosOptions({
       } else if (isAngular && angularParamsRef) {
         value += `\n        params: ${angularParamsRef},`;
       } else if (isAngular && paramsSerializer) {
-        const callExpr = getAngularFilteredParamsCallExpression(
-          '{...params, ...options?.params}',
-          requiredNullableQueryParamKeys,
-          true,
-        );
+        const callExpr = buildAngularParamsFilterExpression({
+          paramsExpression: '{...params, ...options?.params}',
+          requiredNullableParamKeys: requiredNullableQueryParamKeys,
+          preserveRequiredNullables: true,
+          nonPrimitiveKeys: angularPassthroughQueryParamKeys,
+          paramsFilter,
+          useSharedHelper: true,
+        });
         value += `\n        params: ${paramsSerializer.name}(${callExpr}),`;
       } else if (isAngular) {
-        value += `\n        params: ${getAngularFilteredParamsCallExpression('{...params, ...options?.params}', requiredNullableQueryParamKeys)},`;
+        const callExpr = buildAngularParamsFilterExpression({
+          paramsExpression: '{...params, ...options?.params}',
+          requiredNullableParamKeys: requiredNullableQueryParamKeys,
+          nonPrimitiveKeys: angularPassthroughQueryParamKeys,
+          paramsFilter,
+          useSharedHelper: true,
+        });
+        value += `\n        params: ${callExpr},`;
       } else {
         value += '\n        params: {...params, ...options?.params},';
       }
@@ -330,6 +431,7 @@ interface GenerateOptionsOptions {
   isVue?: boolean;
   paramsSerializer?: GeneratorMutator;
   paramsSerializerOptions?: ParamsSerializerOptions;
+  paramsFilter?: GeneratorMutator;
 }
 
 export function generateOptions({
@@ -351,6 +453,7 @@ export function generateOptions({
   isVue,
   paramsSerializer,
   paramsSerializerOptions,
+  paramsFilter,
 }: GenerateOptionsOptions) {
   const bodyIdentifier = getIsBodyVerb(verb)
     ? generateBodyOptions(body, isFormData, isFormUrlEncoded)
@@ -361,6 +464,7 @@ export function generateOptions({
     angularObserve,
     angularParamsRef,
     requiredNullableQueryParamKeys: queryParams?.requiredNullableKeys,
+    nonPrimitiveQueryParamKeys: queryParams?.nonPrimitiveKeys,
     queryParams: queryParams?.schema,
     headers: headers?.schema,
     requestOptions,
@@ -371,6 +475,7 @@ export function generateOptions({
     isAngular: isAngular ?? false,
     paramsSerializer,
     paramsSerializerOptions,
+    paramsFilter,
   });
 
   const trimmedAxiosOptions = axiosOptions.trim();
@@ -433,6 +538,7 @@ export function generateQueryParamsAxiosConfig(
   isAngular: boolean,
   requiredNullableQueryParamKeys?: string[],
   queryParams?: GetterQueryParam,
+  paramsFilter?: GeneratorMutator,
 ) {
   if (!queryParams && !response.isBlob) {
     return '';
@@ -444,7 +550,14 @@ export function generateQueryParamsAxiosConfig(
     if (isVue) {
       value += ',\n        params: unref(params)';
     } else if (isAngular) {
-      value += `,\n        params: ${getAngularFilteredParamsExpression('params ?? {}', requiredNullableQueryParamKeys)}`;
+      const paramsExpr = buildAngularParamsFilterExpression({
+        paramsExpression: 'params ?? {}',
+        requiredNullableParamKeys: requiredNullableQueryParamKeys,
+        nonPrimitiveKeys: queryParams.nonPrimitiveKeys,
+        paramsFilter,
+        useSharedHelper: false,
+      });
+      value += `,\n        params: ${paramsExpr}`;
     } else {
       value += ',\n        params';
     }
@@ -471,6 +584,7 @@ interface GenerateMutatorConfigOptions {
   isExactOptionalPropertyTypes: boolean;
   isVue?: boolean;
   isAngular?: boolean;
+  paramsFilter?: GeneratorMutator;
 }
 
 export function generateMutatorConfig({
@@ -487,6 +601,7 @@ export function generateMutatorConfig({
   isExactOptionalPropertyTypes,
   isVue,
   isAngular,
+  paramsFilter,
 }: GenerateMutatorConfigOptions) {
   const bodyOptions = getIsBodyVerb(verb)
     ? generateBodyMutatorConfig(body, isFormData, isFormUrlEncoded)
@@ -498,6 +613,7 @@ export function generateMutatorConfig({
     isAngular ?? false,
     queryParams?.requiredNullableKeys,
     queryParams,
+    paramsFilter,
   );
 
   const ignoreContentTypes = isAngular ? ['multipart/form-data'] : [];

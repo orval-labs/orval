@@ -18,6 +18,7 @@ import {
   getHttpClientReturnTypes,
   resetHttpClientReturnTypes,
 } from './http-client';
+import { createQueryParams } from './test-helpers';
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -180,7 +181,7 @@ const createVerbOption = (
       definition: '',
       imports: [],
       schemas: [],
-      originalSchema: {} as never,
+      originalSchema: { type: 'object' },
       contentType: '',
       formData: '',
       formUrlEncoded: '',
@@ -224,6 +225,21 @@ const createVerbOption = (
     originalOperation: {} as GeneratorVerbOptions['originalOperation'],
     ...overrides,
   }) as GeneratorVerbOptions;
+
+const createHeaderParams = (
+  overrides: Partial<Parameters<typeof generateAngularHeader>[0]> = {},
+): Parameters<typeof generateAngularHeader>[0] => ({
+  title: 'PetService',
+  isRequestOptions: true,
+  isMutator: false,
+  isGlobalMutator: false,
+  provideIn: 'root',
+  hasAwaitedType: false,
+  output: createOutput(),
+  verbOptions: { getPetById: createVerbOption() },
+  clientImplementation: '',
+  ...overrides,
+});
 
 const createContextSpec = (output: NormalizedOutputOptions): ContextSpec => {
   const spec = {
@@ -408,6 +424,133 @@ describe('angular HttpClient generator', () => {
 
       expect(header).not.toContain('type ThirdParameter');
     });
+
+    it('emits filterParams helper for untagged operations in tags-split default file (#3103)', () => {
+      const verbOptionWithQueryParams = createVerbOption({
+        tags: [],
+        queryParams: createQueryParams({
+          schema: { name: 'GetApiProductParams', model: '', imports: [] },
+        }),
+      });
+
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'DefaultService',
+          verbOptions: { getApiProduct: verbOptionWithQueryParams },
+          tag: 'default',
+        }),
+      );
+
+      expect(header).toContain('function filterParams(');
+    });
+
+    it('includes both explicit default-tagged and untagged operations in the default bucket', () => {
+      const untaggedVerb = createVerbOption({
+        operationId: 'getUntaggedProduct',
+        tags: [],
+        queryParams: createQueryParams({
+          schema: { name: 'GetApiProductParams', model: '', imports: [] },
+        }),
+      });
+      const explicitDefaultVerb = createVerbOption({
+        operationId: 'getTaggedDefaultProduct',
+        tags: ['default'],
+      });
+
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'DefaultService',
+          verbOptions: {
+            getUntaggedProduct: untaggedVerb,
+            getTaggedDefaultProduct: explicitDefaultVerb,
+          },
+          tag: 'default',
+        }),
+      );
+
+      expect(header).toContain('function filterParams(');
+    });
+
+    it('does not enable the implicit default bucket when only explicit default tags exist', () => {
+      const explicitDefaultVerb = createVerbOption({
+        operationId: 'getTaggedDefaultProduct',
+        tags: ['default'],
+      });
+
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'DefaultService',
+          verbOptions: { getTaggedDefaultProduct: explicitDefaultVerb },
+          tag: 'default',
+        }),
+      );
+
+      expect(header).not.toContain('function filterParams(');
+    });
+
+    // Issue #3326: a user-supplied `paramsFilter` mutator owns the filter
+    // logic entirely, so the shared built-in helper would be dead code if
+    // every operation overrides it.
+    it('suppresses the shared filterParams helper when every operation has paramsFilter', () => {
+      const verbOptionWithCustomFilter = createVerbOption({
+        queryParams: createQueryParams({
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+        }),
+        paramsFilter: {
+          name: 'myFilter',
+          path: './my-filter',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'PetService',
+          verbOptions: { getPetById: verbOptionWithCustomFilter },
+        }),
+      );
+
+      expect(header).not.toContain('function filterParams(');
+    });
+
+    it('still emits the shared helper when at least one operation lacks paramsFilter', () => {
+      const verbWithFilter = createVerbOption({
+        operationName: 'a',
+        queryParams: createQueryParams({
+          schema: { name: 'AParams', model: '', imports: [] },
+        }),
+        paramsFilter: {
+          name: 'myFilter',
+          path: './my-filter',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+      const verbWithoutFilter = createVerbOption({
+        operationName: 'b',
+        queryParams: createQueryParams({
+          schema: { name: 'BParams', model: '', imports: [] },
+        }),
+      });
+
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'PetService',
+          verbOptions: { a: verbWithFilter, b: verbWithoutFilter },
+        }),
+      );
+
+      expect(header).toContain('function filterParams(');
+    });
   });
 
   // ── Footer ────────────────────────────────────────────────────────────
@@ -459,6 +602,154 @@ describe('angular HttpClient generator', () => {
   });
 
   // ── Implementation — GET ──────────────────────────────────────────────
+
+  // ── paramsFilter + nonPrimitiveKeys (issue #3326) ─────────────────────
+
+  describe('query parameter filtering (#3326)', () => {
+    const customFilter = {
+      name: 'myFilter',
+      path: './my-filter',
+      default: false,
+      hasErrorType: false,
+      errorTypeName: '',
+      hasSecondArg: false,
+      hasThirdArg: false,
+      isHook: false,
+    };
+
+    it('does not emit a passthrough set without a paramsSerializer', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+          nonPrimitiveKeys: ['filters'],
+        },
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // Without a consumer that can handle a raw object, the passthrough set
+      // would make `filterParams` return `unknown` (uncompilable against
+      // HttpClient). `filters` is dropped instead. See #3326.
+      expect(impl).not.toContain('new Set<string>(["filters"])');
+    });
+
+    it('passes nonPrimitiveKeys through when a paramsSerializer is configured', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+          nonPrimitiveKeys: ['filters'],
+        },
+        paramsSerializer: {
+          name: 'mySerializer',
+          path: './my-serializer',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // The serializer can consume the raw object, so `filters` survives the
+      // built-in filter via the passthrough set.
+      expect(impl).toContain('new Set<string>(["filters"])');
+    });
+
+    it('replaces the built-in filter with the user-supplied paramsFilter', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+        },
+        paramsFilter: customFilter,
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // Filtered params come from `myFilter(...)`; the built-in helper is
+      // not called for this operation.
+      expect(impl).toContain(
+        'const filteredParams = myFilter({...params, ...options?.params})',
+      );
+      expect(impl).not.toContain('filterParams({...params');
+    });
+
+    it('wraps a configured paramsSerializer around the custom paramsFilter', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+        },
+        paramsFilter: customFilter,
+        paramsSerializer: {
+          name: 'mySerializer',
+          path: './my-serializer',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain(
+        'const filteredParams = mySerializer(myFilter({...params, ...options?.params}))',
+      );
+    });
+
+    it('preserves required nullable params in request-options mode when a paramsSerializer is configured', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: ['filters'],
+        },
+        paramsSerializer: {
+          name: 'mySerializer',
+          path: './my-serializer',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain(
+        'const filteredParams = mySerializer(filterParams({...params, ...options?.params}, new Set<string>(["filters"]), true))',
+      );
+    });
+  });
 
   describe('generateHttpClientImplementation', () => {
     it('generates a GET method with typed return', () => {
@@ -815,6 +1106,159 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain(
         'this.http.put(`/api/pets/${petId}`, updatePetBody, {',
       );
+    });
+
+    // Regression test for https://github.com/orval-labs/orval/issues/3349
+    it('places optional body before accept in overloads for multi-content responses', () => {
+      const verbOption = createVerbOption({
+        operationId: 'confirmReservation',
+        operationName: 'confirmReservation',
+        verb: 'post',
+        route: '/reservations/${token}/confirm',
+        pathRoute: '/reservations/{token}/confirm',
+        body: {
+          implementation: 'confirmReservationBody',
+          definition: 'ConfirmReservationBody',
+          imports: [],
+          schemas: [],
+          originalSchema: {} as never,
+          contentType: 'application/json',
+          formData: '',
+          formUrlEncoded: '',
+          isOptional: true,
+        },
+        props: [
+          {
+            name: 'token',
+            definition: 'token: string',
+            implementation: 'token: string',
+            default: false,
+            required: true,
+            type: GetterPropType.PARAM,
+          },
+          {
+            name: 'confirmReservationBody',
+            definition:
+              'confirmReservationBody?: ConfirmReservationBody | null',
+            implementation:
+              'confirmReservationBody?: ConfirmReservationBody | null',
+            default: false,
+            required: false,
+            type: GetterPropType.BODY,
+          },
+        ],
+        response: baseResponse({
+          definition: { success: 'Pet | string', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'text/plain'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'text/plain'],
+        }),
+      });
+      const options = createGeneratorOptions({
+        route: '/api/reservations/${token}/confirm',
+      });
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // Body must come before accept in all overload and implementation signatures.
+      // Check the first occurrence of each — body must appear first.
+      const bodyIdx = impl.indexOf('confirmReservationBody');
+      const acceptIdx = impl.indexOf("accept: 'application/json'");
+      expect(bodyIdx).toBeGreaterThanOrEqual(0);
+      expect(acceptIdx).toBeGreaterThanOrEqual(0);
+      expect(bodyIdx).toBeLessThan(acceptIdx);
+
+      // TS1016 regression guard: per-content-type overloads must render the
+      // optional body as a positionally required parameter — the `?` is
+      // dropped and the type is widened with `| undefined` so a required
+      // `accept` literal can follow it. The catch-all fallback overload
+      // legitimately keeps `confirmReservationBody?:` because no required
+      // parameter follows it there, so we only forbid the optional body
+      // form when it's directly followed by a required `accept` literal.
+      expect(impl).toMatch(
+        /confirmReservationBody:\s*ConfirmReservationBody\s*\|\s*null\s*\|\s*undefined,\s*\n\s*accept:\s*'/,
+      );
+      expect(impl).not.toMatch(
+        /confirmReservationBody\?:[^\n]*\n\s*accept:\s*'/,
+      );
+
+      // The HTTP call itself must still pass the body as the positional argument
+      expect(impl).toContain(
+        'this.http.post<Pet>(`/api/reservations/${token}/confirm`, confirmReservationBody, {',
+      );
+    });
+
+    it('places required body before accept in overloads for multi-content responses', () => {
+      const verbOption = createVerbOption({
+        operationId: 'updatePet',
+        operationName: 'updatePet',
+        verb: 'put',
+        route: '/pets/${petId}',
+        pathRoute: '/pets/{petId}',
+        body: {
+          implementation: 'pet',
+          definition: 'Pet',
+          imports: [],
+          schemas: [],
+          originalSchema: {} as never,
+          contentType: 'application/json',
+          formData: '',
+          formUrlEncoded: '',
+          isOptional: false,
+        },
+        props: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: false,
+            required: true,
+            type: GetterPropType.PARAM,
+          },
+          {
+            name: 'pet',
+            definition: 'pet: Pet',
+            implementation: 'pet: Pet',
+            default: false,
+            required: true,
+            type: GetterPropType.BODY,
+          },
+        ],
+        response: baseResponse({
+          definition: { success: 'Pet | string', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'text/plain'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'text/plain'],
+        }),
+      });
+      const options = createGeneratorOptions({
+        route: '/api/pets/${petId}',
+      });
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // Body must come before accept in all overload and implementation signatures.
+      const bodyIdx = impl.indexOf('pet: Pet');
+      const acceptIdx = impl.indexOf("accept: 'application/json'");
+      expect(bodyIdx).toBeGreaterThanOrEqual(0);
+      expect(acceptIdx).toBeGreaterThanOrEqual(0);
+      expect(bodyIdx).toBeLessThan(acceptIdx);
+
+      // Required body must NOT be widened to `Pet | undefined`.
+      expect(impl).not.toContain('Pet | undefined');
+
+      // The HTTP call must pass the body as the positional argument.
+      expect(impl).toContain('this.http.put<Pet>(`/api/pets/${petId}`, pet, {');
     });
 
     it('preserves query params for multi-content responses', () => {
