@@ -173,25 +173,30 @@ export function getScalar({
         isEnum = true;
       }
 
-      if (schemaFormat === 'binary') {
-        value = 'Blob';
-      } else if (formDataContext?.atPart) {
-        const fileType = getFormDataFieldFileType(
-          item,
-          formDataContext.partContentType,
-        );
-        if (fileType) {
-          value = fileType === 'binary' ? 'Blob' : 'Blob | string';
+      // application/x-www-form-urlencoded bodies are built with URLSearchParams,
+      // whose values are always strings. Skip Blob/file coercion so file/binary
+      // fields stay `string`; enum unions computed above are left intact (#1624).
+      if (!formDataContext?.urlEncoded) {
+        if (schemaFormat === 'binary') {
+          value = 'Blob';
+        } else if (formDataContext?.atPart) {
+          const fileType = getFormDataFieldFileType(
+            item,
+            formDataContext.partContentType,
+          );
+          if (fileType) {
+            value = fileType === 'binary' ? 'Blob' : 'Blob | string';
+          }
+        } else if (
+          schemaContentMediaType === 'application/octet-stream' &&
+          !schemaContentEncoding
+        ) {
+          // The @scalar/openapi-parser upgrader converts format: binary to
+          // contentMediaType: application/octet-stream when upgrading
+          // Swagger 2.0 / OAS 3.0 → OAS 3.1. Treat it the same as
+          // format: binary so $ref-based model types generate Blob.
+          value = 'Blob';
         }
-      } else if (
-        schemaContentMediaType === 'application/octet-stream' &&
-        !schemaContentEncoding
-      ) {
-        // The @scalar/openapi-parser upgrader converts format: binary to
-        // contentMediaType: application/octet-stream when upgrading
-        // Swagger 2.0 / OAS 3.0 → OAS 3.1. Treat it the same as
-        // format: binary so $ref-based model types generate Blob.
-        value = 'Blob';
       }
 
       if (

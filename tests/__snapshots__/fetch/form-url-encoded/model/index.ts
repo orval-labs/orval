@@ -10,3 +10,4 @@ export * from './error';
 export * from './pet';
 export * from './petCallingCode';
 export * from './petCountry';
+export * from './uploadPetContentBody';
