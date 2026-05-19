@@ -88,9 +88,9 @@ describe('jsDoc', () => {
       jsDoc({
         description: 'line with /* comment\nline with */ end',
       }),
-    ).toBe(`/**
+    ).toBe(String.raw`/**
  * line with /* comment
- * line with *\\/ end
+ * line with *\/ end
  */
 `);
   });
