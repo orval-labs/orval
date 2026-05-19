@@ -291,32 +291,21 @@ test('react-query issue-1522 passes the enabled option into the queryOptions mut
     'utf8',
   );
 
-  // Slices out the `customQueryOptions({ ... })` call from a single query
-  // options helper so the assertion targets the object passed to the mutator.
-  const mutatorCall = (helper: string) => {
-    const helperStart = content.indexOf(`export const ${helper} =`);
-    expect(helperStart, `${helper} should be generated`).toBeGreaterThan(-1);
-    const callStart = content.indexOf('customQueryOptions({', helperStart);
-    expect(
-      callStart,
-      `${helper} should route through the queryOptions mutator`,
-    ).toBeGreaterThan(-1);
-    const callEnd = content.indexOf('});', callStart);
-    expect(
-      callEnd,
-      `${helper} mutator call should be terminated`,
-    ).toBeGreaterThan(callStart);
-    return content.slice(callStart, callEnd);
-  };
+  // The mutator must receive the full generated options object: `queryKey`,
+  // `queryFn`, the `enabled` guard for the required `houseId` path param, and
+  // `...queryOptions` last so callers can still override it. Generation is
+  // deterministic, so match the whole call verbatim instead of slicing on
+  // `});` (a nested call site in the argument could otherwise truncate it).
+  const expectedMutatorCall = [
+    '  const customOptions = customQueryOptions({',
+    '    queryKey,',
+    '    queryFn,',
+    '    enabled: houseId !== null && houseId !== undefined,',
+    '    ...queryOptions,',
+    '  });',
+  ].join('\n');
 
-  // Both the regular and the infinite query helpers route through the mutator
-  // and must forward the `enabled` guard for the required `houseId` path param.
-  for (const helper of [
-    'useListHouseCatsQueryOptions',
-    'useListHouseCatsInfiniteQueryOptions',
-  ]) {
-    expect(mutatorCall(helper)).toContain(
-      'enabled: houseId !== null && houseId !== undefined',
-    );
-  }
+  // One occurrence for the regular query helper, one for the infinite one.
+  const occurrences = content.split(expectedMutatorCall).length - 1;
+  expect(occurrences).toBe(2);
 });
