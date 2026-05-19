@@ -456,7 +456,12 @@ const generateQueryImplementation = ({
   const hasInfiniteQueryParam = queryParam && queryParams?.schema.name;
 
   const httpFunctionProps = queryParam
-    ? adapter.getInfiniteQueryHttpProps(props, queryParam, !!mutator)
+    ? adapter.getInfiniteQueryHttpProps(
+        props,
+        queryParam,
+        httpClient,
+        !!mutator,
+      )
     : adapter.getHttpFunctionQueryProps(queryProperties, httpClient, !!mutator);
 
   const definedInitialDataReturnType = adapter.getQueryReturnType({

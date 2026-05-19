@@ -70,12 +70,22 @@ export const createVueAdapter = ({
     return queryProperties;
   },
 
-  getInfiniteQueryHttpProps(props: GetterProps, queryParam: string): string {
+  getInfiniteQueryHttpProps(
+    props: GetterProps,
+    queryParam: string,
+    httpClient: OutputHttpClient,
+  ): string {
     return props
       .map((param) => {
         // Vue does NOT destructure named path params (keeps param.name)
-        return param.name === 'params'
-          ? `{...unref(params), '${queryParam}': pageParam || unref(params)?.['${queryParam}']}`
+        if (param.name === 'params') {
+          return `{...unref(params), '${queryParam}': pageParam || unref(params)?.['${queryParam}']}`;
+        }
+
+        // Fetch-style request functions accept plain values, but axios-style
+        // accept MaybeRef<T> so they unref MaybeRef values internally.
+        return httpClient === OutputHttpClient.FETCH
+          ? `unref(${param.name})`
           : param.name;
       })
       .join(',');

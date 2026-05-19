@@ -169,6 +169,53 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  infiniteQueryWithCustomFetch: {
+    output: {
+      target:
+        '../generated/vue-query/infinite-query-with-custom-fetch/endpoints.ts',
+      schemas: '../generated/vue-query/infinite-query-with-custom-fetch/model',
+      client: 'vue-query',
+      mock: true,
+      override: {
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+        },
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'limit',
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/multi-query-params.yaml',
+    },
+  },
+  infiniteQueryWithBuiltInFetch: {
+    output: {
+      target:
+        '../generated/vue-query/infinite-query-with-built-in-fetch/endpoints.ts',
+      schemas:
+        '../generated/vue-query/infinite-query-with-built-in-fetch/model',
+      client: 'vue-query',
+      mock: true,
+      override: {
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'limit',
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/multi-query-params.yaml',
+    },
+  },
   allParamsOptional: {
     output: {
       target: '../generated/vue-query/all-params-optional/endpoints.ts',
