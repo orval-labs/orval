@@ -173,7 +173,7 @@ export const getListPetsInfiniteQueryOptions = <
   }) =>
     listPets(
       { version },
-      { ...params, limit: pageParam || params?.['limit'] },
+      { ...params, limit: pageParam ?? params?.['limit'] },
       { signal, ...fetchOptions },
     );
 

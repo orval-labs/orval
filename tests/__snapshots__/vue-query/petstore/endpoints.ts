@@ -109,7 +109,7 @@ export const getListPetsInfiniteQueryOptions = <
     ListPetsParams['limit']
   > = ({ signal, pageParam }) =>
     listPets(
-      { ...unref(params), limit: pageParam || unref(params)?.['limit'] },
+      { ...unref(params), limit: pageParam ?? unref(params)?.['limit'] },
       version,
       { signal, ...axiosOptions },
     );

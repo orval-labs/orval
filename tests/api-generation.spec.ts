@@ -248,7 +248,7 @@ test('vue-query custom fetch infinite queries unref non-pagination params', asyn
   expect(content).toContain(
     `getUsersUserIdOrders(
       unref(userId),
-      { ...unref(params), limit: pageParam || unref(params)?.['limit'] },
+      { ...unref(params), limit: pageParam ?? unref(params)?.['limit'] },
       { signal, ...requestOptions },
     );`,
   );

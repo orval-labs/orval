@@ -104,7 +104,7 @@ export const getGetListInfiniteQueryOptions = <
     GetListParams['page']
   > = ({ signal, pageParam }) =>
     getList(
-      { ...params, page: pageParam || params?.['page'] },
+      { ...params, page: pageParam ?? params?.['page'] },
       { signal, ...fetchOptions },
     );
 
