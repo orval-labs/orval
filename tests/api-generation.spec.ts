@@ -276,3 +276,47 @@ test('default issue-3380 resolves external path-item $refs with escaped pointers
   // The templated path ref (`~1pets~1%7BpetId%7D`) decodes to `/pets/{petId}`.
   expect(content).toContain('`/pets/${petId}`');
 });
+
+test('react-query issue-1522 passes the enabled option into the queryOptions mutator', async () => {
+  // Regression for #1522: when `allParamsOptional` and a custom `queryOptions`
+  // mutator are combined, the auto-generated `enabled` guard (which disables
+  // the query while the required `houseId` path param is nullish) used to be
+  // dropped because the mutator received `{ ...queryOptions, queryKey,
+  // queryFn }` instead of the full options object. The query then fired with
+  // an `undefined` path param. Keep this focused assertion alongside the
+  // snapshot so #1522 fails with a targeted message instead of a full-file
+  // snapshot diff.
+  const content = await readFile(
+    generated('react-query', 'issue-1522', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // Slices out the `customQueryOptions({ ... })` call from a single query
+  // options helper so the assertion targets the object passed to the mutator.
+  const mutatorCall = (helper: string) => {
+    const helperStart = content.indexOf(`export const ${helper} =`);
+    expect(helperStart, `${helper} should be generated`).toBeGreaterThan(-1);
+    const callStart = content.indexOf('customQueryOptions({', helperStart);
+    expect(
+      callStart,
+      `${helper} should route through the queryOptions mutator`,
+    ).toBeGreaterThan(-1);
+    const callEnd = content.indexOf('});', callStart);
+    expect(
+      callEnd,
+      `${helper} mutator call should be terminated`,
+    ).toBeGreaterThan(callStart);
+    return content.slice(callStart, callEnd);
+  };
+
+  // Both the regular and the infinite query helpers route through the mutator
+  // and must forward the `enabled` guard for the required `houseId` path param.
+  for (const helper of [
+    'useListHouseCatsQueryOptions',
+    'useListHouseCatsInfiniteQueryOptions',
+  ]) {
+    expect(mutatorCall(helper)).toContain(
+      'enabled: houseId !== null && houseId !== undefined',
+    );
+  }
+});

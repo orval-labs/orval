@@ -1229,4 +1229,33 @@ export default defineConfig({
       target: '../specifications/issue-708.yaml',
     },
   },
+  issue1522: {
+    output: {
+      target: '../generated/react-query/issue-1522/endpoints.ts',
+      schemas: '../generated/react-query/issue-1522/model',
+      client: 'react-query',
+      allParamsOptional: true,
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        query: {
+          useInfinite: true,
+          useInfiniteQueryParam: 'page',
+        },
+        operations: {
+          listHouseCats: {
+            query: {
+              queryOptions: {
+                path: '../mutators/custom-query-options.ts',
+                name: 'customQueryOptions',
+              },
+            },
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-1522.yaml',
+    },
+  },
 });
