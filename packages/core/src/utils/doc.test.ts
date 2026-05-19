@@ -44,6 +44,32 @@ describe('jsDoc', () => {
 `);
   });
 
+  it('prefixes each line of a multi-line description with *', () => {
+    expect(
+      jsDoc({
+        description: 'line one\nline two\nline three',
+      }),
+    ).toBe(`/**
+ * line one
+ * line two
+ * line three
+ */
+`);
+  });
+
+  it('prefixes each line of multi-line array descriptions with *', () => {
+    expect(
+      jsDoc({
+        description: ['first\nsecond', 'third'],
+      }),
+    ).toBe(`/**
+ * first
+ * second
+ * third
+ */
+`);
+  });
+
   it('stops traversing circular item schemas', () => {
     interface CircularItems {
       [key: string]: unknown;
