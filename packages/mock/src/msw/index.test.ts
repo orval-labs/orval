@@ -6,7 +6,7 @@ import type {
 import { OutputMockType } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
-import { generateMSW } from './index';
+import { generateMSW, generateMSWImports } from './index';
 
 describe('generateMSW', () => {
   const mockVerbOptions = {
@@ -1226,6 +1226,87 @@ describe('generateMSW', () => {
       expect(petEntries).toHaveLength(2);
       expect(petEntries.some((i) => !i.alias)).toBe(true);
       expect(petEntries.some((i) => i.alias === '__Pet')).toBe(true);
+    });
+  });
+
+  describe('generateHandlers: false', () => {
+    it('should return empty handler when generateHandlers is false', () => {
+      const result = generate({
+        mock: { type: OutputMockType.MSW, generateHandlers: false },
+      });
+      expect(result.implementation.handler).toBe('');
+    });
+
+    it('should return empty handlerName when generateHandlers is false', () => {
+      const result = generate({
+        mock: { type: OutputMockType.MSW, generateHandlers: false },
+      });
+      expect(result.implementation.handlerName).toBe('');
+    });
+
+    it('should still generate mock data function when generateHandlers is false', () => {
+      const numberVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'number' },
+          types: { success: [{ key: '200', value: 'number' }] },
+          contentTypes: ['application/json'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(numberVerbOptions, {
+        ...baseOptions,
+        mock: { type: OutputMockType.MSW, generateHandlers: false },
+      });
+      expect(result.implementation.function).toContain(
+        'export const getGetUserResponseMock',
+      );
+      expect(result.implementation.handler).toBe('');
+    });
+
+    it('should not contain msw imports when generateHandlers is false', () => {
+      const result = generateMSWImports({
+        implementation:
+          'export const getUserResponseMock = () => faker.string.alpha()',
+        imports: [],
+        projectName: '',
+        hasSchemaDir: false,
+        isAllowSyntheticDefaultImports: true,
+        options: { type: OutputMockType.MSW, generateHandlers: false },
+      });
+      expect(result).not.toContain("from 'msw'");
+    });
+
+    it('should include faker import when generateHandlers is false', () => {
+      const result = generateMSWImports({
+        implementation:
+          'export const getUserResponseMock = () => faker.string.alpha()',
+        imports: [],
+        projectName: '',
+        hasSchemaDir: false,
+        isAllowSyntheticDefaultImports: true,
+        options: { type: OutputMockType.MSW, generateHandlers: false },
+      });
+      expect(result).toContain("from '@faker-js/faker'");
+    });
+
+    it('should use locale-specific faker import when generateHandlers is false with locale', () => {
+      const result = generateMSWImports({
+        implementation:
+          'export const getUserResponseMock = () => faker.string.alpha()',
+        imports: [],
+        projectName: '',
+        hasSchemaDir: false,
+        isAllowSyntheticDefaultImports: true,
+        options: {
+          type: OutputMockType.MSW,
+          generateHandlers: false,
+          locale: 'fr',
+        },
+      });
+      expect(result).toContain("from '@faker-js/faker/locale/fr'");
+      expect(result).not.toContain("from 'msw'");
     });
   });
 });
