@@ -453,6 +453,8 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
                     contentMediaType: 'application/xml',
                   },
                   content_string: { type: 'string' },
+                  // enum unions must survive the url-encoded handling
+                  kind: { type: 'string', enum: ['LOGO', 'CONTENT'] },
                 },
               },
             },
@@ -472,6 +474,24 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
       expect(bodySchema?.model).toContain('content_file?: string;');
       expect(bodySchema?.model).toContain('content_xml?: string;');
       expect(bodySchema?.model).not.toContain('Blob');
+    });
+
+    it('preserves enum unions on url-encoded string fields', () => {
+      const result = getResReqTypes(urlEncodedReqBody, 'Asset', context)[0];
+
+      // url-encoded handling must not flatten enums down to `string`: the enum
+      // is still extracted to its own type with the literal union intact.
+      const bodySchema = result.schemas.find(
+        (s) => s.name === 'AssetRequestBody',
+      );
+      expect(bodySchema?.model).toContain('kind?: AssetRequestBodyKind;');
+      expect(bodySchema?.model).not.toContain('kind?: string;');
+
+      const kindSchema = result.schemas.find(
+        (s) => s.name === 'AssetRequestBodyKind',
+      );
+      expect(kindSchema?.model).toContain("'LOGO'");
+      expect(kindSchema?.model).toContain("'CONTENT'");
     });
 
     it('appends binary and file url-encoded fields directly as strings', () => {
