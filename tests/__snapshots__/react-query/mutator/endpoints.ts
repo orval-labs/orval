@@ -119,7 +119,7 @@ export const getListPetsInfiniteQueryOptions = <
     ListPetsParams['limit']
   > = ({ signal, pageParam }) =>
     listPets(
-      { ...params, limit: pageParam || params?.['limit'] },
+      { ...params, limit: pageParam ?? params?.['limit'] },
       version,
       signal,
     );
@@ -574,7 +574,7 @@ export const getListPetsSuspenseInfiniteQueryOptions = <
     ListPetsParams['limit']
   > = ({ signal, pageParam }) =>
     listPets(
-      { ...params, limit: pageParam || params?.['limit'] },
+      { ...params, limit: pageParam ?? params?.['limit'] },
       version,
       signal,
     );

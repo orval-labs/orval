@@ -79,7 +79,7 @@ export const createVueAdapter = ({
       .map((param) => {
         // Vue does NOT destructure named path params (keeps param.name)
         if (param.name === 'params') {
-          return `{...unref(params), '${queryParam}': pageParam || unref(params)?.['${queryParam}']}`;
+          return `{...unref(params), '${queryParam}': pageParam ?? unref(params)?.['${queryParam}']}`;
         }
 
         // Fetch-style request functions accept plain values, but axios-style

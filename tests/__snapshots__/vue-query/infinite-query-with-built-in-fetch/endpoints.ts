@@ -136,7 +136,7 @@ export const getGetUsersUserIdOrdersInfiniteQueryOptions = <
   > = ({ signal, pageParam }) =>
     getUsersUserIdOrders(
       unref(userId),
-      { ...unref(params), limit: pageParam || unref(params)?.['limit'] },
+      { ...unref(params), limit: pageParam ?? unref(params)?.['limit'] },
       { signal, ...fetchOptions },
     );
 

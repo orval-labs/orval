@@ -129,7 +129,7 @@ export const useListHouseCatsInfiniteQueryOptions = <
   > = ({ signal, pageParam }) =>
     listHouseCats(
       houseId,
-      { ...params, page: pageParam || params?.['page'] },
+      { ...params, page: pageParam ?? params?.['page'] },
       { signal, ...fetchOptions },
     );
 
