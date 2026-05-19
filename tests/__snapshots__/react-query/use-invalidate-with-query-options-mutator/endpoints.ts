@@ -150,9 +150,9 @@ export const useListPetsQueryOptions = <
   }) => listPets(params, { signal, ...fetchOptions });
 
   const customOptions = customQueryOptions({
-    ...queryOptions,
     queryKey,
     queryFn,
+    ...queryOptions,
   });
 
   return customOptions as UseQueryOptions<
@@ -475,9 +475,10 @@ export const useShowPetByIdQueryOptions = <
   }) => showPetById(petId, { signal, ...fetchOptions });
 
   const customOptions = customQueryOptions({
-    ...queryOptions,
     queryKey,
     queryFn,
+    enabled: petId !== null && petId !== undefined,
+    ...queryOptions,
   });
 
   return customOptions as UseQueryOptions<
@@ -790,9 +791,9 @@ export const useHealthCheckQueryOptions = <
   }) => healthCheck({ signal, ...fetchOptions });
 
   const customOptions = customQueryOptions({
-    ...queryOptions,
     queryKey,
     queryFn,
+    ...queryOptions,
   });
 
   return customOptions as UseQueryOptions<
@@ -987,9 +988,10 @@ export const useShowPetWithOwnerQueryOptions = <
   > = ({ signal }) => showPetWithOwner(petId, { signal, ...fetchOptions });
 
   const customOptions = customQueryOptions({
-    ...queryOptions,
     queryKey,
     queryFn,
+    enabled: petId !== null && petId !== undefined,
+    ...queryOptions,
   });
 
   return customOptions as UseQueryOptions<

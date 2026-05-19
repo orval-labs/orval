@@ -296,3 +296,36 @@ test('default issue-3380 resolves external path-item $refs with escaped pointers
   // The templated path ref (`~1pets~1%7BpetId%7D`) decodes to `/pets/{petId}`.
   expect(content).toContain('`/pets/${petId}`');
 });
+
+test('react-query issue-1522 passes the enabled option into the queryOptions mutator', async () => {
+  // Regression for #1522: when `allParamsOptional` and a custom `queryOptions`
+  // mutator are combined, the auto-generated `enabled` guard (which disables
+  // the query while the required `houseId` path param is nullish) used to be
+  // dropped because the mutator received `{ ...queryOptions, queryKey,
+  // queryFn }` instead of the full options object. The query then fired with
+  // an `undefined` path param. Keep this focused assertion alongside the
+  // snapshot so #1522 fails with a targeted message instead of a full-file
+  // snapshot diff.
+  const content = await readFile(
+    generated('react-query', 'issue-1522', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // The mutator must receive the full generated options object: `queryKey`,
+  // `queryFn`, the `enabled` guard for the required `houseId` path param, and
+  // `...queryOptions` last so callers can still override it. Generation is
+  // deterministic, so match the whole call verbatim instead of slicing on
+  // `});` (a nested call site in the argument could otherwise truncate it).
+  const expectedMutatorCall = [
+    '  const customOptions = customQueryOptions({',
+    '    queryKey,',
+    '    queryFn,',
+    '    enabled: houseId !== null && houseId !== undefined,',
+    '    ...queryOptions,',
+    '  });',
+  ].join('\n');
+
+  // One occurrence for the regular query helper, one for the infinite one.
+  const occurrences = content.split(expectedMutatorCall).length - 1;
+  expect(occurrences).toBe(2);
+});

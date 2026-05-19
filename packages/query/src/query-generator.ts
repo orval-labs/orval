@@ -649,9 +649,12 @@ ${hookOptions}
 
       ${
         queryOptionsMutator
-          ? `const customOptions = ${
+          ? // Pass the same options object the non-mutator branch returns so
+            // generated guards (e.g. the `enabled` clause for nullish path
+            // params) reach the mutator instead of being dropped. See #1522.
+            `const customOptions = ${
               queryOptionsMutator.name
-            }({...queryOptions, queryKey, queryFn}${
+            }({ queryKey, queryFn, ${queryOptionsImp}}${
               queryOptionsMutator.hasSecondArg ? `, { ${queryProperties} }` : ''
             }${
               queryOptionsMutator.hasThirdArg ? `, { url: \`${route}\` }` : ''
