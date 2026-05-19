@@ -34,7 +34,10 @@ for (const folder of folders) {
 
   const config = {
     extends: './tsconfig.json',
-    include: [`generated/${folder}`, 'mutators'],
+    // `regressions` holds hand-written compile-time tests that import generated
+    // code and exercise its public types (e.g. the #1177 onMutate regression),
+    // so a narrowed option type fails the typecheck.
+    include: [`generated/${folder}`, 'mutators', 'regressions'],
   };
 
   // Bun's flat node_modules makes the MCP SDK resolve `zod` to the project's v3.25
