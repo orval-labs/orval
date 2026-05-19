@@ -208,6 +208,18 @@ export default defineConfig({
       target: '../specifications/form-url-encoded.yaml',
     },
   },
+  binaryRequestBody: {
+    output: {
+      target: '../generated/fetch/binary-request-body/endpoints.ts',
+      schemas: '../generated/fetch/binary-request-body/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/binary-request-body.yaml',
+    },
+  },
   parameters: {
     output: {
       target: '../generated/fetch/parameters/endpoints.ts',
