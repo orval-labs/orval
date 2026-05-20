@@ -1335,13 +1335,25 @@ const parseBodyAndResponse = ({
     | OpenApiRequestBodyObject;
 
   // Only handle JSON and form-data; other content types (e.g., application/octet-stream)
-  // are skipped - unclear if this is correct behavior for root-level binary/text bodies
-  const jsonMedia = resolvedRef.content?.['application/json'];
-  const formDataMedia = resolvedRef.content?.['multipart/form-data'];
-  const [contentType, mediaType] = jsonMedia
-    ? (['application/json', jsonMedia] as const)
-    : formDataMedia
-      ? (['multipart/form-data', formDataMedia] as const)
+  // are skipped - unclear if this is correct behavior for root-level binary/text bodies.
+  const contentEntries = Object.entries(resolvedRef.content ?? {});
+
+  const jsonContent = contentEntries.find(
+    isMediaType(
+      // application/json
+      // application/geo+json
+      // application/ld+json
+      // application/manifest+json
+      String.raw`^application\/([\w-]+\+)?json$`,
+    ),
+  );
+  const formDataContent = contentEntries.find(
+    isMediaType('multipart/form-data'),
+  );
+  const [contentType, mediaType] = jsonContent
+    ? (['application/json', jsonContent[1]] as const)
+    : formDataContent
+      ? (['multipart/form-data', formDataContent[1]] as const)
       : [undefined, undefined];
 
   const schema = mediaType?.schema;
@@ -1352,7 +1364,6 @@ const parseBodyAndResponse = ({
       isArray: false,
     };
   }
-
   const encoding = mediaType.encoding;
 
   const resolvedJsonSchema = dereference(schema, context);
@@ -1390,7 +1401,6 @@ const parseBodyAndResponse = ({
       },
     };
   }
-
   const effectiveSchema =
     parseType === 'body'
       ? removeReadOnlyProperties(resolvedJsonSchema)
@@ -1420,6 +1430,11 @@ const parseBodyAndResponse = ({
   };
 };
 
+const isMediaType =
+  (pattern: string) =>
+  ([contentType]: [string, object]): boolean =>
+    new RegExp(pattern).test(contentType.split(';')[0].trim().toLowerCase());
+
 const getSingleResponse = (
   responses:
     | Record<string, OpenApiResponseObject | OpenApiReferenceObject | undefined>
@@ -1431,7 +1446,6 @@ const getSingleResponse = (
 
   return responses['200'] ?? responses['2XX'] ?? responses['2xx'];
 };
-
 /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 
 export const parseParameters = ({
