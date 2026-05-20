@@ -18,6 +18,21 @@ export function isReference(obj: object): obj is OpenApiReferenceObject {
   return !isNullish(obj) && Object.hasOwn(obj, '$ref');
 }
 
+export interface OpenApiDynamicReferenceObject {
+  $dynamicRef: string;
+  [key: string]: unknown;
+}
+
+export function isDynamicReference(
+  obj: object,
+): obj is OpenApiDynamicReferenceObject {
+  return (
+    !isNullish(obj) &&
+    Object.hasOwn(obj, '$dynamicRef') &&
+    typeof (obj as Record<string, unknown>).$dynamicRef === 'string'
+  );
+}
+
 export function isDirectory(pathValue: string) {
   return !path.extname(pathValue);
 }

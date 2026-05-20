@@ -10,6 +10,7 @@ interface GenerateInterfaceOptions {
   name: string;
   schema: OpenApiSchemaObject;
   context: ContextSpec;
+  genericParams?: string[];
 }
 
 /**
@@ -23,6 +24,7 @@ export function generateInterface({
   name,
   schema,
   context,
+  genericParams,
 }: GenerateInterfaceOptions) {
   const scalar = getScalar({
     item: schema,
@@ -32,6 +34,10 @@ export function generateInterface({
   const isEmptyObject = scalar.value === '{}';
   const shouldUseTypeAlias =
     context.output.override.useTypeOverInterfaces ?? scalar.useTypeAlias;
+  const genericSuffix =
+    genericParams && genericParams.length > 0
+      ? `<${genericParams.join(', ')}>`
+      : '';
 
   let model = '';
 
@@ -61,10 +67,10 @@ export function generateInterface({
       const blankInterfaceValue =
         scalar.value === 'unknown' ? '{}' : scalar.value;
 
-      model += `export interface ${name} ${blankInterfaceValue}\n`;
+      model += `export interface ${name}${genericSuffix} ${blankInterfaceValue}\n`;
     }
   } else {
-    model += `export type ${name} = ${scalar.value};\n`;
+    model += `export type ${name}${genericSuffix} = ${scalar.value};\n`;
   }
 
   // Filter out imports that refer to the type defined in current file (OpenAPI recursive schema definitions)
