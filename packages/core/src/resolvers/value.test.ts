@@ -49,6 +49,10 @@ describe('resolveValue', () => {
     expect(result.isRef).toBe(true);
   });
 
+  // Regression for issue #398: a $ref like `#/paths/.../schema` (emitted by
+  // JSON-Schema-Ref-Parser bundle()) resolves to an inline schema with no
+  // corresponding `export type`. orval previously generated a broken
+  // `import { Schema } from './model'` referencing an undeclared type.
   it('inlines a path-based ref instead of emitting a broken import', () => {
     const context = createContext({
       openapi: '3.0.3',
@@ -92,6 +96,9 @@ describe('resolveValue', () => {
     expect(result.isRef).toBe(false);
   });
 
+  // Defensive guard: a self-referential path-ref would otherwise recurse via
+  // getScalar -> resolveValue forever, since the named-ref cycle tracker keys
+  // off `resolvedImport.name` and not the ref string.
   it('breaks cycles on self-referential path-based refs', () => {
     const selfRef =
       '#/paths/~1self/get/responses/200/content/application~1json/schema';

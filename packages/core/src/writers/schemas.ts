@@ -136,7 +136,6 @@ export function fixRegularSchemaImports(
   );
 }
 
-/** Compute a normalised file-system key for a schema, used for grouping and deduplication. */
 function getSchemaKey(
   schemaPath: string,
   schemaName: string,
@@ -152,7 +151,6 @@ function getSchemaKey(
     .replaceAll('\\', '/');
 }
 
-/** Group schemas by their normalised file key so schemas targeting the same file are merged. */
 function getSchemaGroups(
   schemaPath: string,
   schemas: GeneratorSchema[],
@@ -164,7 +162,6 @@ function getSchemaGroups(
   );
 }
 
-/** Build canonical path and name lookup maps from grouped schemas for import normalisation. */
 function getCanonicalMap(
   schemaGroups: Record<string, GeneratorSchema[]>,
   schemaPath: string,
@@ -198,7 +195,6 @@ function getCanonicalMap(
   };
 }
 
-/** Rewrite import paths in schemas so they point to the canonical file location. */
 function normalizeCanonicalImportPaths(
   schemas: GeneratorSchema[],
   canonicalPathMap: Map<string, CanonicalInfo>,
@@ -222,20 +218,24 @@ function normalizeCanonicalImportPaths(
       const canonical = canonicalByName ?? canonicalByPath;
       if (!canonical?.importPath) return imp;
 
-      const relativePath = upath.relativeSafe(
+      const relative = upath.relativeSafe(
         schemaPath,
         canonical.importPath.replaceAll('\\', '/'),
       );
-      const importPath = relativePath.endsWith(fileExtension)
-        ? `${relativePath.slice(0, -fileExtension.length)}${importExtension}`
-        : relativePath;
+      // `relative` derives from canonical.importPath (built via getPath) so it
+      // normally ends with `fileExtension`; the `.ts$` branch is a defensive
+      // fallback for legacy/hardcoded `.ts` paths that don't match the
+      // configured fileExtension (e.g. `.gen.ts`).
+      const withoutFileExtension = relative.endsWith(fileExtension)
+        ? relative.slice(0, -fileExtension.length)
+        : relative.replace(/\.ts$/, '');
+      const importPath = `${withoutFileExtension}${importExtension}`;
 
       return { ...imp, importPath };
     });
   }
 }
 
-/** Merge multiple schemas that share the same output file into a single schema entry. */
 function mergeSchemaGroup(schemas: GeneratorSchema[]): GeneratorSchema {
   const baseSchemaName = schemas[0].name;
   const baseSchema = schemas[0].schema;
@@ -258,7 +258,6 @@ function mergeSchemaGroup(schemas: GeneratorSchema[]): GeneratorSchema {
   };
 }
 
-/** Resolve an import path to a normalised key for canonical-map lookups. */
 function resolveImportKey(
   schemaPath: string,
   importPath: string,
@@ -278,7 +277,6 @@ interface GetSchemaOptions {
   importExtension?: string;
 }
 
-/** Render a single schema's imports and model into a complete file string. */
 function getSchema({
   schema: { imports, model },
   header,
@@ -300,17 +298,14 @@ function getSchema({
   return file;
 }
 
-/** Build a file path by joining a directory, schema name, and extension. */
 function getPath(path: string, name: string, fileExtension: string): string {
   return nodePath.join(path, `${name}${fileExtension}`);
 }
 
-/** Append a model string to an accumulator with a trailing newline. */
 export function writeModelInline(acc: string, model: string): string {
   return acc + `${model}\n`;
 }
 
-/** Concatenate all model strings from an array of schemas into a single string. */
 export function writeModelsInline(array: GeneratorSchema[]): string {
   let acc = '';
   for (const { model } of array) {
@@ -329,7 +324,6 @@ interface WriteSchemaOptions {
   tsconfig?: Tsconfig;
 }
 
-/** Write a single schema file to disk, merging imports and model content. */
 export async function writeSchema({
   path,
   schema,
@@ -371,7 +365,6 @@ interface WriteSchemasOptions {
   tsconfig?: Tsconfig;
 }
 
-/** Write all schemas to disk, grouping by file, normalising imports, and optionally emitting an index file. */
 export async function writeSchemas({
   schemaPath,
   schemas,

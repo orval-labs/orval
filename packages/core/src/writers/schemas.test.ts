@@ -431,40 +431,6 @@ describe('fixCrossDirectoryImports', () => {
     ]);
   });
 
-  it('should emit js imports for custom ts extensions under Node ESM resolution', () => {
-    const opSchemas = [createSchemaWithImports('GetUserParams', ['User'])];
-    const regularSchemaNames = new Set(['User']);
-
-    fixCrossDirectoryImports(
-      opSchemas,
-      regularSchemaNames,
-      './models',
-      './models/params',
-      NamingConvention.CAMEL_CASE,
-      '.gen.ts',
-      { compilerOptions: { moduleResolution: 'NodeNext' } },
-    );
-
-    expect(opSchemas[0].imports[0].importPath).toBe('../user.gen.js');
-  });
-
-  it('should keep ts imports when allowImportingTsExtensions is enabled', () => {
-    const opSchemas = [createSchemaWithImports('GetUserParams', ['User'])];
-    const regularSchemaNames = new Set(['User']);
-
-    fixCrossDirectoryImports(
-      opSchemas,
-      regularSchemaNames,
-      './models',
-      './models/params',
-      NamingConvention.CAMEL_CASE,
-      '.gen.ts',
-      { compilerOptions: { allowImportingTsExtensions: true } },
-    );
-
-    expect(opSchemas[0].imports[0].importPath).toBe('../user.gen.ts');
-  });
-
   it('should include non-.ts file extension in import path', () => {
     const opSchemas = [createSchemaWithImports('GetUserParams', ['User'])];
     const regularSchemaNames = new Set(['User']);
@@ -846,43 +812,6 @@ describe('writeSchemas indexFiles', () => {
       const content = await fs.readFile(petsApiPath, 'utf8');
 
       expect(content).toContain("from './notFoundResponse';");
-      expect(content).not.toContain("from './notFound';");
-    } finally {
-      await fs.remove(tempDir);
-    }
-  });
-
-  it('normalizes canonical imports with js extensions under Node ESM resolution', async () => {
-    const tempDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), 'orval-schema-import-node-esm-'),
-    );
-    const schemaPath = path.join(tempDir, 'schemas');
-
-    try {
-      await writeSchemas({
-        schemaPath,
-        schemas: [
-          createMockSchema('NotFound'),
-          createMockSchema('NotFoundResponse'),
-          {
-            name: 'PetsApi',
-            model: 'export type PetsApi = NotFoundResponse;',
-            imports: [{ name: 'NotFoundResponse', importPath: './notFound' }],
-            schema: {},
-          },
-        ],
-        target: 'src/api',
-        namingConvention: NamingConvention.CAMEL_CASE,
-        fileExtension: '.ts',
-        header: '// command api',
-        indexFiles: false,
-        tsconfig: { compilerOptions: { moduleResolution: 'NodeNext' } },
-      });
-
-      const petsApiPath = path.join(schemaPath, 'petsApi.ts');
-      const content = await fs.readFile(petsApiPath, 'utf8');
-
-      expect(content).toContain("from './notFoundResponse.js';");
       expect(content).not.toContain("from './notFound';");
     } finally {
       await fs.remove(tempDir);

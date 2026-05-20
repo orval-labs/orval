@@ -45,10 +45,6 @@ const REF_NOT_FOUND_PREFIX = 'Oops... 🍻. Ref not found';
  * Recursively resolves a `$ref` in an OpenAPI document, following
  * nested schema refs and collecting imports along the way.
  *
- * Always returns a **fully dereferenced** schema — never a reference
- * object. Callers can rely on the returned `schema` being the concrete
- * target, not an intermediate `$ref`.
- *
  * Handles OpenAPI 3.0 `nullable` and 3.1 type-array hints on direct refs.
  *
  * @see https://spec.openapis.org/oas/v3.0.3#reference-object
@@ -267,7 +263,6 @@ export function extractBoundAliasInfo(
   return { genericName, typeArgs, imports, extraSchemas };
 }
 
-/** Resolve a `$ref` pointer to its schema definition and ref metadata from the spec. */
 function getSchema<TSchema extends object = OpenApiComponentsObject>(
   schema: OpenApiReferenceObject,
   context: ContextSpec,
