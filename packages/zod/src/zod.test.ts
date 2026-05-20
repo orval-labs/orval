@@ -6275,6 +6275,119 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
 
 `);
   });
+
+  it('content type with charset precision: comprehensive content type handling', async () => {
+    // Matches type gen test structure in res-req-types.test.ts
+    const schema = {
+      pathRoute: '/upload-form',
+      context: {
+        spec: {
+          paths: {
+            '/upload-form': {
+              post: {
+                operationId: 'uploadForm',
+                requestBody: {
+                  required: true,
+                  content: {
+                    'multipart/form-data; charset=utf-8': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          encBinary: { type: 'string' },
+                          encText: { type: 'string' },
+                          cmtBinary: {
+                            type: 'string',
+                            contentMediaType: 'image/png',
+                          },
+                          cmtText: {
+                            type: 'string',
+                            contentMediaType: 'application/xml',
+                          },
+                          encOverride: {
+                            type: 'string',
+                            contentMediaType: 'image/png',
+                          },
+                          formatBinary: { type: 'string', format: 'binary' },
+                          base64Field: {
+                            type: 'string',
+                            contentMediaType: 'image/png',
+                            contentEncoding: 'base64',
+                          },
+                          metadata: {
+                            type: 'object',
+                            properties: { name: { type: 'string' } },
+                          },
+                        },
+                        required: [
+                          'encBinary',
+                          'encText',
+                          'cmtBinary',
+                          'cmtText',
+                          'encOverride',
+                          'formatBinary',
+                          'base64Field',
+                          'metadata',
+                        ],
+                      },
+                      encoding: {
+                        encBinary: { contentType: 'image/png' },
+                        encText: { contentType: 'text/plain' },
+                        encOverride: { contentType: 'text/csv' },
+                        metadata: { contentType: 'application/json' },
+                      },
+                    },
+                  },
+                },
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json; charset=utf-8': {
+                        schema: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: { override: { zod: { generateEachHttpStatus: false } } },
+      },
+    } as unknown as GeneratorOptions;
+    const result = await generateZod(
+      {
+        pathRoute: '/upload-form',
+        verb: 'post',
+        operationName: 'uploadForm',
+        override: zodOverride,
+      } as unknown as Parameters<typeof generateZod>[0],
+      schema,
+      testOutput,
+    );
+    // encBinary: encoding image/png → File
+    // encText: encoding text/plain → File | string
+    // cmtBinary: contentMediaType image/png → File
+    // cmtText: contentMediaType application/xml → File | string
+    // encOverride: encoding text/csv overrides contentMediaType image/png → File | string
+    // formatBinary: format: binary → File (same as instanceof check)
+    // base64Field: contentEncoding base64 → stays string
+    // metadata: object → object schema
+    expect(result.implementation)
+      .toBe(`export const UploadFormBody = zod.object({
+  "encBinary": zod.instanceof(File),
+  "encText": zod.instanceof(File).or(zod.string()),
+  "cmtBinary": zod.instanceof(File),
+  "cmtText": zod.instanceof(File).or(zod.string()),
+  "encOverride": zod.instanceof(File).or(zod.string()),
+  "formatBinary": zod.instanceof(File),
+  "base64Field": zod.string(),
+  "metadata": zod.object({
+  "name": zod.string().optional()
+})
+})
+
+`);
+  });
 });
 
 describe('zod split mode regressions', () => {
