@@ -13,7 +13,7 @@ export default defineConfig({
       clean: true,
       formatter: 'prettier',
       baseUrl: 'http://localhost:8787',
-      mocks: true,
+      mock: true,
     },
   },
   petstoreApi: {

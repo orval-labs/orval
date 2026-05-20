@@ -42,7 +42,7 @@ export default defineConfig({
     output: {
       target: '../generated/default/petstore-transformer/endpoints.ts',
       schemas: '../generated/default/petstore-transformer/model',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -58,7 +58,7 @@ export default defineConfig({
     output: {
       target: '../generated/default/endpoint-parameters/endpoints.ts',
       schemas: '../generated/default/endpoint-parameters/model',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -94,7 +94,7 @@ export default defineConfig({
   'null-type-v-3-0': {
     input: '../specifications/null-type-v3-0.yaml',
     output: {
-      mocks: true,
+      mock: true,
       schemas: '../generated/default/null-type-v3-0/model',
       target: '../generated/default/null-type-v3-0/endpoints.ts',
       clean: true,
@@ -124,7 +124,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/all-of-one-of/model',
       target: '../generated/default/all-of-one-of/endpoints.ts',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -134,7 +134,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/all-of-without-type/model',
       target: '../generated/default/all-of-without-type/endpoints.ts',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -144,7 +144,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/all-of-required-in-parent/model',
       target: '../generated/default/all-of-required-in-parent/endpoints.ts',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -154,7 +154,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/all-of-all-of/model',
       target: '../generated/default/all-of-all-of/endpoints.ts',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -164,7 +164,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/all-of-primitive/model',
       target: '../generated/default/all-of-primitive/endpoints.ts',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -174,7 +174,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/one-of/model',
       target: '../generated/default/one-of/endpoints.ts',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -184,7 +184,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/one-of-primitive/model',
       target: '../generated/default/one-of-primitive/endpoints.ts',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -194,7 +194,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/one-of-required/model',
       target: '../generated/default/one-of-required/endpoints.ts',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -204,7 +204,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/one-of-nested/model',
       target: '../generated/default/one-of-nested/endpoints.ts',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -214,7 +214,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/any-of-primitive/model',
       target: '../generated/default/any-of-primitive/endpoints.ts',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -224,7 +224,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/circular-v2/model',
       target: '../generated/default/circular-v2/endpoints.ts',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -234,7 +234,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/any-of/model',
       target: '../generated/default/any-of/endpoints.ts',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -244,7 +244,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/all-of/model',
       target: '../generated/default/all-of/endpoints.ts',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -254,7 +254,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/all-of-ref/model',
       target: '../generated/default/all-of-ref/endpoints.ts',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -264,7 +264,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/all-of-strict/model',
       target: '../generated/default/all-of-strict/endpoints.ts',
-      mocks: true,
+      mock: true,
       client: 'zod',
       override: {
         zod: {
@@ -293,7 +293,7 @@ export default defineConfig({
   'example-v3-1': {
     input: '../specifications/example-v3-1.yaml',
     output: {
-      mocks: true,
+      mock: true,
       schemas: '../generated/default/example-v3-1/model',
       target: '../generated/default/example-v3-1/endpoints.ts',
       clean: true,
@@ -304,7 +304,7 @@ export default defineConfig({
     input: '../specifications/petstore.yaml',
     output: {
       mode: 'split',
-      mocks: true,
+      mock: true,
       schemas: '../generated/default/override-mock/model',
       target: '../generated/default/override-mock/endpoints.ts',
       override: {
@@ -325,7 +325,7 @@ export default defineConfig({
   'runtime-mock-delay': {
     input: '../specifications/petstore.yaml',
     output: {
-      mocks: {
+      mock: {
         generators: [
           {
             type: 'msw',
@@ -343,7 +343,7 @@ export default defineConfig({
   'http-status-mocks': {
     input: '../specifications/petstore.yaml',
     output: {
-      mocks: {
+      mock: {
         generators: [{ type: 'msw', generateEachHttpStatus: true }],
       },
       schemas: '../generated/default/http-status-mocks/model',
@@ -357,7 +357,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/combine-enum/schemas',
       target: '../generated/default/combine-enum',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -367,7 +367,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/const/model',
       target: '../generated/default/const',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -414,7 +414,7 @@ export default defineConfig({
       target: '../generated/default/index-mock-file/endpoints.ts',
       schemas: '../generated/default/index-mock-file/model',
       client: 'fetch',
-      mocks: {
+      mock: {
         indexMockFiles: true,
         generators: [{ type: 'msw' }],
       },
@@ -490,7 +490,7 @@ export default defineConfig({
     output: {
       target: '../generated/default/enums/const/endpoints.ts',
       schemas: '../generated/default/enums/const/model',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -502,7 +502,7 @@ export default defineConfig({
     output: {
       target: '../generated/default/enums/native/endpoints.ts',
       schemas: '../generated/default/enums/native/model',
-      mocks: true,
+      mock: true,
       override: {
         enumGenerationType: 'enum',
       },
@@ -517,7 +517,7 @@ export default defineConfig({
     output: {
       target: '../generated/default/enums/union/endpoints.ts',
       schemas: '../generated/default/enums/union/model',
-      mocks: true,
+      mock: true,
       override: {
         enumGenerationType: 'union',
       },
@@ -612,7 +612,7 @@ export default defineConfig({
     output: {
       target: '../generated/default/nullable-any-of-refs/endpoints.ts',
       schemas: '../generated/default/nullable-any-of-refs/model',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -624,7 +624,7 @@ export default defineConfig({
     output: {
       target: '../generated/default/nullable-oneof-enums/endpoints.ts',
       schemas: '../generated/default/nullable-oneof-enums/model',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -665,7 +665,7 @@ export default defineConfig({
       schemas: '../generated/default/issue-2998/model',
       client: 'angular',
       mode: 'tags-split',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },

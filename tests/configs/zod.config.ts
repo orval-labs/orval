@@ -17,7 +17,7 @@ export default defineConfig({
       target: '../generated/zod/petstore/endpoints.ts',
       schemas: '../generated/zod/petstore/model',
       client: 'zod',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -32,7 +32,7 @@ export default defineConfig({
     output: {
       target: '../generated/zod/petstore-tags-split/endpoints.ts',
       schemas: '../generated/zod/petstore-tags-split/model',
-      mocks: true,
+      mock: true,
       mode: 'tags-split',
       client: 'zod',
       clean: true,
@@ -46,7 +46,7 @@ export default defineConfig({
     output: {
       target: '../generated/zod/split/endpoints.ts',
       schemas: '../generated/zod/split/model',
-      mocks: true,
+      mock: true,
       mode: 'split',
       client: 'zod',
       clean: true,
@@ -60,7 +60,7 @@ export default defineConfig({
     output: {
       target: '../generated/zod/tags/endpoints.ts',
       schemas: '../generated/zod/tags/model',
-      mocks: true,
+      mock: true,
       mode: 'tags',
       client: 'zod',
       clean: true,

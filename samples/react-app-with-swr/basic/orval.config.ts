@@ -10,7 +10,7 @@ export default defineConfig({
       client: 'swr',
       clean: true,
       formatter: 'prettier',
-      mocks: true,
+      mock: true,
       override: {
         mutator: {
           path: './src/api/mutator/custom-instance.ts',

@@ -8,7 +8,7 @@ export default defineConfig({
       schemas: 'src/gen/models',
       client: 'react-query',
       baseUrl: 'http://localhost:8000',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
       override: {

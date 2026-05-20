@@ -7,7 +7,7 @@ export default defineConfig({
       schemas: '../generated/vue-query/petstore/model',
       client: 'vue-query',
       httpClient: 'axios',
-      mocks: true,
+      mock: true,
       override: {
         query: {
           useQuery: true,
@@ -32,7 +32,7 @@ export default defineConfig({
         type: 'zod',
         path: '../generated/vue-query/zod-schema-response/model',
       },
-      mocks: true,
+      mock: true,
       client: 'vue-query',
       httpClient: 'axios',
       clean: true,
@@ -47,7 +47,7 @@ export default defineConfig({
       target: '../generated/vue-query/petstore-tags-split/endpoints.ts',
       schemas: '../generated/vue-query/petstore-tags-split/model',
       httpClient: 'axios',
-      mocks: true,
+      mock: true,
       mode: 'tags-split',
       client: 'vue-query',
       clean: true,
@@ -62,7 +62,7 @@ export default defineConfig({
       target: '../generated/vue-query/split/endpoints.ts',
       schemas: '../generated/vue-query/split/model',
       httpClient: 'axios',
-      mocks: true,
+      mock: true,
       mode: 'split',
       client: 'vue-query',
       clean: true,
@@ -77,7 +77,7 @@ export default defineConfig({
       target: '../generated/vue-query/tags/endpoints.ts',
       schemas: '../generated/vue-query/tags/model',
       httpClient: 'axios',
-      mocks: true,
+      mock: true,
       mode: 'tags',
       client: 'vue-query',
       clean: true,
@@ -126,7 +126,7 @@ export default defineConfig({
       schemas: '../generated/vue-query/mutator/model',
       client: 'vue-query',
       httpClient: 'axios',
-      mocks: true,
+      mock: true,
       override: {
         mutator: {
           path: '../mutators/custom-instance.ts',
@@ -155,7 +155,7 @@ export default defineConfig({
       schemas:
         '../generated/vue-query/http-client-fetch-with-custom-fetch/model',
       client: 'vue-query',
-      mocks: true,
+      mock: true,
       override: {
         mutator: {
           path: '../mutators/custom-fetch.ts',
@@ -175,7 +175,7 @@ export default defineConfig({
         '../generated/vue-query/infinite-query-with-custom-fetch/endpoints.ts',
       schemas: '../generated/vue-query/infinite-query-with-custom-fetch/model',
       client: 'vue-query',
-      mocks: true,
+      mock: true,
       override: {
         mutator: {
           path: '../mutators/custom-fetch.ts',
@@ -201,7 +201,7 @@ export default defineConfig({
       schemas:
         '../generated/vue-query/infinite-query-with-built-in-fetch/model',
       client: 'vue-query',
-      mocks: true,
+      mock: true,
       override: {
         query: {
           useQuery: true,
@@ -221,7 +221,7 @@ export default defineConfig({
       target: '../generated/vue-query/all-params-optional/endpoints.ts',
       schemas: '../generated/vue-query/all-params-optional/model',
       client: 'vue-query',
-      mocks: true,
+      mock: true,
       allParamsOptional: true,
       clean: true,
       formatter: 'prettier',
@@ -235,7 +235,7 @@ export default defineConfig({
       target: '../generated/vue-query/url-encode-parameters/endpoints.ts',
       schemas: '../generated/vue-query/url-encode-parameters/model',
       client: 'vue-query',
-      mocks: true,
+      mock: true,
       urlEncodeParameters: true,
       clean: true,
       formatter: 'prettier',
@@ -250,7 +250,7 @@ export default defineConfig({
         '../generated/vue-query/combination-used-by-maxim-mazurok/endpoints.ts',
       schemas: '../generated/vue-query/combination-used-by-maxim-mazurok/model',
       client: 'vue-query',
-      mocks: true,
+      mock: true,
       allParamsOptional: true,
       urlEncodeParameters: true,
       clean: true,

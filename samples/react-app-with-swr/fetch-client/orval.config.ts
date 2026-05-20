@@ -10,7 +10,7 @@ export default defineConfig({
       client: 'swr',
       clean: true,
       formatter: 'prettier',
-      mocks: true,
+      mock: true,
       override: {
         fetch: {
           includeHttpResponseReturnType: false,

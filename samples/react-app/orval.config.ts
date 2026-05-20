@@ -7,7 +7,7 @@ export default defineConfig({
       mode: 'split',
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
-      mocks: true,
+      mock: true,
       formatter: 'prettier',
       override: {
         mutator: {

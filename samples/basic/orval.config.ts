@@ -15,7 +15,7 @@ export default defineConfig({
       target: './api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: './api/model',
       formatter: 'prettier',
-      mocks: true,
+      mock: true,
       override: {
         operations: {
           listPets: {

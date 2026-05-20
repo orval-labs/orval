@@ -6,7 +6,7 @@ export default defineConfig({
       target: '../generated/react-query/basic/endpoints.ts',
       schemas: '../generated/react-query/basic/model',
       client: 'react-query',
-      mocks: true,
+      mock: true,
       headers: true,
       clean: true,
       formatter: 'prettier',
@@ -20,7 +20,7 @@ export default defineConfig({
       target: '../generated/react-query/invalidates/endpoints.ts',
       schemas: '../generated/react-query/invalidates/model',
       client: 'react-query',
-      mocks: true,
+      mock: true,
       headers: true,
       override: {
         query: {
@@ -408,7 +408,7 @@ export default defineConfig({
         type: 'zod',
         path: '../generated/react-query/zod-schema-response/model',
       },
-      mocks: true,
+      mock: true,
       client: 'react-query',
       clean: true,
       formatter: 'prettier',
@@ -423,7 +423,7 @@ export default defineConfig({
       schemas: '../generated/react-query/no-content-with-default/model',
       mode: 'split',
       client: 'react-query',
-      mocks: {
+      mock: {
         generators: [{ type: 'msw', delay: 0, useExamples: true }],
       },
       headers: true,
@@ -438,7 +438,7 @@ export default defineConfig({
     output: {
       target: '../generated/react-query/petstore-tags-split/endpoints.ts',
       schemas: '../generated/react-query/petstore-tags-split/model',
-      mocks: true,
+      mock: true,
       mode: 'tags-split',
       client: 'react-query',
       clean: true,
@@ -452,7 +452,7 @@ export default defineConfig({
     output: {
       target: '../generated/react-query/split/endpoints.ts',
       schemas: '../generated/react-query/split/model',
-      mocks: true,
+      mock: true,
       mode: 'split',
       client: 'react-query',
       clean: true,
@@ -466,7 +466,7 @@ export default defineConfig({
     output: {
       target: '../generated/react-query/tags/endpoints.ts',
       schemas: '../generated/react-query/tags/model',
-      mocks: true,
+      mock: true,
       mode: 'tags',
       client: 'react-query',
       clean: true,
@@ -557,7 +557,7 @@ export default defineConfig({
       schemas: '../generated/react-query/mutator/model',
       client: 'react-query',
       httpClient: 'axios',
-      mocks: true,
+      mock: true,
       override: {
         mutator: {
           path: '../mutators/custom-instance.ts',
@@ -586,7 +586,7 @@ export default defineConfig({
       schemas: '../generated/react-query/mutator-client/model',
       client: 'react-query',
       httpClient: 'axios',
-      mocks: true,
+      mock: true,
       headers: true,
       override: {
         mutator: {
@@ -616,7 +616,7 @@ export default defineConfig({
       schemas:
         '../generated/react-query/http-client-fetch-with-custom-fetch/model',
       client: 'react-query',
-      mocks: true,
+      mock: true,
       override: {
         mutator: {
           path: '../mutators/custom-fetch.ts',
@@ -636,7 +636,7 @@ export default defineConfig({
       schemas: '../generated/react-query/mutator-multi-arguments/model',
       client: 'react-query',
       httpClient: 'axios',
-      mocks: true,
+      mock: true,
       override: {
         mutator: {
           path: '../mutators/multi-arguments.ts',
@@ -664,7 +664,7 @@ export default defineConfig({
       schemas: '../generated/react-query/error-type/model',
       client: 'react-query',
       httpClient: 'axios',
-      mocks: true,
+      mock: true,
       override: {
         mutator: {
           path: '../mutators/error-type.ts',
@@ -777,7 +777,7 @@ export default defineConfig({
       schemas: '../generated/react-query/form-data/model',
       client: 'react-query',
       httpClient: 'axios',
-      mocks: true,
+      mock: true,
       override: {
         mutator: {
           path: '../mutators/custom-instance.ts',
@@ -797,7 +797,7 @@ export default defineConfig({
       schemas: '../generated/react-query/form-data-with-hook/model',
       client: 'react-query',
       httpClient: 'axios',
-      mocks: true,
+      mock: true,
       override: {
         mutator: {
           path: '../mutators/use-custom-instance.ts',
@@ -817,7 +817,7 @@ export default defineConfig({
       schemas: '../generated/react-query/form-data-with-mutator/model',
       client: 'react-query',
       httpClient: 'axios',
-      mocks: true,
+      mock: true,
       override: {
         mutator: {
           path: '../mutators/custom-instance.ts',
@@ -841,7 +841,7 @@ export default defineConfig({
       schemas: '../generated/react-query/form-url-encoded/model',
       client: 'react-query',
       httpClient: 'axios',
-      mocks: true,
+      mock: true,
       override: {
         mutator: {
           path: '../mutators/custom-instance.ts',
@@ -861,7 +861,7 @@ export default defineConfig({
       schemas: '../generated/react-query/formUrlEncoded/model',
       client: 'react-query',
       httpClient: 'axios',
-      mocks: true,
+      mock: true,
       override: {
         mutator: {
           path: '../mutators/custom-instance.ts',
@@ -885,7 +885,7 @@ export default defineConfig({
       schemas: '../generated/react-query/importFromSubdirectory/model',
       client: 'react-query',
       mode: 'split',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -896,7 +896,7 @@ export default defineConfig({
       target: '../generated/react-query/deprecated/endpoints.ts',
       schemas: '../generated/react-query/deprecated/model',
       client: 'react-query',
-      mocks: true,
+      mock: true,
       override: {
         useDeprecatedOperations: false,
       },
@@ -910,7 +910,7 @@ export default defineConfig({
       target: '../generated/react-query/mockOverride/endpoints.ts',
       schemas: '../generated/react-query/mockOverride/model',
       client: 'react-query',
-      mocks: true,
+      mock: true,
       override: {
         mock: {
           arrayMin: 5,
@@ -929,7 +929,7 @@ export default defineConfig({
       target: '../generated/react-query/mockWithoutDelay/endpoints.ts',
       schemas: '../generated/react-query/mockWithoutDelay/model',
       client: 'react-query',
-      mocks: {
+      mock: {
         generators: [{ type: 'msw', delay: false }],
       },
       clean: true,
@@ -944,7 +944,7 @@ export default defineConfig({
       target: '../generated/react-query/polymorphic/endpoints.ts',
       schemas: '../generated/react-query/polymorphic/model',
       client: 'react-query',
-      mocks: true,
+      mock: true,
       headers: true,
       clean: true,
       formatter: 'prettier',
@@ -976,7 +976,7 @@ export default defineConfig({
       target: '../generated/react-query/special-characters/endpoints.ts',
       schemas: '../generated/react-query/special-characters/model',
       client: 'react-query',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -1170,7 +1170,7 @@ export default defineConfig({
       schemas: '../generated/react-query/issue-3269/model',
       client: 'react-query',
       mode: 'tags-split',
-      mocks: { generators: [{ type: 'msw' }] },
+      mock: { generators: [{ type: 'msw' }] },
       clean: true,
       formatter: 'prettier',
     },

@@ -9,7 +9,7 @@ export default defineConfig({
       schemas: 'src/api/model',
       client: 'vue-query',
       httpClient: 'axios',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
       override: {

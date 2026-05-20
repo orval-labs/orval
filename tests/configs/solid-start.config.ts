@@ -6,7 +6,7 @@ export default defineConfig({
       target: '../generated/solid-start/petstore/endpoints.ts',
       schemas: '../generated/solid-start/petstore/model',
       client: 'solid-start',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -21,7 +21,7 @@ export default defineConfig({
     output: {
       target: '../generated/solid-start/petstore-tags-split/endpoints.ts',
       schemas: '../generated/solid-start/petstore-tags-split/model',
-      mocks: true,
+      mock: true,
       mode: 'tags-split',
       client: 'solid-start',
       clean: true,
@@ -35,7 +35,7 @@ export default defineConfig({
     output: {
       target: '../generated/solid-start/split/endpoints.ts',
       schemas: '../generated/solid-start/split/model',
-      mocks: true,
+      mock: true,
       mode: 'split',
       client: 'solid-start',
       clean: true,
@@ -49,7 +49,7 @@ export default defineConfig({
     output: {
       target: '../generated/solid-start/tags/endpoints.ts',
       schemas: '../generated/solid-start/tags/model',
-      mocks: true,
+      mock: true,
       mode: 'tags',
       client: 'solid-start',
       clean: true,
@@ -64,7 +64,7 @@ export default defineConfig({
       target: '../generated/solid-start/mutator/endpoints.ts',
       schemas: '../generated/solid-start/mutator/model',
       client: 'solid-start',
-      mocks: true,
+      mock: true,
       override: {
         mutator: {
           path: '../mutators/custom-instance.ts',

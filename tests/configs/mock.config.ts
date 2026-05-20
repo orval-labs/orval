@@ -7,7 +7,7 @@ export default defineConfig({
       target: '../generated/mock/petstore/endpoints.ts',
       schemas: '../generated/mock/petstore/model',
       client: 'axios',
-      mocks: true,
+      mock: true,
       override: {
         mock: {
           properties: {
@@ -39,7 +39,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/mock/endpoints-named-delay/model',
       target: '../generated/mock/endpoints-named-delay/endpoints.ts',
-      mocks: {
+      mock: {
         generators: [{ type: 'msw', delay: false }],
       },
       clean: true,
@@ -54,7 +54,7 @@ export default defineConfig({
       target: '../generated/mock/petstore-each-http-status/endpoints.ts',
       schemas: '../generated/mock/petstore-each-http-status/model',
       client: 'axios',
-      mocks: true,
+      mock: true,
       override: {
         mock: {
           generateEachHttpStatus: true,
@@ -72,7 +72,7 @@ export default defineConfig({
       target: '../generated/mock/petstore-custom-mock-builder/endpoints.ts',
       schemas: '../generated/mock/petstore-custom-mock-builder/model',
       client: 'axios',
-      mocks: (verbOptions, _) => {
+      mock: (verbOptions, _) => {
         const handlerName = `${verbOptions.operationId}MockHandler`;
 
         return {
@@ -95,7 +95,7 @@ export default defineConfig({
     output: {
       target: '../generated/mock/petstore-tags-split/endpoints.ts',
       schemas: '../generated/mock/petstore-tags-split/model',
-      mocks: true,
+      mock: true,
       mode: 'tags-split',
       client: 'axios',
       clean: true,
@@ -109,7 +109,7 @@ export default defineConfig({
     output: {
       target: '../generated/mock/split/endpoints.ts',
       schemas: '../generated/mock/split/model',
-      mocks: true,
+      mock: true,
       mode: 'split',
       client: 'axios',
       clean: true,
@@ -123,7 +123,7 @@ export default defineConfig({
     output: {
       target: '../generated/mock/tags/endpoints.ts',
       schemas: '../generated/mock/tags/model',
-      mocks: true,
+      mock: true,
       mode: 'tags',
       client: 'axios',
       clean: true,
@@ -137,7 +137,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/mock/null-type/model',
       target: '../generated/mock/null-type/endpoints.ts',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -151,7 +151,7 @@ export default defineConfig({
       schemas: '../generated/mock/enumRefs/model',
       target: '../generated/mock/enumRefs/endpoints.ts',
       client: 'axios',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -164,7 +164,7 @@ export default defineConfig({
     output: {
       schemas: '../generated/mock/typelessEnum/schemas',
       target: '../generated/mock/typelessEnum',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -174,7 +174,7 @@ export default defineConfig({
     output: {
       target: '../generated/mock/formats/endpoints.ts',
       schemas: '../generated/mock/formats/model',
-      mocks: true,
+      mock: true,
       override: {
         useDates: true,
         useBigInt: true,
@@ -194,7 +194,7 @@ export default defineConfig({
         type: 'zod',
       },
       client: 'axios',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -206,7 +206,7 @@ export default defineConfig({
     output: {
       target: '../generated/mock/allof-shared-base/endpoints.ts',
       schemas: '../generated/mock/allof-shared-base/model',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -218,7 +218,7 @@ export default defineConfig({
     output: {
       target: '../generated/mock/circular/endpoints.ts',
       schemas: '../generated/mock/circular/model',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -230,7 +230,7 @@ export default defineConfig({
     output: {
       target: '../generated/mock/recursive-discriminator-allof/endpoints.ts',
       schemas: '../generated/mock/recursive-discriminator-allof/model',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -243,7 +243,7 @@ export default defineConfig({
       target: '../generated/mock/msw-mixed-content-union/endpoints.ts',
       schemas: '../generated/mock/msw-mixed-content-union/model',
       client: 'axios',
-      mocks: {
+      mock: {
         generators: [{ type: 'msw' }],
       },
       clean: true,
@@ -259,7 +259,7 @@ export default defineConfig({
         '../generated/mock/msw-mixed-content-union-preferred-json/endpoints.ts',
       schemas: '../generated/mock/msw-mixed-content-union-preferred-json/model',
       client: 'axios',
-      mocks: {
+      mock: {
         generators: [{ type: 'msw', preferredContentType: 'application/json' }],
       },
       clean: true,
@@ -275,7 +275,7 @@ export default defineConfig({
         '../generated/mock/msw-mixed-content-union-each-status/endpoints.ts',
       schemas: '../generated/mock/msw-mixed-content-union-each-status/model',
       client: 'axios',
-      mocks: {
+      mock: {
         generators: [{ type: 'msw', generateEachHttpStatus: true }],
       },
       clean: true,
@@ -290,7 +290,7 @@ export default defineConfig({
       target: '../generated/mock/msw-mixed-content-union-vendor/endpoints.ts',
       schemas: '../generated/mock/msw-mixed-content-union-vendor/model',
       client: 'axios',
-      mocks: {
+      mock: {
         generators: [{ type: 'msw' }],
       },
       clean: true,
@@ -305,7 +305,7 @@ export default defineConfig({
       target: '../generated/mock/mixed-success-status/endpoints.ts',
       schemas: '../generated/mock/mixed-success-status/model',
       client: 'axios',
-      mocks: true,
+      mock: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -318,7 +318,7 @@ export default defineConfig({
       target: '../generated/mock/enums-inline-tags-split-native/endpoints.ts',
       schemas: '../generated/mock/enums-inline-tags-split-native/model',
       mode: 'tags-split',
-      mocks: {
+      mock: {
         generators: [{ type: 'msw' }],
       },
       override: {
@@ -336,7 +336,7 @@ export default defineConfig({
       target: '../generated/mock/msw-binary-multi-content/endpoints.ts',
       schemas: '../generated/mock/msw-binary-multi-content/model',
       client: 'axios',
-      mocks: {
+      mock: {
         generators: [{ type: 'msw' }],
       },
       clean: true,

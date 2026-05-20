@@ -6,7 +6,7 @@ export default defineConfig({
       target: '../generated/solid-query/petstore/endpoints.ts',
       schemas: '../generated/solid-query/petstore/model',
       client: 'solid-query',
-      mocks: true,
+      mock: true,
       override: {
         query: {
           useQuery: true,
@@ -31,7 +31,7 @@ export default defineConfig({
         type: 'zod',
         path: '../generated/solid-query/zod-schema-response/model',
       },
-      mocks: true,
+      mock: true,
       client: 'solid-query',
       clean: true,
       formatter: 'prettier',
@@ -44,7 +44,7 @@ export default defineConfig({
     output: {
       target: '../generated/solid-query/petstore-tags-split/endpoints.ts',
       schemas: '../generated/solid-query/petstore-tags-split/model',
-      mocks: true,
+      mock: true,
       mode: 'tags-split',
       client: 'solid-query',
       clean: true,
@@ -58,7 +58,7 @@ export default defineConfig({
     output: {
       target: '../generated/solid-query/split/endpoints.ts',
       schemas: '../generated/solid-query/split/model',
-      mocks: true,
+      mock: true,
       mode: 'split',
       client: 'solid-query',
       clean: true,
@@ -72,7 +72,7 @@ export default defineConfig({
     output: {
       target: '../generated/solid-query/tags/endpoints.ts',
       schemas: '../generated/solid-query/tags/model',
-      mocks: true,
+      mock: true,
       mode: 'tags',
       client: 'solid-query',
       clean: true,
@@ -121,7 +121,7 @@ export default defineConfig({
       schemas: '../generated/solid-query/mutator/model',
       client: 'solid-query',
       httpClient: 'axios',
-      mocks: true,
+      mock: true,
       override: {
         mutator: {
           path: '../mutators/custom-instance.ts',
@@ -150,7 +150,7 @@ export default defineConfig({
       schemas:
         '../generated/solid-query/http-client-fetch-with-custom-fetch/model',
       client: 'solid-query',
-      mocks: true,
+      mock: true,
       override: {
         mutator: {
           path: '../mutators/custom-fetch.ts',

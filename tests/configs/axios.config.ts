@@ -5,7 +5,7 @@ export default defineConfig({
     output: {
       target: '../generated/axios/petstore/endpoints.ts',
       schemas: '../generated/axios/petstore/model',
-      mocks: true,
+      mock: true,
       client: 'axios',
       clean: true,
       formatter: 'prettier',
@@ -24,7 +24,7 @@ export default defineConfig({
         type: 'zod',
         path: '../generated/axios/zod-schema-response/model',
       },
-      mocks: true,
+      mock: true,
       client: 'axios',
       clean: true,
       formatter: 'prettier',
@@ -37,7 +37,7 @@ export default defineConfig({
     output: {
       target: '../generated/axios/mutator/endpoints.ts',
       schemas: '../generated/axios/mutator/model',
-      mocks: true,
+      mock: true,
       client: 'axios',
       override: {
         mutator: '../mutators/custom-client.ts',
@@ -56,7 +56,7 @@ export default defineConfig({
     output: {
       target: '../generated/axios/multi-arguments/endpoints.ts',
       schemas: '../generated/axios/multi-arguments/model',
-      mocks: true,
+      mock: true,
       client: 'axios',
       override: {
         mutator: '../mutators/multi-arguments.ts',
@@ -75,7 +75,7 @@ export default defineConfig({
     output: {
       target: '../generated/axios/petstore-tags-split/endpoints.ts',
       schemas: '../generated/axios/petstore-tags-split/model',
-      mocks: true,
+      mock: true,
       mode: 'tags-split',
       client: 'axios',
       clean: true,
@@ -92,7 +92,7 @@ export default defineConfig({
     output: {
       target: '../generated/axios/petstore-tags-split-mutator/endpoints.ts',
       schemas: '../generated/axios/petstore-tags-split-mutator/model',
-      mocks: true,
+      mock: true,
       mode: 'tags-split',
       client: 'axios',
       override: {
@@ -112,7 +112,7 @@ export default defineConfig({
     output: {
       target: '../generated/axios/split/endpoints.ts',
       schemas: '../generated/axios/split/model',
-      mocks: true,
+      mock: true,
       mode: 'split',
       client: 'axios',
       clean: true,
@@ -129,7 +129,7 @@ export default defineConfig({
     output: {
       target: '../generated/axios/tags/endpoints.ts',
       schemas: '../generated/axios/tags/model',
-      mocks: true,
+      mock: true,
       mode: 'tags',
       client: 'axios',
       clean: true,
