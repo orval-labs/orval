@@ -191,7 +191,7 @@ const globalOptions: GlobalOptions = {
   prettier: true,
   client: 'fetch',
   mode: 'split',
-  mock: true,
+  mocks: true,
   tsconfig: './tsconfig.json',
 };
 

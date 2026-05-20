@@ -126,7 +126,7 @@ Traditional Angular service generation:
 output: {
   client: 'angular',
   mode: 'tags-split',
-  mock: true,
+  mocks: true,
   override: {
     angular: {
       provideIn: 'root',  // 'root' | 'any' | '' | false
