@@ -244,13 +244,12 @@ export async function writeSplitTagsMode({
         // current design only non-function generator entries get their own
         // file; ClientMockBuilder functions are not yet supported here.
         const mockPaths: string[] = [];
-        for (const [index, mockOutput] of mockOutputs.entries()) {
-          const entry = output.mock.generators[index];
-          if (isFunction(entry)) {
-            throw new Error(
-              'Function mock generators are not supported in tags-split mode. Use typed generators ({ type: "msw" } or { type: "faker" }).',
-            );
-          }
+        for (const mockOutput of mockOutputs) {
+          const entry = output.mock.generators.find(
+            (g): g is GlobalMockOptions =>
+              !isFunction(g) && g.type === mockOutput.type,
+          );
+          if (!entry) continue;
 
           const importsMockForBuilder = generateImportsForBuilder(
             output,

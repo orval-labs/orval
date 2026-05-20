@@ -1,7 +1,11 @@
 import path from 'node:path';
 
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { OutputClient, type WriteModeProps } from '../types';
+import {
+  type GlobalMockOptions,
+  OutputClient,
+  type WriteModeProps,
+} from '../types';
 import {
   conventionName,
   getFileInfo,
@@ -167,8 +171,13 @@ export async function writeSplitMode({
     // suffix comes from `getMockFileExtensionByTypeName(entry)` (e.g. `.msw.ts`
     // or `.faker.ts`).
     const mockPaths: string[] = [];
-    for (const [index, mockOutput] of mockOutputs.entries()) {
-      const entry = output.mock.generators[index];
+    for (const mockOutput of mockOutputs) {
+      const entry = output.mock.generators.find(
+        (g): g is GlobalMockOptions =>
+          !isFunction(g) && g.type === mockOutput.type,
+      );
+      if (!entry) continue;
+
       const importsMockForBuilder = generateImportsForBuilder(
         output,
         mockOutput.imports,
@@ -181,7 +190,7 @@ export async function writeSplitMode({
         projectName,
         hasSchemaDir: !!output.schemas,
         isAllowSyntheticDefaultImports,
-        options: isFunction(entry) ? undefined : entry,
+        options: entry,
       });
       mockData += `\n${mockOutput.implementation}`;
 

@@ -188,6 +188,11 @@ export async function normalizeOptions(
     // ClientMockBuilder. Wrap it in the array so writers can still iterate.
     mocks = { indexMockFiles: false, generators: [mocksOption] };
   } else if (mocksOption && typeof mocksOption === 'object') {
+    if (!Array.isArray(mocksOption.generators)) {
+      throw new TypeError(
+        'mock.generators must be an array of generator entries (e.g. [{ type: "msw" }]).',
+      );
+    }
     mocks = {
       indexMockFiles: mocksOption.indexMockFiles ?? false,
       generators: mocksOption.generators.map((m) =>
