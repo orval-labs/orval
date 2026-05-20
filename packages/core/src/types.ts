@@ -993,6 +993,7 @@ export interface GlobalOptions {
   input?: string | string[];
   output?: string;
   failOnWarnings?: boolean;
+  throwOnError?: boolean;
 }
 
 export interface Tsconfig {
