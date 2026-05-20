@@ -47,7 +47,9 @@ function generateTargetTags(
       implementationMock: {
         function: operation.implementationMock.function,
         handler: operation.implementationMock.handler,
-        handlerName: '  ' + operation.implementationMock.handlerName + '()',
+        handlerName: operation.implementationMock.handlerName
+          ? '  ' + operation.implementationMock.handlerName + '()'
+          : '',
       },
     };
 
@@ -66,11 +68,14 @@ function generateTargetTags(
       handler:
         currentOperation.implementationMock.handler +
         operation.implementationMock.handler,
-      handlerName:
-        currentOperation.implementationMock.handlerName +
-        ',\n  ' +
-        operation.implementationMock.handlerName +
-        '()',
+      handlerName: operation.implementationMock.handlerName
+        ? currentOperation.implementationMock.handlerName +
+          (currentOperation.implementationMock.handlerName.length > 0
+            ? ',\n  '
+            : '  ') +
+          operation.implementationMock.handlerName +
+          '()'
+        : currentOperation.implementationMock.handlerName,
     },
     mutators: operation.mutator
       ? [...(currentOperation.mutators ?? []), operation.mutator]

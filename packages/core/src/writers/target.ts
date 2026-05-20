@@ -48,10 +48,12 @@ export function generateTarget(
     target.implementationMock.function += operation.implementationMock.function;
     target.implementationMock.handler += operation.implementationMock.handler;
 
-    const handlerNameSeparator =
-      target.implementationMock.handlerName.length > 0 ? ',\n  ' : '  ';
-    target.implementationMock.handlerName +=
-      handlerNameSeparator + operation.implementationMock.handlerName + '()';
+    if (operation.implementationMock.handlerName) {
+      const handlerNameSeparator =
+        target.implementationMock.handlerName.length > 0 ? ',\n  ' : '  ';
+      target.implementationMock.handlerName +=
+        handlerNameSeparator + operation.implementationMock.handlerName + '()';
+    }
 
     if (operation.mutator) {
       target.mutators.push(operation.mutator);

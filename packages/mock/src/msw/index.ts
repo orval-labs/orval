@@ -21,8 +21,18 @@ import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
 function getMSWDependencies(
   options?: GlobalMockOptions,
 ): GeneratorDependency[] {
-  const hasDelay = options?.delay !== false;
   const locale = options?.locale;
+
+  const fakerDependency: GeneratorDependency = {
+    exports: [{ name: 'faker', values: true }],
+    dependency: locale ? `@faker-js/faker/locale/${locale}` : '@faker-js/faker',
+  };
+
+  if (options?.generateHandlers === false) {
+    return [fakerDependency];
+  }
+
+  const hasDelay = options?.delay !== false;
 
   const exports = [
     { name: 'http', values: true },
@@ -34,15 +44,7 @@ function getMSWDependencies(
     exports.push({ name: 'delay', values: true });
   }
 
-  return [
-    { exports, dependency: 'msw' },
-    {
-      exports: [{ name: 'faker', values: true }],
-      dependency: locale
-        ? `@faker-js/faker/locale/${locale}`
-        : '@faker-js/faker',
-    },
-  ];
+  return [{ exports, dependency: 'msw' }, fakerDependency];
 }
 
 export const generateMSWImports: GenerateMockImports = ({
@@ -421,11 +423,15 @@ export function generateMSW(
     }
   }
 
+  const handlersDisabled =
+    isObject(generatorOptions.mock) &&
+    generatorOptions.mock.generateHandlers === false;
+
   return {
     implementation: {
       function: mockImplementations.join('\n'),
-      handlerName: handlerName,
-      handler: handlerImplementations.join('\n'),
+      handlerName: handlersDisabled ? '' : handlerName,
+      handler: handlersDisabled ? '' : handlerImplementations.join('\n'),
     },
     imports: imports,
   };
