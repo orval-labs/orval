@@ -246,7 +246,11 @@ export async function writeSplitTagsMode({
         const mockPaths: string[] = [];
         for (const [index, mockOutput] of mockOutputs.entries()) {
           const entry = output.mock.generators[index];
-          if (isFunction(entry)) continue;
+          if (isFunction(entry)) {
+            throw new Error(
+              'Function mock generators are not supported in tags-split mode. Use typed generators ({ type: "msw" } or { type: "faker" }).',
+            );
+          }
 
           const importsMockForBuilder = generateImportsForBuilder(
             output,

@@ -338,24 +338,24 @@ export default defineConfig({
 });
 ```
 
-## mocks
+## mock
 
 **Type:** `Boolean | Object | Function`
 **Default:** `false`
 
-Configures one or more mock generators. The shorthand `mocks: true` enables both MSW and Faker mock files with default options:
+Configures one or more mock generators. The shorthand `mock: true` enables both MSW and Faker mock files with default options:
 
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
     output: {
-      mocks: true,
+      mock: true,
     },
   },
 });
 ```
 
-Each entry in `mocks.generators` produces its own file (`<filename>.msw.ts`, `<filename>.faker.ts`, ...). Set `mocks: false` (or omit it) to disable mock generation entirely.
+Each entry in `mock.generators` produces its own file (`<filename>.msw.ts`, `<filename>.faker.ts`, ...). Set `mock: false` (or omit it) to disable mock generation entirely.
 
 ### Mocks Options
 
@@ -363,7 +363,7 @@ Each entry in `mocks.generators` produces its own file (`<filename>.msw.ts`, `<f
 export default defineConfig({
   petstore: {
     output: {
-      mocks: {
+      mock: {
         indexMockFiles: true,
         generators: [
           {

@@ -23,7 +23,7 @@ export default defineConfig({
       client: 'swr',
       target: 'src/api/endpoints',
       schemas: 'src/api/models',
-      mocks: true,
+      mock: true,
     },
   },
   // Zod schema generation
@@ -53,6 +53,7 @@ src/api/
 │   └── pets/
 │       ├── pets.ts       # SWR hooks
 │       ├── pets.msw.ts   # MSW mocks
+│       ├── pets.faker.ts # Faker mocks
 │       └── pets.zod.ts   # Zod schemas
 └── models/
     └── ...

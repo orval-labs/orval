@@ -18,7 +18,7 @@ export default defineConfig({
       mode: 'single',
       target: './src/api/petstore.ts',
       schemas: './src/api/model',
-      mocks: true,
+      mock: true,
     },
     input: {
       target: './petstore.yaml',
@@ -100,7 +100,7 @@ To prefer a specific content type when several are defined (for example, choose 
 export default defineConfig({
   petstore: {
     output: {
-      mocks: {
+      mock: {
         generators: [
           {
             type: 'msw',
@@ -223,7 +223,7 @@ By default, handlers use a wildcard `*` prefix (e.g. `*/pets/:petId`) so they ma
 export default defineConfig({
   petstore: {
     output: {
-      mocks: {
+      mock: {
         generators: [
           {
             type: 'msw',
@@ -247,7 +247,7 @@ export default defineConfig({
   petstore: {
     output: {
       mode: 'tags-split',
-      mocks: {
+      mock: {
         indexMockFiles: true,
         generators: [{ type: 'msw' }],
       },
@@ -277,7 +277,7 @@ If you only need mock data factories without MSW request handlers, use a `faker`
 export default defineConfig({
   petstore: {
     output: {
-      mocks: {
+      mock: {
         generators: [{ type: 'faker' }],
       },
     },

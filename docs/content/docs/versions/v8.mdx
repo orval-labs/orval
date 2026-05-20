@@ -286,6 +286,35 @@ export default defineConfig({
 });
 ```
 
+### 10. `output.mock` shape changed
+
+The `output.mock` option now accepts a multi-generator configuration object in addition to the `true` shorthand. The `generateHandlers` flag is removed.
+
+**`mock: true` is unchanged** — it now emits both `.msw.ts` and `.faker.ts` files.
+
+For MSW-only output (previous default with `mock: true`):
+
+```ts
+output: {
+  mock: { generators: [{ type: 'msw' }] },
+}
+```
+
+For Faker data factories only (replaces `generateHandlers: false`):
+
+```ts
+output: {
+  mock: { generators: [{ type: 'faker' }] },
+}
+```
+
+`indexMockFiles` moves into the wrapper object:
+
+```diff
+- mock: { type: 'msw', indexMockFiles: true }
++ mock: { indexMockFiles: true, generators: [{ type: 'msw' }] }
+```
+
 ## Other Improvements
 
 ### Variable Expansion in Fetch Client Headers
