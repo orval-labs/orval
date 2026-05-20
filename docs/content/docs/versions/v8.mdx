@@ -286,13 +286,15 @@ export default defineConfig({
 });
 ```
 
-### 10. `output.mock` shape changed
+### 10. `output.mock` now uses a `generators` array
 
-The `output.mock` option now accepts a multi-generator configuration object in addition to the `true` shorthand. The `generateHandlers` flag is removed.
+Previously, `output.mock` accepted either `true` or a flat options object (`{ type: 'msw', delay: 1000, locale: 'fr', ... }`). All options lived on a single object and `type: 'msw'` was the only supported type.
 
-**`mock: true` is unchanged** — it now emits both `.msw.ts` and `.faker.ts` files.
+Now, `output.mock` wraps generator entries in a `generators` array. Each entry produces its own output file (e.g. `.msw.ts`, `.faker.ts`). This enables multiple independent mock generators from a single config.
 
-For MSW-only output (previous default with `mock: true`):
+#### `mock: true` behavior change
+
+`mock: true` previously emitted only MSW handlers. It now emits **both** MSW handlers (`.msw.ts`) and Faker data factories (`.faker.ts`). To keep the old behavior (MSW only), use the explicit form:
 
 ```ts
 output: {
@@ -300,19 +302,38 @@ output: {
 }
 ```
 
-For Faker data factories only (replaces `generateHandlers: false`):
+#### Migrating a flat options object
+
+All per-generator options (`delay`, `useExamples`, `locale`, `baseUrl`, etc.) move inside the generator entry:
+
+```diff
+output: {
+- mock: { type: 'msw', delay: 1000, useExamples: true, locale: 'fr' },
++ mock: {
++   generators: [{ type: 'msw', delay: 1000, useExamples: true, locale: 'fr' }],
++ },
+}
+```
+
+#### `indexMockFiles` moves to the wrapper
+
+`indexMockFiles` is now a collection-level option rather than a per-generator option:
+
+```diff
+output: {
+- mock: { type: 'msw', indexMockFiles: true },
++ mock: { indexMockFiles: true, generators: [{ type: 'msw' }] },
+}
+```
+
+#### New: Faker-only output
+
+To generate only Faker data factories without MSW handlers:
 
 ```ts
 output: {
   mock: { generators: [{ type: 'faker' }] },
 }
-```
-
-`indexMockFiles` moves into the wrapper object:
-
-```diff
-- mock: { type: 'msw', indexMockFiles: true }
-+ mock: { indexMockFiles: true, generators: [{ type: 'msw' }] }
 ```
 
 ## Other Improvements
