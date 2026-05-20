@@ -15,6 +15,7 @@ import {
   isObject,
   isSyntheticDefaultImportsAllow,
   kebab,
+  makeRouteSafe,
   OutputHttpClient,
   pascal,
   toObjectString,
@@ -24,12 +25,7 @@ import {
   generateRequestFunction as generateFetchRequestFunction,
 } from '@orval/fetch';
 
-import {
-  getHasSignal,
-  makeRouteSafe,
-  vueUnRefParams,
-  vueWrapTypeWithMaybeRef,
-} from './utils';
+import { getHasSignal, vueUnRefParams, vueWrapTypeWithMaybeRef } from './utils';
 
 export const AXIOS_DEPENDENCIES = [
   {
