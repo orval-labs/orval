@@ -1693,7 +1693,9 @@ Make all parameters optional except path parameters.
 **Type:** `Boolean`
 **Default:** `false`
 
-Enable URL encoding of path/query parameters.
+Wrap each path parameter with `encodeURIComponent(String(...))` in generated URL helpers. This option only affects path parameters; query parameters are typically encoded by the underlying client (`URLSearchParams`, `axios`, etc.).
+
+Path parameters are stringified via `String(value)` before encoding, so array (`style: simple|matrix|label`) and object path parameters are not serialized according to their OpenAPI `style` — they fall back to the default `String(value)` representation.
 
 ### optionsParamRequired
 
