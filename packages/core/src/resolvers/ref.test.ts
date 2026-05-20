@@ -6,7 +6,7 @@ import type {
   OpenApiReferenceObject,
   OpenApiSchemaObject,
 } from '../types';
-import { resolveExampleRefs, resolveRef } from './ref';
+import { extractBoundAliasInfo, resolveExampleRefs, resolveRef } from './ref';
 
 function createContext(spec: OpenApiDocument): ContextSpec {
   return {
@@ -172,6 +172,35 @@ describe('resolveRef', () => {
     });
   });
 
+  it('resolves component refs with JSON-Pointer-encoded schema names', () => {
+    const context = createContext({
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          'My/Type': {
+            type: 'object',
+            properties: { slash: { type: 'string' } },
+          },
+          'My~Type': {
+            type: 'object',
+            properties: { tilde: { type: 'string' } },
+          },
+        },
+      },
+    });
+
+    expect(
+      resolveRef({ $ref: '#/components/schemas/My~1Type' }, context).schema,
+    ).toMatchObject({
+      properties: { slash: { type: 'string' } },
+    });
+    expect(
+      resolveRef({ $ref: '#/components/schemas/My~0Type' }, context).schema,
+    ).toMatchObject({
+      properties: { tilde: { type: 'string' } },
+    });
+  });
+
   it('returns a non-ref schema as-is when it is already dereferenced', () => {
     const context = createContext({
       openapi: '3.1.0',
@@ -197,6 +226,118 @@ describe('resolveRef', () => {
     expect(() =>
       resolveRef({ $ref: '#/components/schemas/NonExistent' }, context),
     ).toThrow('Oops... 🍻. Ref not found: #/components/schemas/NonExistent');
+  });
+
+  it('fully resolves through bound-alias (generic binding) refs', () => {
+    const context = createContext({
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          User: {
+            type: 'object',
+            properties: { id: { type: 'string' } },
+          },
+          PaginatedTemplate: {
+            $id: 'https://example.com/schemas/PaginatedTemplate',
+            $defs: {
+              itemType: { $dynamicAnchor: 'itemType', not: {} },
+            },
+            type: 'object',
+            properties: {
+              items: {
+                type: 'array',
+                items: { $dynamicRef: '#itemType' },
+              },
+            },
+          },
+          PaginatedUserResponse: {
+            $defs: {
+              itemType: {
+                $dynamicAnchor: 'itemType',
+                $ref: '#/components/schemas/User',
+              },
+            },
+            $ref: '#/components/schemas/PaginatedTemplate',
+          },
+        },
+      },
+    });
+
+    const result = resolveRef(
+      { $ref: '#/components/schemas/PaginatedUserResponse' },
+      context,
+    );
+
+    expect(result.schema).toMatchObject({
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+        },
+      },
+    });
+    expect('$ref' in result.schema).toBe(false);
+    expect(result.imports[0]).toEqual({
+      name: 'PaginatedTemplate',
+      schemaName: 'PaginatedTemplate',
+    });
+  });
+
+  it('orders bound-alias type args from encoded template schema names', () => {
+    const context = createContext({
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          User: {
+            type: 'object',
+            properties: { id: { type: 'string' } },
+          },
+          Group: {
+            type: 'object',
+            properties: { id: { type: 'string' } },
+          },
+          'Paginated/Template~V1': {
+            $defs: {
+              first: { $dynamicAnchor: 'first', not: {} },
+              second: { $dynamicAnchor: 'second', not: {} },
+            },
+            type: 'object',
+            properties: {
+              items: {
+                type: 'array',
+                items: { $dynamicRef: '#first' },
+              },
+            },
+          },
+          BoundResponse: {
+            $defs: {
+              second: {
+                $dynamicAnchor: 'second',
+                $ref: '#/components/schemas/Group',
+              },
+              first: {
+                $dynamicAnchor: 'first',
+                $ref: '#/components/schemas/User',
+              },
+            },
+            $ref: '#/components/schemas/Paginated~1Template~0V1',
+          },
+        },
+      },
+    });
+
+    const alias = extractBoundAliasInfo(
+      context.spec.components?.schemas
+        ?.BoundResponse as unknown as OpenApiSchemaObject,
+      context,
+    );
+
+    expect(alias?.genericName).toBe('PaginatedTemplateV1');
+    expect(alias?.typeArgs).toEqual(['User', 'Group']);
+    expect(alias?.imports).toEqual([
+      { name: 'User', schemaName: 'User' },
+      { name: 'Group', schemaName: 'Group' },
+    ]);
   });
 });
 
@@ -232,5 +373,27 @@ describe('resolveExampleRefs', () => {
 
     expect(list).toEqual(['hello']);
     expect(map).toEqual({ sample: { id: 'p_1' } });
+  });
+
+  it('returns undefined for undefined/empty examples', () => {
+    expect(resolveExampleRefs(undefined, context)).toBeUndefined();
+  });
+
+  it('passes through non-ref examples in arrays', () => {
+    const result = resolveExampleRefs(
+      [{ summary: 'inline example', value: 42 }],
+      context,
+    );
+
+    expect(result).toEqual([{ summary: 'inline example', value: 42 }]);
+  });
+
+  it('passes through non-ref examples in records', () => {
+    const result = resolveExampleRefs(
+      { fallback: { value: 'plain' } },
+      context,
+    );
+
+    expect(result).toEqual({ fallback: { value: 'plain' } });
   });
 });
