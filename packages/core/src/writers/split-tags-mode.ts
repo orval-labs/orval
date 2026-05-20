@@ -46,8 +46,15 @@ export async function writeSplitTagsMode({
     output.tsconfig,
   );
 
-  // Resolve concrete (non-function) generator entries so we can iterate over
-  // them when writing per-entry index files.
+  const hasFunctionGenerators = output.mock.generators.some((g) =>
+    isFunction(g),
+  );
+  if (hasFunctionGenerators) {
+    throw new Error(
+      'Function mock generators (ClientMockBuilder) are not supported in tags-split mode. Use typed generators ({ type: "msw" } or { type: "faker" }).',
+    );
+  }
+
   const generatorEntries = output.mock.generators.filter(
     (g): g is GlobalMockOptions => !isFunction(g),
   );
