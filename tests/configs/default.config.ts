@@ -326,9 +326,13 @@ export default defineConfig({
     input: '../specifications/petstore.yaml',
     output: {
       mock: {
-        delay: () => 400,
-        delayFunctionLazyExecute: true,
-        type: 'msw',
+        generators: [
+          {
+            type: 'msw',
+            delay: () => 400,
+            delayFunctionLazyExecute: true,
+          },
+        ],
       },
       schemas: '../generated/default/runtime-mock-delay/model',
       target: '../generated/default/runtime-mock-delay/endpoints.ts',
@@ -340,8 +344,7 @@ export default defineConfig({
     input: '../specifications/petstore.yaml',
     output: {
       mock: {
-        generateEachHttpStatus: true,
-        type: 'msw',
+        generators: [{ type: 'msw', generateEachHttpStatus: true }],
       },
       schemas: '../generated/default/http-status-mocks/model',
       target: '../generated/default/http-status-mocks/endpoints.ts',
@@ -412,8 +415,8 @@ export default defineConfig({
       schemas: '../generated/default/index-mock-file/model',
       client: 'fetch',
       mock: {
-        type: 'msw',
         indexMockFiles: true,
+        generators: [{ type: 'msw' }],
       },
       mode: 'tags-split',
       clean: true,

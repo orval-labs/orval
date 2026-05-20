@@ -4,7 +4,6 @@ import type {
   AngularOptions,
   ClientFileBuilder,
   ClientGeneratorsBuilder,
-  ClientMockBuilder,
   ClientMockGeneratorBuilder,
   ContextSpec,
   GeneratorClientFooter,
@@ -26,6 +25,7 @@ import {
   isFunction,
   logWarning,
   OutputClient,
+  OutputMockType,
   pascal,
 } from '@orval/core';
 import fetchClient from '@orval/fetch';
@@ -127,10 +127,6 @@ export const generateClientHeader: GeneratorClientHeader = ({
   clientImplementation,
 }) => {
   const { header } = getGeneratorClient(outputClient, output);
-  const handlersDisabled =
-    output.mock &&
-    !isFunction(output.mock) &&
-    output.mock.generateHandlers === false;
 
   return {
     implementation: header
@@ -148,9 +144,7 @@ export const generateClientHeader: GeneratorClientHeader = ({
           clientImplementation,
         })
       : '',
-    implementationMock: handlersDisabled
-      ? ''
-      : `export const ${titles.implementationMock} = () => [\n`,
+    implementationMock: `export const ${titles.implementationMock} = () => [\n`,
   };
 };
 
@@ -164,15 +158,10 @@ export const generateClientFooter: GeneratorClientFooter = ({
 }) => {
   const { footer } = getGeneratorClient(outputClient, output);
 
-  const handlersDisabled =
-    output.mock &&
-    !isFunction(output.mock) &&
-    output.mock.generateHandlers === false;
-
   if (!footer) {
     return {
       implementation: '',
-      implementationMock: handlersDisabled ? '' : `\n]\n`,
+      implementationMock: `\n]\n`,
     };
   }
 
@@ -205,7 +194,7 @@ export const generateClientFooter: GeneratorClientFooter = ({
 
   return {
     implementation,
-    implementationMock: handlersDisabled ? '' : `]\n`,
+    implementationMock: `]\n`,
   };
 };
 
@@ -237,31 +226,27 @@ export const generateClientTitle: GeneratorClientTitle = ({
   };
 };
 
-const generateMock = (
+/**
+ * Invokes the underlying mock generator (msw, faker, or a user-provided
+ * ClientMockBuilder) for a single generator entry. Returns the standard
+ * `ClientMockGeneratorBuilder` shape (function/handler/handlerName +
+ * imports) regardless of which generator handled it.
+ */
+const invokeMockGenerator = (
   verbOption: GeneratorVerbOptions,
   options: GeneratorOptions,
+  entry: NonNullable<NormalizedOutputOptions['mock']['generators'][number]>,
 ): ClientMockGeneratorBuilder => {
-  if (!options.mock) {
-    return {
-      implementation: {
-        function: '',
-        handler: '',
-        handlerName: '',
-      },
-      imports: [],
-    };
+  if (isFunction(entry)) {
+    return entry(verbOption, {
+      ...options,
+      mock: entry,
+    });
   }
-
-  if (isFunction(options.mock)) {
-    return options.mock(verbOption, options);
-  }
-
-  return mock.generateMock(
-    verbOption,
-    options as typeof options & {
-      mock: Exclude<(typeof options)['mock'], ClientMockBuilder | undefined>;
-    },
-  );
+  return mock.generateMock(verbOption, {
+    ...options,
+    mock: entry,
+  });
 };
 
 export const generateOperations = (
@@ -290,7 +275,20 @@ export const generateOperations = (
         return acc;
       }
 
-      const generatedMock = generateMock(verbOption, options);
+      // Run every configured mock generator for this operation. Each entry
+      // contributes its own GeneratorMockOutputFull so writers can split the
+      // results across per-type output files (e.g. `.msw.ts` + `.faker.ts`).
+      // Function-form entries (ClientMockBuilder) inherit the historical
+      // `msw` file extension and are treated as msw outputs for downstream
+      // bookkeeping.
+      const mockOutputs = output.mock.generators.map((entry) => {
+        const generated = invokeMockGenerator(verbOption, options, entry);
+        return {
+          type: isFunction(entry) ? OutputMockType.MSW : entry.type,
+          implementation: generated.implementation,
+          imports: generated.imports,
+        };
+      });
 
       const hasImplementation = client.implementation.trim().length > 0;
       const preferredOperationKey = verbOption.operationName;
@@ -312,8 +310,7 @@ export const generateOperations = (
           ? (client.docComment ?? verbOption.doc) + client.implementation
           : client.implementation,
         imports: [...baseUrlImports, ...client.imports],
-        implementationMock: generatedMock.implementation,
-        importsMock: generatedMock.imports,
+        mockOutputs,
         tags: verbOption.tags,
         mutator: verbOption.mutator,
         clientMutators: client.mutators,

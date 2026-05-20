@@ -3,7 +3,6 @@ import nodePath from 'node:path';
 import { styleText } from 'node:util';
 
 import {
-  type ClientMockBuilder,
   type ConfigExternal,
   FormDataArrayHandling,
   type GlobalMockOptions,
@@ -32,6 +31,7 @@ import {
   type NormalizedJsDocOptions,
   type NormalizedMcpOptions,
   type NormalizedMcpServerOptions,
+  type NormalizedMocksConfig,
   type NormalizedMutator,
   type NormalizedOperationOptions,
   type NormalizedOptions,
@@ -42,6 +42,7 @@ import {
   type OptionsExport,
   OutputClient,
   OutputHttpClient,
+  OutputMockType,
   OutputMode,
   type OverrideOutput,
   PropertySortOrder,
@@ -49,7 +50,7 @@ import {
   RefComponentSuffix,
   type SchemaOptions,
 } from '@orval/core';
-import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
+import { getDefaultMockOptionsForType } from '@orval/mock';
 
 import pkg from '../../package.json';
 import { loadPackageJson } from './package-json';
@@ -163,19 +164,57 @@ export async function normalizeOptions(
     workspace,
   );
 
-  const mockOption = outputOptions.mock ?? globalOptions.mock;
-  let mock: GlobalMockOptions | ClientMockBuilder | undefined;
-  if (isBoolean(mockOption) && mockOption) {
-    mock = DEFAULT_MOCK_OPTIONS;
-  } else if (isFunction(mockOption)) {
-    mock = mockOption;
-  } else if (mockOption) {
-    mock = {
-      ...DEFAULT_MOCK_OPTIONS,
-      ...mockOption,
+  // Normalize the `mock` option into a canonical `NormalizedMocksConfig`
+  // so the rest of the pipeline can iterate `generators` uniformly without
+  // branching on the input shape (boolean shorthand, function form, or
+  // object form).
+  const mocksOption = outputOptions.mock ?? globalOptions.mock;
+  let mocks: NormalizedMocksConfig = {
+    indexMockFiles: false,
+    generators: [],
+  };
+  if (isBoolean(mocksOption) && mocksOption) {
+    // `mock: true` shorthand emits both an MSW handler file and a faker
+    // factory file using default options for each.
+    mocks = {
+      indexMockFiles: false,
+      generators: [
+        getDefaultMockOptionsForType(OutputMockType.MSW),
+        getDefaultMockOptionsForType(OutputMockType.FAKER),
+      ],
     };
-  } else {
-    mock = undefined;
+  } else if (isFunction(mocksOption)) {
+    // Function form treats the entire mocks option as a single
+    // ClientMockBuilder. Wrap it in the array so writers can still iterate.
+    mocks = { indexMockFiles: false, generators: [mocksOption] };
+  } else if (mocksOption && typeof mocksOption === 'object') {
+    if (!Array.isArray(mocksOption.generators)) {
+      throw new TypeError(
+        'mock.generators must be an array of generator entries (e.g. [{ type: "msw" }]).',
+      );
+    }
+    mocks = {
+      indexMockFiles: mocksOption.indexMockFiles ?? false,
+      generators: mocksOption.generators.map((m) =>
+        isFunction(m)
+          ? m
+          : ({
+              ...getDefaultMockOptionsForType(m.type),
+              ...m,
+            } as GlobalMockOptions),
+      ),
+    };
+  }
+
+  const seenMockTypes = new Set<string>();
+  for (const entry of mocks.generators) {
+    if (isFunction(entry)) continue;
+    if (seenMockTypes.has(entry.type)) {
+      throw new Error(
+        `Duplicate mock generator type "${entry.type}". Each type can only appear once in mock.generators.`,
+      );
+    }
+    seenMockTypes.add(entry.type);
   }
 
   const defaultFileExtension = '.ts';
@@ -239,7 +278,7 @@ export async function normalizeOptions(
           ? OutputHttpClient.ANGULAR
           : OutputHttpClient.FETCH),
       mode: normalizeOutputMode(outputOptions.mode ?? mode),
-      mock,
+      mock: mocks,
       clean: outputOptions.clean ?? clean ?? false,
       docs: outputOptions.docs ?? false,
       formatter: outputOptions.formatter ?? globalOptions.formatter,

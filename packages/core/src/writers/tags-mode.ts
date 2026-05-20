@@ -14,6 +14,7 @@ import {
 import { escapeRegExp } from '../utils/string';
 import { writeGeneratedFile } from './file';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
+import { collapseInlineMockOutputs } from './mock-outputs';
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
@@ -50,8 +51,7 @@ export async function writeTagsMode({
         const {
           imports,
           implementation,
-          implementationMock,
-          importsMock,
+          mockOutputs: rawMockOutputs,
           mutators,
           clientMutators,
           formData,
@@ -60,6 +60,16 @@ export async function writeTagsMode({
           paramsSerializer,
           paramsFilter,
         } = target;
+
+        // Tags-mode inlines mock content into the per-tag implementation
+        // file, so collapse duplicate factories (drop faker when msw is
+        // present) before emitting.
+        const mockOutputs = collapseInlineMockOutputs(rawMockOutputs);
+
+        const importsMock = mockOutputs.flatMap((m) => m.imports);
+        const implementationMock = mockOutputs
+          .map((m) => m.implementation)
+          .join('\n\n');
 
         let data = header;
 
@@ -131,10 +141,16 @@ export async function writeTagsMode({
           output,
         });
 
-        if (output.mock) {
+        // Emit per-generator-entry mock imports so each entry's specific
+        // import header is included (msw vs faker, etc.). Match by type so
+        // collapsing the mockOutputs array does not misalign indices.
+        for (const mockOutput of mockOutputs) {
+          const entry = output.mock.generators.find(
+            (g) => !isFunction(g) && g.type === mockOutput.type,
+          );
           const importsMockForBuilder = generateImportsForBuilder(
             output,
-            importsMock.filter(
+            mockOutput.imports.filter(
               (impMock) =>
                 !normalizedImports.some(
                   (imp) =>
@@ -146,12 +162,12 @@ export async function writeTagsMode({
           );
 
           data += builder.importsMock({
-            implementation: implementationMock,
+            implementation: mockOutput.implementation,
             imports: importsMockForBuilder,
             projectName,
             hasSchemaDir: !!output.schemas,
             isAllowSyntheticDefaultImports,
-            options: isFunction(output.mock) ? undefined : output.mock,
+            options: entry && !isFunction(entry) ? entry : undefined,
           });
         }
 
@@ -212,7 +228,7 @@ export async function writeTagsMode({
 
         data += implementation;
 
-        if (output.mock) {
+        if (mockOutputs.length > 0) {
           data += '\n\n';
 
           data += implementationMock;

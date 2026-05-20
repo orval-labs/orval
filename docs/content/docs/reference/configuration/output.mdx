@@ -343,7 +343,7 @@ export default defineConfig({
 **Type:** `Boolean | Object | Function`
 **Default:** `false`
 
-Generate MSW mocks with Faker.js:
+Configures one or more mock generators. The shorthand `mock: true` enables both MSW and Faker mock files with default options:
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -355,19 +355,30 @@ export default defineConfig({
 });
 ```
 
-### Mock Options
+Each entry in `mock.generators` produces its own file (`<filename>.msw.ts`, `<filename>.faker.ts`, ...). Set `mock: false` (or omit it) to disable mock generation entirely.
+
+### Mocks Options
 
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
     output: {
       mock: {
-        type: 'msw',
-        delay: 1000,
-        useExamples: false,
-        generateEachHttpStatus: false,
-        baseUrl: '/api',
-        locale: 'en',
+        indexMockFiles: true,
+        generators: [
+          {
+            type: 'msw',
+            delay: 1000,
+            useExamples: false,
+            generateEachHttpStatus: false,
+            baseUrl: '/api',
+            locale: 'en',
+          },
+          {
+            type: 'faker',
+            useExamples: false,
+          },
+        ],
       },
     },
   },
@@ -376,14 +387,33 @@ export default defineConfig({
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `type` | `'msw'` | `'msw'` | Mock type |
-| `generateHandlers` | `Boolean` | `true` | Generate MSW request handlers. Set to `false` for data generators only (no `msw` dependency needed). |
-| `delay` | `Number \| Function \| false` | `false` | Response delay in ms |
-| `delayFunctionLazyExecute` | `Boolean` | `false` | Execute delay function at runtime |
-| `useExamples` | `Boolean` | `false` | Use OpenAPI examples |
-| `generateEachHttpStatus` | `Boolean` | `false` | Generate mocks for all status codes |
-| `baseUrl` | `String` | `''` | Base URL for handlers |
-| `locale` | `String` | `'en'` | Faker.js locale |
+| `indexMockFiles` | `Boolean` | `false` | In `tags-split` mode, emit one root-level `index.<ext>.ts` file per generator entry that re-exports the per-tag mocks (e.g. `index.msw.ts`, `index.faker.ts`). |
+| `generators` | `Array<MockOptions \| Function>` | `[]` | One entry per output mock file. Each entry can be an object (`MockOptions`) or a custom `ClientMockBuilder` function. |
+
+### MSW generator (`type: 'msw'`)
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `type` | `'msw'` | required | Discriminator for MSW handler generation. |
+| `delay` | `Number \| Function \| false` | `false` | Response delay in ms. |
+| `delayFunctionLazyExecute` | `Boolean` | `false` | Execute delay function at runtime instead of at build time. |
+| `baseUrl` | `String` | `''` | Base URL for the generated MSW handlers. |
+| `useExamples` | `Boolean` | `false` | Use OpenAPI examples to seed response values. |
+| `generateEachHttpStatus` | `Boolean` | `false` | Generate response factories for every documented status code. |
+| `locale` | `String` | `'en'` | Faker.js locale. |
+| `preferredContentType` | `String` | `undefined` | Preferred content type when an operation lists more than one. |
+
+### Faker generator (`type: 'faker'`)
+
+The Faker generator emits the same `get<Op>ResponseMock` factories MSW would emit, but without any `msw` dependency or HTTP handler code. Useful for tests or stories that only need fake response data.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `type` | `'faker'` | required | Discriminator for Faker-only output. |
+| `useExamples` | `Boolean` | `false` | Use OpenAPI examples to seed response values. |
+| `generateEachHttpStatus` | `Boolean` | `false` | Generate response factories for every documented status code. |
+| `locale` | `String` | `'en'` | Faker.js locale. |
+| `preferredContentType` | `String` | `undefined` | Preferred content type when an operation lists more than one. |
 
 ## indexFiles
 
@@ -391,26 +421,6 @@ export default defineConfig({
 **Default:** `true`
 
 Generate `index.ts` files for schemas.
-
-## indexMockFiles
-
-**Type:** `Boolean`
-**Default:** `false`
-
-When `true` and `mode` is `tags-split`, creates an `index.msw.ts` with all mock exports:
-
-```ts title="orval.config.ts"
-export default defineConfig({
-  petstore: {
-    output: {
-      mode: 'tags-split',
-      mock: {
-        indexMockFiles: true,
-      },
-    },
-  },
-});
-```
 
 ## docs
 

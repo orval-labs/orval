@@ -1,10 +1,15 @@
 import path from 'node:path';
 
-import { isNullish, isString } from 'remeda';
+import { isFunction, isNullish, isString } from 'remeda';
 
 import {
+  type ClientMockBuilder,
+  type FakerMockOptions,
+  type GlobalMockOptions,
+  type MswMockOptions,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
+  OutputMockType,
   SchemaType,
   Verbs,
 } from '../types';
@@ -77,6 +82,26 @@ export function isUrl(str: string) {
   } catch {
     return false;
   }
+}
+
+/**
+ * Type guard for the MSW mock generator. Use to narrow a
+ * `GlobalMockOptions | ClientMockBuilder` value to `MswMockOptions`.
+ */
+export function isMswMock(
+  mock: GlobalMockOptions | ClientMockBuilder,
+): mock is MswMockOptions {
+  return !isFunction(mock) && mock.type === OutputMockType.MSW;
+}
+
+/**
+ * Type guard for the Faker mock generator. Use to narrow a
+ * `GlobalMockOptions | ClientMockBuilder` value to `FakerMockOptions`.
+ */
+export function isFakerMock(
+  mock: GlobalMockOptions | ClientMockBuilder,
+): mock is FakerMockOptions {
+  return !isFunction(mock) && mock.type === OutputMockType.FAKER;
 }
 
 export { isBoolean, isFunction, isNullish, isNumber, isString } from 'remeda';

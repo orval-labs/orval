@@ -9,6 +9,7 @@ import {
   type GeneratorVerbOptions,
   type GlobalMockOptions,
   isFunction,
+  isMswMock,
   isObject,
   pascal,
   type ResReqTypesValue,
@@ -28,11 +29,8 @@ function getMSWDependencies(
     dependency: locale ? `@faker-js/faker/locale/${locale}` : '@faker-js/faker',
   };
 
-  if (options?.generateHandlers === false) {
-    return [fakerDependency];
-  }
-
-  const hasDelay = options?.delay !== false;
+  const hasDelay =
+    options && isMswMock(options) ? options.delay !== false : true;
 
   const exports = [
     { name: 'http', values: true },
@@ -365,10 +363,12 @@ export function generateMSW(
   const { pathRoute, override, mock } = generatorOptions;
   const { operationId, response } = generatorVerbOptions;
 
-  const route = getRouteMSW(
-    pathRoute,
-    override.mock?.baseUrl ?? (isFunction(mock) ? undefined : mock?.baseUrl),
-  );
+  const overrideBaseUrl =
+    override.mock && 'baseUrl' in override.mock
+      ? (override.mock as { baseUrl?: string }).baseUrl
+      : undefined;
+  const mockBaseUrl = mock && isMswMock(mock) ? mock.baseUrl : undefined;
+  const route = getRouteMSW(pathRoute, overrideBaseUrl ?? mockBaseUrl);
 
   const handlerName = `get${pascal(operationId)}MockHandler`;
   const getResponseMockFunctionName = `get${pascal(operationId)}ResponseMock`;
@@ -423,15 +423,11 @@ export function generateMSW(
     }
   }
 
-  const handlersDisabled =
-    isObject(generatorOptions.mock) &&
-    generatorOptions.mock.generateHandlers === false;
-
   return {
     implementation: {
       function: mockImplementations.join('\n'),
-      handlerName: handlersDisabled ? '' : handlerName,
-      handler: handlersDisabled ? '' : handlerImplementations.join('\n'),
+      handlerName,
+      handler: handlerImplementations.join('\n'),
     },
     imports: imports,
   };

@@ -101,8 +101,12 @@ export default defineConfig({
   petstore: {
     output: {
       mock: {
-        type: 'msw',
-        preferredContentType: 'application/json',
+        generators: [
+          {
+            type: 'msw',
+            preferredContentType: 'application/json',
+          },
+        ],
       },
     },
   },
@@ -213,15 +217,19 @@ expect(mockFn).toHaveBeenCalledWith('123');
 
 ## Base URL
 
-By default, handlers use a wildcard `*` prefix (e.g. `*/pets/:petId`) so they match any host. To use a specific base URL, set `mock.baseUrl`:
+By default, handlers use a wildcard `*` prefix (e.g. `*/pets/:petId`) so they match any host. To use a specific base URL, set `baseUrl` on the MSW generator entry:
 
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
     output: {
       mock: {
-        type: 'msw',
-        baseUrl: 'https://api.example.com',
+        generators: [
+          {
+            type: 'msw',
+            baseUrl: 'https://api.example.com',
+          },
+        ],
       },
     },
   },
@@ -232,7 +240,21 @@ This produces handlers like `http.get('https://api.example.com/pets/:petId', ...
 
 ## Dynamic Imports
 
-Enable `indexMockFiles` to dynamically import all handlers:
+Enable `mock.indexMockFiles` to emit a root-level `index.<ext>.ts` file for each generator entry in `tags-split` mode. The MSW entry produces an `index.msw.ts` that can be dynamically imported:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      mock: {
+        indexMockFiles: true,
+        generators: [{ type: 'msw' }],
+      },
+    },
+  },
+});
+```
 
 ```ts
 // node.ts
@@ -245,30 +267,32 @@ const server = setupServer(...handlers);
 export { server };
 ```
 
-## Data Generators Only
+If both `msw` and `faker` generators are configured with `indexMockFiles: true`, you also get an `index.faker.ts` alongside `index.msw.ts`.
 
-If you only need mock data factories without MSW request handlers, set `generateHandlers` to `false`:
+## Faker-only Output
+
+If you only need mock data factories without MSW request handlers, use a `faker` generator entry. It emits the same `get<OperationId>ResponseMock` factory functions, but with no `msw` import or HTTP handler code:
 
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
     output: {
       mock: {
-        type: 'msw',
-        generateHandlers: false,
+        generators: [{ type: 'faker' }],
       },
     },
   },
 });
 ```
 
-This generates only the `get<OperationId>ResponseMock` functions (powered by Faker.js) — no MSW handlers, no aggregated handler array, and no `msw` dependency in the output. Your project only needs `@faker-js/faker` as a dependency.
+The output is written to `<filename>.faker.ts` and only depends on `@faker-js/faker`. Useful for:
 
-This is useful when you want mock data for:
 - Unit tests with custom assertion libraries
 - Storybook stories
 - Seed scripts
 - Any test setup that doesn't use MSW
+
+You can combine both generators (e.g. `generators: [{ type: 'msw' }, { type: 'faker' }]`) to emit both files in the same run.
 
 ## MSW Best Practices
 

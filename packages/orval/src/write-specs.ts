@@ -358,11 +358,17 @@ export async function writeSpecs(
   if (output.workspace) {
     const workspacePath = output.workspace;
     const indexFile = path.join(workspacePath, 'index.ts');
+    // Skip per-mock-entry output files when emitting the workspace index.
+    // The cleanup pass removes any path matching `.<ext>.ts` for every
+    // configured generator's extension (`msw`, `faker`, etc.).
+    const mockExtensions = output.mock.generators.map((g) =>
+      getMockFileExtensionByTypeName(g),
+    );
     const imports = implementationPaths
       .filter(
         (p) =>
-          !output.mock ||
-          !p.endsWith(`.${getMockFileExtensionByTypeName(output.mock)}.ts`),
+          mockExtensions.length === 0 ||
+          !mockExtensions.some((ext) => p.endsWith(`.${ext}.ts`)),
       )
       .map((p) =>
         upath.getRelativeImportPath(

@@ -29,6 +29,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
     namingConvention: NamingConvention.CAMEL_CASE,
     fileExtension: '.ts',
     mode: OutputMode.SINGLE,
+    mock: { indexMockFiles: false, generators: [] },
     client: OutputClient.FETCH,
     httpClient: OutputHttpClient.FETCH,
     clean: false,

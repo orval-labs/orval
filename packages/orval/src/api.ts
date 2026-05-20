@@ -109,7 +109,6 @@ export async function getApiBuilder({
           pathRoute,
           override: output.override,
           context,
-          mock: output.mock,
           output: output.target,
         },
         output,
