@@ -567,7 +567,7 @@ describe('resolveDynamicRef', () => {
     });
   });
 
-  it('skips non-existent components.schemas when scope is non-empty', () => {
+  it('resolves self-referencing schema with own anchor', () => {
     const spec = {
       openapi: '3.1.0',
       components: {

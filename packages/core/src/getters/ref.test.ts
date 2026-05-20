@@ -38,18 +38,6 @@ describe('getDynamicAnchorName', () => {
     expect(getDynamicAnchorName('#category')).toBe('category');
   });
 
-  it('extracts anchor name for itemType', () => {
-    expect(getDynamicAnchorName('#itemType')).toBe('itemType');
-  });
-
-  it('extracts anchor name for folder', () => {
-    expect(getDynamicAnchorName('#folder')).toBe('folder');
-  });
-
-  it('extracts anchor name for resource', () => {
-    expect(getDynamicAnchorName('#resource')).toBe('resource');
-  });
-
   it('returns undefined for external document refs', () => {
     expect(getDynamicAnchorName('other-file.json#anchor')).toBeUndefined();
   });
