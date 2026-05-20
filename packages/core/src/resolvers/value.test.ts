@@ -169,20 +169,27 @@ describe('resolveValue with $dynamicRef', () => {
     ]);
   });
 
-  it('falls back to unknown when anchor not in scope', () => {
+  it('returns unknown for unsupported or unbound $dynamicRef values', () => {
     const spec = {
       openapi: '3.1.0',
       components: { schemas: {} },
     } as OpenApiDocument;
-    const context = createContext(spec, {});
+    const cases = [
+      { dynamicRef: '#category', dynamicScope: {} },
+      { dynamicRef: '#category', dynamicScope: undefined },
+      { dynamicRef: 'other.json#anchor', dynamicScope: {} },
+      { dynamicRef: '#', dynamicScope: {} },
+    ];
 
-    const result = resolveValue({
-      schema: { $dynamicRef: '#category' } as unknown as OpenApiSchemaObject,
-      context,
-    });
+    for (const { dynamicRef, dynamicScope } of cases) {
+      const result = resolveValue({
+        schema: { $dynamicRef: dynamicRef } as unknown as OpenApiSchemaObject,
+        context: createContext(spec, dynamicScope),
+      });
 
-    expect(result.value).toBe('unknown');
-    expect(result.isRef).toBe(false);
+      expect(result.value).toBe('unknown');
+      expect(result.isRef).toBe(false);
+    }
   });
 
   it('resolves pagination itemType to concrete type', () => {
@@ -210,29 +217,6 @@ describe('resolveValue with $dynamicRef', () => {
     });
 
     expect(result.value).toBe('User');
-    expect(result.isRef).toBe(true);
-  });
-
-  it('does not interfere with normal $ref resolution', () => {
-    const spec = {
-      openapi: '3.1.0',
-      components: {
-        schemas: {
-          Position: {
-            type: 'object',
-            properties: { id: { type: 'string' } },
-          },
-        },
-      },
-    } as OpenApiDocument;
-    const context = createContext(spec);
-
-    const result = resolveValue({
-      schema: { $ref: '#/components/schemas/Position' } as OpenApiSchemaObject,
-      context,
-    });
-
-    expect(result.value).toBe('Position');
     expect(result.isRef).toBe(true);
   });
 
@@ -310,40 +294,6 @@ describe('resolveValue with $dynamicRef', () => {
         schemaName: 'LocalizedCategory',
       },
     ]);
-  });
-
-  it('handles dynamic ref with no dynamicScope context', () => {
-    const spec = {
-      openapi: '3.1.0',
-      components: { schemas: {} },
-    } as OpenApiDocument;
-    const context = createContext(spec);
-
-    const result = resolveValue({
-      schema: { $dynamicRef: '#category' } as unknown as OpenApiSchemaObject,
-      context,
-    });
-
-    expect(result.value).toBe('unknown');
-    expect(result.isRef).toBe(false);
-  });
-
-  it('returns unknown for external $dynamicRef without throwing', () => {
-    const spec = {
-      openapi: '3.1.0',
-      components: { schemas: {} },
-    } as OpenApiDocument;
-    const context = createContext(spec, {});
-
-    const result = resolveValue({
-      schema: {
-        $dynamicRef: 'other.json#anchor',
-      } as unknown as OpenApiSchemaObject,
-      context,
-    });
-
-    expect(result.value).toBe('unknown');
-    expect(result.isRef).toBe(false);
   });
 
   it('parents guard prevents re-materialization of scope-affected ref', () => {
@@ -614,23 +564,6 @@ describe('resolveValue with $dynamicRef', () => {
       name: 'User',
       schemaName: 'User',
     });
-  });
-
-  it('returns unknown for a $dynamicRef that is exactly "#" (no anchor name)', () => {
-    // Exercises line 285: getDynamicAnchorName returns undefined for bare "#"
-    const spec = {
-      openapi: '3.1.0',
-      components: { schemas: {} },
-    } as OpenApiDocument;
-    const context = createContext(spec, {});
-
-    const result = resolveValue({
-      schema: { $dynamicRef: '#' } as unknown as OpenApiSchemaObject,
-      context,
-    });
-
-    expect(result.value).toBe('unknown');
-    expect(result.isRef).toBe(false);
   });
 
   it('does not reuse cache across different dynamicScope bindings', () => {

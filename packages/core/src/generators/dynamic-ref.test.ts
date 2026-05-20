@@ -329,38 +329,25 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
       expect(paginatedTemplate!.model).toContain('items: itemType[]');
     });
 
-    it('emits PaginatedUserResponse as type alias to generic', () => {
+    it('emits paginated responses as type aliases to generic template', () => {
       const schemas = genericSchemaBindingSpec.components!.schemas!;
       const result = generateSchemasDefinition(
         schemas,
         createContext(genericSchemaBindingSpec),
         '',
       );
+      const cases = [
+        ['PaginatedUserResponse', 'User'],
+        ['PaginatedGroupResponse', 'Group'],
+      ] as const;
 
-      const paginatedUserResponse = result.find(
-        (s) => s.name === 'PaginatedUserResponse',
-      );
-      expect(paginatedUserResponse).toBeDefined();
-      expect(paginatedUserResponse!.model).toContain(
-        'type PaginatedUserResponse = PaginatedTemplate<User>',
-      );
-    });
-
-    it('emits PaginatedGroupResponse as type alias to generic', () => {
-      const schemas = genericSchemaBindingSpec.components!.schemas!;
-      const result = generateSchemasDefinition(
-        schemas,
-        createContext(genericSchemaBindingSpec),
-        '',
-      );
-
-      const paginatedGroupResponse = result.find(
-        (s) => s.name === 'PaginatedGroupResponse',
-      );
-      expect(paginatedGroupResponse).toBeDefined();
-      expect(paginatedGroupResponse!.model).toContain(
-        'type PaginatedGroupResponse = PaginatedTemplate<Group>',
-      );
+      for (const [schemaName, typeArg] of cases) {
+        const paginatedResponse = result.find((s) => s.name === schemaName);
+        expect(paginatedResponse).toBeDefined();
+        expect(paginatedResponse!.model).toContain(
+          `type ${schemaName} = PaginatedTemplate<${typeArg}>`,
+        );
+      }
     });
     it('collects imports and readonly properties from allOf extra schemas', () => {
       const spec: OpenApiDocument = {
@@ -619,44 +606,35 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
     expect(derivedNode!.model).toContain('DerivedNode');
   });
 
-  it('handles boolean true schema', () => {
-    const spec: OpenApiDocument = {
-      openapi: '3.1.0',
-      info: { title: 'Test', version: '0.1.0' },
-      paths: {},
-      components: {
-        schemas: {
-          Anything: true as unknown as OpenApiSchemaObject,
+  it('handles boolean schemas', () => {
+    const cases = [
+      ['Anything', true, '= any'],
+      ['Nothing', false, '= never'],
+    ] as const;
+
+    for (const [schemaName, schemaValue, expected] of cases) {
+      const spec: OpenApiDocument = {
+        openapi: '3.1.0',
+        info: { title: 'Test', version: '0.1.0' },
+        paths: {},
+        components: {
+          schemas: {
+            [schemaName]: schemaValue as unknown as OpenApiSchemaObject,
+          },
         },
-      },
-    };
+      };
 
-    const schemas = spec.components!.schemas!;
-    const result = generateSchemasDefinition(schemas, createContext(spec), '');
+      const schemas = spec.components!.schemas!;
+      const result = generateSchemasDefinition(
+        schemas,
+        createContext(spec),
+        '',
+      );
 
-    const anything = result.find((s) => s.name === 'Anything');
-    expect(anything).toBeDefined();
-    expect(anything!.model).toContain('= any');
-  });
-
-  it('handles boolean false schema', () => {
-    const spec: OpenApiDocument = {
-      openapi: '3.1.0',
-      info: { title: 'Test', version: '0.1.0' },
-      paths: {},
-      components: {
-        schemas: {
-          Nothing: false as unknown as OpenApiSchemaObject,
-        },
-      },
-    };
-
-    const schemas = spec.components!.schemas!;
-    const result = generateSchemasDefinition(schemas, createContext(spec), '');
-
-    const nothing = result.find((s) => s.name === 'Nothing');
-    expect(nothing).toBeDefined();
-    expect(nothing!.model).toContain('= never');
+      const entry = result.find((s) => s.name === schemaName);
+      expect(entry).toBeDefined();
+      expect(entry!.model).toContain(expected);
+    }
   });
 
   it('handles $ref to same-name schema that is not an interface', () => {

@@ -43,22 +43,17 @@ describe('isComponentRef', () => {
 });
 
 describe('getDynamicAnchorName', () => {
-  it('extracts anchor name from fragment-only dynamic ref', () => {
-    expect(getDynamicAnchorName('#category')).toBe('category');
-  });
+  it('extracts fragment-only anchors and rejects unsupported refs', () => {
+    const cases = [
+      ['#category', 'category'],
+      ['other-file.json#anchor', undefined],
+      ['https://example.com/schemas/base#anchor', undefined],
+      ['#', undefined],
+    ] as const;
 
-  it('returns undefined for external document refs', () => {
-    expect(getDynamicAnchorName('other-file.json#anchor')).toBeUndefined();
-  });
-
-  it('returns undefined for URL-based refs', () => {
-    expect(
-      getDynamicAnchorName('https://example.com/schemas/base#anchor'),
-    ).toBeUndefined();
-  });
-
-  it('returns undefined for a bare # with no anchor', () => {
-    expect(getDynamicAnchorName('#')).toBeUndefined();
+    for (const [dynamicRef, expected] of cases) {
+      expect(getDynamicAnchorName(dynamicRef)).toBe(expected);
+    }
   });
 });
 

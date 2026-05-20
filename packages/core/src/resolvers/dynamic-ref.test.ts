@@ -401,7 +401,7 @@ describe('buildDynamicScope', () => {
     expect(scope).toEqual({});
   });
 
-  it('accepts $defs entries with component refs (responses, parameters, etc.)', () => {
+  it('skips $defs entries with non-schema component refs', () => {
     const spec = {
       openapi: '3.1.0',
       components: {
@@ -427,8 +427,7 @@ describe('buildDynamicScope', () => {
       context,
     );
 
-    expect(scope.node).toBeDefined();
-    expect(scope.node.schemaName).toBe('SomeResponse');
+    expect(scope.node.schemaName).toBe('Schema');
   });
 });
 

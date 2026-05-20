@@ -404,43 +404,33 @@ describe('resolveExampleRefs', () => {
     },
   });
 
-  it('resolves example refs in arrays and records', () => {
-    const list = resolveExampleRefs(
-      [{ $ref: '#/components/examples/Primitive' }],
-      context,
-    );
-
-    const map = resolveExampleRefs(
+  it('resolves example refs and passes through non-ref examples', () => {
+    const cases = [
       {
-        sample: { $ref: '#/components/examples/ObjectValue' },
+        examples: [{ $ref: '#/components/examples/Primitive' }],
+        expected: ['hello'],
       },
-      context,
-    );
+      {
+        examples: { sample: { $ref: '#/components/examples/ObjectValue' } },
+        expected: { sample: { id: 'p_1' } },
+      },
+      {
+        examples: [{ summary: 'inline example', value: 42 }],
+        expected: [{ summary: 'inline example', value: 42 }],
+      },
+      {
+        examples: { fallback: { value: 'plain' } },
+        expected: { fallback: { value: 'plain' } },
+      },
+    ];
 
-    expect(list).toEqual(['hello']);
-    expect(map).toEqual({ sample: { id: 'p_1' } });
+    for (const { examples, expected } of cases) {
+      expect(resolveExampleRefs(examples, context)).toEqual(expected);
+    }
   });
 
   it('returns undefined for undefined/empty examples', () => {
     expect(resolveExampleRefs(undefined, context)).toBeUndefined();
-  });
-
-  it('passes through non-ref examples in arrays', () => {
-    const result = resolveExampleRefs(
-      [{ summary: 'inline example', value: 42 }],
-      context,
-    );
-
-    expect(result).toEqual([{ summary: 'inline example', value: 42 }]);
-  });
-
-  it('passes through non-ref examples in records', () => {
-    const result = resolveExampleRefs(
-      { fallback: { value: 'plain' } },
-      context,
-    );
-
-    expect(result).toEqual({ fallback: { value: 'plain' } });
   });
 });
 
