@@ -6405,6 +6405,89 @@ export const UploadFormResponse = zod.object({
 
 `);
   });
+
+  it('json exotic content type: comprehensive content type handling', async () => {
+    const schema = {
+      pathRoute: '/upload-form',
+      context: {
+        spec: {
+          paths: {
+            '/upload-form': {
+              post: {
+                operationId: 'uploadForm',
+                requestBody: {
+                  required: true,
+                  content: {
+                    'application/geo+json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          success: { type: 'boolean' },
+                          uploaded: { type: 'number' },
+                        },
+                      },
+                    },
+                  },
+                },
+                responses: {
+                  '200': {
+                    content: {
+                      'application/manifest+json': {
+                        schema: {
+                          type: 'object',
+                          properties: {
+                            success: { type: 'boolean' },
+                            uploaded: { type: 'number' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: { override: { zod: { generateEachHttpStatus: false } } },
+      },
+    } as unknown as GeneratorOptions;
+    const result = await generateZod(
+      {
+        pathRoute: '/upload-form',
+        verb: 'post',
+        operationName: 'uploadForm',
+        override: {
+          ...zodOverride,
+          zod: {
+            ...zodOverride.zod,
+            generate: { ...zodOverride.zod.generate, response: true },
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      schema,
+      testOutput,
+    );
+    // encBinary: encoding image/png → File
+    // encText: encoding text/plain → File | string
+    // cmtBinary: contentMediaType image/png → File
+    // cmtText: contentMediaType application/xml → File | string
+    // encOverride: encoding text/csv overrides contentMediaType image/png → File | string
+    // formatBinary: format: binary → File (same as instanceof check)
+    // base64Field: contentEncoding base64 → stays string
+    // metadata: object → object schema
+    expect(result.implementation)
+      .toBe(`export const UploadFormBody = zod.object({
+  "success": zod.boolean().optional(),
+  "uploaded": zod.number().optional()
+})
+
+export const UploadFormResponse = zod.object({
+  "success": zod.boolean().optional(),
+  "uploaded": zod.number().optional()
+})
+
+`);
+  });
 });
 
 describe('zod split mode regressions', () => {
