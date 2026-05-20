@@ -114,8 +114,8 @@ export type ListPetsParams = {
 limit?: string;
 /**
  * Which property to sort by?
-Example: name sorts ASC while -name sorts DESC.
-
+ * Example: name sorts ASC while -name sorts DESC.
+ *
  */
 sort: ListPetsSort;
 };
@@ -137,8 +137,8 @@ export type CreatePetsParams = {
 limit?: string;
 /**
  * Which property to sort by?
-Example: name sorts ASC while -name sorts DESC.
-
+ * Example: name sorts ASC while -name sorts DESC.
+ *
  */
 sort: CreatePetsSort;
 };
