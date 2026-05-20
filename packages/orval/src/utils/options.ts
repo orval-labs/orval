@@ -190,7 +190,7 @@ export async function normalizeOptions(
   } else if (mocksOption && typeof mocksOption === 'object') {
     mocks = {
       indexMockFiles: mocksOption.indexMockFiles ?? false,
-      generators: (mocksOption.generators ?? []).map((m) =>
+      generators: mocksOption.generators.map((m) =>
         isFunction(m)
           ? m
           : ({
@@ -199,6 +199,17 @@ export async function normalizeOptions(
             } as GlobalMockOptions),
       ),
     };
+  }
+
+  const seenMockTypes = new Set<string>();
+  for (const entry of mocks.generators) {
+    if (isFunction(entry)) continue;
+    if (seenMockTypes.has(entry.type)) {
+      throw new Error(
+        `Duplicate mock generator type "${entry.type}". Each type can only appear once in mock.generators.`,
+      );
+    }
+    seenMockTypes.add(entry.type);
   }
 
   const defaultFileExtension = '.ts';
