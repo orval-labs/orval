@@ -1574,7 +1574,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['default', 'testObjectDefaultDefault'],
         ],
         consts: [
-          'export const testObjectDefaultDefault = { name: "Fluffy", age: 3 } as const;',
+          'export const testObjectDefaultDefault = { name: "Fluffy" as const, age: 3 };',
         ],
       });
 
@@ -1589,7 +1589,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'zod.object({\n  "name": zod.string().optional(),\n  "age": zod.number().optional()\n}).default(testObjectDefaultDefault)',
       );
       expect(parsed.consts).toBe(
-        'export const testObjectDefaultDefault = { name: "Fluffy", age: 3 } as const;',
+        'export const testObjectDefaultDefault = { name: "Fluffy" as const, age: 3 };',
       );
     });
 
@@ -2329,7 +2329,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
     });
 
-    it('appends "as const" to object defaults so enum properties keep literal types (#3244)', () => {
+    it('narrows string literals in object defaults so enum properties keep literal types (#3244)', () => {
       const schemaWithObjectEnumDefault: OpenApiSchemaObject = {
         type: 'object',
         required: ['enabled', 'value'],
@@ -2350,11 +2350,78 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
 
       expect(result.consts).toEqual([
-        'export const enumPropertiesObjectDefault = { enabled: true, value: "a" } as const;',
+        'export const enumPropertiesObjectDefault = { enabled: true, value: "a" as const };',
       ]);
       expect(result.functions).toContainEqual([
         'default',
         'enumPropertiesObjectDefault',
+      ]);
+    });
+
+    it('keeps array values mutable in object defaults so zod.default() accepts them (#3399)', () => {
+      const schemaWithArrayInObjectDefault: OpenApiSchemaObject = {
+        type: 'object',
+        properties: {
+          checklist: {
+            type: 'object',
+            nullable: true,
+            additionalProperties: { type: 'object' },
+          },
+          available_indexes: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+            },
+          },
+        },
+        // eslint-disable-next-line unicorn/no-null
+        default: { checklist: null, available_indexes: [] },
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithArrayInObjectDefault,
+        context,
+        'settings',
+        false,
+        false,
+        { required: false },
+      );
+
+      // The default object must NOT carry a top-level `as const`, otherwise
+      // empty/literal arrays inside become `readonly` and fail zod v4's
+      // `.default()` overload check (regression introduced by #3339).
+      expect(result.consts).toEqual([
+        'export const settingsDefault = { checklist: null, available_indexes: [] };',
+      ]);
+      expect(result.consts[0]).not.toContain('as const');
+      expect(result.functions).toContainEqual(['default', 'settingsDefault']);
+    });
+
+    it('narrows string array items in object defaults so enum-array properties keep literal types', () => {
+      const schemaWithEnumArrayInObjectDefault: OpenApiSchemaObject = {
+        type: 'object',
+        properties: {
+          tags: {
+            type: 'array',
+            items: { type: 'string', enum: ['a', 'b', 'c'] },
+          },
+        },
+        default: { tags: ['a', 'b'] },
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithEnumArrayInObjectDefault,
+        context,
+        'taggedObject',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result.consts).toEqual([
+        'export const taggedObjectDefault = { tags: ["a" as const, "b" as const] };',
       ]);
     });
 

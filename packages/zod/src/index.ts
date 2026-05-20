@@ -344,15 +344,19 @@ export const generateZodValidationSchemaDefinition = (
       // OpenApiSchemaObject defines default as 'any'
       defaultValue = `new Date("${escape(schema.default)}")`;
     } else if (isObject(schema.default)) {
+      // Narrow string literals individually with `as const` so `zod.enum([...])`
+      // properties accept the emitted default (#3244). Whole-object/array
+      // `as const` would make nested arrays `readonly`, which zod v4's
+      // `.default()` rejects against its mutable parameter type (#3399).
       const entries = Object.entries(schema.default)
         .map(([key, value]) => {
           if (isString(value)) {
-            return `${key}: "${escape(value)}"`;
+            return `${key}: "${escape(value)}" as const`;
           }
 
           if (Array.isArray(value)) {
             const arrayItems = value.map((item) =>
-              isString(item) ? `"${escape(item)}"` : `${item}`,
+              isString(item) ? `"${escape(item)}" as const` : `${item}`,
             );
             return `${key}: [${arrayItems.join(', ')}]`;
           }
@@ -366,10 +370,7 @@ export const generateZodValidationSchemaDefinition = (
             return `${key}: ${value}`;
         })
         .join(', ');
-      // `as const` preserves literal types so `zod.enum([...])` properties
-      // accept the emitted default (#3244).
-      defaultValue =
-        entries.length === 0 ? `{} as const` : `{ ${entries} } as const`;
+      defaultValue = entries.length === 0 ? `{}` : `{ ${entries} }`;
     } else {
       // OpenApiSchemaObject defines default as 'any'
       const rawStringified = stringify(schema.default);
