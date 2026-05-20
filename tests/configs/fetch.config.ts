@@ -304,9 +304,7 @@ export default defineConfig({
   urlEncodeParameters: {
     output: {
       target: '../generated/fetch/url-encode-parameters/endpoints.ts',
-      schemas: '../generated/fetch/url-encode-parameters/model',
       client: 'fetch',
-      mock: true,
       urlEncodeParameters: true,
       clean: true,
       formatter: 'prettier',

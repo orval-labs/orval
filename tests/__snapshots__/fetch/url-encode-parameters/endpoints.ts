@@ -4,22 +4,153 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import type {
-  CreatePetsBody,
-  CreatePetsParams,
-  Error,
-  ListPetsParams,
-  Pet,
-  PetWithTag,
-  Pets,
-} from './model';
+export type PetCallingCode =
+  (typeof PetCallingCode)[keyof typeof PetCallingCode];
 
-import { faker } from '@faker-js/faker';
+export const PetCallingCode = {
+  '+33': '+33',
+  '+420': '+420',
+} as const;
 
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+export type PetCountry = (typeof PetCountry)[keyof typeof PetCountry];
 
-import type { Cat, Dachshund, Dog, Labradoodle } from './model';
+export const PetCountry = {
+  "People's_Republic_of_China": "People's Republic of China",
+  Uruguay: 'Uruguay',
+} as const;
+
+export type LabradoodleBreed =
+  (typeof LabradoodleBreed)[keyof typeof LabradoodleBreed];
+
+export const LabradoodleBreed = {
+  Labradoodle: 'Labradoodle',
+} as const;
+
+export interface Labradoodle {
+  cuteness: number;
+  breed: LabradoodleBreed;
+}
+
+export type DachshundBreed =
+  (typeof DachshundBreed)[keyof typeof DachshundBreed];
+
+export const DachshundBreed = {
+  Dachshund: 'Dachshund',
+} as const;
+
+export interface Dachshund {
+  length: number;
+  breed: DachshundBreed;
+}
+
+export type DogType = (typeof DogType)[keyof typeof DogType];
+
+export const DogType = {
+  dog: 'dog',
+} as const;
+
+export type Dog =
+  | (Labradoodle & {
+      barksPerMinute?: number;
+      type: DogType;
+    })
+  | (Dachshund & {
+      barksPerMinute?: number;
+      type: DogType;
+    });
+
+export type CatType = (typeof CatType)[keyof typeof CatType];
+
+export const CatType = {
+  cat: 'cat',
+} as const;
+
+export interface Cat {
+  petsRequested?: number;
+  type: CatType;
+}
+
+export type Pet =
+  | (Dog & {
+      '@id'?: string;
+      id: number;
+      name: string;
+      tag?: string;
+      email?: string;
+      callingCode?: PetCallingCode;
+      country?: PetCountry;
+    })
+  | (Cat & {
+      '@id'?: string;
+      id: number;
+      name: string;
+      tag?: string;
+      email?: string;
+      callingCode?: PetCallingCode;
+      country?: PetCountry;
+    });
+
+export type Pets = Pet[];
+
+export interface Error {
+  code: number;
+  message: string;
+}
+
+export interface PetWithTag {
+  tag: string;
+  pet: Pet | null;
+}
+
+export type ListPetsParams = {
+  /**
+   * How many items to return at one time (max 100)
+   */
+  limit?: string;
+  /**
+ * Which property to sort by?
+Example: name sorts ASC while -name sorts DESC.
+
+ */
+  sort: ListPetsSort;
+};
+
+export type ListPetsSort = (typeof ListPetsSort)[keyof typeof ListPetsSort];
+
+export const ListPetsSort = {
+  name: 'name',
+  '-name': '-name',
+  email: 'email',
+  '-email': '-email',
+} as const;
+
+export type CreatePetsParams = {
+  /**
+   * How many items to return at one time (max 100)
+   */
+  limit?: string;
+  /**
+ * Which property to sort by?
+Example: name sorts ASC while -name sorts DESC.
+
+ */
+  sort: CreatePetsSort;
+};
+
+export type CreatePetsSort =
+  (typeof CreatePetsSort)[keyof typeof CreatePetsSort];
+
+export const CreatePetsSort = {
+  name: 'name',
+  '-name': '-name',
+  email: 'email',
+  '-email': '-email',
+} as const;
+
+export type CreatePetsBody = {
+  name: string;
+  tag: string;
+};
 
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;
@@ -367,459 +498,3 @@ export const showPetWithOwner = async (
     headers: res.headers,
   } as showPetWithOwnerResponse;
 };
-
-export const getListPetsResponseLabradoodleMock = (
-  overrideResponse: Partial<Labradoodle> = {},
-): Labradoodle => ({
-  ...{
-    cuteness: faker.number.int(),
-    breed: faker.helpers.arrayElement(['Labradoodle'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getListPetsResponseDachshundMock = (
-  overrideResponse: Partial<Dachshund> = {},
-): Dachshund => ({
-  ...{
-    length: faker.number.int(),
-    breed: faker.helpers.arrayElement(['Dachshund'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getListPetsResponseDogMock = (
-  overrideResponse: Omit<Partial<Dog>, 'breed'> = {},
-): Dog => ({
-  ...{
-    ...faker.helpers.arrayElement([
-      { ...getListPetsResponseLabradoodleMock() },
-      { ...getListPetsResponseDachshundMock() },
-    ]),
-    barksPerMinute: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    type: faker.helpers.arrayElement(['dog'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getListPetsResponseCatMock = (
-  overrideResponse: Partial<Cat> = {},
-): Cat => ({
-  ...{
-    petsRequested: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    type: faker.helpers.arrayElement(['cat'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getListPetsResponseMock = (): Pets =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() => ({
-    ...faker.helpers.arrayElement([
-      { ...getListPetsResponseDogMock() },
-      { ...getListPetsResponseCatMock() },
-    ]),
-    '@id': faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-    id: faker.number.int(),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    tag: faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-    callingCode: faker.helpers.arrayElement([
-      faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-      undefined,
-    ]),
-    country: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        "People's Republic of China",
-        'Uruguay',
-      ] as const),
-      undefined,
-    ]),
-  }));
-
-export const getCreatePetsResponseLabradoodleMock = (
-  overrideResponse: Partial<Labradoodle> = {},
-): Labradoodle => ({
-  ...{
-    cuteness: faker.number.int(),
-    breed: faker.helpers.arrayElement(['Labradoodle'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getCreatePetsResponseDachshundMock = (
-  overrideResponse: Partial<Dachshund> = {},
-): Dachshund => ({
-  ...{
-    length: faker.number.int(),
-    breed: faker.helpers.arrayElement(['Dachshund'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getCreatePetsResponseDogMock = (
-  overrideResponse: Omit<Partial<Dog>, 'breed'> = {},
-): Dog => ({
-  ...{
-    ...faker.helpers.arrayElement([
-      { ...getCreatePetsResponseLabradoodleMock() },
-      { ...getCreatePetsResponseDachshundMock() },
-    ]),
-    barksPerMinute: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    type: faker.helpers.arrayElement(['dog'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getCreatePetsResponseCatMock = (
-  overrideResponse: Partial<Cat> = {},
-): Cat => ({
-  ...{
-    petsRequested: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    type: faker.helpers.arrayElement(['cat'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getCreatePetsResponseMock = (): Pet => ({
-  ...faker.helpers.arrayElement([
-    { ...getCreatePetsResponseDogMock() },
-    { ...getCreatePetsResponseCatMock() },
-  ]),
-  '@id': faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  id: faker.number.int(),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  tag: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-  callingCode: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-    undefined,
-  ]),
-  country: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      "People's Republic of China",
-      'Uruguay',
-    ] as const),
-    undefined,
-  ]),
-});
-
-export const getShowPetByIdResponseLabradoodleMock = (
-  overrideResponse: Partial<Labradoodle> = {},
-): Labradoodle => ({
-  ...{
-    cuteness: faker.number.int(),
-    breed: faker.helpers.arrayElement(['Labradoodle'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetByIdResponseDachshundMock = (
-  overrideResponse: Partial<Dachshund> = {},
-): Dachshund => ({
-  ...{
-    length: faker.number.int(),
-    breed: faker.helpers.arrayElement(['Dachshund'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetByIdResponseDogMock = (
-  overrideResponse: Omit<Partial<Dog>, 'breed'> = {},
-): Dog => ({
-  ...{
-    ...faker.helpers.arrayElement([
-      { ...getShowPetByIdResponseLabradoodleMock() },
-      { ...getShowPetByIdResponseDachshundMock() },
-    ]),
-    barksPerMinute: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    type: faker.helpers.arrayElement(['dog'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetByIdResponseCatMock = (
-  overrideResponse: Partial<Cat> = {},
-): Cat => ({
-  ...{
-    petsRequested: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    type: faker.helpers.arrayElement(['cat'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetByIdResponseMock = (): Pet => ({
-  ...faker.helpers.arrayElement([
-    { ...getShowPetByIdResponseDogMock() },
-    { ...getShowPetByIdResponseCatMock() },
-  ]),
-  '@id': faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  id: faker.number.int(),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  tag: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-  callingCode: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-    undefined,
-  ]),
-  country: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      "People's Republic of China",
-      'Uruguay',
-    ] as const),
-    undefined,
-  ]),
-});
-
-export const getHealthCheckResponseMock = (): string => faker.word.sample();
-
-export const getShowPetWithOwnerResponseLabradoodleMock = (
-  overrideResponse: Partial<Labradoodle> = {},
-): Labradoodle => ({
-  ...{
-    cuteness: faker.number.int(),
-    breed: faker.helpers.arrayElement(['Labradoodle'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetWithOwnerResponseDachshundMock = (
-  overrideResponse: Partial<Dachshund> = {},
-): Dachshund => ({
-  ...{
-    length: faker.number.int(),
-    breed: faker.helpers.arrayElement(['Dachshund'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetWithOwnerResponseDogMock = (
-  overrideResponse: Omit<Partial<Dog>, 'breed'> = {},
-): Dog => ({
-  ...{
-    ...faker.helpers.arrayElement([
-      { ...getShowPetWithOwnerResponseLabradoodleMock() },
-      { ...getShowPetWithOwnerResponseDachshundMock() },
-    ]),
-    barksPerMinute: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    type: faker.helpers.arrayElement(['dog'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetWithOwnerResponseCatMock = (
-  overrideResponse: Partial<Cat> = {},
-): Cat => ({
-  ...{
-    petsRequested: faker.helpers.arrayElement([faker.number.int(), undefined]),
-    type: faker.helpers.arrayElement(['cat'] as const),
-  },
-  ...overrideResponse,
-});
-
-export const getShowPetWithOwnerResponseMock = (
-  overrideResponse: Partial<Extract<PetWithTag, object>> = {},
-): PetWithTag => ({
-  tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  pet: {
-    ...faker.helpers.arrayElement([
-      { ...getShowPetWithOwnerResponseDogMock() },
-      { ...getShowPetWithOwnerResponseCatMock() },
-    ]),
-    '@id': faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-    id: faker.number.int(),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    tag: faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-    callingCode: faker.helpers.arrayElement([
-      faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-      undefined,
-    ]),
-    country: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        "People's Republic of China",
-        'Uruguay',
-      ] as const),
-      undefined,
-    ]),
-  },
-  ...overrideResponse,
-});
-
-export const getListPetsMockHandler = (
-  overrideResponse?:
-    | Pets
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pets> | Pets),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/pets',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getListPetsResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-
-export const getCreatePetsMockHandler = (
-  overrideResponse?:
-    | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<Pet> | Pet),
-  options?: RequestHandlerOptions,
-) => {
-  return http.post(
-    '*/pets',
-    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getCreatePetsResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-
-export const getShowPetByIdMockHandler = (
-  overrideResponse?:
-    | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pet> | Pet),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/pets/:petId',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getShowPetByIdResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-
-export const getDeletePetByIdMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.delete>[1]>[0],
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions,
-) => {
-  return http.delete(
-    '*/pets/:petId',
-    async (info: Parameters<Parameters<typeof http.delete>[1]>[0]) => {
-      if (typeof overrideResponse === 'function') {
-        await overrideResponse(info);
-      }
-
-      return new HttpResponse(null, { status: 204 });
-    },
-    options,
-  );
-};
-
-export const getHealthCheckMockHandler = (
-  overrideResponse?:
-    | string
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<string> | string),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/health',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      const resolvedBody =
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getHealthCheckResponseMock();
-      const textBody =
-        typeof resolvedBody === 'string'
-          ? resolvedBody
-          : JSON.stringify(resolvedBody ?? null);
-      return HttpResponse.text(textBody, { status: 200 });
-    },
-    options,
-  );
-};
-
-export const getShowPetWithOwnerMockHandler = (
-  overrideResponse?:
-    | PetWithTag
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<PetWithTag> | PetWithTag),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/pets/:petId/owner',
-    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
-      return HttpResponse.json(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getShowPetWithOwnerResponseMock(),
-        { status: 200 },
-      );
-    },
-    options,
-  );
-};
-export const getSwaggerPetstoreMock = () => [
-  getListPetsMockHandler(),
-  getCreatePetsMockHandler(),
-  getShowPetByIdMockHandler(),
-  getDeletePetByIdMockHandler(),
-  getHealthCheckMockHandler(),
-  getShowPetWithOwnerMockHandler(),
-];
