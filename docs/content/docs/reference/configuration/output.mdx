@@ -1710,6 +1710,124 @@ Make the `options` parameter required. Since the `options` parameter appears las
 
 How to sort properties in generated types.
 
+### `$dynamicRef` / `$dynamicAnchor` support
+
+Orval automatically resolves JSON Schema 2020-12 `$dynamicRef` / `$dynamicAnchor` keywords in OpenAPI 3.1 specs. No configuration is needed.
+
+#### Supported patterns
+
+| Pattern | Description |
+|---------|-------------|
+| Generic template emission | Schemas with `$defs` entries that have `$dynamicAnchor` but no `$ref` are emitted as TypeScript generic interfaces (e.g., `interface PaginatedResponse<itemType>`). |
+| Type alias binding | Schemas that `$ref` a generic template and bind `$defs` entries with `$dynamicAnchor` + `$ref` are emitted as type aliases (e.g., `type UserListResponse = PaginatedResponse<User>`). |
+| Self-referential `$dynamicAnchor` | Recursive schemas where `$dynamicRef` resolves to the declaring schema itself (e.g., tree nodes). |
+| `allOf` bound aliases | Schemas that combine a generic template reference with additional properties via `allOf` emit intersection types (e.g., `type X = Template<Args> & { extra }`). |
+
+#### Generic template example
+
+Define a reusable generic schema with an unbound `$dynamicAnchor` in `$defs`:
+
+```yaml title="OpenAPI 3.1 spec"
+components:
+  schemas:
+    PaginatedResponse:
+      $defs:
+        itemType:
+          $dynamicAnchor: itemType
+          not: {}
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $dynamicRef: '#itemType'
+        total:
+          type: integer
+```
+
+Then bind it to concrete types:
+
+```yaml
+    UserListResponse:
+      $defs:
+        itemType:
+          $dynamicAnchor: itemType
+          $ref: '#/components/schemas/User'
+      $ref: '#/components/schemas/PaginatedResponse'
+
+    OrderListResponse:
+      $defs:
+        itemType:
+          $dynamicAnchor: itemType
+          $ref: '#/components/schemas/Order'
+      $ref: '#/components/schemas/PaginatedResponse'
+```
+
+Generated TypeScript:
+
+```ts
+export interface PaginatedResponse<itemType> {
+  items: itemType[];
+  total: number;
+}
+
+export type UserListResponse = PaginatedResponse<User>;
+export type OrderListResponse = PaginatedResponse<Order>;
+```
+
+The generic parameter name (`itemType`) comes from the `$dynamicAnchor` value. The type alias name (`UserListResponse`) comes from the schema key in `components.schemas`. Endpoints that reference a bound alias use the alias name directly (e.g., `Promise<AxiosResponse<UserListResponse>>`).
+
+#### Self-referential `$dynamicAnchor` example
+
+When a schema declares `$dynamicAnchor` and uses `$dynamicRef` with the same anchor, the type resolves to itself:
+
+```yaml title="OpenAPI 3.1 spec"
+components:
+  schemas:
+    BaseCategory:
+      $dynamicAnchor: category
+      type: object
+      properties:
+        id:
+          type: string
+        children:
+          type: array
+          items:
+            $dynamicRef: '#category'
+
+    LocalizedCategory:
+      $dynamicAnchor: category
+      allOf:
+        - $ref: '#/components/schemas/BaseCategory'
+        - type: object
+          properties:
+            displayName:
+              type: string
+```
+
+Generated TypeScript:
+
+```ts
+export interface BaseCategory {
+  id?: string;
+  children?: BaseCategory[];
+}
+
+export interface LocalizedCategory {
+  id?: string;
+  children?: LocalizedCategory[];
+  displayName?: string;
+}
+```
+
+Each schema's `$dynamicRef: '#category'` resolves to its own type because it declares `$dynamicAnchor: category`.
+
+#### Limitations
+
+- Each schema in `components.schemas` is generated once with a single dynamic scope. If the same named component is referenced by multiple endpoints that each provide different `$defs` bindings, only one binding applies. The common pattern — putting `$defs` bindings on inline response schemas — works correctly.
+- `$dynamicRef` values targeting external documents (e.g., `other.json#anchor`) fall back to `unknown`.
+- Inline `$defs` entries without `$ref` that have `$dynamicAnchor` are treated as generic type parameters, not concrete bindings.
+
 ### contentType
 
 Filter content types:
