@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDynamicAnchorName, isComponentRef } from './ref';
+import type { ContextSpec, OpenApiDocument } from '../types';
+import { getDynamicAnchorName, getRefInfo, isComponentRef } from './ref';
 
 describe('isComponentRef', () => {
   it.each([
@@ -46,5 +47,70 @@ describe('getDynamicAnchorName', () => {
     expect(
       getDynamicAnchorName('https://example.com/schemas/base#anchor'),
     ).toBeUndefined();
+  });
+
+  it('returns undefined for a bare # with no anchor', () => {
+    expect(getDynamicAnchorName('#')).toBeUndefined();
+  });
+});
+
+describe('getRefInfo', () => {
+  function createContext(spec: OpenApiDocument): ContextSpec {
+    return {
+      target: 'core-test',
+      workspace: '/tmp',
+      spec,
+      output: {
+        override: { components: { schemas: { suffix: '' } } },
+      },
+    } as ContextSpec;
+  }
+
+  it('resolves a fragment-only ref to its local schema name', () => {
+    const context = createContext({
+      openapi: '3.1.0',
+      components: { schemas: { Pet: { type: 'object' } } },
+    });
+
+    const info = getRefInfo('#/components/schemas/Pet', context);
+
+    expect(info.name).toBe('Pet');
+    expect(info.originalName).toBe('Pet');
+    expect(info.refPaths).toEqual(['components', 'schemas', 'Pet']);
+  });
+
+  it('resolves an external-file ref (pathname branch) and derives name from filename', () => {
+    // Exercises line 97: the return branch reached when pathname is non-empty
+    const context = createContext({
+      openapi: '3.1.0',
+      components: { schemas: {} },
+    });
+
+    const info = getRefInfo(
+      './models/pet-model.yaml#/components/schemas/Pet',
+      context,
+    );
+
+    expect(info.name).toBe('Pet');
+    expect(info.originalName).toBe('Pet');
+  });
+
+  it('decodes JSON Pointer tilde-escapes in ref paths', () => {
+    const context = createContext({
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          'My/Type': { type: 'object' },
+          'My~Type': { type: 'object' },
+        },
+      },
+    });
+
+    expect(
+      getRefInfo('#/components/schemas/My~1Type', context).originalName,
+    ).toBe('My/Type');
+    expect(
+      getRefInfo('#/components/schemas/My~0Type', context).originalName,
+    ).toBe('My~Type');
   });
 });

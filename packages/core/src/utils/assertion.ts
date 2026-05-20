@@ -18,11 +18,24 @@ export function isReference(obj: object): obj is OpenApiReferenceObject {
   return !isNullish(obj) && Object.hasOwn(obj, '$ref');
 }
 
+/**
+ * Represents an OpenAPI 3.1 schema object that contains a `$dynamicRef`
+ * keyword, used for recursive or polymorphic schema references.
+ *
+ * @see https://json-schema.org/draft/2020-12/json-schema-core#section-8.2.4
+ */
 export interface OpenApiDynamicReferenceObject {
   $dynamicRef: string;
   [key: string]: unknown;
 }
 
+/**
+ * Discriminator helper for {@link OpenApiDynamicReferenceObject}.
+ *
+ * Returns `true` when `obj` has a `$dynamicRef` string property,
+ * indicating it is an OpenAPI 3.1 dynamic reference rather than a
+ * static `$ref`.
+ */
 export function isDynamicReference(
   obj: object,
 ): obj is OpenApiDynamicReferenceObject {

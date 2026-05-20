@@ -6,7 +6,13 @@ import type {
   OpenApiReferenceObject,
   OpenApiSchemaObject,
 } from '../types';
-import { extractBoundAliasInfo, resolveExampleRefs, resolveRef } from './ref';
+import {
+  buildDynamicScope,
+  extractBoundAliasInfo,
+  resolveExampleRefs,
+  resolveRef,
+  resolveDynamicRef,
+} from './ref';
 
 function createContext(spec: OpenApiDocument): ContextSpec {
   return {
@@ -436,5 +442,152 @@ describe('resolveExampleRefs', () => {
     );
 
     expect(result).toEqual({ fallback: { value: 'plain' } });
+  });
+});
+
+describe('extractBoundAliasInfo — fallback typeArgs from bindingByAnchor', () => {
+  it('uses bindingByAnchor values when template has no matching $defs anchors', () => {
+    // Template schema has no $defs at all — typeArgs fallback branch (lines 262-265)
+    const context = createContext({
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          User: { type: 'object', properties: { id: { type: 'string' } } },
+          TemplateMissingDefs: {
+            type: 'object',
+            properties: { data: { type: 'string' } },
+          },
+          BoundResponse: {
+            $defs: {
+              itemType: {
+                $dynamicAnchor: 'itemType',
+                $ref: '#/components/schemas/User',
+              },
+            },
+            $ref: '#/components/schemas/TemplateMissingDefs',
+          },
+        },
+      },
+    });
+
+    const alias = extractBoundAliasInfo(
+      context.spec.components?.schemas
+        ?.BoundResponse as unknown as OpenApiSchemaObject,
+      context,
+    );
+
+    expect(alias).toBeDefined();
+    expect(alias?.genericName).toBe('TemplateMissingDefs');
+    expect(alias?.typeArgs).toEqual(['User']);
+    expect(alias?.imports).toEqual([{ name: 'User', schemaName: 'User' }]);
+  });
+
+  it('returns bound-alias info from allOf binding element with extra schemas', () => {
+    // Exercises the allOf branch where bindingElement is found inside allOf
+    const context = createContext({
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          User: { type: 'object', properties: { id: { type: 'string' } } },
+          PaginatedTemplate: {
+            $id: 'https://example.com/schemas/PaginatedTemplate',
+            $defs: {
+              itemType: { $dynamicAnchor: 'itemType', not: {} },
+            },
+            type: 'object',
+            properties: {
+              items: { type: 'array', items: { $dynamicRef: '#itemType' } },
+            },
+          },
+          ExtendedResponse: {
+            allOf: [
+              {
+                $defs: {
+                  itemType: {
+                    $dynamicAnchor: 'itemType',
+                    $ref: '#/components/schemas/User',
+                  },
+                },
+                $ref: '#/components/schemas/PaginatedTemplate',
+              },
+              { type: 'object', properties: { meta: { type: 'string' } } },
+            ],
+          },
+        },
+      },
+    });
+
+    const alias = extractBoundAliasInfo(
+      context.spec.components?.schemas
+        ?.ExtendedResponse as unknown as OpenApiSchemaObject,
+      context,
+    );
+
+    expect(alias).toBeDefined();
+    expect(alias?.genericName).toBe('PaginatedTemplate');
+    expect(alias?.typeArgs).toEqual(['User']);
+    expect(alias?.extraSchemas).toHaveLength(1);
+  });
+});
+
+describe('getSchema — missing $ref guard', () => {
+  it('resolveRef throws when $ref is absent on the reference object', () => {
+    // Exercises the getSchema throw branch (line 280)
+    const context = createContext({
+      openapi: '3.1.0',
+      components: { schemas: {} },
+    });
+
+    // Bypass TypeScript by casting: pass an object that looks like a ref but has empty $ref
+    expect(() =>
+      resolveRef({ $ref: '' } as OpenApiReferenceObject, context),
+    ).toThrow('Oops... 🍻. Ref not found: missing $ref');
+  });
+});
+
+describe('resolveDynamicRef — catch branch', () => {
+  it('returns unknown when the resolved schema ref does not exist in spec', () => {
+    // Exercises the catch block (line 444): schemaName points to a non-existent schema
+    const spec = {
+      openapi: '3.1.0',
+      components: { schemas: {} },
+    } as OpenApiDocument;
+    const context = {
+      ...createContext(spec),
+      dynamicScope: {
+        category: { name: 'NonExistent', schemaName: 'NonExistent' },
+      },
+    };
+
+    const result = resolveDynamicRef('category', context);
+
+    expect(result.resolvedTypeName).toBe('unknown');
+    expect(result.schema).toEqual({});
+    expect(result.imports).toEqual([]);
+  });
+});
+
+describe('resolveDynamicRef — isParameter branch', () => {
+  it('returns the parameter name directly without resolving a schema ref', () => {
+    const spec = {
+      openapi: '3.1.0',
+      components: { schemas: {} },
+    } as OpenApiDocument;
+    const context = {
+      ...createContext(spec),
+      dynamicScope: {
+        itemType: {
+          name: 'itemType',
+          schemaName: 'itemType',
+          isParameter: true,
+        },
+      },
+    };
+
+    const result = resolveDynamicRef('itemType', context);
+
+    expect(result.resolvedTypeName).toBe('itemType');
+    expect(result.schema).toEqual({});
+    expect(result.imports).toEqual([]);
   });
 });

@@ -39,6 +39,21 @@ const schemaMapKeys = [
   'properties',
 ] as const;
 
+/**
+ * Recursively walks a schema value and returns `true` if any nested
+ * `$dynamicRef` resolves — via the current `context.dynamicScope` — to a
+ * schema *other* than `refName`.
+ *
+ * Used by `resolveValue` to decide whether a `$ref`'d schema must be
+ * instantiated with its bound type arguments rather than referenced by name.
+ *
+ * @param value   - The schema node (or sub-node) to inspect.
+ * @param context - Current resolution context, including the dynamic scope.
+ * @param refName - The resolved name of the enclosing `$ref` schema; dynamic
+ *                  refs that resolve to this same name are considered
+ *                  self-references and do not count as "scope-affected".
+ * @param seen    - Cycle-guard; tracks already-visited objects.
+ */
 function hasScopeAffectedDynamicRef(
   value: unknown,
   context: ContextSpec,
@@ -120,6 +135,22 @@ function makeUnknownValue(
   };
 }
 
+/**
+ * Resolves an OpenAPI schema or reference object to a {@link ResolverValue}
+ * that carries the TypeScript type string, required imports, and metadata.
+ *
+ * Handles all schema forms in priority order:
+ * 1. **Bound generic alias** — a `$ref` with `$defs` overrides; emits an
+ *    instantiated generic expression such as `Paginated<User>`.
+ * 2. **Component `$ref`** — a named `$ref` pointing to `#/components/…`;
+ *    emits the schema name as a reference import.
+ * 3. **Non-component `$ref`** — an anonymous or path-level ref; inlines the
+ *    resolved schema via {@link getScalar} (cycle-safe).
+ * 4. **`$dynamicRef`** — resolved via the active dynamic scope; falls back to
+ *    `unknown` when the anchor is absent or the ref is a bare `#`.
+ * 5. **Plain schema** — delegates to {@link getScalar} for all other cases
+ *    (primitives, objects, arrays, enums, …).
+ */
 export function resolveValue({
   schema,
   name,

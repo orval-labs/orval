@@ -175,12 +175,11 @@ function collectGenericParams(
   if (!defs || typeof defs !== 'object') return [];
   const params: { anchorName: string; paramName: string }[] = [];
   for (const defSchema of Object.values(defs)) {
+    if (!defSchema || typeof defSchema !== 'object') {
+      continue;
+    }
     const rec = defSchema as Record<string, unknown>;
-    if (
-      typeof defSchema === 'object' &&
-      rec.$dynamicAnchor !== undefined &&
-      rec.$ref === undefined
-    ) {
+    if (rec.$dynamicAnchor !== undefined && rec.$ref === undefined) {
       const anchor = rec.$dynamicAnchor as string;
       params.push({
         anchorName: anchor,

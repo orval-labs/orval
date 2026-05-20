@@ -556,4 +556,73 @@ describe('resolveValue with $dynamicRef', () => {
     expect(result.value).toBe('NullableItem | null');
     expect(result.isRef).toBe(true);
   });
+
+  it('emits generic alias value for a bound-alias $ref with $defs bindings', () => {
+    // Exercises lines 132-146: extractBoundAliasInfo returns an alias and resolveValue
+    // builds the generic type expression directly instead of falling through to resolveRef.
+    // The bound-alias schema must be passed inline (with $ref + $defs on the same object),
+    // as it would appear on a property/parameter — not as a component reference.
+    const spec = {
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          User: { type: 'object', properties: { id: { type: 'string' } } },
+          PaginatedTemplate: {
+            $id: 'https://example.com/schemas/PaginatedTemplate',
+            $defs: {
+              itemType: { $dynamicAnchor: 'itemType', not: {} },
+            },
+            type: 'object',
+            properties: {
+              items: { type: 'array', items: { $dynamicRef: '#itemType' } },
+              total: { type: 'integer' },
+            },
+          },
+        },
+      },
+    } as OpenApiDocument;
+    const context = createContext(spec);
+
+    // Pass the bound-alias schema inline: $ref + $defs on the same object.
+    const result = resolveValue({
+      schema: {
+        $defs: {
+          itemType: {
+            $dynamicAnchor: 'itemType',
+            $ref: '#/components/schemas/User',
+          },
+        },
+        $ref: '#/components/schemas/PaginatedTemplate',
+      } as OpenApiSchemaObject,
+      context,
+    });
+
+    expect(result.value).toBe('PaginatedTemplate<User>');
+    expect(result.isRef).toBe(true);
+    expect(result.imports).toContainEqual({
+      name: 'PaginatedTemplate',
+      schemaName: 'PaginatedTemplate',
+    });
+    expect(result.imports).toContainEqual({
+      name: 'User',
+      schemaName: 'User',
+    });
+  });
+
+  it('returns unknown for a $dynamicRef that is exactly "#" (no anchor name)', () => {
+    // Exercises line 285: getDynamicAnchorName returns undefined for bare "#"
+    const spec = {
+      openapi: '3.1.0',
+      components: { schemas: {} },
+    } as OpenApiDocument;
+    const context = createContext(spec, {});
+
+    const result = resolveValue({
+      schema: { $dynamicRef: '#' } as unknown as OpenApiSchemaObject,
+      context,
+    });
+
+    expect(result.value).toBe('unknown');
+    expect(result.isRef).toBe(false);
+  });
 });

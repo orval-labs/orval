@@ -130,13 +130,12 @@ export function resolveRef<TSchema extends object = OpenApiComponentsObject>(
 }
 
 /**
- * Looks up a schema by its `$ref` path in the spec, applying suffix resolution.
+ * Describes a resolved generic alias binding — the concrete type arguments
+ * that fill the template's `$dynamicAnchor` slots for a given `$ref` with
+ * `$defs` overrides.
  *
- * Preserves OpenAPI 3.0 `nullable` and 3.1 type-array (`["object", "null"]`)
- * hints from the referencing schema onto the resolved target.
- *
- * @see https://spec.openapis.org/oas/v3.0.3#fixed-fields-18 (nullable)
- * @see https://spec.openapis.org/oas/v3.1.0#schema-object (type as array)
+ * Produced by {@link extractBoundAliasInfo} and consumed by `resolveValue`
+ * to emit instantiated generic type expressions (e.g. `Paginated<User>`).
  */
 export interface BoundAliasInfo {
   genericName: string;

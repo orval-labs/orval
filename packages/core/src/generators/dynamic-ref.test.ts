@@ -228,7 +228,7 @@ const nonIdentifierSchemaKeySpec: OpenApiDocument = {
 
 describe('generateSchemasDefinition with $dynamicRef', () => {
   describe('recursive category tree', () => {
-    it('resolves children to BaseCategory[] (self-referential) when flag enabled', () => {
+    it('resolves children to BaseCategory[] (self-referential)', () => {
       const schemas = recursiveCategoryTreeSpec.components!.schemas!;
       const result = generateSchemasDefinition(
         schemas,
@@ -711,5 +711,39 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
     const container = result.find((s) => s.name === 'Container');
     expect(container).toBeDefined();
     expect(container!.model).toContain('name');
+  });
+
+  it('skips null values in $defs without crashing', () => {
+    const spec: OpenApiDocument = {
+      openapi: '3.1.0',
+      info: { title: 'Test', version: '0.1.0' },
+      paths: {},
+      components: {
+        schemas: {
+          Container: {
+            $defs: {
+              nullDef: null as unknown as OpenApiSchemaObject,
+              validDef: {
+                $dynamicAnchor: 'item',
+                type: 'object',
+                properties: { id: { type: 'string' } },
+              },
+            },
+            $dynamicAnchor: 'root',
+            type: 'object',
+            properties: {
+              items: { $dynamicRef: '#item' },
+            },
+          },
+        },
+      },
+    };
+
+    const schemas = spec.components!.schemas!;
+    const result = generateSchemasDefinition(schemas, createContext(spec), '');
+
+    const container = result.find((s) => s.name === 'Container');
+    expect(container).toBeDefined();
+    expect(container!.model).toContain('item');
   });
 });
