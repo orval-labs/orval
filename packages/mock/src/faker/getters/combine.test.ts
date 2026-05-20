@@ -36,6 +36,12 @@ function createMockContext(): ContextSpec {
       unionAddMissingProperties: false,
       optionsParamRequired: false,
       propertySortOrder: PropertySortOrder.ALPHABETICAL,
+      factoryMethods: {
+        functionNamePrefix: 'create',
+        mode: 'single',
+        outputDirectory: '',
+        includeOptionalProperty: false,
+      },
       override: {
         title: undefined,
         transformer: undefined,

@@ -23,6 +23,7 @@
     "generate:fetch": "orval --config ./configs/fetch.config.ts",
     "generate:mcp": "orval --config ./configs/mcp.config.ts",
     "generate:hono": "orval --config ./configs/hono.config.ts",
+    "generate:factory-methods": "orval --config ./configs/factory-methods.config.ts",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
     "test:snapshots:update": "bun run test:snapshots --update",
     "build": "node ./scripts/typecheck-generated.mjs && bun run verify:mock-generated",
