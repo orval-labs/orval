@@ -3,7 +3,12 @@ import path from 'node:path';
 import fs from 'fs-extra';
 
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { OutputClient, type WriteModeProps } from '../types';
+import {
+  type GlobalMockOptions,
+  OutputClient,
+  OutputMockType,
+  type WriteModeProps,
+} from '../types';
 import {
   conventionName,
   getFileInfo,
@@ -41,16 +46,23 @@ export async function writeSplitTagsMode({
     output.tsconfig,
   );
 
-  const mockOption =
-    output.mock && !isFunction(output.mock) ? output.mock : undefined;
-  const indexFilePath = mockOption?.indexMockFiles
-    ? path.join(
-        dirname,
-        'index.' + getMockFileExtensionByTypeName(mockOption) + extension,
-      )
-    : undefined;
-  if (indexFilePath) {
-    await fs.outputFile(indexFilePath, '');
+  // Resolve concrete (non-function) generator entries so we can iterate over
+  // them when writing per-entry index files.
+  const generatorEntries = output.mocks.generators.filter(
+    (g): g is GlobalMockOptions => !isFunction(g),
+  );
+
+  // Pre-create per-generator-entry index files (one per entry, e.g.
+  // `index.msw.ts` and `index.faker.ts`) so they can be appended to during
+  // the per-tag write loop.
+  const indexFilePathsByType = new Map<string, string>();
+  if (output.mocks.indexMockFiles) {
+    for (const entry of generatorEntries) {
+      const ext = getMockFileExtensionByTypeName(entry);
+      const indexPath = path.join(dirname, `index.${ext}${extension}`);
+      indexFilePathsByType.set(ext, indexPath);
+      await fs.outputFile(indexPath, '');
+    }
   }
 
   const tagEntries = Object.entries(target);
@@ -61,8 +73,7 @@ export async function writeSplitTagsMode({
         const {
           imports,
           implementation,
-          implementationMock,
-          importsMock,
+          mockOutputs,
           mutators,
           clientMutators,
           formData,
@@ -73,7 +84,6 @@ export async function writeSplitTagsMode({
         } = target;
 
         let implementationData = header;
-        let mockData = header;
 
         const importerPath = path.join(dirname, tag, tag + extension);
         const relativeSchemasPath = output.schemas
@@ -144,21 +154,6 @@ export async function writeSplitTagsMode({
           hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
           packageJson: output.packageJson,
           output,
-        });
-
-        const importsMockForBuilder = generateImportsForBuilder(
-          output,
-          importsMock,
-          relativeSchemasPath,
-        );
-
-        mockData += builder.importsMock({
-          implementation: implementationMock,
-          imports: importsMockForBuilder,
-          projectName,
-          hasSchemaDir: !!output.schemas,
-          isAllowSyntheticDefaultImports,
-          options: isFunction(output.mock) ? undefined : output.mock,
         });
 
         const schemasPath =
@@ -232,7 +227,6 @@ export async function writeSplitTagsMode({
         }
 
         implementationData += `\n${implementation}`;
-        mockData += `\n${implementationMock}`;
 
         const implementationFilename =
           tag +
@@ -246,25 +240,44 @@ export async function writeSplitTagsMode({
         );
         await writeGeneratedFile(implementationPath, implementationData);
 
-        const mockPath = output.mock
-          ? path.join(
-              dirname,
-              tag,
-              tag +
-                '.' +
-                getMockFileExtensionByTypeName(output.mock) +
-                extension,
-            )
-          : undefined;
+        // Emit one mock file per configured generator entry. Per the
+        // current design only non-function generator entries get their own
+        // file; ClientMockBuilder functions are not yet supported here.
+        const mockPaths: string[] = [];
+        for (const [index, mockOutput] of mockOutputs.entries()) {
+          const entry = output.mocks.generators[index];
+          if (!entry || isFunction(entry)) continue;
 
-        if (mockPath) {
+          const importsMockForBuilder = generateImportsForBuilder(
+            output,
+            mockOutput.imports,
+            relativeSchemasPath,
+          );
+
+          let mockData = header;
+          mockData += builder.importsMock({
+            implementation: mockOutput.implementation,
+            imports: importsMockForBuilder,
+            projectName,
+            hasSchemaDir: !!output.schemas,
+            isAllowSyntheticDefaultImports,
+            options: entry,
+          });
+          mockData += `\n${mockOutput.implementation}`;
+
+          const mockPath = path.join(
+            dirname,
+            tag,
+            tag + '.' + getMockFileExtensionByTypeName(entry) + extension,
+          );
           await writeGeneratedFile(mockPath, mockData);
+          mockPaths.push(mockPath);
         }
 
         return [
           implementationPath,
           ...(schemasPath ? [schemasPath] : []),
-          ...(mockPath ? [mockPath] : []),
+          ...mockPaths,
         ];
       } catch (error) {
         throw new Error(
@@ -275,27 +288,34 @@ export async function writeSplitTagsMode({
     }),
   );
 
-  // Write mock index file after Promise.all to ensure deterministic export order.
-  if (indexFilePath && mockOption) {
-    const handlersDisabled = mockOption.generateHandlers === false;
-    const indexContent = tagEntries
-      .map(([tag]) => {
-        const localMockPath = upath.joinSafe(
-          './',
-          tag,
-          tag + '.' + getMockFileExtensionByTypeName(mockOption),
-        );
-        return handlersDisabled
-          ? `export * from '${localMockPath}'\n`
-          : `export { get${pascal(tag)}Mock } from '${localMockPath}'\n`;
-      })
-      .join('');
-    await fs.appendFile(indexFilePath, indexContent);
+  // Write per-generator-entry index files after Promise.all to ensure
+  // deterministic export order. MSW entries re-export the aggregated
+  // `get<Tag>Mock` handler function; Faker entries use `export *` since
+  // faker has no aggregate handler.
+  if (output.mocks.indexMockFiles) {
+    for (const entry of generatorEntries) {
+      const ext = getMockFileExtensionByTypeName(entry);
+      const indexFilePath = indexFilePathsByType.get(ext);
+      if (!indexFilePath) continue;
+
+      const indexContent = tagEntries
+        .map(([tag]) => {
+          const localMockPath = upath.joinSafe('./', tag, tag + '.' + ext);
+          // MSW entries use the named re-export shape so existing
+          // `import { get<Tag>Mock } from './api/index.msw'` consumers keep
+          // working unchanged.
+          return ext === OutputMockType.MSW
+            ? `export { get${pascal(tag)}Mock } from '${localMockPath}'\n`
+            : `export * from '${localMockPath}'\n`;
+        })
+        .join('');
+      await fs.appendFile(indexFilePath, indexContent);
+    }
   }
 
   return [
     ...new Set([
-      ...(indexFilePath ? [indexFilePath] : []),
+      ...Array.from(indexFilePathsByType.values()),
       ...generatedFilePathsArray.flat(),
     ]),
   ];

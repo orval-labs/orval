@@ -33,9 +33,8 @@ export async function writeSingleMode({
 
     const {
       imports,
-      importsMock,
+      mockOutputs,
       implementation,
-      implementationMock,
       mutators,
       clientMutators,
       formData,
@@ -44,6 +43,15 @@ export async function writeSingleMode({
       paramsFilter,
       fetchReviver,
     } = generateTarget(builder, output);
+
+    // Combined mock content emitted at the bottom of the single-mode output
+    // file (one block per generator entry).
+    const implementationMock = mockOutputs
+      .map((m) => m.implementation)
+      .join('\n\n');
+    // Aggregate imports across all mock entries for the value-import promotion
+    // pass below.
+    const importsMock = mockOutputs.flatMap((m) => m.imports);
 
     let data = header;
 
@@ -124,8 +132,11 @@ export async function writeSingleMode({
       output,
     });
 
-    if (output.mock) {
-      const filteredMockImports = importsMock.filter(
+    // Emit per-generator-entry mock imports. Each entry produces its own
+    // import header (e.g. `from 'msw'` for msw, `from '@faker-js/faker'` for
+    // faker) by passing its `options` (with discriminating `type`).
+    for (const [index, mockOutput] of mockOutputs.entries()) {
+      const filteredMockImports = mockOutput.imports.filter(
         (impMock) =>
           !normalizedImports.some(
             (imp) =>
@@ -140,13 +151,14 @@ export async function writeSingleMode({
             filteredMockImports.filter((imp) => !!imp.importPath),
             '.',
           );
+      const entry = output.mocks.generators[index];
       data += builder.importsMock({
-        implementation: implementationMock,
+        implementation: mockOutput.implementation,
         imports: importsMockForBuilder,
         projectName,
         hasSchemaDir: !!output.schemas,
         isAllowSyntheticDefaultImports,
-        options: isFunction(output.mock) ? undefined : output.mock,
+        options: entry && !isFunction(entry) ? entry : undefined,
       });
     }
 
@@ -196,7 +208,7 @@ export async function writeSingleMode({
 
     data += `${implementation.trim()}\n`;
 
-    if (output.mock) {
+    if (mockOutputs.length > 0) {
       data += '\n\n';
       data += implementationMock;
     }

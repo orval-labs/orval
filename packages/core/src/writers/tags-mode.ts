@@ -50,8 +50,7 @@ export async function writeTagsMode({
         const {
           imports,
           implementation,
-          implementationMock,
-          importsMock,
+          mockOutputs,
           mutators,
           clientMutators,
           formData,
@@ -60,6 +59,11 @@ export async function writeTagsMode({
           paramsSerializer,
           paramsFilter,
         } = target;
+
+        const importsMock = mockOutputs.flatMap((m) => m.imports);
+        const implementationMock = mockOutputs
+          .map((m) => m.implementation)
+          .join('\n\n');
 
         let data = header;
 
@@ -131,10 +135,13 @@ export async function writeTagsMode({
           output,
         });
 
-        if (output.mock) {
+        // Emit per-generator-entry mock imports so each entry's specific
+        // import header is included (msw vs faker, etc.).
+        for (const [index, mockOutput] of mockOutputs.entries()) {
+          const entry = output.mocks.generators[index];
           const importsMockForBuilder = generateImportsForBuilder(
             output,
-            importsMock.filter(
+            mockOutput.imports.filter(
               (impMock) =>
                 !normalizedImports.some(
                   (imp) =>
@@ -146,12 +153,12 @@ export async function writeTagsMode({
           );
 
           data += builder.importsMock({
-            implementation: implementationMock,
+            implementation: mockOutput.implementation,
             imports: importsMockForBuilder,
             projectName,
             hasSchemaDir: !!output.schemas,
             isAllowSyntheticDefaultImports,
-            options: isFunction(output.mock) ? undefined : output.mock,
+            options: entry && !isFunction(entry) ? entry : undefined,
           });
         }
 
@@ -212,7 +219,7 @@ export async function writeTagsMode({
 
         data += implementation;
 
-        if (output.mock) {
+        if (mockOutputs.length > 0) {
           data += '\n\n';
 
           data += implementationMock;
