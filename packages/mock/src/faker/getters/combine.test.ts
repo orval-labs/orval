@@ -24,6 +24,7 @@ function createMockContext(): ContextSpec {
       namingConvention: NamingConvention.CAMEL_CASE,
       fileExtension: '.ts',
       mode: OutputMode.SINGLE,
+      mocks: { indexMockFiles: false, generators: [] },
       client: OutputClient.FETCH,
       httpClient: OutputHttpClient.FETCH,
       clean: false,
