@@ -318,6 +318,92 @@ describe('generateMSW', () => {
       );
     });
 
+    it('should generate ArrayBuffer mock for $ref to a format: binary schema', () => {
+      const refBinaryVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          imports: [],
+          definition: { success: 'TestPdfFile' },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: 'TestPdfFile',
+                contentType: '*/*',
+                originalSchema: { type: 'string', format: 'binary' },
+                imports: [],
+                schemas: [],
+                type: 'string',
+                isEnum: false,
+                isRef: true,
+                hasReadonlyProps: false,
+              },
+            ],
+          },
+          contentTypes: ['*/*'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(refBinaryVerbOptions, baseOptions);
+
+      expect(result.implementation.handler).toContain(
+        'HttpResponse.arrayBuffer',
+      );
+      expect(result.implementation.handler).not.toContain('JSON.stringify');
+    });
+
+    it('should not force binary path when preferredContentType narrows to a non-binary success variant', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          imports: [],
+          definition: { success: 'Pet | Blob' },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: 'Pet',
+                contentType: 'application/json',
+                originalSchema: {
+                  type: 'object',
+                  properties: { name: { type: 'string' } },
+                },
+                imports: [],
+                schemas: [],
+                type: 'object',
+                isEnum: false,
+                isRef: true,
+                hasReadonlyProps: false,
+              },
+              {
+                key: '200',
+                value: 'Blob',
+                contentType: 'application/octet-stream',
+                originalSchema: { type: 'string', format: 'binary' },
+                imports: [],
+                schemas: [],
+                type: 'string',
+                isEnum: false,
+                isRef: false,
+                hasReadonlyProps: false,
+              },
+            ],
+          },
+          contentTypes: ['application/json', 'application/octet-stream'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        mock: { preferredContentType: 'application/json' },
+      } as unknown as GeneratorOptions);
+
+      expect(result.implementation.handler).not.toContain(
+        'HttpResponse.arrayBuffer',
+      );
+      expect(result.implementation.handler).toContain('HttpResponse.json');
+    });
+
     it('should type the info parameter in the handler callback', () => {
       const result = generate({
         mock: { type: OutputMockType.MSW, delay: 100 },

@@ -74,7 +74,9 @@ export function getResponse({
     isBlob: groupedByStatus.success.some(
       (t) =>
         (!!t.contentType && isBinaryContentType(t.contentType)) ||
-        (t.value === 'Blob' && !t.isRef),
+        t.originalSchema?.format === 'binary' ||
+        (t.originalSchema?.contentMediaType === 'application/octet-stream' &&
+          !t.originalSchema.contentEncoding),
     ),
     types: groupedByStatus,
     contentTypes,

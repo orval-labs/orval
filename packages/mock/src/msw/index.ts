@@ -132,6 +132,9 @@ function generateDefinition(
   const contentTypesByPreference = preferredContentTypeMatch
     ? [preferredContentTypeMatch]
     : contentTypes;
+  const responsesByPreference = preferredContentTypeMatch
+    ? responses.filter((r) => r.contentType === preferredContentTypeMatch)
+    : responses;
 
   const hasTextLikeContentType = contentTypes.some((ct) =>
     isTextLikeContentType(ct),
@@ -146,8 +149,13 @@ function generateDefinition(
     (isExactlyStringReturnType && hasTextLikeContentType) ||
     contentTypesByPreference.some((ct) => isTextLikeContentType(ct));
   const isBinaryResponse =
-    returnType === 'Blob' ||
-    contentTypesByPreference.some((ct) => isBinaryLikeContentType(ct));
+    contentTypesByPreference.some((ct) => isBinaryLikeContentType(ct)) ||
+    responsesByPreference.some(
+      (r) =>
+        r.originalSchema?.format === 'binary' ||
+        (r.originalSchema?.contentMediaType === 'application/octet-stream' &&
+          !r.originalSchema.contentEncoding),
+    );
   const isReturnHttpResponse = value && value !== 'undefined';
 
   const getResponseMockFunctionName = `${getResponseMockFunctionNameBase}${pascal(

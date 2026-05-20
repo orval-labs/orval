@@ -1,0 +1,32 @@
+openapi: 3.0.0
+info:
+  title: Issue 3330
+  description: 'Regression coverage for */* + format:binary detection (#3330)'
+  version: 1.0.0
+paths:
+  /download-inline:
+    get:
+      operationId: downloadInline
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+  /download-ref:
+    get:
+      operationId: downloadRef
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TestPdfFile'
+components:
+  schemas:
+    TestPdfFile:
+      type: string
+      format: binary
