@@ -54,7 +54,7 @@ const createOutput = (
     namingConvention: 'camelCase',
     fileExtension: '.ts',
     mode: 'single',
-    mocks: { indexMockFiles: false, generators: [] },
+    mock: { indexMockFiles: false, generators: [] },
     override: {
       operations: {},
       tags: {},
