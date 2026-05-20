@@ -174,7 +174,7 @@ export async function normalizeOptions(
     generators: [],
   };
   if (isBoolean(mocksOption) && mocksOption) {
-    // `mocks: true` shorthand emits both an MSW handler file and a faker
+    // `mock: true` shorthand emits both an MSW handler file and a faker
     // factory file using default options for each.
     mocks = {
       indexMockFiles: false,

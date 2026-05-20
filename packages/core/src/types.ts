@@ -455,7 +455,7 @@ export interface OutputMocksConfig {
 }
 
 // Accepts:
-//   - boolean shorthand (`mocks: true` => both msw + faker with defaults)
+//   - boolean shorthand (`mock: true` => both msw + faker with defaults)
 //   - OutputMocksConfig (full object form)
 //   - ClientMockBuilder (single function-form for advanced users)
 export type OutputMocksOption = boolean | OutputMocksConfig | ClientMockBuilder;
