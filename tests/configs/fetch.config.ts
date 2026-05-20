@@ -301,6 +301,18 @@ export default defineConfig({
       target: '../specifications/parameters.yaml',
     },
   },
+  urlEncodeParameters: {
+    output: {
+      target: '../generated/fetch/url-encode-parameters/endpoints.ts',
+      client: 'fetch',
+      urlEncodeParameters: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   usedatesOnlyDateParams: {
     output: {
       target: '../generated/fetch/usedates-only-date-params/endpoints.ts',

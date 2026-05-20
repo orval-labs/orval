@@ -350,7 +350,7 @@ export type showPetByIdResponse =
   | showPetByIdResponseError;
 
 export const getShowPetByIdUrl = (petId: string | undefined | null) => {
-  return `/pets/${petId}`;
+  return `/pets/${encodeURIComponent(String(petId))}`;
 };
 
 /**
@@ -473,7 +473,7 @@ export type deletePetByIdResponse =
   | deletePetByIdResponseError;
 
 export const getDeletePetByIdUrl = (petId: string | undefined | null) => {
-  return `/pets/${petId}`;
+  return `/pets/${encodeURIComponent(String(petId))}`;
 };
 
 /**
@@ -707,7 +707,7 @@ export type showPetWithOwnerResponse =
   | showPetWithOwnerResponseError;
 
 export const getShowPetWithOwnerUrl = (petId: string | undefined | null) => {
-  return `/pets/${petId}/owner`;
+  return `/pets/${encodeURIComponent(String(petId))}/owner`;
 };
 
 /**

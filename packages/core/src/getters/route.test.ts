@@ -11,6 +11,8 @@ import {
   getFullRoute,
   getRoute,
   getRouteAsArray,
+  makeRouteSafe,
+  wrapRouteParameters,
 } from './route';
 
 describe('getRoute getter', () => {
@@ -265,5 +267,59 @@ describe('getRouteAsArray getter', () => {
     ['the/nope', "'the','nope'"],
   ])('$1 evals to %2', (input, output) => {
     expect(getRouteAsArray(input)).toEqual(output);
+  });
+});
+
+describe('wrapRouteParameters', () => {
+  it('wraps parameters correctly', () => {
+    const result = wrapRouteParameters(
+      '/user/${id}/profile',
+      'prefix-',
+      '-suffix',
+    );
+    expect(result).toBe('/user/${prefix-id-suffix}/profile');
+  });
+
+  it('handles no parameters gracefully', () => {
+    const result = wrapRouteParameters('/user/profile', 'prefix-', '-suffix');
+    expect(result).toBe('/user/profile');
+  });
+
+  it('handles empty route', () => {
+    const result = wrapRouteParameters('', 'prefix-', '-suffix');
+    expect(result).toBe('');
+  });
+});
+
+describe('makeRouteSafe', () => {
+  it('encodes URI components in parameters', () => {
+    const result = makeRouteSafe('/search/${query}/bla/${something}');
+    expect(result).toBe(
+      '/search/${encodeURIComponent(String(query))}/bla/${encodeURIComponent(String(something))}',
+    );
+  });
+
+  it('encodes adjacent parameters separately', () => {
+    const result = makeRouteSafe('/x/${a}${b}');
+    expect(result).toBe(
+      '/x/${encodeURIComponent(String(a))}${encodeURIComponent(String(b))}',
+    );
+  });
+
+  it('encodes parameters mixed with literal separators', () => {
+    const result = makeRouteSafe('/files/${name}.${ext}');
+    expect(result).toBe(
+      '/files/${encodeURIComponent(String(name))}.${encodeURIComponent(String(ext))}',
+    );
+  });
+
+  it('handles no special characters gracefully', () => {
+    const result = makeRouteSafe('/search/query');
+    expect(result).toBe('/search/query');
+  });
+
+  it('handles empty route', () => {
+    const result = makeRouteSafe('');
+    expect(result).toBe('');
   });
 });
