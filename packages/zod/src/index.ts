@@ -1433,7 +1433,7 @@ const parseBodyAndResponse = ({
 const isMediaType =
   (pattern: string) =>
   ([contentType]: [string, object]): boolean =>
-    new RegExp(pattern).test(contentType.split(';')[0].trim());
+    new RegExp(pattern).test(contentType.split(';')[0].trim().toLowerCase());
 
 const getSingleResponse = (
   responses:
