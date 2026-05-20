@@ -11,6 +11,7 @@ import {
 import { escapeRegExp } from '../utils/string';
 import { writeGeneratedFile } from './file';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
+import { collapseInlineMockOutputs } from './mock-outputs';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
@@ -33,7 +34,7 @@ export async function writeSingleMode({
 
     const {
       imports,
-      mockOutputs,
+      mockOutputs: rawMockOutputs,
       implementation,
       mutators,
       clientMutators,
@@ -43,6 +44,12 @@ export async function writeSingleMode({
       paramsFilter,
       fetchReviver,
     } = generateTarget(builder, output);
+
+    // Single-mode appends every mock generator's output into the same
+    // `<filename>.ts` file. MSW already emits the response factories that
+    // Faker would emit, so when both generators are configured we drop the
+    // Faker entry to avoid duplicate function declarations.
+    const mockOutputs = collapseInlineMockOutputs(rawMockOutputs);
 
     // Combined mock content emitted at the bottom of the single-mode output
     // file (one block per generator entry).
@@ -134,8 +141,14 @@ export async function writeSingleMode({
 
     // Emit per-generator-entry mock imports. Each entry produces its own
     // import header (e.g. `from 'msw'` for msw, `from '@faker-js/faker'` for
-    // faker) by passing its `options` (with discriminating `type`).
-    for (const [index, mockOutput] of mockOutputs.entries()) {
+    // faker) by passing its `options` (with discriminating `type`). Match
+    // each mockOutput back to its source generator entry by type so the
+    // collapse step above (which drops faker when msw is present) does not
+    // misalign indices.
+    for (const mockOutput of mockOutputs) {
+      const entry = output.mocks.generators.find(
+        (g) => !isFunction(g) && g.type === mockOutput.type,
+      );
       const filteredMockImports = mockOutput.imports.filter(
         (impMock) =>
           !normalizedImports.some(
@@ -151,7 +164,6 @@ export async function writeSingleMode({
             filteredMockImports.filter((imp) => !!imp.importPath),
             '.',
           );
-      const entry = output.mocks.generators[index];
       data += builder.importsMock({
         implementation: mockOutput.implementation,
         imports: importsMockForBuilder,

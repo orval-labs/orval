@@ -14,6 +14,7 @@ import {
 import { escapeRegExp } from '../utils/string';
 import { writeGeneratedFile } from './file';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
+import { collapseInlineMockOutputs } from './mock-outputs';
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
@@ -50,7 +51,7 @@ export async function writeTagsMode({
         const {
           imports,
           implementation,
-          mockOutputs,
+          mockOutputs: rawMockOutputs,
           mutators,
           clientMutators,
           formData,
@@ -59,6 +60,11 @@ export async function writeTagsMode({
           paramsSerializer,
           paramsFilter,
         } = target;
+
+        // Tags-mode inlines mock content into the per-tag implementation
+        // file, so collapse duplicate factories (drop faker when msw is
+        // present) before emitting.
+        const mockOutputs = collapseInlineMockOutputs(rawMockOutputs);
 
         const importsMock = mockOutputs.flatMap((m) => m.imports);
         const implementationMock = mockOutputs
@@ -136,9 +142,12 @@ export async function writeTagsMode({
         });
 
         // Emit per-generator-entry mock imports so each entry's specific
-        // import header is included (msw vs faker, etc.).
-        for (const [index, mockOutput] of mockOutputs.entries()) {
-          const entry = output.mocks.generators[index];
+        // import header is included (msw vs faker, etc.). Match by type so
+        // collapsing the mockOutputs array does not misalign indices.
+        for (const mockOutput of mockOutputs) {
+          const entry = output.mocks.generators.find(
+            (g) => !isFunction(g) && g.type === mockOutput.type,
+          );
           const importsMockForBuilder = generateImportsForBuilder(
             output,
             mockOutput.imports.filter(
