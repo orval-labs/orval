@@ -259,4 +259,22 @@ describe('getMutatorInfo', () => {
       expect(result).toEqual({ numberOfParams: 0 });
     });
   });
+
+  describe('dynamic import', () => {
+    // Regression test for https://github.com/orval-labs/orval/issues/1634.
+    // esbuild preserves dynamic `import()` in its ESM output, so the bundled
+    // code handed to acorn contains an `import()` expression. Acorn must be
+    // able to parse it; otherwise the named export is reported as missing.
+    it('should find named export when body contains await import()', async () => {
+      const result = await getMutatorInfo(
+        path.join(
+          basePath,
+          'dynamic-import-tests',
+          'dynamic-import-named-export.ts',
+        ),
+        { namedExport: 'customInstance' },
+      );
+      expect(result).toEqual({ numberOfParams: 1 });
+    });
+  });
 });
