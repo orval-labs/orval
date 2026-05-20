@@ -100,8 +100,8 @@ export const getListPetsByCountryUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/pets-by-country/${country}?${stringifiedParams}`
-    : `/pets-by-country/${country}`;
+    ? `/pets-by-country/${encodeURIComponent(String(country))}?${stringifiedParams}`
+    : `/pets-by-country/${encodeURIComponent(String(country))}`;
 };
 
 /**
@@ -170,8 +170,8 @@ export const getListPetsByAgeUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/pets-by-age/${age}?${stringifiedParams}`
-    : `/pets-by-age/${age}`;
+    ? `/pets-by-age/${encodeURIComponent(String(age))}?${stringifiedParams}`
+    : `/pets-by-age/${encodeURIComponent(String(age))}`;
 };
 
 /**

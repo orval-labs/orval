@@ -11,6 +11,7 @@ import {
   type GeneratorVerbOptions,
   GetterPropType,
   isObject,
+  makeRouteSafe,
   type OpenApiParameterObject,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
@@ -68,8 +69,14 @@ export const generateRequestFunction = (
     override,
     doc,
   }: GeneratorVerbOptions,
-  { route, context, pathRoute }: GeneratorOptions,
+  { route: _route, context, pathRoute }: GeneratorOptions,
 ) => {
+  let route = _route;
+
+  if (context.output.urlEncodeParameters) {
+    route = makeRouteSafe(route);
+  }
+
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
