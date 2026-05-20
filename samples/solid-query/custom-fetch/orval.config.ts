@@ -8,7 +8,7 @@ export default defineConfig({
       schemas: 'src/gen/models',
       client: 'solid-query',
       baseUrl: 'http://localhost:8000',
-      mock: true,
+      mocks: true,
       clean: true,
       formatter: 'prettier',
       override: {

@@ -13,7 +13,7 @@ export default defineConfig({
       clean: true,
       formatter: 'prettier',
       baseUrl: 'http://localhost:8000',
-      mock: true,
+      mocks: true,
     },
   },
   petstoreZod: {

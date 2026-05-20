@@ -51,8 +51,8 @@ export default defineConfig({
       schemas: 'src/api/model',
       client: 'angular-query',
       httpClient: 'angular',
-      mock: {
-        type: 'msw',
+      mocks: {
+        generators: [{ type: 'msw' }],
       },
       tsconfig: './tsconfig.app.json',
       clean: true,

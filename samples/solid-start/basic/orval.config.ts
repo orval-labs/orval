@@ -9,7 +9,7 @@ export default defineConfig({
       schemas: 'src/api/model',
       client: 'solid-start',
       httpClient: 'axios',
-      mock: true,
+      mocks: true,
       clean: true,
       formatter: 'prettier',
       override: {

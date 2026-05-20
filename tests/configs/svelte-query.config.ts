@@ -6,7 +6,7 @@ export default defineConfig({
       target: '../generated/svelte-query/petstore/endpoints.ts',
       schemas: '../generated/svelte-query/petstore/model',
       client: 'svelte-query',
-      mock: true,
+      mocks: true,
       override: {
         query: {
           useQuery: true,
@@ -31,7 +31,7 @@ export default defineConfig({
         type: 'zod',
         path: '../generated/svelte-query/zod-schema-response/model',
       },
-      mock: true,
+      mocks: true,
       client: 'svelte-query',
       clean: true,
       formatter: 'prettier',
@@ -44,7 +44,7 @@ export default defineConfig({
     output: {
       target: '../generated/svelte-query/petstore-tags-split/endpoints.ts',
       schemas: '../generated/svelte-query/petstore-tags-split/model',
-      mock: true,
+      mocks: true,
       mode: 'tags-split',
       client: 'svelte-query',
       clean: true,
@@ -58,7 +58,7 @@ export default defineConfig({
     output: {
       target: '../generated/svelte-query/split/endpoints.ts',
       schemas: '../generated/svelte-query/split/model',
-      mock: true,
+      mocks: true,
       mode: 'split',
       client: 'svelte-query',
       clean: true,
@@ -72,7 +72,7 @@ export default defineConfig({
     output: {
       target: '../generated/svelte-query/tags/endpoints.ts',
       schemas: '../generated/svelte-query/tags/model',
-      mock: true,
+      mocks: true,
       mode: 'tags',
       client: 'svelte-query',
       clean: true,
@@ -121,7 +121,7 @@ export default defineConfig({
       schemas: '../generated/svelte-query/mutator/model',
       client: 'svelte-query',
       httpClient: 'axios',
-      mock: true,
+      mocks: true,
       override: {
         mutator: {
           path: '../mutators/custom-instance.ts',
@@ -150,7 +150,7 @@ export default defineConfig({
       schemas:
         '../generated/svelte-query/http-client-fetch-with-custom-fetch/model',
       client: 'svelte-query',
-      mock: true,
+      mocks: true,
       override: {
         mutator: {
           path: '../mutators/custom-fetch.ts',
@@ -192,7 +192,7 @@ export default defineConfig({
       target: '../generated/svelte-query/invalidates/endpoints.ts',
       schemas: '../generated/svelte-query/invalidates/model',
       client: 'svelte-query',
-      mock: true,
+      mocks: true,
       headers: true,
       override: {
         query: {
@@ -228,7 +228,7 @@ export default defineConfig({
       schemas: '../generated/svelte-query/invalidates-other-file/model',
       client: 'svelte-query',
       mode: 'tags',
-      mock: true,
+      mocks: true,
       headers: true,
       override: {
         query: {

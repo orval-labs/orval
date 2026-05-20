@@ -5,7 +5,7 @@ export default defineConfig({
     output: {
       target: '../generated/fetch/petstore/endpoints.ts',
       schemas: '../generated/fetch/petstore/model',
-      mock: true,
+      mocks: true,
       client: 'fetch',
       clean: true,
       formatter: 'prettier',
@@ -18,7 +18,7 @@ export default defineConfig({
     output: {
       target: '../generated/fetch/mutator/endpoints.ts',
       schemas: '../generated/fetch/mutator/model',
-      mock: true,
+      mocks: true,
       client: 'fetch',
       override: {
         mutator: {
@@ -40,7 +40,7 @@ export default defineConfig({
     output: {
       target: '../generated/fetch/multi-arguments/endpoints.ts',
       schemas: '../generated/fetch/multi-arguments/model',
-      mock: true,
+      mocks: true,
       client: 'fetch',
       clean: true,
       formatter: 'prettier',
@@ -53,7 +53,7 @@ export default defineConfig({
     output: {
       target: '../generated/fetch/petstore-tags-split/endpoints.ts',
       schemas: '../generated/fetch/petstore-tags-split/model',
-      mock: true,
+      mocks: true,
       mode: 'tags-split',
       client: 'fetch',
       clean: true,
@@ -67,7 +67,7 @@ export default defineConfig({
     output: {
       target: '../generated/fetch/split/endpoints.ts',
       schemas: '../generated/fetch/split/model',
-      mock: true,
+      mocks: true,
       mode: 'split',
       client: 'fetch',
       clean: true,
@@ -81,7 +81,7 @@ export default defineConfig({
     output: {
       target: '../generated/fetch/tags/endpoints.ts',
       schemas: '../generated/fetch/tags/model',
-      mock: true,
+      mocks: true,
       mode: 'tags',
       client: 'fetch',
       clean: true,
@@ -95,7 +95,7 @@ export default defineConfig({
     output: {
       target: '../generated/fetch/include-http-status-return-type/endpoints.ts',
       schemas: '../generated/fetch/include-http-status-return-type/model',
-      mock: true,
+      mocks: true,
       client: 'fetch',
       override: {
         fetch: {
@@ -142,7 +142,7 @@ export default defineConfig({
       target: '../generated/fetch/form-data-optional-request/endpoints.ts',
       schemas: '../generated/fetch/form-data-optional-request/model',
       client: 'fetch',
-      mock: true,
+      mocks: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -158,7 +158,7 @@ export default defineConfig({
       target: '../generated/fetch/form-data-with-custom-fetch/endpoints.ts',
       schemas: '../generated/fetch/form-data-with-custom-fetch/model',
       client: 'fetch',
-      mock: true,
+      mocks: true,
       override: {
         mutator: {
           path: '../mutators/custom-fetch.ts',
@@ -180,7 +180,7 @@ export default defineConfig({
       target: '../generated/fetch/form-url-encoded/endpoints.ts',
       schemas: '../generated/fetch/form-url-encoded/model',
       client: 'fetch',
-      mock: true,
+      mocks: true,
       clean: true,
       formatter: 'prettier',
     },
@@ -194,7 +194,7 @@ export default defineConfig({
         '../generated/fetch/form-url-encoded-with-custom-fetch/endpoints.ts',
       schemas: '../generated/fetch/form-url-encoded-with-custom-fetch/model',
       client: 'fetch',
-      mock: true,
+      mocks: true,
       override: {
         mutator: {
           path: '../mutators/custom-fetch.ts',

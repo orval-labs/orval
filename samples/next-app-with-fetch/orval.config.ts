@@ -8,7 +8,7 @@ export default defineConfig({
       schemas: 'app/gen/models',
       client: 'fetch',
       baseUrl: 'http://localhost:3000',
-      mock: true,
+      mocks: true,
       clean: true,
       formatter: 'prettier',
       override: {
