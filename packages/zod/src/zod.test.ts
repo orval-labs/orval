@@ -6342,7 +6342,13 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
                   '200': {
                     content: {
                       'application/json; charset=utf-8': {
-                        schema: { type: 'string' },
+                        schema: {
+                          type: 'object',
+                          properties: {
+                            success: { type: 'boolean' },
+                            uploaded: { type: 'number' },
+                          },
+                        },
                       },
                     },
                   },
@@ -6359,7 +6365,13 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
         pathRoute: '/upload-form',
         verb: 'post',
         operationName: 'uploadForm',
-        override: zodOverride,
+        override: {
+          ...zodOverride,
+          zod: {
+            ...zodOverride.zod,
+            generate: { ...zodOverride.zod.generate, response: true },
+          },
+        },
       } as unknown as Parameters<typeof generateZod>[0],
       schema,
       testOutput,
@@ -6384,6 +6396,11 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
   "metadata": zod.object({
   "name": zod.string().optional()
 })
+})
+
+export const UploadFormResponse = zod.object({
+  "success": zod.boolean().optional(),
+  "uploaded": zod.number().optional()
 })
 
 `);
