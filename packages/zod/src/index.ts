@@ -1337,11 +1337,9 @@ const parseBodyAndResponse = ({
   // Only handle JSON and form-data; other content types (e.g., application/octet-stream)
   // are skipped - unclear if this is correct behavior for root-level binary/text bodies.
   const contentEntries = Object.entries(resolvedRef.content ?? {});
-  const jsonContent = contentEntries.find(([contentType]) =>
-    contentType.startsWith('application/json'),
-  );
-  const formDataContent = contentEntries.find(([contentType]) =>
-    contentType.startsWith('multipart/form-data'),
+  const jsonContent = contentEntries.find(isMediaType('application/json'));
+  const formDataContent = contentEntries.find(
+    isMediaType('multipart/form-data'),
   );
   const [contentType, mediaType] = jsonContent
     ? (['application/json', jsonContent[1]] as const)
@@ -1357,7 +1355,6 @@ const parseBodyAndResponse = ({
       isArray: false,
     };
   }
-
   const encoding = mediaType.encoding;
 
   const resolvedJsonSchema = dereference(schema, context);
@@ -1395,7 +1392,6 @@ const parseBodyAndResponse = ({
       },
     };
   }
-
   const effectiveSchema =
     parseType === 'body'
       ? removeReadOnlyProperties(resolvedJsonSchema)
@@ -1424,6 +1420,12 @@ const parseBodyAndResponse = ({
     isArray: false,
   };
 };
+
+const isMediaType =
+  (expectedContentType: string) =>
+  ([contentType]: [string, object]): boolean =>
+    contentType.split(';')[0].trim() === expectedContentType;
+
 const getSingleResponse = (
   responses:
     | Record<string, OpenApiResponseObject | OpenApiReferenceObject | undefined>
