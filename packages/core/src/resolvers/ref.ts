@@ -150,6 +150,7 @@ function isBoundAlias(schema: OpenApiReferenceObject): boolean {
   const defs = schema.$defs as Record<string, unknown> | undefined;
   if (!defs || typeof defs !== 'object') return false;
   for (const defSchema of Object.values(defs)) {
+    if (!defSchema || typeof defSchema !== 'object') continue;
     const rec = defSchema as Record<string, unknown>;
     if (
       typeof rec.$dynamicAnchor === 'string' &&
@@ -204,9 +205,9 @@ export function extractBoundAliasInfo(
   >();
 
   for (const defSchema of Object.values(defs)) {
+    if (!defSchema || typeof defSchema !== 'object') continue;
     const rec = defSchema as Record<string, unknown>;
-    if (typeof defSchema !== 'object' || rec.$dynamicAnchor === undefined)
-      continue;
+    if (rec.$dynamicAnchor === undefined) continue;
 
     const ref = rec.$ref as string | undefined;
     if (!ref || !isComponentRef(ref)) continue;
@@ -243,13 +244,9 @@ export function extractBoundAliasInfo(
 
   if (templateDefs && typeof templateDefs === 'object') {
     for (const defSchema of Object.values(templateDefs)) {
+      if (!defSchema || typeof defSchema !== 'object') continue;
       const rec = defSchema as Record<string, unknown>;
-      if (
-        typeof defSchema !== 'object' ||
-        rec.$dynamicAnchor === undefined ||
-        rec.$ref !== undefined
-      )
-        continue;
+      if (rec.$dynamicAnchor === undefined || rec.$ref !== undefined) continue;
       const anchor = rec.$dynamicAnchor as string;
       const binding = bindingByAnchor.get(anchor);
       if (!binding) continue;
@@ -377,11 +374,9 @@ export function buildDynamicScope(
     | undefined;
   if (defs && typeof defs === 'object') {
     for (const [, defSchema] of Object.entries(defs)) {
+      if (!defSchema || typeof defSchema !== 'object') continue;
       const defRecord = defSchema as Record<string, unknown>;
-      if (
-        typeof defSchema === 'object' &&
-        typeof defRecord.$dynamicAnchor === 'string'
-      ) {
+      if (typeof defRecord.$dynamicAnchor === 'string') {
         const anchorName = defRecord.$dynamicAnchor;
         const refInDef = (defSchema as OpenApiReferenceObject).$ref;
         if (refInDef && isComponentRef(refInDef)) {
@@ -404,7 +399,7 @@ export function buildDynamicScope(
 
 /**
  * Resolve a `$dynamicRef` anchor to its concrete type using the current dynamic scope.
- * Falls back to the static `$dynamicAnchor` provider when no scope override exists.
+ * Returns `{ schema: {}, resolvedTypeName: 'unknown' }` when no scope override exists.
  */
 export function resolveDynamicRef(
   anchorName: string,

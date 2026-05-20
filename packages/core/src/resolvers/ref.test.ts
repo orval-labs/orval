@@ -339,6 +339,47 @@ describe('resolveRef', () => {
       { name: 'Group', schemaName: 'Group' },
     ]);
   });
+
+  it('extractBoundAliasInfo skips null $defs entries without throwing', () => {
+    const context = createContext({
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          User: { type: 'object', properties: { id: { type: 'string' } } },
+          PaginatedTemplate: {
+            $id: 'https://example.com/schemas/PaginatedTemplate',
+            $defs: {
+              itemType: { $dynamicAnchor: 'itemType', not: {} },
+            },
+            type: 'object',
+            properties: {
+              items: { type: 'array', items: { $dynamicRef: '#itemType' } },
+            },
+          },
+          BoundResponse: {
+            $defs: {
+              // eslint-disable-next-line unicorn/no-null -- intentionally testing null $defs entry
+              bad: null as unknown as Record<string, unknown>,
+              itemType: {
+                $dynamicAnchor: 'itemType',
+                $ref: '#/components/schemas/User',
+              },
+            },
+            $ref: '#/components/schemas/PaginatedTemplate',
+          },
+        },
+      },
+    });
+
+    const alias = extractBoundAliasInfo(
+      context.spec.components?.schemas
+        ?.BoundResponse as unknown as OpenApiSchemaObject,
+      context,
+    );
+
+    expect(alias?.genericName).toBe('PaginatedTemplate');
+    expect(alias?.typeArgs).toEqual(['User']);
+  });
 });
 
 describe('resolveExampleRefs', () => {

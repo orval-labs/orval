@@ -17,7 +17,7 @@ function createContext(
     target: 'core-test',
     workspace: '/tmp',
     spec,
-    override: { components: { schemas: { suffix: '' } } },
+    override: {},
     dynamicScope,
   });
 }

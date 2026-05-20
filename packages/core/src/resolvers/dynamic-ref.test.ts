@@ -10,7 +10,7 @@ function createContext(spec: OpenApiDocument) {
     target: 'core-test',
     workspace: '/tmp',
     spec,
-    override: { components: { schemas: { suffix: '' } } },
+    override: {},
   });
 }
 
@@ -620,6 +620,70 @@ describe('resolveDynamicRef', () => {
     expect(result.imports[0]).toEqual({
       name: 'User',
       schemaName: 'User',
+    });
+  });
+});
+
+describe('null safety in $defs entries', () => {
+  it('buildDynamicScope skips null $defs entries without throwing', () => {
+    const spec = {
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          User: { type: 'object', properties: { id: { type: 'string' } } },
+          Container: {
+            $defs: {
+              // eslint-disable-next-line unicorn/no-null -- intentionally testing null $defs entry
+              bad: null as unknown as Record<string, unknown>,
+              good: {
+                $dynamicAnchor: 'itemType',
+                $ref: '#/components/schemas/User',
+              },
+            },
+            type: 'object',
+          },
+        },
+      },
+    } as OpenApiDocument;
+    const context = createContext(spec);
+
+    const scope = buildDynamicScope(
+      'Container',
+      spec.components!.schemas!.Container,
+      context,
+    );
+
+    expect(scope.itemType).toEqual({ name: 'User', schemaName: 'User' });
+  });
+
+  it('buildDynamicScope skips null $defs entries alongside parameter anchors', () => {
+    const spec = {
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          Container: {
+            $defs: {
+              // eslint-disable-next-line unicorn/no-null -- intentionally testing null $defs entry
+              bad: null as unknown as Record<string, unknown>,
+              param: { $dynamicAnchor: 'node', type: 'string' },
+            },
+            type: 'object',
+          },
+        },
+      },
+    } as OpenApiDocument;
+    const context = createContext(spec);
+
+    const scope = buildDynamicScope(
+      'Container',
+      spec.components!.schemas!.Container,
+      context,
+    );
+
+    expect(scope.node).toEqual({
+      name: 'node',
+      schemaName: 'node',
+      isParameter: true,
     });
   });
 });

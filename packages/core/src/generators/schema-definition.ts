@@ -218,8 +218,23 @@ function generateSchemaDefinitions(
 
   const alias = extractBoundAliasInfo(schema, context);
   if (alias) {
+    const genericParams = isReference(schema)
+      ? []
+      : collectGenericParams(schema);
+    const genericSuffix =
+      genericParams.length > 0
+        ? `<${genericParams.map((p) => p.paramName).join(', ')}>`
+        : '';
+
     const typeArgsStr = alias.typeArgs.join(', ');
     const genericPart = `${alias.genericName}<${typeArgsStr}>`;
+
+    const schemaType = schema.type as string | string[] | undefined;
+    const nullable =
+      (Array.isArray(schemaType) && schemaType.includes('null')) ||
+      schema.nullable === true
+        ? ' | null'
+        : '';
 
     let model: string;
     const allImports: { name: string; schemaName: string }[] = [
@@ -256,7 +271,7 @@ function generateSchemaDefinitions(
         }
         return resolved.value;
       });
-      model = `export type ${sanitizedSchemaName} = ${[genericPart, ...extraParts].join(' & ')};\n`;
+      model = `export type ${sanitizedSchemaName}${genericSuffix} = (${[genericPart, ...extraParts].join(' & ')})${nullable};\n`;
       return [
         ...subSchemas,
         {
@@ -268,7 +283,7 @@ function generateSchemaDefinitions(
         },
       ];
     } else {
-      model = `export type ${sanitizedSchemaName} = ${genericPart};\n`;
+      model = `export type ${sanitizedSchemaName}${genericSuffix} = ${genericPart}${nullable};\n`;
     }
 
     return [

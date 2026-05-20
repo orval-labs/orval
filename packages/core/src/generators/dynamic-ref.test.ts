@@ -12,7 +12,6 @@ function createContext(spec: OpenApiDocument) {
     spec,
     output: { namingConvention: 'camelCase' as const },
     override: {
-      components: { schemas: { suffix: '' } },
       namingConvention: { enum: 'camelCase' as const },
       enumGenerationType: 'const' as const,
     },

@@ -62,7 +62,7 @@ export function generateInterface({
         .replaceAll(';', ',')
         .replaceAll('?:', ':');
 
-      model += `export const ${name}Value = ${mappedScalarValue} as const;\nexport type ${name} = typeof ${name}Value;\n`;
+      model += `export const ${name}Value = ${mappedScalarValue} as const;\nexport type ${name}${genericSuffix} = typeof ${name}Value;\n`;
     } else {
       const blankInterfaceValue =
         scalar.value === 'unknown' ? '{}' : scalar.value;
