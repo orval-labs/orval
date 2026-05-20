@@ -41,7 +41,9 @@ export interface NormalizedOutputOptions {
   namingConvention: NamingConvention;
   fileExtension: string;
   mode: OutputMode;
-  mock?: GlobalMockOptions | ClientMockBuilder;
+  // Always normalized to an object form; an empty `generators` array means
+  // no mocks are emitted.
+  mocks: NormalizedMocksConfig;
   override: NormalizedOverrideOutput;
   client: OutputClient | OutputClientFunc;
   httpClient: OutputHttpClient;
@@ -300,8 +302,11 @@ export interface OutputOptions {
   namingConvention?: NamingConvention;
   fileExtension?: string;
   mode?: OutputMode;
-  // If mock is a boolean, it will use the default mock options (type: msw)
-  mock?: boolean | GlobalMockOptions | ClientMockBuilder;
+  // Mocks config. Accepts:
+  // - `true` shorthand: emits both msw + faker with defaults
+  // - OutputMocksConfig object with `generators` array and optional `indexMockFiles`
+  // - ClientMockBuilder function for advanced custom generators
+  mocks?: OutputMocksOption;
   override?: OverrideOutput;
   client?: OutputClient | OutputClientFunc;
   httpClient?: OutputHttpClient;
@@ -392,6 +397,7 @@ export type OutputDocsOptions = {
 // TODO: add support for other mock types (like cypress or playwright)
 export const OutputMockType = {
   MSW: 'msw',
+  FAKER: 'faker',
 } as const;
 
 export type OutputMockType =
@@ -405,27 +411,60 @@ export type PreferredContentType =
   | 'application/octet-stream'
   | (string & {});
 
-export interface GlobalMockOptions {
-  // This is the type of the mock that will be generated
-  type: OutputMockType;
-  // This is the option to use the examples from the openapi specification where possible to generate mock data
+// Shared by every mock generator.
+export interface CommonMockOptions {
+  // Use OpenAPI examples to seed mock values where available
   useExamples?: boolean;
-  // This is used to generate mocks for all http responses defined in the OpenAPI specification
+  // Generate response factories for every HTTP status defined in the spec
   generateEachHttpStatus?: boolean;
-  // This is used to set the delay to your own custom value, or pass false to disable delay
-  delay?: false | number | (() => number);
-  // This is used to execute functions that are passed to the 'delay' argument
-  // at runtime rather than build time.
-  delayFunctionLazyExecute?: boolean;
-  // This is used to set the base url to your own custom value
-  baseUrl?: string;
-  // This is used to set the locale of the faker library
+  // Faker locale (controls the `@faker-js/faker/locale/<x>` import path)
   locale?: keyof typeof allLocales;
-  // Preferred response content type when multiple success content types exist
+  // Selects which response schema is mocked when multiple content types exist
   preferredContentType?: string;
+}
+
+export interface MswMockOptions extends CommonMockOptions {
+  type: typeof OutputMockType.MSW;
+  // Base URL prefix for the generated MSW route matchers
+  baseUrl?: string;
+  // Response delay before MSW handlers resolve (false disables delay)
+  delay?: false | number | (() => number);
+  // Execute the `delay` function at runtime rather than build time
+  delayFunctionLazyExecute?: boolean;
+}
+
+export interface FakerMockOptions extends CommonMockOptions {
+  type: typeof OutputMockType.FAKER;
+}
+
+export type GlobalMockOptions = MswMockOptions | FakerMockOptions;
+
+// The new top-level `mocks` key on OutputOptions.
+//   mocks: {
+//     indexMockFiles: true,
+//     generators: [
+//       { type: OutputMockType.MSW, ... },
+//       { type: OutputMockType.FAKER, ... },
+//     ],
+//   }
+export interface OutputMocksConfig {
+  // When true, emits one root-level `index.<ext>.ts` per generator entry
+  // (e.g. `index.msw.ts` and/or `index.faker.ts`) in tags-split mode
   indexMockFiles?: boolean;
-  // When false, only mock data generators are produced (no MSW request handlers or aggregated handler array)
-  generateHandlers?: boolean;
+  generators: Array<GlobalMockOptions | ClientMockBuilder>;
+}
+
+// Accepts:
+//   - boolean shorthand (`mocks: true` => both msw + faker with defaults)
+//   - OutputMocksConfig (full object form)
+//   - ClientMockBuilder (single function-form for advanced users)
+export type OutputMocksOption = boolean | OutputMocksConfig | ClientMockBuilder;
+
+// Normalized result of resolving OutputMocksOption. Always an object so the
+// rest of the pipeline can iterate `generators` without branching on shape.
+export interface NormalizedMocksConfig {
+  indexMockFiles: boolean;
+  generators: Array<GlobalMockOptions | ClientMockBuilder>;
 }
 
 export type OverrideMockOptions = Partial<GlobalMockOptions> & {
@@ -984,7 +1023,7 @@ export interface GlobalOptions {
   verbose?: boolean;
   clean?: boolean | string[];
   formatter?: SupportedFormatter;
-  mock?: boolean | GlobalMockOptions;
+  mocks?: OutputMocksOption;
   client?: OutputClient;
   httpClient?: OutputHttpClient;
   mode?: OutputMode;
@@ -1109,11 +1148,29 @@ export interface GeneratorApiResponse {
 
 export type GeneratorOperations = Record<string, GeneratorOperation>;
 
+// A single generator's accumulated mock output, keyed by the generator's
+// `OutputMockType`. Writers iterate over `GeneratorTarget.mockOutputs` to
+// emit one file per entry (e.g. `<file>.msw.ts` and `<file>.faker.ts`).
+export interface GeneratorMockOutput {
+  type: OutputMockType;
+  implementation: string;
+  imports: GeneratorImport[];
+}
+
+export interface GeneratorMockOutputFull {
+  type: OutputMockType;
+  implementation: {
+    function: string;
+    handler: string;
+    handlerName: string;
+  };
+  imports: GeneratorImport[];
+}
+
 export interface GeneratorTarget {
   imports: GeneratorImport[];
   implementation: string;
-  implementationMock: string;
-  importsMock: GeneratorImport[];
+  mockOutputs: GeneratorMockOutput[];
   mutators?: GeneratorMutator[];
   clientMutators?: GeneratorMutator[];
   formData?: GeneratorMutator[];
@@ -1126,12 +1183,7 @@ export interface GeneratorTarget {
 export interface GeneratorTargetFull {
   imports: GeneratorImport[];
   implementation: string;
-  implementationMock: {
-    function: string;
-    handler: string;
-    handlerName: string;
-  };
-  importsMock: GeneratorImport[];
+  mockOutputs: GeneratorMockOutputFull[];
   mutators?: GeneratorMutator[];
   clientMutators?: GeneratorMutator[];
   formData?: GeneratorMutator[];
@@ -1144,12 +1196,7 @@ export interface GeneratorTargetFull {
 export interface GeneratorOperation {
   imports: GeneratorImport[];
   implementation: string;
-  implementationMock: {
-    function: string;
-    handler: string;
-    handlerName: string;
-  };
-  importsMock: GeneratorImport[];
+  mockOutputs: GeneratorMockOutputFull[];
   tags: string[];
   mutator?: GeneratorMutator;
   clientMutators?: GeneratorMutator[];
