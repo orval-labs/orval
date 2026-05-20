@@ -607,7 +607,16 @@ describe('generateMSW', () => {
         response: {
           ...mockVerbOptions.response,
           definition: { success: 'Blob' },
-          types: { success: [{ key: '200', value: 'Blob' }] },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: 'Blob',
+                contentType: 'application/octet-stream',
+              },
+              { key: '200', value: 'Blob', contentType: 'image/png' },
+            ],
+          },
           contentTypes: ['application/octet-stream', 'image/png'],
         },
       } as GeneratorVerbOptions;
@@ -695,7 +704,12 @@ describe('generateMSW', () => {
         response: {
           ...mockVerbOptions.response,
           definition: { success: 'string' },
-          types: { success: [{ key: '200', value: 'string' }] },
+          types: {
+            success: [
+              { key: '200', value: 'string', contentType: 'application/xml' },
+              { key: '200', value: 'string', contentType: 'application/json' },
+            ],
+          },
           contentTypes: ['application/xml', 'application/json'],
         },
       } as GeneratorVerbOptions;
@@ -750,7 +764,12 @@ describe('generateMSW', () => {
         response: {
           ...mockVerbOptions.response,
           definition: { success: 'string' },
-          types: { success: [{ key: '200', value: 'string' }] },
+          types: {
+            success: [
+              { key: '200', value: 'string', contentType: 'text/plain' },
+              { key: '200', value: 'string', contentType: 'text/html' },
+            ],
+          },
           contentTypes: ['text/plain', 'text/html'],
         },
       } as GeneratorVerbOptions;
@@ -997,7 +1016,12 @@ describe('generateMSW', () => {
         response: {
           ...mockVerbOptions.response,
           definition: { success: 'string' },
-          types: { success: [{ key: '200', value: 'string' }] },
+          types: {
+            success: [
+              { key: '200', value: 'string', contentType: 'text/plain' },
+              { key: '200', value: 'string', contentType: 'application/json' },
+            ],
+          },
           contentTypes: ['text/plain', 'application/json'],
         },
       } as GeneratorVerbOptions;
@@ -1021,7 +1045,21 @@ describe('generateMSW', () => {
         response: {
           ...mockVerbOptions.response,
           definition: { success: 'string | Pet' },
-          types: { success: [{ key: '200', value: 'string | Pet' }] },
+          types: {
+            success: [
+              { key: '200', value: 'string | Pet', contentType: 'text/plain' },
+              {
+                key: '200',
+                value: 'string | Pet',
+                contentType: 'application/xml',
+              },
+              {
+                key: '200',
+                value: 'string | Pet',
+                contentType: 'application/json',
+              },
+            ],
+          },
           contentTypes: ['text/plain', 'application/xml', 'application/json'],
         },
       } as GeneratorVerbOptions;
@@ -1149,7 +1187,16 @@ describe('generateMSW', () => {
         response: {
           ...mockVerbOptions.response,
           definition: { success: 'string | Pet' },
-          types: { success: [{ key: '200', value: 'string | Pet' }] },
+          types: {
+            success: [
+              { key: '200', value: 'string | Pet', contentType: 'text/plain' },
+              {
+                key: '200',
+                value: 'string | Pet',
+                contentType: 'application/json',
+              },
+            ],
+          },
           contentTypes: ['text/plain', 'application/json'],
         },
       } as GeneratorVerbOptions;

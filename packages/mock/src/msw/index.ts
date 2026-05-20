@@ -126,8 +126,11 @@ function generateDefinition(
     : (
         mock as { preferredContentType?: string } | undefined
       )?.preferredContentType?.toLowerCase();
+  // match preferredContentType against `responses` (not the wider `contentTypes` which mixes success and error MIMEs).
   const preferredContentTypeMatch = preferredContentType
-    ? contentTypes.find((ct) => ct.toLowerCase() === preferredContentType)
+    ? responses.find(
+        (r) => r.contentType.toLowerCase() === preferredContentType,
+      )?.contentType
     : undefined;
   const contentTypesByPreference = preferredContentTypeMatch
     ? [preferredContentTypeMatch]
