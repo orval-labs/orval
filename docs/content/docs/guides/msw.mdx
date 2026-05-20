@@ -240,7 +240,7 @@ This produces handlers like `http.get('https://api.example.com/pets/:petId', ...
 
 ## Dynamic Imports
 
-Enable `mocks.indexMockFiles` to emit a root-level `index.<ext>.ts` file for each generator entry in `tags-split` mode. The MSW entry produces an `index.msw.ts` that can be dynamically imported:
+Enable `mock.indexMockFiles` to emit a root-level `index.<ext>.ts` file for each generator entry in `tags-split` mode. The MSW entry produces an `index.msw.ts` that can be dynamically imported:
 
 ```ts title="orval.config.ts"
 export default defineConfig({

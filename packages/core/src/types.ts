@@ -439,8 +439,8 @@ export interface FakerMockOptions extends CommonMockOptions {
 
 export type GlobalMockOptions = MswMockOptions | FakerMockOptions;
 
-// The new top-level `mocks` key on OutputOptions.
-//   mocks: {
+// The top-level `mock` key on OutputOptions accepts this object form:
+//   mock: {
 //     indexMockFiles: true,
 //     generators: [
 //       { type: OutputMockType.MSW, ... },
