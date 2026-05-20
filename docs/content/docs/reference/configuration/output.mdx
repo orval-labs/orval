@@ -377,6 +377,7 @@ export default defineConfig({
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `type` | `'msw'` | `'msw'` | Mock type |
+| `generateHandlers` | `Boolean` | `true` | Generate MSW request handlers. Set to `false` for data generators only (no `msw` dependency needed). |
 | `delay` | `Number \| Function \| false` | `false` | Response delay in ms |
 | `delayFunctionLazyExecute` | `Boolean` | `false` | Execute delay function at runtime |
 | `useExamples` | `Boolean` | `false` | Use OpenAPI examples |

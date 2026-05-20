@@ -277,6 +277,7 @@ export async function writeSplitTagsMode({
 
   // Write mock index file after Promise.all to ensure deterministic export order.
   if (indexFilePath && mockOption) {
+    const handlersDisabled = mockOption.generateHandlers === false;
     const indexContent = tagEntries
       .map(([tag]) => {
         const localMockPath = upath.joinSafe(
@@ -284,7 +285,9 @@ export async function writeSplitTagsMode({
           tag,
           tag + '.' + getMockFileExtensionByTypeName(mockOption),
         );
-        return `export { get${pascal(tag)}Mock } from '${localMockPath}'\n`;
+        return handlersDisabled
+          ? `export * from '${localMockPath}'\n`
+          : `export { get${pascal(tag)}Mock } from '${localMockPath}'\n`;
       })
       .join('');
     await fs.appendFile(indexFilePath, indexContent);

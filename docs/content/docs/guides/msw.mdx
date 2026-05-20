@@ -245,6 +245,31 @@ const server = setupServer(...handlers);
 export { server };
 ```
 
+## Data Generators Only
+
+If you only need mock data factories without MSW request handlers, set `generateHandlers` to `false`:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mock: {
+        type: 'msw',
+        generateHandlers: false,
+      },
+    },
+  },
+});
+```
+
+This generates only the `get<OperationId>ResponseMock` functions (powered by Faker.js) — no MSW handlers, no aggregated handler array, and no `msw` dependency in the output. Your project only needs `@faker-js/faker` as a dependency.
+
+This is useful when you want mock data for:
+- Unit tests with custom assertion libraries
+- Storybook stories
+- Seed scripts
+- Any test setup that doesn't use MSW
+
 ## MSW Best Practices
 
 The generated code follows [MSW best practices](https://mswjs.io/docs/best-practices):

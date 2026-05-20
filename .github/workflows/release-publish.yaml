@@ -32,10 +32,6 @@ jobs:
       - name: Run build
         run: bun run build
 
-      - name: Configure npm authentication
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
-
       - name: Fail if unsafe lifecycle scripts exist
         run: |
           echo "Checking for unsafe lifecycle scripts in workspaces..."
