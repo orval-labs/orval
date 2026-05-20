@@ -146,7 +146,7 @@ export async function writeSingleMode({
     // collapse step above (which drops faker when msw is present) does not
     // misalign indices.
     for (const mockOutput of mockOutputs) {
-      const entry = output.mocks.generators.find(
+      const entry = output.mock.generators.find(
         (g) => !isFunction(g) && g.type === mockOutput.type,
       );
       const filteredMockImports = mockOutput.imports.filter(

@@ -168,7 +168,7 @@ export async function writeSplitMode({
     // or `.faker.ts`).
     const mockPaths: string[] = [];
     for (const [index, mockOutput] of mockOutputs.entries()) {
-      const entry = output.mocks.generators[index];
+      const entry = output.mock.generators[index];
       const importsMockForBuilder = generateImportsForBuilder(
         output,
         mockOutput.imports,

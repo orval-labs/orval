@@ -73,10 +73,7 @@ cli
       Object.values(OutputClient),
     ),
   )
-  .option(
-    '--mocks',
-    'activate mock generation (msw handlers + faker factories)',
-  )
+  .option('--mock', 'activate mock generation (msw handlers + faker factories)')
   .option('--clean [paths...]', 'Clean output directory')
   .addOption(
     new Option(
@@ -105,7 +102,7 @@ cli
           target: options.output,
           clean: options.clean,
           formatter: options.formatter,
-          mocks: options.mocks,
+          mock: options.mock,
           client: options.client,
           mode: options.mode,
           tsconfig: options.tsconfig,

@@ -164,11 +164,11 @@ export async function normalizeOptions(
     workspace,
   );
 
-  // Normalize the `mocks` option into a canonical `NormalizedMocksConfig`
+  // Normalize the `mock` option into a canonical `NormalizedMocksConfig`
   // so the rest of the pipeline can iterate `generators` uniformly without
   // branching on the input shape (boolean shorthand, function form, or
   // object form).
-  const mocksOption = outputOptions.mocks ?? globalOptions.mocks;
+  const mocksOption = outputOptions.mock ?? globalOptions.mock;
   let mocks: NormalizedMocksConfig = {
     indexMockFiles: false,
     generators: [],
@@ -262,7 +262,7 @@ export async function normalizeOptions(
           ? OutputHttpClient.ANGULAR
           : OutputHttpClient.FETCH),
       mode: normalizeOutputMode(outputOptions.mode ?? mode),
-      mocks,
+      mock: mocks,
       clean: outputOptions.clean ?? clean ?? false,
       docs: outputOptions.docs ?? false,
       formatter: outputOptions.formatter ?? globalOptions.formatter,

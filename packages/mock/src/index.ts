@@ -23,7 +23,7 @@ export const DEFAULT_FAKER_OPTIONS: FakerMockOptions = {
 
 /**
  * Returns the default GlobalMockOptions for a given mock type. Used when
- * normalizing user-provided entries in `output.mocks.generators` so callers
+ * normalizing user-provided entries in `output.mock.generators` so callers
  * can omit the per-type defaults.
  */
 export const getDefaultMockOptionsForType = (
@@ -57,7 +57,7 @@ export const generateMockImports: GenerateMockImports = (importOptions) => {
 /**
  * Dispatches per-operation mock generation to the appropriate generator
  * based on the `OutputMockType` discriminator. Each entry in
- * `output.mocks.generators` is dispatched here individually.
+ * `output.mock.generators` is dispatched here individually.
  */
 export function generateMock(
   generatorVerbOptions: GeneratorVerbOptions,

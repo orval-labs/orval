@@ -48,7 +48,7 @@ export async function writeSplitTagsMode({
 
   // Resolve concrete (non-function) generator entries so we can iterate over
   // them when writing per-entry index files.
-  const generatorEntries = output.mocks.generators.filter(
+  const generatorEntries = output.mock.generators.filter(
     (g): g is GlobalMockOptions => !isFunction(g),
   );
 
@@ -56,7 +56,7 @@ export async function writeSplitTagsMode({
   // `index.msw.ts` and `index.faker.ts`) so they can be appended to during
   // the per-tag write loop.
   const indexFilePathsByType = new Map<string, string>();
-  if (output.mocks.indexMockFiles) {
+  if (output.mock.indexMockFiles) {
     for (const entry of generatorEntries) {
       const ext = getMockFileExtensionByTypeName(entry);
       const indexPath = path.join(dirname, `index.${ext}${extension}`);
@@ -245,7 +245,7 @@ export async function writeSplitTagsMode({
         // file; ClientMockBuilder functions are not yet supported here.
         const mockPaths: string[] = [];
         for (const [index, mockOutput] of mockOutputs.entries()) {
-          const entry = output.mocks.generators[index];
+          const entry = output.mock.generators[index];
           if (isFunction(entry)) continue;
 
           const importsMockForBuilder = generateImportsForBuilder(
@@ -292,7 +292,7 @@ export async function writeSplitTagsMode({
   // deterministic export order. MSW entries re-export the aggregated
   // `get<Tag>Mock` handler function; Faker entries use `export *` since
   // faker has no aggregate handler.
-  if (output.mocks.indexMockFiles) {
+  if (output.mock.indexMockFiles) {
     for (const entry of generatorEntries) {
       const ext = getMockFileExtensionByTypeName(entry);
       const indexFilePath = indexFilePathsByType.get(ext);

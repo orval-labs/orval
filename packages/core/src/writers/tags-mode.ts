@@ -145,7 +145,7 @@ export async function writeTagsMode({
         // import header is included (msw vs faker, etc.). Match by type so
         // collapsing the mockOutputs array does not misalign indices.
         for (const mockOutput of mockOutputs) {
-          const entry = output.mocks.generators.find(
+          const entry = output.mock.generators.find(
             (g) => !isFunction(g) && g.type === mockOutput.type,
           );
           const importsMockForBuilder = generateImportsForBuilder(

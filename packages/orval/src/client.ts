@@ -235,7 +235,7 @@ export const generateClientTitle: GeneratorClientTitle = ({
 const invokeMockGenerator = (
   verbOption: GeneratorVerbOptions,
   options: GeneratorOptions,
-  entry: NonNullable<NormalizedOutputOptions['mocks']['generators'][number]>,
+  entry: NonNullable<NormalizedOutputOptions['mock']['generators'][number]>,
 ): ClientMockGeneratorBuilder => {
   if (isFunction(entry)) {
     return entry(verbOption, {
@@ -281,7 +281,7 @@ export const generateOperations = (
       // Function-form entries (ClientMockBuilder) inherit the historical
       // `msw` file extension and are treated as msw outputs for downstream
       // bookkeeping.
-      const mockOutputs = output.mocks.generators.map((entry) => {
+      const mockOutputs = output.mock.generators.map((entry) => {
         const generated = invokeMockGenerator(verbOption, options, entry);
         return {
           type: isFunction(entry) ? OutputMockType.MSW : entry.type,

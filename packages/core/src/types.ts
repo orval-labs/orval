@@ -43,7 +43,7 @@ export interface NormalizedOutputOptions {
   mode: OutputMode;
   // Always normalized to an object form; an empty `generators` array means
   // no mocks are emitted.
-  mocks: NormalizedMocksConfig;
+  mock: NormalizedMocksConfig;
   override: NormalizedOverrideOutput;
   client: OutputClient | OutputClientFunc;
   httpClient: OutputHttpClient;
@@ -306,7 +306,7 @@ export interface OutputOptions {
   // - `true` shorthand: emits both msw + faker with defaults
   // - OutputMocksConfig object with `generators` array and optional `indexMockFiles`
   // - ClientMockBuilder function for advanced custom generators
-  mocks?: OutputMocksOption;
+  mock?: OutputMocksOption;
   override?: OverrideOutput;
   client?: OutputClient | OutputClientFunc;
   httpClient?: OutputHttpClient;
@@ -1023,7 +1023,7 @@ export interface GlobalOptions {
   verbose?: boolean;
   clean?: boolean | string[];
   formatter?: SupportedFormatter;
-  mocks?: OutputMocksOption;
+  mock?: OutputMocksOption;
   client?: OutputClient;
   httpClient?: OutputHttpClient;
   mode?: OutputMode;

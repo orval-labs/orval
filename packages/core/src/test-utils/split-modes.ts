@@ -64,7 +64,7 @@ export const createSplitModeOutput = (
     client: OutputClient.AXIOS,
     httpClient: 'axios',
     schemas: undefined,
-    mocks: { indexMockFiles: false, generators: [] },
+    mock: { indexMockFiles: false, generators: [] },
     clean: false,
     docs: false,
     headers: false,
