@@ -632,4 +632,48 @@ describe('resolveValue with $dynamicRef', () => {
     expect(result.value).toBe('unknown');
     expect(result.isRef).toBe(false);
   });
+
+  it('does not reuse cache across different dynamicScope bindings', () => {
+    const spec = {
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          CategoryA: {
+            $dynamicAnchor: 'category',
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+          CategoryB: {
+            $dynamicAnchor: 'category',
+            type: 'object',
+            properties: { label: { type: 'string' } },
+          },
+        },
+      },
+    } as OpenApiDocument;
+
+    const schema = {
+      type: 'object',
+      properties: {
+        child: { $dynamicRef: '#category' },
+      },
+    } as unknown as OpenApiSchemaObject;
+
+    const resultA = resolveValue({
+      schema,
+      context: createContext(spec, {
+        category: { name: 'CategoryA', schemaName: 'CategoryA' },
+      }),
+    });
+
+    const resultB = resolveValue({
+      schema,
+      context: createContext(spec, {
+        category: { name: 'CategoryB', schemaName: 'CategoryB' },
+      }),
+    });
+
+    expect(resultA.value).toContain('CategoryA');
+    expect(resultB.value).toContain('CategoryB');
+  });
 });

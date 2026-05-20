@@ -373,7 +373,7 @@ export function buildDynamicScope(
       if (typeof defRecord.$dynamicAnchor === 'string') {
         const anchorName = defRecord.$dynamicAnchor;
         const refInDef = (defSchema as OpenApiReferenceObject).$ref;
-        if (refInDef && isComponentRef(refInDef)) {
+        if (refInDef?.startsWith('#/components/schemas/')) {
           const { name, originalName } = getRefInfo(refInDef, context);
           scope[anchorName] = { name, schemaName: originalName };
         } else if (!refInDef) {

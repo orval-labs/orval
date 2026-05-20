@@ -62,20 +62,20 @@ describe('getDynamicAnchorName', () => {
   });
 });
 
-describe('getRefInfo', () => {
-  function createContext(spec: OpenApiDocument): ContextSpec {
-    return {
-      target: 'core-test',
-      workspace: '/tmp',
-      spec,
-      output: {
-        override: { components: { schemas: { suffix: '' } } },
-      },
-    } as ContextSpec;
-  }
+function createRefInfoContext(spec: OpenApiDocument): ContextSpec {
+  return {
+    target: 'core-test',
+    workspace: '/tmp',
+    spec,
+    output: {
+      override: { components: { schemas: { suffix: '' } } },
+    },
+  } as ContextSpec;
+}
 
+describe('getRefInfo', () => {
   it('resolves a fragment-only ref to its local schema name', () => {
-    const context = createContext({
+    const context = createRefInfoContext({
       openapi: '3.1.0',
       components: { schemas: { Pet: { type: 'object' } } },
     });
@@ -89,7 +89,7 @@ describe('getRefInfo', () => {
 
   it('resolves an external-file ref (pathname branch) and derives name from filename', () => {
     // Exercises line 97: the return branch reached when pathname is non-empty
-    const context = createContext({
+    const context = createRefInfoContext({
       openapi: '3.1.0',
       components: { schemas: {} },
     });
@@ -104,7 +104,7 @@ describe('getRefInfo', () => {
   });
 
   it('decodes JSON Pointer tilde-escapes in ref paths', () => {
-    const context = createContext({
+    const context = createRefInfoContext({
       openapi: '3.1.0',
       components: {
         schemas: {

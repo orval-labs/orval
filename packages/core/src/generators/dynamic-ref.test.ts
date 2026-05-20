@@ -722,6 +722,7 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
         schemas: {
           Container: {
             $defs: {
+              // eslint-disable-next-line unicorn/no-null -- intentionally testing null $defs entry
               nullDef: null as unknown as OpenApiSchemaObject,
               validDef: {
                 $dynamicAnchor: 'item',

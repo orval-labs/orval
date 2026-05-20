@@ -7,11 +7,10 @@ import type {
   OpenApiSchemaObject,
 } from '../types';
 import {
-  buildDynamicScope,
   extractBoundAliasInfo,
+  resolveDynamicRef,
   resolveExampleRefs,
   resolveRef,
-  resolveDynamicRef,
 } from './ref';
 
 function createContext(spec: OpenApiDocument): ContextSpec {
