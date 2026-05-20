@@ -1337,7 +1337,16 @@ const parseBodyAndResponse = ({
   // Only handle JSON and form-data; other content types (e.g., application/octet-stream)
   // are skipped - unclear if this is correct behavior for root-level binary/text bodies.
   const contentEntries = Object.entries(resolvedRef.content ?? {});
-  const jsonContent = contentEntries.find(isMediaType('application/json'));
+
+  const jsonContent = contentEntries.find(
+    isMediaType(
+      // application/json
+      // application/geo+json
+      // application/ld+json
+      // application/manifest+json
+      String.raw`^application\/([\w-]+\+)?json$`,
+    ),
+  );
   const formDataContent = contentEntries.find(
     isMediaType('multipart/form-data'),
   );
@@ -1422,9 +1431,9 @@ const parseBodyAndResponse = ({
 };
 
 const isMediaType =
-  (expectedContentType: string) =>
+  (pattern: string) =>
   ([contentType]: [string, object]): boolean =>
-    contentType.split(';')[0].trim() === expectedContentType;
+    new RegExp(pattern).test(contentType.split(';')[0].trim());
 
 const getSingleResponse = (
   responses:
