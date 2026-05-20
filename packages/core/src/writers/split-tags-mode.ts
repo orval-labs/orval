@@ -246,7 +246,7 @@ export async function writeSplitTagsMode({
         const mockPaths: string[] = [];
         for (const [index, mockOutput] of mockOutputs.entries()) {
           const entry = output.mocks.generators[index];
-          if (!entry || isFunction(entry)) continue;
+          if (isFunction(entry)) continue;
 
           const importsMockForBuilder = generateImportsForBuilder(
             output,
@@ -315,7 +315,7 @@ export async function writeSplitTagsMode({
 
   return [
     ...new Set([
-      ...Array.from(indexFilePathsByType.values()),
+      ...indexFilePathsByType.values(),
       ...generatedFilePathsArray.flat(),
     ]),
   ];

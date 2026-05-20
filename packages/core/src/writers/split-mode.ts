@@ -169,7 +169,6 @@ export async function writeSplitMode({
     const mockPaths: string[] = [];
     for (const [index, mockOutput] of mockOutputs.entries()) {
       const entry = output.mocks.generators[index];
-      if (!entry) continue;
       const importsMockForBuilder = generateImportsForBuilder(
         output,
         mockOutput.imports,

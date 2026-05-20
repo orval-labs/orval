@@ -451,7 +451,7 @@ export interface OutputMocksConfig {
   // When true, emits one root-level `index.<ext>.ts` per generator entry
   // (e.g. `index.msw.ts` and/or `index.faker.ts`) in tags-split mode
   indexMockFiles?: boolean;
-  generators: Array<GlobalMockOptions | ClientMockBuilder>;
+  generators: (GlobalMockOptions | ClientMockBuilder)[];
 }
 
 // Accepts:
@@ -464,7 +464,7 @@ export type OutputMocksOption = boolean | OutputMocksConfig | ClientMockBuilder;
 // rest of the pipeline can iterate `generators` without branching on shape.
 export interface NormalizedMocksConfig {
   indexMockFiles: boolean;
-  generators: Array<GlobalMockOptions | ClientMockBuilder>;
+  generators: (GlobalMockOptions | ClientMockBuilder)[];
 }
 
 export type OverrideMockOptions = Partial<GlobalMockOptions> & {

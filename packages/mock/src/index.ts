@@ -30,11 +30,12 @@ export const getDefaultMockOptionsForType = (
   type: GlobalMockOptions['type'],
 ): GlobalMockOptions => {
   switch (type) {
-    case OutputMockType.FAKER:
+    case OutputMockType.FAKER: {
       return DEFAULT_FAKER_OPTIONS;
-    case OutputMockType.MSW:
-    default:
+    }
+    case OutputMockType.MSW: {
       return DEFAULT_MSW_OPTIONS;
+    }
   }
 };
 
@@ -44,11 +45,12 @@ export const getDefaultMockOptionsForType = (
  */
 export const generateMockImports: GenerateMockImports = (importOptions) => {
   switch (importOptions.options?.type) {
-    case OutputMockType.FAKER:
+    case OutputMockType.FAKER: {
       return generateFakerImports(importOptions);
-    case OutputMockType.MSW:
-    default:
+    }
+    default: {
       return generateMSWImports(importOptions);
+    }
   }
 };
 
@@ -64,11 +66,12 @@ export function generateMock(
   },
 ) {
   switch (generatorOptions.mock.type) {
-    case OutputMockType.FAKER:
+    case OutputMockType.FAKER: {
       return generateFaker(generatorVerbOptions, generatorOptions);
-    case OutputMockType.MSW:
-    default:
+    }
+    default: {
       return generateMSW(generatorVerbOptions, generatorOptions);
+    }
   }
 }
 
