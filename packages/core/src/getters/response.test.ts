@@ -302,6 +302,55 @@ describe('getResponse', () => {
 
       expect(result.isBlob).toBe(true);
     });
+
+    it('should set isBlob to true for schema with contentMediaType: application/octet-stream', () => {
+      const responses: OpenApiResponsesObject = {
+        '200': {
+          description: 'OK',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'string',
+                contentMediaType: 'application/octet-stream',
+              },
+            },
+          },
+        },
+      };
+
+      const result = getResponse({
+        responses,
+        operationName: 'downloadFile',
+        context,
+      });
+
+      expect(result.isBlob).toBe(true);
+    });
+
+    it('should set isBlob to false when contentMediaType has contentEncoding (base64-encoded string)', () => {
+      const responses: OpenApiResponsesObject = {
+        '200': {
+          description: 'OK',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'string',
+                contentMediaType: 'application/octet-stream',
+                contentEncoding: 'base64',
+              },
+            },
+          },
+        },
+      };
+
+      const result = getResponse({
+        responses,
+        operationName: 'downloadFile',
+        context,
+      });
+
+      expect(result.isBlob).toBe(false);
+    });
   });
 
   describe('duplicate union types', () => {
