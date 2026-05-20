@@ -70,7 +70,9 @@ function generateTargetTags(
         operation.implementationMock.handler,
       handlerName: operation.implementationMock.handlerName
         ? currentOperation.implementationMock.handlerName +
-          ',\n  ' +
+          (currentOperation.implementationMock.handlerName.length > 0
+            ? ',\n  '
+            : '  ') +
           operation.implementationMock.handlerName +
           '()'
         : currentOperation.implementationMock.handlerName,
