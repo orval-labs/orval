@@ -9,5 +9,5 @@ info:
 # - the barrel re-exports         → external concrete schema file (schemas/UserProjectDTO.yaml)
 paths:
   '/users/{userId}/projects':
-    $ref: './path/projects.yaml#/paths/~1projects'
+    $ref: './path/projects.yaml#/paths/~1users~1%7BuserId%7D~1projects'
 components: {}

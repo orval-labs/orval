@@ -3,7 +3,7 @@ info:
   title: User Projects
   version: 1.0.0
 paths:
-  /projects:
+  /users/{userId}/projects:
     get:
       operationId: getUserProjects
       summary: Retrieve all related projects for the userId
