@@ -705,6 +705,17 @@ export default defineConfig({
       target: '../specifications/issue-3380/issue-3380.yaml',
     },
   },
+  'issue-1935-double-linked-ref': {
+    output: {
+      target: '../generated/default/issue-1935-double-linked-ref/endpoints.ts',
+      schemas: '../generated/default/issue-1935-double-linked-ref/model',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-1935/issue-1935.yaml',
+    },
+  },
   'boolean-discriminator': {
     output: {
       target: '../generated/default/boolean-discriminator/endpoints.ts',
