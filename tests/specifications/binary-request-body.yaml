@@ -1,0 +1,40 @@
+openapi: 3.0.0
+info:
+  title: Binary Request Body
+  description: Raw binary request bodies
+  version: 1.0.0
+servers:
+  - url: http://localhost
+tags:
+  - name: Lottery
+    description: Lottery operations
+  - name: Logo
+    description: Logo operations
+paths:
+  /lottery/{id}/logo:
+    put:
+      operationId: replaceLotteryLogo
+      summary: Replace lottery logo
+      description: This endpoint sets or replaces lottery logo.
+      tags:
+        - Lottery
+        - Logo
+      parameters:
+        - name: id
+          in: path
+          description: Lottery ID
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        description: New logo as binary PNG image
+        required: true
+        content:
+          image/png:
+            schema:
+              type: string
+              format: byte
+              maxLength: 1048576
+      responses:
+        '204':
+          description: Success
