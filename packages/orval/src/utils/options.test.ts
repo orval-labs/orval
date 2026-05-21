@@ -408,6 +408,44 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('normalizes effect options without falling back to zod', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'effect',
+            override: {
+              zod: {
+                strict: { body: true },
+                useBrandedTypes: true,
+              },
+              effect: {
+                strict: { response: true },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.effect.strict.response).toBe(true);
+      expect(normalized.output.override.effect.strict.body).toBe(false);
+      expect(normalized.output.override.effect.useBrandedTypes).toBe(false);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('resolves hono compositeRoute relative to the workspace', async () => {
     const workspace = await createTempWorkspace();
 

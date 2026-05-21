@@ -132,6 +132,7 @@ export interface NormalizedOverrideOutput {
   angular: NormalizedAngularOptions;
   swr: SwrOptions;
   zod: NormalizedZodOptions;
+  effect: NormalizedEffectOptions;
   fetch: NormalizedFetchOptions;
   operationName?: (
     operation: OpenApiOperationObject,
@@ -202,6 +203,7 @@ export interface NormalizedOperationOptions {
   angular?: NormalizedAngularOptions;
   swr?: SwrOptions;
   zod?: NormalizedZodOptions;
+  effect?: NormalizedEffectOptions;
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,
@@ -398,6 +400,7 @@ export const OutputClient = {
   VUE_QUERY: 'vue-query',
   SWR: 'swr',
   ZOD: 'zod',
+  EFFECT: 'effect',
   HONO: 'hono',
   FETCH: 'fetch',
   MCP: 'mcp',
@@ -635,6 +638,7 @@ export interface OverrideOutput {
   swr?: SwrOptions;
   angular?: AngularOptions;
   zod?: ZodOptions;
+  effect?: EffectOptions;
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,
@@ -751,6 +755,13 @@ export interface ZodOptions {
   generateReusableSchemas?: boolean;
 }
 
+export interface EffectOptions {
+  strict?: ZodOptions['strict'];
+  generate?: ZodOptions['generate'];
+  generateEachHttpStatus?: boolean;
+  useBrandedTypes?: boolean;
+}
+
 export type ZodCoerceType = 'string' | 'number' | 'boolean' | 'bigint' | 'date';
 
 export interface NormalizedZodOptions {
@@ -787,6 +798,13 @@ export interface NormalizedZodOptions {
   generateReusableSchemas: boolean;
   dateTimeOptions: ZodDateTimeOptions;
   timeOptions: ZodTimeOptions;
+}
+
+export interface NormalizedEffectOptions {
+  strict: NormalizedZodOptions['strict'];
+  generate: NormalizedZodOptions['generate'];
+  generateEachHttpStatus: boolean;
+  useBrandedTypes: boolean;
 }
 
 /**
@@ -994,6 +1012,7 @@ export interface OperationOptions {
   angular?: AngularOptions;
   swr?: SwrOptions;
   zod?: ZodOptions;
+  effect?: EffectOptions;
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,

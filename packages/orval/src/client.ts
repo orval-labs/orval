@@ -28,6 +28,7 @@ import {
   OutputMockType,
   pascal,
 } from '@orval/core';
+import effect from '@orval/effect';
 import fetchClient from '@orval/fetch';
 import hono from '@orval/hono';
 import mcp from '@orval/mcp';
@@ -58,6 +59,7 @@ const getGeneratorClient = (
     'vue-query': query({ output, type: 'vue-query' })(),
     swr: swr()(),
     zod: zod()(),
+    effect: effect()(),
     hono: hono()(),
     fetch: fetchClient()(),
     mcp: mcp()(),

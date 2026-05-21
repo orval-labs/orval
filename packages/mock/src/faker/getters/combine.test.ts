@@ -121,6 +121,24 @@ function createMockContext(): ContextSpec {
           dateTimeOptions: {},
           timeOptions: { precision: 3 },
         },
+        effect: {
+          strict: {
+            param: false,
+            query: false,
+            header: false,
+            body: false,
+            response: false,
+          },
+          generate: {
+            param: false,
+            query: false,
+            header: false,
+            body: false,
+            response: false,
+          },
+          generateEachHttpStatus: false,
+          useBrandedTypes: false,
+        },
         fetch: {
           includeHttpResponseReturnType: false,
           forceSuccessResponse: false,

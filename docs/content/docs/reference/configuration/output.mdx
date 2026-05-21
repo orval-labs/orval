@@ -25,7 +25,7 @@ export default defineConfig({
 
 **Type:** `String | Function`
 **Default:** `'axios-functions'`
-**Options:** `angular`, `axios`, `axios-functions`, `react-query`, `svelte-query`, `vue-query`, `swr`, `zod`, `hono`, `fetch`, `mcp`
+**Options:** `angular`, `axios`, `axios-functions`, `react-query`, `svelte-query`, `vue-query`, `swr`, `zod`, `effect`, `hono`, `fetch`, `mcp`
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -1090,6 +1090,61 @@ Behavior:
 - `$ref` siblings: `nullable`, `default`, `description` chain onto the named ref (e.g. `Pet.nullable().describe(...)`). `properties`, `example`, and other non-chainable siblings fall back to inlining at that one site.
 - The `namingConvention` must produce valid JavaScript identifiers (`camelCase`, `PascalCase`, or `snake_case`). `kebab-case` is rejected with a clear error because it would emit dashed exports.
 - **Trade-off — `readOnly` on shared component schemas:** without this flag, request bodies generated from `$ref` schemas strip `readOnly: true` properties so they don't appear in input validators. With this flag on, request and response endpoints share the same exported schema, so `readOnly` properties remain in body validators too. Either avoid `readOnly` on component schemas you share between requests and responses, or split into separate request/response schemas in the OpenAPI source.
+
+---
+
+## override.effect
+
+Effect schema generation options:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        effect: {
+          strict: {
+            response: true,
+            query: true,
+            param: true,
+            header: true,
+            body: true,
+          },
+          generate: {
+            param: true,
+            body: true,
+            response: true,
+            query: true,
+            header: true,
+          },
+          generateEachHttpStatus: true,
+          useBrandedTypes: true,
+        },
+      },
+    },
+  },
+});
+```
+
+### strict
+
+**Type:** `Object`
+
+Enable strict mode for schemas.
+
+### generate
+
+**Type:** `Object`
+
+Control which schemas are generated.
+
+### useBrandedTypes
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Append `S.brand()` to generated Effect schemas using the schema name as the brand identifier. For array request/response bodies, only the top-level array wrapper schema is branded.
 
 ---
 
