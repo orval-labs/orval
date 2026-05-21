@@ -246,6 +246,111 @@ describe('getResponse', () => {
 
       expect(result.isBlob).toBe(true);
     });
+
+    it('should set isBlob to true for */* with inline format: binary schema', () => {
+      const responses: OpenApiResponsesObject = {
+        '200': {
+          description: 'Binary file',
+          content: {
+            '*/*': {
+              schema: { type: 'string', format: 'binary' },
+            },
+          },
+        },
+      };
+
+      const result = getResponse({
+        responses,
+        operationName: 'downloadFile',
+        context,
+      });
+
+      expect(result.isBlob).toBe(true);
+    });
+
+    it('should set isBlob to true for $ref to a format: binary schema', () => {
+      const refContext: ContextSpec = createTestContextSpec({
+        target: 'spec',
+        spec: {
+          components: {
+            schemas: {
+              TestPdfFile: { type: 'string', format: 'binary' },
+            },
+          },
+        },
+        override: {
+          formData: { arrayHandling: 'serialize', disabled: false },
+          enumGenerationType: 'const',
+        },
+      });
+      const responses: OpenApiResponsesObject = {
+        '200': {
+          description: 'Binary file',
+          content: {
+            '*/*': {
+              schema: { $ref: '#/components/schemas/TestPdfFile' },
+            },
+          },
+        },
+      };
+
+      const result = getResponse({
+        responses,
+        operationName: 'downloadFile',
+        context: refContext,
+      });
+
+      expect(result.isBlob).toBe(true);
+    });
+
+    it('should set isBlob to true for schema with contentMediaType: application/octet-stream', () => {
+      const responses: OpenApiResponsesObject = {
+        '200': {
+          description: 'OK',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'string',
+                contentMediaType: 'application/octet-stream',
+              },
+            },
+          },
+        },
+      };
+
+      const result = getResponse({
+        responses,
+        operationName: 'downloadFile',
+        context,
+      });
+
+      expect(result.isBlob).toBe(true);
+    });
+
+    it('should set isBlob to false when contentMediaType has contentEncoding (base64-encoded string)', () => {
+      const responses: OpenApiResponsesObject = {
+        '200': {
+          description: 'OK',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'string',
+                contentMediaType: 'application/octet-stream',
+                contentEncoding: 'base64',
+              },
+            },
+          },
+        },
+      };
+
+      const result = getResponse({
+        responses,
+        operationName: 'downloadFile',
+        context,
+      });
+
+      expect(result.isBlob).toBe(false);
+    });
   });
 
   describe('duplicate union types', () => {
