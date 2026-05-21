@@ -37,7 +37,8 @@ export function isComponentRef(ref: string): boolean {
   return COMPONENT_REF_PATTERN.test(ref);
 }
 
-const regex = new RegExp('~1', 'g');
+const TILDE_1 = /~1/g;
+const TILDE_0 = /~0/g;
 
 export interface RefInfo {
   name: string;
@@ -55,7 +56,11 @@ export function getRefInfo($ref: string, context: ContextSpec): RefInfo {
   const refPaths = ref
     .slice(1)
     .split('/')
-    .map((part) => decodeURIComponent(part.replaceAll(regex, '/')));
+    .map((part) =>
+      decodeURIComponent(part)
+        .replaceAll(TILDE_1, '/')
+        .replaceAll(TILDE_0, '~'),
+    );
 
   const getOverrideSuffix = (
     override: NormalizedOverrideOutput,
