@@ -26,6 +26,7 @@ jobs:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
           package-manager-cache: false  # never use caching in release builds
+    
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
