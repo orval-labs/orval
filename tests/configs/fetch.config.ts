@@ -137,6 +137,23 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Issue #1879: header parameter referenced via a JSON Pointer `$ref` that
+  // targets another path's parameter (`#/paths/~1requestA/post/parameters/0`)
+  // used to type the header as a dangling synthesized name (`N0`) and import
+  // it from a non-existent module. The snapshot pins the corrected output.
+  'issue-1879-header-pathref': {
+    output: {
+      target: '../generated/fetch/issue-1879/endpoints.ts',
+      schemas: '../generated/fetch/issue-1879/model',
+      client: 'fetch',
+      headers: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-1879/header-pathref.yaml',
+    },
+  },
   formData: {
     output: {
       target: '../generated/fetch/form-data-optional-request/endpoints.ts',
