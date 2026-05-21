@@ -1,6 +1,22 @@
 import { describe, expect, it } from 'vitest';
 
-import { isComponentRef } from './ref';
+import type { ContextSpec } from '../types';
+import { getRefInfo, isComponentRef } from './ref';
+
+function createRefContext(): ContextSpec {
+  return {
+    target: 'core-test',
+    workspace: '/tmp',
+    spec: {},
+    output: {
+      override: {
+        components: {
+          schemas: { suffix: '' },
+        },
+      },
+    },
+  } as ContextSpec;
+}
 
 describe('isComponentRef', () => {
   it.each([
@@ -38,5 +54,44 @@ describe('isComponentRef', () => {
     // RFC 6901: literal "/" inside a name is encoded as "~1".
     // The decoded name is "My/Type" but the ref string segment has no literal slash.
     expect(isComponentRef('#/components/schemas/My~1Type')).toBe(true);
+  });
+});
+
+describe('getRefInfo', () => {
+  it('decodes ~0 tilde escape per RFC 6901', () => {
+    const info = getRefInfo(
+      '#/components/schemas/My~0Type',
+      createRefContext(),
+    );
+    expect(info.originalName).toBe('My~Type');
+  });
+
+  it('decodes both ~1 and ~0 in the same segment', () => {
+    const info = getRefInfo(
+      '#/components/schemas/Path~1To~0Thing',
+      createRefContext(),
+    );
+    expect(info.originalName).toBe('Path/To~Thing');
+  });
+
+  it('decodes order is ~1 then ~0', () => {
+    // "~01" should decode to "~1", not to "/" then "0"
+    const info = getRefInfo(
+      '#/components/schemas/Foo~01Bar',
+      createRefContext(),
+    );
+    expect(info.originalName).toBe('Foo~1Bar');
+  });
+
+  it('percent-decodes before tilde unescaping per RFC 6901 section 6', () => {
+    // %7E is the percent-encoding of "~", so %7E0 → ~0 → ~ and %7E1 → ~1 → /
+    expect(
+      getRefInfo('#/components/schemas/My%7E0Type', createRefContext())
+        .originalName,
+    ).toBe('My~Type');
+    expect(
+      getRefInfo('#/components/schemas/A%7E1B', createRefContext())
+        .originalName,
+    ).toBe('A/B');
   });
 });
