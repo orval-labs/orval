@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: write
-  id-token: write # Required for NPM OIDC
+  id-token: write  # Required for NPM OIDC
 
 jobs:
   publish:
