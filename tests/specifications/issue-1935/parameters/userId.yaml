@@ -1,0 +1,13 @@
+openapi: 3.1.0
+info:
+  title: userId path parameter
+  version: 1.0.0
+paths: {}
+components:
+  parameters:
+    userId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string

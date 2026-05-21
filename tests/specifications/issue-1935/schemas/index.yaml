@@ -1,0 +1,9 @@
+openapi: 3.1.0
+info:
+  title: Schemas barrel
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    UserProjectDTO:
+      $ref: './UserProjectDTO.yaml#/components/schemas/UserProject'

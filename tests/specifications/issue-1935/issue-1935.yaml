@@ -1,0 +1,13 @@
+openapi: 3.1.0
+info:
+  title: Issue 1935 - double-linked $ref
+  version: 1.0.0
+
+# Regression for #1935: a $ref chain that crosses three external files.
+# - paths.<...>      → external path-item file (path/projects.yaml)
+# - that file's response schema → external schemas barrel (schemas/index.yaml)
+# - the barrel re-exports         → external concrete schema file (schemas/UserProjectDTO.yaml)
+paths:
+  '/users/{userId}/projects':
+    $ref: './path/projects.yaml#/paths/~1projects'
+components: {}

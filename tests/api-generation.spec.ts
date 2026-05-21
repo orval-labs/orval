@@ -297,6 +297,47 @@ test('default issue-3380 resolves external path-item $refs with escaped pointers
   expect(content).toContain('`/pets/${petId}`');
 });
 
+test('default issue-1935 resolves a $ref chain across three external files', async () => {
+  // Regression for #1935: an operation defined in one file (path-item $ref)
+  // whose response schema $refs into a second file that itself only
+  // re-exports the schema via a $ref to a third concrete-schema file used
+  // to abort with `Ref not found: ../schemas/index.yaml#/components/schemas/
+  // UserProjectDTO`. The bundler must follow the chain through both hops so
+  // the operation resolves to the third file's concrete object schema. Keep
+  // this focused assertion alongside the snapshot so #1935 fails with a
+  // targeted message instead of a full-file snapshot diff.
+  const root = (file: string) =>
+    readFile(
+      generated('default', 'issue-1935-double-linked-ref', file),
+      'utf8',
+    );
+  const model = (file: string) =>
+    readFile(
+      generated('default', 'issue-1935-double-linked-ref', 'model', file),
+      'utf8',
+    );
+
+  // The operation imports the concrete third-file schema (not the barrel
+  // alias) and uses it as the response item type.
+  const endpoints = await root('endpoints.ts');
+  expect(endpoints).toContain("import type { UserProject } from './model';");
+  expect(endpoints).toContain('Promise<AxiosResponse<UserProject[]>>');
+
+  // The concrete schema from the third file is emitted as an interface.
+  const userProject = await model('userProject.ts');
+  expect(userProject).toContain('export interface UserProject {');
+  expect(userProject).toContain('id: string;');
+  expect(userProject).toContain('title: string;');
+
+  // The barrel re-export collapses to a type alias pointing at the resolved
+  // schema — proving the second hop of the chain was followed.
+  const userProjectDTO = await model('userProjectDTO.ts');
+  expect(userProjectDTO).toContain(
+    "import type { UserProject } from './userProject';",
+  );
+  expect(userProjectDTO).toContain('export type UserProjectDTO = UserProject;');
+});
+
 test('react-query issue-1522 passes the enabled option into the queryOptions mutator', async () => {
   // Regression for #1522: when `allParamsOptional` and a custom `queryOptions`
   // mutator are combined, the auto-generated `enabled` guard (which disables
