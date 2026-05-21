@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: write
-  id-token: write  # Required for NPM OIDC
+  id-token: write # Required for NPM OIDC
 
 jobs:
   publish:
@@ -25,8 +25,8 @@ jobs:
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
-          package-manager-cache: false  # never use caching in release builds
-    
+          package-manager-cache: false # never use caching in release builds
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
