@@ -10,6 +10,7 @@ import {
   type GeneratorOptions,
   type GeneratorVerbOptions,
   GetterPropType,
+  isBinaryContentType,
   isObject,
   makeRouteSafe,
   type OpenApiParameterObject,
@@ -52,6 +53,9 @@ const FETCH_DEPENDENCIES: GeneratorDependency[] = [
 ];
 
 export const getFetchDependencies = () => FETCH_DEPENDENCIES;
+
+const isRawRequestBodyContentType = (contentType: string) =>
+  contentType === 'text/plain' || isBinaryContentType(contentType);
 
 export const generateRequestFunction = (
   {
@@ -427,7 +431,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   const fetchBodyOption = requestBodyParams
     ? (isFormData && body.formData) ||
       (isFormUrlEncoded && body.formUrlEncoded) ||
-      body.contentType === 'text/plain'
+      isRawRequestBodyContentType(body.contentType)
       ? `body: ${requestBodyParams}`
       : `body: JSON.stringify(${requestBodyParams})`
     : '';

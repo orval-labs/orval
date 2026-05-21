@@ -234,6 +234,21 @@ test('fetch useDates with only date-time query params coerces via String(value)'
   );
 });
 
+test('fetch binary request bodies are sent without JSON.stringify', async () => {
+  // Regression: raw binary request bodies such as image/png must be passed to
+  // fetch as the Blob itself. JSON.stringify(Blob) produces "{}" and corrupts
+  // the upload.
+  const content = await readFile(
+    generated('fetch', 'binary-request-body', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toContain('replaceLotteryLogoBody: Blob');
+  expect(content).toContain("'Content-Type': 'image/png'");
+  expect(content).toContain('body: replaceLotteryLogoBody');
+  expect(content).not.toContain('JSON.stringify(replaceLotteryLogoBody)');
+});
+
 test('vue-query custom fetch infinite queries unref non-pagination params', async () => {
   // Regression for #3385:
   // functions accept plain values, while Vue query hooks expose MaybeRef<T>.
