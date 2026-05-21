@@ -908,6 +908,78 @@ describe('dereferenceExternalRefs', () => {
     expect(result).not.toHaveProperty('x-ext');
   });
 
+  // Regression test for https://github.com/orval-labs/orval/issues/1935
+  it('should resolve a barrel $ref that crosses into a second external doc', () => {
+    // The middle external doc ("barrel") only re-exports a schema as a $ref
+    // into a third external doc ("concrete"). The cross-doc rewrite in
+    // `replaceXExtRefs` must collapse the chain so the merged barrel schema
+    // ends up pointing at the resolved schema in the main spec, not at the
+    // raw `#/x-ext/concrete/...` ref it was bundled with.
+    const input = {
+      openapi: '3.0.3',
+      info: { title: 'Demo', version: '0.0.0' },
+      paths: {},
+      components: {
+        schemas: {
+          UserProjectDTO: {
+            $ref: '#/x-ext/barrel/components/schemas/UserProjectDTO',
+          },
+        },
+      },
+      'x-ext': {
+        barrel: {
+          openapi: '3.0.3',
+          info: { title: 'Barrel', version: '0.0.0' },
+          components: {
+            schemas: {
+              UserProjectDTO: {
+                $ref: '#/x-ext/concrete/components/schemas/UserProject',
+              },
+            },
+          },
+        },
+        concrete: {
+          openapi: '3.0.3',
+          info: { title: 'Concrete', version: '0.0.0' },
+          components: {
+            schemas: {
+              UserProject: {
+                type: 'object',
+                required: ['id', 'title'],
+                properties: {
+                  id: { type: 'string' },
+                  title: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = dereferenceExternalRef(input) as OpenApiDocument;
+    const schemas = result.components?.schemas;
+
+    // Both ends of the chain are merged into the main spec.
+    expect(schemas?.UserProject).toEqual({
+      type: 'object',
+      required: ['id', 'title'],
+      properties: {
+        id: { type: 'string' },
+        title: { type: 'string' },
+      },
+    });
+
+    // The barrel entry collapses to an internal $ref pointing at the
+    // resolved concrete schema — the x-ext hop must be rewritten, otherwise
+    // downstream resolveRef() throws "Ref not found".
+    expect(schemas?.UserProjectDTO).toEqual({
+      $ref: '#/components/schemas/UserProject',
+    });
+
+    expect(result).not.toHaveProperty('x-ext');
+  });
+
   // Regression test for https://github.com/orval-labs/orval/issues/394
   it('should resolve internal $ref inside an external parameter against the external doc', () => {
     const input = {

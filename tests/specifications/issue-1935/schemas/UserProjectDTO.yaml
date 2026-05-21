@@ -1,0 +1,19 @@
+openapi: 3.1.0
+info:
+  title: UserProject DTO
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    UserProject:
+      type: object
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
