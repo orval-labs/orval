@@ -355,6 +355,38 @@ describe('generateMSW', () => {
       expect(result.implementation.function).not.toContain(': TestPdfFile');
     });
 
+    it('should rewrite aliased ref imports for $ref binary schemas', () => {
+      const aliasedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          imports: [],
+          definition: { success: '__TestPdfFile' },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: '__TestPdfFile',
+                contentType: '*/*',
+                originalSchema: { type: 'string', format: 'binary' },
+                imports: [{ name: 'TestPdfFile', alias: '__TestPdfFile' }],
+                schemas: [],
+                type: 'string',
+                isEnum: false,
+                isRef: true,
+                hasReadonlyProps: false,
+              },
+            ],
+          },
+          contentTypes: ['*/*'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(aliasedVerbOptions, baseOptions);
+
+      expect(result.implementation.function).toContain(': ArrayBuffer');
+      expect(result.implementation.function).not.toContain(': __TestPdfFile');
+    });
+
     it('should not force binary path when preferredContentType narrows to a non-binary success variant', () => {
       const mixedVerbOptions = {
         ...mockVerbOptions,

@@ -158,11 +158,14 @@ function generateDefinition(
   const isBinaryResponse =
     contentTypesByPreference.some((ct) => isBinaryLikeContentType(ct)) ||
     responsesByPreference.some((r) => isSchemaBinary(r));
-  // Bare ref names of schema-binary responses (from imports, which is the canonical place).
+  // Bare ref names of schema-binary responses (include alias for collision-renamed imports).
   const binaryRefNames = responsesByPreference
     .filter((r) => isSchemaBinary(r))
-    .flatMap((r) => r.imports.map((imp) => imp.name))
-    .filter(Boolean);
+    .flatMap((r) =>
+      r.imports.flatMap((imp) =>
+        imp.alias ? [imp.name, imp.alias] : [imp.name],
+      ),
+    );
   const isReturnHttpResponse = value && value !== 'undefined';
 
   const getResponseMockFunctionName = `${getResponseMockFunctionNameBase}${pascal(
