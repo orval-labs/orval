@@ -506,6 +506,59 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
       expect(result.formUrlEncoded).not.toContain('Blob');
     });
 
+    it('generates forEach for nullable array property (type: ["array","null"] — post-3.1 upgrade)', () => {
+      // After @scalar/openapi-upgrader converts a 3.0 spec, nullable arrays
+      // become `type: ["array", "null"]`. The type check must handle arrays.
+      const reqBodyNullableArray: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'application/x-www-form-urlencoded': {
+                schema: {
+                  type: 'object',
+                  required: ['petId'],
+                  properties: {
+                    petId: { type: 'string' },
+                    tags: {
+                      type: ['array', 'null'] as unknown as 'array',
+                      nullable: true,
+                      items: {
+                        type: 'object',
+                        required: ['tagId', 'label'],
+                        properties: {
+                          tagId: { type: 'string' },
+                          label: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(
+        reqBodyNullableArray,
+        'UpdatePet',
+        context,
+      )[0];
+
+      const formUrlEncoded = result.formUrlEncoded;
+      if (!formUrlEncoded || !isString(formUrlEncoded)) {
+        throw new Error('Expected formUrlEncoded to be a defined string');
+      }
+
+      // Must generate a forEach loop, not a bare append of the whole array
+      expect(formUrlEncoded).toContain('forEach');
+      expect(formUrlEncoded).not.toMatch(
+        /append\(`tags`,\s*updatePetRequestBody\.tags\)/,
+      );
+    });
+
     it('uses a string-only runtime loop for oneOf/anyOf url-encoded bodies', () => {
       const oneOfReqBody: [string, OpenApiRequestBodyObject][] = [
         [

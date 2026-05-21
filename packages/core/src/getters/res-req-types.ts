@@ -773,7 +773,10 @@ function resolveSchemaPropertiesToFormData({
     } else if (fileType === 'text') {
       // Text file: value is Blob | string, check at runtime
       formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey} instanceof Blob ? ${nonOptionalValueKey} : new Blob([${nonOptionalValueKey}], { type: '${effectiveContentType}' }));\n`;
-    } else if (property.type === 'object') {
+    } else if (
+      property.type === 'object' ||
+      (Array.isArray(property.type) && property.type.includes('object'))
+    ) {
       formDataValue =
         context.output.override.formData.arrayHandling ===
         FormDataArrayHandling.EXPLODE
@@ -788,7 +791,10 @@ function resolveSchemaPropertiesToFormData({
               encoding,
             })
           : `${variableName}.append(\`${keyPrefix}${key}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
-    } else if (property.type === 'array') {
+    } else if (
+      property.type === 'array' ||
+      (Array.isArray(property.type) && property.type.includes('array'))
+    ) {
       let valueStr = 'value';
       let hasNonPrimitiveChild = false;
       const propertyItems = getSchemaItems(property);
