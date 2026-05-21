@@ -1,5 +1,6 @@
 import angular from '@orval/angular';
 import axios from '@orval/axios';
+import dart from '@orval/dart';
 import type {
   AngularOptions,
   ClientFileBuilder,
@@ -61,6 +62,7 @@ const getGeneratorClient = (
     hono: hono()(),
     fetch: fetchClient()(),
     mcp: mcp()(),
+    dart: dart()(),
   };
 
   const generator = isFunction(outputClient)
