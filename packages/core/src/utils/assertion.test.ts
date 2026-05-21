@@ -4,6 +4,7 @@ import { SchemaType, Verbs } from '../types';
 import {
   isBoolean,
   isDirectory,
+  isDynamicReference,
   isFunction,
   isModule,
   isNullish,
@@ -96,5 +97,50 @@ describe('assertion testing', () => {
     ).toBeTruthy();
     // eslint-disable-next-line unicorn/no-null -- testing null handling
     expect(isNullish(null)).toBeTruthy();
+  });
+});
+
+describe('isDynamicReference', () => {
+  it('returns true for objects with $dynamicRef', () => {
+    expect(isDynamicReference({ $dynamicRef: '#category' })).toBe(true);
+  });
+
+  it('returns false for objects with $ref', () => {
+    expect(isDynamicReference({ $ref: '#/components/schemas/Foo' })).toBe(
+      false,
+    );
+  });
+
+  it('returns false for plain objects', () => {
+    expect(isDynamicReference({ type: 'string' })).toBe(false);
+  });
+
+  it('returns false for null', () => {
+    // eslint-disable-next-line unicorn/no-null
+    expect(isDynamicReference(null as unknown as object)).toBe(false);
+  });
+
+  it('returns false for undefined', () => {
+    expect(isDynamicReference(undefined as unknown as object)).toBe(false);
+  });
+
+  it('returns true for objects with $dynamicRef and other properties', () => {
+    expect(
+      isDynamicReference({ $dynamicRef: '#category', description: 'test' }),
+    ).toBe(true);
+  });
+
+  it('returns false for non-string $dynamicRef', () => {
+    expect(isDynamicReference({ $dynamicRef: 123 } as unknown as object)).toBe(
+      false,
+    );
+  });
+
+  it('returns false for objects with $dynamicRef but not $ref in isReference', () => {
+    expect(isReference({ $dynamicRef: '#category' })).toBe(false);
+  });
+
+  it('returns true for objects with $ref in isReference', () => {
+    expect(isReference({ $ref: '#/components/schemas/Foo' })).toBe(true);
   });
 });

@@ -7,7 +7,13 @@ import {
   getEnumNames,
   resolveDiscriminators,
 } from '../getters';
-import { resolveRef, resolveValue } from '../resolvers';
+import {
+  buildDynamicScope,
+  dynamicAnchorToParamName,
+  extractBoundAliasInfo,
+  resolveRef,
+  resolveValue,
+} from '../resolvers';
 import type {
   ContextSpec,
   GeneratorSchema,
@@ -18,6 +24,7 @@ import type {
 import {
   conventionName,
   isBoolean,
+  isReference,
   isString,
   jsDoc,
   pascal,
@@ -159,6 +166,30 @@ function shouldCreateInterface(schema: OpenApiSchemaObject) {
   );
 }
 
+function collectGenericParams(
+  schema: OpenApiSchemaObject,
+): { anchorName: string; paramName: string }[] {
+  const defs = (schema as Record<string, unknown>).$defs as
+    | Record<string, OpenApiSchemaObject>
+    | undefined;
+  if (!defs || typeof defs !== 'object') return [];
+  const params: { anchorName: string; paramName: string }[] = [];
+  for (const defSchema of Object.values(defs)) {
+    if (!defSchema || typeof defSchema !== 'object') {
+      continue;
+    }
+    const rec = defSchema as Record<string, unknown>;
+    if (rec.$dynamicAnchor !== undefined && rec.$ref === undefined) {
+      const anchor = rec.$dynamicAnchor as string;
+      params.push({
+        anchorName: anchor,
+        paramName: dynamicAnchorToParamName(anchor),
+      });
+    }
+  }
+  return params;
+}
+
 function generateSchemaDefinitions(
   schemaName: string,
   schema: OpenApiSchemaObject,
@@ -184,18 +215,112 @@ function generateSchemaDefinitions(
     ];
   }
 
+  const alias = extractBoundAliasInfo(schema, context);
+  if (alias) {
+    const genericParams = isReference(schema)
+      ? []
+      : collectGenericParams(schema);
+    const genericSuffix =
+      genericParams.length > 0
+        ? `<${genericParams.map((p) => p.paramName).join(', ')}>`
+        : '';
+
+    const typeArgsStr = alias.typeArgs.join(', ');
+    const genericPart = `${alias.genericName}<${typeArgsStr}>`;
+
+    const schemaType = schema.type as string | string[] | undefined;
+    const nullable =
+      (Array.isArray(schemaType) && schemaType.includes('null')) ||
+      schema.nullable === true
+        ? ' | null'
+        : '';
+
+    let model: string;
+    const allImports: { name: string; schemaName: string }[] = [
+      { name: alias.genericName, schemaName: alias.genericName },
+      ...alias.imports,
+    ];
+
+    if (alias.extraSchemas && alias.extraSchemas.length > 0) {
+      const aliasScopedContext = {
+        ...context,
+        dynamicScope: buildDynamicScope(schemaName, schema, context),
+      };
+      const subSchemas: GeneratorSchema[] = [];
+      const extraParts = alias.extraSchemas.map((extraSchema) => {
+        const resolved = resolveValue({
+          schema: extraSchema,
+          name: sanitizedSchemaName,
+          context: aliasScopedContext,
+        });
+        for (const imp of resolved.imports) {
+          const impSchemaName = imp.schemaName ?? imp.name;
+          if (
+            !allImports.some(
+              (a) => a.name === imp.name && a.schemaName === impSchemaName,
+            )
+          ) {
+            allImports.push({ name: imp.name, schemaName: impSchemaName });
+          }
+        }
+        for (const sub of resolved.schemas) {
+          if (sub.name !== sanitizedSchemaName) {
+            subSchemas.push(sub);
+          }
+        }
+        return resolved.value;
+      });
+      model = `export type ${sanitizedSchemaName}${genericSuffix} = (${[genericPart, ...extraParts].join(' & ')})${nullable};\n`;
+      return [
+        ...subSchemas,
+        {
+          name: sanitizedSchemaName,
+          model,
+          imports: allImports,
+          dependencies: allImports.map((i) => i.name),
+          schema,
+        },
+      ];
+    } else {
+      model = `export type ${sanitizedSchemaName}${genericSuffix} = ${genericPart}${nullable};\n`;
+    }
+
+    return [
+      {
+        name: sanitizedSchemaName,
+        model,
+        imports: allImports,
+        dependencies: allImports.map((i) => i.name),
+        schema,
+      },
+    ];
+  }
+
+  const scopedContext = isBoolean(schema)
+    ? context
+    : {
+        ...context,
+        dynamicScope: buildDynamicScope(schemaName, schema, context),
+      };
+
+  const genericParams = isReference(schema) ? [] : collectGenericParams(schema);
+
   if (shouldCreateInterface(schema)) {
     return generateInterface({
       name: sanitizedSchemaName,
       schema,
-      context,
+      context: scopedContext,
+      genericParams:
+        genericParams.length > 0
+          ? genericParams.map((p) => p.paramName)
+          : undefined,
     });
   }
 
   const resolvedValue = resolveValue({
     schema,
     name: sanitizedSchemaName,
-    context,
+    context: scopedContext,
   });
 
   let output = '';
@@ -218,7 +343,7 @@ function generateSchemaDefinitions(
     resolvedValue.isRef
   ) {
     // Don't add type if schema has same name and the referred schema will be an interface
-    const { schema: referredSchema } = resolveRef(schema, context);
+    const { schema: referredSchema } = resolveRef(schema, scopedContext);
     if (!shouldCreateInterface(referredSchema as OpenApiSchemaObject)) {
       const imp = resolvedValue.imports.find(
         (imp) => imp.name === sanitizedSchemaName,
@@ -249,7 +374,11 @@ function generateSchemaDefinitions(
 
       return false;
     });
-    output += `export type ${sanitizedSchemaName} = ${resolvedValue.value};\n`;
+    const genericSuffix =
+      genericParams.length > 0
+        ? `<${genericParams.map((p) => p.paramName).join(', ')}>`
+        : '';
+    output += `export type ${sanitizedSchemaName}${genericSuffix} = ${resolvedValue.value};\n`;
   }
 
   return [
