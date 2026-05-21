@@ -763,6 +763,9 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
   const setQueryDataFnName = isReactQuery
     ? camel(`use-set-${name}-query-data`)
     : camel(`set-${name}-query-data`);
+  // Route the set-query-data key through the same mutator as invalidate so
+  // that any user-applied prefix (e.g. tenant) is honoured. Without this,
+  // `setQueriesData` and `invalidateQueries` would target different keys.
   const setQueryDataKeyExpr = applyQueryOptionsMutator(buildBaseQueryKeyExpr());
   // `setQueriesData` matches by query-key prefix, so non-path props (query
   // params, body) are widened to `T | undefined` — passing `undefined`
