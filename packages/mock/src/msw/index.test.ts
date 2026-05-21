@@ -350,6 +350,9 @@ describe('generateMSW', () => {
         'HttpResponse.arrayBuffer',
       );
       expect(result.implementation.handler).not.toContain('JSON.stringify');
+      // The ref alias return type must be rewritten to ArrayBuffer to stay consistent with the arrayBuffer body.
+      expect(result.implementation.function).toContain(': ArrayBuffer');
+      expect(result.implementation.function).not.toContain(': TestPdfFile');
     });
 
     it('should not force binary path when preferredContentType narrows to a non-binary success variant', () => {
