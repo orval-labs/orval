@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
@@ -9,6 +9,7 @@ import {
   EnumGeneration,
   escape,
   type GeneratorImport,
+  isReference,
   isString,
   mergeDeep,
   type MockOptions,
@@ -16,7 +17,7 @@ import {
   pascal,
 } from '@orval/core';
 
-import type { MockDefinition, MockSchemaObject } from '../../types';
+import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { isFakerVersionV9 } from '../compatible-v9';
 import { DEFAULT_FORMAT_MOCK } from '../constants';
 import {
@@ -254,14 +255,23 @@ export function getMockScalar({
         return { value: '[]', imports: [], name: item.name };
       }
 
+      const itemsRef = extractItemsRef(item.items);
       if (
-        '$ref' in item.items &&
+        itemsRef &&
         existingReferencedProperties.includes(
-          pascal(item.items.$ref.split('/').pop() ?? ''),
+          pascal(itemsRef.split('/').pop() ?? ''),
         )
       ) {
         return { value: '[]', imports: [], name: item.name };
       }
+
+      // If `items` is a single-element `allOf`/`oneOf`/`anyOf` wrapping a
+      // `$ref`, treat it as a direct `$ref`. This avoids double-wrapping when
+      // the inner schema is an enum array (whose `getEnum` already emits
+      // `faker.helpers.arrayElements(...)`) and keeps recursion semantics in
+      // line with direct-$ref items.
+      const resolvedItems =
+        itemsRef && !('$ref' in item.items) ? { $ref: itemsRef } : item.items;
 
       const {
         value,
@@ -269,7 +279,7 @@ export function getMockScalar({
         imports: resolvedImports,
       } = resolveMockValue({
         schema: {
-          ...item.items,
+          ...resolvedItems,
           name: item.name,
           path: item.path ? `${item.path}.[]` : '#.[]',
         },
@@ -406,6 +416,26 @@ export function getMockScalar({
       });
     }
   }
+}
+
+// Returns the $ref string from array `items` — either direct ($ref on items
+// itself) or wrapped in a single-element allOf/oneOf/anyOf composition.
+// Multi-element compositions return undefined to preserve combine semantics.
+function extractItemsRef(items: MockSchema): string | undefined {
+  if (isReference(items)) {
+    return items.$ref;
+  }
+  for (const key of ['allOf', 'oneOf', 'anyOf'] as const) {
+    const composed = items[key] as MockSchema[] | undefined;
+    if (
+      Array.isArray(composed) &&
+      composed.length === 1 &&
+      isReference(composed[0])
+    ) {
+      return composed[0].$ref;
+    }
+  }
+  return;
 }
 
 function getItemType(item: MockSchemaObject) {

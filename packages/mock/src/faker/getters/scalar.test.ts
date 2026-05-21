@@ -661,3 +661,84 @@ describe('getMockScalar (post-upgrader OAS 3.0 example handling)', () => {
     expect(result.value).toBe('"relaxation"');
   });
 });
+
+describe('getMockScalar (array items $ref extraction and recursion guard)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    splitMockImplementations: [],
+    existingReferencedProperties: ['Foo'],
+    context: { output: { override: {} } } as ContextSpec,
+  };
+
+  it('returns [] when items.$ref is a circular reference', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'array' as const,
+        name: 'test-item',
+        items: { $ref: '#/components/schemas/Foo' },
+      },
+    });
+
+    expect(result.value).toBe('[]');
+  });
+
+  it('returns [] when items is allOf with a single circular $ref', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'array' as const,
+        name: 'test-item',
+        items: { allOf: [{ $ref: '#/components/schemas/Foo' }] },
+      },
+    });
+
+    expect(result.value).toBe('[]');
+  });
+
+  it('returns [] when items is oneOf with a single circular $ref', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'array' as const,
+        name: 'test-item',
+        items: { oneOf: [{ $ref: '#/components/schemas/Foo' }] },
+      },
+    });
+
+    expect(result.value).toBe('[]');
+  });
+
+  it('returns [] when items is anyOf with a single circular $ref', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'array' as const,
+        name: 'test-item',
+        items: { anyOf: [{ $ref: '#/components/schemas/Foo' }] },
+      },
+    });
+
+    expect(result.value).toBe('[]');
+  });
+
+  it('does not short-circuit for multi-element allOf even if one matches a visited ref', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'array' as const,
+        name: 'test-item',
+        items: {
+          allOf: [
+            { $ref: '#/components/schemas/Foo' },
+            { $ref: '#/components/schemas/Bar' },
+          ],
+        },
+      },
+    });
+
+    expect(result.value).not.toBe('[]');
+  });
+});
