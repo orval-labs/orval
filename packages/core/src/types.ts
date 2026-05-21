@@ -1024,6 +1024,29 @@ export interface ContextSpec {
   spec: OpenApiDocument;
   parents?: string[];
   output: NormalizedOutputOptions;
+  /**
+   * Per-schema dynamic scope mapping `$dynamicAnchor` names to concrete schema
+   * entries or generic parameter placeholders. Populated by `buildDynamicScope`.
+   */
+  dynamicScope?: Partial<Record<string, DynamicScopeEntry>>;
+}
+
+/**
+ * Maps a `$dynamicAnchor` name to its resolution target.
+ *
+ * Concrete entry (bound via `$ref`):
+ *   - `name` — the generated TypeScript type name (e.g. `User`)
+ *   - `schemaName` — the original key in `components.schemas` (e.g. `User`)
+ *
+ * Parameter entry (unbound `$defs` placeholder):
+ *   - `isParameter` — `true`, signals this is a generic type parameter
+ *   - `name` — the `$dynamicAnchor` name used as the type parameter (e.g. `itemType`)
+ *   - `schemaName` — same as `name` for parameters
+ */
+export interface DynamicScopeEntry {
+  name: string;
+  schemaName: string;
+  isParameter?: boolean;
 }
 
 export interface GlobalOptions {

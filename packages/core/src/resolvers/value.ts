@@ -1,6 +1,6 @@
 import { getScalar } from '../getters';
 import type { FormDataContext } from '../getters/object';
-import { isComponentRef } from '../getters/ref';
+import { getDynamicAnchorName, isComponentRef } from '../getters/ref';
 import { isBinaryScalarSchema } from '../getters/scalar';
 import type {
   ContextSpec,
@@ -10,8 +10,8 @@ import type {
   ResolverValue,
   SchemaType,
 } from '../types';
-import { isReference } from '../utils';
-import { resolveRef } from './ref';
+import { isDynamicReference, isReference } from '../utils';
+import { extractBoundAliasInfo, resolveDynamicRef, resolveRef } from './ref';
 
 interface ResolveValueOptions {
   schema: OpenApiSchemaObject | OpenApiReferenceObject;
@@ -20,6 +20,138 @@ interface ResolveValueOptions {
   formDataContext?: FormDataContext;
 }
 
+const schemaArrayKeys = ['allOf', 'anyOf', 'oneOf', 'prefixItems'] as const;
+const schemaObjectKeys = [
+  'additionalProperties',
+  'contains',
+  'else',
+  'if',
+  'items',
+  'not',
+  'propertyNames',
+  'then',
+  'unevaluatedItems',
+  'unevaluatedProperties',
+] as const;
+const schemaMapKeys = [
+  '$defs',
+  'dependentSchemas',
+  'patternProperties',
+  'properties',
+] as const;
+
+/**
+ * Recursively walks a schema value and returns `true` if any nested
+ * `$dynamicRef` resolves — via the current `context.dynamicScope` — to a
+ * schema *other* than `refName`.
+ *
+ * Used by `resolveValue` to decide whether a `$ref`'d schema must be
+ * instantiated with its bound type arguments rather than referenced by name.
+ *
+ * @param value   - The schema node (or sub-node) to inspect.
+ * @param context - Current resolution context, including the dynamic scope.
+ * @param refName - The resolved name of the enclosing `$ref` schema; dynamic
+ *                  refs that resolve to this same name are considered
+ *                  self-references and do not count as "scope-affected".
+ * @param seen    - Cycle-guard; tracks already-visited objects.
+ */
+function hasScopeAffectedDynamicRef(
+  value: unknown,
+  context: ContextSpec,
+  refName: string,
+  seen = new WeakSet<object>(),
+): boolean {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  if (!context.dynamicScope || Object.keys(context.dynamicScope).length === 0) {
+    return false;
+  }
+
+  if (seen.has(value)) {
+    return false;
+  }
+  seen.add(value);
+
+  if (isDynamicReference(value) && value.$dynamicRef.startsWith('#')) {
+    const anchorName = getDynamicAnchorName(value.$dynamicRef);
+    if (anchorName) {
+      const scopeEntry = context.dynamicScope[anchorName];
+      if (scopeEntry && scopeEntry.name !== refName) {
+        return true;
+      }
+    }
+  }
+
+  const schema = value as Record<string, unknown>;
+
+  for (const key of schemaArrayKeys) {
+    const items = schema[key];
+    if (
+      Array.isArray(items) &&
+      items.some((item) =>
+        hasScopeAffectedDynamicRef(item, context, refName, seen),
+      )
+    ) {
+      return true;
+    }
+  }
+
+  for (const key of schemaObjectKeys) {
+    if (hasScopeAffectedDynamicRef(schema[key], context, refName, seen)) {
+      return true;
+    }
+  }
+
+  for (const key of schemaMapKeys) {
+    const schemaMap = schema[key];
+    if (
+      schemaMap &&
+      typeof schemaMap === 'object' &&
+      Object.values(schemaMap).some((item) =>
+        hasScopeAffectedDynamicRef(item, context, refName, seen),
+      )
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function makeUnknownValue(
+  originalSchema: OpenApiSchemaObject | OpenApiReferenceObject,
+): ResolverValue {
+  return {
+    value: 'unknown',
+    imports: [],
+    type: 'unknown',
+    isEnum: false,
+    schemas: [],
+    isRef: false,
+    hasReadonlyProps: false,
+    originalSchema,
+    dependencies: [],
+  };
+}
+
+/**
+ * Resolves an OpenAPI schema or reference object to a {@link ResolverValue}
+ * that carries the TypeScript type string, required imports, and metadata.
+ *
+ * Handles all schema forms in priority order:
+ * 1. **Bound generic alias** — a `$ref` with `$defs` overrides; emits an
+ *    instantiated generic expression such as `Paginated<User>`.
+ * 2. **Component `$ref`** — a named `$ref` pointing to `#/components/…`;
+ *    emits the schema name as a reference import.
+ * 3. **Non-component `$ref`** — an anonymous or path-level ref; inlines the
+ *    resolved schema via {@link getScalar} (cycle-safe).
+ * 4. **`$dynamicRef`** — resolved via the active dynamic scope; falls back to
+ *    `unknown` when the anchor is absent or the ref is a bare `#`.
+ * 5. **Plain schema** — delegates to {@link getScalar} for all other cases
+ *    (primitives, objects, arrays, enums, …).
+ */
 export function resolveValue({
   schema,
   name,
@@ -27,6 +159,26 @@ export function resolveValue({
   formDataContext,
 }: ResolveValueOptions): ResolverValue {
   if (isReference(schema)) {
+    const alias = extractBoundAliasInfo(schema, context);
+    if (alias) {
+      const value = `${alias.genericName}<${alias.typeArgs.join(', ')}>`;
+      const allImports: { name: string; schemaName: string }[] = [
+        { name: alias.genericName, schemaName: alias.genericName },
+        ...alias.imports,
+      ];
+      return {
+        value,
+        imports: allImports,
+        type: 'object',
+        schemas: [],
+        isEnum: false,
+        originalSchema: schema as OpenApiSchemaObject,
+        hasReadonlyProps: false,
+        isRef: true,
+        dependencies: allImports.map((i) => i.name),
+      };
+    }
+
     const refValue = schema.$ref;
     const {
       schema: schemaObject,
@@ -104,6 +256,32 @@ export function resolveValue({
 
     // Avoid infinite loop - use resolvedImport.name for tracking since name may be undefined
     const refName = resolvedImport.name;
+
+    // Keep the dynamic scope from the original wrapper schema: its $defs
+    // provide the dynamic-anchor bindings, and scopedContext captured them
+    // before materialization. Resolving the wrapper $ref here gives us the
+    // concrete instantiation of the referenced template to generate.
+    if (
+      !context.parents?.includes(refName) &&
+      hasScopeAffectedDynamicRef(schemaObject, context, refName)
+    ) {
+      const scalar = getScalar({
+        item: schemaObject,
+        name: name ?? refName,
+        context: {
+          ...context,
+          parents: [...(context.parents ?? []), refName],
+        },
+        formDataContext,
+      });
+
+      return {
+        ...scalar,
+        originalSchema: schemaObject,
+        isRef: false,
+      };
+    }
+
     if (!context.parents?.includes(refName)) {
       const scalar = getScalar({
         item: schemaObject,
@@ -151,6 +329,40 @@ export function resolveValue({
       hasReadonlyProps,
       isRef: true,
       dependencies: [resolvedImport.name],
+    };
+  }
+
+  if (isDynamicReference(schema)) {
+    const dynamicRef = schema.$dynamicRef;
+
+    if (!dynamicRef.startsWith('#')) {
+      return makeUnknownValue(schema);
+    }
+
+    const anchorName = getDynamicAnchorName(dynamicRef);
+    if (!anchorName) {
+      return makeUnknownValue(schema);
+    }
+
+    const { imports: resolvedImports, resolvedTypeName } = resolveDynamicRef(
+      anchorName,
+      context,
+    );
+
+    if (resolvedTypeName === 'unknown') {
+      return makeUnknownValue(schema);
+    }
+
+    return {
+      value: resolvedTypeName,
+      imports: resolvedImports,
+      type: 'object',
+      isEnum: false,
+      schemas: [],
+      isRef: true,
+      hasReadonlyProps: false,
+      originalSchema: schema,
+      dependencies: [resolvedTypeName],
     };
   }
 
