@@ -6,6 +6,7 @@ import type {
   OpenApiReferenceObject,
 } from '../types';
 import { isReference } from '../utils';
+import { isComponentRef } from './ref';
 
 interface GetParametersOptions {
   parameters: (OpenApiReferenceObject | OpenApiParameterObject)[];
@@ -28,7 +29,13 @@ export function getParameters({
         location === 'query' ||
         location === 'header'
       ) {
-        result[location].push({ parameter, imports });
+        // Refs that don't target a named component slot (e.g. bundler-emitted
+        // `#/paths/.../parameters/0`) have no corresponding `export type` from
+        // `generateParameterDefinition`, so emitting a named import would
+        // dangle. Inline the resolved parameter's schema instead. Mirrors the
+        // #398 fix in `resolvers/value.ts`. See issue #1879.
+        const safeImports = p.$ref && isComponentRef(p.$ref) ? imports : [];
+        result[location].push({ parameter, imports: safeImports });
       }
     } else {
       if (p.in === 'query' || p.in === 'path' || p.in === 'header') {

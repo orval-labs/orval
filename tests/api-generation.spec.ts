@@ -329,3 +329,33 @@ test('react-query issue-1522 passes the enabled option into the queryOptions mut
   const occurrences = content.split(expectedMutatorCall).length - 1;
   expect(occurrences).toBe(2);
 });
+
+test('fetch issue-1879 inlines header schema when $ref targets another path parameter', async () => {
+  // Regression for #1879: a header parameter referenced via a JSON Pointer
+  // `$ref` to another path's parameter
+  // (`#/paths/~1requestA/post/parameters/0`) used to be typed as `N0` (the
+  // sanitized last segment of the ref) and imported from a non-existent
+  // `./n0` module, because the resolver's synthesized name leaked downstream
+  // even though `generateParameterDefinition` only emits types for slots
+  // under `#/components/parameters/*`. The fix gates that import on
+  // `isComponentRef` so non-component refs inline the resolved parameter's
+  // schema (`string`) instead. Keep this focused assertion alongside the
+  // snapshot so #1879 fails with a targeted message rather than a full-file
+  // snapshot diff.
+  const headersContent = await readFile(
+    generated('fetch', 'issue-1879', 'model', 'requestBHeaders.ts'),
+    'utf8',
+  );
+
+  // The header type must be inlined as `string` with no dangling reference.
+  expect(headersContent).toContain("'Content-Type'?: string;");
+  expect(headersContent).not.toMatch(/\bN0\b/);
+  expect(headersContent).not.toContain('./n0');
+
+  // And no synthesized `n0` module should be emitted alongside it.
+  const indexContent = await readFile(
+    generated('fetch', 'issue-1879', 'model', 'index.ts'),
+    'utf8',
+  );
+  expect(indexContent).not.toMatch(/\bn0\b/);
+});

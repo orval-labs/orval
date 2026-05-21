@@ -1,0 +1,46 @@
+openapi: 3.0.3
+info:
+  title: Issue 1879 - Header $ref to another path's parameter
+  version: 1.0.0
+paths:
+  /requestA:
+    post:
+      summary: Request A
+      operationId: requestA
+      parameters:
+        - name: Content-Type
+          in: header
+          description: Specifies the content type of your request.
+          schema:
+            description: The expected content type.
+            type: string
+            pattern: ^application\/json$
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+
+  /requestB:
+    post:
+      summary: Request B
+      operationId: requestB
+      parameters:
+        - $ref: '#/paths/~1requestA/post/parameters/0'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
