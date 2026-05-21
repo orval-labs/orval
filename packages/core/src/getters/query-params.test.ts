@@ -500,4 +500,60 @@ describe('getQueryParams getter', () => {
       expect(result?.nonPrimitiveKeys).toBeUndefined();
     });
   });
+
+  // Locks the contract that getParameters/issue-1879 fix relies on: when the
+  // caller surfaces an import (i.e. the parameter resolved to a named
+  // `#/components/parameters/*` slot), the type must be that import name, and
+  // when it does not, the parameter's `schema` must be inlined as `string`.
+  describe('parameter import handling', () => {
+    it('renders the import name when a non-empty import is supplied', () => {
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'Content-Type',
+              in: 'header',
+              schema: { type: 'string' },
+            },
+            imports: [
+              { name: 'ContentTypeHeader', schemaName: 'ContentTypeHeader' },
+            ],
+          },
+        ],
+        operationName: '',
+        context,
+        suffix: 'headers',
+      });
+
+      expect(result?.schema.model.trim()).toBe(
+        `export type Headers = {\n'Content-Type'?: ContentTypeHeader;\n};`,
+      );
+    });
+
+    it('inlines the resolved schema as `string` when no import is surfaced (issue #1879)', () => {
+      // Mirrors what getParameters now feeds in for header refs like
+      // `#/paths/~1requestA/post/parameters/0`: the resolved parameter object
+      // with empty imports. Without the upstream fix the resolver would have
+      // emitted `{ name: 'N0', ... }` here, producing a dangling `N0` type.
+      const result = getQueryParams({
+        queryParams: [
+          {
+            parameter: {
+              name: 'Content-Type',
+              in: 'header',
+              schema: { type: 'string' },
+            },
+            imports: [],
+          },
+        ],
+        operationName: '',
+        context,
+        suffix: 'headers',
+      });
+
+      expect(result?.schema.model.trim()).toBe(
+        `export type Headers = {\n'Content-Type'?: string;\n};`,
+      );
+    });
+  });
 });
