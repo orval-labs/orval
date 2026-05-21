@@ -318,6 +318,127 @@ describe('generateMSW', () => {
       );
     });
 
+    it('should generate ArrayBuffer mock for $ref to a format: binary schema', () => {
+      const refBinaryVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          imports: [],
+          definition: { success: 'TestPdfFile' },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: 'TestPdfFile',
+                contentType: '*/*',
+                originalSchema: { type: 'string', format: 'binary' },
+                imports: [{ name: 'TestPdfFile' }],
+                schemas: [],
+                type: 'string',
+                isEnum: false,
+                isRef: true,
+                hasReadonlyProps: false,
+              },
+            ],
+          },
+          contentTypes: ['*/*'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(refBinaryVerbOptions, baseOptions);
+
+      expect(result.implementation.handler).toContain(
+        'HttpResponse.arrayBuffer',
+      );
+      expect(result.implementation.handler).not.toContain('JSON.stringify');
+      // The ref alias return type must be rewritten to ArrayBuffer to stay consistent with the arrayBuffer body.
+      expect(result.implementation.function).toContain(': ArrayBuffer');
+      expect(result.implementation.function).not.toContain(': TestPdfFile');
+    });
+
+    it('should rewrite aliased ref imports for $ref binary schemas', () => {
+      const aliasedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          imports: [],
+          definition: { success: '__TestPdfFile' },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: '__TestPdfFile',
+                contentType: '*/*',
+                originalSchema: { type: 'string', format: 'binary' },
+                imports: [{ name: 'TestPdfFile', alias: '__TestPdfFile' }],
+                schemas: [],
+                type: 'string',
+                isEnum: false,
+                isRef: true,
+                hasReadonlyProps: false,
+              },
+            ],
+          },
+          contentTypes: ['*/*'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(aliasedVerbOptions, baseOptions);
+
+      expect(result.implementation.function).toContain(': ArrayBuffer');
+      expect(result.implementation.function).not.toContain(': __TestPdfFile');
+    });
+
+    it('should not force binary path when preferredContentType narrows to a non-binary success variant', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          imports: [],
+          definition: { success: 'Pet | Blob' },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: 'Pet',
+                contentType: 'application/json',
+                originalSchema: {
+                  type: 'object',
+                  properties: { name: { type: 'string' } },
+                },
+                imports: [],
+                schemas: [],
+                type: 'object',
+                isEnum: false,
+                isRef: true,
+                hasReadonlyProps: false,
+              },
+              {
+                key: '200',
+                value: 'Blob',
+                contentType: 'application/octet-stream',
+                originalSchema: { type: 'string', format: 'binary' },
+                imports: [],
+                schemas: [],
+                type: 'string',
+                isEnum: false,
+                isRef: false,
+                hasReadonlyProps: false,
+              },
+            ],
+          },
+          contentTypes: ['application/json', 'application/octet-stream'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        mock: { preferredContentType: 'application/json' },
+      } as unknown as GeneratorOptions);
+
+      expect(result.implementation.handler).not.toContain(
+        'HttpResponse.arrayBuffer',
+      );
+      expect(result.implementation.handler).toContain('HttpResponse.json');
+    });
+
     it('should type the info parameter in the handler callback', () => {
       const result = generate({
         mock: { type: OutputMockType.MSW, delay: 100 },
@@ -521,7 +642,16 @@ describe('generateMSW', () => {
         response: {
           ...mockVerbOptions.response,
           definition: { success: 'Blob' },
-          types: { success: [{ key: '200', value: 'Blob' }] },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: 'Blob',
+                contentType: 'application/octet-stream',
+              },
+              { key: '200', value: 'Blob', contentType: 'image/png' },
+            ],
+          },
           contentTypes: ['application/octet-stream', 'image/png'],
         },
       } as GeneratorVerbOptions;
@@ -609,7 +739,12 @@ describe('generateMSW', () => {
         response: {
           ...mockVerbOptions.response,
           definition: { success: 'string' },
-          types: { success: [{ key: '200', value: 'string' }] },
+          types: {
+            success: [
+              { key: '200', value: 'string', contentType: 'application/xml' },
+              { key: '200', value: 'string', contentType: 'application/json' },
+            ],
+          },
           contentTypes: ['application/xml', 'application/json'],
         },
       } as GeneratorVerbOptions;
@@ -664,7 +799,12 @@ describe('generateMSW', () => {
         response: {
           ...mockVerbOptions.response,
           definition: { success: 'string' },
-          types: { success: [{ key: '200', value: 'string' }] },
+          types: {
+            success: [
+              { key: '200', value: 'string', contentType: 'text/plain' },
+              { key: '200', value: 'string', contentType: 'text/html' },
+            ],
+          },
           contentTypes: ['text/plain', 'text/html'],
         },
       } as GeneratorVerbOptions;
@@ -911,7 +1051,12 @@ describe('generateMSW', () => {
         response: {
           ...mockVerbOptions.response,
           definition: { success: 'string' },
-          types: { success: [{ key: '200', value: 'string' }] },
+          types: {
+            success: [
+              { key: '200', value: 'string', contentType: 'text/plain' },
+              { key: '200', value: 'string', contentType: 'application/json' },
+            ],
+          },
           contentTypes: ['text/plain', 'application/json'],
         },
       } as GeneratorVerbOptions;
@@ -935,7 +1080,21 @@ describe('generateMSW', () => {
         response: {
           ...mockVerbOptions.response,
           definition: { success: 'string | Pet' },
-          types: { success: [{ key: '200', value: 'string | Pet' }] },
+          types: {
+            success: [
+              { key: '200', value: 'string | Pet', contentType: 'text/plain' },
+              {
+                key: '200',
+                value: 'string | Pet',
+                contentType: 'application/xml',
+              },
+              {
+                key: '200',
+                value: 'string | Pet',
+                contentType: 'application/json',
+              },
+            ],
+          },
           contentTypes: ['text/plain', 'application/xml', 'application/json'],
         },
       } as GeneratorVerbOptions;
@@ -1063,7 +1222,16 @@ describe('generateMSW', () => {
         response: {
           ...mockVerbOptions.response,
           definition: { success: 'string | Pet' },
-          types: { success: [{ key: '200', value: 'string | Pet' }] },
+          types: {
+            success: [
+              { key: '200', value: 'string | Pet', contentType: 'text/plain' },
+              {
+                key: '200',
+                value: 'string | Pet',
+                contentType: 'application/json',
+              },
+            ],
+          },
           contentTypes: ['text/plain', 'application/json'],
         },
       } as GeneratorVerbOptions;

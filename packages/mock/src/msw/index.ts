@@ -124,12 +124,18 @@ function generateDefinition(
     : (
         mock as { preferredContentType?: string } | undefined
       )?.preferredContentType?.toLowerCase();
+  // match preferredContentType against `responses` (not the wider `contentTypes` which mixes success and error MIMEs).
   const preferredContentTypeMatch = preferredContentType
-    ? contentTypes.find((ct) => ct.toLowerCase() === preferredContentType)
+    ? responses.find(
+        (r) => r.contentType.toLowerCase() === preferredContentType,
+      )?.contentType
     : undefined;
   const contentTypesByPreference = preferredContentTypeMatch
     ? [preferredContentTypeMatch]
     : contentTypes;
+  const responsesByPreference = preferredContentTypeMatch
+    ? responses.filter((r) => r.contentType === preferredContentTypeMatch)
+    : responses;
 
   const hasTextLikeContentType = contentTypes.some((ct) =>
     isTextLikeContentType(ct),
@@ -143,9 +149,21 @@ function generateDefinition(
   const isTextResponse =
     (isExactlyStringReturnType && hasTextLikeContentType) ||
     contentTypesByPreference.some((ct) => isTextLikeContentType(ct));
+  const isSchemaBinary = (r: ResReqTypesValue) =>
+    r.originalSchema?.format === 'binary' ||
+    (r.originalSchema?.contentMediaType === 'application/octet-stream' &&
+      !r.originalSchema.contentEncoding);
   const isBinaryResponse =
-    returnType === 'Blob' ||
-    contentTypesByPreference.some((ct) => isBinaryLikeContentType(ct));
+    contentTypesByPreference.some((ct) => isBinaryLikeContentType(ct)) ||
+    responsesByPreference.some((r) => isSchemaBinary(r));
+  // Bare ref names of schema-binary responses (include alias for collision-renamed imports).
+  const binaryRefNames = responsesByPreference
+    .filter((r) => isSchemaBinary(r))
+    .flatMap((r) =>
+      r.imports.flatMap((imp) =>
+        imp.alias ? [imp.name, imp.alias] : [imp.name],
+      ),
+    );
   const isReturnHttpResponse = value && value !== 'undefined';
 
   const getResponseMockFunctionName = `${getResponseMockFunctionNameBase}${pascal(
@@ -162,8 +180,12 @@ function generateDefinition(
       ? `${addedSplitMockImplementations.join('\n\n')}\n\n`
       : '';
 
+  const binaryTypeRewriteRegex = new RegExp(
+    String.raw`\b(?:${['Blob', ...binaryRefNames].map((n) => escapeRegExp(n)).join('|')})\b`,
+    'g',
+  );
   const mockReturnType = isBinaryResponse
-    ? returnType.replaceAll(/\bBlob\b/g, 'ArrayBuffer')
+    ? returnType.replaceAll(binaryTypeRewriteRegex, 'ArrayBuffer')
     : returnType;
 
   // Detect when the return type is a union containing void (e.g. "Resource | void"
