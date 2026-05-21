@@ -158,11 +158,11 @@ function generateDefinition(
   const isBinaryResponse =
     contentTypesByPreference.some((ct) => isBinaryLikeContentType(ct)) ||
     responsesByPreference.some((r) => isSchemaBinary(r));
-  // Ref aliases of schema-binary responses; rewritten to `ArrayBuffer` alongside literal `Blob`.
-  const binaryAliasTypeNames = responsesByPreference
+  // Bare ref names of schema-binary responses (from imports, which is the canonical place).
+  const binaryRefNames = responsesByPreference
     .filter((r) => isSchemaBinary(r))
-    .map((r) => r.value)
-    .filter((name) => name !== 'Blob');
+    .flatMap((r) => r.imports.map((imp) => imp.name))
+    .filter(Boolean);
   const isReturnHttpResponse = value && value !== 'undefined';
 
   const getResponseMockFunctionName = `${getResponseMockFunctionNameBase}${pascal(
@@ -179,11 +179,8 @@ function generateDefinition(
       ? `${addedSplitMockImplementations.join('\n\n')}\n\n`
       : '';
 
-  const binaryTypePattern = ['Blob', ...binaryAliasTypeNames]
-    .map((n) => escapeRegExp(n))
-    .join('|');
   const binaryTypeRewriteRegex = new RegExp(
-    String.raw`\b(?:${binaryTypePattern})\b`,
+    String.raw`\b(?:${['Blob', ...binaryRefNames].map((n) => escapeRegExp(n)).join('|')})\b`,
     'g',
   );
   const mockReturnType = isBinaryResponse

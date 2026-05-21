@@ -331,7 +331,7 @@ describe('generateMSW', () => {
                 value: 'TestPdfFile',
                 contentType: '*/*',
                 originalSchema: { type: 'string', format: 'binary' },
-                imports: [],
+                imports: [{ name: 'TestPdfFile' }],
                 schemas: [],
                 type: 'string',
                 isEnum: false,
