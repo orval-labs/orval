@@ -66,15 +66,15 @@ export function getNullable(value: string, nullable?: boolean) {
  */
 function shouldDelegateToSchemaFactories(context: ContextSpec): boolean {
   if (!context.output.schemas) return false;
-  for (const g of context.output.mock.generators) {
-    if (isFunction(g)) continue;
-    if (g.type === OutputMockType.FAKER && g.schemas === true) {
-      // `operationResponses` defaults to true; we only need to confirm
-      // schemas are being emitted at all.
-      return true;
-    }
-  }
-  return false;
+  // The duplicate-type guard in `normalizeMocksOption` (see
+  // `packages/orval/src/utils/options.ts`) ensures at most one faker entry
+  // exists per output, so finding the first one that opted into schemas is
+  // unambiguous today and remains correct if that guard ever loosens.
+  const fakerEntry = context.output.mock.generators.find(
+    (g) =>
+      !isFunction(g) && g.type === OutputMockType.FAKER && g.schemas === true,
+  );
+  return !!fakerEntry;
 }
 
 /**
@@ -95,12 +95,19 @@ function isComponentsSchemaRef(refPaths: string[] | undefined): boolean {
  * property declared on the referenced schema. In that case we must inline
  * the schema body so the override actually applies; the shared
  * `get<X>Mock` factory has no knowledge of operation-scoped overrides.
+ *
+ * Reuses `resolveMockOverride` so the same matching rules apply as for
+ * regular property mocks — bare name, regex (`/.../`), and exact-path
+ * (`#.foo.bar`). The parent's `path` (where the `$ref` appears in the
+ * surrounding schema) gets composed into each synthetic property item so
+ * exact-path overrides like `#.color.value` resolve correctly.
  */
 function hasOverrideTouchingSchema(
   schemaProperties: Record<string, unknown> | undefined,
   mockOptions: MockOptions | undefined,
   operationId: string,
   tags: string[],
+  parentPath: string | undefined,
 ): boolean {
   if (!schemaProperties) return false;
   const propertyNames = Object.keys(schemaProperties);
@@ -115,16 +122,13 @@ function hasOverrideTouchingSchema(
 
   return overrideBuckets.some((bucket) => {
     if (!bucket) return false;
-    for (const key of Object.keys(bucket)) {
-      // Bare key like `name` — matches any property of that name.
-      if (propertyNames.includes(key)) return true;
-      // Regex form `/pattern/` — matches if any schema property name matches.
-      if (key.startsWith('/') && key.endsWith('/')) {
-        const regex = new RegExp(key.slice(1, -1));
-        if (propertyNames.some((p) => regex.test(p))) return true;
-      }
-    }
-    return false;
+    return propertyNames.some((propertyName) => {
+      const synthetic = {
+        name: propertyName,
+        path: parentPath ? `${parentPath}.${propertyName}` : propertyName,
+      } as OpenApiSchemaObject & { name: string; path?: string };
+      return !!resolveMockOverride(bucket, synthetic);
+    });
   });
 }
 
@@ -207,6 +211,7 @@ export function resolveMockValue({
         mockOptions,
         operationId,
         tags,
+        schemaReference.path,
       );
 
     if (canDelegate) {

@@ -8,6 +8,7 @@ import {
   fixRegularSchemaImports,
   generateDependencyImports,
   getFileInfo,
+  getImportExtension,
   getMockFileExtensionByTypeName,
   isFunction,
   isObject,
@@ -154,11 +155,16 @@ async function writeFakerSchemaMocks(
   header: string,
 ): Promise<string | undefined> {
   const { output } = options;
+  // Pick the opted-in faker entry directly. The duplicate-type guard in
+  // `normalizeMocksOption` keeps this unambiguous today, and finding by
+  // `schemas: true` also makes the intent obvious if that guard ever
+  // loosens (so a `faker({ schemas: false })` entry can't accidentally
+  // win the lookup).
   const fakerEntry = output.mock.generators.find(
     (g): g is FakerMockOptions =>
-      !isFunction(g) && g.type === OutputMockType.FAKER,
+      !isFunction(g) && g.type === OutputMockType.FAKER && g.schemas === true,
   );
-  if (fakerEntry?.schemas !== true) {
+  if (!fakerEntry) {
     return undefined;
   }
 
@@ -202,8 +208,14 @@ async function writeFakerSchemaMocks(
     filePath = path.join(dir, `schemas.faker${fileExtension}`);
     // Without a dedicated schemas dir we have no separate types file to
     // import from; the factories will reference inline types declared in
-    // the main output target.
-    schemaImportPath = targetInfo ? `./${targetInfo.filename}` : undefined;
+    // the main output target. Append `getImportExtension` so NodeNext /
+    // Node16 module resolution gets the required local-file extension.
+    schemaImportPath = targetInfo
+      ? `./${targetInfo.filename}${getImportExtension(
+          fileExtension,
+          output.tsconfig,
+        )}`
+      : undefined;
   }
 
   // Route every schema-related import (both type-only and runtime value

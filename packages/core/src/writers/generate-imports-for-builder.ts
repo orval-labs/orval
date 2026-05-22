@@ -18,7 +18,13 @@ export function generateImportsForBuilder(
   // Schema-factory imports (`getPetMock` and friends) always resolve to the
   // consolidated `<schemas-dir>/index.faker` file emitted by the faker
   // schemas option. They bypass the per-schema convention naming below.
+  // Append `getImportExtension` so NodeNext / Node16 module resolution
+  // gets the required local-file extension (e.g. `.js`).
   const schemaFactoryImports = imports.filter((i) => i.schemaFactory);
+  const schemaFactoryImportExtension = getImportExtension(
+    output.fileExtension,
+    output.tsconfig,
+  );
   const schemaFactoryDeps: GeneratorDependency[] =
     schemaFactoryImports.length > 0
       ? [
@@ -27,7 +33,10 @@ export function generateImportsForBuilder(
               schemaFactoryImports,
               (entry) => `${entry.name}|${entry.alias ?? ''}`,
             ),
-            dependency: upath.joinSafe(relativeSchemasPath, 'index.faker'),
+            dependency: upath.joinSafe(
+              relativeSchemasPath,
+              `index.faker${schemaFactoryImportExtension}`,
+            ),
           },
         ]
       : [];
