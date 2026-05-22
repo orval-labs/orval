@@ -858,6 +858,11 @@ Include abort signal in queries.
 
 Custom query/mutation key or options functions.
 
+When a `queryOptions` or `mutationOptions` mutator declares a third
+parameter, orval passes `{ url, operationId, operationName }` so the mutator
+can branch on operation identity (for example, to attach per-operation
+metadata or invalidate by `operationId`).
+
 ### shouldExportMutatorHooks
 
 **Type:** `Boolean`

@@ -386,6 +386,47 @@ test('react-query issue-1522 passes the enabled option into the queryOptions mut
   expect(occurrences).toBe(2);
 });
 
+test('react-query issue-3153 passes operationId and operationName to the queryOptions mutator', async () => {
+  // Regression for #3153: `mutationOptions` mutators have received
+  // `{ operationId, operationName }` as their third argument since #1974, but
+  // the symmetrically-positioned `queryOptions` mutator only got `{ url }`.
+  // Generators that branch on operation identity (e.g. to attach per-operation
+  // metadata) were therefore impossible to write against `queryOptions`. The
+  // fix adds `operationId` and `operationName` to the existing third arg —
+  // purely additive so mutators that already read `arg3.url` keep working.
+  // Keep this focused assertion alongside the snapshot so #3153 fails with a
+  // targeted message instead of a full-file snapshot diff.
+  const content = await readFile(
+    generated(
+      'react-query',
+      'custom-query-options-with-operation',
+      'endpoints.ts',
+    ),
+    'utf8',
+  );
+
+  // For each operation the third arg must carry url + operation identity at
+  // BOTH call sites: the main query options builder and the
+  // `applyQueryOptionsMutator` helper that backs `invalidate`/`set`/`get`.
+  // Counting occurrences catches the "fixed one site, forgot the other"
+  // regression without needing whitespace-flexible regex.
+  const operations: Array<{ operationId: string; url: string }> = [
+    { operationId: 'listPets', url: '/pets' },
+    { operationId: 'showPetById', url: '/pets/${petId}' },
+    { operationId: 'showPetWithOwner', url: '/pets/${petId}/owner' },
+    { operationId: 'healthCheck', url: '/health' },
+  ];
+
+  const occurrencesOf = (needle: string) => content.split(needle).length - 1;
+
+  for (const { operationId, url } of operations) {
+    expect(content).toContain(`url: \`${url}\``);
+    // Two occurrences each: one from the main builder, one from the helper.
+    expect(occurrencesOf(`operationId: '${operationId}'`)).toBe(2);
+    expect(occurrencesOf(`operationName: '${operationId}'`)).toBe(2);
+  }
+});
+
 test('fetch issue-1879 inlines header schema when $ref targets another path parameter', async () => {
   // Regression for #1879: a header parameter referenced via a JSON Pointer
   // `$ref` to another path's parameter

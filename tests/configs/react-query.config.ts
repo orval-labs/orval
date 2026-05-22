@@ -1067,6 +1067,29 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  petstoreCustomQueryOptionsWithOperation: {
+    output: {
+      target:
+        '../generated/react-query/custom-query-options-with-operation/endpoints.ts',
+      schemas:
+        '../generated/react-query/custom-query-options-with-operation/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useInvalidate: true,
+          queryOptions: {
+            path: '../mutators/custom-query-options-with-operation.ts',
+            name: 'customQueryOptionsWithOperation',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   useSetQueryData: {
     output: {
       target: '../generated/react-query/use-set-query-data/endpoints.ts',
