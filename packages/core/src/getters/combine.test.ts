@@ -38,6 +38,10 @@ const context = {
             name: { type: 'string' },
           },
         },
+        Status: {
+          type: 'string',
+          enum: ['new', 'in_progress'],
+        },
       },
     },
   },
@@ -198,6 +202,45 @@ describe('combineSchemas (allOf required handling)', () => {
         schema,
         name: 'AffiliationId',
         separator: 'anyOf',
+        context,
+        nullable: '',
+      });
+
+      expect(result.isEnum).toBe(false);
+    });
+
+    // Negative: a `$ref` branch already resolves to an existing named enum
+    // schema. Treating this composition as an inline-enum would route the
+    // caller through `getEnum`, which emits a parallel const that nests the
+    // original ref (e.g. `{Status: Status}`) instead of reusing it.
+    it('does not flag anyOf [$ref enum, null] as a nullable enum', () => {
+      const schema: OpenApiSchemaObject = {
+        anyOf: [{ $ref: '#/components/schemas/Status' }, { type: 'null' }],
+      };
+
+      const result = combineSchemas({
+        schema,
+        name: 'Status',
+        separator: 'anyOf',
+        context,
+        nullable: '',
+      });
+
+      expect(result.isEnum).toBe(false);
+    });
+
+    // Negative: `allOf` is an intersection, not a union. `allOf: [{enum}, {null}]`
+    // is semantically empty (no value can satisfy both); regardless, it must
+    // not be misclassified as a nullable enum union.
+    it('does not flag allOf [enum, null] as a nullable enum', () => {
+      const schema: OpenApiSchemaObject = {
+        allOf: [{ enum: ['new', 'in_progress'] }, { type: 'null' }],
+      };
+
+      const result = combineSchemas({
+        schema,
+        name: 'Status',
+        separator: 'allOf',
         context,
         nullable: '',
       });

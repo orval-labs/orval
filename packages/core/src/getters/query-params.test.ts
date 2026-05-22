@@ -270,9 +270,91 @@ describe('getQueryParams getter', () => {
       `export type Status = typeof Status[keyof typeof Status] | null;`,
     );
     expect(statusEnum?.model).toContain(`export const Status = {`);
+    // The const body must contain the enum members (not just the wrapper),
+    // so we know the values made it across the nullable composition.
+    expect(statusEnum?.model).toContain(`new:`);
+    expect(statusEnum?.model).toContain(`in_progress:`);
     // The null variant must not leak into the const body as a `null: null`
     // member — that would emit invalid TypeScript.
     expect(statusEnum?.model).not.toContain('null: null');
+  });
+
+  // Parallel integration coverage for `oneOf`. Same processing path as anyOf
+  // but worth pinning so future combine.ts refactors don't accidentally
+  // narrow the fix.
+  it('queryParam with oneOf containing enum and null extracts a named nullable enum type', () => {
+    const result = getQueryParams({
+      queryParams: [
+        {
+          parameter: {
+            name: 'priority',
+            in: 'query',
+            required: false,
+            schema: {
+              oneOf: [{ enum: ['low', 'high'] }, { type: 'null' }],
+            },
+          },
+          imports: [],
+        },
+      ],
+      operationName: '',
+      context,
+    });
+
+    expect(result?.schema.model.trim()).toBe(
+      `export type Params = {\npriority?: Priority;\n};`,
+    );
+
+    const priorityEnum = result?.deps.find((s) => s.name === 'Priority');
+    expect(priorityEnum).toBeDefined();
+    expect(priorityEnum?.model).toContain(`'low' | 'high' | null`);
+  });
+
+  // Negative: a `$ref` enum branch should reuse the referenced component, not
+  // be re-extracted as a parallel inline enum. Without the isRef guard in
+  // combine.ts the caller would emit a nested `{Status: Status}` const.
+  it('queryParam with anyOf [$ref enum, null] reuses the referenced type', () => {
+    const refContext = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            Status: {
+              type: 'string',
+              enum: ['new', 'in_progress'],
+            },
+          },
+        },
+      },
+    });
+
+    const result = getQueryParams({
+      queryParams: [
+        {
+          parameter: {
+            name: 'status',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                { $ref: '#/components/schemas/Status' },
+                { type: 'null' },
+              ],
+            },
+          },
+          imports: [],
+        },
+      ],
+      operationName: '',
+      context: refContext,
+    });
+
+    // The param should reference the existing Status type (with null), not
+    // a freshly extracted inline enum named after the parameter.
+    expect(result?.schema.model.trim()).toBe(
+      `export type Params = {\nstatus?: Status | null;\n};`,
+    );
+    // No parameter-scoped enum should be emitted.
+    expect(result?.deps.find((s) => s.name === 'Status')).toBeUndefined();
   });
 
   // Negative regression: anyOf with multiple non-null variants is a genuine
