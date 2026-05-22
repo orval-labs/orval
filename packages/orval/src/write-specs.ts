@@ -1,21 +1,27 @@
 import path from 'node:path';
 
 import {
+  type ContextSpec,
   createSuccessMessage,
   fixCrossDirectoryImports,
   fixRegularSchemaImports,
+  generateDependencyImports,
   getFileInfo,
   getMockFileExtensionByTypeName,
+  type GlobalMockOptions,
+  isFunction,
   isObject,
   isString,
   jsDoc,
   logWarning,
   type NormalizedOptions,
   type OpenApiInfoObject,
+  OutputMockType,
   OutputMode,
   splitSchemasByType,
   SupportedFormatter,
   upath,
+  writeGeneratedFile,
   writeSchemas,
   writeSingleMode,
   type WriteSpecBuilder,
@@ -23,6 +29,7 @@ import {
   writeSplitTagsMode,
   writeTagsMode,
 } from '@orval/core';
+import { generateFakerForSchemas } from '@orval/mock';
 import { execa, ExecaError } from 'execa';
 import fs from 'fs-extra';
 import { unique } from 'remeda';
@@ -131,6 +138,118 @@ async function addOperationSchemasReExport(
         : exportLine;
     await fs.outputFile(schemaIndexPath, content);
   }
+}
+
+/**
+ * Emit `<schemas-dir>/index.faker.ts` (or `<output-root>/schemas.faker.ts`
+ * when `output.schemas` is not configured) when a faker generator entry has
+ * `schemas: true`. Each `components/schemas` entry becomes a
+ * `get<SchemaName>Mock(overrides)` factory in the file. Returns the written
+ * file path so callers can include it in formatter / hook runs, or
+ * `undefined` if no file was written.
+ */
+async function writeFakerSchemaMocks(
+  builder: WriteSpecBuilder,
+  options: NormalizedOptions,
+  header: string,
+): Promise<string | undefined> {
+  const { output } = options;
+  const fakerEntry = output.mock.generators.find(
+    (g): g is GlobalMockOptions =>
+      !isFunction(g) && g.type === OutputMockType.FAKER,
+  );
+  if (fakerEntry?.schemas !== true) {
+    return undefined;
+  }
+
+  const schemasWithDef = builder.schemas.filter((s) => !!s.schema);
+  if (schemasWithDef.length === 0) {
+    return undefined;
+  }
+
+  const context: ContextSpec = {
+    spec: builder.spec,
+    target: builder.target,
+    workspace: '',
+    output,
+  };
+
+  const { implementation, imports } = generateFakerForSchemas(
+    schemasWithDef,
+    context,
+    fakerEntry,
+  );
+
+  if (!implementation.trim()) {
+    return undefined;
+  }
+
+  let filePath: string;
+  let schemaImportPath: string | undefined;
+  const fileExtension = output.fileExtension || '.ts';
+
+  if (output.schemas) {
+    const schemasDir = isString(output.schemas)
+      ? output.schemas
+      : output.schemas.path;
+    filePath = path.join(schemasDir, `index.faker${fileExtension}`);
+    schemaImportPath = '.';
+  } else {
+    const targetInfo = output.target
+      ? getFileInfo(output.target, { extension: fileExtension })
+      : undefined;
+    const dir = targetInfo?.dirname ?? process.cwd();
+    filePath = path.join(dir, `schemas.faker${fileExtension}`);
+    // Without a dedicated schemas dir we have no separate types file to
+    // import from; the factories will reference inline types declared in
+    // the main output target.
+    schemaImportPath = targetInfo ? `./${targetInfo.filename}` : undefined;
+  }
+
+  // Force every schema-type import (`values: false`) onto the resolved
+  // schemas path so they're emitted as `import type { Pet } from '.'`
+  // instead of one file per schema.
+  const reroutedImports = imports.map((imp) =>
+    imp.importPath || imp.values
+      ? imp
+      : { ...imp, importPath: schemaImportPath },
+  );
+
+  // `generateDependencyImports` expects a list of `{ exports, dependency }`
+  // groups (one per source module). Bucket all rerouted imports by their
+  // resolved `importPath` so each module emits a single `import type { ... }`
+  // line.
+  const grouped = new Map<string, typeof reroutedImports>();
+  for (const imp of reroutedImports) {
+    const key = imp.importPath ?? '';
+    if (!key) continue;
+    const bucket = grouped.get(key) ?? [];
+    bucket.push(imp);
+    grouped.set(key, bucket);
+  }
+
+  const importsHeader = generateDependencyImports(
+    implementation,
+    [
+      {
+        exports: [{ name: 'faker', values: true }],
+        dependency: fakerEntry.locale
+          ? `@faker-js/faker/locale/${fakerEntry.locale}`
+          : '@faker-js/faker',
+      },
+      ...[...grouped.entries()].map(([dependency, exports]) => ({
+        exports,
+        dependency,
+      })),
+    ],
+    undefined,
+    !!output.schemas,
+    false,
+  );
+
+  const content = `${header}${importsHeader}\n\n${implementation}`;
+  await writeGeneratedFile(filePath, content);
+  return filePath;
 }
 
 export async function writeSpecs(
@@ -333,6 +452,11 @@ export async function writeSpecs(
     }
   }
 
+  // Emit a consolidated faker mock file for `components/schemas` when the
+  // faker generator opts in with `schemas: true`. Lives alongside the
+  // generated TS schema types so factories can import them directly.
+  const fakerSchemaPath = await writeFakerSchemaMocks(builder, options, header);
+
   let implementationPaths: string[] = [];
 
   if (output.target) {
@@ -443,6 +567,7 @@ export async function writeSpecs(
           ).dirname,
         ]
       : []),
+    ...(fakerSchemaPath ? [fakerSchemaPath] : []),
     ...(output.operationSchemas
       ? [getFileInfo(output.operationSchemas).dirname]
       : []),

@@ -19,6 +19,8 @@ export const DEFAULT_MSW_OPTIONS: MswMockOptions = {
 export const DEFAULT_FAKER_OPTIONS: FakerMockOptions = {
   type: OutputMockType.FAKER,
   useExamples: false,
+  schemas: false,
+  operationResponses: true,
 };
 
 /**
@@ -75,5 +77,10 @@ export function generateMock(
   }
 }
 
-export { generateFaker, generateFakerImports } from './faker';
+export type { GenerateFakerForSchemasResult } from './faker';
+export {
+  generateFaker,
+  generateFakerForSchemas,
+  generateFakerImports,
+} from './faker';
 export { generateMSW, generateMSWImports } from './msw';

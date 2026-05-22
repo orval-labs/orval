@@ -346,4 +346,21 @@ export default defineConfig({
       target: '../specifications/msw-binary-multi-content.yaml',
     },
   },
+  petstoreFakerSchemas: {
+    output: {
+      target: '../generated/mock/petstore-faker-schemas/endpoints.ts',
+      schemas: '../generated/mock/petstore-faker-schemas/model',
+      client: 'axios',
+      mock: {
+        generators: [
+          { type: 'faker', schemas: true, operationResponses: false },
+        ],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });
