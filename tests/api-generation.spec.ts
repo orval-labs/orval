@@ -410,20 +410,40 @@ test('react-query issue-3153 passes operationId and operationName to the queryOp
   // `applyQueryOptionsMutator` helper that backs `invalidate`/`set`/`get`.
   // Counting occurrences catches the "fixed one site, forgot the other"
   // regression without needing whitespace-flexible regex.
-  const operations: Array<{ operationId: string; url: string }> = [
-    { operationId: 'listPets', url: '/pets' },
-    { operationId: 'showPetById', url: '/pets/${petId}' },
-    { operationId: 'showPetWithOwner', url: '/pets/${petId}/owner' },
-    { operationId: 'healthCheck', url: '/health' },
+  // `operationId` and `operationName` happen to match for every petstore op
+  // because the spec uses already-valid camelCase identifiers, but assert
+  // them as independent values so a future divergence (e.g. an op whose name
+  // gets normalised differently from its id) doesn't silently slip through.
+  const operations: Array<{
+    operationId: string;
+    operationName: string;
+    url: string;
+  }> = [
+    { operationId: 'listPets', operationName: 'listPets', url: '/pets' },
+    {
+      operationId: 'showPetById',
+      operationName: 'showPetById',
+      url: '/pets/${petId}',
+    },
+    {
+      operationId: 'showPetWithOwner',
+      operationName: 'showPetWithOwner',
+      url: '/pets/${petId}/owner',
+    },
+    {
+      operationId: 'healthCheck',
+      operationName: 'healthCheck',
+      url: '/health',
+    },
   ];
 
   const occurrencesOf = (needle: string) => content.split(needle).length - 1;
 
-  for (const { operationId, url } of operations) {
+  for (const { operationId, operationName, url } of operations) {
     expect(content).toContain(`url: \`${url}\``);
     // Two occurrences each: one from the main builder, one from the helper.
     expect(occurrencesOf(`operationId: '${operationId}'`)).toBe(2);
-    expect(occurrencesOf(`operationName: '${operationId}'`)).toBe(2);
+    expect(occurrencesOf(`operationName: '${operationName}'`)).toBe(2);
   }
 });
 
