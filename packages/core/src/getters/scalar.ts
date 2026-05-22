@@ -17,6 +17,43 @@ import { getObject } from './object';
 /** Bridge type for enum values extracted from OpenAPI schemas infected by AnyOtherAttribute */
 type SchemaEnumValue = string | number | boolean | null;
 
+/**
+ * Returns true when a schema describes a raw binary string scalar — i.e. one
+ * that getScalar's `case 'string':` branch would coerce to `Blob` outside a
+ * url-encoded context (see the formDataContext.urlEncoded gate below). Shared
+ * with resolveValue so the component-`$ref` urlEncoded short-circuit and the
+ * inline scalar path stay in lockstep when new binary shapes are added
+ * (#1624 / #3395 / #2410).
+ *
+ * Accepts OAS 3.1 nullable unions (`type: ['string', 'null']`) since getScalar
+ * normalizes those into `case 'string':` before invoking this predicate.
+ */
+export function isBinaryScalarSchema(schema: OpenApiSchemaObject): boolean {
+  const schemaType = schema.type as
+    | OpenApiSchemaObjectType
+    | OpenApiSchemaObjectType[]
+    | undefined;
+  const isStringLike =
+    schemaType === 'string' ||
+    (isArray(schemaType) &&
+      schemaType.includes('string') &&
+      schemaType.every((type) => type === 'string' || type === 'null'));
+  if (!isStringLike) {
+    return false;
+  }
+  if (schema.format === 'binary') {
+    return true;
+  }
+  // The @scalar/openapi-parser upgrader rewrites format: binary to
+  // contentMediaType: application/octet-stream during Swagger 2.0 / OAS 3.0 →
+  // OAS 3.1 upgrades; treat the upgraded shape the same. A non-empty
+  // contentEncoding signals an encoded string payload (e.g. base64), not raw
+  // binary.
+  const contentMediaType = schema.contentMediaType as string | undefined;
+  const contentEncoding = schema.contentEncoding as string | undefined;
+  return contentMediaType === 'application/octet-stream' && !contentEncoding;
+}
+
 interface GetScalarOptions {
   item: OpenApiSchemaObject;
   name?: string;
@@ -50,8 +87,6 @@ export function getScalar({
   const schemaConst = item.const as string | undefined;
   const schemaFormat = item.format as string | undefined;
   const schemaNullable = item.nullable as boolean | undefined;
-  const schemaContentMediaType = item.contentMediaType as string | undefined;
-  const schemaContentEncoding = item.contentEncoding as string | undefined;
 
   const nullable =
     (isArray(schemaType) && schemaType.includes('null')) ||
@@ -187,14 +222,11 @@ export function getScalar({
           if (fileType) {
             value = fileType === 'binary' ? 'Blob' : 'Blob | string';
           }
-        } else if (
-          schemaContentMediaType === 'application/octet-stream' &&
-          !schemaContentEncoding
-        ) {
-          // The @scalar/openapi-parser upgrader converts format: binary to
-          // contentMediaType: application/octet-stream when upgrading
-          // Swagger 2.0 / OAS 3.0 → OAS 3.1. Treat it the same as
-          // format: binary so $ref-based model types generate Blob.
+        } else if (isBinaryScalarSchema(item)) {
+          // The previous arm caught format: binary directly; this matches the
+          // OAS 3.1 contentMediaType: application/octet-stream variant via the
+          // shared predicate so any future binary shapes added there flow
+          // through here too (#2410).
           value = 'Blob';
         }
       }

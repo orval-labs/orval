@@ -7,7 +7,9 @@
 
 export * from './createPetsBody';
 export * from './error';
+export * from './iFormFile';
 export * from './pet';
 export * from './petCallingCode';
 export * from './petCountry';
 export * from './uploadPetContentBody';
+export * from './uploadPetContentRefBody';
