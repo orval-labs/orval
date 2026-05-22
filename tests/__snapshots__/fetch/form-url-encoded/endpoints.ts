@@ -4,7 +4,13 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import type { CreatePetsBody, Error, Pet, UploadPetContentBody } from './model';
+import type {
+  CreatePetsBody,
+  Error,
+  Pet,
+  UploadPetContentBody,
+  UploadPetContentRefBody,
+} from './model';
 
 import { faker } from '@faker-js/faker';
 
@@ -167,6 +173,68 @@ export const uploadPetContent = async (
   } as uploadPetContentResponse;
 };
 
+export type uploadPetContentRefResponse200 = {
+  data: Pet;
+  status: 200;
+};
+
+export type uploadPetContentRefResponseDefault = {
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
+};
+
+export type uploadPetContentRefResponseSuccess =
+  uploadPetContentRefResponse200 & {
+    headers: Headers;
+  };
+export type uploadPetContentRefResponseError =
+  uploadPetContentRefResponseDefault & {
+    headers: Headers;
+  };
+
+export type uploadPetContentRefResponse =
+  | uploadPetContentRefResponseSuccess
+  | uploadPetContentRefResponseError;
+
+export const getUploadPetContentRefUrl = () => {
+  return `/pets/upload-ref`;
+};
+
+/**
+ * @summary Upload pet content using a $ref to a binary component schema
+ */
+export const uploadPetContentRef = async (
+  uploadPetContentRefBody: UploadPetContentRefBody,
+  options?: RequestInit,
+): Promise<uploadPetContentRefResponse> => {
+  const formUrlEncoded = new URLSearchParams();
+  formUrlEncoded.append(`name`, uploadPetContentRefBody.name);
+  if (uploadPetContentRefBody.content !== undefined) {
+    formUrlEncoded.append(`content`, uploadPetContentRefBody.content);
+  }
+
+  const res = await fetch(getUploadPetContentRefUrl(), {
+    ...options,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      ...options?.headers,
+    },
+    body: formUrlEncoded,
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: uploadPetContentRefResponse['data'] = body
+    ? JSON.parse(body)
+    : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as uploadPetContentRefResponse;
+};
+
 export const getCreatePetsResponseMock = (
   overrideResponse: Partial<Extract<Pet, object>> = {},
 ): Pet => ({
@@ -196,6 +264,34 @@ export const getCreatePetsResponseMock = (
 });
 
 export const getUploadPetContentResponseMock = (
+  overrideResponse: Partial<Extract<Pet, object>> = {},
+): Pet => ({
+  '@id': faker.helpers.arrayElement([
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    undefined,
+  ]),
+  id: faker.number.int(),
+  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  tag: faker.helpers.arrayElement([
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    undefined,
+  ]),
+  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+  callingCode: faker.helpers.arrayElement([
+    faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
+    undefined,
+  ]),
+  country: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([
+      "People's Republic of China",
+      'Uruguay',
+    ] as const),
+    undefined,
+  ]),
+  ...overrideResponse,
+});
+
+export const getUploadPetContentRefResponseMock = (
   overrideResponse: Partial<Extract<Pet, object>> = {},
 ): Pet => ({
   '@id': faker.helpers.arrayElement([
@@ -270,7 +366,32 @@ export const getUploadPetContentMockHandler = (
     options,
   );
 };
+
+export const getUploadPetContentRefMockHandler = (
+  overrideResponse?:
+    | Pet
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0],
+      ) => Promise<Pet> | Pet),
+  options?: RequestHandlerOptions,
+) => {
+  return http.post(
+    '*/pets/upload-ref',
+    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getUploadPetContentRefResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
 export const getSwaggerPetstoreMock = () => [
   getCreatePetsMockHandler(),
   getUploadPetContentMockHandler(),
+  getUploadPetContentRefMockHandler(),
 ];

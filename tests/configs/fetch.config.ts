@@ -154,6 +154,23 @@ export default defineConfig({
       target: '../specifications/issue-1879/header-pathref.yaml',
     },
   },
+  // Issue #2410 (follow-up to PR #3422): OAS 3.1 nullable union variant of
+  // the IFormFile $ref in an x-www-form-urlencoded body. Pins that
+  // isBinaryScalarSchema recognises `type: ['string','null']` so the
+  // url-encoded short-circuit keeps the property type as `string | null`
+  // (URLSearchParams-friendly) rather than leaking the Blob alias.
+  'issue-2410-nullable-binary': {
+    output: {
+      target: '../generated/fetch/issue-2410-nullable-binary/endpoints.ts',
+      schemas: '../generated/fetch/issue-2410-nullable-binary/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-2410-nullable-binary.yaml',
+    },
+  },
   formData: {
     output: {
       target: '../generated/fetch/form-data-optional-request/endpoints.ts',
