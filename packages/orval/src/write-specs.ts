@@ -206,13 +206,13 @@ async function writeFakerSchemaMocks(
     schemaImportPath = targetInfo ? `./${targetInfo.filename}` : undefined;
   }
 
-  // Force every schema-type import (`values: false`) onto the resolved
-  // schemas path so they're emitted as `import type { Pet } from '.'`
-  // instead of one file per schema.
+  // Route every schema-related import (both type-only and runtime value
+  // forms) onto the consolidated schemas path. Both `import { Foo }` and
+  // `import type { Foo }` come from the same module here, so we treat
+  // them uniformly — `generateDependencyImports` splits values vs types
+  // back out into separate `import` / `import type` lines as needed.
   const reroutedImports = imports.map((imp) =>
-    imp.importPath || imp.values
-      ? imp
-      : { ...imp, importPath: schemaImportPath },
+    imp.importPath ? imp : { ...imp, importPath: schemaImportPath },
   );
 
   // `generateDependencyImports` expects a list of `{ exports, dependency }`

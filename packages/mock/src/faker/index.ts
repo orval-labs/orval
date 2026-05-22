@@ -98,6 +98,15 @@ export function generateFakerForSchemas(
   // sub-factory) once even when several schemas reference the same union arm.
   const splitMockImplementations: string[] = [];
 
+  // Names of the factories we're about to emit in this file. When the
+  // delegation logic in `resolveMockValue` produces a `getXMock()` call for
+  // a `components/schemas` ref, it pushes a `{ schemaFactory: true }` import
+  // — but if `X` is itself one of the schemas being generated here, the
+  // factory lives in this very file and must not be imported.
+  const localFactoryNames = new Set(
+    schemas.filter((s) => !!s.schema).map((s) => `get${pascal(s.name)}Mock`),
+  );
+
   const mockOptions = context.output.override.mock;
 
   for (const generatorSchema of schemas) {
@@ -148,14 +157,32 @@ export function generateFakerForSchemas(
   }
 
   // De-duplicate imports by name+alias so the header doesn't list the same
-  // schema twice when multiple factories reference it.
-  const seen = new Set<string>();
-  const uniqueImports = allImports.filter((imp) => {
+  // schema twice when multiple factories reference it. "Any value wins":
+  // if the same name is pushed both as a type-only import and as a value
+  // import (e.g. an enum used both in an `as Foo` cast and an
+  // `Object.values(Foo)` call), we keep the value form. A plain
+  // `import { Foo }` works in both annotation and runtime positions, so
+  // emitting the value form avoids `TS1361: 'X' cannot be used as a value
+  // because it was imported using 'import type'`.
+  const mergedImports = new Map<string, GeneratorImport>();
+  for (const imp of allImports) {
+    // Drop self-references: `get<Schema>Mock` factories generated in this
+    // very file (pushed when delegation in `resolveMockValue` produced a
+    // local factory call). Without this we'd emit
+    // `import { getPetMock } from '.'` next to its own `export const`.
+    if (imp.schemaFactory && localFactoryNames.has(imp.name)) continue;
+
     const key = `${imp.name}::${imp.alias ?? ''}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+    const existing = mergedImports.get(key);
+    if (!existing) {
+      mergedImports.set(key, imp);
+      continue;
+    }
+    if (!existing.values && imp.values) {
+      mergedImports.set(key, imp);
+    }
+  }
+  const uniqueImports = [...mergedImports.values()];
 
   // Reference `options` so unused-parameter rules don't complain; future
   // schema-specific behavior (e.g. naming convention) will read from it.
