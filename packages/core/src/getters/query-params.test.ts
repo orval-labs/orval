@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createTestContextSpec } from '../test-utils/context';
-import type { OpenApiParameterObject } from '../types';
+import { EnumGeneration, type OpenApiParameterObject } from '../types';
 import { getQueryParams } from './query-params';
 
 // Fully-typed context via the shared factory — no unsafe cast, so missing
@@ -196,6 +196,112 @@ describe('getQueryParams getter', () => {
     expect(result?.schema.model.trim()).toBe(
       `export type Params = {\naffiliations?: string | null;\n};`,
     );
+  });
+
+  // OpenAPI 3.1 lets users express a nullable enum either as
+  // `{type: ['string','null'], enum: [...]}` (already extracted) or as
+  // `anyOf: [{enum: [...]}, {type: 'null'}]`. Both spellings should produce
+  // a named parameter type. See issue #2710.
+  it('queryParam with anyOf containing enum and null extracts a named nullable enum type', () => {
+    const result = getQueryParams({
+      queryParams: [
+        {
+          parameter: {
+            name: 'status',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [{ enum: ['new', 'in_progress'] }, { type: 'null' }],
+              title: 'Status',
+            },
+          },
+          imports: [],
+        },
+      ],
+      operationName: '',
+      context,
+    });
+
+    expect(result?.schema.model.trim()).toBe(
+      `export type Params = {\nstatus?: Status;\n};`,
+    );
+
+    const statusEnum = result?.deps.find((schema) => schema.name === 'Status');
+    expect(statusEnum).toBeDefined();
+    expect(statusEnum?.model).toContain(`'new' | 'in_progress' | null`);
+  });
+
+  // Under enumGenerationType: 'const', getEnum's stripNullUnion handling moves
+  // `| null` off the const body onto the type alias, producing the same
+  // typeof+const pattern as a non-nullable enum. Pins that #2710's fix routes
+  // through that same helper rather than emitting a broken `null: null` member.
+  it('queryParam with anyOf [enum, null] under const enum mode emits typeof+const pattern', () => {
+    const constContext = createTestContextSpec({
+      override: {
+        enumGenerationType: EnumGeneration.CONST,
+      },
+    });
+
+    const result = getQueryParams({
+      queryParams: [
+        {
+          parameter: {
+            name: 'status',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [{ enum: ['new', 'in_progress'] }, { type: 'null' }],
+            },
+          },
+          imports: [],
+        },
+      ],
+      operationName: '',
+      context: constContext,
+    });
+
+    expect(result?.schema.model.trim()).toBe(
+      `export type Params = {\nstatus?: Status;\n};`,
+    );
+
+    const statusEnum = result?.deps.find((schema) => schema.name === 'Status');
+    expect(statusEnum).toBeDefined();
+    expect(statusEnum?.model).toContain(
+      `export type Status = typeof Status[keyof typeof Status] | null;`,
+    );
+    expect(statusEnum?.model).toContain(`export const Status = {`);
+    // The null variant must not leak into the const body as a `null: null`
+    // member — that would emit invalid TypeScript.
+    expect(statusEnum?.model).not.toContain('null: null');
+  });
+
+  // Negative regression: anyOf with multiple non-null variants is a genuine
+  // union, not a nullable enum, and must stay inlined. This guards the
+  // #2710 fix from over-matching.
+  it('queryParam with anyOf [enum, non-null scalar] stays inlined', () => {
+    const result = getQueryParams({
+      queryParams: [
+        {
+          parameter: {
+            name: 'status',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [{ enum: ['new', 'in_progress'] }, { type: 'string' }],
+            },
+          },
+          imports: [],
+        },
+      ],
+      operationName: '',
+      context,
+    });
+
+    expect(result?.schema.model.trim()).toBe(
+      `export type Params = {\nstatus?: 'new' | 'in_progress' | string;\n};`,
+    );
+    // No named Status type should be emitted for this case.
+    expect(result?.deps.find((s) => s.name === 'Status')).toBeUndefined();
   });
 
   it('tracks required nullable keys for downstream generators', () => {

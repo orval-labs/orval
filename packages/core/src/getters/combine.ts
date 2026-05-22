@@ -344,6 +344,20 @@ export function combineSchemas({
   }
 
   const isAllEnums = resolvedData.isEnum.every(Boolean);
+  // OAS 3.1 spells a nullable enum as `anyOf: [{enum: [...]}, {type: 'null'}]`.
+  // Without this, the {type: 'null'} variant flips `isEnum` to false and the
+  // enum gets inlined instead of extracted as a named type — the
+  // {type: ['string','null'], enum: [...]} spelling already extracts. Treat
+  // null-only variants as transparent so the caller's `isEnum && !isRef`
+  // branch (query-params, schema-definition, resolvers/object) extracts via
+  // getEnum, whose `stripNullUnion` handling already preserves the trailing
+  // ` | null`. See issue #2710.
+  const isNullableEnumComposition =
+    !isAllEnums &&
+    resolvedData.isEnum.some(Boolean) &&
+    resolvedData.isEnum.every(
+      (isEnum, index) => isEnum || resolvedData.types[index] === 'null',
+    );
   const isAvailableToGenerateCombinedEnum =
     isAllEnums &&
     name &&
@@ -460,7 +474,7 @@ export function combineSchemas({
     dependencies: resolvedValue
       ? [...resolvedData.dependencies, ...resolvedValue.dependencies]
       : resolvedData.dependencies,
-    isEnum: false,
+    isEnum: isNullableEnumComposition,
     type: 'object' as SchemaType,
     isRef: false,
     hasReadonlyProps:
