@@ -363,4 +363,21 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  petstoreFakerSchemasAndOps: {
+    output: {
+      target: '../generated/mock/petstore-faker-schemas-and-ops/endpoints.ts',
+      schemas: '../generated/mock/petstore-faker-schemas-and-ops/model',
+      client: 'axios',
+      mock: {
+        generators: [
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

@@ -1142,6 +1142,10 @@ export interface GeneratorImport {
   readonly syntheticDefaultImport?: boolean;
   readonly namespaceImport?: boolean;
   readonly importPath?: string;
+  // True when this import points at a generated schema-level faker factory
+  // (e.g. `getPetMock`). The mock-file writer routes it to
+  // `<schemas-dir>/index.faker` instead of `<schemas-dir>/<schemaName>`.
+  readonly schemaFactory?: boolean;
 }
 
 export interface GeneratorDependency {

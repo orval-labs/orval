@@ -131,7 +131,7 @@ export function generateFakerForSchemas(
     // schemas don't splice an override, so we omit the parameter rather than
     // emit a `Partial<Pet[]>` signature TS can't satisfy.
     const typeName = pascal(name);
-    const isOverridable = result.value?.includes('overrideResponse');
+    const isOverridable = result.value.includes('overrideResponse');
     const param = isOverridable
       ? `overrideResponse: Partial<${typeName}> = {}`
       : '';
