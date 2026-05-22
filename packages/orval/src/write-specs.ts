@@ -3,12 +3,12 @@ import path from 'node:path';
 import {
   type ContextSpec,
   createSuccessMessage,
+  type FakerMockOptions,
   fixCrossDirectoryImports,
   fixRegularSchemaImports,
   generateDependencyImports,
   getFileInfo,
   getMockFileExtensionByTypeName,
-  type GlobalMockOptions,
   isFunction,
   isObject,
   isString,
@@ -155,7 +155,7 @@ async function writeFakerSchemaMocks(
 ): Promise<string | undefined> {
   const { output } = options;
   const fakerEntry = output.mock.generators.find(
-    (g): g is GlobalMockOptions =>
+    (g): g is FakerMockOptions =>
       !isFunction(g) && g.type === OutputMockType.FAKER,
   );
   if (fakerEntry?.schemas !== true) {
