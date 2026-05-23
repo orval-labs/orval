@@ -95,6 +95,22 @@ export function combineSchemasMock({
         ];
       }
     }
+    // Keep `required` in sync with the filtered properties — leaving the
+    // discriminator key in `required` would describe a schema whose required
+    // field is missing from `properties`.
+    const requiredIdx = itemEntriesForResolve.findIndex(
+      ([key]) => key === 'required',
+    );
+    if (requiredIdx !== -1 && Array.isArray(itemRequired)) {
+      const filteredRequired = itemRequired.filter(
+        (key) => key !== discriminatorPropertyName,
+      );
+      if (filteredRequired.length === 0) {
+        itemEntriesForResolve.splice(requiredIdx, 1);
+      } else {
+        itemEntriesForResolve[requiredIdx] = ['required', filteredRequired];
+      }
+    }
   }
 
   const hasResolvableProperties = itemEntriesForResolve.some(

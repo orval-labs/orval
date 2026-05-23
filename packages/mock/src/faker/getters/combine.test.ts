@@ -453,9 +453,9 @@ describe('combineSchemasMock', () => {
       discriminator: {
         propertyName: 'type',
         mapping: {
-          item1: '#/components/schemas/item1',
-          item2: '#/components/schemas/item2',
-          item3: '#/components/schemas/item3',
+          item1: '#/components/schemas/Item1',
+          item2: '#/components/schemas/Item2',
+          item3: '#/components/schemas/Item3',
         },
       },
       oneOf: [
