@@ -75,6 +75,7 @@
     "@orval/angular": "workspace:*",
     "@orval/axios": "workspace:*",
     "@orval/core": "workspace:*",
+    "@orval/dart": "workspace:*",
     "@orval/fetch": "workspace:*",
     "@orval/hono": "workspace:*",
     "@orval/mcp": "workspace:*",

@@ -19,6 +19,7 @@
     "angular",
     "solid-start",
     "hono",
+    "dart",
     "---Validation & Mocking---",
     "zod",
     "client-with-zod",

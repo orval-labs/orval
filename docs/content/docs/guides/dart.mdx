@@ -1,0 +1,180 @@
+---
+title: Dart / Flutter
+description: Generate Dart models and Dio API clients from OpenAPI
+---
+
+Generate idiomatic [Dart](https://dart.dev/) model classes and [Dio](https://pub.dev/packages/dio)-based API clients from your OpenAPI specification — ready to drop into any Flutter or Dart project.
+
+## Configuration
+
+Set the `client` option to `dart` and point the `target` at the directory where you want the generated code:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  myApi: {
+    input: {
+      target: './openapi.yaml',
+    },
+    output: {
+      client: 'dart',
+      target: './my_flutter_package/lib/src/generated/',
+    },
+  },
+});
+```
+
+<Callout type="info">
+The `dart` client target is a **directory**, not a file. All generated `.dart` files are written inside it.
+</Callout>
+
+## Generated Structure
+
+```
+my_flutter_package/lib/src/generated/
+├── models/
+│   ├── pet.dart
+│   ├── create_pet_body.dart
+│   ├── error.dart
+│   └── models.dart          # barrel export
+├── api/
+│   ├── pets_api.dart
+│   ├── users_api.dart
+│   └── api.dart              # barrel export
+└── generated.dart            # top-level barrel
+```
+
+## Models
+
+Each OpenAPI component schema produces a Dart class with `fromJson`, `toJson`, and `copyWith`:
+
+```dart title="models/pet.dart"
+class Pet {
+  final int id;
+  final String name;
+  final String? tag;
+
+  Pet({
+    required this.id,
+    required this.name,
+    this.tag,
+  });
+
+  factory Pet.fromJson(Map<String, dynamic> json) {
+    return Pet(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      tag: json['tag'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'tag': tag,
+    };
+  }
+
+  Pet copyWith({
+    int? id,
+    String? name,
+    String? tag,
+  }) {
+    return Pet(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      tag: tag ?? this.tag,
+    );
+  }
+}
+```
+
+## Type Mapping
+
+| OpenAPI | Dart |
+|---------|------|
+| `string` | `String` |
+| `integer` | `int` |
+| `number` | `double` |
+| `boolean` | `bool` |
+| `array` | `List<T>` |
+| `object` (no properties) | `Map<String, dynamic>` |
+| `string` + `format: date` | `DateTime` (date-only serialization) |
+| `string` + `format: date-time` | `DateTime` |
+| `string` + `format: binary` | `dynamic` (use `FormData` for uploads) |
+| `$ref` | Referenced class |
+| `anyOf: [T, null]` | `T?` |
+| `anyOf: [T1, T2]` | `dynamic` |
+
+## API Client
+
+Operations are grouped by URL path segment and wrapped in Dio-based API classes:
+
+```dart title="api/pets_api.dart"
+import 'package:dio/dio.dart';
+import '../models/pet.dart';
+
+class PetsApi {
+  final Dio _dio;
+
+  PetsApi(this._dio);
+
+  /// List all pets
+  Future<Response<dynamic>> listPets({
+    int? limit,
+  }) async {
+    final queryParameters = <String, dynamic>{};
+    if (limit != null) {
+      queryParameters['limit'] = limit;
+    }
+
+    final response = await _dio.get<dynamic>(
+      '/pets',
+      queryParameters: queryParameters,
+    );
+    return response;
+  }
+
+  /// Create a pet
+  Future<Response<dynamic>> createPet({
+    required Pet body,
+  }) async {
+    final response = await _dio.post<dynamic>(
+      '/pets',
+      data: body.toJson(),
+    );
+    return response;
+  }
+}
+```
+
+### Features
+
+- **Path parameters** use Dart string interpolation: `/pets/$petId`
+- **Query parameters** are collected into a map with null checks for optional params
+- **Request bodies** are serialized via `toJson()` for `$ref` types
+- **Multipart uploads** accept a `FormData` parameter directly
+- **Doc comments** are generated from OpenAPI `summary` fields
+
+## Usage in Flutter
+
+Add the generated package to your `pubspec.yaml`:
+
+```yaml title="pubspec.yaml"
+dependencies:
+  dio: ^5.4.0
+```
+
+Then use it:
+
+```dart
+import 'package:dio/dio.dart';
+import 'package:my_flutter_package/my_flutter_package.dart';
+
+final dio = Dio(BaseOptions(baseUrl: 'https://api.example.com'));
+final petsApi = PetsApi(dio);
+
+final response = await petsApi.listPets(limit: 10);
+```

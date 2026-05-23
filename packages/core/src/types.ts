@@ -368,6 +368,7 @@ export const OutputClient = {
   HONO: 'hono',
   FETCH: 'fetch',
   MCP: 'mcp',
+  DART: 'dart',
 } as const;
 
 export type OutputClient = (typeof OutputClient)[keyof typeof OutputClient];
