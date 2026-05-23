@@ -476,3 +476,42 @@ test('fetch issue-1879 inlines header schema when $ref targets another path para
   );
   expect(indexContent).not.toMatch(/\bn0\b/);
 });
+
+test('default issue-1775 preserves boolean enum literals across allOf+oneOf', async () => {
+  // Regression for #1775: an `allOf: [{orderId}, oneOf: [{success: enum [true]},
+  // {success: enum [false], failReason}]]` schema returned as an array.
+  //
+  // The type-generation half (boolean-literal preservation) was already fixed
+  // by #3159's enum branch in `packages/core/src/getters/scalar.ts`. The mock
+  // half is what this regression locks down: the boolean branch in
+  // `packages/mock/src/faker/getters/scalar.ts` previously ignored `item.enum`
+  // and unconditionally emitted `faker.datatype.boolean()`, so each `oneOf`
+  // variant's `success` randomly flipped instead of matching its literal type.
+  // The fix routes boolean through the same `getEnum` helper as number/string,
+  // emitting `faker.helpers.arrayElement([true] as const)` /
+  // `arrayElement([false] as const)` so the mock's discriminator stays in sync
+  // with the union branch it picked.
+  const model = await readFile(
+    generated('default', 'issue-1775', 'model', 'putApiOrderLimit200Item.ts'),
+    'utf8',
+  );
+
+  // The two oneOf branches keep their literal types, and `orderId` is shared
+  // through the `& { orderId: string }` half of the allOf intersection.
+  expect(model).toContain('success: true;');
+  expect(model).toContain('success: false;');
+  expect(model).toContain('failReason: string;');
+  expect(model).toContain('orderId: string;');
+
+  const endpoints = await readFile(
+    generated('default', 'issue-1775', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // Each oneOf branch's mock must pin `success` to the branch's literal so a
+  // random selection still produces a valid `PutApiOrderLimit200Item`. The
+  // pre-fix output emitted `faker.datatype.boolean()` for both branches.
+  expect(endpoints).toContain('arrayElement([true] as const)');
+  expect(endpoints).toContain('arrayElement([false] as const)');
+  expect(endpoints).not.toMatch(/success: faker\.datatype\.boolean\(\)/);
+});

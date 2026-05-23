@@ -1,0 +1,43 @@
+openapi: 3.0.1
+info:
+  version: 1.0.0
+  title: issue-1775
+paths:
+  /api/order/limit:
+    put:
+      operationId: putApiOrderLimit
+      responses:
+        '200':
+          description: Batch result
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - type: object
+                      required:
+                        - orderId
+                      properties:
+                        orderId:
+                          type: string
+                    - oneOf:
+                        - type: object
+                          required:
+                            - success
+                          properties:
+                            success:
+                              type: boolean
+                              enum:
+                                - true
+                        - type: object
+                          required:
+                            - success
+                            - failReason
+                          properties:
+                            success:
+                              type: boolean
+                              enum:
+                                - false
+                            failReason:
+                              type: string
