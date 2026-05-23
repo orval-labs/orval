@@ -240,12 +240,22 @@ export function getMockScalar({
 
     case 'boolean': {
       let value = 'faker.datatype.boolean()';
-      if ('const' in item) {
+      const booleanImports: GeneratorImport[] = [];
+      if (item.enum) {
+        value = getEnum(
+          item,
+          booleanImports,
+          context,
+          existingReferencedProperties,
+          'boolean',
+        );
+      } else if ('const' in item) {
         value = JSON.stringify(item.const);
       }
       return {
         value,
-        imports: [],
+        enums: item.enum,
+        imports: booleanImports,
         name: item.name,
       };
     }
@@ -463,7 +473,7 @@ function getEnum(
   imports: GeneratorImport[],
   context: ContextSpec,
   existingReferencedProperties: string[],
-  type?: 'string' | 'number',
+  type?: 'string' | 'number' | 'boolean',
 ) {
   if (!item.enum) return '';
   const joinedEnumValues = item.enum

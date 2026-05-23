@@ -90,7 +90,7 @@ export const getGetItemsWithMultiplePropsResponseMock = (): Item3[] =>
     world: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
         faker.helpers.arrayElement([1, 2, 3] as const),
-        faker.datatype.boolean(),
+        faker.helpers.arrayElement([true, false] as const),
       ]),
       null,
     ]),
@@ -121,7 +121,7 @@ export const getGetNestedItemsResponseMock = (): NestedItem[] =>
         world: faker.helpers.arrayElement([
           faker.helpers.arrayElement([
             faker.helpers.arrayElement([1, 2, 3] as const),
-            faker.datatype.boolean(),
+            faker.helpers.arrayElement([true, false] as const),
           ]),
           null,
         ]),
@@ -173,8 +173,8 @@ export const getGetMixedTypeEnumsResponseMock = (): MixedTypeEnums[] =>
     ]),
     booleanEnum: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
-        faker.datatype.boolean(),
-        faker.datatype.boolean(),
+        faker.helpers.arrayElement([true, false] as const),
+        faker.helpers.arrayElement([true] as const),
       ]),
       null,
     ]),

@@ -129,6 +129,16 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  'issue-1775': {
+    input: '../specifications/issue-1775.yaml',
+    output: {
+      schemas: '../generated/default/issue-1775/model',
+      target: '../generated/default/issue-1775/endpoints.ts',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
   'all-of-without-type': {
     input: '../specifications/all-of-without-type.yaml',
     output: {
