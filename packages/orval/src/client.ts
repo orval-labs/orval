@@ -281,14 +281,29 @@ export const generateOperations = (
       // Function-form entries (ClientMockBuilder) inherit the historical
       // `msw` file extension and are treated as msw outputs for downstream
       // bookkeeping.
-      const mockOutputs = output.mock.generators.map((entry) => {
-        const generated = invokeMockGenerator(verbOption, options, entry);
-        return {
-          type: isFunction(entry) ? OutputMockType.MSW : entry.type,
-          implementation: generated.implementation,
-          imports: generated.imports,
-        };
-      });
+      const mockOutputs = output.mock.generators
+        .filter((entry) => {
+          // A faker entry with `operationResponses: false` opts out of the
+          // per-operation `get<Op>ResponseMock` factories. The consolidated
+          // schemas file (when `schemas: true`) is emitted separately and is
+          // unaffected by this filter.
+          if (
+            !isFunction(entry) &&
+            entry.type === OutputMockType.FAKER &&
+            entry.operationResponses === false
+          ) {
+            return false;
+          }
+          return true;
+        })
+        .map((entry) => {
+          const generated = invokeMockGenerator(verbOption, options, entry);
+          return {
+            type: isFunction(entry) ? OutputMockType.MSW : entry.type,
+            implementation: generated.implementation,
+            imports: generated.imports,
+          };
+        });
 
       const hasImplementation = client.implementation.trim().length > 0;
       const preferredOperationKey = verbOption.operationName;

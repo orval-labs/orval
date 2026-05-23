@@ -2,9 +2,11 @@ import {
   type ContextSpec,
   type GeneratorImport,
   getRefInfo,
+  isFunction,
   isReference,
   type MockOptions,
   type OpenApiSchemaObject,
+  OutputMockType,
   pascal,
 } from '@orval/core';
 import { prop } from 'remeda';
@@ -53,6 +55,81 @@ export function resolveMockOverride(
 
 export function getNullable(value: string, nullable?: boolean) {
   return nullable ? `faker.helpers.arrayElement([${value}, null])` : value;
+}
+
+/**
+ * True when the active faker generator entry asks for consolidated schema
+ * mock factories and the output is configured to host them (i.e. there is a
+ * dedicated schemas directory we can import `index.faker` from). Used to
+ * decide whether an operation factory should inline a `$ref`'d schema or
+ * delegate to its `get<X>Mock` factory.
+ */
+function shouldDelegateToSchemaFactories(context: ContextSpec): boolean {
+  if (!context.output.schemas) return false;
+  // The duplicate-type guard in `normalizeMocksOption` (see
+  // `packages/orval/src/utils/options.ts`) ensures at most one faker entry
+  // exists per output, so finding the first one that opted into schemas is
+  // unambiguous today and remains correct if that guard ever loosens.
+  const fakerEntry = context.output.mock.generators.find(
+    (g) =>
+      !isFunction(g) && g.type === OutputMockType.FAKER && g.schemas === true,
+  );
+  return !!fakerEntry;
+}
+
+/**
+ * Predicate: this `$ref` points at a top-level `#/components/schemas/<Name>`
+ * (vs. a parameter, response, or inline schema). Only those have a
+ * corresponding `get<Name>Mock` factory in the consolidated faker file.
+ */
+function isComponentsSchemaRef(refPaths: string[] | undefined): boolean {
+  return (
+    Array.isArray(refPaths) &&
+    refPaths[0] === 'components' &&
+    refPaths[1] === 'schemas'
+  );
+}
+
+/**
+ * Returns true when an operation- or tag-level mock override touches any
+ * property declared on the referenced schema. In that case we must inline
+ * the schema body so the override actually applies; the shared
+ * `get<X>Mock` factory has no knowledge of operation-scoped overrides.
+ *
+ * Reuses `resolveMockOverride` so the same matching rules apply as for
+ * regular property mocks — bare name, regex (`/.../`), and exact-path
+ * (`#.foo.bar`). The parent's `path` (where the `$ref` appears in the
+ * surrounding schema) gets composed into each synthetic property item so
+ * exact-path overrides like `#.color.value` resolve correctly.
+ */
+function hasOverrideTouchingSchema(
+  schemaProperties: Record<string, unknown> | undefined,
+  mockOptions: MockOptions | undefined,
+  operationId: string,
+  tags: string[],
+  parentPath: string | undefined,
+): boolean {
+  if (!schemaProperties) return false;
+  const propertyNames = Object.keys(schemaProperties);
+  if (propertyNames.length === 0) return false;
+
+  const overrideBuckets: (Record<string, unknown> | undefined)[] = [
+    mockOptions?.operations?.[operationId]?.properties,
+  ];
+  for (const tag of tags) {
+    overrideBuckets.push(mockOptions?.tags?.[tag]?.properties);
+  }
+
+  return overrideBuckets.some((bucket) => {
+    if (!bucket) return false;
+    return propertyNames.some((propertyName) => {
+      const synthetic = {
+        name: propertyName,
+        path: parentPath ? `${parentPath}.${propertyName}` : propertyName,
+      } as OpenApiSchemaObject & { name: string; path?: string };
+      return !!resolveMockOverride(bucket, synthetic);
+    });
+  });
 }
 
 interface ResolveMockValueOptions {
@@ -121,6 +198,49 @@ export function resolveMockValue({
       : newSchema.oneOf
         ? 'oneOf'
         : 'anyOf';
+
+    // When schema-level faker factories are being emitted (`schemas: true`),
+    // delegate to `get<X>Mock()` instead of inlining the body. The factory
+    // already encodes the same fields, so this both deduplicates the output
+    // and lets a single source of truth drive shared mocks.
+    const canDelegate =
+      shouldDelegateToSchemaFactories(context) &&
+      isComponentsSchemaRef(refPaths) &&
+      !hasOverrideTouchingSchema(
+        schemaRef?.properties as Record<string, unknown> | undefined,
+        mockOptions,
+        operationId,
+        tags,
+        schemaReference.path,
+      );
+
+    if (canDelegate) {
+      const factoryName = `get${pascal(name)}Mock`;
+      imports.push({
+        name: factoryName,
+        values: true,
+        schemaFactory: true,
+      });
+      // For object-like refs the historical inline output is `{ ...body }`
+      // so the spread form keeps callers (combineSchemasMock, object
+      // properties) working without other changes. For everything else
+      // (scalars, arrays, nullables) emit the bare call.
+      const isObjectLike =
+        newSchema.type === 'object' ||
+        !!newSchema.allOf ||
+        !!newSchema.oneOf ||
+        !!newSchema.anyOf;
+      const callValue = isObjectLike
+        ? `{ ...${factoryName}() }`
+        : `${factoryName}()`;
+
+      return {
+        value: getNullable(callValue, Boolean(newSchema.nullable)),
+        imports,
+        name: newSchema.name,
+        type: getType(newSchema),
+      };
+    }
 
     const scalar = getMockScalar({
       item: newSchema,

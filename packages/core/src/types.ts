@@ -435,6 +435,14 @@ export interface MswMockOptions extends CommonMockOptions {
 
 export interface FakerMockOptions extends CommonMockOptions {
   type: typeof OutputMockType.FAKER;
+  // Emit a consolidated mock factory file for every entry under
+  // `components/schemas` (one `get<SchemaName>Mock` per schema). Defaults to
+  // `false` — schema factories are opt-in to preserve existing output.
+  schemas?: boolean;
+  // Emit per-operation response mock factories (the historical behavior).
+  // Defaults to `true`. Set to `false` together with `schemas: true` to get
+  // only the consolidated schema factories.
+  operationResponses?: boolean;
 }
 
 export type GlobalMockOptions = MswMockOptions | FakerMockOptions;
@@ -1134,6 +1142,10 @@ export interface GeneratorImport {
   readonly syntheticDefaultImport?: boolean;
   readonly namespaceImport?: boolean;
   readonly importPath?: string;
+  // True when this import points at a generated schema-level faker factory
+  // (e.g. `getPetMock`). The mock-file writer routes it to
+  // `<schemas-dir>/index.faker` instead of `<schemas-dir>/<schemaName>`.
+  readonly schemaFactory?: boolean;
 }
 
 export interface GeneratorDependency {

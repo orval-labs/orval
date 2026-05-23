@@ -5,9 +5,11 @@ description: Generate Mock Service Worker handlers from OpenAPI
 
 Generate [MSW (Mock Service Worker)](https://mswjs.io/) handlers from your OpenAPI specification to mock your API during development and testing.
 
+For mock data factories without MSW request handlers, see the [Faker guide](/docs/guides/faker).
+
 ## Configuration
 
-Set the `mock` option to `true`:
+Set the `mock` option to `true` (emits both MSW handlers and Faker factories), or scope it to MSW only via the generator entry:
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -18,7 +20,9 @@ export default defineConfig({
       mode: 'single',
       target: './src/api/petstore.ts',
       schemas: './src/api/model',
-      mock: true,
+      mock: {
+        generators: [{ type: 'msw' }],
+      },
     },
     input: {
       target: './petstore.yaml',
@@ -29,33 +33,9 @@ export default defineConfig({
 
 ## Generated Output
 
-Orval generates three types of functions:
+The MSW generator emits two types of functions per operation, plus an aggregator. Mock *data* (the `get<Op>ResponseMock` factories) is produced by the Faker generator — see the [Faker guide](/docs/guides/faker) for details on overriding values and formats.
 
-### 1. Mock Data Generators
-
-Functions that return mocked values using [Faker.js](https://fakerjs.dev/):
-
-```ts
-import { faker } from '@faker-js/faker';
-
-export const getShowPetByIdResponseMock = (
-  overrideResponse: Partial<Pet> = {},
-): Pet => ({
-  id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha(20),
-  tag: faker.string.alpha(20),
-  ...overrideResponse,
-});
-```
-
-Override values as needed:
-
-```ts
-const pet = getShowPetByIdResponseMock({ name: 'Buddy' });
-// => { id: 7272122785202176, name: "Buddy", tag: "..." }
-```
-
-### 2. Request Handlers
+### 1. Request Handlers
 
 Functions that bind mock data to [MSW](https://mswjs.io/) `http.*` handlers using the recommended [`HttpResponse`](https://mswjs.io/docs/api/http-response) class:
 
@@ -115,7 +95,7 @@ export default defineConfig({
 
 `preferredContentType` accepts common MIME literals and any custom string (via a loose `(string & {})` fallback), so vendor-specific types are supported too.
 
-### 3. Aggregated Handlers
+### 2. Aggregated Handlers
 
 Functions that combine all handlers for easy setup:
 
@@ -268,31 +248,6 @@ export { server };
 ```
 
 If both `msw` and `faker` generators are configured with `indexMockFiles: true`, you also get an `index.faker.ts` alongside `index.msw.ts`.
-
-## Faker-only Output
-
-If you only need mock data factories without MSW request handlers, use a `faker` generator entry. It emits the same `get<OperationId>ResponseMock` factory functions, but with no `msw` import or HTTP handler code:
-
-```ts title="orval.config.ts"
-export default defineConfig({
-  petstore: {
-    output: {
-      mock: {
-        generators: [{ type: 'faker' }],
-      },
-    },
-  },
-});
-```
-
-The output is written to `<filename>.faker.ts` and only depends on `@faker-js/faker`. Useful for:
-
-- Unit tests with custom assertion libraries
-- Storybook stories
-- Seed scripts
-- Any test setup that doesn't use MSW
-
-You can combine both generators (e.g. `generators: [{ type: 'msw' }, { type: 'faker' }]`) to emit both files in the same run.
 
 ## MSW Best Practices
 

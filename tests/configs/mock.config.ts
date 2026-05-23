@@ -346,4 +346,56 @@ export default defineConfig({
       target: '../specifications/msw-binary-multi-content.yaml',
     },
   },
+  petstoreFakerSchemas: {
+    output: {
+      target: '../generated/mock/petstore-faker-schemas/endpoints.ts',
+      schemas: '../generated/mock/petstore-faker-schemas/model',
+      client: 'axios',
+      mock: {
+        generators: [
+          { type: 'faker', schemas: true, operationResponses: false },
+        ],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreFakerSchemasAndOps: {
+    output: {
+      target: '../generated/mock/petstore-faker-schemas-and-ops/endpoints.ts',
+      schemas: '../generated/mock/petstore-faker-schemas-and-ops/model',
+      client: 'axios',
+      mock: {
+        generators: [
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  stringEnumRefFakerSchemasTagsSplit: {
+    output: {
+      workspace: '../generated/mock/string-enum-ref-faker-schemas-tags-split/',
+      target: './index.ts',
+      mode: 'tags-split',
+      client: 'react-query',
+      mock: {
+        generators: [
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/faker-schemas-string-enum-ref.yaml',
+    },
+  },
 });

@@ -15,6 +15,36 @@ export function generateImportsForBuilder(
   const isZodSchemaOutput =
     isObject(output.schemas) && output.schemas.type === 'zod';
 
+  // Schema-factory imports (`getPetMock` and friends) always resolve to the
+  // consolidated `<schemas-dir>/index.faker` file emitted by the faker
+  // schemas option. They bypass the per-schema convention naming below.
+  // Append `getImportExtension` so NodeNext / Node16 module resolution
+  // gets the required local-file extension (e.g. `.js`).
+  const schemaFactoryImports = imports.filter((i) => i.schemaFactory);
+  const schemaFactoryImportExtension = getImportExtension(
+    output.fileExtension,
+    output.tsconfig,
+  );
+  const schemaFactoryDeps: GeneratorDependency[] =
+    schemaFactoryImports.length > 0
+      ? [
+          {
+            exports: uniqueBy(
+              schemaFactoryImports,
+              (entry) => `${entry.name}|${entry.alias ?? ''}`,
+            ),
+            dependency: upath.joinSafe(
+              relativeSchemasPath,
+              `index.faker${schemaFactoryImportExtension}`,
+            ),
+          },
+        ]
+      : [];
+
+  // The rest of the schema-import bucket is for types emitted alongside
+  // each schema (`Pet`, `PetWithTag`, ...). They're routed below.
+  imports = imports.filter((i) => !i.schemaFactory);
+
   let schemaImports: GeneratorDependency[];
   if (output.indexFiles) {
     schemaImports = isZodSchemaOutput
@@ -80,5 +110,5 @@ export function generateImportsForBuilder(
     };
   });
 
-  return [...schemaImports, ...otherImports];
+  return [...schemaImports, ...schemaFactoryDeps, ...otherImports];
 }
