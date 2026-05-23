@@ -54,12 +54,57 @@ export function combineSchemasMock({
   const isRefAndNotExisting =
     isReference(item) && !existingReferencedProperties.includes(item.name);
 
+  // When a oneOf schema declares a discriminator with a mapping AND the
+  // discriminator property is also declared on the parent's `properties`,
+  // skip that property here. Each variant already encodes a constrained value
+  // for it via `resolveDiscriminators`; emitting the parent's free-choice enum
+  // alongside the picked variant would override the constrained value and
+  // guarantee a discriminator mismatch (#2155).
+  const discriminator = item.discriminator as
+    | { propertyName?: string; mapping?: Record<string, string> }
+    | undefined;
+  const itemProperties = item.properties as Record<string, unknown> | undefined;
+  const discriminatorPropertyName =
+    separator === 'oneOf' &&
+    discriminator?.mapping &&
+    discriminator.propertyName &&
+    itemProperties &&
+    discriminator.propertyName in itemProperties
+      ? discriminator.propertyName
+      : undefined;
+
+  const itemEntriesForResolve = Object.entries(item).filter(
+    ([key]) => key !== separator,
+  );
+  if (discriminatorPropertyName && itemProperties) {
+    const propertiesIdx = itemEntriesForResolve.findIndex(
+      ([key]) => key === 'properties',
+    );
+    if (propertiesIdx !== -1) {
+      const filteredProperties = Object.fromEntries(
+        Object.entries(itemProperties).filter(
+          ([key]) => key !== discriminatorPropertyName,
+        ),
+      );
+      if (Object.keys(filteredProperties).length === 0) {
+        itemEntriesForResolve.splice(propertiesIdx, 1);
+      } else {
+        itemEntriesForResolve[propertiesIdx] = [
+          'properties',
+          filteredProperties,
+        ];
+      }
+    }
+  }
+
+  const hasResolvableProperties = itemEntriesForResolve.some(
+    ([key]) => key === 'properties',
+  );
+
   const itemResolvedValue =
-    isRefAndNotExisting || item.properties
+    isRefAndNotExisting || hasResolvableProperties
       ? resolveMockValue({
-          schema: Object.fromEntries(
-            Object.entries(item).filter(([key]) => key !== separator),
-          ) as MockSchemaObject,
+          schema: Object.fromEntries(itemEntriesForResolve) as MockSchemaObject,
           combine: {
             separator: 'allOf',
             includedProperties: [],
