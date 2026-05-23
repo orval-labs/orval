@@ -348,6 +348,7 @@ const generatePrefetch = ({
 
 const generateQueryImplementation = ({
   queryOption: { name, queryParam, options, type, queryKeyFnName },
+  operationId,
   operationName,
   queryProperties,
   queryKeyProperties,
@@ -382,6 +383,7 @@ const generateQueryImplementation = ({
     queryKeyFnName: string;
   };
   isRequestOptions: boolean;
+  operationId: string;
   operationName: string;
   queryProperties: string;
   queryKeyProperties: string;
@@ -652,12 +654,17 @@ ${hookOptions}
           ? // Pass the same options object the non-mutator branch returns so
             // generated guards (e.g. the `enabled` clause for nullish path
             // params) reach the mutator instead of being dropped. See #1522.
+            // The third arg additionally carries operation identity (matching
+            // mutationOptions per #1974) so mutators can branch on the source
+            // operation. See #3153.
             `const customOptions = ${
               queryOptionsMutator.name
             }({ queryKey, queryFn, ${queryOptionsImp}}${
               queryOptionsMutator.hasSecondArg ? `, { ${queryProperties} }` : ''
             }${
-              queryOptionsMutator.hasThirdArg ? `, { url: \`${route}\` }` : ''
+              queryOptionsMutator.hasThirdArg
+                ? `, { url: \`${route}\`, operationId: '${operationId}', operationName: '${operationName}' }`
+                : ''
             });`
           : ''
       }
@@ -733,7 +740,9 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
       ? `${queryOptionsMutator.name}({ queryKey: ${baseExpr} }${
           queryOptionsMutator.hasSecondArg ? `, { ${queryProperties} }` : ''
         }${
-          queryOptionsMutator.hasThirdArg ? `, { url: \`${route}\` }` : ''
+          queryOptionsMutator.hasThirdArg
+            ? `, { url: \`${route}\`, operationId: '${operationId}', operationName: '${operationName}' }`
+            : ''
         }).queryKey`
       : baseExpr;
 
@@ -1145,6 +1154,7 @@ ${queryKeyFns}`;
     for (const queryOption of queries) {
       queryImplementations += generateQueryImplementation({
         queryOption,
+        operationId,
         operationName,
         queryProperties,
         queryKeyProperties,
