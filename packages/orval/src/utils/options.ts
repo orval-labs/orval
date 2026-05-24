@@ -26,6 +26,7 @@ import {
   type McpServerOptions,
   type Mutator,
   NamingConvention,
+  type NormalizedFactoryMethodsOptions,
   type NormalizedHonoOptions,
   type NormalizedHookOptions,
   type NormalizedJsDocOptions,
@@ -219,6 +220,28 @@ export async function normalizeOptions(
 
   const defaultFileExtension = '.ts';
 
+  const factoryMethodsConfig = outputOptions.factoryMethods;
+  let factoryMethods: NormalizedFactoryMethodsOptions | undefined = undefined;
+
+  if (factoryMethodsConfig) {
+    factoryMethods = {
+      functionNamePrefix: factoryMethodsConfig.functionNamePrefix ?? 'create',
+      mode: factoryMethodsConfig.mode ?? 'split',
+      outputDirectory: factoryMethodsConfig.outputDirectory
+        ? normalizePath(factoryMethodsConfig.outputDirectory, outputWorkspace)
+        : outputOptions.schemas
+          ? normalizePath(
+              isString(outputOptions.schemas)
+                ? outputOptions.schemas
+                : outputOptions.schemas.path,
+              outputWorkspace,
+            )
+          : normalizePath(outputWorkspace, outputWorkspace),
+      includeOptionalProperty:
+        factoryMethodsConfig.includeOptionalProperty ?? true,
+    };
+  }
+
   // `useQuery` / `useMutation` defaults are applied per-verb in
   // `query-generator.ts` so we can tell "unset" from "explicit true" (#2376).
   const globalQueryOptions: NormalizedQueryOptions = {
@@ -289,6 +312,7 @@ export async function normalizeOptions(
       baseUrl: outputOptions.baseUrl,
       unionAddMissingProperties:
         outputOptions.unionAddMissingProperties ?? false,
+      factoryMethods,
       override: {
         ...outputOptions.override,
         mock: {

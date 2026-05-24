@@ -60,6 +60,7 @@ export interface NormalizedOutputOptions {
   unionAddMissingProperties: boolean;
   optionsParamRequired: boolean;
   propertySortOrder: PropertySortOrder;
+  factoryMethods?: NormalizedFactoryMethodsOptions;
 }
 
 export interface NormalizedParamsSerializerOptions {
@@ -279,6 +280,22 @@ export type EnumGeneration =
 
 export type SchemaGenerationType = 'typescript' | 'zod';
 
+export type FactoryMethodsMode = 'single' | 'split' | 'single-split';
+
+export interface FactoryMethodsOptions {
+  functionNamePrefix?: string;
+  mode?: FactoryMethodsMode;
+  outputDirectory?: string;
+  includeOptionalProperty?: boolean;
+}
+
+export interface NormalizedFactoryMethodsOptions {
+  functionNamePrefix: string;
+  mode: FactoryMethodsMode;
+  outputDirectory: string;
+  includeOptionalProperty: boolean;
+}
+
 export interface SchemaOptions {
   path: string;
   type: SchemaGenerationType;
@@ -323,6 +340,7 @@ export interface OutputOptions {
   unionAddMissingProperties?: boolean;
   optionsParamRequired?: boolean;
   propertySortOrder?: PropertySortOrder;
+  factoryMethods?: FactoryMethodsOptions;
 }
 
 export interface InputFiltersOptions {
@@ -1129,6 +1147,9 @@ export interface GeneratorSchema {
   imports: GeneratorImport[];
   dependencies?: string[];
   schema?: OpenApiSchemaObject;
+  factory?: string;
+  factoryImports?: GeneratorImport[];
+  factoryMode?: FactoryMethodsMode;
 }
 
 export interface GeneratorImport {

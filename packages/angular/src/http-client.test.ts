@@ -125,6 +125,12 @@ const createOutput = (
     optionsParamRequired: false,
     unionAddMissingProperties: false,
     propertySortOrder: 'Specification',
+    factoryMethods: {
+      functionNamePrefix: 'create',
+      mode: 'single',
+      outputDirectory: '',
+      includeOptionalProperty: false,
+    },
     ...overrides,
   } satisfies NormalizedOutputOptions;
 

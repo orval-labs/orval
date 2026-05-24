@@ -42,6 +42,7 @@ export function createTestContextSpec({
     unionAddMissingProperties: false,
     optionsParamRequired: false,
     propertySortOrder: PropertySortOrder.SPECIFICATION,
+    factoryMethods: undefined,
     override: {
       title: undefined,
       transformer: undefined,
