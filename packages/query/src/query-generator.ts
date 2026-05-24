@@ -75,6 +75,17 @@ export const getMutationInvalidatesConflictWarning = ({
   );
 };
 
+export const hasQueryParam = (
+  queryParams: GetterQueryParam | undefined,
+  queryParam: string | undefined,
+) => {
+  if (!queryParam || !queryParams) {
+    return false;
+  }
+
+  return queryParams.paramNames?.includes(queryParam) ?? true;
+};
+
 const escapeRegExpMetaChars = (value: string): string =>
   value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
@@ -455,7 +466,11 @@ const generateQueryImplementation = ({
     mutator,
   });
 
-  const hasInfiniteQueryParam = queryParam && queryParams?.schema.name;
+  const infiniteQueryParamType =
+    hasQueryParam(queryParams, queryParam) && queryParams && queryParam
+      ? `${queryParams.schema.name}['${queryParam}']`
+      : '';
+  const hasInfiniteQueryParam = !!infiniteQueryParamType;
 
   const httpFunctionProps = queryParam
     ? adapter.getInfiniteQueryHttpProps(
@@ -601,10 +616,9 @@ const generateQueryImplementation = ({
   );
   const queryResultVarName = hasParamReservedWord ? '_query' : 'query';
 
-  const infiniteParam =
-    queryParams && queryParam
-      ? `, ${queryParams.schema.name}['${queryParam}']`
-      : '';
+  const infiniteParam = infiniteQueryParamType
+    ? `, ${infiniteQueryParamType}`
+    : '';
   const TData =
     hasQueryV5 &&
     (type === QueryType.INFINITE || type === QueryType.SUSPENSE_INFINITE)
@@ -641,7 +655,7 @@ ${hookOptions}
         : `typeof ${operationName}`
     }>>${
       hasQueryV5 && hasInfiniteQueryParam
-        ? `, QueryKey, ${queryParams.schema.name}['${queryParam}']`
+        ? `, QueryKey, ${infiniteQueryParamType}`
         : ''
     }> = (${queryFnArguments}) => ${operationName}(${httpFunctionProps}${
       httpFunctionProps ? ', ' : ''
@@ -955,12 +969,19 @@ export const generateQueryHook = async (
   const effectiveUseSuspenseQuery =
     operationQueryOptions?.useSuspenseQuery ??
     globalSuspenseOrInfiniteOnlyForGet(override.query.useSuspenseQuery);
+  const hasConfiguredInfiniteQueryParam =
+    !query.useInfiniteQueryParam ||
+    hasQueryParam(queryParams, query.useInfiniteQueryParam);
   const effectiveUseInfinite =
-    operationQueryOptions?.useInfinite ??
-    globalSuspenseOrInfiniteOnlyForGet(override.query.useInfinite);
+    (operationQueryOptions?.useInfinite ??
+      globalSuspenseOrInfiniteOnlyForGet(override.query.useInfinite)) &&
+    hasConfiguredInfiniteQueryParam;
   const effectiveUseSuspenseInfiniteQuery =
-    operationQueryOptions?.useSuspenseInfiniteQuery ??
-    globalSuspenseOrInfiniteOnlyForGet(override.query.useSuspenseInfiniteQuery);
+    (operationQueryOptions?.useSuspenseInfiniteQuery ??
+      globalSuspenseOrInfiniteOnlyForGet(
+        override.query.useSuspenseInfiniteQuery,
+      )) &&
+    hasConfiguredInfiniteQueryParam;
 
   let isQuery =
     effectiveUseQuery ||

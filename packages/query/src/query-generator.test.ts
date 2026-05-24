@@ -6,6 +6,7 @@ import {
   allowUndefinedParam,
   getMutationInvalidatesConflictWarning,
   getQueryKeyVerbPrefix,
+  hasQueryParam,
   makeOptionalParam,
   wrapPropsBodyWithMutatorBodyType,
 } from './query-generator';
@@ -171,6 +172,49 @@ describe('getQueryKeyVerbPrefix', () => {
         useOperationIdAsQueryKey: undefined,
       }),
     ).toBe('POST');
+  });
+});
+
+describe('hasQueryParam', () => {
+  it('returns true when the configured infinite query param is present', () => {
+    expect(
+      hasQueryParam(
+        {
+          schema: { name: 'ListPetsParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          paramNames: ['cursor', 'limit'],
+        },
+        'cursor',
+      ),
+    ).toBe(true);
+  });
+
+  it('returns false when the configured infinite query param is missing', () => {
+    expect(
+      hasQueryParam(
+        {
+          schema: { name: 'ListPetsParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          paramNames: ['limit'],
+        },
+        'cursor',
+      ),
+    ).toBe(false);
+  });
+
+  it('preserves older transformed query params that do not expose names', () => {
+    expect(
+      hasQueryParam(
+        {
+          schema: { name: 'ListPetsParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+        },
+        'cursor',
+      ),
+    ).toBe(true);
   });
 });
 
