@@ -1411,6 +1411,7 @@ export interface GetterQueryParam {
   schema: GeneratorSchema;
   deps: GeneratorSchema[];
   isOptional: boolean;
+  paramNames?: string[];
   originalSchema?: OpenApiSchemaObject;
   requiredNullableKeys?: string[];
   /**

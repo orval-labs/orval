@@ -451,6 +451,39 @@ describe('getQueryParams getter', () => {
     ]);
   });
 
+  it('tracks raw query parameter names for downstream generators', () => {
+    const result = getQueryParams({
+      queryParams: [
+        {
+          parameter: {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+            },
+          },
+          imports: [],
+        },
+        {
+          parameter: {
+            name: 'page-size',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'number',
+            },
+          },
+          imports: [],
+        },
+      ],
+      operationName: 'listPets',
+      context,
+    });
+
+    expect(result?.paramNames).toEqual(['cursor', 'page-size']);
+  });
+
   // Tracking non-primitive keys lets Angular generators preserve schema-
   // declared object/array-of-object params through the default filterParams
   // helper instead of silently dropping them. See issue #3326.

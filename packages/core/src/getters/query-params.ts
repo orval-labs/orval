@@ -312,6 +312,7 @@ export function getQueryParams({
     schema,
     deps: schemas,
     isOptional: allOptional,
+    paramNames: types.map(({ name }) => name),
     requiredNullableKeys,
     ...(nonPrimitiveKeys.length > 0 ? { nonPrimitiveKeys } : {}),
   };
