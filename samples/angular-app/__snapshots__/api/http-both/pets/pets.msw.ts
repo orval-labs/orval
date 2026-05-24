@@ -36,7 +36,7 @@ export const getSearchPetsResponseMock = (): Pets =>
     phone: (() =>
       faker.helpers.arrayElement([
         `+1${faker.string.numeric({ length: 10 })}`,
-        undefined,
+        void 0,
       ]))(),
     requiredNullableString: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
@@ -80,7 +80,7 @@ export const getListPetsResponseMock = (): Pets =>
       phone: (() =>
         faker.helpers.arrayElement([
           `+1${faker.string.numeric({ length: 10 })}`,
-          undefined,
+          void 0,
         ]))(),
       requiredNullableString: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
@@ -121,7 +121,7 @@ export const getListPetsResponseMock = (): Pets =>
       phone: (() =>
         faker.helpers.arrayElement([
           `+1${faker.string.numeric({ length: 10 })}`,
-          undefined,
+          void 0,
         ]))(),
       requiredNullableString: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
@@ -144,17 +144,17 @@ export const getShowPetByIdResponseMock = () =>
   (() => ({
     id: faker.number.int({ min: 1, max: 99 }),
     name: faker.person.firstName(),
-    tag: faker.helpers.arrayElement([faker.word.sample(), undefined]),
+    tag: faker.helpers.arrayElement([faker.word.sample(), void 0]),
     status: faker.helpers.arrayElement(['available', 'pending', 'sold']),
     requiredNullableString: null,
     optionalNullableString: faker.helpers.arrayElement([
       faker.word.sample(),
       null,
-      undefined,
+      void 0,
     ]),
     phone: faker.helpers.arrayElement([
       `+1${faker.string.numeric({ length: 10 })}`,
-      undefined,
+      void 0,
     ]),
   }))();
 
@@ -183,7 +183,7 @@ export const getUpdatePetByIdResponseMock = (
       phone: (() =>
         faker.helpers.arrayElement([
           `+1${faker.string.numeric({ length: 10 })}`,
-          undefined,
+          void 0,
         ]))(),
       requiredNullableString: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
@@ -229,7 +229,7 @@ export const getPatchPetByIdResponseMock = (
       phone: (() =>
         faker.helpers.arrayElement([
           `+1${faker.string.numeric({ length: 10 })}`,
-          undefined,
+          void 0,
         ]))(),
       requiredNullableString: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
