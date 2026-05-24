@@ -1350,7 +1350,7 @@ const parseBodyAndResponse = ({
     ),
   );
   const formDataContent = contentEntries.find(
-    isMediaType('multipart/form-data'),
+    isMediaType(String.raw`^multipart\/form-data$`),
   );
   const [contentType, mediaType] = jsonContent
     ? (['application/json', jsonContent[1]] as const)
