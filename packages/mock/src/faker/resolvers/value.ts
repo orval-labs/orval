@@ -193,6 +193,81 @@ export function resolveMockValue({
         : { nullable: schemaReference.nullable }),
     } as MockSchemaObject;
 
+    // When a discriminator parent ($ref-loaded schema with both `discriminator`
+    // and `oneOf`) is being expanded inside an `allOf` chain AND the chain
+    // is rooted at one of that parent's mapping targets (i.e. the current
+    // schema *is* a variant via `allOf: [parent, ...extras]`), the parent's
+    // `oneOf` is descriptive of the union, not additive to this specific
+    // variant. Re-expanding it inlines sibling factory calls into the derived
+    // variant's mock body (#2155). Drop the `oneOf` side here; the parent
+    // still contributes its own `properties` and other base attributes
+    // through the remaining schema fields.
+    //
+    // The mapping-target check guards against cases like
+    // `someField: allOf: [<discriminator parent>]` (e.g. #one-of-nested
+    // `Example2.expiry`), where the surrounding schema is NOT a variant of
+    // the parent and we still need the full union to randomize over.
+    //
+    // Symmetrically with the oneOf-side fix in `combineSchemasMock` (#3429),
+    // also drop the discriminator key from the parent's `properties`: each
+    // variant already carries a constrained discriminator value via
+    // `resolveDiscriminators`, so leaving the parent's free-choice enum in
+    // would just emit dead code (immediately shadowed by the variant's
+    // constrained value through spread merge).
+    if (
+      combine?.separator === 'allOf' &&
+      newSchema.discriminator &&
+      newSchema.oneOf
+    ) {
+      const parentDiscriminator = newSchema.discriminator as {
+        propertyName?: string;
+        mapping?: Record<string, string>;
+      };
+      const mappingTargetNames = parentDiscriminator.mapping
+        ? Object.values(parentDiscriminator.mapping).map((ref) =>
+            pascal(ref.split('/').pop() ?? ''),
+          )
+        : [];
+      const expandingAsVariant = existingReferencedProperties.some((refName) =>
+        mappingTargetNames.includes(refName),
+      );
+
+      if (expandingAsVariant) {
+        const mutableSchema = newSchema as Record<string, unknown>;
+        delete mutableSchema.oneOf;
+        const parentProperties = newSchema.properties as
+          | Record<string, unknown>
+          | undefined;
+        if (
+          parentDiscriminator.propertyName &&
+          parentProperties &&
+          parentDiscriminator.propertyName in parentProperties
+        ) {
+          const remainingProperties = Object.fromEntries(
+            Object.entries(parentProperties).filter(
+              ([key]) => key !== parentDiscriminator.propertyName,
+            ),
+          );
+          if (Object.keys(remainingProperties).length === 0) {
+            delete mutableSchema.properties;
+          } else {
+            mutableSchema.properties = remainingProperties;
+          }
+          const parentRequired = newSchema.required as string[] | undefined;
+          if (Array.isArray(parentRequired)) {
+            const filteredRequired = parentRequired.filter(
+              (key) => key !== parentDiscriminator.propertyName,
+            );
+            if (filteredRequired.length === 0) {
+              delete mutableSchema.required;
+            } else {
+              mutableSchema.required = filteredRequired;
+            }
+          }
+        }
+      }
+    }
+
     const newSeparator = newSchema.allOf
       ? 'allOf'
       : newSchema.oneOf

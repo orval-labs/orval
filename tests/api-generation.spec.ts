@@ -515,3 +515,39 @@ test('default issue-1775 preserves boolean enum literals across allOf+oneOf', as
   expect(endpoints).toContain('arrayElement([false] as const)');
   expect(endpoints).not.toMatch(/success: faker\.datatype\.boolean\(\)/);
 });
+
+test('mock issue-2155 keeps allOf-inherited variant mocks free of sibling factories', async () => {
+  // Regression for the second half of #2155: when a variant is shaped as
+  // `Item N = allOf:[<discriminator parent>, ...]`, resolveMockValue used to
+  // re-expand the parent's `oneOf` inside the allOf chain, inlining sibling
+  // factory calls into the derived variant's body. The fix in
+  // `packages/mock/src/faker/resolvers/value.ts` strips `oneOf` from the
+  // referenced parent when it is being expanded under an allOf separator,
+  // because the current schema is by construction a specific variant — the
+  // union side of the parent is descriptive, not additive.
+  const endpoints = await readFile(
+    generated('mock', 'discriminator-oneof-allof', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // Each variant's factory body must only describe its own properties and the
+  // mapping-constrained discriminator value — no cross-variant factory calls.
+  const variantBlocks = [
+    ['getGetTestResponseItem1Mock', /getGetTestResponseItem[23]Mock/],
+    ['getGetTestResponseItem2Mock', /getGetTestResponseItem[13]Mock/],
+    ['getGetTestResponseItem3Mock', /getGetTestResponseItem[12]Mock/],
+  ] as const;
+  for (const [funcName, siblingPattern] of variantBlocks) {
+    const block = endpoints.slice(
+      endpoints.indexOf(`export const ${funcName}`),
+      endpoints.indexOf(
+        'export const ',
+        endpoints.indexOf(`export const ${funcName}`) + 1,
+      ),
+    );
+    expect(
+      block,
+      `${funcName} must not reference sibling factories`,
+    ).not.toMatch(siblingPattern);
+  }
+});
