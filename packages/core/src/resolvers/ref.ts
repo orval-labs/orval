@@ -24,6 +24,21 @@ export function dynamicAnchorToParamName(anchor: string): string {
   });
 }
 
+export function dynamicAnchorsToUniqueParamNames(
+  anchors: string[],
+): Map<string, string> {
+  const result = new Map<string, string>();
+  const usedNames = new Map<string, number>();
+  for (const anchor of anchors) {
+    const base = dynamicAnchorToParamName(anchor);
+    const count = usedNames.get(base) ?? 0;
+    usedNames.set(base, count + 1);
+    const paramName = count === 0 ? base : `${base}${count + 1}`;
+    result.set(anchor, paramName);
+  }
+  return result;
+}
+
 type Example = OpenApiExampleObject | OpenApiReferenceObject;
 type ResolvedExample = unknown;
 type Examples =
@@ -135,9 +150,10 @@ export function resolveRef<TSchema extends object = OpenApiComponentsObject>(
  */
 export interface BoundAliasInfo {
   genericName: string;
+  genericParams: string[];
   typeArgs: string[];
   imports: { name: string; schemaName: string }[];
-  extraSchemas?: OpenApiSchemaObject[];
+  extraSchemas?: (OpenApiSchemaObject | OpenApiReferenceObject)[];
 }
 
 /** Check whether a schema reference has at least one `$defs` entry with both `$dynamicAnchor` and `$ref`. */
@@ -166,7 +182,9 @@ export function extractBoundAliasInfo(
   context: ContextSpec,
 ): BoundAliasInfo | undefined {
   let bindingElement: OpenApiReferenceObject | undefined;
-  let extraSchemas: OpenApiSchemaObject[] | undefined;
+  let extraSchemas:
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
 
   if (isReference(schema) && isBoundAlias(schema)) {
     bindingElement = schema;
@@ -179,9 +197,10 @@ export function extractBoundAliasInfo(
           | OpenApiReferenceObject;
         if (isReference(element) && isBoundAlias(element)) {
           bindingElement = element;
-          extraSchemas = allOf.filter(
-            (_: unknown, j: number) => j !== i,
-          ) as OpenApiSchemaObject[];
+          extraSchemas = allOf.filter((_: unknown, j: number) => j !== i) as (
+            | OpenApiSchemaObject
+            | OpenApiReferenceObject
+          )[];
           break;
         }
       }
@@ -235,21 +254,33 @@ export function extractBoundAliasInfo(
     | undefined;
 
   const typeArgs: string[] = [];
+  const genericParams: string[] = [];
   const imports: { name: string; schemaName: string }[] = [];
 
   if (templateDefs && typeof templateDefs === 'object') {
+    const templateAnchors: string[] = [];
     for (const defSchema of Object.values(templateDefs)) {
       if (!defSchema || typeof defSchema !== 'object') continue;
       const rec = defSchema as Record<string, unknown>;
       if (rec.$dynamicAnchor === undefined || rec.$ref !== undefined) continue;
-      const anchor = rec.$dynamicAnchor as string;
+      templateAnchors.push(rec.$dynamicAnchor as string);
+    }
+
+    const uniqueNames = dynamicAnchorsToUniqueParamNames(templateAnchors);
+    for (const anchor of templateAnchors) {
       const binding = bindingByAnchor.get(anchor);
-      if (!binding) continue;
-      typeArgs.push(binding.typeName);
-      imports.push({
-        name: binding.typeName,
-        schemaName: binding.originalName,
-      });
+      if (binding) {
+        typeArgs.push(binding.typeName);
+        imports.push({
+          name: binding.typeName,
+          schemaName: binding.originalName,
+        });
+      } else {
+        const paramName =
+          uniqueNames.get(anchor) ?? dynamicAnchorToParamName(anchor);
+        typeArgs.push(paramName);
+        genericParams.push(paramName);
+      }
     }
   }
 
@@ -260,7 +291,7 @@ export function extractBoundAliasInfo(
     }
   }
 
-  return { genericName, typeArgs, imports, extraSchemas };
+  return { genericName, genericParams, typeArgs, imports, extraSchemas };
 }
 
 function getSchema<TSchema extends object = OpenApiComponentsObject>(
@@ -367,6 +398,7 @@ export function buildDynamicScope(
     | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
     | undefined;
   if (defs && typeof defs === 'object') {
+    const unboundAnchors: string[] = [];
     for (const [, defSchema] of Object.entries(defs)) {
       if (!defSchema || typeof defSchema !== 'object') continue;
       const defRecord = defSchema as Record<string, unknown>;
@@ -377,13 +409,20 @@ export function buildDynamicScope(
           const { name, originalName } = getRefInfo(refInDef, context);
           scope[anchorName] = { name, schemaName: originalName };
         } else if (!refInDef) {
-          const paramName = dynamicAnchorToParamName(anchorName);
-          scope[anchorName] = {
-            name: paramName,
-            schemaName: paramName,
-            isParameter: true,
-          };
+          unboundAnchors.push(anchorName);
         }
+      }
+    }
+    if (unboundAnchors.length > 0) {
+      const uniqueNames = dynamicAnchorsToUniqueParamNames(unboundAnchors);
+      for (const anchor of unboundAnchors) {
+        const paramName = uniqueNames.get(anchor);
+        if (paramName === undefined) continue;
+        scope[anchor] = {
+          name: paramName,
+          schemaName: paramName,
+          isParameter: true,
+        };
       }
     }
   }

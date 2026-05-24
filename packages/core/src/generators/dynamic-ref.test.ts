@@ -725,4 +725,226 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
     expect(container).toBeDefined();
     expect(container!.model).toContain('item');
   });
+
+  it('preserves unbound generic params for $ref schemas with $defs', () => {
+    const spec: OpenApiDocument = {
+      openapi: '3.1.0',
+      info: { title: 'Test', version: '0.1.0' },
+      paths: {},
+      components: {
+        schemas: {
+          BaseNode: {
+            $dynamicAnchor: 'node',
+            type: 'object',
+            properties: {
+              child: { $dynamicRef: '#node' },
+            },
+          },
+          Container: {
+            $defs: {
+              nodeType: {
+                $dynamicAnchor: 'node',
+                type: 'string',
+              },
+            },
+            $ref: '#/components/schemas/BaseNode',
+          },
+        },
+      },
+    };
+
+    const schemas = spec.components!.schemas!;
+    const result = generateSchemasDefinition(schemas, createContext(spec), '');
+
+    const container = result.find((s) => s.name === 'Container');
+    expect(container).toBeDefined();
+    expect(container!.model).toContain('type Container<node>');
+  });
+
+  it('produces unique generic params for colliding dynamic anchors', () => {
+    const spec: OpenApiDocument = {
+      openapi: '3.1.0',
+      info: { title: 'Test', version: '0.1.0' },
+      paths: {},
+      components: {
+        schemas: {
+          MultiParamTemplate: {
+            $defs: {
+              'foo-bar': { $dynamicAnchor: 'foo-bar', not: {} },
+              foo_bar: { $dynamicAnchor: 'foo_bar', not: {} },
+            },
+            type: 'object',
+            properties: {
+              a: { $dynamicRef: '#foo-bar' },
+              b: { $dynamicRef: '#foo_bar' },
+            },
+          },
+        },
+      },
+    };
+
+    const schemas = spec.components!.schemas!;
+    const result = generateSchemasDefinition(schemas, createContext(spec), '');
+
+    const template = result.find((s) => s.name === 'MultiParamTemplate');
+    expect(template).toBeDefined();
+    expect(template!.model).toContain(
+      'interface MultiParamTemplate<foo_bar, foo_bar2>',
+    );
+    expect(template!.model).toContain('a?: foo_bar');
+    expect(template!.model).toContain('b?: foo_bar2');
+  });
+
+  it('passes unbound params through partially bound aliases', () => {
+    const spec: OpenApiDocument = {
+      openapi: '3.1.0',
+      info: { title: 'Test', version: '0.1.0' },
+      paths: {},
+      components: {
+        schemas: {
+          User: {
+            type: 'object',
+            properties: { id: { type: 'string' } },
+          },
+          PairTemplate: {
+            $defs: {
+              itemType: { $dynamicAnchor: 'itemType', not: {} },
+              cursorType: { $dynamicAnchor: 'cursorType', not: {} },
+            },
+            type: 'object',
+            properties: {
+              item: { $dynamicRef: '#itemType' },
+              cursor: { $dynamicRef: '#cursorType' },
+            },
+          },
+          PartiallyBoundPair: {
+            $defs: {
+              itemType: {
+                $dynamicAnchor: 'itemType',
+                $ref: '#/components/schemas/User',
+              },
+              cursorType: { $dynamicAnchor: 'cursorType', type: 'string' },
+            },
+            $ref: '#/components/schemas/PairTemplate',
+          },
+        },
+      },
+    };
+
+    const schemas = spec.components!.schemas!;
+    const result = generateSchemasDefinition(schemas, createContext(spec), '');
+
+    const partiallyBound = result.find((s) => s.name === 'PartiallyBoundPair');
+    expect(partiallyBound).toBeDefined();
+    expect(partiallyBound!.model).toContain(
+      'type PartiallyBoundPair<cursorType> = PairTemplate<User, cursorType>',
+    );
+  });
+
+  it('resolves colliding unbound anchors via $dynamicRef in buildDynamicScope', () => {
+    const spec: OpenApiDocument = {
+      openapi: '3.1.0',
+      info: { title: 'Test', version: '0.1.0' },
+      paths: {},
+      components: {
+        schemas: {
+          DualSlotTemplate: {
+            $defs: {
+              'foo-bar': { $dynamicAnchor: 'foo-bar', not: {} },
+              foo_bar: { $dynamicAnchor: 'foo_bar', not: {} },
+            },
+            type: 'object',
+            properties: {
+              a: { $dynamicRef: '#foo-bar' },
+              b: { $dynamicRef: '#foo_bar' },
+            },
+          },
+          BoundDualSlot: {
+            $defs: {
+              'foo-bar': {
+                $dynamicAnchor: 'foo-bar',
+                $ref: '#/components/schemas/User',
+              },
+              foo_bar: {
+                $dynamicAnchor: 'foo_bar',
+                $ref: '#/components/schemas/Group',
+              },
+            },
+            $ref: '#/components/schemas/DualSlotTemplate',
+          },
+        },
+      },
+    };
+
+    const schemas = spec.components!.schemas!;
+    const result = generateSchemasDefinition(schemas, createContext(spec), '');
+
+    const template = result.find((s) => s.name === 'DualSlotTemplate');
+    expect(template).toBeDefined();
+    expect(template!.model).toContain(
+      'interface DualSlotTemplate<foo_bar, foo_bar2>',
+    );
+    expect(template!.model).toContain('a?: foo_bar');
+    expect(template!.model).toContain('b?: foo_bar2');
+
+    const bound = result.find((s) => s.name === 'BoundDualSlot');
+    expect(bound).toBeDefined();
+    expect(bound!.model).toContain(
+      'type BoundDualSlot = DualSlotTemplate<User, Group>',
+    );
+  });
+
+  it('handles partially bound alias with colliding template anchors', () => {
+    const spec: OpenApiDocument = {
+      openapi: '3.1.0',
+      info: { title: 'Test', version: '0.1.0' },
+      paths: {},
+      components: {
+        schemas: {
+          User: {
+            type: 'object',
+            properties: { id: { type: 'string' } },
+          },
+          CollidingSlotTemplate: {
+            $defs: {
+              'foo-bar': { $dynamicAnchor: 'foo-bar', not: {} },
+              foo_bar: { $dynamicAnchor: 'foo_bar', not: {} },
+            },
+            type: 'object',
+            properties: {
+              a: { $dynamicRef: '#foo-bar' },
+              b: { $dynamicRef: '#foo_bar' },
+            },
+          },
+          PartiallyBoundColliding: {
+            $defs: {
+              'foo-bar': {
+                $dynamicAnchor: 'foo-bar',
+                $ref: '#/components/schemas/User',
+              },
+              foo_bar: { $dynamicAnchor: 'foo_bar', type: 'string' },
+            },
+            $ref: '#/components/schemas/CollidingSlotTemplate',
+          },
+        },
+      },
+    };
+
+    const schemas = spec.components!.schemas!;
+    const result = generateSchemasDefinition(schemas, createContext(spec), '');
+
+    const template = result.find((s) => s.name === 'CollidingSlotTemplate');
+    expect(template).toBeDefined();
+    expect(template!.model).toContain(
+      'interface CollidingSlotTemplate<foo_bar, foo_bar2>',
+    );
+
+    const partiallyBound = result.find(
+      (s) => s.name === 'PartiallyBoundColliding',
+    );
+    expect(partiallyBound).toBeDefined();
+    expect(partiallyBound!.model).toContain(
+      'type PartiallyBoundColliding<foo_bar2> = CollidingSlotTemplate<User, foo_bar2>',
+    );
+  });
 });

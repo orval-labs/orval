@@ -7,6 +7,7 @@ import type {
   OpenApiSchemaObject,
 } from '../types';
 import {
+  dynamicAnchorsToUniqueParamNames,
   extractBoundAliasInfo,
   resolveDynamicRef,
   resolveExampleRefs,
@@ -579,5 +580,127 @@ describe('resolveDynamicRef — isParameter branch', () => {
     expect(result.resolvedTypeName).toBe('itemType');
     expect(result.schema).toEqual({});
     expect(result.imports).toEqual([]);
+  });
+});
+
+describe('dynamicAnchorsToUniqueParamNames', () => {
+  it('produces unique names when sanitized anchors collide', () => {
+    const mapping = dynamicAnchorsToUniqueParamNames(['foo-bar', 'foo_bar']);
+    expect(mapping.get('foo-bar')).toBe('foo_bar');
+    expect(mapping.get('foo_bar')).toBe('foo_bar2');
+  });
+
+  it('preserves non-colliding anchors unchanged', () => {
+    const mapping = dynamicAnchorsToUniqueParamNames(['alpha', 'beta']);
+    expect(mapping.get('alpha')).toBe('alpha');
+    expect(mapping.get('beta')).toBe('beta');
+  });
+
+  it('appends incrementing suffixes for triple collisions', () => {
+    const mapping = dynamicAnchorsToUniqueParamNames(['a-b', 'a_b', 'a b']);
+    expect(mapping.get('a-b')).toBe('a_b');
+    expect(mapping.get('a_b')).toBe('a_b2');
+    expect(mapping.get('a b')).toBe('a_b3');
+  });
+
+  it('returns empty map for empty input', () => {
+    const mapping = dynamicAnchorsToUniqueParamNames([]);
+    expect(mapping.size).toBe(0);
+  });
+});
+
+describe('extractBoundAliasInfo — $ref extra schemas in allOf', () => {
+  it('preserves $ref siblings in extraSchemas', () => {
+    const context = createContext({
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          User: { type: 'object', properties: { id: { type: 'string' } } },
+          AuditedEntity: {
+            type: 'object',
+            properties: { createdBy: { type: 'string' } },
+          },
+          BaseTemplate: {
+            $id: 'https://example.com/schemas/BaseTemplate',
+            $defs: {
+              itemType: { $dynamicAnchor: 'itemType', not: {} },
+            },
+            type: 'object',
+            properties: {
+              item: { $dynamicRef: '#itemType' },
+            },
+          },
+          ExtendedResponse: {
+            allOf: [
+              {
+                $defs: {
+                  itemType: {
+                    $dynamicAnchor: 'itemType',
+                    $ref: '#/components/schemas/User',
+                  },
+                },
+                $ref: '#/components/schemas/BaseTemplate',
+              },
+              { $ref: '#/components/schemas/AuditedEntity' },
+            ],
+          },
+        },
+      },
+    });
+
+    const alias = extractBoundAliasInfo(
+      context.spec.components?.schemas
+        ?.ExtendedResponse as unknown as OpenApiSchemaObject,
+      context,
+    );
+
+    expect(alias).toBeDefined();
+    expect(alias?.extraSchemas).toHaveLength(1);
+    expect(alias?.extraSchemas?.[0]).toHaveProperty('$ref');
+  });
+
+  it('handles colliding template anchors with partial binding', () => {
+    const context = createContext({
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          User: { type: 'object', properties: { id: { type: 'string' } } },
+          CollidingTemplate: {
+            $id: 'https://example.com/schemas/CollidingTemplate',
+            $defs: {
+              'foo-bar': { $dynamicAnchor: 'foo-bar', not: {} },
+              foo_bar: { $dynamicAnchor: 'foo_bar', not: {} },
+            },
+            type: 'object',
+            properties: {
+              a: { $dynamicRef: '#foo-bar' },
+              b: { $dynamicRef: '#foo_bar' },
+            },
+          },
+          PartiallyBoundColliding: {
+            $defs: {
+              'foo-bar': {
+                $dynamicAnchor: 'foo-bar',
+                $ref: '#/components/schemas/User',
+              },
+              foo_bar: { $dynamicAnchor: 'foo_bar', type: 'string' },
+            },
+            $ref: '#/components/schemas/CollidingTemplate',
+          },
+        },
+      },
+    });
+
+    const alias = extractBoundAliasInfo(
+      context.spec.components?.schemas
+        ?.PartiallyBoundColliding as unknown as OpenApiSchemaObject,
+      context,
+    );
+
+    expect(alias).toBeDefined();
+    expect(alias?.genericName).toBe('CollidingTemplate');
+    expect(alias?.typeArgs).toEqual(['User', 'foo_bar2']);
+    expect(alias?.genericParams).toEqual(['foo_bar2']);
+    expect(alias?.imports).toEqual([{ name: 'User', schemaName: 'User' }]);
   });
 });

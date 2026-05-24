@@ -9,6 +9,7 @@ import {
 } from '../getters';
 import {
   buildDynamicScope,
+  dynamicAnchorsToUniqueParamNames,
   dynamicAnchorToParamName,
   extractBoundAliasInfo,
   resolveRef,
@@ -18,13 +19,13 @@ import type {
   ContextSpec,
   GeneratorSchema,
   InputFiltersOptions,
+  OpenApiReferenceObject,
   OpenApiSchemaObject,
   OpenApiSchemasObject,
 } from '../types';
 import {
   conventionName,
   isBoolean,
-  isReference,
   isString,
   jsDoc,
   pascal,
@@ -167,27 +168,27 @@ function shouldCreateInterface(schema: OpenApiSchemaObject) {
 }
 
 function collectGenericParams(
-  schema: OpenApiSchemaObject,
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
 ): { anchorName: string; paramName: string }[] {
   const defs = (schema as Record<string, unknown>).$defs as
     | Record<string, OpenApiSchemaObject>
     | undefined;
   if (!defs || typeof defs !== 'object') return [];
-  const params: { anchorName: string; paramName: string }[] = [];
+  const anchors: string[] = [];
   for (const defSchema of Object.values(defs)) {
     if (!defSchema || typeof defSchema !== 'object') {
       continue;
     }
     const rec = defSchema as Record<string, unknown>;
     if (rec.$dynamicAnchor !== undefined && rec.$ref === undefined) {
-      const anchor = rec.$dynamicAnchor as string;
-      params.push({
-        anchorName: anchor,
-        paramName: dynamicAnchorToParamName(anchor),
-      });
+      anchors.push(rec.$dynamicAnchor as string);
     }
   }
-  return params;
+  const uniqueNames = dynamicAnchorsToUniqueParamNames(anchors);
+  return anchors.map((anchor) => ({
+    anchorName: anchor,
+    paramName: uniqueNames.get(anchor) ?? dynamicAnchorToParamName(anchor),
+  }));
 }
 
 function generateSchemaDefinitions(
@@ -217,9 +218,10 @@ function generateSchemaDefinitions(
 
   const alias = extractBoundAliasInfo(schema, context);
   if (alias) {
-    const genericParams = isReference(schema)
-      ? []
-      : collectGenericParams(schema);
+    const genericParams = alias.genericParams.map((paramName) => ({
+      anchorName: paramName,
+      paramName,
+    }));
     const genericSuffix =
       genericParams.length > 0
         ? `<${genericParams.map((p) => p.paramName).join(', ')}>`
@@ -303,7 +305,7 @@ function generateSchemaDefinitions(
         dynamicScope: buildDynamicScope(schemaName, schema, context),
       };
 
-  const genericParams = isReference(schema) ? [] : collectGenericParams(schema);
+  const genericParams = collectGenericParams(schema);
 
   if (shouldCreateInterface(schema)) {
     return generateInterface({

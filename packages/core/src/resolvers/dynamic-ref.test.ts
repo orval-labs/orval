@@ -685,4 +685,39 @@ describe('null safety in $defs entries', () => {
       isParameter: true,
     });
   });
+
+  it('deduplicates colliding unbound anchor names in buildDynamicScope', () => {
+    const spec = {
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          Container: {
+            $defs: {
+              'foo-bar': { $dynamicAnchor: 'foo-bar', type: 'string' },
+              foo_bar: { $dynamicAnchor: 'foo_bar', type: 'number' },
+            },
+            type: 'object',
+          },
+        },
+      },
+    } as OpenApiDocument;
+    const context = createContext(spec);
+
+    const scope = buildDynamicScope(
+      'Container',
+      spec.components!.schemas!.Container,
+      context,
+    );
+
+    expect(scope['foo-bar']).toEqual({
+      name: 'foo_bar',
+      schemaName: 'foo_bar',
+      isParameter: true,
+    });
+    expect(scope.foo_bar).toEqual({
+      name: 'foo_bar2',
+      schemaName: 'foo_bar2',
+      isParameter: true,
+    });
+  });
 });
