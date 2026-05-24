@@ -538,13 +538,13 @@ test('mock issue-2155 keeps allOf-inherited variant mocks free of sibling factor
     ['getGetTestResponseItem3Mock', /getGetTestResponseItem[12]Mock/],
   ] as const;
   for (const [funcName, siblingPattern] of variantBlocks) {
-    const block = endpoints.slice(
-      endpoints.indexOf(`export const ${funcName}`),
-      endpoints.indexOf(
-        'export const ',
-        endpoints.indexOf(`export const ${funcName}`) + 1,
-      ),
-    );
+    const start = endpoints.indexOf(`export const ${funcName}`);
+    expect(start, `${funcName} should be generated`).toBeGreaterThan(-1);
+
+    const nextExport = endpoints.indexOf('export const ', start + 1);
+    const end = nextExport === -1 ? endpoints.length : nextExport;
+
+    const block = endpoints.slice(start, end);
     expect(
       block,
       `${funcName} must not reference sibling factories`,
