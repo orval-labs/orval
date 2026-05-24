@@ -238,6 +238,18 @@ export default defineConfig({
       target: '../specifications/recursive-discriminator-allof.yaml',
     },
   },
+  discriminatorOneofUnion: {
+    output: {
+      target: '../generated/mock/discriminator-oneof-union/endpoints.ts',
+      schemas: '../generated/mock/discriminator-oneof-union/model',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/discriminator-oneof-union.yaml',
+    },
+  },
   mswMixedContentUnion: {
     output: {
       target: '../generated/mock/msw-mixed-content-union/endpoints.ts',

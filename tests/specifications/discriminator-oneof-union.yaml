@@ -1,0 +1,65 @@
+openapi: '3.0.2'
+info:
+  title: Discriminator with oneOf union
+  version: '1.0'
+
+components:
+  schemas:
+    DiscriminatorTest:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [item1, item2, item3]
+      discriminator:
+        propertyName: type
+        mapping:
+          item1: '#/components/schemas/Item1'
+          item2: '#/components/schemas/Item2'
+          item3: '#/components/schemas/Item3'
+      oneOf:
+        - $ref: '#/components/schemas/Item1'
+        - $ref: '#/components/schemas/Item2'
+        - $ref: '#/components/schemas/Item3'
+
+    Item1:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+        property1:
+          type: string
+    Item2:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+        property2:
+          type: string
+    Item3:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+        property3:
+          type: string
+
+paths:
+  /test:
+    get:
+      operationId: getTest
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscriminatorTest'
