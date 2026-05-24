@@ -250,6 +250,18 @@ export default defineConfig({
       target: '../specifications/discriminator-oneof-union.yaml',
     },
   },
+  discriminatorOneofAllof: {
+    output: {
+      target: '../generated/mock/discriminator-oneof-allof/endpoints.ts',
+      schemas: '../generated/mock/discriminator-oneof-allof/model',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/discriminator-oneof-allof.yaml',
+    },
+  },
   mswMixedContentUnion: {
     output: {
       target: '../generated/mock/msw-mixed-content-union/endpoints.ts',
