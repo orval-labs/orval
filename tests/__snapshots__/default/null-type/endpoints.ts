@@ -8,7 +8,7 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import type { NullableObject } from './model';
+import type { NullableObject, NullableRefContainer } from './model';
 
 /**
  * @summary Nullable response
@@ -58,7 +58,17 @@ export const nullableWithMultipartFormRequest = (
   return axios.post(`/nullable-with-multipart-form-data`, formData, options);
 };
 
+/**
+ * @summary Nullable $ref (type null + allOf) response
+ */
+export const fetchNullableRef = (
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<NullableRefContainer>> => {
+  return axios.get(`/nullable-ref`, options);
+};
+
 export type FetchNullableResult = AxiosResponse<string | null>;
 export type FetchNullableObjectResult = AxiosResponse<NullableObject>;
 export type NullableWithMultipartFormRequestResult =
   AxiosResponse<NullableObject>;
+export type FetchNullableRefResult = AxiosResponse<NullableRefContainer>;

@@ -259,6 +259,44 @@ export function getScalar({
     }
 
     case 'null': {
+      // Some OAS 3.1 generators emit a nullable composition in the
+      // non-canonical form `{ type: 'null', allOf|oneOf|anyOf: [...] }`
+      // (e.g. Swashbuckle with UseAllOfToExtendReferenceSchemas; passed
+      // through by @scalar/openapi-upgrader) rather than the canonical
+      // `{ anyOf: [...], type: 'null' }` member form. Treat the composition as
+      // the value and `null` as a union member so this yields `T | null`
+      // instead of collapsing to `null` and dropping the refs.
+      const itemAllOf = item.allOf as unknown[] | undefined;
+      const itemOneOf = item.oneOf as unknown[] | undefined;
+      const itemAnyOf = item.anyOf as unknown[] | undefined;
+      let separator: 'allOf' | 'oneOf' | 'anyOf' | undefined;
+      if (itemAllOf?.length) {
+        separator = 'allOf';
+      } else if (itemOneOf?.length) {
+        separator = 'oneOf';
+      } else if (itemAnyOf?.length) {
+        separator = 'anyOf';
+      }
+      if (separator) {
+        // Drop the consumed `type: 'null'` before delegating: its nullability
+        // is carried by `nullable` below, and leaving it on the schema makes
+        // combineSchemas' merged-properties recursion re-enter this `case` and
+        // collapse the object part back to `null`.
+        const schemaWithoutNull = Object.fromEntries(
+          Object.entries(item as Record<string, unknown>).filter(
+            ([key]) => key !== 'type',
+          ),
+        ) as OpenApiSchemaObject;
+        return combineSchemas({
+          schema: schemaWithoutNull,
+          name,
+          separator,
+          context,
+          nullable: nullable || ' | null',
+          formDataContext,
+        });
+      }
+
       return {
         value: 'null',
         isEnum: false,
