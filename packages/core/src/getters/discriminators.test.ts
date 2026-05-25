@@ -436,6 +436,109 @@ describe('resolveDiscriminators getter', () => {
     expect(inlined?.required).toEqual(['commonField']);
   });
 
+  it('preserves parent object-level constraints when inlining (#3432)', () => {
+    // Replacing the parent $ref with `{type:'object', properties, required}`
+    // alone would silently drop other parent constraints like
+    // `additionalProperties`, `minProperties`, `description`, etc. The inline
+    // schema must carry those forward so variant validation semantics match
+    // the dereferenced behavior we replaced.
+    const schemas: OpenApiSchemasObject = {
+      Parent: {
+        type: 'object',
+        additionalProperties: false,
+        minProperties: 1,
+        description: 'parent shape',
+        required: ['kind', 'commonField'],
+        properties: {
+          kind: { type: 'string', enum: ['a'] },
+          commonField: { type: 'string' },
+        },
+        discriminator: {
+          propertyName: 'kind',
+          mapping: {
+            a: '#/components/schemas/VariantA',
+          },
+        },
+        oneOf: [{ $ref: '#/components/schemas/VariantA' }],
+      },
+      VariantA: {
+        allOf: [
+          { $ref: '#/components/schemas/Parent' },
+          { type: 'object', properties: { extraA: { type: 'number' } } },
+        ],
+      },
+    };
+
+    const result = resolveDiscriminators(structuredClone(schemas), context);
+    const variantA = result.VariantA as NonNullable<
+      OpenApiSchemasObject[string]
+    >;
+    const allOf = variantA.allOf as
+      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+      | undefined;
+    const inlined = allOf?.[0] as Record<string, unknown> | undefined;
+
+    expect(inlined?.additionalProperties).toBe(false);
+    expect(inlined?.minProperties).toBe(1);
+    expect(inlined?.description).toBe('parent shape');
+    // Composition keys that would re-create the cycle must NOT be copied.
+    expect(inlined).not.toHaveProperty('oneOf');
+    expect(inlined).not.toHaveProperty('discriminator');
+    expect(inlined).not.toHaveProperty('allOf');
+  });
+
+  it('gives each variant its own properties object (#3432)', () => {
+    // The inlined parent properties must be cloned per variant — sharing the
+    // same Record across siblings would couple downstream in-place mutations
+    // (e.g. one variant's property tweak leaking into the other).
+    const schemas: OpenApiSchemasObject = {
+      Parent: {
+        type: 'object',
+        required: ['kind', 'shared'],
+        properties: {
+          kind: { type: 'string', enum: ['a', 'b'] },
+          shared: { type: 'string' },
+        },
+        discriminator: {
+          propertyName: 'kind',
+          mapping: {
+            a: '#/components/schemas/VariantA',
+            b: '#/components/schemas/VariantB',
+          },
+        },
+        oneOf: [
+          { $ref: '#/components/schemas/VariantA' },
+          { $ref: '#/components/schemas/VariantB' },
+        ],
+      },
+      VariantA: {
+        allOf: [
+          { $ref: '#/components/schemas/Parent' },
+          { type: 'object', properties: { extraA: { type: 'number' } } },
+        ],
+      },
+      VariantB: {
+        allOf: [
+          { $ref: '#/components/schemas/Parent' },
+          { type: 'object', properties: { extraB: { type: 'boolean' } } },
+        ],
+      },
+    };
+
+    const result = resolveDiscriminators(structuredClone(schemas), context);
+    const aAllOf = (
+      result.VariantA as NonNullable<OpenApiSchemasObject[string]>
+    ).allOf as (OpenApiSchemaObject | OpenApiReferenceObject)[] | undefined;
+    const bAllOf = (
+      result.VariantB as NonNullable<OpenApiSchemasObject[string]>
+    ).allOf as (OpenApiSchemaObject | OpenApiReferenceObject)[] | undefined;
+    const aInlined = aAllOf?.[0] as OpenApiSchemaObject | undefined;
+    const bInlined = bAllOf?.[0] as OpenApiSchemaObject | undefined;
+
+    expect(aInlined?.properties).not.toBe(bInlined?.properties);
+    expect(aInlined).not.toBe(bInlined);
+  });
+
   it('leaves allOf untouched when parent has no top-level oneOf (#3432 guard)', () => {
     // Sanity check: the existing recursive-discriminator-allof shape (parent
     // is a plain interface, variants inherit via allOf) must keep emitting an

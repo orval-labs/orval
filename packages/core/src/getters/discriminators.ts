@@ -182,14 +182,39 @@ export function resolveDiscriminators(
           rewritten.push(item);
           continue;
         }
+        // Preserve the parent's other object-level constraints
+        // (additionalProperties, minProperties, description, etc.) by shallow-
+        // cloning the parent and only stripping the parts that would re-create
+        // the cycle or are now meaningless on the variant.
+        const inlinedParent = {
+          ...(parentSchema as Record<string, unknown>),
+        } as OpenApiSchemaObject;
+        delete (inlinedParent as Record<string, unknown>).oneOf;
+        delete (inlinedParent as Record<string, unknown>).discriminator;
+        delete (inlinedParent as Record<string, unknown>).allOf;
+        delete (inlinedParent as Record<string, unknown>).anyOf;
+
         if (hasInheritableProps) {
-          rewritten.push({
-            type: 'object',
-            properties: inheritableProps,
-            ...(inheritableRequired && inheritableRequired.length > 0
-              ? { required: inheritableRequired }
-              : {}),
-          } as OpenApiSchemaObject);
+          // Fresh per-variant clone so downstream in-place mutations on one
+          // variant don't leak across siblings.
+          inlinedParent.properties = { ...inheritableProps };
+        } else {
+          delete (inlinedParent as Record<string, unknown>).properties;
+        }
+        if (inheritableRequired && inheritableRequired.length > 0) {
+          inlinedParent.required = [...inheritableRequired];
+        } else {
+          delete (inlinedParent as Record<string, unknown>).required;
+        }
+
+        // Drop the entry entirely when the parent contributed nothing beyond
+        // a bare `type: 'object'` — the second allOf member (the variant's
+        // own inline object) already asserts object-ness.
+        const meaningfulKeys = Object.keys(
+          inlinedParent as Record<string, unknown>,
+        ).filter((key) => key !== 'type');
+        if (meaningfulKeys.length > 0) {
+          rewritten.push(inlinedParent);
         }
       }
 
