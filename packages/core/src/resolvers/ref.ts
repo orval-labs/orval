@@ -1,16 +1,43 @@
 import { isDereferenced } from '@scalar/openapi-types/helpers';
 import { prop } from 'remeda';
 
-import { getRefInfo, type RefInfo } from '../getters/ref';
+import { getRefInfo, isComponentRef, type RefInfo } from '../getters/ref';
 import type {
   ContextSpec,
+  DynamicScopeEntry,
   GeneratorImport,
   OpenApiComponentsObject,
   OpenApiExampleObject,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
 } from '../types';
-import { isObject, isReference } from '../utils';
+import { isObject, isReference, sanitize } from '../utils';
+
+/** Convert a `$dynamicAnchor` name to a valid TypeScript generic parameter identifier. */
+export function dynamicAnchorToParamName(anchor: string): string {
+  return sanitize(anchor, {
+    underscore: '_',
+    whitespace: '_',
+    dash: '_',
+    es5keyword: true,
+    es5IdentifierName: true,
+  });
+}
+
+export function dynamicAnchorsToUniqueParamNames(
+  anchors: string[],
+): Map<string, string> {
+  const result = new Map<string, string>();
+  const usedNames = new Map<string, number>();
+  for (const anchor of anchors) {
+    const base = dynamicAnchorToParamName(anchor);
+    const count = usedNames.get(base) ?? 0;
+    usedNames.set(base, count + 1);
+    const paramName = count === 0 ? base : `${base}${count + 1}`;
+    result.set(anchor, paramName);
+  }
+  return result;
+}
 
 type Example = OpenApiExampleObject | OpenApiReferenceObject;
 type ResolvedExample = unknown;
@@ -114,14 +141,159 @@ export function resolveRef<TSchema extends object = OpenApiComponentsObject>(
 }
 
 /**
- * Looks up a schema by its `$ref` path in the spec, applying suffix resolution.
+ * Describes a resolved generic alias binding — the concrete type arguments
+ * that fill the template's `$dynamicAnchor` slots for a given `$ref` with
+ * `$defs` overrides.
  *
- * Preserves OpenAPI 3.0 `nullable` and 3.1 type-array (`["object", "null"]`)
- * hints from the referencing schema onto the resolved target.
- *
- * @see https://spec.openapis.org/oas/v3.0.3#fixed-fields-18 (nullable)
- * @see https://spec.openapis.org/oas/v3.1.0#schema-object (type as array)
+ * Produced by {@link extractBoundAliasInfo} and consumed by `resolveValue`
+ * to emit instantiated generic type expressions (e.g. `Paginated<User>`).
  */
+export interface BoundAliasInfo {
+  genericName: string;
+  genericParams: string[];
+  typeArgs: string[];
+  imports: { name: string; schemaName: string }[];
+  extraSchemas?: (OpenApiSchemaObject | OpenApiReferenceObject)[];
+}
+
+/** Check whether a schema reference has at least one `$defs` entry with both `$dynamicAnchor` and `$ref`. */
+function isBoundAlias(schema: OpenApiReferenceObject): boolean {
+  const defs = schema.$defs as Record<string, unknown> | undefined;
+  if (!defs || typeof defs !== 'object') return false;
+  for (const defSchema of Object.values(defs)) {
+    if (!defSchema || typeof defSchema !== 'object') continue;
+    const rec = defSchema as Record<string, unknown>;
+    if (
+      typeof rec.$dynamicAnchor === 'string' &&
+      typeof rec.$ref === 'string'
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Extract bound-alias information from a schema that references a generic template
+ * and binds `$dynamicAnchor` entries to concrete types via `$defs`.
+ */
+export function extractBoundAliasInfo(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+): BoundAliasInfo | undefined {
+  let bindingElement: OpenApiReferenceObject | undefined;
+  let extraSchemas:
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+
+  if (isReference(schema) && isBoundAlias(schema)) {
+    bindingElement = schema;
+  } else {
+    const allOf = (schema as { allOf?: unknown[] }).allOf;
+    if (Array.isArray(allOf)) {
+      for (let i = 0; i < allOf.length; i++) {
+        const element = allOf[i] as
+          | OpenApiSchemaObject
+          | OpenApiReferenceObject;
+        if (isReference(element) && isBoundAlias(element)) {
+          bindingElement = element;
+          extraSchemas = allOf.filter((_: unknown, j: number) => j !== i) as (
+            | OpenApiSchemaObject
+            | OpenApiReferenceObject
+          )[];
+          break;
+        }
+      }
+    }
+  }
+
+  if (!bindingElement) return undefined;
+
+  const bindingRecord = bindingElement as Record<string, unknown>;
+  const defs = bindingRecord.$defs as Record<string, unknown> | undefined;
+  if (!defs || typeof defs !== 'object') return undefined;
+
+  const bindingByAnchor = new Map<
+    string,
+    { typeName: string; originalName: string }
+  >();
+
+  for (const defSchema of Object.values(defs)) {
+    if (!defSchema || typeof defSchema !== 'object') continue;
+    const rec = defSchema as Record<string, unknown>;
+    if (rec.$dynamicAnchor === undefined) continue;
+
+    const ref = rec.$ref as string | undefined;
+    if (!ref || !isComponentRef(ref)) continue;
+
+    const anchor = rec.$dynamicAnchor as string;
+    const { name, originalName } = getRefInfo(ref, context);
+    bindingByAnchor.set(anchor, { typeName: name, originalName });
+  }
+
+  if (bindingByAnchor.size === 0) return undefined;
+
+  const refPath = bindingElement.$ref;
+  if (typeof refPath !== 'string') return undefined;
+
+  const { name: genericName, refPaths: templateRefPaths } = getRefInfo(
+    refPath,
+    context,
+  );
+
+  const templateSchema = templateRefPaths
+    ? (prop(
+        context.spec,
+        // @ts-expect-error: [ts2556] refPaths are not guaranteed to be valid keys of the spec
+        ...templateRefPaths,
+      ) as Record<string, unknown> | undefined)
+    : undefined;
+
+  const templateDefs = templateSchema?.$defs as
+    | Record<string, unknown>
+    | undefined;
+
+  const typeArgs: string[] = [];
+  const genericParams: string[] = [];
+  const imports: { name: string; schemaName: string }[] = [];
+
+  if (templateDefs && typeof templateDefs === 'object') {
+    const templateAnchors: string[] = [];
+    for (const defSchema of Object.values(templateDefs)) {
+      if (!defSchema || typeof defSchema !== 'object') continue;
+      const rec = defSchema as Record<string, unknown>;
+      if (rec.$dynamicAnchor === undefined || rec.$ref !== undefined) continue;
+      templateAnchors.push(rec.$dynamicAnchor as string);
+    }
+
+    const uniqueNames = dynamicAnchorsToUniqueParamNames(templateAnchors);
+    for (const anchor of templateAnchors) {
+      const binding = bindingByAnchor.get(anchor);
+      if (binding) {
+        typeArgs.push(binding.typeName);
+        imports.push({
+          name: binding.typeName,
+          schemaName: binding.originalName,
+        });
+      } else {
+        const paramName =
+          uniqueNames.get(anchor) ?? dynamicAnchorToParamName(anchor);
+        typeArgs.push(paramName);
+        genericParams.push(paramName);
+      }
+    }
+  }
+
+  if (typeArgs.length === 0) {
+    for (const { typeName, originalName } of bindingByAnchor.values()) {
+      typeArgs.push(typeName);
+      imports.push({ name: typeName, schemaName: originalName });
+    }
+  }
+
+  return { genericName, genericParams, typeArgs, imports, extraSchemas };
+}
+
 function getSchema<TSchema extends object = OpenApiComponentsObject>(
   schema: OpenApiReferenceObject,
   context: ContextSpec,
@@ -188,6 +360,127 @@ function getSchema<TSchema extends object = OpenApiComponentsObject>(
 }
 
 /* eslint-enable @typescript-eslint/no-unnecessary-type-parameters */
+
+function encodeJsonPointerSegment(segment: string): string {
+  return segment.replaceAll('~', '~0').replaceAll('/', '~1');
+}
+
+/**
+ * Build the dynamic scope for a schema: maps `$dynamicAnchor` names to concrete
+ * type entries for self-referential resolution, `$defs` bindings, and sibling anchors.
+ */
+export function buildDynamicScope(
+  schemaName: string,
+  schema: OpenApiSchemaObject,
+  context: ContextSpec,
+): Record<string, DynamicScopeEntry> {
+  const scope: Record<string, DynamicScopeEntry> = {};
+
+  const getSchemaScopeEntry = (name: string): DynamicScopeEntry => {
+    const refInfo = getRefInfo(
+      `#/components/schemas/${encodeJsonPointerSegment(name)}`,
+      context,
+    );
+
+    return {
+      name: refInfo.name,
+      schemaName: refInfo.originalName,
+    };
+  };
+
+  const schemaRecord = schema as Record<string, unknown>;
+
+  if (typeof schemaRecord.$dynamicAnchor === 'string') {
+    scope[schemaRecord.$dynamicAnchor] = getSchemaScopeEntry(schemaName);
+  }
+
+  const defs = schemaRecord.$defs as
+    | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+    | undefined;
+  if (defs && typeof defs === 'object') {
+    const unboundAnchors: string[] = [];
+    for (const [, defSchema] of Object.entries(defs)) {
+      if (!defSchema || typeof defSchema !== 'object') continue;
+      const defRecord = defSchema as Record<string, unknown>;
+      if (typeof defRecord.$dynamicAnchor === 'string') {
+        const anchorName = defRecord.$dynamicAnchor;
+        const refInDef = (defSchema as OpenApiReferenceObject).$ref;
+        if (refInDef?.startsWith('#/components/schemas/')) {
+          const { name, originalName } = getRefInfo(refInDef, context);
+          scope[anchorName] = { name, schemaName: originalName };
+        } else if (!refInDef) {
+          unboundAnchors.push(anchorName);
+        }
+      }
+    }
+    if (unboundAnchors.length > 0) {
+      const uniqueNames = dynamicAnchorsToUniqueParamNames(unboundAnchors);
+      for (const anchor of unboundAnchors) {
+        const paramName = uniqueNames.get(anchor);
+        if (paramName === undefined) continue;
+        scope[anchor] = {
+          name: paramName,
+          schemaName: paramName,
+          isParameter: true,
+        };
+      }
+    }
+  }
+
+  return scope;
+}
+
+/**
+ * Resolve a `$dynamicRef` anchor to its concrete type using the current dynamic scope.
+ * Returns `{ schema: {}, resolvedTypeName: 'unknown' }` when no scope override exists.
+ */
+export function resolveDynamicRef(
+  anchorName: string,
+  context: ContextSpec,
+  imports: GeneratorImport[] = [],
+): {
+  schema: OpenApiSchemaObject;
+  imports: GeneratorImport[];
+  resolvedTypeName: string;
+} {
+  const scope = context.dynamicScope ?? {};
+  const scopeEntry = scope[anchorName];
+
+  if (!scopeEntry) {
+    return {
+      schema: {},
+      imports,
+      resolvedTypeName: 'unknown',
+    };
+  }
+
+  if (scopeEntry.isParameter) {
+    return {
+      schema: {},
+      imports,
+      resolvedTypeName: scopeEntry.name,
+    };
+  }
+
+  const resolvedTypeName = scopeEntry.name;
+  const schemaRef = `#/components/schemas/${encodeJsonPointerSegment(scopeEntry.schemaName)}`;
+
+  try {
+    const { schema: resolvedSchema, imports: resolvedImports } =
+      resolveRef<OpenApiSchemaObject>({ $ref: schemaRef }, context, imports);
+    return {
+      schema: resolvedSchema,
+      imports: resolvedImports,
+      resolvedTypeName,
+    };
+  } catch {
+    return {
+      schema: {},
+      imports,
+      resolvedTypeName: 'unknown',
+    };
+  }
+}
 
 /** Recursively resolves `$ref` entries in an examples array or record. */
 export function resolveExampleRefs(
