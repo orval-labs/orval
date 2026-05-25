@@ -1,0 +1,68 @@
+---
+title: Hono
+description: 从 OpenAPI 生成 Hono 服务端模板
+---
+
+Hono 生成器会根据 OpenAPI 操作生成类型安全的服务端路由模板。它适合在 Cloudflare Workers、Bun、Node.js 或其他 Hono 支持的运行时中快速实现 API。
+
+## 配置
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/server.ts',
+      client: 'hono',
+    },
+  },
+});
+```
+
+## 生成文件
+
+通常会生成：
+
+- 路由注册代码
+- 每个 operation 的 handler 模板
+- 请求参数、body 和响应类型
+- 可选的 Zod 校验集成
+
+## Handler 模板
+
+生成的 handler 会提供类型化的上下文，帮助你读取 path params、query params 和 body。
+
+## 实现 Handlers
+
+你只需要在模板中填充业务逻辑：
+
+```ts
+export const listPetsHandler = async (c) => {
+  return c.json(await listPets());
+};
+```
+
+## 运行服务
+
+把生成路由挂载到 Hono app 后，就可以按目标运行时启动。
+
+## 组合路由（tags-split）
+
+使用 `mode: 'tags-split'` 时，Orval 会按 tag 拆分路由文件。大型 API 可以用这种方式保持文件边界清晰。
+
+## 完整示例
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/routes/petstore.ts',
+      client: 'hono',
+      mode: 'tags-split',
+    },
+  },
+});
+```

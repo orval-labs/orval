@@ -1,0 +1,59 @@
+---
+title: Client with Zod
+description: 将 Zod 校验与 HTTP 客户端组合使用
+---
+
+`client-with-zod` 让生成的 HTTP 客户端和 Zod schema 一起工作。它适合希望请求响应既有 TypeScript 类型，也能在运行时被校验的项目。
+
+## 配置
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      schemas: './src/model',
+      client: 'react-query',
+      override: {
+        zod: {
+          strict: true,
+        },
+      },
+    },
+  },
+});
+```
+
+## 生成文件
+
+Orval 会生成：
+
+- HTTP 客户端或 hooks
+- 请求和响应 TypeScript 类型
+- 对应的 Zod schema
+- 可选的运行时 parse 逻辑
+
+## 用法
+
+在数据进入 UI 状态前使用 schema 校验：
+
+```ts
+const parsed = getPetResponse.parse(data);
+```
+
+也可以使用 `safeParse` 在不抛异常的情况下处理错误。
+
+## 完整示例
+
+```ts
+const result = getPetResponse.safeParse(response);
+
+if (!result.success) {
+  console.error(result.error);
+} else {
+  renderPet(result.data);
+}
+```

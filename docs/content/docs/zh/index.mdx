@@ -1,0 +1,38 @@
+---
+title: 概览
+description: 从 OpenAPI 规范生成类型安全的 TypeScript 客户端
+icon: Rocket
+---
+
+Orval 可以从任意有效的 OpenAPI v3 或 Swagger v2 规范生成**类型安全的 TypeScript 客户端**，支持 YAML 和 JSON 格式。
+
+## 为什么选择 Orval？
+
+团队通常把 OpenAPI/Swagger 当作前后端之间的接口契约。传统工具可以生成基础代码，但很难满足现代前端对类型、安全 mock 和数据获取集成的要求。Orval 的目标是把接口契约直接变成可维护的应用代码。
+
+### 核心能力
+
+- **生成 TypeScript 模型** - 为请求和响应提供完整类型约束
+- **生成 HTTP 请求函数** - 生成可直接调用、类型正确的请求代码
+- **生成 [MSW](https://mswjs.io/) mock** - 在没有真实后端时测试前端流程
+
+## 支持的客户端
+
+默认生成的客户端使用 [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)。你也可以根据项目需要配置 axios、React Query、Vue Query、SWR 等客户端。
+
+<Cards>
+  <Card title="React Query" href="/zh/docs/guides/react-query" />
+  <Card title="Vue Query" href="/zh/docs/guides/vue-query" />
+  <Card title="Svelte Query" href="/zh/docs/guides/svelte-query" />
+  <Card title="Solid Query" href="/zh/docs/guides/solid-query" />
+  <Card title="Angular" href="/zh/docs/guides/angular" />
+  <Card title="SWR" href="/zh/docs/guides/swr" />
+</Cards>
+
+## 开始使用
+
+<Cards>
+  <Card title="安装" href="/zh/docs/installation" description="在项目中安装 Orval" />
+  <Card title="快速开始" href="/zh/docs/quick-start" description="用几分钟生成第一个客户端" />
+  <Card title="配置" href="/zh/docs/reference/configuration" description="了解 Orval 的配置选项" />
+</Cards>

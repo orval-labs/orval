@@ -1,0 +1,163 @@
+---
+title: Angular
+description: 从 OpenAPI 生成 Angular HttpClient service 和 httpResource 函数
+---
+
+Angular 客户端会生成基于 Angular `HttpClient` 的请求函数，也可以为 Angular v19.2+ 生成 `httpResource` 函数。它适合希望在 Angular 生态内保持类型安全和标准测试方式的项目。
+
+## 配置
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      schemas: './src/model',
+      client: 'angular',
+      httpClient: 'angular',
+    },
+  },
+});
+```
+
+## 生成结果
+
+Orval 会生成类型、请求函数、URL 构造函数和可选的 Angular service。请求函数使用 Angular 的 `HttpClient`，因此可以直接复用拦截器、测试工具和依赖注入。
+
+## 选择 Angular 输出模式
+
+Angular 输出可以按项目偏好选择函数、service 或 `httpResource` 风格。已有 service 层的项目通常选择 service；需要更细粒度组合时选择函数；使用 Angular 新资源 API 时选择 `httpResource`。
+
+### 应该选择哪种模式？
+
+- **函数模式**：最轻量，便于组合和测试。
+- **service 模式**：符合传统 Angular 分层方式。
+- **httpResource 模式**：适合使用 signal 驱动远程数据的 Angular 新项目。
+
+## 设置后端 URL
+
+可以通过 `output.baseUrl`、自定义 mutator 或 Angular provider 传入运行时 base URL。多环境项目建议把 base URL 放在运行时配置中。
+
+## httpResource 输出（Angular v19.2+）
+
+`httpResource` 输出会为读取操作生成资源函数。资源会暴露加载、错误和值状态，让组件以 signal 风格消费请求结果。
+
+### 哪些操作会变成 `httpResource`？
+
+通常 `GET` 操作适合生成资源函数；写操作仍应保留为普通请求或 mutation 风格函数。
+
+### 安全消费生成的资源
+
+读取 `value()` 前先判断 `hasValue()`，并显式处理加载和错误状态，避免在模板中访问空值。
+
+### 多内容类型
+
+当 OpenAPI 为同一操作声明多个 content type 时，Orval 会根据配置拆分或合并对应函数，确保请求体类型保持明确。
+
+### `both` 模式
+
+`both` 模式可以同时生成普通请求函数和 `httpResource` 函数。迁移项目可以先用这种方式逐步替换调用点。
+
+### httpResource 选项
+
+你可以通过 override 为单个操作配置资源选项，例如是否启用、默认值和请求参数来源。
+
+### Mutator 兼容性
+
+自定义 mutator 仍然可用，但需要保持与 Angular `HttpClient` 的调用约定一致。
+
+## httpResource + Zod schema 类型
+
+配合 Zod 输出时，生成的资源可以使用 schema 推导出的类型。这样组件拿到的值和运行时校验保持一致。
+
+## 测试生成的 `httpResource` 函数
+
+生成代码仍使用 Angular 标准 HTTP 栈，因此可以使用 `HttpTestingController` 测试请求 URL、方法、请求体和响应处理。
+
+## Zod 运行时校验
+
+开启运行时校验后，Orval 会在响应进入调用方前执行 schema parse。解析失败时应按业务约定处理错误状态。
+
+### 配置
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'angular',
+      override: {
+        zod: {
+          strict: true,
+        },
+      },
+    },
+  },
+});
+```
+
+### 工作方式
+
+请求完成后，响应先通过生成的 Zod schema，再返回给调用方。这样可以捕获服务端契约漂移。
+
+### 请求体类型化但不自动解析
+
+请求体会获得 TypeScript 类型，但默认不会自动 parse。需要运行时请求体验证时，应在应用边界显式执行。
+
+## 请求体 readonly 指南
+
+生成类型可能包含 readonly 结构。调用方应避免原地修改请求体，优先创建新对象，减少状态共享问题。
+
+### 运行时校验支持矩阵
+
+不同输出模式对运行时校验的接入点略有不同。普通请求函数和 service 最直接；`httpResource` 需要在资源请求链路中处理 parse 结果。
+
+### 错误处理
+
+建议统一处理 HTTP 错误和 Zod 解析错误，避免组件分别理解多种异常格式。
+
+## Query 参数过滤
+
+Orval 可以过滤 query 参数，避免把未声明或空值参数传给后端。
+
+### 默认行为（schema 感知透传）
+
+默认情况下，Orval 会根据 schema 保留已声明参数，并跳过不应发送的值。
+
+### 使用 `override.paramsFilter` 自定义过滤
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        paramsFilter: (params) => params,
+      },
+    },
+  },
+});
+```
+
+## 高级辅助函数
+
+高级配置可以生成 URL 构造、schema、mock 和缓存辅助函数。只启用当前项目真正需要的能力，避免生成无用代码。
+
+## 完整示例
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      schemas: './src/model',
+      client: 'angular',
+      httpClient: 'angular',
+    },
+  },
+});
+```

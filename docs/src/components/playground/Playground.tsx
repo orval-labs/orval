@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useDebounce } from 'use-debounce';
-
+import type { Locale } from '@/lib/i18n';
 import {
   DEFAULT_EXAMPLE,
   EXAMPLES,
@@ -12,11 +12,53 @@ import type { GenerateOutput } from '@/lib/playground/types';
 
 import { EditorPanel } from './EditorPanel';
 import { ExampleSelector } from './ExampleSelector';
-import { OutputPanel } from './OutputPanel';
+import { OutputPanel, type OutputPanelCopy } from './OutputPanel';
 
 const groupedExamples = getGroupedExamples();
 
-export const Playground = () => {
+const copy = {
+  en: {
+    chooseExample: 'Choose an example',
+    loadingEditor: 'Loading editor...',
+    outputPanel: {
+      output: 'Output',
+      copy: 'Copy',
+      copied: 'Copied!',
+      copyTitle: 'Copy to clipboard',
+      generating: 'Generating...',
+      generationError: 'Generation Error',
+      loadingEditor: 'Loading editor...',
+    },
+  },
+  zh: {
+    chooseExample: '选择示例',
+    loadingEditor: '正在加载编辑器...',
+    outputPanel: {
+      output: '输出',
+      copy: '复制',
+      copied: '已复制',
+      copyTitle: '复制到剪贴板',
+      generating: '正在生成...',
+      generationError: '生成失败',
+      loadingEditor: '正在加载编辑器...',
+    },
+  },
+} satisfies Record<
+  Locale,
+  {
+    chooseExample: string;
+    loadingEditor: string;
+    outputPanel: OutputPanelCopy;
+  }
+>;
+
+interface PlaygroundProps {
+  locale?: Locale;
+}
+
+export const Playground = ({ locale = 'en' }: PlaygroundProps) => {
+  const text = copy[locale];
+  const exampleSelectId = 'playground-example-select';
   const [selectedExample, setSelectedExample] = useState(
     `${DEFAULT_EXAMPLE.catName}__${DEFAULT_EXAMPLE.index}`,
   );
@@ -75,11 +117,17 @@ export const Playground = () => {
     <div className="w-full">
       {/* Example selector */}
       <div className="max-w-md mx-auto mb-8">
-        <label className="block text-sm font-medium text-gray-300 mb-2 text-center">
-          Choose an example
+        <label
+          className="block text-sm font-medium text-gray-300 mb-2 text-center"
+          htmlFor={exampleSelectId}
+        >
+          {text.chooseExample}
         </label>
         <ExampleSelector
           examples={groupedExamples}
+          id={exampleSelectId}
+          label={text.chooseExample}
+          locale={locale}
           value={selectedExample}
           onChange={handleExampleChange}
         />
@@ -94,6 +142,7 @@ export const Playground = () => {
           value={schema}
           onChange={handleSchemaChange}
           height="500px"
+          loadingText={text.loadingEditor}
         />
 
         {/* Config editor */}
@@ -103,6 +152,7 @@ export const Playground = () => {
           value={config}
           onChange={handleConfigChange}
           height="500px"
+          loadingText={text.loadingEditor}
         />
 
         {/* Output panel */}
@@ -111,6 +161,7 @@ export const Playground = () => {
           error={error?.message}
           isLoading={isPending}
           height="500px"
+          copy={text.outputPanel}
         />
       </div>
     </div>

@@ -1,0 +1,58 @@
+---
+title: Vue Query
+description: 从 OpenAPI 生成类型安全的 Vue Query composables
+---
+
+Vue Query 客户端会生成适配 TanStack Query for Vue 的 composables。它适合 Vue 应用中用组合式 API 管理远程数据。
+
+## 配置
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      client: 'vue-query',
+    },
+  },
+});
+```
+
+## 生成结果
+
+生成内容包括 query composables、mutation composables、请求函数、query key helper 和类型。
+
+## Infinite Queries
+
+启用后生成 infinite query composable，适合分页或无限滚动列表。
+
+## 单个操作覆盖
+
+可以用 `override.operations` 针对单个 operation 调整 query 行为。
+
+## Set Query Data
+
+启用后生成缓存写入 helper，用于 mutation 后同步更新缓存。
+
+## Get Query Data
+
+启用后生成缓存读取 helper，减少手写 query key 的重复。
+
+## 完整示例
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'vue-query',
+      override: {
+        query: {
+          useSetQueryData: true,
+          useGetQueryData: true,
+        },
+      },
+    },
+  },
+});
+```

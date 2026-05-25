@@ -1,0 +1,80 @@
+---
+title: Input
+description: Input 配置选项
+---
+
+## target
+
+OpenAPI 规范的路径或 URL。
+
+**类型：** `string | string[] | OpenApiDocument | Record<string, unknown>`
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+也可以传入多个 target。Orval 会按顺序尝试这些 target，并使用第一个成功解析的规范。这适合本地规范优先、远程规范兜底的场景。
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: [
+        './local-petstore.yaml',
+        'https://petstore.swagger.io/v2/swagger.json',
+      ],
+    },
+  },
+});
+```
+
+`input` 的简写形式同样支持数组：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: [
+      './local-petstore.yaml',
+      'https://petstore.swagger.io/v2/swagger.json',
+    ],
+  },
+});
+```
+
+## override
+
+### transformer
+
+在生成前转换 OpenAPI 规范。
+
+**类型：** `String | Function`
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      override: {
+        transformer: 'src/api/transformer/add-version.js',
+      },
+    },
+  },
+});
+```
+
+`transformer` 会在规范校验之前执行，因此可以用来修复不符合规范的字段，而不必完全关闭校验。对于 OpenAPI 2.0，也就是 Swagger 规范，`transformer` 接收到的是升级前的 2.0 文档。
+
+`transformer` 函数接收一个 `OpenApiDocument`，并返回 `OpenApiDocument` 或 `Promise<OpenApiDocument>`。它支持异步逻辑，也可以原地修改输入对象。

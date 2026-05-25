@@ -1,0 +1,53 @@
+---
+title: Custom Axios Instance
+description: 配置自定义 Axios 实例
+---
+
+自定义 Axios 实例适合需要统一 base URL、鉴权 header、重试、日志或错误处理的项目。Orval 通过 mutator 调用你的实例，而不是直接创建默认 axios 请求。
+
+## 配置
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      client: 'axios',
+      override: {
+        mutator: {
+          path: './src/api/custom-instance.ts',
+          name: 'customInstance',
+        },
+      },
+    },
+  },
+});
+```
+
+## 自定义实例实现
+
+```ts title="src/api/custom-instance.ts"
+import Axios, { type AxiosRequestConfig } from 'axios';
+
+export const AXIOS_INSTANCE = Axios.create({
+  baseURL: 'https://api.example.com',
+});
+
+export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
+  return AXIOS_INSTANCE(config).then(({ data }) => data);
+};
+```
+
+## 添加拦截器
+
+```ts
+AXIOS_INSTANCE.interceptors.request.use((config) => {
+  config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+```
+
+响应拦截器适合统一转换错误、刷新 token 或记录请求日志。保持 mutator 返回类型稳定，生成代码就不需要了解这些细节。

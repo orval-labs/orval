@@ -1,0 +1,36 @@
+---
+title: Fetch Client
+description: 为 SWR 和 TanStack Query 配置 Fetch HTTP 客户端
+---
+
+Fetch Client 使用浏览器或运行时内置的 `fetch` 作为底层 HTTP 客户端。它适合希望减少依赖并使用标准 Web API 的项目。
+
+## 生成结果
+
+Orval 会生成请求函数，并在 SWR、React Query、Vue Query、Svelte Query 或 Solid Query 中复用这些函数。
+
+```ts
+export const getPet = (petId: string) => {
+  return fetch(`/pets/${petId}`).then((res) => res.json());
+};
+```
+
+## 简化返回类型
+
+Fetch 原生返回 `Response`。Orval 默认会帮你解析 JSON，并让调用方拿到业务响应类型。
+
+## 自定义 Fetch Client
+
+可以通过 mutator 包装 `fetch`，统一处理 base URL、headers、错误和重试。
+
+```ts title="src/api/fetch-client.ts"
+export async function customFetch<T>(url: string, options: RequestInit) {
+  const response = await fetch(`${API_URL}${url}`, options);
+
+  if (!response.ok) {
+    throw new Error('Request failed');
+  }
+
+  return response.json() as Promise<T>;
+}
+```

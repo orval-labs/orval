@@ -1,0 +1,70 @@
+---
+title: Fetch
+description: 从 OpenAPI 生成 Fetch API 客户端
+---
+
+Fetch 客户端使用标准 `fetch` API 生成请求函数。它不需要 axios 等额外依赖，适合浏览器、Edge Runtime 和现代 Node.js 环境。
+
+## 配置
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      client: 'fetch',
+    },
+  },
+});
+```
+
+## 运行时 base URL
+
+可以通过 `baseUrl`、自定义 fetch mutator 或环境变量设置运行时地址。多环境部署时推荐使用 mutator 读取运行时配置。
+
+## 生成结果
+
+### 1. 响应类型
+
+每个操作会生成对应的 TypeScript 响应类型。
+
+### 2. URL 生成器
+
+路径参数和 query 参数会被编码到请求 URL 中。
+
+### 3. Fetch 函数
+
+生成函数会调用 `fetch` 并解析响应。
+
+## 自定义 Fetch 函数
+
+```ts title="src/api/custom-fetch.ts"
+export const customFetch = async <T>(url: string, options: RequestInit) => {
+  const response = await fetch(url, options);
+  if (!response.ok) throw new Error('Request failed');
+  return response.json() as Promise<T>;
+};
+```
+
+## 完整示例
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      client: 'fetch',
+      override: {
+        mutator: {
+          path: './src/api/custom-fetch.ts',
+          name: 'customFetch',
+        },
+      },
+    },
+  },
+});
+```

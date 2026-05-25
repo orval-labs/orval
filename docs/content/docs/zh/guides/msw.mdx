@@ -1,0 +1,81 @@
+---
+title: MSW
+description: 从 OpenAPI 生成 Mock Service Worker handlers
+---
+
+MSW 生成器会根据 OpenAPI 操作生成请求 handler，用于开发、测试和 Storybook 中模拟 API。
+
+## 配置
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      mock: true,
+    },
+  },
+});
+```
+
+## 生成结果
+
+### 1. 请求 Handlers
+
+每个操作会生成 handler 工厂，可以返回默认 mock 响应，也可以接收自定义响应。
+
+### 2. 聚合 Handlers
+
+Orval 还可以生成 handler 数组，便于直接传给 MSW server 或 worker。
+
+## 用法
+
+### 基础设置
+
+```ts
+import { setupWorker } from 'msw/browser';
+import { getPetstoreMock } from './petstore.msw';
+
+const worker = setupWorker(...getPetstoreMock());
+await worker.start();
+```
+
+### 自定义响应
+
+```ts
+getShowPetByIdMockHandler({ id: 1, name: 'Milo' });
+```
+
+### 动态响应
+
+handler 工厂可以接收函数，根据请求参数动态返回数据。
+
+### 使用 `server.use()` 覆盖（MSW 最佳实践）
+
+测试中建议使用 `server.use()` 覆盖单个 handler，而不是修改默认 handler。
+
+### 传递 MSW `RequestHandlerOptions`
+
+需要控制 handler 行为时，可以把 MSW options 透传给生成函数。
+
+### 使用 Vitest 测试
+
+在 `beforeAll` 启动 server，`afterEach` 重置 handlers，`afterAll` 关闭 server。
+
+## Base URL
+
+可以通过 `baseUrl` 配置 handler 匹配的 API 地址，确保 mock 与真实请求地址一致。
+
+## 动态导入
+
+大型项目可以只在开发或测试环境动态导入 MSW handlers，减少生产 bundle。
+
+## MSW 最佳实践
+
+- 默认 handlers 表示 happy path。
+- 单个测试使用 `server.use()` 覆盖异常场景。
+- mock 数据尽量靠近接口 schema。
+- 不要在业务代码里依赖 MSW 专有行为。

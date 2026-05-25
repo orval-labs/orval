@@ -4,11 +4,22 @@ import { useEffect, useState } from 'react';
 
 import type { GenerateOutput } from '@/lib/playground/types';
 
+export interface OutputPanelCopy {
+  output: string;
+  copy: string;
+  copied: string;
+  copyTitle: string;
+  generating: string;
+  generationError: string;
+  loadingEditor: string;
+}
+
 interface OutputPanelProps {
   output: GenerateOutput[] | undefined;
   error: string | undefined;
   isLoading: boolean;
   height?: string;
+  copy: OutputPanelCopy;
 }
 
 export const OutputPanel = ({
@@ -16,6 +27,7 @@ export const OutputPanel = ({
   error,
   isLoading,
   height = '400px',
+  copy,
 }: OutputPanelProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -71,7 +83,7 @@ export const OutputPanel = ({
             ))
           ) : (
             <span className="px-4 py-2 text-sm font-medium text-gray-400">
-              Output
+              {copy.output}
             </span>
           )}
         </div>
@@ -82,14 +94,15 @@ export const OutputPanel = ({
             type="button"
             onClick={handleCopy}
             className="flex items-center gap-1.5 px-3 py-1.5 mr-2 text-xs text-gray-400 hover:text-white transition-colors"
-            title="Copy to clipboard"
+            title={copy.copyTitle}
+            aria-label={copy.copyTitle}
           >
             {copied ? (
               <Check className="w-3.5 h-3.5 text-green-500" />
             ) : (
               <Copy className="w-3.5 h-3.5" />
             )}
-            {copied ? 'Copied!' : 'Copy'}
+            {copied ? copy.copied : copy.copy}
           </button>
         )}
       </div>
@@ -100,7 +113,7 @@ export const OutputPanel = ({
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
             <div className="flex items-center gap-3 text-gray-400">
               <div className="w-5 h-5 border-2 border-[#6F40C9] border-t-transparent rounded-full animate-spin" />
-              Generating...
+              {copy.generating}
             </div>
           </div>
         )}
@@ -111,7 +124,7 @@ export const OutputPanel = ({
               <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-red-400">
-                  Generation Error
+                  {copy.generationError}
                 </p>
                 <p className="mt-1 text-sm text-red-300/80 whitespace-pre-wrap">
                   {error}
@@ -139,7 +152,7 @@ export const OutputPanel = ({
             loading={
               <div className="flex items-center justify-center h-full bg-black/60">
                 <div className="animate-pulse text-gray-500">
-                  Loading editor...
+                  {copy.loadingEditor}
                 </div>
               </div>
             }

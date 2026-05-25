@@ -1,0 +1,62 @@
+---
+title: Solid Query
+description: 从 OpenAPI 生成类型安全的 Solid Query primitives
+---
+
+Solid Query 客户端会生成适配 TanStack Query for Solid 的查询和 mutation primitives。它适合 Solid 应用中管理远程数据。
+
+## 配置
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      client: 'solid-query',
+    },
+  },
+});
+```
+
+## 生成结果
+
+生成内容包括 query options、mutation options、请求函数、query key helper 和响应类型。
+
+## 与 React Query 的关键差异
+
+Solid 使用 signals 和 accessor 模型。生成代码会遵循 Solid Query 的调用方式，而不是 React hooks 规则。
+
+## Infinite Queries
+
+需要分页加载时可以启用 infinite query，并配置分页参数。
+
+## SolidStart vs Solid Query
+
+Solid Query 面向客户端远程状态；SolidStart 输出更贴近路由 loader、action 和缓存机制。
+
+## Set Query Data
+
+启用后生成缓存写入 helper，用于在 mutation 后同步更新页面数据。
+
+## Get Query Data
+
+启用后生成缓存读取 helper，避免在业务代码中手写 query key。
+
+## 完整示例
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'solid-query',
+      override: {
+        query: {
+          useSetQueryData: true,
+          useGetQueryData: true,
+        },
+      },
+    },
+  },
+});
+```
