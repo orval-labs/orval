@@ -335,9 +335,13 @@ export default defineConfig({
       schemas: '../generated/swr/examples/model',
       client: 'swr',
       mock: {
-        generateEachHttpStatus: true,
-        type: 'msw',
-        useExamples: true,
+        generators: [
+          {
+            type: 'msw',
+            generateEachHttpStatus: true,
+            useExamples: true,
+          },
+        ],
       },
       clean: true,
       formatter: 'prettier',

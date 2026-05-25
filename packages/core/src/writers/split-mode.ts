@@ -1,7 +1,11 @@
 import path from 'node:path';
 
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { OutputClient, type WriteModeProps } from '../types';
+import {
+  type GlobalMockOptions,
+  OutputClient,
+  type WriteModeProps,
+} from '../types';
 import {
   conventionName,
   getFileInfo,
@@ -41,8 +45,7 @@ export async function writeSplitMode({
     const {
       imports,
       implementation,
-      implementationMock,
-      importsMock,
+      mockOutputs,
       mutators,
       clientMutators,
       formData,
@@ -53,7 +56,6 @@ export async function writeSplitMode({
     } = generateTarget(builder, output);
 
     let implementationData = header;
-    let mockData = header;
 
     const relativeSchemasPath = output.schemas
       ? upath.getRelativeImportPath(
@@ -89,21 +91,6 @@ export async function writeSplitMode({
       hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
       packageJson: output.packageJson,
       output,
-    });
-
-    const importsMockForBuilder = generateImportsForBuilder(
-      output,
-      importsMock,
-      relativeSchemasPath,
-    );
-
-    mockData += builder.importsMock({
-      implementation: implementationMock,
-      imports: importsMockForBuilder,
-      projectName,
-      hasSchemaDir: !!output.schemas,
-      isAllowSyntheticDefaultImports,
-      options: isFunction(output.mock) ? undefined : output.mock,
     });
 
     const schemasPath =
@@ -171,7 +158,6 @@ export async function writeSplitMode({
     }
 
     implementationData += `\n${implementation}`;
-    mockData += `\n${implementationMock}`;
 
     const implementationFilename =
       filename +
@@ -181,24 +167,45 @@ export async function writeSplitMode({
     const implementationPath = path.join(dirname, implementationFilename);
     await writeGeneratedFile(implementationPath, implementationData);
 
-    const mockPath = output.mock
-      ? path.join(
-          dirname,
-          filename +
-            '.' +
-            getMockFileExtensionByTypeName(output.mock) +
-            extension,
-        )
-      : undefined;
+    // Emit one mock file per configured generator entry. The output filename
+    // suffix comes from `getMockFileExtensionByTypeName(entry)` (e.g. `.msw.ts`
+    // or `.faker.ts`).
+    const mockPaths: string[] = [];
+    for (const mockOutput of mockOutputs) {
+      const entry = output.mock.generators.find(
+        (g): g is GlobalMockOptions =>
+          !isFunction(g) && g.type === mockOutput.type,
+      );
+      if (!entry) continue;
 
-    if (mockPath) {
+      const importsMockForBuilder = generateImportsForBuilder(
+        output,
+        mockOutput.imports,
+        relativeSchemasPath,
+      );
+      let mockData = header;
+      mockData += builder.importsMock({
+        implementation: mockOutput.implementation,
+        imports: importsMockForBuilder,
+        projectName,
+        hasSchemaDir: !!output.schemas,
+        isAllowSyntheticDefaultImports,
+        options: entry,
+      });
+      mockData += `\n${mockOutput.implementation}`;
+
+      const mockPath = path.join(
+        dirname,
+        filename + '.' + getMockFileExtensionByTypeName(entry) + extension,
+      );
       await writeGeneratedFile(mockPath, mockData);
+      mockPaths.push(mockPath);
     }
 
     return [
       implementationPath,
       ...(schemasPath ? [schemasPath] : []),
-      ...(mockPath ? [mockPath] : []),
+      ...mockPaths,
     ];
   } catch (error) {
     throw new Error(

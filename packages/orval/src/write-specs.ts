@@ -1,21 +1,28 @@
 import path from 'node:path';
 
 import {
+  type ContextSpec,
   createSuccessMessage,
+  type FakerMockOptions,
   fixCrossDirectoryImports,
   fixRegularSchemaImports,
+  generateDependencyImports,
   getFileInfo,
+  getImportExtension,
   getMockFileExtensionByTypeName,
+  isFunction,
   isObject,
   isString,
   jsDoc,
   logWarning,
   type NormalizedOptions,
   type OpenApiInfoObject,
+  OutputMockType,
   OutputMode,
   splitSchemasByType,
   SupportedFormatter,
   upath,
+  writeGeneratedFile,
   writeSchemas,
   writeSingleMode,
   type WriteSpecBuilder,
@@ -23,6 +30,7 @@ import {
   writeSplitTagsMode,
   writeTagsMode,
 } from '@orval/core';
+import { generateFakerForSchemas } from '@orval/mock';
 import { execa, ExecaError } from 'execa';
 import fs from 'fs-extra';
 import { unique } from 'remeda';
@@ -133,6 +141,129 @@ async function addOperationSchemasReExport(
   }
 }
 
+/**
+ * Emit `<schemas-dir>/index.faker.ts` (or `<output-root>/schemas.faker.ts`
+ * when `output.schemas` is not configured) when a faker generator entry has
+ * `schemas: true`. Each `components/schemas` entry becomes a
+ * `get<SchemaName>Mock(overrides)` factory in the file. Returns the written
+ * file path so callers can include it in formatter / hook runs, or
+ * `undefined` if no file was written.
+ */
+async function writeFakerSchemaMocks(
+  builder: WriteSpecBuilder,
+  options: NormalizedOptions,
+  header: string,
+): Promise<string | undefined> {
+  const { output } = options;
+  // Pick the opted-in faker entry directly. The duplicate-type guard in
+  // `normalizeMocksOption` keeps this unambiguous today, and finding by
+  // `schemas: true` also makes the intent obvious if that guard ever
+  // loosens (so a `faker({ schemas: false })` entry can't accidentally
+  // win the lookup).
+  const fakerEntry = output.mock.generators.find(
+    (g): g is FakerMockOptions =>
+      !isFunction(g) && g.type === OutputMockType.FAKER && g.schemas === true,
+  );
+  if (!fakerEntry) {
+    return undefined;
+  }
+
+  const schemasWithDef = builder.schemas.filter((s) => !!s.schema);
+  if (schemasWithDef.length === 0) {
+    return undefined;
+  }
+
+  const context: ContextSpec = {
+    spec: builder.spec,
+    target: builder.target,
+    workspace: '',
+    output,
+  };
+
+  const { implementation, imports } = generateFakerForSchemas(
+    schemasWithDef,
+    context,
+    fakerEntry,
+  );
+
+  if (!implementation.trim()) {
+    return undefined;
+  }
+
+  let filePath: string;
+  let schemaImportPath: string | undefined;
+  const fileExtension = output.fileExtension || '.ts';
+
+  if (output.schemas) {
+    const schemasDir = isString(output.schemas)
+      ? output.schemas
+      : output.schemas.path;
+    filePath = path.join(schemasDir, `index.faker${fileExtension}`);
+    schemaImportPath = '.';
+  } else {
+    const targetInfo = output.target
+      ? getFileInfo(output.target, { extension: fileExtension })
+      : undefined;
+    const dir = targetInfo?.dirname ?? process.cwd();
+    filePath = path.join(dir, `schemas.faker${fileExtension}`);
+    // Without a dedicated schemas dir we have no separate types file to
+    // import from; the factories will reference inline types declared in
+    // the main output target. Append `getImportExtension` so NodeNext /
+    // Node16 module resolution gets the required local-file extension.
+    schemaImportPath = targetInfo
+      ? `./${targetInfo.filename}${getImportExtension(
+          fileExtension,
+          output.tsconfig,
+        )}`
+      : undefined;
+  }
+
+  // Route every schema-related import (both type-only and runtime value
+  // forms) onto the consolidated schemas path. Both `import { Foo }` and
+  // `import type { Foo }` come from the same module here, so we treat
+  // them uniformly — `generateDependencyImports` splits values vs types
+  // back out into separate `import` / `import type` lines as needed.
+  const reroutedImports = imports.map((imp) =>
+    imp.importPath ? imp : { ...imp, importPath: schemaImportPath },
+  );
+
+  // `generateDependencyImports` expects a list of `{ exports, dependency }`
+  // groups (one per source module). Bucket all rerouted imports by their
+  // resolved `importPath` so each module emits a single `import type { ... }`
+  // line.
+  const grouped = new Map<string, typeof reroutedImports>();
+  for (const imp of reroutedImports) {
+    const key = imp.importPath ?? '';
+    if (!key) continue;
+    const bucket = grouped.get(key) ?? [];
+    bucket.push(imp);
+    grouped.set(key, bucket);
+  }
+
+  const importsHeader = generateDependencyImports(
+    implementation,
+    [
+      {
+        exports: [{ name: 'faker', values: true }],
+        dependency: fakerEntry.locale
+          ? `@faker-js/faker/locale/${fakerEntry.locale}`
+          : '@faker-js/faker',
+      },
+      ...[...grouped.entries()].map(([dependency, exports]) => ({
+        exports,
+        dependency,
+      })),
+    ],
+    undefined,
+    !!output.schemas,
+    false,
+  );
+
+  const content = `${header}${importsHeader}\n\n${implementation}`;
+  await writeGeneratedFile(filePath, content);
+  return filePath;
+}
+
 export async function writeSpecs(
   builder: WriteSpecBuilder,
   workspace: string,
@@ -188,6 +319,7 @@ export async function writeSpecs(
             header,
             indexFiles: output.indexFiles,
             tsconfig: output.tsconfig,
+            factoryOutputDirectory: output.factoryMethods?.outputDirectory,
           });
         }
 
@@ -202,6 +334,7 @@ export async function writeSpecs(
             header,
             indexFiles: output.indexFiles,
             tsconfig: output.tsconfig,
+            factoryOutputDirectory: output.factoryMethods?.outputDirectory,
           });
 
           // Add re-export from operations in the main schemas index
@@ -223,6 +356,7 @@ export async function writeSpecs(
           header,
           indexFiles: output.indexFiles,
           tsconfig: output.tsconfig,
+          factoryOutputDirectory: output.factoryMethods?.outputDirectory,
         });
       }
     } else {
@@ -268,6 +402,7 @@ export async function writeSpecs(
               header,
               indexFiles: output.indexFiles,
               tsconfig: output.tsconfig,
+              factoryOutputDirectory: output.factoryMethods?.outputDirectory,
             });
           }
 
@@ -281,6 +416,7 @@ export async function writeSpecs(
               header,
               indexFiles: output.indexFiles,
               tsconfig: output.tsconfig,
+              factoryOutputDirectory: output.factoryMethods?.outputDirectory,
             });
 
             // Add re-export from operations in the main schemas index
@@ -302,6 +438,7 @@ export async function writeSpecs(
             header,
             indexFiles: output.indexFiles,
             tsconfig: output.tsconfig,
+            factoryOutputDirectory: output.factoryMethods?.outputDirectory,
           });
         }
       } else {
@@ -333,6 +470,11 @@ export async function writeSpecs(
     }
   }
 
+  // Emit a consolidated faker mock file for `components/schemas` when the
+  // faker generator opts in with `schemas: true`. Lives alongside the
+  // generated TS schema types so factories can import them directly.
+  const fakerSchemaPath = await writeFakerSchemaMocks(builder, options, header);
+
   let implementationPaths: string[] = [];
 
   if (output.target) {
@@ -358,11 +500,17 @@ export async function writeSpecs(
   if (output.workspace) {
     const workspacePath = output.workspace;
     const indexFile = path.join(workspacePath, 'index.ts');
+    // Skip per-mock-entry output files when emitting the workspace index.
+    // The cleanup pass removes any path matching `.<ext>.ts` for every
+    // configured generator's extension (`msw`, `faker`, etc.).
+    const mockExtensions = output.mock.generators.map((g) =>
+      getMockFileExtensionByTypeName(g),
+    );
     const imports = implementationPaths
       .filter(
         (p) =>
-          !output.mock ||
-          !p.endsWith(`.${getMockFileExtensionByTypeName(output.mock)}.ts`),
+          mockExtensions.length === 0 ||
+          !mockExtensions.some((ext) => p.endsWith(`.${ext}.ts`)),
       )
       .map((p) =>
         upath.getRelativeImportPath(
@@ -437,6 +585,7 @@ export async function writeSpecs(
           ).dirname,
         ]
       : []),
+    ...(fakerSchemaPath ? [fakerSchemaPath] : []),
     ...(output.operationSchemas
       ? [getFileInfo(output.operationSchemas).dirname]
       : []),

@@ -13,6 +13,7 @@ await describeApiGenerationSnapshots({
     generated('angular'),
     generated('angular-query'),
     generated('axios'),
+    generated('factory-methods'),
     generated('cli'),
     generated('default'),
     generated('fetch'),
@@ -234,6 +235,21 @@ test('fetch useDates with only date-time query params coerces via String(value)'
   );
 });
 
+test('fetch binary request bodies are sent without JSON.stringify', async () => {
+  // Regression: raw binary request bodies such as image/png must be passed to
+  // fetch as the Blob itself. JSON.stringify(Blob) produces "{}" and corrupts
+  // the upload.
+  const content = await readFile(
+    generated('fetch', 'binary-request-body', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toContain('replaceLotteryLogoBody: Blob');
+  expect(content).toContain("'Content-Type': 'image/png'");
+  expect(content).toContain('body: replaceLotteryLogoBody');
+  expect(content).not.toContain('JSON.stringify(replaceLotteryLogoBody)');
+});
+
 test('vue-query custom fetch infinite queries unref non-pagination params', async () => {
   // Regression for #3385:
   // functions accept plain values, while Vue query hooks expose MaybeRef<T>.
@@ -248,7 +264,7 @@ test('vue-query custom fetch infinite queries unref non-pagination params', asyn
   expect(content).toContain(
     `getUsersUserIdOrders(
       unref(userId),
-      { ...unref(params), limit: pageParam || unref(params)?.['limit'] },
+      { ...unref(params), limit: pageParam ?? unref(params)?.['limit'] },
       { signal, ...requestOptions },
     );`,
   );
@@ -295,4 +311,244 @@ test('default issue-3380 resolves external path-item $refs with escaped pointers
   expect(content).toContain('export const getPet = (');
   // The templated path ref (`~1pets~1%7BpetId%7D`) decodes to `/pets/{petId}`.
   expect(content).toContain('`/pets/${petId}`');
+});
+
+test('default issue-1935 resolves a $ref chain across three external files', async () => {
+  // Regression for #1935: an operation defined in one file (path-item $ref)
+  // whose response schema $refs into a second file that itself only
+  // re-exports the schema via a $ref to a third concrete-schema file used
+  // to abort with `Ref not found: ../schemas/index.yaml#/components/schemas/
+  // UserProjectDTO`. The bundler must follow the chain through both hops so
+  // the operation resolves to the third file's concrete object schema. Keep
+  // this focused assertion alongside the snapshot so #1935 fails with a
+  // targeted message instead of a full-file snapshot diff.
+  const root = (file: string) =>
+    readFile(
+      generated('default', 'issue-1935-double-linked-ref', file),
+      'utf8',
+    );
+  const model = (file: string) =>
+    readFile(
+      generated('default', 'issue-1935-double-linked-ref', 'model', file),
+      'utf8',
+    );
+
+  // The operation imports the concrete third-file schema (not the barrel
+  // alias) and uses it as the response item type.
+  const endpoints = await root('endpoints.ts');
+  expect(endpoints).toContain("import type { UserProject } from './model';");
+  expect(endpoints).toContain('Promise<AxiosResponse<UserProject[]>>');
+
+  // The concrete schema from the third file is emitted as an interface.
+  const userProject = await model('userProject.ts');
+  expect(userProject).toContain('export interface UserProject {');
+  expect(userProject).toContain('id: string;');
+  expect(userProject).toContain('title: string;');
+
+  // The barrel re-export collapses to a type alias pointing at the resolved
+  // schema — proving the second hop of the chain was followed.
+  const userProjectDTO = await model('userProjectDTO.ts');
+  expect(userProjectDTO).toContain(
+    "import type { UserProject } from './userProject';",
+  );
+  expect(userProjectDTO).toContain('export type UserProjectDTO = UserProject;');
+});
+
+test('react-query issue-1522 passes the enabled option into the queryOptions mutator', async () => {
+  // Regression for #1522: when `allParamsOptional` and a custom `queryOptions`
+  // mutator are combined, the auto-generated `enabled` guard (which disables
+  // the query while the required `houseId` path param is nullish) used to be
+  // dropped because the mutator received `{ ...queryOptions, queryKey,
+  // queryFn }` instead of the full options object. The query then fired with
+  // an `undefined` path param. Keep this focused assertion alongside the
+  // snapshot so #1522 fails with a targeted message instead of a full-file
+  // snapshot diff.
+  const content = await readFile(
+    generated('react-query', 'issue-1522', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // The mutator must receive the full generated options object: `queryKey`,
+  // `queryFn`, the `enabled` guard for the required `houseId` path param, and
+  // `...queryOptions` last so callers can still override it. Generation is
+  // deterministic, so match the whole call verbatim instead of slicing on
+  // `});` (a nested call site in the argument could otherwise truncate it).
+  const expectedMutatorCall = [
+    '  const customOptions = customQueryOptions({',
+    '    queryKey,',
+    '    queryFn,',
+    '    enabled: houseId !== null && houseId !== undefined,',
+    '    ...queryOptions,',
+    '  });',
+  ].join('\n');
+
+  // One occurrence for the regular query helper, one for the infinite one.
+  const occurrences = content.split(expectedMutatorCall).length - 1;
+  expect(occurrences).toBe(2);
+});
+
+test('react-query issue-3153 passes operationId and operationName to the queryOptions mutator', async () => {
+  // Regression for #3153: `mutationOptions` mutators have received
+  // `{ operationId, operationName }` as their third argument since #1974, but
+  // the symmetrically-positioned `queryOptions` mutator only got `{ url }`.
+  // Generators that branch on operation identity (e.g. to attach per-operation
+  // metadata) were therefore impossible to write against `queryOptions`. The
+  // fix adds `operationId` and `operationName` to the existing third arg —
+  // purely additive so mutators that already read `arg3.url` keep working.
+  // Keep this focused assertion alongside the snapshot so #3153 fails with a
+  // targeted message instead of a full-file snapshot diff.
+  const content = await readFile(
+    generated(
+      'react-query',
+      'custom-query-options-with-operation',
+      'endpoints.ts',
+    ),
+    'utf8',
+  );
+
+  // For each operation the third arg must carry url + operation identity at
+  // BOTH call sites: the main query options builder and the
+  // `applyQueryOptionsMutator` helper that backs `invalidate`/`set`/`get`.
+  // Counting occurrences catches the "fixed one site, forgot the other"
+  // regression without needing whitespace-flexible regex.
+  // `operationId` and `operationName` happen to match for every petstore op
+  // because the spec uses already-valid camelCase identifiers, but assert
+  // them as independent values so a future divergence (e.g. an op whose name
+  // gets normalised differently from its id) doesn't silently slip through.
+  const operations: Array<{
+    operationId: string;
+    operationName: string;
+    url: string;
+  }> = [
+    { operationId: 'listPets', operationName: 'listPets', url: '/pets' },
+    {
+      operationId: 'showPetById',
+      operationName: 'showPetById',
+      url: '/pets/${petId}',
+    },
+    {
+      operationId: 'showPetWithOwner',
+      operationName: 'showPetWithOwner',
+      url: '/pets/${petId}/owner',
+    },
+    {
+      operationId: 'healthCheck',
+      operationName: 'healthCheck',
+      url: '/health',
+    },
+  ];
+
+  const occurrencesOf = (needle: string) => content.split(needle).length - 1;
+
+  for (const { operationId, operationName, url } of operations) {
+    expect(content).toContain(`url: \`${url}\``);
+    // Two occurrences each: one from the main builder, one from the helper.
+    expect(occurrencesOf(`operationId: '${operationId}'`)).toBe(2);
+    expect(occurrencesOf(`operationName: '${operationName}'`)).toBe(2);
+  }
+});
+
+test('fetch issue-1879 inlines header schema when $ref targets another path parameter', async () => {
+  // Regression for #1879: a header parameter referenced via a JSON Pointer
+  // `$ref` to another path's parameter
+  // (`#/paths/~1requestA/post/parameters/0`) used to be typed as `N0` (the
+  // sanitized last segment of the ref) and imported from a non-existent
+  // `./n0` module, because the resolver's synthesized name leaked downstream
+  // even though `generateParameterDefinition` only emits types for slots
+  // under `#/components/parameters/*`. The fix gates that import on
+  // `isComponentRef` so non-component refs inline the resolved parameter's
+  // schema (`string`) instead. Keep this focused assertion alongside the
+  // snapshot so #1879 fails with a targeted message rather than a full-file
+  // snapshot diff.
+  const headersContent = await readFile(
+    generated('fetch', 'issue-1879', 'model', 'requestBHeaders.ts'),
+    'utf8',
+  );
+
+  // The header type must be inlined as `string` with no dangling reference.
+  expect(headersContent).toContain("'Content-Type'?: string;");
+  expect(headersContent).not.toMatch(/\bN0\b/);
+  expect(headersContent).not.toContain('./n0');
+
+  // And no synthesized `n0` module should be emitted alongside it.
+  const indexContent = await readFile(
+    generated('fetch', 'issue-1879', 'model', 'index.ts'),
+    'utf8',
+  );
+  expect(indexContent).not.toMatch(/\bn0\b/);
+});
+
+test('default issue-1775 preserves boolean enum literals across allOf+oneOf', async () => {
+  // Regression for #1775: an `allOf: [{orderId}, oneOf: [{success: enum [true]},
+  // {success: enum [false], failReason}]]` schema returned as an array.
+  //
+  // The type-generation half (boolean-literal preservation) was already fixed
+  // by #3159's enum branch in `packages/core/src/getters/scalar.ts`. The mock
+  // half is what this regression locks down: the boolean branch in
+  // `packages/mock/src/faker/getters/scalar.ts` previously ignored `item.enum`
+  // and unconditionally emitted `faker.datatype.boolean()`, so each `oneOf`
+  // variant's `success` randomly flipped instead of matching its literal type.
+  // The fix routes boolean through the same `getEnum` helper as number/string,
+  // emitting `faker.helpers.arrayElement([true] as const)` /
+  // `arrayElement([false] as const)` so the mock's discriminator stays in sync
+  // with the union branch it picked.
+  const model = await readFile(
+    generated('default', 'issue-1775', 'model', 'putApiOrderLimit200Item.ts'),
+    'utf8',
+  );
+
+  // The two oneOf branches keep their literal types, and `orderId` is shared
+  // through the `& { orderId: string }` half of the allOf intersection.
+  expect(model).toContain('success: true;');
+  expect(model).toContain('success: false;');
+  expect(model).toContain('failReason: string;');
+  expect(model).toContain('orderId: string;');
+
+  const endpoints = await readFile(
+    generated('default', 'issue-1775', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // Each oneOf branch's mock must pin `success` to the branch's literal so a
+  // random selection still produces a valid `PutApiOrderLimit200Item`. The
+  // pre-fix output emitted `faker.datatype.boolean()` for both branches.
+  expect(endpoints).toContain('arrayElement([true] as const)');
+  expect(endpoints).toContain('arrayElement([false] as const)');
+  expect(endpoints).not.toMatch(/success: faker\.datatype\.boolean\(\)/);
+});
+
+test('mock issue-2155 keeps allOf-inherited variant mocks free of sibling factories', async () => {
+  // Regression for the second half of #2155: when a variant is shaped as
+  // `Item N = allOf:[<discriminator parent>, ...]`, resolveMockValue used to
+  // re-expand the parent's `oneOf` inside the allOf chain, inlining sibling
+  // factory calls into the derived variant's body. The fix in
+  // `packages/mock/src/faker/resolvers/value.ts` strips `oneOf` from the
+  // referenced parent when it is being expanded under an allOf separator,
+  // because the current schema is by construction a specific variant — the
+  // union side of the parent is descriptive, not additive.
+  const endpoints = await readFile(
+    generated('mock', 'discriminator-oneof-allof', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // Each variant's factory body must only describe its own properties and the
+  // mapping-constrained discriminator value — no cross-variant factory calls.
+  const variantBlocks = [
+    ['getGetTestResponseItem1Mock', /getGetTestResponseItem[23]Mock/],
+    ['getGetTestResponseItem2Mock', /getGetTestResponseItem[13]Mock/],
+    ['getGetTestResponseItem3Mock', /getGetTestResponseItem[12]Mock/],
+  ] as const;
+  for (const [funcName, siblingPattern] of variantBlocks) {
+    const start = endpoints.indexOf(`export const ${funcName}`);
+    expect(start, `${funcName} should be generated`).toBeGreaterThan(-1);
+
+    const nextExport = endpoints.indexOf('export const ', start + 1);
+    const end = nextExport === -1 ? endpoints.length : nextExport;
+
+    const block = endpoints.slice(start, end);
+    expect(
+      block,
+      `${funcName} must not reference sibling factories`,
+    ).not.toMatch(siblingPattern);
+  }
 });

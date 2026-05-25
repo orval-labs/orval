@@ -1,0 +1,248 @@
+---
+title: Faker
+description: Generate mock data factories with Faker.js from OpenAPI
+---
+
+Generate mock data factories powered by [Faker.js](https://fakerjs.dev/) from your OpenAPI specification. Faker output has no `msw` dependency, so it's useful for unit tests, Storybook stories, seed scripts, and any test setup that doesn't go through a network mock.
+
+For Mock Service Worker request handlers, see the [MSW guide](/docs/guides/msw).
+
+## Configuration
+
+Add a `faker` generator entry to `output.mock.generators`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'single',
+      target: './src/api/petstore.ts',
+      schemas: './src/api/model',
+      mock: {
+        generators: [{ type: 'faker' }],
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+You can also combine `msw` and `faker` to emit both files in the same run:
+
+```ts
+mock: {
+  generators: [{ type: 'msw' }, { type: 'faker' }],
+}
+```
+
+The Faker output is written to `<filename>.faker.ts` and only depends on `@faker-js/faker`.
+
+## Generated Output
+
+### Response Factories
+
+By default, Orval emits a `get<OperationId>ResponseMock` factory per operation that returns a fully-populated response value. Disable this with `operationResponses: false` (typically when combined with `schemas: true` — see below).
+
+```ts
+import { faker } from '@faker-js/faker';
+
+export const getShowPetByIdResponseMock = (
+  overrideResponse: Partial<Pet> = {},
+): Pet => ({
+  id: faker.number.int({ min: undefined, max: undefined }),
+  name: faker.string.alpha(20),
+  tag: faker.string.alpha(20),
+  ...overrideResponse,
+});
+```
+
+Pass overrides for any subset of fields:
+
+```ts
+const pet = getShowPetByIdResponseMock({ name: 'Buddy' });
+// => { id: 7272122785202176, name: "Buddy", tag: "..." }
+```
+
+### Schema Factories
+
+Set `schemas: true` to emit a `get<SchemaName>Mock()` factory per entry under `components/schemas`. Factories are written to a single consolidated file at `<schemas-dir>/index.faker.ts` so they can be imported uniformly and reference each other directly:
+
+```ts title="orval.config.ts"
+mock: {
+  generators: [
+    {
+      type: 'faker',
+      schemas: true,            // emit components/schemas factories
+      operationResponses: true, // also emit per-operation response factories (default)
+    },
+  ],
+}
+```
+
+```ts title="src/api/model/index.faker.ts"
+import { faker } from '@faker-js/faker';
+import type { Pet } from '.';
+
+export const getPetMock = (overrideResponse: Partial<Pet> = {}): Pet => ({
+  id: faker.number.int(),
+  name: faker.string.alpha(20),
+  ...overrideResponse,
+});
+```
+
+When both options are enabled, the per-operation `get<Op>ResponseMock` factories **delegate** to the schema-level factories instead of re-inlining the schema body:
+
+```ts
+import { getPetMock } from './model/index.faker';
+
+export const getShowPetByIdResponseMock = (): Pet => ({ ...getPetMock() });
+```
+
+If an operation- or tag-level `override.mock` rule targets a property of a referenced schema (by name, regex, or exact `#.path`), that single ref falls back to inlining so the override actually applies.
+
+Requires `output.schemas` to be configured (the consolidated file is written into that directory).
+
+## Options
+
+Set faker-specific options on the generator entry:
+
+```ts title="orval.config.ts"
+mock: {
+  generators: [
+    {
+      type: 'faker',
+      useExamples: true,
+      generateEachHttpStatus: true,
+      locale: 'en_GB',
+      preferredContentType: 'application/json',
+    },
+  ],
+}
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `useExamples` | `boolean` | `false` | Seed mock values from OpenAPI `example`/`examples` fields when present. |
+| `generateEachHttpStatus` | `boolean` | `false` | Emit a separate factory per HTTP status code defined in the spec (not just the success response). |
+| `locale` | `keyof typeof allLocales` | — | Faker locale. Switches the import to `@faker-js/faker/locale/<x>` (e.g. `'en_GB'`, `'fr'`, `'ja'`). |
+| `preferredContentType` | `string` | — | When an operation has multiple response content types, mock the one matching this MIME type. |
+| `schemas` | `boolean` | `false` | Emit a consolidated `get<SchemaName>Mock` factory per `components/schemas` entry into `<schemas-dir>/index.faker.ts`. See [Schema Factories](#schema-factories). |
+| `operationResponses` | `boolean` | `true` | Emit per-operation `get<OperationId>ResponseMock` factories. Set to `false` (typically with `schemas: true`) to skip operation-level factories. |
+
+## Customizing Mock Values
+
+Use `override.mock` to control how individual schemas, properties, and formats are mocked. These options apply to both `faker` and `msw` generators.
+
+```ts title="orval.config.ts"
+override: {
+  mock: {
+    properties: {
+      // Match by property name (string or regex)
+      email: () => faker.internet.email(),
+      '/.*Id$/': () => faker.string.uuid(),
+    },
+    format: {
+      // Match by OpenAPI `format` keyword
+      date: () => faker.date.past().toISOString(),
+      'date-time': () => faker.date.recent().toISOString(),
+    },
+    required: true,      // Always populate optional fields
+    arrayMin: 3,
+    arrayMax: 5,
+    stringMin: 4,
+    stringMax: 20,
+    numberMin: 0,
+    numberMax: 100,
+    fractionDigits: 2,
+  },
+}
+```
+
+You can also scope overrides per-operation or per-tag via `override.operations` and `override.tags`.
+
+## Usage
+
+### Unit Tests
+
+```ts
+import { describe, it, expect } from 'vitest';
+import { getShowPetByIdResponseMock } from './api/petstore.faker';
+
+describe('PetDetails', () => {
+  it('renders the pet name', () => {
+    const pet = getShowPetByIdResponseMock({ name: 'Buddy' });
+    render(<PetDetails pet={pet} />);
+    expect(screen.getByText('Buddy')).toBeInTheDocument();
+  });
+});
+```
+
+### Storybook
+
+```ts
+import type { Meta, StoryObj } from '@storybook/react';
+import { getShowPetByIdResponseMock } from '../api/petstore.faker';
+import { PetDetails } from './PetDetails';
+
+const meta: Meta<typeof PetDetails> = {
+  component: PetDetails,
+};
+export default meta;
+
+export const Default: StoryObj<typeof PetDetails> = {
+  args: { pet: getShowPetByIdResponseMock() },
+};
+
+export const NamedPet: StoryObj<typeof PetDetails> = {
+  args: { pet: getShowPetByIdResponseMock({ name: 'Buddy' }) },
+};
+```
+
+### Seed Scripts
+
+```ts
+import { writeFile } from 'node:fs/promises';
+import { getListPetsResponseMock } from './api/petstore.faker';
+
+const seed = Array.from({ length: 50 }, () => getListPetsResponseMock());
+await writeFile('seed/pets.json', JSON.stringify(seed, null, 2));
+```
+
+## Deterministic Output
+
+Faker's PRNG is seedable. Set a seed before invoking factories to get reproducible output, which is helpful for snapshot testing:
+
+```ts
+import { faker } from '@faker-js/faker';
+import { getShowPetByIdResponseMock } from './api/petstore.faker';
+
+beforeEach(() => {
+  faker.seed(42);
+});
+
+it('matches snapshot', () => {
+  expect(getShowPetByIdResponseMock()).toMatchSnapshot();
+});
+```
+
+## Dynamic Imports
+
+In `tags-split` mode, enable `mock.indexMockFiles` to emit an `index.faker.ts` aggregating all per-tag faker files:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      mock: {
+        indexMockFiles: true,
+        generators: [{ type: 'faker' }],
+      },
+    },
+  },
+});
+```

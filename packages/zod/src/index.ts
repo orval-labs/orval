@@ -344,15 +344,19 @@ export const generateZodValidationSchemaDefinition = (
       // OpenApiSchemaObject defines default as 'any'
       defaultValue = `new Date("${escape(schema.default)}")`;
     } else if (isObject(schema.default)) {
+      // Narrow string literals individually with `as const` so `zod.enum([...])`
+      // properties accept the emitted default (#3244). Whole-object/array
+      // `as const` would make nested arrays `readonly`, which zod v4's
+      // `.default()` rejects against its mutable parameter type (#3399).
       const entries = Object.entries(schema.default)
         .map(([key, value]) => {
           if (isString(value)) {
-            return `${key}: "${escape(value)}"`;
+            return `${key}: "${escape(value)}" as const`;
           }
 
           if (Array.isArray(value)) {
             const arrayItems = value.map((item) =>
-              isString(item) ? `"${escape(item)}"` : `${item}`,
+              isString(item) ? `"${escape(item)}" as const` : `${item}`,
             );
             return `${key}: [${arrayItems.join(', ')}]`;
           }
@@ -366,10 +370,7 @@ export const generateZodValidationSchemaDefinition = (
             return `${key}: ${value}`;
         })
         .join(', ');
-      // `as const` preserves literal types so `zod.enum([...])` properties
-      // accept the emitted default (#3244).
-      defaultValue =
-        entries.length === 0 ? `{} as const` : `{ ${entries} } as const`;
+      defaultValue = entries.length === 0 ? `{}` : `{ ${entries} }`;
     } else {
       // OpenApiSchemaObject defines default as 'any'
       const rawStringified = stringify(schema.default);
@@ -1334,13 +1335,27 @@ const parseBodyAndResponse = ({
     | OpenApiRequestBodyObject;
 
   // Only handle JSON and form-data; other content types (e.g., application/octet-stream)
-  // are skipped - unclear if this is correct behavior for root-level binary/text bodies
-  const jsonMedia = resolvedRef.content?.['application/json'];
-  const formDataMedia = resolvedRef.content?.['multipart/form-data'];
-  const [contentType, mediaType] = jsonMedia
-    ? (['application/json', jsonMedia] as const)
-    : formDataMedia
-      ? (['multipart/form-data', formDataMedia] as const)
+  // Only handle JSON and form-data; other content types (e.g., application/octet-stream)
+  // are skipped - unclear if this is correct behavior for root-level binary/text bodies.
+  const contentEntries = Object.entries(resolvedRef.content ?? {});
+
+  const jsonContent = contentEntries.find(
+    isMediaType(
+      // application/json
+      // application/geo+json
+      // application/ld+json
+      // application/manifest+json
+      // application/vnd.api+json (and other valid vendor subtypes)
+      String.raw`^application\/([^/;]+\+)?json$`,
+    ),
+  );
+  const formDataContent = contentEntries.find(
+    isMediaType(String.raw`^multipart\/form-data$`),
+  );
+  const [contentType, mediaType] = jsonContent
+    ? (['application/json', jsonContent[1]] as const)
+    : formDataContent
+      ? (['multipart/form-data', formDataContent[1]] as const)
       : [undefined, undefined];
 
   const schema = mediaType?.schema;
@@ -1351,7 +1366,6 @@ const parseBodyAndResponse = ({
       isArray: false,
     };
   }
-
   const encoding = mediaType.encoding;
 
   const resolvedJsonSchema = dereference(schema, context);
@@ -1418,6 +1432,11 @@ const parseBodyAndResponse = ({
     isArray: false,
   };
 };
+
+const isMediaType =
+  (pattern: string) =>
+  ([contentType]: [string, object]): boolean =>
+    new RegExp(pattern).test(contentType.split(';')[0].trim().toLowerCase());
 
 const getSingleResponse = (
   responses:

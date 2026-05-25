@@ -129,6 +129,16 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  'issue-1775': {
+    input: '../specifications/issue-1775.yaml',
+    output: {
+      schemas: '../generated/default/issue-1775/model',
+      target: '../generated/default/issue-1775/endpoints.ts',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
   'all-of-without-type': {
     input: '../specifications/all-of-without-type.yaml',
     output: {
@@ -326,9 +336,13 @@ export default defineConfig({
     input: '../specifications/petstore.yaml',
     output: {
       mock: {
-        delay: () => 400,
-        delayFunctionLazyExecute: true,
-        type: 'msw',
+        generators: [
+          {
+            type: 'msw',
+            delay: () => 400,
+            delayFunctionLazyExecute: true,
+          },
+        ],
       },
       schemas: '../generated/default/runtime-mock-delay/model',
       target: '../generated/default/runtime-mock-delay/endpoints.ts',
@@ -340,8 +354,7 @@ export default defineConfig({
     input: '../specifications/petstore.yaml',
     output: {
       mock: {
-        generateEachHttpStatus: true,
-        type: 'msw',
+        generators: [{ type: 'msw', generateEachHttpStatus: true }],
       },
       schemas: '../generated/default/http-status-mocks/model',
       target: '../generated/default/http-status-mocks/endpoints.ts',
@@ -412,8 +425,8 @@ export default defineConfig({
       schemas: '../generated/default/index-mock-file/model',
       client: 'fetch',
       mock: {
-        type: 'msw',
         indexMockFiles: true,
+        generators: [{ type: 'msw' }],
       },
       mode: 'tags-split',
       clean: true,
@@ -700,6 +713,17 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3380/issue-3380.yaml',
+    },
+  },
+  'issue-1935-double-linked-ref': {
+    output: {
+      target: '../generated/default/issue-1935-double-linked-ref/endpoints.ts',
+      schemas: '../generated/default/issue-1935-double-linked-ref/model',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-1935/issue-1935.yaml',
     },
   },
   'boolean-discriminator': {

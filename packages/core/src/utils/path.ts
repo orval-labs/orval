@@ -2,6 +2,14 @@ import basepath from 'node:path';
 
 import { getExtension } from './extension';
 
+export function isAbsolute(value: string): boolean {
+  return basepath.isAbsolute(value);
+}
+
+export function resolve(...args: string[]): string {
+  return toUnix(basepath.resolve(...args));
+}
+
 export function toUnix(value: string): string {
   value = value.replaceAll('\\', '/');
   value = value.replaceAll(/(?<!^)\/+/g, '/'); // deduplicate except leading for UNC paths

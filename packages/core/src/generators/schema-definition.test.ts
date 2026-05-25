@@ -11,6 +11,7 @@ describe('generateSchemasDefinition', () => {
   const context = {
     output: {
       override: { namingConvention: {} },
+      factoryMethods: undefined,
     },
     target: 'typescript',
     spec: {},
@@ -138,6 +139,7 @@ describe('generateSchemasDefinition', () => {
             enum: 'PascalCase',
           },
         },
+        factoryMethods: undefined,
       },
       target: 'typescript',
       spec: {},
@@ -235,6 +237,7 @@ describe('generateSchemasDefinition', () => {
     const specContext = {
       ...context,
       output: {
+        ...context.output,
         override: { enumGenerationType: 'const', namingConvention: {} },
       },
       spec: {
@@ -280,6 +283,7 @@ describe('generateSchemasDefinition', () => {
     const specContext = {
       ...context,
       output: {
+        ...context.output,
         override: { enumGenerationType: 'const', namingConvention: {} },
       },
       spec: {
@@ -337,6 +341,7 @@ describe('generateSchemasDefinition', () => {
     const specContext = {
       ...context,
       output: {
+        ...context.output,
         override: { enumGenerationType: 'const', namingConvention: {} },
       },
       spec: {

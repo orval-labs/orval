@@ -8,7 +8,7 @@ output: {
   mode: 'tags-split',
   target: 'src/api/petstore.ts',
   schemas: 'src/api/model',
-  mock: true,
+  mocks: true,
 }
 ```
 

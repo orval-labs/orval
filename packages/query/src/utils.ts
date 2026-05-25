@@ -12,7 +12,6 @@ import {
   OutputClient,
   type OutputClientFunc,
   type QueryOptions,
-  TEMPLATE_TAG_REGEX,
 } from '@orval/core';
 
 export const normalizeQueryOptions = (
@@ -136,15 +135,6 @@ export const vueUnRefParams = (props: GetterProps): string => {
     })
     .join('\n');
 };
-
-export const wrapRouteParameters = (
-  route: string,
-  prepend: string,
-  append: string,
-): string => route.replaceAll(TEMPLATE_TAG_REGEX, `\${${prepend}$1${append}}`);
-
-export const makeRouteSafe = (route: string): string =>
-  wrapRouteParameters(route, 'encodeURIComponent(String(', '))');
 
 export const isVue = (client: OutputClient | OutputClientFunc) =>
   OutputClient.VUE_QUERY === client;

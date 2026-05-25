@@ -29,6 +29,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
     namingConvention: NamingConvention.CAMEL_CASE,
     fileExtension: '.ts',
     mode: OutputMode.SINGLE,
+    mock: { indexMockFiles: false, generators: [] },
     client: OutputClient.FETCH,
     httpClient: OutputHttpClient.FETCH,
     clean: false,
@@ -41,6 +42,12 @@ function makeOutput(useDates = false): ContextSpec['output'] {
     unionAddMissingProperties: false,
     optionsParamRequired: false,
     propertySortOrder: PropertySortOrder.ALPHABETICAL,
+    factoryMethods: {
+      functionNamePrefix: 'create',
+      mode: 'single',
+      outputDirectory: '',
+      includeOptionalProperty: false,
+    },
     override: {
       title: undefined,
       transformer: undefined,

@@ -268,7 +268,7 @@ export default defineConfig({
       target: 'src/petstore.ts',
       schemas: 'src/model',
       client: 'react-query',
-      mock: true,
+      mocks: true,
       override: {
         operations: {
           listPets: {

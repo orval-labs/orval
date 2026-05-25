@@ -2,20 +2,26 @@
 
 ```ts
 output: {
-  mock: true,
+  mocks: true,
   // or with options:
-  mock: {
-    type: 'msw',
-    delay: 1000,
-    delayFunctionLazyExecute: false,
-    useExamples: true,
-    generateEachHttpStatus: false,
-    baseUrl: 'https://api.example.com',
-    locale: 'en',
-    preferredContentType: 'application/json',
+  mocks: {
+    generators: [
+      {
+        type: 'msw',
+        delay: 1000,
+        delayFunctionLazyExecute: false,
+        useExamples: true,
+        generateEachHttpStatus: false,
+        baseUrl: 'https://api.example.com',
+        locale: 'en',
+        preferredContentType: 'application/json',
+      },
+    ],
   },
 }
 ```
+
+`mocks: true` is shorthand for `{ generators: [{ type: 'msw' }, { type: 'faker' }] }` and emits both `<file>.msw.ts` and `<file>.faker.ts`. Use `{ type: 'faker' }` alone for response-mock factories with no MSW dependency.
 
 Generated mock handler:
 
@@ -148,12 +154,14 @@ override: {
 
 ## Dynamic Mock Imports (indexMockFiles)
 
-Generate an index file for all mock handlers in `tags-split` mode:
+In `tags-split` mode, emit one `index.<ext>.ts` per generator entry (e.g. `index.msw.ts`, `index.faker.ts`):
 
 ```ts
 output: {
   mode: 'tags-split',
-  mock: true,
-  indexMockFiles: true,
+  mocks: {
+    indexMockFiles: true,
+    generators: [{ type: 'msw' }],
+  },
 }
 ```

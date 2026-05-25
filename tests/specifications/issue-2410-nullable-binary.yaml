@@ -1,0 +1,38 @@
+openapi: '3.1.0'
+info:
+  version: 1.0.0
+  title: 'Issue #2410 — nullable binary $ref in x-www-form-urlencoded'
+  license:
+    name: MIT
+servers:
+  - url: http://example.com/v1
+paths:
+  # OAS 3.1 nullable union variant of orval-labs/orval#2410. The IFormFile-style
+  # component uses `type: ['string', 'null']` instead of `nullable: true`, which
+  # only OAS 3.1 supports — getScalar normalizes the union into case 'string',
+  # so isBinaryScalarSchema must accept it for the url-encoded $ref short-circuit
+  # to keep firing. Otherwise the property type leaks back to Blob | null and
+  # URLSearchParams.append fails to type-check.
+  /upload:
+    post:
+      operationId: uploadNullableBinary
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: ['name']
+              properties:
+                name:
+                  type: string
+                content:
+                  $ref: '#/components/schemas/NullableIFormFile'
+      responses:
+        '204':
+          description: Accepted
+components:
+  schemas:
+    NullableIFormFile:
+      type: ['string', 'null']
+      format: binary

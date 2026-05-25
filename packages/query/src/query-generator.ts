@@ -75,6 +75,17 @@ export const getMutationInvalidatesConflictWarning = ({
   );
 };
 
+export const hasQueryParam = (
+  queryParams: GetterQueryParam | undefined,
+  queryParam: string | undefined,
+) => {
+  if (!queryParam || !queryParams) {
+    return false;
+  }
+
+  return queryParams.paramNames?.includes(queryParam) ?? true;
+};
+
 const escapeRegExpMetaChars = (value: string): string =>
   value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
@@ -348,6 +359,7 @@ const generatePrefetch = ({
 
 const generateQueryImplementation = ({
   queryOption: { name, queryParam, options, type, queryKeyFnName },
+  operationId,
   operationName,
   queryProperties,
   queryKeyProperties,
@@ -382,6 +394,7 @@ const generateQueryImplementation = ({
     queryKeyFnName: string;
   };
   isRequestOptions: boolean;
+  operationId: string;
   operationName: string;
   queryProperties: string;
   queryKeyProperties: string;
@@ -453,7 +466,11 @@ const generateQueryImplementation = ({
     mutator,
   });
 
-  const hasInfiniteQueryParam = queryParam && queryParams?.schema.name;
+  const infiniteQueryParamType =
+    hasQueryParam(queryParams, queryParam) && queryParams && queryParam
+      ? `${queryParams.schema.name}['${queryParam}']`
+      : '';
+  const hasInfiniteQueryParam = !!infiniteQueryParamType;
 
   const httpFunctionProps = queryParam
     ? adapter.getInfiniteQueryHttpProps(
@@ -599,10 +616,9 @@ const generateQueryImplementation = ({
   );
   const queryResultVarName = hasParamReservedWord ? '_query' : 'query';
 
-  const infiniteParam =
-    queryParams && queryParam
-      ? `, ${queryParams.schema.name}['${queryParam}']`
-      : '';
+  const infiniteParam = infiniteQueryParamType
+    ? `, ${infiniteQueryParamType}`
+    : '';
   const TData =
     hasQueryV5 &&
     (type === QueryType.INFINITE || type === QueryType.SUSPENSE_INFINITE)
@@ -639,7 +655,7 @@ ${hookOptions}
         : `typeof ${operationName}`
     }>>${
       hasQueryV5 && hasInfiniteQueryParam
-        ? `, QueryKey, ${queryParams.schema.name}['${queryParam}']`
+        ? `, QueryKey, ${infiniteQueryParamType}`
         : ''
     }> = (${queryFnArguments}) => ${operationName}(${httpFunctionProps}${
       httpFunctionProps ? ', ' : ''
@@ -649,12 +665,20 @@ ${hookOptions}
 
       ${
         queryOptionsMutator
-          ? `const customOptions = ${
+          ? // Pass the same options object the non-mutator branch returns so
+            // generated guards (e.g. the `enabled` clause for nullish path
+            // params) reach the mutator instead of being dropped. See #1522.
+            // The third arg additionally carries operation identity (matching
+            // mutationOptions per #1974) so mutators can branch on the source
+            // operation. See #3153.
+            `const customOptions = ${
               queryOptionsMutator.name
-            }({...queryOptions, queryKey, queryFn}${
+            }({ queryKey, queryFn, ${queryOptionsImp}}${
               queryOptionsMutator.hasSecondArg ? `, { ${queryProperties} }` : ''
             }${
-              queryOptionsMutator.hasThirdArg ? `, { url: \`${route}\` }` : ''
+              queryOptionsMutator.hasThirdArg
+                ? `, { url: \`${route}\`, operationId: '${operationId}', operationName: '${operationName}' }`
+                : ''
             });`
           : ''
       }
@@ -730,7 +754,9 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
       ? `${queryOptionsMutator.name}({ queryKey: ${baseExpr} }${
           queryOptionsMutator.hasSecondArg ? `, { ${queryProperties} }` : ''
         }${
-          queryOptionsMutator.hasThirdArg ? `, { url: \`${route}\` }` : ''
+          queryOptionsMutator.hasThirdArg
+            ? `, { url: \`${route}\`, operationId: '${operationId}', operationName: '${operationName}' }`
+            : ''
         }).queryKey`
       : baseExpr;
 
@@ -943,12 +969,19 @@ export const generateQueryHook = async (
   const effectiveUseSuspenseQuery =
     operationQueryOptions?.useSuspenseQuery ??
     globalSuspenseOrInfiniteOnlyForGet(override.query.useSuspenseQuery);
+  const hasConfiguredInfiniteQueryParam =
+    !query.useInfiniteQueryParam ||
+    hasQueryParam(queryParams, query.useInfiniteQueryParam);
   const effectiveUseInfinite =
-    operationQueryOptions?.useInfinite ??
-    globalSuspenseOrInfiniteOnlyForGet(override.query.useInfinite);
+    (operationQueryOptions?.useInfinite ??
+      globalSuspenseOrInfiniteOnlyForGet(override.query.useInfinite)) &&
+    hasConfiguredInfiniteQueryParam;
   const effectiveUseSuspenseInfiniteQuery =
-    operationQueryOptions?.useSuspenseInfiniteQuery ??
-    globalSuspenseOrInfiniteOnlyForGet(override.query.useSuspenseInfiniteQuery);
+    (operationQueryOptions?.useSuspenseInfiniteQuery ??
+      globalSuspenseOrInfiniteOnlyForGet(
+        override.query.useSuspenseInfiniteQuery,
+      )) &&
+    hasConfiguredInfiniteQueryParam;
 
   let isQuery =
     effectiveUseQuery ||
@@ -1142,6 +1175,7 @@ ${queryKeyFns}`;
     for (const queryOption of queries) {
       queryImplementations += generateQueryImplementation({
         queryOption,
+        operationId,
         operationName,
         queryProperties,
         queryKeyProperties,

@@ -1,4 +1,6 @@
 import {
+  type GeneratorMockOutput,
+  type GeneratorMockOutputFull,
   type GeneratorTarget,
   type GeneratorTargetFull,
   type NormalizedOutputOptions,
@@ -6,6 +8,24 @@ import {
   type WriteSpecBuilder,
 } from '../types';
 import { compareVersions, pascal } from '../utils';
+
+function emptyMockOutputFull(
+  type: GeneratorMockOutputFull['type'],
+): GeneratorMockOutputFull {
+  return {
+    type,
+    implementation: { function: '', handler: '', handlerName: '' },
+    imports: [],
+  };
+}
+
+function flattenMockOutput(full: GeneratorMockOutputFull): GeneratorMockOutput {
+  return {
+    type: full.type,
+    implementation: full.implementation.function + full.implementation.handler,
+    imports: full.imports,
+  };
+}
 
 export function generateTarget(
   builder: WriteSpecBuilder,
@@ -23,15 +43,12 @@ export function generateTarget(
     output: options,
   });
 
-  const target: Required<GeneratorTargetFull> = {
+  const target: Required<Omit<GeneratorTargetFull, 'mockOutputs'>> & {
+    mockOutputs: GeneratorMockOutputFull[];
+  } = {
     imports: [],
     implementation: '',
-    implementationMock: {
-      function: '',
-      handler: '',
-      handlerName: '',
-    },
-    importsMock: [],
+    mockOutputs: [],
     mutators: [],
     clientMutators: [],
     formData: [],
@@ -43,15 +60,25 @@ export function generateTarget(
   const operations = Object.values(builder.operations);
   for (const [index, operation] of operations.entries()) {
     target.imports.push(...operation.imports);
-    target.importsMock.push(...operation.importsMock);
     target.implementation += operation.implementation + '\n';
-    target.implementationMock.function += operation.implementationMock.function;
-    target.implementationMock.handler += operation.implementationMock.handler;
 
-    const handlerNameSeparator =
-      target.implementationMock.handlerName.length > 0 ? ',\n  ' : '  ';
-    target.implementationMock.handlerName +=
-      handlerNameSeparator + operation.implementationMock.handlerName + '()';
+    // Merge per-mock-type outputs from this operation into the accumulator.
+    for (const opMock of operation.mockOutputs) {
+      let acc = target.mockOutputs.find((m) => m.type === opMock.type);
+      if (!acc) {
+        acc = emptyMockOutputFull(opMock.type);
+        target.mockOutputs.push(acc);
+      }
+      acc.imports.push(...opMock.imports);
+      acc.implementation.function += opMock.implementation.function;
+      acc.implementation.handler += opMock.implementation.handler;
+      if (opMock.implementation.handlerName) {
+        const separator =
+          acc.implementation.handlerName.length > 0 ? ',\n  ' : '  ';
+        acc.implementation.handlerName +=
+          separator + opMock.implementation.handlerName + '()';
+      }
+    }
 
     if (operation.mutator) {
       target.mutators.push(operation.mutator);
@@ -104,10 +131,6 @@ export function generateTarget(
       });
 
       target.implementation = header.implementation + target.implementation;
-      target.implementationMock.handler =
-        target.implementationMock.handler +
-        header.implementationMock +
-        target.implementationMock.handlerName;
 
       const footer = builder.footer({
         outputClient: options.client,
@@ -118,13 +141,32 @@ export function generateTarget(
         output: options,
       });
       target.implementation += footer.implementation;
-      target.implementationMock.handler += footer.implementationMock;
+
+      // Append the aggregated handler array (header + footer wrap) to every
+      // mock output that has at least one handler. Faker-only outputs (no
+      // handlerName) do not get the wrapper.
+      for (const acc of target.mockOutputs) {
+        if (acc.implementation.handlerName) {
+          acc.implementation.handler =
+            acc.implementation.handler +
+            header.implementationMock +
+            acc.implementation.handlerName +
+            footer.implementationMock;
+        }
+      }
     }
   }
 
   return {
-    ...target,
-    implementationMock:
-      target.implementationMock.function + target.implementationMock.handler,
+    imports: target.imports,
+    implementation: target.implementation,
+    mockOutputs: target.mockOutputs.map((m) => flattenMockOutput(m)),
+    mutators: target.mutators,
+    clientMutators: target.clientMutators,
+    formData: target.formData,
+    formUrlEncoded: target.formUrlEncoded,
+    paramsSerializer: target.paramsSerializer,
+    paramsFilter: target.paramsFilter,
+    fetchReviver: target.fetchReviver,
   };
 }

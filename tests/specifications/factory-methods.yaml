@@ -1,0 +1,68 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Factory Methods Test Spec
+paths:
+  /test:
+    get:
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+components:
+  schemas:
+    User:
+      type: object
+      required: [id, name, status]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        status:
+          $ref: '#/components/schemas/Status'
+        avatar:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+        circular:
+          $ref: '#/components/schemas/CircularParent'
+    Status:
+      type: string
+      enum: [ACTIVE, INACTIVE, PENDING]
+    CircularParent:
+      type: object
+      required: [child]
+      properties:
+        child:
+          $ref: '#/components/schemas/CircularChild'
+    CircularChild:
+      type: object
+      required: [parent]
+      properties:
+        parent:
+          $ref: '#/components/schemas/CircularParent'
+    DeepCircularA:
+      type: object
+      properties:
+        b:
+          $ref: '#/components/schemas/DeepCircularB'
+    DeepCircularB:
+      type: object
+      properties:
+        c:
+          $ref: '#/components/schemas/DeepCircularC'
+    DeepCircularC:
+      type: object
+      properties:
+        a:
+          $ref: '#/components/schemas/DeepCircularA'

@@ -424,9 +424,7 @@ export default defineConfig({
       mode: 'split',
       client: 'react-query',
       mock: {
-        type: 'msw',
-        delay: 0,
-        useExamples: true,
+        generators: [{ type: 'msw', delay: 0, useExamples: true }],
       },
       headers: true,
       clean: true,
@@ -932,8 +930,7 @@ export default defineConfig({
       schemas: '../generated/react-query/mockWithoutDelay/model',
       client: 'react-query',
       mock: {
-        type: 'msw',
-        delay: false,
+        generators: [{ type: 'msw', delay: false }],
       },
       clean: true,
       formatter: 'prettier',
@@ -1070,6 +1067,29 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  petstoreCustomQueryOptionsWithOperation: {
+    output: {
+      target:
+        '../generated/react-query/custom-query-options-with-operation/endpoints.ts',
+      schemas:
+        '../generated/react-query/custom-query-options-with-operation/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useInvalidate: true,
+          queryOptions: {
+            path: '../mutators/custom-query-options-with-operation.ts',
+            name: 'customQueryOptionsWithOperation',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   useSetQueryData: {
     output: {
       target: '../generated/react-query/use-set-query-data/endpoints.ts',
@@ -1173,7 +1193,7 @@ export default defineConfig({
       schemas: '../generated/react-query/issue-3269/model',
       client: 'react-query',
       mode: 'tags-split',
-      mock: { type: 'msw' },
+      mock: { generators: [{ type: 'msw' }] },
       clean: true,
       formatter: 'prettier',
     },
@@ -1227,6 +1247,35 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-708.yaml',
+    },
+  },
+  issue1522: {
+    output: {
+      target: '../generated/react-query/issue-1522/endpoints.ts',
+      schemas: '../generated/react-query/issue-1522/model',
+      client: 'react-query',
+      allParamsOptional: true,
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        query: {
+          useInfinite: true,
+          useInfiniteQueryParam: 'page',
+        },
+        operations: {
+          listHouseCats: {
+            query: {
+              queryOptions: {
+                path: '../mutators/custom-query-options.ts',
+                name: 'customQueryOptions',
+              },
+            },
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-1522.yaml',
     },
   },
 });

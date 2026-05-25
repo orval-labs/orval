@@ -160,7 +160,7 @@ output: {
   baseUrl: '/api/v2',                   // API base URL
   // or from spec:
   // baseUrl: { getBaseUrlFromSpecification: true, index: 0, variables: { environment: 'api.dev' } },
-  mock: true,                           // Generate MSW handlers (boolean or config object)
+  mocks: true,                          // Generate MSW + Faker mocks (boolean, object, or function)
   docs: true,                           // Generate TypeDoc documentation
   // docs: { configPath: './typedoc.config.mjs' },
   allParamsOptional: true,              // Make all params optional (except path params)

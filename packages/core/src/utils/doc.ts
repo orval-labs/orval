@@ -98,7 +98,9 @@ export function jsDoc(
     Array.isArray(description)
       ? description.filter((d) => !d.includes('eslint-disable'))
       : [description ?? '']
-  ).map((line) => line.replaceAll(regex, replacement));
+  )
+    .flatMap((line) => line.split(/\r?\n/))
+    .map((line) => line.replaceAll(regex, replacement));
 
   const count = [
     description,

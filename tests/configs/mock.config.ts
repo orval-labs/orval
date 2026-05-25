@@ -40,8 +40,7 @@ export default defineConfig({
       schemas: '../generated/mock/endpoints-named-delay/model',
       target: '../generated/mock/endpoints-named-delay/endpoints.ts',
       mock: {
-        type: 'msw',
-        delay: false,
+        generators: [{ type: 'msw', delay: false }],
       },
       clean: true,
       formatter: 'prettier',
@@ -239,13 +238,37 @@ export default defineConfig({
       target: '../specifications/recursive-discriminator-allof.yaml',
     },
   },
+  discriminatorOneofUnion: {
+    output: {
+      target: '../generated/mock/discriminator-oneof-union/endpoints.ts',
+      schemas: '../generated/mock/discriminator-oneof-union/model',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/discriminator-oneof-union.yaml',
+    },
+  },
+  discriminatorOneofAllof: {
+    output: {
+      target: '../generated/mock/discriminator-oneof-allof/endpoints.ts',
+      schemas: '../generated/mock/discriminator-oneof-allof/model',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/discriminator-oneof-allof.yaml',
+    },
+  },
   mswMixedContentUnion: {
     output: {
       target: '../generated/mock/msw-mixed-content-union/endpoints.ts',
       schemas: '../generated/mock/msw-mixed-content-union/model',
       client: 'axios',
       mock: {
-        type: 'msw',
+        generators: [{ type: 'msw' }],
       },
       clean: true,
       formatter: 'prettier',
@@ -261,8 +284,7 @@ export default defineConfig({
       schemas: '../generated/mock/msw-mixed-content-union-preferred-json/model',
       client: 'axios',
       mock: {
-        type: 'msw',
-        preferredContentType: 'application/json',
+        generators: [{ type: 'msw', preferredContentType: 'application/json' }],
       },
       clean: true,
       formatter: 'prettier',
@@ -278,8 +300,7 @@ export default defineConfig({
       schemas: '../generated/mock/msw-mixed-content-union-each-status/model',
       client: 'axios',
       mock: {
-        type: 'msw',
-        generateEachHttpStatus: true,
+        generators: [{ type: 'msw', generateEachHttpStatus: true }],
       },
       clean: true,
       formatter: 'prettier',
@@ -294,7 +315,7 @@ export default defineConfig({
       schemas: '../generated/mock/msw-mixed-content-union-vendor/model',
       client: 'axios',
       mock: {
-        type: 'msw',
+        generators: [{ type: 'msw' }],
       },
       clean: true,
       formatter: 'prettier',
@@ -322,7 +343,7 @@ export default defineConfig({
       schemas: '../generated/mock/enums-inline-tags-split-native/model',
       mode: 'tags-split',
       mock: {
-        type: 'msw',
+        generators: [{ type: 'msw' }],
       },
       override: {
         enumGenerationType: 'enum',
@@ -340,13 +361,65 @@ export default defineConfig({
       schemas: '../generated/mock/msw-binary-multi-content/model',
       client: 'axios',
       mock: {
-        type: 'msw',
+        generators: [{ type: 'msw' }],
       },
       clean: true,
       formatter: 'prettier',
     },
     input: {
       target: '../specifications/msw-binary-multi-content.yaml',
+    },
+  },
+  petstoreFakerSchemas: {
+    output: {
+      target: '../generated/mock/petstore-faker-schemas/endpoints.ts',
+      schemas: '../generated/mock/petstore-faker-schemas/model',
+      client: 'axios',
+      mock: {
+        generators: [
+          { type: 'faker', schemas: true, operationResponses: false },
+        ],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreFakerSchemasAndOps: {
+    output: {
+      target: '../generated/mock/petstore-faker-schemas-and-ops/endpoints.ts',
+      schemas: '../generated/mock/petstore-faker-schemas-and-ops/model',
+      client: 'axios',
+      mock: {
+        generators: [
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  stringEnumRefFakerSchemasTagsSplit: {
+    output: {
+      workspace: '../generated/mock/string-enum-ref-faker-schemas-tags-split/',
+      target: './index.ts',
+      mode: 'tags-split',
+      client: 'react-query',
+      mock: {
+        generators: [
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/faker-schemas-string-enum-ref.yaml',
     },
   },
 });

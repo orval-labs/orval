@@ -137,6 +137,40 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Issue #1879: header parameter referenced via a JSON Pointer `$ref` that
+  // targets another path's parameter (`#/paths/~1requestA/post/parameters/0`)
+  // used to type the header as a dangling synthesized name (`N0`) and import
+  // it from a non-existent module. The snapshot pins the corrected output.
+  'issue-1879-header-pathref': {
+    output: {
+      target: '../generated/fetch/issue-1879/endpoints.ts',
+      schemas: '../generated/fetch/issue-1879/model',
+      client: 'fetch',
+      headers: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-1879/header-pathref.yaml',
+    },
+  },
+  // Issue #2410 (follow-up to PR #3422): OAS 3.1 nullable union variant of
+  // the IFormFile $ref in an x-www-form-urlencoded body. Pins that
+  // isBinaryScalarSchema recognises `type: ['string','null']` so the
+  // url-encoded short-circuit keeps the property type as `string | null`
+  // (URLSearchParams-friendly) rather than leaking the Blob alias.
+  'issue-2410-nullable-binary': {
+    output: {
+      target: '../generated/fetch/issue-2410-nullable-binary/endpoints.ts',
+      schemas: '../generated/fetch/issue-2410-nullable-binary/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-2410-nullable-binary.yaml',
+    },
+  },
   formData: {
     output: {
       target: '../generated/fetch/form-data-optional-request/endpoints.ts',
@@ -206,6 +240,18 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/form-url-encoded.yaml',
+    },
+  },
+  binaryRequestBody: {
+    output: {
+      target: '../generated/fetch/binary-request-body/endpoints.ts',
+      schemas: '../generated/fetch/binary-request-body/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/binary-request-body.yaml',
     },
   },
   parameters: {
@@ -299,6 +345,18 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/parameters.yaml',
+    },
+  },
+  urlEncodeParameters: {
+    output: {
+      target: '../generated/fetch/url-encode-parameters/endpoints.ts',
+      client: 'fetch',
+      urlEncodeParameters: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
     },
   },
   usedatesOnlyDateParams: {

@@ -24,6 +24,7 @@ function createMockContext(): ContextSpec {
       namingConvention: NamingConvention.CAMEL_CASE,
       fileExtension: '.ts',
       mode: OutputMode.SINGLE,
+      mock: { indexMockFiles: false, generators: [] },
       client: OutputClient.FETCH,
       httpClient: OutputHttpClient.FETCH,
       clean: false,
@@ -36,6 +37,12 @@ function createMockContext(): ContextSpec {
       unionAddMissingProperties: false,
       optionsParamRequired: false,
       propertySortOrder: PropertySortOrder.ALPHABETICAL,
+      factoryMethods: {
+        functionNamePrefix: 'create',
+        mode: 'single',
+        outputDirectory: '',
+        includeOptionalProperty: false,
+      },
       override: {
         title: undefined,
         transformer: undefined,
@@ -433,6 +440,76 @@ describe('combineSchemasMock', () => {
 
     expect(result).toBeDefined();
     expect(result.value).toBe('undefined');
+  });
+
+  // Regression test for #2155: when a `oneOf` schema declares a discriminator
+  // with a mapping AND the discriminator property is also listed in the
+  // parent's `properties`, the parent's free-choice enum must NOT be emitted
+  // alongside the picked variant. Each variant already encodes a constrained
+  // value for that property via `resolveDiscriminators`, so a trailing parent
+  // assignment would statically override it and guarantee a mismatch.
+  it('should not emit the discriminator property when oneOf has a discriminator mapping (#2155)', () => {
+    const item: MockSchemaObject = {
+      name: 'DiscriminatorTest',
+      type: 'object',
+      required: ['type'],
+      properties: {
+        type: { type: 'string', enum: ['item1', 'item2', 'item3'] },
+      },
+      discriminator: {
+        propertyName: 'type',
+        mapping: {
+          item1: '#/components/schemas/Item1',
+          item2: '#/components/schemas/Item2',
+          item3: '#/components/schemas/Item3',
+        },
+      },
+      oneOf: [
+        {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: ['item1'] },
+            property1: { type: 'string' },
+          },
+          required: ['type'],
+        },
+        {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: ['item2'] },
+            property2: { type: 'string' },
+          },
+          required: ['type'],
+        },
+        {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: ['item3'] },
+            property3: { type: 'string' },
+          },
+          required: ['type'],
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'oneOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result).toBeDefined();
+    // The picked variant carries the constrained discriminator value
+    // (e.g. `type: 'item1'`); appending the parent's full enum after the
+    // spread would overwrite it. Ensure the trailing override is gone.
+    expect(result.value).not.toMatch(
+      /faker\.helpers\.arrayElement\(\[\s*'item1'\s*,\s*'item2'\s*,\s*'item3'\s*\]/,
+    );
   });
 
   // Regression test for #2081: a oneOf variant that points back to an

@@ -1574,7 +1574,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['default', 'testObjectDefaultDefault'],
         ],
         consts: [
-          'export const testObjectDefaultDefault = { name: "Fluffy", age: 3 } as const;',
+          'export const testObjectDefaultDefault = { name: "Fluffy" as const, age: 3 };',
         ],
       });
 
@@ -1589,7 +1589,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'zod.object({\n  "name": zod.string().optional(),\n  "age": zod.number().optional()\n}).default(testObjectDefaultDefault)',
       );
       expect(parsed.consts).toBe(
-        'export const testObjectDefaultDefault = { name: "Fluffy", age: 3 } as const;',
+        'export const testObjectDefaultDefault = { name: "Fluffy" as const, age: 3 };',
       );
     });
 
@@ -2329,7 +2329,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
     });
 
-    it('appends "as const" to object defaults so enum properties keep literal types (#3244)', () => {
+    it('narrows string literals in object defaults so enum properties keep literal types (#3244)', () => {
       const schemaWithObjectEnumDefault: OpenApiSchemaObject = {
         type: 'object',
         required: ['enabled', 'value'],
@@ -2350,11 +2350,78 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
 
       expect(result.consts).toEqual([
-        'export const enumPropertiesObjectDefault = { enabled: true, value: "a" } as const;',
+        'export const enumPropertiesObjectDefault = { enabled: true, value: "a" as const };',
       ]);
       expect(result.functions).toContainEqual([
         'default',
         'enumPropertiesObjectDefault',
+      ]);
+    });
+
+    it('keeps array values mutable in object defaults so zod.default() accepts them (#3399)', () => {
+      const schemaWithArrayInObjectDefault: OpenApiSchemaObject = {
+        type: 'object',
+        properties: {
+          checklist: {
+            type: 'object',
+            nullable: true,
+            additionalProperties: { type: 'object' },
+          },
+          available_indexes: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+            },
+          },
+        },
+        // eslint-disable-next-line unicorn/no-null
+        default: { checklist: null, available_indexes: [] },
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithArrayInObjectDefault,
+        context,
+        'settings',
+        false,
+        false,
+        { required: false },
+      );
+
+      // The default object must NOT carry a top-level `as const`, otherwise
+      // empty/literal arrays inside become `readonly` and fail zod v4's
+      // `.default()` overload check (regression introduced by #3339).
+      expect(result.consts).toEqual([
+        'export const settingsDefault = { checklist: null, available_indexes: [] };',
+      ]);
+      expect(result.consts[0]).not.toContain('as const');
+      expect(result.functions).toContainEqual(['default', 'settingsDefault']);
+    });
+
+    it('narrows string array items in object defaults so enum-array properties keep literal types', () => {
+      const schemaWithEnumArrayInObjectDefault: OpenApiSchemaObject = {
+        type: 'object',
+        properties: {
+          tags: {
+            type: 'array',
+            items: { type: 'string', enum: ['a', 'b', 'c'] },
+          },
+        },
+        default: { tags: ['a', 'b'] },
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithEnumArrayInObjectDefault,
+        context,
+        'taggedObject',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result.consts).toEqual([
+        'export const taggedObjectDefault = { tags: ["a" as const, "b" as const] };',
       ]);
     });
 
@@ -6204,6 +6271,136 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
   "metadata": zod.object({
   "name": zod.string().optional()
 })
+})
+
+`);
+  });
+
+  it('content type with charset precision: comprehensive content type handling', async () => {
+    // Matches type gen test structure in res-req-types.test.ts
+    const schema = {
+      pathRoute: '/upload-form',
+      context: {
+        spec: {
+          paths: {
+            '/upload-form': {
+              post: {
+                operationId: 'uploadForm',
+                requestBody: {
+                  required: true,
+                  content: {
+                    'multipart/form-data; charset=utf-8': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          encBinary: { type: 'string' },
+                          encText: { type: 'string' },
+                          cmtBinary: {
+                            type: 'string',
+                            contentMediaType: 'image/png',
+                          },
+                          cmtText: {
+                            type: 'string',
+                            contentMediaType: 'application/xml',
+                          },
+                          encOverride: {
+                            type: 'string',
+                            contentMediaType: 'image/png',
+                          },
+                          formatBinary: { type: 'string', format: 'binary' },
+                          base64Field: {
+                            type: 'string',
+                            contentMediaType: 'image/png',
+                            contentEncoding: 'base64',
+                          },
+                          metadata: {
+                            type: 'object',
+                            properties: { name: { type: 'string' } },
+                          },
+                        },
+                        required: [
+                          'encBinary',
+                          'encText',
+                          'cmtBinary',
+                          'cmtText',
+                          'encOverride',
+                          'formatBinary',
+                          'base64Field',
+                          'metadata',
+                        ],
+                      },
+                      encoding: {
+                        encBinary: { contentType: 'image/png' },
+                        encText: { contentType: 'text/plain' },
+                        encOverride: { contentType: 'text/csv' },
+                        metadata: { contentType: 'application/json' },
+                      },
+                    },
+                  },
+                },
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json; charset=utf-8': {
+                        schema: {
+                          type: 'object',
+                          properties: {
+                            success: { type: 'boolean' },
+                            uploaded: { type: 'number' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: { override: { zod: { generateEachHttpStatus: false } } },
+      },
+    } as unknown as GeneratorOptions;
+    const result = await generateZod(
+      {
+        pathRoute: '/upload-form',
+        verb: 'post',
+        operationName: 'uploadForm',
+        override: {
+          ...zodOverride,
+          zod: {
+            ...zodOverride.zod,
+            generate: { ...zodOverride.zod.generate, response: true },
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      schema,
+      testOutput,
+    );
+    // encBinary: encoding image/png → File
+    // encText: encoding text/plain → File | string
+    // cmtBinary: contentMediaType image/png → File
+    // cmtText: contentMediaType application/xml → File | string
+    // encOverride: encoding text/csv overrides contentMediaType image/png → File | string
+    // formatBinary: format: binary → File (same as instanceof check)
+    // base64Field: contentEncoding base64 → stays string
+    // metadata: object → object schema
+    expect(result.implementation)
+      .toBe(`export const UploadFormBody = zod.object({
+  "encBinary": zod.instanceof(File),
+  "encText": zod.instanceof(File).or(zod.string()),
+  "cmtBinary": zod.instanceof(File),
+  "cmtText": zod.instanceof(File).or(zod.string()),
+  "encOverride": zod.instanceof(File).or(zod.string()),
+  "formatBinary": zod.instanceof(File),
+  "base64Field": zod.string(),
+  "metadata": zod.object({
+  "name": zod.string().optional()
+})
+})
+
+export const UploadFormResponse = zod.object({
+  "success": zod.boolean().optional(),
+  "uploaded": zod.number().optional()
 })
 
 `);

@@ -432,6 +432,171 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
     });
   });
 
+  // application/x-www-form-urlencoded is a text-only serialization built with
+  // URLSearchParams, whose append() only accepts strings. Binary fields must
+  // therefore be typed and appended as strings, not Blob (#1624).
+  describe('x-www-form-urlencoded with binary fields (#1624)', () => {
+    const urlEncodedReqBody: [string, OpenApiRequestBodyObject][] = [
+      [
+        'requestBody',
+        {
+          content: {
+            'application/x-www-form-urlencoded': {
+              schema: {
+                type: 'object',
+                properties: {
+                  // format: binary → would be Blob under multipart
+                  content_file: { type: 'string', format: 'binary' },
+                  // contentMediaType text file → Blob | string under multipart
+                  content_xml: {
+                    type: 'string',
+                    contentMediaType: 'application/xml',
+                  },
+                  content_string: { type: 'string' },
+                  // enum unions must survive the url-encoded handling
+                  kind: { type: 'string', enum: ['LOGO', 'CONTENT'] },
+                },
+              },
+            },
+          },
+          required: true,
+        },
+      ],
+    ];
+
+    it('types binary and file url-encoded fields as string, not Blob', () => {
+      const result = getResReqTypes(urlEncodedReqBody, 'Asset', context)[0];
+
+      const bodySchema = result.schemas.find(
+        (s) => s.name === 'AssetRequestBody',
+      );
+      expect(bodySchema).toBeDefined();
+      expect(bodySchema?.model).toContain('content_file?: string;');
+      expect(bodySchema?.model).toContain('content_xml?: string;');
+      expect(bodySchema?.model).not.toContain('Blob');
+    });
+
+    it('preserves enum unions on url-encoded string fields', () => {
+      const result = getResReqTypes(urlEncodedReqBody, 'Asset', context)[0];
+
+      // url-encoded handling must not flatten enums down to `string`: the enum
+      // is still extracted to its own type with the literal union intact.
+      const bodySchema = result.schemas.find(
+        (s) => s.name === 'AssetRequestBody',
+      );
+      expect(bodySchema?.model).toContain('kind?: AssetRequestBodyKind;');
+      expect(bodySchema?.model).not.toContain('kind?: string;');
+
+      const kindSchema = result.schemas.find(
+        (s) => s.name === 'AssetRequestBodyKind',
+      );
+      expect(kindSchema?.model).toContain("'LOGO'");
+      expect(kindSchema?.model).toContain("'CONTENT'");
+    });
+
+    it('appends binary and file url-encoded fields directly as strings', () => {
+      const result = getResReqTypes(urlEncodedReqBody, 'Asset', context)[0];
+
+      expect(result.formUrlEncoded).toContain(
+        'formUrlEncoded.append(`content_file`, assetRequestBody.content_file)',
+      );
+      expect(result.formUrlEncoded).toContain(
+        'formUrlEncoded.append(`content_xml`, assetRequestBody.content_xml)',
+      );
+      expect(result.formUrlEncoded).not.toContain('Blob');
+    });
+
+    it('generates forEach for nullable array property (type: ["array","null"] — post-3.1 upgrade)', () => {
+      // After @scalar/openapi-upgrader converts a 3.0 spec, nullable arrays
+      // become `type: ["array", "null"]`. The type check must handle arrays.
+      const reqBodyNullableArray: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'application/x-www-form-urlencoded': {
+                schema: {
+                  type: 'object',
+                  required: ['petId'],
+                  properties: {
+                    petId: { type: 'string' },
+                    tags: {
+                      type: ['array', 'null'] as unknown as 'array',
+                      nullable: true,
+                      items: {
+                        type: 'object',
+                        required: ['tagId', 'label'],
+                        properties: {
+                          tagId: { type: 'string' },
+                          label: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(
+        reqBodyNullableArray,
+        'UpdatePet',
+        context,
+      )[0];
+
+      const formUrlEncoded = result.formUrlEncoded;
+      if (!formUrlEncoded || !isString(formUrlEncoded)) {
+        throw new Error('Expected formUrlEncoded to be a defined string');
+      }
+
+      // Must generate a forEach loop, not a bare append of the whole array
+      expect(formUrlEncoded).toContain('forEach');
+      expect(formUrlEncoded).not.toMatch(
+        /append\(`tags`,\s*updatePetRequestBody\.tags\)/,
+      );
+    });
+
+    it('uses a string-only runtime loop for oneOf/anyOf url-encoded bodies', () => {
+      const oneOfReqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              'application/x-www-form-urlencoded': {
+                schema: {
+                  oneOf: [
+                    {
+                      type: 'object',
+                      properties: {
+                        content_file: { type: 'string', format: 'binary' },
+                      },
+                    },
+                    {
+                      type: 'object',
+                      properties: { other: { type: 'string' } },
+                    },
+                  ],
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+
+      const result = getResReqTypes(oneOfReqBody, 'Asset', context)[0];
+
+      // URLSearchParams holds strings only — no File/Blob/Buffer branches
+      expect(result.formUrlEncoded).toContain('formUrlEncoded.append(key,');
+      expect(result.formUrlEncoded).not.toContain('Blob');
+      expect(result.formUrlEncoded).not.toContain('Buffer');
+      expect(result.formUrlEncoded).not.toContain('instanceof File');
+    });
+  });
+
   describe('FormData with schema composition (oneOf/anyOf/allOf)', () => {
     // Covers: anyOf at root, nested oneOf, allOf with $ref (#2873)
     it('anyOf at root with scalar, array, oneOf, and allOf branches', () => {

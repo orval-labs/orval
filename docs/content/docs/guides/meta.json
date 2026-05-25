@@ -23,6 +23,7 @@
     "zod",
     "client-with-zod",
     "msw",
+    "faker",
     "---Advanced---",
     "enums",
     "stream-ndjson",

@@ -1,3 +1,4 @@
+export * from './file';
 export * from './schemas';
 export * from './single-mode';
 export * from './split-mode';

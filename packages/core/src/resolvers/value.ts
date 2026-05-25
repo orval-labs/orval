@@ -1,6 +1,7 @@
 import { getScalar } from '../getters';
 import type { FormDataContext } from '../getters/object';
 import { isComponentRef } from '../getters/ref';
+import { isBinaryScalarSchema } from '../getters/scalar';
 import type {
   ContextSpec,
   GeneratorImport,
@@ -65,6 +66,33 @@ export function resolveValue({
           ...context,
           parents: [...(context.parents ?? []), refValue],
         },
+        formDataContext,
+      });
+      return { ...scalar, originalSchema: schemaObject, isRef: false };
+    }
+
+    // application/x-www-form-urlencoded bodies are serialized via
+    // URLSearchParams.append(), which only accepts strings. Inline binary
+    // properties already skip the Blob coercion via formDataContext.urlEncoded
+    // inside scalar.ts (#1624 / #3395), but the component-$ref path below
+    // returns the imported type name unconditionally — so e.g. C#'s
+    // `IFormFile` (= Blob) leaks into the body type and fails to type-check.
+    // When the resolved component schema is a binary scalar that scalar.ts
+    // would coerce to Blob, fall back to the inlined scalar (which becomes
+    // `string` under formDataContext.urlEncoded) instead of the import.
+    // The standalone IFormFile model is intentionally left as Blob — it may
+    // still be referenced by a multipart/form-data endpoint where Blob is
+    // correct. Fixes #2410.
+    if (formDataContext?.urlEncoded && isBinaryScalarSchema(schemaObject)) {
+      // Pass the resolveValue input `name` (the property name) so this branch
+      // truly behaves like an inline property schema. Using the component
+      // import name here would leak component-based naming into downstream
+      // scalar paths (validators/docs/naming) even though the resulting type
+      // is plain `string`.
+      const scalar = getScalar({
+        item: schemaObject,
+        name,
+        context,
         formDataContext,
       });
       return { ...scalar, originalSchema: schemaObject, isRef: false };

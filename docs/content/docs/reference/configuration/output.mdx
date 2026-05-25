@@ -343,7 +343,7 @@ export default defineConfig({
 **Type:** `Boolean | Object | Function`
 **Default:** `false`
 
-Generate MSW mocks with Faker.js:
+Configures one or more mock generators. The shorthand `mock: true` enables both MSW and Faker mock files with default options:
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -355,19 +355,30 @@ export default defineConfig({
 });
 ```
 
-### Mock Options
+Each entry in `mock.generators` produces its own file (`<filename>.msw.ts`, `<filename>.faker.ts`, ...). Set `mock: false` (or omit it) to disable mock generation entirely.
+
+### Mocks Options
 
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
     output: {
       mock: {
-        type: 'msw',
-        delay: 1000,
-        useExamples: false,
-        generateEachHttpStatus: false,
-        baseUrl: '/api',
-        locale: 'en',
+        indexMockFiles: true,
+        generators: [
+          {
+            type: 'msw',
+            delay: 1000,
+            useExamples: false,
+            generateEachHttpStatus: false,
+            baseUrl: '/api',
+            locale: 'en',
+          },
+          {
+            type: 'faker',
+            useExamples: false,
+          },
+        ],
       },
     },
   },
@@ -376,13 +387,33 @@ export default defineConfig({
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `type` | `'msw'` | `'msw'` | Mock type |
-| `delay` | `Number \| Function \| false` | `false` | Response delay in ms |
-| `delayFunctionLazyExecute` | `Boolean` | `false` | Execute delay function at runtime |
-| `useExamples` | `Boolean` | `false` | Use OpenAPI examples |
-| `generateEachHttpStatus` | `Boolean` | `false` | Generate mocks for all status codes |
-| `baseUrl` | `String` | `''` | Base URL for handlers |
-| `locale` | `String` | `'en'` | Faker.js locale |
+| `indexMockFiles` | `Boolean` | `false` | In `tags-split` mode, emit one root-level `index.<ext>.ts` file per generator entry that re-exports the per-tag mocks (e.g. `index.msw.ts`, `index.faker.ts`). |
+| `generators` | `Array<MockOptions \| Function>` | `[]` | One entry per output mock file. Each entry can be an object (`MockOptions`) or a custom `ClientMockBuilder` function. |
+
+### MSW generator (`type: 'msw'`)
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `type` | `'msw'` | required | Discriminator for MSW handler generation. |
+| `delay` | `Number \| Function \| false` | `false` | Response delay in ms. |
+| `delayFunctionLazyExecute` | `Boolean` | `false` | Execute delay function at runtime instead of at build time. |
+| `baseUrl` | `String` | `''` | Base URL for the generated MSW handlers. |
+| `useExamples` | `Boolean` | `false` | Use OpenAPI examples to seed response values. |
+| `generateEachHttpStatus` | `Boolean` | `false` | Generate response factories for every documented status code. |
+| `locale` | `String` | `'en'` | Faker.js locale. |
+| `preferredContentType` | `String` | `undefined` | Preferred content type when an operation lists more than one. |
+
+### Faker generator (`type: 'faker'`)
+
+The Faker generator emits the same `get<Op>ResponseMock` factories MSW would emit, but without any `msw` dependency or HTTP handler code. Useful for tests or stories that only need fake response data.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `type` | `'faker'` | required | Discriminator for Faker-only output. |
+| `useExamples` | `Boolean` | `false` | Use OpenAPI examples to seed response values. |
+| `generateEachHttpStatus` | `Boolean` | `false` | Generate response factories for every documented status code. |
+| `locale` | `String` | `'en'` | Faker.js locale. |
+| `preferredContentType` | `String` | `undefined` | Preferred content type when an operation lists more than one. |
 
 ## indexFiles
 
@@ -390,26 +421,6 @@ export default defineConfig({
 **Default:** `true`
 
 Generate `index.ts` files for schemas.
-
-## indexMockFiles
-
-**Type:** `Boolean`
-**Default:** `false`
-
-When `true` and `mode` is `tags-split`, creates an `index.msw.ts` with all mock exports:
-
-```ts title="orval.config.ts"
-export default defineConfig({
-  petstore: {
-    output: {
-      mode: 'tags-split',
-      mock: {
-        indexMockFiles: true,
-      },
-    },
-  },
-});
-```
 
 ## docs
 
@@ -846,6 +857,15 @@ Include abort signal in queries.
 **Type:** `String | Object`
 
 Custom query/mutation key or options functions.
+
+When a `queryOptions` or `mutationOptions` mutator declares a third
+parameter, orval passes operation identity so the mutator can branch on it
+(for example, to attach per-operation metadata or invalidate by
+`operationId`). The exact shape differs between the two:
+
+- `queryOptions` mutator — `{ url, operationId, operationName }`
+- `mutationOptions` mutator — `{ operationId, operationName }` (the `url`
+  is supplied in the second parameter)
 
 ### shouldExportMutatorHooks
 
@@ -1677,6 +1697,64 @@ export interface Pet {
 }
 ```
 
+## factoryMethods
+
+**Type:** `Object`
+**Default:** `{ generate: false }`
+
+Generate factory methods for DTOs (Data Transfer Objects) initialized with safe default values. Useful for testing and initializing empty state.
+Functionality handles OpenAPI `readOnly` and `writeOnly` flags to generate appropriate payload structures:
+- **Required properties:** Always included in the factory output, regardless of their visibility flags.
+- **Optional `readOnly` properties:** Always omitted from the factory output, as they would be dropped by the server.
+- **Optional `writeOnly` properties:** Always included in the factory output (even if `includeOptionalProperty` is set to `false`).
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      factoryMethods: {
+        functionNamePrefix: 'create',
+        mode: 'split',
+        includeOptionalProperty: true,
+        outputDirectory: `#output.workspace.schemas`,
+      },
+    },
+  },
+});
+```
+
+### functionNamePrefix
+
+**Type:** `String`
+**Default:** `'create'`
+
+Prefix for the generated factory function names.
+
+### mode
+
+**Type:** `'single' | 'split' | 'single-split'`
+**Default:** `'split'`
+
+Where to generate the factory methods:
+- `single`: Appends the factory function to the schema file.
+- `split`: Creates a `{schema}.factory.ts` with factory method. By default it is placed next to schema file.
+- `single-split`: Aggregates all factory methods into a single `factoryMethods.ts` file.
+
+### includeOptionalProperty
+
+**Type:** `boolean`
+**Default:** `true`
+
+Determines whether optional schema properties are included in the default factory output.
+
+### outputDirectory
+
+**Type:** `String`
+**Default:** `#output.workspace.schemas`
+
+Defaults to the value configured in `#output.workspace.schemas`.
+Determines where factory methods will be generated (can be used to generated methods away from schema directory).
+Takes effect only when used `mode` is `split` or `single-split`.
 ---
 
 ## Other Options
@@ -1693,7 +1771,9 @@ Make all parameters optional except path parameters.
 **Type:** `Boolean`
 **Default:** `false`
 
-Enable URL encoding of path/query parameters.
+Wrap each path parameter with `encodeURIComponent(String(...))` in generated URL helpers. This option only affects path parameters; query parameters are typically encoded by the underlying client (`URLSearchParams`, `axios`, etc.).
+
+Path parameters are stringified via `String(value)` before encoding, so array (`style: simple|matrix|label`) and object path parameters are not serialized according to their OpenAPI `style` — they fall back to the default `String(value)` representation.
 
 ### optionsParamRequired
 

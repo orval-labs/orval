@@ -1,12 +1,8 @@
-import { type ecmaVersion, Parser, type Program } from 'acorn';
+import { Parser, type Program } from 'acorn';
 import { build, type BuildOptions } from 'esbuild';
 import { isArray } from 'remeda';
 
-import type {
-  GeneratorMutatorParsingInfo,
-  Tsconfig,
-  TsConfigTarget,
-} from '../types';
+import type { GeneratorMutatorParsingInfo, Tsconfig } from '../types';
 
 export async function getMutatorInfo(
   filePath: string,
@@ -34,11 +30,7 @@ export async function getMutatorInfo(
     tsconfig?.compilerOptions,
   );
 
-  return parseFile(
-    code,
-    namedExport,
-    getEcmaVersion(tsconfig?.compilerOptions?.target),
-  );
+  return parseFile(code, namedExport);
 }
 
 async function bundleFile(
@@ -74,10 +66,17 @@ async function bundleFile(
 function parseFile(
   file: string,
   name: string,
-  ecmaVersion: ecmaVersion = 6,
 ): GeneratorMutatorParsingInfo | undefined {
   try {
-    const ast = Parser.parse(file, { ecmaVersion, sourceType: 'module' });
+    // `file` is esbuild's bundled output, not the user's source. esbuild may
+    // emit any modern syntax (notably dynamic `import()`, which it preserves
+    // even when targeting es6 in ESM mode), so we parse with the latest
+    // ecmaVersion to avoid spurious SyntaxErrors that would mask the export
+    // we are looking for. See https://github.com/orval-labs/orval/issues/1634.
+    const ast = Parser.parse(file, {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+    });
 
     const foundSpecifier = ast.body
       .filter((x) => x.type === 'ExportNamedDeclaration')
@@ -199,21 +198,5 @@ function parseFunction(
         numberOfParams: declaration.init.params.length,
       };
     }
-  }
-}
-
-function getEcmaVersion(target?: TsConfigTarget): ecmaVersion | undefined {
-  if (!target) {
-    return;
-  }
-
-  if (target.toLowerCase() === 'esnext') {
-    return 'latest';
-  }
-
-  try {
-    return Number(target.toLowerCase().replace('es', '')) as ecmaVersion;
-  } catch {
-    return;
   }
 }

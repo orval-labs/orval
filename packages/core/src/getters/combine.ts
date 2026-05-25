@@ -344,6 +344,32 @@ export function combineSchemas({
   }
 
   const isAllEnums = resolvedData.isEnum.every(Boolean);
+  // OAS 3.1 spells a nullable enum as `anyOf: [{enum: [...]}, {type: 'null'}]`.
+  // Without this, the {type: 'null'} variant flips `isEnum` to false and the
+  // enum gets inlined instead of extracted as a named type — the
+  // {type: ['string','null'], enum: [...]} spelling already extracts. Treat
+  // null-only variants as transparent so the caller's `isEnum && !isRef`
+  // branch (query-params, schema-definition, resolvers/object) extracts via
+  // getEnum, whose `stripNullUnion` handling already preserves the trailing
+  // ` | null`. See issue #2710.
+  //
+  // Guards:
+  // - `allOf` semantics are intersection, not union — `allOf: [{enum}, {null}]`
+  //   does not describe a nullable enum, so restrict to `anyOf`/`oneOf`.
+  // - Non-null branches must be inline enums (`!isRef`). For `$ref + null`
+  //   the existing referenced enum should be reused; routing through
+  //   `getEnum` would emit a parallel const that nests the original ref
+  //   (e.g. `{Status: Status}`) instead of spreading or aliasing it.
+  const isUnionLikeSeparator = separator === 'anyOf' || separator === 'oneOf';
+  const isNullableEnumComposition =
+    isUnionLikeSeparator &&
+    !isAllEnums &&
+    resolvedData.isEnum.some(Boolean) &&
+    resolvedData.isEnum.every(
+      (isEnum, index) =>
+        (isEnum && !resolvedData.isRef[index]) ||
+        resolvedData.types[index] === 'null',
+    );
   const isAvailableToGenerateCombinedEnum =
     isAllEnums &&
     name &&
@@ -460,7 +486,7 @@ export function combineSchemas({
     dependencies: resolvedValue
       ? [...resolvedData.dependencies, ...resolvedValue.dependencies]
       : resolvedData.dependencies,
-    isEnum: false,
+    isEnum: isNullableEnumComposition,
     type: 'object' as SchemaType,
     isRef: false,
     hasReadonlyProps:

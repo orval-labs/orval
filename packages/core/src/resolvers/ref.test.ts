@@ -198,6 +198,36 @@ describe('resolveRef', () => {
       resolveRef({ $ref: '#/components/schemas/NonExistent' }, context),
     ).toThrow('Oops... 🍻. Ref not found: #/components/schemas/NonExistent');
   });
+
+  it('resolves a schema whose component key contains a literal tilde', () => {
+    const context = createContext({
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          'My~Type': {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+            },
+          },
+        },
+      },
+    });
+
+    const result = resolveRef(
+      { $ref: '#/components/schemas/My~0Type' },
+      context,
+    );
+
+    expect(result.schema).toMatchObject({
+      type: 'object',
+      properties: { id: { type: 'string' } },
+    });
+    expect(result.imports[0]).toMatchObject({
+      name: 'MyType',
+      schemaName: 'My~Type',
+    });
+  });
 });
 
 describe('resolveExampleRefs', () => {

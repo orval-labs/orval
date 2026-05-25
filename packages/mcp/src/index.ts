@@ -336,7 +336,6 @@ const generateZodFiles = async (
           pathRoute: verbOption.pathRoute,
           override: output.override,
           context,
-          mock: output.mock,
           output: output.target,
         },
         output.client,
@@ -395,7 +394,6 @@ const generateHttpClientFiles = async (
         pathRoute: verbOption.pathRoute,
         override: output.override,
         context,
-        mock: output.mock,
         output: output.target,
       };
 

@@ -160,4 +160,16 @@ export default defineConfig({
       },
     },
   },
+  issue3330: {
+    output: {
+      target: '../generated/axios/issue-3330/endpoints.ts',
+      schemas: '../generated/axios/issue-3330/model',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3330.yaml',
+    },
+  },
 });
