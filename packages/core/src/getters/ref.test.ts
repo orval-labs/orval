@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpec } from '../types';
-import { getRefInfo, isComponentRef } from './ref';
+import type { ContextSpec, OpenApiDocument } from '../types';
+import { getDynamicAnchorName, getRefInfo, isComponentRef } from './ref';
 
 function createRefContext(): ContextSpec {
   return {
@@ -57,6 +57,32 @@ describe('isComponentRef', () => {
   });
 });
 
+describe('getDynamicAnchorName', () => {
+  it('extracts fragment-only anchors and rejects unsupported refs', () => {
+    const cases = [
+      ['#category', 'category'],
+      ['other-file.json#anchor', undefined],
+      ['https://example.com/schemas/base#anchor', undefined],
+      ['#', undefined],
+    ] as const;
+
+    for (const [dynamicRef, expected] of cases) {
+      expect(getDynamicAnchorName(dynamicRef)).toBe(expected);
+    }
+  });
+});
+
+function createRefInfoContext(spec: OpenApiDocument): ContextSpec {
+  return {
+    target: 'core-test',
+    workspace: '/tmp',
+    spec,
+    output: {
+      override: { components: { schemas: { suffix: '' } } },
+    },
+  } as ContextSpec;
+}
+
 describe('getRefInfo', () => {
   it('decodes ~0 tilde escape per RFC 6901', () => {
     const info = getRefInfo(
@@ -93,5 +119,34 @@ describe('getRefInfo', () => {
       getRefInfo('#/components/schemas/A%7E1B', createRefContext())
         .originalName,
     ).toBe('A/B');
+  });
+
+  it('resolves a fragment-only ref to its local schema name', () => {
+    const context = createRefInfoContext({
+      openapi: '3.1.0',
+      components: { schemas: { Pet: { type: 'object' } } },
+    });
+
+    const info = getRefInfo('#/components/schemas/Pet', context);
+
+    expect(info.name).toBe('Pet');
+    expect(info.originalName).toBe('Pet');
+    expect(info.refPaths).toEqual(['components', 'schemas', 'Pet']);
+  });
+
+  it('resolves an external-file ref (pathname branch) and derives name from filename', () => {
+    // Exercises line 97: the return branch reached when pathname is non-empty
+    const context = createRefInfoContext({
+      openapi: '3.1.0',
+      components: { schemas: {} },
+    });
+
+    const info = getRefInfo(
+      './models/pet-model.yaml#/components/schemas/Pet',
+      context,
+    );
+
+    expect(info.name).toBe('Pet');
+    expect(info.originalName).toBe('Pet');
   });
 });

@@ -51,18 +51,6 @@ for (const folder of folders) {
     exclude.push('generated/mcp/**/server.ts');
   }
 
-  // The `discriminator-oneof-allof` fixture exists to lock down a mock-side
-  // regression (#2155): `Item N = allOf:[<discriminator parent>, ...]` used to
-  // leak sibling factory calls into each variant's mock body. The generated
-  // type model triggers a separate, pre-existing core type-generation
-  // circularity (`DiscriminatorTest` ↔ `Item N` via `Omit<DiscriminatorTest,
-  // 'type'> & {...}`) that this PR does not address. The whole fixture is
-  // excluded from typecheck; correctness of the mock fix is enforced by the
-  // snapshot test plus the focused regression in `api-generation.spec.ts`.
-  if (folder === 'mock') {
-    exclude.push('generated/mock/discriminator-oneof-allof/**');
-  }
-
   if (exclude.length > 0) {
     config.exclude = exclude;
   }

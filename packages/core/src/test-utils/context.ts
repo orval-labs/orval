@@ -1,5 +1,6 @@
 import {
   type ContextSpec,
+  type DynamicScopeEntry,
   EnumGeneration,
   FormDataArrayHandling,
   NamingConvention,
@@ -15,6 +16,7 @@ interface CreateTestContextSpecOptions {
   spec?: Partial<ContextSpec['spec']>;
   output?: Partial<ContextSpec['output']>;
   override?: Partial<ContextSpec['output']['override']>;
+  dynamicScope?: Partial<Record<string, DynamicScopeEntry>>;
 }
 
 export function createTestContextSpec({
@@ -23,6 +25,7 @@ export function createTestContextSpec({
   spec,
   output,
   override,
+  dynamicScope,
 }: CreateTestContextSpecOptions = {}): ContextSpec {
   const baseOutput: ContextSpec['output'] = {
     target: '',
@@ -152,5 +155,6 @@ export function createTestContextSpec({
         ...override,
       },
     },
+    dynamicScope,
   };
 }
