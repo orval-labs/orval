@@ -262,6 +262,19 @@ export default defineConfig({
       target: '../specifications/discriminator-oneof-allof.yaml',
     },
   },
+  discriminatorOneofAllofInherited: {
+    output: {
+      target:
+        '../generated/mock/discriminator-oneof-allof-inherited/endpoints.ts',
+      schemas: '../generated/mock/discriminator-oneof-allof-inherited/model',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/discriminator-oneof-allof-inherited.yaml',
+    },
+  },
   mswMixedContentUnion: {
     output: {
       target: '../generated/mock/msw-mixed-content-union/endpoints.ts',
