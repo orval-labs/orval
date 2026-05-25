@@ -4,10 +4,10 @@
  * Discriminator with oneOf union and allOf-inherited variants
  * OpenAPI spec version: 1.0
  */
-import type { DiscriminatorTest } from './discriminatorTest';
 import type { Item3Type } from './item3Type';
 
-export type Item3 = Omit<DiscriminatorTest, 'type'> & {
-  type: Item3Type;
+export type Item3 = {
   property3?: string;
+} & {
+  type: Item3Type;
 };

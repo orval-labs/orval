@@ -297,6 +297,180 @@ describe('resolveDiscriminators getter', () => {
     });
   });
 
+  it('rewrites variant allOf $ref to parent when parent has top-level oneOf (#3432)', () => {
+    // When a discriminator parent has top-level `oneOf` listing variants that
+    // inherit via `allOf: [$ref: parent, ...]`, the variant's $ref-back-to-parent
+    // creates a circular type alias in the generated TS. We break the cycle at
+    // the schema level: drop the parent $ref (or inline its non-discriminator
+    // properties) so the variant no longer depends on the parent's alias.
+    const schemas: OpenApiSchemasObject = {
+      DiscriminatorTest: {
+        type: 'object',
+        required: ['type'],
+        properties: {
+          type: {
+            type: 'string',
+            enum: ['item1', 'item2'],
+          },
+        },
+        discriminator: {
+          propertyName: 'type',
+          mapping: {
+            item1: '#/components/schemas/Item1',
+            item2: '#/components/schemas/Item2',
+          },
+        },
+        oneOf: [
+          { $ref: '#/components/schemas/Item1' },
+          { $ref: '#/components/schemas/Item2' },
+        ],
+      },
+      Item1: {
+        allOf: [
+          { $ref: '#/components/schemas/DiscriminatorTest' },
+          {
+            type: 'object',
+            properties: {
+              property1: { type: 'string' },
+            },
+          },
+        ],
+      },
+      Item2: {
+        allOf: [
+          { $ref: '#/components/schemas/DiscriminatorTest' },
+          {
+            type: 'object',
+            properties: {
+              property2: { type: 'string' },
+            },
+          },
+        ],
+      },
+    };
+
+    const result = resolveDiscriminators(structuredClone(schemas), context);
+    const item1 = result.Item1 as NonNullable<OpenApiSchemasObject[string]>;
+    const item2 = result.Item2 as NonNullable<OpenApiSchemasObject[string]>;
+
+    // Parent had only the discriminator key, so inheritable props are empty —
+    // the $ref-to-parent entry should be dropped, leaving only the inline
+    // object that contributed `property1` / `property2`.
+    const item1AllOf = item1.allOf as
+      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+      | undefined;
+    expect(item1AllOf).toHaveLength(1);
+    expect(item1AllOf?.[0]).not.toHaveProperty('$ref');
+    const item2AllOf = item2.allOf as
+      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+      | undefined;
+    expect(item2AllOf).toHaveLength(1);
+    expect(item2AllOf?.[0]).not.toHaveProperty('$ref');
+
+    // The existing discriminator-key injection still runs, so each variant's
+    // own `properties.type` is constrained to its mapping value.
+    const item1Props = item1.properties as
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+      | undefined;
+    expect(item1Props?.type).toMatchObject({
+      type: 'string',
+      enum: ['item1'],
+    });
+  });
+
+  it('inlines parent non-discriminator properties into variant allOf (#3432)', () => {
+    // When the parent has additional properties beyond the discriminator key,
+    // those properties must survive on each variant. Replace the $ref with an
+    // inline object carrying parent's properties minus the discriminator key.
+    const schemas: OpenApiSchemasObject = {
+      Parent: {
+        type: 'object',
+        required: ['kind', 'commonField'],
+        properties: {
+          kind: { type: 'string', enum: ['a', 'b'] },
+          commonField: { type: 'string' },
+        },
+        discriminator: {
+          propertyName: 'kind',
+          mapping: {
+            a: '#/components/schemas/VariantA',
+            b: '#/components/schemas/VariantB',
+          },
+        },
+        oneOf: [
+          { $ref: '#/components/schemas/VariantA' },
+          { $ref: '#/components/schemas/VariantB' },
+        ],
+      },
+      VariantA: {
+        allOf: [
+          { $ref: '#/components/schemas/Parent' },
+          { type: 'object', properties: { extraA: { type: 'number' } } },
+        ],
+      },
+      VariantB: {
+        allOf: [
+          { $ref: '#/components/schemas/Parent' },
+          { type: 'object', properties: { extraB: { type: 'boolean' } } },
+        ],
+      },
+    };
+
+    const result = resolveDiscriminators(structuredClone(schemas), context);
+    const variantA = result.VariantA as NonNullable<
+      OpenApiSchemasObject[string]
+    >;
+
+    const allOf = variantA.allOf as
+      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+      | undefined;
+    expect(allOf).toHaveLength(2);
+    expect(allOf?.[0]).not.toHaveProperty('$ref');
+    const inlined = allOf?.[0] as OpenApiSchemaObject | undefined;
+    const inlinedProps = inlined?.properties as
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+      | undefined;
+    expect(inlinedProps).toHaveProperty('commonField');
+    // The discriminator key must not appear in the inlined props.
+    expect(inlinedProps).not.toHaveProperty('kind');
+    expect(inlined?.required).toEqual(['commonField']);
+  });
+
+  it('leaves allOf untouched when parent has no top-level oneOf (#3432 guard)', () => {
+    // Sanity check: the existing recursive-discriminator-allof shape (parent
+    // is a plain interface, variants inherit via allOf) must keep emitting an
+    // unmodified `$ref` so the interface-based emit path remains intact.
+    const schemas: OpenApiSchemasObject = {
+      Base: {
+        type: 'object',
+        required: ['kind'],
+        properties: {
+          kind: { type: 'string' },
+        },
+        discriminator: {
+          propertyName: 'kind',
+          mapping: {
+            a: '#/components/schemas/Derived',
+          },
+        },
+      },
+      Derived: {
+        allOf: [
+          { $ref: '#/components/schemas/Base' },
+          { type: 'object', properties: { extra: { type: 'string' } } },
+        ],
+      },
+    };
+
+    const result = resolveDiscriminators(structuredClone(schemas), context);
+    const derived = result.Derived as NonNullable<OpenApiSchemasObject[string]>;
+    const allOf = derived.allOf as
+      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+      | undefined;
+    expect(allOf).toHaveLength(2);
+    expect(allOf?.[0]).toHaveProperty('$ref', '#/components/schemas/Base');
+  });
+
   it('hoists oneOf from discriminator when nested incorrectly', () => {
     const schemas: OpenApiSchemasObject = {
       Animal: {
