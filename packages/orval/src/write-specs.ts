@@ -277,9 +277,40 @@ export async function writeSpecs(
   const header = getHeader(output.override.header, info);
 
   if (output.schemas) {
-    if (isString(output.schemas)) {
+    const schemasPath = isString(output.schemas)
+      ? output.schemas
+      : output.schemas.path;
+    const isZodSchemas =
+      (!isString(output.schemas) && output.schemas.type === 'zod') ||
+      (output.client === 'zod' &&
+        output.override.zod.generateReusableSchemas === true);
+
+    if (isZodSchemas) {
+      const fileExtension = output.fileExtension || '.zod.ts';
+
+      await writeZodSchemas(
+        builder,
+        schemasPath,
+        fileExtension,
+        header,
+        output,
+      );
+
+      await writeZodSchemasFromVerbs(
+        builder.verbOptions,
+        schemasPath,
+        fileExtension,
+        header,
+        output,
+        {
+          spec: builder.spec,
+          target: builder.target,
+          workspace,
+          output,
+        },
+      );
+    } else {
       const fileExtension = output.fileExtension || '.ts';
-      const schemaPath = output.schemas;
 
       // Split schemas if operationSchemas path is configured
       if (output.operationSchemas) {
@@ -292,7 +323,7 @@ export async function writeSpecs(
         fixCrossDirectoryImports(
           opSchemas,
           regularSchemaNames,
-          schemaPath,
+          schemasPath,
           output.operationSchemas,
           output.namingConvention,
           fileExtension,
@@ -301,7 +332,7 @@ export async function writeSpecs(
         fixRegularSchemaImports(
           regularSchemas,
           operationSchemaNames,
-          schemaPath,
+          schemasPath,
           output.operationSchemas,
           output.namingConvention,
           fileExtension,
@@ -311,7 +342,7 @@ export async function writeSpecs(
         // Write regular schemas to schemas path
         if (regularSchemas.length > 0) {
           await writeSchemas({
-            schemaPath,
+            schemaPath: schemasPath,
             schemas: regularSchemas,
             target,
             namingConvention: output.namingConvention,
@@ -340,7 +371,7 @@ export async function writeSpecs(
           // Add re-export from operations in the main schemas index
           if (output.indexFiles) {
             await addOperationSchemasReExport(
-              schemaPath,
+              schemasPath,
               output.operationSchemas,
               header,
             );
@@ -348,7 +379,7 @@ export async function writeSpecs(
         }
       } else {
         await writeSchemas({
-          schemaPath,
+          schemaPath: schemasPath,
           schemas,
           target,
           namingConvention: output.namingConvention,
@@ -358,114 +389,6 @@ export async function writeSpecs(
           tsconfig: output.tsconfig,
           factoryOutputDirectory: output.factoryMethods?.outputDirectory,
         });
-      }
-    } else {
-      const schemaType = output.schemas.type;
-
-      if (schemaType === 'typescript') {
-        const fileExtension = output.fileExtension || '.ts';
-
-        // Split schemas if operationSchemas path is configured
-        if (output.operationSchemas) {
-          const { regularSchemas, operationSchemas: opSchemas } =
-            splitSchemasByType(schemas);
-
-          // Fix cross-directory imports before writing (both directions)
-          const regularSchemaNames = new Set(regularSchemas.map((s) => s.name));
-          const operationSchemaNames = new Set(opSchemas.map((s) => s.name));
-          fixCrossDirectoryImports(
-            opSchemas,
-            regularSchemaNames,
-            output.schemas.path,
-            output.operationSchemas,
-            output.namingConvention,
-            fileExtension,
-            output.tsconfig,
-          );
-          fixRegularSchemaImports(
-            regularSchemas,
-            operationSchemaNames,
-            output.schemas.path,
-            output.operationSchemas,
-            output.namingConvention,
-            fileExtension,
-            output.tsconfig,
-          );
-
-          if (regularSchemas.length > 0) {
-            await writeSchemas({
-              schemaPath: output.schemas.path,
-              schemas: regularSchemas,
-              target,
-              namingConvention: output.namingConvention,
-              fileExtension,
-              header,
-              indexFiles: output.indexFiles,
-              tsconfig: output.tsconfig,
-              factoryOutputDirectory: output.factoryMethods?.outputDirectory,
-            });
-          }
-
-          if (opSchemas.length > 0) {
-            await writeSchemas({
-              schemaPath: output.operationSchemas,
-              schemas: opSchemas,
-              target,
-              namingConvention: output.namingConvention,
-              fileExtension,
-              header,
-              indexFiles: output.indexFiles,
-              tsconfig: output.tsconfig,
-              factoryOutputDirectory: output.factoryMethods?.outputDirectory,
-            });
-
-            // Add re-export from operations in the main schemas index
-            if (output.indexFiles) {
-              await addOperationSchemasReExport(
-                output.schemas.path,
-                output.operationSchemas,
-                header,
-              );
-            }
-          }
-        } else {
-          await writeSchemas({
-            schemaPath: output.schemas.path,
-            schemas,
-            target,
-            namingConvention: output.namingConvention,
-            fileExtension,
-            header,
-            indexFiles: output.indexFiles,
-            tsconfig: output.tsconfig,
-            factoryOutputDirectory: output.factoryMethods?.outputDirectory,
-          });
-        }
-      } else {
-        // schemaType === 'zod'
-        const fileExtension = '.zod.ts';
-
-        await writeZodSchemas(
-          builder,
-          output.schemas.path,
-          fileExtension,
-          header,
-          output,
-        );
-
-        await writeZodSchemasFromVerbs(
-          builder.verbOptions,
-          output.schemas.path,
-          fileExtension,
-          header,
-          output,
-          {
-            spec: builder.spec,
-            target: builder.target,
-            workspace,
-            output,
-          },
-        );
       }
     }
   }

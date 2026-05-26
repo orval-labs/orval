@@ -13,6 +13,11 @@ import {
   type ZodCoerceType,
 } from '@orval/core';
 import {
+  generateReusableSchemaSet,
+  resolveSchemaNames,
+  rewriteReusableSchemas,
+} from './reusable-schemas';
+import {
   dereference,
   generateFormDataZodSchema,
   generateZodValidationSchemaDefinition,
@@ -51,6 +56,7 @@ interface WriteZodOutputOptions {
       coerce: {
         body: boolean | ZodCoerceType[];
       };
+      generateReusableSchemas?: boolean;
     };
   };
 }
@@ -218,6 +224,13 @@ export function generateZodSchemasInline(
   builder: WriteZodSchemasInput,
   output: WriteZodOutputOptions,
 ): string {
+  const useReusableSchemas =
+    output.override.zod.generateReusableSchemas === true;
+
+  if (useReusableSchemas) {
+    return generateZodSchemasInlineReusable(builder, output);
+  }
+
   const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
 
   if (schemasWithOpenApiDef.length === 0) {
@@ -276,6 +289,51 @@ export function generateZodSchemasInline(
   return generateZodSchemaFileContent('', schemas);
 }
 
+function generateZodSchemasInlineReusable(
+  builder: WriteZodSchemasInput,
+  output: WriteZodOutputOptions,
+): string {
+  const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
+  if (schemasWithOpenApiDef.length === 0) return '';
+
+  const isZodV4 = !!output.packageJson && isZodVersionV4(output.packageJson);
+  const strict = output.override.zod.strict.body;
+  const coerce = output.override.zod.coerce.body;
+  const context: ContextSpec = {
+    spec: builder.spec,
+    target: builder.target,
+    workspace: '',
+    output: output as ContextSpec['output'],
+  };
+
+  const refs = schemasWithOpenApiDef.map(
+    ({ name }) => `#/components/schemas/${name}`,
+  );
+
+  resolveSchemaNames(refs, output.namingConvention);
+
+  const entries = generateReusableSchemaSet(refs, context, {
+    strict,
+    isZodV4,
+    coerce,
+  });
+
+  const rewritten = rewriteReusableSchemas(entries);
+
+  const body = rewritten
+    .map((entry) => {
+      const consts = entry.consts ? `${entry.consts}\n\n` : '';
+      return (
+        `${consts}export const ${entry.name} = ${entry.zod}\n\n` +
+        `export type ${entry.name} = zod.input<typeof ${entry.name}>;\n` +
+        `export type ${entry.name}Output = zod.output<typeof ${entry.name}>;`
+      );
+    })
+    .join('\n\n');
+
+  return `import { z as zod } from 'zod';\n\n${body}\n`;
+}
+
 export async function writeZodSchemas(
   builder: WriteZodSchemasInput,
   schemasPath: string,
@@ -283,6 +341,20 @@ export async function writeZodSchemas(
   header: string,
   output: WriteZodOutputOptions,
 ) {
+  const useReusableSchemas =
+    output.override.zod.generateReusableSchemas === true;
+
+  if (useReusableSchemas) {
+    await writeZodSchemasReusable(
+      builder,
+      schemasPath,
+      fileExtension,
+      header,
+      output,
+    );
+    return;
+  }
+
   const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
   const schemasToWrite: ZodSchemaFileToWrite[] = [];
   const isZodV4 = !!output.packageJson && isZodVersionV4(output.packageJson);
@@ -358,6 +430,83 @@ export async function writeZodSchemas(
   }
 }
 
+async function writeZodSchemasReusable(
+  builder: WriteZodSchemasInput,
+  schemasPath: string,
+  fileExtension: string,
+  header: string,
+  output: WriteZodOutputOptions,
+) {
+  const isZodV4 = !!output.packageJson && isZodVersionV4(output.packageJson);
+  const strict = output.override.zod.strict.body;
+  const coerce = output.override.zod.coerce.body;
+  const context: ContextSpec = {
+    spec: builder.spec,
+    target: builder.target,
+    workspace: '',
+    output: output as ContextSpec['output'],
+  };
+
+  // Roots = every component schema in the builder list. This matches today's
+  // writeZodSchemas behavior of emitting all of them (the `schemas: { type: 'zod' }`
+  // path passes the full schema list in via builder.schemas).
+  const refs = builder.schemas
+    .map(({ name }) => `#/components/schemas/${name}`)
+    .filter((ref) => {
+      const schemaName = ref.slice('#/components/schemas/'.length);
+      const componentSchemas = (builder.spec.components?.schemas ??
+        {}) as Record<string, unknown>;
+      return componentSchemas[schemaName] !== undefined;
+    });
+
+  // Conflict guard.
+  resolveSchemaNames(refs, output.namingConvention);
+
+  const entries = generateReusableSchemaSet(refs, context, {
+    strict,
+    isZodV4,
+    coerce,
+  });
+
+  const rewritten = rewriteReusableSchemas(entries);
+
+  for (const entry of rewritten) {
+    const fileName = conventionName(entry.name, output.namingConvention);
+    const filePath = path.join(schemasPath, `${fileName}${fileExtension}`);
+    const importExt = fileExtension.replace(/\.ts$/, '');
+    const imports = [...entry.usedRefs]
+      .filter((r) => r !== entry.name)
+      .sort()
+      .map((r) => {
+        const importedFile = conventionName(r, output.namingConvention);
+        return `import { ${r} } from './${importedFile}${importExt}';`;
+      })
+      .join('\n');
+
+    const consts = entry.consts ? `${entry.consts}\n\n` : '';
+    const fileContent =
+      `${header}import { z as zod } from 'zod';\n` +
+      (imports ? `${imports}\n\n` : '\n') +
+      `${consts}export const ${entry.name} = ${entry.zod}\n\n` +
+      `export type ${entry.name} = zod.input<typeof ${entry.name}>;\n` +
+      `export type ${entry.name}Output = zod.output<typeof ${entry.name}>;\n`;
+
+    await fs.outputFile(filePath, fileContent);
+  }
+
+  if (output.indexFiles && rewritten.length > 0) {
+    const schemaNames = rewritten.map((e) => e.name);
+    await writeZodSchemaIndex(
+      schemasPath,
+      fileExtension,
+      header,
+      schemaNames,
+      output.namingConvention,
+      true,
+    );
+  }
+}
+
 export async function writeZodSchemasFromVerbs(
   verbOptions: WriteZodSchemasFromVerbsInput,
   schemasPath: string,
@@ -376,6 +525,8 @@ export async function writeZodSchemasFromVerbs(
   const isZodV4 = !!output.packageJson && isZodVersionV4(output.packageJson);
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
+  const useReusableSchemas =
+    output.override.zod.generateReusableSchemas === true;
 
   const generateVerbsSchemas = verbOptionsArray.flatMap((verbOption) => {
     const operation = verbOption.originalOperation;
@@ -415,7 +566,9 @@ export async function writeZodSchemasFromVerbs(
         ? [
             {
               name: `${pascal(verbOption.operationName)}Body`,
-              schema: dereference(bodySchema, zodContext),
+              schema: useReusableSchemas
+                ? bodySchema
+                : dereference(bodySchema, zodContext),
               bodyContentType,
               encoding: bodyMedia?.encoding,
             },
@@ -440,7 +593,12 @@ export async function writeZodSchemasFromVerbs(
                     .filter((p) => 'schema' in p && p.schema)
                     .map((p) => [
                       p.name,
-                      dereference(p.schema as OpenApiSchemaObject, zodContext),
+                      useReusableSchemas
+                        ? (p.schema as OpenApiSchemaObject)
+                        : dereference(
+                            p.schema as OpenApiSchemaObject,
+                            zodContext,
+                          ),
                     ]),
                 ) as Record<string, OpenApiSchemaObject>,
                 required: queryParams
@@ -468,7 +626,12 @@ export async function writeZodSchemasFromVerbs(
                     .filter((p) => 'schema' in p && p.schema)
                     .map((p) => [
                       p.name,
-                      dereference(p.schema as OpenApiSchemaObject, zodContext),
+                      useReusableSchemas
+                        ? (p.schema as OpenApiSchemaObject)
+                        : dereference(
+                            p.schema as OpenApiSchemaObject,
+                            zodContext,
+                          ),
                     ]),
                 ) as Record<string, OpenApiSchemaObject>,
                 required: headerParams
@@ -498,7 +661,9 @@ export async function writeZodSchemasFromVerbs(
           )
           .map((responseType) => ({
             name: responseType.value,
-            schema: dereference(responseType.originalSchema, zodContext),
+            schema: useReusableSchemas
+              ? responseType.originalSchema
+              : dereference(responseType.originalSchema, zodContext),
           }))
       : [];
 
@@ -514,6 +679,18 @@ export async function writeZodSchemasFromVerbs(
   const schemasToWrite: ZodSchemaFileToWrite[] = [];
 
   for (const entry of uniqueVerbsSchemas) {
+    // Pure-ref wrapper skip: if the underlying schema is just `{ $ref: ... }` AND
+    // the flag is on, don't emit a per-operation wrapper file. Consumers import
+    // the named component schema directly.
+    if (
+      useReusableSchemas &&
+      entry.schema &&
+      typeof (entry.schema as { $ref?: unknown }).$ref === 'string' &&
+      Object.keys(entry.schema).length === 1
+    ) {
+      continue;
+    }
+
     const { name, schema } = entry;
     const fileName = conventionName(name, output.namingConvention);
     const filePath = path.join(schemasPath, `${fileName}${fileExtension}`);
