@@ -2,13 +2,12 @@ import {
   type ContextSpec,
   type GeneratorImport,
   getKey,
+  getRefInfo,
   isReference,
   type MockOptions,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
-  pascal,
   PropertySortOrder,
-  getRefInfo,
 } from '@orval/core';
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';

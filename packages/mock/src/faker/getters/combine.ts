@@ -1,11 +1,10 @@
 import {
   type ContextSpec,
   type GeneratorImport,
+  getRefInfo,
   isReference,
   isSchema,
   type MockOptions,
-  pascal,
-  getRefInfo,
 } from '@orval/core';
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';

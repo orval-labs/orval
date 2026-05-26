@@ -9,13 +9,12 @@ import {
   EnumGeneration,
   escape,
   type GeneratorImport,
+  getRefInfo,
   isReference,
   isString,
   mergeDeep,
   type MockOptions,
   type OpenApiSchemaObject,
-  pascal,
-  getRefInfo,
 } from '@orval/core';
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
