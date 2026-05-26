@@ -291,9 +291,9 @@ export async function writeSpecs(
         output.override.zod.generateReusableSchemas === true);
 
     if (isZodSchemas) {
-      // Normalizer defaults `fileExtension` to `.zod.ts` for zod-schemas
-      // outputs (and `.ts` otherwise), so we just use what was normalized.
-      const fileExtension = output.fileExtension;
+      // Use the schema-specific extension so the global `fileExtension` (which
+      // also drives client/mock outputs) isn't dragged into the zod world.
+      const fileExtension = output.schemaFileExtension;
 
       await writeZodSchemas(
         builder,

@@ -218,10 +218,15 @@ export async function normalizeOptions(
     seenMockTypes.add(entry.type);
   }
 
+  const defaultFileExtension = '.ts';
+
   // Reusable Zod schemas land in `*.zod.ts` files by default so they sit
-  // alongside any existing TypeScript types without a name collision. We can
-  // only distinguish "user explicitly set `.ts`" from "user said nothing"
-  // here — once normalization runs we'd be guessing.
+  // alongside any existing TypeScript types without a name collision. We
+  // expose this as a separate `schemaFileExtension` field (not by flipping
+  // the global `fileExtension`) so that non-schema writers (mode writers,
+  // mock writers, the workspace barrel) keep their own extensions and don't
+  // start emitting `*.zod.ts` for unrelated artifacts. A user-set
+  // `output.fileExtension` overrides this default at the call site.
   const isZodSchemasOutput =
     !!outputOptions.schemas &&
     ((!isString(outputOptions.schemas) &&
@@ -229,7 +234,9 @@ export async function normalizeOptions(
       (isString(outputOptions.schemas) &&
         (outputOptions.client ?? client) === 'zod' &&
         outputOptions.override?.zod?.generateReusableSchemas === true));
-  const defaultFileExtension = isZodSchemasOutput ? '.zod.ts' : '.ts';
+  const defaultSchemaFileExtension = isZodSchemasOutput
+    ? '.zod.ts'
+    : defaultFileExtension;
 
   const factoryMethodsConfig = outputOptions.factoryMethods;
   let factoryMethods: NormalizedFactoryMethodsOptions | undefined = undefined;
@@ -302,6 +309,8 @@ export async function normalizeOptions(
       namingConvention:
         outputOptions.namingConvention ?? NamingConvention.CAMEL_CASE,
       fileExtension: outputOptions.fileExtension ?? defaultFileExtension,
+      schemaFileExtension:
+        outputOptions.fileExtension ?? defaultSchemaFileExtension,
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
       httpClient:

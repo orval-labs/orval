@@ -256,9 +256,15 @@ export const generateZodValidationSchemaDefinition = (
         description?: string;
       };
 
-      // .default(...) — emit a const for non-primitive defaults to match the rest of the generator.
+      // .default(...) — emit a const for non-primitive defaults. Use the same
+      // constNameRegistry-based suffix that the rest of the generator uses so
+      // multiple defaults sharing `name` don't collide on `<name>Default`.
       if (refSchema.default !== undefined) {
-        const defaultVarName = `${name}Default`;
+        const registry = rules?.constNameRegistry ?? {};
+        const counter = isNumber(registry[name]) ? registry[name] + 1 : 0;
+        registry[name] = counter;
+        const suffix = counter ? pascal(getNumberWord(counter)) : '';
+        const defaultVarName = `${name}Default${suffix}`;
         const defaultLiteral = stringify(refSchema.default);
         if (defaultLiteral !== undefined) {
           consts.push(`export const ${defaultVarName} = ${defaultLiteral};`);

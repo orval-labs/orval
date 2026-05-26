@@ -40,6 +40,13 @@ export interface NormalizedOutputOptions {
   operationSchemas?: string;
   namingConvention: NamingConvention;
   fileExtension: string;
+  /**
+   * File extension for schema artifacts (TS types or Zod schemas) under
+   * `schemas:`. Defaults to `.zod.ts` when the output is Zod schemas
+   * (`schemas: { type: 'zod' }` or `client: 'zod'` + `generateReusableSchemas`),
+   * otherwise `.ts`. A user-set `output.fileExtension` always wins.
+   */
+  schemaFileExtension: string;
   mode: OutputMode;
   // Always normalized to an object form; an empty `generators` array means
   // no mocks are emitted.

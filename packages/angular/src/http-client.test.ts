@@ -45,6 +45,7 @@ const createOutput = (
     operationSchemas: undefined,
     namingConvention: 'camelCase',
     fileExtension: '.ts',
+    schemaFileExtension: '.ts',
     mode: 'single',
     mock: { indexMockFiles: false, generators: [] },
     override: {
