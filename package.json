@@ -64,7 +64,8 @@
     "typescript-eslint": "8.57.2",
     "typescript": "6.0.3",
     "vite-plus": "0.3.1",
-    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.1"
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.1",
+    "remeda": "^2.40.0"
   },
   "catalogs": {
     "angular": {

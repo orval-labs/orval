@@ -51,7 +51,7 @@
         "fs-extra": "^11.3.2",
         "jiti": "^2.6.1",
         "jsesc": "^3.0.0",
-        "remeda": "^2.33.6",
+        "remeda": "catalog:",
         "tinyglobby": "^0.2.16",
       },
       "devDependencies": {
@@ -75,7 +75,7 @@
       "version": "8.34.0",
       "dependencies": {
         "@orval/core": "workspace:*",
-        "remeda": "^2.33.6",
+        "remeda": "catalog:",
       },
       "devDependencies": {
         "rimraf": "catalog:",
@@ -150,7 +150,7 @@
       "version": "8.34.0",
       "dependencies": {
         "@orval/core": "workspace:*",
-        "remeda": "^2.33.6",
+        "remeda": "catalog:",
       },
       "devDependencies": {
         "rimraf": "catalog:",
@@ -199,7 +199,7 @@
         "jiti": "^2.6.1",
         "js-yaml": "4.3.2",
         "json5": "2.2.3",
-        "remeda": "^2.33.6",
+        "remeda": "catalog:",
         "string-argv": "^0.3.2",
       },
       "devDependencies": {
@@ -249,7 +249,7 @@
       "dependencies": {
         "@orval/core": "workspace:*",
         "@orval/fetch": "workspace:*",
-        "remeda": "^2.33.6",
+        "remeda": "catalog:",
       },
       "devDependencies": {
         "rimraf": "catalog:",
@@ -308,7 +308,7 @@
       "dependencies": {
         "@orval/core": "workspace:*",
         "jsesc": "^3.0.0",
-        "remeda": "^2.33.6",
+        "remeda": "catalog:",
       },
       "devDependencies": {
         "@types/jsesc": "^3.0.3",
@@ -1054,6 +1054,7 @@
     "jsdom": "29.1.1",
     "npm-run-all2": "8.0.4",
     "prettier": "3.8.1",
+    "remeda": "^2.40.0",
     "rimraf": "6.1.2",
     "tslib": "2.8.1",
     "typescript": "6.0.3",
@@ -3697,7 +3698,7 @@
 
     "regexp.prototype.flags": ["regexp.prototype.flags@1.5.4", "", { "dependencies": { "call-bind": "^1.0.8", "define-properties": "^1.2.1", "es-errors": "^1.3.0", "get-proto": "^1.0.1", "gopd": "^1.2.0", "set-function-name": "^2.0.2" } }, "sha512-dYqgNSZbDwkaJ2ceRd9ojCGjBq+mOm9LmtXnAnEGyHhN/5R7iDW2TRw3h+o/jCFxus3P2LfWIIiwowAjANm7IA=="],
 
-    "remeda": ["remeda@2.33.6", "", {}, "sha512-tazDGH7s75kUPGBKLvhgBEHMgW+TdDFhjUAMdQj57IoWz6HsGa5D2RX5yDUz6IIqiRRvZiaEHzCzWdTeixc/Kg=="],
+    "remeda": ["remeda@2.40.0", "", {}, "sha512-Y8yxrbK8SbTao2+mTqJcjre3/eBH641nr88aAgYfOdbW5p4FH+1Jk3mMypnA+SoktEXBVA8id0o3XPbgHYvQ9Q=="],
 
     "remove-accents": ["remove-accents@0.5.0", "", {}, "sha512-8g3/Otx1eJaVD12e31UbJj1YzdtVvzH85HV7t+9MJYk/u3XmkOUJ5Ys9wQrf9PCPK8+xn4ymzqYCiZl6QWKn+A=="],
 

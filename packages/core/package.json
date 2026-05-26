@@ -31,7 +31,7 @@
     "fs-extra": "^11.3.2",
     "jiti": "^2.6.1",
     "jsesc": "^3.0.0",
-    "remeda": "^2.33.6",
+    "remeda": "catalog:",
     "tinyglobby": "^0.2.16"
   },
   "devDependencies": {

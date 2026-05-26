@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@orval/core": "workspace:*",
-    "remeda": "^2.33.6"
+    "remeda": "catalog:"
   },
   "devDependencies": {
     "rimraf": "catalog:",
