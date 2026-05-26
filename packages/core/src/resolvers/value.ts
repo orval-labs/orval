@@ -287,9 +287,7 @@ export function resolveValue({
         | Record<string, unknown>
         | undefined;
 
-      const allOf = scopeSource?.allOf as
-        | Array<Record<string, unknown>>
-        | undefined;
+      const allOf = scopeSource?.allOf as Record<string, unknown>[] | undefined;
 
       const isInAllOf =
         Array.isArray(allOf) &&
@@ -301,8 +299,11 @@ export function resolveValue({
         });
 
       if (!isInAllOf) {
-        const filteredScope = { ...context.dynamicScope };
-        delete filteredScope[refAnchor];
+        const filteredScope = Object.fromEntries(
+          Object.entries(context.dynamicScope).filter(
+            ([key]) => key !== refAnchor,
+          ),
+        );
         effectiveContext = { ...context, dynamicScope: filteredScope };
       }
     }

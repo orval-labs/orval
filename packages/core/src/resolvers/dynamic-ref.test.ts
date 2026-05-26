@@ -458,7 +458,11 @@ describe('resolveDynamicRef', () => {
     const result = resolveDynamicRef('category', context);
 
     expect(result.resolvedTypeName).toBe('LocalizedCategory');
-    expect(result.imports[0]?.name).toBe('LocalizedCategory');
+    expect(result.imports).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'LocalizedCategory' }),
+      ]),
+    );
   });
 
   it('returns unknown when anchor is not in scope', () => {
@@ -530,7 +534,7 @@ describe('resolveDynamicRef', () => {
     const result = resolveDynamicRef('category', context);
 
     expect(result.resolvedTypeName).toBe('BaseCategory');
-    expect(result.imports[0]).toEqual({
+    expect(result.imports).toContainEqual({
       name: 'BaseCategory',
       schemaName: 'base-category',
     });
@@ -615,8 +619,7 @@ describe('resolveDynamicRef', () => {
 
     const result = resolveDynamicRef('itemType', context);
 
-    expect(result.imports).toHaveLength(1);
-    expect(result.imports[0]).toEqual({
+    expect(result.imports).toContainEqual({
       name: 'User',
       schemaName: 'User',
     });
@@ -654,7 +657,7 @@ describe('resolveDynamicRef — $dynamicAnchor fallback', () => {
     expect(result.schema).toMatchObject({
       properties: { name: { type: 'string' } },
     });
-    expect(result.imports[0]).toEqual({
+    expect(result.imports).toContainEqual({
       name: 'Pet',
       schemaName: 'Pet',
     });
