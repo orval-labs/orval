@@ -1,4 +1,4 @@
-import { isDereferenced } from '@scalar/openapi-types/helpers';
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
 import { resolveRef } from '../resolvers/ref';
 import type {
@@ -11,6 +11,7 @@ import { PropertySortOrder } from '../types';
 import {
   conventionName,
   getFileInfo,
+  isInlineSchema,
   getSchemasImportPath,
   isString,
   jsStringLiteralEscape,
@@ -78,9 +79,20 @@ function getResolvedRef(
   return resolveRef(schema, context) as ResolvedRef;
 }
 
+function hasSchemaFlag(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  key: 'readOnly' | 'writeOnly',
+): boolean {
+  if (isBooleanJsonSchema(schema)) {
+    return false;
+  }
+  return Boolean((schema as Record<string, unknown>)[key]);
+}
+
 function getProperties(
   schema: OpenApiSchemaObject,
 ): Record<string, OpenApiSchemaObject | OpenApiReferenceObject> {
+  if (isBooleanJsonSchema(schema)) return {};
   return (
     (schema.properties as
       | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
@@ -91,6 +103,7 @@ function getProperties(
 function getItems(
   schema: OpenApiSchemaObject,
 ): OpenApiSchemaObject | OpenApiReferenceObject | undefined {
+  if (isBooleanJsonSchema(schema)) return undefined;
   return schema.items as
     | OpenApiSchemaObject
     | OpenApiReferenceObject
@@ -100,6 +113,7 @@ function getItems(
 function getAdditionalProperties(
   schema: OpenApiSchemaObject,
 ): OpenApiSchemaObject | OpenApiReferenceObject | boolean | undefined {
+  if (isBooleanJsonSchema(schema)) return undefined;
   // `unevaluatedProperties` (OAS 3.1) has the same shape and circularity
   // implications as `additionalProperties`. See issue #2156.
   return (schema.additionalProperties ?? schema.unevaluatedProperties) as
@@ -135,7 +149,11 @@ export function generateFactory(
   name: string,
   context: ContextSpec,
 ): { model: string; imports: GeneratorImport[] } | undefined {
-  if (!canGenerateSchema(schema) || !context.output.factoryMethods)
+  if (
+    isBooleanJsonSchema(schema) ||
+    !canGenerateSchema(schema) ||
+    !context.output.factoryMethods
+  )
     return undefined;
 
   const { functionNamePrefix, mode } = context.output.factoryMethods;
@@ -155,6 +173,7 @@ export function generateFactory(
 }
 
 function canGenerateSchema(schema: OpenApiSchemaObject): boolean {
+  if (isBooleanJsonSchema(schema)) return false;
   return (
     schema.type === 'object' ||
     schema.type === 'array' ||
@@ -173,7 +192,7 @@ function hasCircularReference(
   context: ContextSpec,
   visited = new Set<string>(),
 ): boolean {
-  if (!isDereferenced(target)) {
+  if (!isInlineSchema(target)) {
     const { imports, schema } = getResolvedRef(target, context);
     const refName = imports[0]?.name;
     if (refName === sourceName) return true;
@@ -200,6 +219,8 @@ function hasCircularReference(
     }
     return result;
   }
+
+  if (isBooleanJsonSchema(target)) return false;
 
   const check = (schemas?: SchemaArray): boolean =>
     schemas?.some((s) =>
@@ -228,8 +249,12 @@ function buildPayload(
   parents: string[],
   imports: GeneratorImport[],
 ): string {
-  if (!isDereferenced(target)) {
+  if (!isInlineSchema(target)) {
     return buildRefPayload(target, context, parents, imports);
+  }
+
+  if (isBooleanJsonSchema(target)) {
+    return '{}';
   }
 
   const schema = target;
@@ -385,6 +410,7 @@ function buildObjectPayload(
   parents: string[],
   imports: GeneratorImport[],
 ): string {
+  if (isBooleanJsonSchema(schema)) return '{}';
   const { includeOptionalProperty = false } =
     context.output.factoryMethods ?? {};
   const props = getProperties(schema);
@@ -401,14 +427,14 @@ function buildObjectPayload(
 
   for (const [key, prop] of entries) {
     const isRequired = requiredProps.includes(key);
-    const resolved = isDereferenced(prop)
+    const resolved = isInlineSchema(prop)
       ? prop
       : getResolvedRef(prop, context).schema;
 
     const isReadOnly =
-      !!(prop as OpenApiSchemaObject).readOnly || !!resolved.readOnly;
+      hasSchemaFlag(prop, 'readOnly') || hasSchemaFlag(resolved, 'readOnly');
     const isWriteOnly =
-      !!(prop as OpenApiSchemaObject).writeOnly || !!resolved.writeOnly;
+      hasSchemaFlag(prop, 'writeOnly') || hasSchemaFlag(resolved, 'writeOnly');
 
     if (!isRequired) {
       if (isReadOnly) continue;
@@ -431,6 +457,7 @@ function buildArrayPayload(
   parents: string[],
   imports: GeneratorImport[],
 ): string {
+  if (isBooleanJsonSchema(schema)) return '[]';
   const { prefixItems, minItems } = getExtendedProps(schema);
   const items = getItems(schema);
 
@@ -459,6 +486,7 @@ function buildArrayPayload(
 }
 
 function inferSchemaType(schema: OpenApiSchemaObject): string | undefined {
+  if (isBooleanJsonSchema(schema)) return undefined;
   let type = schema.type as string | string[] | undefined;
 
   if (Array.isArray(type)) {
@@ -482,6 +510,7 @@ function buildDefaultPayload(
   schema: OpenApiSchemaObject,
   context: ContextSpec,
 ): string {
+  if (isBooleanJsonSchema(schema)) return formatValue(undefined);
   if (
     context.output.override.useDates &&
     typeof schema.default === 'string' &&
@@ -500,6 +529,7 @@ function buildPrimitivePayload(
   schemaType: string | undefined,
   context: ContextSpec,
 ): string {
+  if (isBooleanJsonSchema(schema)) return '{}';
   if (schemaType === 'null') return 'null';
 
   const enumValues = schema.enum;

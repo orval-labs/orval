@@ -4,13 +4,13 @@ import {
   type GeneratorImport,
   getKey,
   getRefInfo,
+  isInlineSchema,
   isSchemaNullable,
   type MockOptions,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   PropertySortOrder,
 } from '@orval/core';
-import { isDereferenced } from '@scalar/openapi-types/helpers';
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
@@ -73,7 +73,7 @@ function reExpansionWouldCollapse(
   if (!targetProperties || !Array.isArray(targetRequired)) return false;
 
   return Object.entries(targetProperties).some(([key, property]) => {
-    if (!targetRequired.includes(key) || isDereferenced(property)) return false;
+    if (!targetRequired.includes(key) || isInlineSchema(property)) return false;
     if (
       !existingReferencedProperties.includes(
         getReferenceName(property.$ref, context),
@@ -120,7 +120,7 @@ export function getMockObject({
   splitMockImplementations,
   allowOverride = false,
 }: GetMockObjectOptions): MockDefinition {
-  if (!isDereferenced(item)) {
+  if (!isInlineSchema(item)) {
     return resolveMockValue({
       schema: {
         ...item,
@@ -291,10 +291,10 @@ export function getMockObject({
           // `resolveSpec` deletes the keyword -- so an optional nullable
           // property could never pick `null` as its omission value (#4141).
           const hasNullable =
-            isDereferenced(prop) &&
+            isInlineSchema(prop) &&
             isSchemaNullable(prop as OpenApiSchemaObject);
 
-          const refName = !isDereferenced(prop)
+          const refName = !isInlineSchema(prop)
             ? getReferenceName(prop.$ref, context)
             : '';
           const isRecursiveRef =
@@ -314,7 +314,7 @@ export function getMockObject({
             if (
               !mockOptions?.nonNullable &&
               (hasNullable ||
-                (!isDereferenced(prop) &&
+                (!isInlineSchema(prop) &&
                   isNullableRefTarget(prop.$ref, context)))
             ) {
               return `${keyDefinition}: null`;
@@ -324,7 +324,7 @@ export function getMockObject({
               existingReferencedProperties.length;
             if (
               inReExpansion ||
-              (!isDereferenced(prop) &&
+              (!isInlineSchema(prop) &&
                 reExpansionWouldCollapse(
                   prop.$ref,
                   context,
@@ -462,7 +462,7 @@ export function getMockObject({
     }
     const additionalProperties = itemAdditionalProperties;
     if (
-      !isDereferenced(additionalProperties) &&
+      !isInlineSchema(additionalProperties) &&
       existingReferencedProperties.includes(
         getReferenceName(additionalProperties.$ref, context),
       )

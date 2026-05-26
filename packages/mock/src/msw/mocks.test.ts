@@ -1,12 +1,14 @@
 import {
   EnumGeneration,
-  type NormalizedOverrideOutput,
   type OpenApiDocument,
   type ResReqTypesValue,
 } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../../../core/src/test-utils/context';
+import {
+  createTestContextSpec,
+  createTestResReqTypesValue,
+} from '../../../core/src/test-utils';
 import { getMockWithoutFunc, getResponsesMockDefinition } from './mocks';
 
 describe('getResponsesMockDefinition', () => {
@@ -24,7 +26,8 @@ describe('getResponsesMockDefinition', () => {
       tags: ['Pets'],
       returnType: 'Blob',
       responses: [
-        {
+        createTestResReqTypesValue({
+          key: '200',
           value: 'Blob',
           originalSchema: {
             type: 'string',
@@ -33,7 +36,12 @@ describe('getResponsesMockDefinition', () => {
           contentType: 'application/octet-stream',
           imports: undefined,
           isRef: false,
-        } as unknown as ResReqTypesValue,
+          isEnum: false,
+          hasReadonlyProps: false,
+          type: 'string',
+          schemas: [],
+          dependencies: [],
+        }),
       ],
       mockOptionsWithoutFunc: {},
       context,
@@ -64,7 +72,9 @@ describe('getResponsesMockDefinition', () => {
               type: 'object',
               required: ['countryCode'],
               properties: {
-                countryCode: { $ref: '#/components/schemas/CountryCode' },
+                countryCode: {
+                  $ref: '#/components/schemas/CountryCode',
+                },
               },
             },
             CountryCode: { type: 'string', enum: ['CN', 'UY'] },
@@ -82,12 +92,18 @@ describe('getResponsesMockDefinition', () => {
       returnType: 'Pets',
       responses: [
         {
+          key: '200',
           value: 'Pets',
           originalSchema: { $ref: '#/components/schemas/Pets' },
           contentType: 'application/json',
           imports: sharedImports,
           isRef: true,
-        } as unknown as ResReqTypesValue,
+          isEnum: false,
+          hasReadonlyProps: false,
+          type: 'array',
+          schemas: [],
+          dependencies: [],
+        } satisfies ResReqTypesValue,
       ],
       mockOptionsWithoutFunc: {},
       context,
@@ -213,13 +229,19 @@ describe('getResponsesMockDefinition (generator useExamples for property example
 });
 
 describe('getMockWithoutFunc (override.mock.schemas)', () => {
-  const spec = {} as OpenApiDocument;
+  const spec = {
+    openapi: '3.1.0',
+    info: { title: 'Test', version: '1.0.0' },
+    paths: {},
+  } satisfies OpenApiDocument;
 
   it('serializes function-valued schema-scoped overrides into IIFE strings', () => {
     const colorFn = () => 'faker.color.human()';
-    const override = {
-      mock: { schemas: { Apple: { properties: { color: colorFn } } } },
-    } as unknown as NormalizedOverrideOutput;
+    const override = createTestContextSpec({
+      override: {
+        mock: { schemas: { Apple: { properties: { color: colorFn } } } },
+      },
+    }).output.override;
 
     const result = getMockWithoutFunc(spec, override);
 
@@ -229,9 +251,11 @@ describe('getMockWithoutFunc (override.mock.schemas)', () => {
   });
 
   it('keeps non-function schema-scoped overrides as stringified values', () => {
-    const override = {
-      mock: { schemas: { Car: { properties: { color: 'midnight black' } } } },
-    } as unknown as NormalizedOverrideOutput;
+    const override = createTestContextSpec({
+      override: {
+        mock: { schemas: { Car: { properties: { color: 'midnight black' } } } },
+      },
+    }).output.override;
 
     const result = getMockWithoutFunc(spec, override);
 
@@ -239,7 +263,10 @@ describe('getMockWithoutFunc (override.mock.schemas)', () => {
   });
 
   it('omits schemas when no schema-scoped overrides are configured', () => {
-    const result = getMockWithoutFunc(spec, {} as NormalizedOverrideOutput);
+    const result = getMockWithoutFunc(
+      spec,
+      createTestContextSpec().output.override,
+    );
     expect(result.schemas).toBeUndefined();
   });
 });

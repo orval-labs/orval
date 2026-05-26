@@ -5,6 +5,19 @@ import type { OpenApiSchemaObject } from '../types';
 import { getObject } from './object';
 
 describe('getObject', () => {
+  it('does not treat a boolean schema as a reference', () => {
+    const context = createTestContextSpec({});
+
+    expect(() =>
+      getObject({
+        item: true,
+        name: 'Any',
+        context,
+        nullable: '',
+      }),
+    ).not.toThrow();
+  });
+
   it('suffixes inline object property schema names that collide with component schemas', () => {
     const context = createTestContextSpec({
       spec: {

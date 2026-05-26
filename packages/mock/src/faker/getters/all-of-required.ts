@@ -1,7 +1,7 @@
-import { isDereferenced } from '@scalar/openapi-types/helpers';
 import {
   type ContextSpec,
   getRefInfo,
+  isInlineSchema,
   type OpenApiSchemaObject,
 } from '@orval/core';
 import { prop } from 'remeda';
@@ -19,7 +19,7 @@ function derefAllOfMember(
 ): Partial<OpenApiSchemaObject> | undefined {
   let current: unknown = member;
 
-  while (current && typeof current === 'object' && !isDereferenced(current)) {
+  while (current && typeof current === 'object' && !isInlineSchema(current)) {
     const ref = current.$ref;
     if (typeof ref !== 'string' || seen.has(ref)) {
       return undefined;

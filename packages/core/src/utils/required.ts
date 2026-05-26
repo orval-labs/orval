@@ -1,3 +1,5 @@
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
+
 import type { OpenApiSchemaObject } from '../types';
 
 /**
@@ -14,6 +16,8 @@ import type { OpenApiSchemaObject } from '../types';
  * @param name - Label for the offending schema, used in the error message.
  */
 export function getRequiredKeys(schema: OpenApiSchemaObject, name: string) {
+  if (isBooleanJsonSchema(schema)) return [];
+
   const required = schema.required as unknown;
 
   if (required === undefined) return [];

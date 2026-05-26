@@ -1,16 +1,17 @@
-import type {
-  ContextSpec,
-  GeneratorMutator,
-  OpenApiSchemaObject,
-  ZodCoerceType,
-  ZodVariantOption,
+import {
+  type ContextSpec,
+  type OpenApiDocument,
+  type ZodCoerceType,
+  type GeneratorMutator,
+  type OpenApiSchemaObject,
+  type ZodVariantOption,
+  getRefInfo,
+  buildDynamicScope,
 } from '@orval/core';
-import { buildDynamicScope, getRefInfo } from '@orval/core';
 import {
   generateZodValidationSchemaDefinition,
   parseZodValidationSchemaDefinition,
 } from '@orval/zod';
-import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 
 /**
  * Resolve the export identifier for a `#/components/schemas/X` ref. We reuse
@@ -89,7 +90,7 @@ const collectRefsInValue = (value: unknown, refs: Set<string>): void => {
  * following refs transitively through `spec.components.schemas`.
  */
 export const collectReachableComponentRefs = (
-  spec: OpenAPIV3_1.Document,
+  spec: OpenApiDocument,
 ): Set<string> => {
   const reachable = new Set<string>();
   const queue: string[] = [];

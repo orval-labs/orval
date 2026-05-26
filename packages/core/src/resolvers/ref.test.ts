@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import { createTestContextSpec } from '../test-utils';
 import type {
   ContextSpec,
   OpenApiDocument,
@@ -14,19 +15,34 @@ import {
   resolveRef,
 } from './ref';
 
-function createContext(spec: OpenApiDocument): ContextSpec {
-  return {
+const schemaRef = (path: string) =>
+  ({ $ref: path }) satisfies OpenApiReferenceObject;
+
+const boundSchema = (
+  context: ContextSpec,
+  name: string,
+): OpenApiSchemaObject => {
+  const schema = context.spec.components?.schemas?.[name];
+  if (schema === undefined) {
+    throw new Error(`missing schema ${name}`);
+  }
+  return schema;
+};
+
+function createContext(
+  spec: Partial<OpenApiDocument> = {},
+  override?: { components?: { schemas?: { suffix?: string } } },
+): ContextSpec {
+  return createTestContextSpec({
     target: 'core-test',
     workspace: '/tmp',
     spec,
-    output: {
-      override: {
-        components: {
-          schemas: { suffix: '' },
-        },
+    override: {
+      components: {
+        schemas: { suffix: override?.components?.schemas?.suffix ?? '' },
       },
     },
-  } as ContextSpec;
+  });
 }
 
 describe('resolveRef', () => {
@@ -51,7 +67,7 @@ describe('resolveRef', () => {
     ) => { schema: OpenApiSchemaObject; imports: unknown[] } = resolveRef;
 
     const result = resolveSchemaRef(
-      { $ref: '#/components/schemas/Position' },
+      schemaRef('#/components/schemas/Position'),
       context,
     );
     const typedSchema = result.schema;
@@ -86,13 +102,17 @@ describe('resolveRef', () => {
     const refWithHints = {
       $ref: '#/components/schemas/MaybePosition',
       type: ['object', 'null'],
-    } as unknown as OpenApiReferenceObject;
+    };
 
+    // @ts-expect-error — OAS 3.1 $ref + sibling keywords is a Schema Object
     const { schema } = resolveRef(refWithHints, context);
 
-    const withTypeHint = schema as OpenApiSchemaObject & { type?: string[] };
-
-    expect(withTypeHint.type).toEqual(['object', 'null']);
+    expect(typeof schema === 'object' && schema && 'type' in schema).toBe(true);
+    expect(
+      typeof schema === 'object' && schema && 'type' in schema
+        ? schema.type
+        : undefined,
+    ).toEqual(['object', 'null']);
   });
 
   it('resolves nested schema refs and example refs in schema-like containers', () => {
@@ -130,9 +150,13 @@ describe('resolveRef', () => {
     };
 
     const resolved = resolveRef(
-      carrier as unknown as OpenApiReferenceObject,
+      // @ts-expect-error — resolveRef also walks schema-like carriers
+      carrier,
       context,
-    ) as { schema: NestedResolved; imports: unknown[] };
+    ) as {
+      schema: NestedResolved;
+      imports: unknown[];
+    };
 
     expect(resolved.schema.schema).toMatchObject({
       type: 'object',
@@ -144,26 +168,25 @@ describe('resolveRef', () => {
   });
 
   it('applies schema suffix to import name when suffix is configured', () => {
-    const context = createContext({
-      openapi: '3.1.0',
-      components: {
-        schemas: {
-          Position: {
-            type: 'object',
-            properties: {
-              id: { type: 'string' },
+    const context = createContext(
+      {
+        openapi: '3.1.0',
+        components: {
+          schemas: {
+            Position: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
             },
           },
         },
       },
-    });
-    // Override suffix
-    (
-      context.output.override.components as { schemas: { suffix: string } }
-    ).schemas.suffix = 'Schema';
+      { components: { schemas: { suffix: 'Schema' } } },
+    );
 
     const result = resolveRef(
-      { $ref: '#/components/schemas/Position' },
+      schemaRef('#/components/schemas/Position'),
       context,
     );
 
@@ -180,10 +203,8 @@ describe('resolveRef', () => {
     });
 
     // A plain schema object (no $ref) is treated as already dereferenced
-    const result = resolveRef(
-      { type: 'object' } as unknown as OpenApiReferenceObject,
-      context,
-    );
+    const alreadyResolved = { type: 'object' } satisfies OpenApiSchemaObject;
+    const result = resolveRef(alreadyResolved, context);
 
     expect(result.schema).toMatchObject({ type: 'object' });
     expect(result.imports).toEqual([]);
@@ -196,7 +217,7 @@ describe('resolveRef', () => {
     });
 
     expect(() =>
-      resolveRef({ $ref: '#/components/schemas/NonExistent' }, context),
+      resolveRef(schemaRef('#/components/schemas/NonExistent'), context),
     ).toThrow('Oops... 🍻. Ref not found: #/components/schemas/NonExistent');
   });
 
@@ -216,7 +237,7 @@ describe('resolveRef', () => {
     });
 
     const result = resolveRef(
-      { $ref: '#/components/schemas/My~0Type' },
+      schemaRef('#/components/schemas/My~0Type'),
       context,
     );
 
@@ -266,7 +287,7 @@ describe('resolveRef', () => {
     });
 
     const result = resolveRef(
-      { $ref: '#/components/schemas/PaginatedUserResponse' },
+      schemaRef('#/components/schemas/PaginatedUserResponse'),
       context,
     );
 
@@ -331,8 +352,7 @@ describe('resolveRef', () => {
     });
 
     const alias = extractBoundAliasInfo(
-      context.spec.components?.schemas
-        ?.BoundResponse as unknown as OpenApiSchemaObject,
+      boundSchema(context, 'BoundResponse'),
       context,
     );
 
@@ -360,24 +380,28 @@ describe('resolveRef', () => {
               items: { type: 'array', items: { $dynamicRef: '#itemType' } },
             },
           },
-          BoundResponse: {
-            $defs: {
-              // eslint-disable-next-line unicorn/no-null -- intentionally testing null $defs entry
-              bad: null as unknown as Record<string, unknown>,
-              itemType: {
-                $dynamicAnchor: 'itemType',
-                $ref: '#/components/schemas/User',
+          BoundResponse: (() => {
+            const schema = {
+              $defs: {
+                itemType: {
+                  $dynamicAnchor: 'itemType',
+                  $ref: '#/components/schemas/User',
+                },
               },
-            },
-            $ref: '#/components/schemas/PaginatedTemplate',
-          },
+              $ref: '#/components/schemas/PaginatedTemplate',
+            };
+            if (typeof schema === 'object') {
+              // eslint-disable-next-line unicorn/no-null -- intentionally testing null $defs entry
+              Object.assign(schema.$defs ?? {}, { bad: null });
+            }
+            return schema;
+          })(),
         },
       },
     });
 
     const alias = extractBoundAliasInfo(
-      context.spec.components?.schemas
-        ?.BoundResponse as unknown as OpenApiSchemaObject,
+      boundSchema(context, 'BoundResponse'),
       context,
     );
 
@@ -410,7 +434,9 @@ describe('resolveExampleRefs', () => {
         expected: ['hello'],
       },
       {
-        examples: { sample: { $ref: '#/components/examples/ObjectValue' } },
+        examples: {
+          sample: { $ref: '#/components/examples/ObjectValue' },
+        },
         expected: { sample: { id: 'p_1' } },
       },
       {
@@ -459,8 +485,7 @@ describe('extractBoundAliasInfo — fallback typeArgs from bindingByAnchor', () 
     });
 
     const alias = extractBoundAliasInfo(
-      context.spec.components?.schemas
-        ?.BoundResponse as unknown as OpenApiSchemaObject,
+      boundSchema(context, 'BoundResponse'),
       context,
     );
 
@@ -506,8 +531,7 @@ describe('extractBoundAliasInfo — fallback typeArgs from bindingByAnchor', () 
     });
 
     const alias = extractBoundAliasInfo(
-      context.spec.components?.schemas
-        ?.ExtendedResponse as unknown as OpenApiSchemaObject,
+      boundSchema(context, 'ExtendedResponse'),
       context,
     );
 
@@ -527,9 +551,9 @@ describe('getSchema — missing $ref guard', () => {
     });
 
     // Bypass TypeScript by casting: pass an object that looks like a ref but has empty $ref
-    expect(() =>
-      resolveRef({ $ref: '' } as OpenApiReferenceObject, context),
-    ).toThrow('Oops... 🍻. Ref not found: missing $ref');
+    expect(() => resolveRef(schemaRef(''), context)).toThrow(
+      'Oops... 🍻. Ref not found: missing $ref',
+    );
   });
 });
 
@@ -539,7 +563,7 @@ describe('resolveDynamicRef — catch branch', () => {
     const spec = {
       openapi: '3.1.0',
       components: { schemas: {} },
-    } as OpenApiDocument;
+    };
     const context = {
       ...createContext(spec),
       dynamicScope: {
@@ -560,7 +584,7 @@ describe('resolveDynamicRef — isParameter branch', () => {
     const spec = {
       openapi: '3.1.0',
       components: { schemas: {} },
-    } as OpenApiDocument;
+    };
     const context = {
       ...createContext(spec),
       dynamicScope: {
@@ -646,8 +670,7 @@ describe('extractBoundAliasInfo — $ref extra schemas in allOf', () => {
     });
 
     const alias = extractBoundAliasInfo(
-      context.spec.components?.schemas
-        ?.ExtendedResponse as unknown as OpenApiSchemaObject,
+      boundSchema(context, 'ExtendedResponse'),
       context,
     );
 
@@ -689,8 +712,7 @@ describe('extractBoundAliasInfo — $ref extra schemas in allOf', () => {
     });
 
     const alias = extractBoundAliasInfo(
-      context.spec.components?.schemas
-        ?.PartiallyBoundColliding as unknown as OpenApiSchemaObject,
+      boundSchema(context, 'PartiallyBoundColliding'),
       context,
     );
 

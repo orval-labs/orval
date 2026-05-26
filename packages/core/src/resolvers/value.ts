@@ -1,4 +1,4 @@
-import { isDereferenced } from '@scalar/openapi-types/helpers';
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
 import { getScalar } from '../getters';
 import type { FormDataContext } from '../getters/object';
@@ -11,11 +11,13 @@ import { isBinaryScalarSchema } from '../getters/scalar';
 import type {
   ContextSpec,
   GeneratorImport,
+  OpenApiPrimitiveSchemaType,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
   ResolverValue,
+  SchemaType,
 } from '../types';
-import { isDynamicReference } from '../utils';
+import { isDynamicReference, isInlineSchema } from '../utils';
 import { extractBoundAliasInfo, resolveDynamicRef, resolveRef } from './ref';
 
 interface ResolveValueOptions {
@@ -125,6 +127,31 @@ function hasScopeAffectedDynamicRef(
   return false;
 }
 
+/**
+ * Metadata `type` for a resolved component schema.
+ *
+ * A single non-null member of an array `type` is kept (`['string', 'null']`
+ * is `string`, `['object', 'null']` is `object`). A mixed array such as
+ * `['string', 'number']` is `unknown`, so composition does not treat it as
+ * an object and pull its keys into `unionAddMissingProperties`.
+ */
+function toResolverSchemaType(
+  type: OpenApiPrimitiveSchemaType | OpenApiPrimitiveSchemaType[] | undefined,
+): SchemaType {
+  if (!Array.isArray(type)) {
+    return type ?? 'object';
+  }
+
+  const nonNull = type.filter((member) => member !== 'null');
+  if (nonNull.length === 1) {
+    return nonNull[0];
+  }
+  if (nonNull.length === 0) {
+    return 'null';
+  }
+  return 'unknown';
+}
+
 function makeUnknownValue(
   originalSchema: OpenApiSchemaObject | OpenApiReferenceObject,
 ): ResolverValue {
@@ -163,7 +190,15 @@ export function resolveValue({
   context,
   formDataContext,
 }: ResolveValueOptions): ResolverValue {
-  if (!isDereferenced(schema)) {
+  if (isBooleanJsonSchema(schema)) {
+    return {
+      ...getScalar({ item: schema, name, context, formDataContext }),
+      originalSchema: schema,
+      isRef: false,
+    };
+  }
+
+  if (!isInlineSchema(schema)) {
     const alias = extractBoundAliasInfo(schema, context);
     if (alias) {
       const value = `${alias.genericName}<${alias.typeArgs.join(', ')}>`;
@@ -192,6 +227,14 @@ export function resolveValue({
       schema: OpenApiSchemaObject;
       imports: GeneratorImport[];
     } = resolveRef(schema, context);
+
+    if (isBooleanJsonSchema(schemaObject)) {
+      return {
+        ...getScalar({ item: schemaObject, name, context, formDataContext }),
+        originalSchema: schemaObject,
+        isRef: true,
+      };
+    }
 
     // Refs that don't target a named component slot (e.g. bundler-emitted
     // `#/paths/.../schema`) have no corresponding `export type`, so emitting
@@ -349,12 +392,15 @@ export function resolveValue({
       hasReadonlyProps = scalar.hasReadonlyProps;
     }
 
-    const isAnyOfNullable = schemaObject.anyOf?.some(
-      (anyOfItem) =>
-        isDereferenced(anyOfItem) &&
-        (anyOfItem.type === 'null' ||
-          (Array.isArray(anyOfItem.type) && anyOfItem.type.includes('null'))),
-    );
+    const isAnyOfNullable = schemaObject.anyOf?.some((anyOfItem) => {
+      if (!isInlineSchema(anyOfItem) || isBooleanJsonSchema(anyOfItem)) {
+        return false;
+      }
+      return (
+        anyOfItem.type === 'null' ||
+        (Array.isArray(anyOfItem.type) && anyOfItem.type.includes('null'))
+      );
+    });
 
     const schemaType = schemaObject.type;
     const nullable =
@@ -371,7 +417,7 @@ export function resolveValue({
           schemaName: resolvedImport.schemaName,
         },
       ],
-      type: schemaObject.type ?? 'object',
+      type: toResolverSchemaType(schemaObject.type),
       schemas: [],
       isEnum: !!schemaObject.enum,
       originalSchema: schemaObject,

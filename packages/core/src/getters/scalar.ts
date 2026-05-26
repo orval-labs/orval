@@ -1,10 +1,11 @@
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 import { isArray } from 'remeda';
 
 import { resolveExampleRefs } from '../resolvers';
 import type {
   ContextSpec,
+  OpenApiPrimitiveSchemaType,
   OpenApiSchemaObject,
-  OpenApiSchemaObjectType,
   ScalarValue,
 } from '../types';
 import { toJsLiteral } from '../utils';
@@ -30,7 +31,7 @@ type SchemaEnumValue = string | number | boolean | null;
  * normalizes those into `case 'string':` before invoking this predicate.
  */
 export function isBinaryScalarSchema(schema: OpenApiSchemaObject): boolean {
-  if (!isStringLikeSchema(schema)) {
+  if (isBooleanJsonSchema(schema) || !isStringLikeSchema(schema)) {
     return false;
   }
   if (schema.format === 'binary') {
@@ -59,17 +60,35 @@ interface GetScalarOptions {
  * @param item
  * @ref https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.1.md#data-types
  */
+const booleanSchemaScalar = (value: 'unknown' | 'never'): ScalarValue => ({
+  value,
+  isEnum: false,
+  hasReadonlyProps: false,
+  type: 'unknown',
+  imports: [],
+  schemas: [],
+  isRef: false,
+  dependencies: [],
+});
+
 export function getScalar({
   item,
   name,
   context,
   formDataContext,
 }: GetScalarOptions): ScalarValue {
+  if (item === true) {
+    return booleanSchemaScalar('unknown');
+  }
+  if (item === false) {
+    return booleanSchemaScalar('never');
+  }
+
   // Bridge assertions: extract typed values from AnyOtherAttribute-infected schema
   const schemaEnum = item.enum as SchemaEnumValue[] | undefined;
   const schemaType = item.type as
-    | OpenApiSchemaObjectType
-    | OpenApiSchemaObjectType[]
+    | OpenApiPrimitiveSchemaType
+    | OpenApiPrimitiveSchemaType[]
     | undefined;
   const schemaReadOnly = item.readOnly as boolean | undefined;
   const schemaExample = item.example as unknown;
@@ -87,8 +106,8 @@ export function getScalar({
   );
 
   let itemType:
-    | OpenApiSchemaObjectType
-    | OpenApiSchemaObjectType[]
+    | OpenApiPrimitiveSchemaType
+    | OpenApiPrimitiveSchemaType[]
     | undefined = schemaType;
   if (!itemType && item.items) {
     item.type = 'array';
@@ -96,7 +115,7 @@ export function getScalar({
   }
   if (isArray(schemaType) && schemaType.includes('null')) {
     const typesWithoutNull = schemaType.filter(
-      (x): x is OpenApiSchemaObjectType => x !== 'null',
+      (x): x is OpenApiPrimitiveSchemaType => x !== 'null',
     );
     itemType =
       typesWithoutNull.length === 1 ? typesWithoutNull[0] : typesWithoutNull;

@@ -1,4 +1,4 @@
-import { isArray, isBoolean } from 'remeda';
+import { isArray } from 'remeda';
 
 import type {
   ContextSpec,
@@ -6,9 +6,9 @@ import type {
   OpenApiSchemaObject,
   OpenApiSchemasObject,
 } from '../types';
-import { isDereferenced } from '@scalar/openapi-types/helpers';
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
-import { getPropertySafe, pascal } from '../utils';
+import { getPropertySafe, isInlineSchema, pascal } from '../utils';
 import { getRefInfo } from './ref';
 
 export function resolveDiscriminators(
@@ -17,7 +17,7 @@ export function resolveDiscriminators(
 ): OpenApiSchemasObject {
   const transformedSchemas = schemas;
   for (const schema of Object.values(transformedSchemas)) {
-    if (isBoolean(schema)) {
+    if (isBooleanJsonSchema(schema)) {
       continue; // skip boolean schemas as we can't do anything meaningful with them
     }
 
@@ -56,15 +56,15 @@ export function resolveDiscriminators(
         // is typed as always-present. This mirrors the `!variantSchema` guard in
         // the second loop below.
         if (
+          typeof propertyName !== 'string' ||
           !subTypeSchema ||
-          isBoolean(subTypeSchema) ||
-          propertyName === undefined
+          isBooleanJsonSchema(subTypeSchema)
         ) {
           continue;
         }
 
         const property = subTypeSchema.properties?.[propertyName];
-        if (isBoolean(property)) {
+        if (isBooleanJsonSchema(property)) {
           continue;
         }
 
@@ -79,13 +79,13 @@ export function resolveDiscriminators(
           property &&
           Array.isArray(property.allOf) &&
           property.allOf.length === 1 &&
-          !isDereferenced(property.allOf[0]);
+          !isInlineSchema(property.allOf[0]);
         if (isAllOfRef) {
           continue;
         }
 
         const schemaProperty =
-          property && isDereferenced(property) ? property : undefined;
+          property && isInlineSchema(property) ? property : undefined;
 
         const enumProperty = schemaProperty
           ? getPropertySafe(schemaProperty, 'enum')
@@ -141,7 +141,7 @@ export function resolveDiscriminators(
   // non-discriminator properties (or dropping the entry entirely when the parent
   // contributes nothing beyond the discriminator key). See issue #3432.
   for (const [parentName, parentSchema] of Object.entries(transformedSchemas)) {
-    if (isBoolean(parentSchema)) {
+    if (isBooleanJsonSchema(parentSchema)) {
       continue;
     }
     const variants = parentSchema.oneOf ?? parentSchema.anyOf;
@@ -156,7 +156,7 @@ export function resolveDiscriminators(
     const variantArrayRefs = variants
       .filter(
         (item): item is OpenApiReferenceObject & { $ref: string } =>
-          !isDereferenced(item) && typeof item.$ref === 'string',
+          !isInlineSchema(item) && typeof item.$ref === 'string',
       )
       .map((item) => item.$ref);
     const variantRefs = [...new Set([...mappedRefs, ...variantArrayRefs])];
@@ -191,7 +191,7 @@ export function resolveDiscriminators(
       } catch {
         variantSchema = transformedSchemas[mappingValue];
       }
-      if (!variantSchema || isBoolean(variantSchema)) {
+      if (!variantSchema || isBooleanJsonSchema(variantSchema)) {
         continue;
       }
       const variantAllOf = variantSchema.allOf as
@@ -203,7 +203,7 @@ export function resolveDiscriminators(
 
       const rewritten: (OpenApiSchemaObject | OpenApiReferenceObject)[] = [];
       for (const item of variantAllOf) {
-        if (isDereferenced(item) || !item.$ref) {
+        if (isInlineSchema(item) || !item.$ref) {
           rewritten.push(item);
           continue;
         }
@@ -227,7 +227,7 @@ export function resolveDiscriminators(
         // the cycle or are now meaningless on the variant.
         const inlinedParent = {
           ...(parentSchema as Record<string, unknown>),
-        } as OpenApiSchemaObject;
+        } as Exclude<OpenApiSchemaObject, boolean>;
         delete (inlinedParent as Record<string, unknown>).oneOf;
         delete (inlinedParent as Record<string, unknown>).discriminator;
         delete (inlinedParent as Record<string, unknown>).allOf;

@@ -1,4 +1,4 @@
-import { isDereferenced } from '@scalar/openapi-types/helpers';
+import { isInlineSchema } from '../utils';
 
 import { resolveRef } from '../resolvers/ref';
 import type {
@@ -20,7 +20,7 @@ export function getParameters({
 }: GetParametersOptions): GetterParameters {
   const result: GetterParameters = { path: [], query: [], header: [] };
   for (const p of parameters) {
-    if (!isDereferenced(p)) {
+    if (!isInlineSchema(p)) {
       const { schema } = resolveRef(p, context);
       const parameter = schema as OpenApiParameterObject;
 
@@ -52,25 +52,8 @@ export function getParameters({
           : [];
         result[location].push({ parameter, imports: safeImports });
       }
-    } else {
-      if (p.in === 'query' || p.in === 'path' || p.in === 'header') {
-        result[p.in].push({ parameter: p, imports: [] });
-      }
-      continue;
-    }
-
-    const { schema, imports } = resolveRef(p, context);
-    const parameter = schema as OpenApiParameterObject;
-
-    const location = parameter.in;
-    if (location === 'path' || location === 'query' || location === 'header') {
-      // Refs that don't target a named component slot (e.g. bundler-emitted
-      // `#/paths/.../parameters/0`) have no corresponding `export type` from
-      // `generateParameterDefinition`, so emitting a named import would
-      // dangle. Inline the resolved parameter's schema instead. Mirrors the
-      // #398 fix in `resolvers/value.ts`. See issue #1879.
-      const safeImports = p.$ref && isComponentRef(p.$ref) ? imports : [];
-      result[location].push({ parameter, imports: safeImports });
+    } else if (p.in === 'query' || p.in === 'path' || p.in === 'header') {
+      result[p.in].push({ parameter: p, imports: [] });
     }
   }
 

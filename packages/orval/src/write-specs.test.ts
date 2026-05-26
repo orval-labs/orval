@@ -4,6 +4,7 @@ import path from 'node:path';
 import {
   noopReporter,
   type NormalizedOptions,
+  type OpenApiDocument,
   SupportedFormatter,
   withReporter,
   type WriteSpecBuilder,
@@ -32,6 +33,7 @@ vi.mock('./formatters/prettier', () => ({
 
 import { execa } from 'execa';
 
+import { createTestContextSpec } from '../../core/src/test-utils';
 import {
   createMarkdownPluginReader,
   getDocsOutputName,
@@ -287,21 +289,28 @@ describe('writeSpecs', () => {
       extraFiles: [{ path: filePath, content: 'export const context = {};\n' }],
       info: { title: 'Extra files', version: '1.0.0' },
       target: '',
-      spec: {},
-    } as WriteSpecBuilder;
+      spec: {
+        openapi: '3.1.0',
+        info: { title: 'Test', version: '1.0.0' },
+        paths: {},
+      } satisfies OpenApiDocument,
+    } satisfies WriteSpecBuilder;
     const options = {
-      output: {
-        target: '',
-        schemas: false,
-        operationSchemas: false,
-        workspace: false,
-        docs: false,
-        formatter: undefined,
+      output: createTestContextSpec({
+        output: {
+          target: '',
+          docs: false,
+          formatter: undefined,
+        },
         override: { header: false },
-        mock: { generators: [] },
+      }).output,
+      input: {
+        target: '',
+        override: {},
+        unsafeDisableValidation: false,
       },
       hooks: {},
-    } as unknown as NormalizedOptions;
+    } satisfies NormalizedOptions;
 
     try {
       await writeSpecs(builder, root, options);

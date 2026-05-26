@@ -1,15 +1,21 @@
 import type {
   GeneratorOptions,
   GeneratorVerbOptions,
-  NormalizedOverrideOutput,
+  OpenApiSchemaObject,
 } from '@orval/core';
-import { OutputMockType } from '@orval/core';
+import { OutputMockType, PropertySortOrder } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
+import {
+  createTestContextSpec,
+  createTestGeneratorOptions,
+  createTestGeneratorVerbOptions,
+  createTestResReqTypesValue,
+} from '../../../core/src/test-utils';
 import { generateMSW } from './index';
 
 describe('generateMSW', () => {
-  const mockVerbOptions = {
+  const mockVerbOptions = createTestGeneratorVerbOptions({
     operationId: 'getUser',
     operationName: 'getUser',
     typeName: 'getUser',
@@ -21,42 +27,14 @@ describe('generateMSW', () => {
       types: { success: [{ key: '200', value: 'User' }] },
       contentTypes: ['application/json'],
     },
-  } as unknown as GeneratorVerbOptions;
+  });
 
-  const baseOptions = {
+  const baseOptions = createTestGeneratorOptions({
     route: '/users/{id}',
     pathRoute: '/users/{id}',
     output: 'test',
-    override: { operations: {}, tags: {} } as NormalizedOverrideOutput,
-    context: {
-      target: 'test',
-      workspace: '',
-      spec: {
-        openapi: '3.1.0',
-        info: { title: 'Test', version: '1.0.0' },
-        paths: {},
-      },
-      output: {
-        target: 'test',
-        namingConvention: 'camelCase',
-        fileExtension: '.ts',
-        mode: 'single',
-        override: { operations: {}, tags: {} } as NormalizedOverrideOutput,
-        client: 'axios-functions',
-        httpClient: 'fetch',
-        clean: false,
-        docs: false,
-        formatter: undefined,
-        headers: false,
-        indexFiles: true,
-        allParamsOptional: false,
-        urlEncodeParameters: false,
-        unionAddMissingProperties: false,
-        optionsParamRequired: false,
-        propertySortOrder: 'specification',
-      },
-    },
-  } as unknown as GeneratorOptions;
+    context: { target: 'test' },
+  });
 
   const generate = (overrides: Partial<GeneratorOptions> = {}) =>
     generateMSW(mockVerbOptions, { ...baseOptions, ...overrides });
@@ -166,7 +144,7 @@ describe('generateMSW', () => {
     });
 
     it('should handle binary/Blob response types without JSON.stringify', () => {
-      const blobVerbOptions = {
+      const blobVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -176,7 +154,7 @@ describe('generateMSW', () => {
           },
           contentTypes: ['application/octet-stream'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(blobVerbOptions, baseOptions);
 
@@ -197,7 +175,7 @@ describe('generateMSW', () => {
     });
 
     it('should handle image content types as binary', () => {
-      const imageVerbOptions = {
+      const imageVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -207,7 +185,7 @@ describe('generateMSW', () => {
           },
           contentTypes: ['image/png'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(imageVerbOptions, baseOptions);
 
@@ -216,7 +194,7 @@ describe('generateMSW', () => {
     });
 
     it('should handle font content types as binary', () => {
-      const fontVerbOptions = {
+      const fontVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -226,7 +204,7 @@ describe('generateMSW', () => {
           },
           contentTypes: ['font/woff2'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(fontVerbOptions, baseOptions);
 
@@ -243,7 +221,7 @@ describe('generateMSW', () => {
     // generator must still emit a binary mock — not `faker.string.alpha(...)` —
     // even when the declared content type is JSON-like (e.g. application/json).
     it('should generate Blob mock for binary schema under JSON content types', () => {
-      const binaryJsonVerbOptions = {
+      const binaryJsonVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           imports: [],
@@ -284,7 +262,7 @@ describe('generateMSW', () => {
           },
           contentTypes: ['application/json', 'text/json'],
         },
-      } as unknown as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(binaryJsonVerbOptions, baseOptions);
 
@@ -298,7 +276,7 @@ describe('generateMSW', () => {
     });
 
     it('should handle application/pdf as binary', () => {
-      const pdfVerbOptions = {
+      const pdfVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -308,7 +286,7 @@ describe('generateMSW', () => {
           },
           contentTypes: ['application/pdf'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(pdfVerbOptions, baseOptions);
 
@@ -320,7 +298,7 @@ describe('generateMSW', () => {
     });
 
     it('should generate Blob mock for $ref to a binary schema', () => {
-      const refBinaryVerbOptions = {
+      const refBinaryVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           imports: [],
@@ -346,7 +324,7 @@ describe('generateMSW', () => {
           },
           contentTypes: ['*/*'],
         },
-      } as unknown as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(refBinaryVerbOptions, baseOptions);
 
@@ -361,7 +339,7 @@ describe('generateMSW', () => {
     });
 
     it('should keep aliased ref imports for $ref binary schemas', () => {
-      const aliasedVerbOptions = {
+      const aliasedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           imports: [],
@@ -387,7 +365,7 @@ describe('generateMSW', () => {
           },
           contentTypes: ['*/*'],
         },
-      } as unknown as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(aliasedVerbOptions, baseOptions);
 
@@ -396,7 +374,7 @@ describe('generateMSW', () => {
     });
 
     it('should not force binary path when preferredContentType narrows to a non-binary success variant', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           imports: [],
@@ -437,12 +415,15 @@ describe('generateMSW', () => {
           },
           contentTypes: ['application/json', 'application/octet-stream'],
         },
-      } as unknown as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
-        mock: { preferredContentType: 'application/json' },
-      } as unknown as GeneratorOptions);
+        mock: {
+          type: OutputMockType.MSW,
+          preferredContentType: 'application/json',
+        },
+      });
 
       expect(result.implementation.handler).not.toContain(
         'HttpResponse.arrayBuffer',
@@ -451,7 +432,7 @@ describe('generateMSW', () => {
     });
 
     it('should not force binary path when preferredContentType is text/plain for object schema', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           imports: [],
@@ -492,12 +473,15 @@ describe('generateMSW', () => {
           },
           contentTypes: ['application/json', 'text/plain'],
         },
-      } as unknown as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
-        mock: { preferredContentType: 'text/plain' },
-      } as unknown as GeneratorOptions);
+        mock: {
+          type: OutputMockType.MSW,
+          preferredContentType: 'text/plain',
+        },
+      });
 
       // Should NOT use HttpResponse.arrayBuffer — the schema is an object, not binary
       expect(result.implementation.handler).not.toContain(
@@ -509,7 +493,7 @@ describe('generateMSW', () => {
     });
 
     it('should not force binary path when preferredContentType is application/xml for object schema', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           imports: [],
@@ -550,12 +534,15 @@ describe('generateMSW', () => {
           },
           contentTypes: ['application/json', 'application/xml'],
         },
-      } as unknown as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
-        mock: { preferredContentType: 'application/xml' },
-      } as unknown as GeneratorOptions);
+        mock: {
+          type: OutputMockType.MSW,
+          preferredContentType: 'application/xml',
+        },
+      });
 
       // Should NOT use HttpResponse.arrayBuffer — the schema is an object, not binary
       expect(result.implementation.handler).not.toContain(
@@ -566,7 +553,7 @@ describe('generateMSW', () => {
     });
 
     it('should not discard body when preferredContentType is application/octet-stream for object schema', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           imports: [],
@@ -607,12 +594,15 @@ describe('generateMSW', () => {
           },
           contentTypes: ['application/json', 'application/octet-stream'],
         },
-      } as unknown as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
-        mock: { preferredContentType: 'application/octet-stream' },
-      } as unknown as GeneratorOptions);
+        mock: {
+          type: OutputMockType.MSW,
+          preferredContentType: 'application/octet-stream',
+        },
+      });
 
       // Should NOT force binary path — the object schema is not binary (no
       // octet-stream contentMediaType)
@@ -628,7 +618,7 @@ describe('generateMSW', () => {
     });
 
     it('should ignore unmatched preferredContentType and use spec-order content types', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           imports: [],
@@ -654,12 +644,15 @@ describe('generateMSW', () => {
           },
           contentTypes: ['application/json'],
         },
-      } as unknown as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
-        mock: { preferredContentType: 'text/csv' },
-      } as unknown as GeneratorOptions);
+        mock: {
+          type: OutputMockType.MSW,
+          preferredContentType: 'text/csv',
+        },
+      });
 
       // Unmatched preference should be silently ignored — spec-order (application/json) wins
       expect(result.implementation.handler).toContain('HttpResponse.json');
@@ -680,7 +673,7 @@ describe('generateMSW', () => {
     });
 
     it('should use HttpResponse.text for text/plain responses', () => {
-      const textVerbOptions = {
+      const textVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -688,7 +681,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'string' }] },
           contentTypes: ['text/plain'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(textVerbOptions, baseOptions);
 
@@ -699,7 +692,7 @@ describe('generateMSW', () => {
     });
 
     it('should use HttpResponse.html for text/html responses', () => {
-      const htmlVerbOptions = {
+      const htmlVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -707,7 +700,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'string' }] },
           contentTypes: ['text/html'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(htmlVerbOptions, baseOptions);
 
@@ -717,7 +710,7 @@ describe('generateMSW', () => {
     });
 
     it('should use HttpResponse.xml for application/xml responses', () => {
-      const xmlVerbOptions = {
+      const xmlVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -725,7 +718,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'string' }] },
           contentTypes: ['application/xml'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(xmlVerbOptions, baseOptions);
 
@@ -740,7 +733,7 @@ describe('generateMSW', () => {
     // no `*ResponseMock` helper is generated. The handler must not emit a
     // `resolvedBody`/`textBody` prelude that references the missing helper.
     it('should not reference a missing *ResponseMock for unknown text responses', () => {
-      const unknownHtmlVerbOptions = {
+      const unknownHtmlVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -748,7 +741,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '302', value: 'unknown' }] },
           contentTypes: ['text/html'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(unknownHtmlVerbOptions, baseOptions);
 
@@ -760,7 +753,7 @@ describe('generateMSW', () => {
     });
 
     it('should use HttpResponse.xml for vendor +xml responses', () => {
-      const vendorXmlVerbOptions = {
+      const vendorXmlVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -768,7 +761,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'string' }] },
           contentTypes: ['application/vnd.api+xml'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(vendorXmlVerbOptions, baseOptions);
 
@@ -778,7 +771,7 @@ describe('generateMSW', () => {
     });
 
     it('should emit explicit Content-Type header for vendor +xml responses', () => {
-      const vendorXmlVerbOptions = {
+      const vendorXmlVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -786,7 +779,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'string' }] },
           contentTypes: ['application/vnd.api+xml'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(vendorXmlVerbOptions, baseOptions);
 
@@ -796,13 +789,13 @@ describe('generateMSW', () => {
     });
 
     it('should escape single quotes in the response media type key', () => {
-      const injectedVerbOptions = {
+      const injectedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
           contentTypes: ["application/problem+json', 'X-Evil': 'injected"],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(injectedVerbOptions, {
         ...baseOptions,
@@ -824,13 +817,13 @@ describe('generateMSW', () => {
     });
 
     it('should emit explicit Content-Type header for problem+json responses', () => {
-      const problemJsonVerbOptions = {
+      const problemJsonVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
           contentTypes: ['application/problem+json'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(problemJsonVerbOptions, {
         ...baseOptions,
@@ -850,13 +843,13 @@ describe('generateMSW', () => {
     });
 
     it('should emit explicit Content-Type header for vendor +json responses', () => {
-      const vendorJsonVerbOptions = {
+      const vendorJsonVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
           contentTypes: ['application/vnd.api+json'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(vendorJsonVerbOptions, {
         ...baseOptions,
@@ -892,7 +885,7 @@ describe('generateMSW', () => {
     });
 
     it('should avoid undefined array min/max in general JS types', () => {
-      const numberArrayVerbOptions = {
+      const numberArrayVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -900,7 +893,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'number[]' }] },
           contentTypes: ['application/json'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(numberArrayVerbOptions, baseOptions);
 
@@ -911,7 +904,7 @@ describe('generateMSW', () => {
     });
 
     it('should include array min/max when provided for general JS types', () => {
-      const numberArrayVerbOptions = {
+      const numberArrayVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -919,7 +912,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'number[]' }] },
           contentTypes: ['application/json'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(numberArrayVerbOptions, {
         ...baseOptions,
@@ -935,7 +928,7 @@ describe('generateMSW', () => {
     });
 
     it('should evaluate text response override expression once via temp variable', () => {
-      const textVerbOptions = {
+      const textVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -943,7 +936,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'string' }] },
           contentTypes: ['text/plain'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(textVerbOptions, baseOptions);
 
@@ -956,7 +949,7 @@ describe('generateMSW', () => {
     });
 
     it('should pass the binary response body straight to HttpResponse', () => {
-      const blobVerbOptions = {
+      const blobVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -964,7 +957,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'Blob' }] },
           contentTypes: ['application/octet-stream'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(blobVerbOptions, baseOptions);
 
@@ -979,7 +972,7 @@ describe('generateMSW', () => {
     });
 
     it('should honor preferredContentType for binary content headers', () => {
-      const blobVerbOptions = {
+      const blobVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1010,7 +1003,7 @@ describe('generateMSW', () => {
           },
           contentTypes: ['application/octet-stream', 'image/png'],
         },
-      } as unknown as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(blobVerbOptions, {
         ...baseOptions,
@@ -1026,7 +1019,7 @@ describe('generateMSW', () => {
     });
 
     it('should use HttpResponse.text when text/plain comes before application/xml in mixed content types', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1034,7 +1027,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'string' }] },
           contentTypes: ['text/plain', 'application/xml', 'application/json'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
@@ -1058,7 +1051,7 @@ describe('generateMSW', () => {
     });
 
     it('should use HttpResponse.xml when application/xml comes first in mixed content types', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1066,7 +1059,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'string' }] },
           contentTypes: ['application/xml', 'application/json'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
@@ -1090,7 +1083,7 @@ describe('generateMSW', () => {
     });
 
     it('should keep text helper for exact string return types even when preferredContentType is application/json', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1103,7 +1096,7 @@ describe('generateMSW', () => {
           },
           contentTypes: ['application/xml', 'application/json'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
@@ -1119,7 +1112,7 @@ describe('generateMSW', () => {
     });
 
     it('should prefer HttpResponse.json for structured return types when json and xml are both available', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1127,7 +1120,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'Pet' }] },
           contentTypes: ['application/xml', 'application/json'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
@@ -1150,7 +1143,7 @@ describe('generateMSW', () => {
     });
 
     it('should honor preferredContentType for text helpers when multiple text types exist', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1163,7 +1156,7 @@ describe('generateMSW', () => {
           },
           contentTypes: ['text/plain', 'text/html'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
@@ -1187,7 +1180,7 @@ describe('generateMSW', () => {
     });
 
     it('should use text prelude (resolvedBody → textBody) for xml and html responses', () => {
-      const xmlVerbOptions = {
+      const xmlVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1195,7 +1188,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'string' }] },
           contentTypes: ['application/xml'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(xmlVerbOptions, baseOptions);
 
@@ -1216,7 +1209,7 @@ describe('generateMSW', () => {
       expect(jsonResult.implementation.handler).toContain('}, options)');
 
       // Text handler
-      const textVerbOptions = {
+      const textVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1224,7 +1217,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'string' }] },
           contentTypes: ['text/plain'],
         },
-      } as GeneratorVerbOptions;
+      });
       const textResult = generateMSW(textVerbOptions, baseOptions);
       expect(textResult.implementation.handler).toContain(
         'options?: RequestHandlerOptions',
@@ -1232,7 +1225,7 @@ describe('generateMSW', () => {
       expect(textResult.implementation.handler).toContain('}, options)');
 
       // Binary handler
-      const blobVerbOptions = {
+      const blobVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1240,7 +1233,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'Blob' }] },
           contentTypes: ['application/octet-stream'],
         },
-      } as GeneratorVerbOptions;
+      });
       const blobResult = generateMSW(blobVerbOptions, baseOptions);
       expect(blobResult.implementation.handler).toContain(
         'options?: RequestHandlerOptions',
@@ -1251,7 +1244,7 @@ describe('generateMSW', () => {
 
   describe('mixed content-type runtime branching (issue #2950)', () => {
     it('Test A: should generate runtime branching for text/plain + xml + json with union return type string | Pet', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1259,7 +1252,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'string | Pet' }] },
           contentTypes: ['text/plain', 'application/xml', 'application/json'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
@@ -1289,7 +1282,7 @@ describe('generateMSW', () => {
     });
 
     it('Test B: should generate runtime branching for xml + json with union return type string | Pet', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1297,7 +1290,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'string | Pet' }] },
           contentTypes: ['application/xml', 'application/json'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
@@ -1323,7 +1316,7 @@ describe('generateMSW', () => {
     });
 
     it('Test C: should NOT use runtime branching for xml + json with non-union return type Pet', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1331,7 +1324,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'Pet' }] },
           contentTypes: ['application/xml', 'application/json'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
@@ -1357,7 +1350,7 @@ describe('generateMSW', () => {
     });
 
     it('Test D: should NOT use runtime branching for text/plain only with return type string', () => {
-      const textVerbOptions = {
+      const textVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1365,7 +1358,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'string' }] },
           contentTypes: ['text/plain'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(textVerbOptions, baseOptions);
 
@@ -1379,7 +1372,7 @@ describe('generateMSW', () => {
     });
 
     it('Test E: should NOT use runtime branching for text/plain + json with return type string (not union)', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1387,7 +1380,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'string' }] },
           contentTypes: ['text/plain', 'application/json'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, baseOptions);
 
@@ -1402,7 +1395,7 @@ describe('generateMSW', () => {
     });
 
     it('Test E2: should keep text/plain helper when preferredContentType is json and return type is string', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1415,7 +1408,7 @@ describe('generateMSW', () => {
           },
           contentTypes: ['text/plain', 'application/json'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
@@ -1431,7 +1424,7 @@ describe('generateMSW', () => {
     });
 
     it('Test F: should NOT use runtime branching when preferredContentType is json with union return type', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1453,7 +1446,7 @@ describe('generateMSW', () => {
           },
           contentTypes: ['text/plain', 'application/xml', 'application/json'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
@@ -1483,7 +1476,7 @@ describe('generateMSW', () => {
     });
 
     it('Test G: should generate runtime branching for text/html + json with union return type string | Pet', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1491,7 +1484,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'string | Pet' }] },
           contentTypes: ['text/html', 'application/json'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
@@ -1513,7 +1506,7 @@ describe('generateMSW', () => {
     });
 
     it('Test H: should generate runtime branching for vendor +xml + json with union return type string | Pet', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1521,7 +1514,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'string | Pet' }] },
           contentTypes: ['application/vnd.orval+xml', 'application/json'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
@@ -1543,7 +1536,7 @@ describe('generateMSW', () => {
     });
 
     it('Test I: should still select first text-like helper even when json appears first in content types', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1551,7 +1544,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'string | Pet' }] },
           contentTypes: ['application/json', 'application/xml'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
@@ -1573,7 +1566,7 @@ describe('generateMSW', () => {
     });
 
     it('Test J: should use static text path when preferredContentType is text/plain for union return type', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1590,7 +1583,7 @@ describe('generateMSW', () => {
           },
           contentTypes: ['text/plain', 'application/json'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
@@ -1616,7 +1609,7 @@ describe('generateMSW', () => {
     });
 
     it('Test K: should generate runtime branching for vendor +xml + vendor +json with union return type string | Pet', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1627,7 +1620,7 @@ describe('generateMSW', () => {
             'application/vnd.orval+json',
           ],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
@@ -1657,7 +1650,7 @@ describe('generateMSW', () => {
     });
 
     it('Test L: should not treat type names containing "string" as string return types', () => {
-      const mixedVerbOptions = {
+      const mixedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           ...mockVerbOptions.response,
@@ -1665,7 +1658,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'StringPayload | Pet' }] },
           contentTypes: ['application/xml', 'application/json'],
         },
-      } as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(mixedVerbOptions, {
         ...baseOptions,
@@ -1696,7 +1689,7 @@ describe('generateMSW', () => {
   // (TS2304).
   describe('aliased import filter (issue #3269)', () => {
     it('should include an aliased import that is referenced only by its alias', () => {
-      const aliasedVerbOptions = {
+      const aliasedVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           imports: [{ name: 'Widget', alias: '__Widget' }],
@@ -1706,7 +1699,7 @@ describe('generateMSW', () => {
           },
           contentTypes: ['application/json'],
         },
-      } as unknown as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(aliasedVerbOptions, baseOptions);
 
@@ -1716,7 +1709,7 @@ describe('generateMSW', () => {
     });
 
     it('should drop an aliased import that is not referenced anywhere', () => {
-      const unusedAliasVerbOptions = {
+      const unusedAliasVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           imports: [{ name: 'User' }, { name: 'Unused', alias: '__Unused' }],
@@ -1724,7 +1717,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'User' }] },
           contentTypes: ['application/json'],
         },
-      } as unknown as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(unusedAliasVerbOptions, baseOptions);
 
@@ -1742,7 +1735,7 @@ describe('generateMSW', () => {
       // Defensive: if a future change reintroduces dual entries (one bare,
       // one aliased) for the same schema in a single verb's imports, both
       // must survive the filter when the code references each form.
-      const dualVerbOptions = {
+      const dualVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,
         response: {
           imports: [{ name: 'Pet' }, { name: 'Pet', alias: '__Pet' }],
@@ -1750,7 +1743,7 @@ describe('generateMSW', () => {
           types: { success: [{ key: '200', value: 'Pet | __Pet' }] },
           contentTypes: ['application/json'],
         },
-      } as unknown as GeneratorVerbOptions;
+      });
 
       const result = generateMSW(dualVerbOptions, baseOptions);
 
@@ -1763,20 +1756,22 @@ describe('generateMSW', () => {
 });
 
 describe('arrayItems option', () => {
-  const tenantListResponseType = {
+  const tenantListResponseType = createTestResReqTypesValue({
     key: '200',
     value: 'TenantListResponse',
     contentType: 'application/json',
-    originalSchema: { $ref: '#/components/schemas/TenantListResponse' },
+    originalSchema: {
+      $ref: '#/components/schemas/TenantListResponse',
+    },
     imports: [{ name: 'TenantListResponse' }],
     schemas: [],
     type: 'object',
     isEnum: false,
     isRef: true,
     hasReadonlyProps: false,
-  };
+  });
 
-  const tenantsByRefVerbOptions = {
+  const tenantsByRefVerbOptions = createTestGeneratorVerbOptions({
     operationId: 'getTenantsByRef',
     operationName: 'getTenantsByRef',
     typeName: 'getTenantsByRef',
@@ -1788,15 +1783,11 @@ describe('arrayItems option', () => {
       types: { success: [tenantListResponseType] },
       contentTypes: ['application/json'],
     },
-  } as unknown as GeneratorVerbOptions;
+  });
 
-  const arrayItemsContext = {
+  const arrayItemsContext = createTestContextSpec({
     target: 'test',
-    workspace: '',
     spec: {
-      openapi: '3.1.0',
-      info: { title: 'Test', version: '1.0.0' },
-      paths: {},
       components: {
         schemas: {
           TenantListResponse: {
@@ -1824,49 +1815,30 @@ describe('arrayItems option', () => {
       },
     },
     output: {
-      target: 'test',
-      namingConvention: 'camelCase',
-      fileExtension: '.ts',
-      schemaFileExtension: '.ts',
-      mode: 'single',
       mock: {
         indexMockFiles: false,
         generators: [
           { type: OutputMockType.MSW, arrayItems: true, delay: false },
         ],
       },
-      override: {
-        operations: {},
-        tags: {},
-        components: { schemas: { suffix: '', itemSuffix: 'Item' } },
-      },
-      client: 'axios-functions',
-      httpClient: 'fetch',
-      clean: false,
-      docs: false,
-      formatter: undefined,
-      headers: false,
-      indexFiles: true,
-      allParamsOptional: false,
-      urlEncodeParameters: false,
-      unionAddMissingProperties: false,
-      optionsParamRequired: false,
-      propertySortOrder: 'specification',
     },
-  };
+    override: {
+      components: { schemas: { suffix: '', itemSuffix: 'Item' } },
+    },
+  });
 
-  const arrayItemsOptions = {
+  const arrayItemsOptions = createTestGeneratorOptions({
     route: '/tenants-by-ref',
     pathRoute: '/tenants-by-ref',
     output: 'test',
-    override: { operations: {}, tags: {} } as NormalizedOverrideOutput,
+    override: { operations: {}, tags: {} },
     context: arrayItemsContext,
     mock: {
       type: OutputMockType.MSW,
       arrayItems: true,
       delay: false,
     },
-  } as unknown as GeneratorOptions;
+  });
 
   it('extracts reusable array item factories when arrayItems is enabled on the MSW generator', () => {
     const result = generateMSW(tenantsByRefVerbOptions, arrayItemsOptions);
@@ -1892,11 +1864,12 @@ describe('arrayItems option', () => {
           ...arrayItemsContext.output,
           mock: {
             indexMockFiles: false,
+            inline: false,
             generators: [{ type: OutputMockType.MSW, delay: false }],
           },
         },
       },
-    } as unknown as GeneratorOptions);
+    });
 
     expect(result.implementation.function).not.toContain(
       'export const getTenantResponseModelDtoMock',
@@ -1905,7 +1878,7 @@ describe('arrayItems option', () => {
 });
 
 describe('strict mock types (#3525)', () => {
-  const petResponseType = {
+  const petResponseType = createTestResReqTypesValue({
     key: '200',
     value: 'Pet',
     contentType: 'application/json',
@@ -1924,9 +1897,9 @@ describe('strict mock types (#3525)', () => {
     isEnum: false,
     isRef: true,
     hasReadonlyProps: false,
-  };
+  });
 
-  const petVerbOptions = {
+  const petVerbOptions = createTestGeneratorVerbOptions({
     operationId: 'getPet',
     operationName: 'getPet',
     typeName: 'getPet',
@@ -1938,7 +1911,7 @@ describe('strict mock types (#3525)', () => {
       types: { success: [petResponseType] },
       contentTypes: ['application/json'],
     },
-  } as unknown as GeneratorVerbOptions;
+  });
 
   const strictOverride = {
     operations: {},
@@ -1947,9 +1920,9 @@ describe('strict mock types (#3525)', () => {
       required: true,
       nonNullable: true,
     },
-  } as NormalizedOverrideOutput;
+  };
 
-  const baseOptions = {
+  const baseOptions = createTestGeneratorOptions({
     route: '/pet',
     pathRoute: '/pet',
     output: 'test',
@@ -1979,10 +1952,10 @@ describe('strict mock types (#3525)', () => {
         urlEncodeParameters: false,
         unionAddMissingProperties: false,
         optionsParamRequired: false,
-        propertySortOrder: 'specification',
+        propertySortOrder: PropertySortOrder.SPECIFICATION,
       },
     },
-  } as unknown as GeneratorOptions;
+  });
 
   it('emits PetMock return type for response mocks without per-operation type blocks', () => {
     const result = generateMSW(petVerbOptions, {
@@ -2009,12 +1982,12 @@ describe('strict mock types (#3525)', () => {
     // handler names must follow operationName, otherwise sibling variants emit
     // duplicate declarations and tsc fails with TS2451. See #3342.
     const result = generateMSW(
-      {
+      createTestGeneratorVerbOptions({
         ...petVerbOptions,
         operationId: 'getPet',
         operationName: 'getPetWithFormData',
         typeName: 'getPetWithFormData',
-      } as unknown as GeneratorVerbOptions,
+      }),
       { ...baseOptions, mock: { type: OutputMockType.MSW } },
     );
 
@@ -2033,11 +2006,9 @@ describe('strict mock types (#3525)', () => {
   });
 
   it('keeps the loose return type when strict flags are unset', () => {
-    const looseOverride = {
-      operations: {},
-      tags: {},
-      mock: {},
-    } as NormalizedOverrideOutput;
+    const looseOverride = createTestContextSpec({
+      override: { mock: {} },
+    }).output.override;
 
     const result = generateMSW(petVerbOptions, {
       ...baseOptions,
@@ -2060,11 +2031,9 @@ describe('strict mock types (#3525)', () => {
 });
 
 describe('recursion guards for cyclic allOf schemas', () => {
-  const override = {
-    operations: {},
-    tags: {},
-    mock: {},
-  } as NormalizedOverrideOutput;
+  const override = createTestContextSpec({
+    override: { mock: {} },
+  }).output.override;
 
   // Drive generateMSW end-to-end with a response body that resolves to `root`,
   // with `schemas` available on the spec for $ref resolution. This exercises
@@ -2075,8 +2044,8 @@ describe('recursion guards for cyclic allOf schemas', () => {
   // `!item.isRef` allOf guard could not break such cycles because every hop is
   // a top-level $ref; the allOf-ancestor chain (existingReferencedAllOfRefs) now
   // does. A regression here throws `RangeError: Maximum call stack size exceeded`.
-  const run = (schemas: Record<string, unknown>, root: string) => {
-    const verbOptions = {
+  const run = (schemas: Record<string, OpenApiSchemaObject>, root: string) => {
+    const verbOptions = createTestGeneratorVerbOptions({
       operationId: 'getRoot',
       operationName: 'getRoot',
       typeName: 'getRoot',
@@ -2091,7 +2060,9 @@ describe('recursion guards for cyclic allOf schemas', () => {
               key: '200',
               value: root,
               contentType: 'application/json',
-              originalSchema: { $ref: `#/components/schemas/${root}` },
+              originalSchema: {
+                $ref: `#/components/schemas/${root}`,
+              },
               imports: [{ name: root, values: false }],
               schemas: [],
               isRef: true,
@@ -2101,9 +2072,9 @@ describe('recursion guards for cyclic allOf schemas', () => {
         },
         contentTypes: ['application/json'],
       },
-    } as unknown as GeneratorVerbOptions;
+    });
 
-    const options = {
+    const options = createTestGeneratorOptions({
       route: '/root',
       pathRoute: '/root',
       output: 'test',
@@ -2135,10 +2106,10 @@ describe('recursion guards for cyclic allOf schemas', () => {
           urlEncodeParameters: false,
           unionAddMissingProperties: false,
           optionsParamRequired: false,
-          propertySortOrder: 'specification',
+          propertySortOrder: PropertySortOrder.SPECIFICATION,
         },
       },
-    } as unknown as GeneratorOptions;
+    });
 
     return generateMSW(verbOptions, options);
   };
@@ -2190,7 +2161,9 @@ describe('recursion guards for cyclic allOf schemas', () => {
         },
       },
       XNode: { allOf: [{ $ref: '#/components/schemas/XObject' }] },
-      XContainer: { allOf: [{ $ref: '#/components/schemas/XNode' }] },
+      XContainer: {
+        allOf: [{ $ref: '#/components/schemas/XNode' }],
+      },
       XElement: {
         allOf: [{ $ref: '#/components/schemas/XContainer' }],
         properties: { name: { type: 'string' } },
@@ -2202,7 +2175,7 @@ describe('recursion guards for cyclic allOf schemas', () => {
 
 describe('response status key safety', () => {
   const verbOptions = (statusKey: string): GeneratorVerbOptions =>
-    ({
+    createTestGeneratorVerbOptions({
       operationId: 'getUser',
       operationName: 'getUser',
       typeName: 'getUser',
@@ -2214,37 +2187,15 @@ describe('response status key safety', () => {
         types: { success: [{ key: statusKey, value: 'User' }] },
         contentTypes: ['application/json'],
       },
-    }) as unknown as GeneratorVerbOptions;
+    });
 
-  const options = {
+  const options = createTestGeneratorOptions({
     route: '/users/{id}',
     pathRoute: '/users/{id}',
     output: 'test',
-    override: { operations: {}, tags: {} } as NormalizedOverrideOutput,
-    context: {
-      target: 'test',
-      workspace: '',
-      spec: {
-        openapi: '3.1.0',
-        info: { title: 'Test', version: '1.0.0' },
-        paths: {},
-      },
-      output: {
-        target: 'test',
-        namingConvention: 'camelCase',
-        fileExtension: '.ts',
-        mode: 'single',
-        override: {
-          operations: {},
-          tags: {},
-          mock: { type: OutputMockType.MSW },
-        } as unknown as NormalizedOverrideOutput,
-        client: 'axios-functions',
-        httpClient: 'fetch',
-        propertySortOrder: 'specification',
-      },
-    },
-  } as unknown as GeneratorOptions;
+    mock: { type: OutputMockType.MSW },
+    context: { target: 'test' },
+  });
 
   it.each([
     ['200', 'status: 200'],

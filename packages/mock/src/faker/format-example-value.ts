@@ -1,6 +1,6 @@
-import { isDereferenced } from '@scalar/openapi-types/helpers';
 import {
   type ContextSpec,
+  isInlineSchema,
   type OpenApiSchemaObject,
   resolveRef,
 } from '@orval/core';
@@ -27,7 +27,7 @@ function resolveSchema(
     return undefined;
   }
 
-  if (!isDereferenced(schema)) {
+  if (!isInlineSchema(schema)) {
     return resolveRef<OpenApiSchemaObject>(schema, context).schema;
   }
 
@@ -71,7 +71,7 @@ function getEffectiveScalarFormat(
 
   for (const variant of [...(oneOf ?? []), ...(anyOf ?? [])]) {
     const resolvable =
-      !isDereferenced(variant) || isSchemaObject(variant) ? variant : undefined;
+      !isInlineSchema(variant) || isSchemaObject(variant) ? variant : undefined;
     const resolvedVariant = resolveSchema(resolvable, context);
 
     if (isDateFormat(resolvedVariant?.format)) {
@@ -95,7 +95,7 @@ function resolveExampleSchema(
     return undefined;
   }
 
-  if (!isDereferenced(schema)) {
+  if (!isInlineSchema(schema)) {
     const ref = schema.$ref;
     if (ref && seenRefs.has(ref)) {
       return resolveRef<OpenApiSchemaObject>(schema, context).schema;

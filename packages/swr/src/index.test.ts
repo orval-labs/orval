@@ -1,13 +1,16 @@
 import {
-  type GeneratorOptions,
   type GeneratorVerbOptions,
   isFunction,
   OutputClient,
   OutputHttpClient,
+  type ResReqTypesValue,
 } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../../core/src/test-utils/context';
+import {
+  createTestGeneratorOptions,
+  createTestGeneratorVerbOptions,
+} from '../../core/src/test-utils';
 import { builder, generateSwr } from './index';
 
 describe('swr builder', () => {
@@ -36,18 +39,16 @@ describe('generateSwr — fetch runtimeValidation imports (#4136, #4137)', () =>
     runtimeValidation = true,
   }: {
     definition: string;
-    type: string;
+    type: ResReqTypesValue['type'];
     runtimeValidation?: boolean;
   }): GeneratorVerbOptions =>
-    ({
+    createTestGeneratorVerbOptions({
       verb: 'get',
       route: '/items',
       pathRoute: '/items',
       operationId: 'listItems',
       operationName: 'listItems',
       typeName: 'listItems',
-      doc: '',
-      tags: [],
       response: {
         definition: { success: definition, errors: '' },
         imports: [{ name: 'Item' }],
@@ -64,31 +65,13 @@ describe('generateSwr — fetch runtimeValidation imports (#4136, #4137)', () =>
               schemas: [],
               type,
               dependencies: [],
-            },
+            } satisfies ResReqTypesValue,
           ],
           errors: [],
         },
         contentTypes: ['application/json'],
-        schemas: [],
-        isBlob: false,
       },
-      body: {
-        definition: '',
-        implementation: '',
-        imports: [],
-        schemas: [],
-        formData: undefined,
-        formUrlEncoded: undefined,
-        contentType: '',
-        isOptional: true,
-        originalSchema: {},
-        isBlob: false,
-      },
-      params: [],
-      props: [],
       override: {
-        formData: { disabled: false, arrayHandling: 'serialize' },
-        formUrlEncoded: false,
         requestOptions: true,
         fetch: {
           includeHttpResponseReturnType: false,
@@ -98,24 +81,20 @@ describe('generateSwr — fetch runtimeValidation imports (#4136, #4137)', () =>
             strategy: 'throw',
           },
         },
-        swr: {},
       },
-      originalOperation: {},
-    }) as unknown as GeneratorVerbOptions;
+    });
 
-  const options = {
+  const options = createTestGeneratorOptions({
     route: '/items',
     pathRoute: '/items',
-    override: { operations: {} },
-    output: '',
-    context: createTestContextSpec({
+    context: {
       output: {
         client: OutputClient.SWR,
         httpClient: OutputHttpClient.FETCH,
         schemas: { path: './model', type: 'zod', splitByTags: false },
       },
-    }),
-  } as unknown as GeneratorOptions;
+    },
+  });
 
   it('imports the schema as a value and the Output alias it declares', async () => {
     const { implementation, imports } = await generateSwr(

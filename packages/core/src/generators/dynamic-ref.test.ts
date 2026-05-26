@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../test-utils/context';
-import type { OpenApiDocument, OpenApiSchemaObject } from '../types';
+import { createTestContextSpec } from '../test-utils';
+import type { OpenApiDocument } from '../types';
 import { generateSchemasDefinition } from './schema-definition';
 
-function createContext(spec: OpenApiDocument) {
+function createContext(spec: Partial<OpenApiDocument>) {
   return createTestContextSpec({
     target: 'core-test',
     workspace: '/tmp',
@@ -135,7 +135,9 @@ const nestedWorkspaceSpec: OpenApiDocument = {
           root: { $ref: '#/components/schemas/WorkspaceFolder' },
           related: {
             type: 'array',
-            items: { $ref: '#/components/schemas/WorkspaceResource' },
+            items: {
+              $ref: '#/components/schemas/WorkspaceResource',
+            },
           },
         },
       },
@@ -714,7 +716,7 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
 
   it('handles boolean schemas', () => {
     const cases = [
-      ['Anything', true, '= any'],
+      ['Anything', true, '= unknown'],
       ['Nothing', false, '= never'],
     ] as const;
 
@@ -725,7 +727,7 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
         paths: {},
         components: {
           schemas: {
-            [schemaName]: schemaValue as unknown as OpenApiSchemaObject,
+            [schemaName]: schemaValue,
           },
         },
       };
@@ -804,22 +806,27 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
       paths: {},
       components: {
         schemas: {
-          Container: {
-            $defs: {
-              // eslint-disable-next-line unicorn/no-null -- intentionally testing null $defs entry
-              nullDef: null as unknown as OpenApiSchemaObject,
-              validDef: {
-                $dynamicAnchor: 'item',
-                type: 'object',
-                properties: { id: { type: 'string' } },
+          Container: (() => {
+            const schema = {
+              $defs: {
+                validDef: {
+                  $dynamicAnchor: 'item',
+                  type: 'object' as const,
+                  properties: { id: { type: 'string' as const } },
+                },
               },
-            },
-            $dynamicAnchor: 'root',
-            type: 'object',
-            properties: {
-              items: { $dynamicRef: '#item' },
-            },
-          },
+              $dynamicAnchor: 'root',
+              type: 'object' as const,
+              properties: {
+                items: { $dynamicRef: '#item' },
+              },
+            };
+            if (typeof schema === 'object') {
+              // eslint-disable-next-line unicorn/no-null -- intentionally testing null $defs entry
+              Object.assign(schema.$defs ?? {}, { nullDef: null });
+            }
+            return schema;
+          })(),
         },
       },
     };
@@ -915,7 +922,10 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
           PairTemplate: {
             $defs: {
               itemType: { $dynamicAnchor: 'itemType', not: {} },
-              cursorType: { $dynamicAnchor: 'cursorType', not: {} },
+              cursorType: {
+                $dynamicAnchor: 'cursorType',
+                not: {},
+              },
             },
             type: 'object',
             properties: {

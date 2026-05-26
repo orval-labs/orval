@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import {
+  createTestContextSpec,
+  type CreateTestContextSpecOptions,
+} from '../test-utils';
 import type {
   ContextSpec,
   InputFiltersOptions,
@@ -8,14 +12,24 @@ import type {
 import { generateSchemasDefinition } from './schema-definition';
 
 describe('generateSchemasDefinition', () => {
-  const context = {
-    output: {
-      override: { namingConvention: {} },
-      factoryMethods: undefined,
-    },
+  const context = createTestContextSpec({
     target: 'typescript',
-    spec: {},
-  } as unknown as ContextSpec;
+    output: { factoryMethods: undefined },
+  });
+
+  const withContext = ({
+    override,
+    spec,
+  }: {
+    override?: CreateTestContextSpecOptions['override'];
+    spec?: CreateTestContextSpecOptions['spec'];
+  } = {}): ContextSpec =>
+    createTestContextSpec({
+      target: 'typescript',
+      spec,
+      output: { factoryMethods: undefined },
+      override,
+    });
 
   it('should return an empty array if schemas are empty', () => {
     const result = generateSchemasDefinition({}, context, 'Suffix');
@@ -160,19 +174,14 @@ describe('generateSchemasDefinition', () => {
   });
 
   it('should generate schemas with changed enum nameConvention', () => {
-    const context = {
-      output: {
-        override: {
-          enumGenerationType: 'enum',
-          namingConvention: {
-            enum: 'PascalCase',
-          },
+    const context = withContext({
+      override: {
+        enumGenerationType: 'enum',
+        namingConvention: {
+          enum: 'PascalCase',
         },
-        factoryMethods: undefined,
       },
-      target: 'typescript',
-      spec: {},
-    } as unknown as ContextSpec;
+    });
 
     const schemas: OpenApiSchemasObject = {
       TestSchema: {
@@ -208,16 +217,9 @@ describe('generateSchemasDefinition', () => {
       };
 
       // With aliasCombinedTypes: true - creates intermediate type aliases
-      const aliasContext = {
-        ...context,
-        output: {
-          ...context.output,
-          override: {
-            ...context.output.override,
-            aliasCombinedTypes: true,
-          },
-        },
-      } as unknown as ContextSpec;
+      const aliasContext = withContext({
+        override: { aliasCombinedTypes: true },
+      });
       const aliasResult = generateSchemasDefinition(schemas, aliasContext, '');
       expect(aliasResult).toHaveLength(3);
       expect(aliasResult[0].name).toBe(`Response${combinerName}`);
@@ -263,16 +265,10 @@ describe('generateSchemasDefinition', () => {
       },
     };
 
-    const specContext = {
-      ...context,
-      output: {
-        ...context.output,
-        override: { enumGenerationType: 'const', namingConvention: {} },
-      },
-      spec: {
-        components: { schemas },
-      },
-    } as unknown as ContextSpec;
+    const specContext = withContext({
+      override: { enumGenerationType: 'const' },
+      spec: { components: { schemas } },
+    });
 
     const result = generateSchemasDefinition(schemas, specContext, '');
 
@@ -309,16 +305,10 @@ describe('generateSchemasDefinition', () => {
       },
     };
 
-    const specContext = {
-      ...context,
-      output: {
-        ...context.output,
-        override: { enumGenerationType: 'const', namingConvention: {} },
-      },
-      spec: {
-        components: { schemas },
-      },
-    } as unknown as ContextSpec;
+    const specContext = withContext({
+      override: { enumGenerationType: 'const' },
+      spec: { components: { schemas } },
+    });
 
     const result = generateSchemasDefinition(schemas, specContext, '');
     const combinedSchema = result.find(
@@ -364,23 +354,18 @@ describe('generateSchemasDefinition', () => {
       },
     };
 
-    const specContext = {
-      ...context,
-      output: {
-        ...context.output,
-        override: {
-          enumGenerationType: 'const',
-          namingConvention: {},
-          components: {
-            schemas: { suffix: '', itemSuffix: 'Item' },
-            responses: { suffix: '' },
-            parameters: { suffix: '' },
-            requestBodies: { suffix: 'RequestBody' },
-          },
+    const specContext = withContext({
+      override: {
+        enumGenerationType: 'const',
+        components: {
+          schemas: { suffix: '', itemSuffix: 'Item' },
+          responses: { suffix: '' },
+          parameters: { suffix: '' },
+          requestBodies: { suffix: 'RequestBody' },
         },
       },
       spec: { components: { schemas } },
-    } as unknown as ContextSpec;
+    });
 
     const result = generateSchemasDefinition(schemas, specContext, '');
 
@@ -440,23 +425,18 @@ describe('generateSchemasDefinition', () => {
         },
       };
 
-      const specContext = {
-        ...context,
-        output: {
-          ...context.output,
-          override: {
-            enumGenerationType: 'const',
-            namingConvention: {},
-            components: {
-              schemas: { suffix: '', itemSuffix: 'Item' },
-              responses: { suffix: '' },
-              parameters: { suffix: '' },
-              requestBodies: { suffix: 'RequestBody' },
-            },
+      const specContext = withContext({
+        override: {
+          enumGenerationType: 'const',
+          components: {
+            schemas: { suffix: '', itemSuffix: 'Item' },
+            responses: { suffix: '' },
+            parameters: { suffix: '' },
+            requestBodies: { suffix: 'RequestBody' },
           },
         },
         spec: { components: { schemas } },
-      } as unknown as ContextSpec;
+      });
 
       const result = generateSchemasDefinition(schemas, specContext, '');
 
@@ -514,16 +494,10 @@ describe('generateSchemasDefinition', () => {
       },
     };
 
-    const specContext = {
-      ...context,
-      output: {
-        ...context.output,
-        override: { enumGenerationType: 'const', namingConvention: {} },
-      },
-      spec: {
-        components: { schemas },
-      },
-    } as unknown as ContextSpec;
+    const specContext = withContext({
+      override: { enumGenerationType: 'const' },
+      spec: { components: { schemas } },
+    });
 
     const result = generateSchemasDefinition(schemas, specContext, '');
     const mixedBooleanSchema = result.find(

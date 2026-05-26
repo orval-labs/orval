@@ -1,21 +1,31 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import type {
-  ContextSpec,
-  OpenApiReferenceObject,
-  OpenApiSchemaObject,
-  OpenApiSchemasObject,
-} from '../types';
+import { createTestContextSpec } from '../test-utils';
+import type { OpenApiSchemasObject } from '../types';
 import { resolveDiscriminators } from './discriminators';
 
-const context: ContextSpec = {
+const context = createTestContextSpec({
   target: 'spec',
-  workspace: '',
-  spec: {} as ContextSpec['spec'],
-  output: {
-    override: {},
-  },
-} as ContextSpec;
+});
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const schemaProperties = (schema: unknown) =>
+  isRecord(schema) && isRecord(schema.properties)
+    ? schema.properties
+    : undefined;
+
+const schemaAllOf = (schema: unknown) =>
+  isRecord(schema) && Array.isArray(schema.allOf) ? schema.allOf : undefined;
+
+const schemaOneOf = (schema: unknown) =>
+  isRecord(schema) && Array.isArray(schema.oneOf) ? schema.oneOf : undefined;
+
+const schemaRequired = (schema: unknown) =>
+  isRecord(schema) && Array.isArray(schema.required)
+    ? schema.required
+    : undefined;
 
 describe('resolveDiscriminators getter', () => {
   it('adds discriminator property when missing in subtype schema', () => {
@@ -41,17 +51,14 @@ describe('resolveDiscriminators getter', () => {
     };
 
     const result = resolveDiscriminators(structuredClone(schemas), context);
-    const catSchema = result.Cat as NonNullable<OpenApiSchemasObject[string]>;
-    // Bridge assertion: properties is `any` due to AnyOtherAttribute
-    const catProps = catSchema.properties as
-      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-      | undefined;
+    const catSchema = result.Cat;
+    const catProps = schemaProperties(catSchema);
 
     expect(catProps?.type).toMatchObject({
       type: 'string',
       enum: ['CAT'],
     });
-    expect(catSchema.required).toEqual(
+    expect(schemaRequired(catSchema)).toEqual(
       expect.arrayContaining(['livesLeft', 'type']),
     );
   });
@@ -80,21 +87,12 @@ describe('resolveDiscriminators getter', () => {
     };
 
     const result = resolveDiscriminators(structuredClone(schemas), context);
-    const catSchema = result.Cat as NonNullable<OpenApiSchemasObject[string]>;
-    // Bridge assertion: properties is `any` due to AnyOtherAttribute
-    const catProps = catSchema.properties as
-      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-      | undefined;
-    const typeProp = catProps?.type;
-    const enumValues =
-      typeProp && 'enum' in typeProp
-        ? ((typeProp as OpenApiSchemaObject).enum as string[] | undefined)
-        : undefined;
-
-    expect(enumValues).toEqual(expect.arrayContaining(['CAT', 'DOG']));
-    if (typeProp && !('$ref' in typeProp)) {
-      expect((typeProp as OpenApiSchemaObject).description).toBe('animal type');
-    }
+    const catSchema = result.Cat;
+    const catProps = schemaProperties(catSchema);
+    expect(catProps?.type).toMatchObject({
+      enum: expect.arrayContaining(['CAT', 'DOG']),
+      description: 'animal type',
+    });
   });
 
   it('overrides discriminator property when it is a $ref', () => {
@@ -123,17 +121,11 @@ describe('resolveDiscriminators getter', () => {
     };
 
     const result = resolveDiscriminators(structuredClone(schemas), context);
-    const catSchema = result.Cat as NonNullable<OpenApiSchemasObject[string]>;
-    // Bridge assertion: properties is `any` due to AnyOtherAttribute
-    const catProps = catSchema.properties as
-      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-      | undefined;
-    const typeProperty = catProps?.type;
-
-    expect(typeProperty).toBeDefined();
-    if (typeProperty && !('$ref' in typeProperty)) {
-      expect((typeProperty as OpenApiSchemaObject).enum).toEqual(['CAT']);
-    }
+    const catSchema = result.Cat;
+    const catProps = schemaProperties(catSchema);
+    expect(catProps?.type).toMatchObject({
+      enum: ['CAT'],
+    });
   });
 
   it('strips const from discriminator property to prevent DogValue object bug (#3139)', () => {
@@ -171,22 +163,18 @@ describe('resolveDiscriminators getter', () => {
     };
 
     const result = resolveDiscriminators(structuredClone(schemas), context);
-    const dogSchema = result.Dog as NonNullable<OpenApiSchemasObject[string]>;
-    const dogProps = dogSchema.properties as
-      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-      | undefined;
-    const typeProp = dogProps?.type as OpenApiSchemaObject | undefined;
+    const typeProp = schemaProperties(result.Dog)?.type;
 
     // The merged property must NOT retain `const` — otherwise interface.ts
     // generates `const DogValue = { type: DogType }` where DogType is the
     // runtime enum object instead of the string literal.
     expect(typeProp).toBeDefined();
     expect(typeProp).not.toHaveProperty('const');
-    expect(typeProp?.enum).toEqual(['dog']);
-    expect(typeProp?.type).toBe('string');
-    expect((typeProp as Record<string, unknown>).description).toBe(
-      'animal type',
-    );
+    expect(typeProp).toMatchObject({
+      enum: ['dog'],
+      type: 'string',
+      description: 'animal type',
+    });
   });
 
   it('preserves boolean type for boolean discriminator', () => {
@@ -220,18 +208,8 @@ describe('resolveDiscriminators getter', () => {
     };
 
     const result = resolveDiscriminators(structuredClone(schemas), context);
-    const successSchema = result.SuccessResult as NonNullable<
-      OpenApiSchemasObject[string]
-    >;
-    const errorSchema = result.ErrorResult as NonNullable<
-      OpenApiSchemasObject[string]
-    >;
-    const successProps = successSchema.properties as
-      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-      | undefined;
-    const errorProps = errorSchema.properties as
-      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-      | undefined;
+    const successProps = schemaProperties(result.SuccessResult);
+    const errorProps = schemaProperties(result.ErrorResult);
 
     expect(successProps?.success).toMatchObject({
       type: 'boolean',
@@ -274,18 +252,8 @@ describe('resolveDiscriminators getter', () => {
     };
 
     const result = resolveDiscriminators(structuredClone(schemas), context);
-    const activeSchema = result.ActiveStatus as NonNullable<
-      OpenApiSchemasObject[string]
-    >;
-    const inactiveSchema = result.InactiveStatus as NonNullable<
-      OpenApiSchemasObject[string]
-    >;
-    const activeProps = activeSchema.properties as
-      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-      | undefined;
-    const inactiveProps = inactiveSchema.properties as
-      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-      | undefined;
+    const activeProps = schemaProperties(result.ActiveStatus);
+    const inactiveProps = schemaProperties(result.InactiveStatus);
 
     expect(activeProps?.code).toMatchObject({
       type: 'integer',
@@ -350,28 +318,22 @@ describe('resolveDiscriminators getter', () => {
     };
 
     const result = resolveDiscriminators(structuredClone(schemas), context);
-    const item1 = result.Item1 as NonNullable<OpenApiSchemasObject[string]>;
-    const item2 = result.Item2 as NonNullable<OpenApiSchemasObject[string]>;
+    const item1 = result.Item1;
+    const item2 = result.Item2;
 
     // Parent had only the discriminator key, so inheritable props are empty —
     // the $ref-to-parent entry should be dropped, leaving only the inline
     // object that contributed `property1` / `property2`.
-    const item1AllOf = item1.allOf as
-      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-      | undefined;
+    const item1AllOf = schemaAllOf(item1);
     expect(item1AllOf).toHaveLength(1);
     expect(item1AllOf?.[0]).not.toHaveProperty('$ref');
-    const item2AllOf = item2.allOf as
-      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-      | undefined;
+    const item2AllOf = schemaAllOf(item2);
     expect(item2AllOf).toHaveLength(1);
     expect(item2AllOf?.[0]).not.toHaveProperty('$ref');
 
     // The existing discriminator-key injection still runs, so each variant's
     // own `properties.type` is constrained to its mapping value.
-    const item1Props = item1.properties as
-      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-      | undefined;
+    const item1Props = schemaProperties(item1);
     expect(item1Props?.type).toMatchObject({
       type: 'string',
       enum: ['item1'],
@@ -417,23 +379,16 @@ describe('resolveDiscriminators getter', () => {
     };
 
     const result = resolveDiscriminators(structuredClone(schemas), context);
-    const variantA = result.VariantA as NonNullable<
-      OpenApiSchemasObject[string]
-    >;
-
-    const allOf = variantA.allOf as
-      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-      | undefined;
+    const allOf = schemaAllOf(result.VariantA);
     expect(allOf).toHaveLength(2);
     expect(allOf?.[0]).not.toHaveProperty('$ref');
-    const inlined = allOf?.[0] as OpenApiSchemaObject | undefined;
-    const inlinedProps = inlined?.properties as
-      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-      | undefined;
+    const inlined = allOf?.[0];
+    const inlinedProps = schemaProperties(inlined);
+    expect(inlined).not.toHaveProperty('$ref');
     expect(inlinedProps).toHaveProperty('commonField');
     // The discriminator key must not appear in the inlined props.
     expect(inlinedProps).not.toHaveProperty('kind');
-    expect(inlined?.required).toEqual(['commonField']);
+    expect(schemaRequired(inlined)).toEqual(['commonField']);
   });
 
   it('preserves parent object-level constraints when inlining (#3432)', () => {
@@ -470,17 +425,13 @@ describe('resolveDiscriminators getter', () => {
     };
 
     const result = resolveDiscriminators(structuredClone(schemas), context);
-    const variantA = result.VariantA as NonNullable<
-      OpenApiSchemasObject[string]
-    >;
-    const allOf = variantA.allOf as
-      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-      | undefined;
-    const inlined = allOf?.[0] as Record<string, unknown> | undefined;
+    const inlined = schemaAllOf(result.VariantA)?.[0];
 
-    expect(inlined?.additionalProperties).toBe(false);
-    expect(inlined?.minProperties).toBe(1);
-    expect(inlined?.description).toBe('parent shape');
+    expect(inlined).toMatchObject({
+      additionalProperties: false,
+      minProperties: 1,
+      description: 'parent shape',
+    });
     // Composition keys that would re-create the cycle must NOT be copied.
     expect(inlined).not.toHaveProperty('oneOf');
     expect(inlined).not.toHaveProperty('discriminator');
@@ -526,16 +477,10 @@ describe('resolveDiscriminators getter', () => {
     };
 
     const result = resolveDiscriminators(structuredClone(schemas), context);
-    const aAllOf = (
-      result.VariantA as NonNullable<OpenApiSchemasObject[string]>
-    ).allOf as (OpenApiSchemaObject | OpenApiReferenceObject)[] | undefined;
-    const bAllOf = (
-      result.VariantB as NonNullable<OpenApiSchemasObject[string]>
-    ).allOf as (OpenApiSchemaObject | OpenApiReferenceObject)[] | undefined;
-    const aInlined = aAllOf?.[0] as OpenApiSchemaObject | undefined;
-    const bInlined = bAllOf?.[0] as OpenApiSchemaObject | undefined;
+    const aInlined = schemaAllOf(result.VariantA)?.[0];
+    const bInlined = schemaAllOf(result.VariantB)?.[0];
 
-    expect(aInlined?.properties).not.toBe(bInlined?.properties);
+    expect(schemaProperties(aInlined)).not.toBe(schemaProperties(bInlined));
     expect(aInlined).not.toBe(bInlined);
   });
 
@@ -566,10 +511,8 @@ describe('resolveDiscriminators getter', () => {
     };
 
     const result = resolveDiscriminators(structuredClone(schemas), context);
-    const derived = result.Derived as NonNullable<OpenApiSchemasObject[string]>;
-    const allOf = derived.allOf as
-      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-      | undefined;
+    const derived = result.Derived;
+    const allOf = schemaAllOf(derived);
     expect(allOf).toHaveLength(2);
     expect(allOf?.[0]).toHaveProperty('$ref', '#/components/schemas/Base');
   });
@@ -608,18 +551,14 @@ describe('resolveDiscriminators getter', () => {
       },
     };
     const result = resolveDiscriminators(structuredClone(schemas), context);
-    const dog = result.Dog as NonNullable<OpenApiSchemasObject[string]>;
-    const cat = result.Cat as NonNullable<OpenApiSchemasObject[string]>;
+    const dog = result.Dog;
+    const cat = result.Cat;
 
-    const dogAllOf = dog.allOf as
-      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-      | undefined;
+    const dogAllOf = schemaAllOf(dog);
     expect(dogAllOf).toHaveLength(1);
     expect(dogAllOf?.[0]).not.toHaveProperty('$ref');
 
-    const catAllOf = cat.allOf as
-      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-      | undefined;
+    const catAllOf = schemaAllOf(cat);
     expect(catAllOf).toHaveLength(1);
     expect(catAllOf?.[0]).not.toHaveProperty('$ref');
   });
@@ -658,18 +597,14 @@ describe('resolveDiscriminators getter', () => {
       },
     };
     const result = resolveDiscriminators(structuredClone(schemas), context);
-    const dog = result.Dog as NonNullable<OpenApiSchemasObject[string]>;
-    const cat = result.Cat as NonNullable<OpenApiSchemasObject[string]>;
+    const dog = result.Dog;
+    const cat = result.Cat;
 
-    const dogAllOf = dog.allOf as
-      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-      | undefined;
+    const dogAllOf = schemaAllOf(dog);
     expect(dogAllOf).toHaveLength(1);
     expect(dogAllOf?.[0]).not.toHaveProperty('$ref');
 
-    const catAllOf = cat.allOf as
-      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-      | undefined;
+    const catAllOf = schemaAllOf(cat);
     expect(catAllOf).toHaveLength(1);
     expect(catAllOf?.[0]).not.toHaveProperty('$ref');
   });
@@ -688,9 +623,7 @@ describe('resolveDiscriminators getter', () => {
             { $ref: '#/components/schemas/Cat' },
             { $ref: '#/components/schemas/Dog' },
           ],
-        } as unknown as NonNullable<
-          OpenApiSchemasObject[string]
-        >['discriminator'],
+        },
       },
       Cat: {
         type: 'object',
@@ -701,11 +634,9 @@ describe('resolveDiscriminators getter', () => {
     };
 
     const result = resolveDiscriminators(structuredClone(schemas), context);
-    const animalSchema = result.Animal as NonNullable<
-      OpenApiSchemasObject[string]
-    >;
+    const animalSchema = result.Animal;
 
-    expect(animalSchema.oneOf).toHaveLength(2);
+    expect(schemaOneOf(animalSchema)).toHaveLength(2);
   });
 
   it('skips mapping entries whose target schema is absent', () => {
@@ -733,9 +664,7 @@ describe('resolveDiscriminators getter', () => {
     // assertions below already proves it was skipped. The surviving subtype is
     // still augmented with its discriminant.
     const result = resolveDiscriminators(structuredClone(schemas), context);
-    const catProps = result.Cat.properties as
-      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-      | undefined;
+    const catProps = schemaProperties(result.Cat);
     expect(catProps?.petType).toMatchObject({
       type: 'string',
       enum: ['cat'],
@@ -791,9 +720,7 @@ describe('resolveDiscriminators getter', () => {
     };
 
     const result = resolveDiscriminators(structuredClone(schemas), context);
-    const sessionProps = result.SessionEventRef.properties as
-      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-      | undefined;
+    const sessionProps = schemaProperties(result.SessionEventRef);
 
     // The allOf-wrapped ref survives untouched: no injected `enum`, no
     // injected `type`.

@@ -6,246 +6,80 @@ import type {
   OpenApiReferenceObject,
 } from '@orval/core';
 import {
-  EnumGeneration,
-  FormDataArrayHandling,
   GetterPropType,
-  NamingConvention,
   OutputClient,
-  OutputHttpClient,
-  OutputMode,
   PropertySortOrder,
   Verbs,
 } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
+import {
+  createTestContextSpec,
+  createTestGeneratorOptions,
+  createTestGeneratorVerbOptions,
+} from '../../core/src/test-utils';
 import { generateSolidStart, generateSolidStartHeader } from './index';
 
 type SolidStartGeneratorOptions = Parameters<typeof generateSolidStart>[1];
 type SolidStartGeneratorResult = Awaited<ReturnType<typeof generateSolidStart>>;
 type OpenApiParameterLike = OpenApiParameterObject | OpenApiReferenceObject;
 
-function makeOutput(useDates = false): ContextSpec['output'] {
-  return {
-    target: '',
-    namingConvention: NamingConvention.CAMEL_CASE,
-    fileExtension: '.ts',
-    schemaFileExtension: '.ts',
-    mode: OutputMode.SINGLE,
-    mock: { indexMockFiles: false, inline: false, generators: [] },
-    client: OutputClient.FETCH,
-    httpClient: OutputHttpClient.FETCH,
-    clean: false,
-    docs: false,
-    formatter: undefined,
-    headers: false,
-    indexFiles: false,
-    allParamsOptional: false,
-    urlEncodeParameters: false,
-    unionAddMissingProperties: false,
-    optionsParamRequired: false,
-    propertySortOrder: PropertySortOrder.ALPHABETICAL,
-    tagsSplitDeduplication: false,
-    commonTypesFileName: 'common-types',
-    factoryMethods: {
-      functionNamePrefix: 'create',
-      mode: 'single',
-      outputDirectory: '',
-      includeOptionalProperty: false,
-    },
-    override: {
-      title: undefined,
-      transformer: undefined,
-      mutator: undefined,
-      operations: {},
-      tags: {},
-      mock: undefined,
-      contentType: undefined,
-      header: false,
-      formData: {
-        disabled: false,
-        arrayHandling: FormDataArrayHandling.SERIALIZE,
-      },
-      formUrlEncoded: false,
-      paramsSerializer: undefined,
-      paramsSerializerOptions: undefined,
-      namingConvention: {},
-      components: {
-        schemas: { prefix: '', itemPrefix: '', suffix: '', itemSuffix: '' },
-        responses: { prefix: '', suffix: '' },
-        parameters: { prefix: '', suffix: '' },
-        requestBodies: { prefix: '', suffix: '' },
-      },
-      hono: {
-        handlerGenerationStrategy: 'smart',
-        compositeRoute: '',
-        validator: false,
-        validatorOutputPath: '',
-      },
-      query: {
-        useQuery: false,
-        useSuspenseQuery: false,
-        useMutation: false,
-        useInfinite: false,
-        useSuspenseInfiniteQuery: false,
-        useInfiniteQueryParam: '',
-        usePrefetch: false,
-        useInvalidate: false,
-        useSetQueryData: false,
-        useGetQueryData: false,
-        shouldExportMutatorHooks: false,
-        shouldExportHttpClient: false,
-        shouldExportKeys: false,
-        shouldSplitQueryKey: false,
-        useOperationIdAsQueryKey: false,
-        signal: false,
-        version: 5,
-      },
-      angular: {
-        provideIn: 'root',
-        client: 'httpClient',
-        runtimeValidation: { enabled: false, strategy: 'throw' },
-        queryObjectSerialization: 'spec',
-      },
-      swr: {},
-      zod: {
-        version: 'auto',
-        variant: 'classic',
-        strict: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        generate: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        coerce: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        generateEachHttpStatus: false,
-        useBrandedTypes: false,
-        generateReusableSchemas: false,
-        generateMeta: false,
-        generateDiscriminatedUnion: false,
-        exactOptional: false,
-        generateCompanionTypes: false,
-        dateTimeOptions: {},
-        timeOptions: { precision: 3 },
-      },
-      effect: {
-        strict: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        generate: {
-          param: false,
-          query: false,
-          header: false,
-          body: false,
-          response: false,
-        },
-        generateEachHttpStatus: false,
-        useBrandedTypes: false,
-        exactOptional: false,
-      },
-      axios: {
-        includeHttpResponseReturnType: false,
-      },
-      fetch: {
-        includeHttpResponseReturnType: false,
-        forceSuccessResponse: false,
-        serializeResponseHeaders: false,
-        runtimeValidation: { enabled: false, strategy: 'throw' },
-        useRuntimeFetcher: false,
-      },
-      useDates,
-      enumGenerationType: EnumGeneration.UNION,
-      jsDoc: {},
-      requestOptions: true,
-      splitByContentType: false,
-      aliasCombinedTypes: false,
-      includeZodSchemaInArguments: false,
-      mcp: {},
-    },
-  };
-}
+type TestParameter = {
+  name: string;
+  in: string;
+  style?: string;
+  explode?: boolean;
+  schema?: Record<string, unknown>;
+};
 
 function makeContext(
-  parameters: OpenApiParameterLike[] = [],
+  parameters: TestParameter[] = [],
   useDates = false,
 ): ContextSpec {
-  return {
-    target: '',
-    workspace: '',
+  const context = createTestContextSpec({
     spec: {
-      openapi: '3.1.0',
-      info: { title: 'Test' },
       paths: {
         '/pets': {
-          get: { parameters },
+          get: {
+            responses: { '200': { description: 'OK' } },
+          },
         },
       },
     },
-    output: makeOutput(useDates),
-  };
+    output: {
+      propertySortOrder: PropertySortOrder.ALPHABETICAL,
+    },
+    override: { useDates },
+  });
+  const operation = context.spec.paths?.['/pets']?.get;
+  if (operation) {
+    operation.parameters = parameters as OpenApiParameterLike[];
+  }
+  return context;
 }
 
 function makeVerbOptions(
-  overrides: Partial<GeneratorVerbOptions> = {},
+  overrides: Parameters<typeof createTestGeneratorVerbOptions>[0] = {},
 ): GeneratorVerbOptions {
-  return {
+  const { override, ...rest } = overrides;
+  return createTestGeneratorVerbOptions({
     verb: Verbs.GET,
     route: '/pets',
     pathRoute: '/pets',
     operationId: 'listPets',
     operationName: 'listPets',
-    doc: '',
-    tags: [],
+    typeName: 'listPets',
     response: {
       definition: { success: 'Pet[]', errors: '' },
-      imports: [],
-      types: { success: [], errors: [] },
       contentTypes: ['application/json'],
-      schemas: [],
-      isBlob: false,
-    } as GeneratorVerbOptions['response'],
-    body: {
-      definition: '',
-      implementation: '',
-      imports: [],
-      schemas: [],
-      formData: undefined,
-      formUrlEncoded: undefined,
-      contentType: '',
-      isOptional: true,
-      originalSchema: {},
-      isBlob: false,
-    } as GeneratorVerbOptions['body'],
-    params: [],
-    props: [],
+    },
+    ...rest,
     override: {
-      formData: {
-        disabled: false,
-        arrayHandling: FormDataArrayHandling.SERIALIZE,
-      },
-      formUrlEncoded: false,
       requestOptions: false,
-    } as GeneratorVerbOptions['override'],
-    originalOperation: {} as GeneratorVerbOptions['originalOperation'],
-    ...overrides,
-  } as GeneratorVerbOptions;
+      formUrlEncoded: false,
+      ...override,
+    },
+  });
 }
 
 function makeOptions(
@@ -253,38 +87,46 @@ function makeOptions(
   overrides: Partial<GeneratorOptions> = {},
 ): SolidStartGeneratorOptions {
   return {
-    route: '/pets',
-    pathRoute: '/pets',
-    override: {} as GeneratorOptions['override'],
-    output: '',
+    ...createTestGeneratorOptions({
+      route: '/pets',
+      pathRoute: '/pets',
+    }),
     context,
     ...overrides,
-  } as SolidStartGeneratorOptions;
+  } satisfies SolidStartGeneratorOptions;
 }
 
 function makeContextWithPathParams(
-  pathParameters: OpenApiParameterLike[] = [],
-  operationParameters: OpenApiParameterLike[] = [],
+  pathParameters: TestParameter[] = [],
+  operationParameters: TestParameter[] = [],
   useDates = false,
 ): ContextSpec {
-  return {
-    target: '',
-    workspace: '',
+  const context = createTestContextSpec({
     spec: {
-      openapi: '3.1.0',
-      info: { title: 'Test' },
       paths: {
         '/pets': {
-          parameters: pathParameters,
-          get: { parameters: operationParameters },
+          get: {
+            responses: { '200': { description: 'OK' } },
+          },
         },
       },
     },
-    output: makeOutput(useDates),
-  };
+    output: {
+      propertySortOrder: PropertySortOrder.ALPHABETICAL,
+    },
+    override: { useDates },
+  });
+  const pathItem = context.spec.paths?.['/pets'];
+  if (pathItem) {
+    pathItem.parameters = pathParameters as OpenApiParameterLike[];
+    if (pathItem.get) {
+      pathItem.get.parameters = operationParameters as OpenApiParameterLike[];
+    }
+  }
+  return context;
 }
 
-const STUB_QUERY_PARAMS: GeneratorVerbOptions['queryParams'] = {
+const STUB_QUERY_PARAMS = {
   schema: {
     name: 'ListPetsParams',
     model: 'export type ListPetsParams = { limit?: string }',
@@ -292,7 +134,7 @@ const STUB_QUERY_PARAMS: GeneratorVerbOptions['queryParams'] = {
   },
   deps: [],
   isOptional: true,
-} as GeneratorVerbOptions['queryParams'];
+} satisfies NonNullable<GeneratorVerbOptions['queryParams']>;
 
 async function generateImplementation(
   verbOptions: GeneratorVerbOptions,
@@ -891,14 +733,14 @@ describe('generateSolidStartHeader namespace collision', () => {
     tags: string[],
     importNames: string[],
   ): GeneratorVerbOptions => {
-    const base = makeVerbOptions({ tags });
-    return {
-      ...base,
+    return makeVerbOptions({
+      tags,
       response: {
-        ...base.response,
+        definition: { success: 'Pet[]', errors: '' },
+        contentTypes: ['application/json'],
         imports: importNames.map((name) => ({ name })),
       },
-    } as GeneratorVerbOptions;
+    });
   };
 
   const namespaceFor = (
@@ -908,9 +750,16 @@ describe('generateSolidStartHeader namespace collision', () => {
   ) => {
     const header = generateSolidStartHeader({
       title,
+      isRequestOptions: false,
+      isMutator: false,
+      isGlobalMutator: false,
+      provideIn: false,
+      hasAwaitedType: false,
+      output: createTestContextSpec().output,
       verbOptions,
       tag,
-    } as unknown as Parameters<typeof generateSolidStartHeader>[0]);
+      clientImplementation: '',
+    });
     const source = typeof header === 'string' ? header : header.implementation;
     return /export const (\w+) = \{/.exec(source)?.[1];
   };
@@ -973,22 +822,18 @@ describe('generateSolidStart — Content-Type header escaping', () => {
         name: 'customInstance',
         path: './custom-instance.ts',
         default: false,
+        hasErrorType: false,
+        errorTypeName: '',
         hasSecondArg: true,
         hasThirdArg: false,
         isHook: false,
-      } as GeneratorVerbOptions['mutator'],
+      },
       body: {
         definition: 'SubmitDataBody',
         implementation: 'submitDataBody: SubmitDataBody',
-        imports: [],
-        schemas: [],
-        formData: undefined,
-        formUrlEncoded: undefined,
         contentType: "application/json', 'X-Evil': 'injected",
         isOptional: false,
-        originalSchema: {},
-        isBlob: false,
-      } as GeneratorVerbOptions['body'],
+      },
     });
 
     const implementation = await generateImplementation(
@@ -1014,11 +859,13 @@ describe('generateSolidStart — mutator body type', () => {
           name: 'customInstance',
           path: './custom-instance',
           default: false,
+          hasErrorType: false,
+          errorTypeName: '',
           hasSecondArg: false,
           hasThirdArg: false,
           isHook: false,
           bodyTypeName: 'BodyType',
-        } as GeneratorVerbOptions['mutator'],
+        },
         body: {
           ...makeVerbOptions().body,
           definition,

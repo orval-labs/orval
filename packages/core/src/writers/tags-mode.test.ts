@@ -17,6 +17,8 @@ import {
   createSplitModeProps,
 } from '../test-utils/split-modes';
 import {
+  type GenerateMockImports,
+  type GeneratorClientFooter,
   type GeneratorDependency,
   type GeneratorSchema,
   OutputMockType,
@@ -165,7 +167,7 @@ describe('writeTagsMode — mixed generator paths use correct schema imports', (
     const target = path.join(tmpDir, 'petstore.ts');
 
     const mockImportsCalls: {
-      imports: { dependency: string }[];
+      imports: readonly GeneratorDependency[];
     }[] = [];
     const baseProps = createSplitModeProps(target);
 
@@ -188,12 +190,10 @@ describe('writeTagsMode — mixed generator paths use correct schema imports', (
             ],
           }),
         },
-        importsMock: (args: Record<string, unknown>) => {
-          mockImportsCalls.push(
-            args as unknown as (typeof mockImportsCalls)[number],
-          );
+        importsMock: (({ imports }) => {
+          mockImportsCalls.push({ imports });
           return '';
-        },
+        }) satisfies GenerateMockImports,
       },
       output: createSplitModeOutput(target, {
         mode: OutputMode.TAGS,
@@ -547,7 +547,7 @@ describe('writeTagsMode — default-bucket footer includes untagged operations',
     const target = path.join(tmpDir, 'petstore.ts');
     const baseProps = createSplitModeProps(target);
 
-    const footerSpy = vi.fn((_args: { operationNames: string[] }) => ({
+    const footerSpy = vi.fn<GeneratorClientFooter>(async (_args) => ({
       implementation: '',
       implementationMock: '',
     }));
@@ -567,7 +567,7 @@ describe('writeTagsMode — default-bucket footer includes untagged operations',
             operationName: 'getHealth',
           }),
         },
-      } as unknown as typeof baseProps.builder,
+      } satisfies typeof baseProps.builder,
       output: createSplitModeOutput(target, { mode: OutputMode.TAGS }),
     };
 

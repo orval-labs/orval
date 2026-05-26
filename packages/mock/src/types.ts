@@ -17,11 +17,9 @@ export interface MockDefinition {
   nullWrapped?: boolean;
 }
 
-type OpenApiObjectSchema = Extract<OpenApiSchemaObject, object>;
-
 type MockSchemaRef = OpenApiReferenceObject;
 
-export type MockSchemaObject = Omit<OpenApiObjectSchema, 'enum'> & {
+export type MockSchemaObject = Omit<OpenApiSchemaObject, 'enum'> & {
   name: string;
   path?: string;
   parentName?: string;

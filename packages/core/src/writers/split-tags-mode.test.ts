@@ -19,8 +19,10 @@ import {
 } from '../test-utils/split-modes';
 import {
   OutputClient,
+  type ClientFileBuilder,
   type GeneratorDependency,
   type GeneratorSchema,
+  type WriteModeProps,
   OutputMockType,
   OutputMode,
 } from '../types';
@@ -638,12 +640,11 @@ describe('writeSplitTagsMode — client extra files in the barrel', () => {
   };
 
   const buildProps = (
-    extraFiles: {
-      path: string;
-      barrelExport?: boolean;
-      sharedExports?: typeof sharedExports;
-    }[],
-  ) => {
+    extraFiles: Pick<
+      ClientFileBuilder,
+      'path' | 'barrelExport' | 'sharedExports'
+    >[],
+  ): Omit<WriteModeProps, 'needSchema'> => {
     const target = path.join(tmpDir, 'petstore.ts');
     const baseProps = createSplitModeProps(target);
     return {
@@ -668,7 +669,7 @@ describe('writeSplitTagsMode — client extra files in the barrel', () => {
         indexFiles: true,
         tagsSplitDeduplication: true,
       }),
-    } as unknown as Parameters<typeof writeSplitTagsMode>[0];
+    } satisfies Omit<WriteModeProps, 'needSchema'>;
   };
 
   const readBarrel = () =>

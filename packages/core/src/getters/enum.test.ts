@@ -108,7 +108,7 @@ describe('getEnumMembers', () => {
   it('should return enum values without metadata', () => {
     const schema = {
       enum: ['a', 'b'],
-    } as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       {
@@ -124,7 +124,7 @@ describe('getEnumMembers', () => {
     const schema = {
       enum: ['a', 'b'],
       'x-enumNames': ['Alpha', 'Beta'],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       {
@@ -145,7 +145,7 @@ describe('getEnumMembers', () => {
         a: 'Alpha',
         b: 'Beta',
       },
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       {
@@ -166,7 +166,7 @@ describe('getEnumMembers', () => {
         a: 'Alpha',
         c: 'Charlie',
       },
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       {
@@ -188,7 +188,7 @@ describe('getEnumMembers', () => {
       type: ['integer', 'null'],
       // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
       enum: [10, 20, 30, null],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     const result = getEnum(
       getEnumMembers(schema),
@@ -216,7 +216,7 @@ describe('getEnumMembers', () => {
         active: 'Active status',
         inactive: 'Inactive status',
       },
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       {
@@ -247,7 +247,7 @@ describe('getEnumMembers', () => {
           type: 'null',
         },
       ],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       {
@@ -286,7 +286,7 @@ describe('getEnumMembers', () => {
           type: 'null',
         },
       ],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       { value: 'a' },
@@ -313,7 +313,7 @@ describe('getEnumMembers', () => {
           type: 'null',
         },
       ],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       {
@@ -347,7 +347,7 @@ describe('getEnumMembers', () => {
           ],
         },
       ],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([{ value: null }]);
   });
@@ -364,7 +364,7 @@ describe('getEnumMembers', () => {
           ],
         },
       ],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       { value: null },
@@ -380,19 +380,20 @@ describe('getEnumMembers', () => {
   it('should collect members from a deeply nested acyclic composition', () => {
     // Traversal stops on real cycles, not at a fixed depth, so an innermost
     // enum stays reachable however many redundant wrappers precede it.
-    let schema = { enum: ['deep'] } as unknown as OpenApiSchemaObject;
+    let schema: OpenApiSchemaObject = { enum: ['deep'] };
     for (let i = 0; i < 64; i++) {
-      schema = { anyOf: [schema] } as unknown as OpenApiSchemaObject;
+      schema = { anyOf: [schema] };
     }
 
     expect(getEnumMembers(schema)).toEqual([{ value: 'deep' }]);
   });
 
   it('should stop on a self-referential branch', () => {
+    const branches: OpenApiSchemaObject[] = [{ enum: ['a'] }];
     const schema = {
-      anyOf: [{ enum: ['a'] }],
-    } as unknown as OpenApiSchemaObject;
-    (schema.anyOf as unknown[]).push(schema);
+      anyOf: branches,
+    } satisfies OpenApiSchemaObject;
+    branches.push(schema);
 
     expect(getEnumMembers(schema)).toEqual([{ value: 'a' }]);
   });
@@ -408,7 +409,7 @@ describe('getEnumMembers', () => {
           const: null,
         },
       ],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       {
@@ -436,7 +437,7 @@ describe('getEnumMembers', () => {
           deprecated: true,
         },
       ],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     const result = getEnumImplementation(getEnumMembers(schema), {
       enumGenerationType: EnumGeneration.CONST,
@@ -479,7 +480,7 @@ describe('getEnumMembers', () => {
       type: ['integer', 'null'],
       // eslint-disable-next-line unicorn/no-null -- the 3.1 nullable enum spelling
       enum: [10, 20, 30, null],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     const members = getEnumMembers(schema);
 
@@ -506,7 +507,7 @@ describe('getEnumMembers', () => {
       enum: ['active', 'inactive'],
       'x-enumNames': ['Active', 'Inactive'],
       'x-enumDescriptions': ['Active status', 'Inactive status'],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       {
@@ -526,7 +527,7 @@ describe('getEnumMembers', () => {
     const schema = {
       enum: ['active', 'inactive'],
       'x-enumDescriptions': ['Active status', 'Inactive status'],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       {
@@ -548,7 +549,7 @@ describe('getEnumMembers', () => {
         '1': 'One',
         '2': 'Two',
       },
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       {
@@ -569,7 +570,7 @@ describe('getEnumMembers', () => {
   it('should handle const branches without metadata', () => {
     const schema = {
       oneOf: [{ const: 'PENDING' }, { const: 'APPROVED' }],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       {
@@ -593,7 +594,7 @@ describe('getEnumMembers', () => {
           title: 'Approved',
         },
       ],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       {
@@ -619,7 +620,7 @@ describe('getEnumMembers', () => {
           description: 'Reviewed and approved',
         },
       ],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       {
@@ -644,7 +645,7 @@ describe('getEnumMembers', () => {
           deprecated: true,
         },
       ],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       {
@@ -672,7 +673,7 @@ describe('getEnumMembers', () => {
           deprecated: true,
         },
       ],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       {
@@ -696,11 +697,11 @@ describe('getEnumMembers metadata precedence', () => {
       enum: ['a', 'b'],
       'x-enumNames': ['Alpha', 'Beta'],
       'x-enumDescriptions': ['Description A', 'Description B'],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     const metadataObject = {
       enum: ['a', 'b'],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema, metadataObject)).toEqual([
       {
@@ -722,7 +723,7 @@ describe('getEnumMembers metadata precedence', () => {
       'x-enumNames': {
         a: "It's active",
       },
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema)).toEqual([
       {
@@ -737,7 +738,7 @@ describe('getEnumMembers metadata precedence', () => {
       enum: ['a', 'b'],
       'x-enumNames': ['SchemaAlpha', 'SchemaBeta'],
       'x-enumDescriptions': ['Schema description A', 'Schema description B'],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     const metadataObject = {
       'x-enumNames': ['ParameterAlpha', 'ParameterBeta'],
@@ -745,7 +746,7 @@ describe('getEnumMembers metadata precedence', () => {
         'Parameter description A',
         'Parameter description B',
       ],
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema, metadataObject)).toEqual([
       {
@@ -774,7 +775,7 @@ describe('getEnumMembers metadata precedence', () => {
         b: 'Description B',
         c: 'Description C',
       },
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     const metadataObject = {
       'x-enumNames': {
@@ -783,7 +784,7 @@ describe('getEnumMembers metadata precedence', () => {
       'x-enumDescriptions': {
         c: 'Parameter description C',
       },
-    } as unknown as OpenApiSchemaObject;
+    } satisfies OpenApiSchemaObject;
 
     expect(getEnumMembers(schema, metadataObject)).toEqual([
       {

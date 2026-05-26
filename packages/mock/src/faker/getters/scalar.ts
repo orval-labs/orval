@@ -4,14 +4,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-import { isDereferenced } from '@scalar/openapi-types/helpers';
-
 import {
   compareNatural,
   type ContextSpec,
   EnumGeneration,
   type GeneratorImport,
   getRefInfo,
+  isInlineSchema,
   getStringLiteralType,
   isBoolean,
   isNumber,
@@ -623,7 +622,7 @@ export function getMockScalar({
 // itself) or wrapped in a single-element allOf/oneOf/anyOf composition.
 // Multi-element compositions return undefined to preserve combine semantics.
 export function extractItemsRef(items: MockSchema): string | undefined {
-  if (!isDereferenced(items)) {
+  if (!isInlineSchema(items)) {
     return items.$ref;
   }
   for (const key of ['allOf', 'oneOf', 'anyOf'] as const) {
@@ -631,7 +630,7 @@ export function extractItemsRef(items: MockSchema): string | undefined {
     if (
       Array.isArray(composed) &&
       composed.length === 1 &&
-      !isDereferenced(composed[0])
+      !isInlineSchema(composed[0])
     ) {
       return composed[0].$ref;
     }

@@ -7,7 +7,7 @@ import type {
   ResolverValue,
   ScalarValue,
 } from '../types';
-import { compareVersions } from '../utils';
+import { compareVersions, toObjectSchema } from '../utils';
 import type { FormDataContext } from './object';
 
 interface GetArrayOptions {
@@ -28,6 +28,7 @@ export function getArray({
   context,
   formDataContext,
 }: GetArrayOptions): ScalarValue {
+  schema = toObjectSchema(schema);
   // Bridge assertions: extract typed values from AnyOtherAttribute-infected schema
   const schemaPrefixItems = schema.prefixItems as
     | (OpenApiSchemaObject | OpenApiReferenceObject)[]

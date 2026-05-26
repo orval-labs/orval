@@ -1,11 +1,11 @@
-import type {
-  GeneratorOptions,
-  GeneratorVerbOptions,
-  GetterProp,
-} from '@orval/core';
+import type { GetterProp } from '@orval/core';
 import { GetterPropType, OutputHttpClient, Verbs } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
+import {
+  createTestGeneratorOptions,
+  createTestGeneratorVerbOptions,
+} from '../../core/src/test-utils';
 import { generateSwrRequestFunction } from './client';
 
 describe('query parameter type extraction', () => {
@@ -67,40 +67,24 @@ describe('query parameter type extraction', () => {
   });
 });
 
-const createVerbOptions = (definition: string): GeneratorVerbOptions =>
-  ({
+const createVerbOptions = (definition: string) =>
+  createTestGeneratorVerbOptions({
     operationId: 'createPet',
     operationName: 'createPet',
     typeName: 'createPet',
     verb: Verbs.POST,
     route: '/pets',
     pathRoute: '/pets',
-    tags: [],
-    summary: '',
-    doc: '',
     response: {
-      imports: [],
       definition: { success: 'Pet', errors: 'unknown' },
-      isBlob: false,
-      types: { success: [], errors: [] },
       contentTypes: ['application/json'],
-      schemas: [],
     },
     body: {
       implementation: 'pet',
       definition,
-      imports: [],
-      schemas: [],
-      originalSchema: {},
       contentType: 'application/json',
-      formData: '',
-      formUrlEncoded: '',
       isOptional: false,
-      isBlob: false,
     },
-    headers: undefined,
-    queryParams: undefined,
-    params: [],
     props: [
       {
         name: 'petId',
@@ -130,19 +114,14 @@ const createVerbOptions = (definition: string): GeneratorVerbOptions =>
       isHook: false,
       bodyTypeName: 'BodyType',
     },
-    formData: undefined,
-    formUrlEncoded: undefined,
-    paramsSerializer: undefined,
     override: {
       requestOptions: true,
       formData: { disabled: true, arrayHandling: 'serialize' },
       formUrlEncoded: true,
-      paramsSerializerOptions: undefined,
     },
-    originalOperation: {},
-  }) as unknown as GeneratorVerbOptions;
+  });
 
-const generatorOptions = {
+const generatorOptions = createTestGeneratorOptions({
   route: '/pets',
   pathRoute: '/pets',
   context: {
@@ -151,7 +130,7 @@ const generatorOptions = {
       tsconfig: { compilerOptions: { allowSyntheticDefaultImports: true } },
     },
   },
-} as unknown as GeneratorOptions;
+});
 
 describe('swr mutator body type', () => {
   it.each([['Pet'], ['Pet[]'], ['Pet | Cat'], ["'$1' | 'b'"], ["'$&'"]])(

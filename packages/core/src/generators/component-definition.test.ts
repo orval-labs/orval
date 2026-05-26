@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import type { ContextSpec } from '../types';
+import { createTestContextSpec } from '../test-utils';
 import { generateComponentDefinition } from './component-definition';
 
-const context = {
-  output: { override: { namingConvention: {} } },
+const context = createTestContextSpec({
   target: 'typescript',
-  spec: {},
-} as unknown as ContextSpec;
+});
 
 describe('generateComponentDefinition', () => {
   it('sanitizes inline schemas from numeric response components', () => {

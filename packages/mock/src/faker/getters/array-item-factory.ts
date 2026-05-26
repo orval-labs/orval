@@ -4,6 +4,7 @@ import {
   getOperationTagKey,
   getRefInfo,
   isFunction,
+  isInlineSchema,
   type OpenApiSchemaObject,
   OutputMockType,
   OutputMode,
@@ -20,7 +21,6 @@ import {
 import type { MockSchema } from '../../types';
 import { overrideVarName } from './object';
 import { extractItemsRef } from './scalar';
-import { isDereferenced } from '@scalar/openapi-types/helpers';
 
 /**
  * Scope key for file-level array-item factory dedup. Must match how writers
@@ -166,7 +166,7 @@ function shouldExtractArrayItem(
     }
   }
 
-  if (!isDereferenced(items)) {
+  if (!isInlineSchema(items)) {
     return false;
   }
 

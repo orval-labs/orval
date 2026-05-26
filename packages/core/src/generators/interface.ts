@@ -1,8 +1,10 @@
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
+import { prop } from 'remeda';
+
 import { getScalar } from '../getters';
 import type {
   ContextSpec,
   GeneratorSchema,
-  OpenApiReferenceObject,
   OpenApiSchemaObject,
 } from '../types';
 import { jsDoc } from '../utils';
@@ -42,22 +44,27 @@ export function generateInterface({
 
   let model = '';
 
-  model += jsDoc(schema);
+  if (!isBooleanJsonSchema(schema)) {
+    model += jsDoc(schema);
+  }
 
   if (isEmptyObject) {
     model +=
       '// eslint-disable-next-line @typescript-eslint/no-empty-interface\n';
   }
 
-  if (scalar.type === 'object' && !shouldUseTypeAlias) {
-    // Bridge assertion: schema.properties is `any` due to AnyOtherAttribute
-    const properties = schema.properties as
-      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
-      | undefined;
+  if (
+    scalar.type === 'object' &&
+    !shouldUseTypeAlias &&
+    !isBooleanJsonSchema(schema)
+  ) {
+    const properties = prop(schema, 'properties');
     if (
       properties &&
       Object.values(properties).length > 0 &&
-      Object.values(properties).every((item) => 'const' in item)
+      Object.values(properties).every(
+        (item) => !isBooleanJsonSchema(item) && 'const' in item,
+      )
     ) {
       const mappedScalarValue = scalar.value
         .replaceAll(';', ',')

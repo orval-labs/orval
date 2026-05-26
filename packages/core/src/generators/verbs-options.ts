@@ -438,7 +438,7 @@ export function generateVerbsOptions({
 }: GenerateVerbsOptionsParams): Promise<GeneratorVerbsOptions> {
   return asyncReduce(
     filteredVerbs(verbs, input.filters),
-    async (acc, [verb, operation]: [string, OpenApiOperationObject]) => {
+    async (acc, [verb, operation]) => {
       if (isVerb(verb)) {
         const verbOptions = await generateVerbOptions({
           verb,

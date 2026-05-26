@@ -6,9 +6,10 @@ import type {
   OpenApiOperationObject,
   OpenApiPathItemObject,
 } from '../types';
-import { resolveRef } from '../resolvers/ref';
 import { isString } from 'remeda';
-import { isDereferenced } from '@scalar/openapi-types/helpers';
+
+import { resolveRef } from '../resolvers/ref';
+import { isInlineSchema } from '../utils';
 
 const COMPONENT_TYPES = [
   'schemas',
@@ -22,16 +23,19 @@ type ComponentType = (typeof COMPONENT_TYPES)[number];
 export function filteredVerbs(
   verbs: OpenApiPathItemObject,
   filters: NormalizedInputOptions['filters'],
-) {
+): [string, OpenApiOperationObject][] {
   if (filters?.tags === undefined) {
-    return Object.entries(verbs);
+    return Object.entries(verbs) as [string, OpenApiOperationObject][];
   }
 
   const filterTags = filters.tags;
   const filterMode = filters.mode ?? 'include';
 
-  return Object.entries(verbs).filter(
-    ([, operation]: [string, OpenApiOperationObject]) => {
+  return (Object.entries(verbs) as [string, OpenApiOperationObject][]).filter(
+    ([, operation]) => {
+      if (!operation || typeof operation !== 'object') {
+        return false;
+      }
       // Bridge assertion: operation.tags is `any` due to AnyOtherAttribute
       const operationTags = (operation.tags ?? []) as string[];
 
@@ -197,7 +201,7 @@ export function filterPathsBySchemas(
             return [pathRoute, pathItem] as const;
           }
 
-          const resolvedPathItem = !isDereferenced(pathItem)
+          const resolvedPathItem = !isInlineSchema(pathItem)
             ? resolveRef<OpenApiPathItemObject>(pathItem, {
                 spec,
               } as unknown as ContextSpec).schema
@@ -226,7 +230,7 @@ export function filterPathsBySchemas(
             if (
               !operation ||
               typeof operation !== 'object' ||
-              !isDereferenced(operation)
+              !isInlineSchema(operation)
             ) {
               keptVerbs[key] = operation;
               continue;

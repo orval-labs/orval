@@ -82,11 +82,9 @@ const mockFindUp = (
 };
 
 const mockReadFile = (value: string) => {
-  (
-    vi.mocked(fs.readFile) as unknown as {
-      mockResolvedValue: (value: Buffer) => void;
-    }
-  ).mockResolvedValue(Buffer.from(value));
+  vi.mocked(fs.readFile).mockImplementation(() =>
+    Promise.resolve(Buffer.from(value)),
+  );
 };
 
 describe('loadPackageJson - configured package manifest', () => {

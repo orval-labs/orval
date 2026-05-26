@@ -1,7 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { type Config, type ConfigExternal, isFunction } from '@orval/core';
+import {
+  type Config,
+  type ConfigExternal,
+  type OptionsExport,
+  isFunction,
+} from '@orval/core';
 import { createJiti } from 'jiti';
 
 /**
@@ -74,4 +79,11 @@ export async function loadConfigFile(configFilePath: string): Promise<Config> {
     : configExternal);
 
   return config;
+}
+
+/** Project entries, excluding the file-level {@link Config.logLevel} key. */
+export function getConfigProjects(config: Config): [string, OptionsExport][] {
+  return Object.entries(config).filter(
+    (entry): entry is [string, OptionsExport] => entry[0] !== 'logLevel',
+  );
 }

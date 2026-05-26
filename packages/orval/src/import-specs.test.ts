@@ -267,10 +267,8 @@ describe('validation', () => {
         input: {
           target: SSE_ITEM_SCHEMA_SPEC,
           override: {
-            transformer: (() =>
-              undefined as unknown as OpenApiDocument) satisfies (
-              spec: OpenApiDocument,
-            ) => OpenApiDocument,
+            transformer: (_spec: OpenApiDocument): OpenApiDocument =>
+              undefined as never,
           },
         },
       },
@@ -657,7 +655,9 @@ describe('specParsing', () => {
               description: 'OK',
               content: {
                 'application/json': {
-                  schema: { $ref: '#/components/schemas/ApiVersion' },
+                  schema: {
+                    $ref: '#/components/schemas/ApiVersion',
+                  },
                 },
               },
             },
@@ -670,7 +670,7 @@ describe('specParsing', () => {
         ApiVersion: { type: 'string', enum: ['latest', '2026-01-27'] },
       },
     },
-  };
+  } satisfies OpenApiDocument;
 
   async function importJsonSpec(content: string, prefix: string) {
     const workspace = await mkdtemp(path.join(os.tmpdir(), prefix));
@@ -737,7 +737,7 @@ describe('specParsing', () => {
 
   it('should not mutate an in-memory spec passed as input.target', async () => {
     const workspace = 'test';
-    const target = structuredClone(JSON_SPEC) as unknown as OpenApiDocument;
+    const target = structuredClone(JSON_SPEC);
     const before = structuredClone(target);
 
     const normalizedOptions = await normalizeOptions(

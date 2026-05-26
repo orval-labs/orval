@@ -1,7 +1,7 @@
-import type { OpenAPIV3_1 } from '@scalar/openapi-types';
+import type { OpenApiDocument } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../../core/src/test-utils/context';
+import { createTestContextSpec } from '../../core/src/test-utils';
 import {
   collectReachableComponentRefs,
   computeLazyEdges,
@@ -71,7 +71,9 @@ describe('collectReachableComponentRefs', () => {
               description: 'ok',
               content: {
                 'application/json': {
-                  schema: { $ref: '#/components/schemas/Pet' },
+                  schema: {
+                    $ref: '#/components/schemas/Pet',
+                  },
                 },
               },
             },
@@ -96,7 +98,7 @@ describe('collectReachableComponentRefs', () => {
         Unused: { type: 'object' },
       },
     },
-  } as unknown as OpenAPIV3_1.Document;
+  } satisfies OpenApiDocument;
 
   it('finds refs reachable from operations and follows them transitively', () => {
     const result = collectReachableComponentRefs(spec);

@@ -1,36 +1,29 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import type {
-  ContextSpec,
-  OpenApiDocument,
-  OpenApiSchemaObject,
-} from '../types';
-import { NamingConvention } from '../types';
+import { createTestContextSpec, type TestOverride } from '../test-utils';
+import type { ContextSpec, OpenApiSchemaObject } from '../types';
+import { OutputClient, OutputHttpClient, PropertySortOrder } from '../types';
 import { generateFactory } from './factory';
 
 const baseFactoryMethods = {
   functionNamePrefix: 'create',
-  mode: 'single',
+  mode: 'single' as const,
   outputDirectory: '',
   includeOptionalProperty: false,
 };
 
-const baseOverride = {
-  useDates: false,
-  namingConvention: {},
-  components: {
-    schemas: { suffix: '', itemSuffix: '' },
-    responses: { suffix: '' },
-    parameters: { suffix: '' },
-    requestBodies: { suffix: '' },
-  },
-};
-
-const createMockContext = (
-  overrides: Record<string, unknown> = {},
-): ContextSpec => {
-  const { override: overrideOverride, ...rest } = overrides;
-  return {
+const createMockContext = ({
+  factoryMethods,
+  propertySortOrder,
+  schemas,
+  override,
+}: {
+  factoryMethods?: ContextSpec['output']['factoryMethods'];
+  propertySortOrder?: ContextSpec['output']['propertySortOrder'];
+  schemas?: ContextSpec['output']['schemas'];
+  override?: TestOverride;
+} = {}): ContextSpec =>
+  createTestContextSpec({
     target: 'test',
     workspace: 'test',
     spec: {
@@ -43,57 +36,52 @@ const createMockContext = (
           CircularChild: {
             type: 'object',
             properties: {
-              parent: { $ref: '#/components/schemas/CircularParent' },
+              parent: {
+                $ref: '#/components/schemas/CircularParent',
+              },
             },
           },
           CircularParent: {
             type: 'object',
             properties: {
-              child: { $ref: '#/components/schemas/CircularChild' },
+              child: {
+                $ref: '#/components/schemas/CircularChild',
+              },
             },
           },
           DeepCircularA: {
             type: 'object',
-            properties: { b: { $ref: '#/components/schemas/DeepCircularB' } },
+            properties: {
+              b: { $ref: '#/components/schemas/DeepCircularB' },
+            },
           },
           DeepCircularB: {
             type: 'object',
-            properties: { c: { $ref: '#/components/schemas/DeepCircularC' } },
+            properties: {
+              c: { $ref: '#/components/schemas/DeepCircularC' },
+            },
           },
           DeepCircularC: {
             type: 'object',
-            properties: { a: { $ref: '#/components/schemas/DeepCircularA' } },
+            properties: {
+              a: { $ref: '#/components/schemas/DeepCircularA' },
+            },
           },
         },
       },
-    } as unknown as OpenApiDocument,
+    },
     output: {
-      target: '',
-      namingConvention: NamingConvention.CAMEL_CASE,
-      fileExtension: '.ts',
-      mode: 'single' as unknown,
-      client: 'axios' as unknown,
-      httpClient: 'axios' as unknown,
-      clean: false,
-      docs: false,
-      prettier: false,
-      biome: false,
-      headers: false,
-      indexFiles: false,
-      allParamsOptional: false,
-      urlEncodeParameters: false,
-      unionAddMissingProperties: false,
-      optionsParamRequired: false,
-      propertySortOrder: 'Alphabetical' as unknown,
-      factoryMethods: baseFactoryMethods,
-      override: {
-        ...baseOverride,
-        ...(overrideOverride as object | undefined),
-      },
-      ...rest,
-    } as unknown,
-  } as unknown as ContextSpec;
-};
+      client: OutputClient.AXIOS,
+      httpClient: OutputHttpClient.AXIOS,
+      propertySortOrder: propertySortOrder ?? PropertySortOrder.ALPHABETICAL,
+      factoryMethods: factoryMethods ?? baseFactoryMethods,
+      schemas,
+    },
+    override: {
+      useDates: false,
+      ...override,
+    },
+  });
 
 describe('generateFactory', () => {
   it('returns undefined if schema is not an object/combination', () => {
@@ -122,6 +110,19 @@ describe('generateFactory', () => {
     expect(result?.model).toContain("name: ''");
     expect(result?.model).not.toContain('isActive');
     expect(result?.model).not.toContain('tags');
+  });
+
+  it('emits an empty object for a boolean property schema', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['anything'],
+      properties: {
+        anything: true,
+      },
+    };
+
+    const result = generateFactory(schema, 'Box', createMockContext());
+    expect(result?.model).toContain('anything: {}');
   });
 
   it('includes optional properties when strategy is include', () => {
@@ -459,8 +460,8 @@ describe('generateFactory', () => {
         withConst: { type: 'string', const: 'STATIC_VALUE' },
         withDefault: { type: 'number', default: 42 },
         withDefaultObj: { type: 'object', default: { key: 'val' } },
-        nullField: { type: 'null' as unknown as string },
-        multiType: { type: ['string', 'null'] as unknown as string[] },
+        nullField: { type: 'null' },
+        multiType: { type: ['string', 'null'] },
         arrayConstraints: {
           type: 'array',
           minItems: 2,
@@ -579,13 +580,16 @@ describe('generateFactory', () => {
   });
 
   it('returns undefined as unknown for unsupported types', () => {
-    const schema: OpenApiSchemaObject = {
-      type: 'object',
+    const schema = {
+      type: 'object' as const,
       required: ['weirdField'],
       properties: {
-        weirdField: { type: 'weird' as unknown },
+        weirdField: { type: 'string' as const },
       },
-    };
+    } satisfies OpenApiSchemaObject;
+    if (typeof schema === 'object') {
+      Object.assign(schema.properties ?? {}, { weirdField: { type: 'weird' } });
+    }
 
     const result = generateFactory(schema, 'WeirdObj', createMockContext());
     expect(result?.model).toContain('weirdField: undefined as unknown');
@@ -624,11 +628,11 @@ describe('generateFactory', () => {
         user: {
           $ref: '#/components/schemas/RefTarget',
           readOnly: true,
-        } as unknown as OpenApiSchemaObject,
+        },
         token: {
           $ref: '#/components/schemas/RefTarget',
           writeOnly: true,
-        } as unknown as OpenApiSchemaObject,
+        },
       },
     };
 
@@ -683,6 +687,7 @@ describe('generateFactory with schemas.importPath', () => {
           path: '/libs/models',
           type: 'typescript',
           importPath: '@acme/models',
+          splitByTags: false,
         },
       }),
     );
@@ -715,6 +720,7 @@ describe('generateFactory with schemas.importPath', () => {
           path: '/libs/models',
           type: 'typescript',
           importPath: '@acme/models',
+          splitByTags: false,
         },
       }),
     );
@@ -747,6 +753,7 @@ describe('generateFactory with schemas.importPath', () => {
           path: '/libs/models',
           type: 'typescript',
           importPath: '@acme/models',
+          splitByTags: false,
         },
       }),
     );
@@ -775,6 +782,7 @@ describe('generateFactory with schemas.importPath', () => {
           path: '/libs/models',
           type: 'typescript',
           importPath: '@acme/models',
+          splitByTags: false,
         },
       }),
     );
@@ -813,6 +821,7 @@ describe('generateFactory with schemas.importPath', () => {
           path: '/libs/models',
           type: 'typescript',
           importPath: '@acme/models',
+          splitByTags: false,
         },
       }),
     );

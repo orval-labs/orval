@@ -239,7 +239,7 @@ const minimalQueryParam: GetterQueryParam = {
 };
 
 const minimalBody: GetterBody = {
-  originalSchema: {},
+  originalSchema: { content: {} },
   imports: [],
   definition: '',
   implementation: 'data',
@@ -316,6 +316,7 @@ describe('generateAxiosOptions', () => {
         schemas: [],
         originalSchema: {
           '200': {
+            description: 'OK',
             content: {
               'application/json': {
                 schema: {
@@ -396,6 +397,7 @@ describe('generateAxiosOptions', () => {
         schemas: [],
         originalSchema: {
           '200': {
+            description: 'OK',
             content: {
               'application/json': {
                 schema: {
@@ -443,6 +445,7 @@ describe('generateAxiosOptions', () => {
         schemas: [],
         originalSchema: {
           '200': {
+            description: 'OK',
             content: {
               'text/plain': {
                 schema: {

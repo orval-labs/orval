@@ -1,4 +1,4 @@
-import { isDereferenced } from '@scalar/openapi-types/helpers';
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
 import { resolveExampleRefs, resolveValue } from '../resolvers';
 import { resolveObject } from '../resolvers/object';
@@ -13,11 +13,13 @@ import {
 } from '../types';
 import {
   compareNatural,
+  isInlineSchema,
   isString,
   jsDoc,
   jsStringLiteralEscape,
   pascal,
   toJsLiteral,
+  toObjectSchema,
 } from '../utils';
 import { conventionName } from '../utils/case';
 import { combineSchemas } from './combine';
@@ -34,7 +36,11 @@ interface PropertyNamesKeyType {
 function getPropertyNamesEnumKeyType(
   item: OpenApiSchemaObject,
 ): PropertyNamesKeyType | undefined {
-  if (!('propertyNames' in item) || !item.propertyNames) {
+  if (
+    isBooleanJsonSchema(item) ||
+    !('propertyNames' in item) ||
+    !item.propertyNames
+  ) {
     return undefined;
   }
 
@@ -78,6 +84,9 @@ function getPropertyNamesKeyType(
   item: OpenApiSchemaObject,
   context: ContextSpec,
 ): PropertyNamesKeyType | undefined {
+  if (isBooleanJsonSchema(item)) {
+    return undefined;
+  }
   const inlineKeyType = getPropertyNamesEnumKeyType(item);
   if (inlineKeyType) {
     return inlineKeyType;
@@ -87,7 +96,7 @@ function getPropertyNamesKeyType(
     | OpenApiSchemaObject
     | OpenApiReferenceObject
     | undefined;
-  if (!propertyNames || isDereferenced(propertyNames)) {
+  if (!propertyNames || isInlineSchema(propertyNames)) {
     return undefined;
   }
 
@@ -96,7 +105,11 @@ function getPropertyNamesKeyType(
     context,
   });
 
-  const resolvedConst = resolvedValue.originalSchema.const;
+  const originalSchema = resolvedValue.originalSchema;
+  if (isBooleanJsonSchema(originalSchema)) {
+    return undefined;
+  }
+  const resolvedConst = originalSchema.const;
   const isStringConst =
     resolvedValue.type === 'string' && isString(resolvedConst);
 
@@ -214,8 +227,8 @@ export function getObject({
   nullable,
   formDataContext,
 }: GetObjectOptions): ScalarValue {
-  if (!isDereferenced(item)) {
-    const { name } = getRefInfo(item.$ref, context);
+  if (!isInlineSchema(item as OpenApiSchemaObject | OpenApiReferenceObject)) {
+    const { name } = getRefInfo((item as OpenApiReferenceObject).$ref, context);
     return {
       value: name + nullable,
       imports: [{ name }],
@@ -223,11 +236,11 @@ export function getObject({
       isEnum: false,
       type: 'object',
       isRef: true,
-      hasReadonlyProps: (item.readOnly as boolean | undefined) ?? false,
+      hasReadonlyProps: Boolean((item as Record<string, unknown>).readOnly),
       dependencies: [name],
-      example: item.example as unknown,
+      example: (item as Record<string, unknown>).example,
       examples: resolveExampleRefs(
-        item.examples as
+        (item as Record<string, unknown>).examples as
           | Record<string, OpenApiReferenceObject | { value?: unknown }>
           | undefined,
         context,
@@ -235,7 +248,9 @@ export function getObject({
     };
   }
 
-  const schemaItem = item as OpenApiSchemaObject & Record<string, unknown>;
+  const objectItem = toObjectSchema(item);
+  const schemaItem = objectItem as Exclude<OpenApiSchemaObject, boolean> &
+    Record<string, unknown>;
   const itemAllOf = schemaItem.allOf as
     | (OpenApiSchemaObject | OpenApiReferenceObject)[]
     | undefined;
@@ -275,7 +290,7 @@ export function getObject({
       const isNullMember = (
         member: OpenApiSchemaObject | OpenApiReferenceObject,
       ): boolean => {
-        if (!isDereferenced(member)) {
+        if (!isInlineSchema(member) || isBooleanJsonSchema(member)) {
           return false;
         }
         const memberType = member.type as string | string[] | undefined;
@@ -292,11 +307,15 @@ export function getObject({
       // Bridge assertion: AnyOtherAttribute infects member property access to
       // `any`; cast to the documented shapes after excluding `$ref` members.
       const nonNullMemberType =
-        nonNullMember && isDereferenced(nonNullMember)
+        nonNullMember &&
+        isInlineSchema(nonNullMember) &&
+        !isBooleanJsonSchema(nonNullMember)
           ? (nonNullMember.type as string | string[] | undefined)
           : undefined;
       const nonNullMemberProperties =
-        nonNullMember && isDereferenced(nonNullMember)
+        nonNullMember &&
+        isInlineSchema(nonNullMember) &&
+        !isBooleanJsonSchema(nonNullMember)
           ? (nonNullMember.properties as
               | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
               | undefined)
@@ -305,11 +324,12 @@ export function getObject({
       const isNullableObjectComposition =
         members.some(isNullMember) &&
         nonNullMembers.length === 1 &&
-        nonNullMember != null &&
-        isDereferenced(nonNullMember) &&
+        nonNullMember !== undefined &&
+        isInlineSchema(nonNullMember) &&
         (nonNullMemberType === 'object' ||
-          (nonNullMemberType == null && nonNullMemberProperties != null)) &&
-        nonNullMemberProperties != null &&
+          (nonNullMemberType === undefined &&
+            nonNullMemberProperties !== undefined)) &&
+        nonNullMemberProperties !== undefined &&
         Object.keys(nonNullMemberProperties).length > 0;
 
       if (isNullableObjectComposition) {
@@ -357,7 +377,7 @@ export function getObject({
     const isNullableObject =
       nonNullTypes.length === 1 &&
       nonNullTypes[0] === 'object' &&
-      typeArrayProperties != null &&
+      typeArrayProperties !== undefined &&
       Object.keys(typeArrayProperties).length > 0;
 
     if (!isNullableObject) {
@@ -466,7 +486,11 @@ export function getObject({
 
       const isReadOnly =
         Boolean(schemaItem.readOnly) ||
-        Boolean((schema as OpenApiSchemaObject).readOnly);
+        Boolean(
+          typeof schema === 'object' &&
+          schema !== null &&
+          (schema as Exclude<OpenApiSchemaObject, boolean>).readOnly,
+        );
       if (!index) {
         acc.value += '{';
       }
@@ -489,7 +513,10 @@ export function getObject({
         acc.hasReadonlyProps = true;
       }
 
-      const constValue = 'const' in schema ? schema.const : undefined;
+      const constValue =
+        typeof schema === 'object' && schema !== null && 'const' in schema
+          ? schema.const
+          : undefined;
       const hasConst = constValue !== undefined;
       const constLiteral = hasConst ? toJsLiteral(constValue) : undefined;
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import { createTestContextSpec } from '../test-utils';
 import type {
   ContextSpec,
   OpenApiRequestBodyObject,
@@ -10,31 +11,24 @@ import { getResReqTypes } from './res-req-types';
 const createContext = (
   preserveReadonlyRequestBodies: ReadonlyRequestBodiesMode = 'strip',
 ): ContextSpec =>
-  ({
-    output: {
-      override: {
-        formData: { arrayHandling: 'serialize', disabled: true },
-        formUrlEncoded: true,
-        namingConvention: {},
-        enumGenerationType: 'const',
-        preserveReadonlyRequestBodies,
-        components: {
-          schemas: { suffix: '', itemSuffix: 'Item' },
-          responses: { suffix: '' },
-          parameters: { suffix: '' },
-          requestBodies: { suffix: 'Body' },
-        },
-      },
-    },
+  createTestContextSpec({
     target: 'spec',
-    workspace: '',
     spec: {
-      openapi: '3.1.0',
-      info: { title: 'Spec', version: '1.0.0' },
-      paths: {},
       components: { schemas: {} },
     },
-  }) as ContextSpec;
+    override: {
+      formData: { arrayHandling: 'serialize', disabled: true },
+      formUrlEncoded: true,
+      enumGenerationType: 'const',
+      preserveReadonlyRequestBodies,
+      components: {
+        schemas: { suffix: '', itemSuffix: 'Item' },
+        responses: { suffix: '' },
+        parameters: { suffix: '' },
+        requestBodies: { suffix: 'Body' },
+      },
+    },
+  });
 
 describe('deepObject encoding for url-encoded bodies (#3803)', () => {
   const context = createContext();

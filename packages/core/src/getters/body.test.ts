@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import { createTestContextSpec } from '../test-utils';
 import type {
   ContextSpec,
   OpenApiRequestBodyObject,
@@ -20,31 +21,24 @@ const schemaWithReadOnly: OpenApiSchemaObject = {
 const createContext = (
   preserveReadonlyRequestBodies: ReadonlyRequestBodiesMode = 'strip',
 ): ContextSpec =>
-  ({
-    output: {
-      override: {
-        formData: { arrayHandling: 'serialize', disabled: true },
-        formUrlEncoded: true,
-        namingConvention: {},
-        enumGenerationType: 'const',
-        preserveReadonlyRequestBodies,
-        components: {
-          schemas: { suffix: '', itemSuffix: 'Item' },
-          responses: { suffix: '' },
-          parameters: { suffix: '' },
-          requestBodies: { suffix: 'Body' },
-        },
-      },
-    },
+  createTestContextSpec({
     target: 'spec',
-    workspace: '',
     spec: {
-      openapi: '3.1.0',
-      info: { title: 'Spec', version: '1.0.0' },
-      paths: {},
       components: { schemas: {} },
     },
-  }) as ContextSpec;
+    override: {
+      formData: { arrayHandling: 'serialize', disabled: true },
+      formUrlEncoded: true,
+      enumGenerationType: 'const',
+      preserveReadonlyRequestBodies,
+      components: {
+        schemas: { suffix: '', itemSuffix: 'Item' },
+        responses: { suffix: '' },
+        parameters: { suffix: '' },
+        requestBodies: { suffix: 'Body' },
+      },
+    },
+  });
 
 describe('getBody', () => {
   const requestBody: OpenApiRequestBodyObject = {
@@ -509,7 +503,7 @@ describe('getBody', () => {
     it('falls back to default naming when extension is non-string', () => {
       const result = getBody({
         requestBody: {
-          'x-codegen-request-body-name': 123 as unknown as string,
+          'x-codegen-request-body-name': 123,
           content: {
             'application/json': {
               schema: {
@@ -829,17 +823,20 @@ describe('getBodiesByContentType', () => {
   it('does not resolve inherited members of the content type map', () => {
     // A plain index lookup would return `Object.prototype.toString` here and
     // splice the function source into the generated identifier.
-    const requestBody: OpenApiRequestBodyObject = {
-      content: {
-        'application/json': {
-          schema: { type: 'object', properties: { a: { type: 'string' } } },
-        },
-        toString: {
-          schema: { type: 'object', properties: { b: { type: 'string' } } },
-        },
+    const content: OpenApiRequestBodyObject['content'] = {
+      'application/json': {
+        schema: { type: 'object', properties: { a: { type: 'string' } } },
       },
-      required: true,
     };
+    Object.assign(content, {
+      toString: {
+        schema: { type: 'object', properties: { b: { type: 'string' } } },
+      },
+    });
+    const requestBody = {
+      content,
+      required: true,
+    } satisfies OpenApiRequestBodyObject;
 
     const result = getBodiesByContentType({
       requestBody,

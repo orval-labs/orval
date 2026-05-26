@@ -1,3 +1,5 @@
+import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
+
 import { resolveValue } from '../resolvers';
 import type {
   ContextSpec,
@@ -72,6 +74,9 @@ const getSchemaType = (
  * `paramsFilter` may need the raw object to flatten or stringify it.
  */
 const isSchemaNonPrimitive = (schema: OpenApiSchemaObject): boolean => {
+  if (isBooleanJsonSchema(schema)) {
+    return false;
+  }
   const schemaType = getSchemaType(schema);
   const type = Array.isArray(schemaType)
     ? schemaType.filter((variant) => variant !== 'null')
@@ -131,6 +136,9 @@ const isSchemaNonPrimitive = (schema: OpenApiSchemaObject): boolean => {
  * Used to compute {@link GetterQueryParam.objectQueryParams}. See issue #3705.
  */
 const isPlainObjectSchema = (schema: OpenApiSchemaObject): boolean => {
+  if (isBooleanJsonSchema(schema)) {
+    return false;
+  }
   const schemaType = getSchemaType(schema);
   const type = Array.isArray(schemaType)
     ? schemaType.filter((variant) => variant !== 'null')
@@ -213,7 +221,7 @@ function getQueryParamsTypes(
       required,
       schema: schemaParam,
       content,
-    } = parameter as {
+    } = parameter as unknown as {
       name: string;
       required: boolean;
       schema: OpenApiSchemaObject | undefined;
