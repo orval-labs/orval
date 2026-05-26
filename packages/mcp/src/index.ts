@@ -212,7 +212,7 @@ export const generateServer = (
           : `() => ${verbOption.operationName}Handler(options)`;
 
       const toolImplementation = `
-server.registerTool(
+tools.${verbOption.operationName} = server.registerTool(
   '${jsStringEscape(verbOption.operationName)}',
   {
     description: '${jsStringEscape(verbOption.summary ?? '')}',${inputSchemaImplementation}
@@ -252,14 +252,15 @@ server.registerTool(
   const importHandlersImplementation = `import {\n${importHandlers}\n} from './handlers';`;
 
   const createMcpServerImplementation = `
-const createMcpServer = (options?: RequestInit) => {
+const createMcpServer = (options?: RequestInit): { server: McpServer; tools: Record<string, RegisteredTool> } => {
   const server = new McpServer({
     name: '${camel(info.title)}Server',
     version: '1.0.0',
   });
+  const tools: Record<string, RegisteredTool> = {};
 ${toolImplementations}
 
-  return server;
+  return { server, tools };
 };
 `;
 
@@ -272,7 +273,8 @@ ${toolImplementations}
     : `{ ${serverFunctionName} }`;
 
   const importMcpServer = `import {
-  McpServer
+  McpServer,
+  type RegisteredTool,
 } from '@modelcontextprotocol/sdk/server/mcp.js';
 `;
 
@@ -288,7 +290,7 @@ ${importTransport}
 
   const customServerConnectImplementation = `\n${serverFunctionName}(createMcpServer);\n`;
   const stdioServerConnectImplementation = `
-const server = createMcpServer();
+const { server } = createMcpServer();
 const transport = new StdioServerTransport();
 
 server.connect(transport).then(() => {
