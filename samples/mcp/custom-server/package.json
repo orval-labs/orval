@@ -1,6 +1,6 @@
 {
   "name": "mcp-custom-server",
-  "version": "8.12.3",
+  "version": "8.13.0",
   "private": true,
   "type": "module",
   "scripts": {
