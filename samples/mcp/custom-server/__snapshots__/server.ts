@@ -13,7 +13,10 @@
  * OpenAPI spec version: 1.0.27-SNAPSHOT
  */
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import {
+  McpServer,
+  type RegisteredTool,
+} from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { customServer } from '../custom-server';
 
@@ -45,13 +48,16 @@ import {
   DeleteUserParams,
 } from './tool-schemas.zod';
 
-const createMcpServer = (options?: RequestInit) => {
+const createMcpServer = (
+  options?: RequestInit,
+): { server: McpServer; tools: Record<string, RegisteredTool> } => {
   const server = new McpServer({
     name: 'swaggerPetstoreOpenAPI30Server',
     version: '1.0.0',
   });
+  const tools: Record<string, RegisteredTool> = {};
 
-  server.registerTool(
+  tools.findPetsByStatus = server.registerTool(
     'findPetsByStatus',
     {
       description: 'Finds Pets by status.',
@@ -62,7 +68,7 @@ const createMcpServer = (options?: RequestInit) => {
     (args) => findPetsByStatusHandler(args, options),
   );
 
-  server.registerTool(
+  tools.findPetsByTags = server.registerTool(
     'findPetsByTags',
     {
       description: 'Finds Pets by tags.',
@@ -73,7 +79,7 @@ const createMcpServer = (options?: RequestInit) => {
     (args) => findPetsByTagsHandler(args, options),
   );
 
-  server.registerTool(
+  tools.getPetById = server.registerTool(
     'getPetById',
     {
       description: 'Find pet by ID.',
@@ -84,7 +90,7 @@ const createMcpServer = (options?: RequestInit) => {
     (args) => getPetByIdHandler(args, options),
   );
 
-  server.registerTool(
+  tools.updatePetWithForm = server.registerTool(
     'updatePetWithForm',
     {
       description: 'Updates a pet in the store with form data.',
@@ -96,7 +102,7 @@ const createMcpServer = (options?: RequestInit) => {
     (args) => updatePetWithFormHandler(args, options),
   );
 
-  server.registerTool(
+  tools.deletePet = server.registerTool(
     'deletePet',
     {
       description: 'Deletes a pet.',
@@ -107,7 +113,7 @@ const createMcpServer = (options?: RequestInit) => {
     (args) => deletePetHandler(args, options),
   );
 
-  server.registerTool(
+  tools.getInventory = server.registerTool(
     'getInventory',
     {
       description: 'Returns pet inventories by status.',
@@ -115,7 +121,7 @@ const createMcpServer = (options?: RequestInit) => {
     () => getInventoryHandler(options),
   );
 
-  server.registerTool(
+  tools.getOrderById = server.registerTool(
     'getOrderById',
     {
       description: 'Find purchase order by ID.',
@@ -126,7 +132,7 @@ const createMcpServer = (options?: RequestInit) => {
     (args) => getOrderByIdHandler(args, options),
   );
 
-  server.registerTool(
+  tools.deleteOrder = server.registerTool(
     'deleteOrder',
     {
       description: 'Delete purchase order by identifier.',
@@ -137,7 +143,7 @@ const createMcpServer = (options?: RequestInit) => {
     (args) => deleteOrderHandler(args, options),
   );
 
-  server.registerTool(
+  tools.loginUser = server.registerTool(
     'loginUser',
     {
       description: 'Logs user into the system.',
@@ -148,7 +154,7 @@ const createMcpServer = (options?: RequestInit) => {
     (args) => loginUserHandler(args, options),
   );
 
-  server.registerTool(
+  tools.logoutUser = server.registerTool(
     'logoutUser',
     {
       description: 'Logs out current logged in user session.',
@@ -156,7 +162,7 @@ const createMcpServer = (options?: RequestInit) => {
     () => logoutUserHandler(options),
   );
 
-  server.registerTool(
+  tools.getUserByName = server.registerTool(
     'getUserByName',
     {
       description: 'Get user by user name.',
@@ -167,7 +173,7 @@ const createMcpServer = (options?: RequestInit) => {
     (args) => getUserByNameHandler(args, options),
   );
 
-  server.registerTool(
+  tools.deleteUser = server.registerTool(
     'deleteUser',
     {
       description: 'Delete user resource.',
@@ -178,7 +184,7 @@ const createMcpServer = (options?: RequestInit) => {
     (args) => deleteUserHandler(args, options),
   );
 
-  return server;
+  return { server, tools };
 };
 
 customServer(createMcpServer);
