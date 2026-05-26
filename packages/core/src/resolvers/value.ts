@@ -1,6 +1,10 @@
 import { getScalar } from '../getters';
 import type { FormDataContext } from '../getters/object';
-import { getDynamicAnchorName, isComponentRef } from '../getters/ref';
+import {
+  getDynamicAnchorName,
+  getRefInfo,
+  isComponentRef,
+} from '../getters/ref';
 import { isBinaryScalarSchema } from '../getters/scalar';
 import type {
   ContextSpec,
@@ -261,16 +265,58 @@ export function resolveValue({
     // provide the dynamic-anchor bindings, and scopedContext captured them
     // before materialization. Resolving the wrapper $ref here gives us the
     // concrete instantiation of the referenced template to generate.
+    let effectiveContext = context;
+
+    const schemaRecord = schemaObject as Record<string, unknown>;
+    const refAnchor = schemaRecord.$dynamicAnchor as string | undefined;
+
     if (
-      !context.parents?.includes(refName) &&
-      hasScopeAffectedDynamicRef(schemaObject, context, refName)
+      typeof refAnchor === 'string' &&
+      context.dynamicScope?.[refAnchor] &&
+      context.dynamicScope[refAnchor].name !== refName &&
+      !context.dynamicScope[refAnchor].isParameter
+    ) {
+      const scopeEntry = context.dynamicScope[refAnchor];
+      const specSchemas = (
+        (context.spec as Record<string, unknown>).components as
+          | Record<string, unknown>
+          | undefined
+      )?.schemas as Record<string, unknown> | undefined;
+
+      const scopeSource = specSchemas?.[scopeEntry.schemaName] as
+        | Record<string, unknown>
+        | undefined;
+
+      const allOf = scopeSource?.allOf as
+        | Array<Record<string, unknown>>
+        | undefined;
+
+      const isInAllOf =
+        Array.isArray(allOf) &&
+        allOf.some((el) => {
+          if (typeof el.$ref !== 'string' || !isComponentRef(el.$ref))
+            return false;
+          const { name } = getRefInfo(el.$ref, context);
+          return name === refName;
+        });
+
+      if (!isInAllOf) {
+        const filteredScope = { ...context.dynamicScope };
+        delete filteredScope[refAnchor];
+        effectiveContext = { ...context, dynamicScope: filteredScope };
+      }
+    }
+
+    if (
+      !effectiveContext.parents?.includes(refName) &&
+      hasScopeAffectedDynamicRef(schemaObject, effectiveContext, refName)
     ) {
       const scalar = getScalar({
         item: schemaObject,
         name: name ?? refName,
         context: {
-          ...context,
-          parents: [...(context.parents ?? []), refName],
+          ...effectiveContext,
+          parents: [...(effectiveContext.parents ?? []), refName],
         },
         formDataContext,
       });

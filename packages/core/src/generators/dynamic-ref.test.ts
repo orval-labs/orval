@@ -948,4 +948,92 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
       'type PartiallyBoundColliding<foo_bar2> = CollidingSlotTemplate<User, foo_bar2>',
     );
   });
+
+  it('does not inline cross-schema $dynamicAnchor collision (#3439)', () => {
+    const spec: OpenApiDocument = {
+      openapi: '3.1.0',
+      info: { title: 'Test', version: '0.1.0' },
+      paths: {},
+      components: {
+        schemas: {
+          NodeA: {
+            $dynamicAnchor: 'node',
+            type: 'object',
+            properties: {
+              self: { $dynamicRef: '#node' },
+              peer: { $ref: '#/components/schemas/NodeB' },
+            },
+          },
+          NodeB: {
+            $dynamicAnchor: 'node',
+            type: 'object',
+            properties: {
+              self: { $dynamicRef: '#node' },
+              peer: { $ref: '#/components/schemas/NodeA' },
+            },
+          },
+        },
+      },
+    };
+
+    const schemas = spec.components!.schemas!;
+    const result = generateSchemasDefinition(schemas, createContext(spec), '');
+
+    const nodeA = result.find((s) => s.name === 'NodeA');
+    expect(nodeA).toBeDefined();
+    expect(nodeA!.model).toContain('self?: NodeA');
+    expect(nodeA!.model).toContain('peer?: NodeB');
+    expect(nodeA!.model).not.toContain('peer?: { self?: NodeA');
+
+    const nodeB = result.find((s) => s.name === 'NodeB');
+    expect(nodeB).toBeDefined();
+    expect(nodeB!.model).toContain('self?: NodeB');
+    expect(nodeB!.model).toContain('peer?: NodeA');
+    expect(nodeB!.model).not.toContain('peer?: { self?: NodeB');
+  });
+
+  it('still materializes allOf extension with colliding $dynamicAnchor (#3439 regression guard)', () => {
+    const spec: OpenApiDocument = {
+      openapi: '3.1.0',
+      info: { title: 'Test', version: '0.1.0' },
+      paths: {},
+      components: {
+        schemas: {
+          BaseCategory: {
+            $dynamicAnchor: 'category',
+            type: 'object',
+            required: ['id', 'children'],
+            properties: {
+              id: { type: 'string' },
+              children: {
+                type: 'array',
+                items: { $dynamicRef: '#category' },
+              },
+            },
+          },
+          DerivedCategory: {
+            $dynamicAnchor: 'category',
+            allOf: [
+              { $ref: '#/components/schemas/BaseCategory' },
+              {
+                type: 'object',
+                required: ['label'],
+                properties: {
+                  label: { type: 'string' },
+                },
+              },
+            ],
+          },
+        },
+      },
+    };
+
+    const schemas = spec.components!.schemas!;
+    const result = generateSchemasDefinition(schemas, createContext(spec), '');
+
+    const derived = result.find((s) => s.name === 'DerivedCategory');
+    expect(derived).toBeDefined();
+    expect(derived!.model).toContain('children: DerivedCategory[]');
+    expect(derived!.model).toContain('label');
+  });
 });
