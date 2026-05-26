@@ -255,11 +255,26 @@ export const generateZodValidationSchemaDefinition = (
         default?: unknown;
         description?: string;
       };
+      const refRequired = rules?.required ?? false;
+      const refHasDefault = refSchema.default !== undefined;
+
+      // Match the main-path modifier ordering: nullability/optional first,
+      // then default, then describe. Combining `.default()` with `.optional()`
+      // is wrong in zod — `.optional()` short-circuits on `undefined` before
+      // the inner default runs — so skip `.optional()` whenever a default is
+      // present (matches the existing non-reusable behaviour at line ~932).
+      if (!refRequired && refSchema.nullable) {
+        functions.push(['nullish', undefined]);
+      } else if (refSchema.nullable) {
+        functions.push(['nullable', undefined]);
+      } else if (!refRequired && !refHasDefault) {
+        functions.push(['optional', undefined]);
+      }
 
       // .default(...) — emit a const for non-primitive defaults. Use the same
       // constNameRegistry-based suffix that the rest of the generator uses so
       // multiple defaults sharing `name` don't collide on `<name>Default`.
-      if (refSchema.default !== undefined) {
+      if (refHasDefault) {
         const registry = rules?.constNameRegistry ?? {};
         const counter = isNumber(registry[name]) ? registry[name] + 1 : 0;
         registry[name] = counter;
@@ -272,19 +287,9 @@ export const generateZodValidationSchemaDefinition = (
         }
       }
 
-      // .nullable()
-      if (refSchema.nullable) {
-        functions.push(['nullable', undefined]);
-      }
-
       // .describe('...')
       if (typeof refSchema.description === 'string') {
         functions.push(['describe', `"${escape(refSchema.description)}"`]);
-      }
-
-      // .optional() — driven by the parent's `required`, not a $ref sibling.
-      if (!(rules?.required ?? false)) {
-        functions.push(['optional', undefined]);
       }
 
       return { functions, consts };

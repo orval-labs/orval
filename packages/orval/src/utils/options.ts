@@ -310,7 +310,9 @@ export async function normalizeOptions(
         outputOptions.namingConvention ?? NamingConvention.CAMEL_CASE,
       fileExtension: outputOptions.fileExtension ?? defaultFileExtension,
       schemaFileExtension:
-        outputOptions.fileExtension ?? defaultSchemaFileExtension,
+        outputOptions.schemaFileExtension ??
+        outputOptions.fileExtension ??
+        defaultSchemaFileExtension,
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
       httpClient:
