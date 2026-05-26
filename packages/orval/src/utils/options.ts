@@ -218,7 +218,18 @@ export async function normalizeOptions(
     seenMockTypes.add(entry.type);
   }
 
-  const defaultFileExtension = '.ts';
+  // Reusable Zod schemas land in `*.zod.ts` files by default so they sit
+  // alongside any existing TypeScript types without a name collision. We can
+  // only distinguish "user explicitly set `.ts`" from "user said nothing"
+  // here — once normalization runs we'd be guessing.
+  const isZodSchemasOutput =
+    !!outputOptions.schemas &&
+    ((!isString(outputOptions.schemas) &&
+      outputOptions.schemas.type === 'zod') ||
+      (isString(outputOptions.schemas) &&
+        (outputOptions.client ?? client) === 'zod' &&
+        outputOptions.override?.zod?.generateReusableSchemas === true));
+  const defaultFileExtension = isZodSchemasOutput ? '.zod.ts' : '.ts';
 
   const factoryMethodsConfig = outputOptions.factoryMethods;
   let factoryMethods: NormalizedFactoryMethodsOptions | undefined = undefined;

@@ -291,11 +291,9 @@ export async function writeSpecs(
         output.override.zod.generateReusableSchemas === true);
 
     if (isZodSchemas) {
-      // The normalizer always sets `output.fileExtension` (default `.ts`), so
-      // we can't use `||` to detect "unset". Treat the bare normalizer default
-      // as unset and fall back to `.zod.ts`; honour any user-set extension.
-      const fileExtension =
-        output.fileExtension === '.ts' ? '.zod.ts' : output.fileExtension;
+      // Normalizer defaults `fileExtension` to `.zod.ts` for zod-schemas
+      // outputs (and `.ts` otherwise), so we just use what was normalized.
+      const fileExtension = output.fileExtension;
 
       await writeZodSchemas(
         builder,
