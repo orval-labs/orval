@@ -94,6 +94,7 @@ const createOutput = (
           response: false,
         },
         generateEachHttpStatus: false,
+        generateReusableSchemas: false,
         useBrandedTypes: false,
         dateTimeOptions: {},
         timeOptions: {},
