@@ -4,8 +4,8 @@ import {
   camel,
   type ClientBuilder,
   type ClientGeneratorsBuilder,
-  conventionName,
   type ContextSpec,
+  conventionName,
   escape,
   generateMutator,
   type GeneratorDependency,
@@ -237,7 +237,7 @@ export const generateZodValidationSchemaDefinition = (
 
     const CHAINABLE_SIBLINGS = new Set(['nullable', 'default', 'description']);
     const isChainable = (k: string) => CHAINABLE_SIBLINGS.has(k);
-    const allSiblingsChainable = siblings.every(isChainable);
+    const allSiblingsChainable = siblings.every((k) => isChainable(k));
 
     if (allSiblingsChainable) {
       const refName = conventionName(
@@ -255,7 +255,7 @@ export const generateZodValidationSchemaDefinition = (
         default?: unknown;
         description?: string;
       };
-      const refRequired = rules?.required ?? false;
+      const refRequired = rules.required ?? false;
       const refHasDefault = refSchema.default !== undefined;
 
       // Match the main-path modifier ordering: nullability/optional first,
@@ -275,7 +275,7 @@ export const generateZodValidationSchemaDefinition = (
       // constNameRegistry-based suffix that the rest of the generator uses so
       // multiple defaults sharing `name` don't collide on `<name>Default`.
       if (refHasDefault) {
-        const registry = rules?.constNameRegistry ?? {};
+        const registry = rules.constNameRegistry ?? {};
         const counter = isNumber(registry[name]) ? registry[name] + 1 : 0;
         registry[name] = counter;
         const suffix = counter ? pascal(getNumberWord(counter)) : '';
@@ -1790,7 +1790,7 @@ const generateZodRoute = async (
   const isZodV4 =
     !!context.output.packageJson && isZodVersionV4(context.output.packageJson);
   const useReusableSchemas =
-    context.output.override.zod.generateReusableSchemas === true;
+    context.output.override.zod.generateReusableSchemas;
   const spec = context.spec.paths?.[pathRoute];
 
   if (spec == undefined) {
@@ -1928,7 +1928,7 @@ const generateZodRoute = async (
       })
     : undefined;
 
-  let inputResponses = parsedResponses.map((parsedResponse) =>
+  const inputResponses = parsedResponses.map((parsedResponse) =>
     parseZodValidationSchemaDefinition(
       parsedResponse.input,
       context,
@@ -1941,7 +1941,7 @@ const generateZodRoute = async (
 
   const SENTINEL_PATTERN = /__REF_([A-Za-z_$][A-Za-z0-9_$]*)__/g;
   const rewriteSentinels = (s: string): string =>
-    s.replace(SENTINEL_PATTERN, (_m, name: string) => name);
+    s.replaceAll(SENTINEL_PATTERN, (_m, name: string) => name);
 
   const allUsedRefs = new Set<string>([
     ...inputParams.usedRefs,
@@ -2070,7 +2070,7 @@ export const generateZod: ClientBuilder = async (verbOptions, options) => {
     // Zod schemas are runtime values (not type-only), so mark with values: true
     // to prevent the import writer from emitting `import type { ... }`. Sort
     // by name so import order is stable across runs.
-    imports: [...(usedRefs ?? [])].sort().map((name) => ({
+    imports: [...usedRefs].toSorted().map((name) => ({
       name,
       schemaName: name,
       values: true,
