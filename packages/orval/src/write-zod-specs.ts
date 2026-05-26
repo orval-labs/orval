@@ -13,11 +13,6 @@ import {
   type ZodCoerceType,
 } from '@orval/core';
 import {
-  generateReusableSchemaSet,
-  resolveSchemaNames,
-  rewriteReusableSchemas,
-} from './reusable-schemas';
-import {
   dereference,
   generateFormDataZodSchema,
   generateZodValidationSchemaDefinition,
@@ -26,6 +21,12 @@ import {
   type ZodValidationSchemaDefinition,
 } from '@orval/zod';
 import fs from 'fs-extra';
+
+import {
+  generateReusableSchemaSet,
+  resolveSchemaNames,
+  rewriteReusableSchemas,
+} from './reusable-schemas';
 
 interface ZodSchemaFileEntry {
   schemaName: string;
@@ -341,8 +342,7 @@ export async function writeZodSchemas(
   header: string,
   output: WriteZodOutputOptions,
 ) {
-  const useReusableSchemas =
-    output.override.zod.generateReusableSchemas === true;
+  const useReusableSchemas = output.override.zod.generateReusableSchemas;
 
   if (useReusableSchemas) {
     await writeZodSchemasReusable(
@@ -476,7 +476,7 @@ async function writeZodSchemasReusable(
     const importExt = fileExtension.replace(/\.ts$/, '');
     const imports = [...entry.usedRefs]
       .filter((r) => r !== entry.name)
-      .sort()
+      .toSorted()
       .map((r) => {
         const importedFile = conventionName(r, output.namingConvention);
         return `import { ${r} } from './${importedFile}${importExt}';`;

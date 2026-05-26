@@ -288,7 +288,7 @@ export async function writeSpecs(
       // to keep TS types, even alongside a zod client.
       (isString(output.schemas) &&
         output.client === 'zod' &&
-        output.override.zod.generateReusableSchemas === true);
+        output.override.zod.generateReusableSchemas);
 
     if (isZodSchemas) {
       // Use the schema-specific extension so the global `fileExtension` (which

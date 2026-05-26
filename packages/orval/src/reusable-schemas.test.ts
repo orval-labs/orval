@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
 import type { OpenAPIV3_1 } from '@scalar/openapi-types';
+import { describe, expect, it } from 'vitest';
 
+import { createTestContextSpec } from '../../core/src/test-utils/context';
 import {
   collectReachableComponentRefs,
   computeLazyEdges,
@@ -9,7 +10,6 @@ import {
   resolveSchemaNames,
   rewriteReusableSchemas,
 } from './reusable-schemas';
-import { createTestContextSpec } from '../../core/src/test-utils/context';
 
 describe('resolveSchemaName', () => {
   it('returns the last $ref segment with camelCase by default', () => {
@@ -153,11 +153,11 @@ describe('generateReusableSchemaSet', () => {
     expect(petEntry).toBeDefined();
     expect(ownerEntry).toBeDefined();
 
-    expect(petEntry!.zod).toContain('__REF_owner__');
-    expect(petEntry!.usedRefs).toEqual(new Set(['owner']));
+    expect(petEntry?.zod).toContain('__REF_owner__');
+    expect(petEntry?.usedRefs).toEqual(new Set(['owner']));
 
-    expect(ownerEntry!.zod).not.toContain('__REF_');
-    expect(ownerEntry!.usedRefs).toEqual(new Set());
+    expect(ownerEntry?.zod).not.toContain('__REF_');
+    expect(ownerEntry?.usedRefs).toEqual(new Set());
   });
 
   it('expands to the transitive closure of component-schema refs', () => {
@@ -191,7 +191,7 @@ describe('generateReusableSchemaSet', () => {
 
     // Owner must be in the result even though only Pet was seeded — the
     // orchestrator follows usedRefs to avoid dangling identifiers.
-    expect(result.map((e) => e.name).sort()).toEqual(['owner', 'pet']);
+    expect(result.map((e) => e.name).toSorted()).toEqual(['owner', 'pet']);
   });
 });
 
@@ -255,8 +255,8 @@ describe('rewriteReusableSchemas', () => {
       },
     ];
     const result = rewriteReusableSchemas(entries);
-    const pet = result.find((e) => e.name === 'pet')!;
-    expect(pet.zod).toBe('zod.object({ owner: owner })');
+    const pet = result.find((e) => e.name === 'pet');
+    expect(pet?.zod).toBe('zod.object({ owner: owner })');
     // Topological order: owner emitted before pet.
     expect(result.map((e) => e.name)).toEqual(['owner', 'pet']);
   });
@@ -279,10 +279,10 @@ describe('rewriteReusableSchemas', () => {
       },
     ];
     const result = rewriteReusableSchemas(entries);
-    const a = result.find((e) => e.name === 'a')!;
-    const b = result.find((e) => e.name === 'b')!;
-    const lazyCount = [a.zod, b.zod].filter((s) =>
-      s.includes('zod.lazy'),
+    const a = result.find((e) => e.name === 'a');
+    const b = result.find((e) => e.name === 'b');
+    const lazyCount = [a?.zod, b?.zod].filter((s) =>
+      s?.includes('zod.lazy'),
     ).length;
     expect(lazyCount).toBe(1);
   });

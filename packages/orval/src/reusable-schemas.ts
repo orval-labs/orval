@@ -1,14 +1,10 @@
-import type { OpenAPIV3_1 } from '@scalar/openapi-types';
+import type { ContextSpec, ZodCoerceType } from '@orval/core';
 import { conventionName, type NamingConvention } from '@orval/core';
-import type {
-  ContextSpec,
-  OpenApiSchemaObject,
-  ZodCoerceType,
-} from '@orval/core';
 import {
   generateZodValidationSchemaDefinition,
   parseZodValidationSchemaDefinition,
 } from '@orval/zod';
+import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 
 // Mirror `@orval/core`'s `getRefInfo`: split the JSON pointer, URL-decode each
 // segment, and unescape RFC 6901 tokens (`~1` → `/`, `~0` → `~`). The zod
@@ -119,17 +115,13 @@ export const collectReachableComponentRefs = (
     queue.push(ref);
   }
 
-  const componentSchemas = (spec.components?.schemas ?? {}) as Record<
-    string,
-    unknown
-  >;
+  const componentSchemas = spec.components?.schemas ?? {};
   // Index-based queue iteration (not `shift()`) so the BFS is O(n) rather than
   // O(n²). The queue is append-only — we never need to reclaim the head slot.
-  for (let i = 0; i < queue.length; i++) {
-    const currentRef = queue[i];
+  for (const currentRef of queue) {
     const schemaName = currentRef.slice(COMPONENT_SCHEMAS_PREFIX.length);
     const targetSchema = componentSchemas[schemaName];
-    if (targetSchema === undefined) continue;
+    if (!targetSchema) continue;
 
     const innerRefs = new Set<string>();
     collectRefsInValue(targetSchema, innerRefs);
@@ -170,10 +162,7 @@ export const generateReusableSchemaSet = (
   context: ContextSpec,
   options: GenerateReusableSchemaSetOptions,
 ): ReusableSchemaEntry[] => {
-  const componentSchemas = (context.spec.components?.schemas ?? {}) as Record<
-    string,
-    OpenApiSchemaObject
-  >;
+  const componentSchemas = context.spec.components?.schemas ?? {};
 
   // Map convention-applied export name → source ref, so when a generated
   // schema references another component schema via its `usedRefs` name we
@@ -192,11 +181,10 @@ export const generateReusableSchemaSet = (
   const seen = new Set<string>(refs);
   const entries: ReusableSchemaEntry[] = [];
 
-  for (let i = 0; i < queue.length; i++) {
-    const ref = queue[i];
+  for (const ref of queue) {
     const schemaName = ref.slice('#/components/schemas/'.length);
     const schema = componentSchemas[schemaName];
-    if (schema === undefined) continue;
+    if (!schema) continue;
 
     const name = resolveSchemaName(ref, context.output.namingConvention);
 
@@ -282,13 +270,13 @@ const tarjan = (graph: Graph): TarjanResult => {
       }
       if (!indices.has(w)) {
         strongconnect(w);
-        lowlinks.set(v, Math.min(lowlinks.get(v)!, lowlinks.get(w)!));
+        lowlinks.set(v, Math.min(lowlinks.get(v) ?? -1, lowlinks.get(w) ?? -1));
       } else if (onStack.has(w)) {
         // Back-edge: w is an ancestor in the DFS tree. v and w belong to
         // the same SCC and the edge v→w closes a cycle — emit it lazy so
         // the runtime initializer doesn't read w in its TDZ.
         lazyEdges.add(edgeKey(v, w));
-        lowlinks.set(v, Math.min(lowlinks.get(v)!, indices.get(w)!));
+        lowlinks.set(v, Math.min(lowlinks.get(v) ?? -1, indices.get(w) ?? -1));
       }
     }
 
@@ -338,7 +326,7 @@ const SENTINEL_PATTERN = /__REF_([A-Za-z_$][A-Za-z0-9_$]*)__/g;
 export const rewriteReusableSchemas = (
   entries: readonly ReusableSchemaEntry[],
 ): ReusableSchemaEntry[] => {
-  const graph: Map<string, Set<string>> = new Map(
+  const graph = new Map<string, Set<string>>(
     entries.map((e) => [e.name, new Set(e.usedRefs)] as const),
   );
   // Ensure all referenced names exist as nodes (even if no entry — guards against
@@ -354,7 +342,7 @@ export const rewriteReusableSchemas = (
 
   const rewritten = new Map(
     entries.map((entry) => {
-      const newZod = entry.zod.replace(
+      const newZod = entry.zod.replaceAll(
         SENTINEL_PATTERN,
         (_match, refName: string) => {
           const isLazy = lazyEdges.has(edgeKey(entry.name, refName));
