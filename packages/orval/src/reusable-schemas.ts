@@ -24,11 +24,16 @@ export const resolveSchemaName = (
   namingConvention: NamingConvention,
 ): string => conventionName(lastRefSegment(ref), namingConvention);
 
+// JavaScript identifier (loose): start with letter/_/$, continue with word chars.
+// Reusable schema names are emitted as `export const <name> = ...`, so they
+// must be valid identifiers regardless of naming convention.
+const JS_IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+
 /**
- * Resolve names for a set of refs, throwing if two refs collapse to the same
- * converted name. The mapping is the single source of truth for cross-schema
- * references — the generator, the orchestrator's graph, and the sentinel
- * rewriter all consult it.
+ * Resolve names for a set of refs, throwing on conflicts or on names that
+ * aren't valid JS identifiers (e.g. `kebab-case` produces dashes). The mapping
+ * is the single source of truth for cross-schema references — the generator,
+ * the orchestrator's graph, and the sentinel rewriter all consult it.
  */
 export const resolveSchemaNames = (
   refs: readonly string[],
@@ -39,6 +44,14 @@ export const resolveSchemaNames = (
 
   for (const ref of refs) {
     const name = resolveSchemaName(ref, namingConvention);
+    if (!JS_IDENTIFIER_PATTERN.test(name)) {
+      throw new Error(
+        `[orval/zod] generateReusableSchemas: ref ${ref} converts to "${name}" ` +
+          `under namingConvention=${namingConvention}, which is not a valid JS ` +
+          `identifier. Use camelCase, PascalCase, or snake_case for the project's ` +
+          `namingConvention when this flag is enabled.`,
+      );
+    }
     const previous = reverse.get(name);
     if (previous !== undefined && previous !== ref) {
       throw new Error(
