@@ -195,29 +195,28 @@ export const generateServer = (
       const pascalOperationName = pascal(verbOption.operationName);
       const inputSchemaTypes = [];
       if (verbOption.params.length > 0)
-        inputSchemaTypes.push(`  pathParams: ${pascalOperationName}Params`);
+        inputSchemaTypes.push(`pathParams: ${pascalOperationName}Params`);
       if (verbOption.queryParams)
-        inputSchemaTypes.push(
-          `  queryParams: ${pascalOperationName}QueryParams`,
-        );
+        inputSchemaTypes.push(`queryParams: ${pascalOperationName}QueryParams`);
       if (verbOption.body.definition)
-        inputSchemaTypes.push(`  bodyParams: ${pascalOperationName}Body`);
+        inputSchemaTypes.push(`bodyParams: ${pascalOperationName}Body`);
 
       const inputSchemaImplementation =
         inputSchemaTypes.length > 0
-          ? `  {
-  ${inputSchemaTypes.join(',\n  ')}
-  },`
+          ? `\n    inputSchema: {\n      ${inputSchemaTypes.join(',\n      ')}\n    },`
           : '';
 
-      const handlerCallImplementation = inputSchemaImplementation
-        ? `(args) => ${verbOption.operationName}Handler(args, options)`
-        : `() => ${verbOption.operationName}Handler(options)`;
+      const handlerCallImplementation =
+        inputSchemaTypes.length > 0
+          ? `(args) => ${verbOption.operationName}Handler(args, options)`
+          : `() => ${verbOption.operationName}Handler(options)`;
 
       const toolImplementation = `
-server.tool(
+server.registerTool(
   '${jsStringEscape(verbOption.operationName)}',
-  '${jsStringEscape(verbOption.summary ?? '')}',${inputSchemaImplementation ? `\n${inputSchemaImplementation}` : ''}
+  {
+    description: '${jsStringEscape(verbOption.summary ?? '')}',${inputSchemaImplementation}
+  },
   ${handlerCallImplementation}
 );`;
 
