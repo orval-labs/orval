@@ -3505,7 +3505,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         { name: 'pet', sourceRef: '#/components/schemas/Pet' },
       ]);
       expect(result.functions.at(-1)?.[0]).toBe('default');
-      expect(result.consts.some((c) => /Default/.test(c))).toBe(true);
+      expect(result.consts.some((c) => c.includes('Default'))).toBe(true);
     });
 
     it('chains .optional() when the parent does not list the ref as required', () => {
