@@ -18,7 +18,10 @@ import { combineSchemasMock } from './combine';
 
 export const overrideVarName = 'overrideResponse';
 
-function getReferenceName(ref: string | undefined, context: ContextSpec): string {
+function getReferenceName(
+  ref: string | undefined,
+  context: ContextSpec,
+): string {
   if (!ref) return '';
 
   return getRefInfo(ref, context).name;
@@ -164,7 +167,9 @@ export function getMockObject({
           // Fixes issue #910
           if (
             isReference(prop) &&
-            existingReferencedProperties.includes(getReferenceName(prop.$ref, context))
+            existingReferencedProperties.includes(
+              getReferenceName(prop.$ref, context),
+            )
           ) {
             if (isRequired) {
               const keyDefinition = getKey(key);

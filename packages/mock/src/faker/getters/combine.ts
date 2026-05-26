@@ -11,7 +11,10 @@ import {
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { resolveMockValue } from '../resolvers';
 
-function getReferenceName(ref: string | undefined, context: ContextSpec): string {
+function getReferenceName(
+  ref: string | undefined,
+  context: ContextSpec,
+): string {
   if (!ref) return '';
 
   return getRefInfo(ref, context).name;
