@@ -230,12 +230,19 @@ function getQueryParamsTypes(
 
     if (resolvedValue.isEnum && !resolvedValue.isRef) {
       const enumName = queryName;
+      // Vendor extensions like `x-enum-varnames` may live on the parameter
+      // itself rather than inside `schema` — notably after a Swagger 2 → OAS 3
+      // upgrade, which moves standard schema fields into `schema` but leaves
+      // vendor extensions at the parameter level.
+      const parameterAsSchema = parameter as OpenApiSchemaObject;
       const enumValue = getEnum(
         resolvedValue.value,
         enumName,
-        getEnumNames(resolvedValue.originalSchema),
+        getEnumNames(resolvedValue.originalSchema) ??
+          getEnumNames(parameterAsSchema),
         context.output.override.enumGenerationType,
-        getEnumDescriptions(resolvedValue.originalSchema),
+        getEnumDescriptions(resolvedValue.originalSchema) ??
+          getEnumDescriptions(parameterAsSchema),
         context.output.override.namingConvention.enum,
       );
 
