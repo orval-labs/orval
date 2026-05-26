@@ -322,12 +322,14 @@ export function getMockScalar({
         mapValue = `{${value}}`;
       }
 
-      const arrMin = (item.minItems ?? safeMockOptions.arrayMin) as
-        | number
-        | undefined;
-      const arrMax = (item.maxItems ?? safeMockOptions.arrayMax) as
-        | number
-        | undefined;
+      const arrMin = (item.minItems ??
+        (item.maxItems === undefined
+          ? safeMockOptions.arrayMin
+          : undefined)) as number | undefined;
+      const arrMax = (item.maxItems ??
+        (item.minItems === undefined
+          ? safeMockOptions.arrayMax
+          : undefined)) as number | undefined;
       const arrParts: string[] = [];
       if (arrMin !== undefined) arrParts.push(`min: ${arrMin}`);
       if (arrMax !== undefined) arrParts.push(`max: ${arrMax}`);
@@ -345,12 +347,38 @@ export function getMockScalar({
     }
 
     case 'string': {
-      const strMin = (item.minLength ?? safeMockOptions.stringMin) as
-        | number
-        | undefined;
-      const strMax = (item.maxLength ?? safeMockOptions.stringMax) as
-        | number
-        | undefined;
+      // faker.string.alpha's `length: { min, max }` form requires BOTH bounds.
+      // When only one side is schema-specified, fall back to the global default
+      // for the missing side only if it does not invert the range; otherwise
+      // reuse the explicit bound so we never invent values the user did not
+      // supply (and never produce min > max).
+      const schemaMin = item.minLength;
+      const schemaMax = item.maxLength;
+      const globalMin = safeMockOptions.stringMin;
+      const globalMax = safeMockOptions.stringMax;
+
+      let strMin: number | undefined;
+      if (schemaMin !== undefined) {
+        strMin = schemaMin;
+      } else if (schemaMax === undefined) {
+        strMin = globalMin;
+      } else if (globalMin === undefined || globalMin > schemaMax) {
+        strMin = schemaMax;
+      } else {
+        strMin = globalMin;
+      }
+
+      let strMax: number | undefined;
+      if (schemaMax !== undefined) {
+        strMax = schemaMax;
+      } else if (schemaMin === undefined) {
+        strMax = globalMax;
+      } else if (globalMax === undefined || globalMax < schemaMin) {
+        strMax = schemaMin;
+      } else {
+        strMax = globalMax;
+      }
+
       const strLenParts: string[] = [];
       if (strMin !== undefined) strLenParts.push(`min: ${strMin}`);
       if (strMax !== undefined) strLenParts.push(`max: ${strMax}`);

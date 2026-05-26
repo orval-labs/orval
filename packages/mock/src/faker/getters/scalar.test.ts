@@ -444,6 +444,140 @@ describe('getMockScalar (undefined filtering)', () => {
       'faker.string.alpha({length: {min: 5, max: 20}})',
     );
   });
+
+  it('should clamp min to maxLength when only maxLength is specified and no global stringMin is set', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        maxLength: 5,
+        name: 'test-item',
+      },
+    });
+
+    // faker.string.alpha's `length: { min, max }` requires both bounds, so we
+    // collapse to the explicit value rather than inventing a missing one.
+    expect(result.value).toBe('faker.string.alpha({length: {min: 5, max: 5}})');
+  });
+
+  it('should clamp max to minLength when only minLength is specified and no global stringMax is set', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        minLength: 30,
+        name: 'test-item',
+      },
+    });
+
+    expect(result.value).toBe(
+      'faker.string.alpha({length: {min: 30, max: 30}})',
+    );
+  });
+
+  it('should use global stringMin when only maxLength is specified and global stringMin does not exceed maxLength', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        maxLength: 50,
+        name: 'test-item',
+      },
+      mockOptions: { stringMin: 10, stringMax: 20 },
+    });
+
+    expect(result.value).toBe(
+      'faker.string.alpha({length: {min: 10, max: 50}})',
+    );
+  });
+
+  it('should clamp min to maxLength when global stringMin would exceed maxLength', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        maxLength: 5,
+        name: 'test-item',
+      },
+      mockOptions: { stringMin: 10, stringMax: 20 },
+    });
+
+    expect(result.value).toBe('faker.string.alpha({length: {min: 5, max: 5}})');
+  });
+
+  it('should use global stringMax when only minLength is specified and global stringMax is not below minLength', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        minLength: 5,
+        name: 'test-item',
+      },
+      mockOptions: { stringMin: 10, stringMax: 20 },
+    });
+
+    expect(result.value).toBe(
+      'faker.string.alpha({length: {min: 5, max: 20}})',
+    );
+  });
+
+  it('should clamp max to minLength when global stringMax would be below minLength', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        minLength: 30,
+        name: 'test-item',
+      },
+      mockOptions: { stringMin: 10, stringMax: 20 },
+    });
+
+    expect(result.value).toBe(
+      'faker.string.alpha({length: {min: 30, max: 30}})',
+    );
+  });
+
+  it('should clamp both bounds to 0 when maxLength is 0 (avoids invalid faker range)', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        maxLength: 0,
+        name: 'test-item',
+      },
+      mockOptions: { stringMin: 10, stringMax: 20 },
+    });
+
+    expect(result.value).toBe('faker.string.alpha({length: {min: 0, max: 0}})');
+  });
+
+  it('should include only max when only maxItems is specified', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'array' as const,
+        maxItems: 5,
+        name: 'test-item',
+        items: { type: 'string' },
+      },
+    });
+
+    expect(result.value).toContain('faker.number.int({max: 5})');
+  });
+
+  it('should include only min when only minItems is specified', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'array' as const,
+        minItems: 3,
+        name: 'test-item',
+        items: { type: 'string' },
+      },
+    });
+
+    expect(result.value).toContain('faker.number.int({min: 3})');
+  });
 });
 
 describe('getMockScalar (exclusiveMinimum/exclusiveMaximum handling)', () => {
