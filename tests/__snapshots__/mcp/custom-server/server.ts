@@ -5,7 +5,10 @@
  * OpenAPI spec version: 1.0.0
  */
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import {
+  McpServer,
+  type RegisteredTool,
+} from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { customServer } from '../../../mutators/mcp-custom-server';
 
@@ -26,13 +29,16 @@ import {
   ShowPetWithOwnerParams,
 } from './tool-schemas.zod';
 
-const createMcpServer = (options?: RequestInit) => {
+const createMcpServer = (
+  options?: RequestInit,
+): { server: McpServer; tools: Record<string, RegisteredTool> } => {
   const server = new McpServer({
     name: 'swaggerPetstoreServer',
     version: '1.0.0',
   });
+  const tools: Record<string, RegisteredTool> = {};
 
-  server.registerTool(
+  tools.listPets = server.registerTool(
     'listPets',
     {
       description: 'List all pets',
@@ -43,7 +49,7 @@ const createMcpServer = (options?: RequestInit) => {
     (args) => listPetsHandler(args, options),
   );
 
-  server.registerTool(
+  tools.createPets = server.registerTool(
     'createPets',
     {
       description: 'Create a pet',
@@ -55,7 +61,7 @@ const createMcpServer = (options?: RequestInit) => {
     (args) => createPetsHandler(args, options),
   );
 
-  server.registerTool(
+  tools.showPetById = server.registerTool(
     'showPetById',
     {
       description: 'Info for a specific pet',
@@ -66,7 +72,7 @@ const createMcpServer = (options?: RequestInit) => {
     (args) => showPetByIdHandler(args, options),
   );
 
-  server.registerTool(
+  tools.deletePetById = server.registerTool(
     'deletePetById',
     {
       description: 'Deletes a specific pet',
@@ -77,7 +83,7 @@ const createMcpServer = (options?: RequestInit) => {
     (args) => deletePetByIdHandler(args, options),
   );
 
-  server.registerTool(
+  tools.healthCheck = server.registerTool(
     'healthCheck',
     {
       description: 'health check',
@@ -85,7 +91,7 @@ const createMcpServer = (options?: RequestInit) => {
     () => healthCheckHandler(options),
   );
 
-  server.registerTool(
+  tools.showPetWithOwner = server.registerTool(
     'showPetWithOwner',
     {
       description: 'combinate nullable and $ref',
@@ -96,7 +102,7 @@ const createMcpServer = (options?: RequestInit) => {
     (args) => showPetWithOwnerHandler(args, options),
   );
 
-  return server;
+  return { server, tools };
 };
 
 customServer(createMcpServer);
