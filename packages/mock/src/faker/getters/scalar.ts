@@ -322,12 +322,39 @@ export function getMockScalar({
         mapValue = `{${value}}`;
       }
 
-      const arrMin = (item.minItems ?? safeMockOptions.arrayMin) as
-        | number
-        | undefined;
-      const arrMax = (item.maxItems ?? safeMockOptions.arrayMax) as
-        | number
-        | undefined;
+      // Use global defaults for the missing bound only when they do not
+      // invert the range; otherwise reuse the explicit schema bound so we
+      // never invent values the user did not supply (and never produce
+      // min > max). This also avoids relying on faker's internal default
+      // upper bound when only `minItems` is specified, which can otherwise
+      // produce very large arrays.
+      const arrSchemaMin = item.minItems;
+      const arrSchemaMax = item.maxItems;
+      const arrGlobalMin = safeMockOptions.arrayMin;
+      const arrGlobalMax = safeMockOptions.arrayMax;
+
+      let arrMin: number | undefined;
+      if (arrSchemaMin !== undefined) {
+        arrMin = arrSchemaMin;
+      } else if (arrSchemaMax === undefined) {
+        arrMin = arrGlobalMin;
+      } else if (arrGlobalMin === undefined || arrGlobalMin > arrSchemaMax) {
+        arrMin = arrSchemaMax;
+      } else {
+        arrMin = arrGlobalMin;
+      }
+
+      let arrMax: number | undefined;
+      if (arrSchemaMax !== undefined) {
+        arrMax = arrSchemaMax;
+      } else if (arrSchemaMin === undefined) {
+        arrMax = arrGlobalMax;
+      } else if (arrGlobalMax === undefined || arrGlobalMax < arrSchemaMin) {
+        arrMax = arrSchemaMin;
+      } else {
+        arrMax = arrGlobalMax;
+      }
+
       const arrParts: string[] = [];
       if (arrMin !== undefined) arrParts.push(`min: ${arrMin}`);
       if (arrMax !== undefined) arrParts.push(`max: ${arrMax}`);
@@ -345,15 +372,46 @@ export function getMockScalar({
     }
 
     case 'string': {
-      const strMin = (item.minLength ?? safeMockOptions.stringMin) as
-        | number
-        | undefined;
-      const strMax = (item.maxLength ?? safeMockOptions.stringMax) as
-        | number
-        | undefined;
+      // faker.string.alpha's `length: { min, max }` form requires BOTH bounds.
+      // When only one side is schema-specified, fall back to the global default
+      // for the missing side only if it does not invert the range; otherwise
+      // reuse the explicit bound so we never invent values the user did not
+      // supply (and never produce min > max).
+      const schemaMin = item.minLength;
+      const schemaMax = item.maxLength;
+      const globalMin = safeMockOptions.stringMin;
+      const globalMax = safeMockOptions.stringMax;
+
+      let strMin: number | undefined;
+      if (schemaMin !== undefined) {
+        strMin = schemaMin;
+      } else if (schemaMax === undefined) {
+        strMin = globalMin;
+      } else if (globalMin === undefined || globalMin > schemaMax) {
+        strMin = schemaMax;
+      } else {
+        strMin = globalMin;
+      }
+
+      let strMax: number | undefined;
+      if (schemaMax !== undefined) {
+        strMax = schemaMax;
+      } else if (schemaMin === undefined) {
+        strMax = globalMax;
+      } else if (globalMax === undefined || globalMax < schemaMin) {
+        strMax = schemaMin;
+      } else {
+        strMax = globalMax;
+      }
+
+      // faker.string.alpha's `length: { min, max }` requires both bounds, so
+      // only emit a length argument when we have a complete pair. If only one
+      // side could be resolved (e.g., no schema bound and only one global is
+      // configured) we fall back to faker's own default length.
       const strLenParts: string[] = [];
-      if (strMin !== undefined) strLenParts.push(`min: ${strMin}`);
-      if (strMax !== undefined) strLenParts.push(`max: ${strMax}`);
+      if (strMin !== undefined && strMax !== undefined) {
+        strLenParts.push(`min: ${strMin}`, `max: ${strMax}`);
+      }
       const length =
         strLenParts.length > 0 ? `{length: {${strLenParts.join(', ')}}}` : '';
       let value = `faker.string.alpha(${length})`;
