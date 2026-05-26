@@ -5,15 +5,16 @@ import {
   isSchema,
   type MockOptions,
   pascal,
+  getRefInfo,
 } from '@orval/core';
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { resolveMockValue } from '../resolvers';
 
-function getReferenceName(ref?: string): string {
+function getReferenceName(ref: string | undefined, context: ContextSpec): string {
   if (!ref) return '';
 
-  return pascal(ref.split('/').pop() ?? '');
+  return getRefInfo(ref, context).name;
 }
 
 interface CombineSchemasMockOptions {
@@ -154,7 +155,7 @@ export function combineSchemasMock({
   let value = separator === 'allOf' ? '' : 'faker.helpers.arrayElement([';
 
   for (const val of separatorItems) {
-    const refName = isReference(val) ? getReferenceName(val.$ref) : '';
+    const refName = isReference(val) ? getReferenceName(val.$ref, context) : '';
     // For allOf: skip if refName is in existingRefs AND this is an inline schema (not a top-level ref)
     // This allows top-level schemas (item.isRef=true) to get base properties from allOf
     // while preventing circular allOf chains in inline property schemas.
