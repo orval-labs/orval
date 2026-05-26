@@ -40,6 +40,13 @@ export interface NormalizedOutputOptions {
   operationSchemas?: string;
   namingConvention: NamingConvention;
   fileExtension: string;
+  /**
+   * File extension for schema artifacts (TS types or Zod schemas) under
+   * `schemas:`. Defaults to `.zod.ts` when the output is Zod schemas
+   * (`schemas: { type: 'zod' }` or `client: 'zod'` + `generateReusableSchemas`),
+   * otherwise `.ts`. A user-set `output.fileExtension` always wins.
+   */
+  schemaFileExtension: string;
   mode: OutputMode;
   // Always normalized to an object form; an empty `generators` array means
   // no mocks are emitted.
@@ -318,6 +325,14 @@ export interface OutputOptions {
   operationSchemas?: string;
   namingConvention?: NamingConvention;
   fileExtension?: string;
+  /**
+   * Optional file extension applied only to schema artifacts (TS types or
+   * Zod schemas) under `schemas:`. Takes precedence over `fileExtension`
+   * for schema files. Defaults to `.zod.ts` when the output is Zod schemas
+   * (`schemas: { type: 'zod' }` or `client: 'zod'` + `generateReusableSchemas`),
+   * otherwise mirrors `fileExtension`.
+   */
+  schemaFileExtension?: string;
   mode?: OutputMode;
   // Mocks config. Accepts:
   // - `true` shorthand: emits both msw + faker with defaults
@@ -728,6 +743,12 @@ export interface ZodOptions {
   timeOptions?: ZodTimeOptions;
   generateEachHttpStatus?: boolean;
   useBrandedTypes?: boolean;
+  /**
+   * When true, emits one reusable Zod schema per `#/components/schemas/*` `$ref`
+   * (with `namingConvention` applied to the name) and references it everywhere
+   * instead of inlining. Default `false`. See `docs/superpowers/specs/2026-05-26-reusable-zod-schemas-design.md`.
+   */
+  generateReusableSchemas?: boolean;
 }
 
 export type ZodCoerceType = 'string' | 'number' | 'boolean' | 'bigint' | 'date';
@@ -763,6 +784,7 @@ export interface NormalizedZodOptions {
   };
   generateEachHttpStatus: boolean;
   useBrandedTypes: boolean;
+  generateReusableSchemas: boolean;
   dateTimeOptions: ZodDateTimeOptions;
   timeOptions: ZodTimeOptions;
 }

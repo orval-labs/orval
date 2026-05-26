@@ -3424,6 +3424,192 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).toContain('.min(');
     expect(parsed.zod).not.toContain('.stringFormat(');
   });
+
+  describe('useReusableSchemas mode', () => {
+    it('emits namedRef for a plain $ref to components/schemas', () => {
+      const context = makeContextSpec({
+        spec: {
+          components: { schemas: { Pet: { type: 'object', properties: {} } } },
+        },
+      });
+      const result = generateZodValidationSchemaDefinition(
+        { $ref: '#/components/schemas/Pet' } as never,
+        context,
+        'someField',
+        false,
+        false,
+        { required: true, useReusableSchemas: true },
+      );
+      expect(result).toEqual({
+        functions: [
+          ['namedRef', { name: 'pet', sourceRef: '#/components/schemas/Pet' }],
+        ],
+        consts: [],
+      });
+    });
+
+    it('chains .nullable() for nullable: true on a $ref', () => {
+      const context = makeContextSpec({
+        spec: { components: { schemas: { Pet: { type: 'object' } } } },
+      });
+      const result = generateZodValidationSchemaDefinition(
+        { $ref: '#/components/schemas/Pet', nullable: true } as never,
+        context,
+        'someField',
+        false,
+        false,
+        { required: true, useReusableSchemas: true },
+      );
+      expect(result.functions).toEqual([
+        ['namedRef', { name: 'pet', sourceRef: '#/components/schemas/Pet' }],
+        ['nullable', undefined],
+      ]);
+    });
+
+    it('chains .describe(...) for a description sibling on a $ref', () => {
+      const context = makeContextSpec({
+        spec: { components: { schemas: { Pet: { type: 'object' } } } },
+      });
+      const result = generateZodValidationSchemaDefinition(
+        {
+          $ref: '#/components/schemas/Pet',
+          description: 'optional pet',
+        } as never,
+        context,
+        'someField',
+        false,
+        false,
+        { required: true, useReusableSchemas: true },
+      );
+      expect(result.functions).toEqual([
+        ['namedRef', { name: 'pet', sourceRef: '#/components/schemas/Pet' }],
+        ['describe', '"optional pet"'],
+      ]);
+    });
+
+    it('chains .default(...) for a default sibling on a $ref', () => {
+      const context = makeContextSpec({
+        spec: { components: { schemas: { Pet: { type: 'object' } } } },
+      });
+      const result = generateZodValidationSchemaDefinition(
+        { $ref: '#/components/schemas/Pet', default: { id: 1 } } as never,
+        context,
+        'someField',
+        false,
+        false,
+        { required: true, useReusableSchemas: true },
+      );
+      // default emits a const + a .default(<constName>) call. Match shape, not exact const.
+      expect(result.functions[0]).toEqual([
+        'namedRef',
+        { name: 'pet', sourceRef: '#/components/schemas/Pet' },
+      ]);
+      expect(result.functions.at(-1)?.[0]).toBe('default');
+      expect(result.consts.some((c) => c.includes('Default'))).toBe(true);
+    });
+
+    it('chains .optional() when the parent does not list the ref as required', () => {
+      const context = makeContextSpec({
+        spec: { components: { schemas: { Pet: { type: 'object' } } } },
+      });
+      const result = generateZodValidationSchemaDefinition(
+        { $ref: '#/components/schemas/Pet' } as never,
+        context,
+        'someField',
+        false,
+        false,
+        { required: false, useReusableSchemas: true },
+      );
+      expect(result.functions).toEqual([
+        ['namedRef', { name: 'pet', sourceRef: '#/components/schemas/Pet' }],
+        ['optional', undefined],
+      ]);
+    });
+
+    it('skips .optional() when a default is present (default would never apply otherwise)', () => {
+      const context = makeContextSpec({
+        spec: { components: { schemas: { Pet: { type: 'object' } } } },
+      });
+      const result = generateZodValidationSchemaDefinition(
+        { $ref: '#/components/schemas/Pet', default: { id: 1 } } as never,
+        context,
+        'someField',
+        false,
+        false,
+        { required: false, useReusableSchemas: true },
+      );
+      const fnNames = result.functions.map(([fn]) => fn);
+      expect(fnNames).toContain('namedRef');
+      expect(fnNames).toContain('default');
+      expect(fnNames).not.toContain('optional');
+    });
+
+    it('emits .nullish() when nullable and not required', () => {
+      const context = makeContextSpec({
+        spec: { components: { schemas: { Pet: { type: 'object' } } } },
+      });
+      const result = generateZodValidationSchemaDefinition(
+        { $ref: '#/components/schemas/Pet', nullable: true } as never,
+        context,
+        'someField',
+        false,
+        false,
+        { required: false, useReusableSchemas: true },
+      );
+      expect(result.functions).toEqual([
+        ['namedRef', { name: 'pet', sourceRef: '#/components/schemas/Pet' }],
+        ['nullish', undefined],
+      ]);
+    });
+
+    it('falls back to inlining when a $ref has non-chainable siblings (e.g. example)', () => {
+      const context = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: { type: 'object', properties: { id: { type: 'number' } } },
+            },
+          },
+        },
+      });
+      const result = generateZodValidationSchemaDefinition(
+        {
+          $ref: '#/components/schemas/Pet',
+          example: { id: 1 },
+        } as never,
+        context,
+        'someField',
+        false,
+        false,
+        { required: true, useReusableSchemas: true },
+      );
+      // Should NOT contain a namedRef — should look like an inlined object.
+      expect(result.functions.some(([fn]) => fn === 'namedRef')).toBe(false);
+      expect(
+        result.functions.some(
+          ([fn]) => fn === 'object' || fn === 'strictObject',
+        ),
+      ).toBe(true);
+    });
+
+    it('falls back to inlining when a $ref has properties siblings (rare merge case)', () => {
+      const context = makeContextSpec({
+        spec: { components: { schemas: { Pet: { type: 'object' } } } },
+      });
+      const result = generateZodValidationSchemaDefinition(
+        {
+          $ref: '#/components/schemas/Pet',
+          properties: { extra: { type: 'string' } },
+        } as never,
+        context,
+        'someField',
+        false,
+        false,
+        { required: true, useReusableSchemas: true },
+      );
+      expect(result.functions.some(([fn]) => fn === 'namedRef')).toBe(false);
+    });
+  });
 });
 
 const basicApiSchema = {
@@ -7672,5 +7858,60 @@ describe('generateZod (useBrandedTypes)', () => {
     expect(result.implementation).toBe(
       'export const TestBody = zod.object({\n  "name": zod.string().optional()\n}).brand<"TestBody">()\n\n',
     );
+  });
+});
+
+describe('parseZodValidationSchemaDefinition with namedRef', () => {
+  it('emits a sentinel for namedRef and reports usedRefs', () => {
+    const context = makeContextSpec();
+    const definition: ZodValidationSchemaDefinition = {
+      functions: [
+        ['namedRef', { name: 'pet', sourceRef: '#/components/schemas/Pet' }],
+      ],
+      consts: [],
+    };
+    const result = parseZodValidationSchemaDefinition(
+      definition,
+      context,
+      false,
+      false,
+      false,
+    );
+    expect(result.zod).toBe('__REF_pet__');
+    expect(result.usedRefs).toEqual(new Set(['pet']));
+    expect(result.consts).toBe('');
+  });
+
+  it('emits sentinel + chained modifiers', () => {
+    const context = makeContextSpec();
+    const definition: ZodValidationSchemaDefinition = {
+      functions: [
+        ['namedRef', { name: 'pet', sourceRef: '#/components/schemas/Pet' }],
+        ['nullable', undefined],
+        ['describe', '"hello"'],
+      ],
+      consts: [],
+    };
+    const result = parseZodValidationSchemaDefinition(
+      definition,
+      context,
+      false,
+      false,
+      false,
+    );
+    expect(result.zod).toBe('__REF_pet__.nullable().describe("hello")');
+    expect(result.usedRefs).toEqual(new Set(['pet']));
+  });
+
+  it('returns empty usedRefs when no namedRef is present', () => {
+    const context = makeContextSpec();
+    const result = parseZodValidationSchemaDefinition(
+      { functions: [['string', undefined]], consts: [] },
+      context,
+      false,
+      false,
+      false,
+    );
+    expect(result.usedRefs).toEqual(new Set());
   });
 });

@@ -220,6 +220,24 @@ export async function normalizeOptions(
 
   const defaultFileExtension = '.ts';
 
+  // Reusable Zod schemas land in `*.zod.ts` files by default so they sit
+  // alongside any existing TypeScript types without a name collision. We
+  // expose this as a separate `schemaFileExtension` field (not by flipping
+  // the global `fileExtension`) so that non-schema writers (mode writers,
+  // mock writers, the workspace barrel) keep their own extensions and don't
+  // start emitting `*.zod.ts` for unrelated artifacts. A user-set
+  // `output.fileExtension` overrides this default at the call site.
+  const isZodSchemasOutput =
+    !!outputOptions.schemas &&
+    ((!isString(outputOptions.schemas) &&
+      outputOptions.schemas.type === 'zod') ||
+      (isString(outputOptions.schemas) &&
+        (outputOptions.client ?? client) === 'zod' &&
+        outputOptions.override?.zod?.generateReusableSchemas === true));
+  const defaultSchemaFileExtension = isZodSchemasOutput
+    ? '.zod.ts'
+    : defaultFileExtension;
+
   const factoryMethodsConfig = outputOptions.factoryMethods;
   let factoryMethods: NormalizedFactoryMethodsOptions | undefined = undefined;
 
@@ -291,6 +309,10 @@ export async function normalizeOptions(
       namingConvention:
         outputOptions.namingConvention ?? NamingConvention.CAMEL_CASE,
       fileExtension: outputOptions.fileExtension ?? defaultFileExtension,
+      schemaFileExtension:
+        outputOptions.schemaFileExtension ??
+        outputOptions.fileExtension ??
+        defaultSchemaFileExtension,
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
       httpClient:
@@ -460,6 +482,8 @@ export async function normalizeOptions(
             outputOptions.override?.zod?.generateEachHttpStatus ?? false,
           useBrandedTypes:
             outputOptions.override?.zod?.useBrandedTypes ?? false,
+          generateReusableSchemas:
+            outputOptions.override?.zod?.generateReusableSchemas ?? false,
           dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {
             offset: true,
           },
@@ -840,6 +864,8 @@ function normalizeOperationsAndTags(
                     },
                     generateEachHttpStatus: zod.generateEachHttpStatus ?? false,
                     useBrandedTypes: zod.useBrandedTypes ?? false,
+                    generateReusableSchemas:
+                      zod.generateReusableSchemas ?? false,
                     dateTimeOptions: zod.dateTimeOptions ?? { offset: true },
                     timeOptions: zod.timeOptions ?? {},
                   },
