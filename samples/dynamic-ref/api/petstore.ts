@@ -4,7 +4,7 @@
  * Petstore with dynamic references
  * Demonstrates OpenAPI 3.1 `$dynamicRef` / `$dynamicAnchor` for polymorphic schema dispatch.
  * The `Pet` base schema defines a `$dynamicAnchor` that is overridden by `Cat` and `Dog`.  Each schema has a `playmates` property using `$dynamicRef: '#Pet'` — which resolves to `Cat[]` inside Cat, and `Dog[]` inside Dog.
- * `Lizard` does NOT override the anchor, so its `playmates` falls back to `unknown` since only explicit bindings are resolved.
+ * `Lizard` does NOT override the anchor, so its `playmates` falls back to `Pet[]` via the `$dynamicAnchor` fallback per JSON Schema Draft 2020-12.
  *
  * OpenAPI spec version: 1.0.0
  */
@@ -53,7 +53,7 @@ export interface Lizard {
   petType: LizardPetType;
   name: string;
   lovesRocks?: boolean;
-  playmates?: unknown[];
+  playmates?: Pet[];
 }
 
 export const getPetstoreWithDynamicReferences = (
