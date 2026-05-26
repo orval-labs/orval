@@ -175,9 +175,25 @@ export const generateReusableSchemaSet = (
     OpenApiSchemaObject
   >;
 
+  // Map convention-applied export name → source ref, so when a generated
+  // schema references another component schema via its `usedRefs` name we
+  // can find which `$ref` to add to the work queue.
+  const nameToRef = new Map<string, string>();
+  for (const schemaName of Object.keys(componentSchemas)) {
+    const ref = `#/components/schemas/${schemaName}`;
+    nameToRef.set(resolveSchemaName(ref, context.output.namingConvention), ref);
+  }
+
+  // Expand to the transitive closure of component-schema refs reachable from
+  // the initial roots. Without this, a generated schema could emit a sentinel
+  // for a ref that's not in our entries → the rewriter would render a bare
+  // identifier with no corresponding `export const`. Iterate until stable.
+  const queue = [...refs];
+  const seen = new Set<string>(refs);
   const entries: ReusableSchemaEntry[] = [];
 
-  for (const ref of refs) {
+  for (let i = 0; i < queue.length; i++) {
+    const ref = queue[i];
     const schemaName = ref.slice('#/components/schemas/'.length);
     const schema = componentSchemas[schemaName];
     if (schema === undefined) continue;
@@ -208,6 +224,14 @@ export const generateReusableSchemaSet = (
       consts: parsed.consts,
       usedRefs: parsed.usedRefs,
     });
+
+    for (const usedName of parsed.usedRefs) {
+      const usedRef = nameToRef.get(usedName);
+      if (usedRef !== undefined && !seen.has(usedRef)) {
+        seen.add(usedRef);
+        queue.push(usedRef);
+      }
+    }
   }
 
   return entries;

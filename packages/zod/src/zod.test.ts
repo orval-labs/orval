@@ -3526,6 +3526,42 @@ describe('generateZodValidationSchemaDefinition`', () => {
       ]);
     });
 
+    it('skips .optional() when a default is present (default would never apply otherwise)', () => {
+      const context = makeContextSpec({
+        spec: { components: { schemas: { Pet: { type: 'object' } } } },
+      });
+      const result = generateZodValidationSchemaDefinition(
+        { $ref: '#/components/schemas/Pet', default: { id: 1 } } as never,
+        context,
+        'someField',
+        false,
+        false,
+        { required: false, useReusableSchemas: true },
+      );
+      const fnNames = result.functions.map(([fn]) => fn);
+      expect(fnNames).toContain('namedRef');
+      expect(fnNames).toContain('default');
+      expect(fnNames).not.toContain('optional');
+    });
+
+    it('emits .nullish() when nullable and not required', () => {
+      const context = makeContextSpec({
+        spec: { components: { schemas: { Pet: { type: 'object' } } } },
+      });
+      const result = generateZodValidationSchemaDefinition(
+        { $ref: '#/components/schemas/Pet', nullable: true } as never,
+        context,
+        'someField',
+        false,
+        false,
+        { required: false, useReusableSchemas: true },
+      );
+      expect(result.functions).toEqual([
+        ['namedRef', { name: 'pet', sourceRef: '#/components/schemas/Pet' }],
+        ['nullish', undefined],
+      ]);
+    });
+
     it('falls back to inlining when a $ref has non-chainable siblings (e.g. example)', () => {
       const context = makeContextSpec({
         spec: {

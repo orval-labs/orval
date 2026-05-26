@@ -159,6 +159,40 @@ describe('generateReusableSchemaSet', () => {
     expect(ownerEntry!.zod).not.toContain('__REF_');
     expect(ownerEntry!.usedRefs).toEqual(new Set());
   });
+
+  it('expands to the transitive closure of component-schema refs', () => {
+    const context = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              properties: {
+                owner: { $ref: '#/components/schemas/Owner' },
+              },
+              required: ['owner'],
+            },
+            // Owner is reachable from Pet via $ref but NOT in the seed list.
+            Owner: {
+              type: 'object',
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+          },
+        },
+      },
+    });
+
+    const result = generateReusableSchemaSet(
+      ['#/components/schemas/Pet'],
+      context,
+      { strict: false, isZodV4: false },
+    );
+
+    // Owner must be in the result even though only Pet was seeded — the
+    // orchestrator follows usedRefs to avoid dangling identifiers.
+    expect(result.map((e) => e.name).sort()).toEqual(['owner', 'pet']);
+  });
 });
 
 describe('computeLazyEdges', () => {
