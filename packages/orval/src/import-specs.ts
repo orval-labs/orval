@@ -83,7 +83,9 @@ async function resolveSpec(
 
   const { specification } = upgrade(transformedData);
 
-  return specification;
+  // upgrade() returns @scalar/openapi-types/3.1 Document (openapi: string);
+  // OpenApiDocument uses the legacy OpenAPIV3_1 namespace (openapi version literals).
+  return specification as OpenApiDocument;
 }
 
 async function applyInputTransformer(
