@@ -119,6 +119,7 @@ export function createTestContextSpec({
         },
         generateEachHttpStatus: false,
         useBrandedTypes: false,
+        generateReusableSchemas: false,
         dateTimeOptions: {},
         timeOptions: { precision: 3 },
       },

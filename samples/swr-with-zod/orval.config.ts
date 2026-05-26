@@ -28,4 +28,22 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  petstoreZodReusable: {
+    input: {
+      target: './petstore.yaml',
+    },
+    output: {
+      mode: 'tags-split',
+      client: 'zod',
+      target: 'src/gen/endpoints',
+      schemas: 'src/gen/models',
+      fileExtension: '-reusable.zod.ts',
+      formatter: 'prettier',
+      override: {
+        zod: {
+          generateReusableSchemas: true,
+        },
+      },
+    },
+  },
 });

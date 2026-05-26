@@ -728,6 +728,12 @@ export interface ZodOptions {
   timeOptions?: ZodTimeOptions;
   generateEachHttpStatus?: boolean;
   useBrandedTypes?: boolean;
+  /**
+   * When true, emits one reusable Zod schema per `#/components/schemas/*` `$ref`
+   * (with `namingConvention` applied to the name) and references it everywhere
+   * instead of inlining. Default `false`. See `docs/superpowers/specs/2026-05-26-reusable-zod-schemas-design.md`.
+   */
+  generateReusableSchemas?: boolean;
 }
 
 export type ZodCoerceType = 'string' | 'number' | 'boolean' | 'bigint' | 'date';
@@ -763,6 +769,7 @@ export interface NormalizedZodOptions {
   };
   generateEachHttpStatus: boolean;
   useBrandedTypes: boolean;
+  generateReusableSchemas: boolean;
   dateTimeOptions: ZodDateTimeOptions;
   timeOptions: ZodTimeOptions;
 }

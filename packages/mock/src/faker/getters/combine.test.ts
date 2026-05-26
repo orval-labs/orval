@@ -116,6 +116,7 @@ function createMockContext(): ContextSpec {
           },
           generateEachHttpStatus: false,
           useBrandedTypes: false,
+          generateReusableSchemas: false,
           dateTimeOptions: {},
           timeOptions: { precision: 3 },
         },
