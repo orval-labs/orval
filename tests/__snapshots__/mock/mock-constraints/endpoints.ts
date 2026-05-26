@@ -50,15 +50,17 @@ export const getGetItemsResponseMock = (
     undefined,
   ]),
   maxItemsOnly: faker.helpers.arrayElement([
-    Array.from({ length: faker.number.int({ max: 2 }) }, (_, i) => i + 1).map(
-      () => faker.string.alpha({ length: { min: 10, max: 20 } }),
-    ),
+    Array.from(
+      { length: faker.number.int({ min: 1, max: 2 }) },
+      (_, i) => i + 1,
+    ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
     undefined,
   ]),
   minItemsOnly: faker.helpers.arrayElement([
-    Array.from({ length: faker.number.int({ min: 5 }) }, (_, i) => i + 1).map(
-      () => faker.string.alpha({ length: { min: 10, max: 20 } }),
-    ),
+    Array.from(
+      { length: faker.number.int({ min: 5, max: 10 }) },
+      (_, i) => i + 1,
+    ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
     undefined,
   ]),
   bothBounds: faker.helpers.arrayElement([

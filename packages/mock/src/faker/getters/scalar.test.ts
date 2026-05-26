@@ -551,7 +551,7 @@ describe('getMockScalar (undefined filtering)', () => {
     expect(result.value).toBe('faker.string.alpha({length: {min: 0, max: 0}})');
   });
 
-  it('should include only max when only maxItems is specified', () => {
+  it('should clamp min to maxItems when only maxItems is specified and no global arrayMin is set', () => {
     const result = getMockScalar({
       ...baseArg,
       item: {
@@ -562,10 +562,12 @@ describe('getMockScalar (undefined filtering)', () => {
       },
     });
 
-    expect(result.value).toContain('faker.number.int({max: 5})');
+    // Without a global arrayMin to fall back to, reuse maxItems so the
+    // generated faker.number.int always has a bounded upper range.
+    expect(result.value).toContain('faker.number.int({min: 5, max: 5})');
   });
 
-  it('should include only min when only minItems is specified', () => {
+  it('should clamp max to minItems when only minItems is specified and no global arrayMax is set', () => {
     const result = getMockScalar({
       ...baseArg,
       item: {
@@ -576,7 +578,70 @@ describe('getMockScalar (undefined filtering)', () => {
       },
     });
 
-    expect(result.value).toContain('faker.number.int({min: 3})');
+    // Avoid relying on faker's internal default max which can produce
+    // huge arrays; reuse minItems instead.
+    expect(result.value).toContain('faker.number.int({min: 3, max: 3})');
+  });
+
+  it('should use global arrayMax when only minItems is specified and global arrayMax is not below minItems', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'array' as const,
+        minItems: 3,
+        name: 'test-item',
+        items: { type: 'string' },
+      },
+      mockOptions: { arrayMin: 1, arrayMax: 10 },
+    });
+
+    expect(result.value).toContain('faker.number.int({min: 3, max: 10})');
+  });
+
+  it('should clamp max to minItems when global arrayMax would be below minItems', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'array' as const,
+        minItems: 100,
+        name: 'test-item',
+        items: { type: 'string' },
+      },
+      mockOptions: { arrayMin: 1, arrayMax: 10 },
+    });
+
+    expect(result.value).toContain('faker.number.int({min: 100, max: 100})');
+  });
+
+  it('should use global arrayMin when only maxItems is specified and global arrayMin does not exceed maxItems', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'array' as const,
+        maxItems: 5,
+        name: 'test-item',
+        items: { type: 'string' },
+      },
+      mockOptions: { arrayMin: 1, arrayMax: 10 },
+    });
+
+    expect(result.value).toContain('faker.number.int({min: 1, max: 5})');
+  });
+
+  it('should omit length entirely when only one global string bound is configured and no schema bound is set', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        name: 'test-item',
+      },
+      mockOptions: { stringMin: 10 },
+    });
+
+    // faker.string.alpha's `length: { min, max }` requires both bounds. With
+    // only one global side configured we cannot build a valid pair, so fall
+    // back to faker's default length rather than emitting a one-sided object.
+    expect(result.value).toBe('faker.string.alpha()');
   });
 });
 
