@@ -10,9 +10,14 @@ import {
   parseZodValidationSchemaDefinition,
 } from '@orval/zod';
 
+// Mirror `@orval/core`'s `getRefInfo`: split the JSON pointer, URL-decode each
+// segment, and unescape RFC 6901 tokens (`~1` → `/`, `~0` → `~`). The zod
+// generator uses `getRefInfo(...).originalName` to derive the namedRef export
+// name, so we must follow the same rules here or the orchestrator's exported
+// names would diverge for refs containing escaped characters.
 const lastRefSegment = (ref: string): string => {
-  const segments = ref.split('/');
-  return segments[segments.length - 1] ?? '';
+  const raw = ref.split('/').pop() ?? '';
+  return decodeURIComponent(raw).replaceAll('~1', '/').replaceAll('~0', '~');
 };
 
 /**
@@ -118,8 +123,10 @@ export const collectReachableComponentRefs = (
     string,
     unknown
   >;
-  while (queue.length > 0) {
-    const currentRef = queue.shift() as string;
+  // Index-based queue iteration (not `shift()`) so the BFS is O(n) rather than
+  // O(n²). The queue is append-only — we never need to reclaim the head slot.
+  for (let i = 0; i < queue.length; i++) {
+    const currentRef = queue[i];
     const schemaName = currentRef.slice(COMPONENT_SCHEMAS_PREFIX.length);
     const targetSchema = componentSchemas[schemaName];
     if (targetSchema === undefined) continue;

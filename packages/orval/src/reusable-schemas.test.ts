@@ -3,10 +3,11 @@ import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 
 import {
   collectReachableComponentRefs,
+  computeLazyEdges,
+  generateReusableSchemaSet,
   resolveSchemaName,
   resolveSchemaNames,
-  generateReusableSchemaSet,
-  computeLazyEdges,
+  rewriteReusableSchemas,
 } from './reusable-schemas';
 import { createTestContextSpec } from '../../core/src/test-utils/context';
 
@@ -200,8 +201,6 @@ describe('computeLazyEdges', () => {
     expect(edges.size).toBeLessThan(5);
   });
 });
-
-import { rewriteReusableSchemas } from './reusable-schemas';
 
 describe('rewriteReusableSchemas', () => {
   it('replaces sentinels with direct names for a DAG', () => {
