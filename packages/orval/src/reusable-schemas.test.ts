@@ -20,17 +20,17 @@ describe('resolveSchemaName', () => {
     ).toBe('petOwner');
   });
 
-  it('respects PascalCase / kebab-case', () => {
+  it('respects PascalCase / snake_case', () => {
     expect(
       resolveSchemaName('#/components/schemas/pet_owner', 'PascalCase'),
     ).toBe('PetOwner');
     expect(
-      resolveSchemaName('#/components/schemas/PetOwner', 'kebab-case'),
-    ).toBe('pet-owner');
+      resolveSchemaName('#/components/schemas/PetOwner', 'snake_case'),
+    ).toBe('pet_owner');
   });
 });
 
-describe('resolveSchemaNames (conflict guard)', () => {
+describe('resolveSchemaNames (validation)', () => {
   it('returns a mapping when names are unique', () => {
     const result = resolveSchemaNames(
       ['#/components/schemas/Pet', '#/components/schemas/Owner'],
@@ -51,6 +51,12 @@ describe('resolveSchemaNames (conflict guard)', () => {
         'camelCase',
       ),
     ).toThrow(/Pet.*pet|pet.*Pet/);
+  });
+
+  it('throws when a converted name is not a valid JS identifier (kebab-case)', () => {
+    expect(() =>
+      resolveSchemaNames(['#/components/schemas/PetOwner'], 'kebab-case'),
+    ).toThrow(/not a valid JS identifier/);
   });
 });
 

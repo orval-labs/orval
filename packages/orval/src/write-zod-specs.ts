@@ -713,6 +713,7 @@ export async function writeZodSchemasFromVerbs(
                 | Record<string, { contentType?: string }>
                 | undefined)
             : undefined,
+          useReusableSchemas,
         )
       : generateZodValidationSchemaDefinition(
           schema,
@@ -722,6 +723,7 @@ export async function writeZodSchemasFromVerbs(
           isZodV4,
           {
             required: true,
+            useReusableSchemas,
           },
         );
 

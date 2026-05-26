@@ -1647,25 +1647,17 @@ export const parseParameters = ({
       return acc;
     }
 
-    // When useReusableSchemas is on, preserve $refs by using the raw parameter
-    // schema object (not fully dereferenced). When off, use dereference for
-    // backward compatibility. In both cases, splice in the parameter-level
-    // description (which overrides the schema-level one, matching original behaviour).
+    // When useReusableSchemas is on, preserve `$ref` schemas verbatim so the
+    // generator can take the namedRef path. We only shallow-clone to attach
+    // the parameter-level `description` without mutating the shared ref object.
+    // When off, fall back to dereferencing for backward compatibility.
     const schemaForGen: OpenApiSchemaObject | OpenApiReferenceObject =
       useReusableSchemas
-        ? (() => {
-            const raw = resolveRef<OpenApiSchemaObject>(
-              parameter.schema,
-              context,
-            ).schema;
-            // Merge in the parameter description without mutating the shared ref.
-            if (parameter.description) {
-              return Object.assign({}, raw, {
-                description: parameter.description,
-              }) as OpenApiSchemaObject;
-            }
-            return raw;
-          })()
+        ? parameter.description
+          ? Object.assign({}, parameter.schema, {
+              description: parameter.description,
+            })
+          : parameter.schema
         : (() => {
             const s = dereference(parameter.schema, context);
             s.description = parameter.description;
@@ -2065,8 +2057,9 @@ export const generateZod: ClientBuilder = async (verbOptions, options) => {
   return {
     implementation: implementation ? `${implementation}\n\n` : '',
     // Zod schemas are runtime values (not type-only), so mark with values: true
-    // to prevent the import writer from emitting `import type { ... }`.
-    imports: [...(usedRefs ?? [])].map((name) => ({
+    // to prevent the import writer from emitting `import type { ... }`. Sort
+    // by name so import order is stable across runs.
+    imports: [...(usedRefs ?? [])].sort().map((name) => ({
       name,
       schemaName: name,
       values: true,

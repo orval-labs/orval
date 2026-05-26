@@ -1003,6 +1003,7 @@ export default defineConfig({
           },
           generateEachHttpStatus: true,
           useBrandedTypes: true,
+          generateReusableSchemas: true,
         },
       },
     },
@@ -1049,6 +1050,21 @@ Configure Zod datetime/time validation options. `dateTimeOptions` defaults to `{
 **Default:** `false`
 
 Append [`.brand()`](https://zod.dev/api?id=branded-types) to generated Zod schemas using the schema name as the brand identifier. For array request/response bodies, only the top-level array wrapper schema is branded — the exported `*Item` helper schema is not branded.
+
+### generateReusableSchemas
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Emit one reusable Zod schema per OpenAPI `#/components/schemas/*` `$ref` instead of inlining. The exported name is the last `$ref` segment with `namingConvention` applied. Other schemas and operation files reference the export by name (cycles are wrapped in `zod.lazy(() => Name)` only on the edges that close them).
+
+Behavior:
+
+- When `schemas:` is configured (string or `{ type: 'zod' }`) and `client: 'zod'` is set, the schemas directory holds reusable Zod schemas instead of TypeScript types. Set `fileExtension` to disambiguate output if you keep both TS types and reusable Zod schemas in the same directory.
+- Operation files import the named exports — pure-`$ref` body/response wrappers (e.g. `PetCreateBody`) are skipped so consumers import the component schema directly.
+- `$ref` siblings: `nullable`, `default`, `description` chain onto the named ref (e.g. `Pet.nullable().describe(...)`). `properties`, `example`, and other non-chainable siblings fall back to inlining at that one site.
+- The `namingConvention` must produce valid JavaScript identifiers (`camelCase`, `PascalCase`, or `snake_case`). `kebab-case` is rejected with a clear error because it would emit dashed exports.
 
 ---
 
