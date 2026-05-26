@@ -9,12 +9,12 @@ import {
   EnumGeneration,
   escape,
   type GeneratorImport,
+  getRefInfo,
   isReference,
   isString,
   mergeDeep,
   type MockOptions,
   type OpenApiSchemaObject,
-  pascal,
 } from '@orval/core';
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
@@ -269,7 +269,7 @@ export function getMockScalar({
       if (
         itemsRef &&
         existingReferencedProperties.includes(
-          pascal(itemsRef.split('/').pop() ?? ''),
+          getRefInfo(itemsRef, context).name,
         )
       ) {
         return { value: '[]', imports: [], name: item.name };
