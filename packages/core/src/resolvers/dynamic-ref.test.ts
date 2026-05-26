@@ -623,6 +623,117 @@ describe('resolveDynamicRef', () => {
   });
 });
 
+describe('resolveDynamicRef — $dynamicAnchor fallback', () => {
+  it('falls back to $dynamicAnchor in another schema when not in scope', () => {
+    const spec = {
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          Pet: {
+            $dynamicAnchor: 'Pet',
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+          Lizard: {
+            type: 'object',
+            properties: {
+              playmates: {
+                type: 'array',
+                items: { $dynamicRef: '#Pet' },
+              },
+            },
+          },
+        },
+      },
+    } as OpenApiDocument;
+    const context = { ...createContext(spec), dynamicScope: {} };
+
+    const result = resolveDynamicRef('Pet', context);
+
+    expect(result.resolvedTypeName).toBe('Pet');
+    expect(result.schema).toMatchObject({
+      properties: { name: { type: 'string' } },
+    });
+    expect(result.imports[0]).toEqual({
+      name: 'Pet',
+      schemaName: 'Pet',
+    });
+  });
+
+  it('still returns unknown when no schema declares the anchor anywhere', () => {
+    const spec = {
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          Pet: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+        },
+      },
+    } as OpenApiDocument;
+    const context = { ...createContext(spec), dynamicScope: {} };
+
+    const result = resolveDynamicRef('Pet', context);
+
+    expect(result.resolvedTypeName).toBe('unknown');
+    expect(result.schema).toEqual({});
+  });
+
+  it('prefers local scope over fallback', () => {
+    const spec = {
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          Pet: {
+            $dynamicAnchor: 'Pet',
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+          Cat: {
+            $dynamicAnchor: 'Pet',
+            type: 'object',
+            properties: { meow: { type: 'boolean' } },
+          },
+        },
+      },
+    } as OpenApiDocument;
+    const context = {
+      ...createContext(spec),
+      dynamicScope: {
+        Pet: { name: 'Cat', schemaName: 'Cat' },
+      },
+    };
+
+    const result = resolveDynamicRef('Pet', context);
+
+    expect(result.resolvedTypeName).toBe('Cat');
+    expect(result.schema).toMatchObject({
+      properties: { meow: { type: 'boolean' } },
+    });
+  });
+
+  it('falls back when dynamicScope is undefined', () => {
+    const spec = {
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          Pet: {
+            $dynamicAnchor: 'Pet',
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+        },
+      },
+    } as OpenApiDocument;
+    const context = createContext(spec);
+
+    const result = resolveDynamicRef('Pet', context);
+
+    expect(result.resolvedTypeName).toBe('Pet');
+  });
+});
+
 describe('null safety in $defs entries', () => {
   it('buildDynamicScope skips null $defs entries without throwing', () => {
     const spec = {
