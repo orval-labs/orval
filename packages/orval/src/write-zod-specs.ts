@@ -325,7 +325,7 @@ function generateZodSchemasInlineReusable(
     .map((entry) => {
       const consts = entry.consts ? `${entry.consts}\n\n` : '';
       return (
-        `${consts}export const ${entry.name} = ${entry.zod}\n\n` +
+        `${consts}export const ${entry.name} = ${entry.zod};\n\n` +
         `export type ${entry.name} = zod.input<typeof ${entry.name}>;\n` +
         `export type ${entry.name}Output = zod.output<typeof ${entry.name}>;`
       );
@@ -487,7 +487,7 @@ async function writeZodSchemasReusable(
     const fileContent =
       `${header}import { z as zod } from 'zod';\n` +
       (imports ? `${imports}\n\n` : '\n') +
-      `${consts}export const ${entry.name} = ${entry.zod}\n\n` +
+      `${consts}export const ${entry.name} = ${entry.zod};\n\n` +
       `export type ${entry.name} = zod.input<typeof ${entry.name}>;\n` +
       `export type ${entry.name}Output = zod.output<typeof ${entry.name}>;\n`;
 

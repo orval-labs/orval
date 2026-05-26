@@ -142,6 +142,30 @@ src/gen/
     └── pets.ts
 ```
 
+## schemaFileExtension
+
+**Type:** `String`
+**Default:** `'.zod.ts'` when generating Zod schemas (`schemas: { type: 'zod' }` or `client: 'zod'` + [`generateReusableSchemas`](#generatereusableschemas)), otherwise the same as [`fileExtension`](#fileextension).
+
+Override the file extension for schema artifacts only — without affecting the global `fileExtension` (which still drives client output, mock files, etc.). Useful when you want client files at one extension and schema files at another:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'split',
+      client: 'zod',
+      target: './gen/endpoints',
+      schemas: './gen/model',
+      fileExtension: '.ts',
+      // Keep client files at .ts but emit reusable Zod schemas as .zod.ts:
+      schemaFileExtension: '.zod.ts',
+      override: { zod: { generateReusableSchemas: true } },
+    },
+  },
+});
+```
+
 ## namingConvention
 
 **Type:** `'camelCase' | 'PascalCase' | 'snake_case' | 'kebab-case'`
@@ -1061,7 +1085,7 @@ Emit one reusable Zod schema per OpenAPI `#/components/schemas/*` `$ref` instead
 
 Behavior:
 
-- When `schemas:` is configured (string or `{ type: 'zod' }`) and `client: 'zod'` is set, the schemas directory holds reusable Zod schemas instead of TypeScript types. Set `fileExtension` to disambiguate output if you keep both TS types and reusable Zod schemas in the same directory.
+- When `schemas:` is configured (string or `{ type: 'zod' }`) and `client: 'zod'` is set, the schemas directory holds reusable Zod schemas instead of TypeScript types. The schema files default to a `.zod.ts` extension; use [`schemaFileExtension`](#schemafileextension) to override it independently from the global [`fileExtension`](#fileextension) if you keep both TS types and reusable Zod schemas in the same directory.
 - Operation files import the named exports — pure-`$ref` body/response wrappers (e.g. `PetCreateBody`) are skipped so consumers import the component schema directly.
 - `$ref` siblings: `nullable`, `default`, `description` chain onto the named ref (e.g. `Pet.nullable().describe(...)`). `properties`, `example`, and other non-chainable siblings fall back to inlining at that one site.
 - The `namingConvention` must produce valid JavaScript identifiers (`camelCase`, `PascalCase`, or `snake_case`). `kebab-case` is rejected with a clear error because it would emit dashed exports.
