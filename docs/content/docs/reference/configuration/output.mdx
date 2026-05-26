@@ -1065,6 +1065,7 @@ Behavior:
 - Operation files import the named exports — pure-`$ref` body/response wrappers (e.g. `PetCreateBody`) are skipped so consumers import the component schema directly.
 - `$ref` siblings: `nullable`, `default`, `description` chain onto the named ref (e.g. `Pet.nullable().describe(...)`). `properties`, `example`, and other non-chainable siblings fall back to inlining at that one site.
 - The `namingConvention` must produce valid JavaScript identifiers (`camelCase`, `PascalCase`, or `snake_case`). `kebab-case` is rejected with a clear error because it would emit dashed exports.
+- **Trade-off — `readOnly` on shared component schemas:** without this flag, request bodies generated from `$ref` schemas strip `readOnly: true` properties so they don't appear in input validators. With this flag on, request and response endpoints share the same exported schema, so `readOnly` properties remain in body validators too. Either avoid `readOnly` on component schemas you share between requests and responses, or split into separate request/response schemas in the OpenAPI source.
 
 ---
 

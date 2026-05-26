@@ -90,10 +90,9 @@ const collectRefsInValue = (value: unknown, refs: Set<string>): void => {
   const record = value as Record<string, unknown>;
   if (isComponentSchemaRef(record.$ref)) {
     refs.add(record.$ref);
-    // Do not descend through a $ref; the BFS will follow it via components/schemas.
-    return;
   }
   for (const key of Object.keys(record)) {
+    if (key === '$ref') continue; // already added; don't descend into the string
     collectRefsInValue(record[key], refs);
   }
 };
@@ -216,13 +215,25 @@ const edgeKey = (from: string, to: string): string => `${from}->${to}`;
  * order (deepest SCC first). Self-loops form their own size-1 SCC; non-cyclic
  * nodes are size-1 SCCs without a self-loop.
  */
-const tarjan = (graph: Graph): string[][] => {
+interface TarjanResult {
+  /**
+   * SCCs in reverse topological order (deepest first). Within an SCC the
+   * nodes are in REVERSE DFS finish order — emit in this order and every
+   * non-lazy edge points to an already-emitted node, avoiding TDZ.
+   */
+  sccs: string[][];
+  /** Back-edges discovered during DFS, keyed as "from->to". Plus self-loops. */
+  lazyEdges: Set<string>;
+}
+
+const tarjan = (graph: Graph): TarjanResult => {
   let index = 0;
   const stack: string[] = [];
   const onStack = new Set<string>();
   const indices = new Map<string, number>();
   const lowlinks = new Map<string, number>();
   const sccs: string[][] = [];
+  const lazyEdges = new Set<string>();
 
   const strongconnect = (v: string): void => {
     indices.set(v, index);
@@ -233,10 +244,19 @@ const tarjan = (graph: Graph): string[][] => {
 
     const neighbors = graph.get(v) ?? new Set<string>();
     for (const w of neighbors) {
+      if (v === w) {
+        // Self-loop: always lazy.
+        lazyEdges.add(edgeKey(v, w));
+        continue;
+      }
       if (!indices.has(w)) {
         strongconnect(w);
         lowlinks.set(v, Math.min(lowlinks.get(v)!, lowlinks.get(w)!));
       } else if (onStack.has(w)) {
+        // Back-edge: w is an ancestor in the DFS tree. v and w belong to
+        // the same SCC and the edge v→w closes a cycle — emit it lazy so
+        // the runtime initializer doesn't read w in its TDZ.
+        lazyEdges.add(edgeKey(v, w));
         lowlinks.set(v, Math.min(lowlinks.get(v)!, indices.get(w)!));
       }
     }
@@ -260,89 +280,29 @@ const tarjan = (graph: Graph): string[][] => {
     }
   }
 
-  return sccs;
+  return { sccs, lazyEdges };
 };
 
 /**
- * For each non-trivial SCC (size > 1 OR contains a self-loop), run a DFS
- * restricted to the SCC and mark back-edges as lazy. Returns the set of
- * lazy edge keys formatted as "from->to". Cross-SCC edges are never lazy.
+ * Returns the set of lazy-emission edge keys ("from->to") for `graph`. Back-edges
+ * (edges from a node to an ancestor in the DFS tree) and self-loops are lazy.
+ * Cross-SCC edges and tree/forward edges within an SCC are not lazy.
  */
-export const computeLazyEdges = (graph: Graph): Set<string> => {
-  const lazy = new Set<string>();
-  const sccs = tarjan(graph);
-
-  for (const scc of sccs) {
-    const sccSet = new Set(scc);
-    const isSelfLoop =
-      scc.length === 1 && (graph.get(scc[0])?.has(scc[0]) ?? false);
-    const isNonTrivial = scc.length > 1 || isSelfLoop;
-    if (!isNonTrivial) continue;
-
-    if (isSelfLoop) {
-      lazy.add(edgeKey(scc[0], scc[0]));
-      continue;
-    }
-
-    const visited = new Set<string>();
-    const stackSet = new Set<string>();
-
-    const dfs = (node: string): void => {
-      visited.add(node);
-      stackSet.add(node);
-      const neighbors = graph.get(node) ?? new Set<string>();
-      for (const next of neighbors) {
-        if (!sccSet.has(next)) continue;
-        if (stackSet.has(next)) {
-          lazy.add(edgeKey(node, next));
-        } else if (!visited.has(next)) {
-          dfs(next);
-        }
-      }
-      stackSet.delete(node);
-    };
-
-    const start = [...scc].sort()[0];
-    dfs(start);
-
-    // Some nodes may not be reachable from `start` in the digraph; visit them too.
-    for (const node of scc) {
-      if (!visited.has(node)) dfs(node);
-    }
-  }
-
-  return lazy;
-};
+export const computeLazyEdges = (graph: Graph): Set<string> =>
+  tarjan(graph).lazyEdges;
 
 const SENTINEL_PATTERN = /__REF_([A-Za-z_$][A-Za-z0-9_$]*)__/g;
 
 /**
- * Topologically sort entries so that, within each SCC, the lex-smallest node
- * comes first. Across SCCs, dependencies come before dependents (reverse topo
- * order of SCCs from Tarjan).
- */
-const topoSortEntries = (
-  entries: readonly ReusableSchemaEntry[],
-  graph: Graph,
-): ReusableSchemaEntry[] => {
-  const byName = new Map(entries.map((e) => [e.name, e] as const));
-  const sccs = tarjan(graph); // already in reverse topo order
-  const out: ReusableSchemaEntry[] = [];
-  for (const scc of sccs) {
-    const sorted = [...scc].sort();
-    for (const name of sorted) {
-      const entry = byName.get(name);
-      if (entry !== undefined) out.push(entry);
-    }
-  }
-  return out;
-};
-
-/**
  * Replace every `__REF_<name>__` sentinel with either the bare identifier or
- * `zod.lazy(() => <name>)` based on whether the edge closes a cycle. Returns
- * the entries reordered into reverse topological order so direct references
- * resolve via JS const hoisting in single-file output.
+ * `zod.lazy(() => <name>)` based on whether the edge closes a cycle, then
+ * reorder entries so that every non-lazy reference is emitted AFTER its
+ * target. This avoids TDZ errors at module load.
+ *
+ * Both the lazy classification and the emit order come from a single Tarjan
+ * run, guaranteeing they agree: a non-lazy edge u→v means v is visited (and
+ * popped) before u in DFS, so v appears earlier in the SCC array → emitted
+ * before u → safe.
  */
 export const rewriteReusableSchemas = (
   entries: readonly ReusableSchemaEntry[],
@@ -359,18 +319,31 @@ export const rewriteReusableSchemas = (
     }
   }
 
-  const lazy = computeLazyEdges(graph);
+  const { sccs, lazyEdges } = tarjan(graph);
 
-  const rewritten = entries.map((entry) => {
-    const newZod = entry.zod.replace(
-      SENTINEL_PATTERN,
-      (_match, refName: string) => {
-        const isLazy = lazy.has(edgeKey(entry.name, refName));
-        return isLazy ? `zod.lazy(() => ${refName})` : refName;
-      },
-    );
-    return { ...entry, zod: newZod };
-  });
+  const rewritten = new Map(
+    entries.map((entry) => {
+      const newZod = entry.zod.replace(
+        SENTINEL_PATTERN,
+        (_match, refName: string) => {
+          const isLazy = lazyEdges.has(edgeKey(entry.name, refName));
+          return isLazy ? `zod.lazy(() => ${refName})` : refName;
+        },
+      );
+      return [entry.name, { ...entry, zod: newZod }] as const;
+    }),
+  );
 
-  return topoSortEntries(rewritten, graph);
+  // Tarjan returns SCCs in reverse topological order (deepest first) and
+  // within each SCC the nodes are popped in REVERSE DFS-finish order — i.e.
+  // descendants first, SCC root last. That's exactly the order we want to
+  // emit: every non-lazy edge points to an already-emitted node.
+  const out: ReusableSchemaEntry[] = [];
+  for (const scc of sccs) {
+    for (const name of scc) {
+      const entry = rewritten.get(name);
+      if (entry !== undefined) out.push(entry);
+    }
+  }
+  return out;
 };

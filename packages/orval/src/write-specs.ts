@@ -282,7 +282,12 @@ export async function writeSpecs(
       : output.schemas.path;
     const isZodSchemas =
       (!isString(output.schemas) && output.schemas.type === 'zod') ||
-      (output.client === 'zod' &&
+      // Auto-promote a string `schemas:` to the zod writer when client is zod
+      // and the reusable flag is on. We deliberately don't promote when the
+      // user explicitly set `{ type: 'typescript' }` — that signals intent
+      // to keep TS types, even alongside a zod client.
+      (isString(output.schemas) &&
+        output.client === 'zod' &&
         output.override.zod.generateReusableSchemas === true);
 
     if (isZodSchemas) {
