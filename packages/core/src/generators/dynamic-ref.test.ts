@@ -279,7 +279,7 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
       );
     });
 
-    it('leaves BaseFolder shortcuts unknown without explicit binding', () => {
+    it('resolves BaseFolder shortcuts to BaseResource via $dynamicAnchor fallback', () => {
       const schemas = nestedWorkspaceSpec.components!.schemas!;
       const result = generateSchemasDefinition(
         schemas,
@@ -289,7 +289,7 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
 
       const baseFolder = result.find((s) => s.name === 'BaseFolder');
       expect(baseFolder).toBeDefined();
-      expect(baseFolder!.model).toContain('unknown[]');
+      expect(baseFolder!.model).toContain('shortcuts: BaseResource[]');
     });
 
     it('resolves WorkspaceResource without unknown', () => {
@@ -468,7 +468,7 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
     expect(container!.model).toContain('unknown');
   });
 
-  it('falls back to unknown for non-participating schema without explicit binding', () => {
+  it('resolves $dynamicRef to schema with matching $dynamicAnchor via fallback', () => {
     const unboundDynamicRefSpec: OpenApiDocument = {
       openapi: '3.1.0',
       info: { title: 'Test', version: '0.1.0' },
@@ -499,7 +499,8 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
 
     const wrapper = result.find((s) => s.name === 'Wrapper');
     expect(wrapper).toBeDefined();
-    expect(wrapper!.model).toContain('unknown');
+    expect(wrapper!.model).toContain('User');
+    expect(wrapper!.model).not.toContain('unknown');
   });
 
   it('resolves $ref schema without dynamic bindings', () => {
