@@ -32,50 +32,66 @@ const createMcpServer = (options?: RequestInit) => {
     version: '1.0.0',
   });
 
-  server.tool(
+  server.registerTool(
     'listPets',
-    'List all pets',
     {
-      queryParams: ListPetsQueryParams,
+      description: 'List all pets',
+      inputSchema: {
+        queryParams: ListPetsQueryParams,
+      },
     },
     (args) => listPetsHandler(args, options),
   );
 
-  server.tool(
+  server.registerTool(
     'createPets',
-    'Create a pet',
     {
-      queryParams: CreatePetsQueryParams,
-      bodyParams: CreatePetsBody,
+      description: 'Create a pet',
+      inputSchema: {
+        queryParams: CreatePetsQueryParams,
+        bodyParams: CreatePetsBody,
+      },
     },
     (args) => createPetsHandler(args, options),
   );
 
-  server.tool(
+  server.registerTool(
     'showPetById',
-    'Info for a specific pet',
     {
-      pathParams: ShowPetByIdParams,
+      description: 'Info for a specific pet',
+      inputSchema: {
+        pathParams: ShowPetByIdParams,
+      },
     },
     (args) => showPetByIdHandler(args, options),
   );
 
-  server.tool(
+  server.registerTool(
     'deletePetById',
-    'Deletes a specific pet',
     {
-      pathParams: DeletePetByIdParams,
+      description: 'Deletes a specific pet',
+      inputSchema: {
+        pathParams: DeletePetByIdParams,
+      },
     },
     (args) => deletePetByIdHandler(args, options),
   );
 
-  server.tool('healthCheck', 'health check', () => healthCheckHandler(options));
-
-  server.tool(
-    'showPetWithOwner',
-    'combinate nullable and $ref',
+  server.registerTool(
+    'healthCheck',
     {
-      pathParams: ShowPetWithOwnerParams,
+      description: 'health check',
+    },
+    () => healthCheckHandler(options),
+  );
+
+  server.registerTool(
+    'showPetWithOwner',
+    {
+      description: 'combinate nullable and $ref',
+      inputSchema: {
+        pathParams: ShowPetWithOwnerParams,
+      },
     },
     (args) => showPetWithOwnerHandler(args, options),
   );

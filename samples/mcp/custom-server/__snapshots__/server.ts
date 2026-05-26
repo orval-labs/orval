@@ -51,101 +51,129 @@ const createMcpServer = (options?: RequestInit) => {
     version: '1.0.0',
   });
 
-  server.tool(
+  server.registerTool(
     'findPetsByStatus',
-    'Finds Pets by status.',
     {
-      queryParams: FindPetsByStatusQueryParams,
+      description: 'Finds Pets by status.',
+      inputSchema: {
+        queryParams: FindPetsByStatusQueryParams,
+      },
     },
     (args) => findPetsByStatusHandler(args, options),
   );
 
-  server.tool(
+  server.registerTool(
     'findPetsByTags',
-    'Finds Pets by tags.',
     {
-      queryParams: FindPetsByTagsQueryParams,
+      description: 'Finds Pets by tags.',
+      inputSchema: {
+        queryParams: FindPetsByTagsQueryParams,
+      },
     },
     (args) => findPetsByTagsHandler(args, options),
   );
 
-  server.tool(
+  server.registerTool(
     'getPetById',
-    'Find pet by ID.',
     {
-      pathParams: GetPetByIdParams,
+      description: 'Find pet by ID.',
+      inputSchema: {
+        pathParams: GetPetByIdParams,
+      },
     },
     (args) => getPetByIdHandler(args, options),
   );
 
-  server.tool(
+  server.registerTool(
     'updatePetWithForm',
-    'Updates a pet in the store with form data.',
     {
-      pathParams: UpdatePetWithFormParams,
-      queryParams: UpdatePetWithFormQueryParams,
+      description: 'Updates a pet in the store with form data.',
+      inputSchema: {
+        pathParams: UpdatePetWithFormParams,
+        queryParams: UpdatePetWithFormQueryParams,
+      },
     },
     (args) => updatePetWithFormHandler(args, options),
   );
 
-  server.tool(
+  server.registerTool(
     'deletePet',
-    'Deletes a pet.',
     {
-      pathParams: DeletePetParams,
+      description: 'Deletes a pet.',
+      inputSchema: {
+        pathParams: DeletePetParams,
+      },
     },
     (args) => deletePetHandler(args, options),
   );
 
-  server.tool('getInventory', 'Returns pet inventories by status.', () =>
-    getInventoryHandler(options),
+  server.registerTool(
+    'getInventory',
+    {
+      description: 'Returns pet inventories by status.',
+    },
+    () => getInventoryHandler(options),
   );
 
-  server.tool(
+  server.registerTool(
     'getOrderById',
-    'Find purchase order by ID.',
     {
-      pathParams: GetOrderByIdParams,
+      description: 'Find purchase order by ID.',
+      inputSchema: {
+        pathParams: GetOrderByIdParams,
+      },
     },
     (args) => getOrderByIdHandler(args, options),
   );
 
-  server.tool(
+  server.registerTool(
     'deleteOrder',
-    'Delete purchase order by identifier.',
     {
-      pathParams: DeleteOrderParams,
+      description: 'Delete purchase order by identifier.',
+      inputSchema: {
+        pathParams: DeleteOrderParams,
+      },
     },
     (args) => deleteOrderHandler(args, options),
   );
 
-  server.tool(
+  server.registerTool(
     'loginUser',
-    'Logs user into the system.',
     {
-      queryParams: LoginUserQueryParams,
+      description: 'Logs user into the system.',
+      inputSchema: {
+        queryParams: LoginUserQueryParams,
+      },
     },
     (args) => loginUserHandler(args, options),
   );
 
-  server.tool('logoutUser', 'Logs out current logged in user session.', () =>
-    logoutUserHandler(options),
+  server.registerTool(
+    'logoutUser',
+    {
+      description: 'Logs out current logged in user session.',
+    },
+    () => logoutUserHandler(options),
   );
 
-  server.tool(
+  server.registerTool(
     'getUserByName',
-    'Get user by user name.',
     {
-      pathParams: GetUserByNameParams,
+      description: 'Get user by user name.',
+      inputSchema: {
+        pathParams: GetUserByNameParams,
+      },
     },
     (args) => getUserByNameHandler(args, options),
   );
 
-  server.tool(
+  server.registerTool(
     'deleteUser',
-    'Delete user resource.',
     {
-      pathParams: DeleteUserParams,
+      description: 'Delete user resource.',
+      inputSchema: {
+        pathParams: DeleteUserParams,
+      },
     },
     (args) => deleteUserHandler(args, options),
   );

@@ -444,7 +444,33 @@ export function resolveDynamicRef(
   resolvedTypeName: string;
 } {
   const scope = context.dynamicScope ?? {};
-  const scopeEntry = scope[anchorName];
+  let scopeEntry = scope[anchorName];
+
+  if (!scopeEntry) {
+    const schemas = (
+      (context.spec as Record<string, unknown>).components as
+        | Record<string, unknown>
+        | undefined
+    )?.schemas as Record<string, unknown> | undefined;
+
+    if (schemas && typeof schemas === 'object') {
+      for (const [schemaName, schemaObj] of Object.entries(schemas)) {
+        if (!schemaObj || typeof schemaObj !== 'object') continue;
+        const rec = schemaObj as Record<string, unknown>;
+        if (rec.$dynamicAnchor === anchorName) {
+          const refInfo = getRefInfo(
+            `#/components/schemas/${encodeJsonPointerSegment(schemaName)}`,
+            context,
+          );
+          scopeEntry = {
+            name: refInfo.name,
+            schemaName: refInfo.originalName,
+          };
+          break;
+        }
+      }
+    }
+  }
 
   if (!scopeEntry) {
     return {
