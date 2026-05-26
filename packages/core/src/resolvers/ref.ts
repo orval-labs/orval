@@ -454,20 +454,23 @@ export function resolveDynamicRef(
     )?.schemas as Record<string, unknown> | undefined;
 
     if (schemas && typeof schemas === 'object') {
+      const matches: string[] = [];
       for (const [schemaName, schemaObj] of Object.entries(schemas)) {
         if (!schemaObj || typeof schemaObj !== 'object') continue;
         const rec = schemaObj as Record<string, unknown>;
         if (rec.$dynamicAnchor === anchorName) {
-          const refInfo = getRefInfo(
-            `#/components/schemas/${encodeJsonPointerSegment(schemaName)}`,
-            context,
-          );
-          scopeEntry = {
-            name: refInfo.name,
-            schemaName: refInfo.originalName,
-          };
-          break;
+          matches.push(schemaName);
         }
+      }
+      if (matches.length === 1) {
+        const refInfo = getRefInfo(
+          `#/components/schemas/${encodeJsonPointerSegment(matches[0])}`,
+          context,
+        );
+        scopeEntry = {
+          name: refInfo.name,
+          schemaName: refInfo.originalName,
+        };
       }
     }
   }

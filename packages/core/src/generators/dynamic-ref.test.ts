@@ -279,7 +279,7 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
       );
     });
 
-    it('resolves BaseFolder shortcuts to BaseResource via $dynamicAnchor fallback', () => {
+    it('resolves BaseFolder shortcuts as unknown when anchor is ambiguous', () => {
       const schemas = nestedWorkspaceSpec.components!.schemas!;
       const result = generateSchemasDefinition(
         schemas,
@@ -289,7 +289,7 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
 
       const baseFolder = result.find((s) => s.name === 'BaseFolder');
       expect(baseFolder).toBeDefined();
-      expect(baseFolder!.model).toContain('shortcuts: BaseResource[]');
+      expect(baseFolder!.model).toContain('unknown[]');
     });
 
     it('resolves WorkspaceResource without unknown', () => {
@@ -501,6 +501,47 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
     expect(wrapper).toBeDefined();
     expect(wrapper!.model).toContain('User');
     expect(wrapper!.model).not.toContain('unknown');
+  });
+
+  it('falls back to unknown when multiple schemas declare the same $dynamicAnchor', () => {
+    const ambiguousSpec: OpenApiDocument = {
+      openapi: '3.1.0',
+      info: { title: 'Test', version: '0.1.0' },
+      paths: {},
+      components: {
+        schemas: {
+          Container: {
+            type: 'object',
+            properties: {
+              item: { $dynamicRef: '#thing' },
+            },
+          },
+          Alpha: {
+            $dynamicAnchor: 'thing',
+            type: 'object',
+            properties: { id: { type: 'string' } },
+          },
+          Beta: {
+            $dynamicAnchor: 'thing',
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+        },
+      },
+    };
+
+    const schemas = ambiguousSpec.components!.schemas!;
+    const result = generateSchemasDefinition(
+      schemas,
+      createContext(ambiguousSpec),
+      '',
+    );
+
+    const container = result.find((s) => s.name === 'Container');
+    expect(container).toBeDefined();
+    expect(container!.model).toContain('unknown');
+    expect(container!.model).not.toContain('Alpha');
+    expect(container!.model).not.toContain('Beta');
   });
 
   it('resolves $ref schema without dynamic bindings', () => {
