@@ -267,6 +267,7 @@ export async function normalizeOptions(
     shouldExportMutatorHooks: true,
     shouldExportHttpClient: true,
     shouldExportQueryKey: true,
+    shouldFilterQueryKey: false,
     shouldSplitQueryKey: false,
     ...normalizeQueryOptions(outputOptions.override?.query, workspace),
   };
@@ -1073,6 +1074,14 @@ function normalizeQueryOptions(
     ...(isNullish(queryOptions.shouldExportQueryKey)
       ? {}
       : { shouldExportQueryKey: queryOptions.shouldExportQueryKey }),
+    ...(isNullish(globalOptions.shouldFilterQueryKey)
+      ? {}
+      : {
+          shouldFilterQueryKey: globalOptions.shouldFilterQueryKey,
+        }),
+    ...(isNullish(queryOptions.shouldFilterQueryKey)
+      ? {}
+      : { shouldFilterQueryKey: queryOptions.shouldFilterQueryKey }),
     ...(isNullish(globalOptions.shouldExportHttpClient)
       ? {}
       : {
