@@ -354,6 +354,34 @@ test('default issue-1935 resolves a $ref chain across three external files', asy
   expect(userProjectDTO).toContain('export type UserProjectDTO = UserProject;');
 });
 
+test('default issue-2206 types the MSW handler info parameter', async () => {
+  // Regression for #2206: generated MSW handlers used to emit
+  // `async (info) => { ... }` with no annotation on `info`, which trips
+  // `TS7006: Parameter 'info' implicitly has an 'any' type` under
+  // `noImplicitAny`. PR #2939 (v8.4.0) fixed this by annotating the inner
+  // handler callback, but #2939 only cited #2934 so #2206 stayed open. Keep
+  // this focused assertion alongside the snapshot so #2206 fails with a
+  // targeted message instead of a full-file snapshot diff.
+  const msw = await readFile(
+    generated('default', 'issue-2206-msw-info-typing', 'endpoints.msw.ts'),
+    'utf8',
+  );
+
+  // The inner handler callback must annotate `info` with some type so
+  // projects with `noImplicitAny` compile cleanly. Match the annotation
+  // shape rather than the exact type expression so refactors that extract
+  // a type alias or tweak whitespace don't trip this test unless the
+  // annotation itself is dropped. Current generator emits
+  //   async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => { ... }
+  expect(msw).toMatch(/async\s*\(\s*info\s*:\s*\S/);
+
+  // Explicit `any` would still satisfy `noImplicitAny` but defeats the fix.
+  expect(msw).not.toMatch(/async\s*\(\s*info\s*:\s*any\b/);
+
+  // No callback that takes `info` without a type (the original #2206 shape).
+  expect(msw).not.toMatch(/async\s*\(\s*info\s*[,)]/);
+});
+
 test('react-query issue-1522 passes the enabled option into the queryOptions mutator', async () => {
   // Regression for #1522: when `allParamsOptional` and a custom `queryOptions`
   // mutator are combined, the auto-generated `enabled` guard (which disables
