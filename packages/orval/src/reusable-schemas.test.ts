@@ -257,6 +257,8 @@ describe('rewriteReusableSchemas', () => {
     expect(pet?.zod).toBe('zod.object({ owner: owner })');
     // Topological order: owner emitted before pet.
     expect(result.map((e) => e.name)).toEqual(['owner', 'pet']);
+    // Acyclic schemas are not flagged recursive.
+    expect(result.every((e) => e.isRecursive !== true)).toBe(true);
   });
 
   it('wraps cycle edges in z.lazy(() => Name)', () => {
@@ -283,6 +285,10 @@ describe('rewriteReusableSchemas', () => {
       s?.includes('zod.lazy'),
     ).length;
     expect(lazyCount).toBe(1);
+    // Both members of the cycle are flagged recursive so the writer pins each
+    // to `zod.ZodType<Name>` (the const-level fix for TS7022).
+    expect(a?.isRecursive).toBe(true);
+    expect(b?.isRecursive).toBe(true);
   });
 
   it('wraps self-loops in z.lazy', () => {
@@ -297,5 +303,7 @@ describe('rewriteReusableSchemas', () => {
     ];
     const result = rewriteReusableSchemas(entries);
     expect(result[0].zod).toBe('zod.object({ child: zod.lazy(() => node) })');
+    // Self-loop ⇒ recursive; the writer annotates `const node: zod.ZodType<node>`.
+    expect(result[0].isRecursive).toBe(true);
   });
 });

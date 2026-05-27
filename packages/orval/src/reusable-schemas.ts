@@ -122,6 +122,15 @@ export interface ReusableSchemaEntry {
   zod: string;
   consts: string;
   usedRefs: Set<string>;
+  /**
+   * True when this schema references itself directly or transitively (its node
+   * sits in a cycle: an SCC of size > 1, or a self-loop). Such a schema is
+   * emitted as a recursive `const` that reads its own binding inside its
+   * initializer, so the writer must give it an explicit type annotation
+   * (`const X: zod.ZodType<X>`) to avoid TS7022. Set by
+   * {@link rewriteReusableSchemas}; `undefined`/`false` for acyclic schemas.
+   */
+  isRecursive?: boolean;
 }
 
 export interface GenerateReusableSchemaSetOptions {
@@ -307,6 +316,15 @@ export const rewriteSentinelsToDirect = (zod: string): string =>
  * reorder entries so that every non-lazy reference is emitted AFTER its
  * target. This avoids TDZ errors at module load.
  *
+ * Entries that sit in a cycle (SCC of size > 1, or a self-loop) are flagged
+ * `isRecursive`. Their generated `const` reads its own binding inside the
+ * initializer (through the `zod.lazy` wrapper), which TypeScript rejects with
+ * TS7022 ("'X' implicitly has type 'any' ... referenced directly or indirectly
+ * in its own initializer") unless the `const` carries an explicit type
+ * annotation. The writer (`write-zod-specs`) supplies that annotation —
+ * `const X: zod.ZodType<X>` — backed by a generated TS type, which both
+ * silences TS7022 and preserves full `z.infer` typing through the recursion.
+ *
  * Both the lazy classification and the emit order come from a single Tarjan
  * run, guaranteeing they agree: a non-lazy edge u→v means v is visited (and
  * popped) before u in DFS, so v appears earlier in the SCC array → emitted
@@ -329,6 +347,17 @@ export const rewriteReusableSchemas = (
 
   const { sccs, lazyEdges } = tarjan(graph);
 
+  // A node is recursive iff it sits in a cycle: either an SCC with more than
+  // one member (mutual recursion), or a single-node SCC that has a self-loop.
+  const recursiveNames = new Set<string>();
+  for (const scc of sccs) {
+    if (scc.length > 1) {
+      for (const name of scc) recursiveNames.add(name);
+    } else if (lazyEdges.has(edgeKey(scc[0], scc[0]))) {
+      recursiveNames.add(scc[0]);
+    }
+  }
+
   const rewritten = new Map(
     entries.map((entry) => {
       const newZod = entry.zod.replaceAll(
@@ -338,7 +367,10 @@ export const rewriteReusableSchemas = (
           return isLazy ? `zod.lazy(() => ${refName})` : refName;
         },
       );
-      return [entry.name, { ...entry, zod: newZod }] as const;
+      return [
+        entry.name,
+        { ...entry, zod: newZod, isRecursive: recursiveNames.has(entry.name) },
+      ] as const;
     }),
   );
 
