@@ -447,17 +447,22 @@ async function writeZodSchemasReusable(
     output: output as ContextSpec['output'],
   };
 
-  // Roots = every component schema in the builder list. This matches today's
-  // writeZodSchemas behavior of emitting all of them (the `schemas: { type: 'zod' }`
-  // path passes the full schema list in via builder.schemas).
-  const refs = builder.schemas
-    .map(({ name }) => `#/components/schemas/${name}`)
-    .filter((ref) => {
-      const schemaName = ref.slice('#/components/schemas/'.length);
-      const componentSchemas = (builder.spec.components?.schemas ??
-        {}) as Record<string, unknown>;
-      return componentSchemas[schemaName] !== undefined;
-    });
+  // Roots = every component schema, keyed by its RAW OpenAPI name taken
+  // straight from `spec.components.schemas`. We must NOT derive these from
+  // `builder.schemas`, whose `name` is the sanitized model identifier (e.g.
+  // `PaginatedResponse_Asset_` becomes `PaginatedResponseAsset`): operation
+  // files reference component schemas by `resolveSchemaName(<raw $ref>)`, so
+  // building roots from sanitized names and then filtering them against the
+  // raw-keyed `components.schemas` silently dropped every schema whose name
+  // needs sanitizing. Those schemas were never emitted, yet the operation
+  // files still imported them — producing dangling imports that don't compile.
+  const componentSchemas = (builder.spec.components?.schemas ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const refs = Object.keys(componentSchemas).map(
+    (schemaName) => `#/components/schemas/${schemaName}`,
+  );
 
   // Conflict guard.
   resolveSchemaNames(refs, output.namingConvention);
