@@ -334,7 +334,9 @@ describe('generateSpec - generateReusableSchemas inline (pure-$ref operations)',
       // ...the operation wrapper is a pure-$ref alias (no `zod.` usage)...
       expect(content).toContain('export const GetThingResponse = Thing');
       // ...and exactly one zod import is present (the bug emitted zero).
-      expect(content.match(/from 'zod'/g) ?? []).toHaveLength(1);
+      // Match either quote style so the assertion survives generator quote
+      // changes while still asserting a single `zod` module import.
+      expect(content.match(/from ['"]zod['"]/g) ?? []).toHaveLength(1);
       expect(content).not.toContain('__REF_');
     } finally {
       await rm(workspace, { recursive: true, force: true });
