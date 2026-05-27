@@ -5,7 +5,6 @@ import {
   type ClientBuilder,
   type ClientGeneratorsBuilder,
   type ContextSpec,
-  conventionName,
   escape,
   generateMutator,
   type GeneratorDependency,
@@ -240,10 +239,11 @@ export const generateZodValidationSchemaDefinition = (
     const allSiblingsChainable = siblings.every((k) => isChainable(k));
 
     if (allSiblingsChainable) {
-      const refName = conventionName(
-        getRefInfo(schema.$ref, context).originalName,
-        context.output.namingConvention,
-      );
+      // Use the same identifier orval emits for the TS model type
+      // (`pascal` + sanitize + suffix) so reusable schema exports are
+      // consistent with operation wrappers and component types.
+      // `namingConvention` governs file names only, not identifiers.
+      const refName = getRefInfo(schema.$ref, context).name;
       const functions: [string, unknown][] = [
         ['namedRef', { name: refName, sourceRef: schema.$ref }],
       ];

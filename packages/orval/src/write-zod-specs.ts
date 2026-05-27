@@ -122,6 +122,10 @@ interface WriteZodSchemasFromVerbsContext {
 function generateZodSchemaFileContent(
   header: string,
   schemas: ZodSchemaFileEntry[],
+  // Omit the `import { z as zod }` line when the content is concatenated into a
+  // file that already imports zod (e.g. inline single-mode output, where the
+  // zod client already emits `import * as zod from 'zod'`).
+  includeZodImport = true,
 ): string {
   // Group the zod import with any reusable-schema imports (deduped across the
   // usually-single entries written to this file), then separate that block
@@ -129,9 +133,10 @@ function generateZodSchemaFileContent(
   const refImports = [
     ...new Set(schemas.flatMap((s) => s.importStatements ?? [])),
   ].toSorted();
-  const importBlock = [`import { z as zod } from 'zod';`, ...refImports].join(
-    '\n',
-  );
+  const importBlock = [
+    ...(includeZodImport ? [`import { z as zod } from 'zod';`] : []),
+    ...refImports,
+  ].join('\n');
 
   const schemaContent = schemas
     .map(({ schemaName, consts, zodExpression }) => {
@@ -144,7 +149,8 @@ export type ${schemaName}Output = zod.output<typeof ${schemaName}>;`;
     })
     .join('\n\n');
 
-  return `${header}${importBlock}\n\n${schemaContent}\n`;
+  const separator = importBlock ? `${importBlock}\n\n` : '';
+  return `${header}${separator}${schemaContent}\n`;
 }
 
 const isValidSchemaIdentifier = (name: string) =>
@@ -234,12 +240,13 @@ async function writeZodSchemaIndex(
 export function generateZodSchemasInline(
   builder: WriteZodSchemasInput,
   output: WriteZodOutputOptions,
+  includeZodImport = true,
 ): string {
   const useReusableSchemas =
     output.override.zod.generateReusableSchemas === true;
 
   if (useReusableSchemas) {
-    return generateZodSchemasInlineReusable(builder, output);
+    return generateZodSchemasInlineReusable(builder, output, includeZodImport);
   }
 
   const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
@@ -297,12 +304,13 @@ export function generateZodSchemasInline(
     return '';
   }
 
-  return generateZodSchemaFileContent('', schemas);
+  return generateZodSchemaFileContent('', schemas, includeZodImport);
 }
 
 function generateZodSchemasInlineReusable(
   builder: WriteZodSchemasInput,
   output: WriteZodOutputOptions,
+  includeZodImport = true,
 ): string {
   const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
   if (schemasWithOpenApiDef.length === 0) return '';
@@ -321,7 +329,7 @@ function generateZodSchemasInlineReusable(
     ({ name }) => `#/components/schemas/${name}`,
   );
 
-  resolveSchemaNames(refs, output.namingConvention);
+  resolveSchemaNames(refs, context);
 
   const entries = generateReusableSchemaSet(refs, context, {
     strict,
@@ -342,7 +350,10 @@ function generateZodSchemasInlineReusable(
     })
     .join('\n\n');
 
-  return `import { z as zod } from 'zod';\n\n${body}\n`;
+  // Omit the zod import when concatenated into a file that already imports it
+  // (inline single-mode output where the zod client emits `import * as zod`).
+  const prefix = includeZodImport ? `import { z as zod } from 'zod';\n\n` : '';
+  return `${prefix}${body}\n`;
 }
 
 export async function writeZodSchemas(
@@ -475,7 +486,7 @@ async function writeZodSchemasReusable(
   );
 
   // Conflict guard.
-  resolveSchemaNames(refs, output.namingConvention);
+  resolveSchemaNames(refs, context);
 
   const entries = generateReusableSchemaSet(refs, context, {
     strict,

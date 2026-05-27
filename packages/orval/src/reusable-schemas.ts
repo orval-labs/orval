@@ -1,64 +1,44 @@
 import type { ContextSpec, ZodCoerceType } from '@orval/core';
-import { conventionName, type NamingConvention } from '@orval/core';
+import { getRefInfo } from '@orval/core';
 import {
   generateZodValidationSchemaDefinition,
   parseZodValidationSchemaDefinition,
 } from '@orval/zod';
 import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 
-// Mirror `@orval/core`'s `getRefInfo`: split the JSON pointer, URL-decode each
-// segment, and unescape RFC 6901 tokens (`~1` → `/`, `~0` → `~`). The zod
-// generator uses `getRefInfo(...).originalName` to derive the namedRef export
-// name, so we must follow the same rules here or the orchestrator's exported
-// names would diverge for refs containing escaped characters.
-const lastRefSegment = (ref: string): string => {
-  const raw = ref.split('/').pop() ?? '';
-  return decodeURIComponent(raw).replaceAll('~1', '/').replaceAll('~0', '~');
-};
-
 /**
- * Convert a single `#/components/schemas/X` ref into the export name we will
- * emit for it: the last `$ref` segment with `namingConvention` applied.
+ * Resolve the export identifier for a `#/components/schemas/X` ref. We reuse
+ * `@orval/core`'s `getRefInfo(...).name` (`pascal` + sanitize + component
+ * suffix) so reusable zod schema exports match the operation wrappers and the
+ * TS model types exactly. `namingConvention` deliberately does NOT influence
+ * the identifier — it governs file names only, consistent with the rest of
+ * orval. The same call powers the generator's `namedRef` emission, so the
+ * definition name and every reference stay in sync.
  */
-export const resolveSchemaName = (
-  ref: string,
-  namingConvention: NamingConvention,
-): string => conventionName(lastRefSegment(ref), namingConvention);
-
-// JavaScript identifier (loose): start with letter/_/$, continue with word chars.
-// Reusable schema names are emitted as `export const <name> = ...`, so they
-// must be valid identifiers regardless of naming convention.
-const JS_IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+export const resolveSchemaName = (ref: string, context: ContextSpec): string =>
+  getRefInfo(ref, context).name;
 
 /**
- * Resolve names for a set of refs, throwing on conflicts or on names that
- * aren't valid JS identifiers (e.g. `kebab-case` produces dashes). The mapping
- * is the single source of truth for cross-schema references — the generator,
- * the orchestrator's graph, and the sentinel rewriter all consult it.
+ * Resolve names for a set of refs, throwing on conflicts (two distinct refs
+ * collapsing to the same identifier). The mapping is the single source of
+ * truth for cross-schema references — the generator, the orchestrator's graph,
+ * and the sentinel rewriter all consult it.
  */
 export const resolveSchemaNames = (
   refs: readonly string[],
-  namingConvention: NamingConvention,
+  context: ContextSpec,
 ): Map<string, string> => {
   const resolved = new Map<string, string>();
   const reverse = new Map<string, string>();
 
   for (const ref of refs) {
-    const name = resolveSchemaName(ref, namingConvention);
-    if (!JS_IDENTIFIER_PATTERN.test(name)) {
-      throw new Error(
-        `[orval/zod] generateReusableSchemas: ref ${ref} converts to "${name}" ` +
-          `under namingConvention=${namingConvention}, which is not a valid JS ` +
-          `identifier. Use camelCase, PascalCase, or snake_case for the project's ` +
-          `namingConvention when this flag is enabled.`,
-      );
-    }
+    const name = resolveSchemaName(ref, context);
     const previous = reverse.get(name);
     if (previous !== undefined && previous !== ref) {
       throw new Error(
         `[orval/zod] generateReusableSchemas: refs ${previous} and ${ref} ` +
-          `both convert to "${name}" under namingConvention=${namingConvention}. ` +
-          `Rename one in the OpenAPI source or change the convention.`,
+          `both resolve to the export name "${name}". ` +
+          `Rename one in the OpenAPI source.`,
       );
     }
     resolved.set(ref, name);
@@ -170,7 +150,7 @@ export const generateReusableSchemaSet = (
   const nameToRef = new Map<string, string>();
   for (const schemaName of Object.keys(componentSchemas)) {
     const ref = `#/components/schemas/${schemaName}`;
-    nameToRef.set(resolveSchemaName(ref, context.output.namingConvention), ref);
+    nameToRef.set(resolveSchemaName(ref, context), ref);
   }
 
   // Expand to the transitive closure of component-schema refs reachable from
@@ -186,7 +166,7 @@ export const generateReusableSchemaSet = (
     const schema = componentSchemas[schemaName];
     if (!schema) continue;
 
-    const name = resolveSchemaName(ref, context.output.namingConvention);
+    const name = resolveSchemaName(ref, context);
 
     const definition = generateZodValidationSchemaDefinition(
       schema,

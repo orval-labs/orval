@@ -6,7 +6,7 @@
  */
 import * as zod from 'zod';
 
-import { pet } from '../../models';
+import { Pet } from '../../models';
 
 /**
  * @summary List all pets
@@ -18,7 +18,7 @@ export const ListPetsQueryParams = zod.object({
     .describe('How many items to return at one time (max 100)'),
 });
 
-export const ListPetsResponseItem = pet;
+export const ListPetsResponseItem = Pet;
 export const ListPetsResponse = zod.array(ListPetsResponseItem);
 
 /**
@@ -30,14 +30,14 @@ export const CreatePetsBodyItem = zod.object({
 });
 export const CreatePetsBody = zod.array(CreatePetsBodyItem);
 
-export const CreatePetsResponse = pet;
+export const CreatePetsResponse = Pet;
 
 /**
  * @summary Update a pet
  */
-export const UpdatePetsBody = pet;
+export const UpdatePetsBody = Pet;
 
-export const UpdatePetsResponse = pet;
+export const UpdatePetsResponse = Pet;
 
 /**
  * @summary Info for a specific pet
@@ -46,4 +46,4 @@ export const ShowPetByIdParams = zod.object({
   petId: zod.string().describe('The id of the pet to retrieve'),
 });
 
-export const ShowPetByIdResponse = pet;
+export const ShowPetByIdResponse = Pet;

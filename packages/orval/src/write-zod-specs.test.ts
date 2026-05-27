@@ -512,8 +512,8 @@ describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
     } as never;
 
     const options = createOutputOptions();
-    // createOutputOptions() uses PascalCase; force camelCase so the export
-    // name (`petStatus`) and file (`petStatus.ts`) match the issue repro.
+    // camelCase namingConvention → file names are camelCased (`petStatus.ts`),
+    // but the exported identifier is always PascalCase (`PetStatus`).
     (options as { namingConvention: string }).namingConvention = 'camelCase';
     (options.override.zod as Record<string, unknown>).generateReusableSchemas =
       true;
@@ -552,11 +552,11 @@ describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
       'utf8',
     );
 
-    // Sentinel resolved to the bare identifier...
+    // Sentinel resolved to the bare PascalCase identifier...
     expect(content).not.toContain('__REF_');
-    expect(content).toContain('petStatus');
-    // ...and the matching import is emitted.
-    expect(content).toContain("import { petStatus } from './petStatus';");
+    expect(content).toContain('zod.union([PetStatus,');
+    // ...and the matching import is emitted (PascalCase symbol, camelCase file).
+    expect(content).toContain("import { PetStatus } from './petStatus';");
 
     await fs.remove(root);
   });

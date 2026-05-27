@@ -274,7 +274,20 @@ function shouldGenerateZodSchemasInline(
   output: NormalizedOptions['output'],
   hasOperations: boolean,
 ): boolean {
-  return output.client === 'zod' && !output.schemas && !hasOperations;
+  if (output.client !== 'zod' || output.schemas) {
+    return false;
+  }
+  // With `generateReusableSchemas`, operations reference component schemas by
+  // name, so the component definitions must be emitted inline alongside the
+  // operations (otherwise the references are dangling). Without the flag,
+  // operations inline their own schemas, so we only emit the component
+  // schemas inline when there are no operations.
+  // `NormalizedOutputOptions` types this as a required `boolean`, so use it
+  // directly (a `=== true` compare trips no-unnecessary-boolean-literal-compare).
+  if (output.override.zod.generateReusableSchemas) {
+    return true;
+  }
+  return !hasOperations;
 }
 
 function shouldGenerateSchemas(
@@ -437,6 +450,10 @@ export async function writeSpecs(
       output,
       hasOperations,
     );
+    // Only emit the inline `import { z as zod }` when there are no operations.
+    // With operations the zod client already emits `import * as zod from 'zod'`,
+    // so a second import would redeclare the `zod` binding.
+    const includeZodImport = !hasOperations;
 
     implementationPaths = await writeMode({
       builder,
@@ -446,7 +463,7 @@ export async function writeSpecs(
       header,
       needSchema: shouldGenerateSchemas(output, hasOperations),
       generateSchemasInline: needZodSchemasInline
-        ? () => generateZodSchemasInline(builder, output)
+        ? () => generateZodSchemasInline(builder, output, includeZodImport)
         : undefined,
     });
   }
