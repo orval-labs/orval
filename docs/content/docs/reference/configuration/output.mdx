@@ -905,6 +905,27 @@ Export mutator hooks.
 
 Export query keys.
 
+### shouldFilterQueryKey
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Add `.filter(Boolean)` to the query key. If false, `as const` is added instead.
+
+When shouldFilterQueryKey is true:
+```ts title="endpoints.ts"
+export const getShowPetByIdQueryKey = (petId: string) => {
+  return ['pets', petId].filter(Boolean);
+};
+```
+
+When shouldFilterQueryKey is false:
+```ts title="endpoints.ts"
+export const getShowPetByIdQueryKey = (petId: string) => {
+  return ['pets', petId] as const;
+};
+```
+
 ### shouldSplitQueryKey
 
 **Type:** `Boolean`

@@ -85,6 +85,7 @@ export function createTestContextSpec({
         shouldExportMutatorHooks: false,
         shouldExportHttpClient: false,
         shouldExportQueryKey: false,
+        shouldFilterQueryKey: false,
         shouldSplitQueryKey: false,
         useOperationIdAsQueryKey: false,
         signal: false,

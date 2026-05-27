@@ -859,6 +859,7 @@ export interface NormalizedQueryOptions {
   shouldExportMutatorHooks?: boolean;
   shouldExportHttpClient?: boolean;
   shouldExportQueryKey?: boolean;
+  shouldFilterQueryKey?: boolean;
   shouldSplitQueryKey?: boolean;
   useOperationIdAsQueryKey?: boolean;
   signal?: boolean;
@@ -886,6 +887,7 @@ export interface QueryOptions {
   shouldExportMutatorHooks?: boolean;
   shouldExportHttpClient?: boolean;
   shouldExportQueryKey?: boolean;
+  shouldFilterQueryKey?: boolean;
   shouldSplitQueryKey?: boolean;
   useOperationIdAsQueryKey?: boolean;
   signal?: boolean;
