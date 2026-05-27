@@ -492,7 +492,7 @@ export class PetsService {
         ...options,
         responseType: 'text',
         headers,
-      }) as Observable<string>;
+      }) as Observable<any>;
     }
 
     return this.http.put<Pet>(`/v${version}/pets/${petId}/update`, pet, {
@@ -546,7 +546,7 @@ export class PetsService {
         ...options,
         responseType: 'text',
         headers,
-      }) as Observable<string>;
+      }) as Observable<any>;
     }
 
     return this.http.patch<Pet>(`/v${version}/pets/${petId}/update`, pet, {
