@@ -24,6 +24,11 @@ export function resolveMockOverride(
   item: OpenApiSchemaObject & { name: string; path?: string },
 ) {
   const path = item.path ?? `#.${item.name}`;
+  // Strip `.[]` array-items markers so a bare property-name override applies
+  // wherever the property literally appears, including inside arrays (#2465).
+  // Regex keys still match against the original (un-stripped) path so users
+  // can opt into array-scoped targeting explicitly if ever needed.
+  const pathWithoutArrayMarkers = path.replaceAll('.[]', '');
   const property = Object.entries(properties).find(([key]) => {
     if (isRegex(key)) {
       const regex = new RegExp(key.slice(1, -1));
@@ -32,7 +37,7 @@ export function resolveMockOverride(
       }
     }
 
-    if (`#.${key}` === path) {
+    if (`#.${key.replaceAll('.[]', '')}` === pathWithoutArrayMarkers) {
       return true;
     }
 
