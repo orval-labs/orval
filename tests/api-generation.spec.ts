@@ -580,3 +580,32 @@ test('mock issue-2155 keeps allOf-inherited variant mocks free of sibling factor
     ).not.toMatch(siblingPattern);
   }
 });
+
+test('mock issue-2327 base handler uses 200 content-type when sibling status has text/plain', async () => {
+  // Regression for #2327: when an operation defines a 200 application/json
+  // response alongside a non-2XX text/plain (or any text-like) response, the
+  // un-suffixed base MSW handler must serve the success body via
+  // HttpResponse.json and must NOT pick up the error response's text/plain
+  // Content-Type. PR #2938's `shouldPreferJsonResponse` guard fixes the
+  // generated output for this shape; this test pins the contract so a future
+  // refactor cannot regress the base handler back to HttpResponse.text /
+  // raw `text/plain` headers.
+  const endpoints = await readFile(
+    generated('mock', 'issue-2327', 'endpoints.ts'),
+    'utf8',
+  );
+
+  const start = endpoints.indexOf('export const getListPetsMockHandler');
+  expect(start, 'getListPetsMockHandler should be generated').toBeGreaterThan(
+    -1,
+  );
+  const nextExport = endpoints.indexOf('export const ', start + 1);
+  const handler = endpoints.slice(
+    start,
+    nextExport === -1 ? endpoints.length : nextExport,
+  );
+
+  expect(handler).toContain('HttpResponse.json(');
+  expect(handler).not.toMatch(/HttpResponse\.text\(/);
+  expect(handler).not.toMatch(/['"]Content-Type['"]\s*:\s*['"]text\/plain['"]/);
+});
