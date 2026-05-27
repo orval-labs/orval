@@ -12,7 +12,8 @@ info:
     `Dog[]` inside Dog.
 
     `Lizard` does NOT override the anchor, so its `playmates` falls
-    back to `unknown` since only explicit bindings are resolved.
+    back to `Pet[]` via the `$dynamicAnchor` fallback per JSON Schema
+    Draft 2020-12.
 paths:
   /pets:
     get:

@@ -1,0 +1,303 @@
+import type { OpenAPIV3_1 } from '@scalar/openapi-types';
+import { describe, expect, it } from 'vitest';
+
+import { createTestContextSpec } from '../../core/src/test-utils/context';
+import {
+  collectReachableComponentRefs,
+  computeLazyEdges,
+  generateReusableSchemaSet,
+  resolveSchemaName,
+  resolveSchemaNames,
+  rewriteReusableSchemas,
+} from './reusable-schemas';
+
+describe('resolveSchemaName', () => {
+  it('returns the last $ref segment with camelCase by default', () => {
+    expect(resolveSchemaName('#/components/schemas/Pet', 'camelCase')).toBe(
+      'pet',
+    );
+    expect(
+      resolveSchemaName('#/components/schemas/Pet_Owner', 'camelCase'),
+    ).toBe('petOwner');
+  });
+
+  it('respects PascalCase / snake_case', () => {
+    expect(
+      resolveSchemaName('#/components/schemas/pet_owner', 'PascalCase'),
+    ).toBe('PetOwner');
+    expect(
+      resolveSchemaName('#/components/schemas/PetOwner', 'snake_case'),
+    ).toBe('pet_owner');
+  });
+});
+
+describe('resolveSchemaNames (validation)', () => {
+  it('returns a mapping when names are unique', () => {
+    const result = resolveSchemaNames(
+      ['#/components/schemas/Pet', '#/components/schemas/Owner'],
+      'camelCase',
+    );
+    expect(result).toEqual(
+      new Map([
+        ['#/components/schemas/Pet', 'pet'],
+        ['#/components/schemas/Owner', 'owner'],
+      ]),
+    );
+  });
+
+  it('throws when two refs collapse to the same converted name', () => {
+    expect(() =>
+      resolveSchemaNames(
+        ['#/components/schemas/Pet', '#/components/schemas/pet'],
+        'camelCase',
+      ),
+    ).toThrow(/Pet.*pet|pet.*Pet/);
+  });
+
+  it('throws when a converted name is not a valid JS identifier (kebab-case)', () => {
+    expect(() =>
+      resolveSchemaNames(['#/components/schemas/PetOwner'], 'kebab-case'),
+    ).toThrow(/not a valid JS identifier/);
+  });
+});
+
+describe('collectReachableComponentRefs', () => {
+  const spec = {
+    openapi: '3.1.0',
+    info: { title: 'Test', version: '1' },
+    paths: {
+      '/pet': {
+        get: {
+          responses: {
+            '200': {
+              description: 'ok',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/Pet' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        Pet: {
+          type: 'object',
+          properties: {
+            owner: { $ref: '#/components/schemas/Owner' },
+            tags: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/Tag' },
+            },
+          },
+        },
+        Owner: { type: 'object' },
+        Tag: { type: 'object' },
+        Unused: { type: 'object' },
+      },
+    },
+  } as unknown as OpenAPIV3_1.Document;
+
+  it('finds refs reachable from operations and follows them transitively', () => {
+    const result = collectReachableComponentRefs(spec);
+    expect(result).toEqual(
+      new Set([
+        '#/components/schemas/Pet',
+        '#/components/schemas/Owner',
+        '#/components/schemas/Tag',
+      ]),
+    );
+  });
+
+  it('does not include unreachable schemas', () => {
+    const result = collectReachableComponentRefs(spec);
+    expect(result.has('#/components/schemas/Unused')).toBe(false);
+  });
+});
+
+describe('generateReusableSchemaSet', () => {
+  it('produces one entry per reachable ref with sentinel-marked zod strings', () => {
+    const context = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              properties: {
+                owner: { $ref: '#/components/schemas/Owner' },
+              },
+              required: ['owner'],
+            },
+            Owner: {
+              type: 'object',
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+          },
+        },
+      },
+    });
+
+    const result = generateReusableSchemaSet(
+      ['#/components/schemas/Pet', '#/components/schemas/Owner'],
+      context,
+      { strict: false, isZodV4: false },
+    );
+
+    expect(result).toHaveLength(2);
+
+    const petEntry = result.find((e) => e.name === 'pet');
+    const ownerEntry = result.find((e) => e.name === 'owner');
+    expect(petEntry).toBeDefined();
+    expect(ownerEntry).toBeDefined();
+
+    expect(petEntry?.zod).toContain('__REF_owner__');
+    expect(petEntry?.usedRefs).toEqual(new Set(['owner']));
+
+    expect(ownerEntry?.zod).not.toContain('__REF_');
+    expect(ownerEntry?.usedRefs).toEqual(new Set());
+  });
+
+  it('expands to the transitive closure of component-schema refs', () => {
+    const context = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              properties: {
+                owner: { $ref: '#/components/schemas/Owner' },
+              },
+              required: ['owner'],
+            },
+            // Owner is reachable from Pet via $ref but NOT in the seed list.
+            Owner: {
+              type: 'object',
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+          },
+        },
+      },
+    });
+
+    const result = generateReusableSchemaSet(
+      ['#/components/schemas/Pet'],
+      context,
+      { strict: false, isZodV4: false },
+    );
+
+    // Owner must be in the result even though only Pet was seeded — the
+    // orchestrator follows usedRefs to avoid dangling identifiers.
+    expect(result.map((e) => e.name).toSorted()).toEqual(['owner', 'pet']);
+  });
+});
+
+describe('computeLazyEdges', () => {
+  it('returns empty set for a DAG', () => {
+    const edges = computeLazyEdges(
+      new Map([
+        ['a', new Set(['b', 'c'])],
+        ['b', new Set(['c'])],
+        ['c', new Set()],
+      ]),
+    );
+    expect(edges).toEqual(new Set());
+  });
+
+  it('marks one edge as lazy for a simple cycle a -> b -> a', () => {
+    const edges = computeLazyEdges(
+      new Map([
+        ['a', new Set(['b'])],
+        ['b', new Set(['a'])],
+      ]),
+    );
+    expect(edges.size).toBe(1);
+    expect([...edges][0]).toMatch(/^(a->b|b->a)$/);
+  });
+
+  it('marks a self-loop a -> a as lazy', () => {
+    const edges = computeLazyEdges(new Map([['a', new Set(['a'])]]));
+    expect(edges).toEqual(new Set(['a->a']));
+  });
+
+  it('marks at least one edge per cycle in a 3-node SCC', () => {
+    const edges = computeLazyEdges(
+      new Map([
+        ['a', new Set(['b', 'c'])],
+        ['b', new Set(['a', 'c'])],
+        ['c', new Set(['a'])],
+      ]),
+    );
+    expect(edges.size).toBeGreaterThan(0);
+    expect(edges.size).toBeLessThan(5);
+  });
+});
+
+describe('rewriteReusableSchemas', () => {
+  it('replaces sentinels with direct names for a DAG', () => {
+    const entries = [
+      {
+        ref: '#/components/schemas/Pet',
+        name: 'pet',
+        zod: 'zod.object({ owner: __REF_owner__ })',
+        consts: '',
+        usedRefs: new Set(['owner']),
+      },
+      {
+        ref: '#/components/schemas/Owner',
+        name: 'owner',
+        zod: 'zod.object({})',
+        consts: '',
+        usedRefs: new Set<string>(),
+      },
+    ];
+    const result = rewriteReusableSchemas(entries);
+    const pet = result.find((e) => e.name === 'pet');
+    expect(pet?.zod).toBe('zod.object({ owner: owner })');
+    // Topological order: owner emitted before pet.
+    expect(result.map((e) => e.name)).toEqual(['owner', 'pet']);
+  });
+
+  it('wraps cycle edges in z.lazy(() => Name)', () => {
+    const entries = [
+      {
+        ref: '#/components/schemas/A',
+        name: 'a',
+        zod: 'zod.object({ b: __REF_b__ })',
+        consts: '',
+        usedRefs: new Set(['b']),
+      },
+      {
+        ref: '#/components/schemas/B',
+        name: 'b',
+        zod: 'zod.object({ a: __REF_a__ })',
+        consts: '',
+        usedRefs: new Set(['a']),
+      },
+    ];
+    const result = rewriteReusableSchemas(entries);
+    const a = result.find((e) => e.name === 'a');
+    const b = result.find((e) => e.name === 'b');
+    const lazyCount = [a?.zod, b?.zod].filter((s) =>
+      s?.includes('zod.lazy'),
+    ).length;
+    expect(lazyCount).toBe(1);
+  });
+
+  it('wraps self-loops in z.lazy', () => {
+    const entries = [
+      {
+        ref: '#/components/schemas/Node',
+        name: 'node',
+        zod: 'zod.object({ child: __REF_node__ })',
+        consts: '',
+        usedRefs: new Set(['node']),
+      },
+    ];
+    const result = rewriteReusableSchemas(entries);
+    expect(result[0].zod).toBe('zod.object({ child: zod.lazy(() => node) })');
+  });
+});

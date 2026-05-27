@@ -4,7 +4,11 @@ import path from 'node:path';
 import fs from 'fs-extra';
 import { describe, expect, it } from 'vitest';
 
-import { writeZodSchemas, writeZodSchemasFromVerbs } from './write-zod-specs';
+import {
+  generateZodSchemasInline,
+  writeZodSchemas,
+  writeZodSchemasFromVerbs,
+} from './write-zod-specs';
 
 interface MinimalVerbsContext {
   output: {
@@ -318,5 +322,160 @@ describe('write-zod-specs regressions', () => {
     }
 
     await fs.remove(root);
+  });
+});
+
+describe('writeZodSchemas with generateReusableSchemas', () => {
+  it('emits cross-file imports instead of inlining $refs', async () => {
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-reuse-'));
+    const schemasPath = path.join(root, 'schemas');
+
+    const builder = {
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              properties: { owner: { $ref: '#/components/schemas/Owner' } },
+              required: ['owner'],
+            },
+            Owner: {
+              type: 'object',
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [
+        { name: 'Pet', schema: { $ref: '#/components/schemas/Pet' } },
+        { name: 'Owner', schema: { $ref: '#/components/schemas/Owner' } },
+      ],
+    } satisfies Parameters<typeof writeZodSchemas>[0];
+
+    const options = createOutputOptions();
+    (options.override.zod as Record<string, unknown>).generateReusableSchemas =
+      true;
+
+    await writeZodSchemas(builder, schemasPath, '.ts', '', options);
+
+    const petContent = await fs.readFile(
+      path.join(schemasPath, 'Pet.ts'),
+      'utf8',
+    );
+    const ownerContent = await fs.readFile(
+      path.join(schemasPath, 'Owner.ts'),
+      'utf8',
+    );
+
+    expect(petContent).toMatch(/from '\.\/Owner'/);
+    expect(petContent).not.toContain('__REF_');
+    expect(ownerContent).not.toContain('__REF_');
+
+    await fs.remove(root);
+  });
+});
+
+describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
+  it('skips operation wrapper when body is a pure $ref', async () => {
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-verbs-'));
+    const schemasPath = path.join(root, 'schemas');
+
+    const verbOptions = {
+      petCreate: {
+        operationName: 'petCreate',
+        originalOperation: {
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Pet' },
+              },
+            },
+          },
+        },
+        response: { types: { success: [], errors: [] } },
+      },
+    } as never;
+
+    const options = createOutputOptions();
+    (options.override.zod as Record<string, unknown>).generateReusableSchemas =
+      true;
+    const ctx = {
+      output: {
+        override: {
+          useDates: false,
+          zod: { dateTimeOptions: {}, timeOptions: {} },
+        },
+      },
+      spec: {
+        components: {
+          schemas: {
+            Pet: { type: 'object', properties: { id: { type: 'number' } } },
+          },
+        },
+      } as never,
+      target: '',
+      workspace: '',
+    } satisfies MinimalVerbsContext;
+
+    await writeZodSchemasFromVerbs(
+      verbOptions,
+      schemasPath,
+      '.ts',
+      '',
+      options,
+      ctx,
+    );
+
+    // No PetCreateBody file should be emitted because the body is a pure ref.
+    const fileExists = await fs.pathExists(
+      path.join(schemasPath, 'PetCreateBody.ts'),
+    );
+    expect(fileExists).toBe(false);
+
+    await fs.remove(root);
+  });
+});
+
+describe('generateZodSchemasInline with generateReusableSchemas', () => {
+  it('emits one named schema per reachable component ref', () => {
+    const builder = {
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              properties: { owner: { $ref: '#/components/schemas/Owner' } },
+              required: ['owner'],
+            },
+            Owner: {
+              type: 'object',
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [
+        { name: 'Pet', schema: { $ref: '#/components/schemas/Pet' } },
+        { name: 'Owner', schema: { $ref: '#/components/schemas/Owner' } },
+      ],
+    } satisfies Parameters<typeof generateZodSchemasInline>[0];
+
+    const output = createOutputOptions();
+    (output.override.zod as Record<string, unknown>).generateReusableSchemas =
+      true;
+
+    const result = generateZodSchemasInline(builder, output);
+
+    expect(result).toContain('export const Owner =');
+    expect(result).toContain('export const Pet =');
+    // Pet references Owner by name (direct, since DAG).
+    // Property name may be quoted in the output ("owner" or owner).
+    expect(result).toMatch(/"?owner"?:\s*Owner/);
+    // No sentinels.
+    expect(result).not.toContain('__REF_');
   });
 });

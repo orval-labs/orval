@@ -379,6 +379,35 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('defaults generateReusableSchemas to false', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'zod',
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.zod.generateReusableSchemas).toBe(
+        false,
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('resolves hono compositeRoute relative to the workspace', async () => {
     const workspace = await createTempWorkspace();
 
