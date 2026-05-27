@@ -726,6 +726,20 @@ export default defineConfig({
       target: '../specifications/issue-1935/issue-1935.yaml',
     },
   },
+  'issue-2206-msw-info-typing': {
+    output: {
+      target: '../generated/default/issue-2206-msw-info-typing/endpoints.ts',
+      schemas: '../generated/default/issue-2206-msw-info-typing/model',
+      mode: 'split',
+      client: 'react-query',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-2206.yaml',
+    },
+  },
   'boolean-discriminator': {
     output: {
       target: '../generated/default/boolean-discriminator/endpoints.ts',
