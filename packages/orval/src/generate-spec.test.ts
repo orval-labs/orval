@@ -113,3 +113,50 @@ describe('generateSpec - schemas: false', () => {
     }
   });
 });
+
+describe('generateSpec - generateReusableSchemas inline (single mode)', () => {
+  // Regression for #3463 follow-up: with `client: 'zod'` +
+  // `generateReusableSchemas` + operations + no `schemas:` dir, operations
+  // reference component schemas by name, so the component definitions must be
+  // emitted inline in the same single file (previously they were skipped
+  // because operations were present, leaving dangling references).
+  it('emits referenced component schemas inline alongside operations', async () => {
+    const workspace = await createTempWorkspace();
+    const targetFile = path.join(workspace, 'zod.ts');
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: PETSTORE_SPEC },
+          output: {
+            target: './zod.ts',
+            mode: 'single',
+            client: 'zod',
+            override: { zod: { generateReusableSchemas: true } },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const content = await fs.readFile(targetFile, 'utf8');
+
+      // The component schema referenced by the operation is defined inline...
+      expect(content).toContain('export const pet = zod.object(');
+      // ...and the operation references it by name.
+      expect(content).toContain('= pet');
+      // The inline definition must come before the operation that uses it.
+      expect(content.indexOf('export const pet =')).toBeLessThan(
+        content.indexOf('Item = pet'),
+      );
+      // Exactly one zod import — the inline schemas must not redeclare `zod`
+      // on top of the zod client's `import * as zod from 'zod'`.
+      expect(content.match(/from 'zod'/g) ?? []).toHaveLength(1);
+      // No unresolved sentinels.
+      expect(content).not.toContain('__REF_');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
