@@ -607,5 +607,8 @@ test('mock issue-2327 base handler uses 200 content-type when sibling status has
 
   expect(handler).toContain('HttpResponse.json(');
   expect(handler).not.toMatch(/HttpResponse\.text\(/);
-  expect(handler).not.toMatch(/['"]Content-Type['"]\s*:\s*['"]text\/plain['"]/);
+  // Match the header key case-insensitively and treat `text/plain` as a
+  // prefix so a charset suffix (e.g. `text/plain; charset=utf-8`) still trips
+  // the assertion.
+  expect(handler).not.toMatch(/['"]content-type['"]\s*:\s*['"]text\/plain\b/i);
 });
