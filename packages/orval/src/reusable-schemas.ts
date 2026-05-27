@@ -319,7 +319,7 @@ const SENTINEL_PATTERN = /__REF_([A-Za-z_$][A-Za-z0-9_$]*)__/g;
  * component schemas they reference, so every ref is a direct (non-lazy) one.
  */
 export const rewriteSentinelsToDirect = (zod: string): string =>
-  zod.replace(SENTINEL_PATTERN, (_match, refName: string) => refName);
+  zod.replaceAll(SENTINEL_PATTERN, (_match, refName: string) => refName);
 
 /**
  * Replace every `__REF_<name>__` sentinel with either the bare identifier or
