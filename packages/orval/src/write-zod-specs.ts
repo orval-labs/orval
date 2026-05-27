@@ -329,7 +329,7 @@ function generateZodSchemasInlineReusable(
     ({ name }) => `#/components/schemas/${name}`,
   );
 
-  resolveSchemaNames(refs, output.namingConvention);
+  resolveSchemaNames(refs, context);
 
   const entries = generateReusableSchemaSet(refs, context, {
     strict,
@@ -486,7 +486,7 @@ async function writeZodSchemasReusable(
   );
 
   // Conflict guard.
-  resolveSchemaNames(refs, output.namingConvention);
+  resolveSchemaNames(refs, context);
 
   const entries = generateReusableSchemaSet(refs, context, {
     strict,

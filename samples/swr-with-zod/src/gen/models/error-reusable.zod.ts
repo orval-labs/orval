@@ -6,10 +6,10 @@
  */
 import { z as zod } from 'zod';
 
-export const error = zod.object({
+export const Error = zod.object({
   code: zod.number(),
   message: zod.string(),
 });
 
-export type error = zod.input<typeof error>;
-export type errorOutput = zod.output<typeof error>;
+export type Error = zod.input<typeof Error>;
+export type ErrorOutput = zod.output<typeof Error>;

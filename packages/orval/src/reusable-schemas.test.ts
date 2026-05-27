@@ -12,52 +12,50 @@ import {
 } from './reusable-schemas';
 
 describe('resolveSchemaName', () => {
-  it('returns the last $ref segment with camelCase by default', () => {
-    expect(resolveSchemaName('#/components/schemas/Pet', 'camelCase')).toBe(
-      'pet',
+  // Identifiers are always PascalCase (matching operation wrappers + TS model
+  // types); `namingConvention` only affects file names, not identifiers.
+  it('returns a PascalCase identifier regardless of namingConvention', () => {
+    const camel = createTestContextSpec({
+      output: { namingConvention: 'camelCase' as never },
+    });
+    expect(resolveSchemaName('#/components/schemas/Pet', camel)).toBe('Pet');
+    expect(resolveSchemaName('#/components/schemas/Pet_Owner', camel)).toBe(
+      'PetOwner',
     );
-    expect(
-      resolveSchemaName('#/components/schemas/Pet_Owner', 'camelCase'),
-    ).toBe('petOwner');
-  });
 
-  it('respects PascalCase / snake_case', () => {
-    expect(
-      resolveSchemaName('#/components/schemas/pet_owner', 'PascalCase'),
-    ).toBe('PetOwner');
-    expect(
-      resolveSchemaName('#/components/schemas/PetOwner', 'snake_case'),
-    ).toBe('pet_owner');
+    const kebab = createTestContextSpec({
+      output: { namingConvention: 'kebab-case' as never },
+    });
+    // kebab-case files, but the identifier is still a valid PascalCase symbol.
+    expect(resolveSchemaName('#/components/schemas/pet_owner', kebab)).toBe(
+      'PetOwner',
+    );
   });
 });
 
-describe('resolveSchemaNames (validation)', () => {
-  it('returns a mapping when names are unique', () => {
+describe('resolveSchemaNames (conflict guard)', () => {
+  const context = createTestContextSpec();
+
+  it('returns a mapping of ref -> PascalCase identifier', () => {
     const result = resolveSchemaNames(
       ['#/components/schemas/Pet', '#/components/schemas/Owner'],
-      'camelCase',
+      context,
     );
     expect(result).toEqual(
       new Map([
-        ['#/components/schemas/Pet', 'pet'],
-        ['#/components/schemas/Owner', 'owner'],
+        ['#/components/schemas/Pet', 'Pet'],
+        ['#/components/schemas/Owner', 'Owner'],
       ]),
     );
   });
 
-  it('throws when two refs collapse to the same converted name', () => {
+  it('throws when two refs collapse to the same identifier', () => {
     expect(() =>
       resolveSchemaNames(
-        ['#/components/schemas/Pet', '#/components/schemas/pet'],
-        'camelCase',
+        ['#/components/schemas/pet_owner', '#/components/schemas/PetOwner'],
+        context,
       ),
-    ).toThrow(/Pet.*pet|pet.*Pet/);
-  });
-
-  it('throws when a converted name is not a valid JS identifier (kebab-case)', () => {
-    expect(() =>
-      resolveSchemaNames(['#/components/schemas/PetOwner'], 'kebab-case'),
-    ).toThrow(/not a valid JS identifier/);
+    ).toThrow(/pet_owner.*PetOwner|PetOwner.*pet_owner/);
   });
 });
 
@@ -148,13 +146,13 @@ describe('generateReusableSchemaSet', () => {
 
     expect(result).toHaveLength(2);
 
-    const petEntry = result.find((e) => e.name === 'pet');
-    const ownerEntry = result.find((e) => e.name === 'owner');
+    const petEntry = result.find((e) => e.name === 'Pet');
+    const ownerEntry = result.find((e) => e.name === 'Owner');
     expect(petEntry).toBeDefined();
     expect(ownerEntry).toBeDefined();
 
-    expect(petEntry?.zod).toContain('__REF_owner__');
-    expect(petEntry?.usedRefs).toEqual(new Set(['owner']));
+    expect(petEntry?.zod).toContain('__REF_Owner__');
+    expect(petEntry?.usedRefs).toEqual(new Set(['Owner']));
 
     expect(ownerEntry?.zod).not.toContain('__REF_');
     expect(ownerEntry?.usedRefs).toEqual(new Set());
@@ -191,7 +189,7 @@ describe('generateReusableSchemaSet', () => {
 
     // Owner must be in the result even though only Pet was seeded — the
     // orchestrator follows usedRefs to avoid dangling identifiers.
-    expect(result.map((e) => e.name).toSorted()).toEqual(['owner', 'pet']);
+    expect(result.map((e) => e.name).toSorted()).toEqual(['Owner', 'Pet']);
   });
 });
 

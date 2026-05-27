@@ -142,13 +142,14 @@ describe('generateSpec - generateReusableSchemas inline (single mode)', () => {
 
       const content = await fs.readFile(targetFile, 'utf8');
 
-      // The component schema referenced by the operation is defined inline...
-      expect(content).toContain('export const pet = zod.object(');
+      // The component schema referenced by the operation is defined inline
+      // (PascalCase identifier, consistent with operation wrappers)...
+      expect(content).toContain('export const Pet = zod.object(');
       // ...and the operation references it by name.
-      expect(content).toContain('= pet');
+      expect(content).toContain('= Pet');
       // The inline definition must come before the operation that uses it.
-      expect(content.indexOf('export const pet =')).toBeLessThan(
-        content.indexOf('Item = pet'),
+      expect(content.indexOf('export const Pet =')).toBeLessThan(
+        content.indexOf('Item = Pet'),
       );
       // Exactly one zod import — the inline schemas must not redeclare `zod`
       // on top of the zod client's `import * as zod from 'zod'`.

@@ -6,10 +6,10 @@
  */
 import { z as zod } from 'zod';
 
-export const dachshund = zod.object({
+export const Dachshund = zod.object({
   length: zod.number(),
   breed: zod.enum(['Dachshund']),
 });
 
-export type dachshund = zod.input<typeof dachshund>;
-export type dachshundOutput = zod.output<typeof dachshund>;
+export type Dachshund = zod.input<typeof Dachshund>;
+export type DachshundOutput = zod.output<typeof Dachshund>;

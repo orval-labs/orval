@@ -5,10 +5,10 @@
  * OpenAPI spec version: 1.0.0
  */
 import { z as zod } from 'zod';
-import { cat } from './cat-reusable.zod';
-import { dog } from './dog-reusable.zod';
+import { Cat } from './cat-reusable.zod';
+import { Dog } from './dog-reusable.zod';
 
-export const pet = zod.union([dog, cat]).and(
+export const Pet = zod.union([Dog, Cat]).and(
   zod.object({
     '@id': zod.string().optional(),
     id: zod.number(),
@@ -20,5 +20,5 @@ export const pet = zod.union([dog, cat]).and(
   }),
 );
 
-export type pet = zod.input<typeof pet>;
-export type petOutput = zod.output<typeof pet>;
+export type Pet = zod.input<typeof Pet>;
+export type PetOutput = zod.output<typeof Pet>;
