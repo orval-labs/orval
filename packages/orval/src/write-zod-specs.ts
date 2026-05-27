@@ -123,12 +123,15 @@ function generateZodSchemaFileContent(
   header: string,
   schemas: ZodSchemaFileEntry[],
 ): string {
-  // Dedupe imports across the (usually single) entries written to this file.
-  const importLines = [
+  // Group the zod import with any reusable-schema imports (deduped across the
+  // usually-single entries written to this file), then separate that block
+  // from the schema content with a single blank line.
+  const refImports = [
     ...new Set(schemas.flatMap((s) => s.importStatements ?? [])),
   ].toSorted();
-  const importsBlock =
-    importLines.length > 0 ? `${importLines.join('\n')}\n` : '';
+  const importBlock = [`import { z as zod } from 'zod';`, ...refImports].join(
+    '\n',
+  );
 
   const schemaContent = schemas
     .map(({ schemaName, consts, zodExpression }) => {
@@ -141,10 +144,7 @@ export type ${schemaName}Output = zod.output<typeof ${schemaName}>;`;
     })
     .join('\n\n');
 
-  return `${header}import { z as zod } from 'zod';
-${importsBlock}
-${schemaContent}
-`;
+  return `${header}${importBlock}\n\n${schemaContent}\n`;
 }
 
 const isValidSchemaIdentifier = (name: string) =>
