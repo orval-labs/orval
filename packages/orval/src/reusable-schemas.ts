@@ -313,6 +313,15 @@ export const computeLazyEdges = (graph: Graph): Set<string> =>
 const SENTINEL_PATTERN = /__REF_([A-Za-z_$][A-Za-z0-9_$]*)__/g;
 
 /**
+ * Replace every `__REF_<name>__` sentinel with the bare identifier. Use this
+ * for schemas that sit at the top of the dependency graph (operation params,
+ * bodies, responses) — they can never participate in a cycle with the
+ * component schemas they reference, so every ref is a direct (non-lazy) one.
+ */
+export const rewriteSentinelsToDirect = (zod: string): string =>
+  zod.replaceAll(SENTINEL_PATTERN, (_match, refName: string) => refName);
+
+/**
  * Replace every `__REF_<name>__` sentinel with either the bare identifier or
  * `zod.lazy(() => <name>)` based on whether the edge closes a cycle, then
  * reorder entries so that every non-lazy reference is emitted AFTER its

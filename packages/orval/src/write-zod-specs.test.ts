@@ -481,6 +481,85 @@ describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
 
     await fs.remove(root);
   });
+
+  // Regression for #3463: an operation param/body/response that references a
+  // component schema (e.g. a nullable enum query param) must rewrite the
+  // `__REF_<name>__` sentinel to the bare identifier AND emit the import.
+  it('rewrites sentinels and emits imports for refs in operation schemas', async () => {
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-verbs-ref-'));
+    const schemasPath = path.join(root, 'schemas');
+
+    const verbOptions = {
+      findPetsByStatus: {
+        operationName: 'findPetsByStatus',
+        originalOperation: {
+          parameters: [
+            {
+              name: 'status',
+              in: 'query',
+              required: false,
+              schema: {
+                anyOf: [
+                  { $ref: '#/components/schemas/PetStatus' },
+                  { type: 'null' },
+                ],
+              },
+            },
+          ],
+        },
+        response: { types: { success: [], errors: [] } },
+      },
+    } as never;
+
+    const options = createOutputOptions();
+    // createOutputOptions() uses PascalCase; force camelCase so the export
+    // name (`petStatus`) and file (`petStatus.ts`) match the issue repro.
+    (options as { namingConvention: string }).namingConvention = 'camelCase';
+    (options.override.zod as Record<string, unknown>).generateReusableSchemas =
+      true;
+    const ctx = {
+      output: {
+        override: {
+          useDates: false,
+          zod: { dateTimeOptions: {}, timeOptions: {} },
+        },
+      },
+      spec: {
+        components: {
+          schemas: {
+            PetStatus: {
+              type: 'string',
+              enum: ['available', 'pending', 'sold'],
+            },
+          },
+        },
+      } as never,
+      target: '',
+      workspace: '',
+    } satisfies MinimalVerbsContext;
+
+    await writeZodSchemasFromVerbs(
+      verbOptions,
+      schemasPath,
+      '.ts',
+      '',
+      options,
+      ctx,
+    );
+
+    const content = await fs.readFile(
+      path.join(schemasPath, 'findPetsByStatusParams.ts'),
+      'utf8',
+    );
+
+    // Sentinel resolved to the bare identifier...
+    expect(content).not.toContain('__REF_');
+    expect(content).toContain('petStatus');
+    // ...and the matching import is emitted.
+    expect(content).toContain("import { petStatus } from './petStatus';");
+
+    await fs.remove(root);
+  });
 });
 
 describe('generateZodSchemasInline with generateReusableSchemas', () => {
