@@ -47,6 +47,7 @@
     "vue",
     "swr",
     "zod",
+    "effect",
     "hono"
   ],
   "author": {
@@ -75,6 +76,7 @@
     "@orval/angular": "workspace:*",
     "@orval/axios": "workspace:*",
     "@orval/core": "workspace:*",
+    "@orval/effect": "workspace:*",
     "@orval/fetch": "workspace:*",
     "@orval/hono": "workspace:*",
     "@orval/mcp": "workspace:*",

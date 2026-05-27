@@ -264,6 +264,29 @@ async function writeFakerSchemaMocks(
   return filePath;
 }
 
+function isSchemaValidatorClient(
+  client: NormalizedOptions['output']['client'],
+): boolean {
+  return client === 'zod' || client === 'effect';
+}
+
+function shouldGenerateZodSchemasInline(
+  output: NormalizedOptions['output'],
+  hasOperations: boolean,
+): boolean {
+  return output.client === 'zod' && !output.schemas && !hasOperations;
+}
+
+function shouldGenerateSchemas(
+  output: NormalizedOptions['output'],
+  hasOperations: boolean,
+): boolean {
+  return (
+    (!output.schemas && !isSchemaValidatorClient(output.client)) ||
+    shouldGenerateZodSchemasInline(output, hasOperations)
+  );
+}
+
 export async function writeSpecs(
   builder: WriteSpecBuilder,
   workspace: string,
@@ -409,10 +432,11 @@ export async function writeSpecs(
 
   if (output.target) {
     const writeMode = getWriteMode(output.mode);
-    const isZodClient = output.client === 'zod';
     const hasOperations = Object.keys(builder.operations).length > 0;
-    const needZodSchemasInline =
-      isZodClient && !output.schemas && !hasOperations;
+    const needZodSchemasInline = shouldGenerateZodSchemasInline(
+      output,
+      hasOperations,
+    );
 
     implementationPaths = await writeMode({
       builder,
@@ -420,7 +444,7 @@ export async function writeSpecs(
       output,
       projectName,
       header,
-      needSchema: (!output.schemas && !isZodClient) || needZodSchemasInline,
+      needSchema: shouldGenerateSchemas(output, hasOperations),
       generateSchemasInline: needZodSchemasInline
         ? () => generateZodSchemasInline(builder, output)
         : undefined,

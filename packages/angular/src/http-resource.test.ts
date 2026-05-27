@@ -110,6 +110,24 @@ const createOutput = (
         dateTimeOptions: {},
         timeOptions: {},
       },
+      effect: {
+        strict: {
+          param: false,
+          query: false,
+          header: false,
+          body: false,
+          response: false,
+        },
+        generate: {
+          param: true,
+          query: true,
+          header: true,
+          body: true,
+          response: true,
+        },
+        generateEachHttpStatus: false,
+        useBrandedTypes: false,
+      },
       fetch: {
         includeHttpResponseReturnType: true,
         forceSuccessResponse: false,

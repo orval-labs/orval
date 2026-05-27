@@ -1,0 +1,84 @@
+---
+title: Effect
+description: Generate Effect schemas from OpenAPI
+---
+
+Generate [Effect Schema](https://effect.website/docs/schema/introduction/) schemas from your OpenAPI specification for runtime validation.
+
+## Configuration
+
+Set the `client` option to `effect`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'effect',
+      mode: 'single',
+      target: './src/api/schemas',
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Generated Output
+
+Orval generates an Effect schema for each model in your OpenAPI specification:
+
+```ts
+import { Schema as S } from 'effect';
+
+export const CreatePetsBody = S.Struct({
+  id: S.Number,
+  name: S.String,
+  tag: S.optional(S.String),
+});
+```
+
+## Usage
+
+### Decoding Data
+
+```ts
+import { Schema as S } from 'effect';
+import { CreatePetsBody } from './src/api/schemas';
+
+const pet = { id: 1, name: 'Buddy', tag: 'dog' };
+const parsedPet = S.decodeUnknownSync(CreatePetsBody)(pet);
+// => { id: 1, name: "Buddy", tag: "dog" }
+```
+
+### Type Inference
+
+```ts
+import { Schema as S } from 'effect';
+import { CreatePetsBody } from './src/api/schemas';
+
+type Pet = S.Schema.Type<typeof CreatePetsBody>;
+
+const pet: Pet = { id: 1, name: 'Buddy', tag: 'dog' };
+```
+
+### Safe Decoding
+
+```ts
+import { Schema as S } from 'effect';
+import { Either } from 'effect';
+
+const result = S.decodeUnknownEither(CreatePetsBody)(unknownData);
+
+if (Either.isRight(result)) {
+  console.log(result.right);
+} else {
+  console.error(result.left);
+}
+```
+
+## Combining with HTTP Clients
+
+See the [Client with Effect](/docs/guides/client-with-effect) guide for using Effect schemas with React Query, SWR, or other HTTP clients.

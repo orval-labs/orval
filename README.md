@@ -32,6 +32,7 @@
 - [Angular Query](https://tanstack.com/query/latest/docs/framework/angular/overview)
 - [Hono](https://hono.dev/)
 - [zod](https://zod.dev/)
+- [Effect](https://effect.website/)
 - [native fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
 - [mcp](https://modelcontextprotocol.io/introduction)
 
@@ -49,6 +50,7 @@ You can find some samples below:
 - [angular app](https://github.com/orval-labs/orval/tree/master/samples/angular-app)
 - [angular query](https://github.com/orval-labs/orval/tree/master/samples/angular-query)
 - [hono](https://github.com/orval-labs/orval/tree/master/samples/hono)
+- [swr with effect](https://github.com/orval-labs/orval/tree/master/samples/swr-with-effect)
 - [next app with fetch](https://github.com/orval-labs/orval/tree/master/samples/next-app-with-fetch)
 - [mcp server](https://github.com/orval-labs/orval/tree/master/samples/mcp)
 

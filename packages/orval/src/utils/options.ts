@@ -4,6 +4,7 @@ import { styleText } from 'node:util';
 
 import {
   type ConfigExternal,
+  type EffectOptions,
   FormDataArrayHandling,
   type GlobalMockOptions,
   type GlobalOptions,
@@ -26,6 +27,7 @@ import {
   type McpServerOptions,
   type Mutator,
   NamingConvention,
+  type NormalizedEffectOptions,
   type NormalizedFactoryMethodsOptions,
   type NormalizedHonoOptions,
   type NormalizedHookOptions,
@@ -119,6 +121,29 @@ function normalizeSchemasOption(
   return {
     path: normalizePath(schemas.path, workspace),
     type: schemas.type,
+  };
+}
+
+function normalizeEffectOptions(
+  effect?: EffectOptions,
+): NormalizedEffectOptions {
+  return {
+    strict: {
+      param: effect?.strict?.param ?? false,
+      query: effect?.strict?.query ?? false,
+      header: effect?.strict?.header ?? false,
+      body: effect?.strict?.body ?? false,
+      response: effect?.strict?.response ?? false,
+    },
+    generate: {
+      param: effect?.generate?.param ?? true,
+      query: effect?.generate?.query ?? true,
+      header: effect?.generate?.header ?? true,
+      body: effect?.generate?.body ?? true,
+      response: effect?.generate?.response ?? true,
+    },
+    generateEachHttpStatus: effect?.generateEachHttpStatus ?? false,
+    useBrandedTypes: effect?.useBrandedTypes ?? false,
   };
 }
 
@@ -490,6 +515,7 @@ export async function normalizeOptions(
           },
           timeOptions: outputOptions.override?.zod?.timeOptions ?? {},
         },
+        effect: normalizeEffectOptions(outputOptions.override?.effect),
         swr: {
           generateErrorTypes: false,
           ...outputOptions.override?.swr,
@@ -772,6 +798,7 @@ function normalizeOperationsAndTags(
           query,
           angular,
           zod,
+          effect,
           ...rest
         },
       ]) => {
@@ -872,6 +899,7 @@ function normalizeOperationsAndTags(
                   },
                 }
               : {}),
+            ...(effect ? { effect: normalizeEffectOptions(effect) } : {}),
             ...(transformer
               ? { transformer: normalizePath(transformer, workspace) }
               : {}),
