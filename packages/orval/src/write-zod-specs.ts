@@ -26,12 +26,15 @@ import {
   generateReusableSchemaSet,
   resolveSchemaNames,
   rewriteReusableSchemas,
+  rewriteSentinelsToDirect,
 } from './reusable-schemas';
 
 interface ZodSchemaFileEntry {
   schemaName: string;
   consts: string;
   zodExpression: string;
+  /** Pre-rendered `import { x } from './x'` lines for reusable-schema refs. */
+  importStatements?: string[];
 }
 
 type ZodSchemaFileToWrite = ZodSchemaFileEntry & {
@@ -120,6 +123,13 @@ function generateZodSchemaFileContent(
   header: string,
   schemas: ZodSchemaFileEntry[],
 ): string {
+  // Dedupe imports across the (usually single) entries written to this file.
+  const importLines = [
+    ...new Set(schemas.flatMap((s) => s.importStatements ?? [])),
+  ].toSorted();
+  const importsBlock =
+    importLines.length > 0 ? `${importLines.join('\n')}\n` : '';
+
   const schemaContent = schemas
     .map(({ schemaName, consts, zodExpression }) => {
       const schemaConsts = consts ? `${consts}\n` : '';
@@ -132,7 +142,7 @@ export type ${schemaName}Output = zod.output<typeof ${schemaName}>;`;
     .join('\n\n');
 
   return `${header}import { z as zod } from 'zod';
-
+${importsBlock}
 ${schemaContent}
 `;
 }
@@ -735,11 +745,30 @@ export async function writeZodSchemasFromVerbs(
       isZodV4,
     );
 
+    // Operation schemas sit at the top of the dependency graph, so any
+    // `__REF_<name>__` sentinel resolves to a direct (non-lazy) reference.
+    // Rewrite them to bare identifiers and emit the matching imports, the
+    // same way `generateZod` does for the operation files (issue #3463).
+    let zodExpression = parsedZodDefinition.zod;
+    let importStatements: string[] | undefined;
+    if (useReusableSchemas && parsedZodDefinition.usedRefs.size > 0) {
+      zodExpression = rewriteSentinelsToDirect(zodExpression);
+      const importExt = fileExtension.replace(/\.ts$/, '');
+      importStatements = [...parsedZodDefinition.usedRefs]
+        .filter((refName) => refName !== name)
+        .toSorted()
+        .map((refName) => {
+          const importedFile = conventionName(refName, output.namingConvention);
+          return `import { ${refName} } from './${importedFile}${importExt}';`;
+        });
+    }
+
     schemasToWrite.push({
       schemaName: name,
       filePath,
       consts: parsedZodDefinition.consts,
-      zodExpression: parsedZodDefinition.zod,
+      zodExpression,
+      importStatements,
     });
   }
 
