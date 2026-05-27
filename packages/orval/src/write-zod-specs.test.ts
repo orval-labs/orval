@@ -375,6 +375,51 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
 
     await fs.remove(root);
   });
+
+  it('emits schemas whose raw name differs from the sanitized model name', async () => {
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-reuse-raw-'));
+    const schemasPath = path.join(root, 'schemas');
+
+    const builder = {
+      spec: {
+        components: {
+          schemas: {
+            Page_Item_: {
+              type: 'object',
+              properties: { total: { type: 'number' } },
+              required: ['total'],
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [
+        {
+          name: 'PageItem',
+          schema: { $ref: '#/components/schemas/Page_Item_' },
+        },
+      ],
+    } satisfies Parameters<typeof writeZodSchemas>[0];
+
+    const options = createOutputOptions();
+    (options.override.zod as Record<string, unknown>).generateReusableSchemas =
+      true;
+
+    await writeZodSchemas(builder, schemasPath, '.ts', '', options);
+
+    const fileExists = await fs.pathExists(
+      path.join(schemasPath, 'PageItem.ts'),
+    );
+    expect(fileExists).toBe(true);
+
+    const content = await fs.readFile(
+      path.join(schemasPath, 'PageItem.ts'),
+      'utf8',
+    );
+    expect(content).toContain('export const PageItem = ');
+
+    await fs.remove(root);
+  });
 });
 
 describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
