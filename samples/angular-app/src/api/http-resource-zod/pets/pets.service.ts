@@ -515,7 +515,7 @@ export class PetsService {
         ...options,
         responseType: 'text',
         headers,
-      }) as Observable<string>;
+      }) as Observable<any>;
     }
 
     return this.http
@@ -573,7 +573,7 @@ export class PetsService {
         ...options,
         responseType: 'text',
         headers,
-      }) as Observable<string>;
+      }) as Observable<any>;
     }
 
     return this.http

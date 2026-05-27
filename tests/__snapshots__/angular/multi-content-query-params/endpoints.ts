@@ -197,7 +197,7 @@ export class AngularMultiContentQueryParamsTestService {
           responseType: 'text',
           headers,
         },
-      ) as Observable<string>;
+      ) as Observable<any>;
     }
 
     return this.http.post<Item>(
@@ -257,7 +257,7 @@ export class AngularMultiContentQueryParamsTestService {
         responseType: 'text',
         headers,
         params: filteredParams,
-      }) as Observable<string>;
+      }) as Observable<any>;
     }
 
     return this.http.get<Items>(`/items`, {
