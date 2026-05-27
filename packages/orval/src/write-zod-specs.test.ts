@@ -29,11 +29,17 @@ const createOutputOptions = (): Parameters<typeof writeZodSchemas>[4] =>
     namingConvention: 'PascalCase',
     indexFiles: true,
     override: {
+      // Mirrors the normalized defaults the real pipeline supplies; the
+      // recursive-schema TS-type generation (`resolveValue`) reads these.
+      components: {
+        schemas: { suffix: '', itemSuffix: 'Item' },
+      },
       zod: {
         strict: {
           body: true,
         },
         generate: {
+          param: true,
           body: true,
           query: true,
           header: true,
@@ -355,8 +361,7 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
     } satisfies Parameters<typeof writeZodSchemas>[0];
 
     const options = createOutputOptions();
-    (options.override.zod as Record<string, unknown>).generateReusableSchemas =
-      true;
+    options.override.zod.generateReusableSchemas = true;
 
     await writeZodSchemas(builder, schemasPath, '.ts', '', options);
 
@@ -402,8 +407,7 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
     } satisfies Parameters<typeof writeZodSchemas>[0];
 
     const options = createOutputOptions();
-    (options.override.zod as Record<string, unknown>).generateReusableSchemas =
-      true;
+    options.override.zod.generateReusableSchemas = true;
 
     await writeZodSchemas(builder, schemasPath, '.ts', '', options);
 
@@ -417,6 +421,64 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
       'utf8',
     );
     expect(content).toContain('export const PageItem = ');
+
+    await fs.remove(root);
+  });
+
+  it('pins recursive schemas to a generated TS type across files', async () => {
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-reuse-rec-'));
+    const schemasPath = path.join(root, 'schemas');
+
+    // Node <-> Edge mutual recursion: the back-edge is emitted as a `zod.lazy`,
+    // so each `const` reads (transitively) its own binding and needs an
+    // explicit `zod.ZodType<...>` annotation to satisfy TS7022.
+    const builder = {
+      spec: {
+        components: {
+          schemas: {
+            Node: {
+              type: 'object',
+              properties: {
+                edges: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/Edge' },
+                },
+              },
+              required: ['edges'],
+            },
+            Edge: {
+              type: 'object',
+              properties: { to: { $ref: '#/components/schemas/Node' } },
+              required: ['to'],
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [
+        { name: 'Node', schema: { $ref: '#/components/schemas/Node' } },
+        { name: 'Edge', schema: { $ref: '#/components/schemas/Edge' } },
+      ],
+    } satisfies Parameters<typeof writeZodSchemas>[0];
+
+    const options = createOutputOptions();
+    options.override.zod.generateReusableSchemas = true;
+
+    await writeZodSchemas(builder, schemasPath, '.ts', '', options);
+
+    const nodeContent = await fs.readFile(
+      path.join(schemasPath, 'Node.ts'),
+      'utf8',
+    );
+
+    // The recursive TS type is generated and the const is pinned to it.
+    expect(nodeContent).toContain('export type Node = ');
+    expect(nodeContent).toContain('export const Node: zod.ZodType<Node> = ');
+    // Cross-file reference to Edge is imported (so the generated type resolves).
+    expect(nodeContent).toMatch(/from '\.\/Edge'/);
+    // The acyclic `zod.input<typeof Node>` alias would be circular here.
+    expect(nodeContent).not.toContain('export type Node = zod.input<');
+    expect(nodeContent).not.toContain('__REF_');
 
     await fs.remove(root);
   });
@@ -444,8 +506,7 @@ describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
     } as never;
 
     const options = createOutputOptions();
-    (options.override.zod as Record<string, unknown>).generateReusableSchemas =
-      true;
+    options.override.zod.generateReusableSchemas = true;
     const ctx = {
       output: {
         override: {
@@ -515,8 +576,7 @@ describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
     // camelCase namingConvention → file names are camelCased (`petStatus.ts`),
     // but the exported identifier is always PascalCase (`PetStatus`).
     (options as { namingConvention: string }).namingConvention = 'camelCase';
-    (options.override.zod as Record<string, unknown>).generateReusableSchemas =
-      true;
+    options.override.zod.generateReusableSchemas = true;
     const ctx = {
       output: {
         override: {
