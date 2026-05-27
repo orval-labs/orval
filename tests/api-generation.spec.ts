@@ -367,13 +367,18 @@ test('default issue-2206 types the MSW handler info parameter', async () => {
     'utf8',
   );
 
-  // The inner handler callback must annotate `info` so projects with
-  // `noImplicitAny` compile cleanly.
-  expect(msw).toContain(
-    'async (info: Parameters<Parameters<typeof http.get>[1]>[0])',
-  );
+  // The inner handler callback must annotate `info` with some type so
+  // projects with `noImplicitAny` compile cleanly. Match the annotation
+  // shape rather than the exact type expression so refactors that extract
+  // a type alias or tweak whitespace don't trip this test unless the
+  // annotation itself is dropped. Current generator emits
+  //   async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => { ... }
+  expect(msw).toMatch(/async\s*\(\s*info\s*:\s*\S/);
 
-  // Belt-and-braces guard: no callback that takes `info` without a type.
+  // Explicit `any` would still satisfy `noImplicitAny` but defeats the fix.
+  expect(msw).not.toMatch(/async\s*\(\s*info\s*:\s*any\b/);
+
+  // No callback that takes `info` without a type (the original #2206 shape).
   expect(msw).not.toMatch(/async\s*\(\s*info\s*[,)]/);
 });
 
