@@ -60,7 +60,7 @@ export const getListPetsResponseMock = (): Pets =>
       { length: faker.number.int({ min: 1, max: 100 }) },
       (_, i) => i + 1,
     ).map(() => ({
-      id: faker.number.int({ min: 1 }),
+      id: (() => faker.number.int({ min: 1, max: 99999 }))(),
       name: (() => faker.person.lastName())(),
       tag: (() => faker.person.lastName())(),
       email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
@@ -101,7 +101,7 @@ export const getListPetsResponseMock = (): Pets =>
       { length: faker.number.int({ min: 1, max: 100 }) },
       (_, i) => i + 1,
     ).map(() => ({
-      id: faker.number.int({ min: 1 }),
+      id: (() => faker.number.int({ min: 1, max: 99999 }))(),
       name: (() => faker.person.lastName())(),
       tag: (() => faker.person.lastName())(),
       email: faker.helpers.arrayElement([faker.internet.email(), undefined]),

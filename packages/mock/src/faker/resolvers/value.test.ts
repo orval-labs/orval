@@ -51,6 +51,22 @@ describe('resolveMockOverride (#2465 — bare-key matching across array boundari
     expect(result?.value).toBe('() => faker.person.firstName()');
   });
 
+  it('matches a key with a leading `[].` segment (operation-level array-items syntax)', () => {
+    // The vue-query-basic sample uses `properties: { '[].id': ... }` at the
+    // operation level to target the `id` of items returned by an
+    // array-of-objects endpoint. Path arriving here is `#.[].id`.
+    const item: Item = { name: 'id', path: '#.[].id' };
+
+    const result = resolveMockOverride(
+      { '[].id': '() => faker.number.int({ min: 1, max: 99999 })' },
+      item,
+    );
+
+    expect(result?.value).toBe(
+      '() => faker.number.int({ min: 1, max: 99999 })',
+    );
+  });
+
   it('still does not match bare keys against non-array nested paths (semantic preserved)', () => {
     // The non-array nested case (`#.user.firstName` produced by an object
     // property `user` containing baseUser) was never matched by a bare key
