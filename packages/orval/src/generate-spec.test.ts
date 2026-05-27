@@ -269,3 +269,75 @@ describe('generateSpec - generateReusableSchemas recursive ($ref to self)', () =
     }
   });
 });
+
+describe('generateSpec - generateReusableSchemas inline (pure-$ref operations)', () => {
+  // Regression: the zod client's `import * as zod from 'zod'` is usage-gated on
+  // the operations implementation. When every operation is a pure-`$ref` alias
+  // (`export const GetThingResponse = Thing`), the client emits NO zod import,
+  // so the inline schema block (which always uses zod) must supply it — else the
+  // generated file references `zod` with no import and fails to compile.
+  const PURE_REF_SPEC: OpenApiDocument = {
+    openapi: '3.1.0',
+    info: { title: 'PureRef', version: '1.0.0' },
+    paths: {
+      '/thing': {
+        get: {
+          operationId: 'getThing',
+          responses: {
+            '200': {
+              description: 'ok',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/Thing' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        Thing: {
+          type: 'object',
+          required: ['name'],
+          properties: { name: { type: 'string' } },
+        },
+      },
+    },
+  };
+
+  it('emits the zod import when no operation references zod directly', async () => {
+    const workspace = await createTempWorkspace();
+    const targetFile = path.join(workspace, 'zod.ts');
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: PURE_REF_SPEC },
+          output: {
+            target: './zod.ts',
+            mode: 'single',
+            client: 'zod',
+            override: { zod: { generateReusableSchemas: true } },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const content = await fs.readFile(targetFile, 'utf8');
+
+      // The component schema is defined inline...
+      expect(content).toContain('export const Thing = zod.object(');
+      // ...the operation wrapper is a pure-$ref alias (no `zod.` usage)...
+      expect(content).toContain('export const GetThingResponse = Thing');
+      // ...and exactly one zod import is present (the bug emitted zero).
+      expect(content.match(/from 'zod'/g) ?? []).toHaveLength(1);
+      expect(content).not.toContain('__REF_');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
