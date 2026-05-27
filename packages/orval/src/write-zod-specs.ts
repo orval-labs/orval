@@ -3,6 +3,8 @@ import path from 'node:path';
 import {
   type ContextSpec,
   conventionName,
+  getRefInfo,
+  isComponentRef,
   type NamingConvention,
   type NormalizedOutputOptions,
   type OpenApiParameterObject,
@@ -177,11 +179,21 @@ function renderReusableSchemaEntry(
   const consts = entry.consts ? `${entry.consts}\n\n` : '';
 
   if (entry.isRecursive) {
-    const rawName = entry.ref.slice('#/components/schemas/'.length);
-    const schema = context.spec.components?.schemas?.[rawName] as
-      | OpenApiSchemaObject
-      | OpenApiReferenceObject
-      | undefined;
+    // Resolve the lookup key through `getRefInfo` (the same util every other
+    // ref consumer uses) rather than slicing the prefix off `entry.ref` by
+    // hand: it guards the `#/components/schemas/` prefix via `isComponentRef`
+    // and decodes JSON Pointer escapes (`~1`→`/`, `~0`→`~`) before indexing
+    // `components.schemas`. `originalName` is the decoded final segment, which
+    // matches the raw `components.schemas` key.
+    const rawName = isComponentRef(entry.ref)
+      ? getRefInfo(entry.ref, context).originalName
+      : undefined;
+    const schema = rawName
+      ? (context.spec.components?.schemas?.[rawName] as
+          | OpenApiSchemaObject
+          | OpenApiReferenceObject
+          | undefined)
+      : undefined;
     const typeBody = schema
       ? resolveValue({ schema, name: entry.name, context }).value
       : 'unknown';

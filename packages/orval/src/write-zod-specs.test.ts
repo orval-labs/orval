@@ -361,8 +361,7 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
     } satisfies Parameters<typeof writeZodSchemas>[0];
 
     const options = createOutputOptions();
-    (options.override.zod as Record<string, unknown>).generateReusableSchemas =
-      true;
+    options.override.zod.generateReusableSchemas = true;
 
     await writeZodSchemas(builder, schemasPath, '.ts', '', options);
 
@@ -408,8 +407,7 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
     } satisfies Parameters<typeof writeZodSchemas>[0];
 
     const options = createOutputOptions();
-    (options.override.zod as Record<string, unknown>).generateReusableSchemas =
-      true;
+    options.override.zod.generateReusableSchemas = true;
 
     await writeZodSchemas(builder, schemasPath, '.ts', '', options);
 
@@ -464,8 +462,7 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
     } satisfies Parameters<typeof writeZodSchemas>[0];
 
     const options = createOutputOptions();
-    (options.override.zod as Record<string, unknown>).generateReusableSchemas =
-      true;
+    options.override.zod.generateReusableSchemas = true;
 
     await writeZodSchemas(builder, schemasPath, '.ts', '', options);
 
@@ -509,8 +506,7 @@ describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
     } as never;
 
     const options = createOutputOptions();
-    (options.override.zod as Record<string, unknown>).generateReusableSchemas =
-      true;
+    options.override.zod.generateReusableSchemas = true;
     const ctx = {
       output: {
         override: {
@@ -580,8 +576,7 @@ describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
     // camelCase namingConvention → file names are camelCased (`petStatus.ts`),
     // but the exported identifier is always PascalCase (`PetStatus`).
     (options as { namingConvention: string }).namingConvention = 'camelCase';
-    (options.override.zod as Record<string, unknown>).generateReusableSchemas =
-      true;
+    options.override.zod.generateReusableSchemas = true;
     const ctx = {
       output: {
         override: {

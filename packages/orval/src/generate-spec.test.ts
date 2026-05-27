@@ -242,9 +242,13 @@ describe('generateSpec - generateReusableSchemas recursive ($ref to self)', () =
 
       const content = await fs.readFile(targetFile, 'utf8');
 
-      // A recursive TS type is generated for the schema...
-      expect(content).toContain(
-        'export type JsonValue = string | number | boolean | JsonValue[] | {[key: string]: JsonValue}',
+      // A recursive TS type is generated for the schema. Asserted with a
+      // whitespace-tolerant regex (union-bar spacing and index-signature brace
+      // spacing are formatter-dependent) that still pins the structure: the
+      // union of the four primitives plus the self-referential array and the
+      // index signature whose value type is `JsonValue`.
+      expect(content).toMatch(
+        /export type JsonValue\s*=\s*string\s*\|\s*number\s*\|\s*boolean\s*\|\s*JsonValue\[\]\s*\|\s*\{\s*\[key:\s*string\]:\s*JsonValue\s*\}/,
       );
       // ...and the schema const is pinned to it (the fix for TS7022).
       expect(content).toContain(
