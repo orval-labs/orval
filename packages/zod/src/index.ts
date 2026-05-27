@@ -220,6 +220,13 @@ export const generateZodValidationSchemaDefinition = (
      * placeholder instead of being inlined.
      */
     useReusableSchemas?: boolean;
+    /**
+     * When true (and `isZodV4`), the top-level (named component) schema emits a
+     * `.meta({ id, description?, deprecated? })` instead of `.describe(...)`.
+     * Set ONLY for top-level component-schema generation — recursive calls omit
+     * it, so nested schemas keep `.describe()` and never get a duplicate `id`.
+     */
+    emitMeta?: boolean;
   },
 ): ZodValidationSchemaDefinition => {
   if (!schema) return { functions: [], consts: [] };
@@ -322,6 +329,31 @@ export const generateZodValidationSchemaDefinition = (
   constNameRegistry[name] = constsCounter;
 
   const functions: [string, unknown][] = [];
+
+  // Emit the schema's trailing description/metadata. On zod v4 with `emitMeta`
+  // (top-level component schemas only) this is a single `.meta({ id, ... })`
+  // carrying the schema name as `id` plus description/deprecated when present;
+  // otherwise it falls back to the plain `.describe(...)`. Called from both
+  // return points (the multi-type union exit and the main exit) so every schema
+  // shape is covered. `.meta()` must be the LAST modifier in the chain — zod v4
+  // turns `.meta({id}).describe(...)` into a `$ref` wrapper, whereas
+  // `.describe(...).meta({id})` (and a lone `.meta`) stay flat.
+  const pushDescriptionOrMeta = () => {
+    const description =
+      typeof schema.description === 'string' ? schema.description : undefined;
+    const deprecated =
+      'deprecated' in schema && schema.deprecated === true ? true : undefined;
+
+    if (rules?.emitMeta && isZodV4) {
+      const meta: Record<string, unknown> = { id: name };
+      if (description !== undefined) meta.description = description;
+      if (deprecated) meta.deprecated = true;
+      functions.push(['meta', meta]);
+    } else if (description !== undefined) {
+      functions.push(['describe', `'${jsStringEscape(description)}'`]);
+    }
+  };
+
   const type = resolveZodType(schema);
   const required = rules?.required ?? false;
   const hasDefault = schema.default !== undefined;
@@ -526,6 +558,8 @@ export const generateZodValidationSchemaDefinition = (
     } else if (!required) {
       functions.push(['optional', undefined]);
     }
+
+    pushDescriptionOrMeta();
 
     return { functions, consts };
   }
@@ -946,9 +980,7 @@ export const generateZodValidationSchemaDefinition = (
     functions.push(['default', defaultVarName]);
   }
 
-  if (schema.description) {
-    functions.push(['describe', `'${jsStringEscape(schema.description)}'`]);
-  }
+  pushDescriptionOrMeta();
 
   return { functions, consts: unique(consts) };
 };
@@ -1005,6 +1037,26 @@ export const parseZodValidationSchemaDefinition = (
       const refArgs = args as { name: string; sourceRef: string };
       usedRefs.add(refArgs.name);
       return `__REF_${refArgs.name}__`;
+    }
+
+    // `.meta({ id, description?, deprecated? })` — registry metadata for zod v4.
+    // Built explicitly (rather than via stringify) so the description is
+    // JS-string-escaped and the field order is stable: id, description,
+    // deprecated.
+    if (fn === 'meta') {
+      const metaArgs = args as {
+        id: string;
+        description?: string;
+        deprecated?: boolean;
+      };
+      const parts = [`id: '${jsStringEscape(metaArgs.id)}'`];
+      if (metaArgs.description !== undefined) {
+        parts.push(`description: '${jsStringEscape(metaArgs.description)}'`);
+      }
+      if (metaArgs.deprecated) {
+        parts.push('deprecated: true');
+      }
+      return `.meta({ ${parts.join(', ')} })`;
     }
 
     // File | string for text contentMediaType/encoding (user can pass string, runtime wraps in Blob)

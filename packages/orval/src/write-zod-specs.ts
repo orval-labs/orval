@@ -65,6 +65,7 @@ interface WriteZodOutputOptions {
         body: boolean | ZodCoerceType[];
       };
       generateReusableSchemas?: boolean;
+      generateMeta?: boolean;
     };
   };
 }
@@ -341,6 +342,7 @@ export function generateZodSchemasInline(
       isZodV4,
       {
         required: true,
+        emitMeta: output.override.zod.generateMeta,
       },
     );
 
@@ -403,6 +405,7 @@ function generateZodSchemasInlineReusable(
     strict,
     isZodV4,
     coerce,
+    generateMeta: output.override.zod.generateMeta,
   });
 
   const rewritten = rewriteReusableSchemas(entries);
@@ -470,6 +473,7 @@ export async function writeZodSchemas(
       isZodV4,
       {
         required: true,
+        emitMeta: output.override.zod.generateMeta,
       },
     );
 
@@ -553,6 +557,7 @@ async function writeZodSchemasReusable(
     strict,
     isZodV4,
     coerce,
+    generateMeta: output.override.zod.generateMeta,
   });
 
   const rewritten = rewriteReusableSchemas(entries);

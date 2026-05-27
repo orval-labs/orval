@@ -1112,6 +1112,28 @@ Behavior:
 - The `namingConvention` must produce valid JavaScript identifiers (`camelCase`, `PascalCase`, or `snake_case`). `kebab-case` is rejected with a clear error because it would emit dashed exports.
 - **Trade-off — `readOnly` on shared component schemas:** without this flag, request bodies generated from `$ref` schemas strip `readOnly: true` properties so they don't appear in input validators. With this flag on, request and response endpoints share the same exported schema, so `readOnly` properties remain in body validators too. Either avoid `readOnly` on component schemas you share between requests and responses, or split into separate request/response schemas in the OpenAPI source.
 
+### generateMeta
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Attach registry metadata to generated **component** schemas via [`.meta()`](https://zod.dev/metadata) (zod v4 only): `id` is the schema name, plus `description` and `deprecated` when the OpenAPI schema provides them.
+
+```ts
+// override: { zod: { generateMeta: true } }
+export const Pet = zod
+  .object({ name: zod.string() })
+  .meta({ id: 'Pet', description: 'A pet in the store', deprecated: true });
+```
+
+Behavior:
+
+- Applies only to **component** schemas emitted as named exports (`schemas: { type: 'zod' }`, or `client: 'zod'` + [`generateReusableSchemas`](#generatereusableschemas)). Operation wrapper schemas are left untouched, so registry `id`s stay unique.
+- `id` is always emitted; `description`/`deprecated` only when present. Property-level descriptions still use `.describe()`.
+- **zod v3** has no `.meta()` — the option is a no-op there, and descriptions continue to emit via `.describe()`.
+- The registry `id` makes [`z.toJSONSchema()`](https://zod.dev/json-schema) reference the schema as `#/$defs/<id>`, round-tripping the component structure.
+
 ---
 
 ## override.effect

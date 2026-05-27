@@ -137,6 +137,8 @@ export interface GenerateReusableSchemaSetOptions {
   strict: boolean;
   isZodV4: boolean;
   coerce?: boolean | ZodCoerceType[];
+  /** Emit `.meta({ id, ... })` on each schema (zod v4). See `ZodOptions.generateMeta`. */
+  generateMeta?: boolean;
 }
 
 /**
@@ -183,7 +185,11 @@ export const generateReusableSchemaSet = (
       name,
       options.strict,
       options.isZodV4,
-      { required: true, useReusableSchemas: true },
+      {
+        required: true,
+        useReusableSchemas: true,
+        emitMeta: options.generateMeta,
+      },
     );
 
     const parsed = parseZodValidationSchemaDefinition(

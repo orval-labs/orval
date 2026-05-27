@@ -696,4 +696,54 @@ describe('generateZodSchemasInline with generateReusableSchemas', () => {
     expect(result).toContain('export const _MyData =');
     expect(result).not.toContain('__REF_');
   });
+
+  const metaBuilder = () =>
+    ({
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              description: 'A pet',
+              deprecated: true,
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [{ name: 'Pet', schema: { $ref: '#/components/schemas/Pet' } }],
+    }) satisfies Parameters<typeof generateZodSchemasInline>[0];
+
+  it('attaches .meta({ id, description, deprecated }) on zod v4 when generateMeta is on', () => {
+    const output = createOutputOptions();
+    const zodOverride = output.override.zod as Record<string, unknown>;
+    zodOverride.generateReusableSchemas = true;
+    zodOverride.generateMeta = true;
+    (output as { packageJson?: unknown }).packageJson = {
+      dependencies: { zod: '4.0.0' },
+    };
+
+    const result = generateZodSchemasInline(metaBuilder(), output);
+
+    expect(result).toContain(
+      ".meta({ id: 'Pet', description: 'A pet', deprecated: true })",
+    );
+  });
+
+  it('falls back to .describe() (no .meta) on zod v3 even when generateMeta is on', () => {
+    const output = createOutputOptions();
+    const zodOverride = output.override.zod as Record<string, unknown>;
+    zodOverride.generateReusableSchemas = true;
+    zodOverride.generateMeta = true;
+    (output as { packageJson?: unknown }).packageJson = {
+      dependencies: { zod: '3.23.0' },
+    };
+
+    const result = generateZodSchemasInline(metaBuilder(), output);
+
+    expect(result).not.toContain('.meta(');
+    expect(result).toContain(".describe('A pet')");
+  });
 });

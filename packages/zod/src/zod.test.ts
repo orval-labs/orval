@@ -7915,3 +7915,149 @@ describe('parseZodValidationSchemaDefinition with namedRef', () => {
     expect(result.usedRefs).toEqual(new Set());
   });
 });
+
+describe('generateMeta (.meta())', () => {
+  const ctx = {
+    output: { override: { useDates: false } },
+  } as ContextSpec;
+
+  it('folds id + description + deprecated into a single .meta() on zod v4', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      description: 'A pet',
+      deprecated: true,
+      required: ['id'],
+      properties: {
+        id: { type: 'integer' },
+        name: { type: 'string', description: 'nested' },
+      },
+    };
+
+    const def = generateZodValidationSchemaDefinition(
+      schema,
+      ctx,
+      'Pet',
+      true,
+      true,
+      { required: true, emitMeta: true },
+    );
+
+    const meta = def.functions.find((fn) => fn[0] === 'meta');
+    expect(meta?.[1]).toEqual({
+      id: 'Pet',
+      description: 'A pet',
+      deprecated: true,
+    });
+    // The top-level describe is folded into meta (not emitted separately).
+    expect(def.functions.some((fn) => fn[0] === 'describe')).toBe(false);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      def,
+      ctx,
+      false,
+      true,
+      true,
+    );
+    expect(parsed.zod).toContain(
+      ".meta({ id: 'Pet', description: 'A pet', deprecated: true })",
+    );
+    // Nested property descriptions still use .describe().
+    expect(parsed.zod).toContain(".describe('nested')");
+  });
+
+  it('emits id-only meta when the schema has no description or deprecated', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: { x: { type: 'string' } },
+    };
+
+    const def = generateZodValidationSchemaDefinition(
+      schema,
+      ctx,
+      'Plain',
+      false,
+      true,
+      { required: true, emitMeta: true },
+    );
+    const parsed = parseZodValidationSchemaDefinition(
+      def,
+      ctx,
+      false,
+      false,
+      true,
+    );
+    expect(parsed.zod).toContain(".meta({ id: 'Plain' })");
+  });
+
+  it('falls back to .describe() on zod v3 (no .meta())', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      description: 'A name',
+      deprecated: true,
+    };
+
+    const def = generateZodValidationSchemaDefinition(
+      schema,
+      ctx,
+      'Name',
+      false,
+      false,
+      { required: true, emitMeta: true },
+    );
+    expect(def.functions.some((fn) => fn[0] === 'meta')).toBe(false);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      def,
+      ctx,
+      false,
+      false,
+      false,
+    );
+    expect(parsed.zod).toContain(".describe('A name')");
+    expect(parsed.zod).not.toContain('.meta(');
+  });
+
+  it('does not emit meta unless emitMeta is set (even on v4)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      description: 'A name',
+    };
+
+    const def = generateZodValidationSchemaDefinition(
+      schema,
+      ctx,
+      'Name',
+      false,
+      true,
+      { required: true },
+    );
+    expect(def.functions.some((fn) => fn[0] === 'meta')).toBe(false);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      def,
+      ctx,
+      false,
+      false,
+      true,
+    );
+    expect(parsed.zod).toContain(".describe('A name')");
+  });
+
+  it('emits meta on a multi-type (type array) top-level schema', () => {
+    const schema = {
+      type: ['string', 'number'],
+      description: 'either',
+    } as unknown as OpenApiSchemaObject;
+
+    const def = generateZodValidationSchemaDefinition(
+      schema,
+      ctx,
+      'Either',
+      false,
+      true,
+      { required: true, emitMeta: true },
+    );
+    const meta = def.functions.find((fn) => fn[0] === 'meta');
+    expect(meta?.[1]).toEqual({ id: 'Either', description: 'either' });
+  });
+});
