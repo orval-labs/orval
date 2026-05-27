@@ -277,4 +277,30 @@ describe('getMutatorInfo', () => {
       expect(result).toEqual({ numberOfParams: 1 });
     });
   });
+
+  describe('factory call expression', () => {
+    // Regression test for https://github.com/orval-labs/orval/issues/3402.
+    // When a mutator is defined as `export const foo = makeFactory(...)` or
+    // `export default makeFactory(...)` (e.g. `axios.create({...})`), the
+    // declarator's init is a CallExpression. parseFunction must treat it as
+    // a single-arg callable so orval emits `customInstance({...})` calls.
+    it('should treat a named export initialized by a CallExpression as a 1-arg function', async () => {
+      const result = await getMutatorInfo(
+        path.join(basePath, 'call-expression-tests', 'factory-named-export.ts'),
+        { namedExport: 'customInstance' },
+      );
+      expect(result).toEqual({ numberOfParams: 1 });
+    });
+
+    it('should treat a default export initialized by a CallExpression as a 1-arg function', async () => {
+      const result = await getMutatorInfo(
+        path.join(
+          basePath,
+          'call-expression-tests',
+          'factory-default-export.ts',
+        ),
+      );
+      expect(result).toEqual({ numberOfParams: 1 });
+    });
+  });
 });
