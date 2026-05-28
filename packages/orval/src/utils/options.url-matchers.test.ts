@@ -15,7 +15,7 @@ describe('normalizeOptions urlMatchers', () => {
     expect(options.output.urlMatchers).toEqual({
       fileExtension: '.apis.ts',
       prefixCapture: '(.*)',
-      defaultParamPattern: '[A-Za-z0-9_\\-.]+',
+      defaultParamPattern: String.raw`[A-Za-z0-9_\-.]+`,
       exportSuffix: 'Api',
       querySuffix: 'auto',
     });
@@ -36,7 +36,7 @@ describe('normalizeOptions urlMatchers', () => {
     expect(options.output.urlMatchers).toEqual({
       fileExtension: '.apis.ts',
       prefixCapture: '(.*)',
-      defaultParamPattern: '[A-Za-z0-9_\\-.]+',
+      defaultParamPattern: String.raw`[A-Za-z0-9_\-.]+`,
       exportSuffix: 'Intercept',
       querySuffix: 'never',
     });
