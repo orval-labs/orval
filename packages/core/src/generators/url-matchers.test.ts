@@ -55,7 +55,7 @@ describe('buildUrlMatcherRegexPattern', () => {
         { ...defaultMatcherOptions, querySuffix: 'always' },
         false,
       ),
-    ).toBe('(.*)/pets/([A-Za-z0-9-.]+)(\\?.*)?$');
+    ).toBe(String.raw`(.*)/pets/([A-Za-z0-9-.]+)(\?.*)?$`);
   });
 });
 
@@ -63,7 +63,7 @@ describe('buildUrlMatcherRegexLiteral', () => {
   it('wraps the pattern in slashes for a RegExp literal', () => {
     expect(
       buildUrlMatcherRegexLiteral('/health', defaultMatcherOptions, false),
-    ).toBe('/(.*)\\/health$/');
+    ).toBe(String.raw`/(.*)\/health$/`);
   });
 });
 
@@ -115,7 +115,7 @@ describe('generateUrlMatcherExtraFiles', () => {
 
     expect(file.path).toMatch(/endpoints\.apis\.ts$/);
     expect(file.content).toContain(
-      'export const listPetsApi = /(.*)\\/pets(\\?.*)?$/;',
+      String.raw`export const listPetsApi = /(.*)\/pets(\?.*)?$/;`,
     );
   });
 

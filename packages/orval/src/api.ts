@@ -1,11 +1,11 @@
 import {
   asyncReduce,
   type ContextSpec,
+  generateUrlMatcherExtraFiles,
   generateVerbsOptions,
   type GeneratorApiBuilder,
   type GeneratorApiOperations,
   type GeneratorSchema,
-  generateUrlMatcherExtraFiles,
   getFullRoute,
   getRoute,
   GetterPropType,
