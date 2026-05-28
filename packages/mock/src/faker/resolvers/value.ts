@@ -43,14 +43,22 @@ export function resolveMockOverride(
     return;
   }
 
-  const isNullable = Array.isArray(item.type) && item.type.includes('null');
-
   return {
-    value: getNullable(property[1] as string, isNullable),
+    value: getNullable(property[1] as string, isNullableSchema(item)),
     imports: [],
     name: item.name,
     overrided: true,
   };
+}
+
+/** OpenAPI 3.0 `nullable: true` or 3.1 `type` unions that include `null`. */
+export function isNullableSchema(
+  schema: Pick<OpenApiSchemaObject, 'type' | 'nullable'>,
+): boolean {
+  return (
+    schema.nullable === true ||
+    (Array.isArray(schema.type) && schema.type.includes('null'))
+  );
 }
 
 /** When `skipNull` is true (`override.mock.nonNullable`), omit the null branch. */

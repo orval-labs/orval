@@ -148,4 +148,44 @@ describe('getMockObject', () => {
     expect(result.value).toMatch(/birthDate: faker\.date\.past\(\)/);
     expect(result.value).toMatch(/tag: faker\.string\.alpha/);
   });
+
+  it('randomizes nullable array items to null by default', () => {
+    const result = getObjectMock({
+      name: 'Pet',
+      type: 'object' as const,
+      properties: {
+        names: {
+          type: 'array',
+          items: { type: 'string', nullable: true },
+        },
+      },
+    });
+
+    expect(result.value).toMatch(
+      /\.map\(\(\) => \(faker\.helpers\.arrayElement\(\[faker\.string\.alpha\(\), null\]\)\)\)/,
+    );
+  });
+
+  it('does not randomize nullable array items to null when nonNullable is true', () => {
+    const result = getObjectMock(
+      {
+        name: 'Pet',
+        type: 'object' as const,
+        properties: {
+          names: {
+            type: 'array',
+            items: { type: ['string', 'null'] },
+          },
+        },
+      },
+      { nonNullable: true },
+    );
+
+    expect(result.value).toMatch(
+      /\.map\(\(\) => \(faker\.string\.alpha\(\)\)\)/,
+    );
+    expect(result.value).not.toMatch(
+      /\.map\(\(\) => \(faker\.helpers\.arrayElement/,
+    );
+  });
 });

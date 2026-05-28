@@ -1,6 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
-import { getNullable } from './value';
+import { getNullable, isNullableSchema } from './value';
+
+describe('isNullableSchema', () => {
+  it('detects OpenAPI 3.0 nullable', () => {
+    expect(isNullableSchema({ type: 'string', nullable: true })).toBe(true);
+  });
+
+  it('detects OpenAPI 3.1 null type unions', () => {
+    expect(isNullableSchema({ type: ['string', 'null'] })).toBe(true);
+  });
+
+  it('returns false for non-nullable schemas', () => {
+    expect(isNullableSchema({ type: 'string' })).toBe(false);
+  });
+});
 
 describe('getNullable', () => {
   it('wraps nullable values by default', () => {

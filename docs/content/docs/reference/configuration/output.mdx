@@ -1575,7 +1575,7 @@ Make all properties required in mocks.
 **Type:** `Boolean`
 **Default:** `false`
 
-When `true`, nullable properties are generated without `faker.helpers.arrayElement([value, null])`. Optional properties may still be omitted via `arrayElement([value, undefined])` unless `required` is also `true`. You can still pass `null` at runtime through the factory's `overrideResponse` argument.
+When `true`, nullable properties are generated without `faker.helpers.arrayElement([value, null])`, including nullable **array items** (`items: { type: string, nullable: true }` or `type: ['string', 'null']`). Optional properties may still be omitted via `arrayElement([value, undefined])` unless `required` is also `true`. You can still pass `null` at runtime through the factory's `overrideResponse` argument.
 
 ### delay
 
