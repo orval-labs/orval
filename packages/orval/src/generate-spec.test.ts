@@ -163,6 +163,236 @@ describe('generateSpec - generateReusableSchemas inline (single mode)', () => {
   });
 });
 
+describe('generateSpec - generateReusableSchemas inline + override.zod.params', () => {
+  // Regression: with `client: 'zod'` + `generateReusableSchemas: true` and no
+  // `output.schemas` dir, the inline-reusable writer emits component schemas
+  // into the operation file (single mode) or an adjacent `.schemas` file
+  // (split/tags). `override.zod.params` must be threaded through that path so
+  // the named `export const Pet = …` definitions get `zodParams(…)` injection
+  // — previously only the operation wrappers in `generateZodRoute` did,
+  // leaving the shared definitions uninjected.
+  it('injects zodParams on inline component schemas in single mode', async () => {
+    const workspace = await createTempWorkspace();
+    const targetFile = path.join(workspace, 'zod.ts');
+    const mutatorFile = path.join(workspace, 'zod-params.ts');
+
+    try {
+      await fs.writeFile(
+        mutatorFile,
+        'export const zodParams = (_ctx: unknown) => ({});\n',
+      );
+
+      const options = await normalizeOptions(
+        {
+          input: { target: PETSTORE_SPEC },
+          output: {
+            target: './zod.ts',
+            mode: 'single',
+            client: 'zod',
+            override: {
+              zod: {
+                generateReusableSchemas: true,
+                params: { path: './zod-params.ts', name: 'zodParams' },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const content = await fs.readFile(targetFile, 'utf8');
+
+      // Inline component schema is injected with location: 'schema' and the
+      // component's name (not an operation's) — that's the whole point of
+      // wiring this through the reusable path.
+      expect(content).toContain('export const Pet = zod.object(');
+      expect(content).toMatch(
+        /zodParams\(\{"operationId":"","location":"schema","schemaName":"Pet","fieldPath":\["name"\],"validator":"string"\}\)/,
+      );
+      // Exactly one zodParams import in single mode: the operation file
+      // builder already emits one via each verb's mutators array, and the
+      // inline schemas live in the same file — emitting a second `import
+      // { zodParams }` line would be a duplicate.
+      expect(
+        content.match(/import \{ zodParams \} from ['"]\.\/zod-params['"]/g) ??
+          [],
+      ).toHaveLength(1);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  // Split mode writes the inline schemas to a separate `<name>.schemas.ts`
+  // file with no other imports, so the params-mutator import has to be
+  // emitted from the inline writer itself — the outer operation file builder
+  // can't reach across files.
+  it('emits the zodParams import in the split-mode schemas file', async () => {
+    const workspace = await createTempWorkspace();
+    const schemasFile = path.join(workspace, 'zod.schemas.ts');
+    const targetFile = path.join(workspace, 'zod.ts');
+    const mutatorFile = path.join(workspace, 'zod-params.ts');
+
+    try {
+      await fs.writeFile(
+        mutatorFile,
+        'export const zodParams = (_ctx: unknown) => ({});\n',
+      );
+
+      const options = await normalizeOptions(
+        {
+          input: { target: PETSTORE_SPEC },
+          output: {
+            target: './zod.ts',
+            mode: 'split',
+            client: 'zod',
+            override: {
+              zod: {
+                generateReusableSchemas: true,
+                params: { path: './zod-params.ts', name: 'zodParams' },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const schemasContent = await fs.readFile(schemasFile, 'utf8');
+      const targetContent = await fs.readFile(targetFile, 'utf8');
+
+      // Injection lands in the schemas file...
+      expect(schemasContent).toContain('export const Pet = zod.object(');
+      expect(schemasContent).toMatch(
+        /zodParams\(\{"operationId":"","location":"schema","schemaName":"Pet","fieldPath":\["name"\],"validator":"string"\}\)/,
+      );
+      // ...with its own import (the operation file's import doesn't reach
+      // here — different file).
+      expect(schemasContent).toMatch(
+        /import \{ zodParams \} from ['"]\.\/zod-params['"]/,
+      );
+      // The operation file still imports zodParams independently (used by
+      // operation wrappers via `generateZodRoute`'s mutators array).
+      expect(targetContent).toMatch(
+        /import \{ zodParams \} from ['"]\.\/zod-params['"]/,
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  // `tags` mode looks like `single` but isn't: per-tag operation files live
+  // alongside a separate `<name>.schemas.ts` file. The schemas file has no
+  // other imports either, so — same as `split` — it has to emit the params
+  // import from inside the inline writer. Pinning this so the case can't
+  // silently regress to "no import → `zodParams` undefined at runtime".
+  const TAGGED_SPEC: OpenApiDocument = {
+    ...PETSTORE_SPEC,
+    paths: {
+      '/pets': {
+        get: {
+          ...PETSTORE_SPEC.paths?.['/pets']?.get,
+          tags: ['pets'],
+        },
+      },
+    },
+  };
+
+  it('emits the zodParams import in the tags-mode schemas file', async () => {
+    const workspace = await createTempWorkspace();
+    const schemasFile = path.join(workspace, 'zod.schemas.ts');
+    const mutatorFile = path.join(workspace, 'zod-params.ts');
+
+    try {
+      await fs.writeFile(
+        mutatorFile,
+        'export const zodParams = (_ctx: unknown) => ({});\n',
+      );
+
+      const options = await normalizeOptions(
+        {
+          input: { target: TAGGED_SPEC },
+          output: {
+            target: './zod.ts',
+            mode: 'tags',
+            client: 'zod',
+            override: {
+              zod: {
+                generateReusableSchemas: true,
+                params: { path: './zod-params.ts', name: 'zodParams' },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const schemasContent = await fs.readFile(schemasFile, 'utf8');
+
+      expect(schemasContent).toContain('export const Pet = zod.object(');
+      expect(schemasContent).toMatch(
+        /zodParams\(\{"operationId":"","location":"schema","schemaName":"Pet","fieldPath":\["name"\],"validator":"string"\}\)/,
+      );
+      expect(schemasContent).toMatch(
+        /import \{ zodParams \} from ['"]\.\/zod-params['"]/,
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('emits the zodParams import in the tags-split schemas file', async () => {
+    const workspace = await createTempWorkspace();
+    // In tags-split, operation files nest under `<dirname>/<tag>/<tag>.ts`
+    // but the inline schemas file stays at the root next to `zod-params.ts`.
+    const schemasFile = path.join(workspace, 'zod.schemas.ts');
+    const mutatorFile = path.join(workspace, 'zod-params.ts');
+
+    try {
+      await fs.writeFile(
+        mutatorFile,
+        'export const zodParams = (_ctx: unknown) => ({});\n',
+      );
+
+      const options = await normalizeOptions(
+        {
+          input: { target: TAGGED_SPEC },
+          output: {
+            target: './zod.ts',
+            mode: 'tags-split',
+            client: 'zod',
+            override: {
+              zod: {
+                generateReusableSchemas: true,
+                params: { path: './zod-params.ts', name: 'zodParams' },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const schemasContent = await fs.readFile(schemasFile, 'utf8');
+
+      expect(schemasContent).toContain('export const Pet = zod.object(');
+      expect(schemasContent).toMatch(
+        /zodParams\(\{"operationId":"","location":"schema","schemaName":"Pet","fieldPath":\["name"\],"validator":"string"\}\)/,
+      );
+      expect(schemasContent).toMatch(
+        /import \{ zodParams \} from ['"]\.\/zod-params['"]/,
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('generateSpec - generateReusableSchemas recursive ($ref to self)', () => {
   // Regression: a self-referential component schema is emitted as a single
   // reusable `const` whose initializer references itself through `zod.lazy`.

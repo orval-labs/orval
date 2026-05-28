@@ -3,6 +3,7 @@ import path from 'node:path';
 import {
   type ContextSpec,
   conventionName,
+  type GeneratorMutator,
   getRefInfo,
   isComponentRef,
   type NamingConvention,
@@ -123,6 +124,29 @@ interface WriteZodSchemasFromVerbsContext {
   spec: ContextSpec['spec'];
   target: string;
   workspace: string;
+}
+
+/**
+ * Render the `import { ... } from '...'` line for a resolved
+ * `GeneratorMutator`. Mirrors the format produced by
+ * `generateMutatorImports` in `@orval/core` but inlined to avoid pulling in
+ * its full surface area for a single statement.
+ */
+function buildMutatorImportStatement(mutator: GeneratorMutator): string {
+  const importClause = mutator.default ? mutator.name : `{ ${mutator.name} }`;
+  return `import ${importClause} from '${mutator.path}';`;
+}
+
+/**
+ * Whole-word substring check for a resolved mutator alias inside generated
+ * code. Plain `String.includes` would false-positive when the user names the
+ * mutator something like `min` against `.min(1)`.
+ */
+function bodyReferencesMutator(
+  body: string,
+  mutator: GeneratorMutator,
+): boolean {
+  return new RegExp(String.raw`\b${mutator.name}\b`).test(body);
 }
 
 function generateZodSchemaFileContent(
@@ -401,12 +425,20 @@ export function generateZodSchemasInline(
   builder: WriteZodSchemasInput,
   output: WriteZodOutputOptions,
   includeZodImport = true,
+  paramsMutator?: GeneratorMutator,
+  includeParamsImport = false,
 ): string {
   const useReusableSchemas =
     output.override.zod.generateReusableSchemas === true;
 
   if (useReusableSchemas) {
-    return generateZodSchemasInlineReusable(builder, output, includeZodImport);
+    return generateZodSchemasInlineReusable(
+      builder,
+      output,
+      includeZodImport,
+      paramsMutator,
+      includeParamsImport,
+    );
   }
 
   const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
@@ -472,6 +504,8 @@ function generateZodSchemasInlineReusable(
   builder: WriteZodSchemasInput,
   output: WriteZodOutputOptions,
   includeZodImport = true,
+  paramsMutator?: GeneratorMutator,
+  includeParamsImport = false,
 ): string {
   const isZodV4 = !!output.packageJson && isZodVersionV4(output.packageJson);
   const strict = output.override.zod.strict.body;
@@ -506,6 +540,7 @@ function generateZodSchemasInlineReusable(
     isZodV4,
     coerce,
     generateMeta: output.override.zod.generateMeta,
+    paramsMutator,
   });
 
   const rewritten = rewriteReusableSchemas(entries);
@@ -519,7 +554,21 @@ function generateZodSchemasInlineReusable(
 
   // Omit the zod import when concatenated into a file that already imports it
   // (inline single-mode output where the zod client emits `import * as zod`).
-  const prefix = includeZodImport ? `import { z as zod } from 'zod';\n\n` : '';
+  const zodImport = includeZodImport ? `import { z as zod } from 'zod';\n` : '';
+  // In split modes (`split` / `tags-split`) the inline schemas are written to
+  // a separate `.schemas` file with no other imports, so the params-mutator
+  // import has to be emitted here. In `single` / `tags` modes the schemas are
+  // concatenated into the operation file, which already imports the same
+  // mutator via its per-verb mutators array (see `generateZodRoute`) — we
+  // skip emitting it again to avoid a duplicate import line.
+  const paramsImport =
+    paramsMutator &&
+    includeParamsImport &&
+    bodyReferencesMutator(body, paramsMutator)
+      ? `${buildMutatorImportStatement(paramsMutator)}\n`
+      : '';
+  const prefix =
+    zodImport || paramsImport ? `${zodImport}${paramsImport}\n` : '';
   return `${prefix}${body}\n`;
 }
 
@@ -529,6 +578,7 @@ export async function writeZodSchemas(
   fileExtension: string,
   header: string,
   output: WriteZodOutputOptions,
+  paramsMutator?: GeneratorMutator,
 ) {
   const useReusableSchemas = output.override.zod.generateReusableSchemas;
 
@@ -539,6 +589,7 @@ export async function writeZodSchemas(
       fileExtension,
       header,
       output,
+      paramsMutator,
     );
     return;
   }
@@ -625,6 +676,7 @@ async function writeZodSchemasReusable(
   fileExtension: string,
   header: string,
   output: WriteZodOutputOptions,
+  paramsMutator?: GeneratorMutator,
 ) {
   const isZodV4 = !!output.packageJson && isZodVersionV4(output.packageJson);
   const strict = output.override.zod.strict.body;
@@ -661,6 +713,7 @@ async function writeZodSchemasReusable(
     isZodV4,
     coerce,
     generateMeta: output.override.zod.generateMeta,
+    paramsMutator,
   });
 
   const rewritten = rewriteReusableSchemas(entries);
@@ -674,12 +727,21 @@ async function writeZodSchemasReusable(
       resolveSchemaName(`#/components/schemas/${schemaName}`, context),
     ),
   );
+
+  // When `override.zod.params` is set, each component schema may reference
+  // the user-provided mutator (e.g. `zodParams`). Pre-compute the import
+  // line once relative to `schemasPath`; every reusable schema file lives in
+  // the same directory, so the relative path is identical across files.
+  const paramsMutatorImport = paramsMutator
+    ? buildMutatorImportStatement(paramsMutator)
+    : undefined;
+
   for (const entry of rewritten) {
     const fileName = conventionName(entry.name, output.namingConvention);
     const filePath = path.join(schemasPath, `${fileName}${fileExtension}`);
     const importExt = fileExtension.replace(/\.ts$/, '');
     const rendered = renderReusableSchemaEntry(entry, context);
-    const imports = buildSiblingImports({
+    const refImports = buildSiblingImports({
       usedRefs: entry.usedRefs,
       extraImports: rendered.extraImports,
       entryName: entry.name,
@@ -687,6 +749,16 @@ async function writeZodSchemasReusable(
       namingConvention: output.namingConvention,
       importExt,
     });
+    // Only emit the params mutator import on files that actually reference it
+    // (schemas with no leaf validators — e.g. a pure `$ref` wrapper — won't).
+    const needsParamsImport =
+      !!paramsMutator && bodyReferencesMutator(entry.zod, paramsMutator);
+    const imports = [
+      ...(needsParamsImport && paramsMutatorImport
+        ? [paramsMutatorImport]
+        : []),
+      ...(refImports ? [refImports] : []),
+    ].join('\n');
 
     const fileContent =
       `${header}import { z as zod } from 'zod';\n` +

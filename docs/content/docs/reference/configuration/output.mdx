@@ -1080,6 +1080,65 @@ Control which schemas are generated.
 
 Add preprocess functions to schemas.
 
+### params
+
+**Type:** [`Mutator`](#mutator)
+
+Inject a Zod `params` argument (e.g. `{ error: ... }`) into every generated validator. The referenced function is called once per validator at schema construction time and receives codegen-time context (operation, location, schema name, field path, validator name). Whatever it returns is passed as the trailing argument of the call.
+
+Useful for i18n error keys, branded error messages, or any field-aware customisation that Zod's global error map cannot disambiguate on its own (because `issue.path` does not carry operation/schema identity).
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        zod: {
+          params: { path: './zod-params.ts', name: 'zodParams' },
+        },
+      },
+    },
+  },
+});
+```
+
+```ts title="zod-params.ts"
+import type { ZodParamsContext } from 'orval';
+import { i18n } from './i18n';
+
+export const zodParams = (ctx: ZodParamsContext) => ({
+  error: (issue: { input: unknown; path: PropertyKey[] }) =>
+    i18n.t(
+      `errors.${ctx.schemaName}.${ctx.fieldPath.join('.')}.${ctx.validator}`,
+      { value: issue.input },
+    ),
+});
+```
+
+The `'schema'` location is used for shared component schemas emitted under [`generateReusableSchemas`](#generatereusableschemas). Component schemas have no single owning operation, so `operationId` is the empty string in that case — branch on `ctx.location === 'schema'` if your error keys need to fall back to a schema-only namespace.
+
+Generated output (excerpt):
+
+```ts
+import { zodParams } from './zod-params';
+
+export const CreateUserBody = zod.object({
+  email: zod
+    .string(zodParams({ operationId: 'createUser', location: 'body', schemaName: 'CreateUserBody', fieldPath: ['email'], validator: 'string' }))
+    .email(zodParams({ operationId: 'createUser', location: 'body', schemaName: 'CreateUserBody', fieldPath: ['email'], validator: 'email' })),
+});
+```
+
+Injection scope:
+
+- Applied to base types (`string`, `number`, `boolean`, `bigint`, `date`, `integer`), constraints (`min`, `max`, `gt`, `lt`, `multipleOf`, `regex`, `length`), formats (`email`, `url`, `uuid`, `hostname`, `datetime`, `time`), and `literal`, `enum`, `instanceof`, `stringFormat`.
+- Skipped on modifiers (`optional`, `nullable`, `nullish`, `default`, `describe`) and structural calls (`object`, `array`, `tuple`, `union`, `rest`, `passthrough`, `strict`).
+- `fieldPath` only includes object property names, mirroring Zod's own `issue.path`. Array indices and tuple positions are not appended — the inner element of `{ tags: array<string> }` and a top-level `tags: string` both see `fieldPath: ['tags']`. Use the `validator` field to distinguish a container (`'array'`, `'tuple'`) from its element (`'string'`, `'number'`).
+
+For static messages, return an object with a string `error`: `return { error: 'My message' }`. The function may return `undefined` to fall back to Zod defaults for a specific call.
+
+> The `{ error }` shape is Zod v4-only — on v3 it is silently ignored and the default message is used. If your project supports both Zod v3 and v4, return `{ message: 'My message' }` instead, which works on both.
+
 ### dateTimeOptions / timeOptions
 
 **Type:** `Object`
