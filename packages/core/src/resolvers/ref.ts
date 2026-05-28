@@ -462,9 +462,13 @@ export function resolveDynamicRef(
           matches.push(schemaName);
         }
       }
-      if (matches.length === 1) {
+      const match =
+        matches.length === 1
+          ? matches[0]
+          : matches.find((m) => m === anchorName);
+      if (match) {
         const refInfo = getRefInfo(
-          `#/components/schemas/${encodeJsonPointerSegment(matches[0])}`,
+          `#/components/schemas/${encodeJsonPointerSegment(match)}`,
           context,
         );
         scopeEntry = {

@@ -329,13 +329,13 @@ export function resolveValue({
       };
     }
 
-    if (!context.parents?.includes(refName)) {
+    if (!effectiveContext.parents?.includes(refName)) {
       const scalar = getScalar({
         item: schemaObject,
         name: refName,
         context: {
-          ...context,
-          parents: [...(context.parents ?? []), refName],
+          ...effectiveContext,
+          parents: [...(effectiveContext.parents ?? []), refName],
         },
       });
 
