@@ -19,11 +19,26 @@ function isRegex(key: string) {
   return key.startsWith('/') && key.endsWith('/');
 }
 
+// Drop `[]` array-items segments from a dotted JSON-pointer-ish path. Treating
+// the marker as transparent for property override matching lets a bare
+// property-name override apply wherever the property literally appears, even
+// inside arrays (#2465). Segment-based so both leading (`[].id`) and embedded
+// (`foo.[].id`) markers normalize equivalently.
+function stripArrayMarkerSegments(s: string): string {
+  return s
+    .split('.')
+    .filter((seg) => seg !== '[]')
+    .join('.');
+}
+
 export function resolveMockOverride(
   properties: Record<string, unknown> | undefined = {},
   item: OpenApiSchemaObject & { name: string; path?: string },
 ) {
   const path = item.path ?? `#.${item.name}`;
+  // Regex keys still match against the original (un-normalized) path so users
+  // can opt into array-scoped targeting explicitly if ever needed.
+  const normalizedPath = stripArrayMarkerSegments(path);
   const property = Object.entries(properties).find(([key]) => {
     if (isRegex(key)) {
       const regex = new RegExp(key.slice(1, -1));
@@ -32,7 +47,7 @@ export function resolveMockOverride(
       }
     }
 
-    if (`#.${key}` === path) {
+    if (`#.${stripArrayMarkerSegments(key)}` === normalizedPath) {
       return true;
     }
 

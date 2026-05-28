@@ -450,10 +450,17 @@ export async function writeSpecs(
       output,
       hasOperations,
     );
-    // Only emit the inline `import { z as zod }` when there are no operations.
-    // With operations the zod client already emits `import * as zod from 'zod'`,
-    // so a second import would redeclare the `zod` binding.
-    const includeZodImport = !hasOperations;
+    // The zod client's `import * as zod from 'zod'` is a *usage-gated* dependency
+    // import: it's only emitted when an operation's generated schema actually
+    // references the `zod` token. When every operation is a pure-`$ref` alias
+    // (e.g. `export const FooResponse = Bar`), the client emits no zod import —
+    // so the inline schema block (which always uses zod) must supply it itself.
+    // When an operation does use zod the client already imports it, and a second
+    // import would redeclare the `zod` binding — so the inline block omits it.
+    const operationsUseZod = Object.values(builder.operations).some(
+      (operation) => /\bzod\b/.test(operation.implementation),
+    );
+    const includeZodImport = !operationsUseZod;
 
     implementationPaths = await writeMode({
       builder,
