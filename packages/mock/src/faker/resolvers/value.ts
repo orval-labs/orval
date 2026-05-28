@@ -57,13 +57,17 @@ export function resolveMockOverride(
 }
 
 /** OpenAPI 3.0 `nullable: true` or 3.1 `type` unions that include `null`. */
-export function isNullableSchema(
-  schema: Pick<OpenApiSchemaObject, 'type' | 'nullable'>,
-): boolean {
-  return (
-    schema.nullable === true ||
-    (Array.isArray(schema.type) && schema.type.includes('null'))
-  );
+export function isNullableSchema(schema: unknown): boolean {
+  if (!schema || typeof schema !== 'object') {
+    return false;
+  }
+
+  const { type, nullable } = schema as {
+    type?: unknown;
+    nullable?: unknown;
+  };
+
+  return nullable === true || (Array.isArray(type) && type.includes('null'));
 }
 
 /** When `nonNullableOption` is true (`override.mock.nonNullable`), omit the null branch. */
