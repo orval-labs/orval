@@ -149,7 +149,7 @@ describe('getMockObject', () => {
     expect(result.value).toMatch(/tag: faker\.string\.alpha/);
   });
 
-  it('randomizes nullable array items to null by default', () => {
+  it('randomizes OpenAPI 3.0 nullable array items to null by default', () => {
     const result = getObjectMock({
       name: 'Pet',
       type: 'object' as const,
@@ -166,7 +166,30 @@ describe('getMockObject', () => {
     );
   });
 
-  it('does not randomize nullable array items to null when nonNullable is true', () => {
+  it('does not randomize OpenAPI 3.0 nullable array items to null when nonNullable is true', () => {
+    const result = getObjectMock(
+      {
+        name: 'Pet',
+        type: 'object' as const,
+        properties: {
+          names: {
+            type: 'array',
+            items: { type: 'string', nullable: true },
+          },
+        },
+      },
+      { nonNullable: true },
+    );
+
+    expect(result.value).toMatch(
+      /\.map\(\(\) => \(faker\.string\.alpha\(\)\)\)/,
+    );
+    expect(result.value).not.toMatch(
+      /\.map\(\(\) => \(faker\.helpers\.arrayElement/,
+    );
+  });
+
+  it('does not randomize OpenAPI 3.1 nullable array items to null when nonNullable is true', () => {
     const result = getObjectMock(
       {
         name: 'Pet',
