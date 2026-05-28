@@ -1,6 +1,35 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  issue2999: {
+    output: {
+      target: '../generated/react-query/issue-2999/endpoints.ts',
+      schemas: '../generated/react-query/issue-2999/model',
+      client: 'react-query',
+      httpClient: 'fetch',
+      override: {
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+        },
+        fetch: {
+          includeHttpResponseReturnType: false,
+        },
+        query: {
+          version: 5,
+          useQuery: true,
+          useInvalidate: true,
+          usePrefetch: true,
+          signal: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-2999.yaml',
+    },
+  },
   basic: {
     output: {
       target: '../generated/react-query/basic/endpoints.ts',

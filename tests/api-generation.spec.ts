@@ -612,3 +612,47 @@ test('mock issue-2327 base handler uses 200 content-type when sibling status has
   // the assertion.
   expect(handler).not.toMatch(/['"]content-type['"]\s*:\s*['"]text\/plain\b/i);
 });
+
+test('react-query issue-2999 emits exactly one v5 overload block per NestJS-style hook', async () => {
+  // Regression for #2999: the report described `useXxxFindAll` / `useXxxFindOne`
+  // hooks "duplicated" in the generated output. Reproducing with the OP's
+  // NestJS-style operationIds (`MusclesController_findAll` etc.) and React
+  // Query v5 shows the four declarations are the standard v5 overload block —
+  // three signatures (DefinedInitialDataOptions, UndefinedInitialDataOptions,
+  // bare options) plus one implementation — not a duplicate. This test pins
+  // the count at exactly 4 per hook so any future regression that actually
+  // re-emits the whole block (8 declarations for the same name) trips a
+  // targeted assertion instead of a full-file snapshot diff.
+  const content = await readFile(
+    generated('react-query', 'issue-2999', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // Underscore-style operationIds from NestJS swagger (`Controller_method`)
+  // round-trip through orval's camelCase pass to `useControllerMethod<`.
+  // Each must appear exactly four times: three overloads + one implementation.
+  for (const hook of [
+    'useMusclesControllerFindAll<',
+    'useMusclesControllerFindOne<',
+    'useMusclesControllerCreate<',
+  ]) {
+    const occurrences = content.split(`export function ${hook}`).length - 1;
+    expect(occurrences, `${hook} must be declared exactly 4 times`).toBe(4);
+  }
+
+  // Sanity: the two v5-specific overload markers must each be used exactly
+  // once per hook, proving the count above reflects the real v5 overload
+  // shape and not e.g. four copies of the bare overload. Match the
+  // `Marker<` usage form so the type-import line at the top of the file is
+  // excluded from the count.
+  for (const marker of [
+    'DefinedInitialDataOptions<',
+    'UndefinedInitialDataOptions<',
+  ]) {
+    const occurrences = content.split(marker).length - 1;
+    expect(
+      occurrences,
+      `${marker} should be used once per hook (3 hooks)`,
+    ).toBe(3);
+  }
+});
