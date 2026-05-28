@@ -510,6 +510,7 @@ export async function normalizeOptions(
             outputOptions.override?.zod?.useBrandedTypes ?? false,
           generateReusableSchemas:
             outputOptions.override?.zod?.generateReusableSchemas ?? false,
+          generateMeta: outputOptions.override?.zod?.generateMeta ?? false,
           dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {
             offset: true,
           },
@@ -894,6 +895,7 @@ function normalizeOperationsAndTags(
                     useBrandedTypes: zod.useBrandedTypes ?? false,
                     generateReusableSchemas:
                       zod.generateReusableSchemas ?? false,
+                    generateMeta: zod.generateMeta ?? false,
                     dateTimeOptions: zod.dateTimeOptions ?? { offset: true },
                     timeOptions: zod.timeOptions ?? {},
                   },

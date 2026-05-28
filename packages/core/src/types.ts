@@ -753,6 +753,14 @@ export interface ZodOptions {
    * instead of inlining. Default `false`. See `docs/superpowers/specs/2026-05-26-reusable-zod-schemas-design.md`.
    */
   generateReusableSchemas?: boolean;
+  /**
+   * When true (zod v4 only), attaches registry metadata to generated
+   * **component** schemas via `.meta({ id, description?, deprecated? })`: `id` is
+   * the schema name, plus `description`/`deprecated` when the OpenAPI schema
+   * provides them. On zod v3 (which has no `.meta()`) descriptions still emit
+   * via `.describe()`. Default `false`.
+   */
+  generateMeta?: boolean;
 }
 
 export interface EffectOptions {
@@ -796,6 +804,7 @@ export interface NormalizedZodOptions {
   generateEachHttpStatus: boolean;
   useBrandedTypes: boolean;
   generateReusableSchemas: boolean;
+  generateMeta: boolean;
   dateTimeOptions: ZodDateTimeOptions;
   timeOptions: ZodTimeOptions;
 }
