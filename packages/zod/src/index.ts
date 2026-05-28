@@ -339,8 +339,14 @@ export const generateZodValidationSchemaDefinition = (
   // turns `.meta({id}).describe(...)` into a `$ref` wrapper, whereas
   // `.describe(...).meta({id})` (and a lone `.meta`) stay flat.
   const pushDescriptionOrMeta = () => {
+    // Empty-string descriptions are treated as absent — preserves the prior
+    // `if (schema.description)` falsy-check semantics (which skipped both `''`
+    // and `undefined`), so this change never emits a no-op `.describe('')` or
+    // `description: ''` in meta.
     const description =
-      typeof schema.description === 'string' ? schema.description : undefined;
+      typeof schema.description === 'string' && schema.description.length > 0
+        ? schema.description
+        : undefined;
     const deprecated =
       'deprecated' in schema && schema.deprecated === true ? true : undefined;
 

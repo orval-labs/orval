@@ -8060,4 +8060,49 @@ describe('generateMeta (.meta())', () => {
     const meta = def.functions.find((fn) => fn[0] === 'meta');
     expect(meta?.[1]).toEqual({ id: 'Either', description: 'either' });
   });
+
+  it('treats an empty-string description as absent (preserves prior semantics)', () => {
+    // Old code used `if (schema.description)` which skipped `''`; the helper
+    // matches that — no `.describe('')` and no `description: ''` in meta.
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      description: '',
+    };
+
+    // v4 + emitMeta: id-only, no description key in the meta object.
+    const v4Def = generateZodValidationSchemaDefinition(
+      schema,
+      ctx,
+      'Empty',
+      false,
+      true,
+      { required: true, emitMeta: true },
+    );
+    const v4Meta = v4Def.functions.find((fn) => fn[0] === 'meta');
+    expect(v4Meta?.[1]).toEqual({ id: 'Empty' });
+
+    // v3 fallback (no emitMeta path): no `.describe('')` emitted.
+    const v3Def = generateZodValidationSchemaDefinition(
+      schema,
+      ctx,
+      'Empty',
+      false,
+      false,
+      { required: true, emitMeta: true },
+    );
+    expect(v3Def.functions.some((fn) => fn[0] === 'describe')).toBe(false);
+
+    // No-emitMeta + v4: still no `.describe('')` (matches old falsy-check
+    // semantics; was already the case before this PR, asserted here as a
+    // regression anchor).
+    const offDef = generateZodValidationSchemaDefinition(
+      schema,
+      ctx,
+      'Empty',
+      false,
+      true,
+      { required: true },
+    );
+    expect(offDef.functions.some((fn) => fn[0] === 'describe')).toBe(false);
+  });
 });
