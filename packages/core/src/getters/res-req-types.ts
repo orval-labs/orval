@@ -1,3 +1,4 @@
+import { isDereferenced } from '@scalar/openapi-types/helpers';
 import { keyword } from 'esutils';
 import { uniqueBy } from 'remeda';
 
@@ -17,7 +18,6 @@ import {
   type ResReqTypesValue,
 } from '../types';
 import { camel, sanitize } from '../utils';
-import { isReference } from '../utils/assertion';
 import { pascal, conventionName } from '../utils/case';
 import {
   getFormDataFieldFileType,
@@ -136,7 +136,7 @@ export function getResReqTypes(
   const typesArray = responsesOrRequests
     .filter(([, res]) => Boolean(res))
     .map(([key, res]) => {
-      if (isReference(res)) {
+      if (!isDereferenced(res)) {
         const {
           schema: bodySchema,
           imports: [{ name, schemaName }],
@@ -181,7 +181,7 @@ export function getResReqTypes(
               hasReadonlyProps: false,
               dependencies: [name],
               originalSchema: mediaType.schema,
-              example: mediaType.example as unknown,
+              example: mediaType.example,
               examples: resolveExampleRefs(
                 mediaType.examples as
                   | Record<string, OpenApiReferenceObject | { value?: unknown }>
@@ -266,7 +266,7 @@ export function getResReqTypes(
 
             // When schema is a $ref, use schema name for consistent param naming
             let effectivePropName = propName;
-            if (mediaType.schema && isReference(mediaType.schema)) {
+            if (mediaType.schema && !isDereferenced(mediaType.schema)) {
               const { imports } = resolveSchemaRef(mediaType.schema, context);
               if (imports[0]?.name) {
                 effectivePropName = imports[0].name;
@@ -284,7 +284,7 @@ export function getResReqTypes(
               if (combinedRefs) {
                 const names: string[] = [];
                 for (const ref of combinedRefs) {
-                  if (!isReference(ref)) continue;
+                  if (isDereferenced(ref)) continue;
                   const refName = resolveSchemaRef(ref, context).imports[0]
                     ?.name;
                   if (refName) {
@@ -372,7 +372,7 @@ export function getResReqTypes(
               formData,
               formUrlEncoded,
               contentType,
-              example: mediaType.example as unknown,
+              example: mediaType.example,
               examples: resolveExampleRefs(
                 mediaType.examples as
                   | Record<string, OpenApiReferenceObject | { value?: unknown }>
@@ -581,7 +581,7 @@ function getSchemaFormDataAndUrlEncoded({
 }: GetSchemaFormDataAndUrlEncodedOptions): string {
   const { schema, imports } = resolveSchemaRef(schemaObject, context);
   const propName = camel(
-    !isRef && isReference(schemaObject) ? imports[0].name : name,
+    !isRef && !isDereferenced(schemaObject) ? imports[0].name : name,
   );
 
   const variableName = isUrlEncoded ? 'formUrlEncoded' : 'formData';

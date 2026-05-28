@@ -1,4 +1,6 @@
 import { hasNarrowedPropertyNames } from '../getters';
+import { isDereferenced } from '@scalar/openapi-types/helpers';
+
 import { resolveRef } from '../resolvers/ref';
 import type {
   ContextSpec,
@@ -9,7 +11,6 @@ import type {
   OpenApiSchemaObject,
 } from '../types';
 import { pascal } from '../utils';
-import { isReference } from '../utils/assertion';
 
 type SchemaOrRef = OpenApiSchemaObject | OpenApiReferenceObject;
 
@@ -25,7 +26,7 @@ const isDateSchema = (schema: OpenApiSchemaObject): boolean =>
   schema.format === 'date' || schema.format === 'date-time';
 
 const isNullTypeSchema = (schemaOrRef: SchemaOrRef): boolean => {
-  if (isReference(schemaOrRef)) return false;
+  if (!isDereferenced(schemaOrRef)) return false;
   const { type } = schemaOrRef as OpenApiSchemaObject;
   return (
     type === 'null' ||
@@ -161,7 +162,7 @@ const normalizeSchema = (
   nullable = false,
   seenRefs: Set<string> = new Set(),
 ): NormalizedSchema => {
-  if (isReference(schemaOrRef) && schemaOrRef.$ref) {
+  if (!isDereferenced(schemaOrRef) && schemaOrRef.$ref) {
     const ref: string = schemaOrRef.$ref;
     // Guard against a self-referential nullable wrapper (`A: anyOf [A, null]`)
     // sending this resolution loop infinite.
@@ -1123,7 +1124,7 @@ const resolveJsonBodySchema = (
   body: GetterBody,
   context: ContextSpec,
 ): OpenApiSchemaObject | undefined => {
-  const requestBody = isReference(body.originalSchema)
+  const requestBody = !isDereferenced(body.originalSchema)
     ? resolveRef<OpenApiRequestBodyObject>(body.originalSchema, context).schema
     : (body.originalSchema as OpenApiRequestBodyObject);
 

@@ -2,10 +2,10 @@ import {
   type ContextSpec,
   type GeneratorImport,
   getRefInfo,
-  isReference,
   isSchemaNullable,
   type MockOptions,
 } from '@orval/core';
+import { isDereferenced } from '@scalar/openapi-types/helpers';
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { resolveMockValue } from '../resolvers';
@@ -75,7 +75,7 @@ export function combineSchemasMock({
   const itemRequired = item.required as string[] | undefined;
 
   const isRefAndNotExisting =
-    isReference(item) && !existingReferencedProperties.includes(item.name);
+    !isDereferenced(item) && !existingReferencedProperties.includes(item.name);
 
   // When a oneOf schema declares a discriminator with a mapping AND the
   // discriminator property is also declared on the parent's `properties`,
@@ -191,7 +191,9 @@ export function combineSchemasMock({
   let value = separator === 'allOf' ? '' : 'faker.helpers.arrayElement([';
 
   for (const val of separatorItems) {
-    const refName = isReference(val) ? getReferenceName(val.$ref, context) : '';
+    const refName = isDereferenced(val)
+      ? ''
+      : getReferenceName(val.$ref, context);
     // For allOf: skip a base that would otherwise re-expand forever, in any of:
     //   - `refName === item.name`: the schema lists itself as its own base;
     //   - an already-seen *inline* base (`!item.isRef`): a circular inline allOf;

@@ -12,13 +12,14 @@ import {
   getRoute,
   GetterPropType,
   isObject,
-  isReference,
   type NormalizedInputOptions,
   type NormalizedOutputOptions,
   type OpenApiPathItemObject,
   type GeneratorVerbsOptions,
   resolveRef,
 } from '@orval/core';
+import { isDereferenced } from '@scalar/openapi-types/helpers';
+
 import {
   generateClientFooter,
   generateClientHeader,
@@ -68,7 +69,7 @@ export async function getApiBuilder({
     const route = getRoute(pathRoute);
     let resolvedVerbs: OpenApiPathItemObject = verbs;
 
-    if (isReference(verbs)) {
+    if (!isDereferenced(verbs)) {
       const { schema }: { schema: OpenApiPathItemObject } = resolveRef(
         verbs,
         context,

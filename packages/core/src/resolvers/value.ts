@@ -1,3 +1,5 @@
+import { isDereferenced } from '@scalar/openapi-types/helpers';
+
 import { getScalar } from '../getters';
 import type { FormDataContext } from '../getters/object';
 import {
@@ -12,9 +14,8 @@ import type {
   OpenApiReferenceObject,
   OpenApiSchemaObject,
   ResolverValue,
-  SchemaType,
 } from '../types';
-import { isDynamicReference, isReference } from '../utils';
+import { isDynamicReference } from '../utils';
 import { extractBoundAliasInfo, resolveDynamicRef, resolveRef } from './ref';
 
 interface ResolveValueOptions {
@@ -162,7 +163,7 @@ export function resolveValue({
   context,
   formDataContext,
 }: ResolveValueOptions): ResolverValue {
-  if (isReference(schema)) {
+  if (!isDereferenced(schema)) {
     const alias = extractBoundAliasInfo(schema, context);
     if (alias) {
       const value = `${alias.genericName}<${alias.typeArgs.join(', ')}>`;
@@ -348,18 +349,14 @@ export function resolveValue({
       hasReadonlyProps = scalar.hasReadonlyProps;
     }
 
-    // Bridge assertion: schemaObject.anyOf is `any` due to AnyOtherAttribute
-    const anyOfItems = schemaObject.anyOf as
-      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
-      | undefined;
-    const isAnyOfNullable = anyOfItems?.some(
+    const isAnyOfNullable = schemaObject.anyOf?.some(
       (anyOfItem) =>
-        !isReference(anyOfItem) &&
+        isDereferenced(anyOfItem) &&
         (anyOfItem.type === 'null' ||
           (Array.isArray(anyOfItem.type) && anyOfItem.type.includes('null'))),
     );
 
-    const schemaType = schemaObject.type as string | string[] | undefined;
+    const schemaType = schemaObject.type;
     const nullable =
       (Array.isArray(schemaType) && schemaType.includes('null')) ||
       isAnyOfNullable
@@ -374,7 +371,7 @@ export function resolveValue({
           schemaName: resolvedImport.schemaName,
         },
       ],
-      type: (schemaObject.type as SchemaType | undefined) ?? 'object',
+      type: schemaObject.type ?? 'object',
       schemas: [],
       isEnum: !!schemaObject.enum,
       originalSchema: schemaObject,

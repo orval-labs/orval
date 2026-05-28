@@ -6,7 +6,9 @@ import type {
   OpenApiSchemaObject,
   OpenApiSchemasObject,
 } from '../types';
-import { getPropertySafe, isReference, pascal } from '../utils';
+import { isDereferenced } from '@scalar/openapi-types/helpers';
+
+import { getPropertySafe, pascal } from '../utils';
 import { getRefInfo } from './ref';
 
 export function resolveDiscriminators(
@@ -77,13 +79,13 @@ export function resolveDiscriminators(
           property &&
           Array.isArray(property.allOf) &&
           property.allOf.length === 1 &&
-          isReference(property.allOf[0]);
+          !isDereferenced(property.allOf[0]);
         if (isAllOfRef) {
           continue;
         }
 
         const schemaProperty =
-          property && !isReference(property) ? property : undefined;
+          property && isDereferenced(property) ? property : undefined;
 
         const enumProperty = schemaProperty
           ? getPropertySafe(schemaProperty, 'enum')
@@ -154,7 +156,7 @@ export function resolveDiscriminators(
     const variantArrayRefs = variants
       .filter(
         (item): item is OpenApiReferenceObject & { $ref: string } =>
-          isReference(item) && typeof item.$ref === 'string',
+          !isDereferenced(item) && typeof item.$ref === 'string',
       )
       .map((item) => item.$ref);
     const variantRefs = [...new Set([...mappedRefs, ...variantArrayRefs])];
@@ -201,7 +203,7 @@ export function resolveDiscriminators(
 
       const rewritten: (OpenApiSchemaObject | OpenApiReferenceObject)[] = [];
       for (const item of variantAllOf) {
-        if (!isReference(item) || !item.$ref) {
+        if (isDereferenced(item) || !item.$ref) {
           rewritten.push(item);
           continue;
         }

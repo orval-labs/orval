@@ -1,3 +1,5 @@
+import { isDereferenced } from '@scalar/openapi-types/helpers';
+
 import { generalJSTypesWithArray } from '../constants';
 import { resolveRef } from '../resolvers';
 import type {
@@ -12,7 +14,6 @@ import {
   camel,
   filterByContentType,
   isBinaryContentType,
-  isReference,
   sanitize,
 } from '../utils';
 import { getResReqTypes } from './res-req-types';
@@ -63,12 +64,12 @@ function buildBody(
       es5keyword: true,
       es5IdentifierName: true,
     });
-    if (isReference(requestBody)) {
+    if (isDereferenced(requestBody)) {
+      isOptional = requestBody.required !== true;
+    } else {
       const { schema: bodySchema }: { schema: OpenApiRequestBodyObject } =
         resolveRef(requestBody, context);
       isOptional = bodySchema.required !== true;
-    } else {
-      isOptional = requestBody.required !== true;
     }
   }
 
@@ -181,7 +182,7 @@ function getRequestBodyExtensionName(
   context: ContextSpec,
 ): string | undefined {
   let value: unknown;
-  if (isReference(requestBody)) {
+  if (!isDereferenced(requestBody)) {
     const { schema } = resolveRef(requestBody, context);
     value = (schema as Record<string, unknown>)?.[
       'x-codegen-request-body-name'

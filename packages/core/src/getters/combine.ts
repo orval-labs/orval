@@ -1,3 +1,4 @@
+import { isDereferenced } from '@scalar/openapi-types/helpers';
 import { isNullish, prop, unique } from 'remeda';
 
 import { resolveExampleRefs, resolveObject } from '../resolvers';
@@ -15,7 +16,6 @@ import {
   dedupeUnionType,
   getNumberWord,
   isObject,
-  isReference,
   isSchema,
   pascal,
 } from '../utils';
@@ -185,7 +185,7 @@ function hasAllEnumMembers(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
 ): boolean {
-  if (isReference(schema)) {
+  if (!isDereferenced(schema)) {
     return false;
   }
   const compositions = [schema.allOf, schema.oneOf, schema.anyOf] as (
@@ -202,7 +202,7 @@ function hasAllEnumMembers(
 function usesCanonicalNullableOneOfObject(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
 ): boolean {
-  if (isReference(schema)) {
+  if (!isDereferenced(schema)) {
     return false;
   }
   const members = schema.oneOf as
@@ -214,7 +214,7 @@ function usesCanonicalNullableOneOfObject(
   const isNullMember = (
     member: OpenApiSchemaObject | OpenApiReferenceObject,
   ): boolean => {
-    if (isReference(member)) {
+    if (!isDereferenced(member)) {
       return false;
     }
     const type = member.type as string | string[] | undefined;
@@ -229,7 +229,7 @@ function usesCanonicalNullableOneOfObject(
     !members.some(isNullMember) ||
     nonNullMembers.length !== 1 ||
     !nonNullMember ||
-    isReference(nonNullMember)
+    !isDereferenced(nonNullMember)
   ) {
     return false;
   }
@@ -259,7 +259,7 @@ function propagatesNullAcrossRef(
     | OpenApiReferenceObject
   )[];
   return anyOfMembers.some(
-    (member) => !isReference(member) && isDirectlyNullable(member),
+    (member) => isDereferenced(member) && isDirectlyNullable(member),
   );
 }
 
@@ -358,7 +358,7 @@ function derefComponentSchema(
     if (!isObject(target)) {
       return undefined;
     }
-    if (isReference(target)) {
+    if (!isDereferenced(target)) {
       // Intermediate chain hops can carry non-object-producing siblings too
       if (cannotGuaranteeAllOfPropertyKeys(target, true)) {
         return undefined;
@@ -381,9 +381,9 @@ function guaranteesNonNullableObject(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
   seenRefs = new Set<string>(),
-  crossesComponentRefBoundary = isReference(schema),
+  crossesComponentRefBoundary = !isDereferenced(schema),
 ): boolean {
-  if (isReference(schema)) {
+  if (!isDereferenced(schema)) {
     // A nullable/non-object sibling at the ref site can be lifted outside the
     // referenced intersection, so the target cannot prove this site non-null.
     if (
@@ -460,7 +460,7 @@ function collectDeepPropertyKeys(
   seenRefs = new Set<string>(),
 ): string[] {
   const resolvesComponentRef =
-    crossesComponentRefBoundary || isReference(schema);
+    crossesComponentRefBoundary || !isDereferenced(schema);
   // Checked before dereferencing: `$ref`-site siblings (a `type` union
   // admitting null, a scalar or mixed `type`) can change the emission just
   // like inline nodes.
@@ -473,7 +473,7 @@ function collectDeepPropertyKeys(
   ) {
     return [];
   }
-  if (isReference(schema)) {
+  if (!isDereferenced(schema)) {
     const target = derefComponentSchema(schema.$ref, context, seenRefs);
     return target
       ? collectDeepPropertyKeys(
@@ -839,7 +839,10 @@ export function combineSchemas({
     }
 
     if (resolvedValue.type === 'object') {
-      if (separator === 'allOf' && !isReference(resolvedValue.originalSchema)) {
+      if (
+        separator === 'allOf' &&
+        isDereferenced(resolvedValue.originalSchema)
+      ) {
         // Walk the member's allOf composition so required keys living behind
         // a nested `$ref` count as resolvable (#3748). Union separators keep
         // the shallow collection: their `allProperties` also feeds
@@ -849,7 +852,7 @@ export function combineSchemas({
           ...collectDeepPropertyKeys(
             resolvedValue.originalSchema,
             context,
-            isReference(subSchema),
+            !isDereferenced(subSchema),
           ),
         );
       } else {

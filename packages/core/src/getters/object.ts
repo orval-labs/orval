@@ -1,3 +1,5 @@
+import { isDereferenced } from '@scalar/openapi-types/helpers';
+
 import { resolveExampleRefs, resolveValue } from '../resolvers';
 import { resolveObject } from '../resolvers/object';
 import type { SchemaType } from '../types';
@@ -11,7 +13,6 @@ import {
 } from '../types';
 import {
   compareNatural,
-  isReference,
   isString,
   jsDoc,
   jsStringLiteralEscape,
@@ -86,7 +87,7 @@ function getPropertyNamesKeyType(
     | OpenApiSchemaObject
     | OpenApiReferenceObject
     | undefined;
-  if (!propertyNames || !isReference(propertyNames)) {
+  if (!propertyNames || isDereferenced(propertyNames)) {
     return undefined;
   }
 
@@ -95,7 +96,7 @@ function getPropertyNamesKeyType(
     context,
   });
 
-  const resolvedConst = resolvedValue.originalSchema.const as unknown;
+  const resolvedConst = resolvedValue.originalSchema.const;
   const isStringConst =
     resolvedValue.type === 'string' && isString(resolvedConst);
 
@@ -213,8 +214,8 @@ export function getObject({
   nullable,
   formDataContext,
 }: GetObjectOptions): ScalarValue {
-  if (isReference(item)) {
-    const { name } = getRefInfo(item.$ref as string, context);
+  if (!isDereferenced(item)) {
+    const { name } = getRefInfo(item.$ref, context);
     return {
       value: name + nullable,
       imports: [{ name }],
@@ -274,7 +275,7 @@ export function getObject({
       const isNullMember = (
         member: OpenApiSchemaObject | OpenApiReferenceObject,
       ): boolean => {
-        if (isReference(member)) {
+        if (!isDereferenced(member)) {
           return false;
         }
         const memberType = member.type as string | string[] | undefined;
@@ -291,11 +292,11 @@ export function getObject({
       // Bridge assertion: AnyOtherAttribute infects member property access to
       // `any`; cast to the documented shapes after excluding `$ref` members.
       const nonNullMemberType =
-        nonNullMember && !isReference(nonNullMember)
+        nonNullMember && isDereferenced(nonNullMember)
           ? (nonNullMember.type as string | string[] | undefined)
           : undefined;
       const nonNullMemberProperties =
-        nonNullMember && !isReference(nonNullMember)
+        nonNullMember && isDereferenced(nonNullMember)
           ? (nonNullMember.properties as
               | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
               | undefined)
@@ -305,7 +306,7 @@ export function getObject({
         members.some(isNullMember) &&
         nonNullMembers.length === 1 &&
         nonNullMember != null &&
-        !isReference(nonNullMember) &&
+        isDereferenced(nonNullMember) &&
         (nonNullMemberType === 'object' ||
           (nonNullMemberType == null && nonNullMemberProperties != null)) &&
         nonNullMemberProperties != null &&
@@ -413,7 +414,7 @@ export function getObject({
       hasReadonlyProps: false,
       useTypeAlias: false,
       dependencies: [],
-      example: schemaItem.example as unknown,
+      example: schemaItem.example,
       examples: resolveExampleRefs(
         schemaItem.examples as
           | Record<string, OpenApiReferenceObject | { value?: unknown }>
@@ -488,8 +489,7 @@ export function getObject({
         acc.hasReadonlyProps = true;
       }
 
-      const constValue =
-        'const' in schema ? (schema.const as unknown) : undefined;
+      const constValue = 'const' in schema ? schema.const : undefined;
       const hasConst = constValue !== undefined;
       const constLiteral = hasConst ? toJsLiteral(constValue) : undefined;
 
@@ -570,9 +570,7 @@ export function getObject({
             }
           } else {
             const resolvedValue = resolveValue({
-              schema: additionalProps as
-                | OpenApiSchemaObject
-                | OpenApiReferenceObject,
+              schema: additionalProps,
               name,
               context,
             });
@@ -626,7 +624,7 @@ export function getObject({
     | OpenApiSchemaObject
     | OpenApiReferenceObject
     | undefined;
-  const readOnlyFlag = schemaItem.readOnly as boolean | undefined;
+  const readOnlyFlag = schemaItem.readOnly;
   if (outerAdditionalProps) {
     if (outerAdditionalProps === true) {
       const recordType = getPropertyNamesRecordType(
@@ -661,9 +659,7 @@ export function getObject({
       };
     }
     const resolvedValue = resolveValue({
-      schema: outerAdditionalProps as
-        | OpenApiSchemaObject
-        | OpenApiReferenceObject,
+      schema: outerAdditionalProps,
       name,
       context,
     });
@@ -702,7 +698,7 @@ export function getObject({
     };
   }
 
-  const constValue = schemaItem.const as unknown;
+  const constValue = schemaItem.const;
   if (constValue !== undefined) {
     let type: SchemaType;
     if (Array.isArray(constValue)) {

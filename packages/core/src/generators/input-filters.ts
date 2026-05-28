@@ -6,9 +6,9 @@ import type {
   OpenApiOperationObject,
   OpenApiPathItemObject,
 } from '../types';
-import { isReference } from '../utils/assertion';
 import { resolveRef } from '../resolvers/ref';
 import { isString } from 'remeda';
+import { isDereferenced } from '@scalar/openapi-types/helpers';
 
 const COMPONENT_TYPES = [
   'schemas',
@@ -197,7 +197,7 @@ export function filterPathsBySchemas(
             return [pathRoute, pathItem] as const;
           }
 
-          const resolvedPathItem = isReference(pathItem)
+          const resolvedPathItem = !isDereferenced(pathItem)
             ? resolveRef<OpenApiPathItemObject>(pathItem, {
                 spec,
               } as unknown as ContextSpec).schema
@@ -226,7 +226,7 @@ export function filterPathsBySchemas(
             if (
               !operation ||
               typeof operation !== 'object' ||
-              isReference(operation)
+              !isDereferenced(operation)
             ) {
               keptVerbs[key] = operation;
               continue;

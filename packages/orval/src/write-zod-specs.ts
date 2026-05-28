@@ -1,5 +1,6 @@
 import path from 'node:path';
 
+import { isDereferenced } from '@scalar/openapi-types/helpers';
 import {
   compareNatural,
   type ContextSpec,
@@ -9,7 +10,6 @@ import {
   getImportExtension,
   getRefInfo,
   isComponentRef,
-  isReference,
   kebab,
   type NamingConvention,
   type NormalizedOutputOptions,
@@ -1278,7 +1278,7 @@ function generateZodSchemasFromVerbs(
     const parameters = operation.parameters;
 
     const resolvedParameters = parameters?.map((p) =>
-      isReference(p) && typeof p.$ref === 'string'
+      !isDereferenced(p) && typeof p.$ref === 'string'
         ? resolveRef<OpenApiParameterObject>(p, zodContext).schema
         : p,
     );
@@ -1413,7 +1413,7 @@ function generateZodSchemasFromVerbs(
               // (`allOf`/`oneOf`/`anyOf`) has none, and demanding one left the
               // array unpeeled, so the entry was discarded below and no schema
               // was written — while the client still imported the `<Op>200Item`
-              // name the TS side aliases for it (#2993). `isReference` plus the
+              // name the TS side aliases for it (#2993). `isDereferenced` plus the
               // `$ref` check already excludes component references, which is
               // the only thing this loop needs to stop at.
               while (
@@ -1421,7 +1421,7 @@ function generateZodSchemasFromVerbs(
                 'type' in cleanSchema &&
                 cleanSchema.type === 'array' &&
                 cleanSchema.items &&
-                !isReference(cleanSchema.items) &&
+                isDereferenced(cleanSchema.items) &&
                 !('$ref' in cleanSchema.items)
               ) {
                 cleanSchema = cleanSchema.items as OpenApiSchemaObject;

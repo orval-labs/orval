@@ -1,3 +1,5 @@
+import { isDereferenced } from '@scalar/openapi-types/helpers';
+
 import { resolveRef } from '../resolvers/ref';
 import type {
   ContextSpec,
@@ -67,12 +69,6 @@ type SchemaArray = (OpenApiSchemaObject | OpenApiReferenceObject)[];
 interface ResolvedRef {
   imports: GeneratorImport[];
   schema: OpenApiSchemaObject;
-}
-
-function isReference(
-  schema: OpenApiSchemaObject | OpenApiReferenceObject,
-): schema is OpenApiReferenceObject {
-  return '$ref' in schema;
 }
 
 function getResolvedRef(
@@ -177,7 +173,7 @@ function hasCircularReference(
   context: ContextSpec,
   visited = new Set<string>(),
 ): boolean {
-  if (isReference(target)) {
+  if (!isDereferenced(target)) {
     const { imports, schema } = getResolvedRef(target, context);
     const refName = imports[0]?.name;
     if (refName === sourceName) return true;
@@ -232,7 +228,7 @@ function buildPayload(
   parents: string[],
   imports: GeneratorImport[],
 ): string {
-  if (isReference(target)) {
+  if (!isDereferenced(target)) {
     return buildRefPayload(target, context, parents, imports);
   }
 
@@ -405,9 +401,9 @@ function buildObjectPayload(
 
   for (const [key, prop] of entries) {
     const isRequired = requiredProps.includes(key);
-    const resolved = isReference(prop)
-      ? getResolvedRef(prop, context).schema
-      : prop;
+    const resolved = isDereferenced(prop)
+      ? prop
+      : getResolvedRef(prop, context).schema;
 
     const isReadOnly =
       !!(prop as OpenApiSchemaObject).readOnly || !!resolved.readOnly;
@@ -473,7 +469,7 @@ function inferSchemaType(schema: OpenApiSchemaObject): string | undefined {
   if (!type && schema.items) return 'array';
 
   if (!type && schema.enum) {
-    const first = (schema.enum as unknown[])[0];
+    const first = schema.enum[0];
     if (typeof first === 'number') return 'number';
     if (typeof first === 'boolean') return 'boolean';
     return 'string';
@@ -506,7 +502,7 @@ function buildPrimitivePayload(
 ): string {
   if (schemaType === 'null') return 'null';
 
-  const enumValues = schema.enum as unknown[] | undefined;
+  const enumValues = schema.enum;
 
   if (schemaType === 'boolean') {
     return enumValues && enumValues.length > 0

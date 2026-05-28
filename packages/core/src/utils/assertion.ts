@@ -1,30 +1,18 @@
 import path from 'node:path';
 
 import { isFunction, isNullish, isNumber, isString } from 'remeda';
+import { isDereferenced } from '@scalar/openapi-types/helpers';
 
 import {
   type ClientMockBuilder,
   type FakerMockOptions,
   type GlobalMockOptions,
   type MswMockOptions,
-  type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   OutputMockType,
   SchemaType,
   Verbs,
 } from '../types';
-
-/**
- * Type guard for an OpenAPI {@link OpenApiReferenceObject}.
- *
- * Returns `true` when `obj` has a `$ref` property, indicating a static
- * JSON Pointer reference rather than an inline schema.
- *
- * @param obj - Value to test.
- */
-export function isReference(obj: object): obj is OpenApiReferenceObject {
-  return !isNullish(obj) && Object.hasOwn(obj, '$ref');
-}
 
 /**
  * Represents an OpenAPI 3.1 schema object that contains a `$dynamicRef`
@@ -119,7 +107,7 @@ export function isNumeric(x: unknown): x is number {
  *
  * Returns `true` when `x` looks like a schema definition: it has a known
  * `type`, composition keywords (`allOf`, `anyOf`, `oneOf`), or `properties`.
- * Does not match reference objects; use {@link isReference} for those.
+ * Does not match reference objects; use {@link isDereferenced} for those.
  *
  * @param x - Value to test.
  */
@@ -218,7 +206,7 @@ export function isSchemaNullable(schema: OpenApiSchemaObject): boolean {
   ] as unknown[];
 
   return variants.some((variant) => {
-    if (!isObject(variant) || isReference(variant)) {
+    if (!isObject(variant) || !isDereferenced(variant)) {
       return false;
     }
 
@@ -246,7 +234,7 @@ function someAllOfBranchRejectsNull(allOf: unknown): boolean {
   }
 
   return allOf.some((branch) => {
-    if (!isObject(branch) || isReference(branch)) {
+    if (!isObject(branch) || !isDereferenced(branch)) {
       return false;
     }
 

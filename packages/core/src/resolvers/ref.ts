@@ -12,7 +12,7 @@ import type {
   OpenApiReferenceObject,
   OpenApiSchemaObject,
 } from '../types';
-import { isObject, isReference, sanitize } from '../utils';
+import { isObject, sanitize } from '../utils';
 
 /** Convert a `$dynamicAnchor` name to a valid TypeScript generic parameter identifier. */
 export function dynamicAnchorToParamName(anchor: string): string {
@@ -74,15 +74,10 @@ export function resolveRef<TSchema extends object = OpenApiComponentsObject>(
   imports: GeneratorImport[];
 } {
   const refPath = '$ref' in schema ? schema.$ref : undefined;
-  const nestedSchema =
-    'schema' in schema ? (schema as { schema?: unknown }).schema : undefined;
+  const nestedSchema = 'schema' in schema ? schema.schema : undefined;
 
   // the schema is referring to another object
-  if (
-    isObject(nestedSchema) &&
-    isReference(nestedSchema) &&
-    typeof nestedSchema.$ref === 'string'
-  ) {
+  if (isObject(nestedSchema) && !isDereferenced(nestedSchema)) {
     const resolvedRef = resolveRef<TSchema>(nestedSchema, context, imports);
 
     if ('examples' in schema) {
@@ -186,7 +181,7 @@ export function extractBoundAliasInfo(
     | (OpenApiSchemaObject | OpenApiReferenceObject)[]
     | undefined;
 
-  if (isReference(schema) && isBoundAlias(schema)) {
+  if (!isDereferenced(schema) && isBoundAlias(schema)) {
     bindingElement = schema;
   } else {
     const allOf = (schema as { allOf?: unknown[] }).allOf;
@@ -195,7 +190,7 @@ export function extractBoundAliasInfo(
         const element = allOf[i] as
           | OpenApiSchemaObject
           | OpenApiReferenceObject;
-        if (isReference(element) && isBoundAlias(element)) {
+        if (!isDereferenced(element) && isBoundAlias(element)) {
           bindingElement = element;
           extraSchemas = allOf.filter((_: unknown, j: number) => j !== i) as (
             | OpenApiSchemaObject
@@ -326,7 +321,7 @@ function getSchema<TSchema extends object = OpenApiComponentsObject>(
   // the unspecialized template instead (#3746).
   if (
     isObject(schemaByRefPaths) &&
-    isReference(schemaByRefPaths) &&
+    !isDereferenced(schemaByRefPaths) &&
     !isBoundAlias(schemaByRefPaths)
   ) {
     return getSchema(schemaByRefPaths, context);
@@ -633,13 +628,13 @@ export function resolveExampleRefs(
   }
   return Array.isArray(examples)
     ? examples.map((example) => {
-        if (isObject(example) && isReference(example)) {
+        if (isObject(example) && !isDereferenced(example)) {
           const { schema }: { schema: OpenApiExampleObject } = resolveRef(
             example,
             context,
           );
           // Bridge assertion: ExampleObject.value is typed as `any`
-          return schema.value as ResolvedExample;
+          return schema.value;
         }
         return example;
       })
@@ -648,12 +643,12 @@ export function resolveExampleRefs(
         for (const [key, example] of Object.entries(examples)) {
           // Bridge assertion: ExampleObject.value is typed as `any`
           result[key] =
-            isObject(example) && isReference(example)
-              ? ((
+            isObject(example) && !isDereferenced(example)
+              ? (
                   resolveRef(example, context) as {
                     schema: OpenApiExampleObject;
                   }
-                ).schema.value as ResolvedExample)
+                ).schema.value
               : example;
         }
         return result;

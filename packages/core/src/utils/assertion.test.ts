@@ -12,7 +12,6 @@ import {
   isNumber,
   isNumeric,
   isObject,
-  isReference,
   isSchema,
   isSchemaNullable,
   isString,
@@ -23,14 +22,6 @@ import {
 } from './assertion';
 
 describe('assertion testing', () => {
-  it('checks for reference objects', () => {
-    expect(isReference({ $ref: '#/components/schemas/User' })).toBeTruthy();
-    expect(isReference({} as Record<string, unknown>)).toBeFalsy();
-    expect(isReference({ $dynamicRef: '#category' })).toBeFalsy();
-    // eslint-disable-next-line unicorn/no-null -- testing null handling
-    expect(isReference(null as unknown as object)).toBeFalsy();
-  });
-
   it('checks for directory-like paths', () => {
     expect(isDirectory('src/utils')).toBeTruthy();
     expect(isDirectory('src/utils/index.ts')).toBeFalsy();
@@ -240,10 +231,6 @@ describe('isDynamicReference', () => {
     expect(isDynamicReference({ $dynamicRef: 123 } as unknown as object)).toBe(
       false,
     );
-  });
-
-  it('returns true for objects with $ref in isReference', () => {
-    expect(isReference({ $ref: '#/components/schemas/Foo' })).toBe(true);
   });
 });
 

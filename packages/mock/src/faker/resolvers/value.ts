@@ -1,3 +1,5 @@
+import { isDereferenced } from '@scalar/openapi-types/helpers';
+
 import {
   type ContextSpec,
   type GeneratorImport,
@@ -5,7 +7,6 @@ import {
   getRequiredKeys,
   getStringLiteralType,
   isFunction,
-  isReference,
   isSchemaNullable,
   type MockOptions,
   type OpenApiSchemaObject,
@@ -264,7 +265,7 @@ export function resolveMockValue({
   splitMockImplementations,
   allowOverride,
 }: ResolveMockValueOptions): MockDefinition & { type?: string } {
-  if (isReference(schema)) {
+  if (!isDereferenced(schema)) {
     const schemaReference = schema as MockSchema & {
       path?: string;
       required?: string[];
@@ -601,7 +602,7 @@ export function resolveMockValue({
 }
 
 function getType(schema: MockSchema) {
-  if (isReference(schema)) {
+  if (!isDereferenced(schema)) {
     return;
   }
 
@@ -627,7 +628,7 @@ function resolvesToObjectLike(
 ): boolean {
   let resolved: Partial<OpenApiSchemaObject> | undefined;
 
-  if (isReference(schema)) {
+  if (!isDereferenced(schema)) {
     // A non-string or already-visited `$ref` can't be resolved further here.
     if (typeof schema.$ref !== 'string' || seen.has(schema.$ref)) {
       return false;
