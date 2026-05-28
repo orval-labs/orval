@@ -138,7 +138,7 @@ function normalizeUrlMatchers(
   return {
     fileExtension: options.fileExtension ?? '.apis.ts',
     prefixCapture: options.prefixCapture ?? '(.*)',
-    defaultParamPattern: options.defaultParamPattern ?? '[A-Za-z0-9\-.]+',
+    defaultParamPattern: options.defaultParamPattern ?? '[A-Za-z0-9_\\-.]+',
     exportSuffix: options.exportSuffix ?? 'Api',
     querySuffix: options.querySuffix ?? 'auto',
   };

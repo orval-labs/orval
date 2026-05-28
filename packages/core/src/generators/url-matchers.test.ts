@@ -16,7 +16,7 @@ import {
 const defaultMatcherOptions = {
   fileExtension: '.apis.ts',
   prefixCapture: '(.*)',
-  defaultParamPattern: '[A-Za-z0-9\-.]+',
+  defaultParamPattern: '[A-Za-z0-9_\\-.]+',
   exportSuffix: 'Api',
   querySuffix: 'auto' as const,
 };
@@ -29,7 +29,7 @@ describe('buildUrlMatcherRegexPattern', () => {
         defaultMatcherOptions,
         false,
       ),
-    ).toBe('(.*)/tenants/([A-Za-z0-9-.]+)/maildomains/([A-Za-z0-9-.]+)$');
+    ).toBe('(.*)/tenants/([A-Za-z0-9_\\-.]+)/maildomains/([A-Za-z0-9_\\-.]+)$');
   });
 
   it('appends optional query suffix when querySuffix is auto and operation has query params', () => {
@@ -55,7 +55,7 @@ describe('buildUrlMatcherRegexPattern', () => {
         { ...defaultMatcherOptions, querySuffix: 'always' },
         false,
       ),
-    ).toBe(String.raw`(.*)/pets/([A-Za-z0-9-.]+)(\?.*)?$`);
+    ).toBe(String.raw`(.*)/pets/([A-Za-z0-9_\-.]+)(\?.*)?$`);
   });
 });
 

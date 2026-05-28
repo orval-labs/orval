@@ -43,7 +43,7 @@ test('fetch urlMatchers emits RegExp exports in sibling apis files', async () =>
     'export const listPetsApi = /(.*)\\/pets(\\?.*)?$/;',
   );
   expect(content).toContain(
-    'export const showPetByIdApi = /(.*)\\/pets\\/([A-Za-z0-9-.]+)$/;',
+    'export const showPetByIdApi = /(.*)\\/pets\\/([A-Za-z0-9_\\-.]+)$/;',
   );
 });
 

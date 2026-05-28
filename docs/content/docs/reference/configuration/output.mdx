@@ -169,7 +169,7 @@ This writes `src/api/endpoints.apis.ts` next to the client output. With `mode: '
 | --- | --- | --- | --- |
 | `fileExtension` | `string` | `'.apis.ts'` | Extension for matcher files |
 | `prefixCapture` | `string` | `'(.*)'` | Leading capture for full URL matching |
-| `defaultParamPattern` | `string` | `'[A-Za-z0-9\-.]+'` | Regex for each `{pathParam}` segment |
+| `defaultParamPattern` | `string` | `'[A-Za-z0-9_\\-.]+'` | Regex for each `{pathParam}` segment |
 | `exportSuffix` | `string` | `'Api'` | Suffix on `operationName` (e.g. `listPetsApi`) |
 | `querySuffix` | `'auto' \| 'always' \| 'never'` | `'auto'` | Append `(\\?.*)?` before `$` |
 

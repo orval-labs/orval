@@ -6,10 +6,10 @@
  */
 export const createPetsApi = /(.*)\/pets(\?.*)?$/;
 
-export const deletePetByIdApi = /(.*)\/pets\/([A-Za-z0-9-.]+)$/;
+export const deletePetByIdApi = /(.*)\/pets\/([A-Za-z0-9_\-.]+)$/;
 
 export const listPetsApi = /(.*)\/pets(\?.*)?$/;
 
-export const showPetByIdApi = /(.*)\/pets\/([A-Za-z0-9-.]+)$/;
+export const showPetByIdApi = /(.*)\/pets\/([A-Za-z0-9_\-.]+)$/;
 
-export const showPetWithOwnerApi = /(.*)\/pets\/([A-Za-z0-9-.]+)\/owner$/;
+export const showPetWithOwnerApi = /(.*)\/pets\/([A-Za-z0-9_\-.]+)\/owner$/;

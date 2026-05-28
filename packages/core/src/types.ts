@@ -336,7 +336,7 @@ export interface UrlMatchersOptions {
   prefixCapture?: string;
   /**
    * Default regex used for each OpenAPI path parameter segment.
-   * @default '[A-Za-z0-9\-.]+'
+   * @default '[A-Za-z0-9_\\-.]+'
    */
   defaultParamPattern?: string;
   /**
