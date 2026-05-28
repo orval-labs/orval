@@ -663,6 +663,32 @@ describe('resolveDynamicRef — $dynamicAnchor fallback', () => {
     });
   });
 
+  it('returns unknown when multiple schemas share the same anchor and none matches by name', () => {
+    const spec = {
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          NodeA: {
+            $dynamicAnchor: 'node',
+            type: 'object',
+            properties: { id: { type: 'string' } },
+          },
+          NodeB: {
+            $dynamicAnchor: 'node',
+            type: 'object',
+            properties: { id: { type: 'number' } },
+          },
+        },
+      },
+    } as OpenApiDocument;
+    const context = { ...createContext(spec), dynamicScope: {} };
+
+    const result = resolveDynamicRef('node', context);
+
+    expect(result.resolvedTypeName).toBe('unknown');
+    expect(result.schema).toEqual({});
+  });
+
   it('still returns unknown when no schema declares the anchor anywhere', () => {
     const spec = {
       openapi: '3.1.0',

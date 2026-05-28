@@ -289,7 +289,7 @@ describe('generateSchemasDefinition with $dynamicRef', () => {
 
       const baseFolder = result.find((s) => s.name === 'BaseFolder');
       expect(baseFolder).toBeDefined();
-      expect(baseFolder!.model).toContain('unknown[]');
+      expect(baseFolder!.model).toContain('shortcuts: unknown[]');
     });
 
     it('resolves WorkspaceResource without unknown', () => {

@@ -287,14 +287,16 @@ export function resolveValue({
         | Record<string, unknown>
         | undefined;
 
-      const allOf = scopeSource?.allOf as Record<string, unknown>[] | undefined;
+      const allOf = scopeSource?.allOf as unknown[] | undefined;
 
       const isInAllOf =
         Array.isArray(allOf) &&
         allOf.some((el) => {
-          if (typeof el.$ref !== 'string' || !isComponentRef(el.$ref))
+          if (!el || typeof el !== 'object') return false;
+          const rec = el as Record<string, unknown>;
+          if (typeof rec.$ref !== 'string' || !isComponentRef(rec.$ref))
             return false;
-          const { name } = getRefInfo(el.$ref, context);
+          const { name } = getRefInfo(rec.$ref, context);
           return name === refName;
         });
 
