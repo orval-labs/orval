@@ -662,4 +662,38 @@ describe('generateZodSchemasInline with generateReusableSchemas', () => {
     // No sentinels.
     expect(result).not.toContain('__REF_');
   });
+
+  it('emits schemas whose raw name differs from the sanitized model name', () => {
+    // `__my_data` sanitizes to `_MyData`. The inline writer must seed from the
+    // RAW component keys; seeding from `builder.schemas` (sanitized) yields a
+    // ref (`#/components/schemas/_MyData`) absent from `components.schemas`, so
+    // the definition used to be dropped — leaving the operation wrapper that
+    // references it dangling.
+    const builder = {
+      spec: {
+        components: {
+          schemas: {
+            __my_data: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [
+        { name: '_MyData', schema: { $ref: '#/components/schemas/__my_data' } },
+      ],
+    } satisfies Parameters<typeof generateZodSchemasInline>[0];
+
+    const output = createOutputOptions();
+    (output.override.zod as Record<string, unknown>).generateReusableSchemas =
+      true;
+
+    const result = generateZodSchemasInline(builder, output);
+
+    expect(result).toContain('export const _MyData =');
+    expect(result).not.toContain('__REF_');
+  });
 });

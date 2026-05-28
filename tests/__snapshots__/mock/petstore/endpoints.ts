@@ -164,7 +164,7 @@ export const getListPetsResponseMock = (): Pets =>
     ]),
     '@id': faker.string.alpha({ length: { min: 10, max: 30 } }),
     id: faker.number.int({ min: 0, max: 100 }),
-    name: faker.string.alpha({ length: { min: 10, max: 30 } }),
+    name: 'jon',
     tag: faker.string.alpha({ length: { min: 10, max: 30 } }),
     email: (() => faker.internet.email())(),
     callingCode: faker.helpers.arrayElement(['+33', '+420', '+33'] as const),

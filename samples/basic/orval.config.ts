@@ -23,7 +23,7 @@ export default defineConfig({
             mock: {
               properties: () => {
                 return {
-                  id: faker.number.int({ min: 1, max: 9 }),
+                  id: () => faker.number.int({ min: 1, max: 9 }),
                 };
               },
             },

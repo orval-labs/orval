@@ -464,4 +464,26 @@ export default defineConfig({
       target: '../specifications/faker-schemas-string-enum-ref.yaml',
     },
   },
+  issue2465: {
+    output: {
+      target: '../generated/mock/issue-2465/endpoints.ts',
+      schemas: '../generated/mock/issue-2465/model',
+      client: 'fetch',
+      mock: true,
+      override: {
+        mock: {
+          properties: {
+            firstName: () => faker.person.firstName(),
+            lastName: () => faker.person.lastName(),
+            email: () => faker.internet.email(),
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-2465.yaml',
+    },
+  },
 });
