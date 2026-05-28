@@ -5,6 +5,7 @@ import {
   type GeneratorApiBuilder,
   type GeneratorApiOperations,
   type GeneratorSchema,
+  generateUrlMatcherExtraFiles,
   getFullRoute,
   getRoute,
   GetterPropType,
@@ -129,12 +130,16 @@ export async function getApiBuilder({
     } as GeneratorApiOperations,
   );
 
-  const extraFiles = await generateExtraFiles(
+  const clientExtraFiles = await generateExtraFiles(
     output.client,
     api.verbOptions,
     output,
     context,
   );
+
+  const urlMatcherExtraFiles = output.urlMatchers
+    ? generateUrlMatcherExtraFiles(api.verbOptions, output, context)
+    : [];
 
   return {
     operations: api.operations,
@@ -145,6 +150,6 @@ export async function getApiBuilder({
     footer: generateClientFooter,
     imports: generateClientImports,
     importsMock: generateMockImports,
-    extraFiles,
+    extraFiles: [...clientExtraFiles, ...urlMatcherExtraFiles],
   };
 }

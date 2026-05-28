@@ -31,6 +31,37 @@ await describeApiGenerationSnapshots({
   rootDir: path.resolve(import.meta.dirname, '..'),
 });
 
+test('fetch urlMatchers emits RegExp exports in sibling apis files', async () => {
+  const apisFile = generated(
+    'fetch',
+    'petstore-url-matchers',
+    'endpoints.apis.ts',
+  );
+  const content = await readFile(apisFile, 'utf8');
+
+  expect(content).toContain(
+    'export const listPetsApi = /(.*)\\/pets(\\?.*)?$/;',
+  );
+  expect(content).toContain(
+    'export const showPetByIdApi = /(.*)\\/pets\\/([A-Za-z0-9-.]+)$/;',
+  );
+});
+
+test('fetch urlMatchers follows tags-split layout', async () => {
+  const petsApisFile = generated(
+    'fetch',
+    'petstore-url-matchers-tags-split',
+    'pets',
+    'pets.apis.ts',
+  );
+  const content = await readFile(petsApisFile, 'utf8');
+
+  expect(content).toContain(
+    'export const listPetsApi = /(.*)\\/pets(\\?.*)?$/;',
+  );
+  expect(content).not.toContain('healthCheckApi');
+});
+
 test('angular issue-3103 emits filterParams in tags-split default service', async () => {
   // Keep this focused assertion alongside the snapshot so #3103 fails with a
   // targeted message instead of a full-file snapshot diff.

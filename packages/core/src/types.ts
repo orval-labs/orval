@@ -68,6 +68,11 @@ export interface NormalizedOutputOptions {
   optionsParamRequired: boolean;
   propertySortOrder: PropertySortOrder;
   factoryMethods?: NormalizedFactoryMethodsOptions;
+  /**
+   * When set, emits sibling files with `RegExp` exports for matching request URLs
+   * (e.g. Cypress `cy.intercept`).
+   */
+  urlMatchers?: NormalizedUrlMatchersOptions;
 }
 
 export interface NormalizedParamsSerializerOptions {
@@ -315,6 +320,46 @@ export interface NormalizedSchemaOptions {
   type: SchemaGenerationType;
 }
 
+export type UrlMatcherQuerySuffix = 'auto' | 'always' | 'never';
+
+export interface UrlMatchersOptions {
+  /**
+   * File extension for URL matcher artifacts (e.g. Cypress `cy.intercept` patterns).
+   * @default '.apis.ts'
+   */
+  fileExtension?: string;
+  /**
+   * Leading capture group prepended to every matcher so the pattern can match
+   * the full request URL (host + API base path + route).
+   * @default '(.*)'
+   */
+  prefixCapture?: string;
+  /**
+   * Default regex used for each OpenAPI path parameter segment.
+   * @default '[A-Za-z0-9\-.]+'
+   */
+  defaultParamPattern?: string;
+  /**
+   * Suffix appended to each operation's `operationName` for the export identifier.
+   * @default 'Api'
+   */
+  exportSuffix?: string;
+  /**
+   * When to append an optional query-string suffix `(\\?.*)?` before `$`.
+   * `auto` uses the operation's query parameters from the spec.
+   * @default 'auto'
+   */
+  querySuffix?: UrlMatcherQuerySuffix;
+}
+
+export interface NormalizedUrlMatchersOptions {
+  fileExtension: string;
+  prefixCapture: string;
+  defaultParamPattern: string;
+  exportSuffix: string;
+  querySuffix: UrlMatcherQuerySuffix;
+}
+
 export interface OutputOptions {
   workspace?: string;
   target: string;
@@ -358,6 +403,12 @@ export interface OutputOptions {
   optionsParamRequired?: boolean;
   propertySortOrder?: PropertySortOrder;
   factoryMethods?: FactoryMethodsOptions;
+  /**
+   * Emit sibling files with `RegExp` URL matchers per operation (e.g. for e2e intercepts).
+   * Uses OpenAPI path strings as-is (`pathRoute`); pair with `prefixCapture: '(.*)'` to
+   * match full URLs including host and runtime API base path.
+   */
+  urlMatchers?: boolean | UrlMatchersOptions;
 }
 
 export interface InputFiltersOptions {

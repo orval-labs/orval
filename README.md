@@ -36,6 +36,8 @@
 - [native fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
 - [mcp](https://modelcontextprotocol.io/introduction)
 
+Enable [`urlMatchers`](https://orval.dev/docs/reference/configuration/output#urlmatchers) on any client to emit sibling `RegExp` exports for matching full request URLs (e.g. Cypress `cy.intercept`) from the same Orval target as your API client.
+
 ### Samples
 
 You can find some samples below:

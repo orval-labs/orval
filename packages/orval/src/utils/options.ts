@@ -41,6 +41,7 @@ import {
   type NormalizedOverrideOutput,
   type NormalizedQueryOptions,
   type NormalizedSchemaOptions,
+  type NormalizedUrlMatchersOptions,
   type OperationOptions,
   type OptionsExport,
   OutputClient,
@@ -52,6 +53,7 @@ import {
   type QueryOptions,
   RefComponentSuffix,
   type SchemaOptions,
+  type UrlMatchersOptions,
 } from '@orval/core';
 import { getDefaultMockOptionsForType } from '@orval/mock';
 
@@ -121,6 +123,24 @@ function normalizeSchemasOption(
   return {
     path: normalizePath(schemas.path, workspace),
     type: schemas.type,
+  };
+}
+
+function normalizeUrlMatchers(
+  urlMatchers?: boolean | UrlMatchersOptions,
+): NormalizedUrlMatchersOptions | undefined {
+  if (!urlMatchers) {
+    return undefined;
+  }
+
+  const options = isBoolean(urlMatchers) ? {} : urlMatchers;
+
+  return {
+    fileExtension: options.fileExtension ?? '.apis.ts',
+    prefixCapture: options.prefixCapture ?? '(.*)',
+    defaultParamPattern: options.defaultParamPattern ?? '[A-Za-z0-9\-.]+',
+    exportSuffix: options.exportSuffix ?? 'Api',
+    querySuffix: options.querySuffix ?? 'auto',
   };
 }
 
@@ -357,6 +377,7 @@ export async function normalizeOptions(
       packageJson,
       headers: outputOptions.headers ?? false,
       indexFiles: outputOptions.indexFiles ?? true,
+      urlMatchers: normalizeUrlMatchers(outputOptions.urlMatchers),
       baseUrl: outputOptions.baseUrl,
       unionAddMissingProperties:
         outputOptions.unionAddMissingProperties ?? false,

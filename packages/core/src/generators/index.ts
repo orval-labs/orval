@@ -7,4 +7,5 @@ export * from './mutator';
 export * from './options';
 export * from './parameter-definition';
 export * from './schema-definition';
+export * from './url-matchers';
 export * from './verbs-options';

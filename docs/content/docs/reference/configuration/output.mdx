@@ -142,6 +142,52 @@ src/gen/
     └── pets.ts
 ```
 
+## urlMatchers
+
+**Type:** `Boolean | Object`
+**Default:** disabled
+
+When enabled, Orval emits sibling files with `RegExp` exports for matching HTTP request URLs (for example Cypress `cy.intercept`). Matchers are built from each operation's OpenAPI path (`pathRoute`) as-is, so host and runtime API base paths are left to a leading capture group (default `(.*)`).
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      target: 'src/api/endpoints.ts',
+      client: 'angular',
+      urlMatchers: true,
+    },
+  },
+});
+```
+
+This writes `src/api/endpoints.apis.ts` next to the client output. With `mode: 'tags-split'`, matchers follow the same tag layout (e.g. `pets/pets.apis.ts`).
+
+**Object options:**
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `fileExtension` | `string` | `'.apis.ts'` | Extension for matcher files |
+| `prefixCapture` | `string` | `'(.*)'` | Leading capture for full URL matching |
+| `defaultParamPattern` | `string` | `'[A-Za-z0-9\-.]+'` | Regex for each `{pathParam}` segment |
+| `exportSuffix` | `string` | `'Api'` | Suffix on `operationName` (e.g. `listPetsApi`) |
+| `querySuffix` | `'auto' \| 'always' \| 'never'` | `'auto'` | Append `(\\?.*)?` before `$` |
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      target: 'src/api/endpoints.ts',
+      client: 'fetch',
+      urlMatchers: {
+        exportSuffix: 'Intercept',
+        querySuffix: 'always',
+      },
+    },
+  },
+});
+```
+
 ## schemaFileExtension
 
 **Type:** `String`

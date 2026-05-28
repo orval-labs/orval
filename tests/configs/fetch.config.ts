@@ -63,6 +63,36 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  petstoreUrlMatchers: {
+    output: {
+      target: '../generated/fetch/petstore-url-matchers/endpoints.ts',
+      schemas: '../generated/fetch/petstore-url-matchers/model',
+      mock: false,
+      client: 'fetch',
+      urlMatchers: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreUrlMatchersTagsSplit: {
+    output: {
+      target:
+        '../generated/fetch/petstore-url-matchers-tags-split/endpoints.ts',
+      schemas: '../generated/fetch/petstore-url-matchers-tags-split/model',
+      mock: false,
+      mode: 'tags-split',
+      client: 'fetch',
+      urlMatchers: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   petstoreSplit: {
     output: {
       target: '../generated/fetch/split/endpoints.ts',
