@@ -9,7 +9,7 @@ describe('getNullable', () => {
     );
   });
 
-  it('returns the value unchanged when nonNullable is true', () => {
+  it('returns the value unchanged when skipNull is true', () => {
     expect(getNullable('faker.string.uuid()', true, true)).toBe(
       'faker.string.uuid()',
     );

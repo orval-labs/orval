@@ -4,16 +4,16 @@ import { describe, expect, it } from 'vitest';
 import { createTestContextSpec } from '../../../../core/src/test-utils/context';
 import { getMockObject } from './object';
 
-const accountRestrictionLikeSchema = {
-  name: 'AccountRestrictionResponseModel',
+const petSchema = {
+  name: 'Pet',
   type: 'object' as const,
   required: ['id', 'name'],
   properties: {
-    id: { type: 'string' },
+    id: { type: 'integer', format: 'int64' },
     name: { type: 'string' },
-    endAt: { type: 'string', format: 'date-time', nullable: true },
-    duration: { type: 'string', nullable: true },
-    tags: {
+    birthDate: { type: 'string', format: 'date-time', nullable: true },
+    tag: { type: 'string', nullable: true },
+    photoUrls: {
       type: 'array',
       items: { type: 'string' },
       nullable: true,
@@ -30,7 +30,7 @@ describe('getMockObject', () => {
   ) =>
     getMockObject({
       item,
-      operationId: 'getAccountRestrictions',
+      operationId: 'getPetById',
       tags: [],
       context,
       imports: [],
@@ -109,29 +109,29 @@ describe('getMockObject', () => {
   });
 
   it('wraps optional nullable properties with null by default', () => {
-    const result = getObjectMock(accountRestrictionLikeSchema);
+    const result = getObjectMock(petSchema);
 
     expect(result.value).toContain(', null]');
-    expect(result.value).toMatch(/endAt: faker\.helpers\.arrayElement\(/);
-    expect(result.value).toMatch(/duration: faker\.helpers\.arrayElement\(/);
+    expect(result.value).toMatch(/birthDate: faker\.helpers\.arrayElement\(/);
+    expect(result.value).toMatch(/tag: faker\.helpers\.arrayElement\(/);
   });
 
   it('does not emit null branches when nonNullable is true', () => {
-    const result = getObjectMock(accountRestrictionLikeSchema, {
+    const result = getObjectMock(petSchema, {
       nonNullable: true,
     });
 
     expect(result.value).not.toContain(', null]');
     expect(result.value).toMatch(
-      /endAt: faker\.helpers\.arrayElement\(\[faker\.date\.past\(\)/,
+      /birthDate: faker\.helpers\.arrayElement\(\[faker\.date\.past\(\)/,
     );
     expect(result.value).toMatch(
-      /duration: faker\.helpers\.arrayElement\(\[faker\.string\.alpha/,
+      /tag: faker\.helpers\.arrayElement\(\[faker\.string\.alpha/,
     );
   });
 
   it('includes all keys with no null randomization when required and nonNullable are true', () => {
-    const result = getObjectMock(accountRestrictionLikeSchema, {
+    const result = getObjectMock(petSchema, {
       required: true,
       nonNullable: true,
     });
@@ -139,13 +139,13 @@ describe('getMockObject', () => {
     expect(result.value).not.toContain(', null]');
     expect(result.value).toContain('id:');
     expect(result.value).toContain('name:');
-    expect(result.value).toContain('endAt:');
-    expect(result.value).toContain('duration:');
-    expect(result.value).toContain('tags:');
+    expect(result.value).toContain('birthDate:');
+    expect(result.value).toContain('tag:');
+    expect(result.value).toContain('photoUrls:');
     expect(result.value).not.toMatch(
-      /endAt: faker\.helpers\.arrayElement\(\[[^,]+, undefined\]\)/,
+      /birthDate: faker\.helpers\.arrayElement\(\[[^,]+, undefined\]\)/,
     );
-    expect(result.value).toMatch(/endAt: faker\.date\.past\(\)/);
-    expect(result.value).toMatch(/duration: faker\.string\.alpha/);
+    expect(result.value).toMatch(/birthDate: faker\.date\.past\(\)/);
+    expect(result.value).toMatch(/tag: faker\.string\.alpha/);
   });
 });

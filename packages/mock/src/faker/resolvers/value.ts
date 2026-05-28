@@ -53,12 +53,13 @@ export function resolveMockOverride(
   };
 }
 
+/** When `skipNull` is true (`override.mock.nonNullable`), omit the null branch. */
 export function getNullable(
   value: string,
   nullable?: boolean,
-  nonNullable?: boolean,
+  skipNull?: boolean,
 ) {
-  if (!nullable || nonNullable) {
+  if (!nullable || skipNull) {
     return value;
   }
 
