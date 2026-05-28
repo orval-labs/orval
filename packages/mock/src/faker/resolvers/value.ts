@@ -53,8 +53,16 @@ export function resolveMockOverride(
   };
 }
 
-export function getNullable(value: string, nullable?: boolean) {
-  return nullable ? `faker.helpers.arrayElement([${value}, null])` : value;
+export function getNullable(
+  value: string,
+  nullable?: boolean,
+  nonNullable?: boolean,
+) {
+  if (!nullable || nonNullable) {
+    return value;
+  }
+
+  return `faker.helpers.arrayElement([${value}, null])`;
 }
 
 /**
@@ -310,7 +318,11 @@ export function resolveMockValue({
         : `${factoryName}()`;
 
       return {
-        value: getNullable(callValue, Boolean(newSchema.nullable)),
+        value: getNullable(
+          callValue,
+          Boolean(newSchema.nullable),
+          mockOptions?.nonNullable,
+        ),
         imports,
         name: newSchema.name,
         type: getType(newSchema),

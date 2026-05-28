@@ -60,6 +60,7 @@ export function getMockScalar({
   allowOverride = false,
 }: GetMockScalarOptions): MockDefinition {
   const safeMockOptions: MockOptions = mockOptions ?? {};
+  const nonNullable = safeMockOptions.nonNullable;
   // Add the property to the existing properties to validate on object recursion
   if (item.isRef) {
     existingReferencedProperties = [...existingReferencedProperties, item.name];
@@ -145,7 +146,7 @@ export function getMockScalar({
     ALL_FORMAT.binary
   ) {
     return {
-      value: getNullable(ALL_FORMAT.binary, isNullable),
+      value: getNullable(ALL_FORMAT.binary, isNullable, nonNullable),
       imports: [],
       name: item.name,
       overrided: false,
@@ -160,7 +161,7 @@ export function getMockScalar({
     }
 
     return {
-      value: getNullable(value, isNullable),
+      value: getNullable(value, isNullable, nonNullable),
       imports: [],
       name: item.name,
       overrided: false,
@@ -201,6 +202,7 @@ export function getMockScalar({
       let value = getNullable(
         `faker.number.${intFunction}(${intParts.length > 0 ? `{${intParts.join(', ')}}` : ''})`,
         isNullable,
+        nonNullable,
       );
       if (type === 'number') {
         const floatParts: string[] = [];
@@ -214,6 +216,7 @@ export function getMockScalar({
         value = getNullable(
           `faker.number.float(${floatParts.length > 0 ? `{${floatParts.join(', ')}}` : ''})`,
           isNullable,
+          nonNullable,
         );
       }
       const numberImports: GeneratorImport[] = [];
@@ -432,7 +435,7 @@ export function getMockScalar({
       }
 
       return {
-        value: getNullable(value, isNullable),
+        value: getNullable(value, isNullable, nonNullable),
         enums: item.enum,
         name: item.name,
         imports: stringImports,

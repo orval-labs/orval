@@ -151,6 +151,7 @@ override: {
       'date-time': () => faker.date.recent().toISOString(),
     },
     required: true,      // Always populate optional fields
+    nonNullable: true,   // Never randomize nullable fields to null
     arrayMin: 3,
     arrayMax: 5,
     stringMin: 4,

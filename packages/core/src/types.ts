@@ -519,6 +519,9 @@ export type OverrideMockOptions = Partial<GlobalMockOptions> & {
   numberMin?: number;
   numberMax?: number;
   required?: boolean;
+  // When true, nullable mock values are never wrapped in `arrayElement([value, null])`.
+  // Runtime overrides can still pass `null` via `overrideResponse`.
+  nonNullable?: boolean;
   properties?: MockProperties;
   format?: Record<string, unknown>;
   fractionDigits?: number;

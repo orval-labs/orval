@@ -1541,6 +1541,7 @@ export default defineConfig({
             iban: () => faker.finance.iban(),
           },
           required: true,
+          nonNullable: true,
           delay: 500,
           arrayMin: 1,
           arrayMax: 10,
@@ -1568,6 +1569,13 @@ Provide custom generators for OpenAPI `format` values.
 **Type:** `Boolean`
 
 Make all properties required in mocks.
+
+### nonNullable
+
+**Type:** `Boolean`
+**Default:** `false`
+
+When `true`, nullable properties are generated without `faker.helpers.arrayElement([value, null])`. Optional properties may still be omitted via `arrayElement([value, undefined])` unless `required` is also `true`. You can still pass `null` at runtime through the factory's `overrideResponse` argument.
 
 ### delay
 
