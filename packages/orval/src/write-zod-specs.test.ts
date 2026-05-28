@@ -696,4 +696,116 @@ describe('generateZodSchemasInline with generateReusableSchemas', () => {
     expect(result).toContain('export const _MyData =');
     expect(result).not.toContain('__REF_');
   });
+
+  const metaBuilder = () =>
+    ({
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              description: 'A pet',
+              deprecated: true,
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [{ name: 'Pet', schema: { $ref: '#/components/schemas/Pet' } }],
+    }) satisfies Parameters<typeof generateZodSchemasInline>[0];
+
+  it('attaches .meta({ id, description, deprecated }) on zod v4 when generateMeta is on', () => {
+    const output = createOutputOptions();
+    const zodOverride = output.override.zod as Record<string, unknown>;
+    zodOverride.generateReusableSchemas = true;
+    zodOverride.generateMeta = true;
+    (output as { packageJson?: unknown }).packageJson = {
+      dependencies: { zod: '4.0.0' },
+    };
+
+    const result = generateZodSchemasInline(metaBuilder(), output);
+
+    expect(result).toContain(
+      ".meta({ id: 'Pet', description: 'A pet', deprecated: true })",
+    );
+  });
+
+  it('falls back to .describe() (no .meta) on zod v3 even when generateMeta is on', () => {
+    const output = createOutputOptions();
+    const zodOverride = output.override.zod as Record<string, unknown>;
+    zodOverride.generateReusableSchemas = true;
+    zodOverride.generateMeta = true;
+    (output as { packageJson?: unknown }).packageJson = {
+      dependencies: { zod: '3.23.0' },
+    };
+
+    const result = generateZodSchemasInline(metaBuilder(), output);
+
+    expect(result).not.toContain('.meta(');
+    expect(result).toContain(".describe('A pet')");
+  });
+
+  it('keeps the use-site .describe() chained AFTER .meta() on the named export (zod v4)', () => {
+    // A `$ref` with a `description` sibling renders at the use site as
+    // `<RefName>.describe('use site desc')`. The named export ends with
+    // `.meta(...)` — so the full runtime form is `Pet.meta(...).describe(...)`,
+    // which in zod v4 is exactly the documented pattern for "reference to Pet
+    // with a context-specific description": `z.toJSONSchema` produces
+    // `{ description: 'use site desc', $ref: '#/$defs/Pet' }` and the parent
+    // schema stays valid at runtime. This test pins that arrangement so the
+    // namedRef + emitMeta interaction can't silently regress.
+    const builder = {
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              description: 'a pet',
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+            Owner: {
+              type: 'object',
+              properties: {
+                pet: {
+                  $ref: '#/components/schemas/Pet',
+                  description: 'the owner pet',
+                },
+              },
+              required: ['pet'],
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [
+        { name: 'Pet', schema: { $ref: '#/components/schemas/Pet' } },
+        { name: 'Owner', schema: { $ref: '#/components/schemas/Owner' } },
+      ],
+    } satisfies Parameters<typeof generateZodSchemasInline>[0];
+
+    const output = createOutputOptions();
+    const zodOverride = output.override.zod as Record<string, unknown>;
+    zodOverride.generateReusableSchemas = true;
+    zodOverride.generateMeta = true;
+    (output as { packageJson?: unknown }).packageJson = {
+      dependencies: { zod: '4.0.0' },
+    };
+
+    const result = generateZodSchemasInline(builder, output);
+
+    // Pet's definition carries the meta...
+    expect(result).toContain(".meta({ id: 'Pet', description: 'a pet' })");
+    // ...and the property use site chains describe onto the named ref —
+    // `Pet.describe(...)` (NOT a fresh `.meta()` reusing Pet's id, which would
+    // collide in the global registry).
+    // namedRef path emits `.describe(...)` with double quotes; main path with
+    // single — tolerate either so this doesn't trip on a formatter swap.
+    expect(result).toMatch(/"?pet"?:\s*Pet\.describe\(['"]the owner pet['"]\)/);
+    // Owner's definition still gets its own meta (no description on Owner).
+    expect(result).toMatch(/export const Owner\b/);
+    expect(result).toContain(".meta({ id: 'Owner' })");
+  });
 });
