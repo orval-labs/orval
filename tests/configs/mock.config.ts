@@ -351,6 +351,21 @@ export default defineConfig({
       target: '../specifications/msw-mixed-content-union-vendor.yaml',
     },
   },
+  issue2327: {
+    output: {
+      target: '../generated/mock/issue-2327/endpoints.ts',
+      schemas: '../generated/mock/issue-2327/model',
+      client: 'axios',
+      mock: {
+        generators: [{ type: 'msw' }],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-2327.yaml',
+    },
+  },
   mixedSuccessStatus: {
     output: {
       target: '../generated/mock/mixed-success-status/endpoints.ts',

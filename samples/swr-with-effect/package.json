@@ -1,0 +1,38 @@
+{
+  "name": "swr-with-effect",
+  "private": true,
+  "version": "8.12.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite  --host",
+    "build": "tsc -b && vite build",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
+    "generate-api": "orval",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "bun run test:snapshots --update"
+  },
+  "dependencies": {
+    "react": "catalog:react",
+    "react-dom": "^18.3.1",
+    "swr": "catalog:swr",
+    "effect": "catalog:effect"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "catalog:tooling",
+    "@types/react": "catalog:react",
+    "@types/react-dom": "^18.3.7",
+    "@typescript-eslint/eslint-plugin": "^8.58.0",
+    "@typescript-eslint/parser": "^8.56.1",
+    "@vitejs/plugin-react": "^5.1.2",
+    "eslint": "catalog:",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "msw": "catalog:tooling",
+    "orval": "workspace:*",
+    "prettier": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

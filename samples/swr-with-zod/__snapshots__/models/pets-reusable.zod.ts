@@ -5,9 +5,9 @@
  * OpenAPI spec version: 1.0.0
  */
 import { z as zod } from 'zod';
-import { pet } from './pet-reusable.zod';
+import { Pet } from './pet-reusable.zod';
 
-export const pets = zod.array(pet);
+export const Pets = zod.array(Pet);
 
-export type pets = zod.input<typeof pets>;
-export type petsOutput = zod.output<typeof pets>;
+export type Pets = zod.input<typeof Pets>;
+export type PetsOutput = zod.output<typeof Pets>;

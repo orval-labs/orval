@@ -5,15 +5,15 @@
  * OpenAPI spec version: 1.0.0
  */
 import { z as zod } from 'zod';
-import { dachshund } from './dachshund-reusable.zod';
-import { labradoodle } from './labradoodle-reusable.zod';
+import { Dachshund } from './dachshund-reusable.zod';
+import { Labradoodle } from './labradoodle-reusable.zod';
 
-export const dog = zod.union([labradoodle, dachshund]).and(
+export const Dog = zod.union([Labradoodle, Dachshund]).and(
   zod.object({
     barksPerMinute: zod.number().optional(),
     type: zod.enum(['dog']),
   }),
 );
 
-export type dog = zod.input<typeof dog>;
-export type dogOutput = zod.output<typeof dog>;
+export type Dog = zod.input<typeof Dog>;
+export type DogOutput = zod.output<typeof Dog>;

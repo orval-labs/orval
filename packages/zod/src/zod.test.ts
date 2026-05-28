@@ -3442,7 +3442,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
       expect(result).toEqual({
         functions: [
-          ['namedRef', { name: 'pet', sourceRef: '#/components/schemas/Pet' }],
+          ['namedRef', { name: 'Pet', sourceRef: '#/components/schemas/Pet' }],
         ],
         consts: [],
       });
@@ -3461,7 +3461,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         { required: true, useReusableSchemas: true },
       );
       expect(result.functions).toEqual([
-        ['namedRef', { name: 'pet', sourceRef: '#/components/schemas/Pet' }],
+        ['namedRef', { name: 'Pet', sourceRef: '#/components/schemas/Pet' }],
         ['nullable', undefined],
       ]);
     });
@@ -3482,7 +3482,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         { required: true, useReusableSchemas: true },
       );
       expect(result.functions).toEqual([
-        ['namedRef', { name: 'pet', sourceRef: '#/components/schemas/Pet' }],
+        ['namedRef', { name: 'Pet', sourceRef: '#/components/schemas/Pet' }],
         ['describe', '"optional pet"'],
       ]);
     });
@@ -3502,7 +3502,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       // default emits a const + a .default(<constName>) call. Match shape, not exact const.
       expect(result.functions[0]).toEqual([
         'namedRef',
-        { name: 'pet', sourceRef: '#/components/schemas/Pet' },
+        { name: 'Pet', sourceRef: '#/components/schemas/Pet' },
       ]);
       expect(result.functions.at(-1)?.[0]).toBe('default');
       expect(result.consts.some((c) => c.includes('Default'))).toBe(true);
@@ -3521,7 +3521,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         { required: false, useReusableSchemas: true },
       );
       expect(result.functions).toEqual([
-        ['namedRef', { name: 'pet', sourceRef: '#/components/schemas/Pet' }],
+        ['namedRef', { name: 'Pet', sourceRef: '#/components/schemas/Pet' }],
         ['optional', undefined],
       ]);
     });
@@ -3557,7 +3557,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         { required: false, useReusableSchemas: true },
       );
       expect(result.functions).toEqual([
-        ['namedRef', { name: 'pet', sourceRef: '#/components/schemas/Pet' }],
+        ['namedRef', { name: 'Pet', sourceRef: '#/components/schemas/Pet' }],
         ['nullish', undefined],
       ]);
     });
@@ -7866,7 +7866,7 @@ describe('parseZodValidationSchemaDefinition with namedRef', () => {
     const context = makeContextSpec();
     const definition: ZodValidationSchemaDefinition = {
       functions: [
-        ['namedRef', { name: 'pet', sourceRef: '#/components/schemas/Pet' }],
+        ['namedRef', { name: 'Pet', sourceRef: '#/components/schemas/Pet' }],
       ],
       consts: [],
     };
@@ -7877,8 +7877,8 @@ describe('parseZodValidationSchemaDefinition with namedRef', () => {
       false,
       false,
     );
-    expect(result.zod).toBe('__REF_pet__');
-    expect(result.usedRefs).toEqual(new Set(['pet']));
+    expect(result.zod).toBe('__REF_Pet__');
+    expect(result.usedRefs).toEqual(new Set(['Pet']));
     expect(result.consts).toBe('');
   });
 
@@ -7886,7 +7886,7 @@ describe('parseZodValidationSchemaDefinition with namedRef', () => {
     const context = makeContextSpec();
     const definition: ZodValidationSchemaDefinition = {
       functions: [
-        ['namedRef', { name: 'pet', sourceRef: '#/components/schemas/Pet' }],
+        ['namedRef', { name: 'Pet', sourceRef: '#/components/schemas/Pet' }],
         ['nullable', undefined],
         ['describe', '"hello"'],
       ],
@@ -7899,8 +7899,8 @@ describe('parseZodValidationSchemaDefinition with namedRef', () => {
       false,
       false,
     );
-    expect(result.zod).toBe('__REF_pet__.nullable().describe("hello")');
-    expect(result.usedRefs).toEqual(new Set(['pet']));
+    expect(result.zod).toBe('__REF_Pet__.nullable().describe("hello")');
+    expect(result.usedRefs).toEqual(new Set(['Pet']));
   });
 
   it('returns empty usedRefs when no namedRef is present', () => {

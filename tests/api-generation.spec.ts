@@ -354,6 +354,34 @@ test('default issue-1935 resolves a $ref chain across three external files', asy
   expect(userProjectDTO).toContain('export type UserProjectDTO = UserProject;');
 });
 
+test('default issue-2206 types the MSW handler info parameter', async () => {
+  // Regression for #2206: generated MSW handlers used to emit
+  // `async (info) => { ... }` with no annotation on `info`, which trips
+  // `TS7006: Parameter 'info' implicitly has an 'any' type` under
+  // `noImplicitAny`. PR #2939 (v8.4.0) fixed this by annotating the inner
+  // handler callback, but #2939 only cited #2934 so #2206 stayed open. Keep
+  // this focused assertion alongside the snapshot so #2206 fails with a
+  // targeted message instead of a full-file snapshot diff.
+  const msw = await readFile(
+    generated('default', 'issue-2206-msw-info-typing', 'endpoints.msw.ts'),
+    'utf8',
+  );
+
+  // The inner handler callback must annotate `info` with some type so
+  // projects with `noImplicitAny` compile cleanly. Match the annotation
+  // shape rather than the exact type expression so refactors that extract
+  // a type alias or tweak whitespace don't trip this test unless the
+  // annotation itself is dropped. Current generator emits
+  //   async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => { ... }
+  expect(msw).toMatch(/async\s*\(\s*info\s*:\s*\S/);
+
+  // Explicit `any` would still satisfy `noImplicitAny` but defeats the fix.
+  expect(msw).not.toMatch(/async\s*\(\s*info\s*:\s*any\b/);
+
+  // No callback that takes `info` without a type (the original #2206 shape).
+  expect(msw).not.toMatch(/async\s*\(\s*info\s*[,)]/);
+});
+
 test('react-query issue-1522 passes the enabled option into the queryOptions mutator', async () => {
   // Regression for #1522: when `allParamsOptional` and a custom `queryOptions`
   // mutator are combined, the auto-generated `enabled` guard (which disables
@@ -551,4 +579,36 @@ test('mock issue-2155 keeps allOf-inherited variant mocks free of sibling factor
       `${funcName} must not reference sibling factories`,
     ).not.toMatch(siblingPattern);
   }
+});
+
+test('mock issue-2327 base handler uses 200 content-type when sibling status has text/plain', async () => {
+  // Regression for #2327: when an operation defines a 200 application/json
+  // response alongside a non-2XX text/plain (or any text-like) response, the
+  // un-suffixed base MSW handler must serve the success body via
+  // HttpResponse.json and must NOT pick up the error response's text/plain
+  // Content-Type. PR #2938's `shouldPreferJsonResponse` guard fixes the
+  // generated output for this shape; this test pins the contract so a future
+  // refactor cannot regress the base handler back to HttpResponse.text /
+  // raw `text/plain` headers.
+  const endpoints = await readFile(
+    generated('mock', 'issue-2327', 'endpoints.ts'),
+    'utf8',
+  );
+
+  const start = endpoints.indexOf('export const getListPetsMockHandler');
+  expect(start, 'getListPetsMockHandler should be generated').toBeGreaterThan(
+    -1,
+  );
+  const nextExport = endpoints.indexOf('export const ', start + 1);
+  const handler = endpoints.slice(
+    start,
+    nextExport === -1 ? endpoints.length : nextExport,
+  );
+
+  expect(handler).toContain('HttpResponse.json(');
+  expect(handler).not.toMatch(/HttpResponse\.text\(/);
+  // Match the header key case-insensitively and treat `text/plain` as a
+  // prefix so a charset suffix (e.g. `text/plain; charset=utf-8`) still trips
+  // the assertion.
+  expect(handler).not.toMatch(/['"]content-type['"]\s*:\s*['"]text\/plain\b/i);
 });

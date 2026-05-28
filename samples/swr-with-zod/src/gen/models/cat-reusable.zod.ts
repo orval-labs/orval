@@ -6,10 +6,10 @@
  */
 import { z as zod } from 'zod';
 
-export const cat = zod.object({
+export const Cat = zod.object({
   petsRequested: zod.number().optional(),
   type: zod.enum(['cat']),
 });
 
-export type cat = zod.input<typeof cat>;
-export type catOutput = zod.output<typeof cat>;
+export type Cat = zod.input<typeof Cat>;
+export type CatOutput = zod.output<typeof Cat>;

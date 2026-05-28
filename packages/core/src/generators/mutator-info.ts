@@ -98,6 +98,16 @@ function parseFile(
   }
 }
 
+// Default for mutator exports whose initializer is a CallExpression
+// (factory pattern, e.g. `axios.create({...})`). The AST cannot reveal
+// the returned callable's arity, so we assume the orval standard
+// contract: a single-arg mutator invoked as
+// `customInstance({ url, method, data, ... })`.
+// See https://github.com/orval-labs/orval/issues/3402.
+function standardMutatorInfo(): GeneratorMutatorParsingInfo {
+  return { numberOfParams: 1 };
+}
+
 function parseFunction(
   ast: Program,
   funcName: string,
@@ -156,6 +166,11 @@ function parseFunction(
   if (declaration?.init) {
     if ('name' in declaration.init) {
       return parseFunction(ast, declaration.init.name);
+    }
+
+    // Init is a factory CallExpression — see standardMutatorInfo() above.
+    if (declaration.init.type === 'CallExpression') {
+      return standardMutatorInfo();
     }
 
     if (

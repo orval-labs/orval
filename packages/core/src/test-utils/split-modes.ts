@@ -97,6 +97,7 @@ export const createSplitModeOutput = (
       angular: { provideIn: false },
       swr: {},
       zod: {},
+      effect: {},
       fetch: {},
     },
     ...overrides,

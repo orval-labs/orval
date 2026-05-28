@@ -267,7 +267,7 @@ export class PetsService {
         responseType: 'text',
         headers,
         params: filteredParams,
-      }) as Observable<string>;
+      }) as Observable<any>;
     }
 
     return this.http.get<Pets>(`/v${version}/pets`, {
@@ -368,7 +368,7 @@ export class PetsService {
         ...options,
         responseType: 'text',
         headers,
-      }) as Observable<string>;
+      }) as Observable<any>;
     }
 
     return this.http.get<Pet>(`/v${version}/pets/${petId}`, {
@@ -424,7 +424,7 @@ export class PetsService {
         ...options,
         responseType: 'text',
         headers,
-      }) as Observable<string>;
+      }) as Observable<any>;
     }
 
     return this.http.put<Pet>(`/v${version}/pets/${petId}/update`, pet, {
@@ -480,7 +480,7 @@ export class PetsService {
         ...options,
         responseType: 'text',
         headers,
-      }) as Observable<string>;
+      }) as Observable<any>;
     }
 
     return this.http.patch<Pet>(`/v${version}/pets/${petId}/update`, pet, {
@@ -517,7 +517,7 @@ export class PetsService {
         responseType: 'text',
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'events',
-      });
+      }) as Observable<HttpEvent<string>>;
     }
 
     if (options?.observe === 'response') {
@@ -525,14 +525,14 @@ export class PetsService {
         responseType: 'text',
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'response',
-      });
+      }) as Observable<AngularHttpResponse<string>>;
     }
 
     return this.http.get(`/v${version}/pets/${petId}/text`, {
       responseType: 'text',
       ...(options as Omit<NonNullable<typeof options>, 'observe'>),
       observe: 'body',
-    });
+    }) as Observable<string>;
   }
   /**
    * Upload image of the pet.
@@ -622,7 +622,7 @@ export class PetsService {
         responseType: 'blob',
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'events',
-      });
+      }) as Observable<HttpEvent<Blob>>;
     }
 
     if (options?.observe === 'response') {
@@ -630,14 +630,14 @@ export class PetsService {
         responseType: 'blob',
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'response',
-      });
+      }) as Observable<AngularHttpResponse<Blob>>;
     }
 
     return this.http.get(`/v${version}/pet/${petId}/downloadImage`, {
       responseType: 'blob',
       ...(options as Omit<NonNullable<typeof options>, 'observe'>),
       observe: 'body',
-    });
+    }) as Observable<Blob>;
   }
 }
 

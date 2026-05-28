@@ -85,6 +85,7 @@ export function createTestContextSpec({
         shouldExportMutatorHooks: false,
         shouldExportHttpClient: false,
         shouldExportQueryKey: false,
+        shouldFilterQueryKey: false,
         shouldSplitQueryKey: false,
         useOperationIdAsQueryKey: false,
         signal: false,
@@ -123,6 +124,24 @@ export function createTestContextSpec({
         generateReusableSchemas: false,
         dateTimeOptions: {},
         timeOptions: { precision: 3 },
+      },
+      effect: {
+        strict: {
+          param: false,
+          query: false,
+          header: false,
+          body: false,
+          response: false,
+        },
+        generate: {
+          param: false,
+          query: false,
+          header: false,
+          body: false,
+          response: false,
+        },
+        generateEachHttpStatus: false,
+        useBrandedTypes: false,
       },
       fetch: {
         includeHttpResponseReturnType: false,

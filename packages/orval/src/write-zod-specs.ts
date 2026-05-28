@@ -3,6 +3,8 @@ import path from 'node:path';
 import {
   type ContextSpec,
   conventionName,
+  getRefInfo,
+  isComponentRef,
   type NamingConvention,
   type NormalizedOutputOptions,
   type OpenApiParameterObject,
@@ -10,6 +12,7 @@ import {
   type OpenApiRequestBodyObject,
   type OpenApiSchemaObject,
   pascal,
+  resolveValue,
   type ZodCoerceType,
 } from '@orval/core';
 import {
@@ -25,13 +28,17 @@ import fs from 'fs-extra';
 import {
   generateReusableSchemaSet,
   resolveSchemaNames,
+  type ReusableSchemaEntry,
   rewriteReusableSchemas,
+  rewriteSentinelsToDirect,
 } from './reusable-schemas';
 
 interface ZodSchemaFileEntry {
   schemaName: string;
   consts: string;
   zodExpression: string;
+  /** Pre-rendered `import { x } from './x'` lines for reusable-schema refs. */
+  importStatements?: string[];
 }
 
 type ZodSchemaFileToWrite = ZodSchemaFileEntry & {
@@ -119,7 +126,22 @@ interface WriteZodSchemasFromVerbsContext {
 function generateZodSchemaFileContent(
   header: string,
   schemas: ZodSchemaFileEntry[],
+  // Omit the `import { z as zod }` line when the content is concatenated into a
+  // file that already imports zod (e.g. inline single-mode output, where the
+  // zod client already emits `import * as zod from 'zod'`).
+  includeZodImport = true,
 ): string {
+  // Group the zod import with any reusable-schema imports (deduped across the
+  // usually-single entries written to this file), then separate that block
+  // from the schema content with a single blank line.
+  const refImports = [
+    ...new Set(schemas.flatMap((s) => s.importStatements ?? [])),
+  ].toSorted();
+  const importBlock = [
+    ...(includeZodImport ? [`import { z as zod } from 'zod';`] : []),
+    ...refImports,
+  ].join('\n');
+
   const schemaContent = schemas
     .map(({ schemaName, consts, zodExpression }) => {
       const schemaConsts = consts ? `${consts}\n` : '';
@@ -131,10 +153,63 @@ export type ${schemaName}Output = zod.output<typeof ${schemaName}>;`;
     })
     .join('\n\n');
 
-  return `${header}import { z as zod } from 'zod';
+  const separator = importBlock ? `${importBlock}\n\n` : '';
+  return `${header}${separator}${schemaContent}\n`;
+}
 
-${schemaContent}
-`;
+/**
+ * Render a single reusable-schema entry's exports (`const` + companion type
+ * aliases), shared by the inline single-file and per-file reusable writers.
+ *
+ * Acyclic schemas keep the original form, deriving the public type from the
+ * schema (`zod.input<typeof X>`). Recursive schemas can't: the `const` reads
+ * its own binding inside its initializer, so TypeScript can't infer it and a
+ * bare `zod.input<typeof X>` would itself be circular. We instead generate the
+ * recursive TS type with orval's own model generator (`resolveValue`, the same
+ * path that produces `export type X` in the model output, so names line up via
+ * `getRefInfo`) and pin the schema to it: `const X: zod.ZodType<X>`. That
+ * annotation breaks the self-inference cycle AND preserves full `z.infer`
+ * typing through the recursion (instead of collapsing recursive positions to
+ * `unknown`).
+ */
+function renderReusableSchemaEntry(
+  entry: ReusableSchemaEntry,
+  context: ContextSpec,
+): string {
+  const consts = entry.consts ? `${entry.consts}\n\n` : '';
+
+  if (entry.isRecursive) {
+    // Resolve the lookup key through `getRefInfo` (the same util every other
+    // ref consumer uses) rather than slicing the prefix off `entry.ref` by
+    // hand: it guards the `#/components/schemas/` prefix via `isComponentRef`
+    // and decodes JSON Pointer escapes (`~1`→`/`, `~0`→`~`) before indexing
+    // `components.schemas`. `originalName` is the decoded final segment, which
+    // matches the raw `components.schemas` key.
+    const rawName = isComponentRef(entry.ref)
+      ? getRefInfo(entry.ref, context).originalName
+      : undefined;
+    const schema = rawName
+      ? (context.spec.components?.schemas?.[rawName] as
+          | OpenApiSchemaObject
+          | OpenApiReferenceObject
+          | undefined)
+      : undefined;
+    const typeBody = schema
+      ? resolveValue({ schema, name: entry.name, context }).value
+      : 'unknown';
+
+    return (
+      `${consts}export type ${entry.name} = ${typeBody};\n\n` +
+      `export const ${entry.name}: zod.ZodType<${entry.name}> = ${entry.zod};\n\n` +
+      `export type ${entry.name}Output = zod.output<typeof ${entry.name}>;`
+    );
+  }
+
+  return (
+    `${consts}export const ${entry.name} = ${entry.zod};\n\n` +
+    `export type ${entry.name} = zod.input<typeof ${entry.name}>;\n` +
+    `export type ${entry.name}Output = zod.output<typeof ${entry.name}>;`
+  );
 }
 
 const isValidSchemaIdentifier = (name: string) =>
@@ -224,12 +299,13 @@ async function writeZodSchemaIndex(
 export function generateZodSchemasInline(
   builder: WriteZodSchemasInput,
   output: WriteZodOutputOptions,
+  includeZodImport = true,
 ): string {
   const useReusableSchemas =
     output.override.zod.generateReusableSchemas === true;
 
   if (useReusableSchemas) {
-    return generateZodSchemasInlineReusable(builder, output);
+    return generateZodSchemasInlineReusable(builder, output, includeZodImport);
   }
 
   const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
@@ -287,12 +363,13 @@ export function generateZodSchemasInline(
     return '';
   }
 
-  return generateZodSchemaFileContent('', schemas);
+  return generateZodSchemaFileContent('', schemas, includeZodImport);
 }
 
 function generateZodSchemasInlineReusable(
   builder: WriteZodSchemasInput,
   output: WriteZodOutputOptions,
+  includeZodImport = true,
 ): string {
   const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
   if (schemasWithOpenApiDef.length === 0) return '';
@@ -311,7 +388,7 @@ function generateZodSchemasInlineReusable(
     ({ name }) => `#/components/schemas/${name}`,
   );
 
-  resolveSchemaNames(refs, output.namingConvention);
+  resolveSchemaNames(refs, context);
 
   const entries = generateReusableSchemaSet(refs, context, {
     strict,
@@ -322,17 +399,13 @@ function generateZodSchemasInlineReusable(
   const rewritten = rewriteReusableSchemas(entries);
 
   const body = rewritten
-    .map((entry) => {
-      const consts = entry.consts ? `${entry.consts}\n\n` : '';
-      return (
-        `${consts}export const ${entry.name} = ${entry.zod};\n\n` +
-        `export type ${entry.name} = zod.input<typeof ${entry.name}>;\n` +
-        `export type ${entry.name}Output = zod.output<typeof ${entry.name}>;`
-      );
-    })
+    .map((entry) => renderReusableSchemaEntry(entry, context))
     .join('\n\n');
 
-  return `import { z as zod } from 'zod';\n\n${body}\n`;
+  // Omit the zod import when concatenated into a file that already imports it
+  // (inline single-mode output where the zod client emits `import * as zod`).
+  const prefix = includeZodImport ? `import { z as zod } from 'zod';\n\n` : '';
+  return `${prefix}${body}\n`;
 }
 
 export async function writeZodSchemas(
@@ -447,20 +520,25 @@ async function writeZodSchemasReusable(
     output: output as ContextSpec['output'],
   };
 
-  // Roots = every component schema in the builder list. This matches today's
-  // writeZodSchemas behavior of emitting all of them (the `schemas: { type: 'zod' }`
-  // path passes the full schema list in via builder.schemas).
-  const refs = builder.schemas
-    .map(({ name }) => `#/components/schemas/${name}`)
-    .filter((ref) => {
-      const schemaName = ref.slice('#/components/schemas/'.length);
-      const componentSchemas = (builder.spec.components?.schemas ??
-        {}) as Record<string, unknown>;
-      return componentSchemas[schemaName] !== undefined;
-    });
+  // Roots = every component schema, keyed by its RAW OpenAPI name taken
+  // straight from `spec.components.schemas`. We must NOT derive these from
+  // `builder.schemas`, whose `name` is the sanitized model identifier (e.g.
+  // `PaginatedResponse_Asset_` becomes `PaginatedResponseAsset`): operation
+  // files reference component schemas by `resolveSchemaName(<raw $ref>)`, so
+  // building roots from sanitized names and then filtering them against the
+  // raw-keyed `components.schemas` silently dropped every schema whose name
+  // needs sanitizing. Those schemas were never emitted, yet the operation
+  // files still imported them — producing dangling imports that don't compile.
+  const componentSchemas = (builder.spec.components?.schemas ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const refs = Object.keys(componentSchemas).map(
+    (schemaName) => `#/components/schemas/${schemaName}`,
+  );
 
   // Conflict guard.
-  resolveSchemaNames(refs, output.namingConvention);
+  resolveSchemaNames(refs, context);
 
   const entries = generateReusableSchemaSet(refs, context, {
     strict,
@@ -483,13 +561,10 @@ async function writeZodSchemasReusable(
       })
       .join('\n');
 
-    const consts = entry.consts ? `${entry.consts}\n\n` : '';
     const fileContent =
       `${header}import { z as zod } from 'zod';\n` +
       (imports ? `${imports}\n\n` : '\n') +
-      `${consts}export const ${entry.name} = ${entry.zod};\n\n` +
-      `export type ${entry.name} = zod.input<typeof ${entry.name}>;\n` +
-      `export type ${entry.name}Output = zod.output<typeof ${entry.name}>;\n`;
+      `${renderReusableSchemaEntry(entry, context)}\n`;
 
     await fs.outputFile(filePath, fileContent);
   }
@@ -735,11 +810,30 @@ export async function writeZodSchemasFromVerbs(
       isZodV4,
     );
 
+    // Operation schemas sit at the top of the dependency graph, so any
+    // `__REF_<name>__` sentinel resolves to a direct (non-lazy) reference.
+    // Rewrite them to bare identifiers and emit the matching imports, the
+    // same way `generateZod` does for the operation files (issue #3463).
+    let zodExpression = parsedZodDefinition.zod;
+    let importStatements: string[] | undefined;
+    if (useReusableSchemas && parsedZodDefinition.usedRefs.size > 0) {
+      zodExpression = rewriteSentinelsToDirect(zodExpression);
+      const importExt = fileExtension.replace(/\.ts$/, '');
+      importStatements = [...parsedZodDefinition.usedRefs]
+        .filter((refName) => refName !== name)
+        .toSorted()
+        .map((refName) => {
+          const importedFile = conventionName(refName, output.namingConvention);
+          return `import { ${refName} } from './${importedFile}${importExt}';`;
+        });
+    }
+
     schemasToWrite.push({
       schemaName: name,
       filePath,
       consts: parsedZodDefinition.consts,
-      zodExpression: parsedZodDefinition.zod,
+      zodExpression,
+      importStatements,
     });
   }
 

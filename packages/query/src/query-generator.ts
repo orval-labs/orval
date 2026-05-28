@@ -1161,7 +1161,7 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
     ]
       .filter((x) => !!x)
       .join(', ')}
-    ] as const;
+    ]${override.query.shouldFilterQueryKey ? '.filter(Boolean)' : ' as const'};
     }
 `;
       }

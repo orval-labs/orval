@@ -22,6 +22,8 @@
     "---Validation & Mocking---",
     "zod",
     "client-with-zod",
+    "effect",
+    "client-with-effect",
     "msw",
     "faker",
     "---Advanced---",

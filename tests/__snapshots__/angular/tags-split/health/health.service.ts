@@ -82,7 +82,7 @@ export class HealthService {
         responseType: 'text',
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'events',
-      });
+      }) as Observable<HttpEvent<string>>;
     }
 
     if (options?.observe === 'response') {
@@ -90,13 +90,13 @@ export class HealthService {
         responseType: 'text',
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'response',
-      });
+      }) as Observable<AngularHttpResponse<string>>;
     }
 
     return this.http.get(`/v${version}/health`, {
       responseType: 'text',
       ...(options as Omit<NonNullable<typeof options>, 'observe'>),
       observe: 'body',
-    });
+    }) as Observable<string>;
   }
 }
