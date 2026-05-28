@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getNullable, isNullableSchema } from './value';
+import { getNullable, isNullableSchema, resolveMockOverride } from './value';
 
 describe('isNullableSchema', () => {
   it('detects OpenAPI 3.0 nullable', () => {
@@ -16,6 +16,30 @@ describe('isNullableSchema', () => {
   });
 });
 
+describe('resolveMockOverride', () => {
+  it('forwards nonNullableOption to getNullable for nullable overrides', () => {
+    const result = resolveMockOverride(
+      { tag: 'faker.string.uuid()' },
+      { name: 'tag', type: ['string', 'null'] },
+      true,
+    );
+
+    expect(result?.value).toBe('faker.string.uuid()');
+    expect(result?.overrided).toBe(true);
+  });
+
+  it('wraps nullable overrides with null when nonNullableOption is false', () => {
+    const result = resolveMockOverride(
+      { tag: 'faker.string.uuid()' },
+      { name: 'tag', type: ['string', 'null'] },
+    );
+
+    expect(result?.value).toBe(
+      'faker.helpers.arrayElement([faker.string.uuid(), null])',
+    );
+  });
+});
+
 describe('getNullable', () => {
   it('wraps nullable values by default', () => {
     expect(getNullable('faker.string.uuid()', true)).toBe(
@@ -23,7 +47,7 @@ describe('getNullable', () => {
     );
   });
 
-  it('returns the value unchanged when skipNull is true', () => {
+  it('returns the value unchanged when nonNullableOption is true', () => {
     expect(getNullable('faker.string.uuid()', true, true)).toBe(
       'faker.string.uuid()',
     );

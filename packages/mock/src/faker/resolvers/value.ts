@@ -22,6 +22,7 @@ function isRegex(key: string) {
 export function resolveMockOverride(
   properties: Record<string, unknown> | undefined = {},
   item: OpenApiSchemaObject & { name: string; path?: string },
+  nonNullableOption?: boolean,
 ) {
   const path = item.path ?? `#.${item.name}`;
   const property = Object.entries(properties).find(([key]) => {
@@ -44,7 +45,11 @@ export function resolveMockOverride(
   }
 
   return {
-    value: getNullable(property[1] as string, isNullableSchema(item)),
+    value: getNullable(
+      property[1] as string,
+      isNullableSchema(item),
+      nonNullableOption,
+    ),
     imports: [],
     name: item.name,
     overrided: true,
@@ -61,13 +66,13 @@ export function isNullableSchema(
   );
 }
 
-/** When `skipNull` is true (`override.mock.nonNullable`), omit the null branch. */
+/** When `nonNullableOption` is true (`override.mock.nonNullable`), omit the null branch. */
 export function getNullable(
   value: string,
   nullable?: boolean,
-  skipNull?: boolean,
+  nonNullableOption?: boolean,
 ) {
-  if (!nullable || skipNull) {
+  if (!nullable || nonNullableOption) {
     return value;
   }
 
