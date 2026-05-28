@@ -371,9 +371,6 @@ function generateZodSchemasInlineReusable(
   output: WriteZodOutputOptions,
   includeZodImport = true,
 ): string {
-  const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
-  if (schemasWithOpenApiDef.length === 0) return '';
-
   const isZodV4 = !!output.packageJson && isZodVersionV4(output.packageJson);
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
@@ -384,9 +381,21 @@ function generateZodSchemasInlineReusable(
     output: output as ContextSpec['output'],
   };
 
-  const refs = schemasWithOpenApiDef.map(
-    ({ name }) => `#/components/schemas/${name}`,
+  // Seed from the RAW `components.schemas` keys, NOT `builder.schemas` (whose
+  // `name` is the *sanitized* model identifier, e.g. `__schema0` -> `_Schema0`).
+  // Building a ref from a sanitized name yields `#/components/schemas/_Schema0`,
+  // which doesn't exist in `components.schemas`, so the schema was silently
+  // dropped whenever it was reachable only from operations (when referenced by
+  // another component schema it survived via transitive expansion, masking the
+  // bug). Mirrors `writeZodSchemasReusable`, which already seeds from raw keys.
+  const componentSchemas = (builder.spec.components?.schemas ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const refs = Object.keys(componentSchemas).map(
+    (schemaName) => `#/components/schemas/${schemaName}`,
   );
+  if (refs.length === 0) return '';
 
   resolveSchemaNames(refs, context);
 
