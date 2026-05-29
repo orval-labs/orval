@@ -504,6 +504,14 @@ export async function normalizeOptions(
                 }
               : {}),
           },
+          ...(outputOptions.override?.zod?.params
+            ? {
+                params: normalizeMutator(
+                  workspace,
+                  outputOptions.override.zod.params,
+                ),
+              }
+            : {}),
           generateEachHttpStatus:
             outputOptions.override?.zod?.generateEachHttpStatus ?? false,
           useBrandedTypes:
@@ -891,6 +899,11 @@ function normalizeOperationsAndTags(
                           }
                         : {}),
                     },
+                    ...(zod.params
+                      ? {
+                          params: normalizeMutator(workspace, zod.params),
+                        }
+                      : {}),
                     generateEachHttpStatus: zod.generateEachHttpStatus ?? false,
                     useBrandedTypes: zod.useBrandedTypes ?? false,
                     generateReusableSchemas:

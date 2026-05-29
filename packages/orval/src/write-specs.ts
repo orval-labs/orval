@@ -7,6 +7,7 @@ import {
   fixCrossDirectoryImports,
   fixRegularSchemaImports,
   generateDependencyImports,
+  generateMutator,
   getFileInfo,
   getImportExtension,
   getMockFileExtensionByTypeName,
@@ -331,12 +332,27 @@ export async function writeSpecs(
       // also drives client/mock outputs) isn't dragged into the zod world.
       const fileExtension = output.schemaFileExtension;
 
+      // Reusable component schemas live as separate files under `schemasPath`,
+      // so we resolve the user's `override.zod.params` mutator once relative
+      // to that directory and pass it down. Each emitted schema file lives in
+      // the same dir, so the relative import is identical across files.
+      const schemasParamsMutator = output.override.zod.params
+        ? await generateMutator({
+            output: path.join(schemasPath, `__params__${fileExtension}`),
+            mutator: output.override.zod.params,
+            name: 'zodParams',
+            workspace,
+            tsconfig: output.tsconfig,
+          })
+        : undefined;
+
       await writeZodSchemas(
         builder,
         schemasPath,
         fileExtension,
         header,
         output,
+        schemasParamsMutator,
       );
 
       await writeZodSchemasFromVerbs(
@@ -462,6 +478,32 @@ export async function writeSpecs(
     );
     const includeZodImport = !operationsUseZod;
 
+    // Inline component schemas (when `generateReusableSchemas` is on without a
+    // dedicated `output.schemas` dir) need their own `paramsMutator` resolved
+    // relative to `output.target`. Per-operation mutators in `generateZodRoute`
+    // don't cover the shared `export const Pet = …` definitions emitted here,
+    // so without this the inlined components would silently skip injection.
+    const inlineSchemasParamsMutator =
+      needZodSchemasInline && output.override.zod.params
+        ? await generateMutator({
+            output: output.target,
+            mutator: output.override.zod.params,
+            name: 'zodParams',
+            workspace,
+            tsconfig: output.tsconfig,
+          })
+        : undefined;
+    // Every non-`single` mode (`split` / `tags` / `tags-split`) writes inline
+    // schemas to a separate `.schemas` file alongside the operation file(s),
+    // so they need their own params-mutator import. Only in `single` mode do
+    // the schemas concatenate into the operation file and inherit its import
+    // (emitted via each verb's `mutators` array in `generateZodRoute`) — re-
+    // emitting from inline would produce a duplicate `import` line there.
+    // With no operations at all, even in `single` mode the file builder has
+    // no operation mutators to lean on, so we still emit.
+    const isSchemasInSeparateFile = output.mode !== OutputMode.SINGLE;
+    const includeParamsImport = !hasOperations || isSchemasInSeparateFile;
+
     implementationPaths = await writeMode({
       builder,
       workspace,
@@ -470,7 +512,14 @@ export async function writeSpecs(
       header,
       needSchema: shouldGenerateSchemas(output, hasOperations),
       generateSchemasInline: needZodSchemasInline
-        ? () => generateZodSchemasInline(builder, output, includeZodImport)
+        ? () =>
+            generateZodSchemasInline(
+              builder,
+              output,
+              includeZodImport,
+              inlineSchemasParamsMutator,
+              includeParamsImport,
+            )
         : undefined,
     });
   }

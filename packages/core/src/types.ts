@@ -744,6 +744,18 @@ export interface ZodOptions {
     body?: Mutator;
     response?: Mutator;
   };
+  /**
+   * Mutator referencing a function called once per emitted validator at schema
+   * construction time. It receives codegen-time context (operation, location,
+   * schema name, field path, validator name) and returns a Zod `params` object
+   * (e.g. `{ error: ... }`) that is appended as the trailing argument.
+   *
+   * The plural name follows Zod's own term for the validator's second argument
+   * (`z.string(params)`) and is unrelated to the singular `param` key used by
+   * `generate` / `coerce` / `preprocess` above, which refers to the path-parameter
+   * location.
+   */
+  params?: Mutator;
   dateTimeOptions?: ZodDateTimeOptions;
   timeOptions?: ZodTimeOptions;
   generateEachHttpStatus?: boolean;
@@ -802,6 +814,7 @@ export interface NormalizedZodOptions {
     body?: NormalizedMutator;
     response?: NormalizedMutator;
   };
+  params?: NormalizedMutator;
   generateEachHttpStatus: boolean;
   useBrandedTypes: boolean;
   generateReusableSchemas: boolean;

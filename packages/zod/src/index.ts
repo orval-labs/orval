@@ -991,6 +991,59 @@ export const generateZodValidationSchemaDefinition = (
   return { functions, consts: unique(consts) };
 };
 
+/**
+ * Runtime shape passed to the user-supplied `override.zod.params` function for
+ * every emitted validator. Exported so consumers can type their function with
+ * `import type { ZodParamsContext } from 'orval'` instead of hand-writing it.
+ */
+export interface ZodParamsContext {
+  /** The OpenAPI `operationId`, or `''` for shared component schemas. */
+  operationId: string;
+  /** `'schema'` is used for shared component schemas with no owning operation. */
+  location: 'param' | 'query' | 'header' | 'body' | 'response' | 'schema';
+  /** Generated schema name, e.g. `CreateUserBody`, or the component name. */
+  schemaName: string;
+  /** Path to the current property within the schema. Only object property names are appended. */
+  fieldPath: string[];
+  /** The Zod method being emitted, e.g. `'string'`, `'min'`, `'email'`. */
+  validator: string;
+}
+
+export interface ZodParamsInjection extends Pick<
+  ZodParamsContext,
+  'operationId' | 'location' | 'schemaName'
+> {
+  mutator: GeneratorMutator;
+}
+
+const PARAMS_MODIFIER_VALIDATORS = new Set([
+  'optional',
+  'nullable',
+  'nullish',
+  'default',
+  'describe',
+  // Nullary / degenerate validators — either no params arg accepted in zod v3
+  // (e.g. .unknown(), .any(), .never(), .null(), .undefined(), .void()) or no
+  // meaningful error to attach (unknown/any accept everything).
+  'unknown',
+  'any',
+  'never',
+  'null',
+  'undefined',
+  'void',
+]);
+
+// Validators whose single argument is already a params-shaped options object
+// (e.g. `z.iso.datetime({ offset, precision })`). For these, the injected
+// params must merge into the existing object rather than be appended as a
+// second argument.
+const PARAMS_MERGE_INTO_OPTIONS_VALIDATORS = new Set([
+  'datetime',
+  'time',
+  'iso.datetime',
+  'iso.time',
+]);
+
 export const parseZodValidationSchemaDefinition = (
   input: ZodValidationSchemaDefinition,
   context: ContextSpec,
@@ -998,6 +1051,7 @@ export const parseZodValidationSchemaDefinition = (
   strict: boolean,
   isZodV4: boolean,
   preprocess?: GeneratorMutator,
+  paramsInjection?: ZodParamsInjection,
 ): { zod: string; consts: string; usedRefs: Set<string> } => {
   if (input.functions.length === 0) {
     return { zod: '', consts: '', usedRefs: new Set() };
@@ -1036,7 +1090,26 @@ export const parseZodValidationSchemaDefinition = (
     return '';
   };
 
-  const parseProperty = (property: [string, unknown]): string => {
+  const buildParamsArg = (
+    fn: string,
+    fieldPath: readonly string[],
+  ): string | undefined => {
+    if (!paramsInjection) return undefined;
+    if (PARAMS_MODIFIER_VALIDATORS.has(fn)) return undefined;
+    const ctx: ZodParamsContext = {
+      operationId: paramsInjection.operationId,
+      location: paramsInjection.location,
+      schemaName: paramsInjection.schemaName,
+      fieldPath: [...fieldPath],
+      validator: fn,
+    };
+    return `${paramsInjection.mutator.name}(${JSON.stringify(ctx)})`;
+  };
+
+  const parseProperty = (
+    property: [string, unknown],
+    fieldPath: readonly string[] = [],
+  ): string => {
     const [fn, args = ''] = property;
 
     if (fn === 'namedRef') {
@@ -1121,7 +1194,9 @@ export const parseZodValidationSchemaDefinition = (
         const mergedObjectString = `zod.${objectType}({
 ${Object.entries(mergedProperties)
   .map(([key, schema]) => {
-    const value = schema.functions.map((prop) => parseProperty(prop)).join('');
+    const value = schema.functions
+      .map((prop) => parseProperty(prop, [...fieldPath, key]))
+      .join('');
     appendConstsChunk(schema.consts.join('\n'));
     return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
   })
@@ -1140,7 +1215,7 @@ ${Object.entries(mergedProperties)
       let acc = '';
       for (const partSchema of allOfArgs) {
         const value = partSchema.functions
-          .map((prop) => parseProperty(prop))
+          .map((prop) => parseProperty(prop, fieldPath))
           .join('');
         const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
 
@@ -1163,7 +1238,7 @@ ${Object.entries(mergedProperties)
       if (unionArgs.length === 1) {
         appendConstsChunk(unionArgs[0].consts.join('\n'));
         return unionArgs[0].functions
-          .map((prop: [string, unknown]) => parseProperty(prop))
+          .map((prop: [string, unknown]) => parseProperty(prop, fieldPath))
           .join('');
       }
 
@@ -1175,7 +1250,9 @@ ${Object.entries(mergedProperties)
           functions: [string, unknown][];
           consts: string[];
         }) => {
-          const value = functions.map((prop) => parseProperty(prop)).join('');
+          const value = functions
+            .map((prop) => parseProperty(prop, fieldPath))
+            .join('');
           const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
           // consts are missing here
           appendConstsChunk(argConsts.join('\n'));
@@ -1189,7 +1266,7 @@ ${Object.entries(mergedProperties)
     if (fn === 'additionalProperties') {
       const additionalPropertiesArgs = args as ZodValidationSchemaDefinition;
       const value = additionalPropertiesArgs.functions
-        .map((prop: [string, unknown]) => parseProperty(prop))
+        .map((prop: [string, unknown]) => parseProperty(prop, fieldPath))
         .join('');
       const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
       if (Array.isArray(additionalPropertiesArgs.consts)) {
@@ -1210,7 +1287,9 @@ ${Object.entries(mergedProperties)
       const parsedObject = `zod.${objectType}({
 ${Object.entries(objectArgs)
   .map(([key, schema]) => {
-    const value = schema.functions.map((prop) => parseProperty(prop)).join('');
+    const value = schema.functions
+      .map((prop) => parseProperty(prop, [...fieldPath, key]))
+      .join('');
     appendConstsChunk(schema.consts.join('\n'));
     return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
   })
@@ -1231,7 +1310,7 @@ ${Object.entries(objectArgs)
     if (fn === 'array') {
       const arrayArgs = args as ZodValidationSchemaDefinition;
       const value = arrayArgs.functions
-        .map((prop: [string, unknown]) => parseProperty(prop))
+        .map((prop: [string, unknown]) => parseProperty(prop, fieldPath))
         .join('');
       if (isString(arrayArgs.consts)) {
         appendConstsChunk(arrayArgs.consts);
@@ -1248,14 +1327,16 @@ ${Object.entries(objectArgs)
     if (fn === 'tuple') {
       return `zod.tuple([${(args as ZodValidationSchemaDefinition[])
         .map((x) => {
-          const value = x.functions.map((prop) => parseProperty(prop)).join('');
+          const value = x.functions
+            .map((prop) => parseProperty(prop, fieldPath))
+            .join('');
           return `${value.startsWith('.') ? 'zod' : ''}${value}`;
         })
         .join(',\n')}])`;
     }
     if (fn === 'rest') {
       return `.rest(zod${(args as ZodValidationSchemaDefinition).functions
-        .map((prop) => parseProperty(prop))
+        .map((prop) => parseProperty(prop, fieldPath))
         .join('')})`;
     }
     const shouldCoerceType =
@@ -1264,14 +1345,31 @@ ${Object.entries(objectArgs)
         ? coerceTypes.includes(fn as ZodCoerceType)
         : COERCIBLE_TYPES.has(fn));
 
+    const formattedArgs = formatFunctionArgs(args);
+    const paramsArg = buildParamsArg(fn, fieldPath);
+    let combinedArgs: string;
+    if (
+      paramsArg &&
+      formattedArgs &&
+      PARAMS_MERGE_INTO_OPTIONS_VALIDATORS.has(fn)
+    ) {
+      combinedArgs = `{ ...${formattedArgs}, ...${paramsArg} }`;
+    } else if (paramsArg) {
+      combinedArgs = formattedArgs
+        ? `${formattedArgs}, ${paramsArg}`
+        : paramsArg;
+    } else {
+      combinedArgs = formattedArgs;
+    }
+
     if (
       (fn !== 'date' && shouldCoerceType) ||
       (fn === 'date' && shouldCoerceType && context.output.override.useDates)
     ) {
-      return `.coerce.${fn}(${formatFunctionArgs(args)})`;
+      return `.coerce.${fn}(${combinedArgs})`;
     }
 
-    return `.${fn}(${formatFunctionArgs(args)})`;
+    return `.${fn}(${combinedArgs})`;
   };
 
   appendConstsChunk(input.consts.join('\n'));
@@ -1843,7 +1941,7 @@ export const parseParameters = ({
 };
 
 const generateZodRoute = async (
-  { operationName, verb, override }: GeneratorVerbOptions,
+  { operationId, operationName, verb, override }: GeneratorVerbOptions,
   { pathRoute, context, output }: GeneratorOptions,
 ) => {
   const isZodV4 =
@@ -1911,6 +2009,30 @@ const generateZodRoute = async (
       })
     : undefined;
 
+  const paramsMutator = override.zod.params
+    ? await generateMutator({
+        output,
+        mutator: override.zod.params,
+        name: `${operationName}ZodParams`,
+        workspace: context.workspace,
+        tsconfig: context.output.tsconfig,
+      })
+    : undefined;
+
+  const pascalOperationName = pascal(operationName);
+  const makeParamsInjection = (
+    location: ZodParamsInjection['location'],
+    schemaSuffix: string,
+  ): ZodParamsInjection | undefined =>
+    paramsMutator
+      ? {
+          mutator: paramsMutator,
+          operationId,
+          location,
+          schemaName: `${pascalOperationName}${schemaSuffix}`,
+        }
+      : undefined;
+
   let inputParams = parseZodValidationSchemaDefinition(
     parsedParameters.params,
     context,
@@ -1918,6 +2040,7 @@ const generateZodRoute = async (
     override.zod.strict.param,
     isZodV4,
     preprocessParams,
+    makeParamsInjection('param', 'Params'),
   );
 
   const preprocessQueryParams = override.zod.preprocess?.query
@@ -1937,6 +2060,7 @@ const generateZodRoute = async (
     override.zod.strict.query,
     isZodV4,
     preprocessQueryParams,
+    makeParamsInjection('query', 'QueryParams'),
   );
 
   const preprocessHeader = override.zod.preprocess?.header
@@ -1956,6 +2080,7 @@ const generateZodRoute = async (
     override.zod.strict.header,
     isZodV4,
     preprocessHeader,
+    makeParamsInjection('header', 'Header'),
   );
 
   const preprocessBody = override.zod.preprocess?.body
@@ -1975,6 +2100,7 @@ const generateZodRoute = async (
     override.zod.strict.body,
     isZodV4,
     preprocessBody,
+    makeParamsInjection('body', 'Body'),
   );
 
   const preprocessResponse = override.zod.preprocess?.response
@@ -1987,7 +2113,7 @@ const generateZodRoute = async (
       })
     : undefined;
 
-  const inputResponses = parsedResponses.map((parsedResponse) =>
+  const inputResponses = parsedResponses.map((parsedResponse, index) =>
     parseZodValidationSchemaDefinition(
       parsedResponse.input,
       context,
@@ -1995,6 +2121,10 @@ const generateZodRoute = async (
       override.zod.strict.response,
       isZodV4,
       preprocessResponse,
+      makeParamsInjection(
+        'response',
+        responses[index][0] ? `${responses[index][0]}Response` : 'Response',
+      ),
     ),
   );
 
@@ -2042,8 +2172,6 @@ const generateZodRoute = async (
       usedRefs: new Set<string>(),
     };
   }
-
-  const pascalOperationName = pascal(operationName);
 
   const useBrandedTypes = override.zod.useBrandedTypes;
   const brand = (name: string) =>
@@ -2164,7 +2292,15 @@ export const ${operationResponse} = zod.array(${operationResponse}Item)${
         ];
       }),
     ].join('\n\n'),
-    mutators: preprocessResponse ? [preprocessResponse] : [],
+    mutators: [
+      ...(preprocessResponse ? [preprocessResponse] : []),
+      // Unconditional even when this operation's parsed schemas don't
+      // reference `paramsMutator.name`: in `single` mode, inline component
+      // schemas (which DO reference it) rely on this entry to emit the
+      // import. The cost is one harmless `import { zodParams }` line on
+      // operations whose request/response have no leaf validators to inject.
+      ...(paramsMutator ? [paramsMutator] : []),
+    ],
     usedRefs: useReusableSchemas ? allUsedRefs : new Set<string>(),
   };
 };
