@@ -2033,6 +2033,46 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
     });
 
+    it('emits const declarations for single-item oneOf with default values', () => {
+      // Simulate the intermediate representation produced when a single-item
+      // oneOf references an enum schema with a default value.
+      // Without the fix, the single-item shortcut in parseProperty discards
+      // the consts from the inner schema, producing a dangling reference.
+      const input: ZodValidationSchemaDefinition = {
+        functions: [
+          [
+            'oneOf',
+            [
+              {
+                functions: [
+                  ['enum', "['ACTIVE', 'INACTIVE']"],
+                  ['default', 'statusDefault'],
+                ],
+                consts: ['export const statusDefault = `ACTIVE`;'],
+              },
+            ],
+          ],
+          ['optional', undefined],
+        ],
+        consts: [],
+      };
+
+      const parsed = parseZodValidationSchemaDefinition(
+        input,
+        context,
+        false,
+        false,
+        false,
+      );
+
+      // The generated Zod code references statusDefault
+      expect(parsed.zod).toBe(
+        "zod.enum(['ACTIVE', 'INACTIVE']).default(statusDefault).optional()",
+      );
+      // The const declaration MUST be emitted (this was the bug — it was empty)
+      expect(parsed.consts).toBe('export const statusDefault = `ACTIVE`;');
+    });
+
     it('skips numeric constraints for enum literal unions (#3024)', () => {
       const schema: OpenApiSchemaObject = {
         type: 'number',

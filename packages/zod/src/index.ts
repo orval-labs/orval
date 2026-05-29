@@ -1161,6 +1161,7 @@ ${Object.entries(mergedProperties)
       const unionArgs = args as ZodValidationSchemaDefinition[];
       // Can't use zod.union() with a single item
       if (unionArgs.length === 1) {
+        appendConstsChunk(unionArgs[0].consts.join('\n'));
         return unionArgs[0].functions
           .map((prop: [string, unknown]) => parseProperty(prop))
           .join('');
