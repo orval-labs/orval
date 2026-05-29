@@ -30,6 +30,42 @@ export default defineConfig({
       target: '../specifications/issue-2999.yaml',
     },
   },
+  // Follow-up to #2999: a second reporter saw the same "duplicated hook" with
+  // `useInfinite` + `runtimeValidation` enabled and suspected that combination
+  // triggered the duplicate. It does not — the overload block is still exactly
+  // four declarations per hook. This entry reuses the issue-2999 spec with that
+  // exact flag set so the regression test can pin the count under it too.
+  issue2999Infinite: {
+    output: {
+      target: '../generated/react-query/issue-2999-infinite/endpoints.ts',
+      schemas: '../generated/react-query/issue-2999-infinite/model',
+      client: 'react-query',
+      httpClient: 'fetch',
+      override: {
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+        },
+        fetch: {
+          includeHttpResponseReturnType: false,
+        },
+        query: {
+          version: 5,
+          useQuery: true,
+          useInvalidate: true,
+          usePrefetch: true,
+          useInfinite: true,
+          signal: true,
+          runtimeValidation: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-2999.yaml',
+    },
+  },
   basic: {
     output: {
       target: '../generated/react-query/basic/endpoints.ts',
