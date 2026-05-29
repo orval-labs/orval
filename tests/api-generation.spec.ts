@@ -738,8 +738,12 @@ test('react-query issue-2540 imports external-file $ref schemas by schema name, 
   expect(endpoints).toContain(
     "import type { InternalServerError500 } from '../model/internalServerError500';",
   );
-  // The external YAML file basename must not leak into any import path.
-  expect(endpoints).not.toMatch(/common[-_]?schemas/i);
+  // The external YAML file basename must not leak into an import path — the
+  // #2540 regression always surfaces as `from '...common-schemas'`. Scope the
+  // check to import sources (rather than banning the substring anywhere) so a
+  // future generator that printed the source `$ref` in a comment wouldn't trip
+  // a false failure.
+  expect(endpoints).not.toMatch(/from\s+['"][^'"]*common[-_]?schemas/i);
 
   // The referenced schema is emitted as a standalone file at the flat path,
   // not nested under a directory named after the external YAML file.
