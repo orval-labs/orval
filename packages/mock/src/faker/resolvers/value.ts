@@ -34,6 +34,7 @@ function stripArrayMarkerSegments(s: string): string {
 export function resolveMockOverride(
   properties: Record<string, unknown> | undefined = {},
   item: OpenApiSchemaObject & { name: string; path?: string },
+  nonNullableOption?: boolean,
 ) {
   const path = item.path ?? `#.${item.name}`;
   // Regex keys still match against the original (un-normalized) path so users
@@ -58,18 +59,43 @@ export function resolveMockOverride(
     return;
   }
 
-  const isNullable = Array.isArray(item.type) && item.type.includes('null');
-
   return {
-    value: getNullable(property[1] as string, isNullable),
+    value: getNullable(
+      property[1] as string,
+      isNullableSchema(item),
+      nonNullableOption,
+    ),
     imports: [],
     name: item.name,
     overrided: true,
   };
 }
 
-export function getNullable(value: string, nullable?: boolean) {
-  return nullable ? `faker.helpers.arrayElement([${value}, null])` : value;
+/** OpenAPI 3.0 `nullable: true` or 3.1 `type` unions that include `null`. */
+export function isNullableSchema(schema: unknown): boolean {
+  if (!schema || typeof schema !== 'object') {
+    return false;
+  }
+
+  const { type, nullable } = schema as {
+    type?: unknown;
+    nullable?: unknown;
+  };
+
+  return nullable === true || (Array.isArray(type) && type.includes('null'));
+}
+
+/** When `nonNullableOption` is true (`override.mock.nonNullable`), omit the null branch. */
+export function getNullable(
+  value: string,
+  nullable?: boolean,
+  nonNullableOption?: boolean,
+) {
+  if (!nullable || nonNullableOption) {
+    return value;
+  }
+
+  return `faker.helpers.arrayElement([${value}, null])`;
 }
 
 /**
@@ -325,7 +351,11 @@ export function resolveMockValue({
         : `${factoryName}()`;
 
       return {
-        value: getNullable(callValue, Boolean(newSchema.nullable)),
+        value: getNullable(
+          callValue,
+          Boolean(newSchema.nullable),
+          mockOptions?.nonNullable,
+        ),
         imports,
         name: newSchema.name,
         type: getType(newSchema),
