@@ -5,6 +5,7 @@ import fs from 'fs-extra';
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildSiblingImports,
   generateZodSchemasInline,
   writeZodSchemas,
   writeZodSchemasFromVerbs,
@@ -481,6 +482,185 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
     expect(nodeContent).not.toContain('__REF_');
 
     await fs.remove(root);
+  });
+
+  it('imports type-only refs that the recursive TS body uses but the zod runtime drops', async () => {
+    // A recursive schema whose TS type references a sibling component only
+    // through `propertyNames` (record-key constraint). The zod runtime
+    // collapses record keys to `zod.string()`, so that sibling never appears
+    // in the entry's `usedRefs`. Pre-fix the split-mode writer derived imports
+    // purely from `usedRefs`, leaving the rendered `Partial<Record<KeyType,
+    // ...>>` referencing an unimported `KeyType` (TS2304).
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-reuse-pn-'));
+    const schemasPath = path.join(root, 'schemas');
+
+    const builder = {
+      spec: {
+        components: {
+          schemas: {
+            // `Tree` recurses through its `children` map. The map keys are
+            // constrained by `RelationType` (propertyNames $ref); the values
+            // are arrays of self-references.
+            Tree: {
+              type: 'object',
+              properties: {
+                children: {
+                  type: 'object',
+                  propertyNames: {
+                    $ref: '#/components/schemas/RelationType',
+                  },
+                  additionalProperties: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/Tree' },
+                  },
+                },
+              },
+            },
+            RelationType: {
+              type: 'string',
+              enum: ['parent', 'child', 'sibling'],
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [
+        { name: 'Tree', schema: { $ref: '#/components/schemas/Tree' } },
+        {
+          name: 'RelationType',
+          schema: { $ref: '#/components/schemas/RelationType' },
+        },
+      ],
+    } satisfies Parameters<typeof writeZodSchemas>[0];
+
+    const options = createOutputOptions();
+    options.override.zod.generateReusableSchemas = true;
+
+    await writeZodSchemas(builder, schemasPath, '.ts', '', options);
+
+    const treeContent = await fs.readFile(
+      path.join(schemasPath, 'Tree.ts'),
+      'utf8',
+    );
+
+    // The recursive TS type references RelationType through the record key.
+    expect(treeContent).toMatch(/Record<\s*RelationType/);
+    // And that sibling is imported so the file compiles.
+    expect(treeContent).toMatch(
+      /import \{ RelationType \} from '\.\/RelationType'/,
+    );
+    // `resolveValue` reports `Tree` itself in its imports for the recursive
+    // body; the writer must filter self-refs so `Tree.ts` doesn't import from
+    // `./Tree`.
+    expect(treeContent).not.toMatch(/from '\.\/Tree'/);
+    expect(treeContent).not.toContain('__REF_');
+
+    // The bug's mechanism: the zod runtime collapses `propertyNames` to a
+    // plain string key (`zod.record(zod.string(), ...)`), so `RelationType`
+    // never enters `usedRefs` from the runtime path. Pin that here — if the
+    // runtime ever started carrying the propertyNames ref through to the zod
+    // expression, `RelationType` would land in `usedRefs` directly and the
+    // `extraImports` path would no longer be load-bearing for this case.
+    expect(treeContent).toMatch(/zod\.record\(\s*zod\.string\(\)/);
+    expect(treeContent).not.toMatch(/zod\.record\(\s*RelationType/);
+
+    // RelationType itself is emitted as a sibling file; the import above
+    // would dangle without this. Asserting the emission keeps "what's
+    // imported" and "what's written" in lockstep.
+    expect(await fs.pathExists(path.join(schemasPath, 'RelationType.ts'))).toBe(
+      true,
+    );
+
+    await fs.remove(root);
+  });
+});
+
+describe('buildSiblingImports', () => {
+  // The helper is exported for these tests because no `resolveValue` caller
+  // that feeds `renderReusableSchemaEntry` produces aliased imports today —
+  // an integration test can't reach the alias branch through a real spec.
+  // Driving the helper directly pins the contract.
+  const componentNames = new Set(['Foo', 'Bar', 'Baz']);
+
+  it('emits one bare import per name from usedRefs', () => {
+    const out = buildSiblingImports({
+      usedRefs: ['Foo', 'Bar'],
+      extraImports: [],
+      entryName: 'Entry',
+      componentNames,
+      namingConvention: 'PascalCase',
+      importExt: '',
+    });
+
+    expect(out).toBe(
+      `import { Bar } from './Bar';\nimport { Foo } from './Foo';`,
+    );
+  });
+
+  it('emits an aliased import when extraImports carries `alias`', () => {
+    const out = buildSiblingImports({
+      usedRefs: [],
+      extraImports: [{ name: 'Foo', alias: 'FooBis' }],
+      entryName: 'Entry',
+      componentNames,
+      namingConvention: 'PascalCase',
+      importExt: '',
+    });
+
+    // Filename derives from the export `name`; the alias only changes the
+    // local binding.
+    expect(out).toBe(`import { Foo as FooBis } from './Foo';`);
+  });
+
+  it('lets an aliased extraImports entry override a bare usedRefs entry for the same name', () => {
+    const out = buildSiblingImports({
+      usedRefs: ['Foo'],
+      extraImports: [{ name: 'Foo', alias: 'FooBis' }],
+      entryName: 'Entry',
+      componentNames,
+      namingConvention: 'PascalCase',
+      importExt: '',
+    });
+
+    // The recursive TS body uses the local binding (`FooBis`); the aliased
+    // form has to win, otherwise the body refers to an unbound name.
+    expect(out).toBe(`import { Foo as FooBis } from './Foo';`);
+  });
+
+  it('drops self-refs and non-component names', () => {
+    const out = buildSiblingImports({
+      usedRefs: ['Entry', 'Foo'],
+      extraImports: [
+        { name: 'Entry', alias: 'EntryBis' },
+        { name: 'NotAComponent' },
+        { name: 'Bar' },
+      ],
+      entryName: 'Entry',
+      componentNames,
+      namingConvention: 'PascalCase',
+      importExt: '',
+    });
+
+    expect(out).toBe(
+      `import { Bar } from './Bar';\nimport { Foo } from './Foo';`,
+    );
+  });
+
+  it('sorts by source name (stable across `extraImports` and `usedRefs` order)', () => {
+    const out = buildSiblingImports({
+      usedRefs: ['Foo'],
+      extraImports: [{ name: 'Baz' }, { name: 'Bar', alias: 'BarBis' }],
+      entryName: 'Entry',
+      componentNames,
+      namingConvention: 'PascalCase',
+      importExt: '',
+    });
+
+    expect(out).toBe(
+      `import { Bar as BarBis } from './Bar';\n` +
+        `import { Baz } from './Baz';\n` +
+        `import { Foo } from './Foo';`,
+    );
   });
 });
 

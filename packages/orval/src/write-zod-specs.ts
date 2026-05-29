@@ -27,6 +27,7 @@ import fs from 'fs-extra';
 
 import {
   generateReusableSchemaSet,
+  resolveSchemaName,
   resolveSchemaNames,
   type ReusableSchemaEntry,
   rewriteReusableSchemas,
@@ -173,10 +174,38 @@ export type ${schemaName}Output = zod.output<typeof ${schemaName}>;`;
  * typing through the recursion (instead of collapsing recursive positions to
  * `unknown`).
  */
+/**
+ * One sibling import the recursive TS type body needs. `name` is the export
+ * name in the sibling file (also the basis for the filename); `alias`, when
+ * set, is the local binding in this file — emitted as
+ * `import { name as alias } from ...`. The aliasing path is triggered by
+ * `generateInterface`'s self-name disambiguation (`<X>Bis`); recursive
+ * component bodies don't exercise it today but the writer carries `alias`
+ * through so any future producer Just Works.
+ */
+interface ExtraImport {
+  name: string;
+  alias?: string;
+}
+
+interface RenderedReusableSchemaEntry {
+  content: string;
+  /**
+   * Imports this entry needs that are NOT already captured in `entry.usedRefs`.
+   * Recursive entries render a TypeScript type body via the model generator;
+   * names the type body references (e.g. an `AssetRelationType` used as a
+   * `Record<>` key from `propertyNames`) won't appear in `usedRefs` because
+   * the zod runtime collapses them (record keys become `zod.string()`). The
+   * split-mode writer merges these into its per-file import list so the
+   * emitted TS type compiles. Empty for acyclic entries.
+   */
+  extraImports: ExtraImport[];
+}
+
 function renderReusableSchemaEntry(
   entry: ReusableSchemaEntry,
   context: ContextSpec,
-): string {
+): RenderedReusableSchemaEntry {
   const consts = entry.consts ? `${entry.consts}\n\n` : '';
 
   if (entry.isRecursive) {
@@ -195,26 +224,97 @@ function renderReusableSchemaEntry(
           | OpenApiReferenceObject
           | undefined)
       : undefined;
-    const typeBody = schema
-      ? resolveValue({ schema, name: entry.name, context }).value
-      : 'unknown';
+    const resolved = schema
+      ? resolveValue({ schema, name: entry.name, context })
+      : undefined;
+    const typeBody = resolved ? resolved.value : 'unknown';
+    // Dedupe by local binding name (`alias ?? name`). When `resolveValue`
+    // surfaces the same component twice — e.g. once aliased, once not —
+    // collapsing on the binding key keeps both the file's import list and the
+    // generated TS body internally consistent.
+    const seen = new Set<string>();
+    const extraImports: ExtraImport[] = [];
+    for (const imp of resolved?.imports ?? []) {
+      if (!imp.name || imp.name === entry.name) continue;
+      const bindingKey = imp.alias ?? imp.name;
+      if (seen.has(bindingKey)) continue;
+      seen.add(bindingKey);
+      extraImports.push({
+        name: imp.name,
+        ...(imp.alias ? { alias: imp.alias } : {}),
+      });
+    }
 
-    return (
-      `${consts}export type ${entry.name} = ${typeBody};\n\n` +
-      `export const ${entry.name}: zod.ZodType<${entry.name}> = ${entry.zod};\n\n` +
-      `export type ${entry.name}Output = zod.output<typeof ${entry.name}>;`
-    );
+    return {
+      content:
+        `${consts}export type ${entry.name} = ${typeBody};\n\n` +
+        `export const ${entry.name}: zod.ZodType<${entry.name}> = ${entry.zod};\n\n` +
+        `export type ${entry.name}Output = zod.output<typeof ${entry.name}>;`,
+      extraImports,
+    };
   }
 
-  return (
-    `${consts}export const ${entry.name} = ${entry.zod};\n\n` +
-    `export type ${entry.name} = zod.input<typeof ${entry.name}>;\n` +
-    `export type ${entry.name}Output = zod.output<typeof ${entry.name}>;`
-  );
+  return {
+    content:
+      `${consts}export const ${entry.name} = ${entry.zod};\n\n` +
+      `export type ${entry.name} = zod.input<typeof ${entry.name}>;\n` +
+      `export type ${entry.name}Output = zod.output<typeof ${entry.name}>;`,
+    extraImports: [],
+  };
 }
 
 const isValidSchemaIdentifier = (name: string) =>
   /^[A-Za-z_][A-Za-z0-9_]*$/.test(name);
+
+/**
+ * Build the sibling-file `import { … } from './…'` block for one reusable
+ * schema file. Two sources feed in:
+ *   - `usedRefs` — names from the zod runtime expression. Sourced from the
+ *     sentinel parser, so always unaliased.
+ *   - `extraImports` — names the recursive TS body needs that the zod runtime
+ *     collapsed (`propertyNames` $refs, etc.). May carry `alias`.
+ * Keyed by export name (`name`) so an aliased `extraImports` entry overrides
+ * a bare `usedRefs` entry — the recursive TS body uses the local binding, so
+ * the aliased form has to win for the file to compile. Self-refs and
+ * non-component identifiers are filtered out.
+ *
+ * Exported for unit-test coverage of the alias-propagation path; no
+ * `resolveValue` producer surfaces aliases here today, so the integration
+ * tests can't exercise it.
+ */
+export function buildSiblingImports({
+  usedRefs,
+  extraImports,
+  entryName,
+  componentNames,
+  namingConvention,
+  importExt,
+}: {
+  usedRefs: Iterable<string>;
+  extraImports: readonly ExtraImport[];
+  entryName: string;
+  componentNames: ReadonlySet<string>;
+  namingConvention: NamingConvention;
+  importExt: string;
+}): string {
+  const importsByName = new Map<string, ExtraImport>();
+  for (const name of usedRefs) {
+    if (name === entryName) continue;
+    importsByName.set(name, { name });
+  }
+  for (const imp of extraImports) {
+    if (imp.name === entryName || !componentNames.has(imp.name)) continue;
+    importsByName.set(imp.name, imp);
+  }
+  return [...importsByName.values()]
+    .toSorted((a, b) => a.name.localeCompare(b.name))
+    .map(({ name, alias }) => {
+      const importedFile = conventionName(name, namingConvention);
+      const spec = alias ? `${name} as ${alias}` : name;
+      return `import { ${spec} } from './${importedFile}${importExt}';`;
+    })
+    .join('\n');
+}
 
 const isPrimitiveSchemaName = (name: string) =>
   ['string', 'number', 'boolean', 'void', 'unknown', 'Blob'].includes(name);
@@ -410,8 +510,11 @@ function generateZodSchemasInlineReusable(
 
   const rewritten = rewriteReusableSchemas(entries);
 
+  // Single-file inline mode emits every component schema in one file, so
+  // recursive entries' TS-type references resolve in-file with no extra
+  // imports — discard `extraImports` here.
   const body = rewritten
-    .map((entry) => renderReusableSchemaEntry(entry, context))
+    .map((entry) => renderReusableSchemaEntry(entry, context).content)
     .join('\n\n');
 
   // Omit the zod import when concatenated into a file that already imports it
@@ -562,23 +665,33 @@ async function writeZodSchemasReusable(
 
   const rewritten = rewriteReusableSchemas(entries);
 
+  // Render bodies first so each entry's `extraImports` (names referenced only
+  // by the recursive TS type body, e.g. an `AssetRelationType` used as a
+  // `Record<>` key the zod runtime collapses to `zod.string()`) can be merged
+  // into the per-file import list before assembling the file content.
+  const componentNames = new Set(
+    Object.keys(builder.spec.components?.schemas ?? {}).map((schemaName) =>
+      resolveSchemaName(`#/components/schemas/${schemaName}`, context),
+    ),
+  );
   for (const entry of rewritten) {
     const fileName = conventionName(entry.name, output.namingConvention);
     const filePath = path.join(schemasPath, `${fileName}${fileExtension}`);
     const importExt = fileExtension.replace(/\.ts$/, '');
-    const imports = [...entry.usedRefs]
-      .filter((r) => r !== entry.name)
-      .toSorted()
-      .map((r) => {
-        const importedFile = conventionName(r, output.namingConvention);
-        return `import { ${r} } from './${importedFile}${importExt}';`;
-      })
-      .join('\n');
+    const rendered = renderReusableSchemaEntry(entry, context);
+    const imports = buildSiblingImports({
+      usedRefs: entry.usedRefs,
+      extraImports: rendered.extraImports,
+      entryName: entry.name,
+      componentNames,
+      namingConvention: output.namingConvention,
+      importExt,
+    });
 
     const fileContent =
       `${header}import { z as zod } from 'zod';\n` +
       (imports ? `${imports}\n\n` : '\n') +
-      `${renderReusableSchemaEntry(entry, context)}\n`;
+      `${rendered.content}\n`;
 
     await fs.outputFile(filePath, fileContent);
   }
