@@ -22,7 +22,6 @@ import { isFakerVersionV9 } from '../compatible-v9';
 import { DEFAULT_FORMAT_MOCK } from '../constants';
 import {
   getNullable,
-  isNullableSchema,
   resolveMockOverride,
   resolveMockValue,
 } from '../resolvers';
@@ -144,7 +143,9 @@ export function getMockScalar({
     ),
   };
 
-  const isNullable = isNullableSchema(item);
+  // OpenAPI 3.1 null unions only — 3.0 `nullable: true` is handled in object.ts
+  // to avoid double-wrapping scalar values that object.ts already null-randomizes.
+  const isNullable = Array.isArray(item.type) && item.type.includes('null');
   // The @scalar/openapi-parser upgrader rewrites `format: binary` to
   // `contentMediaType: application/octet-stream` when upgrading OAS 3.0 → 3.1;
   // treat both equivalently so the mock emits the binary format value

@@ -149,7 +149,38 @@ describe('getMockObject', () => {
     expect(result.value).toMatch(/tag: faker\.string\.alpha/);
   });
 
-  it('randomizes OpenAPI 3.0 nullable array items to null by default', () => {
+  it('does not double-wrap optional OpenAPI 3.0 nullable fields on defaults', () => {
+    const result = getObjectMock({
+      name: 'Pet',
+      type: 'object' as const,
+      properties: {
+        tag: { type: 'string', nullable: true },
+      },
+    });
+
+    expect(result.value).toBe(
+      '{tag: faker.helpers.arrayElement([faker.string.alpha(), null])}',
+    );
+    expect(result.value).not.toMatch(
+      /tag: faker\.helpers\.arrayElement\(\[faker\.helpers\.arrayElement/,
+    );
+  });
+
+  it('does not null-randomize required OpenAPI 3.0 nullable fields on defaults', () => {
+    const result = getObjectMock({
+      name: 'Pet',
+      type: 'object' as const,
+      required: ['tag'],
+      properties: {
+        tag: { type: 'string', nullable: true },
+      },
+    });
+
+    expect(result.value).toBe('{tag: faker.string.alpha()}');
+    expect(result.value).not.toContain(', null]');
+  });
+
+  it('does not null-randomize OpenAPI 3.0 nullable array items on defaults', () => {
     const result = getObjectMock({
       name: 'Pet',
       type: 'object' as const,
@@ -157,6 +188,26 @@ describe('getMockObject', () => {
         names: {
           type: 'array',
           items: { type: 'string', nullable: true },
+        },
+      },
+    });
+
+    expect(result.value).toMatch(
+      /\.map\(\(\) => \(faker\.string\.alpha\(\)\)\)/,
+    );
+    expect(result.value).not.toMatch(
+      /\.map\(\(\) => \(faker\.helpers\.arrayElement/,
+    );
+  });
+
+  it('randomizes OpenAPI 3.1 nullable array items to null by default', () => {
+    const result = getObjectMock({
+      name: 'Pet',
+      type: 'object' as const,
+      properties: {
+        names: {
+          type: 'array',
+          items: { type: ['string', 'null'] },
         },
       },
     });
