@@ -2052,42 +2052,93 @@ const generateZodRoute = async (
         : `.brand<"${name}">()`
       : '';
 
+  // With `generateReusableSchemas`, operations import component schemas by
+  // their PascalCase name from a sibling schemas module. When an operation's
+  // own pascalized wrapper name (e.g. `ListPetsResponse` from operationId
+  // `listPets`) matches an imported ref, the generated `export const` shadows
+  // the import and produces a self-referential initializer that TS rejects
+  // with TS7022. Detect the collision and append `Schema` (with a counter for
+  // further collisions) so the import keeps its meaning. For the array case
+  // both the wrapper and its `Item` companion are checked together so they
+  // stay in sync. The original name is preserved when there is no collision,
+  // so non-colliding operations are unaffected.
+  //
+  // `localTaken` seeds from the imported refs and accumulates the names this
+  // call hands out, so wrappers within the same operation (`Params`, `Body`,
+  // per-status `Response`, …) can't pick a name another wrapper just claimed.
+  // The fixed suffixes already keep these distinct in practice, but tracking
+  // allocations removes the implicit invariant — future suffix additions stay
+  // safe by construction.
+  const localTaken = new Set(allUsedRefs);
+  const allocateExportName = (baseName: string, hasItem: boolean): string => {
+    const collides = (name: string) =>
+      localTaken.has(name) || (hasItem && localTaken.has(`${name}Item`));
+    const reserve = (name: string) => {
+      localTaken.add(name);
+      if (hasItem) localTaken.add(`${name}Item`);
+    };
+    if (!collides(baseName)) {
+      reserve(baseName);
+      return baseName;
+    }
+    let counter = 0;
+    let candidate = `${baseName}Schema`;
+    while (collides(candidate)) {
+      counter += 1;
+      candidate = `${baseName}Schema${counter}`;
+    }
+    reserve(candidate);
+    return candidate;
+  };
+
+  const paramsName = allocateExportName(`${pascalOperationName}Params`, false);
+  const queryParamsName = allocateExportName(
+    `${pascalOperationName}QueryParams`,
+    false,
+  );
+  const headerName = allocateExportName(`${pascalOperationName}Header`, false);
+  const bodyName = allocateExportName(
+    `${pascalOperationName}Body`,
+    parsedBody.isArray,
+  );
+
   return {
     implementation: [
       ...(inputParams.consts ? [inputParams.consts] : []),
       ...(inputParams.zod
         ? [
-            `export const ${pascalOperationName}Params = ${inputParams.zod}${brand(`${pascalOperationName}Params`)}`,
+            `export const ${paramsName} = ${inputParams.zod}${brand(paramsName)}`,
           ]
         : []),
       ...(inputQueryParams.consts ? [inputQueryParams.consts] : []),
       ...(inputQueryParams.zod
         ? [
-            `export const ${pascalOperationName}QueryParams = ${inputQueryParams.zod}${brand(`${pascalOperationName}QueryParams`)}`,
+            `export const ${queryParamsName} = ${inputQueryParams.zod}${brand(queryParamsName)}`,
           ]
         : []),
       ...(inputHeaders.consts ? [inputHeaders.consts] : []),
       ...(inputHeaders.zod
         ? [
-            `export const ${pascalOperationName}Header = ${inputHeaders.zod}${brand(`${pascalOperationName}Header`)}`,
+            `export const ${headerName} = ${inputHeaders.zod}${brand(headerName)}`,
           ]
         : []),
       ...(inputBody.consts ? [inputBody.consts] : []),
       ...(inputBody.zod
         ? [
             parsedBody.isArray
-              ? `export const ${pascalOperationName}BodyItem = ${inputBody.zod}
-export const ${pascalOperationName}Body = zod.array(${pascalOperationName}BodyItem)${
+              ? `export const ${bodyName}Item = ${inputBody.zod}
+export const ${bodyName} = zod.array(${bodyName}Item)${
                   parsedBody.rules?.min ? `.min(${parsedBody.rules.min})` : ''
                 }${
                   parsedBody.rules?.max ? `.max(${parsedBody.rules.max})` : ''
-                }${brand(`${pascalOperationName}Body`)}`
-              : `export const ${pascalOperationName}Body = ${inputBody.zod}${brand(`${pascalOperationName}Body`)}`,
+                }${brand(bodyName)}`
+              : `export const ${bodyName} = ${inputBody.zod}${brand(bodyName)}`,
           ]
         : []),
       ...inputResponses.flatMap((inputResponse, index) => {
-        const operationResponse = pascal(
-          `${operationName}-${responses[index][0]}-response`,
+        const operationResponse = allocateExportName(
+          pascal(`${operationName}-${responses[index][0]}-response`),
+          parsedResponses[index].isArray,
         );
         return [
           ...(inputResponse.consts ? [inputResponse.consts] : []),
