@@ -235,6 +235,47 @@ export const generateZodValidationSchemaDefinition = (
 ): ZodValidationSchemaDefinition => {
   if (!schema) return { functions: [], consts: [] };
 
+  const CHAINABLE_SIBLINGS = new Set(['nullable', 'default', 'description']);
+  const isChainable = (k: string) => CHAINABLE_SIBLINGS.has(k);
+
+  const applyChainableSiblings = (
+    functions: [string, unknown][],
+    consts: string[],
+    siblingSchema: OpenApiSchemaObject & {
+      nullable?: boolean;
+      default?: unknown;
+      description?: string;
+    },
+  ): void => {
+    const refRequired = rules?.required ?? false;
+    const refHasDefault = siblingSchema.default !== undefined;
+
+    if (!refRequired && siblingSchema.nullable) {
+      functions.push(['nullish', undefined]);
+    } else if (siblingSchema.nullable) {
+      functions.push(['nullable', undefined]);
+    } else if (!refRequired && !refHasDefault) {
+      functions.push(['optional', undefined]);
+    }
+
+    if (refHasDefault) {
+      const registry = rules?.constNameRegistry ?? {};
+      const counter = isNumber(registry[name]) ? registry[name] + 1 : 0;
+      registry[name] = counter;
+      const suffix = counter ? pascal(getNumberWord(counter)) : '';
+      const defaultVarName = `${name}Default${suffix}`;
+      const defaultLiteral = stringify(siblingSchema.default);
+      if (defaultLiteral !== undefined) {
+        consts.push(`export const ${defaultVarName} = ${defaultLiteral};`);
+        functions.push(['default', defaultVarName]);
+      }
+    }
+
+    if (typeof siblingSchema.description === 'string') {
+      functions.push(['describe', `"${escape(siblingSchema.description)}"`]);
+    }
+  };
+
   // Ref-aware path: emit a placeholder that the orchestrator will rewrite into
   // either a direct identifier or `z.lazy(() => Name)`.
   if (
@@ -244,75 +285,86 @@ export const generateZodValidationSchemaDefinition = (
     isComponentSchemaRef(schema.$ref)
   ) {
     const siblings = Object.keys(schema).filter((k) => k !== '$ref');
-
-    const CHAINABLE_SIBLINGS = new Set(['nullable', 'default', 'description']);
-    const isChainable = (k: string) => CHAINABLE_SIBLINGS.has(k);
     const allSiblingsChainable = siblings.every((k) => isChainable(k));
 
     if (allSiblingsChainable) {
-      // Use the same identifier orval emits for the TS model type
-      // (`pascal` + sanitize + suffix) so reusable schema exports are
-      // consistent with operation wrappers and component types.
-      // `namingConvention` governs file names only, not identifiers.
       const refName = getRefInfo(schema.$ref, context).name;
       const functions: [string, unknown][] = [
         ['namedRef', { name: refName, sourceRef: schema.$ref }],
       ];
       const consts: string[] = [];
 
-      const refSchema = schema as OpenApiSchemaObject & {
-        $ref: string;
-        nullable?: boolean;
-        default?: unknown;
-        description?: string;
-      };
-      const refRequired = rules.required ?? false;
-      const refHasDefault = refSchema.default !== undefined;
-
-      // Match the main-path modifier ordering: nullability/optional first,
-      // then default, then describe. Combining `.default()` with `.optional()`
-      // is wrong in zod — `.optional()` short-circuits on `undefined` before
-      // the inner default runs — so skip `.optional()` whenever a default is
-      // present (matches the existing non-reusable behaviour at line ~932).
-      if (!refRequired && refSchema.nullable) {
-        functions.push(['nullish', undefined]);
-      } else if (refSchema.nullable) {
-        functions.push(['nullable', undefined]);
-      } else if (!refRequired && !refHasDefault) {
-        functions.push(['optional', undefined]);
-      }
-
-      // .default(...) — emit a const for non-primitive defaults. Use the same
-      // constNameRegistry-based suffix that the rest of the generator uses so
-      // multiple defaults sharing `name` don't collide on `<name>Default`.
-      if (refHasDefault) {
-        const registry = rules.constNameRegistry ?? {};
-        const counter = isNumber(registry[name]) ? registry[name] + 1 : 0;
-        registry[name] = counter;
-        const suffix = counter ? pascal(getNumberWord(counter)) : '';
-        const defaultVarName = `${name}Default${suffix}`;
-        const defaultLiteral = stringify(refSchema.default);
-        if (defaultLiteral !== undefined) {
-          consts.push(`export const ${defaultVarName} = ${defaultLiteral};`);
-          functions.push(['default', defaultVarName]);
-        }
-      }
-
-      // .describe('...')
-      if (typeof refSchema.description === 'string') {
-        functions.push(['describe', `"${escape(refSchema.description)}"`]);
-      }
+      applyChainableSiblings(
+        functions,
+        consts,
+        schema as OpenApiSchemaObject & {
+          $ref: string;
+          nullable?: boolean;
+          default?: unknown;
+          description?: string;
+        },
+      );
 
       return { functions, consts };
     }
 
-    // Non-chainable sibling present — fall back to inlining at this site only.
-    // We reassign the local `schema` reference to the dereferenced form and let
-    // the rest of the function process it normally.
     logVerbose(
       `[orval/zod] $ref ${schema.$ref} has non-chainable siblings ` +
         `[${siblings.filter((s) => !isChainable(s)).join(', ')}]; falling back to inlining.`,
     );
+    schema = dereference(
+      schema as OpenApiSchemaObject | OpenApiReferenceObject,
+      context,
+    );
+  }
+
+  // Dynamic-ref-aware path: when useReusableSchemas is true, resolve the
+  // anchor and emit a namedRef sentinel if the target is a concrete component
+  // schema. The SCC pipeline then decides direct vs zod.lazy().
+  if (rules?.useReusableSchemas && isDynamicReference(schema)) {
+    const anchorName = getDynamicAnchorName(schema.$dynamicRef);
+    if (anchorName) {
+      const { resolvedTypeName, schemaName } = resolveDynamicRef(
+        anchorName,
+        context,
+      );
+
+      if (resolvedTypeName !== 'unknown' && schemaName) {
+        const siblings = Object.keys(schema).filter((k) => k !== '$dynamicRef');
+        const allSiblingsChainable = siblings.every((k) => isChainable(k));
+
+        if (allSiblingsChainable) {
+          const sourceRef = `${COMPONENT_SCHEMAS_PREFIX}${encodeSegment(schemaName)}`;
+          const functions: [string, unknown][] = [
+            ['namedRef', { name: resolvedTypeName, sourceRef }],
+          ];
+          const consts: string[] = [];
+
+          applyChainableSiblings(
+            functions,
+            consts,
+            schema as OpenApiSchemaObject & {
+              $dynamicRef: string;
+              nullable?: boolean;
+              default?: unknown;
+              description?: string;
+            },
+          );
+
+          return { functions, consts };
+        }
+
+        logVerbose(
+          `[orval/zod] $dynamicRef ${schema.$dynamicRef} has non-chainable siblings ` +
+            `[${siblings.filter((s) => !isChainable(s)).join(', ')}]; falling back to inlining.`,
+        );
+      }
+    }
+
+    // Not emitted as namedRef (non-chainable siblings, unresolvable anchor,
+    // or external ref) — dereference now so the main body sees a resolved
+    // schema with a proper type instead of the raw $dynamicRef (which
+    // resolveZodType classifies as 'unknown').
     schema = dereference(
       schema as OpenApiSchemaObject | OpenApiReferenceObject,
       context,

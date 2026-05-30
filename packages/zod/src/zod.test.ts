@@ -4126,6 +4126,189 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
       expect(result.functions.some(([fn]) => fn === 'namedRef')).toBe(false);
     });
+
+    it('emits namedRef for $dynamicRef resolving to a component schema', () => {
+      const context = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+              Lizard: {
+                type: 'object',
+                properties: {
+                  friends: {
+                    type: 'array',
+                    items: { $dynamicRef: '#Pet' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const result = generateZodValidationSchemaDefinition(
+        { $dynamicRef: '#Pet' } as never,
+        context,
+        'friends',
+        false,
+        false,
+        { required: true, useReusableSchemas: true },
+      );
+
+      expect(result.functions[0]).toEqual([
+        'namedRef',
+        { name: 'Pet', sourceRef: '#/components/schemas/Pet' },
+      ]);
+    });
+
+    it('emits namedRef for self-referential $dynamicRef', () => {
+      const context = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  playmates: {
+                    type: 'array',
+                    items: { $dynamicRef: '#Pet' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const result = generateZodValidationSchemaDefinition(
+        { $dynamicRef: '#Pet' } as never,
+        context,
+        'playmates',
+        false,
+        false,
+        { required: true, useReusableSchemas: true },
+      );
+
+      expect(result.functions[0]).toEqual([
+        'namedRef',
+        { name: 'Pet', sourceRef: '#/components/schemas/Pet' },
+      ]);
+    });
+
+    it('emits namedRef for $dynamicRef with nullable sibling', () => {
+      const context = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+          },
+        },
+      });
+
+      const result = generateZodValidationSchemaDefinition(
+        { $dynamicRef: '#Pet', nullable: true } as never,
+        context,
+        'friends',
+        false,
+        false,
+        { required: false, useReusableSchemas: true },
+      );
+
+      expect(result.functions[0]).toEqual([
+        'namedRef',
+        { name: 'Pet', sourceRef: '#/components/schemas/Pet' },
+      ]);
+      expect(result.functions[1]).toEqual(['nullish', undefined]);
+    });
+
+    it('falls back to empty for unresolvable $dynamicRef with useReusableSchemas', () => {
+      const context = makeContextSpec({
+        spec: { components: { schemas: {} } },
+      });
+
+      const result = generateZodValidationSchemaDefinition(
+        { $dynamicRef: '#nonexistent' } as never,
+        context,
+        'friends',
+        false,
+        false,
+        { required: true, useReusableSchemas: true },
+      );
+
+      expect(result.functions.some(([fn]) => fn === 'namedRef')).toBe(false);
+    });
+
+    it('falls back to inlining for $dynamicRef with non-chainable siblings', () => {
+      const context = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+          },
+        },
+      });
+
+      const result = generateZodValidationSchemaDefinition(
+        {
+          $dynamicRef: '#Pet',
+          properties: { extra: { type: 'string' } },
+        } as never,
+        context,
+        'friends',
+        false,
+        false,
+        { required: true, useReusableSchemas: true },
+      );
+
+      expect(result.functions.some(([fn]) => fn === 'namedRef')).toBe(false);
+    });
+
+    it('emits namedRef for $dynamicRef with hyphenated schema key', () => {
+      const context = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              'my-pet': {
+                $dynamicAnchor: 'MyPet',
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+          },
+        },
+      });
+
+      const result = generateZodValidationSchemaDefinition(
+        { $dynamicRef: '#MyPet' } as never,
+        context,
+        'friends',
+        false,
+        false,
+        { required: true, useReusableSchemas: true },
+      );
+
+      expect(result.functions[0]).toEqual([
+        'namedRef',
+        { name: 'MyPet', sourceRef: '#/components/schemas/my-pet' },
+      ]);
+    });
   });
 });
 
