@@ -1,22 +1,22 @@
-import browserCollections from "fumadocs-mdx:collections/browser";
-import { notFound } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
-import type { SerializedPageTree } from "fumadocs-core/source/client";
-import { useFumadocsLoader } from "fumadocs-core/source/client";
-import { Tab, Tabs } from "fumadocs-ui/components/tabs";
-import { DocsLayout } from "fumadocs-ui/layouts/docs";
+import browserCollections from 'fumadocs-mdx:collections/browser';
+import { notFound } from '@tanstack/react-router';
+import { createServerFn } from '@tanstack/react-start';
+import type { SerializedPageTree } from 'fumadocs-core/source/client';
+import { useFumadocsLoader } from 'fumadocs-core/source/client';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import {
   DocsBody,
   DocsDescription,
   DocsPage,
   DocsTitle,
-} from "fumadocs-ui/layouts/docs/page";
-import defaultMdxComponents from "fumadocs-ui/mdx";
-import { Suspense } from "react";
+} from 'fumadocs-ui/layouts/docs/page';
+import defaultMdxComponents from 'fumadocs-ui/mdx';
+import { Suspense } from 'react';
 
-import { getDocsLocale, type Locale } from "@/lib/i18n";
-import { baseOptions } from "@/lib/layout.shared";
-import { source, toClientContentPath } from "@/lib/source";
+import { getDocsLocale, type Locale } from '@/lib/i18n';
+import { baseOptions } from '@/lib/layout.shared';
+import { source, toClientContentPath } from '@/lib/source';
 
 export interface DocsRouteData {
   locale: Locale;
@@ -36,7 +36,7 @@ export async function loadDocsRoute(data: ServerLoaderInput) {
 }
 
 const serverLoader = createServerFn({
-  method: "GET",
+  method: 'GET',
 })
   .inputValidator((data: ServerLoaderInput) => data)
   .handler(async ({ data }) => {
@@ -62,7 +62,7 @@ const clientLoader = browserCollections.docs.createClientLoader({
     },
   ) {
     const { locale, ...pageProps } = props;
-    const isTranslation = locale === "zh";
+    const isTranslation = locale === 'zh';
 
     return (
       <DocsPage toc={toc} {...pageProps}>
@@ -97,7 +97,7 @@ export function DocsRoutePage({ data }: { data: DocsRouteData }) {
     >
       <Suspense>
         {clientLoader.useContent(loaded.path, {
-          className: "",
+          className: '',
           locale: loaded.locale,
         })}
       </Suspense>
