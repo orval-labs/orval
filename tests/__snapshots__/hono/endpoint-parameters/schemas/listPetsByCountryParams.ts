@@ -27,13 +27,11 @@ export type ListPetsByCountryParams = {
   /**
    * Which property to sort by?
    * Example: name sorts ASC while -name sorts DESC.
-   *
    */
   sort?: ListPetsByCountrySort;
   /**
    * Only return pets from China?
    * Example: true
-   *
    */
   cnonly?: boolean;
   /**
