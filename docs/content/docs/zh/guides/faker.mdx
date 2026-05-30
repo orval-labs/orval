@@ -1,0 +1,86 @@
+---
+title: Faker
+description: 使用 Faker.js 从 OpenAPI 生成 mock 数据工厂
+---
+
+Faker 生成器会根据 OpenAPI schema 生成假数据工厂。它不依赖 `msw`，适合单元测试、Storybook、seed 脚本和任何不需要网络 mock 的场景。
+
+## 配置
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      mock: {
+        generators: [{ type: 'faker' }],
+      },
+    },
+  },
+});
+```
+
+## 生成结果
+
+### 响应工厂
+
+每个操作会生成响应 mock 工厂：
+
+```ts
+const pet = getShowPetByIdResponseMock();
+```
+
+### Schema 工厂
+
+schema 也可以生成独立工厂，便于在测试或故事中复用。
+
+```ts
+const pet = getPetMock({ name: 'Rex' });
+```
+
+## 选项
+
+可以配置 Faker locale、数组长度、字符串长度、数字范围以及是否为每个 HTTP 状态码生成工厂。
+
+## 自定义 Mock 值
+
+工厂通常接收 override 对象。传入的字段会覆盖默认假数据：
+
+```ts
+getPetMock({
+  id: 1,
+  name: 'Milo',
+});
+```
+
+## 用法
+
+### 单元测试
+
+```ts
+import { describe, expect, it } from 'vitest';
+
+it('renders pet name', () => {
+  const pet = getPetMock({ name: 'Milo' });
+  expect(pet.name).toBe('Milo');
+});
+```
+
+### Storybook
+
+在 story 中使用工厂创建稳定示例数据，避免手写大型对象。
+
+### Seed 脚本
+
+seed 脚本可以批量生成符合 schema 的假数据，再写入本地数据库或测试环境。
+
+## 确定性输出
+
+Faker 的随机数生成器可以设置 seed。需要快照测试或可复现数据时，在调用工厂前设置 seed。
+
+## 动态导入
+
+大型项目可以使用动态导入减少首屏 bundle。只在测试、Storybook 或 mock 环境加载 Faker 工厂。

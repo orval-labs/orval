@@ -1,0 +1,60 @@
+---
+title: Custom HTTP Client
+description: 使用 mutator 配置自定义 HTTP 客户端
+---
+
+自定义 HTTP 客户端让你把请求细节集中在一个函数里，例如鉴权、base URL、错误格式、重试和观测埋点。Orval 生成的函数只负责传入请求配置并接收类型安全的结果。
+
+## 配置
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      override: {
+        mutator: {
+          path: './src/api/custom-client.ts',
+          name: 'customClient',
+        },
+      },
+    },
+  },
+});
+```
+
+## 自定义实例实现
+
+```ts title="src/api/custom-client.ts"
+export const customClient = async <T>(url: string, options: RequestInit) => {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...options.headers,
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Request failed');
+  }
+
+  return response.json() as Promise<T>;
+};
+```
+
+## Angular HTTP Client
+
+Angular 项目可以把 mutator 写成使用 `HttpClient` 的函数或 service。关键是保持生成代码期望的输入和返回类型一致。
+
+## 完整示例
+
+常见组合是：
+
+- `mutator.path` 指向共享请求函数
+- `mutator.name` 指定导出的函数名
+- `baseUrl` 或环境配置由 mutator 读取
+- 错误转换在 mutator 内完成

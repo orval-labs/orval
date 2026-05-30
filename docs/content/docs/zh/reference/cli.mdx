@@ -1,0 +1,54 @@
+---
+title: CLI
+description: 命令行接口参考
+---
+
+Orval CLI 可以直接从命令行读取 OpenAPI 规范并生成代码，也可以读取配置文件执行更复杂的生成任务。
+
+## 基础用法
+
+```bash
+orval --input ./openapi.yaml --output ./src/api.ts
+```
+
+## 选项
+
+### --input, -i
+
+指定 OpenAPI 规范路径或 URL。支持 YAML 和 JSON。
+
+### --output, -o
+
+指定生成文件的目标路径。简单场景可以直接用 CLI 输出到一个文件。
+
+### --config, -c
+
+指定配置文件路径。未指定时，Orval 会在当前工作目录查找 `orval.config.js`、`orval.config.ts` 或 `orval.config.mjs`。
+
+### --project, -p
+
+当配置文件包含多个项目时，只运行指定 project。
+
+### --watch, -w
+
+监听输入文件和配置文件变化，变化后自动重新生成。
+
+### --clean
+
+生成前清理输出目录或目标文件。谨慎使用，避免把非生成文件放进输出目录。
+
+### --formatter
+
+指定生成后使用的 formatter，例如 `prettier` 或项目支持的格式化器。
+
+### --tsconfig
+
+指定 TypeScript 配置路径，用于生成时解析路径和类型相关配置。
+
+### --verbose
+
+输出更详细的执行日志，便于排查配置和生成问题。
+
+### --fail-on-warnings
+
+当生成过程中出现 warning 时以失败退出，适合 CI 中强制质量门禁。

@@ -1,0 +1,4 @@
+{
+  "title": "配置",
+  "pages": ["index", "input", "output", "hooks", "full-example"]
+}

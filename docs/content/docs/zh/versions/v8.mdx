@@ -1,0 +1,98 @@
+---
+title: 升级到 v8
+description: Orval v8 迁移指南
+---
+
+Orval v8 带来了新的默认行为、框架支持和类型生成能力。升级前建议先在独立分支运行生成、类型检查和测试，再逐步调整配置。
+
+## 新功能
+
+### ESM（ECMAScript Modules）
+
+v8 更加明确地面向 ESM。项目需要确保配置文件、构建脚本和运行环境支持 ESM。
+
+### 默认 HTTP Client：Fetch
+
+默认 HTTP client 变为 `fetch`。如果项目依赖 axios 行为，请显式设置 `httpClient: 'axios'` 或配置自定义 mutator。
+
+### 新框架支持
+
+v8 增强了 Angular、Angular Query、SolidStart、Hono、MCP 等输出能力，让同一份 OpenAPI 契约覆盖更多运行时和框架。
+
+### 增强的 Zod 集成
+
+Zod 输出支持更完整的 schema 生成和运行时校验组合。
+
+### React Compiler 支持
+
+生成的 React Query 代码更适合现代 React 工具链。
+
+### Combined Types Inlining
+
+组合类型可以更好地内联，减少不必要的中间类型。
+
+## 破坏性变更
+
+### 1. ESM 迁移
+
+如果配置或自定义脚本仍使用 CommonJS，需要迁移到 ESM 语法，或确保运行时能正确加载。
+
+### 2. 默认 httpClient 改为 `fetch`
+
+依赖 axios 拦截器或 axios 响应格式的项目必须显式配置。
+
+### 3. 移除 `override.fetch.explode`
+
+相关行为需要改用新的参数处理配置。
+
+### 4. Mock delay 默认值改为 `false`
+
+mock 默认不再延迟响应。需要模拟网络延迟时显式配置 delay。
+
+### 5. 移除 `override.coerceTypes`
+
+类型强制转换相关配置已移除，应在 schema 或业务边界处理。
+
+### 6. 移除 `override.useNativeEnums`
+
+枚举生成方式需要按新的配置调整。
+
+### 7. Zod Schema 命名改为 PascalCase
+
+引用生成 schema 的代码可能需要更新导入名称。
+
+### 8. 移除 `input.validation`
+
+输入校验配置发生变化。需要关闭规范校验时，使用当前支持的配置项。
+
+### 9. SWR 默认不生成错误类型
+
+如果依赖生成的错误类型，需要显式配置或在业务层定义错误类型。
+
+### 10. `output.mock` 改为使用 `generators` 数组
+
+新的 mock 配置可以同时启用 MSW 和 Faker：
+
+```ts
+mock: {
+  generators: [{ type: 'msw' }, { type: 'faker' }],
+}
+```
+
+## 其他改进
+
+### Fetch Client Headers 变量展开
+
+Fetch client 对 headers 的变量处理更灵活。
+
+### Bug 修复
+
+v8 包含多个生成稳定性、类型推导和框架适配修复。
+
+## 发布时间线
+
+升级时建议先阅读 changelog，确认当前项目使用的 client、mock、zod 和 framework 输出是否涉及破坏性变更。
+
+## 致谢
+
+感谢所有贡献者、维护者和社区用户对 v8 的反馈、测试和改进。

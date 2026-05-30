@@ -1,0 +1,14 @@
+{
+  "title": "文档",
+  "pages": [
+    "index",
+    "installation",
+    "quick-start",
+    "---快速开始---",
+    "...guides",
+    "---指南---",
+    "...reference",
+    "---参考---",
+    "...versions"
+  ]
+}

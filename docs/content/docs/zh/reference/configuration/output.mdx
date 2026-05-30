@@ -1,0 +1,256 @@
+---
+title: Output
+description: Output 配置选项
+---
+
+`output` 决定 Orval 生成什么、生成到哪里，以及如何组织生成文件。复杂项目建议显式配置 `target`、`schemas`、`client`、`mode` 和需要的 override。
+
+## target
+
+**类型：** `String`
+
+生成代码的目标文件或目录。
+
+```ts
+output: {
+  target: './src/api/petstore.ts',
+}
+```
+
+## client
+
+**类型：** `String | Function`
+
+指定生成客户端类型，例如 `fetch`、`axios`、`react-query`、`vue-query`、`svelte-query`、`solid-query`、`angular`、`angular-query`、`swr`、`zod`、`hono`、`mcp`。
+
+### axios client
+
+使用 axios 生成请求函数。需要统一实例时，推荐配合 `override.mutator`。
+
+## httpClient
+
+**类型：** `String`
+
+指定底层 HTTP 实现。部分 client 可以选择 `fetch`、`axios` 或 Angular `HttpClient`。
+
+## schemas
+
+**类型：** `String | Object | false`
+
+指定模型类型输出路径。设为 `false` 可关闭独立 schema 文件输出。
+
+## operationSchemas
+
+指定 operation 级别 schema 的输出位置，常用于运行时校验或更细粒度导出。
+
+## fileExtension
+
+设置生成文件扩展名，例如 `.ts`、`.tsx`、`.mts`。
+
+## namingConvention
+
+控制生成名称的大小写约定。默认通常适合 TypeScript 项目，只有团队有明确规范时才需要改。
+
+## workspace
+
+设置输出工作目录。多包仓库中可以让相对路径更清晰。
+
+## mode
+
+控制生成文件组织方式。
+
+### single
+
+所有内容写入一个文件，适合小型 API。
+
+### split
+
+按用途拆分文件，例如请求、模型和 mock。
+
+### tags
+
+按 OpenAPI tag 组织生成内容。
+
+### tags-split
+
+按 tag 拆分为多个文件，适合大型 API 和团队协作。
+
+## baseUrl
+
+配置请求 base URL。
+
+### runtime
+
+运行时 base URL 适合多环境部署，让请求地址从环境变量或应用配置读取。
+
+### getBaseUrlFromSpecification
+
+从 OpenAPI `servers` 字段读取 base URL。适合规范中已经维护服务地址的项目。
+
+## mock
+
+启用 mock 生成。可以使用 `true` 快速开启，也可以用对象配置多个 generator。
+
+### Mocks Options
+
+常见选项包括数组长度、字符串长度、数字范围、是否按 HTTP 状态码生成响应。
+
+### MSW generator (`type: 'msw'`)
+
+生成 MSW request handlers，用于浏览器、Node 测试和 Storybook。
+
+### Faker generator (`type: 'faker'`)
+
+生成不依赖网络 mock 的数据工厂，适合单元测试和 seed 数据。
+
+## indexFiles
+
+控制是否生成 index 文件。拆分模式下通常保持开启，便于统一导入。
+
+## docs
+
+生成接口文档相关输出。只有需要把生成产物和文档系统集成时再开启。
+
+## clean
+
+生成前清理输出。不要把手写代码放进被清理的生成目录。
+
+## formatter
+
+指定生成后格式化器。常见值为 `prettier`，也可以结合 hooks 执行项目自己的格式化命令。
+
+## headers
+
+启用生成 headers 相关类型或配置。
+
+## tsconfig
+
+指定 TypeScript 配置路径或内联配置，帮助 Orval 解析路径别名和编译选项。
+
+## packageJson
+
+指定 `package.json` 路径。通常可以自动检测。
+
+## override
+
+`override` 用于覆盖默认生成行为。
+
+### transformer
+
+在生成前转换 OpenAPI 文档。可用于修复不规范字段或追加公共参数。
+
+### mutator
+
+指定自定义请求函数。适合统一处理鉴权、base URL、错误和重试。
+
+### title
+
+覆盖生成模块或文档标题。
+
+### namingConvention (property keys)
+
+控制属性名转换。涉及后端字段名时要谨慎，避免破坏运行时数据结构。
+
+### header
+
+为生成文件添加文件头，例如版权说明或禁用 lint 的注释。
+
+## override.query
+
+控制 TanStack Query 相关输出。
+
+### useQuery
+
+为读取操作生成 query hook 或 query options。
+
+### useSuspenseQuery
+
+生成 Suspense query 变体。
+
+### useMutation
+
+为写操作生成 mutation hook 或 mutation options。
+
+### useInfinite
+
+生成 infinite query 支持。
+
+### useSuspenseInfiniteQuery
+
+生成 Suspense infinite query 变体。
+
+### useInfiniteQueryParam
+
+指定分页参数名，用于构造下一页请求。
+
+### usePrefetch
+
+生成预取 helper。
+
+### useInvalidate
+
+生成 query 失效 helper。
+
+### useSetQueryData
+
+生成类型安全的缓存写入 helper。
+
+### useGetQueryData
+
+生成类型安全的缓存读取 helper。
+
+### mutationInvalidates
+
+让 mutation 成功后自动失效相关 query。
+
+### signal
+
+控制是否把 AbortSignal 传给请求函数。
+
+### queryKey / queryOptions / mutationOptions
+
+自定义 query key、query options 或 mutation options 的生成方式。
+
+### shouldExportMutatorHooks
+
+控制是否导出 mutator 相关 hooks。
+
+### shouldExportQueryKey
+
+控制是否导出 query key helper。
+
+### shouldSplitQueryKey
+
+控制 query key 是否拆分为更细粒度结构。
+
+### useOperationIdAsQueryKey
+
+使用 operationId 作为 query key 的一部分。
+
+### version
+
+指定 TanStack Query 版本相关输出差异。
+
+### runtimeValidation
+
+配合 schema 在运行时校验响应。
+
+## override.swr
+
+控制 SWR 输出。
+
+### useInfinite
+
+生成 SWR infinite 支持。
+
+### useSWRMutationForGet
+
+控制 GET 操作是否生成 SWR mutation。
+
+### useSuspense
+
+生成 Suspense 相关 SWR 输出。
+
+## 建议
+
+从最小配置开始，只启用当前项目需要的输出。生成目录应只放生成文件，避免 `clean` 或重新生成覆盖手写代码。
