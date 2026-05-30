@@ -1,0 +1,71 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Issue 2465 - override.mock.properties inside arrays
+  license:
+    name: MIT
+
+# Regression spec for https://github.com/orval-labs/orval/issues/2465
+# Mirrors the user's example: a single-object response and an
+# array-of-objects response that share the same property names. With
+# `override.mock.properties` set for `firstName` / `lastName` / `email`,
+# both responses must emit the user-supplied faker calls — not the
+# default per-type fakers.
+
+paths:
+  /users:
+    get:
+      operationId: getUsers
+      responses:
+        '200':
+          description: User listing success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/retrievedUsers'
+  /user/{id}:
+    get:
+      operationId: getUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User get success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/retrievedUser'
+
+components:
+  schemas:
+    baseUser:
+      type: object
+      description: Base user object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+    retrievedUser:
+      description: User object as it shall be retrieved
+      allOf:
+        - $ref: '#/components/schemas/baseUser'
+        - type: object
+          required:
+            - id
+            - lastName
+            - email
+          properties:
+            id:
+              type: string
+    retrievedUsers:
+      description: Array of `retrievedUser` objects
+      type: array
+      items:
+        $ref: '#/components/schemas/retrievedUser'

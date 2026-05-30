@@ -158,6 +158,75 @@ describe('generateReusableSchemaSet', () => {
     expect(ownerEntry?.usedRefs).toEqual(new Set());
   });
 
+  it('injects paramsMutator with location: "schema" at every leaf validator when configured', () => {
+    const context = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                age: { type: 'integer' },
+              },
+              required: ['name', 'age'],
+            },
+          },
+        },
+      },
+    });
+
+    const paramsMutator = {
+      name: 'zodParams',
+      path: './zod-params',
+      default: false,
+      hasErrorType: false,
+      errorTypeName: '',
+      hasSecondArg: false,
+      hasThirdArg: false,
+      isHook: false,
+    };
+
+    const [entry] = generateReusableSchemaSet(
+      ['#/components/schemas/Pet'],
+      context,
+      { strict: false, isZodV4: false, paramsMutator },
+    );
+
+    // Component schemas have no owning operation, so operationId is empty.
+    // The `'schema'` location lets user-side `zodParams` branch on it.
+    expect(entry.zod).toContain(
+      `zodParams({"operationId":"","location":"schema","schemaName":"Pet","fieldPath":["name"],"validator":"string"})`,
+    );
+    expect(entry.zod).toContain(
+      `zodParams({"operationId":"","location":"schema","schemaName":"Pet","fieldPath":["age"],"validator":"number"})`,
+    );
+  });
+
+  it('emits no params injection when paramsMutator is not provided', () => {
+    const context = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+          },
+        },
+      },
+    });
+
+    const [entry] = generateReusableSchemaSet(
+      ['#/components/schemas/Pet'],
+      context,
+      { strict: false, isZodV4: false },
+    );
+
+    expect(entry.zod).not.toContain('zodParams(');
+  });
+
   it('expands to the transitive closure of component-schema refs', () => {
     const context = createTestContextSpec({
       spec: {

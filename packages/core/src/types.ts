@@ -518,7 +518,8 @@ export type OverrideMockOptions = Partial<GlobalMockOptions> & {
   stringMax?: number;
   numberMin?: number;
   numberMax?: number;
-  required?: boolean;
+  required?: boolean; // When true, all properties are required (and thus not optional) in mocks.
+  nonNullable?: boolean; // When true, nullable mock values are never wrapped in `arrayElement([value, null])`.
   properties?: MockProperties;
   format?: Record<string, unknown>;
   fractionDigits?: number;
@@ -743,6 +744,18 @@ export interface ZodOptions {
     body?: Mutator;
     response?: Mutator;
   };
+  /**
+   * Mutator referencing a function called once per emitted validator at schema
+   * construction time. It receives codegen-time context (operation, location,
+   * schema name, field path, validator name) and returns a Zod `params` object
+   * (e.g. `{ error: ... }`) that is appended as the trailing argument.
+   *
+   * The plural name follows Zod's own term for the validator's second argument
+   * (`z.string(params)`) and is unrelated to the singular `param` key used by
+   * `generate` / `coerce` / `preprocess` above, which refers to the path-parameter
+   * location.
+   */
+  params?: Mutator;
   dateTimeOptions?: ZodDateTimeOptions;
   timeOptions?: ZodTimeOptions;
   generateEachHttpStatus?: boolean;
@@ -753,6 +766,14 @@ export interface ZodOptions {
    * instead of inlining. Default `false`. See `docs/superpowers/specs/2026-05-26-reusable-zod-schemas-design.md`.
    */
   generateReusableSchemas?: boolean;
+  /**
+   * When true (zod v4 only), attaches registry metadata to generated
+   * **component** schemas via `.meta({ id, description?, deprecated? })`: `id` is
+   * the schema name, plus `description`/`deprecated` when the OpenAPI schema
+   * provides them. On zod v3 (which has no `.meta()`) descriptions still emit
+   * via `.describe()`. Default `false`.
+   */
+  generateMeta?: boolean;
 }
 
 export interface EffectOptions {
@@ -793,9 +814,11 @@ export interface NormalizedZodOptions {
     body?: NormalizedMutator;
     response?: NormalizedMutator;
   };
+  params?: NormalizedMutator;
   generateEachHttpStatus: boolean;
   useBrandedTypes: boolean;
   generateReusableSchemas: boolean;
+  generateMeta: boolean;
   dateTimeOptions: ZodDateTimeOptions;
   timeOptions: ZodTimeOptions;
 }

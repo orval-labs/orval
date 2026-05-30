@@ -60,6 +60,7 @@ export function getMockScalar({
   allowOverride = false,
 }: GetMockScalarOptions): MockDefinition {
   const safeMockOptions: MockOptions = mockOptions ?? {};
+  const nonNullableOption = safeMockOptions.nonNullable;
   // Add the property to the existing properties to validate on object recursion
   if (item.isRef) {
     existingReferencedProperties = [...existingReferencedProperties, item.name];
@@ -68,6 +69,7 @@ export function getMockScalar({
   const operationProperty = resolveMockOverride(
     safeMockOptions.operations?.[operationId]?.properties,
     item,
+    nonNullableOption,
   );
 
   if (operationProperty) {
@@ -87,13 +89,21 @@ export function getMockScalar({
     overrideTag = mergeDeep(overrideTag, options);
   }
 
-  const tagProperty = resolveMockOverride(overrideTag.properties, item);
+  const tagProperty = resolveMockOverride(
+    overrideTag.properties,
+    item,
+    nonNullableOption,
+  );
 
   if (tagProperty) {
     return tagProperty;
   }
 
-  const property = resolveMockOverride(safeMockOptions.properties, item);
+  const property = resolveMockOverride(
+    safeMockOptions.properties,
+    item,
+    nonNullableOption,
+  );
 
   if (property) {
     return property;
@@ -133,6 +143,8 @@ export function getMockScalar({
     ),
   };
 
+  // OpenAPI 3.1 null unions only — 3.0 `nullable: true` is handled in object.ts
+  // to avoid double-wrapping scalar values that object.ts already null-randomizes.
   const isNullable = Array.isArray(item.type) && item.type.includes('null');
   // The @scalar/openapi-parser upgrader rewrites `format: binary` to
   // `contentMediaType: application/octet-stream` when upgrading OAS 3.0 → 3.1;
@@ -145,7 +157,7 @@ export function getMockScalar({
     ALL_FORMAT.binary
   ) {
     return {
-      value: getNullable(ALL_FORMAT.binary, isNullable),
+      value: getNullable(ALL_FORMAT.binary, isNullable, nonNullableOption),
       imports: [],
       name: item.name,
       overrided: false,
@@ -160,7 +172,7 @@ export function getMockScalar({
     }
 
     return {
-      value: getNullable(value, isNullable),
+      value: getNullable(value, isNullable, nonNullableOption),
       imports: [],
       name: item.name,
       overrided: false,
@@ -201,6 +213,7 @@ export function getMockScalar({
       let value = getNullable(
         `faker.number.${intFunction}(${intParts.length > 0 ? `{${intParts.join(', ')}}` : ''})`,
         isNullable,
+        nonNullableOption,
       );
       if (type === 'number') {
         const floatParts: string[] = [];
@@ -214,6 +227,7 @@ export function getMockScalar({
         value = getNullable(
           `faker.number.float(${floatParts.length > 0 ? `{${floatParts.join(', ')}}` : ''})`,
           isNullable,
+          nonNullableOption,
         );
       }
       const numberImports: GeneratorImport[] = [];
@@ -432,7 +446,7 @@ export function getMockScalar({
       }
 
       return {
-        value: getNullable(value, isNullable),
+        value: getNullable(value, isNullable, nonNullableOption),
         enums: item.enum,
         name: item.name,
         imports: stringImports,

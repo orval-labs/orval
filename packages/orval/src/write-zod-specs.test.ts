@@ -5,6 +5,7 @@ import fs from 'fs-extra';
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildSiblingImports,
   generateZodSchemasInline,
   writeZodSchemas,
   writeZodSchemasFromVerbs,
@@ -482,6 +483,185 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
 
     await fs.remove(root);
   });
+
+  it('imports type-only refs that the recursive TS body uses but the zod runtime drops', async () => {
+    // A recursive schema whose TS type references a sibling component only
+    // through `propertyNames` (record-key constraint). The zod runtime
+    // collapses record keys to `zod.string()`, so that sibling never appears
+    // in the entry's `usedRefs`. Pre-fix the split-mode writer derived imports
+    // purely from `usedRefs`, leaving the rendered `Partial<Record<KeyType,
+    // ...>>` referencing an unimported `KeyType` (TS2304).
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-reuse-pn-'));
+    const schemasPath = path.join(root, 'schemas');
+
+    const builder = {
+      spec: {
+        components: {
+          schemas: {
+            // `Tree` recurses through its `children` map. The map keys are
+            // constrained by `RelationType` (propertyNames $ref); the values
+            // are arrays of self-references.
+            Tree: {
+              type: 'object',
+              properties: {
+                children: {
+                  type: 'object',
+                  propertyNames: {
+                    $ref: '#/components/schemas/RelationType',
+                  },
+                  additionalProperties: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/Tree' },
+                  },
+                },
+              },
+            },
+            RelationType: {
+              type: 'string',
+              enum: ['parent', 'child', 'sibling'],
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [
+        { name: 'Tree', schema: { $ref: '#/components/schemas/Tree' } },
+        {
+          name: 'RelationType',
+          schema: { $ref: '#/components/schemas/RelationType' },
+        },
+      ],
+    } satisfies Parameters<typeof writeZodSchemas>[0];
+
+    const options = createOutputOptions();
+    options.override.zod.generateReusableSchemas = true;
+
+    await writeZodSchemas(builder, schemasPath, '.ts', '', options);
+
+    const treeContent = await fs.readFile(
+      path.join(schemasPath, 'Tree.ts'),
+      'utf8',
+    );
+
+    // The recursive TS type references RelationType through the record key.
+    expect(treeContent).toMatch(/Record<\s*RelationType/);
+    // And that sibling is imported so the file compiles.
+    expect(treeContent).toMatch(
+      /import \{ RelationType \} from '\.\/RelationType'/,
+    );
+    // `resolveValue` reports `Tree` itself in its imports for the recursive
+    // body; the writer must filter self-refs so `Tree.ts` doesn't import from
+    // `./Tree`.
+    expect(treeContent).not.toMatch(/from '\.\/Tree'/);
+    expect(treeContent).not.toContain('__REF_');
+
+    // The bug's mechanism: the zod runtime collapses `propertyNames` to a
+    // plain string key (`zod.record(zod.string(), ...)`), so `RelationType`
+    // never enters `usedRefs` from the runtime path. Pin that here — if the
+    // runtime ever started carrying the propertyNames ref through to the zod
+    // expression, `RelationType` would land in `usedRefs` directly and the
+    // `extraImports` path would no longer be load-bearing for this case.
+    expect(treeContent).toMatch(/zod\.record\(\s*zod\.string\(\)/);
+    expect(treeContent).not.toMatch(/zod\.record\(\s*RelationType/);
+
+    // RelationType itself is emitted as a sibling file; the import above
+    // would dangle without this. Asserting the emission keeps "what's
+    // imported" and "what's written" in lockstep.
+    expect(await fs.pathExists(path.join(schemasPath, 'RelationType.ts'))).toBe(
+      true,
+    );
+
+    await fs.remove(root);
+  });
+});
+
+describe('buildSiblingImports', () => {
+  // The helper is exported for these tests because no `resolveValue` caller
+  // that feeds `renderReusableSchemaEntry` produces aliased imports today —
+  // an integration test can't reach the alias branch through a real spec.
+  // Driving the helper directly pins the contract.
+  const componentNames = new Set(['Foo', 'Bar', 'Baz']);
+
+  it('emits one bare import per name from usedRefs', () => {
+    const out = buildSiblingImports({
+      usedRefs: ['Foo', 'Bar'],
+      extraImports: [],
+      entryName: 'Entry',
+      componentNames,
+      namingConvention: 'PascalCase',
+      importExt: '',
+    });
+
+    expect(out).toBe(
+      `import { Bar } from './Bar';\nimport { Foo } from './Foo';`,
+    );
+  });
+
+  it('emits an aliased import when extraImports carries `alias`', () => {
+    const out = buildSiblingImports({
+      usedRefs: [],
+      extraImports: [{ name: 'Foo', alias: 'FooBis' }],
+      entryName: 'Entry',
+      componentNames,
+      namingConvention: 'PascalCase',
+      importExt: '',
+    });
+
+    // Filename derives from the export `name`; the alias only changes the
+    // local binding.
+    expect(out).toBe(`import { Foo as FooBis } from './Foo';`);
+  });
+
+  it('lets an aliased extraImports entry override a bare usedRefs entry for the same name', () => {
+    const out = buildSiblingImports({
+      usedRefs: ['Foo'],
+      extraImports: [{ name: 'Foo', alias: 'FooBis' }],
+      entryName: 'Entry',
+      componentNames,
+      namingConvention: 'PascalCase',
+      importExt: '',
+    });
+
+    // The recursive TS body uses the local binding (`FooBis`); the aliased
+    // form has to win, otherwise the body refers to an unbound name.
+    expect(out).toBe(`import { Foo as FooBis } from './Foo';`);
+  });
+
+  it('drops self-refs and non-component names', () => {
+    const out = buildSiblingImports({
+      usedRefs: ['Entry', 'Foo'],
+      extraImports: [
+        { name: 'Entry', alias: 'EntryBis' },
+        { name: 'NotAComponent' },
+        { name: 'Bar' },
+      ],
+      entryName: 'Entry',
+      componentNames,
+      namingConvention: 'PascalCase',
+      importExt: '',
+    });
+
+    expect(out).toBe(
+      `import { Bar } from './Bar';\nimport { Foo } from './Foo';`,
+    );
+  });
+
+  it('sorts by source name (stable across `extraImports` and `usedRefs` order)', () => {
+    const out = buildSiblingImports({
+      usedRefs: ['Foo'],
+      extraImports: [{ name: 'Baz' }, { name: 'Bar', alias: 'BarBis' }],
+      entryName: 'Entry',
+      componentNames,
+      namingConvention: 'PascalCase',
+      importExt: '',
+    });
+
+    expect(out).toBe(
+      `import { Bar as BarBis } from './Bar';\n` +
+        `import { Baz } from './Baz';\n` +
+        `import { Foo } from './Foo';`,
+    );
+  });
 });
 
 describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
@@ -661,5 +841,151 @@ describe('generateZodSchemasInline with generateReusableSchemas', () => {
     expect(result).toMatch(/"?owner"?:\s*Owner/);
     // No sentinels.
     expect(result).not.toContain('__REF_');
+  });
+
+  it('emits schemas whose raw name differs from the sanitized model name', () => {
+    // `__my_data` sanitizes to `_MyData`. The inline writer must seed from the
+    // RAW component keys; seeding from `builder.schemas` (sanitized) yields a
+    // ref (`#/components/schemas/_MyData`) absent from `components.schemas`, so
+    // the definition used to be dropped — leaving the operation wrapper that
+    // references it dangling.
+    const builder = {
+      spec: {
+        components: {
+          schemas: {
+            __my_data: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [
+        { name: '_MyData', schema: { $ref: '#/components/schemas/__my_data' } },
+      ],
+    } satisfies Parameters<typeof generateZodSchemasInline>[0];
+
+    const output = createOutputOptions();
+    (output.override.zod as Record<string, unknown>).generateReusableSchemas =
+      true;
+
+    const result = generateZodSchemasInline(builder, output);
+
+    expect(result).toContain('export const _MyData =');
+    expect(result).not.toContain('__REF_');
+  });
+
+  const metaBuilder = () =>
+    ({
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              description: 'A pet',
+              deprecated: true,
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [{ name: 'Pet', schema: { $ref: '#/components/schemas/Pet' } }],
+    }) satisfies Parameters<typeof generateZodSchemasInline>[0];
+
+  it('attaches .meta({ id, description, deprecated }) on zod v4 when generateMeta is on', () => {
+    const output = createOutputOptions();
+    const zodOverride = output.override.zod as Record<string, unknown>;
+    zodOverride.generateReusableSchemas = true;
+    zodOverride.generateMeta = true;
+    (output as { packageJson?: unknown }).packageJson = {
+      dependencies: { zod: '4.0.0' },
+    };
+
+    const result = generateZodSchemasInline(metaBuilder(), output);
+
+    expect(result).toContain(
+      ".meta({ id: 'Pet', description: 'A pet', deprecated: true })",
+    );
+  });
+
+  it('falls back to .describe() (no .meta) on zod v3 even when generateMeta is on', () => {
+    const output = createOutputOptions();
+    const zodOverride = output.override.zod as Record<string, unknown>;
+    zodOverride.generateReusableSchemas = true;
+    zodOverride.generateMeta = true;
+    (output as { packageJson?: unknown }).packageJson = {
+      dependencies: { zod: '3.23.0' },
+    };
+
+    const result = generateZodSchemasInline(metaBuilder(), output);
+
+    expect(result).not.toContain('.meta(');
+    expect(result).toContain(".describe('A pet')");
+  });
+
+  it('keeps the use-site .describe() chained AFTER .meta() on the named export (zod v4)', () => {
+    // A `$ref` with a `description` sibling renders at the use site as
+    // `<RefName>.describe('use site desc')`. The named export ends with
+    // `.meta(...)` — so the full runtime form is `Pet.meta(...).describe(...)`,
+    // which in zod v4 is exactly the documented pattern for "reference to Pet
+    // with a context-specific description": `z.toJSONSchema` produces
+    // `{ description: 'use site desc', $ref: '#/$defs/Pet' }` and the parent
+    // schema stays valid at runtime. This test pins that arrangement so the
+    // namedRef + emitMeta interaction can't silently regress.
+    const builder = {
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              description: 'a pet',
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+            Owner: {
+              type: 'object',
+              properties: {
+                pet: {
+                  $ref: '#/components/schemas/Pet',
+                  description: 'the owner pet',
+                },
+              },
+              required: ['pet'],
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [
+        { name: 'Pet', schema: { $ref: '#/components/schemas/Pet' } },
+        { name: 'Owner', schema: { $ref: '#/components/schemas/Owner' } },
+      ],
+    } satisfies Parameters<typeof generateZodSchemasInline>[0];
+
+    const output = createOutputOptions();
+    const zodOverride = output.override.zod as Record<string, unknown>;
+    zodOverride.generateReusableSchemas = true;
+    zodOverride.generateMeta = true;
+    (output as { packageJson?: unknown }).packageJson = {
+      dependencies: { zod: '4.0.0' },
+    };
+
+    const result = generateZodSchemasInline(builder, output);
+
+    // Pet's definition carries the meta...
+    expect(result).toContain(".meta({ id: 'Pet', description: 'a pet' })");
+    // ...and the property use site chains describe onto the named ref —
+    // `Pet.describe(...)` (NOT a fresh `.meta()` reusing Pet's id, which would
+    // collide in the global registry).
+    // namedRef path emits `.describe(...)` with double quotes; main path with
+    // single — tolerate either so this doesn't trip on a formatter swap.
+    expect(result).toMatch(/"?pet"?:\s*Pet\.describe\(['"]the owner pet['"]\)/);
+    // Owner's definition still gets its own meta (no description on Owner).
+    expect(result).toMatch(/export const Owner\b/);
+    expect(result).toContain(".meta({ id: 'Owner' })");
   });
 });

@@ -123,6 +123,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
         generateEachHttpStatus: false,
         useBrandedTypes: false,
         generateReusableSchemas: false,
+        generateMeta: false,
         dateTimeOptions: {},
         timeOptions: { precision: 3 },
       },

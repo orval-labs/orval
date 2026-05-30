@@ -200,13 +200,18 @@ export function getMockObject({
           const hasDefault = 'default' in prop && prop.default !== undefined;
 
           if (!isRequired && !resolvedValue.overrided && !hasDefault) {
-            const nullValue = hasNullable ? 'null' : 'undefined';
-            return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, ${nullValue}])`;
+            const omitValue =
+              mockOptions?.nonNullable || !hasNullable ? 'undefined' : 'null';
+            return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, ${omitValue}])`;
           }
 
           const isNullable =
             Array.isArray(prop.type) && prop.type.includes('null');
-          if (isNullable && !resolvedValue.overrided) {
+          if (
+            isNullable &&
+            !resolvedValue.overrided &&
+            !mockOptions?.nonNullable
+          ) {
             return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, null])`;
           }
 

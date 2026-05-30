@@ -1,10 +1,42 @@
 import type {
   ContextSpec,
+  GeneratorMutator,
   GeneratorOptions,
+  NormalizedMutator,
   OpenApiSchemaObject,
 } from '@orval/core';
 import { PropertySortOrder } from '@orval/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@orval/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@orval/core')>();
+  // Stub mutator resolution so generateZod can wire `override.zod.params` /
+  // `override.zod.preprocess` without touching the filesystem. Returns a
+  // GeneratorMutator-shaped stub for any supplied mutator config, mirroring
+  // the real generator's signature but skipping the file I/O it performs.
+  const generateMutator = vi.fn(
+    ({
+      mutator,
+      name,
+    }: {
+      mutator?: NormalizedMutator;
+      name: string;
+    }): GeneratorMutator | undefined => {
+      if (!mutator) return;
+      return {
+        name: mutator.name ?? name,
+        path: mutator.path,
+        default: mutator.default,
+        hasErrorType: false,
+        errorTypeName: '',
+        hasSecondArg: false,
+        hasThirdArg: false,
+        isHook: false,
+      };
+    },
+  );
+  return { ...actual, generateMutator };
+});
 
 import { createTestContextSpec } from '../../core/src/test-utils/context';
 import {
@@ -103,6 +135,451 @@ describe('parseZodValidationSchemaDefinition', () => {
 
     expect(parseResult.zod).toBe(
       'zod.object({\n  "queryParams": zod.record(zod.string(), zod.unknown())\n})',
+    );
+  });
+});
+
+describe('parseZodValidationSchemaDefinition with params injection', () => {
+  const ctx = {
+    output: {
+      override: { useDates: false },
+    },
+  } as ContextSpec;
+
+  const mutator = {
+    name: 'zodParams',
+    path: '/tmp/zod-params.ts',
+    default: false,
+    hasErrorType: false,
+    errorTypeName: '',
+    hasSecondArg: false,
+    hasThirdArg: false,
+    isHook: false,
+  };
+
+  const makeInjection = (overrides: Record<string, unknown> = {}) => ({
+    mutator,
+    operationId: 'createUser',
+    location: 'body' as const,
+    schemaName: 'CreateUserBody',
+    ...overrides,
+  });
+
+  it('injects params on leaf validators with nested fieldPath', () => {
+    const input: ZodValidationSchemaDefinition = {
+      functions: [
+        [
+          'object',
+          {
+            user: {
+              functions: [
+                [
+                  'object',
+                  {
+                    email: {
+                      functions: [
+                        ['string', undefined],
+                        ['email', undefined],
+                      ],
+                      consts: [],
+                    },
+                  },
+                ],
+              ],
+              consts: [],
+            },
+          },
+        ],
+      ],
+      consts: [],
+    };
+
+    const { zod } = parseZodValidationSchemaDefinition(
+      input,
+      ctx,
+      false,
+      false,
+      false,
+      undefined,
+      makeInjection(),
+    );
+
+    expect(zod).toContain(
+      'zod.string(zodParams({"operationId":"createUser","location":"body","schemaName":"CreateUserBody","fieldPath":["user","email"],"validator":"string"}))',
+    );
+    expect(zod).toContain(
+      '.email(zodParams({"operationId":"createUser","location":"body","schemaName":"CreateUserBody","fieldPath":["user","email"],"validator":"email"}))',
+    );
+  });
+
+  it('appends params after existing args for constrained validators', () => {
+    const input: ZodValidationSchemaDefinition = {
+      functions: [
+        [
+          'object',
+          {
+            age: {
+              functions: [
+                ['number', undefined],
+                ['min', '0'],
+                ['max', '120'],
+              ],
+              consts: [],
+            },
+          },
+        ],
+      ],
+      consts: [],
+    };
+
+    const { zod } = parseZodValidationSchemaDefinition(
+      input,
+      ctx,
+      false,
+      false,
+      false,
+      undefined,
+      makeInjection(),
+    );
+
+    expect(zod).toContain(
+      '.min(0, zodParams({"operationId":"createUser","location":"body","schemaName":"CreateUserBody","fieldPath":["age"],"validator":"min"}))',
+    );
+    expect(zod).toContain(
+      '.max(120, zodParams({"operationId":"createUser","location":"body","schemaName":"CreateUserBody","fieldPath":["age"],"validator":"max"}))',
+    );
+  });
+
+  it('skips nullary validators (unknown, any, never, null, undefined, void)', () => {
+    for (const fn of ['unknown', 'any', 'never', 'null', 'undefined', 'void']) {
+      const input: ZodValidationSchemaDefinition = {
+        functions: [
+          [
+            'object',
+            {
+              data: {
+                functions: [[fn, undefined]],
+                consts: [],
+              },
+            },
+          ],
+        ],
+        consts: [],
+      };
+
+      const { zod } = parseZodValidationSchemaDefinition(
+        input,
+        ctx,
+        false,
+        false,
+        false,
+        undefined,
+        makeInjection(),
+      );
+
+      expect(zod).toContain(`zod.${fn}()`);
+      expect(zod).not.toContain(`zod.${fn}(zodParams`);
+    }
+  });
+
+  it('skips modifiers (optional, nullable, nullish, default, describe)', () => {
+    const input: ZodValidationSchemaDefinition = {
+      functions: [
+        [
+          'object',
+          {
+            note: {
+              functions: [
+                ['string', undefined],
+                ['nullable', undefined],
+                ['optional', undefined],
+                ['describe', `'hello'`],
+              ],
+              consts: [],
+            },
+          },
+        ],
+      ],
+      consts: [],
+    };
+
+    const { zod } = parseZodValidationSchemaDefinition(
+      input,
+      ctx,
+      false,
+      false,
+      false,
+      undefined,
+      makeInjection(),
+    );
+
+    expect(zod).toContain('.nullable()');
+    expect(zod).toContain('.optional()');
+    expect(zod).toContain(".describe('hello')");
+    // modifier names never appear inside an injected mutator call
+    expect(zod).not.toMatch(/\.nullable\(zodParams/);
+    expect(zod).not.toMatch(/\.optional\(zodParams/);
+    expect(zod).not.toMatch(/\.describe\([^']*zodParams/);
+  });
+
+  it('does not inject params on structural calls (object, array, union)', () => {
+    const input: ZodValidationSchemaDefinition = {
+      functions: [
+        [
+          'object',
+          {
+            tags: {
+              functions: [
+                [
+                  'array',
+                  {
+                    functions: [['string', undefined]],
+                    consts: [],
+                  },
+                ],
+              ],
+              consts: [],
+            },
+          },
+        ],
+      ],
+      consts: [],
+    };
+
+    const { zod } = parseZodValidationSchemaDefinition(
+      input,
+      ctx,
+      false,
+      false,
+      false,
+      undefined,
+      makeInjection(),
+    );
+
+    // zod.object({...}) and .array(zod.string(...)) wrappers have no injected
+    // params; only the leaf zod.string does.
+    expect(zod).toMatch(/^zod\.object\(\{/);
+    expect(zod).toContain('.array(zod.string(zodParams(');
+    // params should never appear as the immediate argument of a structural call
+    expect(zod).not.toContain('zod.object(zodParams');
+    expect(zod).not.toContain('.array(zodParams');
+  });
+
+  it('merges into existing options for iso.datetime / datetime / iso.time / time', () => {
+    const cases: [string, string][] = [
+      ['iso.datetime', '{"offset":true}'],
+      ['datetime', '{"offset":true}'],
+      ['iso.time', '{"precision":3}'],
+      ['time', '{"precision":3}'],
+    ];
+
+    for (const [fn, optsArg] of cases) {
+      const input: ZodValidationSchemaDefinition = {
+        functions: [
+          [
+            'object',
+            {
+              when: {
+                functions: [
+                  ['string', undefined],
+                  [fn, optsArg],
+                ],
+                consts: [],
+              },
+            },
+          ],
+        ],
+        consts: [],
+      };
+
+      const { zod } = parseZodValidationSchemaDefinition(
+        input,
+        ctx,
+        false,
+        false,
+        false,
+        undefined,
+        makeInjection(),
+      );
+
+      // single merged-object argument, not two args
+      expect(zod).toContain(
+        `.${fn}({ ...${optsArg}, ...zodParams({"operationId":"createUser","location":"body","schemaName":"CreateUserBody","fieldPath":["when"],"validator":"${fn}"}) })`,
+      );
+      // negative: never the two-arg form
+      expect(zod).not.toContain(`.${fn}(${optsArg}, zodParams(`);
+    }
+  });
+
+  it('produces identical output when no injection is supplied', () => {
+    const input: ZodValidationSchemaDefinition = {
+      functions: [
+        [
+          'object',
+          {
+            email: {
+              functions: [
+                ['string', undefined],
+                ['email', undefined],
+              ],
+              consts: [],
+            },
+          },
+        ],
+      ],
+      consts: [],
+    };
+
+    const { zod } = parseZodValidationSchemaDefinition(
+      input,
+      ctx,
+      false,
+      false,
+      false,
+    );
+
+    expect(zod).not.toContain('zodParams(');
+    expect(zod).toContain('zod.string().email()');
+  });
+
+  it('propagates fieldPath through tuple positions without appending indices', () => {
+    // A tuple like `[string, number]` under `coords` propagates the container's
+    // fieldPath (`['coords']`) unchanged to every position. The `validator`
+    // field (`'string'` / `'number'`) is what distinguishes positions — this
+    // matches Zod's own `issue.path`, which also drops tuple indices.
+    const input: ZodValidationSchemaDefinition = {
+      functions: [
+        [
+          'object',
+          {
+            coords: {
+              functions: [
+                [
+                  'tuple',
+                  [
+                    { functions: [['string', undefined]], consts: [] },
+                    { functions: [['number', undefined]], consts: [] },
+                  ],
+                ],
+              ],
+              consts: [],
+            },
+          },
+        ],
+      ],
+      consts: [],
+    };
+
+    const { zod } = parseZodValidationSchemaDefinition(
+      input,
+      ctx,
+      false,
+      false,
+      false,
+      undefined,
+      makeInjection(),
+    );
+
+    expect(zod).toContain(
+      'zod.string(zodParams({"operationId":"createUser","location":"body","schemaName":"CreateUserBody","fieldPath":["coords"],"validator":"string"}))',
+    );
+    expect(zod).toContain(
+      'zod.number(zodParams({"operationId":"createUser","location":"body","schemaName":"CreateUserBody","fieldPath":["coords"],"validator":"number"}))',
+    );
+    // tuple itself is a structural container — no params on the call
+    expect(zod).not.toContain('zod.tuple(zodParams');
+  });
+
+  it('propagates fieldPath into additionalProperties record values', () => {
+    // `additionalProperties: { type: string }` emits `zod.record(zod.string(),
+    // zod.string(...))`. The inner `string` validator should see the container
+    // property's fieldPath (`['attrs']`), since the parser does not synthesize
+    // a per-key path segment for record values.
+    const input: ZodValidationSchemaDefinition = {
+      functions: [
+        [
+          'object',
+          {
+            attrs: {
+              functions: [
+                [
+                  'additionalProperties',
+                  {
+                    functions: [['string', undefined]],
+                    consts: [],
+                  },
+                ],
+              ],
+              consts: [],
+            },
+          },
+        ],
+      ],
+      consts: [],
+    };
+
+    const { zod } = parseZodValidationSchemaDefinition(
+      input,
+      ctx,
+      false,
+      false,
+      false,
+      undefined,
+      makeInjection(),
+    );
+
+    expect(zod).toContain(
+      'zod.record(zod.string(), zod.string(zodParams({"operationId":"createUser","location":"body","schemaName":"CreateUserBody","fieldPath":["attrs"],"validator":"string"})))',
+    );
+    // record() is structural and gets no injection of its own
+    expect(zod).not.toContain('zod.record(zodParams');
+  });
+
+  it('appends params after existing args for regex / length / multipleOf', () => {
+    const input: ZodValidationSchemaDefinition = {
+      functions: [
+        [
+          'object',
+          {
+            slug: {
+              functions: [
+                ['string', undefined],
+                ['regex', '/^[a-z]+$/'],
+                ['length', '8'],
+              ],
+              consts: [],
+            },
+            amount: {
+              functions: [
+                ['number', undefined],
+                ['multipleOf', '5'],
+              ],
+              consts: [],
+            },
+          },
+        ],
+      ],
+      consts: [],
+    };
+
+    const { zod } = parseZodValidationSchemaDefinition(
+      input,
+      ctx,
+      false,
+      false,
+      false,
+      undefined,
+      makeInjection(),
+    );
+
+    expect(zod).toContain(
+      '.regex(/^[a-z]+$/, zodParams({"operationId":"createUser","location":"body","schemaName":"CreateUserBody","fieldPath":["slug"],"validator":"regex"}))',
+    );
+    expect(zod).toContain(
+      '.length(8, zodParams({"operationId":"createUser","location":"body","schemaName":"CreateUserBody","fieldPath":["slug"],"validator":"length"}))',
+    );
+    expect(zod).toContain(
+      '.multipleOf(5, zodParams({"operationId":"createUser","location":"body","schemaName":"CreateUserBody","fieldPath":["amount"],"validator":"multipleOf"}))',
     );
   });
 });
@@ -2031,6 +2508,46 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(parsed.consts).toBe(
         'export const testEnumStringDefaultDefault = `EUR`;',
       );
+    });
+
+    it('emits const declarations for single-item oneOf with default values', () => {
+      // Simulate the intermediate representation produced when a single-item
+      // oneOf references an enum schema with a default value.
+      // Without the fix, the single-item shortcut in parseProperty discards
+      // the consts from the inner schema, producing a dangling reference.
+      const input: ZodValidationSchemaDefinition = {
+        functions: [
+          [
+            'oneOf',
+            [
+              {
+                functions: [
+                  ['enum', "['ACTIVE', 'INACTIVE']"],
+                  ['default', 'statusDefault'],
+                ],
+                consts: ['export const statusDefault = `ACTIVE`;'],
+              },
+            ],
+          ],
+          ['optional', undefined],
+        ],
+        consts: [],
+      };
+
+      const parsed = parseZodValidationSchemaDefinition(
+        input,
+        context,
+        false,
+        false,
+        false,
+      );
+
+      // The generated Zod code references statusDefault
+      expect(parsed.zod).toBe(
+        "zod.enum(['ACTIVE', 'INACTIVE']).default(statusDefault).optional()",
+      );
+      // The const declaration MUST be emitted (this was the bug — it was empty)
+      expect(parsed.consts).toBe('export const statusDefault = `ACTIVE`;');
     });
 
     it('skips numeric constraints for enum literal unions (#3024)', () => {
@@ -4028,6 +4545,67 @@ describe('generatePartOfSchemaGenerateZod', () => {
     expect(result.implementation).toBe(
       'export const TestHeader = zod.object({\n  "x-header": zod.string()\n})\n\n',
     );
+  });
+
+  it('wires override.zod.params end-to-end (schemaName + operationId + mutators array)', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationId: 'createCat',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: true,
+              body: true,
+              response: true,
+              query: true,
+              header: true,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            params: { path: './zod-params', name: 'zodParams' },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    // Each part gets the pascal(operationName) + suffix as `schemaName`, and
+    // the raw OpenAPI `operationId` (not the transformed `operationName`).
+    expect(result.implementation).toContain(
+      'zod.string(zodParams({"operationId":"createCat","location":"param","schemaName":"TestParams","fieldPath":["id"],"validator":"string"}))',
+    );
+    expect(result.implementation).toContain(
+      'zod.number(zodParams({"operationId":"createCat","location":"query","schemaName":"TestQueryParams","fieldPath":["page"],"validator":"number"}))',
+    );
+    expect(result.implementation).toContain(
+      'zod.string(zodParams({"operationId":"createCat","location":"header","schemaName":"TestHeader","fieldPath":["x-header"],"validator":"string"}))',
+    );
+    expect(result.implementation).toContain(
+      'zod.string(zodParams({"operationId":"createCat","location":"body","schemaName":"TestBody","fieldPath":["name"],"validator":"string"}))',
+    );
+
+    // The resolved paramsMutator is returned so the import writer can emit
+    // the `import { zodParams } from './zod-params'` line in the operation file.
+    expect(result.mutators?.some((m) => m.name === 'zodParams')).toBe(true);
   });
 });
 
@@ -7913,5 +8491,196 @@ describe('parseZodValidationSchemaDefinition with namedRef', () => {
       false,
     );
     expect(result.usedRefs).toEqual(new Set());
+  });
+});
+
+describe('generateMeta (.meta())', () => {
+  const ctx = {
+    output: { override: { useDates: false } },
+  } as ContextSpec;
+
+  it('folds id + description + deprecated into a single .meta() on zod v4', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      description: 'A pet',
+      deprecated: true,
+      required: ['id'],
+      properties: {
+        id: { type: 'integer' },
+        name: { type: 'string', description: 'nested' },
+      },
+    };
+
+    const def = generateZodValidationSchemaDefinition(
+      schema,
+      ctx,
+      'Pet',
+      true,
+      true,
+      { required: true, emitMeta: true },
+    );
+
+    const meta = def.functions.find((fn) => fn[0] === 'meta');
+    expect(meta?.[1]).toEqual({
+      id: 'Pet',
+      description: 'A pet',
+      deprecated: true,
+    });
+    // The top-level describe is folded into meta (not emitted separately).
+    expect(def.functions.some((fn) => fn[0] === 'describe')).toBe(false);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      def,
+      ctx,
+      false,
+      true,
+      true,
+    );
+    expect(parsed.zod).toContain(
+      ".meta({ id: 'Pet', description: 'A pet', deprecated: true })",
+    );
+    // Nested property descriptions still use .describe().
+    expect(parsed.zod).toContain(".describe('nested')");
+  });
+
+  it('emits id-only meta when the schema has no description or deprecated', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: { x: { type: 'string' } },
+    };
+
+    const def = generateZodValidationSchemaDefinition(
+      schema,
+      ctx,
+      'Plain',
+      false,
+      true,
+      { required: true, emitMeta: true },
+    );
+    const parsed = parseZodValidationSchemaDefinition(
+      def,
+      ctx,
+      false,
+      false,
+      true,
+    );
+    expect(parsed.zod).toContain(".meta({ id: 'Plain' })");
+  });
+
+  it('falls back to .describe() on zod v3 (no .meta())', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      description: 'A name',
+      deprecated: true,
+    };
+
+    const def = generateZodValidationSchemaDefinition(
+      schema,
+      ctx,
+      'Name',
+      false,
+      false,
+      { required: true, emitMeta: true },
+    );
+    expect(def.functions.some((fn) => fn[0] === 'meta')).toBe(false);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      def,
+      ctx,
+      false,
+      false,
+      false,
+    );
+    expect(parsed.zod).toContain(".describe('A name')");
+    expect(parsed.zod).not.toContain('.meta(');
+  });
+
+  it('does not emit meta unless emitMeta is set (even on v4)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      description: 'A name',
+    };
+
+    const def = generateZodValidationSchemaDefinition(
+      schema,
+      ctx,
+      'Name',
+      false,
+      true,
+      { required: true },
+    );
+    expect(def.functions.some((fn) => fn[0] === 'meta')).toBe(false);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      def,
+      ctx,
+      false,
+      false,
+      true,
+    );
+    expect(parsed.zod).toContain(".describe('A name')");
+  });
+
+  it('emits meta on a multi-type (type array) top-level schema', () => {
+    const schema = {
+      type: ['string', 'number'],
+      description: 'either',
+    } as unknown as OpenApiSchemaObject;
+
+    const def = generateZodValidationSchemaDefinition(
+      schema,
+      ctx,
+      'Either',
+      false,
+      true,
+      { required: true, emitMeta: true },
+    );
+    const meta = def.functions.find((fn) => fn[0] === 'meta');
+    expect(meta?.[1]).toEqual({ id: 'Either', description: 'either' });
+  });
+
+  it('treats an empty-string description as absent (preserves prior semantics)', () => {
+    // Old code used `if (schema.description)` which skipped `''`; the helper
+    // matches that — no `.describe('')` and no `description: ''` in meta.
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      description: '',
+    };
+
+    // v4 + emitMeta: id-only, no description key in the meta object.
+    const v4Def = generateZodValidationSchemaDefinition(
+      schema,
+      ctx,
+      'Empty',
+      false,
+      true,
+      { required: true, emitMeta: true },
+    );
+    const v4Meta = v4Def.functions.find((fn) => fn[0] === 'meta');
+    expect(v4Meta?.[1]).toEqual({ id: 'Empty' });
+
+    // v3 fallback (no emitMeta path): no `.describe('')` emitted.
+    const v3Def = generateZodValidationSchemaDefinition(
+      schema,
+      ctx,
+      'Empty',
+      false,
+      false,
+      { required: true, emitMeta: true },
+    );
+    expect(v3Def.functions.some((fn) => fn[0] === 'describe')).toBe(false);
+
+    // No-emitMeta + v4: still no `.describe('')` (matches old falsy-check
+    // semantics; was already the case before this PR, asserted here as a
+    // regression anchor).
+    const offDef = generateZodValidationSchemaDefinition(
+      schema,
+      ctx,
+      'Empty',
+      false,
+      true,
+      { required: true },
+    );
+    expect(offDef.functions.some((fn) => fn[0] === 'describe')).toBe(false);
   });
 });

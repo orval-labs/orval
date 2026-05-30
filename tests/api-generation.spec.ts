@@ -656,3 +656,55 @@ test('react-query issue-2999 emits exactly one v5 overload block per NestJS-styl
     ).toBe(3);
   }
 });
+
+test('react-query issue-2999 keeps a single v5 overload block per hook with useInfinite + runtimeValidation', async () => {
+  // Follow-up regression for #2999 (reopened): a second reporter saw the same
+  // "duplicated hook" with `useInfinite: true` + `runtimeValidation: true` and
+  // suspected that combination was what re-emitted the overload signatures. It
+  // is not — those flags do not change the overload count. Each query hook and
+  // each generated infinite hook is still the standard v5 block of exactly four
+  // declarations (DefinedInitialDataOptions / UndefinedInitialDataOptions / bare
+  // options + one implementation signature, the last of which is invisible to
+  // callers per the TS handbook and so is not a duplicate of the bare overload).
+  // This pins the count under that exact flag set, which the original
+  // issue-2999 entry above did not cover.
+  const content = await readFile(
+    generated('react-query', 'issue-2999-infinite', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // Both the query hook and its infinite counterpart must be a single 4-decl
+  // overload block. The two GET operations each yield a query + an infinite
+  // hook; the POST (`create`) yields a query hook only.
+  for (const hook of [
+    'useMusclesControllerFindAll<',
+    'useMusclesControllerFindAllInfinite<',
+    'useMusclesControllerFindOne<',
+    'useMusclesControllerFindOneInfinite<',
+    'useMusclesControllerCreate<',
+  ]) {
+    const occurrences = content.split(`export function ${hook}`).length - 1;
+    expect(occurrences, `${hook} must be declared exactly 4 times`).toBe(4);
+  }
+
+  // Infinite hooks are GET-only: the POST must not gain an infinite variant.
+  expect(
+    content.split('export function useMusclesControllerCreateInfinite<')
+      .length - 1,
+    'POST operations must not generate an infinite hook',
+  ).toBe(0);
+
+  // Each of the five overload blocks (2 GET query + 2 GET infinite + 1 POST
+  // query) uses each v5 marker exactly once, proving the counts above are the
+  // real overload shape rather than duplicated bare overloads.
+  for (const marker of [
+    'DefinedInitialDataOptions<',
+    'UndefinedInitialDataOptions<',
+  ]) {
+    const occurrences = content.split(marker).length - 1;
+    expect(
+      occurrences,
+      `${marker} should be used once per overload block (5 blocks)`,
+    ).toBe(5);
+  }
+});

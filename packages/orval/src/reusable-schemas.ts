@@ -1,4 +1,4 @@
-import type { ContextSpec, ZodCoerceType } from '@orval/core';
+import type { ContextSpec, GeneratorMutator, ZodCoerceType } from '@orval/core';
 import { getRefInfo } from '@orval/core';
 import {
   generateZodValidationSchemaDefinition,
@@ -137,6 +137,16 @@ export interface GenerateReusableSchemaSetOptions {
   strict: boolean;
   isZodV4: boolean;
   coerce?: boolean | ZodCoerceType[];
+  /** Emit `.meta({ id, ... })` on each schema (zod v4). See `ZodOptions.generateMeta`. */
+  generateMeta?: boolean;
+  /**
+   * When set, the user's `override.zod.params` mutator is invoked for every
+   * leaf validator inside each emitted component schema with a `'schema'`
+   * location and an empty `operationId` (component schemas are shared across
+   * operations). Consumers can branch on `ctx.location === 'schema'` to vary
+   * the injected params for shared definitions.
+   */
+  paramsMutator?: GeneratorMutator;
 }
 
 /**
@@ -183,7 +193,11 @@ export const generateReusableSchemaSet = (
       name,
       options.strict,
       options.isZodV4,
-      { required: true, useReusableSchemas: true },
+      {
+        required: true,
+        useReusableSchemas: true,
+        emitMeta: options.generateMeta,
+      },
     );
 
     const parsed = parseZodValidationSchemaDefinition(
@@ -192,6 +206,15 @@ export const generateReusableSchemaSet = (
       options.coerce ?? false,
       options.strict,
       options.isZodV4,
+      undefined,
+      options.paramsMutator
+        ? {
+            mutator: options.paramsMutator,
+            operationId: '',
+            location: 'schema',
+            schemaName: name,
+          }
+        : undefined,
     );
 
     entries.push({

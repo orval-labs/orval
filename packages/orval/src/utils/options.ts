@@ -504,12 +504,21 @@ export async function normalizeOptions(
                 }
               : {}),
           },
+          ...(outputOptions.override?.zod?.params
+            ? {
+                params: normalizeMutator(
+                  workspace,
+                  outputOptions.override.zod.params,
+                ),
+              }
+            : {}),
           generateEachHttpStatus:
             outputOptions.override?.zod?.generateEachHttpStatus ?? false,
           useBrandedTypes:
             outputOptions.override?.zod?.useBrandedTypes ?? false,
           generateReusableSchemas:
             outputOptions.override?.zod?.generateReusableSchemas ?? false,
+          generateMeta: outputOptions.override?.zod?.generateMeta ?? false,
           dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {
             offset: true,
           },
@@ -890,10 +899,16 @@ function normalizeOperationsAndTags(
                           }
                         : {}),
                     },
+                    ...(zod.params
+                      ? {
+                          params: normalizeMutator(workspace, zod.params),
+                        }
+                      : {}),
                     generateEachHttpStatus: zod.generateEachHttpStatus ?? false,
                     useBrandedTypes: zod.useBrandedTypes ?? false,
                     generateReusableSchemas:
                       zod.generateReusableSchemas ?? false,
+                    generateMeta: zod.generateMeta ?? false,
                     dateTimeOptions: zod.dateTimeOptions ?? { offset: true },
                     timeOptions: zod.timeOptions ?? {},
                   },
