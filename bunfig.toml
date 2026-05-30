@@ -1,3 +1,6 @@
 [install]
 # Only install package versions published at least 3 days ago
 minimumReleaseAge = 259200
+
+[install.security]
+scanner = "@socketsecurity/bun-security-scanner"
