@@ -1,6 +1,7 @@
 /* eslint-disable unicorn/no-array-reduce */
 
 import {
+  buildDynamicScope,
   camel,
   type ClientBuilder,
   type ClientGeneratorsBuilder,
@@ -11,10 +12,12 @@ import {
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  getDynamicAnchorName,
   getFormDataFieldFileType,
   getNumberWord,
   getRefInfo,
   isBoolean,
+  isDynamicReference,
   isNumber,
   isObject,
   isString,
@@ -26,6 +29,7 @@ import {
   type OpenApiResponseObject,
   type OpenApiSchemaObject,
   pascal,
+  resolveDynamicRef,
   resolveRef,
   stringify,
   type ZodCoerceType,
@@ -1423,12 +1427,27 @@ function tryResolveRefSchema(
   }
 }
 
+const COMPONENT_SCHEMAS_PREFIX = '#/components/schemas/';
+
+function extractSchemaNameFromRef($ref: string): string | undefined {
+  if (!$ref.startsWith(COMPONENT_SCHEMAS_PREFIX)) return undefined;
+  const raw = $ref.slice(COMPONENT_SCHEMAS_PREFIX.length);
+  return decodeURIComponent(raw.replaceAll('~1', '/').replaceAll('~0', '~'));
+}
+
 /**
- * Recursively inlines all `$ref` references in an OpenAPI schema tree,
- * producing a fully-resolved schema suitable for Zod code generation.
+ * Recursively inlines all `$ref` and `$dynamicRef` references in an OpenAPI
+ * schema tree, producing a fully-resolved schema suitable for Zod code generation.
  *
  * Tracks visited `$ref` paths via `context.parents` to break circular
  * references (returning `{}` for cycles).
+ *
+ * `$dynamicRef` is resolved using the dynamic scope attached to `context`:
+ *  1. Look up the anchor name in `context.dynamicScope`.
+ *  2. If not found, fall back to scanning `components.schemas` for a schema
+ *     that declares `$dynamicAnchor` with the same name.
+ *  3. If resolved to a concrete schema, inline it (same as `$ref`).
+ *  4. If unresolved, external, or a generic parameter → return `{}`.
  */
 export const dereference = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
@@ -1437,6 +1456,10 @@ export const dereference = (
   const refName = '$ref' in schema ? schema.$ref : undefined;
   if (refName && context.parents?.includes(refName)) {
     return {};
+  }
+
+  if (isDynamicReference(schema)) {
+    return dereferenceDynamicRef(schema, context);
   }
 
   const childContext: ContextSpec = {
@@ -1472,9 +1495,20 @@ export const dereference = (
     return {};
   }
 
-  const resolvedContext = childContext;
+  const resolvedContext = buildScopedContext(
+    childContext,
+    refName,
+    resolvedSchema,
+  );
 
-  return Object.entries(resolvedSchema).reduce<Record<string, unknown>>(
+  return dereferenceProperties(resolvedSchema, resolvedContext);
+};
+
+function dereferenceProperties(
+  schema: OpenApiSchemaObject,
+  context: ContextSpec,
+): OpenApiSchemaObject {
+  return Object.entries(schema).reduce<Record<string, unknown>>(
     (acc, [key, value]) => {
       if (key === 'properties' && isObject(value)) {
         acc[key] = Object.entries(value).reduce<
@@ -1482,21 +1516,102 @@ export const dereference = (
         >((props, [propKey, propSchema]) => {
           props[propKey] = dereference(
             propSchema as OpenApiSchemaObject | OpenApiReferenceObject,
-            resolvedContext,
+            context,
           );
           return props;
         }, {});
       } else if (key === 'default' || key === 'example' || key === 'examples') {
         acc[key] = value;
       } else {
-        acc[key] = dereferenceScalar(value, resolvedContext);
+        acc[key] = dereferenceScalar(value, context);
       }
 
       return acc;
     },
     {},
   ) as OpenApiSchemaObject;
-};
+}
+
+function buildScopedContext(
+  childContext: ContextSpec,
+  refName: string | undefined,
+  resolvedSchema: OpenApiSchemaObject,
+): ContextSpec {
+  if (!refName) return childContext;
+
+  const schemaName = extractSchemaNameFromRef(refName);
+  if (!schemaName) return childContext;
+
+  const schemaRecord = resolvedSchema as Record<string, unknown>;
+  const hasDynamicAnchor = typeof schemaRecord.$dynamicAnchor === 'string';
+  const defs = schemaRecord.$defs as Record<string, unknown> | undefined;
+  const hasDefsAnchors =
+    defs &&
+    typeof defs === 'object' &&
+    Object.values(defs).some(
+      (d) => d && typeof d === 'object' && '$dynamicAnchor' in d,
+    );
+
+  if (!hasDynamicAnchor && !hasDefsAnchors) return childContext;
+
+  return {
+    ...childContext,
+    dynamicScope: buildDynamicScope(schemaName, resolvedSchema, childContext),
+  };
+}
+
+function dereferenceDynamicRef(
+  schema: object & { $dynamicRef: string },
+  context: ContextSpec,
+): OpenApiSchemaObject {
+  const dynamicRef = schema.$dynamicRef;
+  const anchorName = getDynamicAnchorName(dynamicRef);
+  if (!anchorName) {
+    return {};
+  }
+
+  const dynamicRefPath = `$dynamicRef:${dynamicRef}`;
+  if (context.parents?.includes(dynamicRefPath)) {
+    return {};
+  }
+  const {
+    resolvedTypeName,
+    schema: resolvedSchema,
+    schemaName,
+  } = resolveDynamicRef(anchorName, context);
+
+  if (resolvedTypeName === 'unknown' || !isObject(resolvedSchema)) {
+    return {};
+  }
+
+  const childContext: ContextSpec = {
+    ...context,
+    parents: [...(context.parents ?? []), dynamicRefPath],
+  };
+
+  const scopedContext = buildScopedContext(
+    childContext,
+    schemaName
+      ? `${COMPONENT_SCHEMAS_PREFIX}${encodeSegment(schemaName)}`
+      : undefined,
+    resolvedSchema,
+  );
+
+  const siblingProperties = Object.fromEntries(
+    Object.entries(schema).filter(([key]) => key !== '$dynamicRef'),
+  );
+
+  const merged: OpenApiSchemaObject = {
+    ...(resolvedSchema as Record<string, unknown>),
+    ...siblingProperties,
+  } as OpenApiSchemaObject;
+
+  return dereferenceProperties(merged, scopedContext);
+}
+
+function encodeSegment(segment: string): string {
+  return segment.replaceAll('~', '~0').replaceAll('/', '~1');
+}
 
 /**
  * Generate zod schema for form-data request body.

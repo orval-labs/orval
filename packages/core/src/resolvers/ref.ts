@@ -442,6 +442,7 @@ export function resolveDynamicRef(
   schema: OpenApiSchemaObject;
   imports: GeneratorImport[];
   resolvedTypeName: string;
+  schemaName: string | undefined;
 } {
   const scope = context.dynamicScope ?? {};
   let scopeEntry = scope[anchorName];
@@ -484,6 +485,7 @@ export function resolveDynamicRef(
       schema: {},
       imports,
       resolvedTypeName: 'unknown',
+      schemaName: undefined,
     };
   }
 
@@ -492,6 +494,7 @@ export function resolveDynamicRef(
       schema: {},
       imports,
       resolvedTypeName: scopeEntry.name,
+      schemaName: undefined,
     };
   }
 
@@ -505,12 +508,14 @@ export function resolveDynamicRef(
       schema: resolvedSchema,
       imports: resolvedImports,
       resolvedTypeName,
+      schemaName: scopeEntry.schemaName,
     };
   } catch {
     return {
       schema: {},
       imports,
       resolvedTypeName: 'unknown',
+      schemaName: undefined,
     };
   }
 }
