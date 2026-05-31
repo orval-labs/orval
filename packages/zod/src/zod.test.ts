@@ -9156,6 +9156,112 @@ describe('$dynamicRef / $dynamicAnchor', () => {
       expect(itemsProps.id).toBeDefined();
     });
 
+    it('resolves $ref whose target is a root $dynamicRef', () => {
+      const ctx = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+              PetRef: {
+                $dynamicRef: '#Pet',
+              },
+            },
+          },
+        },
+      });
+
+      const resolved = dereference(
+        { $ref: '#/components/schemas/PetRef' },
+        ctx,
+      );
+
+      expect(resolved).toBeDefined();
+      expect((resolved as Record<string, unknown>).type).toBe('object');
+      const props = (resolved as Record<string, unknown>).properties as Record<
+        string,
+        unknown
+      >;
+      expect(props).toBeDefined();
+      expect(props.name).toBeDefined();
+    });
+
+    it('does not collide cycle keys across different dynamic scopes', () => {
+      const ctx = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  playmates: {
+                    type: 'array',
+                    items: { $dynamicRef: '#Pet' },
+                  },
+                },
+              },
+              Cat: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: {
+                  meow: { type: 'boolean' },
+                  playmates: {
+                    type: 'array',
+                    items: { $dynamicRef: '#Pet' },
+                  },
+                },
+              },
+              Owner: {
+                type: 'object',
+                properties: {
+                  pet: { $ref: '#/components/schemas/Pet' },
+                  cat: { $ref: '#/components/schemas/Cat' },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const resolved = dereference({ $ref: '#/components/schemas/Owner' }, ctx);
+
+      const pet = (resolved.properties as Record<string, unknown>).pet;
+      const cat = (resolved.properties as Record<string, unknown>).cat;
+
+      const petItems = (
+        (pet as Record<string, unknown>).properties as Record<string, unknown>
+      ).playmates;
+      const petItemsItems = (petItems as Record<string, unknown>).items;
+      expect((petItemsItems as Record<string, unknown>).type).toBe('object');
+      expect(
+        (
+          (petItemsItems as Record<string, unknown>).properties as Record<
+            string,
+            unknown
+          >
+        ).name,
+      ).toBeDefined();
+
+      const catItems = (
+        (cat as Record<string, unknown>).properties as Record<string, unknown>
+      ).playmates;
+      const catItemsItems = (catItems as Record<string, unknown>).items;
+      expect((catItemsItems as Record<string, unknown>).type).toBe('object');
+      expect(
+        (
+          (catItemsItems as Record<string, unknown>).properties as Record<
+            string,
+            unknown
+          >
+        ).meow,
+      ).toBeDefined();
+    });
+
     it('resolves $dynamicRef for non-identifier schema keys (hyphenated)', () => {
       const ctx = makeContextSpec({
         spec: {

@@ -1553,6 +1553,10 @@ export const dereference = (
     resolvedSchema,
   );
 
+  if (isDynamicReference(resolvedSchema)) {
+    return dereferenceDynamicRef(resolvedSchema, resolvedContext);
+  }
+
   return dereferenceProperties(resolvedSchema, resolvedContext);
 };
 
@@ -1622,15 +1626,16 @@ function dereferenceDynamicRef(
     return {};
   }
 
-  const dynamicRefPath = `$dynamicRef:${dynamicRef}`;
-  if (context.parents?.includes(dynamicRefPath)) {
-    return {};
-  }
   const {
     resolvedTypeName,
     schema: resolvedSchema,
     schemaName,
   } = resolveDynamicRef(anchorName, context);
+
+  const dynamicRefPath = `$dynamicRef:${dynamicRef}@${schemaName ?? '?'}`;
+  if (context.parents?.includes(dynamicRefPath)) {
+    return {};
+  }
 
   if (resolvedTypeName === 'unknown' || !isObject(resolvedSchema)) {
     return {};
