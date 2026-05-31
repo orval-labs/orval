@@ -39,10 +39,7 @@ export const getSearchPetsResponseMock = (): Pets =>
         undefined,
       ]))(),
     requiredNullableString: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        null,
-      ]),
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
       null,
     ]),
     optionalNullableString: faker.helpers.arrayElement([
@@ -83,10 +80,7 @@ export const getListPetsResponseMock = (): Pets =>
           undefined,
         ]))(),
       requiredNullableString: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
         null,
       ]),
       optionalNullableString: faker.helpers.arrayElement([
@@ -124,10 +118,7 @@ export const getListPetsResponseMock = (): Pets =>
           undefined,
         ]))(),
       requiredNullableString: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
         null,
       ]),
       optionalNullableString: faker.helpers.arrayElement([
@@ -186,10 +177,7 @@ export const getUpdatePetByIdResponseMock = (
           undefined,
         ]))(),
       requiredNullableString: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
         null,
       ]),
       optionalNullableString: faker.helpers.arrayElement([
@@ -232,10 +220,7 @@ export const getPatchPetByIdResponseMock = (
           undefined,
         ]))(),
       requiredNullableString: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
         null,
       ]),
       optionalNullableString: faker.helpers.arrayElement([

@@ -486,4 +486,17 @@ export default defineConfig({
       target: '../specifications/issue-2465.yaml',
     },
   },
+  issue3484: {
+    output: {
+      target: '../generated/mock/issue-3484/endpoints.ts',
+      schemas: '../generated/mock/issue-3484/model',
+      client: 'fetch',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3484.yaml',
+    },
+  },
 });
