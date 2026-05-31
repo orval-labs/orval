@@ -13,7 +13,6 @@ export type ListPetsByAgeParams = {
   /**
    * Filter by latest birthdate.
    * Example: 2020-01-01T00:00:00Z
-   *
    */
   latestBirthdate?: Date;
 };

@@ -83,6 +83,59 @@ describe('jsDoc', () => {
 `);
   });
 
+  it('trims trailing empty description lines', () => {
+    expect(
+      jsDoc({
+        description: 'line one\n\nline two\n',
+      }),
+    ).toBe(`/**
+ * line one
+ *
+ * line two
+ */
+`);
+  });
+
+  it('preserves intentional empty lines in array descriptions', () => {
+    expect(
+      jsDoc({
+        description: ['Generated', '', 'Do not edit'],
+      }),
+    ).toBe(`/**
+ * Generated
+ *
+ * Do not edit
+ */
+`);
+  });
+
+  it('trims trailing empty array description lines', () => {
+    expect(
+      jsDoc({
+        description: ['line one', 'line two', ''],
+      }),
+    ).toBe(`/**
+ * line one
+ * line two
+ */
+`);
+  });
+
+  it('does not render multi-line descriptions as one-line docs', () => {
+    expect(
+      jsDoc(
+        {
+          description: 'line one\nline two\n',
+        },
+        true,
+      ),
+    ).toBe(`/**
+   * line one
+   * line two
+   */
+`);
+  });
+
   it('escapes */ in multi-line descriptions', () => {
     expect(
       jsDoc({
