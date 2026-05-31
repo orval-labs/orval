@@ -113,10 +113,6 @@ export const LogLevels: Record<LogLevel, number> = {
   info: 3,
 };
 
-let lastType: LogType | undefined;
-let lastMsg: string | undefined;
-let sameCount = 0;
-
 function clearScreen() {
   const repeatCount = process.stdout.rows - 2;
   const blank = repeatCount > 0 ? '\n'.repeat(repeatCount) : '';
@@ -135,6 +131,9 @@ export function createLogger(
   options: LoggerOptions = {},
 ): Logger {
   const { prefix = '[vite]', allowClearScreen = true } = options;
+  let lastType: LogType | undefined;
+  let lastMsg: string | undefined;
+  let sameCount = 0;
 
   const thresh = LogLevels[level];
   const clear =
