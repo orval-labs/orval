@@ -11,6 +11,10 @@ export interface MockDefinition {
   name: string;
   overrided?: boolean;
   includedProperties?: string[];
+  // True when `value` already embeds its own null branch (e.g. the scalar
+  // getter wrapped it via `getNullable`). The object property layer reads this
+  // to avoid wrapping the value in a second `arrayElement([..., null])`.
+  nullWrapped?: boolean;
 }
 
 type OpenApiObjectSchema = Extract<OpenApiSchemaObject, object>;

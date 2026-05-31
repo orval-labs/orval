@@ -758,3 +758,41 @@ test('react-query issue-2540 imports external-file $ref schemas by schema name, 
   );
   expect(model).toContain('export interface InternalServerError500 {');
 });
+
+test('mock issue-3484 required nullable scalars get a single null branch', async () => {
+  // Regression for #3484: a *required* property typed as an OpenAPI 3.1
+  // nullable union (`type: [<scalar>, 'null']`) — the same shape OAS 3.0
+  // `nullable: true` is upgraded to — must emit a single
+  // `faker.helpers.arrayElement([<value>, null])`. Previously the scalar
+  // getter and the object property layer each added a null branch, producing
+  // `arrayElement([arrayElement([<value>, null]), null])` and skewing null to
+  // ~75%.
+  const content = await readFile(
+    generated('mock', 'issue-3484', 'endpoints.ts'),
+    'utf8',
+  );
+
+  const start = content.indexOf('export const getGetPetResponseMock');
+  expect(start, 'getGetPetResponseMock should be generated').toBeGreaterThan(
+    -1,
+  );
+  const nextExport = content.indexOf('export const ', start + 1);
+  const mock = content.slice(
+    start,
+    nextExport === -1 ? content.length : nextExport,
+  );
+
+  // No property may nest one `arrayElement([..., null])` directly inside
+  // another `arrayElement([..., null])` — that is the double wrap. (The
+  // string-enum `kind` legitimately nests an enum `arrayElement` whose inner
+  // list contains no `null`, so it does not match this pattern.)
+  expect(mock).not.toMatch(
+    /arrayElement\(\[\s*faker\.helpers\.arrayElement\(\[[\s\S]*?null,?\s*\]\),\s*null/,
+  );
+
+  // Boolean is left bare by the scalar getter, so the object layer must still
+  // contribute its single null branch.
+  expect(mock.replace(/\s+/g, ' ')).toContain(
+    'faker.helpers.arrayElement([faker.datatype.boolean(), null])',
+  );
+});

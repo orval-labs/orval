@@ -20,10 +20,7 @@ export const getSearchPetsResponseMock = (): Pets =>
     name: (() => faker.person.lastName())(),
     tag: (() => faker.person.lastName())(),
     requiredNullableString: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        null,
-      ]),
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
       null,
     ]),
     optionalNullableString: faker.helpers.arrayElement([
@@ -45,10 +42,7 @@ export const getListPetsResponseMock = (): Pets =>
       name: (() => faker.person.lastName())(),
       tag: (() => faker.person.lastName())(),
       requiredNullableString: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
         null,
       ]),
       optionalNullableString: faker.helpers.arrayElement([
@@ -67,10 +61,7 @@ export const getListPetsResponseMock = (): Pets =>
       name: (() => faker.person.lastName())(),
       tag: (() => faker.person.lastName())(),
       requiredNullableString: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
         null,
       ]),
       optionalNullableString: faker.helpers.arrayElement([
@@ -97,10 +88,7 @@ export const getUpdatePetResponseMock = (
   name: (() => faker.person.lastName())(),
   tag: (() => faker.person.lastName())(),
   requiredNullableString: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
     null,
   ]),
   optionalNullableString: faker.helpers.arrayElement([
@@ -120,10 +108,7 @@ export const getPatchPetResponseMock = (
   name: (() => faker.person.lastName())(),
   tag: (() => faker.person.lastName())(),
   requiredNullableString: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
     null,
   ]),
   optionalNullableString: faker.helpers.arrayElement([
