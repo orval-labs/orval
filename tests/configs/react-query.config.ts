@@ -66,6 +66,24 @@ export default defineConfig({
       target: '../specifications/issue-2999.yaml',
     },
   },
+  'issue-2540-external-ref-import-path': {
+    output: {
+      target:
+        '../generated/react-query/issue-2540-external-ref-import-path/endpoints.ts',
+      schemas:
+        '../generated/react-query/issue-2540-external-ref-import-path/model',
+      client: 'react-query',
+      mode: 'tags-split',
+      // indexFiles:false forces direct file-path imports, which is where #2540's
+      // wrong external-YAML-basename path used to surface (the barrel masked it).
+      indexFiles: false,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-2540/issue-2540.yaml',
+    },
+  },
   basic: {
     output: {
       target: '../generated/react-query/basic/endpoints.ts',

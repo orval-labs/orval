@@ -708,3 +708,53 @@ test('react-query issue-2999 keeps a single v5 overload block per hook with useI
     ).toBe(5);
   }
 });
+
+test('react-query issue-2540 imports external-file $ref schemas by schema name, not the YAML basename', async () => {
+  // Regression for #2540: an operation response that `$ref`s a schema in an
+  // external YAML file (`./common-schemas.yaml#/components/schemas/...`) used
+  // to emit an import whose PATH was derived from the external file basename
+  // (`../model/.../common-schemas`) instead of the schema file orval actually
+  // generates (`../model/internalServerError500`), so the output failed to
+  // compile with "Cannot find module '.../common-schemas'". The v8 external
+  // `$ref` overhaul fixed this; keep this focused assertion alongside the
+  // snapshot so #2540 fails with a targeted message instead of a full-file
+  // snapshot diff. `indexFiles: false` is required so the imports are direct
+  // file paths (a barrel re-export would mask the wrong basename).
+  const endpoints = await readFile(
+    generated(
+      'react-query',
+      'issue-2540-external-ref-import-path',
+      'user',
+      'user.ts',
+    ),
+    'utf8',
+  );
+
+  // Both external-file schemas — the 200 success body and the 500 error body —
+  // import from the schema-name file, never the `common-schemas` YAML basename.
+  expect(endpoints).toContain(
+    "import type { UserProfile } from '../model/userProfile';",
+  );
+  expect(endpoints).toContain(
+    "import type { InternalServerError500 } from '../model/internalServerError500';",
+  );
+  // The external YAML file basename must not leak into an import path — the
+  // #2540 regression always surfaces as `from '...common-schemas'`. Scope the
+  // check to import sources (rather than banning the substring anywhere) so a
+  // future generator that printed the source `$ref` in a comment wouldn't trip
+  // a false failure.
+  expect(endpoints).not.toMatch(/from\s+['"][^'"]*common[-_]?schemas/i);
+
+  // The referenced schema is emitted as a standalone file at the flat path,
+  // not nested under a directory named after the external YAML file.
+  const model = await readFile(
+    generated(
+      'react-query',
+      'issue-2540-external-ref-import-path',
+      'model',
+      'internalServerError500.ts',
+    ),
+    'utf8',
+  );
+  expect(model).toContain('export interface InternalServerError500 {');
+});
