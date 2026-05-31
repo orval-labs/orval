@@ -4126,6 +4126,189 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
       expect(result.functions.some(([fn]) => fn === 'namedRef')).toBe(false);
     });
+
+    it('emits namedRef for $dynamicRef resolving to a component schema', () => {
+      const context = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+              Lizard: {
+                type: 'object',
+                properties: {
+                  friends: {
+                    type: 'array',
+                    items: { $dynamicRef: '#Pet' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const result = generateZodValidationSchemaDefinition(
+        { $dynamicRef: '#Pet' } as never,
+        context,
+        'friends',
+        false,
+        false,
+        { required: true, useReusableSchemas: true },
+      );
+
+      expect(result.functions[0]).toEqual([
+        'namedRef',
+        { name: 'Pet', sourceRef: '#/components/schemas/Pet' },
+      ]);
+    });
+
+    it('emits namedRef for self-referential $dynamicRef', () => {
+      const context = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  playmates: {
+                    type: 'array',
+                    items: { $dynamicRef: '#Pet' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const result = generateZodValidationSchemaDefinition(
+        { $dynamicRef: '#Pet' } as never,
+        context,
+        'playmates',
+        false,
+        false,
+        { required: true, useReusableSchemas: true },
+      );
+
+      expect(result.functions[0]).toEqual([
+        'namedRef',
+        { name: 'Pet', sourceRef: '#/components/schemas/Pet' },
+      ]);
+    });
+
+    it('emits namedRef for $dynamicRef with nullable sibling', () => {
+      const context = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+          },
+        },
+      });
+
+      const result = generateZodValidationSchemaDefinition(
+        { $dynamicRef: '#Pet', nullable: true } as never,
+        context,
+        'friends',
+        false,
+        false,
+        { required: false, useReusableSchemas: true },
+      );
+
+      expect(result.functions[0]).toEqual([
+        'namedRef',
+        { name: 'Pet', sourceRef: '#/components/schemas/Pet' },
+      ]);
+      expect(result.functions[1]).toEqual(['nullish', undefined]);
+    });
+
+    it('falls back to empty for unresolvable $dynamicRef with useReusableSchemas', () => {
+      const context = makeContextSpec({
+        spec: { components: { schemas: {} } },
+      });
+
+      const result = generateZodValidationSchemaDefinition(
+        { $dynamicRef: '#nonexistent' } as never,
+        context,
+        'friends',
+        false,
+        false,
+        { required: true, useReusableSchemas: true },
+      );
+
+      expect(result.functions.some(([fn]) => fn === 'namedRef')).toBe(false);
+    });
+
+    it('falls back to inlining for $dynamicRef with non-chainable siblings', () => {
+      const context = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+          },
+        },
+      });
+
+      const result = generateZodValidationSchemaDefinition(
+        {
+          $dynamicRef: '#Pet',
+          properties: { extra: { type: 'string' } },
+        } as never,
+        context,
+        'friends',
+        false,
+        false,
+        { required: true, useReusableSchemas: true },
+      );
+
+      expect(result.functions.some(([fn]) => fn === 'namedRef')).toBe(false);
+    });
+
+    it('emits namedRef for $dynamicRef with hyphenated schema key', () => {
+      const context = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              'my-pet': {
+                $dynamicAnchor: 'MyPet',
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+          },
+        },
+      });
+
+      const result = generateZodValidationSchemaDefinition(
+        { $dynamicRef: '#MyPet' } as never,
+        context,
+        'friends',
+        false,
+        false,
+        { required: true, useReusableSchemas: true },
+      );
+
+      expect(result.functions[0]).toEqual([
+        'namedRef',
+        { name: 'MyPet', sourceRef: '#/components/schemas/my-pet' },
+      ]);
+    });
   });
 });
 
@@ -8682,5 +8865,615 @@ describe('generateMeta (.meta())', () => {
       { required: true },
     );
     expect(offDef.functions.some((fn) => fn[0] === 'describe')).toBe(false);
+  });
+});
+
+function makeZodOverride(overrides: Record<string, unknown> = {}) {
+  return {
+    strict: {
+      param: false,
+      body: false,
+      response: false,
+      query: false,
+      header: false,
+    },
+    generate: {
+      param: false,
+      body: false,
+      response: true,
+      query: false,
+      header: false,
+    },
+    coerce: {
+      param: false,
+      body: false,
+      response: false,
+      query: false,
+      header: false,
+    },
+    generateEachHttpStatus: false,
+    dateTimeOptions: {},
+    timeOptions: {},
+    ...overrides,
+  };
+}
+
+describe('$dynamicRef / $dynamicAnchor', () => {
+  const petstoreComponents = {
+    Pet: {
+      $dynamicAnchor: 'Pet',
+      type: 'object',
+      properties: {
+        petType: { type: 'string' },
+        name: { type: 'string' },
+        playmates: {
+          type: 'array',
+          items: { $dynamicRef: '#Pet' },
+        },
+      },
+    },
+    Cat: {
+      $dynamicAnchor: 'Pet',
+      type: 'object',
+      properties: {
+        petType: { type: 'string', enum: ['cat'] },
+        name: { type: 'string' },
+        meow: { type: 'boolean' },
+        playmates: {
+          type: 'array',
+          items: { $dynamicRef: '#Pet' },
+        },
+      },
+    },
+    Lizard: {
+      type: 'object',
+      properties: {
+        petType: { type: 'string', enum: ['lizard'] },
+        name: { type: 'string' },
+        lovesRocks: { type: 'boolean' },
+        playmates: {
+          type: 'array',
+          items: { $dynamicRef: '#Pet' },
+        },
+      },
+    },
+  };
+
+  function makeApiSchema(paths: Record<string, unknown>) {
+    const baseContext = createTestContextSpec({
+      output: {
+        propertySortOrder: PropertySortOrder.ALPHABETICAL,
+      },
+    });
+    return {
+      pathRoute: Object.keys(paths)[0],
+      context: {
+        ...baseContext,
+        spec: {
+          openapi: '3.1.0',
+          info: { title: 'Test', version: '1.0.0' },
+          paths,
+          components: { schemas: petstoreComponents },
+        },
+        output: {
+          ...baseContext.output,
+          override: {
+            ...baseContext.output.override,
+            zod: {
+              generateEachHttpStatus: false,
+            },
+          },
+        },
+      },
+    } as unknown as GeneratorOptions;
+  }
+
+  describe('dereference', () => {
+    it('resolves $dynamicRef via fallback when schema has no local $dynamicAnchor', () => {
+      const ctx = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+              Lizard: {
+                type: 'object',
+                properties: {
+                  playmates: {
+                    type: 'array',
+                    items: { $dynamicRef: '#Pet' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const resolved = dereference(
+        {
+          $ref: '#/components/schemas/Lizard',
+        },
+        ctx,
+      );
+
+      const playmatesItems = (resolved.properties as Record<string, unknown>)
+        .playmates;
+      expect(playmatesItems).toBeDefined();
+      const items = (playmatesItems as Record<string, unknown>).items;
+      expect(items).toBeDefined();
+      expect((items as Record<string, unknown>).type).toBe('object');
+    });
+
+    it('resolves $dynamicRef via local scope when schema overrides $dynamicAnchor', () => {
+      const ctx = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+              Cat: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: {
+                  meow: { type: 'boolean' },
+                  playmates: {
+                    type: 'array',
+                    items: { $dynamicRef: '#Pet' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const resolved = dereference({ $ref: '#/components/schemas/Cat' }, ctx);
+
+      const playmatesItems = (resolved.properties as Record<string, unknown>)
+        .playmates;
+      const items = (playmatesItems as Record<string, unknown>).items;
+      expect(items).toBeDefined();
+      expect((items as Record<string, unknown>).type).toBe('object');
+      const itemsProps = (items as Record<string, unknown>)
+        .properties as Record<string, unknown>;
+      expect(itemsProps).toBeDefined();
+      expect(itemsProps.meow).toBeDefined();
+    });
+
+    it('returns empty for external $dynamicRef', () => {
+      const ctx = makeContextSpec({
+        spec: { components: { schemas: {} } },
+      });
+
+      const resolved = dereference(
+        { $dynamicRef: 'other.json#node' } as never,
+        ctx,
+      );
+
+      expect(resolved).toEqual({});
+    });
+
+    it('returns empty for missing anchor', () => {
+      const ctx = makeContextSpec({
+        spec: { components: { schemas: {} } },
+      });
+
+      const resolved = dereference(
+        { $dynamicRef: '#nonexistent' } as never,
+        ctx,
+      );
+
+      expect(resolved).toEqual({});
+    });
+
+    it('breaks cycle for self-referential $dynamicRef', () => {
+      const ctx = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  playmates: {
+                    type: 'array',
+                    items: { $dynamicRef: '#Pet' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const resolved = dereference({ $ref: '#/components/schemas/Pet' }, ctx);
+
+      expect(resolved).toBeDefined();
+      const playmates = (resolved.properties as Record<string, unknown>)
+        .playmates;
+      const items = (playmates as Record<string, unknown>).items;
+      expect(items).toBeDefined();
+      const innerPlaymates = (
+        (items as Record<string, unknown>).properties as Record<string, unknown>
+      ).playmates;
+      const innerItems = (innerPlaymates as Record<string, unknown>).items;
+      expect(Object.keys(innerItems as object).length).toBe(0);
+    });
+
+    it('resolves $defs bound anchor to concrete schema', () => {
+      const ctx = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              User: {
+                type: 'object',
+                properties: { id: { type: 'string' } },
+              },
+              Container: {
+                type: 'object',
+                $defs: {
+                  itemType: {
+                    $dynamicAnchor: 'itemType',
+                    $ref: '#/components/schemas/User',
+                  },
+                },
+                properties: {
+                  items: {
+                    type: 'array',
+                    items: { $dynamicRef: '#itemType' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const resolved = dereference(
+        { $ref: '#/components/schemas/Container' },
+        ctx,
+      );
+
+      const items = (
+        (resolved.properties as Record<string, unknown>).items as Record<
+          string,
+          unknown
+        >
+      ).items;
+      expect(items).toBeDefined();
+      expect((items as Record<string, unknown>).type).toBe('object');
+      const itemsProps = (items as Record<string, unknown>)
+        .properties as Record<string, unknown>;
+      expect(itemsProps).toBeDefined();
+      expect(itemsProps.id).toBeDefined();
+    });
+
+    it('resolves $ref whose target is a root $dynamicRef', () => {
+      const ctx = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+              PetRef: {
+                $dynamicRef: '#Pet',
+              },
+            },
+          },
+        },
+      });
+
+      const resolved = dereference(
+        { $ref: '#/components/schemas/PetRef' },
+        ctx,
+      );
+
+      expect(resolved).toBeDefined();
+      expect((resolved as Record<string, unknown>).type).toBe('object');
+      const props = (resolved as Record<string, unknown>).properties as Record<
+        string,
+        unknown
+      >;
+      expect(props).toBeDefined();
+      expect(props.name).toBeDefined();
+    });
+
+    it('does not collide cycle keys across different dynamic scopes', () => {
+      const ctx = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  playmates: {
+                    type: 'array',
+                    items: { $dynamicRef: '#Pet' },
+                  },
+                },
+              },
+              Cat: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: {
+                  meow: { type: 'boolean' },
+                  playmates: {
+                    type: 'array',
+                    items: { $dynamicRef: '#Pet' },
+                  },
+                },
+              },
+              Owner: {
+                type: 'object',
+                properties: {
+                  pet: { $ref: '#/components/schemas/Pet' },
+                  cat: { $ref: '#/components/schemas/Cat' },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const resolved = dereference({ $ref: '#/components/schemas/Owner' }, ctx);
+
+      const pet = (resolved.properties as Record<string, unknown>).pet;
+      const cat = (resolved.properties as Record<string, unknown>).cat;
+
+      const petItems = (
+        (pet as Record<string, unknown>).properties as Record<string, unknown>
+      ).playmates;
+      const petItemsItems = (petItems as Record<string, unknown>).items;
+      expect((petItemsItems as Record<string, unknown>).type).toBe('object');
+      expect(
+        (
+          (petItemsItems as Record<string, unknown>).properties as Record<
+            string,
+            unknown
+          >
+        ).name,
+      ).toBeDefined();
+
+      const catItems = (
+        (cat as Record<string, unknown>).properties as Record<string, unknown>
+      ).playmates;
+      const catItemsItems = (catItems as Record<string, unknown>).items;
+      expect((catItemsItems as Record<string, unknown>).type).toBe('object');
+      expect(
+        (
+          (catItemsItems as Record<string, unknown>).properties as Record<
+            string,
+            unknown
+          >
+        ).meow,
+      ).toBeDefined();
+    });
+
+    it('resolves $dynamicRef for non-identifier schema keys (hyphenated)', () => {
+      const ctx = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              'my-pet': {
+                $dynamicAnchor: 'MyPet',
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+              'my-lizard': {
+                type: 'object',
+                properties: {
+                  friends: {
+                    type: 'array',
+                    items: { $dynamicRef: '#MyPet' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const resolved = dereference(
+        { $ref: '#/components/schemas/my-lizard' },
+        ctx,
+      );
+
+      const friends = (resolved.properties as Record<string, unknown>).friends;
+      const items = (friends as Record<string, unknown>).items;
+      expect(items).toBeDefined();
+      expect((items as Record<string, unknown>).type).toBe('object');
+      const itemsProps = (items as Record<string, unknown>)
+        .properties as Record<string, unknown>;
+      expect(itemsProps).toBeDefined();
+      expect(itemsProps.name).toBeDefined();
+    });
+  });
+
+  describe('e2e via generateZod', () => {
+    it('resolves fallback $dynamicRef in response (Lizard → Pet)', async () => {
+      const spec = makeApiSchema({
+        '/lizard': {
+          get: {
+            operationId: 'getLizard',
+            responses: {
+              '200': {
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/components/schemas/Lizard' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const result = await generateZod(
+        {
+          pathRoute: '/lizard',
+          verb: 'get',
+          operationName: 'getLizard',
+          override: { zod: makeZodOverride() },
+        } as unknown as Parameters<typeof generateZod>[0],
+        spec,
+        testOutput,
+      );
+
+      expect(result.implementation).toContain('"playmates"');
+      expect(result.implementation).toContain('"lovesRocks"');
+      expect(result.implementation).toContain('"name"');
+    });
+
+    it('resolves local override $dynamicRef in response (Cat → Cat)', async () => {
+      const spec = makeApiSchema({
+        '/cat': {
+          get: {
+            operationId: 'getCat',
+            responses: {
+              '200': {
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/components/schemas/Cat' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const result = await generateZod(
+        {
+          pathRoute: '/cat',
+          verb: 'get',
+          operationName: 'getCat',
+          override: { zod: makeZodOverride() },
+        } as unknown as Parameters<typeof generateZod>[0],
+        spec,
+        testOutput,
+      );
+
+      expect(result.implementation).toContain('"meow"');
+      expect(result.implementation).toContain('"playmates"');
+    });
+
+    it('emits zod.unknown() for missing anchor', async () => {
+      const baseContext = createTestContextSpec({
+        output: {
+          propertySortOrder: PropertySortOrder.ALPHABETICAL,
+        },
+      });
+      const spec = {
+        pathRoute: '/broken',
+        context: {
+          ...baseContext,
+          spec: {
+            openapi: '3.1.0',
+            info: { title: 'Test', version: '1.0.0' },
+            paths: {
+              '/broken': {
+                get: {
+                  operationId: 'getBroken',
+                  responses: {
+                    '200': {
+                      content: {
+                        'application/json': {
+                          schema: {
+                            type: 'object',
+                            properties: {
+                              items: {
+                                type: 'array',
+                                items: { $dynamicRef: '#nonexistent' },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            components: { schemas: {} },
+          },
+          output: {
+            ...baseContext.output,
+            override: {
+              ...baseContext.output.override,
+              zod: { generateEachHttpStatus: false },
+            },
+          },
+        },
+      } as unknown as GeneratorOptions;
+
+      const result = await generateZod(
+        {
+          pathRoute: '/broken',
+          verb: 'get',
+          operationName: 'getBroken',
+          override: { zod: makeZodOverride() },
+        } as unknown as Parameters<typeof generateZod>[0],
+        spec,
+        testOutput,
+      );
+
+      expect(result.implementation).toContain('zod.unknown()');
+    });
+
+    it('handles $dynamicRef inside allOf', async () => {
+      const spec = makeApiSchema({
+        '/mixed': {
+          get: {
+            operationId: 'getMixed',
+            responses: {
+              '200': {
+                content: {
+                  'application/json': {
+                    schema: {
+                      allOf: [
+                        { $ref: '#/components/schemas/Lizard' },
+                        {
+                          type: 'object',
+                          properties: {
+                            tag: { type: 'string' },
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const result = await generateZod(
+        {
+          pathRoute: '/mixed',
+          verb: 'get',
+          operationName: 'getMixed',
+          override: { zod: makeZodOverride() },
+        } as unknown as Parameters<typeof generateZod>[0],
+        spec,
+        testOutput,
+      );
+
+      expect(result.implementation).toContain('"tag"');
+      expect(result.implementation).toContain('"playmates"');
+    });
   });
 });
