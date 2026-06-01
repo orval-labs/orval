@@ -8,20 +8,21 @@ import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type {
+  Bulldog,
   CatDog,
   Dog,
   DogGroup,
   Duck,
+  RequiredBulldog,
   RequiredCat,
   RequiredDog,
+  RequiredSiamese,
 } from './model';
 
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { Bulldog, RequiredBulldog, RequiredSiamese } from './model';
 
 /**
  * @summary sample cat

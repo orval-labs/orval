@@ -14,14 +14,12 @@ import type {
 
 import { useCallback } from 'react';
 
-import type { Error, Pet } from './model';
+import type { Error, Pet, PetBase, PetExtended } from './model';
 
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { PetBase, PetExtended } from './model';
 
 import { useCustomInstance } from '../../../mutators/use-custom-instance';
 /**

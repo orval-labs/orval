@@ -17,9 +17,9 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { StringToIntegerMap, StringToNumberMap } from './model';
 
-import { faker } from '@faker-js/faker';
-
 import { getIntegerLikeMock, getNumberLikeMock } from './model/index.faker';
+
+import { faker } from '@faker-js/faker';
 
 export const getIssue3200 = (axiosInstance: AxiosInstance = axios) => {
   const getIntegerMap = (

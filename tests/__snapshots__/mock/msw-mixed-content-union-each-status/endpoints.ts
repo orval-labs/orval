@@ -7,14 +7,12 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import type { Pet } from './model';
+import type { Error, Pet } from './model';
 
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { Error } from './model';
 
 export const getMSWMixedContentEachStatusRegression = (
   axiosInstance: AxiosInstance = axios,

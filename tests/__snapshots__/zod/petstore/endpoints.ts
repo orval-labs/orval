@@ -6,11 +6,6 @@
  */
 import * as zod from 'zod';
 
-import { faker } from '@faker-js/faker';
-
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
-
 import type {
   Cat,
   Dachshund,
@@ -20,6 +15,11 @@ import type {
   PetWithTag,
   Pets,
 } from './model';
+
+import { faker } from '@faker-js/faker';
+
+import { HttpResponse, http } from 'msw';
+import type { RequestHandlerOptions } from 'msw';
 
 /**
  * @summary List all pets

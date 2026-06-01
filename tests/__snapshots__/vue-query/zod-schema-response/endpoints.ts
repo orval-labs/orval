@@ -24,9 +24,13 @@ import { computed, unref } from 'vue';
 import type { MaybeRef } from 'vue';
 
 import type {
+  Cat,
   CreatePetsBody,
   CreatePetsParams,
+  Dachshund,
+  Dog,
   Error,
+  Labradoodle,
   ListPetsParams,
   Pet,
   PetWithTag,
@@ -37,8 +41,6 @@ import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { Cat, Dachshund, Dog, Labradoodle } from './model';
 
 /**
  * @summary List all pets

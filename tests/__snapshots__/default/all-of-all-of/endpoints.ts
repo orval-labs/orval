@@ -7,14 +7,13 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
+import { NoteType } from './model';
 import type { PrivateNote, SharedNote } from './model';
 
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import { NoteType } from './model';
 
 export const createSharedNote = (
   options?: AxiosRequestConfig,

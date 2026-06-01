@@ -16,9 +16,9 @@ import type {
   Pets,
 } from './model';
 
-import { faker } from '@faker-js/faker';
-
 import { getCatMock, getDogMock, getPetMock } from './model/index.faker';
+
+import { faker } from '@faker-js/faker';
 
 export const getSwaggerPetstore = (axiosInstance: AxiosInstance = axios) => {
   /**

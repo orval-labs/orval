@@ -21,9 +21,13 @@ import { computed, unref } from 'vue';
 import type { MaybeRef } from 'vue';
 
 import type {
+  Cat,
   CreatePetsBody,
   CreatePetsParams,
+  Dachshund,
+  Dog,
   Error,
+  Labradoodle,
   ListPetsParams,
   Pet,
   PetWithTag,
@@ -34,8 +38,6 @@ import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { Cat, Dachshund, Dog, Labradoodle } from './model';
 
 import { customFetch } from '../../../mutators/custom-fetch';
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];

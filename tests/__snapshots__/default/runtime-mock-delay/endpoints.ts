@@ -8,8 +8,12 @@ import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type {
+  Cat,
   CreatePetsBody,
   CreatePetsParams,
+  Dachshund,
+  Dog,
+  Labradoodle,
   ListPetsParams,
   Pet,
   PetWithTag,
@@ -20,8 +24,6 @@ import { faker } from '@faker-js/faker';
 
 import { HttpResponse, delay, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { Cat, Dachshund, Dog, Labradoodle } from './model';
 
 /**
  * @summary List all pets

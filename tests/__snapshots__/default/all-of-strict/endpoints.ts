@@ -6,12 +6,12 @@
  */
 import * as zod from 'zod';
 
+import type { PostFish200 } from './model';
+
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { PostFish200 } from './model';
 
 export const PostFishBody = zod
   .object({

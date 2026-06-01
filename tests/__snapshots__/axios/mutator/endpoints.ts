@@ -5,8 +5,12 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  Cat,
   CreatePetsBody,
   CreatePetsParams,
+  Dachshund,
+  Dog,
+  Labradoodle,
   ListPetsParams,
   Pet,
   PetWithTag,
@@ -17,8 +21,6 @@ import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
-
-import type { Cat, Dachshund, Dog, Labradoodle } from './model';
 
 import listPetsMutator from '../../../mutators/custom-client';
 import createPetsMutator from '../../../mutators/custom-client';
