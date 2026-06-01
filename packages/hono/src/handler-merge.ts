@@ -271,6 +271,7 @@ export const reconcileHandlerFile = async (
     module: string,
     isOrvalName: (name: string) => boolean,
     augment?: (name: string) => boolean,
+    collectRenames?: Map<string, string>,
   ) => {
     if (!existing) {
       const toInsert = augment ? names.filter((name) => augment(name)) : names;
@@ -307,6 +308,18 @@ export const reconcileHandlerFile = async (
       return;
     }
 
+    // Record the camelCase→PascalCase migrations this rewrite implies, so every
+    // OTHER reference to the old binding (validator args, `z.infer<typeof X>` in
+    // bodies, etc.) can be renamed too — not just the import itself.
+    if (collectRenames) {
+      for (const old of importedNames(existing)) {
+        const next = names.find(
+          (name) => name !== old && name.toLowerCase() === old.toLowerCase(),
+        );
+        if (next) collectRenames.set(old, next);
+      }
+    }
+
     edits.push({
       start: existing.getStart(sourceFile),
       end: existing.getEnd(),
@@ -327,6 +340,7 @@ export const reconcileHandlerFile = async (
     : 'zValidator';
 
   const requiredSchemas = new Set<string>();
+  const removedValidatorRanges: [number, number][] = [];
   for (const desiredHandler of desired.handlers) {
     const parsed = handlers.find(
       (handler) => handler.name === desiredHandler.handlerName,
@@ -340,9 +354,14 @@ export const reconcileHandlerFile = async (
         edits,
         zValidatorName,
         requiredSchemas,
+        removedValidatorRanges,
       );
     }
   }
+
+  // Schema migrations (old camelCase → new PascalCase) implied by rewriting the
+  // zod import; applied file-wide below so every reference is migrated.
+  const schemaRenames = new Map<string, string>();
 
   const toAppend = desired.handlers.filter(
     (handler) => !existingNames.has(handler.handlerName),
@@ -415,7 +434,44 @@ export const reconcileHandlerFile = async (
     zodModule,
     (name) => zodLower.has(name.toLowerCase()),
     needsBareZod,
+    schemaRenames,
   );
+
+  // Apply the schema migrations file-wide: rename every remaining reference to a
+  // migrated schema (validator args, `z.infer<typeof X>` in bodies, helper code).
+  // The import is rewritten above (its decl range is skipped here); ranges of
+  // removed validators are skipped too (their args are already deleted).
+  if (schemaRenames.size > 0) {
+    const inSkippedRange = (pos: number): boolean =>
+      importDeclarations.some(
+        (declaration) =>
+          pos >= declaration.getStart(sourceFile) && pos < declaration.getEnd(),
+      ) ||
+      removedValidatorRanges.some(([start, end]) => pos >= start && pos < end);
+
+    const renameReferences = (node: TS.Node): void => {
+      if (ts.isIdentifier(node)) {
+        const replacement = schemaRenames.get(node.text);
+        if (replacement) {
+          const parent = node.parent;
+          const isMemberName =
+            ts.isPropertyAccessExpression(parent) && parent.name === node;
+          const isDeclarationName =
+            (ts.isVariableDeclaration(parent) && parent.name === node) ||
+            (ts.isParameter(parent) && parent.name === node) ||
+            (ts.isBindingElement(parent) && parent.name === node) ||
+            (ts.isPropertyAssignment(parent) && parent.name === node) ||
+            (ts.isPropertySignature(parent) && parent.name === node);
+          const start = node.getStart(sourceFile);
+          if (!isMemberName && !isDeclarationName && !inSkippedRange(start)) {
+            edits.push({ start, end: node.getEnd(), text: replacement });
+          }
+        }
+      }
+      ts.forEachChild(node, renameReferences);
+    };
+    renameReferences(sourceFile);
+  }
 
   if (pendingInsertions.length > 0) {
     const lastImport = importDeclarations.at(-1);
@@ -448,12 +504,9 @@ const reconcileValidators = (
   edits: Edit[],
   zValidatorName: string,
   requiredSchemas: Set<string>,
+  removedRanges: [number, number][],
 ) => {
-  const existing: {
-    target: string;
-    arg: TS.CallExpression;
-    schema?: TS.Node;
-  }[] = [];
+  const existing: { target: string; arg: TS.CallExpression }[] = [];
 
   for (const arg of call.arguments) {
     if (
@@ -467,7 +520,7 @@ const reconcileValidators = (
         ts.isStringLiteralLike(target) &&
         VALIDATOR_TARGETS.has(target.text)
       ) {
-        existing.push({ target: target.text, arg, schema: arg.arguments[1] });
+        existing.push({ target: target.text, arg });
       }
     }
   }
@@ -477,26 +530,14 @@ const reconcileValidators = (
   );
   const existingByTarget = new Set(existing.map((item) => item.target));
 
+  // Remove validators the spec no longer requires. (Schema RENAMES — e.g.
+  // camelCase→PascalCase — are handled by the file-wide rename pass driven by the
+  // zod-import rewrite, so every reference is migrated, not just the arg here.)
   for (const item of existing) {
-    const want = desiredByTarget.get(item.target as ValidatorTarget);
-    if (!want) {
-      edits.push(removeArgumentEdit(sourceFile, source, item.arg));
-    } else if (
-      item.schema &&
-      ts.isIdentifier(item.schema) &&
-      item.schema.text !== want.schema &&
-      // Only migrate a pure case change of the SAME schema (camelCase →
-      // PascalCase). Never rewrite a user-chosen alias or a different identifier.
-      item.schema.text.toLowerCase() === want.schema.toLowerCase()
-    ) {
-      edits.push({
-        start: item.schema.getStart(sourceFile),
-        end: item.schema.getEnd(),
-        text: want.schema,
-      });
-      // The validator now references the PascalCase name, so it must be
-      // importable bare even if the old import can't be safely rewritten.
-      requiredSchemas.add(want.schema);
+    if (!desiredByTarget.has(item.target as ValidatorTarget)) {
+      const edit = removeArgumentEdit(sourceFile, source, item.arg);
+      edits.push(edit);
+      removedRanges.push([edit.start, edit.end]);
     }
   }
 

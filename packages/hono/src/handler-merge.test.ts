@@ -910,18 +910,23 @@ export const listPetsHandlers = factory.createHandlers(
     );
   });
 
-  it('imports the renamed schema when migrating a mixed zod import', async () => {
-    const source = `import { createFactory } from 'hono/factory';
+  it('migrates ALL references to a renamed schema, including z.infer in the body', async () => {
+    // Regression: a schema migration must update the import binding, the
+    // validator arg, AND any other reference (e.g. `z.infer<typeof schema>` in
+    // the handler body) — otherwise the body keeps a dangling old identifier.
+    const source = `import { z } from 'zod';
+import { createFactory } from 'hono/factory';
 import { zValidator } from '../endpoints.validator';
-import { ListPetsContext } from '../endpoints.context';
-import { listPetsResponse, customHelper } from '../endpoints.zod';
+import { GetStatsContext } from '../endpoints.context';
+import { getStatsResponse } from '../endpoints.zod';
 
 const factory = createFactory();
 
-export const listPetsHandlers = factory.createHandlers(
-  zValidator('response', listPetsResponse),
-  async (c: ListPetsContext) => {
-    return c.json(customHelper());
+export const getStatsHandlers = factory.createHandlers(
+  zValidator('response', getStatsResponse),
+  async (c: GetStatsContext) => {
+    const stats: z.infer<typeof getStatsResponse> = await load();
+    return c.json(stats);
   },
 );
 `;
@@ -929,23 +934,23 @@ export const listPetsHandlers = factory.createHandlers(
       imports: {
         factory: factoryImport,
         validator: { names: ['zValidator'], module: '../endpoints.validator' },
-        context: { names: ['ListPetsContext'], module: '../endpoints.context' },
-        zod: { names: ['ListPetsResponse'], module: '../endpoints.zod' },
+        context: { names: ['GetStatsContext'], module: '../endpoints.context' },
+        zod: { names: ['GetStatsResponse'], module: '../endpoints.zod' },
       },
       handlers: [
         {
-          handlerName: 'listPetsHandlers',
-          validators: [{ target: 'response', schema: 'ListPetsResponse' }],
+          handlerName: 'getStatsHandlers',
+          validators: [{ target: 'response', schema: 'GetStatsResponse' }],
           stub: '',
         },
       ],
     });
 
-    expect(result).toContain('customHelper'); // user import preserved
-    expect(result).toContain("zValidator('response', ListPetsResponse)"); // migrated
-    // the migrated PascalCase schema is imported — no unimported reference
     expect(result).toContain(
-      "import { ListPetsResponse } from '../endpoints.zod';",
+      "import { GetStatsResponse } from '../endpoints.zod';",
     );
+    expect(result).toContain("zValidator('response', GetStatsResponse)");
+    expect(result).toContain('z.infer<typeof GetStatsResponse>'); // body migrated
+    expect(result).not.toContain('getStatsResponse'); // no dangling old name
   });
 });
