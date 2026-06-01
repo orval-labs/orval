@@ -870,3 +870,21 @@ test('default issue-3505 enum values with backslashes are JS-escaped', async () 
   expect(directoryPrefix).toContain("'C:\\\\logs\\\\'");
   expect(directoryPrefix).toContain("'C:\\\\tmp\\\\'");
 });
+
+test('hono issue-3512 zod mutator import path is prefixed with an extra `../` in tags-split mode', async () => {
+  // Keep this focused assertion alongside the snapshot so #3512 fails with a
+  // targeted message instead of a full-file snapshot diff. Files in
+  // tags-split mode live one directory deeper than the path-computation base,
+  // so the mutator import must carry an extra `../` (see #3512).
+  const petsZodFile = generated(
+    'hono',
+    'petstore-tags-split-with-zod-mutator',
+    'pets',
+    'pets.zod.ts',
+  );
+  const content = await readFile(petsZodFile, 'utf8');
+
+  expect(content).toContain(
+    "import { stripNill } from '../../../../mutators/zod-preprocess';",
+  );
+});

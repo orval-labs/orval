@@ -98,6 +98,27 @@ export default defineConfig({
       },
     },
   },
+  petstoreTagsSplitWithZodMutator: {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target:
+        '../generated/hono/petstore-tags-split-with-zod-mutator/endpoints.ts',
+      mode: 'tags-split',
+      client: 'hono',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        zod: {
+          preprocess: {
+            response: {
+              name: 'stripNill',
+              path: '../mutators/zod-preprocess.ts',
+            },
+          },
+        },
+      },
+    },
+  },
   petstoreTagsSplitWithHandlers: {
     input: '../specifications/petstore.yaml',
     output: {

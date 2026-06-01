@@ -931,6 +931,7 @@ const generateZodFiles = async (
 
         const mutatorsImports = generateMutatorImports({
           mutators: allMutators,
+          oneMore: output.mode === 'tags-split',
         });
 
         let content = `${header}import { z as zod } from 'zod';\n${mutatorsImports}\n`;
