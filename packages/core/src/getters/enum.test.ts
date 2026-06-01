@@ -5,6 +5,7 @@ import {
   getEnumDescriptions,
   getEnumImplementation,
   getEnumNames,
+  getEnumUnionFromSchema,
 } from './enum';
 
 describe('getEnumImplementation', () => {
@@ -239,6 +240,41 @@ describe('getEnumNames', () => {
     } as unknown as OpenApiSchemaObject;
 
     expect(getEnumNames(schema)).toEqual(['Alpha', undefined, 'Charlie']);
+  });
+});
+
+describe('getEnumUnionFromSchema — backslash escaping', () => {
+  it('should JS-escape backslashes in enum values', () => {
+    const schema = {
+      enum: ['App\\Models\\Document', 'App\\Models\\Template'],
+    } as OpenApiSchemaObject;
+
+    const result = getEnumUnionFromSchema(schema);
+
+    expect(result).toBe(
+      "'App\\\\Models\\\\Document' | 'App\\\\Models\\\\Template'",
+    );
+  });
+
+  it('should JS-escape a value ending in a backslash', () => {
+    const schema = {
+      enum: ['C:\\logs\\'],
+    } as OpenApiSchemaObject;
+
+    const result = getEnumUnionFromSchema(schema);
+
+    expect(result).toBe("'C:\\\\logs\\\\'");
+  });
+});
+
+describe('getEnumImplementation — backslash escaping', () => {
+  it('should preserve backslash-escaped values in the generated const body', () => {
+    const result = getEnumImplementation(
+      "'App\\\\Models\\\\Document' | 'App\\\\Models\\\\Template'",
+    );
+
+    expect(result).toContain("'App\\\\Models\\\\Document'");
+    expect(result).toContain("'App\\\\Models\\\\Template'");
   });
 });
 

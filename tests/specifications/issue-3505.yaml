@@ -1,0 +1,32 @@
+openapi: 3.0.3
+info:
+  title: orval enum value escaping repro
+  version: 1.0.0
+paths:
+  /ping:
+    get:
+      operationId: ping
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  visitableType:
+                    $ref: '#/components/schemas/VisitableType'
+                  directoryPrefix:
+                    $ref: '#/components/schemas/DirectoryPrefix'
+components:
+  schemas:
+    VisitableType:
+      type: string
+      enum:
+        - 'App\Models\Document'
+        - 'App\Models\Template'
+    DirectoryPrefix:
+      type: string
+      enum:
+        - 'C:\logs\'
+        - 'C:\tmp\'
