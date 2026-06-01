@@ -164,6 +164,11 @@ const isPlainNamedImport = (declaration: TS.ImportDeclaration): boolean => {
 const setEquals = (a: string[], b: string[]): boolean =>
   a.length === b.length && a.every((value) => b.includes(value));
 
+// Escape regex metacharacters so an identifier can be interpolated literally.
+// JS identifiers may contain `$`, which would otherwise act as an anchor.
+const escapeRegExp = (value: string): string =>
+  value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+
 /**
  * The local binding name an imported symbol is bound to, honouring aliases —
  * e.g. `import { zValidator as zv }` → `'zv'`. Returns undefined when the symbol
@@ -389,7 +394,7 @@ export const reconcileHandlerFile = async (
   // (not as `Ns.Name`), is a schema a reconciled validator now references
   // (inserted or renamed), or is used by an appended handler stub.
   const referencedBare = (name: string): boolean =>
-    new RegExp(String.raw`(?<!\.)\b${name}\b`).test(bodySource);
+    new RegExp(String.raw`(?<!\.)\b${escapeRegExp(name)}\b`).test(bodySource);
   const inAppendedStub = (name: string): boolean =>
     toAppend.some((handler) => handler.stub.includes(name));
   const needsBareContext = (name: string): boolean =>

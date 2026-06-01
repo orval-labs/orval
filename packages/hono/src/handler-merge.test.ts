@@ -75,6 +75,40 @@ async function helper() {
     expect(result).toContain('async function helper() {');
   });
 
+  it('detects a bare reference whose name contains a regex metachar ($) and adds the missing import', async () => {
+    // The handler references `Get$FooContext` but its context import is missing.
+    // `referencedBare` must escape `$` before building its RegExp — otherwise `$`
+    // acts as an end-of-input anchor, the reference goes undetected, and the
+    // import is never re-added (a TS "cannot find name" error).
+    const source = `import { createFactory } from 'hono/factory';
+
+const factory = createFactory();
+
+export const getFooHandlers = factory.createHandlers(
+  async (c: Get$FooContext) => {
+    return c.json(null);
+  },
+);
+`;
+
+    const result = await reconcileHandlerFile(source, {
+      imports: {
+        factory: factoryImport,
+        context: {
+          names: ['Get$FooContext'],
+          module: '../endpoints.context',
+        },
+      },
+      handlers: [{ handlerName: 'getFooHandlers', validators: [], stub: '' }],
+    });
+
+    expect(result).toContain(
+      "import { Get$FooContext } from '../endpoints.context';",
+    );
+    // user body untouched
+    expect(result).toContain('async (c: Get$FooContext) =>');
+  });
+
   it('fixes a moved module specifier, matching the import by name', async () => {
     const source = `import { createFactory } from 'hono/factory';
 import { zValidator } from '../old/users.validator';
