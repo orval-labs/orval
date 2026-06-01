@@ -4,5 +4,8 @@
     "VoidZero.vite-plus-extension-pack",
     "unifiedjs.vscode-mdx"
   ],
-  "unwantedRecommendations": ["esbenp.prettier-vscode", "dbaeumer.vscode-eslint"]
+  "unwantedRecommendations": [
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint"
+  ]
 }

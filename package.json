@@ -2,13 +2,13 @@
   "name": "orval-workspaces",
   "version": "8.14.0",
   "private": true,
-  "type": "module",
   "license": "MIT",
   "workspaces": [
     "packages/*",
     "samples/**",
     "tests"
   ],
+  "type": "module",
   "scripts": {
     "format": "vp fmt --write",
     "format:check": "vp fmt --check",
