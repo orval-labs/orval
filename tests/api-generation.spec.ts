@@ -851,3 +851,22 @@ test('zod issue-3171 applies required from a sibling allOf member to $ref base p
   // The open-object sibling is preserved (additional properties allowed).
   expect(content).toContain('.and(zod.object({}).passthrough())');
 });
+
+test('default issue-3505 enum values with backslashes are JS-escaped', async () => {
+  const visitableType = await readFile(
+    generated('default', 'issue-3505', 'model', 'visitableType.ts'),
+    'utf8',
+  );
+
+  expect(visitableType).toContain("'App\\\\Models\\\\Document'");
+  expect(visitableType).toContain("'App\\\\Models\\\\Template'");
+  expect(visitableType).not.toContain("'App\\Models\\Document'");
+
+  const directoryPrefix = await readFile(
+    generated('default', 'issue-3505', 'model', 'directoryPrefix.ts'),
+    'utf8',
+  );
+
+  expect(directoryPrefix).toContain("'C:\\\\logs\\\\'");
+  expect(directoryPrefix).toContain("'C:\\\\tmp\\\\'");
+});
