@@ -172,6 +172,13 @@ export const DeletePetByIdParams = zod.object({
   petId: zod.string().describe('The id of the pet to delete'),
 });
 
+export const DeletePetByIdResponse = zod.void();
+
+/**
+ * @summary health check
+ */
+export const HealthCheckResponse = zod.string();
+
 /**
  * @summary combinate nullable and $ref
  */

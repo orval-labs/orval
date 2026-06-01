@@ -150,6 +150,8 @@ export const DeletePetHeader = zod.object({
   api_key: zod.string().optional(),
 });
 
+export const DeletePetResponse = zod.unknown();
+
 export const GetInventoryResponse = zod.record(zod.string(), zod.number());
 
 export const GetOrderByIdParams = zod.object({
@@ -172,6 +174,8 @@ export const DeleteOrderParams = zod.object({
   orderId: zod.number().describe('ID of the order that needs to be deleted'),
 });
 
+export const DeleteOrderResponse = zod.unknown();
+
 export const LoginUserQueryParams = zod.object({
   username: zod.string().optional().describe('The user name for login'),
   password: zod
@@ -181,6 +185,8 @@ export const LoginUserQueryParams = zod.object({
 });
 
 export const LoginUserResponse = zod.string();
+
+export const LogoutUserResponse = zod.unknown();
 
 export const GetUserByNameParams = zod.object({
   username: zod
@@ -202,3 +208,5 @@ export const GetUserByNameResponse = zod.object({
 export const DeleteUserParams = zod.object({
   username: zod.string().describe('The name that needs to be deleted'),
 });
+
+export const DeleteUserResponse = zod.unknown();

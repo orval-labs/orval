@@ -160,6 +160,8 @@ export const DeletePetByIdParams = zod.object({
   petId: zod.string().describe('The id of the pet to delete'),
 });
 
+export const DeletePetByIdResponse = zod.void();
+
 export const ShowPetWithOwnerParams = zod.object({
   petId: zod.string().describe('The id of the pet'),
 });
