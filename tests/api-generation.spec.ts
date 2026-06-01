@@ -796,3 +796,31 @@ test('mock issue-3484 required nullable scalars get a single null branch', async
     'faker.helpers.arrayElement([faker.datatype.boolean(), null])',
   );
 });
+
+test('zod issue-3171 applies required from a sibling allOf member to $ref base props', async () => {
+  // `User`/`UserFull` define their properties in a $ref base (UserBase) and
+  // carry `required` only in a sibling allOf member. The required array must be
+  // propagated onto the base properties instead of being dropped. The open
+  // sibling (`.and(...passthrough())`) stays — neither member sets
+  // additionalProperties:false, so extra keys remain allowed. See #3171.
+  const file = generated('zod', 'issue-3171', 'issue-3171.ts');
+  const content = await readFile(file, 'utf8');
+
+  // User: only `id` is required; name/email stay optional.
+  expect(content).toContain('id: zod.string().uuid(),');
+  expect(content).toContain('name: zod.string().optional(),');
+  expect(content).toContain('email: zod.string().optional(),');
+
+  // UserFull: every field required -> the response object has no optional field.
+  const start = content.indexOf('export const GetUserResponse');
+  expect(start, 'GetUserResponse should be generated').toBeGreaterThan(-1);
+  const userFull = content.slice(start);
+  expect(userFull).toContain('id: zod.string().uuid(),');
+  expect(userFull).toContain('name: zod.string(),');
+  expect(userFull).toContain('email: zod.string(),');
+  expect(userFull).not.toContain('name: zod.string().optional()');
+  expect(userFull).not.toContain('email: zod.string().optional()');
+
+  // The open-object sibling is preserved (additional properties allowed).
+  expect(content).toContain('.and(zod.object({}).passthrough())');
+});

@@ -1,0 +1,64 @@
+openapi: '3.1.0'
+info:
+  title: Issue 3171
+  version: 0.0.1
+paths:
+  /users:
+    get:
+      operationId: listUsers
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+  /users/{id}:
+    get:
+      operationId: getUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserFull'
+components:
+  schemas:
+    UserBase:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+    # Only `id` required: the `required` lives in a sibling allOf member while
+    # the properties come from the $ref base. (#3171)
+    User:
+      allOf:
+        - $ref: '#/components/schemas/UserBase'
+        - type: object
+          required: [id]
+    # All fields required, same sibling-required composition pattern.
+    UserFull:
+      allOf:
+        - $ref: '#/components/schemas/UserBase'
+        - type: object
+          required: [id, name, email]

@@ -1060,6 +1060,84 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).toContain('name');
   });
 
+  it('applies a partial required array from a sibling allOf member to the base properties (issue #3171)', () => {
+    // Base carries the properties (in the issue this is a $ref, which is
+    // already resolved by the time it reaches the generator), the sibling
+    // member carries only the `required` array.
+    const userBase: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        id: { type: 'string', format: 'uuid' },
+        name: { type: 'string' },
+        email: { type: 'string' },
+      },
+    };
+
+    const user: OpenApiSchemaObject = {
+      allOf: [userBase, { type: 'object', required: ['id'] }],
+    };
+
+    const parsed = parseZodValidationSchemaDefinition(
+      generateZodValidationSchemaDefinition(
+        user,
+        { output: { override: { useDates: false } } } as ContextSpec,
+        'user',
+        false,
+        false,
+        { required: true },
+      ),
+      { output: { override: { useDates: false } } } as ContextSpec,
+      false,
+      false,
+      false,
+    );
+
+    // `id` is required by the sibling member -> must NOT be optional.
+    expect(parsed.zod).toContain('"id": zod.string().uuid()');
+    expect(parsed.zod).not.toContain('"id": zod.string().uuid().optional()');
+    // The other properties stay optional.
+    expect(parsed.zod).toContain('"name": zod.string().optional()');
+    expect(parsed.zod).toContain('"email": zod.string().optional()');
+    // The open-object sibling is preserved (additionalProperties allowed).
+    expect(parsed.zod).toContain('.and(');
+  });
+
+  it('applies a full required array from a sibling allOf member to the base properties (issue #3171)', () => {
+    const userBase: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        id: { type: 'string', format: 'uuid' },
+        name: { type: 'string' },
+        email: { type: 'string' },
+      },
+    };
+
+    const userFull: OpenApiSchemaObject = {
+      allOf: [userBase, { type: 'object', required: ['id', 'name', 'email'] }],
+    };
+
+    const parsed = parseZodValidationSchemaDefinition(
+      generateZodValidationSchemaDefinition(
+        userFull,
+        { output: { override: { useDates: false } } } as ContextSpec,
+        'userFull',
+        false,
+        false,
+        { required: true },
+      ),
+      { output: { override: { useDates: false } } } as ContextSpec,
+      false,
+      false,
+      false,
+    );
+
+    // Every property is required -> no `.optional()` anywhere in the object.
+    expect(parsed.zod).toContain('"id": zod.string().uuid()');
+    expect(parsed.zod).toContain('"name": zod.string()');
+    expect(parsed.zod).toContain('"email": zod.string()');
+    expect(parsed.zod).not.toContain('.optional()');
+  });
+
   it('handles allOf with number type', () => {
     const numberWithConstraints: OpenApiSchemaObject = {
       type: 'number',
