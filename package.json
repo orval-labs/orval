@@ -28,8 +28,8 @@
     "lint": "vp lint",
     "dev": "vp run -F './packages/*' dev",
     "clean": "vp cache clean",
-    "clean:all": "vp run -F './packages/*' -F './samples/*' -F orval-tests clean",
-    "nuke:all": "vp run -F './packages/*' -F './samples/*' -F orval-tests nuke && rimraf node_modules"
+    "clean:all": "vp run -F './packages/*' clean && bun run --filter '*' clean",
+    "nuke:all": "vp run -F './packages/*' nuke && bun run --filter '*' nuke && rimraf node_modules"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.0.1",
