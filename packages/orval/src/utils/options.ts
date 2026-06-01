@@ -1015,11 +1015,9 @@ function normalizeMcpOptions(
   mcp: McpOptions = {},
   workspace: string,
 ): NormalizedMcpOptions {
-  return {
-    ...(mcp.server
-      ? { server: normalizeMcpServerOptions(mcp.server, workspace) }
-      : {}),
-  };
+  return mcp.server
+    ? { server: normalizeMcpServerOptions(mcp.server, workspace) }
+    : {};
 }
 
 function normalizeJSDocOptions(
