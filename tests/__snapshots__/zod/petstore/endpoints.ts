@@ -205,6 +205,8 @@ export const DeletePetByIdParams = zod.object({
   version: zod.number().default(deletePetByIdPathVersionDefault),
 });
 
+export const DeletePetByIdResponse = zod.void();
+
 /**
  * @summary health check
  */
@@ -213,6 +215,8 @@ export const healthCheckPathVersionDefault = 1;
 export const HealthCheckParams = zod.object({
   version: zod.number().default(healthCheckPathVersionDefault),
 });
+
+export const HealthCheckResponse = zod.string();
 
 /**
  * @summary combinate nullable and $ref

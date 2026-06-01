@@ -194,6 +194,15 @@ export const DeletePetByIdParams = zod
   })
   .brand<'DeletePetByIdParams'>();
 
+export const DeletePetByIdResponse = zod
+  .void()
+  .brand<'DeletePetByIdResponse'>();
+
+/**
+ * @summary health check
+ */
+export const HealthCheckResponse = zod.string().brand<'HealthCheckResponse'>();
+
 /**
  * @summary combinate nullable and $ref
  */

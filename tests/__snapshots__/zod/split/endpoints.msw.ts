@@ -242,6 +242,8 @@ export const getShowPetByIdResponseMock = (): Pet => ({
   ]),
 });
 
+export const getHealthCheckResponseMock = (): string => faker.word.sample();
+
 export const getShowPetWithOwnerResponseLabradoodleMock = (
   overrideResponse: Partial<Labradoodle> = {},
 ): Labradoodle => ({
@@ -414,6 +416,33 @@ export const getDeletePetByIdMockHandler = (
   );
 };
 
+export const getHealthCheckMockHandler = (
+  overrideResponse?:
+    | string
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<string> | string),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    '*/health',
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      const resolvedBody =
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getHealthCheckResponseMock();
+      const textBody =
+        typeof resolvedBody === 'string'
+          ? resolvedBody
+          : JSON.stringify(resolvedBody ?? null);
+      return HttpResponse.text(textBody, { status: 200 });
+    },
+    options,
+  );
+};
+
 export const getShowPetWithOwnerMockHandler = (
   overrideResponse?:
     | PetWithTag
@@ -442,5 +471,6 @@ export const getSwaggerPetstoreMock = () => [
   getCreatePetsMockHandler(),
   getShowPetByIdMockHandler(),
   getDeletePetByIdMockHandler(),
+  getHealthCheckMockHandler(),
   getShowPetWithOwnerMockHandler(),
 ];

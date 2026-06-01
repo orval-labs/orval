@@ -48,3 +48,5 @@ export const AddListBody = zod.object({
     .min(1)
     .max(addListBodyListMax),
 });
+
+export const AddListResponse = zod.unknown();

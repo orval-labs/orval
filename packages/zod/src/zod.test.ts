@@ -4870,6 +4870,129 @@ describe('generatePartOfSchemaGenerateZod', () => {
   });
 });
 
+describe('generateResponseSchemaForNonJsonContentTypes', () => {
+  it('generates zod.string() for text/plain response', async () => {
+    const schema = {
+      pathRoute: '/health',
+      context: {
+        spec: {
+          paths: {
+            '/health': {
+              get: {
+                operationId: 'healthCheck',
+                responses: {
+                  '200': {
+                    description: 'health check',
+                    content: {
+                      'text/plain': {
+                        schema: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: { override: { zod: { generateEachHttpStatus: false } } },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/health',
+        verb: 'get',
+        operationName: 'healthCheck',
+        override: {
+          zod: { strict: {}, generate: { response: true }, coerce: {} },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      schema,
+      testOutput,
+    );
+
+    expect(result.implementation).toBe(
+      'export const HealthCheckResponse = zod.string()\n\n',
+    );
+  });
+
+  it('generates zod.void() for 204 No Content response', async () => {
+    const schema = {
+      pathRoute: '/pets/{petId}',
+      context: {
+        spec: {
+          paths: {
+            '/pets/{petId}': {
+              delete: {
+                operationId: 'deletePet',
+                responses: {
+                  '204': { description: 'No Content' },
+                },
+              },
+            },
+          },
+        },
+        output: { override: { zod: { generateEachHttpStatus: false } } },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/pets/{petId}',
+        verb: 'delete',
+        operationName: 'deletePet',
+        override: {
+          zod: { strict: {}, generate: { response: true }, coerce: {} },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      schema,
+      testOutput,
+    );
+
+    expect(result.implementation).toBe(
+      'export const DeletePetResponse = zod.void()\n\n',
+    );
+  });
+
+  it('generates zod.void() for 205 Reset Content response', async () => {
+    const schema = {
+      pathRoute: '/cart',
+      context: {
+        spec: {
+          paths: {
+            '/cart': {
+              post: {
+                operationId: 'clearCart',
+                responses: {
+                  '205': { description: 'Reset Content' },
+                },
+              },
+            },
+          },
+        },
+        output: { override: { zod: { generateEachHttpStatus: false } } },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/cart',
+        verb: 'post',
+        operationName: 'clearCart',
+        override: {
+          zod: { strict: {}, generate: { response: true }, coerce: {} },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      schema,
+      testOutput,
+    );
+
+    expect(result.implementation).toBe(
+      'export const ClearCartResponse = zod.void()\n\n',
+    );
+  });
+});
+
 describe('parsePrefixItemsArrayAsTupleZod', () => {
   it('generates correctly', () => {
     const arrayWithPrefixItemsSchema: OpenApiSchemaObject = {
@@ -5159,7 +5282,7 @@ describe('generateZodWithEdgeCases', () => {
     );
 
     expect(result.implementation).toBe(
-      'export const TestBody = zod.object({\n  "$ref": zod.string().optional()\n})\n\n',
+      'export const TestBody = zod.object({\n  "$ref": zod.string().optional()\n})\n\nexport const TestResponse = zod.unknown()\n\n',
     );
   });
 });
@@ -5251,7 +5374,7 @@ describe('generateZodWithLiteralProperty', () => {
     );
 
     expect(result.implementation).toBe(
-      'export const TestBody = zod.object({\n  "type": zod.literal("WILD").optional()\n})\n\n',
+      'export const TestBody = zod.object({\n  "type": zod.literal("WILD").optional()\n})\n\nexport const TestResponse = zod.unknown()\n\n',
     );
   });
 });
