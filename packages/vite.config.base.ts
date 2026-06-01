@@ -48,6 +48,11 @@ export const definePackage = (pack: PackUserConfig = {}) =>
           cache: true,
           input: [
             'src/**',
+            'package.json',
+            'tsconfig.json',
+            'tsconfig.build.json',
+            'vite.config.ts',
+            { pattern: 'tsconfig.base.json', base: 'workspace' },
             { pattern: 'packages/vite.config.base.ts', base: 'workspace' },
           ],
           output: ['dist/**'],
