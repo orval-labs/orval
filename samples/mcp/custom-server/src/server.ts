@@ -36,16 +36,28 @@ import {
 } from './handlers';
 import {
   FindPetsByStatusQueryParams,
+  FindPetsByStatusResponse,
   FindPetsByTagsQueryParams,
+  FindPetsByTagsResponse,
   GetPetByIdParams,
+  GetPetByIdResponse,
   UpdatePetWithFormParams,
   UpdatePetWithFormQueryParams,
+  UpdatePetWithFormResponse,
   DeletePetParams,
+  DeletePetResponse,
+  GetInventoryResponse,
   GetOrderByIdParams,
+  GetOrderByIdResponse,
   DeleteOrderParams,
+  DeleteOrderResponse,
   LoginUserQueryParams,
+  LoginUserResponse,
+  LogoutUserResponse,
   GetUserByNameParams,
+  GetUserByNameResponse,
   DeleteUserParams,
+  DeleteUserResponse,
 } from './tool-schemas.zod';
 
 const createMcpServer = (
@@ -60,10 +72,14 @@ const createMcpServer = (
   tools.findPetsByStatus = server.registerTool(
     'findPetsByStatus',
     {
-      description: 'Finds Pets by status.',
+      title: 'Finds Pets by status.',
+      description:
+        'Multiple status values can be provided with comma separated strings.',
       inputSchema: {
         queryParams: FindPetsByStatusQueryParams,
       },
+      outputSchema: FindPetsByStatusResponse,
+      annotations: { readOnlyHint: true, destructiveHint: false },
     },
     (args) => findPetsByStatusHandler(args, options),
   );
@@ -71,10 +87,14 @@ const createMcpServer = (
   tools.findPetsByTags = server.registerTool(
     'findPetsByTags',
     {
-      description: 'Finds Pets by tags.',
+      title: 'Finds Pets by tags.',
+      description:
+        'Multiple tags can be provided with comma separated strings. Use tag1, tag2, tag3 for testing.',
       inputSchema: {
         queryParams: FindPetsByTagsQueryParams,
       },
+      outputSchema: FindPetsByTagsResponse,
+      annotations: { readOnlyHint: true, destructiveHint: false },
     },
     (args) => findPetsByTagsHandler(args, options),
   );
@@ -82,10 +102,13 @@ const createMcpServer = (
   tools.getPetById = server.registerTool(
     'getPetById',
     {
-      description: 'Find pet by ID.',
+      title: 'Find pet by ID.',
+      description: 'Returns a single pet.',
       inputSchema: {
         pathParams: GetPetByIdParams,
       },
+      outputSchema: GetPetByIdResponse,
+      annotations: { readOnlyHint: true, destructiveHint: false },
     },
     (args) => getPetByIdHandler(args, options),
   );
@@ -93,11 +116,14 @@ const createMcpServer = (
   tools.updatePetWithForm = server.registerTool(
     'updatePetWithForm',
     {
-      description: 'Updates a pet in the store with form data.',
+      title: 'Updates a pet in the store with form data.',
+      description: 'Updates a pet resource based on the form data.',
       inputSchema: {
         pathParams: UpdatePetWithFormParams,
         queryParams: UpdatePetWithFormQueryParams,
       },
+      outputSchema: UpdatePetWithFormResponse,
+      annotations: { destructiveHint: false },
     },
     (args) => updatePetWithFormHandler(args, options),
   );
@@ -105,10 +131,13 @@ const createMcpServer = (
   tools.deletePet = server.registerTool(
     'deletePet',
     {
-      description: 'Deletes a pet.',
+      title: 'Deletes a pet.',
+      description: 'Delete a pet.',
       inputSchema: {
         pathParams: DeletePetParams,
       },
+      outputSchema: DeletePetResponse,
+      annotations: { idempotentHint: true },
     },
     (args) => deletePetHandler(args, options),
   );
@@ -116,7 +145,10 @@ const createMcpServer = (
   tools.getInventory = server.registerTool(
     'getInventory',
     {
-      description: 'Returns pet inventories by status.',
+      title: 'Returns pet inventories by status.',
+      description: 'Returns a map of status codes to quantities.',
+      outputSchema: GetInventoryResponse,
+      annotations: { readOnlyHint: true, destructiveHint: false },
     },
     () => getInventoryHandler(options),
   );
@@ -124,10 +156,14 @@ const createMcpServer = (
   tools.getOrderById = server.registerTool(
     'getOrderById',
     {
-      description: 'Find purchase order by ID.',
+      title: 'Find purchase order by ID.',
+      description:
+        'For valid response try integer IDs with value <= 5 or > 10. Other values will generate exceptions.',
       inputSchema: {
         pathParams: GetOrderByIdParams,
       },
+      outputSchema: GetOrderByIdResponse,
+      annotations: { readOnlyHint: true, destructiveHint: false },
     },
     (args) => getOrderByIdHandler(args, options),
   );
@@ -135,10 +171,14 @@ const createMcpServer = (
   tools.deleteOrder = server.registerTool(
     'deleteOrder',
     {
-      description: 'Delete purchase order by identifier.',
+      title: 'Delete purchase order by identifier.',
+      description:
+        'For valid response try integer IDs with value < 1000. Anything above 1000 or non-integers will generate API errors.',
       inputSchema: {
         pathParams: DeleteOrderParams,
       },
+      outputSchema: DeleteOrderResponse,
+      annotations: { idempotentHint: true },
     },
     (args) => deleteOrderHandler(args, options),
   );
@@ -146,10 +186,13 @@ const createMcpServer = (
   tools.loginUser = server.registerTool(
     'loginUser',
     {
-      description: 'Logs user into the system.',
+      title: 'Logs user into the system.',
+      description: 'Log into the system.',
       inputSchema: {
         queryParams: LoginUserQueryParams,
       },
+      outputSchema: LoginUserResponse,
+      annotations: { readOnlyHint: true, destructiveHint: false },
     },
     (args) => loginUserHandler(args, options),
   );
@@ -157,7 +200,10 @@ const createMcpServer = (
   tools.logoutUser = server.registerTool(
     'logoutUser',
     {
-      description: 'Logs out current logged in user session.',
+      title: 'Logs out current logged in user session.',
+      description: 'Log user out of the system.',
+      outputSchema: LogoutUserResponse,
+      annotations: { readOnlyHint: true, destructiveHint: false },
     },
     () => logoutUserHandler(options),
   );
@@ -165,10 +211,13 @@ const createMcpServer = (
   tools.getUserByName = server.registerTool(
     'getUserByName',
     {
-      description: 'Get user by user name.',
+      title: 'Get user by user name.',
+      description: 'Get user detail based on username.',
       inputSchema: {
         pathParams: GetUserByNameParams,
       },
+      outputSchema: GetUserByNameResponse,
+      annotations: { readOnlyHint: true, destructiveHint: false },
     },
     (args) => getUserByNameHandler(args, options),
   );
@@ -176,10 +225,13 @@ const createMcpServer = (
   tools.deleteUser = server.registerTool(
     'deleteUser',
     {
-      description: 'Delete user resource.',
+      title: 'Delete user resource.',
+      description: 'This can only be done by the logged in user.',
       inputSchema: {
         pathParams: DeleteUserParams,
       },
+      outputSchema: DeleteUserResponse,
+      annotations: { idempotentHint: true },
     },
     (args) => deleteUserHandler(args, options),
   );
