@@ -516,4 +516,19 @@ export default defineConfig({
       target: '../specifications/issue-3484.yaml',
     },
   },
+  fakerArrayItems: {
+    output: {
+      target: '../generated/mock/faker-array-items/endpoints.ts',
+      schemas: '../generated/mock/faker-array-items/model',
+      client: 'axios',
+      mock: {
+        generators: [{ type: 'faker', arrayItems: true }],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/faker-array-items.yaml',
+    },
+  },
 });

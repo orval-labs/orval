@@ -24,6 +24,7 @@ export type MockSchemaRef = OpenApiReferenceObject;
 export type MockSchemaObject = Omit<OpenApiObjectSchema, 'enum'> & {
   name: string;
   path?: string;
+  parentName?: string;
   isRef?: boolean;
   enum?: string[];
 };
