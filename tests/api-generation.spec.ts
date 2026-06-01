@@ -813,6 +813,7 @@ test('zod issue-3171 applies required from a sibling allOf member to $ref base p
 
   // UserFull: every field required -> the response object has no optional field.
   const start = content.indexOf('export const GetUserResponse');
+  expect(start, 'GetUserResponse should be generated').toBeGreaterThan(-1);
   const userFull = content.slice(start);
   expect(userFull).toContain('id: zod.string().uuid(),');
   expect(userFull).toContain('name: zod.string(),');

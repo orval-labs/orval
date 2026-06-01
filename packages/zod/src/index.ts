@@ -479,11 +479,16 @@ export const generateZodValidationSchemaDefinition = (
           ...new Set([
             ...(schema.required ?? []),
             ...schemas.flatMap((member) => {
-              const resolved = (
-                '$ref' in member ? dereference(member, context) : member
-              ) as OpenApiSchemaObject;
-              return Array.isArray(resolved.required)
-                ? (resolved.required as string[])
+              // Only the member's top-level `required` is needed. For `$ref`
+              // members resolve shallowly (no deep property dereference) and
+              // tolerate unresolvable refs — they simply contribute no keys.
+              const resolved =
+                '$ref' in member && typeof member.$ref === 'string'
+                  ? tryResolveRefSchema(member.$ref, context)
+                  : (member as OpenApiSchemaObject);
+              const memberRequired = resolved?.required;
+              return Array.isArray(memberRequired)
+                ? (memberRequired as string[])
                 : [];
             }),
           ]),
