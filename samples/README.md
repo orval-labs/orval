@@ -23,15 +23,13 @@ Update `<ORVAL OUTPUT DIR>`
 {
   // other props omitted...
   "scripts": {
-    "generate-api": "orval",
+    "generate-api": "vp exec orval",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
     "test:snapshots:update": "bun run test:snapshots --update",
-    "clean": "rimraf .turbo dist <ORVAL OUTPUT DIR>",
-    "nuke": "rimraf .turbo dist node_modules <ORVAL OUTPUT DIR>",
   },
   "devDependencies": {
     "orval": "workspace:*",
-    "rimraf": "catalog:",
+    "prettier": "catalog:",
     "vitest": "catalog:",
   },
 }
