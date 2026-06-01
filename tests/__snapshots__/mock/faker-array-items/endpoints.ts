@@ -7,11 +7,14 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import type { GetTenants200, TenantListResponse } from './model';
+import type {
+  GetTenants200,
+  GetTenants200ValueItem,
+  TenantListResponse,
+  TenantResponseModelDto,
+} from './model';
 
 import { faker } from '@faker-js/faker';
-
-import type { GetTenants200ValueItem, TenantResponseModelDto } from './model';
 
 export const getFakerArrayItemFactories = (
   axiosInstance: AxiosInstance = axios,
