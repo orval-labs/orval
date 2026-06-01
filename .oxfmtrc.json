@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "singleQuote": true,
+  "printWidth": 80,
+  "ignorePatterns": [
+    "**/dist",
+    "**/node_modules",
+    "**/__snapshots__",
+    "**/*.timestamp*",
+    "samples",
+    "docs",
+    "tests",
+    "**/*.yaml",
+    "**/*.yml",
+    "packages/hono/src/zValidator.ts",
+    "bun.lock"
+  ]
+}
