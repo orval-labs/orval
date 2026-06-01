@@ -479,6 +479,61 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('defaults hono handlerGenerationStrategy to "smart"', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: { target: './generated.ts' },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.hono.handlerGenerationStrategy).toBe(
+        'smart',
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves an explicit hono handlerGenerationStrategy', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            override: { hono: { handlerGenerationStrategy: 'skip' } },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.hono.handlerGenerationStrategy).toBe(
+        'skip',
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   describe('optionsParamRequired with fetch httpClient', () => {
     const fetchOptionsRequiredWarningPattern =
       /httpClient: 'fetch'.*optionsParamRequired.*cannot make.*options.*required/s;
