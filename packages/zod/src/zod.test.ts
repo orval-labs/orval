@@ -9678,3 +9678,129 @@ describe('$dynamicRef / $dynamicAnchor', () => {
     });
   });
 });
+
+// Regression: each preprocess target must read its own mutator config, not
+// `preprocess.response` (copy-paste bug fixed in #3511).
+describe('generateZod preprocess regression (#3511)', () => {
+  it('wraps the query schema using `preprocess.query` even when `preprocess.response` is not set', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: true,
+              body: true,
+              response: true,
+              query: true,
+              header: true,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            preprocess: {
+              query: { name: 'coerceQuery', path: './coerce-query' },
+            },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toContain(
+      'export const TestQueryParams = zod.preprocess(coerceQuery, zod.object({',
+    );
+    expect(result.implementation).toContain(
+      'export const TestParams = zod.object({',
+    );
+    expect(result.implementation).toContain(
+      'export const TestHeader = zod.object({',
+    );
+    expect(result.implementation).toContain(
+      'export const TestBody = zod.object({',
+    );
+    expect(result.implementation).toContain(
+      'export const TestResponse = zod.object({',
+    );
+  });
+
+  it('uses a distinct mutator per target when each preprocess key is configured separately', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: true,
+              body: true,
+              response: true,
+              query: true,
+              header: true,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            preprocess: {
+              param: { name: 'paramMutator', path: './param' },
+              query: { name: 'queryMutator', path: './query' },
+              header: { name: 'headerMutator', path: './header' },
+              body: { name: 'bodyMutator', path: './body' },
+              response: { name: 'responseMutator', path: './response' },
+            },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toContain(
+      'export const TestParams = zod.preprocess(paramMutator,',
+    );
+    expect(result.implementation).toContain(
+      'export const TestQueryParams = zod.preprocess(queryMutator,',
+    );
+    expect(result.implementation).toContain(
+      'export const TestHeader = zod.preprocess(headerMutator,',
+    );
+    expect(result.implementation).toContain(
+      'export const TestBody = zod.preprocess(bodyMutator,',
+    );
+    expect(result.implementation).toContain(
+      'export const TestResponse = zod.preprocess(responseMutator,',
+    );
+  });
+});
