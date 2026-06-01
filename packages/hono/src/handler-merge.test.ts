@@ -258,19 +258,19 @@ export const createPetsHandlers = factory.createHandlers(
 `;
 
     const bodies = await extractHandlerBodies(source);
-    expect([...bodies.keys()]).toEqual([
+    expect([...(bodies?.keys() ?? [])]).toEqual([
       'listPetsHandlers',
       'createPetsHandlers',
     ]);
-    expect(bodies.get('listPetsHandlers')).toContain(
+    expect(bodies?.get('listPetsHandlers')).toContain(
       'return c.json(pets.slice(0, 10));',
     );
-    expect(bodies.get('createPetsHandlers')).toBe('');
+    expect(bodies?.get('createPetsHandlers')).toBe('');
   });
 
-  it('returns an empty map on parse failure', async () => {
+  it('returns undefined on parse failure (so full mode can preserve the file)', async () => {
     const bodies = await extractHandlerBodies('const x = (');
-    expect(bodies.size).toBe(0);
+    expect(bodies).toBeUndefined();
   });
 });
 
@@ -785,7 +785,7 @@ export const listPetsHandlers = factory.createHandlers(
 );
 `;
     const bodies = await extractHandlerBodies(source);
-    const body = bodies.get('listPetsHandlers');
+    const body = bodies?.get('listPetsHandlers');
     expect(body).toContain('HANDLER_BODY');
     expect(body).not.toContain('MIDDLEWARE_BODY');
   });

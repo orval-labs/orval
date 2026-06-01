@@ -527,6 +527,11 @@ export const generateHandlerFile = async ({
 
   if (strategy === 'full') {
     const bodies = await extractHandlerBodies(source);
+    // A parse failure yields `undefined` (not an empty map): preserve the file
+    // rather than regenerate with empty bodies and drop the user's logic.
+    if (!bodies) {
+      return source;
+    }
     return generateFreshHandlerFile({
       verbList,
       path,

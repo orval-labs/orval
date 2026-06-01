@@ -18,8 +18,6 @@ vi.mock('./handler-merge', async (importOriginal) => {
   return { ...actual, ensureTypeScript: vi.fn().mockResolvedValue(false) };
 });
 
-import { generateHandlerFile } from './index';
-
 const verb = (operationName: string): GeneratorVerbOptions =>
   ({
     operationName,
@@ -43,6 +41,10 @@ describe('generateHandlerFile when typescript is unavailable', () => {
   beforeEach(async () => {
     dir = await mkdtemp(path.join(tmpdir(), 'orval-hono-nots-'));
     logWarningSpy.mockClear();
+    // The "warn once" guard is module-scoped state in ./index. Reset the module
+    // registry so each test gets a fresh guard and the warning assertion below
+    // doesn't depend on test order.
+    vi.resetModules();
   });
 
   afterEach(async () => {
@@ -50,6 +52,7 @@ describe('generateHandlerFile when typescript is unavailable', () => {
   });
 
   const run = async (strategy: 'smart' | 'full') => {
+    const { generateHandlerFile } = await import('./index');
     const file = path.join(dir, 'listPets.ts');
     await writeFile(file, existing, 'utf8');
     return generateHandlerFile({

@@ -84,8 +84,11 @@ describe('hono handler preservation (end-to-end, clean disabled)', () => {
           'export const createPetHandlers = factory.createHandlers(',
           'export const createPetHandlers = factory.createHandlers(\n  authenticate(),',
         )
+        // Inject a body into the handler arrow. Match the first `=> {` with a
+        // regex tolerant of arrow/brace spacing so this stays correct if the
+        // generated formatting shifts.
         .replace(
-          '=> {',
+          /=>\s*\{/,
           '=> {\n    return c.json(await save()); // USER_BODY',
         ) + '\nasync function save() {\n  return db.insert();\n}\n';
     await writeFile(handlerPath, edited, 'utf8');

@@ -99,6 +99,16 @@ describe('generateHandlerFile strategies', () => {
     expect(result).not.toContain('async function loadPets()');
   });
 
+  it('full: preserves an unparseable file instead of regenerating with empty bodies', async () => {
+    // Body extraction returns `undefined` (not an empty map) when the file
+    // can't be parsed. Full mode must fall back to leaving the file untouched
+    // rather than rebuilding the wrapper and dropping the user's logic.
+    const broken = `${userHandler}\nexport const oops = factory.createHandlers(`;
+    const file = await writeHandler(broken);
+    const result = await generateHandlerFile(args(file, 'full'));
+    expect(result).toBe(broken);
+  });
+
   it('uses zValidator("form") for multipart/form-data bodies', async () => {
     const file = path.join(dir, 'uploadPhoto.ts');
     const formVerb = {

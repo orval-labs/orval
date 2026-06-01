@@ -617,18 +617,19 @@ const applyEdits = (source: string, edits: Edit[]): string => {
 /**
  * Extracts the inner body of each handler's `async (c) => { ... }` block, keyed
  * by handler name. Used by the `full` strategy to splice user bodies back into a
- * freshly-regenerated wrapper. Returns an empty map on parse failure or when
- * typescript is unavailable.
+ * freshly-regenerated wrapper. Returns `undefined` when the source can't be
+ * parsed (or typescript is unavailable) — distinct from an empty map (parsed, no
+ * handlers) — so callers can preserve the file instead of dropping its bodies.
  */
 export const extractHandlerBodies = async (
   source: string,
-): Promise<Map<string, string>> => {
-  const bodies = new Map<string, string>();
-  if (!(await ensureTypeScript())) return bodies;
+): Promise<Map<string, string> | undefined> => {
+  if (!(await ensureTypeScript())) return undefined;
 
   const sourceFile = parse(source);
-  if (!sourceFile) return bodies;
+  if (!sourceFile) return undefined;
 
+  const bodies = new Map<string, string>();
   for (const { name, call } of findHandlers(sourceFile)) {
     // The handler is the LAST function argument (earlier ones may be inline
     // middleware), so its body — not a middleware's — is what `full` splices.
