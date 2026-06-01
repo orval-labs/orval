@@ -206,6 +206,15 @@ export const generateZodValidationSchemaDefinition = (
   isZodV4: boolean,
   rules?: {
     required?: boolean;
+    /**
+     * Required keys inherited from sibling `allOf` members. Per JSON Schema /
+     * OpenAPI 3.1, a `required` array in one `allOf` member applies to
+     * properties contributed by ANY member, so it is collected at the `allOf`
+     * level and applied here. Consumed at THIS object level only — never
+     * forwarded into nested property schemas, so a deeper object sharing a key
+     * name is unaffected. (#3171)
+     */
+    additionalRequired?: string[];
     dateTimeOptions?: DateTimeOptions;
     timeOptions?: TimeOptions;
     /**
@@ -459,6 +468,33 @@ export const generateZodValidationSchemaDefinition = (
       | OpenApiReferenceObject
     )[];
 
+    // In JSON Schema / OpenAPI 3.1 a `required` array in any `allOf` member
+    // (and on the composing schema itself) applies to properties contributed by
+    // any member. Collect them all so each member's own properties can be marked
+    // required even when the `required` lives in a sibling member — e.g. props
+    // in a `$ref` base + `required` in a constraint-only sibling. Only valid for
+    // `allOf` (a conjunction); `oneOf`/`anyOf` are alternatives. (#3171)
+    const allOfRequired = schema.allOf
+      ? [
+          ...new Set([
+            ...(schema.required ?? []),
+            ...schemas.flatMap((member) => {
+              // Only the member's top-level `required` is needed. For `$ref`
+              // members resolve shallowly (no deep property dereference) and
+              // tolerate unresolvable refs — they simply contribute no keys.
+              const resolved =
+                '$ref' in member && typeof member.$ref === 'string'
+                  ? tryResolveRefSchema(member.$ref, context)
+                  : (member as OpenApiSchemaObject);
+              const memberRequired = resolved?.required;
+              return Array.isArray(memberRequired)
+                ? (memberRequired as string[])
+                : [];
+            }),
+          ]),
+        ]
+      : undefined;
+
     // Use index-based naming to ensure uniqueness when processing multiple schemas
     // This prevents duplicate schema names when nullable refs are used
     const baseSchemas = schemas.map((schema, index) =>
@@ -470,6 +506,7 @@ export const generateZodValidationSchemaDefinition = (
         isZodV4,
         {
           required: true,
+          additionalRequired: allOfRequired,
           constNameRegistry,
           useReusableSchemas,
         },
@@ -496,6 +533,7 @@ export const generateZodValidationSchemaDefinition = (
           isZodV4,
           {
             required: true,
+            additionalRequired: allOfRequired,
             constNameRegistry,
             useReusableSchemas,
           },
@@ -850,6 +888,13 @@ export const generateZodValidationSchemaDefinition = (
         if (hasProperties && hasDefinedProperties) {
           const objectType = getObjectFunctionName(isZodV4, strict);
 
+          // A property is required when this schema requires it OR when a
+          // sibling `allOf` member requires it (propagated via additionalRequired). (#3171)
+          const requiredKeys = new Set<string>([
+            ...(schema.required ?? []),
+            ...(rules?.additionalRequired ?? []),
+          ]);
+
           functions.push([
             objectType,
             Object.keys(properties)
@@ -863,7 +908,7 @@ export const generateZodValidationSchemaDefinition = (
                     strict,
                     isZodV4,
                     {
-                      required: schema.required?.includes(key),
+                      required: requiredKeys.has(key),
                       constNameRegistry,
                       useReusableSchemas,
                     },
