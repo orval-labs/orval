@@ -117,10 +117,7 @@ export const getGetItemsWithNullableRequiredResponseMock =
       ...{ id: faker.string.alpha({ length: { min: 10, max: 20 } }) },
       ...{
         category: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            faker.string.alpha({ length: { min: 10, max: 20 } }),
-            null,
-          ]),
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
           null,
         ]),
       },

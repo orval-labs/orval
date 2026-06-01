@@ -1,0 +1,99 @@
+---
+title: Client with Effect
+description: 将 Effect 校验与 HTTP 客户端组合使用
+---
+
+将 Effect schema 与 SWR 或 TanStack Query 客户端一起使用，获得运行时校验能力。
+
+## 配置
+
+同时生成 HTTP 客户端和 Effect schema：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  // 生成 HTTP 客户端
+  petstore: {
+    input: {
+      target: './petstore.yaml',
+    },
+    output: {
+      mode: 'tags-split',
+      client: 'swr',
+      target: 'src/api/endpoints',
+      schemas: 'src/api/models',
+      mock: true,
+    },
+  },
+  // 生成 Effect schema
+  petstoreEffect: {
+    input: {
+      target: './petstore.yaml',
+    },
+    output: {
+      mode: 'tags-split',
+      client: 'effect',
+      target: 'src/api/endpoints',
+      fileExtension: '.effect.ts',
+    },
+  },
+});
+```
+
+<Callout type="info">
+使用 `fileExtension: '.effect.ts'` 可以避免与 HTTP 客户端文件名冲突。
+</Callout>
+
+## 生成文件
+
+```
+src/api/
+├── endpoints/
+│   └── pets/
+│       ├── pets.ts          # SWR hooks
+│       ├── pets.msw.ts      # MSW mocks
+│       ├── pets.faker.ts    # Faker mocks
+│       └── pets.effect.ts   # Effect schemas
+└── models/
+    └── ...
+```
+
+## 用法
+
+```tsx
+import { Schema as S } from 'effect';
+
+import { useListPets, useCreatePets } from './api/endpoints/pets/pets';
+import { CreatePetsBodyItem } from './api/endpoints/pets/pets.effect';
+
+function App() {
+  const { data } = useListPets();
+  const { trigger } = useCreatePets();
+
+  const createPet = async () => {
+    const pet = { name: 'Buddy', tag: 'dog' };
+
+    try {
+      // 发送前校验
+      const validatedPet = S.decodeUnknownSync(CreatePetsBodyItem)(pet);
+      await trigger([validatedPet]);
+    } catch (error) {
+      console.error('Validation failed:', error);
+    }
+  };
+
+  return (
+    <div>
+      <button onClick={createPet}>Create Pet</button>
+      {data?.map((pet) => (
+        <div key={pet.id}>{pet.name}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+## 完整示例
+
+查看 GitHub 上的 [完整 SWR with Effect 示例](https://github.com/orval-labs/orval/tree/master/samples/swr-with-effect)。

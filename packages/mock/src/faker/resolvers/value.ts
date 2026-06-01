@@ -359,6 +359,7 @@ export function resolveMockValue({
         imports,
         name: newSchema.name,
         type: getType(newSchema),
+        nullWrapped: Boolean(newSchema.nullable) && !mockOptions?.nonNullable,
       };
     }
 

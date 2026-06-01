@@ -595,6 +595,15 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  'jsdoc-formatting': {
+    input: '../specifications/jsdoc-formatting.yaml',
+    output: {
+      target: '../generated/default/jsdoc-formatting/endpoints.ts',
+      schemas: '../generated/default/jsdoc-formatting/model',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
   'multi-files-with-same-import-names': {
     output: {
       target:

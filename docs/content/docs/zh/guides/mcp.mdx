@@ -1,0 +1,63 @@
+---
+title: MCP Server
+description: 从 OpenAPI 生成 Model Context Protocol 服务
+---
+
+MCP 生成器会把 OpenAPI 操作转换为可被 AI Agent 调用的工具。它适合把已有 HTTP API 暴露给支持 Model Context Protocol 的客户端。
+
+## 概览
+
+Orval 根据 OpenAPI 操作生成工具定义、输入 schema 和调用实现。每个 API operation 可以对应一个 MCP tool。
+
+## 配置
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/mcp.ts',
+      client: 'mcp',
+    },
+  },
+});
+```
+
+## 生成结构
+
+生成文件通常包含：
+
+- MCP server 初始化
+- tools 注册
+- OpenAPI 请求调用函数
+- 输入参数 schema
+
+## 用法
+
+### 1. 构建 Docker 镜像
+
+如果目标 Agent 通过容器加载 MCP server，可以先构建镜像。
+
+### 2. 配置 AI Agent
+
+在客户端配置中加入 MCP server 的启动命令或容器信息。
+
+## 自定义 Server
+
+你可以把生成的工具注册到自己的 server 中，统一加入鉴权、日志、限流或错误处理。
+
+## 完整示例
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/generated/mcp.ts',
+      client: 'mcp',
+    },
+  },
+});
+```

@@ -115,7 +115,6 @@ limit?: string;
 /**
  * Which property to sort by?
  * Example: name sorts ASC while -name sorts DESC.
- *
  */
 sort: ListPetsSort;
 };
@@ -138,7 +137,6 @@ limit?: string;
 /**
  * Which property to sort by?
  * Example: name sorts ASC while -name sorts DESC.
- *
  */
 sort: CreatePetsSort;
 };

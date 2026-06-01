@@ -1,0 +1,49 @@
+---
+title: 配置
+description: Orval 配置选项概览
+---
+
+在项目根目录创建 `orval.config.(js|mjs|ts)` 文件即可配置 Orval。
+
+## 配置分类
+
+| 分类 | 说明 |
+| --- | --- |
+| **Input** | 规范文件路径，或用于生成前转换规范的配置对象 |
+| **Output** | 生成代码的目标路径，以及生成内容和生成方式 |
+| **Hooks** | 在特定生成阶段执行的脚本 |
+
+## 基础示例
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: './petstore.ts',
+    hooks: {
+      afterAllFilesWrite: 'prettier --write',
+    },
+  },
+});
+```
+
+## 多个规范
+
+一个配置文件可以同时描述多个 OpenAPI 规范：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: './src/api/petstore.ts',
+  },
+  users: {
+    input: './users.yaml',
+    output: './src/api/users.ts',
+  },
+});
+```

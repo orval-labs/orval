@@ -33,6 +33,7 @@
   "devDependencies": {
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
+    "@socketsecurity/bun-security-scanner": "^1.1.2",
     "@types/node": "catalog:",
     "esbuild-plugin-alias": "^0.2.1",
     "husky": "^9.1.7",

@@ -1,81 +1,16 @@
-import { createFileRoute, notFound } from '@tanstack/react-router';
-import { createServerFn } from '@tanstack/react-start';
-import { useFumadocsLoader } from 'fumadocs-core/source/client';
-import browserCollections from 'fumadocs-mdx:collections/browser';
-import { DocsLayout } from 'fumadocs-ui/layouts/docs';
-import {
-  DocsBody,
-  DocsDescription,
-  DocsPage,
-  DocsTitle,
-} from 'fumadocs-ui/layouts/docs/page';
-import defaultMdxComponents from 'fumadocs-ui/mdx';
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
-import { Suspense } from 'react';
+import { createFileRoute } from '@tanstack/react-router';
 
-import { baseOptions } from '@/lib/layout.shared';
-import { source } from '@/lib/source';
+import { DocsRoutePage, loadDocsRoute } from '@/components/docs/docs-page';
 
 export const Route = createFileRoute('/docs/$')({
   component: Page,
   loader: async ({ params }) => {
-    const slugs = params._splat?.split('/') ?? [];
-    const data = await serverLoader({ data: slugs });
-    await clientLoader.preload(data.path);
-    return data;
-  },
-});
-
-const serverLoader = createServerFn({
-  method: 'GET',
-})
-  .inputValidator((slugs: string[]) => slugs)
-  .handler(async ({ data: slugs }) => {
-    const page = source.getPage(slugs);
-    if (!page) throw notFound();
-
-    return {
-      path: page.path,
-      pageTree: await source.serializePageTree(source.getPageTree()),
-    };
-  });
-
-const clientLoader = browserCollections.docs.createClientLoader({
-  component(
-    { toc, frontmatter, default: MDX },
-    // you can define props for the component
-    props: {
-      className?: string;
-    },
-  ) {
-    return (
-      <DocsPage toc={toc} {...props}>
-        <DocsTitle>{frontmatter.title}</DocsTitle>
-        <DocsDescription>{frontmatter.description}</DocsDescription>
-        <DocsBody>
-          <MDX
-            components={{
-              ...defaultMdxComponents,
-              Tab,
-              Tabs,
-            }}
-          />
-        </DocsBody>
-      </DocsPage>
-    );
+    return loadDocsRoute({
+      slugs: params._splat?.split('/').filter(Boolean) ?? [],
+    });
   },
 });
 
 function Page() {
-  const data = useFumadocsLoader(Route.useLoaderData());
-
-  return (
-    <DocsLayout {...baseOptions()} tree={data.pageTree}>
-      <Suspense>
-        {clientLoader.useContent(data.path, {
-          className: '',
-        })}
-      </Suspense>
-    </DocsLayout>
-  );
+  return <DocsRoutePage data={Route.useLoaderData()} />;
 }

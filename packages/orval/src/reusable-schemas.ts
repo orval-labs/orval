@@ -1,5 +1,10 @@
-import type { ContextSpec, GeneratorMutator, ZodCoerceType } from '@orval/core';
-import { getRefInfo } from '@orval/core';
+import type {
+  ContextSpec,
+  GeneratorMutator,
+  OpenApiSchemaObject,
+  ZodCoerceType,
+} from '@orval/core';
+import { buildDynamicScope, getRefInfo } from '@orval/core';
 import {
   generateZodValidationSchemaDefinition,
   parseZodValidationSchemaDefinition,
@@ -186,10 +191,18 @@ export const generateReusableSchemaSet = (
     if (!schema) continue;
 
     const name = resolveSchemaName(ref, context);
+    const scopedContext: ContextSpec = {
+      ...context,
+      dynamicScope: buildDynamicScope(
+        schemaName,
+        schema as OpenApiSchemaObject,
+        context,
+      ),
+    };
 
     const definition = generateZodValidationSchemaDefinition(
       schema,
-      context,
+      scopedContext,
       name,
       options.strict,
       options.isZodV4,
@@ -202,7 +215,7 @@ export const generateReusableSchemaSet = (
 
     const parsed = parseZodValidationSchemaDefinition(
       definition,
-      context,
+      scopedContext,
       options.coerce ?? false,
       options.strict,
       options.isZodV4,

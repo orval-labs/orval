@@ -9,11 +9,19 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root';
+import { Route as ZhRouteImport } from './routes/zh';
 import { Route as PlaygroundRouteImport } from './routes/playground';
 import { Route as IndexRouteImport } from './routes/index';
+import { Route as ZhPlaygroundRouteImport } from './routes/zh_.playground';
 import { Route as DocsSplatRouteImport } from './routes/docs/$';
 import { Route as ApiSearchRouteImport } from './routes/api/search';
+import { Route as LocaleDocsSplatRouteImport } from './routes/$locale/docs/$';
 
+const ZhRoute = ZhRouteImport.update({
+  id: '/zh',
+  path: '/zh',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const PlaygroundRoute = PlaygroundRouteImport.update({
   id: '/playground',
   path: '/playground',
@@ -22,6 +30,11 @@ const PlaygroundRoute = PlaygroundRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ZhPlaygroundRoute = ZhPlaygroundRouteImport.update({
+  id: '/zh_/playground',
+  path: '/zh/playground',
   getParentRoute: () => rootRouteImport,
 } as any);
 const DocsSplatRoute = DocsSplatRouteImport.update({
@@ -34,43 +47,89 @@ const ApiSearchRoute = ApiSearchRouteImport.update({
   path: '/api/search',
   getParentRoute: () => rootRouteImport,
 } as any);
+const LocaleDocsSplatRoute = LocaleDocsSplatRouteImport.update({
+  id: '/$locale/docs/$',
+  path: '/$locale/docs/$',
+  getParentRoute: () => rootRouteImport,
+} as any);
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/playground': typeof PlaygroundRoute;
+  '/zh': typeof ZhRoute;
   '/api/search': typeof ApiSearchRoute;
   '/docs/$': typeof DocsSplatRoute;
+  '/zh/playground': typeof ZhPlaygroundRoute;
+  '/$locale/docs/$': typeof LocaleDocsSplatRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/playground': typeof PlaygroundRoute;
+  '/zh': typeof ZhRoute;
   '/api/search': typeof ApiSearchRoute;
   '/docs/$': typeof DocsSplatRoute;
+  '/zh/playground': typeof ZhPlaygroundRoute;
+  '/$locale/docs/$': typeof LocaleDocsSplatRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   '/': typeof IndexRoute;
   '/playground': typeof PlaygroundRoute;
+  '/zh': typeof ZhRoute;
   '/api/search': typeof ApiSearchRoute;
   '/docs/$': typeof DocsSplatRoute;
+  '/zh_/playground': typeof ZhPlaygroundRoute;
+  '/$locale/docs/$': typeof LocaleDocsSplatRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: '/' | '/playground' | '/api/search' | '/docs/$';
+  fullPaths:
+    | '/'
+    | '/playground'
+    | '/zh'
+    | '/api/search'
+    | '/docs/$'
+    | '/zh/playground'
+    | '/$locale/docs/$';
   fileRoutesByTo: FileRoutesByTo;
-  to: '/' | '/playground' | '/api/search' | '/docs/$';
-  id: '__root__' | '/' | '/playground' | '/api/search' | '/docs/$';
+  to:
+    | '/'
+    | '/playground'
+    | '/zh'
+    | '/api/search'
+    | '/docs/$'
+    | '/zh/playground'
+    | '/$locale/docs/$';
+  id:
+    | '__root__'
+    | '/'
+    | '/playground'
+    | '/zh'
+    | '/api/search'
+    | '/docs/$'
+    | '/zh_/playground'
+    | '/$locale/docs/$';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   PlaygroundRoute: typeof PlaygroundRoute;
+  ZhRoute: typeof ZhRoute;
   ApiSearchRoute: typeof ApiSearchRoute;
   DocsSplatRoute: typeof DocsSplatRoute;
+  ZhPlaygroundRoute: typeof ZhPlaygroundRoute;
+  LocaleDocsSplatRoute: typeof LocaleDocsSplatRoute;
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/zh': {
+      id: '/zh';
+      path: '/zh';
+      fullPath: '/zh';
+      preLoaderRoute: typeof ZhRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/playground': {
       id: '/playground';
       path: '/playground';
@@ -83,6 +142,13 @@ declare module '@tanstack/react-router' {
       path: '/';
       fullPath: '/';
       preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/zh_/playground': {
+      id: '/zh_/playground';
+      path: '/zh/playground';
+      fullPath: '/zh/playground';
+      preLoaderRoute: typeof ZhPlaygroundRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/docs/$': {
@@ -99,14 +165,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSearchRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/$locale/docs/$': {
+      id: '/$locale/docs/$';
+      path: '/$locale/docs/$';
+      fullPath: '/$locale/docs/$';
+      preLoaderRoute: typeof LocaleDocsSplatRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PlaygroundRoute: PlaygroundRoute,
+  ZhRoute: ZhRoute,
   ApiSearchRoute: ApiSearchRoute,
   DocsSplatRoute: DocsSplatRoute,
+  ZhPlaygroundRoute: ZhPlaygroundRoute,
+  LocaleDocsSplatRoute: LocaleDocsSplatRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

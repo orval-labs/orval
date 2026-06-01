@@ -209,6 +209,7 @@ export function getMockObject({
             Array.isArray(prop.type) && prop.type.includes('null');
           if (
             isNullable &&
+            !resolvedValue.nullWrapped &&
             !resolvedValue.overrided &&
             !mockOptions?.nonNullable
           ) {

@@ -1,0 +1,58 @@
+---
+title: Programmatic API
+description: 在构建脚本中以编程方式使用 Orval
+---
+
+除了 CLI，Orval 也可以在 Node/Bun 脚本中以编程方式调用。适合需要把生成流程嵌入自定义构建、工作流或内部工具的项目。
+
+## 基础用法
+
+```ts
+import { generate } from 'orval';
+
+await generate('./orval.config.ts');
+```
+
+## 直接配置
+
+也可以直接传入配置对象，而不是读取配置文件。
+
+```ts
+await generate({
+  petstore: {
+    input: './petstore.yaml',
+    output: './src/petstore.ts',
+  },
+});
+```
+
+## 全局选项覆盖
+
+调用 API 时可以传入全局选项覆盖配置文件中的部分行为，例如输出目录、formatter 或 mock 开关。
+
+## 自定义 Workspace
+
+多包仓库中可以指定 workspace，让相对路径按预期解析。
+
+## 函数签名
+
+编程 API 返回 Promise。调用方应捕获错误并让 CI 或脚本正确失败。
+
+## Watch Mode
+
+需要持续监听文件变化时，可以在脚本中启用 watch 相关能力，或者直接使用 CLI 的 `--watch`。
+
+## 构建脚本集成
+
+常见做法是在 `package.json` 中添加脚本：
+
+```json
+{
+  "scripts": {
+    "generate-api": "orval",
+    "build": "bun run generate-api && vite build"
+  }
+}
+```
+
+在 CI 中建议先生成 API，再运行类型检查和测试，确保接口契约变化能被及时发现。

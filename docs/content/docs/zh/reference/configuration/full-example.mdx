@@ -1,0 +1,44 @@
+---
+title: 完整示例
+description: 完整配置文件示例
+---
+
+下面示例展示一个常见的 Orval 配置：读取 OpenAPI 规范，生成 React Query hooks、模型、MSW mock，并使用自定义客户端。
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: './petstore.yaml',
+    },
+    output: {
+      target: './src/api/petstore.ts',
+      schemas: './src/api/model',
+      client: 'react-query',
+      mode: 'tags-split',
+      mock: true,
+      clean: true,
+      override: {
+        mutator: {
+          path: './src/api/custom-client.ts',
+          name: 'customClient',
+        },
+        query: {
+          useQuery: true,
+          useMutation: true,
+          useInvalidate: true,
+          useSetQueryData: true,
+          useGetQueryData: true,
+        },
+      },
+    },
+    hooks: {
+      afterAllFilesWrite: 'prettier --write',
+    },
+  },
+});
+```
+
+这个配置适合中大型前端项目。小项目可以从 `input` 和 `output.target` 开始，只在需要时再加入 `schemas`、`mock`、`override` 和 `hooks`。

@@ -7,6 +7,7 @@ interface EditorPanelProps {
   onChange?: (value: string | undefined) => void;
   readOnly?: boolean;
   height?: string;
+  loadingText?: string;
 }
 
 export const EditorPanel = ({
@@ -16,6 +17,7 @@ export const EditorPanel = ({
   onChange,
   readOnly = false,
   height = '400px',
+  loadingText = 'Loading editor...',
 }: EditorPanelProps) => {
   return (
     <div className="flex flex-col rounded-xl bg-black/60 border border-white/10 overflow-hidden">
@@ -42,9 +44,7 @@ export const EditorPanel = ({
           }}
           loading={
             <div className="flex items-center justify-center h-full bg-black/60">
-              <div className="animate-pulse text-gray-500">
-                Loading editor...
-              </div>
+              <div className="animate-pulse text-gray-500">{loadingText}</div>
             </div>
           }
         />

@@ -376,3 +376,223 @@ describe('rewriteReusableSchemas', () => {
     expect(result[0].isRecursive).toBe(true);
   });
 });
+
+describe('generateReusableSchemaSet with $dynamicRef', () => {
+  it('discovers transitive refs through $dynamicRef', () => {
+    const context = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              $dynamicAnchor: 'Pet',
+              type: 'object',
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+            Lizard: {
+              type: 'object',
+              properties: {
+                friends: {
+                  type: 'array',
+                  items: { $dynamicRef: '#Pet' },
+                },
+              },
+              required: ['friends'],
+            },
+          },
+        },
+      },
+    });
+
+    const result = generateReusableSchemaSet(
+      ['#/components/schemas/Lizard'],
+      context,
+      { strict: false, isZodV4: false },
+    );
+
+    expect(result.map((e) => e.name).toSorted()).toEqual(['Lizard', 'Pet']);
+
+    const lizard = result.find((e) => e.name === 'Lizard');
+    expect(lizard?.zod).toContain('__REF_Pet__');
+    expect(lizard?.usedRefs).toEqual(new Set(['Pet']));
+  });
+
+  it('handles self-referential $dynamicRef with z.lazy', () => {
+    const context = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              $dynamicAnchor: 'Pet',
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                playmates: {
+                  type: 'array',
+                  items: { $dynamicRef: '#Pet' },
+                },
+              },
+              required: ['name'],
+            },
+          },
+        },
+      },
+    });
+
+    const entries = generateReusableSchemaSet(
+      ['#/components/schemas/Pet'],
+      context,
+      { strict: false, isZodV4: false },
+    );
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0].usedRefs).toEqual(new Set(['Pet']));
+
+    const rewritten = rewriteReusableSchemas(entries);
+    expect(rewritten[0].zod).toContain('zod.lazy(() => Pet)');
+    expect(rewritten[0].isRecursive).toBe(true);
+  });
+
+  it('resolves $dynamicRef through the component local dynamic scope', () => {
+    const context = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              $dynamicAnchor: 'Pet',
+              type: 'object',
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+            Cat: {
+              $dynamicAnchor: 'Pet',
+              type: 'object',
+              properties: {
+                meow: { type: 'boolean' },
+                playmates: {
+                  type: 'array',
+                  items: { $dynamicRef: '#Pet' },
+                },
+              },
+              required: ['meow'],
+            },
+          },
+        },
+      },
+    });
+
+    const entries = generateReusableSchemaSet(
+      ['#/components/schemas/Cat'],
+      context,
+      { strict: false, isZodV4: false },
+    );
+
+    expect(entries.map((e) => e.name)).toEqual(['Cat']);
+    expect(entries[0].usedRefs).toEqual(new Set(['Cat']));
+
+    const rewritten = rewriteReusableSchemas(entries);
+    expect(rewritten[0].zod).toContain('zod.lazy(() => Cat)');
+    expect(rewritten[0].zod).not.toContain('__REF_Pet__');
+  });
+
+  it('resolves $defs dynamic anchors in reusable schemas', () => {
+    const context = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            User: {
+              type: 'object',
+              properties: { id: { type: 'string' } },
+              required: ['id'],
+            },
+            Container: {
+              type: 'object',
+              $defs: {
+                itemType: {
+                  $dynamicAnchor: 'itemType',
+                  $ref: '#/components/schemas/User',
+                },
+              },
+              properties: {
+                items: {
+                  type: 'array',
+                  items: { $dynamicRef: '#itemType' },
+                },
+              },
+              required: ['items'],
+            },
+          },
+        },
+      },
+    });
+
+    const entries = generateReusableSchemaSet(
+      ['#/components/schemas/Container'],
+      context,
+      { strict: false, isZodV4: false },
+    );
+
+    expect(entries.map((e) => e.name).toSorted()).toEqual([
+      'Container',
+      'User',
+    ]);
+    expect(entries.find((e) => e.name === 'Container')?.usedRefs).toEqual(
+      new Set(['User']),
+    );
+  });
+
+  it('handles mutual $dynamicRef cycle between two schemas', () => {
+    const context = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            Dog: {
+              $dynamicAnchor: 'Dog',
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                friends: {
+                  type: 'array',
+                  items: { $dynamicRef: '#Cat' },
+                },
+              },
+              required: ['name'],
+            },
+            Cat: {
+              $dynamicAnchor: 'Cat',
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                friends: {
+                  type: 'array',
+                  items: { $dynamicRef: '#Dog' },
+                },
+              },
+              required: ['name'],
+            },
+          },
+        },
+      },
+    });
+
+    const entries = generateReusableSchemaSet(
+      ['#/components/schemas/Dog'],
+      context,
+      { strict: false, isZodV4: false },
+    );
+
+    expect(entries.map((e) => e.name).toSorted()).toEqual(['Cat', 'Dog']);
+
+    const rewritten = rewriteReusableSchemas(entries);
+    const dog = rewritten.find((e) => e.name === 'Dog');
+    const cat = rewritten.find((e) => e.name === 'Cat');
+
+    expect(dog?.isRecursive).toBe(true);
+    expect(cat?.isRecursive).toBe(true);
+
+    const lazyCount = [dog?.zod, cat?.zod].filter((s) =>
+      s?.includes('zod.lazy'),
+    ).length;
+    expect(lazyCount).toBe(1);
+  });
+});

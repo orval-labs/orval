@@ -708,3 +708,91 @@ test('react-query issue-2999 keeps a single v5 overload block per hook with useI
     ).toBe(5);
   }
 });
+
+test('react-query issue-2540 imports external-file $ref schemas by schema name, not the YAML basename', async () => {
+  // Regression for #2540: an operation response that `$ref`s a schema in an
+  // external YAML file (`./common-schemas.yaml#/components/schemas/...`) used
+  // to emit an import whose PATH was derived from the external file basename
+  // (`../model/.../common-schemas`) instead of the schema file orval actually
+  // generates (`../model/internalServerError500`), so the output failed to
+  // compile with "Cannot find module '.../common-schemas'". The v8 external
+  // `$ref` overhaul fixed this; keep this focused assertion alongside the
+  // snapshot so #2540 fails with a targeted message instead of a full-file
+  // snapshot diff. `indexFiles: false` is required so the imports are direct
+  // file paths (a barrel re-export would mask the wrong basename).
+  const endpoints = await readFile(
+    generated(
+      'react-query',
+      'issue-2540-external-ref-import-path',
+      'user',
+      'user.ts',
+    ),
+    'utf8',
+  );
+
+  // Both external-file schemas — the 200 success body and the 500 error body —
+  // import from the schema-name file, never the `common-schemas` YAML basename.
+  expect(endpoints).toContain(
+    "import type { UserProfile } from '../model/userProfile';",
+  );
+  expect(endpoints).toContain(
+    "import type { InternalServerError500 } from '../model/internalServerError500';",
+  );
+  // The external YAML file basename must not leak into an import path — the
+  // #2540 regression always surfaces as `from '...common-schemas'`. Scope the
+  // check to import sources (rather than banning the substring anywhere) so a
+  // future generator that printed the source `$ref` in a comment wouldn't trip
+  // a false failure.
+  expect(endpoints).not.toMatch(/from\s+['"][^'"]*common[-_]?schemas/i);
+
+  // The referenced schema is emitted as a standalone file at the flat path,
+  // not nested under a directory named after the external YAML file.
+  const model = await readFile(
+    generated(
+      'react-query',
+      'issue-2540-external-ref-import-path',
+      'model',
+      'internalServerError500.ts',
+    ),
+    'utf8',
+  );
+  expect(model).toContain('export interface InternalServerError500 {');
+});
+
+test('mock issue-3484 required nullable scalars get a single null branch', async () => {
+  // Regression for #3484: a *required* property typed as an OpenAPI 3.1
+  // nullable union (`type: [<scalar>, 'null']`) — the same shape OAS 3.0
+  // `nullable: true` is upgraded to — must emit a single
+  // `faker.helpers.arrayElement([<value>, null])`. Previously the scalar
+  // getter and the object property layer each added a null branch, producing
+  // `arrayElement([arrayElement([<value>, null]), null])` and skewing null to
+  // ~75%.
+  const content = await readFile(
+    generated('mock', 'issue-3484', 'endpoints.ts'),
+    'utf8',
+  );
+
+  const start = content.indexOf('export const getGetPetResponseMock');
+  expect(start, 'getGetPetResponseMock should be generated').toBeGreaterThan(
+    -1,
+  );
+  const nextExport = content.indexOf('export const ', start + 1);
+  const mock = content.slice(
+    start,
+    nextExport === -1 ? content.length : nextExport,
+  );
+
+  // No property may nest one `arrayElement([..., null])` directly inside
+  // another `arrayElement([..., null])` — that is the double wrap. (The
+  // string-enum `kind` legitimately nests an enum `arrayElement` whose inner
+  // list contains no `null`, so it does not match this pattern.)
+  expect(mock).not.toMatch(
+    /arrayElement\(\[\s*faker\.helpers\.arrayElement\(\[[\s\S]*?null,?\s*\]\),\s*null/,
+  );
+
+  // Boolean is left bare by the scalar getter, so the object layer must still
+  // contribute its single null branch.
+  expect(mock.replace(/\s+/g, ' ')).toContain(
+    'faker.helpers.arrayElement([faker.datatype.boolean(), null])',
+  );
+});
