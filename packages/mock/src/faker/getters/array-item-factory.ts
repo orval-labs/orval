@@ -18,12 +18,7 @@ import { extractItemsRef } from './scalar';
  * mock factories for object-like array item schemas in operation responses.
  */
 export function shouldExtractArrayItemFactories(context: ContextSpec): boolean {
-  const generators = context.output.mock?.generators;
-  if (!generators) {
-    return false;
-  }
-
-  const fakerEntry = generators.find(
+  const fakerEntry = context.output.mock.generators.find(
     (g) =>
       !isFunction(g) &&
       g.type === OutputMockType.FAKER &&
@@ -32,6 +27,43 @@ export function shouldExtractArrayItemFactories(context: ContextSpec): boolean {
   return !!fakerEntry;
 }
 
+/**
+ * True when `schemas: true` already emits a consolidated factory for this
+ * `$ref` item under `components/schemas`, so we must not re-export it from
+ * the operation mock file.
+ */
+function hasConsolidatedSchemaFactory(
+  items: MockSchema,
+  context: ContextSpec,
+): boolean {
+  if (!context.output.schemas) {
+    return false;
+  }
+
+  const itemsRef = extractItemsRef(items);
+  if (!itemsRef) {
+    return false;
+  }
+
+  const { refPaths } = getRefInfo(itemsRef, context);
+  const isComponentsSchema =
+    Array.isArray(refPaths) &&
+    refPaths[0] === 'components' &&
+    refPaths[1] === 'schemas';
+
+  if (!isComponentsSchema) {
+    return false;
+  }
+
+  return context.output.mock.generators.some(
+    (g) =>
+      !isFunction(g) && g.type === OutputMockType.FAKER && g.schemas === true,
+  );
+}
+
+/**
+ * True when array `items` resolve to an object-like schema worth extracting.
+ */
 function isObjectLikeArrayItem(items: MockSchema): boolean {
   if (isReference(items)) {
     return true;
@@ -49,8 +81,13 @@ function isObjectLikeArrayItem(items: MockSchema): boolean {
   return false;
 }
 
+/**
+ * True when `mapValue` is already a bare factory call or a single spread of one.
+ */
 function isAlreadyFactoryCall(mapValue: string): boolean {
-  return /\bget\w+Mock\(\)/.test(mapValue);
+  return /^(?:\{\s*\.\.\.\s*get\w+Mock\(\)\s*\}|get\w+Mock\(\))$/.test(
+    mapValue.trim(),
+  );
 }
 
 interface ArrayItemFactoryNames {
@@ -58,6 +95,9 @@ interface ArrayItemFactoryNames {
   typeName: string;
 }
 
+/**
+ * Derive the exported factory and TypeScript type names for an array item.
+ */
 function getArrayItemFactoryNames({
   items,
   propertyName,
@@ -124,7 +164,12 @@ export function extractArrayItemMock({
     return undefined;
   }
 
-  if (!mapValue || mapValue === '[]' || isAlreadyFactoryCall(mapValue)) {
+  if (
+    !mapValue ||
+    mapValue === '[]' ||
+    isAlreadyFactoryCall(mapValue) ||
+    hasConsolidatedSchemaFactory(items, context)
+  ) {
     return undefined;
   }
 

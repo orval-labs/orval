@@ -25,8 +25,8 @@ import {
   resolveMockOverride,
   resolveMockValue,
 } from '../resolvers';
-import { getMockObject } from './object';
 import { extractArrayItemMock } from './array-item-factory';
+import { getMockObject } from './object';
 
 interface GetMockScalarOptions {
   item: MockSchemaObject;

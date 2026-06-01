@@ -157,4 +157,58 @@ describe('extractArrayItemMock', () => {
     expect(call).toBeUndefined();
     expect(splitMockImplementations).toHaveLength(0);
   });
+
+  it('does not treat nested factory calls as already delegating', () => {
+    const splitMockImplementations: string[] = [];
+
+    const call = extractArrayItemMock({
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          pet: { $ref: '#/components/schemas/Pet' },
+        },
+      },
+      propertyName: 'value',
+      parentName: 'GetTenants200',
+      operationId: 'getTenants',
+      mapValue:
+        '{id: faker.string.uuid(), pet: {...getPetMock()}, name: faker.string.alpha({length: {min: 10, max: 20}})}',
+      context: contextWithArrayItems,
+      splitMockImplementations,
+      imports: [],
+    });
+
+    expect(call).toBe('{...getGetTenantsResponseValueItemMock()}');
+    expect(splitMockImplementations).toHaveLength(1);
+  });
+
+  it('skips $ref components/schemas items when schemas: true emits consolidated factories', () => {
+    const splitMockImplementations: string[] = [];
+    const contextWithSchemas = {
+      output: {
+        schemas: './model',
+        mock: {
+          generators: [{ type: 'faker', arrayItems: true, schemas: true }],
+        },
+        override: {
+          components: { schemas: { suffix: '', itemSuffix: 'Item' } },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const call = extractArrayItemMock({
+      items: { $ref: '#/components/schemas/TenantResponseModelDto' },
+      propertyName: 'value',
+      operationId: 'getTenantsByRef',
+      mapValue:
+        '{id: faker.string.uuid(), name: faker.string.alpha({length: {min: 10, max: 20}})}',
+      context: contextWithSchemas,
+      splitMockImplementations,
+      imports: [],
+    });
+
+    expect(call).toBeUndefined();
+    expect(splitMockImplementations).toHaveLength(0);
+  });
 });

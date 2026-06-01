@@ -140,7 +140,7 @@ export const getGetTenantsByRefResponseMock = (
 - **`$ref` array items** → `get<SchemaName>Mock` (shared across operations referencing the same schema).
 - **Inline object array items** → `get<OperationId>Response<PropertyName>ItemMock` typed as `<ResponseName><PropertyName>Item` (matching Orval's generated item type aliases).
 
-When `schemas: true` is also enabled, `$ref` items delegate to the consolidated schema factory instead (same as today). `arrayItems` is useful when item types only appear inside response wrappers or when you want item factories without emitting every `components/schemas` entry.
+When `schemas: true` is also enabled, `$ref` items delegate to the consolidated schema factory instead (same as today). `arrayItems` is useful when item types only appear inside response wrappers or when you want item factories without emitting every `components/schemas` entry. With both options enabled, `$ref` items are not re-exported from the operation mock file — import `get<SchemaName>Mock` from `<schemas-dir>/index.faker.ts` instead.
 
 ## Options
 
