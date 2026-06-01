@@ -350,7 +350,7 @@ export function resolveMockValue({
       const isObjectLike =
         newSchema.type === 'object' ||
         !!newSchema.allOf ||
-        compositionResolvesToObject(newSchema, context);
+        resolvesToObjectLike(newSchema, context);
       const callValue = isObjectLike
         ? `{ ...${factoryName}() }`
         : `${factoryName}()`;
@@ -457,25 +457,27 @@ function getType(schema: MockSchema) {
 
 // Whether a schema (or a `$ref` to one) ultimately produces an object mock.
 // Used to decide if a delegated `get<X>Mock()` call may be spread into an
-// object literal. A `oneOf`/`anyOf` qualifies only when every branch resolves
-// to an object; a union containing a primitive (e.g. `number | string`) does
-// not, since spreading that union is invalid TypeScript. The `seen` set guards
-// against self-referential compositions.
-function compositionResolvesToObject(
+// object literal. Object-like schemas are `type: 'object'`, `properties`,
+// `additionalProperties` and `allOf`; a `oneOf`/`anyOf` qualifies only when
+// every branch resolves to an object. A union containing a primitive
+// (e.g. `number | string`) does not, since spreading that union is invalid
+// TypeScript. `seen` carries the `$ref`s on the current resolution path to
+// guard against self-referential compositions. A fresh copy is taken at each
+// `$ref` hop so sibling branches sharing a `$ref` don't falsely trip the guard.
+function resolvesToObjectLike(
   schema: MockSchema,
   context: ContextSpec,
   seen = new Set<string>(),
 ): boolean {
-  let resolved: Partial<OpenApiSchemaObject> | undefined =
-    schema as Partial<OpenApiSchemaObject>;
+  let resolved: Partial<OpenApiSchemaObject> | undefined;
 
   if (isReference(schema)) {
-    const refPath = typeof schema.$ref === 'string' ? schema.$ref : '';
-    if (seen.has(refPath)) {
+    // A non-string or already-visited `$ref` can't be resolved further here.
+    if (typeof schema.$ref !== 'string' || seen.has(schema.$ref)) {
       return false;
     }
-    seen.add(refPath);
-    const { refPaths } = getRefInfo(refPath, context);
+    seen = new Set(seen).add(schema.$ref);
+    const { refPaths } = getRefInfo(schema.$ref, context);
     resolved = Array.isArray(refPaths)
       ? (prop(
           context.spec,
@@ -483,6 +485,8 @@ function compositionResolvesToObject(
           ...refPaths,
         ) as Partial<OpenApiSchemaObject>)
       : undefined;
+  } else {
+    resolved = schema as Partial<OpenApiSchemaObject>;
   }
 
   if (!resolved) {
@@ -503,7 +507,7 @@ function compositionResolvesToObject(
     | undefined;
   if (branches && branches.length > 0) {
     return branches.every((branch) =>
-      compositionResolvesToObject(branch, context, seen),
+      resolvesToObjectLike(branch, context, seen),
     );
   }
 

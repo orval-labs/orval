@@ -810,13 +810,16 @@ test('mock issue-3200 dictionary values delegate to a bare factory call for prim
     'utf8',
   );
 
-  expect(content).toContain(
-    '[faker.string.alphanumeric(5)]: getIntegerLikeMock(),',
+  // Whitespace-tolerant so the assertion survives formatter/generator tweaks
+  // while still pinning the behavior: the dictionary value is the bare call.
+  expect(content).toMatch(
+    /\[faker\.string\.alphanumeric\(5\)\]:\s*getIntegerLikeMock\(\)/,
   );
-  expect(content).toContain(
-    '[faker.string.alphanumeric(5)]: getNumberLikeMock(),',
+  expect(content).toMatch(
+    /\[faker\.string\.alphanumeric\(5\)\]:\s*getNumberLikeMock\(\)/,
   );
-  // The primitive-union factory call must never be spread into the object.
-  expect(content).not.toContain('{ ...getIntegerLikeMock() }');
-  expect(content).not.toContain('{ ...getNumberLikeMock() }');
+  // The primitive-union factory call must never be spread into the object,
+  // regardless of how the braces would be formatted.
+  expect(content).not.toContain('...getIntegerLikeMock()');
+  expect(content).not.toContain('...getNumberLikeMock()');
 });
