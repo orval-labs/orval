@@ -464,6 +464,23 @@ export default defineConfig({
       target: '../specifications/faker-schemas-string-enum-ref.yaml',
     },
   },
+  issue3200: {
+    output: {
+      target: '../generated/mock/issue-3200/endpoints.ts',
+      schemas: '../generated/mock/issue-3200/model',
+      client: 'axios',
+      mock: {
+        generators: [
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3200.yaml',
+    },
+  },
   issue2465: {
     output: {
       target: '../generated/mock/issue-2465/endpoints.ts',

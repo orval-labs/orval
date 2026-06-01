@@ -796,3 +796,27 @@ test('mock issue-3484 required nullable scalars get a single null branch', async
     'faker.helpers.arrayElement([faker.datatype.boolean(), null])',
   );
 });
+
+test('mock issue-3200 dictionary values delegate to a bare factory call for primitive-union $refs', async () => {
+  // Regression for #3200: with `schemas: true`, an `additionalProperties`
+  // dictionary whose value is a `$ref` to a primitive `oneOf`/`anyOf`
+  // (e.g. `number | string`) delegated to `get<X>Mock()`. The delegation
+  // wrapped the call in `{ ...get<X>Mock() }`, but the factory returns a
+  // primitive union which is not spreadable: that is invalid TypeScript
+  // (TS2698, enforced by scripts/typecheck-generated.mjs) and would discard
+  // the value as `{}` at runtime. The dictionary value must be the bare call.
+  const content = await readFile(
+    generated('mock', 'issue-3200', 'model', 'index.faker.ts'),
+    'utf8',
+  );
+
+  expect(content).toContain(
+    '[faker.string.alphanumeric(5)]: getIntegerLikeMock(),',
+  );
+  expect(content).toContain(
+    '[faker.string.alphanumeric(5)]: getNumberLikeMock(),',
+  );
+  // The primitive-union factory call must never be spread into the object.
+  expect(content).not.toContain('{ ...getIntegerLikeMock() }');
+  expect(content).not.toContain('{ ...getNumberLikeMock() }');
+});
