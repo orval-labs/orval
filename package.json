@@ -14,6 +14,7 @@
     "format:check": "vp fmt --check",
     "format:staged": "vp staged",
     "format:samples": "vp fmt --write samples",
+    "postinstall": "bun scripts/link-workspace-bins.mjs",
     "prepare": "husky",
     "commitlint": "commitlint",
     "update-samples": "vp run -F './packages/*' build && vp run -F './samples' -F orval-tests generate-api",
