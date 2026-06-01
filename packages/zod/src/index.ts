@@ -2237,7 +2237,7 @@ const generateZodRoute = async (
   const preprocessParams = override.zod.preprocess?.param
     ? await generateMutator({
         output,
-        mutator: override.zod.preprocess.response,
+        mutator: override.zod.preprocess.param,
         name: `${operationName}PreprocessParams`,
         workspace: context.workspace,
         tsconfig: context.output.tsconfig,
@@ -2281,7 +2281,7 @@ const generateZodRoute = async (
   const preprocessQueryParams = override.zod.preprocess?.query
     ? await generateMutator({
         output,
-        mutator: override.zod.preprocess.response,
+        mutator: override.zod.preprocess.query,
         name: `${operationName}PreprocessQueryParams`,
         workspace: context.workspace,
         tsconfig: context.output.tsconfig,
@@ -2301,7 +2301,7 @@ const generateZodRoute = async (
   const preprocessHeader = override.zod.preprocess?.header
     ? await generateMutator({
         output,
-        mutator: override.zod.preprocess.response,
+        mutator: override.zod.preprocess.header,
         name: `${operationName}PreprocessHeader`,
         workspace: context.workspace,
         tsconfig: context.output.tsconfig,
@@ -2321,7 +2321,7 @@ const generateZodRoute = async (
   const preprocessBody = override.zod.preprocess?.body
     ? await generateMutator({
         output,
-        mutator: override.zod.preprocess.response,
+        mutator: override.zod.preprocess.body,
         name: `${operationName}PreprocessBody`,
         workspace: context.workspace,
         tsconfig: context.output.tsconfig,
