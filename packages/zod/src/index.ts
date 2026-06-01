@@ -1850,13 +1850,25 @@ const parseBodyAndResponse = ({
   const schema = mediaType?.schema;
 
   if (!schema) {
+    if (parseType === 'response') {
+      const textPlainContent = contentEntries.find(
+        isMediaType(String.raw`^text\/plain$`),
+      );
+      if (textPlainContent) {
+        return {
+          input: { functions: [['string', undefined]], consts: [] },
+          isArray: false,
+        };
+      }
+    }
+
     return {
       input: { functions: [], consts: [] },
       isArray: false,
     };
   }
-  const encoding = mediaType.encoding;
 
+  const encoding = mediaType.encoding;
   const resolvedJsonSchema = dereference(schema, context);
 
   // keep the same behaviour for array
@@ -1957,7 +1969,13 @@ const getSingleResponse = (
     return;
   }
 
-  return responses['200'] ?? responses['2XX'] ?? responses['2xx'];
+  return (
+    responses['200'] ??
+    responses['2XX'] ??
+    responses['2xx'] ??
+    responses['204'] ??
+    responses['205']
+  );
 };
 
 /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
@@ -2381,7 +2399,7 @@ const generateZodRoute = async (
     !inputQueryParams.zod &&
     !inputHeaders.zod &&
     !inputBody.zod &&
-    !inputResponses.some((inputResponse) => inputResponse.zod)
+    responses.length === 0
   ) {
     return {
       implementation: '',
@@ -2486,26 +2504,50 @@ export const ${bodyName} = zod.array(${bodyName}Item)${
           pascal(`${operationName}-${responses[index][0]}-response`),
           parsedResponses[index].isArray,
         );
+
+        if (!inputResponse.zod) {
+          if (!override.zod.generate.response) {
+            return [];
+          }
+
+          const noContentStatusCodes = new Set(['204', '205']);
+          const statusCode = responses[index][0];
+          const isEachHttpStatusMode = !!statusCode;
+
+          let isNoContent: boolean;
+          if (isEachHttpStatusMode) {
+            isNoContent = noContentStatusCodes.has(statusCode);
+          } else {
+            const specResponseKeys = new Set(
+              Object.keys(spec[verb]?.responses ?? {}),
+            );
+            const hasStandardSuccess =
+              specResponseKeys.has('200') ||
+              specResponseKeys.has('2XX') ||
+              specResponseKeys.has('2xx');
+            isNoContent = !hasStandardSuccess;
+          }
+          const noContentSchema = isNoContent ? 'zod.void()' : 'zod.unknown()';
+
+          return [
+            `export const ${operationResponse} = ${noContentSchema}${brand(operationResponse)}`,
+          ];
+        }
+
         return [
           ...(inputResponse.consts ? [inputResponse.consts] : []),
-          ...(inputResponse.zod
-            ? [
-                parsedResponses[index].isArray
-                  ? `export const ${operationResponse}Item = ${
-                      inputResponse.zod
-                    }
+          parsedResponses[index].isArray
+            ? `export const ${operationResponse}Item = ${inputResponse.zod}
 export const ${operationResponse} = zod.array(${operationResponse}Item)${
-                      parsedResponses[index].rules?.min
-                        ? `.min(${parsedResponses[index].rules.min})`
-                        : ''
-                    }${
-                      parsedResponses[index].rules?.max
-                        ? `.max(${parsedResponses[index].rules.max})`
-                        : ''
-                    }${brand(operationResponse)}`
-                  : `export const ${operationResponse} = ${inputResponse.zod}${brand(operationResponse)}`,
-              ]
-            : []),
+                parsedResponses[index].rules?.min
+                  ? `.min(${parsedResponses[index].rules.min})`
+                  : ''
+              }${
+                parsedResponses[index].rules?.max
+                  ? `.max(${parsedResponses[index].rules.max})`
+                  : ''
+              }${brand(operationResponse)}`
+            : `export const ${operationResponse} = ${inputResponse.zod}${brand(operationResponse)}`,
         ];
       }),
     ].join('\n\n'),
