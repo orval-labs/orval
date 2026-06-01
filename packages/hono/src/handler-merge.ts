@@ -274,7 +274,12 @@ export const reconcileHandlerFile = async (
     collectRenames?: Map<string, string>,
   ) => {
     if (!existing) {
-      const toInsert = augment ? names.filter((name) => augment(name)) : names;
+      // Never insert a name that is already bound bare elsewhere (e.g. a default
+      // or namespace import from another module) — that would create a duplicate
+      // binding.
+      const toInsert = (
+        augment ? names.filter((name) => augment(name)) : names
+      ).filter((name) => !isImportedBare(name));
       if (toInsert.length > 0) {
         pendingInsertions.push(renderImport({ names: toInsert, module }));
       }
@@ -475,9 +480,13 @@ export const reconcileHandlerFile = async (
 
   if (pendingInsertions.length > 0) {
     const lastImport = importDeclarations.at(-1);
-    const insertPos = lastImport
-      ? source.indexOf('\n', lastImport.getEnd()) + 1
-      : 0;
+    let insertPos = 0;
+    if (lastImport) {
+      // Guard the EOF case: when the last import has no trailing newline,
+      // indexOf returns -1 and `+ 1` would prepend to the top of the file.
+      const newline = source.indexOf('\n', lastImport.getEnd());
+      insertPos = newline === -1 ? source.length : newline + 1;
+    }
     edits.push({
       start: insertPos,
       end: insertPos,
@@ -567,7 +576,13 @@ const validatorInsertPos = (
   const handler = call.arguments.findLast(
     (arg) => ts.isArrowFunction(arg) || ts.isFunctionExpression(arg),
   );
-  if (handler) return lineStart(source, handler.getStart(sourceFile));
+  if (handler) {
+    // Insert at the handler's line start when it's on its own line; otherwise
+    // (single-line `createHandlers(async (c) => {})`) insert right before it so
+    // the validator isn't pushed to the start of the statement.
+    const start = handler.getStart(sourceFile);
+    return startsLine(source, start) ? lineStart(source, start) : start;
+  }
   // No trailing handler found — insert just before the closing paren.
   return call.getEnd() - 1;
 };

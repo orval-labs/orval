@@ -953,4 +953,73 @@ export const getStatsHandlers = factory.createHandlers(
     expect(result).toContain('z.infer<typeof GetStatsResponse>'); // body migrated
     expect(result).not.toContain('getStatsResponse'); // no dangling old name
   });
+
+  it('inserts a validator into a single-line createHandlers without breaking it', async () => {
+    const source = `import { createFactory } from 'hono/factory';
+import { zValidator } from '../endpoints.validator';
+import { ListPetsContext } from '../endpoints.context';
+import { ListPetsQueryParams } from '../endpoints.zod';
+
+const factory = createFactory();
+
+export const listPetsHandlers = factory.createHandlers(async (c: ListPetsContext) => c.json([]));
+`;
+    const result = await reconcileHandlerFile(source, {
+      imports: {
+        factory: factoryImport,
+        validator: { names: ['zValidator'], module: '../endpoints.validator' },
+        context: { names: ['ListPetsContext'], module: '../endpoints.context' },
+        zod: { names: ['ListPetsQueryParams'], module: '../endpoints.zod' },
+      },
+      handlers: [
+        {
+          handlerName: 'listPetsHandlers',
+          validators: [{ target: 'query', schema: 'ListPetsQueryParams' }],
+          stub: '',
+        },
+      ],
+    });
+
+    expect(result).toContain("zValidator('query', ListPetsQueryParams)");
+    // the validator is inserted INSIDE the call, not prepended before the export
+    expect(result.indexOf('export const listPetsHandlers')).toBeLessThan(
+      result.indexOf("zValidator('query'"),
+    );
+  });
+
+  it('does not insert a duplicate binding when the name is already imported elsewhere', async () => {
+    const source = `import GetStatsResponse from '../legacy';
+import { createFactory } from 'hono/factory';
+import { GetStatsContext } from '../endpoints.context';
+
+const factory = createFactory();
+
+export const getStatsHandlers = factory.createHandlers(
+  async (c: GetStatsContext) => {
+    return c.json(GetStatsResponse);
+  },
+);
+`;
+    const result = await reconcileHandlerFile(source, {
+      imports: {
+        factory: factoryImport,
+        validator: { names: ['zValidator'], module: '../endpoints.validator' },
+        context: { names: ['GetStatsContext'], module: '../endpoints.context' },
+        zod: { names: ['GetStatsResponse'], module: '../endpoints.zod' },
+      },
+      handlers: [
+        {
+          handlerName: 'getStatsHandlers',
+          validators: [{ target: 'response', schema: 'GetStatsResponse' }],
+          stub: '',
+        },
+      ],
+    });
+
+    // the existing default import is kept; no duplicate named import is added
+    expect(result).toContain("import GetStatsResponse from '../legacy';");
+    expect(result).not.toContain(
+      "import { GetStatsResponse } from '../endpoints.zod';",
+    );
+  });
 });

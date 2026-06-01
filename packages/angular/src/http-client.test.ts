@@ -55,6 +55,7 @@ const createOutput = (
       jsDoc: {},
       header: false,
       hono: {
+        handlerGenerationStrategy: 'smart',
         compositeRoute: '',
         validator: true,
         validatorOutputPath: '',
