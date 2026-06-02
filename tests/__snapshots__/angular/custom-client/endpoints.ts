@@ -4,20 +4,13 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import {
-  HttpClient,
-  HttpResponse as AngularHttpResponse,
-} from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 
 import { Injectable, inject } from '@angular/core';
 
 import type {
-  Cat,
   CreatePetsBody,
   CreatePetsParams,
-  Dachshund,
-  Dog,
-  Labradoodle,
   ListPetsParams,
   Pet,
   PetWithTag,
@@ -28,6 +21,8 @@ import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
+
+import type { Cat, Dachshund, Dog, Labradoodle } from './model';
 
 import listPetsMutator from '../../../mutators/custom-client-angular';
 import createPetsMutator from '../../../mutators/custom-client-angular';

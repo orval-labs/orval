@@ -76,26 +76,7 @@ export async function writeSingleMode({
       output.tsconfig,
     );
 
-    const implementationForImports =
-      implementationMock.length > 0
-        ? `${implementation}\n${implementationMock}`
-        : implementation;
-
-    const mergedImports = [...imports];
-    for (const mockImport of importsMock) {
-      if (
-        mergedImports.some(
-          (imp) =>
-            imp.name === mockImport.name &&
-            (imp.alias ?? '') === (mockImport.alias ?? ''),
-        )
-      ) {
-        continue;
-      }
-      mergedImports.push(mockImport);
-    }
-
-    const implementationImports = mergedImports.filter((imp) => {
+    const implementationImports = imports.filter((imp) => {
       const searchWords = [imp.alias, imp.name]
         .filter((part): part is string => Boolean(part?.length))
         .map((part) => escapeRegExp(part))
@@ -105,7 +86,7 @@ export async function writeSingleMode({
       }
 
       return new RegExp(String.raw`\b(${searchWords})\b`, 'g').test(
-        implementationForImports,
+        implementation,
       );
     });
 
@@ -144,7 +125,7 @@ export async function writeSingleMode({
 
     data += builder.imports({
       client: output.client,
-      implementation: implementationForImports,
+      implementation,
       imports: importsForBuilder,
       projectName,
       hasSchemaDir: !!output.schemas,

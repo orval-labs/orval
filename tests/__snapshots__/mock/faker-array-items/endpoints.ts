@@ -7,14 +7,11 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import type {
-  GetTenants200,
-  GetTenants200ValueItem,
-  TenantListResponse,
-  TenantResponseModelDto,
-} from './model';
+import type { GetTenants200, TenantListResponse } from './model';
 
 import { faker } from '@faker-js/faker';
+
+import type { GetTenants200ValueItem, TenantResponseModelDto } from './model';
 
 export const getFakerArrayItemFactories = (
   axiosInstance: AxiosInstance = axios,
@@ -31,10 +28,24 @@ export const getFakerArrayItemFactories = (
     return axiosInstance.get(`/tenants-by-ref`, options);
   };
 
-  return { getTenants, getTenantsByRef };
+  const getTenantsA = (
+    options?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<TenantListResponse>> => {
+    return axiosInstance.get(`/tenants-a`, options);
+  };
+
+  const getTenantsB = (
+    options?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<TenantListResponse>> => {
+    return axiosInstance.get(`/tenants-b`, options);
+  };
+
+  return { getTenants, getTenantsByRef, getTenantsA, getTenantsB };
 };
 export type GetTenantsResult = AxiosResponse<GetTenants200>;
 export type GetTenantsByRefResult = AxiosResponse<TenantListResponse>;
+export type GetTenantsAResult = AxiosResponse<TenantListResponse>;
+export type GetTenantsBResult = AxiosResponse<TenantListResponse>;
 
 export const getGetTenantsResponseValueItemMock = (
   overrideResponse: Partial<GetTenants200ValueItem> = {},
@@ -68,6 +79,28 @@ export const getTenantResponseModelDtoMock = (
 });
 
 export const getGetTenantsByRefResponseMock = (
+  overrideResponse: Partial<Extract<TenantListResponse, object>> = {},
+): TenantListResponse => ({
+  value: Array.from(
+    { length: faker.number.int({ min: 1, max: 10 }) },
+    (_, i) => i + 1,
+  ).map(() => ({ ...getTenantResponseModelDtoMock() })),
+  count: faker.number.int(),
+  ...overrideResponse,
+});
+
+export const getGetTenantsAResponseMock = (
+  overrideResponse: Partial<Extract<TenantListResponse, object>> = {},
+): TenantListResponse => ({
+  value: Array.from(
+    { length: faker.number.int({ min: 1, max: 10 }) },
+    (_, i) => i + 1,
+  ).map(() => ({ ...getTenantResponseModelDtoMock() })),
+  count: faker.number.int(),
+  ...overrideResponse,
+});
+
+export const getGetTenantsBResponseMock = (
   overrideResponse: Partial<Extract<TenantListResponse, object>> = {},
 ): TenantListResponse => ({
   value: Array.from(

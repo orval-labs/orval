@@ -7,12 +7,14 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import type { DiscriminatorTest, Item1, Item2, Item3 } from './model';
+import type { DiscriminatorTest } from './model';
 
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
+
+import type { Item1, Item2, Item3 } from './model';
 
 export const getTest = (
   options?: AxiosRequestConfig,

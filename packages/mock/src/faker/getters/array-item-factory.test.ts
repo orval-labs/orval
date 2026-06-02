@@ -6,16 +6,17 @@ import {
   shouldExtractArrayItemFactories,
 } from './array-item-factory';
 
-const contextWithArrayItems = {
-  output: {
-    mock: {
-      generators: [{ type: 'faker', arrayItems: true }],
+const createContextWithArrayItems = (): ContextSpec =>
+  ({
+    output: {
+      mock: {
+        generators: [{ type: 'faker', arrayItems: true }],
+      },
+      override: {
+        components: { schemas: { suffix: '', itemSuffix: 'Item' } },
+      },
     },
-    override: {
-      components: { schemas: { suffix: '', itemSuffix: 'Item' } },
-    },
-  },
-} as unknown as ContextSpec;
+  }) as unknown as ContextSpec;
 
 const contextWithoutArrayItems = {
   output: {
@@ -30,7 +31,9 @@ const contextWithoutArrayItems = {
 
 describe('shouldExtractArrayItemFactories', () => {
   it('returns true when arrayItems is enabled', () => {
-    expect(shouldExtractArrayItemFactories(contextWithArrayItems)).toBe(true);
+    expect(shouldExtractArrayItemFactories(createContextWithArrayItems())).toBe(
+      true,
+    );
   });
 
   it('returns false when arrayItems is not enabled', () => {
@@ -51,7 +54,7 @@ describe('extractArrayItemMock', () => {
       operationId: 'getTenantsByRef',
       mapValue:
         '{id: faker.string.uuid(), name: faker.string.alpha({length: {min: 10, max: 20}})}',
-      context: contextWithArrayItems,
+      context: createContextWithArrayItems(),
       splitMockImplementations,
       imports,
     });
@@ -83,7 +86,7 @@ describe('extractArrayItemMock', () => {
       operationId: 'getTenants',
       mapValue:
         '{id: faker.string.uuid(), name: faker.string.alpha({length: {min: 10, max: 20}})}',
-      context: contextWithArrayItems,
+      context: createContextWithArrayItems(),
       splitMockImplementations,
       imports: [],
     });
@@ -97,7 +100,8 @@ describe('extractArrayItemMock', () => {
     );
   });
 
-  it('deduplicates factories with the same name', () => {
+  it('deduplicates factories with the same name within one operation', () => {
+    const context = createContextWithArrayItems();
     const splitMockImplementations: string[] = [];
     const mapValue =
       '{id: faker.string.uuid(), name: faker.string.alpha({length: {min: 10, max: 20}})}';
@@ -107,7 +111,7 @@ describe('extractArrayItemMock', () => {
       propertyName: 'value',
       operationId: 'getTenantsByRef',
       mapValue,
-      context: contextWithArrayItems,
+      context,
       splitMockImplementations,
       imports: [],
     });
@@ -116,12 +120,45 @@ describe('extractArrayItemMock', () => {
       propertyName: 'items',
       operationId: 'getTenantsByRef',
       mapValue,
-      context: contextWithArrayItems,
+      context,
       splitMockImplementations,
       imports: [],
     });
 
     expect(splitMockImplementations).toHaveLength(1);
+  });
+
+  it('deduplicates $ref factories across operations in the same output file', () => {
+    const context = createContextWithArrayItems();
+    const mapValue =
+      '{id: faker.string.uuid(), name: faker.string.alpha({length: {min: 10, max: 20}})}';
+    const splitMockImplementationsA: string[] = [];
+    const splitMockImplementationsB: string[] = [];
+
+    extractArrayItemMock({
+      items: { $ref: '#/components/schemas/TenantResponseModelDto' },
+      propertyName: 'value',
+      operationId: 'getTenantsA',
+      mapValue,
+      context,
+      splitMockImplementations: splitMockImplementationsA,
+      imports: [],
+    });
+    extractArrayItemMock({
+      items: { $ref: '#/components/schemas/TenantResponseModelDto' },
+      propertyName: 'value',
+      operationId: 'getTenantsB',
+      mapValue,
+      context,
+      splitMockImplementations: splitMockImplementationsB,
+      imports: [],
+    });
+
+    expect(splitMockImplementationsA).toHaveLength(1);
+    expect(splitMockImplementationsB).toHaveLength(0);
+    expect(
+      context.arrayItemMockFactories?.has('getTenantResponseModelDtoMock'),
+    ).toBe(true);
   });
 
   it('skips primitive array items', () => {
@@ -132,7 +169,7 @@ describe('extractArrayItemMock', () => {
       propertyName: 'tags',
       operationId: 'getTenants',
       mapValue: 'faker.string.alpha({length: {min: 10, max: 20}})',
-      context: contextWithArrayItems,
+      context: createContextWithArrayItems(),
       splitMockImplementations,
       imports: [],
     });
@@ -149,7 +186,7 @@ describe('extractArrayItemMock', () => {
       propertyName: 'value',
       operationId: 'getTenantsByRef',
       mapValue: '{...getTenantResponseModelDtoMock()}',
-      context: contextWithArrayItems,
+      context: createContextWithArrayItems(),
       splitMockImplementations,
       imports: [],
     });
@@ -174,7 +211,7 @@ describe('extractArrayItemMock', () => {
       operationId: 'getTenants',
       mapValue:
         '{id: faker.string.uuid(), pet: {...getPetMock()}, name: faker.string.alpha({length: {min: 10, max: 20}})}',
-      context: contextWithArrayItems,
+      context: createContextWithArrayItems(),
       splitMockImplementations,
       imports: [],
     });

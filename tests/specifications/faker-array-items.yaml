@@ -46,6 +46,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TenantListResponse'
+  /tenants-a:
+    get:
+      operationId: getTenantsA
+      tags:
+        - tenants
+      responses:
+        '200':
+          description: List tenants (shared ref A)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantListResponse'
+  /tenants-b:
+    get:
+      operationId: getTenantsB
+      tags:
+        - tenants
+      responses:
+        '200':
+          description: List tenants (shared ref B)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantListResponse'
 components:
   schemas:
     TenantResponseModelDto:

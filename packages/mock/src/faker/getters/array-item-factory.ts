@@ -13,6 +13,13 @@ import type { MockSchema } from '../../types';
 import { overrideVarName } from './object';
 import { extractItemsRef } from './scalar';
 
+function getFileLevelExtractedFactories(context: ContextSpec): Set<string> {
+  if (!context.arrayItemMockFactories) {
+    context.arrayItemMockFactories = new Set();
+  }
+  return context.arrayItemMockFactories;
+}
+
 /**
  * True when the active faker generator entry opts into reusable array-item
  * mock factories for object-like array item schemas in operation responses.
@@ -185,18 +192,21 @@ export function extractArrayItemMock({
   }
 
   const { factoryName, typeName } = names;
-
-  if (
-    !splitMockImplementations.some((f) =>
+  const fileLevelFactories = getFileLevelExtractedFactories(context);
+  const alreadyExtracted =
+    fileLevelFactories.has(factoryName) ||
+    splitMockImplementations.some((f) =>
       f.includes(`export const ${factoryName}`),
-    )
-  ) {
+    );
+
+  if (!alreadyExtracted) {
     const args = `${overrideVarName}: Partial<${typeName}> = {}`;
     const spreadPrefix = mapValue.startsWith('...') ? '' : '...';
     const func =
       `export const ${factoryName} = (${args}): ${typeName} => ` +
       `({${spreadPrefix}${mapValue}, ...${overrideVarName}});`;
     splitMockImplementations.push(func);
+    fileLevelFactories.add(factoryName);
   }
 
   imports.push({ name: typeName });

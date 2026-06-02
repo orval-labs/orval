@@ -1117,6 +1117,12 @@ export interface ContextSpec {
    * entries or generic parameter placeholders. Populated by `buildDynamicScope`.
    */
   dynamicScope?: Partial<Record<string, DynamicScopeEntry>>;
+  /**
+   * Tracks array-item mock factory names already emitted in the current output
+   * file. Populated by `@orval/mock` when `arrayItems: true` so shared `$ref`
+   * item factories are not re-declared per operation.
+   */
+  arrayItemMockFactories?: Set<string>;
 }
 
 /**

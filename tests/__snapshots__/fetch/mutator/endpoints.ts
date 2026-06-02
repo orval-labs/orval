@@ -5,13 +5,9 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
-  Cat,
   CreatePetsBody,
   CreatePetsParams,
-  Dachshund,
-  Dog,
   Error,
-  Labradoodle,
   ListPetsParams,
   Pet,
   PetWithTag,
@@ -22,6 +18,8 @@ import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
+
+import type { Cat, Dachshund, Dog, Labradoodle } from './model';
 
 import { customFetch } from '../../../mutators/custom-fetch';
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;

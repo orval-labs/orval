@@ -22,13 +22,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  Cat,
   CreatePetsBody,
   CreatePetsParams,
-  Dachshund,
-  Dog,
   Error,
-  Labradoodle,
   ListPetsParams,
   Pet,
   PetWithTag,
@@ -39,6 +35,8 @@ import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
+
+import type { Cat, Dachshund, Dog, Labradoodle } from './model';
 
 import { customInstance } from '../../../mutators/error-type';
 import type { ErrorType } from '../../../mutators/error-type';

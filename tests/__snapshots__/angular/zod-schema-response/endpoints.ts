@@ -16,12 +16,8 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import type {
-  Cat,
   CreatePetsBody,
   CreatePetsParams,
-  Dachshund,
-  Dog,
-  Labradoodle,
   ListPetsParams,
   Pet,
   PetWithTag,
@@ -32,6 +28,8 @@ import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
+
+import type { Cat, Dachshund, Dog, Labradoodle } from './model';
 
 interface HttpClientOptions {
   readonly headers?: HttpHeaders | Record<string, string | string[]>;

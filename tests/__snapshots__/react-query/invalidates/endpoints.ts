@@ -21,14 +21,10 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  Cat,
   CreatePetsBody,
   CreatePetsHeaders,
   CreatePetsParams,
-  Dachshund,
-  Dog,
   Error,
-  Labradoodle,
   ListPetsHeaders,
   ListPetsParams,
   Pet,
@@ -40,6 +36,8 @@ import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
+
+import type { Cat, Dachshund, Dog, Labradoodle } from './model';
 
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;

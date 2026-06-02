@@ -37,18 +37,10 @@ import {
   Pets
 } from './model';
 import type {
-  Cat,
   CreatePetsBody,
   CreatePetsParams,
-  Dachshund,
-  Dog,
-  Labradoodle,
   ListPetsParams
 } from './model';
-
-import {
-  map
-} from 'rxjs';
 
 import {
   faker
@@ -61,6 +53,13 @@ import {
 import type {
   RequestHandlerOptions
 } from 'msw';
+
+import type {
+  Cat,
+  Dachshund,
+  Dog,
+  Labradoodle
+} from './model';
 
 export type OrvalHttpResourceOptions<TValue, TRaw = unknown, TOmitParse extends boolean = true> = TOmitParse extends true
   ? Omit<HttpResourceOptions<TValue, TRaw>, 'parse'>

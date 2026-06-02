@@ -8,18 +8,19 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import type {
-  Example,
-  Example1,
-  Example2,
-  PointInFutureAbsolute,
-  PointInFutureRelative,
-} from './model';
+import type { Example } from './model';
 
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
+
+import type {
+  Example1,
+  Example2,
+  PointInFutureAbsolute,
+  PointInFutureRelative,
+} from './model';
 
 export const example = (
   options?: AxiosRequestConfig,
