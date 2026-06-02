@@ -1,0 +1,87 @@
+import type { ResReqTypesValue } from '@orval/core';
+import { describe, expect, it } from 'vitest';
+
+import {
+  applyStrictMockReturnType,
+  getMockFactoryReturnType,
+  getSchemaTypeNamesFromResponses,
+  getStrictMockTypeDeclaration,
+  getStrictMockTypeName,
+  isStrictMock,
+} from './mock-types';
+
+describe('mock-types', () => {
+  describe('isStrictMock', () => {
+    it('is true only when required and nonNullable are both true', () => {
+      expect(isStrictMock(undefined)).toBe(false);
+      expect(isStrictMock({ required: true })).toBe(false);
+      expect(isStrictMock({ nonNullable: true })).toBe(false);
+      expect(isStrictMock({ required: true, nonNullable: true })).toBe(true);
+    });
+  });
+
+  describe('getStrictMockTypeDeclaration', () => {
+    it('emits a Required/NonNullable mapped type alias', () => {
+      expect(getStrictMockTypeDeclaration('Pet')).toBe(
+        'export type PetMock = {\n  [K in keyof Required<Pet>]: NonNullable<Required<Pet>[K]>;\n};',
+      );
+    });
+  });
+
+  describe('getMockFactoryReturnType', () => {
+    it('returns the strict mock alias when both flags are set', () => {
+      expect(
+        getMockFactoryReturnType('Pet', {
+          required: true,
+          nonNullable: true,
+        }),
+      ).toBe('PetMock');
+    });
+
+    it('returns the original type when either flag is unset', () => {
+      expect(getMockFactoryReturnType('Pet')).toBe('Pet');
+      expect(getMockFactoryReturnType('Pet', { required: true })).toBe('Pet');
+    });
+  });
+
+  describe('applyStrictMockReturnType', () => {
+    it('replaces known schema names with Mock suffixes', () => {
+      expect(applyStrictMockReturnType('Pet | Error', ['Pet', 'Error'])).toBe(
+        'PetMock | ErrorMock',
+      );
+      expect(applyStrictMockReturnType('Pet[]', ['Pet'])).toBe('PetMock[]');
+    });
+
+    it('does not partially replace longer schema names', () => {
+      expect(
+        applyStrictMockReturnType('PetWithTag', ['Pet', 'PetWithTag']),
+      ).toBe('PetWithTagMock');
+    });
+  });
+
+  describe('getSchemaTypeNamesFromResponses', () => {
+    it('collects schema names from response values and imports', () => {
+      const responses = [
+        {
+          value: 'Pet',
+          imports: [{ name: 'Pet', values: false }],
+        },
+        {
+          value: 'Error[]',
+          imports: [{ name: 'Error', values: false }],
+        },
+      ] as ResReqTypesValue[];
+
+      expect(getSchemaTypeNamesFromResponses(responses).sort()).toEqual([
+        'Error',
+        'Pet',
+      ]);
+    });
+  });
+
+  describe('getStrictMockTypeName', () => {
+    it('appends Mock to the schema name', () => {
+      expect(getStrictMockTypeName('Pet')).toBe('PetMock');
+    });
+  });
+});

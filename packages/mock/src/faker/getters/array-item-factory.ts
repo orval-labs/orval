@@ -14,6 +14,7 @@ import {
 } from '@orval/core';
 
 import type { MockSchema } from '../../types';
+import { getMockFactoryReturnType } from '../../mock-types';
 import { overrideVarName } from './object';
 import { extractItemsRef } from './scalar';
 
@@ -300,10 +301,12 @@ export function extractArrayItemMock({
     );
 
   if (!alreadyExtracted) {
+    const mockOptions = context.output.override.mock;
+    const returnType = getMockFactoryReturnType(typeName, mockOptions);
     const args = `${overrideVarName}: Partial<${typeName}> = {}`;
     const spreadPrefix = mapValue.startsWith('...') ? '' : '...';
     const func =
-      `export const ${factoryName} = (${args}): ${typeName} => ` +
+      `export const ${factoryName} = (${args}): ${returnType} => ` +
       `({${spreadPrefix}${mapValue}, ...${overrideVarName}});`;
     splitMockImplementations.push(func);
     fileLevelFactories.add(factoryName);

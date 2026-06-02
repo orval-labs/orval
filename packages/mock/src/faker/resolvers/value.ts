@@ -12,6 +12,7 @@ import {
 import { prop } from 'remeda';
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
+import { getMockFactoryReturnType } from '../../mock-types';
 import { overrideVarName } from '../getters';
 import { getMockScalar } from '../getters/scalar';
 
@@ -409,7 +410,11 @@ export function resolveMockValue({
         }
 
         const args = `${overrideVarName}: ${type} = {}`;
-        const func = `export const ${funcName} = (${args}): ${newSchema.name} => ({${scalar.value.startsWith('...') ? '' : '...'}${scalar.value}, ...${overrideVarName}});`;
+        const returnType = getMockFactoryReturnType(
+          newSchema.name,
+          mockOptions,
+        );
+        const func = `export const ${funcName} = (${args}): ${returnType} => ({${scalar.value.startsWith('...') ? '' : '...'}${scalar.value}, ...${overrideVarName}});`;
         splitMockImplementations.push(func);
       }
 

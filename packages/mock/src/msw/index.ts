@@ -17,6 +17,13 @@ import {
 
 import { getDelay } from '../delay';
 import { getRouteMSW, overrideVarName } from '../faker/getters';
+import {
+  applyStrictMockReturnType,
+  getMockFactoryReturnType,
+  getSchemaTypeNamesFromResponses,
+  getStrictMockTypeDeclarations,
+  isStrictMock,
+} from '../mock-types';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
 
 function getMSWDependencies(
@@ -227,13 +234,28 @@ function generateDefinition(
     hasStringReturnType &&
     mockReturnType !== 'string';
 
+  const mockOptionsFromOverride = override.mock;
+  const strictMock = isStrictMock(mockOptionsFromOverride);
+  const schemaTypeNames = strictMock
+    ? getSchemaTypeNamesFromResponses(responses)
+    : [];
+  const strictMockReturnType = strictMock
+    ? applyStrictMockReturnType(nonVoidMockReturnType, schemaTypeNames)
+    : nonVoidMockReturnType;
+  const strictTypeDeclarations = strictMock
+    ? getStrictMockTypeDeclarations(schemaTypeNames)
+    : '';
+  const strictTypeBlock = strictTypeDeclarations
+    ? `${strictTypeDeclarations}\n\n`
+    : '';
+
   const mockImplementation = isReturnHttpResponse
-    ? `${mockImplementations}export const ${getResponseMockFunctionName} = (${
+    ? `${strictTypeBlock}${mockImplementations}export const ${getResponseMockFunctionName} = (${
         isResponseOverridable
           ? `overrideResponse: ${overrideResponseType} = {}`
           : ''
-      })${mockData ? '' : `: ${nonVoidMockReturnType}`} => (${value})\n\n`
-    : mockImplementations;
+      })${mockData ? '' : `: ${strictMockReturnType}`} => (${value})\n\n`
+    : `${strictTypeBlock}${mockImplementations}`;
 
   const delay = getDelay(override, isFunction(mock) ? undefined : mock);
   const infoParam = 'info';

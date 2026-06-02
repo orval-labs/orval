@@ -516,6 +516,54 @@ export default defineConfig({
       target: '../specifications/issue-3484.yaml',
     },
   },
+  issue3525: {
+    output: {
+      target: '../generated/mock/issue-3525/endpoints.ts',
+      schemas: '../generated/mock/issue-3525/model',
+      client: 'fetch',
+      mock: {
+        generators: [
+          { type: 'msw' },
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      override: {
+        mock: {
+          required: true,
+          nonNullable: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3525.yaml',
+    },
+  },
+  issue3525Oas31: {
+    output: {
+      target: '../generated/mock/issue-3525-oas31/endpoints.ts',
+      schemas: '../generated/mock/issue-3525-oas31/model',
+      client: 'fetch',
+      mock: {
+        generators: [
+          { type: 'msw' },
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      override: {
+        mock: {
+          required: true,
+          nonNullable: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3525-oas31.yaml',
+    },
+  },
   fakerArrayItems: {
     output: {
       target: '../generated/mock/faker-array-items/endpoints.ts',

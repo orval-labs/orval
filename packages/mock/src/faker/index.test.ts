@@ -10,7 +10,11 @@ import type {
 import { isFakerMock, isMswMock, OutputMockType } from '@orval/core';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import { generateFaker, generateFakerImports } from './index';
+import {
+  generateFaker,
+  generateFakerForSchemas,
+  generateFakerImports,
+} from './index';
 
 const mockVerbOptions = {
   operationId: 'getUser',
@@ -153,5 +157,73 @@ describe('discriminated GlobalMockOptions union', () => {
       }) as ReturnType<ClientMockBuilder>;
     expect(isMswMock(mock)).toBe(false);
     expect(isFakerMock(mock)).toBe(false);
+  });
+});
+
+describe('generateFakerForSchemas strict mock types (#3525)', () => {
+  const strictOverride = {
+    operations: {},
+    tags: {},
+    mock: {
+      required: true,
+      nonNullable: true,
+    },
+  } as NormalizedOverrideOutput;
+
+  const context = {
+    target: 'test',
+    workspace: '',
+    spec: {
+      openapi: '3.0.0',
+      info: { title: 'Test', version: '1.0.0' },
+      paths: {},
+    },
+    output: {
+      target: 'test',
+      namingConvention: 'camelCase',
+      fileExtension: '.ts',
+      mode: 'single',
+      override: strictOverride,
+      client: 'axios-functions',
+      httpClient: 'fetch',
+      clean: false,
+      docs: false,
+      formatter: undefined,
+      headers: false,
+      indexFiles: true,
+      allParamsOptional: false,
+      urlEncodeParameters: false,
+      unionAddMissingProperties: false,
+      optionsParamRequired: false,
+      propertySortOrder: 'specification',
+    },
+  } as GeneratorOptions['context'];
+
+  it('emits PetMock alias and return type for schema factories', () => {
+    const result = generateFakerForSchemas(
+      [
+        {
+          name: 'Pet',
+          model: 'Pet',
+          schema: {
+            type: 'object',
+            required: ['id', 'name'],
+            properties: {
+              id: { type: 'integer' },
+              name: { type: 'string' },
+              tag: { type: 'string', nullable: true },
+            },
+          },
+        },
+      ],
+      context,
+      { type: OutputMockType.FAKER, schemas: true },
+    );
+
+    expect(result.implementation).toContain('export type PetMock = {');
+    expect(result.implementation).toContain(
+      'export const getPetMock = (overrideResponse: Partial<Pet> = {}): PetMock =>',
+    );
+    expect(result.implementation).not.toContain(', null]');
   });
 });

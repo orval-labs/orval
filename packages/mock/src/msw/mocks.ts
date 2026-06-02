@@ -92,6 +92,7 @@ function getMockWithoutFunc(
     numberMin: override?.mock?.numberMin,
     numberMax: override?.mock?.numberMax,
     required: override?.mock?.required,
+    nonNullable: override?.mock?.nonNullable,
     fractionDigits: override?.mock?.fractionDigits,
     ...(override?.mock?.properties
       ? {

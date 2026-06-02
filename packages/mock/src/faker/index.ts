@@ -13,6 +13,11 @@ import {
 } from '@orval/core';
 
 import { generateMSW } from '../msw';
+import {
+  getMockFactoryReturnType,
+  getStrictMockTypeDeclaration,
+  isStrictMock,
+} from '../mock-types';
 import { getMockScalar } from './getters';
 
 function getFakerDependencies(
@@ -93,6 +98,7 @@ export function generateFakerForSchemas(
   options: GlobalMockOptions,
 ): GenerateFakerForSchemasResult {
   const factories: string[] = [];
+  const strictMockTypeNames = new Set<string>();
   const allImports: GeneratorImport[] = [];
   // Shared across schemas so we emit each helper (e.g. an `allOf`-discriminator
   // sub-factory) once even when several schemas reference the same union arm.
@@ -144,7 +150,12 @@ export function generateFakerForSchemas(
     const param = isOverridable
       ? `overrideResponse: Partial<${typeName}> = {}`
       : '';
-    const factory = `export const ${factoryName} = (${param}): ${typeName} => (${result.value});\n`;
+    const returnType = getMockFactoryReturnType(typeName, mockOptions);
+    const factory = `export const ${factoryName} = (${param}): ${returnType} => (${result.value});\n`;
+
+    if (isStrictMock(mockOptions) && isOverridable) {
+      strictMockTypeNames.add(typeName);
+    }
 
     factories.push(factory);
 
@@ -191,7 +202,19 @@ export function generateFakerForSchemas(
   // Helper factories from union/discriminator handling (`splitMockImplementations`)
   // are emitted before the public `get<Schema>Mock` factories so call sites
   // declared after them resolve cleanly without TS hoisting concerns.
-  const implementation = [...splitMockImplementations, ...factories].join('\n');
+  const strictTypeDeclarations = isStrictMock(mockOptions)
+    ? [...strictMockTypeNames]
+        .map((typeName) => getStrictMockTypeDeclaration(typeName))
+        .join('\n\n')
+    : '';
+  const strictTypeBlock = strictTypeDeclarations
+    ? `${strictTypeDeclarations}\n\n`
+    : '';
+  const implementation = [
+    ...splitMockImplementations,
+    strictTypeBlock,
+    ...factories,
+  ].join('\n');
 
   return {
     implementation,
