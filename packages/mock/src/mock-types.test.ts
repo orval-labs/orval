@@ -9,6 +9,7 @@ import {
   getSimpleSchemaReturnType,
   getStrictMockHelperTypeDeclarations,
   getStrictMockTypeDeclaration,
+  getStrictMockTypeDeclarations,
   getStrictMockTypeName,
   isStrictMock,
 } from './mock-types';
@@ -16,7 +17,7 @@ import {
 describe('mock-types', () => {
   describe('isStrictMock', () => {
     it('is true only when required and nonNullable are both true', () => {
-      expect(isStrictMock(undefined)).toBe(false);
+      expect(isStrictMock()).toBe(false);
       expect(isStrictMock({ required: true })).toBe(false);
       expect(isStrictMock({ nonNullable: true })).toBe(false);
       expect(isStrictMock({ required: true, nonNullable: true })).toBe(true);
@@ -31,6 +32,25 @@ describe('mock-types', () => {
       expect(getStrictMockHelperTypeDeclarations()).toContain(
         'export type MockWithNullableOverrides',
       );
+    });
+  });
+
+  describe('getStrictMockTypeDeclarations', () => {
+    it('deduplicates schema names and joins mock type aliases', () => {
+      const result = getStrictMockTypeDeclarations(['Pet', 'Pet', 'Error']);
+
+      expect(result).toBe(
+        [
+          getStrictMockTypeDeclaration('Pet'),
+          getStrictMockTypeDeclaration('Error'),
+        ].join('\n\n'),
+      );
+      expect(result.match(/export type PetMock/g)?.length).toBe(1);
+      expect(result.match(/export type ErrorMock/g)?.length).toBe(1);
+    });
+
+    it('returns an empty string when no schema names are provided', () => {
+      expect(getStrictMockTypeDeclarations([])).toBe('');
     });
   });
 
@@ -135,9 +155,37 @@ describe('mock-types', () => {
         },
       ] as ResReqTypesValue[];
 
-      expect(getSchemaTypeNamesFromResponses(responses).sort()).toEqual([
+      expect(getSchemaTypeNamesFromResponses(responses).toSorted()).toEqual([
         'Error',
         'Pet',
+      ]);
+    });
+
+    it('uses import aliases when present', () => {
+      const responses = [
+        {
+          imports: [{ name: 'Widget', alias: '__Widget', values: false }],
+        },
+      ] as ResReqTypesValue[];
+
+      expect(getSchemaTypeNamesFromResponses(responses)).toEqual(['__Widget']);
+    });
+
+    it('skips responses with falsy values', () => {
+      const responses = [
+        {
+          value: '',
+          imports: [{ name: 'Ignored', values: false }],
+        },
+        {
+          value: undefined,
+          imports: [{ name: 'AlsoIgnored', values: false }],
+        },
+      ] as ResReqTypesValue[];
+
+      expect(getSchemaTypeNamesFromResponses(responses)).toEqual([
+        'Ignored',
+        'AlsoIgnored',
       ]);
     });
   });

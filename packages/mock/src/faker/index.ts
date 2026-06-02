@@ -12,7 +12,6 @@ import {
   pascal,
 } from '@orval/core';
 
-import { generateMSW } from '../msw';
 import {
   formatMockFactoryDeclaration,
   getMockFactorySignatureParts,
@@ -20,6 +19,7 @@ import {
   getStrictMockTypeDeclaration,
   isStrictMock,
 } from '../mock-types';
+import { generateMSW } from '../msw';
 import { getMockScalar } from './getters';
 
 function getFakerDependencies(

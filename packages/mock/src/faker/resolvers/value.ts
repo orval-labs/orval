@@ -11,11 +11,11 @@ import {
 } from '@orval/core';
 import { prop } from 'remeda';
 
-import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import {
   formatMockFactoryDeclaration,
   getMockFactorySignatureParts,
 } from '../../mock-types';
+import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
 import { getMockScalar } from '../getters/scalar';
 

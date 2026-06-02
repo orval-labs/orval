@@ -13,11 +13,11 @@ import {
   resolveRef,
 } from '@orval/core';
 
-import type { MockSchema } from '../../types';
 import {
   formatMockFactoryDeclaration,
   getMockFactorySignatureParts,
 } from '../../mock-types';
+import type { MockSchema } from '../../types';
 import { overrideVarName } from './object';
 import { extractItemsRef } from './scalar';
 

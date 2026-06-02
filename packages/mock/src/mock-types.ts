@@ -7,7 +7,9 @@ import {
 export function isStrictMock(
   mockOptions?: Pick<MockOptions, 'required' | 'nonNullable'>,
 ): boolean {
-  return Boolean(mockOptions?.required && mockOptions?.nonNullable);
+  return Boolean(
+    mockOptions && mockOptions.required && mockOptions.nonNullable,
+  );
 }
 
 export function getStrictMockTypeName(typeName: string): string {
@@ -41,7 +43,9 @@ export function getStrictMockTypeDeclarations(
     return '';
   }
 
-  return unique.map(getStrictMockTypeDeclaration).join('\n\n');
+  return unique
+    .map((typeName) => getStrictMockTypeDeclaration(typeName))
+    .join('\n\n');
 }
 
 export function getMockFactoryReturnType(
@@ -155,10 +159,10 @@ export function applyStrictMockReturnType(
   }
 
   let result = returnType;
-  const sorted = [...schemaTypeNames].sort((a, b) => b.length - a.length);
+  const sorted = [...schemaTypeNames].toSorted((a, b) => b.length - a.length);
 
   for (const name of sorted) {
-    result = result.replace(
+    result = result.replaceAll(
       new RegExp(String.raw`\b${escapeRegExp(name)}\b`, 'g'),
       getStrictMockTypeName(name),
     );
