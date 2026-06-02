@@ -320,6 +320,7 @@ export function extractArrayItemMock({
       returnType,
       `{${spreadPrefix}${mapValue}, ...${overrideVarName}}`,
       returnCast,
+      { terminateStatement: true },
     );
     splitMockImplementations.push(func);
     fileLevelFactories.add(factoryName);

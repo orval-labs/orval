@@ -291,7 +291,7 @@ function generateDefinition(
         value,
         mockFactoryReturnCast,
         { omitReturnType: Boolean(mockData) },
-      )}\n`
+      )}\n\n`
     : `${strictTypeBlock}${mockImplementations}`;
 
   const delay = getDelay(override, isFunction(mock) ? undefined : mock);

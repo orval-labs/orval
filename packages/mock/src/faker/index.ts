@@ -215,22 +215,22 @@ export function generateFakerForSchemas(
   // are emitted before the public `get<Schema>Mock` factories so call sites
   // declared after them resolve cleanly without TS hoisting concerns.
   const strictHelperBlock = isStrictMock(mockOptions)
-    ? `${getStrictMockHelperTypeDeclarations()}\n\n`
+    ? getStrictMockHelperTypeDeclarations()
     : '';
   const strictTypeDeclarations = isStrictMock(mockOptions)
     ? [...strictMockTypeNames]
         .map((typeName) => getStrictMockTypeDeclaration(typeName))
         .join('\n\n')
     : '';
-  const strictTypeBlock = strictTypeDeclarations
-    ? `${strictTypeDeclarations}\n\n`
-    : '';
+  const strictTypeBlock = strictTypeDeclarations;
   const implementation = [
     ...splitMockImplementations,
     strictHelperBlock,
     strictTypeBlock,
     ...factories,
-  ].join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 
   return {
     implementation,

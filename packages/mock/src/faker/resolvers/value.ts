@@ -426,6 +426,7 @@ export function resolveMockValue({
           returnType,
           `{${scalar.value.startsWith('...') ? '' : '...'}${scalar.value}, ...${overrideVarName}}`,
           returnCast,
+          { terminateStatement: true },
         );
         splitMockImplementations.push(func);
       }

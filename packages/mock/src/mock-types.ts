@@ -112,7 +112,7 @@ export function formatMockFactoryDeclaration(
   returnType: string,
   body: string,
   returnCast: string,
-  options?: { omitReturnType?: boolean },
+  options?: { omitReturnType?: boolean; terminateStatement?: boolean },
 ): string {
   const header = param
     ? param.startsWith('<')
@@ -123,7 +123,10 @@ export function formatMockFactoryDeclaration(
   const returnTypeAnnotation =
     options?.omitReturnType || !returnType ? '' : `: ${returnType}`;
 
-  return `${header}${returnTypeAnnotation} => (${body})${returnCast};\n`;
+  const statementTerminator =
+    returnCast || options?.terminateStatement ? ';' : '';
+
+  return `${header}${returnTypeAnnotation} => (${body})${returnCast}${statementTerminator}`;
 }
 
 export function getSchemaTypeNamesFromResponses(
