@@ -8,18 +8,32 @@ import { faker } from '@faker-js/faker';
 
 import type { Pet } from '.';
 
+export type KeysWithNull<O> = {
+  [K in keyof O]-?: null extends O[K] ? K : never;
+}[keyof O];
+
+export type MockWithNullableOverrides<T, O extends Partial<T>, M> = Omit<
+  M,
+  Extract<KeysWithNull<O>, keyof T>
+> & {
+  [K in Extract<KeysWithNull<O>, keyof T>]: M[K] | null;
+};
+
 export type PetMock = {
   [K in keyof Required<Pet>]: NonNullable<Required<Pet>[K]>;
 };
 
-export const getPetMock = (overrideResponse: Partial<Pet> = {}): PetMock => ({
-  id: faker.number.int(),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  birthDate: faker.date.past().toISOString().slice(0, 19) + 'Z',
-  photoUrls: Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-  ...overrideResponse,
-});
+export const getPetMock = <O extends Partial<Pet> = {}>(
+  overrideResponse?: O,
+): MockWithNullableOverrides<Pet, O, PetMock> =>
+  ({
+    id: faker.number.int(),
+    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    birthDate: faker.date.past().toISOString().slice(0, 19) + 'Z',
+    photoUrls: Array.from(
+      { length: faker.number.int({ min: 1, max: 10 }) },
+      (_, i) => i + 1,
+    ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
+    ...overrideResponse,
+  }) as MockWithNullableOverrides<Pet, O, PetMock>;

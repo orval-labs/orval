@@ -221,8 +221,12 @@ describe('generateFakerForSchemas strict mock types (#3525)', () => {
     );
 
     expect(result.implementation).toContain('export type PetMock = {');
+    expect(result.implementation).toContain('export type KeysWithNull<O>');
     expect(result.implementation).toContain(
-      'export const getPetMock = (overrideResponse: Partial<Pet> = {}): PetMock =>',
+      'export const getPetMock = <O extends Partial<Pet> = {}>(overrideResponse?: O): MockWithNullableOverrides<Pet, O, PetMock> =>',
+    );
+    expect(result.implementation).toContain(
+      ') as MockWithNullableOverrides<Pet, O, PetMock>;',
     );
     expect(result.implementation).not.toContain(', null]');
   });

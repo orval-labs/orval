@@ -1484,7 +1484,13 @@ describe('strict mock types (#3525)', () => {
 
     expect(result.implementation.function).toContain('export type PetMock = {');
     expect(result.implementation.function).toContain(
-      'export const getGetPetResponseMock = (overrideResponse: Partial<Extract<Pet, object>> = {}): PetMock =>',
+      'export type KeysWithNull<O>',
+    );
+    expect(result.implementation.function).toContain(
+      'export const getGetPetResponseMock = <O extends Partial<Extract<Pet, object>> = {}>(overrideResponse?: O): MockWithNullableOverrides<Pet, O, PetMock> =>',
+    );
+    expect(result.implementation.function).toContain(
+      ') as MockWithNullableOverrides<Pet, O, PetMock>;',
     );
     expect(result.implementation.function).not.toContain(', null]');
   });

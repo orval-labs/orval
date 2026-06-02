@@ -19,8 +19,11 @@ import { getDelay } from '../delay';
 import { getRouteMSW, overrideVarName } from '../faker/getters';
 import {
   applyStrictMockReturnType,
-  getMockFactoryReturnType,
+  formatMockFactoryDeclaration,
+  getMockFactorySignatureParts,
   getSchemaTypeNamesFromResponses,
+  getSimpleSchemaReturnType,
+  getStrictMockHelperTypeDeclarations,
   getStrictMockTypeDeclarations,
   isStrictMock,
 } from '../mock-types';
@@ -249,12 +252,46 @@ function generateDefinition(
     ? `${strictTypeDeclarations}\n\n`
     : '';
 
+  const simpleSchemaReturnType = strictMock
+    ? getSimpleSchemaReturnType(nonVoidMockReturnType, schemaTypeNames)
+    : undefined;
+
+  let mockFactoryParam = '';
+  let mockFactoryReturnType = nonVoidMockReturnType;
+  let mockFactoryReturnCast = '';
+
+  if (isResponseOverridable) {
+    if (strictMock && simpleSchemaReturnType) {
+      const signature = getMockFactorySignatureParts(
+        simpleSchemaReturnType,
+        mockOptionsFromOverride,
+        {
+          isOverridable: true,
+          overrideType: overrideResponseType,
+        },
+      );
+      mockFactoryParam = signature.param;
+      mockFactoryReturnType = signature.returnType;
+      mockFactoryReturnCast = signature.returnCast;
+    } else {
+      mockFactoryParam = `overrideResponse: ${overrideResponseType} = {}`;
+      mockFactoryReturnType = strictMock
+        ? strictMockReturnType
+        : nonVoidMockReturnType;
+    }
+  } else if (strictMock) {
+    mockFactoryReturnType = strictMockReturnType;
+  }
+
   const mockImplementation = isReturnHttpResponse
-    ? `${strictTypeBlock}${mockImplementations}export const ${getResponseMockFunctionName} = (${
-        isResponseOverridable
-          ? `overrideResponse: ${overrideResponseType} = {}`
-          : ''
-      })${mockData ? '' : `: ${strictMockReturnType}`} => (${value})\n\n`
+    ? `${strictTypeBlock}${mockImplementations}${formatMockFactoryDeclaration(
+        getResponseMockFunctionName,
+        mockFactoryParam,
+        mockFactoryReturnType,
+        value,
+        mockFactoryReturnCast,
+        { omitReturnType: Boolean(mockData) },
+      )}\n`
     : `${strictTypeBlock}${mockImplementations}`;
 
   const delay = getDelay(override, isFunction(mock) ? undefined : mock);
@@ -469,7 +506,10 @@ export function generateMSW(
 
   return {
     implementation: {
-      function: mockImplementations.join('\n'),
+      function:
+        (isStrictMock(override.mock)
+          ? `${getStrictMockHelperTypeDeclarations()}\n\n`
+          : '') + mockImplementations.join('\n'),
       handlerName,
       handler: handlerImplementations.join('\n'),
     },

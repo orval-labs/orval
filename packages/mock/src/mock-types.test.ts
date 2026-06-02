@@ -4,7 +4,10 @@ import { describe, expect, it } from 'vitest';
 import {
   applyStrictMockReturnType,
   getMockFactoryReturnType,
+  getMockFactorySignatureParts,
   getSchemaTypeNamesFromResponses,
+  getSimpleSchemaReturnType,
+  getStrictMockHelperTypeDeclarations,
   getStrictMockTypeDeclaration,
   getStrictMockTypeName,
   isStrictMock,
@@ -17,6 +20,17 @@ describe('mock-types', () => {
       expect(isStrictMock({ required: true })).toBe(false);
       expect(isStrictMock({ nonNullable: true })).toBe(false);
       expect(isStrictMock({ required: true, nonNullable: true })).toBe(true);
+    });
+  });
+
+  describe('getStrictMockHelperTypeDeclarations', () => {
+    it('emits KeysWithNull and MockWithNullableOverrides helpers', () => {
+      expect(getStrictMockHelperTypeDeclarations()).toContain(
+        'export type KeysWithNull<O>',
+      );
+      expect(getStrictMockHelperTypeDeclarations()).toContain(
+        'export type MockWithNullableOverrides',
+      );
     });
   });
 
@@ -41,6 +55,55 @@ describe('mock-types', () => {
     it('returns the original type when either flag is unset', () => {
       expect(getMockFactoryReturnType('Pet')).toBe('Pet');
       expect(getMockFactoryReturnType('Pet', { required: true })).toBe('Pet');
+    });
+  });
+
+  describe('getMockFactorySignatureParts', () => {
+    const strictOptions = { required: true, nonNullable: true } as const;
+
+    it('uses generic override narrowing for strict overridable factories', () => {
+      expect(
+        getMockFactorySignatureParts('Pet', strictOptions, {
+          isOverridable: true,
+        }),
+      ).toEqual({
+        param: '<O extends Partial<Pet> = {}>(overrideResponse?: O)',
+        returnType: 'MockWithNullableOverrides<Pet, O, PetMock>',
+        returnCast: ' as MockWithNullableOverrides<Pet, O, PetMock>',
+      });
+    });
+
+    it('keeps the plain signature when strict flags are unset', () => {
+      expect(
+        getMockFactorySignatureParts('Pet', undefined, {
+          isOverridable: true,
+        }),
+      ).toEqual({
+        param: 'overrideResponse: Partial<Pet> = {}',
+        returnType: 'Pet',
+        returnCast: '',
+      });
+    });
+
+    it('returns only the strict mock alias when not overridable', () => {
+      expect(
+        getMockFactorySignatureParts('Pet', strictOptions, {
+          isOverridable: false,
+        }),
+      ).toEqual({
+        param: '',
+        returnType: 'PetMock',
+        returnCast: '',
+      });
+    });
+  });
+
+  describe('getSimpleSchemaReturnType', () => {
+    it('returns the type when it matches a known schema name', () => {
+      expect(getSimpleSchemaReturnType('Pet', ['Pet', 'Error'])).toBe('Pet');
+      expect(getSimpleSchemaReturnType('Pet | Error', ['Pet', 'Error'])).toBe(
+        undefined,
+      );
     });
   });
 

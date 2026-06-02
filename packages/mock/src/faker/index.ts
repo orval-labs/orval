@@ -14,7 +14,9 @@ import {
 
 import { generateMSW } from '../msw';
 import {
-  getMockFactoryReturnType,
+  formatMockFactoryDeclaration,
+  getMockFactorySignatureParts,
+  getStrictMockHelperTypeDeclarations,
   getStrictMockTypeDeclaration,
   isStrictMock,
 } from '../mock-types';
@@ -147,11 +149,21 @@ export function generateFakerForSchemas(
     // emit a `Partial<Pet[]>` signature TS can't satisfy.
     const typeName = pascal(name);
     const isOverridable = result.value.includes('overrideResponse');
-    const param = isOverridable
-      ? `overrideResponse: Partial<${typeName}> = {}`
-      : '';
-    const returnType = getMockFactoryReturnType(typeName, mockOptions);
-    const factory = `export const ${factoryName} = (${param}): ${returnType} => (${result.value});\n`;
+    const { param, returnType, returnCast } = getMockFactorySignatureParts(
+      typeName,
+      mockOptions,
+      {
+        isOverridable,
+        overrideType: `Partial<${typeName}>`,
+      },
+    );
+    const factory = formatMockFactoryDeclaration(
+      factoryName,
+      param,
+      returnType,
+      result.value,
+      returnCast,
+    );
 
     if (isStrictMock(mockOptions) && isOverridable) {
       strictMockTypeNames.add(typeName);
@@ -202,6 +214,9 @@ export function generateFakerForSchemas(
   // Helper factories from union/discriminator handling (`splitMockImplementations`)
   // are emitted before the public `get<Schema>Mock` factories so call sites
   // declared after them resolve cleanly without TS hoisting concerns.
+  const strictHelperBlock = isStrictMock(mockOptions)
+    ? `${getStrictMockHelperTypeDeclarations()}\n\n`
+    : '';
   const strictTypeDeclarations = isStrictMock(mockOptions)
     ? [...strictMockTypeNames]
         .map((typeName) => getStrictMockTypeDeclaration(typeName))
@@ -212,6 +227,7 @@ export function generateFakerForSchemas(
     : '';
   const implementation = [
     ...splitMockImplementations,
+    strictHelperBlock,
     strictTypeBlock,
     ...factories,
   ].join('\n');
