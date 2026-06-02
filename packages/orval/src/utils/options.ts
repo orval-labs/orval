@@ -1126,6 +1126,14 @@ function normalizeQueryOptions(
     ...(isNullish(queryOptions.shouldFilterQueryKey)
       ? {}
       : { shouldFilterQueryKey: queryOptions.shouldFilterQueryKey }),
+    ...(isNullish(globalOptions.queryKeyFilter)
+      ? {}
+      : {
+          queryKeyFilter: globalOptions.queryKeyFilter,
+        }),
+    ...(isNullish(queryOptions.queryKeyFilter)
+      ? {}
+      : { queryKeyFilter: queryOptions.queryKeyFilter }),
     ...(isNullish(globalOptions.shouldExportHttpClient)
       ? {}
       : {

@@ -911,6 +911,7 @@ Export query keys.
 **Default:** `false`
 
 Add `.filter(Boolean)` to the query key. If false, `as const` is added instead.
+The filter can be adjusted with the `queryKeyFilter` option
 
 When shouldFilterQueryKey is true:
 ```ts title="endpoints.ts"
@@ -924,6 +925,28 @@ When shouldFilterQueryKey is false:
 export const getShowPetByIdQueryKey = (petId: string) => {
   return ['pets', petId] as const;
 };
+```
+
+### queryKeyFilter
+
+**Type:** `String`
+**Default:** `'Boolean'`
+
+Adjusts how the queryKey is filtered, when `shouldFilterQueryKey` is `true`. Default is `'Boolean'`, which will result
+in it ending up beeing
+```ts title="endpoints.ts"
+.filter(Boolean)
+```
+
+One option could be to only make it filter out undefined keys:
+```ts title="orval.config.ts"
+  shouldFilterQueryKey: true,
+  queryKeyFilter: 'q => q !== undefined'
+```
+
+which would result in the generated code being
+```ts title="endpoints.ts"
+.filter(q => q !== undefined)
 ```
 
 ### shouldSplitQueryKey
