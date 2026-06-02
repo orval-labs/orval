@@ -29,8 +29,14 @@ jobs:
       - name: Install dependencies
         run: vp install --frozen-lockfile
 
-      - name: Lint & check formatting
-        run: vp check
+      - name: Check formatting
+        run: vp fmt --check
+
+      - name: Lint packages
+        run: vp run -w lint
+
+      - name: Lint samples
+        run: vp run -w lint:samples
 
       - name: Build packages
         run: vp run -w build
