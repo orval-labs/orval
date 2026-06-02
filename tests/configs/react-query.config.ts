@@ -223,6 +223,31 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  shouldFilterBooleanQueryKey: {
+    output: {
+      target: '../generated/react-query/filter-boolean-query-key/endpoints.ts',
+      schemas: '../generated/react-query/filter-boolean-query-key/model',
+      client: 'react-query',
+      override: {
+        query: {
+          shouldSplitQueryKey: true,
+          shouldFilterQueryKey: true,
+          queryKeyFilter: 'Boolean',
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['showPetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   // Verifies that when a `mutationInvalidates` rule's `onMutations` list
   // references an operation that is forced into a Query hook via
   // `override.operations[*].query.useQuery`, the rule silently does not
