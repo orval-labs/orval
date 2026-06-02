@@ -37,11 +37,11 @@ import {
   extractHandlerBodies,
   reconcileHandlerFile,
 } from './handler-merge';
+import { getRoute } from './route';
 
 // Warn at most once per run when the optional `typescript` peer is missing and a
 // non-`skip` strategy was requested, so the degraded behavior is never silent.
 let warnedMissingTypeScript = false;
-import { getRoute } from './route';
 
 const ZVALIDATOR_SOURCE = fs
   .readFileSync(nodePath.join(import.meta.dirname, 'zValidator.ts'))
