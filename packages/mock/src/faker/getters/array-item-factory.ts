@@ -10,6 +10,7 @@ import {
   OutputMockType,
   OutputMode,
   pascal,
+  resolveRef,
 } from '@orval/core';
 
 import type { MockSchema } from '../../types';
@@ -99,20 +100,86 @@ function hasConsolidatedSchemaFactory(
 }
 
 /**
- * True when array `items` resolve to an object-like schema worth extracting.
+ * True when `parentName` looks like a nested property key rather than the
+ * generated response wrapper type (e.g. `outer` vs `GetTenants200`). Inlining
+ * avoids factory/type-name collisions and mismatched `<Parent><Prop>Item` aliases.
  */
-function isObjectLikeArrayItem(items: MockSchema): boolean {
-  if (isReference(items)) {
+function isAmbiguousInlineItemContext(
+  operationId: string,
+  parentName?: string,
+): boolean {
+  if (!parentName) {
+    return false;
+  }
+
+  return !parentName.toLowerCase().includes(operationId.toLowerCase());
+}
+
+function isNullableArrayItem(schema: OpenApiSchemaObject): boolean {
+  if (schema.nullable === true) {
     return true;
   }
 
-  const schema = items as OpenApiSchemaObject;
+  return Array.isArray(schema.type) && schema.type.includes('null');
+}
+
+function isResolvedSchemaObjectLike(schema: OpenApiSchemaObject): boolean {
   if (schema.type === 'object' || schema.properties) {
     return true;
   }
 
-  if (schema.allOf || schema.oneOf || schema.anyOf) {
+  if (schema.allOf) {
     return true;
+  }
+
+  return false;
+}
+
+/**
+ * True when array `items` resolve to an object-like schema worth extracting.
+ * Conservative: skips scalar refs, oneOf/anyOf, nullable items, and nested
+ * contexts where generated item type names cannot be inferred reliably.
+ */
+function shouldExtractArrayItem(
+  items: MockSchema,
+  context: ContextSpec,
+  operationId: string,
+  parentName?: string,
+): boolean {
+  const itemsRef = extractItemsRef(items);
+
+  if (itemsRef) {
+    try {
+      const { schema } = resolveRef<OpenApiSchemaObject>(
+        { $ref: itemsRef },
+        context,
+      );
+      return isResolvedSchemaObjectLike(schema);
+    } catch {
+      return false;
+    }
+  }
+
+  if (isReference(items)) {
+    return false;
+  }
+
+  const schema = items as OpenApiSchemaObject;
+
+  if (isNullableArrayItem(schema)) {
+    return false;
+  }
+
+  if (schema.oneOf || schema.anyOf) {
+    return false;
+  }
+
+  if (schema.allOf) {
+    return true;
+  }
+
+  if (schema.type === 'object' || schema.properties) {
+    return !isAmbiguousInlineItemContext(operationId, parentName);
   }
 
   return false;
@@ -148,6 +215,10 @@ function getArrayItemFactoryNames({
   operationId: string;
   context: ContextSpec;
 }): ArrayItemFactoryNames | undefined {
+  if (!shouldExtractArrayItem(items, context, operationId, parentName)) {
+    return undefined;
+  }
+
   const itemsRef = extractItemsRef(items);
   if (itemsRef) {
     const { name } = getRefInfo(itemsRef, context);
@@ -156,10 +227,6 @@ function getArrayItemFactoryNames({
       factoryName: `get${typeName}Mock`,
       typeName,
     };
-  }
-
-  if (!isObjectLikeArrayItem(items)) {
-    return undefined;
   }
 
   const itemSuffix = context.output.override.components.schemas.itemSuffix;

@@ -7,7 +7,9 @@ import {
   shouldExtractArrayItemFactories,
 } from './array-item-factory';
 
-const createContextWithArrayItems = (mode = OutputMode.SINGLE): ContextSpec =>
+const createContextWithArrayItems = (
+  mode: OutputMode = OutputMode.SINGLE,
+): ContextSpec =>
   ({
     output: {
       mode,
@@ -16,6 +18,20 @@ const createContextWithArrayItems = (mode = OutputMode.SINGLE): ContextSpec =>
       },
       override: {
         components: { schemas: { suffix: '', itemSuffix: 'Item' } },
+      },
+    },
+    spec: {
+      openapi: '3.0.3',
+      components: {
+        schemas: {
+          TenantResponseModelDto: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+            },
+          },
+        },
       },
     },
   }) as unknown as ContextSpec;
@@ -274,6 +290,127 @@ describe('extractArrayItemMock', () => {
       tags: [],
       mapValue:
         '{id: faker.string.uuid(), pet: {...getPetMock()}, name: faker.string.alpha({length: {min: 10, max: 20}})}',
+      context: createContextWithArrayItems(),
+      splitMockImplementations,
+      imports: [],
+    });
+
+    expect(call).toBe('{...getGetTenantsResponseValueItemMock()}');
+    expect(splitMockImplementations).toHaveLength(1);
+  });
+
+  it('skips $ref array items that resolve to scalar schemas', () => {
+    const splitMockImplementations: string[] = [];
+    const context = {
+      ...createContextWithArrayItems(),
+      spec: {
+        components: {
+          schemas: {
+            Name: { type: 'string', format: 'email' },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const call = extractArrayItemMock({
+      items: { $ref: '#/components/schemas/Name' },
+      propertyName: 'names',
+      operationId: 'getNames',
+      tags: [],
+      mapValue: 'faker.internet.email()',
+      context,
+      splitMockImplementations,
+      imports: [],
+    });
+
+    expect(call).toBeUndefined();
+    expect(splitMockImplementations).toHaveLength(0);
+  });
+
+  it('skips oneOf array items', () => {
+    const splitMockImplementations: string[] = [];
+
+    const call = extractArrayItemMock({
+      items: {
+        oneOf: [
+          { $ref: '#/components/schemas/Cat' },
+          { $ref: '#/components/schemas/Dog' },
+        ],
+      },
+      propertyName: 'things',
+      operationId: 'getThings',
+      tags: [],
+      mapValue: '{meow: faker.datatype.boolean()}',
+      context: createContextWithArrayItems(),
+      splitMockImplementations,
+      imports: [],
+    });
+
+    expect(call).toBeUndefined();
+    expect(splitMockImplementations).toHaveLength(0);
+  });
+
+  it('skips nullable object array items', () => {
+    const splitMockImplementations: string[] = [];
+
+    const call = extractArrayItemMock({
+      items: {
+        type: 'object',
+        nullable: true,
+        properties: { id: { type: 'string' } },
+      },
+      propertyName: 'rows',
+      operationId: 'getNullable',
+      tags: [],
+      mapValue: '{id: faker.string.uuid()}',
+      context: createContextWithArrayItems(),
+      splitMockImplementations,
+      imports: [],
+    });
+
+    expect(call).toBeUndefined();
+    expect(splitMockImplementations).toHaveLength(0);
+  });
+
+  it('skips nested inline array items when parentName is not the response wrapper', () => {
+    const splitMockImplementations: string[] = [];
+
+    const call = extractArrayItemMock({
+      items: {
+        type: 'object',
+        properties: { a: { type: 'string' } },
+      },
+      propertyName: 'items',
+      parentName: 'outer',
+      operationId: 'getCollide',
+      tags: [],
+      mapValue: '{a: faker.string.alpha({length: {min: 10, max: 20}})}',
+      context: createContextWithArrayItems(),
+      splitMockImplementations,
+      imports: [],
+    });
+
+    expect(call).toBeUndefined();
+    expect(splitMockImplementations).toHaveLength(0);
+  });
+
+  it('still extracts inline allOf object array items', () => {
+    const splitMockImplementations: string[] = [];
+
+    const call = extractArrayItemMock({
+      items: {
+        allOf: [
+          {
+            type: 'object',
+            properties: { id: { type: 'string' } },
+          },
+        ],
+      },
+      propertyName: 'value',
+      parentName: 'GetTenants200',
+      operationId: 'getTenants',
+      tags: [],
+      mapValue: '{id: faker.string.uuid()}',
       context: createContextWithArrayItems(),
       splitMockImplementations,
       imports: [],

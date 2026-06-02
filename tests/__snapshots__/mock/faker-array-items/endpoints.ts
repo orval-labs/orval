@@ -7,11 +7,23 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import type { GetTenants200, TenantListResponse } from './model';
+import type {
+  GetCollide200,
+  GetNames200,
+  GetNullable200,
+  GetTenants200,
+  GetThings200,
+  TenantListResponse,
+} from './model';
 
 import { faker } from '@faker-js/faker';
 
-import type { GetTenants200ValueItem, TenantResponseModelDto } from './model';
+import type {
+  Cat,
+  Dog,
+  GetTenants200ValueItem,
+  TenantResponseModelDto,
+} from './model';
 
 export const getFakerArrayItemFactories = (
   axiosInstance: AxiosInstance = axios,
@@ -40,12 +52,49 @@ export const getFakerArrayItemFactories = (
     return axiosInstance.get(`/tenants-b`, options);
   };
 
-  return { getTenants, getTenantsByRef, getTenantsA, getTenantsB };
+  const getNames = (
+    options?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<GetNames200>> => {
+    return axiosInstance.get(`/names`, options);
+  };
+
+  const getThings = (
+    options?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<GetThings200>> => {
+    return axiosInstance.get(`/things`, options);
+  };
+
+  const getNullable = (
+    options?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<GetNullable200>> => {
+    return axiosInstance.get(`/nullable-rows`, options);
+  };
+
+  const getCollide = (
+    options?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<GetCollide200>> => {
+    return axiosInstance.get(`/collide`, options);
+  };
+
+  return {
+    getTenants,
+    getTenantsByRef,
+    getTenantsA,
+    getTenantsB,
+    getNames,
+    getThings,
+    getNullable,
+    getCollide,
+  };
 };
 export type GetTenantsResult = AxiosResponse<GetTenants200>;
 export type GetTenantsByRefResult = AxiosResponse<TenantListResponse>;
 export type GetTenantsAResult = AxiosResponse<TenantListResponse>;
 export type GetTenantsBResult = AxiosResponse<TenantListResponse>;
+export type GetNamesResult = AxiosResponse<GetNames200>;
+export type GetThingsResult = AxiosResponse<GetThings200>;
+export type GetNullableResult = AxiosResponse<GetNullable200>;
+export type GetCollideResult = AxiosResponse<GetCollide200>;
 
 export const getGetTenantsResponseValueItemMock = (
   overrideResponse: Partial<GetTenants200ValueItem> = {},
@@ -108,5 +157,117 @@ export const getGetTenantsBResponseMock = (
     (_, i) => i + 1,
   ).map(() => ({ ...getTenantResponseModelDtoMock() })),
   count: faker.number.int(),
+  ...overrideResponse,
+});
+
+export const getGetNamesResponseMock = (
+  overrideResponse: Partial<Extract<GetNames200, object>> = {},
+): GetNames200 => ({
+  names: faker.helpers.arrayElement([
+    Array.from(
+      { length: faker.number.int({ min: 1, max: 10 }) },
+      (_, i) => i + 1,
+    ).map(() => faker.internet.email()),
+    undefined,
+  ]),
+  ...overrideResponse,
+});
+
+export const getGetThingsResponseCatMock = (
+  overrideResponse: Partial<Cat> = {},
+): Cat => ({
+  ...{
+    meow: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]),
+  },
+  ...overrideResponse,
+});
+
+export const getGetThingsResponseDogMock = (
+  overrideResponse: Partial<Dog> = {},
+): Dog => ({
+  ...{
+    bark: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]),
+  },
+  ...overrideResponse,
+});
+
+export const getGetThingsResponseMock = (
+  overrideResponse: Partial<Extract<GetThings200, object>> = {},
+): GetThings200 => ({
+  things: faker.helpers.arrayElement([
+    Array.from(
+      { length: faker.number.int({ min: 1, max: 10 }) },
+      (_, i) => i + 1,
+    ).map(() =>
+      faker.helpers.arrayElement([
+        { ...getGetThingsResponseCatMock() },
+        { ...getGetThingsResponseDogMock() },
+      ]),
+    ),
+    undefined,
+  ]),
+  ...overrideResponse,
+});
+
+export const getGetNullableResponseMock = (
+  overrideResponse: Partial<Extract<GetNullable200, object>> = {},
+): GetNullable200 => ({
+  rows: faker.helpers.arrayElement([
+    Array.from(
+      { length: faker.number.int({ min: 1, max: 10 }) },
+      (_, i) => i + 1,
+    ).map(() =>
+      faker.helpers.arrayElement([
+        {
+          id: faker.helpers.arrayElement([
+            faker.string.alpha({ length: { min: 10, max: 20 } }),
+            undefined,
+          ]),
+        },
+        null,
+      ]),
+    ),
+    undefined,
+  ]),
+  ...overrideResponse,
+});
+
+export const getGetCollideResponseMock = (
+  overrideResponse: Partial<Extract<GetCollide200, object>> = {},
+): GetCollide200 => ({
+  outer: faker.helpers.arrayElement([
+    {
+      items: faker.helpers.arrayElement([
+        Array.from(
+          { length: faker.number.int({ min: 1, max: 10 }) },
+          (_, i) => i + 1,
+        ).map(() => ({
+          a: faker.helpers.arrayElement([
+            faker.string.alpha({ length: { min: 10, max: 20 } }),
+            undefined,
+          ]),
+        })),
+        undefined,
+      ]),
+    },
+    undefined,
+  ]),
+  inner: faker.helpers.arrayElement([
+    {
+      items: faker.helpers.arrayElement([
+        Array.from(
+          { length: faker.number.int({ min: 1, max: 10 }) },
+          (_, i) => i + 1,
+        ).map(() => ({
+          b: faker.helpers.arrayElement([
+            faker.number.float({ fractionDigits: 2 }),
+            undefined,
+          ]),
+        })),
+        undefined,
+      ]),
+    },
+    undefined,
+  ]),
   ...overrideResponse,
 });
