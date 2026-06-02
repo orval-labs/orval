@@ -22,11 +22,17 @@ import {
 } from './handlers';
 import {
   ListPetsQueryParams,
+  ListPetsResponse,
   CreatePetsQueryParams,
   CreatePetsBody,
+  CreatePetsResponse,
   ShowPetByIdParams,
+  ShowPetByIdResponse,
   DeletePetByIdParams,
+  DeletePetByIdResponse,
+  HealthCheckResponse,
   ShowPetWithOwnerParams,
+  ShowPetWithOwnerResponse,
 } from './tool-schemas.zod';
 
 const createMcpServer = (
@@ -41,10 +47,13 @@ const createMcpServer = (
   tools.listPets = server.registerTool(
     'listPets',
     {
+      title: 'List all pets',
       description: 'List all pets',
       inputSchema: {
         queryParams: ListPetsQueryParams,
       },
+      outputSchema: ListPetsResponse,
+      annotations: { readOnlyHint: true, destructiveHint: false },
     },
     (args) => listPetsHandler(args, options),
   );
@@ -52,11 +61,14 @@ const createMcpServer = (
   tools.createPets = server.registerTool(
     'createPets',
     {
+      title: 'Create a pet',
       description: 'Create a pet',
       inputSchema: {
         queryParams: CreatePetsQueryParams,
         bodyParams: CreatePetsBody,
       },
+      outputSchema: CreatePetsResponse,
+      annotations: { destructiveHint: false },
     },
     (args) => createPetsHandler(args, options),
   );
@@ -64,10 +76,13 @@ const createMcpServer = (
   tools.showPetById = server.registerTool(
     'showPetById',
     {
+      title: 'Info for a specific pet',
       description: 'Info for a specific pet',
       inputSchema: {
         pathParams: ShowPetByIdParams,
       },
+      outputSchema: ShowPetByIdResponse,
+      annotations: { readOnlyHint: true, destructiveHint: false },
     },
     (args) => showPetByIdHandler(args, options),
   );
@@ -75,10 +90,13 @@ const createMcpServer = (
   tools.deletePetById = server.registerTool(
     'deletePetById',
     {
+      title: 'Deletes a specific pet',
       description: 'Deletes a specific pet',
       inputSchema: {
         pathParams: DeletePetByIdParams,
       },
+      outputSchema: DeletePetByIdResponse,
+      annotations: { idempotentHint: true },
     },
     (args) => deletePetByIdHandler(args, options),
   );
@@ -86,7 +104,10 @@ const createMcpServer = (
   tools.healthCheck = server.registerTool(
     'healthCheck',
     {
+      title: 'health check',
       description: 'health check',
+      outputSchema: HealthCheckResponse,
+      annotations: { readOnlyHint: true, destructiveHint: false },
     },
     () => healthCheckHandler(options),
   );
@@ -94,10 +115,13 @@ const createMcpServer = (
   tools.showPetWithOwner = server.registerTool(
     'showPetWithOwner',
     {
+      title: 'combinate nullable and $ref',
       description: 'combinate nullable and $ref',
       inputSchema: {
         pathParams: ShowPetWithOwnerParams,
       },
+      outputSchema: ShowPetWithOwnerResponse,
+      annotations: { readOnlyHint: true, destructiveHint: false },
     },
     (args) => showPetWithOwnerHandler(args, options),
   );

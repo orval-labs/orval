@@ -25,3 +25,5 @@ export const CreateMultilineDefaultBody = zod.object({
     .default(createMultilineDefaultBodyRerankPromptDefault)
     .describe('Prompt text with a multiline default value.'),
 });
+
+export const CreateMultilineDefaultResponse = zod.unknown();

@@ -796,3 +796,129 @@ test('mock issue-3484 required nullable scalars get a single null branch', async
     'faker.helpers.arrayElement([faker.datatype.boolean(), null])',
   );
 });
+
+test('mock issue-3200 dictionary values delegate to a bare factory call for primitive-union $refs', async () => {
+  // Regression for #3200: with `schemas: true`, an `additionalProperties`
+  // dictionary whose value is a `$ref` to a primitive `oneOf`/`anyOf`
+  // (e.g. `number | string`) delegated to `get<X>Mock()`. The delegation
+  // wrapped the call in `{ ...get<X>Mock() }`, but the factory returns a
+  // primitive union which is not spreadable: that is invalid TypeScript
+  // (TS2698, enforced by scripts/typecheck-generated.mjs) and would discard
+  // the value as `{}` at runtime. The dictionary value must be the bare call.
+  const content = await readFile(
+    generated('mock', 'issue-3200', 'model', 'index.faker.ts'),
+    'utf8',
+  );
+
+  // Whitespace-tolerant so the assertion survives formatter/generator tweaks
+  // while still pinning the behavior: the dictionary value is the bare call.
+  expect(content).toMatch(
+    /\[faker\.string\.alphanumeric\(5\)\]:\s*getIntegerLikeMock\(\)/,
+  );
+  expect(content).toMatch(
+    /\[faker\.string\.alphanumeric\(5\)\]:\s*getNumberLikeMock\(\)/,
+  );
+  // The primitive-union factory call must never be spread into the object,
+  // regardless of how the braces would be formatted.
+  expect(content).not.toContain('...getIntegerLikeMock()');
+  expect(content).not.toContain('...getNumberLikeMock()');
+});
+
+test('zod issue-3171 applies required from a sibling allOf member to $ref base props', async () => {
+  // `User`/`UserFull` define their properties in a $ref base (UserBase) and
+  // carry `required` only in a sibling allOf member. The required array must be
+  // propagated onto the base properties instead of being dropped. The open
+  // sibling (`.and(...passthrough())`) stays — neither member sets
+  // additionalProperties:false, so extra keys remain allowed. See #3171.
+  const file = generated('zod', 'issue-3171', 'issue-3171.ts');
+  const content = await readFile(file, 'utf8');
+
+  // User: only `id` is required; name/email stay optional.
+  expect(content).toContain('id: zod.string().uuid(),');
+  expect(content).toContain('name: zod.string().optional(),');
+  expect(content).toContain('email: zod.string().optional(),');
+
+  // UserFull: every field required -> the response object has no optional field.
+  const start = content.indexOf('export const GetUserResponse');
+  expect(start, 'GetUserResponse should be generated').toBeGreaterThan(-1);
+  const userFull = content.slice(start);
+  expect(userFull).toContain('id: zod.string().uuid(),');
+  expect(userFull).toContain('name: zod.string(),');
+  expect(userFull).toContain('email: zod.string(),');
+  expect(userFull).not.toContain('name: zod.string().optional()');
+  expect(userFull).not.toContain('email: zod.string().optional()');
+
+  // The open-object sibling is preserved (additional properties allowed).
+  expect(content).toContain('.and(zod.object({}).passthrough())');
+});
+
+test('default issue-3505 enum values with backslashes are JS-escaped', async () => {
+  const visitableType = await readFile(
+    generated('default', 'issue-3505', 'model', 'visitableType.ts'),
+    'utf8',
+  );
+
+  expect(visitableType).toContain("'App\\\\Models\\\\Document'");
+  expect(visitableType).toContain("'App\\\\Models\\\\Template'");
+  expect(visitableType).not.toContain("'App\\Models\\Document'");
+
+  const directoryPrefix = await readFile(
+    generated('default', 'issue-3505', 'model', 'directoryPrefix.ts'),
+    'utf8',
+  );
+
+  expect(directoryPrefix).toContain("'C:\\\\logs\\\\'");
+  expect(directoryPrefix).toContain("'C:\\\\tmp\\\\'");
+});
+
+test('hono issue-3512 zod mutator import path is prefixed with an extra `../` in tags-split mode', async () => {
+  // Keep this focused assertion alongside the snapshot so #3512 fails with a
+  // targeted message instead of a full-file snapshot diff. Files in
+  // tags-split mode live one directory deeper than the path-computation base,
+  // so the mutator import must carry an extra `../` (see #3512).
+  const petsZodFile = generated(
+    'hono',
+    'petstore-tags-split-with-zod-mutator',
+    'pets',
+    'pets.zod.ts',
+  );
+  const content = await readFile(petsZodFile, 'utf8');
+
+  expect(content).toContain(
+    "import { stripNill } from '../../../../mutators/zod-preprocess';",
+  );
+});
+
+test('react-query issue-3300 TError matches the thrown error for fetch forceSuccessResponse', async () => {
+  // With `override.fetch.forceSuccessResponse`, the fetch request function
+  // narrows its return type to the success body and throws
+  // `globalThis.Error & { info?, status? }` on non-2xx responses. The generated
+  // query/mutation hooks must therefore default `TError` to that thrown shape,
+  // not to the raw OpenAPI error model (`Error`) that is never actually
+  // returned. Keep this focused assertion alongside the snapshot so #3300 fails
+  // with a targeted message instead of a full-file snapshot diff. pets.ts
+  // covers both queries (listPets/showPetById) and a mutation (createPets).
+  const petsFile = generated(
+    'react-query',
+    'http-client-fetch',
+    'pets',
+    'pets.ts',
+  );
+  const content = await readFile(petsFile, 'utf8');
+
+  // The hook generics default TError to the full thrown shape (shared by every
+  // query and mutation in the file).
+  expect(content).toContain(
+    'TError = globalThis.Error & { info?: Error; status?: number }',
+  );
+  // And assert the corrected envelope explicitly on both a query error alias
+  // and a mutation error alias so a regression on either path is caught.
+  expect(content).toContain(
+    'export type ListPetsQueryError = globalThis.Error & {',
+  );
+  expect(content).toContain(
+    'export type CreatePetsMutationError = globalThis.Error & {',
+  );
+  // The bare OpenAPI error model must no longer be used as the default TError.
+  expect(content).not.toContain('TError = Error,');
+});

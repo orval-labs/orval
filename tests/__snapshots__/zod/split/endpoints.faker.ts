@@ -239,6 +239,8 @@ export const getShowPetByIdResponseMock = (): Pet => ({
   ]),
 });
 
+export const getHealthCheckResponseMock = (): string => faker.word.sample();
+
 export const getShowPetWithOwnerResponseLabradoodleMock = (
   overrideResponse: Partial<Labradoodle> = {},
 ): Labradoodle => ({

@@ -207,6 +207,13 @@ export const DeletePetByIdParams = zod.preprocess(
   }),
 );
 
+export const DeletePetByIdResponse = zod.void();
+
+/**
+ * @summary health check
+ */
+export const HealthCheckResponse = zod.preprocess(stripNill, zod.string());
+
 /**
  * @summary combinate nullable and $ref
  */

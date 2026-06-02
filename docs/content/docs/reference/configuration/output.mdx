@@ -1400,6 +1400,7 @@ export default defineConfig({
       override: {
         hono: {
           handlers: 'src/handlers',
+          handlerGenerationStrategy: 'smart',
           validatorOutputPath: 'src/validator.ts',
           compositeRoute: 'src/routes.ts',
         },
@@ -1414,6 +1415,41 @@ export default defineConfig({
 **Type:** `String`
 
 Changes output path for Hono handlers.
+
+### handlerGenerationStrategy
+
+**Type:** `'smart' | 'skip' | 'full'`
+
+**Default:** `'smart'`
+
+Controls how an **existing** handler file is treated when you re-run orval. A
+file that does not exist yet is always generated fresh.
+
+- `smart` (default) — non-destructively reconcile only the parts orval owns: its
+  own imports (names, module paths, casing) and the `zValidator(...)` arguments,
+  and append handlers for new operations. Your custom imports, middleware,
+  handler bodies, and top-level helpers are preserved. Requires the optional
+  `typescript` peer dependency (see note below); if it is absent, smart falls
+  back to `skip` with a warning.
+- `skip` — leave an existing handler file byte-for-byte unchanged. New operations
+  still get fresh files (in `split` mode).
+- `full` — rebuild the file header, imports, and validator chain from the spec,
+  splicing back only each handler body. **Destructive:** custom imports,
+  middleware, and top-level helpers are dropped. Use only if you keep handlers
+  minimal and want maximal sync with the spec.
+
+<Callout type="info">
+  `smart` and `full` use the TypeScript compiler API to parse existing handler
+  files. `typescript` is an optional peer dependency — virtually every orval
+  project already has it, so nothing extra is installed.
+</Callout>
+
+<Callout type="warn">
+  If `output.clean` is enabled and the handlers directory lives under the output
+  target directory, handler files are deleted before generation runs, which
+  defeats `smart`/`skip` preservation. Disable `clean` (or scope it) when
+  relying on handler preservation.
+</Callout>
 
 ### validatorOutputPath
 

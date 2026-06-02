@@ -206,6 +206,15 @@ export const generateZodValidationSchemaDefinition = (
   isZodV4: boolean,
   rules?: {
     required?: boolean;
+    /**
+     * Required keys inherited from sibling `allOf` members. Per JSON Schema /
+     * OpenAPI 3.1, a `required` array in one `allOf` member applies to
+     * properties contributed by ANY member, so it is collected at the `allOf`
+     * level and applied here. Consumed at THIS object level only — never
+     * forwarded into nested property schemas, so a deeper object sharing a key
+     * name is unaffected. (#3171)
+     */
+    additionalRequired?: string[];
     dateTimeOptions?: DateTimeOptions;
     timeOptions?: TimeOptions;
     /**
@@ -459,6 +468,33 @@ export const generateZodValidationSchemaDefinition = (
       | OpenApiReferenceObject
     )[];
 
+    // In JSON Schema / OpenAPI 3.1 a `required` array in any `allOf` member
+    // (and on the composing schema itself) applies to properties contributed by
+    // any member. Collect them all so each member's own properties can be marked
+    // required even when the `required` lives in a sibling member — e.g. props
+    // in a `$ref` base + `required` in a constraint-only sibling. Only valid for
+    // `allOf` (a conjunction); `oneOf`/`anyOf` are alternatives. (#3171)
+    const allOfRequired = schema.allOf
+      ? [
+          ...new Set([
+            ...(schema.required ?? []),
+            ...schemas.flatMap((member) => {
+              // Only the member's top-level `required` is needed. For `$ref`
+              // members resolve shallowly (no deep property dereference) and
+              // tolerate unresolvable refs — they simply contribute no keys.
+              const resolved =
+                '$ref' in member && typeof member.$ref === 'string'
+                  ? tryResolveRefSchema(member.$ref, context)
+                  : (member as OpenApiSchemaObject);
+              const memberRequired = resolved?.required;
+              return Array.isArray(memberRequired)
+                ? (memberRequired as string[])
+                : [];
+            }),
+          ]),
+        ]
+      : undefined;
+
     // Use index-based naming to ensure uniqueness when processing multiple schemas
     // This prevents duplicate schema names when nullable refs are used
     const baseSchemas = schemas.map((schema, index) =>
@@ -470,6 +506,7 @@ export const generateZodValidationSchemaDefinition = (
         isZodV4,
         {
           required: true,
+          additionalRequired: allOfRequired,
           constNameRegistry,
           useReusableSchemas,
         },
@@ -496,6 +533,7 @@ export const generateZodValidationSchemaDefinition = (
           isZodV4,
           {
             required: true,
+            additionalRequired: allOfRequired,
             constNameRegistry,
             useReusableSchemas,
           },
@@ -850,6 +888,13 @@ export const generateZodValidationSchemaDefinition = (
         if (hasProperties && hasDefinedProperties) {
           const objectType = getObjectFunctionName(isZodV4, strict);
 
+          // A property is required when this schema requires it OR when a
+          // sibling `allOf` member requires it (propagated via additionalRequired). (#3171)
+          const requiredKeys = new Set<string>([
+            ...(schema.required ?? []),
+            ...(rules?.additionalRequired ?? []),
+          ]);
+
           functions.push([
             objectType,
             Object.keys(properties)
@@ -863,7 +908,7 @@ export const generateZodValidationSchemaDefinition = (
                     strict,
                     isZodV4,
                     {
-                      required: schema.required?.includes(key),
+                      required: requiredKeys.has(key),
                       constNameRegistry,
                       useReusableSchemas,
                     },
@@ -1805,13 +1850,25 @@ const parseBodyAndResponse = ({
   const schema = mediaType?.schema;
 
   if (!schema) {
+    if (parseType === 'response') {
+      const textPlainContent = contentEntries.find(
+        isMediaType(String.raw`^text\/plain$`),
+      );
+      if (textPlainContent) {
+        return {
+          input: { functions: [['string', undefined]], consts: [] },
+          isArray: false,
+        };
+      }
+    }
+
     return {
       input: { functions: [], consts: [] },
       isArray: false,
     };
   }
-  const encoding = mediaType.encoding;
 
+  const encoding = mediaType.encoding;
   const resolvedJsonSchema = dereference(schema, context);
 
   // keep the same behaviour for array
@@ -1912,7 +1969,13 @@ const getSingleResponse = (
     return;
   }
 
-  return responses['200'] ?? responses['2XX'] ?? responses['2xx'];
+  return (
+    responses['200'] ??
+    responses['2XX'] ??
+    responses['2xx'] ??
+    responses['204'] ??
+    responses['205']
+  );
 };
 
 /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
@@ -2174,7 +2237,7 @@ const generateZodRoute = async (
   const preprocessParams = override.zod.preprocess?.param
     ? await generateMutator({
         output,
-        mutator: override.zod.preprocess.response,
+        mutator: override.zod.preprocess.param,
         name: `${operationName}PreprocessParams`,
         workspace: context.workspace,
         tsconfig: context.output.tsconfig,
@@ -2218,7 +2281,7 @@ const generateZodRoute = async (
   const preprocessQueryParams = override.zod.preprocess?.query
     ? await generateMutator({
         output,
-        mutator: override.zod.preprocess.response,
+        mutator: override.zod.preprocess.query,
         name: `${operationName}PreprocessQueryParams`,
         workspace: context.workspace,
         tsconfig: context.output.tsconfig,
@@ -2238,7 +2301,7 @@ const generateZodRoute = async (
   const preprocessHeader = override.zod.preprocess?.header
     ? await generateMutator({
         output,
-        mutator: override.zod.preprocess.response,
+        mutator: override.zod.preprocess.header,
         name: `${operationName}PreprocessHeader`,
         workspace: context.workspace,
         tsconfig: context.output.tsconfig,
@@ -2258,7 +2321,7 @@ const generateZodRoute = async (
   const preprocessBody = override.zod.preprocess?.body
     ? await generateMutator({
         output,
-        mutator: override.zod.preprocess.response,
+        mutator: override.zod.preprocess.body,
         name: `${operationName}PreprocessBody`,
         workspace: context.workspace,
         tsconfig: context.output.tsconfig,
@@ -2336,7 +2399,7 @@ const generateZodRoute = async (
     !inputQueryParams.zod &&
     !inputHeaders.zod &&
     !inputBody.zod &&
-    !inputResponses.some((inputResponse) => inputResponse.zod)
+    responses.length === 0
   ) {
     return {
       implementation: '',
@@ -2441,26 +2504,50 @@ export const ${bodyName} = zod.array(${bodyName}Item)${
           pascal(`${operationName}-${responses[index][0]}-response`),
           parsedResponses[index].isArray,
         );
+
+        if (!inputResponse.zod) {
+          if (!override.zod.generate.response) {
+            return [];
+          }
+
+          const noContentStatusCodes = new Set(['204', '205']);
+          const statusCode = responses[index][0];
+          const isEachHttpStatusMode = !!statusCode;
+
+          let isNoContent: boolean;
+          if (isEachHttpStatusMode) {
+            isNoContent = noContentStatusCodes.has(statusCode);
+          } else {
+            const specResponseKeys = new Set(
+              Object.keys(spec[verb]?.responses ?? {}),
+            );
+            const hasStandardSuccess =
+              specResponseKeys.has('200') ||
+              specResponseKeys.has('2XX') ||
+              specResponseKeys.has('2xx');
+            isNoContent = !hasStandardSuccess;
+          }
+          const noContentSchema = isNoContent ? 'zod.void()' : 'zod.unknown()';
+
+          return [
+            `export const ${operationResponse} = ${noContentSchema}${brand(operationResponse)}`,
+          ];
+        }
+
         return [
           ...(inputResponse.consts ? [inputResponse.consts] : []),
-          ...(inputResponse.zod
-            ? [
-                parsedResponses[index].isArray
-                  ? `export const ${operationResponse}Item = ${
-                      inputResponse.zod
-                    }
+          parsedResponses[index].isArray
+            ? `export const ${operationResponse}Item = ${inputResponse.zod}
 export const ${operationResponse} = zod.array(${operationResponse}Item)${
-                      parsedResponses[index].rules?.min
-                        ? `.min(${parsedResponses[index].rules.min})`
-                        : ''
-                    }${
-                      parsedResponses[index].rules?.max
-                        ? `.max(${parsedResponses[index].rules.max})`
-                        : ''
-                    }${brand(operationResponse)}`
-                  : `export const ${operationResponse} = ${inputResponse.zod}${brand(operationResponse)}`,
-              ]
-            : []),
+                parsedResponses[index].rules?.min
+                  ? `.min(${parsedResponses[index].rules.min})`
+                  : ''
+              }${
+                parsedResponses[index].rules?.max
+                  ? `.max(${parsedResponses[index].rules.max})`
+                  : ''
+              }${brand(operationResponse)}`
+            : `export const ${operationResponse} = ${inputResponse.zod}${brand(operationResponse)}`,
         ];
       }),
     ].join('\n\n'),

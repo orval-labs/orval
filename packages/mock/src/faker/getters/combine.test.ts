@@ -67,7 +67,12 @@ function createMockContext(): ContextSpec {
           parameters: { suffix: '' },
           requestBodies: { suffix: '' },
         },
-        hono: { compositeRoute: '', validator: false, validatorOutputPath: '' },
+        hono: {
+          handlerGenerationStrategy: 'smart',
+          compositeRoute: '',
+          validator: false,
+          validatorOutputPath: '',
+        },
         query: {
           useQuery: false,
           useSuspenseQuery: false,

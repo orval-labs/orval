@@ -20,6 +20,7 @@ import {
   type OpenApiInfoObject,
   pascal,
   upath,
+  type Verbs,
 } from '@orval/core';
 import { generateClient, generateFetchHeader } from '@orval/fetch';
 import { generateZod } from '@orval/zod';
@@ -35,6 +36,30 @@ const getHeader = (
   const header = option(info);
 
   return Array.isArray(header) ? jsDoc({ description: header }) : header;
+};
+
+const getAnnotations = (verb: Verbs): string => {
+  switch (verb) {
+    case 'get':
+    case 'head': {
+      return '{ readOnlyHint: true, destructiveHint: false }';
+    }
+    case 'post': {
+      return '{ destructiveHint: false }';
+    }
+    case 'put': {
+      return '{ destructiveHint: false, idempotentHint: true }';
+    }
+    case 'patch': {
+      return '{ destructiveHint: false }';
+    }
+    case 'delete': {
+      return '{ idempotentHint: true }';
+    }
+    default: {
+      return '';
+    }
+  }
 };
 
 const getSpecInfo = (context: ContextSpec): OpenApiInfoObject =>
@@ -157,13 +182,26 @@ ${handlerArgsTypes.join('\n')}
 export const ${handlerName} = async (${handlerArgsTypes.length > 0 ? `args: ${handlerArgsName}, ` : ''}options?: RequestInit) => {
   const res = await ${verbOptions.operationName}(${fetchParams.length > 0 ? `${fetchParams.join(', ')}, ` : ''}options);
 
+  if (res.status >= 400) {
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(res.data ?? null),
+        },
+      ],
+      isError: true,
+    };
+  }
+
   return {
     content: [
       {
         type: 'text' as const,
-        text: JSON.stringify(res),
+        text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: res.data,
   };
 };`;
 
@@ -189,6 +227,9 @@ export const generateServer = (
   const header = getHeader(output.override.header, info);
 
   const mcpServerOptions = output.override.mcp.server;
+  const hasResponseSchema =
+    output.override.zod.generate.response &&
+    !output.override.zod.generateEachHttpStatus;
 
   const toolImplementations = Object.values(verbOptions)
     .map((verbOption) => {
@@ -206,6 +247,29 @@ export const generateServer = (
           ? `\n    inputSchema: {\n      ${inputSchemaTypes.join(',\n      ')}\n    },`
           : '';
 
+      const outputSchemaImplementation = hasResponseSchema
+        ? `\n    outputSchema: ${pascalOperationName}Response,`
+        : '';
+
+      const annotationsValue = getAnnotations(verbOption.verb);
+      const annotationsImplementation = annotationsValue
+        ? `\n    annotations: ${annotationsValue},`
+        : '';
+
+      const titleImplementation = verbOption.summary
+        ? `\n    title: '${jsStringEscape(verbOption.summary)}',`
+        : '';
+      const operationDescription = verbOption.originalOperation.description as
+        | string
+        | undefined;
+      const descriptionValue =
+        (operationDescription && operationDescription.length > 0
+          ? operationDescription
+          : verbOption.summary) ?? '';
+      const descriptionImplementation = descriptionValue
+        ? `\n    description: '${jsStringEscape(descriptionValue)}',`
+        : '';
+
       const handlerCallImplementation =
         inputSchemaTypes.length > 0
           ? `(args) => ${verbOption.operationName}Handler(args, options)`
@@ -214,8 +278,7 @@ export const generateServer = (
       const toolImplementation = `
 tools.${verbOption.operationName} = server.registerTool(
   '${jsStringEscape(verbOption.operationName)}',
-  {
-    description: '${jsStringEscape(verbOption.summary ?? '')}',${inputSchemaImplementation}
+  {${titleImplementation}${descriptionImplementation}${inputSchemaImplementation}${outputSchemaImplementation}${annotationsImplementation}
   },
   ${handlerCallImplementation}
 );`;
@@ -237,6 +300,7 @@ tools.${verbOption.operationName} = server.registerTool(
         imports.push(`  ${pascalOperationName}QueryParams`);
       if (verbOption.body.definition)
         imports.push(`  ${pascalOperationName}Body`);
+      if (hasResponseSchema) imports.push(`  ${pascalOperationName}Response`);
 
       return imports;
     })

@@ -1060,6 +1060,84 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).toContain('name');
   });
 
+  it('applies a partial required array from a sibling allOf member to the base properties (issue #3171)', () => {
+    // Base carries the properties (in the issue this is a $ref, which is
+    // already resolved by the time it reaches the generator), the sibling
+    // member carries only the `required` array.
+    const userBase: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        id: { type: 'string', format: 'uuid' },
+        name: { type: 'string' },
+        email: { type: 'string' },
+      },
+    };
+
+    const user: OpenApiSchemaObject = {
+      allOf: [userBase, { type: 'object', required: ['id'] }],
+    };
+
+    const parsed = parseZodValidationSchemaDefinition(
+      generateZodValidationSchemaDefinition(
+        user,
+        { output: { override: { useDates: false } } } as ContextSpec,
+        'user',
+        false,
+        false,
+        { required: true },
+      ),
+      { output: { override: { useDates: false } } } as ContextSpec,
+      false,
+      false,
+      false,
+    );
+
+    // `id` is required by the sibling member -> must NOT be optional.
+    expect(parsed.zod).toContain('"id": zod.string().uuid()');
+    expect(parsed.zod).not.toContain('"id": zod.string().uuid().optional()');
+    // The other properties stay optional.
+    expect(parsed.zod).toContain('"name": zod.string().optional()');
+    expect(parsed.zod).toContain('"email": zod.string().optional()');
+    // The open-object sibling is preserved (additionalProperties allowed).
+    expect(parsed.zod).toContain('.and(');
+  });
+
+  it('applies a full required array from a sibling allOf member to the base properties (issue #3171)', () => {
+    const userBase: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        id: { type: 'string', format: 'uuid' },
+        name: { type: 'string' },
+        email: { type: 'string' },
+      },
+    };
+
+    const userFull: OpenApiSchemaObject = {
+      allOf: [userBase, { type: 'object', required: ['id', 'name', 'email'] }],
+    };
+
+    const parsed = parseZodValidationSchemaDefinition(
+      generateZodValidationSchemaDefinition(
+        userFull,
+        { output: { override: { useDates: false } } } as ContextSpec,
+        'userFull',
+        false,
+        false,
+        { required: true },
+      ),
+      { output: { override: { useDates: false } } } as ContextSpec,
+      false,
+      false,
+      false,
+    );
+
+    // Every property is required -> no `.optional()` anywhere in the object.
+    expect(parsed.zod).toContain('"id": zod.string().uuid()');
+    expect(parsed.zod).toContain('"name": zod.string()');
+    expect(parsed.zod).toContain('"email": zod.string()');
+    expect(parsed.zod).not.toContain('.optional()');
+  });
+
   it('handles allOf with number type', () => {
     const numberWithConstraints: OpenApiSchemaObject = {
       type: 'number',
@@ -4792,6 +4870,129 @@ describe('generatePartOfSchemaGenerateZod', () => {
   });
 });
 
+describe('generateResponseSchemaForNonJsonContentTypes', () => {
+  it('generates zod.string() for text/plain response', async () => {
+    const schema = {
+      pathRoute: '/health',
+      context: {
+        spec: {
+          paths: {
+            '/health': {
+              get: {
+                operationId: 'healthCheck',
+                responses: {
+                  '200': {
+                    description: 'health check',
+                    content: {
+                      'text/plain': {
+                        schema: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: { override: { zod: { generateEachHttpStatus: false } } },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/health',
+        verb: 'get',
+        operationName: 'healthCheck',
+        override: {
+          zod: { strict: {}, generate: { response: true }, coerce: {} },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      schema,
+      testOutput,
+    );
+
+    expect(result.implementation).toBe(
+      'export const HealthCheckResponse = zod.string()\n\n',
+    );
+  });
+
+  it('generates zod.void() for 204 No Content response', async () => {
+    const schema = {
+      pathRoute: '/pets/{petId}',
+      context: {
+        spec: {
+          paths: {
+            '/pets/{petId}': {
+              delete: {
+                operationId: 'deletePet',
+                responses: {
+                  '204': { description: 'No Content' },
+                },
+              },
+            },
+          },
+        },
+        output: { override: { zod: { generateEachHttpStatus: false } } },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/pets/{petId}',
+        verb: 'delete',
+        operationName: 'deletePet',
+        override: {
+          zod: { strict: {}, generate: { response: true }, coerce: {} },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      schema,
+      testOutput,
+    );
+
+    expect(result.implementation).toBe(
+      'export const DeletePetResponse = zod.void()\n\n',
+    );
+  });
+
+  it('generates zod.void() for 205 Reset Content response', async () => {
+    const schema = {
+      pathRoute: '/cart',
+      context: {
+        spec: {
+          paths: {
+            '/cart': {
+              post: {
+                operationId: 'clearCart',
+                responses: {
+                  '205': { description: 'Reset Content' },
+                },
+              },
+            },
+          },
+        },
+        output: { override: { zod: { generateEachHttpStatus: false } } },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/cart',
+        verb: 'post',
+        operationName: 'clearCart',
+        override: {
+          zod: { strict: {}, generate: { response: true }, coerce: {} },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      schema,
+      testOutput,
+    );
+
+    expect(result.implementation).toBe(
+      'export const ClearCartResponse = zod.void()\n\n',
+    );
+  });
+});
+
 describe('parsePrefixItemsArrayAsTupleZod', () => {
   it('generates correctly', () => {
     const arrayWithPrefixItemsSchema: OpenApiSchemaObject = {
@@ -5081,7 +5282,7 @@ describe('generateZodWithEdgeCases', () => {
     );
 
     expect(result.implementation).toBe(
-      'export const TestBody = zod.object({\n  "$ref": zod.string().optional()\n})\n\n',
+      'export const TestBody = zod.object({\n  "$ref": zod.string().optional()\n})\n\nexport const TestResponse = zod.unknown()\n\n',
     );
   });
 });
@@ -5173,7 +5374,7 @@ describe('generateZodWithLiteralProperty', () => {
     );
 
     expect(result.implementation).toBe(
-      'export const TestBody = zod.object({\n  "type": zod.literal("WILD").optional()\n})\n\n',
+      'export const TestBody = zod.object({\n  "type": zod.literal("WILD").optional()\n})\n\nexport const TestResponse = zod.unknown()\n\n',
     );
   });
 });
@@ -9475,5 +9676,131 @@ describe('$dynamicRef / $dynamicAnchor', () => {
       expect(result.implementation).toContain('"tag"');
       expect(result.implementation).toContain('"playmates"');
     });
+  });
+});
+
+// Regression: each preprocess target must read its own mutator config, not
+// `preprocess.response` (copy-paste bug fixed in #3511).
+describe('generateZod preprocess regression (#3511)', () => {
+  it('wraps the query schema using `preprocess.query` even when `preprocess.response` is not set', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: true,
+              body: true,
+              response: true,
+              query: true,
+              header: true,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            preprocess: {
+              query: { name: 'coerceQuery', path: './coerce-query' },
+            },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toContain(
+      'export const TestQueryParams = zod.preprocess(coerceQuery, zod.object({',
+    );
+    expect(result.implementation).toContain(
+      'export const TestParams = zod.object({',
+    );
+    expect(result.implementation).toContain(
+      'export const TestHeader = zod.object({',
+    );
+    expect(result.implementation).toContain(
+      'export const TestBody = zod.object({',
+    );
+    expect(result.implementation).toContain(
+      'export const TestResponse = zod.object({',
+    );
+  });
+
+  it('uses a distinct mutator per target when each preprocess key is configured separately', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: true,
+              body: true,
+              response: true,
+              query: true,
+              header: true,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            preprocess: {
+              param: { name: 'paramMutator', path: './param' },
+              query: { name: 'queryMutator', path: './query' },
+              header: { name: 'headerMutator', path: './header' },
+              body: { name: 'bodyMutator', path: './body' },
+              response: { name: 'responseMutator', path: './response' },
+            },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toContain(
+      'export const TestParams = zod.preprocess(paramMutator,',
+    );
+    expect(result.implementation).toContain(
+      'export const TestQueryParams = zod.preprocess(queryMutator,',
+    );
+    expect(result.implementation).toContain(
+      'export const TestHeader = zod.preprocess(headerMutator,',
+    );
+    expect(result.implementation).toContain(
+      'export const TestBody = zod.preprocess(bodyMutator,',
+    );
+    expect(result.implementation).toContain(
+      'export const TestResponse = zod.preprocess(responseMutator,',
+    );
   });
 });

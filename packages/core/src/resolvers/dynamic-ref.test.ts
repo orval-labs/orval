@@ -617,8 +617,10 @@ describe('resolveDynamicRef', () => {
       },
     };
 
-    const result = resolveDynamicRef('itemType', context);
+    const existingImport = { name: 'Existing', schemaName: 'Existing' };
+    const result = resolveDynamicRef('itemType', context, [existingImport]);
 
+    expect(result.imports).toContainEqual(existingImport);
     expect(result.imports).toContainEqual({
       name: 'User',
       schemaName: 'User',

@@ -56,3 +56,5 @@ export const AddListBody = zod
       .max(addListBodyListMax),
   })
   .strict();
+
+export const AddListResponse = zod.unknown();

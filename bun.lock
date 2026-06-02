@@ -123,6 +123,12 @@
         "vitest": "catalog:",
         "zod": "catalog:zod3",
       },
+      "peerDependencies": {
+        "typescript": ">=5",
+      },
+      "optionalPeers": [
+        "typescript",
+      ],
     },
     "packages/mcp": {
       "name": "@orval/mcp",

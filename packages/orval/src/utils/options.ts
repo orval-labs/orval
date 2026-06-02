@@ -990,6 +990,7 @@ function normalizeHonoOptions(
     ...(hono.handlers
       ? { handlers: nodePath.resolve(workspace, hono.handlers) }
       : {}),
+    handlerGenerationStrategy: hono.handlerGenerationStrategy ?? 'smart',
     compositeRoute: hono.compositeRoute
       ? nodePath.resolve(workspace, hono.compositeRoute)
       : '',
