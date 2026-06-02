@@ -223,17 +223,16 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
-  shouldFilterUndefinedQueryKey: {
+  shouldFilterBooleanQueryKey: {
     output: {
-      target:
-        '../generated/react-query/filter-undefined-query-key/endpoints.ts',
-      schemas: '../generated/react-query/filter-undefined-query-key/model',
+      target: '../generated/react-query/filter-boolean-query-key/endpoints.ts',
+      schemas: '../generated/react-query/filter-boolean-query-key/model',
       client: 'react-query',
       override: {
         query: {
           shouldSplitQueryKey: true,
           shouldFilterQueryKey: true,
-          queryKeyFilter: 'q => q !== undefined',
+          queryKeyFilter: 'Boolean',
           mutationInvalidates: [
             {
               onMutations: ['createPets'],
