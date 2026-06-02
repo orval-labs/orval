@@ -24,7 +24,7 @@ export function getStrictMockHelperTypeDeclarations(): string {
 export type MockWithNullableOverrides<
   T,
   O extends Partial<T>,
-  M,
+  M extends Record<keyof T, unknown>,
 > = Omit<M, Extract<KeysWithNull<O>, keyof T>> & {
   [K in Extract<KeysWithNull<O>, keyof T>]: M[K] | null;
 };`;

@@ -12,10 +12,11 @@ export type KeysWithNull<O> = {
   [K in keyof O]-?: null extends O[K] ? K : never;
 }[keyof O];
 
-export type MockWithNullableOverrides<T, O extends Partial<T>, M> = Omit<
-  M,
-  Extract<KeysWithNull<O>, keyof T>
-> & {
+export type MockWithNullableOverrides<
+  T,
+  O extends Partial<T>,
+  M extends Record<keyof T, unknown>,
+> = Omit<M, Extract<KeysWithNull<O>, keyof T>> & {
   [K in Extract<KeysWithNull<O>, keyof T>]: M[K] | null;
 };
 
