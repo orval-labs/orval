@@ -10,6 +10,7 @@ import type {
 import { isFakerMock, isMswMock, OutputMockType } from '@orval/core';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
+import { createTestContextSpec } from '../../../core/src/test-utils/context';
 import {
   generateFaker,
   generateFakerForSchemas,
@@ -161,43 +162,14 @@ describe('discriminated GlobalMockOptions union', () => {
 });
 
 describe('generateFakerForSchemas strict mock types (#3525)', () => {
-  const strictOverride = {
-    operations: {},
-    tags: {},
-    mock: {
-      required: true,
-      nonNullable: true,
+  const context = createTestContextSpec({
+    override: {
+      mock: {
+        required: true,
+        nonNullable: true,
+      },
     },
-  } as NormalizedOverrideOutput;
-
-  const context = {
-    target: 'test',
-    workspace: '',
-    spec: {
-      openapi: '3.0.0',
-      info: { title: 'Test', version: '1.0.0' },
-      paths: {},
-    },
-    output: {
-      target: 'test',
-      namingConvention: 'camelCase',
-      fileExtension: '.ts',
-      mode: 'single',
-      override: strictOverride,
-      client: 'axios-functions',
-      httpClient: 'fetch',
-      clean: false,
-      docs: false,
-      formatter: undefined,
-      headers: false,
-      indexFiles: true,
-      allParamsOptional: false,
-      urlEncodeParameters: false,
-      unionAddMissingProperties: false,
-      optionsParamRequired: false,
-      propertySortOrder: 'specification',
-    },
-  } as GeneratorOptions['context'];
+  });
 
   it('emits PetMock alias and return type for schema factories', () => {
     const result = generateFakerForSchemas(
@@ -205,6 +177,7 @@ describe('generateFakerForSchemas strict mock types (#3525)', () => {
         {
           name: 'Pet',
           model: 'Pet',
+          imports: [],
           schema: {
             type: 'object',
             required: ['id', 'name'],
