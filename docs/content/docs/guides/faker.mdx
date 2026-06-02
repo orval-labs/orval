@@ -106,6 +106,44 @@ If an operation- or tag-level `override.mock` rule targets a property of a refer
 
 Requires `output.schemas` to be configured (the consolidated file is written into that directory).
 
+### Array Item Factories
+
+Set `arrayItems: true` to emit reusable mock factories for **object-like array item schemas** found in operation responses. This covers array elements that are inlined in the response body (not just entries under `components/schemas`):
+
+```ts title="orval.config.ts"
+mock: {
+  generators: [
+    {
+      type: 'faker',
+      arrayItems: true,
+    },
+  ],
+}
+```
+
+For a paginated list response like `{ value: TenantResponseModelDto[], count: number }`, Orval emits both the operation factory and a reusable item factory:
+
+```ts
+export const getTenantResponseModelDtoMock = (
+  overrideResponse: Partial<TenantResponseModelDto> = {},
+): TenantResponseModelDto => ({ /* ... */, ...overrideResponse });
+
+export const getGetTenantsByRefResponseMock = (
+  overrideResponse: Partial<TenantListResponse> = {},
+): TenantListResponse => ({
+  value: Array.from(/* ... */).map(() => ({ ...getTenantResponseModelDtoMock() })),
+  count: faker.number.int(),
+  ...overrideResponse,
+});
+```
+
+- **`$ref` array items** → `get<SchemaName>Mock` (shared across operations referencing the same schema) when the referenced schema is object-like.
+- **Inline object array items** → `get<OperationId>Response<PropertyName>ItemMock` typed as `<ResponseName><PropertyName>Item` (matching Orval's generated item type aliases).
+
+Orval only extracts factories for shapes it can name and mock reliably. The following fall back to inline `.map()` bodies (same as `arrayItems: false`): `$ref` to scalar schemas, `oneOf` / `anyOf` item compositions, nullable object items, and nested arrays whose parent context is not the generated response wrapper (e.g. two `items` properties under `outer` and `inner` in the same operation). Plain object items, `$ref`-to-object items, and inline `allOf` items are supported.
+
+When `schemas: true` is also enabled, `$ref` items delegate to the consolidated schema factory instead (same as today). `arrayItems` is useful when item types only appear inside response wrappers or when you want item factories without emitting every `components/schemas` entry. With both options enabled, `$ref` items are not re-exported from the operation mock file — import `get<SchemaName>Mock` from `<schemas-dir>/index.faker.ts` instead.
+
 ## Options
 
 Set faker-specific options on the generator entry:
@@ -132,6 +170,7 @@ mock: {
 | `preferredContentType` | `string` | — | When an operation has multiple response content types, mock the one matching this MIME type. |
 | `schemas` | `boolean` | `false` | Emit a consolidated `get<SchemaName>Mock` factory per `components/schemas` entry into `<schemas-dir>/index.faker.ts`. See [Schema Factories](#schema-factories). |
 | `operationResponses` | `boolean` | `true` | Emit per-operation `get<OperationId>ResponseMock` factories. Set to `false` (typically with `schemas: true`) to skip operation-level factories. |
+| `arrayItems` | `boolean` | `false` | Emit reusable mock factories for object-like array item schemas in operation responses. See [Array Item Factories](#array-item-factories). |
 
 ## Customizing Mock Values
 

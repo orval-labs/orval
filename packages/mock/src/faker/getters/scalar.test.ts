@@ -2,7 +2,13 @@
 import type { ContextSpec, OpenApiSchemaObjectType } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
+import { createTestContextSpec } from '../../../../core/src/test-utils/context';
 import { getMockScalar } from './scalar';
+
+const scalarContext = (
+  override: Partial<ContextSpec['output']['override']> = {},
+  output?: Partial<ContextSpec['output']>,
+) => createTestContextSpec({ override, output });
 
 describe('getMockScalar (int64 format handling)', () => {
   const baseArg = {
@@ -23,7 +29,7 @@ describe('getMockScalar (int64 format handling)', () => {
   it('should return faker.number.bigInt() when format is int64, useBigInt is true, and mockOptions.format.int64 is NOT specified', () => {
     const result = getMockScalar({
       ...baseArg,
-      context: { output: { override: { useBigInt: true } } } as ContextSpec,
+      context: scalarContext({ useBigInt: true }),
     });
 
     expect(result.value).toBe('faker.number.bigInt({min: 1, max: 100})');
@@ -32,7 +38,7 @@ describe('getMockScalar (int64 format handling)', () => {
   it('should return faker.number.int() when format is int64, useBigInt is false, and mockOptions.format.int64 is NOT specified', () => {
     const result = getMockScalar({
       ...baseArg,
-      context: { output: { override: { useBigInt: false } } } as ContextSpec,
+      context: scalarContext({ useBigInt: false }),
     });
 
     expect(result.value).toBe('faker.number.int({min: 1, max: 100})');
@@ -48,7 +54,7 @@ describe('getMockScalar (int64 format handling)', () => {
           int64: specified,
         },
       },
-      context: { output: { override: { useBigInt: true } } } as ContextSpec,
+      context: scalarContext({ useBigInt: true }),
     });
 
     expect(result.value).toBe(specified);
@@ -74,7 +80,7 @@ describe('getMockScalar (uint64 format handling)', () => {
   it('should return faker.number.bigInt() when format is uint64, useBigInt is true, and mockOptions.format.uint64 is NOT specified', () => {
     const result = getMockScalar({
       ...baseArg,
-      context: { output: { override: { useBigInt: true } } } as ContextSpec,
+      context: scalarContext({ useBigInt: true }),
     });
 
     expect(result.value).toBe('faker.number.bigInt({min: 1, max: 100})');
@@ -83,7 +89,7 @@ describe('getMockScalar (uint64 format handling)', () => {
   it('should return faker.number.int() when format is uint64, useBigInt is false, and mockOptions.format.uint64 is NOT specified', () => {
     const result = getMockScalar({
       ...baseArg,
-      context: { output: { override: { useBigInt: false } } } as ContextSpec,
+      context: scalarContext({ useBigInt: false }),
     });
 
     expect(result.value).toBe('faker.number.int({min: 1, max: 100})');
@@ -99,7 +105,7 @@ describe('getMockScalar (uint64 format handling)', () => {
           uint64: specified,
         },
       },
-      context: { output: { override: { useBigInt: true } } } as ContextSpec,
+      context: scalarContext({ useBigInt: true }),
     });
 
     expect(result.value).toBe(specified);
@@ -119,7 +125,7 @@ describe('getMockScalar (example handling with falsy values)', () => {
     existingReferencedProperties: [],
     splitMockImplementations: [],
     mockOptions: { useExamples: true },
-    context: { output: { override: {} } } as ContextSpec, // TODO this should be: satisfies ContextSpec
+    context: scalarContext(),
   };
 
   it('should return the example value when it is a false value', () => {
@@ -153,17 +159,13 @@ describe('getMockScalar (example handling with falsy values)', () => {
 describe('getMockScalar (multipleOf handling)', () => {
   const createContext = (
     packageJsonDeps?: Record<string, string>,
-  ): ContextSpec => {
-    const context = {
-      output: {
-        override: {},
-        ...(packageJsonDeps && {
-          packageJson: { dependencies: packageJsonDeps },
-        }),
-      },
-    } as ContextSpec;
-    return context;
-  };
+  ): ContextSpec =>
+    scalarContext(
+      {},
+      packageJsonDeps
+        ? { packageJson: { dependencies: packageJsonDeps } }
+        : undefined,
+    );
 
   const baseArg = {
     imports: [],
@@ -321,7 +323,7 @@ describe('getMockScalar (nested arrays handling)', () => {
       tags: [],
       existingReferencedProperties: [],
       splitMockImplementations: [],
-      context: { output: { override: {} } } as ContextSpec,
+      context: scalarContext(),
       combine: { separator: 'anyOf' as const, includedProperties: [] },
     });
     // Should avoid putting Array.from in an object {
@@ -343,7 +345,7 @@ describe('getMockScalar (nested arrays handling)', () => {
       tags: [],
       existingReferencedProperties: [],
       splitMockImplementations: [],
-      context: { output: { override: {} } } as ContextSpec,
+      context: scalarContext(),
       mockOptions: { arrayMin: 1, arrayMax: 5 },
     });
 
@@ -358,7 +360,7 @@ describe('getMockScalar (undefined filtering)', () => {
     tags: [],
     existingReferencedProperties: [],
     splitMockImplementations: [],
-    context: { output: { override: {} } } as ContextSpec,
+    context: scalarContext(),
   };
 
   it('should not include min/max when they are undefined for integer type', () => {
@@ -652,7 +654,7 @@ describe('getMockScalar (exclusiveMinimum/exclusiveMaximum handling)', () => {
     tags: [],
     existingReferencedProperties: [],
     splitMockImplementations: [],
-    context: { output: { override: {} } } as ContextSpec,
+    context: scalarContext(),
   };
 
   describe('OpenAPI 3.0 (boolean exclusiveMinimum/exclusiveMaximum)', () => {
@@ -768,7 +770,7 @@ describe('getMockScalar (@-prefixed property names)', () => {
     tags: [],
     existingReferencedProperties: [],
     splitMockImplementations: [],
-    context: { output: { override: {} } } as ContextSpec,
+    context: scalarContext(),
   };
 
   it('should preserve @type as a quoted property key in mock objects', () => {
@@ -803,7 +805,7 @@ describe('getMockScalar (pattern-backed string escaping)', () => {
       tags: [],
       existingReferencedProperties: [],
       splitMockImplementations: [],
-      context: { output: { override: {} } } as ContextSpec,
+      context: scalarContext(),
     });
 
     expect(result.value).toBe(
@@ -823,7 +825,7 @@ describe('getMockScalar (pattern-backed string escaping)', () => {
       tags: [],
       existingReferencedProperties: [],
       splitMockImplementations: [],
-      context: { output: { override: {} } } as ContextSpec,
+      context: scalarContext(),
     });
 
     expect(result.value).toBe(
@@ -844,7 +846,7 @@ describe('getMockScalar (post-upgrader OAS 3.0 example handling)', () => {
     existingReferencedProperties: [],
     splitMockImplementations: [],
     mockOptions: { useExamples: true },
-    context: { output: { override: {} } } as ContextSpec,
+    context: scalarContext(),
   };
 
   it('uses examples[0] for a string property when useExamples is true', () => {
@@ -868,7 +870,7 @@ describe('getMockScalar (array items $ref extraction and recursion guard)', () =
     tags: [],
     splitMockImplementations: [],
     existingReferencedProperties: ['Foo'],
-    context: { output: { override: {} } } as ContextSpec,
+    context: scalarContext(),
   };
 
   it('returns [] when items.$ref is a circular reference', () => {

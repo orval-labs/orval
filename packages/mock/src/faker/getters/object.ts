@@ -181,6 +181,7 @@ export function getMockObject({
             schema: {
               ...(prop as Record<string, unknown>),
               name: key,
+              parentName: schemaItem.name,
               path: schemaItem.path ? `${schemaItem.path}.${key}` : `#.${key}`,
             },
             mockOptions,
