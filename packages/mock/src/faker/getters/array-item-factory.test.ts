@@ -7,7 +7,9 @@ import {
   shouldExtractArrayItemFactories,
 } from './array-item-factory';
 
-const createContextWithArrayItems = (mode = OutputMode.SINGLE): ContextSpec =>
+const createContextWithArrayItems = (
+  mode: OutputMode = OutputMode.SINGLE,
+): ContextSpec =>
   ({
     output: {
       mode,
