@@ -906,6 +906,19 @@ test('react-query issue-3300 TError matches the thrown error for fetch forceSucc
   );
   const content = await readFile(petsFile, 'utf8');
 
-  expect(content).toContain('TError = globalThis.Error');
-  expect(content).not.toContain('TError = Error');
+  // The hook generics default TError to the full thrown shape (shared by every
+  // query and mutation in the file).
+  expect(content).toContain(
+    'TError = globalThis.Error & { info?: Error; status?: number }',
+  );
+  // And assert the corrected envelope explicitly on both a query error alias
+  // and a mutation error alias so a regression on either path is caught.
+  expect(content).toContain(
+    'export type ListPetsQueryError = globalThis.Error & {',
+  );
+  expect(content).toContain(
+    'export type CreatePetsMutationError = globalThis.Error & {',
+  );
+  // The bare OpenAPI error model must no longer be used as the default TError.
+  expect(content).not.toContain('TError = Error,');
 });
