@@ -281,7 +281,14 @@ export const generateZodValidationSchemaDefinition = (
     }
 
     if (typeof siblingSchema.description === 'string') {
-      functions.push(['describe', `"${escape(siblingSchema.description)}"`]);
+      // Use the same single-quoted, fully JS-escaped form as the primitive
+      // description path (see `pushDescriptionOrMeta`). `escape` only escapes
+      // quote chars, so a multi-line description would emit raw newlines and
+      // break the generated string literal (TS1002).
+      functions.push([
+        'describe',
+        `'${jsStringEscape(siblingSchema.description)}'`,
+      ]);
     }
   };
 
