@@ -14,9 +14,7 @@ import { overrideVarName } from './object';
 import { extractItemsRef } from './scalar';
 
 function getFileLevelExtractedFactories(context: ContextSpec): Set<string> {
-  if (!context.arrayItemMockFactories) {
-    context.arrayItemMockFactories = new Set();
-  }
+  context.arrayItemMockFactories ??= new Set();
   return context.arrayItemMockFactories;
 }
 
