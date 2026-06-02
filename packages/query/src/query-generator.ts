@@ -376,6 +376,7 @@ const generateQueryImplementation = ({
   isExactOptionalPropertyTypes,
   hasSignal,
   useRuntimeFetcher,
+  forceSuccessResponse,
   route,
   doc,
   usePrefetch,
@@ -410,6 +411,7 @@ const generateQueryImplementation = ({
   isExactOptionalPropertyTypes: boolean;
   hasSignal: boolean;
   useRuntimeFetcher?: boolean;
+  forceSuccessResponse?: boolean;
   route: string;
   doc?: string;
   usePrefetch?: boolean;
@@ -502,6 +504,7 @@ const generateQueryImplementation = ({
     response,
     httpClient,
     mutator,
+    forceSuccessResponse,
   );
 
   const dataType = mutator?.isHook
@@ -1192,6 +1195,7 @@ ${queryKeyFns}`;
           overrideQuerySignal: override.query.signal,
         }),
         useRuntimeFetcher: override.fetch.useRuntimeFetcher,
+        forceSuccessResponse: override.fetch.forceSuccessResponse,
         queryOptionsMutator,
         queryKeyMutator,
         route,

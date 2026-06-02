@@ -888,3 +888,24 @@ test('hono issue-3512 zod mutator import path is prefixed with an extra `../` in
     "import { stripNill } from '../../../../mutators/zod-preprocess';",
   );
 });
+
+test('react-query issue-3300 TError matches the thrown error for fetch forceSuccessResponse', async () => {
+  // With `override.fetch.forceSuccessResponse`, the fetch request function
+  // narrows its return type to the success body and throws
+  // `globalThis.Error & { info?, status? }` on non-2xx responses. The generated
+  // query/mutation hooks must therefore default `TError` to that thrown shape,
+  // not to the raw OpenAPI error model (`Error`) that is never actually
+  // returned. Keep this focused assertion alongside the snapshot so #3300 fails
+  // with a targeted message instead of a full-file snapshot diff. pets.ts
+  // covers both queries (listPets/showPetById) and a mutation (createPets).
+  const petsFile = generated(
+    'react-query',
+    'http-client-fetch',
+    'pets',
+    'pets.ts',
+  );
+  const content = await readFile(petsFile, 'utf8');
+
+  expect(content).toContain('TError = globalThis.Error');
+  expect(content).not.toContain('TError = Error');
+});

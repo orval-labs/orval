@@ -342,6 +342,7 @@ export const generateMutationHook = async ({
     response,
     httpClient,
     mutator,
+    override.fetch.forceSuccessResponse,
   );
 
   const dataType = mutator?.isHook
