@@ -182,13 +182,26 @@ ${handlerArgsTypes.join('\n')}
 export const ${handlerName} = async (${handlerArgsTypes.length > 0 ? `args: ${handlerArgsName}, ` : ''}options?: RequestInit) => {
   const res = await ${verbOptions.operationName}(${fetchParams.length > 0 ? `${fetchParams.join(', ')}, ` : ''}options);
 
+  if (res.status >= 400) {
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(res.data ?? null),
+        },
+      ],
+      isError: true,
+    };
+  }
+
   return {
     content: [
       {
         type: 'text' as const,
-        text: JSON.stringify(res),
+        text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: res.data,
   };
 };`;
 
