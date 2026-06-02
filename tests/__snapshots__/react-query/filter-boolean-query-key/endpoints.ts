@@ -124,7 +124,7 @@ export const listPets = async (
 };
 
 export const getListPetsQueryKey = (params?: ListPetsParams) => {
-  return ['pets', ...(params ? [params] : [])].filter((q) => q !== undefined);
+  return ['pets', ...(params ? [params] : [])].filter(Boolean);
 };
 
 export const getListPetsQueryOptions = <
@@ -444,7 +444,7 @@ export const showPetById = async (
 };
 
 export const getShowPetByIdQueryKey = (petId: string) => {
-  return ['pets', petId].filter((q) => q !== undefined);
+  return ['pets', petId].filter(Boolean);
 };
 
 export const getShowPetByIdQueryOptions = <
@@ -742,7 +742,7 @@ export const healthCheck = async (
 };
 
 export const getHealthCheckQueryKey = () => {
-  return ['health'].filter((q) => q !== undefined);
+  return ['health'].filter(Boolean);
 };
 
 export const getHealthCheckQueryOptions = <
@@ -908,7 +908,7 @@ export const showPetWithOwner = async (
 };
 
 export const getShowPetWithOwnerQueryKey = (petId: string) => {
-  return ['pets', petId, 'owner'].filter((q) => q !== undefined);
+  return ['pets', petId, 'owner'].filter(Boolean);
 };
 
 export const getShowPetWithOwnerQueryOptions = <
