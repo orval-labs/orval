@@ -32,14 +32,14 @@ jobs:
       - name: Check formatting
         run: vp fmt --check
 
+      - name: Build packages
+        run: vp run -w build
+
       - name: Lint packages
         run: vp run -w lint
 
       - name: Lint samples
         run: vp run -w lint:samples
-
-      - name: Build packages
-        run: vp run -w build
 
       - name: Typecheck packages
         run: vp run -w typecheck
