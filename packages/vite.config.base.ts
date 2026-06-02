@@ -42,7 +42,7 @@ export const definePackage = (pack: PackUserConfig = {}) =>
           cache: true,
           dependsOn: ['build'],
         },
-        dev: {
+        watch: {
           command: 'vp pack --watch --unbundle --sourcemap --no-treeshake',
           cache: false,
         },

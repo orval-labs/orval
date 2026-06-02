@@ -28,17 +28,14 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Check formatting
-        run: bun run format:check
+      - name: Lint & check formatting
+        run: vp check
 
       - name: Build packages
         run: bun run build
 
       - name: Typecheck packages
         run: bun run typecheck
-
-      - name: Lint packages
-        run: bun run lint
 
       - name: Test packages
         run: bun run test
@@ -48,4 +45,4 @@ jobs:
         run: bun run test:snapshots
 
       - name: Verify generated code can build
-        run: bun run --filter orval-tests build
+        run: vp run -F orval-tests build
