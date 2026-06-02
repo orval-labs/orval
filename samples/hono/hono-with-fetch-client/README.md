@@ -4,7 +4,7 @@ This is a sample app that uses `hono` as a backend and `Next.js` and `fetch` as 
 
 ## hono-app
 
-```
+```bash
 cd hono-app
 bun install
 vp run dev
@@ -12,7 +12,7 @@ vp run dev
 
 ## next-app
 
-```
+```bash
 cd next-app
 bun install
 vp run dev

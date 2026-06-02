@@ -13,7 +13,6 @@
     "format": "vp fmt --write",
     "format:check": "vp fmt --check",
     "format:staged": "vp staged",
-    "format:samples": "vp fmt --write samples",
     "postinstall": "bun scripts/link-workspace-bins.mjs",
     "prepare": "husky",
     "commitlint": "commitlint",

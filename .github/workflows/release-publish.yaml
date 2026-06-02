@@ -23,7 +23,7 @@ jobs:
         uses: voidzero-dev/setup-vp@v1
         with:
           node-version: 24
-          cache: true
+          cache: false
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
