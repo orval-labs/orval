@@ -92,6 +92,7 @@ export default defineConfig({
     ],
   },
   staged: {
-    '*.{ts,tsx,mts,cts,js,mjs,cjs,jsx}': 'vp fmt --write',
+    '*.{ts,tsx,mts,cts,js,mjs,cjs,jsx}':
+      'vp fmt --write --no-error-on-unmatched-pattern',
   },
 });
