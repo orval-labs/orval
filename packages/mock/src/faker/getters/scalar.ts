@@ -343,6 +343,7 @@ export function getMockScalar({
         propertyName: item.name,
         parentName: item.parentName,
         operationId,
+        tags,
         mapValue,
         context,
         splitMockImplementations,

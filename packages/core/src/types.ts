@@ -1118,11 +1118,12 @@ export interface ContextSpec {
    */
   dynamicScope?: Partial<Record<string, DynamicScopeEntry>>;
   /**
-   * Tracks array-item mock factory names already emitted in the current output
-   * file. Populated by `@orval/mock` when `arrayItems: true` so shared `$ref`
-   * item factories are not re-declared per operation.
+   * Tracks array-item mock factory names already emitted per output file scope.
+   * Populated by `@orval/mock` when `arrayItems: true` so shared `$ref` item
+   * factories are not re-declared within the same file (single/split) or tag
+   * bucket (tags/tags-split).
    */
-  arrayItemMockFactories?: Set<string>;
+  arrayItemMockFactories?: Map<string, Set<string>>;
 }
 
 /**

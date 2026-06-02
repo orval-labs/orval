@@ -1,11 +1,14 @@
 import {
   type ContextSpec,
+  DefaultTag,
   type GeneratorImport,
   getRefInfo,
   isFunction,
   isReference,
+  kebab,
   type OpenApiSchemaObject,
   OutputMockType,
+  OutputMode,
   pascal,
 } from '@orval/core';
 
@@ -13,9 +16,38 @@ import type { MockSchema } from '../../types';
 import { overrideVarName } from './object';
 import { extractItemsRef } from './scalar';
 
-function getFileLevelExtractedFactories(context: ContextSpec): Set<string> {
-  context.arrayItemMockFactories ??= new Set();
-  return context.arrayItemMockFactories;
+/**
+ * Scope key for file-level array-item factory dedup. Must match how writers
+ * group mock output: one bucket per tag file in tags modes, otherwise one
+ * bucket for the whole target.
+ */
+export function getArrayItemMockFileScope(
+  context: ContextSpec,
+  tags: string[],
+): string {
+  const mode = context.output.mode;
+  if (mode === OutputMode.TAGS || mode === OutputMode.TAGS_SPLIT) {
+    const tag = tags.length > 0 ? tags[0] : DefaultTag;
+    return `tag:${kebab(tag)}`;
+  }
+  if (mode === OutputMode.SPLIT) {
+    return 'split';
+  }
+  return 'single';
+}
+
+function getFileLevelExtractedFactories(
+  context: ContextSpec,
+  scope: string,
+): Set<string> {
+  context.arrayItemMockFactories ??= new Map();
+  const existing = context.arrayItemMockFactories.get(scope);
+  if (existing) {
+    return existing;
+  }
+  const factories = new Set<string>();
+  context.arrayItemMockFactories.set(scope, factories);
+  return factories;
 }
 
 /**
@@ -145,6 +177,7 @@ interface ExtractArrayItemMockOptions {
   propertyName: string;
   parentName?: string;
   operationId: string;
+  tags: string[];
   mapValue: string;
   context: ContextSpec;
   splitMockImplementations: string[];
@@ -160,6 +193,7 @@ export function extractArrayItemMock({
   propertyName,
   parentName,
   operationId,
+  tags,
   mapValue,
   context,
   splitMockImplementations,
@@ -190,7 +224,8 @@ export function extractArrayItemMock({
   }
 
   const { factoryName, typeName } = names;
-  const fileLevelFactories = getFileLevelExtractedFactories(context);
+  const scope = getArrayItemMockFileScope(context, tags);
+  const fileLevelFactories = getFileLevelExtractedFactories(context, scope);
   const alreadyExtracted =
     fileLevelFactories.has(factoryName) ||
     splitMockImplementations.some((f) =>
