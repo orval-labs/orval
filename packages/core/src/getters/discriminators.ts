@@ -114,13 +114,22 @@ export function resolveDiscriminators(
     if (isBoolean(parentSchema)) {
       continue;
     }
-    if (!parentSchema.oneOf || !parentSchema.discriminator?.mapping) {
+    const variants = parentSchema.oneOf ?? parentSchema.anyOf;
+    if (!variants || !parentSchema.discriminator) {
       continue;
     }
-    const { mapping, propertyName } = parentSchema.discriminator;
+    const { propertyName, mapping } = parentSchema.discriminator;
     if (!propertyName) {
       continue;
     }
+    const mappedRefs = mapping ? Object.values(mapping) : [];
+    const variantArrayRefs = variants
+      .filter(
+        (item): item is OpenApiReferenceObject & { $ref: string } =>
+          isReference(item) && typeof item.$ref === 'string',
+      )
+      .map((item) => item.$ref);
+    const variantRefs = [...new Set([...mappedRefs, ...variantArrayRefs])];
 
     const parentProperties = parentSchema.properties as
       | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
@@ -142,7 +151,7 @@ export function resolveDiscriminators(
     );
     const hasInheritableProps = Object.keys(inheritableProps).length > 0;
 
-    for (const mappingValue of Object.values(mapping)) {
+    for (const mappingValue of variantRefs) {
       let variantSchema;
       try {
         const { originalName } = getRefInfo(mappingValue, context);

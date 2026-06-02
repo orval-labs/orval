@@ -574,6 +574,106 @@ describe('resolveDiscriminators getter', () => {
     expect(allOf?.[0]).toHaveProperty('$ref', '#/components/schemas/Base');
   });
 
+  it('rewrites variant allOf $ref to parent when parent has oneOf but no discriminator mapping', () => {
+    const schemas: OpenApiSchemasObject = {
+      Animal: {
+        type: 'object',
+        required: ['type'],
+        properties: {
+          type: { type: 'string' },
+        },
+        discriminator: { propertyName: 'type' },
+        oneOf: [
+          { $ref: '#/components/schemas/Dog' },
+          { $ref: '#/components/schemas/Cat' },
+        ],
+      },
+      Dog: {
+        allOf: [
+          { $ref: '#/components/schemas/Animal' },
+          {
+            type: 'object',
+            properties: { bark: { type: 'string' } },
+          },
+        ],
+      },
+      Cat: {
+        allOf: [
+          { $ref: '#/components/schemas/Animal' },
+          {
+            type: 'object',
+            properties: { meow: { type: 'string' } },
+          },
+        ],
+      },
+    };
+    const result = resolveDiscriminators(structuredClone(schemas), context);
+    const dog = result.Dog as NonNullable<OpenApiSchemasObject[string]>;
+    const cat = result.Cat as NonNullable<OpenApiSchemasObject[string]>;
+
+    const dogAllOf = dog.allOf as
+      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+      | undefined;
+    expect(dogAllOf).toHaveLength(1);
+    expect(dogAllOf?.[0]).not.toHaveProperty('$ref');
+
+    const catAllOf = cat.allOf as
+      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+      | undefined;
+    expect(catAllOf).toHaveLength(1);
+    expect(catAllOf?.[0]).not.toHaveProperty('$ref');
+  });
+
+  it('rewrites variant allOf $ref to parent when parent has anyOf but no discriminator mapping', () => {
+    const schemas: OpenApiSchemasObject = {
+      Animal: {
+        type: 'object',
+        required: ['type'],
+        properties: {
+          type: { type: 'string' },
+        },
+        discriminator: { propertyName: 'type' },
+        anyOf: [
+          { $ref: '#/components/schemas/Dog' },
+          { $ref: '#/components/schemas/Cat' },
+        ],
+      },
+      Dog: {
+        allOf: [
+          { $ref: '#/components/schemas/Animal' },
+          {
+            type: 'object',
+            properties: { bark: { type: 'string' } },
+          },
+        ],
+      },
+      Cat: {
+        allOf: [
+          { $ref: '#/components/schemas/Animal' },
+          {
+            type: 'object',
+            properties: { meow: { type: 'string' } },
+          },
+        ],
+      },
+    };
+    const result = resolveDiscriminators(structuredClone(schemas), context);
+    const dog = result.Dog as NonNullable<OpenApiSchemasObject[string]>;
+    const cat = result.Cat as NonNullable<OpenApiSchemasObject[string]>;
+
+    const dogAllOf = dog.allOf as
+      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+      | undefined;
+    expect(dogAllOf).toHaveLength(1);
+    expect(dogAllOf?.[0]).not.toHaveProperty('$ref');
+
+    const catAllOf = cat.allOf as
+      | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+      | undefined;
+    expect(catAllOf).toHaveLength(1);
+    expect(catAllOf?.[0]).not.toHaveProperty('$ref');
+  });
+
   it('hoists oneOf from discriminator when nested incorrectly', () => {
     const schemas: OpenApiSchemasObject = {
       Animal: {
