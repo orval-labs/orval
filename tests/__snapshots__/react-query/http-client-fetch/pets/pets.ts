@@ -140,7 +140,7 @@ export const getListPetsQueryKey = (params?: ListPetsParams) => {
 
 export const getListPetsQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   params: ListPetsParams,
   options?: {
@@ -168,11 +168,14 @@ export const getListPetsQueryOptions = <
 export type ListPetsQueryResult = NonNullable<
   Awaited<ReturnType<typeof listPets>>
 >;
-export type ListPetsQueryError = Error;
+export type ListPetsQueryError = globalThis.Error & {
+  info?: Error;
+  status?: number;
+};
 
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   params: ListPetsParams,
   options: {
@@ -195,7 +198,7 @@ export function useListPets<
 };
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   params: ListPetsParams,
   options?: {
@@ -218,7 +221,7 @@ export function useListPets<
 };
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   params: ListPetsParams,
   options?: {
@@ -237,7 +240,7 @@ export function useListPets<
 
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   params: ListPetsParams,
   options?: {
@@ -326,7 +329,7 @@ export const createPets = async (
 };
 
 export const getCreatePetsMutationOptions = <
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -367,12 +370,18 @@ export type CreatePetsMutationResult = NonNullable<
   Awaited<ReturnType<typeof createPets>>
 >;
 export type CreatePetsMutationBody = CreatePetsBody;
-export type CreatePetsMutationError = Error;
+export type CreatePetsMutationError = globalThis.Error & {
+  info?: Error;
+  status?: number;
+};
 
 /**
  * @summary Create a pet
  */
-export const useCreatePets = <TError = Error, TContext = unknown>(
+export const useCreatePets = <
+  TError = globalThis.Error & { info?: Error; status?: number },
+  TContext = unknown,
+>(
   options?: {
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof createPets>>,
@@ -449,7 +458,7 @@ export const getShowPetByIdQueryKey = (petId: string) => {
 
 export const getShowPetByIdQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   petId: string,
   options?: {
@@ -482,11 +491,14 @@ export const getShowPetByIdQueryOptions = <
 export type ShowPetByIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof showPetById>>
 >;
-export type ShowPetByIdQueryError = Error;
+export type ShowPetByIdQueryError = globalThis.Error & {
+  info?: Error;
+  status?: number;
+};
 
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   petId: string,
   options: {
@@ -509,7 +521,7 @@ export function useShowPetById<
 };
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   petId: string,
   options?: {
@@ -532,7 +544,7 @@ export function useShowPetById<
 };
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   petId: string,
   options?: {
@@ -551,7 +563,7 @@ export function useShowPetById<
 
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   petId: string,
   options?: {
@@ -631,7 +643,7 @@ export const deletePetById = async (
 };
 
 export const getDeletePetByIdMutationOptions = <
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -672,12 +684,18 @@ export type DeletePetByIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deletePetById>>
 >;
 
-export type DeletePetByIdMutationError = Error;
+export type DeletePetByIdMutationError = globalThis.Error & {
+  info?: Error;
+  status?: number;
+};
 
 /**
  * @summary Deletes a specific pet
  */
-export const useDeletePetById = <TError = Error, TContext = unknown>(
+export const useDeletePetById = <
+  TError = globalThis.Error & { info?: Error; status?: number },
+  TContext = unknown,
+>(
   options?: {
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof deletePetById>>,
@@ -758,7 +776,7 @@ export const getShowPetWithOwnerQueryKey = (petId: string) => {
 
 export const getShowPetWithOwnerQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   petId: string,
   options?: {
@@ -795,11 +813,14 @@ export const getShowPetWithOwnerQueryOptions = <
 export type ShowPetWithOwnerQueryResult = NonNullable<
   Awaited<ReturnType<typeof showPetWithOwner>>
 >;
-export type ShowPetWithOwnerQueryError = Error;
+export type ShowPetWithOwnerQueryError = globalThis.Error & {
+  info?: Error;
+  status?: number;
+};
 
 export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   petId: string,
   options: {
@@ -826,7 +847,7 @@ export function useShowPetWithOwner<
 };
 export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   petId: string,
   options?: {
@@ -853,7 +874,7 @@ export function useShowPetWithOwner<
 };
 export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   petId: string,
   options?: {
@@ -876,7 +897,7 @@ export function useShowPetWithOwner<
 
 export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   petId: string,
   options?: {

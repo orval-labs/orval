@@ -118,7 +118,7 @@ export const getHealthCheckQueryKey = () => {
 
 export const getHealthCheckQueryOptions = <
   TData = Awaited<ReturnType<typeof healthCheck>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
@@ -143,11 +143,14 @@ export const getHealthCheckQueryOptions = <
 export type HealthCheckQueryResult = NonNullable<
   Awaited<ReturnType<typeof healthCheck>>
 >;
-export type HealthCheckQueryError = Error;
+export type HealthCheckQueryError = globalThis.Error & {
+  info?: Error;
+  status?: number;
+};
 
 export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   options: {
     query: Partial<
@@ -169,7 +172,7 @@ export function useHealthCheck<
 };
 export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   options?: {
     query?: Partial<
@@ -191,7 +194,7 @@ export function useHealthCheck<
 };
 export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   options?: {
     query?: Partial<
@@ -209,7 +212,7 @@ export function useHealthCheck<
 
 export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
-  TError = Error,
+  TError = globalThis.Error & { info?: Error; status?: number },
 >(
   options?: {
     query?: Partial<
