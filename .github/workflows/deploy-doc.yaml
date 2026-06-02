@@ -5,6 +5,8 @@ on:
       - master
     paths:
       - 'docs/**'
+permissions:
+  contents: read
 jobs:
   deploy-to-cloudflare:
     name: Deploy to Cloudflare
