@@ -21,15 +21,16 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1
         with:
           node-version: 24
+          cache: true
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: vp install --frozen-lockfile
 
       # 🔧 New step to remove stableVersion recursively
       - name: Remove all stableVersion fields
@@ -50,8 +51,8 @@ jobs:
           for pkg in $(find . -name package.json -not -path '*/node_modules/*' -not -path '*/dist/*'); do
             jq --arg v "${{ github.event.inputs.version }}" '.version = $v' "$pkg" > tmp.$$.json && mv tmp.$$.json "$pkg"
           done
-          bun install
-          bun run test:snapshots:update
+          vp install
+          vp run -w test:snapshots:update
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v8

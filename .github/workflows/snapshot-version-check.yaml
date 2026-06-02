@@ -64,7 +64,7 @@ jobs:
           if [ "$FAILED" -eq 1 ]; then
             echo ""
             echo "::error::Snapshot version mismatch. Snapshots must be generated with orval v${EXPECTED_VERSION} (the version on master)."
-            echo "Run 'bun run test:snapshots:update' after updating the orval version to regenerate snapshots."
+            echo "Run 'vp run test:snapshots:update' after updating the orval version to regenerate snapshots."
             exit 1
           fi
 

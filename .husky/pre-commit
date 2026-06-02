@@ -1,1 +1,1 @@
-bun run format:staged
+vp run -w format:staged

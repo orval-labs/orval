@@ -25,7 +25,7 @@ Update `<ORVAL OUTPUT DIR>`
   "scripts": {
     "generate-api": "vp exec orval",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
-    "test:snapshots:update": "bun run test:snapshots --update",
+    "test:snapshots:update": "vp run test:snapshots --update",
   },
   "devDependencies": {
     "orval": "workspace:*",
