@@ -25,6 +25,7 @@ import {
   resolveMockOverride,
   resolveMockValue,
 } from '../resolvers';
+import { extractArrayItemMock } from './array-item-factory';
 import { getMockObject } from './object';
 
 interface GetMockScalarOptions {
@@ -314,6 +315,7 @@ export function getMockScalar({
         schema: {
           ...resolvedItems,
           name: item.name,
+          parentName: item.parentName,
           path: item.path ? `${item.path}.[]` : '#.[]',
         },
         combine,
@@ -335,6 +337,21 @@ export function getMockScalar({
       }
 
       let mapValue = value;
+
+      const extractedItemCall = extractArrayItemMock({
+        items: resolvedItems,
+        propertyName: item.name,
+        parentName: item.parentName,
+        operationId,
+        tags,
+        mapValue,
+        context,
+        splitMockImplementations,
+        imports: resolvedImports,
+      });
+      if (extractedItemCall) {
+        mapValue = extractedItemCall;
+      }
 
       if (
         combine &&
@@ -513,7 +530,7 @@ export function getMockScalar({
 // Returns the $ref string from array `items` — either direct ($ref on items
 // itself) or wrapped in a single-element allOf/oneOf/anyOf composition.
 // Multi-element compositions return undefined to preserve combine semantics.
-function extractItemsRef(items: MockSchema): string | undefined {
+export function extractItemsRef(items: MockSchema): string | undefined {
   if (isReference(items)) {
     return items.$ref;
   }

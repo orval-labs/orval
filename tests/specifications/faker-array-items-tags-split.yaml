@@ -1,0 +1,51 @@
+openapi: 3.0.3
+info:
+  title: Faker array item factories (tags-split)
+  version: 1.0.0
+paths:
+  /a:
+    get:
+      operationId: getA
+      tags:
+        - alpha
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantListResponse'
+  /b:
+    get:
+      operationId: getB
+      tags:
+        - beta
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantListResponse'
+components:
+  schemas:
+    TenantResponseModelDto:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    TenantListResponse:
+      type: object
+      properties:
+        value:
+          type: array
+          items:
+            $ref: '#/components/schemas/TenantResponseModelDto'
+        count:
+          type: integer

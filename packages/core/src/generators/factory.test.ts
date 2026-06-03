@@ -584,4 +584,30 @@ describe('generateFactory', () => {
     expect(result?.model).not.toContain('user: createRefTarget()');
     expect(result?.model).toContain('token: createRefTarget()');
   });
+
+  it('combines combiner payloads with parent properties using Object.assign', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      oneOf: [
+        {
+          type: 'object',
+          required: ['variantProp'],
+          properties: { variantProp: { type: 'string' } },
+        },
+      ],
+      required: ['parentProp'],
+      properties: {
+        parentProp: { type: 'string' },
+      },
+    };
+
+    const result = generateFactory(
+      schema,
+      'CombinedWithProps',
+      createMockContext(),
+    );
+    expect(result?.model).toContain(
+      "Object.assign({}, {\n    variantProp: ''\n  }, {\n    parentProp: ''\n  })",
+    );
+  });
 });

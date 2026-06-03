@@ -479,6 +479,10 @@ export interface FakerMockOptions extends CommonMockOptions {
   // Defaults to `true`. Set to `false` together with `schemas: true` to get
   // only the consolidated schema factories.
   operationResponses?: boolean;
+  // Emit reusable mock factories for object-like array item schemas found in
+  // operation responses (e.g. `getTenantResponseModelDtoMock` for
+  // `value: TenantResponseModelDto[]`). Defaults to `false`.
+  arrayItems?: boolean;
 }
 
 export type GlobalMockOptions = MswMockOptions | FakerMockOptions;
@@ -1130,6 +1134,13 @@ export interface ContextSpec {
    * entries or generic parameter placeholders. Populated by `buildDynamicScope`.
    */
   dynamicScope?: Partial<Record<string, DynamicScopeEntry>>;
+  /**
+   * Tracks array-item mock factory names already emitted per output file scope.
+   * Populated by `@orval/mock` when `arrayItems: true` so shared `$ref` item
+   * factories are not re-declared within the same file (single/split) or tag
+   * bucket (tags/tags-split).
+   */
+  arrayItemMockFactories?: Map<string, Set<string>>;
 }
 
 /**

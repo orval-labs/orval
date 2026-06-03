@@ -226,28 +226,46 @@ function buildPayload(
   }
 
   const schema = target;
+  const payloads: string[] = [];
 
-  if (schema.allOf)
-    return buildAllOfPayload(
-      getSchemas(schema.allOf) ?? [],
-      context,
-      parents,
-      imports,
+  if (schema.allOf) {
+    payloads.push(
+      buildAllOfPayload(
+        getSchemas(schema.allOf) ?? [],
+        context,
+        parents,
+        imports,
+      ),
     );
-  if (schema.oneOf)
-    return buildFirstOfPayload(
-      getSchemas(schema.oneOf) ?? [],
-      context,
-      parents,
-      imports,
+  } else if (schema.oneOf) {
+    payloads.push(
+      buildFirstOfPayload(
+        getSchemas(schema.oneOf) ?? [],
+        context,
+        parents,
+        imports,
+      ),
     );
-  if (schema.anyOf)
-    return buildFirstOfPayload(
-      getSchemas(schema.anyOf) ?? [],
-      context,
-      parents,
-      imports,
+  } else if (schema.anyOf) {
+    payloads.push(
+      buildFirstOfPayload(
+        getSchemas(schema.anyOf) ?? [],
+        context,
+        parents,
+        imports,
+      ),
     );
+  }
+
+  if (Object.keys(getProperties(schema)).length > 0) {
+    payloads.push(buildObjectPayload(schema, context, parents, imports));
+  }
+
+  if (payloads.length > 0) {
+    return payloads.length === 1
+      ? payloads[0]
+      : `Object.assign({}, ${payloads.join(', ')})`;
+  }
 
   const { constValue } = getExtendedProps(schema);
   if (constValue !== undefined) return formatValue(constValue);
@@ -255,8 +273,7 @@ function buildPayload(
 
   const schemaType = inferSchemaType(schema);
 
-  if (schemaType === 'object' || schema.properties)
-    return buildObjectPayload(schema, context, parents, imports);
+  if (schemaType === 'object') return '{}';
   if (schemaType === 'array')
     return buildArrayPayload(schema, context, parents, imports);
 

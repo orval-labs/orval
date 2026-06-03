@@ -2552,6 +2552,15 @@ export const ${operationResponse} = zod.array(${operationResponse}Item)${
       }),
     ].join('\n\n'),
     mutators: [
+      // Gate each request-side preprocess mutator on its parsed `.zod`: it is
+      // computed for every operation once the target is configured, so without
+      // this an operation lacking the schema would emit an unused import.
+      ...(preprocessParams && inputParams.zod ? [preprocessParams] : []),
+      ...(preprocessQueryParams && inputQueryParams.zod
+        ? [preprocessQueryParams]
+        : []),
+      ...(preprocessHeader && inputHeaders.zod ? [preprocessHeader] : []),
+      ...(preprocessBody && inputBody.zod ? [preprocessBody] : []),
       ...(preprocessResponse ? [preprocessResponse] : []),
       // Unconditional even when this operation's parsed schemas don't
       // reference `paramsMutator.name`: in `single` mode, inline component
