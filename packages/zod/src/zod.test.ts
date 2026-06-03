@@ -4078,7 +4078,33 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
       expect(result.functions).toEqual([
         ['namedRef', { name: 'Pet', sourceRef: '#/components/schemas/Pet' }],
-        ['describe', '"optional pet"'],
+        ['describe', "'optional pet'"],
+      ]);
+    });
+
+    it('escapes newlines in a multi-line description sibling on a $ref (#3517)', () => {
+      const context = makeContextSpec({
+        spec: { components: { schemas: { Pet: { type: 'object' } } } },
+      });
+      const result = generateZodValidationSchemaDefinition(
+        {
+          $ref: '#/components/schemas/Pet',
+          description: 'Subject identifier.\n\nMust be normalized first.',
+        } as never,
+        context,
+        'someField',
+        false,
+        false,
+        { required: true, useReusableSchemas: true },
+      );
+      // Same single-quoted, \n-escaped form as a primitive sibling — no raw
+      // newlines that would break the generated string literal (TS1002).
+      expect(result.functions).toEqual([
+        ['namedRef', { name: 'Pet', sourceRef: '#/components/schemas/Pet' }],
+        [
+          'describe',
+          String.raw`'Subject identifier.\n\nMust be normalized first.'`,
+        ],
       ]);
     });
 
