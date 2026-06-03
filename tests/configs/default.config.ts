@@ -807,13 +807,4 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
-  'issue-3505': {
-    input: '../specifications/issue-3505.yaml',
-    output: {
-      target: '../generated/default/issue-3505/endpoints.ts',
-      schemas: '../generated/default/issue-3505/model',
-      clean: true,
-      formatter: 'prettier',
-    },
-  },
 });

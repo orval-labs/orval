@@ -7,7 +7,7 @@ import type {
   OpenApiSchemaObjectType,
   ScalarValue,
 } from '../types';
-import { isString, jsStringEscape } from '../utils';
+import { escape, isString } from '../utils';
 import { getFormDataFieldFileType } from '../utils/content-type';
 import { getArray } from './array';
 import { combineSchemas } from './combine';
@@ -200,9 +200,7 @@ export function getScalar({
       if (enumItems) {
         value = enumItems
           .map((enumItem) =>
-            isString(enumItem)
-              ? `'${jsStringEscape(enumItem)}'`
-              : `${enumItem}`,
+            isString(enumItem) ? `'${escape(enumItem)}'` : `${enumItem}`,
           )
           .filter(Boolean)
           .join(` | `);
@@ -328,9 +326,7 @@ export function getScalar({
       if (enumItems) {
         const value = enumItems
           .map((enumItem) =>
-            isString(enumItem)
-              ? `'${jsStringEscape(enumItem)}'`
-              : String(enumItem),
+            isString(enumItem) ? `'${escape(enumItem)}'` : String(enumItem),
           )
           .filter(Boolean)
           .join(` | `);
