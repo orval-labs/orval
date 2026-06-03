@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        node-version: [24.x]
+        node-version: [22.x]
     steps:
       - uses: actions/checkout@v6
       - name: Setup Vite+
