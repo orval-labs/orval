@@ -23,8 +23,7 @@ import {
   getMockFactorySignatureParts,
   getSchemaTypeNamesFromResponses,
   getSimpleSchemaReturnType,
-  getStrictMockHelperTypeDeclarations,
-  getStrictMockTypeDeclarations,
+  dedupeStrictMockTypeDeclarations,
   isStrictMock,
 } from '../mock-types';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
@@ -63,8 +62,11 @@ export const generateMSWImports: GenerateMockImports = ({
   isAllowSyntheticDefaultImports,
   options,
 }) => {
+  const normalizedImplementation =
+    dedupeStrictMockTypeDeclarations(implementation);
+
   return generateDependencyImports(
-    implementation,
+    normalizedImplementation,
     [...getMSWDependencies(options), ...imports],
     projectName,
     hasSchemaDir,
@@ -245,13 +247,6 @@ function generateDefinition(
   const strictMockReturnType = strictMock
     ? applyStrictMockReturnType(nonVoidMockReturnType, schemaTypeNames)
     : nonVoidMockReturnType;
-  const strictTypeDeclarations = strictMock
-    ? getStrictMockTypeDeclarations(schemaTypeNames)
-    : '';
-  const strictTypeBlock = strictTypeDeclarations
-    ? `${strictTypeDeclarations}\n\n`
-    : '';
-
   const simpleSchemaReturnType = strictMock
     ? getSimpleSchemaReturnType(nonVoidMockReturnType, schemaTypeNames)
     : undefined;
@@ -284,7 +279,7 @@ function generateDefinition(
   }
 
   const mockImplementation = isReturnHttpResponse
-    ? `${strictTypeBlock}${mockImplementations}${formatMockFactoryDeclaration(
+    ? `${mockImplementations}${formatMockFactoryDeclaration(
         getResponseMockFunctionName,
         mockFactoryParam,
         mockFactoryReturnType,
@@ -292,7 +287,7 @@ function generateDefinition(
         mockFactoryReturnCast,
         { omitReturnType: Boolean(mockData) },
       )}\n\n`
-    : `${strictTypeBlock}${mockImplementations}`;
+    : mockImplementations;
 
   const delay = getDelay(override, isFunction(mock) ? undefined : mock);
   const infoParam = 'info';
@@ -506,10 +501,7 @@ export function generateMSW(
 
   return {
     implementation: {
-      function:
-        (isStrictMock(override.mock)
-          ? `${getStrictMockHelperTypeDeclarations()}\n\n`
-          : '') + mockImplementations.join('\n'),
+      function: mockImplementations.join('\n'),
       handlerName,
       handler: handlerImplementations.join('\n'),
     },

@@ -13,6 +13,7 @@ import {
 } from '@orval/core';
 
 import {
+  dedupeStrictMockTypeDeclarations,
   formatMockFactoryDeclaration,
   getMockFactorySignatureParts,
   getStrictMockHelperTypeDeclarations,
@@ -50,8 +51,11 @@ export const generateFakerImports: GenerateMockImports = ({
   isAllowSyntheticDefaultImports,
   options,
 }) => {
+  const normalizedImplementation =
+    dedupeStrictMockTypeDeclarations(implementation);
+
   return generateDependencyImports(
-    implementation,
+    normalizedImplementation,
     [...getFakerDependencies(options), ...imports],
     projectName,
     hasSchemaDir,

@@ -56,6 +56,9 @@ export async function writeSingleMode({
     const implementationMock = mockOutputs
       .map((m) => m.implementation)
       .join('\n\n');
+    const finalizedImplementationMock = builder.finalizeMockImplementation
+      ? builder.finalizeMockImplementation(implementationMock)
+      : implementationMock;
     // Aggregate imports across all mock entries for the value-import promotion
     // pass below.
     const importsMock = mockOutputs.flatMap((m) => m.imports);
@@ -222,7 +225,7 @@ export async function writeSingleMode({
 
     if (mockOutputs.length > 0) {
       data += '\n\n';
-      data += implementationMock;
+      data += finalizedImplementationMock;
     }
 
     await writeGeneratedFile(path, data);

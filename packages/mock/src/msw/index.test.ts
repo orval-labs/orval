@@ -1476,14 +1476,14 @@ describe('strict mock types (#3525)', () => {
     },
   } as unknown as GeneratorOptions;
 
-  it('emits PetMock return type and type alias for response mocks', () => {
+  it('emits PetMock return type for response mocks without per-operation type blocks', () => {
     const result = generateMSW(petVerbOptions, {
       ...baseOptions,
       mock: { type: OutputMockType.MSW },
     });
 
-    expect(result.implementation.function).toContain('export type PetMock = {');
-    expect(result.implementation.function).toContain(
+    expect(result.implementation.function).not.toContain('export type PetMock');
+    expect(result.implementation.function).not.toContain(
       'export type KeysWithNull<O>',
     );
     expect(result.implementation.function).toContain(

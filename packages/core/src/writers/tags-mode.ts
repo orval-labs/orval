@@ -70,6 +70,9 @@ export async function writeTagsMode({
         const implementationMock = mockOutputs
           .map((m) => m.implementation)
           .join('\n\n');
+        const finalizedImplementationMock = builder.finalizeMockImplementation
+          ? builder.finalizeMockImplementation(implementationMock)
+          : implementationMock;
 
         let data = header;
 
@@ -231,7 +234,7 @@ export async function writeTagsMode({
         if (mockOutputs.length > 0) {
           data += '\n\n';
 
-          data += implementationMock;
+          data += finalizedImplementationMock;
         }
 
         const implementationPath = path.join(

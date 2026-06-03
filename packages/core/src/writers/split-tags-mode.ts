@@ -264,16 +264,19 @@ export async function writeSplitTagsMode({
             relativeSchemasPath,
           );
 
+          const finalizedMockImplementation = builder.finalizeMockImplementation
+            ? builder.finalizeMockImplementation(mockOutput.implementation)
+            : mockOutput.implementation;
           let mockData = header;
           mockData += builder.importsMock({
-            implementation: mockOutput.implementation,
+            implementation: finalizedMockImplementation,
             imports: importsMockForBuilder,
             projectName,
             hasSchemaDir: !!output.schemas,
             isAllowSyntheticDefaultImports,
             options: entry,
           });
-          mockData += `\n${mockOutput.implementation}`;
+          mockData += `\n${finalizedMockImplementation}`;
 
           const mockPath = path.join(
             dirname,

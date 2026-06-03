@@ -83,4 +83,9 @@ export {
   generateFakerForSchemas,
   generateFakerImports,
 } from './faker';
+export {
+  buildStrictMockTypeFileHeader,
+  collectStrictMockSchemaTypeNames,
+  dedupeStrictMockTypeDeclarations,
+} from './mock-types';
 export { generateMSW, generateMSWImports } from './msw';

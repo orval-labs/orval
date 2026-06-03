@@ -3,6 +3,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   applyStrictMockReturnType,
+  buildStrictMockTypeFileHeader,
+  collectStrictMockSchemaNamesFromUsage,
+  collectStrictMockSchemaTypeNames,
+  dedupeStrictMockTypeDeclarations,
   getMockFactoryReturnType,
   getMockFactorySignatureParts,
   getSchemaTypeNamesFromResponses,
@@ -142,7 +146,50 @@ describe('mock-types', () => {
     });
   });
 
+  describe('dedupeStrictMockTypeDeclarations', () => {
+    it('hoists helpers and schema mock aliases once for concatenated operation mocks', () => {
+      const perOp = `${getStrictMockHelperTypeDeclarations()}\n\n${getStrictMockTypeDeclaration('Pet')}\n\nexport const getGetPetResponseMock = () => ({})`;
+      const duplicated = `${perOp}\n\n${perOp}\n\n${perOp}`;
+
+      const result = dedupeStrictMockTypeDeclarations(duplicated);
+
+      expect(result.match(/export type KeysWithNull/g)?.length).toBe(1);
+      expect(
+        result.match(/export type MockWithNullableOverrides/g)?.length,
+      ).toBe(1);
+      expect(result.match(/export type PetMock/g)?.length).toBe(1);
+      expect(result.match(/export const getGetPetResponseMock/g)?.length).toBe(
+        3,
+      );
+    });
+
+    it('strips invalid strict mock aliases for factory value imports', () => {
+      const invalid = `export type getPetMockMock = {
+  [K in keyof Required<getPetMock>]: NonNullable<Required<getPetMock>[K]>;
+};\n\nexport const getListPetsResponseMock = () => []`;
+
+      const result = dedupeStrictMockTypeDeclarations(invalid);
+
+      expect(result).not.toContain('getPetMockMock');
+      expect(result).not.toContain('Required<getPetMock>');
+    });
+  });
+
   describe('getSchemaTypeNamesFromResponses', () => {
+    it('ignores value and schema-factory imports', () => {
+      const responses = [
+        {
+          value: 'Pet[]',
+          imports: [
+            { name: 'Pet', values: false },
+            { name: 'getPetMock', values: true, schemaFactory: true },
+          ],
+        },
+      ] as ResReqTypesValue[];
+
+      expect(getSchemaTypeNamesFromResponses(responses)).toEqual(['Pet']);
+    });
+
     it('collects schema names from response values and imports', () => {
       const responses = [
         {
@@ -164,11 +211,13 @@ describe('mock-types', () => {
     it('uses import aliases when present', () => {
       const responses = [
         {
-          imports: [{ name: 'Widget', alias: '__Widget', values: false }],
+          imports: [{ name: 'Widget', alias: 'CustomWidget', values: false }],
         },
       ] as ResReqTypesValue[];
 
-      expect(getSchemaTypeNamesFromResponses(responses)).toEqual(['__Widget']);
+      expect(getSchemaTypeNamesFromResponses(responses)).toEqual([
+        'CustomWidget',
+      ]);
     });
 
     it('skips responses with falsy values', () => {
@@ -193,6 +242,47 @@ describe('mock-types', () => {
   describe('getStrictMockTypeName', () => {
     it('appends Mock to the schema name', () => {
       expect(getStrictMockTypeName('Pet')).toBe('PetMock');
+    });
+  });
+
+  describe('buildStrictMockTypeFileHeader', () => {
+    it('includes helpers and deduped schema mock aliases', () => {
+      const header = buildStrictMockTypeFileHeader(['Pet', 'Pet']);
+
+      expect(header).toContain('export type KeysWithNull');
+      expect(header.match(/export type PetMock/g)?.length).toBe(1);
+    });
+  });
+
+  describe('collectStrictMockSchemaTypeNames', () => {
+    it('reads schema names from strict mock alias declarations', () => {
+      const names = collectStrictMockSchemaTypeNames(
+        getStrictMockTypeDeclaration('Pet'),
+      );
+
+      expect(names).toEqual(['Pet']);
+    });
+  });
+
+  describe('collectStrictMockSchemaNamesFromUsage', () => {
+    it('collects schema names referenced by strict mock factories', () => {
+      const names = collectStrictMockSchemaNamesFromUsage(
+        '(): MockWithNullableOverrides<Pet, O, PetMock> => ({}) as MockWithNullableOverrides<Pet, O, PetMock>;\nexport const getListPetsResponseMock = (): PetMock[] => []',
+      );
+
+      expect(names).toEqual(['Pet']);
+    });
+  });
+
+  describe('dedupeStrictMockTypeDeclarations with usage-only mocks', () => {
+    it('hoists helpers when factories reference strict types without inline declarations', () => {
+      const body = `export const getGetPetResponseMock = (): MockWithNullableOverrides<Pet, O, PetMock> => ({}) as MockWithNullableOverrides<Pet, O, PetMock>;\nexport const getListPetsResponseMock = (): PetMock[] => []`;
+
+      const result = dedupeStrictMockTypeDeclarations(body);
+
+      expect(result).toContain('export type KeysWithNull');
+      expect(result).toContain('export type PetMock');
+      expect(result.match(/export type PetMock/g)?.length).toBe(1);
     });
   });
 });
