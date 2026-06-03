@@ -7,6 +7,7 @@ import {
 } from '../types';
 import {
   conventionName,
+  escape,
   isNumeric,
   isString,
   jsStringEscape,
@@ -314,7 +315,7 @@ export function getEnumUnionFromSchema(
   const schemaEnum = schema.enum as SchemaEnumValue[];
   return schemaEnum
     .filter((val): val is Exclude<SchemaEnumValue, null> => val !== null)
-    .map((val) => (isString(val) ? `'${jsStringEscape(val)}'` : String(val)))
+    .map((val) => (isString(val) ? `'${escape(val)}'` : String(val)))
     .join(' | ');
 }
 
