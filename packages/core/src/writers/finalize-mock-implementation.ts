@@ -4,15 +4,26 @@ import type {
   NormalizedOutputOptions,
 } from '../types';
 
+type MockOutputWithStrictNames = Pick<
+  GeneratorMockOutput,
+  'strictMockSchemaTypeNames'
+>;
+
 export function getFinalizeMockImplementationOptions(
   output: NormalizedOutputOptions,
-  mockOutputs:
-    | Pick<GeneratorMockOutput, 'strictMockSchemaTypeNames'>
-    | readonly Pick<GeneratorMockOutput, 'strictMockSchemaTypeNames'>[],
+  mockOutputs: MockOutputWithStrictNames | readonly MockOutputWithStrictNames[],
 ): FinalizeMockImplementationOptions {
-  const outputs = Array.isArray(mockOutputs) ? mockOutputs : [mockOutputs];
+  const outputs: readonly MockOutputWithStrictNames[] = Array.isArray(
+    mockOutputs,
+  )
+    ? mockOutputs
+    : [mockOutputs];
   const strictSchemaTypeNames = [
-    ...new Set(outputs.flatMap((m) => m.strictMockSchemaTypeNames ?? [])),
+    ...new Set(
+      outputs.flatMap(
+        (mockOutput) => mockOutput.strictMockSchemaTypeNames ?? [],
+      ),
+    ),
   ];
 
   return {
