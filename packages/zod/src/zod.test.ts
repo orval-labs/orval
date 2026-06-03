@@ -4468,6 +4468,53 @@ const basicApiSchema = {
     },
   },
 } as unknown as GeneratorOptions;
+
+// An operation with a request body and a response but NO param/query/header,
+// to assert a preprocess mutator is collected only for the targets present.
+const bodyOnlyApiSchema = {
+  pathRoute: '/cats',
+  context: {
+    spec: {
+      paths: {
+        '/cats': {
+          post: {
+            operationId: 'createCat',
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: { name: { type: 'string' } },
+                  },
+                },
+              },
+            },
+            responses: {
+              '200': {
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: { name: { type: 'string' } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    output: {
+      override: {
+        zod: {
+          generateEachHttpStatus: false,
+        },
+      },
+    },
+  },
+} as unknown as GeneratorOptions;
 describe('generatePartOfSchemaGenerateZod', () => {
   it('Default Config', async () => {
     const result = await generateZod(
@@ -4867,6 +4914,125 @@ describe('generatePartOfSchemaGenerateZod', () => {
     // The resolved paramsMutator is returned so the import writer can emit
     // the `import { zodParams } from './zod-params'` line in the operation file.
     expect(result.mutators?.some((m) => m.name === 'zodParams')).toBe(true);
+  });
+
+  it('collects a preprocess mutator for every configured target so its import is emitted, not just response', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationId: 'createCat',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: true,
+              body: true,
+              response: true,
+              query: true,
+              header: true,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            preprocess: {
+              param: { path: './pre-param', name: 'prependParam' },
+              query: { path: './pre-query', name: 'prependQuery' },
+              header: { path: './pre-header', name: 'prependHeader' },
+              body: { path: './pre-body', name: 'prependBody' },
+              response: { path: './pre-response', name: 'prependResponse' },
+            },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      basicApiSchema,
+      testOutput,
+    );
+
+    // Each target schema is wrapped in preprocess(<mutator>, …).
+    expect(result.implementation).toContain('preprocess(prependParam,');
+    expect(result.implementation).toContain('preprocess(prependQuery,');
+    expect(result.implementation).toContain('preprocess(prependHeader,');
+    expect(result.implementation).toContain('preprocess(prependBody,');
+    expect(result.implementation).toContain('preprocess(prependResponse,');
+
+    // The regression: every resolved mutator is returned in `mutators` so its
+    // import is emitted. Before the fix only `response`/`params` were collected.
+    const names = (result.mutators ?? []).map((m) => m.name);
+    expect(names).toContain('prependParam');
+    expect(names).toContain('prependQuery');
+    expect(names).toContain('prependHeader');
+    expect(names).toContain('prependBody');
+    expect(names).toContain('prependResponse');
+  });
+
+  it('omits a request-side preprocess mutator when the operation has no such schema (no unused import / TS6133)', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationId: 'createCat',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: true,
+              body: true,
+              response: true,
+              query: true,
+              header: true,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            preprocess: {
+              param: { path: './pre-param', name: 'prependParam' },
+              query: { path: './pre-query', name: 'prependQuery' },
+              header: { path: './pre-header', name: 'prependHeader' },
+              body: { path: './pre-body', name: 'prependBody' },
+            },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      bodyOnlyApiSchema,
+      testOutput,
+    );
+
+    const names = (result.mutators ?? []).map((m) => m.name);
+    // body schema present → collected; param/query/header absent → not collected
+    // (else the file would get an unused import).
+    expect(names).toContain('prependBody');
+    expect(names).not.toContain('prependParam');
+    expect(names).not.toContain('prependQuery');
+    expect(names).not.toContain('prependHeader');
   });
 });
 
