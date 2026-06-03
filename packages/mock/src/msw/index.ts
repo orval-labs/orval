@@ -19,7 +19,6 @@ import { getDelay } from '../delay';
 import { getRouteMSW, overrideVarName } from '../faker/getters';
 import {
   applyStrictMockReturnType,
-  dedupeStrictMockTypeDeclarations,
   formatMockFactoryDeclaration,
   getMockFactorySignatureParts,
   getSchemaTypeNamesFromResponses,
@@ -62,11 +61,8 @@ export const generateMSWImports: GenerateMockImports = ({
   isAllowSyntheticDefaultImports,
   options,
 }) => {
-  const normalizedImplementation =
-    dedupeStrictMockTypeDeclarations(implementation);
-
   return generateDependencyImports(
-    normalizedImplementation,
+    implementation,
     [...getMSWDependencies(options), ...imports],
     projectName,
     hasSchemaDir,
@@ -429,6 +425,8 @@ export const ${handlerName} = (overrideResponse?: ${mockReturnType} | ((${infoPa
       handler: handlerImplementation,
     },
     imports: includeResponseImports,
+    strictMockSchemaTypeNames:
+      strictMock && schemaTypeNames.length > 0 ? schemaTypeNames : undefined,
   };
 }
 
@@ -469,6 +467,9 @@ export function generateMSW(
   const mockImplementations = [baseDefinition.implementation.function];
   const handlerImplementations = [baseDefinition.implementation.handler];
   const imports = [...baseDefinition.imports];
+  const strictMockSchemaTypeNames = new Set(
+    baseDefinition.strictMockSchemaTypeNames,
+  );
 
   if (
     generatorOptions.mock &&
@@ -496,8 +497,13 @@ export function generateMSW(
       mockImplementations.push(definition.implementation.function);
       handlerImplementations.push(definition.implementation.handler);
       imports.push(...definition.imports);
+      for (const name of definition.strictMockSchemaTypeNames ?? []) {
+        strictMockSchemaTypeNames.add(name);
+      }
     }
   }
+
+  const aggregatedStrictNames = [...strictMockSchemaTypeNames];
 
   return {
     implementation: {
@@ -506,5 +512,7 @@ export function generateMSW(
       handler: handlerImplementations.join('\n'),
     },
     imports: imports,
+    strictMockSchemaTypeNames:
+      aggregatedStrictNames.length > 0 ? aggregatedStrictNames : undefined,
   };
 }

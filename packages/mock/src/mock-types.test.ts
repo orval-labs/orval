@@ -147,11 +147,19 @@ describe('mock-types', () => {
   });
 
   describe('dedupeStrictMockTypeDeclarations', () => {
+    const strictOptions = {
+      mockOptions: { required: true, nonNullable: true } as const,
+      strictSchemaTypeNames: ['Pet'],
+    };
+
     it('hoists helpers and schema mock aliases once for concatenated operation mocks', () => {
       const perOp = `${getStrictMockHelperTypeDeclarations()}\n\n${getStrictMockTypeDeclaration('Pet')}\n\nexport const getGetPetResponseMock = () => ({})`;
       const duplicated = `${perOp}\n\n${perOp}\n\n${perOp}`;
 
-      const result = dedupeStrictMockTypeDeclarations(duplicated);
+      const result = dedupeStrictMockTypeDeclarations(
+        duplicated,
+        strictOptions,
+      );
 
       expect(result.match(/export type KeysWithNull/g)?.length).toBe(1);
       expect(
@@ -168,10 +176,20 @@ describe('mock-types', () => {
   [K in keyof Required<getPetMock>]: NonNullable<Required<getPetMock>[K]>;
 };\n\nexport const getListPetsResponseMock = () => []`;
 
-      const result = dedupeStrictMockTypeDeclarations(invalid);
+      const result = dedupeStrictMockTypeDeclarations(invalid, strictOptions);
 
       expect(result).not.toContain('getPetMockMock');
       expect(result).not.toContain('Required<getPetMock>');
+    });
+
+    it('is a no-op for non-strict mocks even when a schema is named WidgetMock', () => {
+      const body = `import type { WidgetMock } from './model';\n\nexport const getGetWidgetResponseMock = (overrideResponse: Partial<WidgetMock> = {}) => ({ ...overrideResponse, id: faker.number.int() })`;
+
+      const result = dedupeStrictMockTypeDeclarations(body);
+
+      expect(result).toBe(body);
+      expect(result).not.toContain('export type KeysWithNull');
+      expect(result).not.toContain('Required<Widget>');
     });
   });
 
@@ -265,12 +283,20 @@ describe('mock-types', () => {
   });
 
   describe('collectStrictMockSchemaNamesFromUsage', () => {
-    it('collects schema names referenced by strict mock factories', () => {
+    it('collects schema names referenced by MockWithNullableOverrides factories', () => {
       const names = collectStrictMockSchemaNamesFromUsage(
         '(): MockWithNullableOverrides<Pet, O, PetMock> => ({}) as MockWithNullableOverrides<Pet, O, PetMock>;\nexport const getListPetsResponseMock = (): PetMock[] => []',
       );
 
       expect(names).toEqual(['Pet']);
+    });
+
+    it('does not treat a schema named WidgetMock as a strict alias usage', () => {
+      const names = collectStrictMockSchemaNamesFromUsage(
+        'export const getGetWidgetResponseMock = (overrideResponse: Partial<WidgetMock> = {}) => ({})',
+      );
+
+      expect(names).toEqual([]);
     });
   });
 
@@ -278,7 +304,10 @@ describe('mock-types', () => {
     it('hoists helpers when factories reference strict types without inline declarations', () => {
       const body = `export const getGetPetResponseMock = (): MockWithNullableOverrides<Pet, O, PetMock> => ({}) as MockWithNullableOverrides<Pet, O, PetMock>;\nexport const getListPetsResponseMock = (): PetMock[] => []`;
 
-      const result = dedupeStrictMockTypeDeclarations(body);
+      const result = dedupeStrictMockTypeDeclarations(body, {
+        mockOptions: { required: true, nonNullable: true },
+        strictSchemaTypeNames: ['Pet'],
+      });
 
       expect(result).toContain('export type KeysWithNull');
       expect(result).toContain('export type PetMock');

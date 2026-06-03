@@ -1,5 +1,6 @@
 import {
   escapeRegExp,
+  type FinalizeMockImplementationOptions,
   type MockOptions,
   type ResReqTypesValue,
 } from '@orval/core';
@@ -192,10 +193,6 @@ export function collectStrictMockSchemaNamesFromUsage(
     names.add(match[1]);
   }
 
-  for (const match of implementation.matchAll(/\b([A-Z]\w*)Mock\b/g)) {
-    names.add(match[1]);
-  }
-
   return [...names];
 }
 
@@ -214,31 +211,32 @@ export function buildStrictMockTypeFileHeader(
  * MSW/faker operation mocks are concatenated per file with no dedup. Hoist the
  * shared strict-mock helper types and each `{Schema}Mock` alias once at the top.
  */
-export function usesStrictMockInImplementation(
-  implementation: string,
-): boolean {
-  return (
-    implementation.includes('export type KeysWithNull') ||
-    implementation.includes('MockWithNullableOverrides<') ||
-    /\b[A-Z]\w*Mock\b/.test(implementation)
-  );
-}
-
 export function dedupeStrictMockTypeDeclarations(
   implementation: string,
+  options: FinalizeMockImplementationOptions = {},
 ): string {
-  let body = implementation.replaceAll(INVALID_STRICT_MOCK_DECL_PATTERN, '');
-
-  if (!usesStrictMockInImplementation(body)) {
-    return body;
+  if (!isStrictMock(options.mockOptions)) {
+    return implementation;
   }
+
+  let body = implementation.replaceAll(INVALID_STRICT_MOCK_DECL_PATTERN, '');
 
   const schemaTypeNames = [
     ...new Set([
+      ...(options.strictSchemaTypeNames ?? []),
       ...collectStrictMockSchemaTypeNames(body),
       ...collectStrictMockSchemaNamesFromUsage(body),
     ]),
   ];
+
+  if (
+    schemaTypeNames.length === 0 &&
+    !body.includes('MockWithNullableOverrides<') &&
+    !body.includes('export type KeysWithNull')
+  ) {
+    return body;
+  }
+
   const helperBlock = getStrictMockHelperTypeDeclarations();
 
   body = body.replaceAll(helperBlock, '');

@@ -13,6 +13,7 @@ import {
 } from '../utils';
 import { escapeRegExp } from '../utils/string';
 import { writeGeneratedFile } from './file';
+import { getFinalizeMockImplementationOptions } from './finalize-mock-implementation';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { collapseInlineMockOutputs } from './mock-outputs';
 import { generateTargetForTags } from './target-tags';
@@ -71,7 +72,10 @@ export async function writeTagsMode({
           .map((m) => m.implementation)
           .join('\n\n');
         const finalizedImplementationMock = builder.finalizeMockImplementation
-          ? builder.finalizeMockImplementation(implementationMock)
+          ? builder.finalizeMockImplementation(
+              implementationMock,
+              getFinalizeMockImplementationOptions(output, mockOutputs),
+            )
           : implementationMock;
 
         let data = header;

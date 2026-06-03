@@ -13,7 +13,6 @@ import {
 } from '@orval/core';
 
 import {
-  dedupeStrictMockTypeDeclarations,
   formatMockFactoryDeclaration,
   getMockFactorySignatureParts,
   getStrictMockHelperTypeDeclarations,
@@ -51,11 +50,8 @@ export const generateFakerImports: GenerateMockImports = ({
   isAllowSyntheticDefaultImports,
   options,
 }) => {
-  const normalizedImplementation =
-    dedupeStrictMockTypeDeclarations(implementation);
-
   return generateDependencyImports(
-    normalizedImplementation,
+    implementation,
     [...getFakerDependencies(options), ...imports],
     projectName,
     hasSchemaDir,
@@ -81,6 +77,7 @@ export function generateFaker(
       handlerName: '',
     },
     imports: result.imports,
+    strictMockSchemaTypeNames: result.strictMockSchemaTypeNames,
   };
 }
 

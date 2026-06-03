@@ -10,6 +10,7 @@ import {
 } from '../utils';
 import { escapeRegExp } from '../utils/string';
 import { writeGeneratedFile } from './file';
+import { getFinalizeMockImplementationOptions } from './finalize-mock-implementation';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { collapseInlineMockOutputs } from './mock-outputs';
 import { generateTarget } from './target';
@@ -57,7 +58,10 @@ export async function writeSingleMode({
       .map((m) => m.implementation)
       .join('\n\n');
     const finalizedImplementationMock = builder.finalizeMockImplementation
-      ? builder.finalizeMockImplementation(implementationMock)
+      ? builder.finalizeMockImplementation(
+          implementationMock,
+          getFinalizeMockImplementationOptions(output, mockOutputs),
+        )
       : implementationMock;
     // Aggregate imports across all mock entries for the value-import promotion
     // pass below.

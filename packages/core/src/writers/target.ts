@@ -24,6 +24,7 @@ function flattenMockOutput(full: GeneratorMockOutputFull): GeneratorMockOutput {
     type: full.type,
     implementation: full.implementation.function + full.implementation.handler,
     imports: full.imports,
+    strictMockSchemaTypeNames: full.strictMockSchemaTypeNames,
   };
 }
 
@@ -70,6 +71,14 @@ export function generateTarget(
         target.mockOutputs.push(acc);
       }
       acc.imports.push(...opMock.imports);
+      if (opMock.strictMockSchemaTypeNames?.length) {
+        acc.strictMockSchemaTypeNames = [
+          ...new Set([
+            ...(acc.strictMockSchemaTypeNames ?? []),
+            ...opMock.strictMockSchemaTypeNames,
+          ]),
+        ];
+      }
       acc.implementation.function += opMock.implementation.function;
       acc.implementation.handler += opMock.implementation.handler;
       if (opMock.implementation.handlerName) {
