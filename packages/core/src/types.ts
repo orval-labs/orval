@@ -1742,6 +1742,8 @@ export type GeneratorApiBuilder = GeneratorApiOperations & {
   footer: GeneratorClientFooter;
   imports: GeneratorClientImports;
   importsMock: GenerateMockImports;
+  /** Hoists shared strict-mock type aliases once per aggregated mock file. */
+  finalizeMockImplementation?: (implementation: string) => string;
   extraFiles: ClientFileBuilder[];
 };
 
