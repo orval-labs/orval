@@ -4101,7 +4101,10 @@ describe('generateZodValidationSchemaDefinition`', () => {
       // newlines that would break the generated string literal (TS1002).
       expect(result.functions).toEqual([
         ['namedRef', { name: 'Pet', sourceRef: '#/components/schemas/Pet' }],
-        ['describe', "'Subject identifier.\\n\\nMust be normalized first.'"],
+        [
+          'describe',
+          String.raw`'Subject identifier.\n\nMust be normalized first.'`,
+        ],
       ]);
     });
 
