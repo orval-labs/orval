@@ -19,11 +19,11 @@ import { getDelay } from '../delay';
 import { getRouteMSW, overrideVarName } from '../faker/getters';
 import {
   applyStrictMockReturnType,
+  dedupeStrictMockTypeDeclarations,
   formatMockFactoryDeclaration,
   getMockFactorySignatureParts,
   getSchemaTypeNamesFromResponses,
   getSimpleSchemaReturnType,
-  dedupeStrictMockTypeDeclarations,
   isStrictMock,
 } from '../mock-types';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';

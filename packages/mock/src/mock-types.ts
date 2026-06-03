@@ -227,7 +227,7 @@ export function usesStrictMockInImplementation(
 export function dedupeStrictMockTypeDeclarations(
   implementation: string,
 ): string {
-  let body = implementation.replace(INVALID_STRICT_MOCK_DECL_PATTERN, '');
+  let body = implementation.replaceAll(INVALID_STRICT_MOCK_DECL_PATTERN, '');
 
   if (!usesStrictMockInImplementation(body)) {
     return body;
