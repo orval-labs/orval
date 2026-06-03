@@ -12,9 +12,8 @@
   "scripts": {
     "format": "vp fmt --write",
     "format:check": "vp fmt --check",
-    "format:staged": "vp staged",
     "postinstall": "bun scripts/link-workspace-bins.mjs",
-    "prepare": "husky",
+    "prepare": "vp config",
     "commitlint": "commitlint",
     "update-samples": "vp run -F './packages/*' build && vp run -F './samples' -F orval-tests generate-api",
     "build": "vp run -F './packages/*' build",
@@ -38,7 +37,6 @@
     "@socketsecurity/bun-security-scanner": "^1.1.2",
     "@types/node": "catalog:",
     "esbuild-plugin-alias": "^0.2.1",
-    "husky": "^9.1.7",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:",

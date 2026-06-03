@@ -11,7 +11,7 @@ import { defineConfig } from 'vite-plus';
 //
 // NOTE: because `samples` is not in the lint `ignorePatterns`, a BARE `vp lint`
 // would lint everything WITHOUT type-aware — always use the path-scoped `lint` /
-// `lint:samples` scripts (CI and husky are wired accordingly).
+// `lint:samples` scripts (CI and git hooks are wired accordingly).
 export default defineConfig({
   fmt: {
     singleQuote: true,
