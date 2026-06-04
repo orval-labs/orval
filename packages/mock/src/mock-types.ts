@@ -184,7 +184,9 @@ export function dedupeStrictMockTypeDeclarations(
     return implementation;
   }
 
-  const schemaTypeNames = [...new Set(options.strictSchemaTypeNames ?? [])];
+  const schemaTypeNames = options.strictSchemaTypeNames
+    ? [...new Set(options.strictSchemaTypeNames)]
+    : [];
   if (schemaTypeNames.length === 0) {
     return implementation;
   }
