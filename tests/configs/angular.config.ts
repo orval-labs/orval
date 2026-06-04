@@ -297,7 +297,7 @@ export default defineConfig({
       formatter: 'prettier',
       override: {
         angular: {
-          client: 'httpResource',
+          retrievalClient: 'httpResource',
         },
       },
     },
