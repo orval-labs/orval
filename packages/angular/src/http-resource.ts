@@ -22,6 +22,7 @@ import {
   isSyntheticDefaultImportsAllow,
   jsDoc,
   kebab,
+  makeRouteSafe,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
   OutputMode,
@@ -812,13 +813,21 @@ const buildHttpResourceFunction = (
     (prop) => prop.type === GetterPropType.NAMED_PATH_PARAMS,
   );
   const signalRoute = applySignalRoute(route, params, hasNamedParams);
+  // Opt-in URL-encoding of path parameters (`urlEncodeParameters`). Must run
+  // AFTER `applySignalRoute`: that step matches the literal `${param}` template
+  // to rewrite it to its signal form (e.g. `${param()}`), so encoding first
+  // would stop the substitution from matching. Wrapping the already-rewritten
+  // form yields `${encodeURIComponent(String(param()))}`, which is correct.
+  const encodedRoute = output.urlEncodeParameters
+    ? makeRouteSafe(signalRoute)
+    : signalRoute;
 
   const signalProps = buildSignalProps(props, params);
   const args = toObjectString(signalProps, 'implementation');
 
   const { bodyForm, request, isUrlOnly } = buildResourceRequest(
     verbOption,
-    signalRoute,
+    encodedRoute,
   );
 
   if (uniqueContentTypes.length > 1) {
