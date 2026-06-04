@@ -1963,4 +1963,56 @@ describe('angular HttpClient generator', () => {
       expect(getHttpClientReturnTypes(['getPetById'])).toBe('');
     });
   });
+
+  // ── urlEncodeParameters ─────────────────────────────────────────────
+
+  describe('urlEncodeParameters', () => {
+    const createOptionsWithUrlEncode = (urlEncodeParameters: boolean) => {
+      const output = createOutput({ urlEncodeParameters });
+      return createGeneratorOptions({
+        route: '/api/pets/${petId}',
+        context: createContextSpec(output),
+      });
+    };
+
+    it('encodes path parameters when urlEncodeParameters is true', () => {
+      const verbOption = createVerbOption();
+      const options = createOptionsWithUrlEncode(true);
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain(
+        '`/api/pets/${encodeURIComponent(String(petId))}`',
+      );
+      expect(impl).not.toContain('`/api/pets/${petId}`');
+    });
+
+    it('leaves the route unchanged when urlEncodeParameters is false', () => {
+      const verbOption = createVerbOption();
+      const options = createOptionsWithUrlEncode(false);
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain('`/api/pets/${petId}`');
+      expect(impl).not.toContain('encodeURIComponent');
+    });
+
+    it('encodes the route passed to the mutator config', () => {
+      const verbOption = createVerbOption({
+        mutator: {
+          name: 'customInstance',
+          path: './mutator',
+          default: true,
+          hasThirdArg: false,
+          hasSecondArg: false,
+        } as GeneratorVerbOptions['mutator'],
+      });
+      const options = createOptionsWithUrlEncode(true);
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain('/api/pets/${encodeURIComponent(String(petId))}');
+      expect(impl).not.toContain('url: `/api/pets/${petId}`');
+    });
+  });
 });

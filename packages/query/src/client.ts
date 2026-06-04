@@ -102,8 +102,13 @@ export const generateAngularHttpRequestFunction = (
     formUrlEncoded,
     override,
   }: GeneratorVerbOptions,
-  { route, context }: GeneratorOptions,
+  { route: _route, context }: GeneratorOptions,
 ) => {
+  let route = _route;
+  if (context.output.urlEncodeParameters) {
+    route = makeRouteSafe(route);
+  }
+
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;

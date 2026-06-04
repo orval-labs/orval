@@ -271,4 +271,38 @@ export default defineConfig({
       target: '../specifications/issue-3326.yaml',
     },
   },
+  urlEncodeParameters: {
+    output: {
+      target: '../generated/angular/url-encode-parameters/endpoints.ts',
+      schemas: '../generated/angular/url-encode-parameters/model',
+      client: 'angular',
+      mock: true,
+      urlEncodeParameters: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  urlEncodeParametersHttpResource: {
+    output: {
+      target:
+        '../generated/angular/url-encode-parameters-http-resource/endpoints.ts',
+      schemas: '../generated/angular/url-encode-parameters-http-resource/model',
+      client: 'angular',
+      mock: false,
+      urlEncodeParameters: true,
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

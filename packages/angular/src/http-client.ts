@@ -19,6 +19,7 @@ import {
   type GetterProp,
   GetterPropType,
   isBoolean,
+  makeRouteSafe,
   pascal,
   toObjectString,
 } from '@orval/core';
@@ -316,8 +317,18 @@ export const generateHttpClientImplementation = (
     paramsSerializer,
     paramsFilter,
   }: GeneratorVerbOptions,
-  { route, context }: HttpClientGeneratorContext,
+  { route: _route, context }: HttpClientGeneratorContext,
 ) => {
+  // Opt-in URL-encoding of path parameters (`urlEncodeParameters`), applied once
+  // at the single point the route enters this builder so the mutator config and
+  // every inline interpolation below stay consistent. `makeRouteSafe` is not
+  // idempotent — applying it more than once double-encodes — so it must run here
+  // exactly once and nowhere downstream.
+  let route = _route;
+  if (context.output.urlEncodeParameters) {
+    route = makeRouteSafe(route);
+  }
+
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
