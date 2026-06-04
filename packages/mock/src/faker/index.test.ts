@@ -171,7 +171,7 @@ describe('generateFakerForSchemas strict mock types (#3525)', () => {
     },
   });
 
-  it('emits PetMock alias and return type for schema factories', () => {
+  it('exposes strict schema names and omits inline type declarations', () => {
     const result = generateFakerForSchemas(
       [
         {
@@ -193,8 +193,9 @@ describe('generateFakerForSchemas strict mock types (#3525)', () => {
       { type: OutputMockType.FAKER, schemas: true },
     );
 
-    expect(result.implementation).toContain('export type PetMock = {');
-    expect(result.implementation).toContain('export type KeysWithNull<O>');
+    expect(result.strictMockSchemaTypeNames).toEqual(['Pet']);
+    expect(result.implementation).not.toContain('export type PetMock = {');
+    expect(result.implementation).not.toContain('export type KeysWithNull<O>');
     expect(result.implementation).toContain(
       'export const getPetMock = <O extends Partial<Pet> = {}>(overrideResponse?: O): MockWithNullableOverrides<Pet, O, PetMock> =>',
     );

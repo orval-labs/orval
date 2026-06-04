@@ -15,8 +15,6 @@ import {
 import {
   formatMockFactoryDeclaration,
   getMockFactorySignatureParts,
-  getStrictMockHelperTypeDeclarations,
-  getStrictMockTypeDeclaration,
   isStrictMock,
 } from '../mock-types';
 import { generateMSW } from '../msw';
@@ -84,6 +82,7 @@ export function generateFaker(
 export interface GenerateFakerForSchemasResult {
   implementation: string;
   imports: GeneratorImport[];
+  strictMockSchemaTypeNames?: string[];
 }
 
 /**
@@ -215,26 +214,16 @@ export function generateFakerForSchemas(
   // Helper factories from union/discriminator handling (`splitMockImplementations`)
   // are emitted before the public `get<Schema>Mock` factories so call sites
   // declared after them resolve cleanly without TS hoisting concerns.
-  const strictHelperBlock = isStrictMock(mockOptions)
-    ? getStrictMockHelperTypeDeclarations()
-    : '';
-  const strictTypeDeclarations = isStrictMock(mockOptions)
-    ? [...strictMockTypeNames]
-        .map((typeName) => getStrictMockTypeDeclaration(typeName))
-        .join('\n\n')
-    : '';
-  const strictTypeBlock = strictTypeDeclarations;
-  const implementation = [
-    ...splitMockImplementations,
-    strictHelperBlock,
-    strictTypeBlock,
-    ...factories,
-  ]
+  const implementation = [...splitMockImplementations, ...factories]
     .filter(Boolean)
     .join('\n\n');
+
+  const aggregatedStrictNames = [...strictMockTypeNames];
 
   return {
     implementation,
     imports: uniqueImports,
+    strictMockSchemaTypeNames:
+      aggregatedStrictNames.length > 0 ? aggregatedStrictNames : undefined,
   };
 }
