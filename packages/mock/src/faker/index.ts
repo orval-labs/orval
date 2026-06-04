@@ -165,7 +165,7 @@ export function generateFakerForSchemas(
       returnCast,
     );
 
-    if (isStrictMock(mockOptions) && isOverridable) {
+    if (isStrictMock(mockOptions)) {
       strictMockTypeNames.add(typeName);
     }
 
