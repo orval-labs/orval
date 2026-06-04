@@ -17,6 +17,14 @@ import {
 
 import { getDelay } from '../delay';
 import { getRouteMSW, overrideVarName } from '../faker/getters';
+import {
+  applyStrictMockReturnType,
+  formatMockFactoryDeclaration,
+  getMockFactorySignatureParts,
+  getSchemaTypeNamesFromResponses,
+  getSimpleSchemaReturnType,
+  isStrictMock,
+} from '../mock-types';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
 
 function getMSWDependencies(
@@ -227,12 +235,54 @@ function generateDefinition(
     hasStringReturnType &&
     mockReturnType !== 'string';
 
+  const mockOptionsFromOverride = override.mock;
+  const strictMock = isStrictMock(mockOptionsFromOverride);
+  const schemaTypeNames = strictMock
+    ? getSchemaTypeNamesFromResponses(responses)
+    : [];
+  const strictMockReturnType = strictMock
+    ? applyStrictMockReturnType(nonVoidMockReturnType, schemaTypeNames)
+    : nonVoidMockReturnType;
+  const simpleSchemaReturnType = strictMock
+    ? getSimpleSchemaReturnType(nonVoidMockReturnType, schemaTypeNames)
+    : undefined;
+
+  let mockFactoryParam = '';
+  let mockFactoryReturnType = nonVoidMockReturnType;
+  let mockFactoryReturnCast = '';
+
+  if (isResponseOverridable) {
+    if (strictMock && simpleSchemaReturnType) {
+      const signature = getMockFactorySignatureParts(
+        simpleSchemaReturnType,
+        mockOptionsFromOverride,
+        {
+          isOverridable: true,
+          overrideType: overrideResponseType,
+        },
+      );
+      mockFactoryParam = signature.param;
+      mockFactoryReturnType = signature.returnType;
+      mockFactoryReturnCast = signature.returnCast;
+    } else {
+      mockFactoryParam = `overrideResponse: ${overrideResponseType} = {}`;
+      mockFactoryReturnType = strictMock
+        ? strictMockReturnType
+        : nonVoidMockReturnType;
+    }
+  } else if (strictMock) {
+    mockFactoryReturnType = strictMockReturnType;
+  }
+
   const mockImplementation = isReturnHttpResponse
-    ? `${mockImplementations}export const ${getResponseMockFunctionName} = (${
-        isResponseOverridable
-          ? `overrideResponse: ${overrideResponseType} = {}`
-          : ''
-      })${mockData ? '' : `: ${nonVoidMockReturnType}`} => (${value})\n\n`
+    ? `${mockImplementations}${formatMockFactoryDeclaration(
+        getResponseMockFunctionName,
+        mockFactoryParam,
+        mockFactoryReturnType,
+        value,
+        mockFactoryReturnCast,
+        { omitReturnType: Boolean(mockData) },
+      )}\n\n`
     : mockImplementations;
 
   const delay = getDelay(override, isFunction(mock) ? undefined : mock);
@@ -375,6 +425,8 @@ export const ${handlerName} = (overrideResponse?: ${mockReturnType} | ((${infoPa
       handler: handlerImplementation,
     },
     imports: includeResponseImports,
+    strictMockSchemaTypeNames:
+      strictMock && schemaTypeNames.length > 0 ? schemaTypeNames : undefined,
   };
 }
 
@@ -415,6 +467,9 @@ export function generateMSW(
   const mockImplementations = [baseDefinition.implementation.function];
   const handlerImplementations = [baseDefinition.implementation.handler];
   const imports = [...baseDefinition.imports];
+  const strictMockSchemaTypeNames = new Set(
+    baseDefinition.strictMockSchemaTypeNames,
+  );
 
   if (
     generatorOptions.mock &&
@@ -442,8 +497,13 @@ export function generateMSW(
       mockImplementations.push(definition.implementation.function);
       handlerImplementations.push(definition.implementation.handler);
       imports.push(...definition.imports);
+      for (const name of definition.strictMockSchemaTypeNames ?? []) {
+        strictMockSchemaTypeNames.add(name);
+      }
     }
   }
+
+  const aggregatedStrictNames = [...strictMockSchemaTypeNames];
 
   return {
     implementation: {
@@ -452,5 +512,7 @@ export function generateMSW(
       handler: handlerImplementations.join('\n'),
     },
     imports: imports,
+    strictMockSchemaTypeNames:
+      aggregatedStrictNames.length > 0 ? aggregatedStrictNames : undefined,
   };
 }

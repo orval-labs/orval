@@ -12,6 +12,13 @@ import {
   pascal,
 } from '@orval/core';
 
+import {
+  formatMockFactoryDeclaration,
+  getMockFactorySignatureParts,
+  getStrictMockHelperTypeDeclarations,
+  getStrictMockTypeDeclaration,
+  isStrictMock,
+} from '../mock-types';
 import { generateMSW } from '../msw';
 import { getMockScalar } from './getters';
 
@@ -70,6 +77,7 @@ export function generateFaker(
       handlerName: '',
     },
     imports: result.imports,
+    strictMockSchemaTypeNames: result.strictMockSchemaTypeNames,
   };
 }
 
@@ -93,6 +101,7 @@ export function generateFakerForSchemas(
   options: GlobalMockOptions,
 ): GenerateFakerForSchemasResult {
   const factories: string[] = [];
+  const strictMockTypeNames = new Set<string>();
   const allImports: GeneratorImport[] = [];
   // Shared across schemas so we emit each helper (e.g. an `allOf`-discriminator
   // sub-factory) once even when several schemas reference the same union arm.
@@ -141,10 +150,25 @@ export function generateFakerForSchemas(
     // emit a `Partial<Pet[]>` signature TS can't satisfy.
     const typeName = pascal(name);
     const isOverridable = result.value.includes('overrideResponse');
-    const param = isOverridable
-      ? `overrideResponse: Partial<${typeName}> = {}`
-      : '';
-    const factory = `export const ${factoryName} = (${param}): ${typeName} => (${result.value});\n`;
+    const { param, returnType, returnCast } = getMockFactorySignatureParts(
+      typeName,
+      mockOptions,
+      {
+        isOverridable,
+        overrideType: `Partial<${typeName}>`,
+      },
+    );
+    const factory = formatMockFactoryDeclaration(
+      factoryName,
+      param,
+      returnType,
+      result.value,
+      returnCast,
+    );
+
+    if (isStrictMock(mockOptions) && isOverridable) {
+      strictMockTypeNames.add(typeName);
+    }
 
     factories.push(factory);
 
@@ -191,7 +215,23 @@ export function generateFakerForSchemas(
   // Helper factories from union/discriminator handling (`splitMockImplementations`)
   // are emitted before the public `get<Schema>Mock` factories so call sites
   // declared after them resolve cleanly without TS hoisting concerns.
-  const implementation = [...splitMockImplementations, ...factories].join('\n');
+  const strictHelperBlock = isStrictMock(mockOptions)
+    ? getStrictMockHelperTypeDeclarations()
+    : '';
+  const strictTypeDeclarations = isStrictMock(mockOptions)
+    ? [...strictMockTypeNames]
+        .map((typeName) => getStrictMockTypeDeclaration(typeName))
+        .join('\n\n')
+    : '';
+  const strictTypeBlock = strictTypeDeclarations;
+  const implementation = [
+    ...splitMockImplementations,
+    strictHelperBlock,
+    strictTypeBlock,
+    ...factories,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 
   return {
     implementation,

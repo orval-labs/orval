@@ -1305,6 +1305,7 @@ export interface GeneratorMockOutput {
   type: OutputMockType;
   implementation: string;
   imports: GeneratorImport[];
+  strictMockSchemaTypeNames?: string[];
 }
 
 export interface GeneratorMockOutputFull {
@@ -1315,6 +1316,7 @@ export interface GeneratorMockOutputFull {
     handlerName: string;
   };
   imports: GeneratorImport[];
+  strictMockSchemaTypeNames?: string[];
 }
 
 export interface GeneratorTarget {
@@ -1482,6 +1484,7 @@ export interface ClientMockGeneratorImplementation {
 export interface ClientMockGeneratorBuilder {
   imports: GeneratorImport[];
   implementation: ClientMockGeneratorImplementation;
+  strictMockSchemaTypeNames?: string[];
 }
 
 export type ClientMockBuilder = (
@@ -1644,6 +1647,11 @@ export type ResReqTypesValue = ScalarValue & {
   originalSchema?: OpenApiSchemaObject;
 };
 
+export interface FinalizeMockImplementationOptions {
+  mockOptions?: Pick<MockOptions, 'required' | 'nonNullable'>;
+  strictSchemaTypeNames?: readonly string[];
+}
+
 export interface WriteSpecBuilder {
   operations: GeneratorOperations;
   verbOptions: Record<string, GeneratorVerbOptions>;
@@ -1653,6 +1661,11 @@ export interface WriteSpecBuilder {
   footer: GeneratorClientFooter;
   imports: GeneratorClientImports;
   importsMock: GenerateMockImports;
+  /** Hoists shared strict-mock type aliases once per aggregated mock file. */
+  finalizeMockImplementation?: (
+    implementation: string,
+    options: FinalizeMockImplementationOptions,
+  ) => string;
   extraFiles: ClientFileBuilder[];
   info: OpenApiInfoObject;
   target: string;
@@ -1740,6 +1753,11 @@ export type GeneratorApiBuilder = GeneratorApiOperations & {
   footer: GeneratorClientFooter;
   imports: GeneratorClientImports;
   importsMock: GenerateMockImports;
+  /** Hoists shared strict-mock type aliases once per aggregated mock file. */
+  finalizeMockImplementation?: (
+    implementation: string,
+    options: FinalizeMockImplementationOptions,
+  ) => string;
   extraFiles: ClientFileBuilder[];
 };
 

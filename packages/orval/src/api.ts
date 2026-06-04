@@ -14,7 +14,10 @@ import {
   type OpenApiPathItemObject,
   resolveRef,
 } from '@orval/core';
-import { generateMockImports } from '@orval/mock';
+import {
+  dedupeStrictMockTypeDeclarations,
+  generateMockImports,
+} from '@orval/mock';
 
 import {
   generateClientFooter,
@@ -145,6 +148,7 @@ export async function getApiBuilder({
     footer: generateClientFooter,
     imports: generateClientImports,
     importsMock: generateMockImports,
+    finalizeMockImplementation: dedupeStrictMockTypeDeclarations,
     extraFiles,
   };
 }

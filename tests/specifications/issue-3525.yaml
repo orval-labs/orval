@@ -1,0 +1,49 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Issue 3525 - strict mock return types (OpenAPI 3.0)
+  license:
+    name: MIT
+
+# Regression spec for https://github.com/orval-labs/orval/issues/3525
+# With override.mock.required and override.mock.nonNullable both true,
+# schema and operation mock factories should return a strict PetMock alias
+# while still accepting Partial<Pet> overrides (including null).
+
+paths:
+  /pet:
+    get:
+      operationId: getPet
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+
+components:
+  schemas:
+    Pet:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        tag:
+          type: string
+          nullable: true
+        birthDate:
+          type: string
+          format: date-time
+          nullable: true
+        photoUrls:
+          type: array
+          items:
+            type: string
+          nullable: true

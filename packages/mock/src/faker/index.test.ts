@@ -10,7 +10,12 @@ import type {
 import { isFakerMock, isMswMock, OutputMockType } from '@orval/core';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import { generateFaker, generateFakerImports } from './index';
+import { createTestContextSpec } from '../../../core/src/test-utils/context';
+import {
+  generateFaker,
+  generateFakerForSchemas,
+  generateFakerImports,
+} from './index';
 
 const mockVerbOptions = {
   operationId: 'getUser',
@@ -153,5 +158,49 @@ describe('discriminated GlobalMockOptions union', () => {
       }) as ReturnType<ClientMockBuilder>;
     expect(isMswMock(mock)).toBe(false);
     expect(isFakerMock(mock)).toBe(false);
+  });
+});
+
+describe('generateFakerForSchemas strict mock types (#3525)', () => {
+  const context = createTestContextSpec({
+    override: {
+      mock: {
+        required: true,
+        nonNullable: true,
+      },
+    },
+  });
+
+  it('emits PetMock alias and return type for schema factories', () => {
+    const result = generateFakerForSchemas(
+      [
+        {
+          name: 'Pet',
+          model: 'Pet',
+          imports: [],
+          schema: {
+            type: 'object',
+            required: ['id', 'name'],
+            properties: {
+              id: { type: 'integer' },
+              name: { type: 'string' },
+              tag: { type: 'string', nullable: true },
+            },
+          },
+        },
+      ],
+      context,
+      { type: OutputMockType.FAKER, schemas: true },
+    );
+
+    expect(result.implementation).toContain('export type PetMock = {');
+    expect(result.implementation).toContain('export type KeysWithNull<O>');
+    expect(result.implementation).toContain(
+      'export const getPetMock = <O extends Partial<Pet> = {}>(overrideResponse?: O): MockWithNullableOverrides<Pet, O, PetMock> =>',
+    );
+    expect(result.implementation).toContain(
+      ') as MockWithNullableOverrides<Pet, O, PetMock>;',
+    );
+    expect(result.implementation).not.toContain(', null]');
   });
 });

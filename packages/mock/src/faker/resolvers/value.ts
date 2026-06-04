@@ -11,6 +11,10 @@ import {
 } from '@orval/core';
 import { prop } from 'remeda';
 
+import {
+  formatMockFactoryDeclaration,
+  getMockFactorySignatureParts,
+} from '../../mock-types';
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
 import { getMockScalar } from '../getters/scalar';
@@ -403,13 +407,27 @@ export function resolveMockValue({
           | undefined;
         const discriminatedProperty = discriminator?.propertyName;
 
-        let type = `Partial<${newSchema.name}>`;
+        let overrideType = `Partial<${newSchema.name}>`;
         if (discriminatedProperty) {
-          type = `Omit<${type}, '${discriminatedProperty}'>`;
+          overrideType = `Omit<${overrideType}, '${discriminatedProperty}'>`;
         }
 
-        const args = `${overrideVarName}: ${type} = {}`;
-        const func = `export const ${funcName} = (${args}): ${newSchema.name} => ({${scalar.value.startsWith('...') ? '' : '...'}${scalar.value}, ...${overrideVarName}});`;
+        const { param, returnType, returnCast } = getMockFactorySignatureParts(
+          newSchema.name,
+          mockOptions,
+          {
+            isOverridable: true,
+            overrideType,
+          },
+        );
+        const func = formatMockFactoryDeclaration(
+          funcName,
+          param,
+          returnType,
+          `{${scalar.value.startsWith('...') ? '' : '...'}${scalar.value}, ...${overrideVarName}}`,
+          returnCast,
+          { terminateStatement: true },
+        );
         splitMockImplementations.push(func);
       }
 

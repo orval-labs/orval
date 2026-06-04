@@ -13,6 +13,10 @@ import {
   resolveRef,
 } from '@orval/core';
 
+import {
+  formatMockFactoryDeclaration,
+  getMockFactorySignatureParts,
+} from '../../mock-types';
 import type { MockSchema } from '../../types';
 import { overrideVarName } from './object';
 import { extractItemsRef } from './scalar';
@@ -300,11 +304,24 @@ export function extractArrayItemMock({
     );
 
   if (!alreadyExtracted) {
-    const args = `${overrideVarName}: Partial<${typeName}> = {}`;
+    const mockOptions = context.output.override.mock;
+    const { param, returnType, returnCast } = getMockFactorySignatureParts(
+      typeName,
+      mockOptions,
+      {
+        isOverridable: true,
+        overrideType: `Partial<${typeName}>`,
+      },
+    );
     const spreadPrefix = mapValue.startsWith('...') ? '' : '...';
-    const func =
-      `export const ${factoryName} = (${args}): ${typeName} => ` +
-      `({${spreadPrefix}${mapValue}, ...${overrideVarName}});`;
+    const func = formatMockFactoryDeclaration(
+      factoryName,
+      param,
+      returnType,
+      `{${spreadPrefix}${mapValue}, ...${overrideVarName}}`,
+      returnCast,
+      { terminateStatement: true },
+    );
     splitMockImplementations.push(func);
     fileLevelFactories.add(factoryName);
   }

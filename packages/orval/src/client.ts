@@ -304,6 +304,7 @@ export const generateOperations = (
             type: isFunction(entry) ? OutputMockType.MSW : entry.type,
             implementation: generated.implementation,
             imports: generated.imports,
+            strictMockSchemaTypeNames: generated.strictMockSchemaTypeNames,
           };
         });
 

@@ -1397,3 +1397,127 @@ describe('generateMSW', () => {
     });
   });
 });
+
+describe('strict mock types (#3525)', () => {
+  const petResponseType = {
+    key: '200',
+    value: 'Pet',
+    contentType: 'application/json',
+    originalSchema: {
+      type: 'object',
+      required: ['id', 'name'],
+      properties: {
+        id: { type: 'integer' },
+        name: { type: 'string' },
+        tag: { type: 'string', nullable: true },
+      },
+    },
+    imports: [{ name: 'Pet', values: false }],
+    schemas: [],
+    type: 'object',
+    isEnum: false,
+    isRef: true,
+    hasReadonlyProps: false,
+  };
+
+  const petVerbOptions = {
+    operationId: 'getPet',
+    verb: 'get',
+    tags: [],
+    response: {
+      imports: [{ name: 'Pet', values: false }],
+      definition: { success: 'Pet' },
+      types: { success: [petResponseType] },
+      contentTypes: ['application/json'],
+    },
+  } as unknown as GeneratorVerbOptions;
+
+  const strictOverride = {
+    operations: {},
+    tags: {},
+    mock: {
+      required: true,
+      nonNullable: true,
+    },
+  } as NormalizedOverrideOutput;
+
+  const baseOptions = {
+    route: '/pet',
+    pathRoute: '/pet',
+    output: 'test',
+    override: strictOverride,
+    context: {
+      target: 'test',
+      workspace: '',
+      spec: {
+        openapi: '3.0.0',
+        info: { title: 'Test', version: '1.0.0' },
+        paths: {},
+      },
+      output: {
+        target: 'test',
+        namingConvention: 'camelCase',
+        fileExtension: '.ts',
+        mode: 'single',
+        override: strictOverride,
+        client: 'axios-functions',
+        httpClient: 'fetch',
+        clean: false,
+        docs: false,
+        formatter: undefined,
+        headers: false,
+        indexFiles: true,
+        allParamsOptional: false,
+        urlEncodeParameters: false,
+        unionAddMissingProperties: false,
+        optionsParamRequired: false,
+        propertySortOrder: 'specification',
+      },
+    },
+  } as unknown as GeneratorOptions;
+
+  it('emits PetMock return type for response mocks without per-operation type blocks', () => {
+    const result = generateMSW(petVerbOptions, {
+      ...baseOptions,
+      mock: { type: OutputMockType.MSW },
+    });
+
+    expect(result.implementation.function).not.toContain('export type PetMock');
+    expect(result.implementation.function).not.toContain(
+      'export type KeysWithNull<O>',
+    );
+    expect(result.implementation.function).toContain(
+      'export const getGetPetResponseMock = <O extends Partial<Extract<Pet, object>> = {}>(overrideResponse?: O): MockWithNullableOverrides<Pet, O, PetMock> =>',
+    );
+    expect(result.implementation.function).toContain(
+      ') as MockWithNullableOverrides<Pet, O, PetMock>;',
+    );
+    expect(result.implementation.function).not.toContain(', null]');
+  });
+
+  it('keeps the loose return type when strict flags are unset', () => {
+    const looseOverride = {
+      operations: {},
+      tags: {},
+      mock: {},
+    } as NormalizedOverrideOutput;
+
+    const result = generateMSW(petVerbOptions, {
+      ...baseOptions,
+      override: looseOverride,
+      context: {
+        ...baseOptions.context,
+        output: {
+          ...baseOptions.context.output,
+          override: looseOverride,
+        },
+      },
+      mock: { type: OutputMockType.MSW },
+    });
+
+    expect(result.implementation.function).not.toContain('export type PetMock');
+    expect(result.implementation.function).toContain(
+      'export const getGetPetResponseMock = (overrideResponse: Partial<Extract<Pet, object>> = {}): Pet =>',
+    );
+  });
+});

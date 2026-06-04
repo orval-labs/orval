@@ -1,0 +1,49 @@
+openapi: 3.1.0
+info:
+  version: 1.0.0
+  title: Issue 3525 - strict mock return types (OpenAPI 3.1)
+  license:
+    name: MIT
+
+# Same contract as issue-3525.yaml but with OpenAPI 3.1 nullable unions.
+
+paths:
+  /pet:
+    get:
+      operationId: getPet
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+
+components:
+  schemas:
+    Pet:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        tag:
+          type:
+            - string
+            - 'null'
+        birthDate:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        photoUrls:
+          type:
+            - array
+            - 'null'
+          items:
+            type: string

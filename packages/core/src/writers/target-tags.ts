@@ -39,6 +39,7 @@ function flattenMockOutput(full: GeneratorMockOutputFull): GeneratorMockOutput {
     type: full.type,
     implementation: full.implementation.function + full.implementation.handler,
     imports: full.imports,
+    strictMockSchemaTypeNames: full.strictMockSchemaTypeNames,
   };
 }
 
@@ -58,6 +59,14 @@ function mergeOperationMockOutputs(
       result.push(acc);
     }
     acc.imports.push(...op.imports);
+    if (op.strictMockSchemaTypeNames?.length) {
+      acc.strictMockSchemaTypeNames = [
+        ...new Set([
+          ...(acc.strictMockSchemaTypeNames ?? []),
+          ...op.strictMockSchemaTypeNames,
+        ]),
+      ];
+    }
     acc.implementation.function += op.implementation.function;
     acc.implementation.handler += op.implementation.handler;
     if (op.implementation.handlerName) {
