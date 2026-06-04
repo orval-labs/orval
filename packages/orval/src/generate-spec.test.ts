@@ -854,3 +854,73 @@ describe('generateSpec - generateReusableSchemas wrapper/import name collision (
     }
   });
 });
+
+describe('generateSpec - useNamedParameters + zod schema output', () => {
+  // The fetch client references a named `${Op}PathParameters` type in its
+  // signatures. In zod schema mode that type must be emitted as a zod schema
+  // (with a companion `zod.input` type) instead of being dropped — otherwise
+  // the import resolves to nothing and the output fails to compile.
+  const PATH_PARAM_SPEC: OpenApiDocument = {
+    openapi: '3.1.0',
+    info: { title: 'Petstore', version: '1.0.0' },
+    paths: {
+      '/pets/{petId}': {
+        get: {
+          operationId: 'showPetById',
+          parameters: [
+            {
+              name: 'petId',
+              in: 'path',
+              required: true,
+              schema: { type: 'string' },
+            },
+          ],
+          responses: { '200': { description: 'A pet' } },
+        },
+      },
+    },
+  };
+
+  it('emits a `${Op}PathParameters` zod schema with companion input type', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: PATH_PARAM_SPEC },
+          output: {
+            target: './endpoints.ts',
+            client: 'fetch',
+            schemas: { path: './model', type: 'zod' },
+            override: { useNamedParameters: true },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const schema = await fs.readFile(
+        path.join(workspace, 'model', 'showPetByIdPathParameters.zod.ts'),
+        'utf8',
+      );
+      // Emitted as a zod object plus a companion `zod.input` type the client
+      // can reference as a type (rather than being dropped).
+      expect(schema).toContain(
+        'export const ShowPetByIdPathParameters = zod.object(',
+      );
+      expect(schema).toContain(
+        'export type ShowPetByIdPathParameters = zod.input<typeof ShowPetByIdPathParameters>;',
+      );
+
+      // The endpoints file consumes the named type in its signature.
+      const endpoints = await fs.readFile(
+        path.join(workspace, 'endpoints.ts'),
+        'utf8',
+      );
+      expect(endpoints).toMatch(/:\s*ShowPetByIdPathParameters/);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});

@@ -52,6 +52,7 @@ interface WriteZodOutputOptions {
   indexFiles: boolean;
   packageJson?: NormalizedOutputOptions['packageJson'];
   override: {
+    useNamedParameters?: boolean;
     zod: {
       strict: {
         body: boolean;
@@ -801,6 +802,7 @@ export async function writeZodSchemasFromVerbs(
   const coerce = output.override.zod.coerce.body;
   const useReusableSchemas =
     output.override.zod.generateReusableSchemas === true;
+  const useNamedParameters = output.override.useNamedParameters ?? false;
 
   const generateVerbsSchemas = verbOptionsArray.flatMap((verbOption) => {
     const operation = verbOption.originalOperation;
@@ -850,6 +852,45 @@ export async function writeZodSchemasFromVerbs(
         : [];
 
     const parameters = operation.parameters;
+
+    const pathParams = parameters?.filter(
+      (p): p is OpenApiParameterObject => 'in' in p && p.in === 'path',
+    );
+
+    // Only emit a path-parameters schema when the client actually references a
+    // named `${Op}PathParameters` type (`useNamedParameters`). Otherwise the
+    // client inlines path params and the extra schema would be dead output.
+    const pathParamsSchemas =
+      useNamedParameters &&
+      shouldGenerate.param &&
+      pathParams &&
+      pathParams.length > 0
+        ? [
+            {
+              name: `${pascal(verbOption.operationName)}PathParameters`,
+              schema: {
+                type: 'object' as const,
+                properties: Object.fromEntries(
+                  pathParams
+                    .filter((p) => 'schema' in p && p.schema)
+                    .map((p) => [
+                      p.name,
+                      useReusableSchemas
+                        ? (p.schema as OpenApiSchemaObject)
+                        : dereference(
+                            p.schema as OpenApiSchemaObject,
+                            zodContext,
+                          ),
+                    ]),
+                ) as Record<string, OpenApiSchemaObject>,
+                required: pathParams
+                  .filter((p) => p.required)
+                  .map((p) => p.name)
+                  .filter((name): name is string => name !== undefined),
+              },
+            },
+          ]
+        : [];
 
     const queryParams = parameters?.filter(
       (p): p is OpenApiParameterObject => 'in' in p && p.in === 'query',
@@ -943,6 +984,7 @@ export async function writeZodSchemasFromVerbs(
 
     return dedupeSchemasByName([
       ...bodySchemas,
+      ...pathParamsSchemas,
       ...queryParamsSchemas,
       ...headerParamsSchemas,
       ...responseSchemas,

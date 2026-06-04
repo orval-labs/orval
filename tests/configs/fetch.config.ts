@@ -124,6 +124,27 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Issue: `useNamedParameters` + zod schema output. The client references a
+  // named `${Op}PathParameters` type, which must be emitted as a zod schema
+  // (with companion `zod.input` type) instead of a plain TS type.
+  namedParametersZod: {
+    output: {
+      target: '../generated/fetch/named-parameters-zod/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/named-parameters-zod/model',
+        type: 'zod',
+      },
+      client: 'fetch',
+      override: {
+        useNamedParameters: true,
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   headers: {
     output: {
       target: '../generated/fetch/headers/endpoints.ts',
