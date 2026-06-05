@@ -79,10 +79,12 @@ export default defineConfig({
 
 ## schemas
 
-**Type:** `String`
+**Type:** `String | Object | false`
 **Default:** Same as `target`
 
-Output path for generated model types.
+Output path for generated model types. Set to `false` to disable separate schema file output.
+
+### String form
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -93,6 +95,93 @@ export default defineConfig({
   },
 });
 ```
+
+### Object form
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      schemas: {
+        path: './api/model',
+        type: 'typescript', // 'typescript' | 'zod'
+      },
+    },
+  },
+});
+```
+
+| Property   | Type     | Description                                     |
+| ---------- | -------- | ----------------------------------------------- |
+| `path`     | `string` | Filesystem path for schema output               |
+| `type`     | `string` | `'typescript'` or `'zod'`                       |
+| `importPath` | `string` | Optional package import specifier (see below)  |
+
+### importPath
+
+When `importPath` is set, generated client files import schema types from
+that package specifier instead of computing a relative filesystem path:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      target: './libs/client/angular/src/lib/endpoints',
+      schemas: {
+        path: './libs/client/models/src/lib',
+        type: 'typescript',
+        importPath: '@acme/client/models',
+      },
+    },
+  },
+});
+```
+
+```ts
+// Without importPath — computed relative path:
+import type { Pet } from '../models/pet';
+
+// With importPath: '@acme/client/models':
+import type { Pet } from '@acme/client/models';
+```
+
+Schemas are still written to the filesystem `path` — only the generated
+import statements change.
+
+**Requirements when using `importPath`:**
+
+- The target package must export the types at the specified import path.
+- With `indexFiles: true` (recommended), all types are imported from the
+  single `importPath` (e.g., `@acme/models`).
+- With `indexFiles: false`, each schema is imported individually
+  (e.g., `@acme/models/pet`). The package must support these subpath exports.
+  For Zod schemas (`type: 'zod'`) the per-file suffix is `.zod`, so the
+  package must also expose `./pet.zod` (e.g., `@acme/models/pet.zod`).
+- If using faker schema factories
+  (`mock: { generators: [{ type: 'faker', schemas: true }] }`),
+  the package must also export `./index.faker`.
+- If using factory methods (`factoryMethods`), each schema is imported
+  individually regardless of `indexFiles`.
+- When `importPath` is set, the relative-path computation in
+  `factoryMethods.outputDirectory` is bypassed: factories resolve imports
+  against the package specifier rather than the on-disk factory output
+  directory.
+- Config normalization rejects invalid `importPath` values (empty, whitespace,
+  relative, or absolute paths) before generation runs — see
+  [Validation of `importPath`](#validation-of-importpath) below.
+
+### Validation of `importPath`{#validation-of-importpath}
+
+During config normalization, orval rejects the following `importPath` values
+with a clear error message before generation runs:
+
+- Empty string.
+- Strings that are empty after trimming whitespace (e.g. `"   "`), or that
+  contain leading/trailing whitespace around a valid-looking specifier.
+- Relative specifiers starting with `./` or `../` (e.g. `./models`,
+  `../models`).
+- Absolute paths — POSIX (starting with `/`, e.g. `/abs/models`) or Windows
+  (drive-letter like `C:\models`, or UNC like `\\server\share\models`).
 
 ## operationSchemas
 

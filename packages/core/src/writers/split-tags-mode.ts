@@ -12,6 +12,7 @@ import {
 import {
   conventionName,
   getFileInfo,
+  getSchemasImportPath,
   isFunction,
   isString,
   isSyntheticDefaultImportsAllow,
@@ -94,14 +95,16 @@ export async function writeSplitTagsMode({
         let implementationData = header;
 
         const importerPath = path.join(dirname, tag, tag + extension);
+        const schemaCustomImportPath = getSchemasImportPath(output.schemas);
         const relativeSchemasPath = output.schemas
-          ? upath.getRelativeImportPath(
+          ? (schemaCustomImportPath ??
+            upath.getRelativeImportPath(
               importerPath,
               getFileInfo(
                 isString(output.schemas) ? output.schemas : output.schemas.path,
                 { extension: output.fileExtension },
               ).dirname,
-            )
+            ))
           : '../' + filename + '.schemas' + extension.replace(/\.ts$/, '');
 
         // In tags-split mode, each tag lives in its own subdirectory

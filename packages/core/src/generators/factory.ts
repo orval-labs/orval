@@ -9,6 +9,7 @@ import { PropertySortOrder } from '../types';
 import {
   conventionName,
   getFileInfo,
+  getSchemasImportPath,
   isString,
   logWarning,
   pascal,
@@ -34,6 +35,13 @@ function getSchemaImportPath(
   if (context.output.factoryMethods?.mode === 'single') {
     return undefined;
   }
+
+  const importPathBase = getSchemasImportPath(context.output.schemas);
+  if (importPathBase) {
+    const baseName = conventionName(refName, context.output.namingConvention);
+    return upath.joinSafe(importPathBase, baseName);
+  }
+
   let outputDir = context.output.factoryMethods?.outputDirectory;
   let schemasPath = getSchemasPath(context);
 
@@ -328,15 +336,24 @@ function resolveImportPath(
   context: ContextSpec,
 ): string | undefined {
   const baseName = conventionName(refName, context.output.namingConvention);
+  const pkgBase = getSchemasImportPath(context.output.schemas);
+
   switch (mode) {
     case 'split': {
-      return `./${baseName}.factory`;
+      return pkgBase
+        ? upath.joinSafe(pkgBase, `${baseName}.factory`)
+        : `./${baseName}.factory`;
     }
     case 'single-split': {
-      return `./${conventionName('factoryMethods', context.output.namingConvention)}`;
+      return pkgBase
+        ? upath.joinSafe(
+            pkgBase,
+            conventionName('factoryMethods', context.output.namingConvention),
+          )
+        : `./${conventionName('factoryMethods', context.output.namingConvention)}`;
     }
     case 'single': {
-      return `./${baseName}`;
+      return pkgBase ? upath.joinSafe(pkgBase, baseName) : `./${baseName}`;
     }
   }
 }

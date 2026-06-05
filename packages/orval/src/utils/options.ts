@@ -118,9 +118,45 @@ function normalizeSchemasOption(
     return normalizePath(schemas, workspace);
   }
 
+  if (schemas.importPath !== undefined && !schemas.importPath) {
+    throw new Error(
+      `schemas.importPath must be a non-empty package specifier (e.g. '@acme/models'). Received an empty string.`,
+    );
+  }
+
+  if (schemas.importPath?.trim() === '') {
+    throw new Error(
+      `schemas.importPath must be a non-empty package specifier (e.g. '@acme/models'). Received a whitespace-only string.`,
+    );
+  }
+
+  if (schemas.importPath && schemas.importPath.trim() !== schemas.importPath) {
+    throw new Error(
+      `schemas.importPath must be a non-empty package specifier (e.g. '@acme/models'). Received a value with leading or trailing whitespace: "${schemas.importPath}"`,
+    );
+  }
+
+  if (schemas.importPath?.startsWith('.')) {
+    throw new Error(
+      `schemas.importPath must be a package specifier (e.g. '@acme/models'), not a relative path. Received: "${schemas.importPath}"`,
+    );
+  }
+
+  if (
+    schemas.importPath &&
+    (nodePath.isAbsolute(schemas.importPath) ||
+      /^[A-Za-z]:[\\/]/.test(schemas.importPath) ||
+      schemas.importPath.startsWith('\\\\'))
+  ) {
+    throw new Error(
+      `schemas.importPath must be a package specifier (e.g. '@acme/models'), not an absolute path. Received: "${schemas.importPath}"`,
+    );
+  }
+
   return {
     path: normalizePath(schemas.path, workspace),
     type: schemas.type,
+    importPath: schemas.importPath,
   };
 }
 

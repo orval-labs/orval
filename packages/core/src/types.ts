@@ -308,11 +308,13 @@ export interface NormalizedFactoryMethodsOptions {
 export interface SchemaOptions {
   path: string;
   type: SchemaGenerationType;
+  importPath?: string;
 }
 
 export interface NormalizedSchemaOptions {
   path: string;
   type: SchemaGenerationType;
+  importPath?: string;
 }
 
 export interface OutputOptions {

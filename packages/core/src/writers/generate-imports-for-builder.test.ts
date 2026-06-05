@@ -199,6 +199,130 @@ describe('generateImportsForBuilder', () => {
     });
   });
 
+  describe('with importPath (package import specifier)', () => {
+    it('should use package import path with indexFiles', () => {
+      const output = createMockOutput({
+        indexFiles: true,
+        fileExtension: '.ts',
+        schemas: {
+          path: '/libs/models',
+          type: 'typescript',
+          importPath: '@acme/models',
+        },
+      });
+      const imports = [createMockImport('User'), createMockImport('Pet')];
+
+      const result = generateImportsForBuilder(output, imports, '@acme/models');
+
+      expect(result).toEqual([
+        {
+          exports: [{ name: 'User' }, { name: 'Pet' }],
+          dependency: '@acme/models',
+        },
+      ]);
+    });
+
+    it('should use package import path without file extension when indexFiles is false', () => {
+      const output = createMockOutput({
+        indexFiles: false,
+        fileExtension: '.ts',
+        schemas: {
+          path: '/libs/models',
+          type: 'typescript',
+          importPath: '@acme/models',
+        },
+      });
+      const imports = [createMockImport('User'), createMockImport('Pet')];
+
+      const result = generateImportsForBuilder(output, imports, '@acme/models');
+
+      expect(result).toEqual([
+        {
+          exports: [{ name: 'User' }],
+          dependency: '@acme/models/user',
+        },
+        {
+          exports: [{ name: 'Pet' }],
+          dependency: '@acme/models/pet',
+        },
+      ]);
+    });
+
+    it('should use package import path without file extension even with NodeNext tsconfig', () => {
+      const output = createMockOutput({
+        indexFiles: false,
+        fileExtension: '.ts',
+        tsconfig: {
+          compilerOptions: {
+            module: 'NodeNext' as const,
+            moduleResolution: 'NodeNext' as const,
+          },
+        },
+        schemas: {
+          path: '/libs/models',
+          type: 'typescript',
+          importPath: '@acme/models',
+        },
+      });
+      const imports = [createMockImport('User')];
+
+      const result = generateImportsForBuilder(output, imports, '@acme/models');
+
+      expect(result).toEqual([
+        {
+          exports: [{ name: 'User' }],
+          dependency: '@acme/models/user',
+        },
+      ]);
+    });
+
+    it('should preserve zod suffix with package import path when indexFiles is false', () => {
+      const output = createMockOutput({
+        indexFiles: false,
+        fileExtension: '.ts',
+        schemas: {
+          path: '/libs/models',
+          type: 'zod',
+          importPath: '@acme/models',
+        },
+      });
+      const imports = [createMockImport('User')];
+
+      const result = generateImportsForBuilder(output, imports, '@acme/models');
+
+      expect(result).toEqual([
+        {
+          exports: [{ name: 'User', schemaName: undefined }],
+          dependency: '@acme/models/user.zod',
+        },
+      ]);
+    });
+
+    it('should omit file extension for schemaFactory imports with package import path', () => {
+      const output = createMockOutput({
+        indexFiles: false,
+        fileExtension: '.ts',
+        schemas: {
+          path: '/libs/models',
+          type: 'typescript',
+          importPath: '@acme/models',
+        },
+      });
+      const imports: GeneratorImport[] = [
+        { name: 'createUser', schemaFactory: true },
+      ];
+
+      const result = generateImportsForBuilder(output, imports, '@acme/models');
+
+      expect(result).toEqual([
+        {
+          exports: [{ name: 'createUser', schemaFactory: true }],
+          dependency: '@acme/models/index.faker',
+        },
+      ]);
+    });
+  });
+
   describe('naming conventions', () => {
     it('should apply PASCAL_CASE convention with custom extension', () => {
       const output = createMockOutput({

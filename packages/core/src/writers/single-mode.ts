@@ -3,6 +3,7 @@ import type { WriteModeProps } from '../types';
 import {
   conventionName,
   getFileInfo,
+  getSchemasImportPath,
   isFunction,
   isString,
   isSyntheticDefaultImportsAllow,
@@ -69,14 +70,16 @@ export async function writeSingleMode({
 
     let data = header;
 
+    const schemaCustomImportPath = getSchemasImportPath(output.schemas);
     const schemasPath = output.schemas
-      ? upath.getRelativeImportPath(
+      ? (schemaCustomImportPath ??
+        upath.getRelativeImportPath(
           path,
           getFileInfo(
             isString(output.schemas) ? output.schemas : output.schemas.path,
             { extension: output.fileExtension },
           ).dirname,
-        )
+        ))
       : undefined;
 
     const isAllowSyntheticDefaultImports = isSyntheticDefaultImportsAllow(
