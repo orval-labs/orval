@@ -166,9 +166,14 @@ import statements change.
   `factoryMethods.outputDirectory` is bypassed: factories resolve imports
   against the package specifier rather than the on-disk factory output
   directory.
+- Config normalization rejects invalid `importPath` values (empty, whitespace,
+  relative, or absolute paths) before generation runs — see
+  [Validation of `importPath`](#validation-of-importpath) below.
 
-**Validation of `importPath`** during config normalization rejects the
-following values with a clear error message before generation runs:
+### Validation of `importPath`{#validation-of-importpath}
+
+During config normalization, orval rejects the following `importPath` values
+with a clear error message before generation runs:
 
 - Empty string.
 - Strings that are empty after trimming whitespace (e.g. `"   "`), or that

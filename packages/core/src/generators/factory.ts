@@ -341,7 +341,7 @@ function resolveImportPath(
   switch (mode) {
     case 'split': {
       return pkgBase
-        ? upath.joinSafe(pkgBase, baseName)
+        ? upath.joinSafe(pkgBase, `${baseName}.factory`)
         : `./${baseName}.factory`;
     }
     case 'single-split': {

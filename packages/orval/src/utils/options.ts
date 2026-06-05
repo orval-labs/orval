@@ -124,9 +124,15 @@ function normalizeSchemasOption(
     );
   }
 
-  if (schemas.importPath && schemas.importPath.trim() !== schemas.importPath) {
+  if (schemas.importPath?.trim() === '') {
     throw new Error(
       `schemas.importPath must be a non-empty package specifier (e.g. '@acme/models'). Received a whitespace-only string.`,
+    );
+  }
+
+  if (schemas.importPath && schemas.importPath.trim() !== schemas.importPath) {
+    throw new Error(
+      `schemas.importPath must be a non-empty package specifier (e.g. '@acme/models'). Received a value with leading or trailing whitespace: "${schemas.importPath}"`,
     );
   }
 

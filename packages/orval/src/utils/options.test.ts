@@ -569,6 +569,37 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('rejects leading/trailing whitespace in schemas.importPath', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              schemas: {
+                path: './models',
+                type: 'typescript',
+                importPath: '  @acme/models  ',
+              },
+            },
+          },
+          workspace,
+        ),
+      ).rejects.toThrow('leading or trailing whitespace');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('defaults zod dateTimeOptions to { offset: true } so RFC3339 offset values are accepted', async () => {
     const workspace = await createTempWorkspace();
 

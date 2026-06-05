@@ -636,7 +636,7 @@ describe('generateFactory with schemas.importPath', () => {
     );
     expect(result?.imports).toContainEqual({
       name: 'createRefTarget',
-      importPath: '@acme/models/refTarget',
+      importPath: '@acme/models/refTarget.factory',
       isConstant: true,
     });
     expect(result?.imports).toContainEqual({
@@ -768,7 +768,7 @@ describe('generateFactory with schemas.importPath', () => {
     const factoryImport = result?.imports.find(
       (i) => i.name === 'createRefTarget',
     );
-    expect(factoryImport?.importPath).toBe('@acme/models/refTarget');
+    expect(factoryImport?.importPath).toBe('@acme/models/refTarget.factory');
     expect(factoryImport?.importPath).not.toContain('factories');
 
     const typeImport = result?.imports.find((i) => i.name === 'RefTarget');
