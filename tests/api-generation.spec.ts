@@ -881,3 +881,25 @@ test('zod issue-3171 applies required from a sibling allOf member to $ref base p
   // The open-object sibling is preserved (additional properties allowed).
   expect(content).toContain('.and(zod.object({}).passthrough())');
 });
+
+test('default index-mock-file-split emits dedicated mock barrels in split mode (#3318)', async () => {
+  // Regression for #3318: in `split` mode, `mock: { indexMockFiles: true }` was
+  // silently ignored (only `tags-split` honored it), so MSW mocks could not be
+  // isolated into their own barrel. The generated `index.msw.ts` keeps MSW out
+  // of any models/production barrel, avoiding the jsdom `WritableStream`
+  // module-eval crash when a hand-rolled barrel re-exports `.msw`.
+  const mswBarrel = await readFile(
+    generated('default', 'index-mock-file-split', 'index.msw.ts'),
+    'utf8',
+  );
+  // The single split-mode mock file is re-exported wholesale from the barrel.
+  expect(mswBarrel).toMatch(/export \* from '\.\/endpoints\.msw'/);
+
+  // One barrel per generator type: the faker entry gets its own `index.faker.ts`
+  // so the per-extension loop is exercised, not just the single-MSW path.
+  const fakerBarrel = await readFile(
+    generated('default', 'index-mock-file-split', 'index.faker.ts'),
+    'utf8',
+  );
+  expect(fakerBarrel).toMatch(/export \* from '\.\/endpoints\.faker'/);
+});

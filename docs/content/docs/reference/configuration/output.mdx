@@ -411,7 +411,7 @@ export default defineConfig({
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `indexMockFiles` | `Boolean` | `false` | In `tags-split` mode, emit one root-level `index.<ext>.ts` file per generator entry that re-exports the per-tag mocks (e.g. `index.msw.ts`, `index.faker.ts`). |
+| `indexMockFiles` | `Boolean` | `false` | In `split` and `tags-split` modes, emit one root-level `index.<ext>.ts` file per generator entry that re-exports the mocks (e.g. `index.msw.ts`, `index.faker.ts`). In `tags-split` it re-exports the per-tag mocks; in `split` it re-exports the single mock file. Useful to keep mocks (e.g. MSW) in a dedicated barrel that production/model barrels never import. |
 | `generators` | `Array<MockOptions \| Function>` | `[]` | One entry per output mock file. Each entry can be an object (`MockOptions`) or a custom `ClientMockBuilder` function. |
 
 ### MSW generator (`type: 'msw'`)

@@ -271,7 +271,7 @@ it('matches snapshot', () => {
 
 ## Dynamic Imports
 
-In `tags-split` mode, enable `mock.indexMockFiles` to emit an `index.faker.ts` aggregating all per-tag faker files:
+In `split` and `tags-split` modes, enable `mock.indexMockFiles` to emit an `index.faker.ts` barrel — aggregating the per-tag faker files in `tags-split`, or re-exporting the single faker file in `split`:
 
 ```ts title="orval.config.ts"
 export default defineConfig({

@@ -4,11 +4,13 @@ import { generateModelsInline, generateMutatorImports } from '../generators';
 import {
   type GlobalMockOptions,
   OutputClient,
+  OutputMockType,
   type WriteModeProps,
 } from '../types';
 import {
   conventionName,
   getFileInfo,
+  getImportExtension,
   isFunction,
   isString,
   isSyntheticDefaultImportsAllow,
@@ -168,10 +170,12 @@ export async function writeSplitMode({
     const implementationPath = path.join(dirname, implementationFilename);
     await writeGeneratedFile(implementationPath, implementationData);
 
-    // Emit one mock file per configured generator entry. The output filename
-    // suffix comes from `getMockFileExtensionByTypeName(entry)` (e.g. `.msw.ts`
-    // or `.faker.ts`).
+    // Emit one mock file per configured generator entry. The filename suffix is
+    // `.<mockExtension><extension>`, where `<mockExtension>` comes from
+    // `getMockFileExtensionByTypeName(entry)` (e.g. `msw` or `faker`) — producing
+    // files like `petstore.msw.ts` / `petstore.faker.ts`.
     const mockPaths: string[] = [];
+    const writtenMockExtensions = new Set<OutputMockType>();
     for (const mockOutput of mockOutputs) {
       const entry = output.mock.generators.find(
         (g): g is GlobalMockOptions =>
@@ -201,18 +205,50 @@ export async function writeSplitMode({
       });
       mockData += `\n${finalizedMockImplementation}`;
 
+      const mockExtension = getMockFileExtensionByTypeName(entry);
       const mockPath = path.join(
         dirname,
-        filename + '.' + getMockFileExtensionByTypeName(entry) + extension,
+        filename + '.' + mockExtension + extension,
       );
       await writeGeneratedFile(mockPath, mockData);
       mockPaths.push(mockPath);
+      writtenMockExtensions.add(mockExtension);
+    }
+
+    // Emit one root-level `index.<ext>.ts` barrel per generator type when
+    // `indexMockFiles` is enabled (mirrors tags-split mode). Split mode keeps
+    // every mock of a given type in a single `<filename>.<ext>.ts` file, so the
+    // barrel re-exports it wholesale. This gives consumers a dedicated mock
+    // entry point (e.g. `index.msw.ts`) that the models/production barrels never
+    // pull in — avoiding the jsdom `WritableStream` module-eval crash when MSW
+    // is dragged into the import chain (#3318).
+    const indexMockPaths: string[] = [];
+    if (output.mock.indexMockFiles) {
+      // Match the import-path extension to the configured output (empty for
+      // `.ts`, e.g. `.js` for ESM/NodeNext) so the re-export resolves to the
+      // mock file on disk — same helper the models index barrel uses.
+      const importExtension = getImportExtension(
+        output.fileExtension,
+        output.tsconfig,
+      );
+      for (const mockExtension of writtenMockExtensions) {
+        const indexMockPath = path.join(
+          dirname,
+          `index.${mockExtension}${extension}`,
+        );
+        await writeGeneratedFile(
+          indexMockPath,
+          `export * from './${filename}.${mockExtension}${importExtension}'\n`,
+        );
+        indexMockPaths.push(indexMockPath);
+      }
     }
 
     return [
       implementationPath,
       ...(schemasPath ? [schemasPath] : []),
       ...mockPaths,
+      ...indexMockPaths,
     ];
   } catch (error) {
     throw new Error(
