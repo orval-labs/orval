@@ -42,7 +42,6 @@
     "@types/fs-extra": "^11.0.4",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vite-plus": "catalog:",
     "vitest": "catalog:"
   },
   "peerDependencies": {

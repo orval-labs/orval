@@ -34,7 +34,6 @@
     "hono": "catalog:hono",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vite-plus": "catalog:",
     "vitest": "catalog:",
     "zod": "catalog:zod3"
   },
