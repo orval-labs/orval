@@ -14,6 +14,18 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  issue3321: {
+    output: {
+      target: '../generated/fetch/issue-3321/endpoints.ts',
+      schemas: '../generated/fetch/issue-3321/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3321/spec.yaml',
+    },
+  },
   issue3327: {
     output: {
       target: '../generated/fetch/issue-3327/endpoints.ts',

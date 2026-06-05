@@ -506,6 +506,42 @@ test('fetch issue-1879 inlines header schema when $ref targets another path para
   expect(indexContent).not.toMatch(/\bn0\b/);
 });
 
+test('fetch issue-3321 falls back to an unknown index signature for properties + typed additionalProperties', async () => {
+  // Regression for #3321 (type half of the #3255 follow-up): a schema with both
+  // named `properties` (`summary: string`) and a typed `additionalProperties`
+  // (`anyOf: [object, null]`) used to inline a typed index signature next to the
+  // named property. A string index signature also covers the named keys, so
+  // `summary: string` must satisfy the additionalProperties type too —
+  // impossible here, so TS rejected the declaration with TS2411. Expressing it
+  // as an intersection only moves the failure: the named key is still
+  // constrained, making the type *unconstructable* (TS2322 when assigning a
+  // value). orval now falls back to `[key: string]: unknown` (matching
+  // `additionalProperties: true`), which keeps the named property's own type and
+  // accepts any extra key, so the type is valid AND constructable. Asserting the
+  // index value is `unknown` is the constructability guarantee — every named
+  // property is assignable to it. The declaration is additionally typechecked by
+  // scripts/typecheck-generated.mjs.
+  const thingsResponse = await readFile(
+    generated('fetch', 'issue-3321', 'model', 'thingsResponse.ts'),
+    'utf8',
+  );
+  expect(thingsResponse).toContain('summary: string;');
+  expect(thingsResponse).toContain('[key: string]: unknown;');
+  // The dropped additionalProperties value type must not leak a dangling import.
+  expect(thingsResponse).not.toContain('ItemDetail');
+
+  // Minimal primitive case (no $ref/anyOf): a string named property next to a
+  // number additionalProperties is the textbook TS2411 shape. It collapses to
+  // the same `unknown` fallback, proving the fix is independent of the #3255
+  // $ref/import machinery.
+  const counters = await readFile(
+    generated('fetch', 'issue-3321', 'model', 'counters.ts'),
+    'utf8',
+  );
+  expect(counters).toContain('label: string;');
+  expect(counters).toContain('[key: string]: unknown;');
+});
+
 test('fetch issue-3327 resolves external $ref injected by input transformer', async () => {
   // Regression for #3327: an `input.override.transformer` that injects a NEW
   // external $ref (`refs.yaml#/components/schemas/Point`) used to fail because

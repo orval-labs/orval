@@ -432,18 +432,31 @@ export function getObject({
               context,
             );
             if (recordType) {
+              // `propertyNames` constrains the keys to a literal union, so this
+              // emits `Partial<Record<'a' | 'b', T>>` — specific optional keys,
+              // not a string index signature. Named properties never collide
+              // with it, so keep the precise additionalProperties value type.
               acc.value += '\n}';
               acc.value += ` & ${recordType.value}`;
               acc.useTypeAlias = true;
               acc.imports.push(...recordType.imports);
               acc.dependencies.push(...recordType.dependencies);
+              acc.imports.push(...resolvedValue.imports);
+              acc.schemas.push(...resolvedValue.schemas);
+              acc.dependencies.push(...resolvedValue.dependencies);
             } else {
+              // A bare `[key: string]: T` index signature also covers the named
+              // keys, so any named property whose type differs from T makes the
+              // object unrepresentable (TS2411) — or unconstructable if T is
+              // pushed into an intersection, since the index still constrains
+              // the named keys. Fall back to `unknown`, matching
+              // `additionalProperties: true`, so the generated type stays valid
+              // and assignable regardless of the named property types. The
+              // additionalProperties value type (and its imports) is dropped
+              // here, so it is intentionally not pushed. See issues #3321 / #3255.
               const keyType = getIndexSignatureKey(schemaItem);
-              acc.value += `\n  [key: ${keyType}]: ${resolvedValue.value};\n}`;
+              acc.value += `\n  [key: ${keyType}]: unknown;\n}`;
             }
-            acc.imports.push(...resolvedValue.imports);
-            acc.schemas.push(...resolvedValue.schemas);
-            acc.dependencies.push(...resolvedValue.dependencies);
           }
         } else {
           acc.value += '\n}';

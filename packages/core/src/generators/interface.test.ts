@@ -745,7 +745,14 @@ export type ConstEnum = typeof ConstEnumValue;
     });
   });
 
-  it('should include imports from additionalProperties $ref when properties exist', () => {
+  it('falls back to an unknown index signature when properties coexist with an additionalProperties $ref', () => {
+    // #3321: a bare string index signature derived from additionalProperties
+    // also covers the named keys, so a $ref value type that a named property
+    // (`summary: string`) cannot satisfy makes the interface invalid (TS2411)
+    // or, as an intersection, unconstructable. The value type is dropped to
+    // `unknown`, so the $ref (ItemDetail) is neither referenced nor imported.
+    // This supersedes the #3255 import behavior for the properties-present case:
+    // there is no longer a reference that needs importing.
     const contextWithRef = withContext({
       spec: {
         components: {
@@ -768,6 +775,7 @@ export type ConstEnum = typeof ConstEnumValue;
           type: 'string',
         },
       },
+      required: ['summary'],
       additionalProperties: {
         $ref: '#/components/schemas/ItemDetail',
       },
@@ -780,9 +788,11 @@ export type ConstEnum = typeof ConstEnumValue;
     });
 
     expect(result).toHaveLength(1);
-    expect(result[0].model).toContain('ItemDetail');
-    expect(result[0].imports).toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: 'ItemDetail' })]),
+    expect(result[0].model).toContain('summary: string');
+    expect(result[0].model).toContain('[key: string]: unknown');
+    expect(result[0].model).not.toContain('ItemDetail');
+    expect(result[0].imports).not.toContainEqual(
+      expect.objectContaining({ name: 'ItemDetail' }),
     );
   });
 });
