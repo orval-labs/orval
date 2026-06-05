@@ -949,7 +949,7 @@ describe('generateSpec - schemas.importPath', () => {
       await generateSpec(workspace, options);
 
       const content = await fs.readFile(targetFile, 'utf8');
-      expect(content).toMatch(/from\s+'@acme\/models/);
+      expect(content).toMatch(/from\s+'@acme\/models'/);
       expect(content).not.toMatch(/from\s+'\.\./);
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -987,7 +987,7 @@ describe('generateSpec - schemas.importPath', () => {
         path.join(workspace, tagFileName ?? ''),
         'utf8',
       );
-      expect(content).toMatch(/from\s+'@acme\/models/);
+      expect(content).toMatch(/from\s+'@acme\/models'/);
       expect(content).not.toMatch(/from\s+'\.\./);
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -1023,7 +1023,7 @@ describe('generateSpec - schemas.importPath', () => {
       expect(tsFile).toBeTruthy();
       const tagFile = path.join(workspace, String(tsFile));
       const content = await fs.readFile(tagFile, 'utf8');
-      expect(content).toMatch(/from\s+'@acme\/models/);
+      expect(content).toMatch(/from\s+'@acme\/models'/);
       expect(content).not.toMatch(/from\s+'\.\./);
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -1056,7 +1056,7 @@ describe('generateSpec - schemas.importPath', () => {
         path.join(workspace, 'endpoints.ts'),
         'utf8',
       );
-      expect(content).toMatch(/from\s+'@acme\/models/);
+      expect(content).toMatch(/from\s+'@acme\/models'/);
       expect(content).not.toMatch(/from\s+'\.\./);
     } finally {
       await rm(workspace, { recursive: true, force: true });

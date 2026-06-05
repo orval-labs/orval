@@ -167,6 +167,17 @@ import statements change.
   against the package specifier rather than the on-disk factory output
   directory.
 
+**Validation of `importPath`** during config normalization rejects the
+following values with a clear error message before generation runs:
+
+- Empty string.
+- Strings that are empty after trimming whitespace (e.g. `"   "`), or that
+  contain leading/trailing whitespace around a valid-looking specifier.
+- Relative specifiers starting with `./` or `../` (e.g. `./models`,
+  `../models`).
+- Absolute paths — POSIX (starting with `/`, e.g. `/abs/models`) or Windows
+  (drive-letter like `C:\models`, or UNC like `\\server\share\models`).
+
 ## operationSchemas
 
 **Type:** `String`

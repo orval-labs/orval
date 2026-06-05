@@ -136,7 +136,12 @@ function normalizeSchemasOption(
     );
   }
 
-  if (schemas.importPath?.startsWith('/')) {
+  if (
+    schemas.importPath &&
+    (nodePath.isAbsolute(schemas.importPath) ||
+      /^[A-Za-z]:[\\/]/.test(schemas.importPath) ||
+      schemas.importPath.startsWith('\\\\'))
+  ) {
     throw new Error(
       `schemas.importPath must be a package specifier (e.g. '@acme/models'), not an absolute path. Received: "${schemas.importPath}"`,
     );

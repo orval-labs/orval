@@ -476,6 +476,68 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('rejects a Windows drive-letter absolute path as schemas.importPath', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              schemas: {
+                path: './models',
+                type: 'typescript',
+                importPath: String.raw`C:\models`,
+              },
+            },
+          },
+          workspace,
+        ),
+      ).rejects.toThrow('not an absolute path');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a Windows UNC path as schemas.importPath', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              schemas: {
+                path: './models',
+                type: 'typescript',
+                importPath: String.raw`\\server\share\models`,
+              },
+            },
+          },
+          workspace,
+        ),
+      ).rejects.toThrow('not an absolute path');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('rejects a whitespace-only string as schemas.importPath', async () => {
     const workspace = await createTempWorkspace();
 
