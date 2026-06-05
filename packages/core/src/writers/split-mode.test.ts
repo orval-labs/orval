@@ -8,7 +8,7 @@ import {
   createSplitModeOutput,
   createSplitModeProps,
 } from '../test-utils/split-modes';
-import { OutputMode } from '../types';
+import { OutputMockType, OutputMode } from '../types';
 import { writeSplitMode } from './split-mode';
 
 // Regression coverage for https://github.com/orval-labs/orval/issues/2309
@@ -54,5 +54,66 @@ describe('writeSplitMode — schemas path follows needSchema (#2309)', () => {
     const schemasPath = path.join(tmpDir, 'petstore.schemas.ts');
     expect(paths).toContain(schemasPath);
     expect(fs.existsSync(schemasPath)).toBe(true);
+  });
+});
+
+// Regression coverage for https://github.com/orval-labs/orval/issues/3318
+//
+// In `split` mode, `mock: { indexMockFiles: true }` used to be a no-op (only
+// `tags-split` honored it). It must now emit a dedicated `index.<ext>.ts`
+// barrel re-exporting the single split-mode mock file, and that path must be
+// part of the return value so it is formatted / passed to afterAllFilesWrite.
+
+describe('writeSplitMode — indexMockFiles emits a dedicated mock barrel (#3318)', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-split-mode-'));
+  });
+
+  afterEach(() => {
+    fs.removeSync(tmpDir);
+  });
+
+  it('returns and writes index.<ext>.ts re-exporting the mock file when enabled', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.SPLIT,
+        mock: {
+          indexMockFiles: true,
+          generators: [{ type: OutputMockType.MSW }],
+        },
+      }),
+    };
+
+    const paths = await writeSplitMode({ ...props, needSchema: false });
+
+    const indexMockPath = path.join(tmpDir, 'index.msw.ts');
+    expect(paths).toContain(indexMockPath);
+    expect(fs.existsSync(indexMockPath)).toBe(true);
+    expect(fs.readFileSync(indexMockPath, 'utf8')).toContain(
+      "export * from './petstore.msw'",
+    );
+  });
+
+  it('does not emit an index mock barrel when indexMockFiles is false', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.SPLIT,
+        mock: {
+          indexMockFiles: false,
+          generators: [{ type: OutputMockType.MSW }],
+        },
+      }),
+    };
+
+    const paths = await writeSplitMode({ ...props, needSchema: false });
+
+    expect(paths.some((p) => p.endsWith('index.msw.ts'))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, 'index.msw.ts'))).toBe(false);
   });
 });

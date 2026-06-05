@@ -508,7 +508,10 @@ export type GlobalMockOptions = MswMockOptions | FakerMockOptions;
 //   }
 export interface OutputMocksConfig {
   // When true, emits one root-level `index.<ext>.ts` per generator entry
-  // (e.g. `index.msw.ts` and/or `index.faker.ts`) in tags-split mode
+  // (e.g. `index.msw.ts` and/or `index.faker.ts`) in `split` and `tags-split`
+  // modes. In `tags-split` it re-exports each per-tag mock; in `split` it
+  // re-exports the single mock file. Keeps mocks in a dedicated barrel so the
+  // models/production barrels never pull them in.
   indexMockFiles?: boolean;
   generators: (GlobalMockOptions | ClientMockBuilder)[];
 }
