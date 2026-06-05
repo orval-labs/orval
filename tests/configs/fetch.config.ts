@@ -14,6 +14,21 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  issue3327: {
+    output: {
+      target: '../generated/fetch/issue-3327/endpoints.ts',
+      schemas: '../generated/fetch/issue-3327/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3327/spec.yaml',
+      override: {
+        transformer: '../transformers/issue-3327-inject-external-ref.js',
+      },
+    },
+  },
   mutator: {
     output: {
       target: '../generated/fetch/mutator/endpoints.ts',

@@ -41,28 +41,36 @@ async function resolveSpec(
     unsafeDisableValidation = false,
   }: ResolveSpecOptions,
 ): Promise<OpenApiDocument> {
-  const data = await bundle(input, {
-    plugins: [
-      readFiles(),
-      fetchUrls({
-        headers: parserOptions?.headers,
-      }),
-      parseJson(),
-      parseYaml(),
-    ],
-    treeShake: false,
-  });
-  const dereferencedData = dereferenceExternalRef(
-    data as Record<string, unknown>,
+  const dereferencedData = await bundleAndDereferenceExternalRefs(
+    input,
+    parserOptions,
   );
 
   // Apply user-provided transformer before validation so users can repair
   // malformed specs in-place. The transformer is typed against
   // `OpenApiDocument`, but we pass the raw bundled object — repairing a spec
   // necessarily means it does not yet conform to the type at call time.
-  const transformedData = transformer
-    ? await applyInputTransformer(dereferencedData, transformer, workspace)
-    : dereferencedData;
+  let transformedData = dereferencedData;
+  if (transformer) {
+    const applied = await applyInputTransformer(
+      dereferencedData,
+      transformer,
+      workspace,
+    );
+    // A transformer may inject NEW external $refs that were absent from the
+    // original spec (e.g. `refs.yaml#/...`), so the initial bundle never
+    // resolved them. Re-run the bundle + dereference pipeline on its output so
+    // those refs are resolved too (#3327). External refs resolve relative to
+    // the original spec file, so reuse the string target as the bundle origin;
+    // an object input has no file base and cannot introduce relative refs.
+    transformedData = hasExternalRef(applied)
+      ? await bundleAndDereferenceExternalRefs(
+          applied,
+          parserOptions,
+          isString(input) ? input : undefined,
+        )
+      : applied;
+  }
 
   if (unsafeDisableValidation) {
     logWarning(
@@ -108,6 +116,52 @@ async function applyInputTransformer(
     );
   }
   return result;
+}
+
+/**
+ * Bundle external references into the document and then resolve the `x-ext`
+ * entries that `@scalar/json-magic` produces. Shared by the initial pass and
+ * the post-transformer pass (#3327); `origin` lets the second pass resolve refs
+ * relative to the original spec file when the input is an in-memory object.
+ */
+async function bundleAndDereferenceExternalRefs(
+  input: string | Record<string, unknown>,
+  parserOptions: ResolveSpecOptions['parserOptions'],
+  origin?: string,
+): Promise<Record<string, unknown>> {
+  const data = await bundle(input, {
+    plugins: [
+      readFiles(),
+      fetchUrls({
+        headers: parserOptions?.headers,
+      }),
+      parseJson(),
+      parseYaml(),
+    ],
+    treeShake: false,
+    ...(origin ? { origin } : {}),
+  });
+  return dereferenceExternalRef(data as Record<string, unknown>);
+}
+
+/**
+ * Report whether any `$ref` in the document points to an external document.
+ * Per the JSON Reference rules a ref is external when it does not start with
+ * `#` (an in-document pointer). Used to decide whether a transformer introduced
+ * new external refs that need a second bundle pass (#3327) — when it did not,
+ * the already-bundled spec is returned untouched.
+ */
+function hasExternalRef(obj: unknown): boolean {
+  if (Array.isArray(obj)) {
+    return obj.some((item) => hasExternalRef(item));
+  }
+  if (isObject(obj)) {
+    if ('$ref' in obj && isString(obj.$ref) && !obj.$ref.startsWith('#')) {
+      return true;
+    }
+    return Object.values(obj).some((value) => hasExternalRef(value));
+  }
+  return false;
 }
 
 export async function importSpecs(

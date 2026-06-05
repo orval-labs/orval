@@ -506,6 +506,35 @@ test('fetch issue-1879 inlines header schema when $ref targets another path para
   expect(indexContent).not.toMatch(/\bn0\b/);
 });
 
+test('fetch issue-3327 resolves external $ref injected by input transformer', async () => {
+  // Regression for #3327: an `input.override.transformer` that injects a NEW
+  // external $ref (`refs.yaml#/components/schemas/Point`) used to fail because
+  // the transformer runs after the initial bundle, so the injected ref never
+  // got resolved. orval now re-bundles the transformer output. The external
+  // schemas must be merged and Field.geometry must union the resolved named
+  // types — never leak the raw `refs.yaml` file ref. Keep this focused
+  // assertion alongside the snapshot so #3327 fails with a targeted message.
+  const fieldContent = await readFile(
+    generated('fetch', 'issue-3327', 'model', 'field.ts'),
+    'utf8',
+  );
+  expect(fieldContent).toContain('geometry?: Point | LineString;');
+  expect(fieldContent).not.toContain('refs.yaml');
+
+  // The injected external schemas are emitted as their own models.
+  const pointContent = await readFile(
+    generated('fetch', 'issue-3327', 'model', 'point.ts'),
+    'utf8',
+  );
+  expect(pointContent).toContain('export interface Point {');
+
+  const lineStringContent = await readFile(
+    generated('fetch', 'issue-3327', 'model', 'lineString.ts'),
+    'utf8',
+  );
+  expect(lineStringContent).toContain('export interface LineString {');
+});
+
 test('default issue-1775 preserves boolean enum literals across allOf+oneOf', async () => {
   // Regression for #1775: an `allOf: [{orderId}, oneOf: [{success: enum [true]},
   // {success: enum [false], failReason}]]` schema returned as an array.
