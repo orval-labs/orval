@@ -759,6 +759,36 @@ test('react-query issue-2540 imports external-file $ref schemas by schema name, 
   expect(model).toContain('export interface InternalServerError500 {');
 });
 
+test('react-query issue-3301 keeps unreferenced schemas when filtering endpoints by tags', async () => {
+  // Regression for #3301: #3254 (v8.9.0) made a `filters.tags` filter also prune
+  // every `components.schemas` entry not reachable from the matching operations.
+  // That dropped legitimately-unreferenced schemas, and the documented escape
+  // hatch (`schemas: [/.*/]`) doesn't work in `mode: 'exclude'` because `mode` is
+  // shared by the tag and schema filters. `includeUnreferencedSchemas: true` keeps
+  // every schema while endpoints stay tag-filtered.
+  const dir = (...segments: string[]) =>
+    generated(
+      'react-query',
+      'issue-3301-include-unreferenced-schemas',
+      ...segments,
+    );
+
+  // The orphan schemas — referenced by no path — are still emitted.
+  const unusedModel = await readFile(dir('model', 'unusedModel.ts'), 'utf8');
+  expect(unusedModel).toContain('export interface UnusedModel {');
+  const unusedStatus = await readFile(dir('model', 'unusedStatus.ts'), 'utf8');
+  expect(unusedStatus).toContain('export const UnusedStatus = {');
+  // A schema referenced only by the excluded `stream` operation is kept too.
+  const streamChunk = await readFile(dir('model', 'streamChunk.ts'), 'utf8');
+  expect(streamChunk).toContain('export interface StreamChunk {');
+
+  // The `stream` tag is still excluded from the generated endpoints — only the
+  // `pets` operation is emitted, and `streamEvents` appears nowhere.
+  const pets = await readFile(dir('pets', 'pets.ts'), 'utf8');
+  expect(pets).toContain('export const listPets =');
+  expect(pets).not.toContain('streamEvents');
+});
+
 test('mock issue-3484 required nullable scalars get a single null branch', async () => {
   // Regression for #3484: a *required* property typed as an OpenAPI 3.1
   // nullable union (`type: [<scalar>, 'null']`) — the same shape OAS 3.0
