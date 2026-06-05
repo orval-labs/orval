@@ -116,4 +116,29 @@ describe('writeSplitMode — indexMockFiles emits a dedicated mock barrel (#3318
     expect(paths.some((p) => p.endsWith('index.msw.ts'))).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, 'index.msw.ts'))).toBe(false);
   });
+
+  it('keeps the output file extension in the re-export for non-TS outputs', async () => {
+    // For `.ts` the import is extensionless, but ESM/`.js` outputs need the
+    // extension on the specifier or the re-export will not resolve on disk.
+    const target = path.join(tmpDir, 'petstore.js');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.SPLIT,
+        fileExtension: '.js',
+        mock: {
+          indexMockFiles: true,
+          generators: [{ type: OutputMockType.MSW }],
+        },
+      }),
+    };
+
+    const paths = await writeSplitMode({ ...props, needSchema: false });
+
+    const indexMockPath = path.join(tmpDir, 'index.msw.js');
+    expect(paths).toContain(indexMockPath);
+    expect(fs.readFileSync(indexMockPath, 'utf8')).toContain(
+      "export * from './petstore.msw.js'",
+    );
+  });
 });

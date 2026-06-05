@@ -10,6 +10,7 @@ import {
 import {
   conventionName,
   getFileInfo,
+  getImportExtension,
   isFunction,
   isString,
   isSyntheticDefaultImportsAllow,
@@ -169,9 +170,10 @@ export async function writeSplitMode({
     const implementationPath = path.join(dirname, implementationFilename);
     await writeGeneratedFile(implementationPath, implementationData);
 
-    // Emit one mock file per configured generator entry. The output filename
-    // suffix comes from `getMockFileExtensionByTypeName(entry)` (e.g. `.msw.ts`
-    // or `.faker.ts`).
+    // Emit one mock file per configured generator entry. The filename suffix is
+    // `.<mockExtension><extension>`, where `<mockExtension>` comes from
+    // `getMockFileExtensionByTypeName(entry)` (e.g. `msw` or `faker`) — producing
+    // files like `petstore.msw.ts` / `petstore.faker.ts`.
     const mockPaths: string[] = [];
     const writtenMockExtensions = new Set<OutputMockType>();
     for (const mockOutput of mockOutputs) {
@@ -222,6 +224,13 @@ export async function writeSplitMode({
     // is dragged into the import chain (#3318).
     const indexMockPaths: string[] = [];
     if (output.mock.indexMockFiles) {
+      // Match the import-path extension to the configured output (empty for
+      // `.ts`, e.g. `.js` for ESM/NodeNext) so the re-export resolves to the
+      // mock file on disk — same helper the models index barrel uses.
+      const importExtension = getImportExtension(
+        output.fileExtension,
+        output.tsconfig,
+      );
       for (const mockExtension of writtenMockExtensions) {
         const indexMockPath = path.join(
           dirname,
@@ -229,7 +238,7 @@ export async function writeSplitMode({
         );
         await writeGeneratedFile(
           indexMockPath,
-          `export * from './${filename}.${mockExtension}'\n`,
+          `export * from './${filename}.${mockExtension}${importExtension}'\n`,
         );
         indexMockPaths.push(indexMockPath);
       }
