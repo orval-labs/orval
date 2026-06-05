@@ -364,6 +364,15 @@ export interface InputFiltersOptions {
   mode?: 'include' | 'exclude';
   tags?: (string | RegExp)[];
   schemas?: (string | RegExp)[];
+  /**
+   * When `tags` is set, orval limits the output to only the schemas referenced
+   * by the matching operations. Set this to `true` to keep every
+   * `#/components` entry (including unreferenced ones) while still filtering
+   * endpoints by `tags`. Ignored when `schemas` is set.
+   *
+   * @default false
+   */
+  includeUnreferencedSchemas?: boolean;
 }
 
 export interface InputOptions {

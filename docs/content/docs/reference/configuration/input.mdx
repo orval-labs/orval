@@ -164,7 +164,7 @@ export default defineConfig({
 
 When `tags` is set and `schemas` is not, orval automatically limits the output to only the schemas referenced (directly or transitively) by the matching operations. This prevents unrelated schemas from appearing in the generated output.
 
-If you also specify `schemas`, it takes precedence and the automatic inference is skipped. To filter endpoints by tags while still outputting all schemas, use `schemas: [/.*/]`.
+If you also specify `schemas`, it takes precedence and the automatic inference is skipped. To filter endpoints by tags while still outputting **all** schemas, set [`includeUnreferencedSchemas: true`](#includeunreferencedschemas) — it works in both `include` and `exclude` mode.
 
 ### schemas
 
@@ -180,6 +180,29 @@ export default defineConfig({
     input: {
       filters: {
         schemas: ['Error', /Cat/],
+      },
+    },
+  },
+});
+```
+
+### includeUnreferencedSchemas
+
+**Type:** `Boolean`
+**Default:** `false`
+
+When `tags` is set (and `schemas` is not), orval emits only the schemas referenced by the matching operations. Set `includeUnreferencedSchemas: true` to keep **every** `#/components` entry — including schemas referenced by no operation — while still filtering endpoints by `tags`. This works in both `include` and `exclude` mode. It is ignored when `schemas` is set.
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      filters: {
+        mode: 'exclude',
+        tags: ['stream'],
+        includeUnreferencedSchemas: true,
       },
     },
   },

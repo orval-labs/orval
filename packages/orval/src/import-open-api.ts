@@ -20,7 +20,8 @@ function filterSpecComponents(
   input: InputOptions,
 ): OpenApiDocument {
   const filters = input.filters;
-  if (!filters?.tags || filters.schemas) return spec;
+  if (!filters?.tags || filters.schemas || filters.includeUnreferencedSchemas)
+    return spec;
 
   const referenced = collectReferencedComponents(
     spec,

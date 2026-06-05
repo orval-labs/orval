@@ -84,6 +84,30 @@ export default defineConfig({
       target: '../specifications/issue-2540/issue-2540.yaml',
     },
   },
+  // #3301: filtering endpoints by tags must not drop unreferenced
+  // `components.schemas`. `includeUnreferencedSchemas: true` keeps every schema
+  // (including the orphan `UnusedModel`/`UnusedStatus`) while the `stream` tag
+  // is still excluded from the generated endpoints.
+  'issue-3301-include-unreferenced-schemas': {
+    output: {
+      target:
+        '../generated/react-query/issue-3301-include-unreferenced-schemas/endpoints.ts',
+      schemas:
+        '../generated/react-query/issue-3301-include-unreferenced-schemas/model',
+      client: 'react-query',
+      mode: 'tags-split',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3301/issue-3301.yaml',
+      filters: {
+        mode: 'exclude',
+        tags: ['stream'],
+        includeUnreferencedSchemas: true,
+      },
+    },
+  },
   basic: {
     output: {
       target: '../generated/react-query/basic/endpoints.ts',
