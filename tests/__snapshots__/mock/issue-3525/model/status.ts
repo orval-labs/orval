@@ -5,7 +5,9 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export * from './pet';
-export * from './petList';
-export * from './score';
-export * from './status';
+export type Status = (typeof Status)[keyof typeof Status];
+
+export const Status = {
+  active: 'active',
+  inactive: 'inactive',
+} as const;

@@ -175,6 +175,9 @@ export function buildStrictMockTypeFileHeader(
 /**
  * Prepends shared strict-mock helper types and each `{Schema}Mock` alias once at
  * the top of a mock file. Generators pass `strictSchemaTypeNames`; no scraping.
+ *
+ * Not idempotent — callers must invoke this exactly once per aggregated mock
+ * file (writers and `writeFakerSchemaMocks`), not from import hooks.
  */
 export function dedupeStrictMockTypeDeclarations(
   implementation: string,
@@ -191,10 +194,9 @@ export function dedupeStrictMockTypeDeclarations(
     return implementation;
   }
 
-  const trimmedBody = implementation.replace(/^\n+/, '').trimStart();
   const header = buildStrictMockTypeFileHeader(schemaTypeNames);
 
-  return header ? `${header}\n\n${trimmedBody}` : trimmedBody;
+  return `${header}\n\n${implementation.trimStart()}`;
 }
 
 export function applyStrictMockReturnType(
