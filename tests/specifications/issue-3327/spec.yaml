@@ -1,0 +1,22 @@
+openapi: 3.0.2
+info:
+  title: issue-3327
+  version: '1.0.0'
+paths:
+  /path:
+    get:
+      operationId: getPath
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Field'
+components:
+  schemas:
+    Field:
+      type: object
+      properties:
+        id:
+          type: string
