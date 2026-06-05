@@ -5,6 +5,7 @@ import type { WriteModeProps } from '../types';
 import {
   conventionName,
   getFileInfo,
+  getSchemasImportPath,
   isFunction,
   isString,
   isSyntheticDefaultImportsAllow,
@@ -80,14 +81,16 @@ export async function writeTagsMode({
 
         let data = header;
 
+        const schemaCustomImportPath = getSchemasImportPath(output.schemas);
         const schemasPathRelative = output.schemas
-          ? upath.getRelativeImportPath(
+          ? (schemaCustomImportPath ??
+            upath.getRelativeImportPath(
               targetPath,
               getFileInfo(
                 isString(output.schemas) ? output.schemas : output.schemas.path,
                 { extension: output.fileExtension },
               ).dirname,
-            )
+            ))
           : './' + filename + '.schemas' + extension.replace(/\.ts$/, '');
 
         const implementationImports = imports.filter((imp) => {

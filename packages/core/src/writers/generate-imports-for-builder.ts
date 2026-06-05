@@ -12,6 +12,9 @@ export function generateImportsForBuilder(
   imports: readonly GeneratorImport[],
   relativeSchemasPath: string,
 ): GeneratorDependency[] {
+  const isPackageImport =
+    isObject(output.schemas) && !!output.schemas.importPath;
+
   const isZodSchemaOutput =
     isObject(output.schemas) && output.schemas.type === 'zod';
 
@@ -21,10 +24,9 @@ export function generateImportsForBuilder(
   // Append `getImportExtension` so NodeNext / Node16 module resolution
   // gets the required local-file extension (e.g. `.js`).
   const schemaFactoryImports = imports.filter((i) => i.schemaFactory);
-  const schemaFactoryImportExtension = getImportExtension(
-    output.fileExtension,
-    output.tsconfig,
-  );
+  const schemaFactoryImportExtension = isPackageImport
+    ? ''
+    : getImportExtension(output.fileExtension, output.tsconfig);
   const schemaFactoryDeps: GeneratorDependency[] =
     schemaFactoryImports.length > 0
       ? [
@@ -69,10 +71,9 @@ export function generateImportsForBuilder(
         : (schemaImport.schemaName ?? schemaImport.name);
       const normalizedName = conventionName(baseName, output.namingConvention);
       const suffix = isZodSchemaOutput ? '.zod' : '';
-      const importExtension = getImportExtension(
-        output.fileExtension,
-        output.tsconfig,
-      );
+      const importExtension = isPackageImport
+        ? ''
+        : getImportExtension(output.fileExtension, output.tsconfig);
       const dependency = upath.joinSafe(
         relativeSchemasPath,
         `${normalizedName}${suffix}${importExtension}`,

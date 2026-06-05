@@ -23,6 +23,7 @@ describe('assertion testing', () => {
   it('checks for reference objects', () => {
     expect(isReference({ $ref: '#/components/schemas/User' })).toBeTruthy();
     expect(isReference({} as Record<string, unknown>)).toBeFalsy();
+    expect(isReference({ $dynamicRef: '#category' })).toBeFalsy();
     // eslint-disable-next-line unicorn/no-null -- testing null handling
     expect(isReference(null as unknown as object)).toBeFalsy();
   });
@@ -134,10 +135,6 @@ describe('isDynamicReference', () => {
     expect(isDynamicReference({ $dynamicRef: 123 } as unknown as object)).toBe(
       false,
     );
-  });
-
-  it('returns false for objects with $dynamicRef but not $ref in isReference', () => {
-    expect(isReference({ $dynamicRef: '#category' })).toBe(false);
   });
 
   it('returns true for objects with $ref in isReference', () => {

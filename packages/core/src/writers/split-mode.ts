@@ -11,6 +11,7 @@ import {
   conventionName,
   getFileInfo,
   getImportExtension,
+  getSchemasImportPath,
   isFunction,
   isString,
   isSyntheticDefaultImportsAllow,
@@ -60,14 +61,16 @@ export async function writeSplitMode({
 
     let implementationData = header;
 
+    const schemaCustomImportPath = getSchemasImportPath(output.schemas);
     const relativeSchemasPath = output.schemas
-      ? upath.getRelativeImportPath(
+      ? (schemaCustomImportPath ??
+        upath.getRelativeImportPath(
           targetPath,
           getFileInfo(
             isString(output.schemas) ? output.schemas : output.schemas.path,
             { extension: output.fileExtension },
           ).dirname,
-        )
+        ))
       : './' + filename + '.schemas' + extension.replace(/\.ts$/, '');
 
     const isAllowSyntheticDefaultImports = isSyntheticDefaultImportsAllow(
