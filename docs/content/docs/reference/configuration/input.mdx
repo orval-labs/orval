@@ -191,7 +191,7 @@ export default defineConfig({
 **Type:** `Boolean`
 **Default:** `false`
 
-When `tags` is set (and `schemas` is not), orval emits only the schemas referenced by the matching operations. Set `includeUnreferencedSchemas: true` to keep **every** `#/components` entry — including schemas referenced by no operation — while still filtering endpoints by `tags`. This works in both `include` and `exclude` mode. It is ignored when `schemas` is set.
+When `tags` is set (and `schemas` is not), orval emits only the schemas referenced by the matching operations. Set `includeUnreferencedSchemas: true` to keep **every** `#/components/schemas` entry — including schemas referenced by no operation — while still filtering endpoints by `tags`. The other component sections (`responses`, `parameters`, `requestBodies`) remain pruned to what the matching operations use. This works in both `include` and `exclude` mode, and is ignored when `schemas` is set.
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';

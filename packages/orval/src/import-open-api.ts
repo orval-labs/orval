@@ -20,8 +20,7 @@ function filterSpecComponents(
   input: InputOptions,
 ): OpenApiDocument {
   const filters = input.filters;
-  if (!filters?.tags || filters.schemas || filters.includeUnreferencedSchemas)
-    return spec;
+  if (!filters?.tags || filters.schemas) return spec;
 
   const referenced = collectReferencedComponents(
     spec,
@@ -29,11 +28,18 @@ function filterSpecComponents(
     filters.mode,
   );
 
+  const allSchemas = spec.components?.schemas ?? {};
+
   return {
     ...spec,
     components: {
       ...spec.components,
-      schemas: pick(spec.components?.schemas ?? {}, referenced.schemas),
+      // `includeUnreferencedSchemas` keeps every `components.schemas` entry —
+      // the section consumers are most likely to depend on — while the other
+      // component sections stay pruned to what the matching operations use.
+      schemas: filters.includeUnreferencedSchemas
+        ? allSchemas
+        : pick(allSchemas, referenced.schemas),
       responses: pick(spec.components?.responses ?? {}, referenced.responses),
       parameters: pick(
         spec.components?.parameters ?? {},

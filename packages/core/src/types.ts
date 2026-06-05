@@ -367,8 +367,10 @@ export interface InputFiltersOptions {
   /**
    * When `tags` is set, orval limits the output to only the schemas referenced
    * by the matching operations. Set this to `true` to keep every
-   * `#/components` entry (including unreferenced ones) while still filtering
-   * endpoints by `tags`. Ignored when `schemas` is set.
+   * `#/components/schemas` entry (including unreferenced ones) while still
+   * filtering endpoints by `tags`. The other component sections (`responses`,
+   * `parameters`, `requestBodies`) remain pruned to what the matching
+   * operations use. Ignored when `schemas` is set.
    *
    * @default false
    */
