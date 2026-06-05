@@ -44,7 +44,7 @@ Edit `withDefaults()` for the common case. Then override the method in the diver
 
 ```bash
 vp run -F @orval/query test                                        # Unit tests
-vp run -F @orval/core build && vp run -F @orval/query build   # Rebuild
+vp run -F @orval/core build:debug && vp run -F @orval/query build:debug   # Rebuild
 vp run update-samples                                                      # Regenerate ALL samples
 # Inspect that framework's sample output
 vp run test:cli                                                            # Verify all generated code compiles

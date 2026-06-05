@@ -31,7 +31,7 @@ jobs:
         run: vp install --frozen-lockfile
 
       - name: Run build
-        run: vp run -w build
+        run: vp run -w build:release
 
       - name: Configure npm authentication
         run: |

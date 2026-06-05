@@ -33,7 +33,7 @@ jobs:
         run: vp fmt --check
 
       - name: Build packages
-        run: vp run -w build
+        run: vp run -w build:release
 
       - name: Lint packages
         run: vp run -w lint

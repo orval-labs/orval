@@ -18,9 +18,10 @@ export const definePackage = (pack: PackUserConfig = {}) =>
     },
     run: {
       tasks: {
-        build: {
+        'build:release': {
           command: 'vp pack',
           cache: true,
+          dependsOn: ['clean'],
           input: [
             'src/**',
             'package.json',
@@ -32,19 +33,19 @@ export const definePackage = (pack: PackUserConfig = {}) =>
           ],
           output: ['dist/**'],
         },
+        'build:debug': {
+          command: 'vp pack --unbundle --sourcemap --no-treeshake',
+          cache: false,
+        },
         typecheck: {
           command: 'tsc --noEmit',
           cache: true,
-          dependsOn: ['build'],
+          dependsOn: ['build:release'],
         },
         test: {
           command: 'vitest run',
           cache: true,
-          dependsOn: ['build'],
-        },
-        watch: {
-          command: 'vp pack --watch --unbundle --sourcemap --no-treeshake',
-          cache: false,
+          dependsOn: ['build:release'],
         },
         clean: {
           command: 'rimraf dist',
