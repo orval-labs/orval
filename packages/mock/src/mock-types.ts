@@ -161,41 +161,6 @@ export function getSchemaTypeNamesFromResponses(
   return [...names];
 }
 
-const STRICT_MOCK_SCHEMA_DECL_PATTERN =
-  /export type (\w+) = \{\n  \[K in keyof Required<(\w+)>]: NonNullable<Required<\2>\[K\]>;\n\};/g;
-
-/** Removes invalid strict-mock aliases emitted for value imports (e.g. getPetMockMock). */
-const INVALID_STRICT_MOCK_DECL_PATTERN =
-  /export type get\w+Mock = \{[\s\S]*?\};\n*/g;
-
-export function collectStrictMockSchemaTypeNames(
-  implementation: string,
-): string[] {
-  const names = new Set<string>();
-
-  for (const match of implementation.matchAll(
-    STRICT_MOCK_SCHEMA_DECL_PATTERN,
-  )) {
-    names.add(match[2]);
-  }
-
-  return [...names];
-}
-
-export function collectStrictMockSchemaNamesFromUsage(
-  implementation: string,
-): string[] {
-  const names = new Set<string>();
-
-  for (const match of implementation.matchAll(
-    /MockWithNullableOverrides<(\w+),/g,
-  )) {
-    names.add(match[1]);
-  }
-
-  return [...names];
-}
-
 export function buildStrictMockTypeFileHeader(
   schemaTypeNames: Iterable<string>,
 ): string {
@@ -208,8 +173,11 @@ export function buildStrictMockTypeFileHeader(
 }
 
 /**
- * MSW/faker operation mocks are concatenated per file with no dedup. Hoist the
- * shared strict-mock helper types and each `{Schema}Mock` alias once at the top.
+ * Prepends shared strict-mock helper types and each `{Schema}Mock` alias once at
+ * the top of a mock file. Generators pass `strictSchemaTypeNames`; no scraping.
+ *
+ * Not idempotent — callers must invoke this exactly once per aggregated mock
+ * file (writers and `writeFakerSchemaMocks`), not from import hooks.
  */
 export function dedupeStrictMockTypeDeclarations(
   implementation: string,
@@ -219,36 +187,16 @@ export function dedupeStrictMockTypeDeclarations(
     return implementation;
   }
 
-  let body = implementation.replaceAll(INVALID_STRICT_MOCK_DECL_PATTERN, '');
-
-  const schemaTypeNames = [
-    ...new Set([
-      ...(options.strictSchemaTypeNames ?? []),
-      ...collectStrictMockSchemaTypeNames(body),
-      ...collectStrictMockSchemaNamesFromUsage(body),
-    ]),
-  ];
-
-  if (
-    schemaTypeNames.length === 0 &&
-    !body.includes('MockWithNullableOverrides<') &&
-    !body.includes('export type KeysWithNull')
-  ) {
-    return body;
+  const schemaTypeNames = options.strictSchemaTypeNames
+    ? [...new Set(options.strictSchemaTypeNames)]
+    : [];
+  if (schemaTypeNames.length === 0) {
+    return implementation;
   }
 
-  const helperBlock = getStrictMockHelperTypeDeclarations();
-
-  body = body.replaceAll(helperBlock, '');
-
-  for (const typeName of schemaTypeNames) {
-    body = body.replaceAll(getStrictMockTypeDeclaration(typeName), '');
-  }
-
-  const trimmedBody = body.replace(/^\n+/, '').trimStart();
   const header = buildStrictMockTypeFileHeader(schemaTypeNames);
 
-  return header ? `${header}\n\n${trimmedBody}` : trimmedBody;
+  return `${header}\n\n${implementation.trimStart()}`;
 }
 
 export function applyStrictMockReturnType(

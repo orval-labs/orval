@@ -6,7 +6,7 @@
  */
 import { faker } from '@faker-js/faker';
 
-import type { Pet } from '.';
+import type { Pet, PetList, Score, Status } from '.';
 
 export type KeysWithNull<O> = {
   [K in keyof O]-?: null extends O[K] ? K : never;
@@ -24,6 +24,18 @@ export type PetMock = {
   [K in keyof Required<Pet>]: NonNullable<Required<Pet>[K]>;
 };
 
+export type StatusMock = {
+  [K in keyof Required<Status>]: NonNullable<Required<Status>[K]>;
+};
+
+export type PetListMock = {
+  [K in keyof Required<PetList>]: NonNullable<Required<PetList>[K]>;
+};
+
+export type ScoreMock = {
+  [K in keyof Required<Score>]: NonNullable<Required<Score>[K]>;
+};
+
 export const getPetMock = <O extends Partial<Pet> = {}>(
   overrideResponse?: O,
 ): MockWithNullableOverrides<Pet, O, PetMock> =>
@@ -38,3 +50,15 @@ export const getPetMock = <O extends Partial<Pet> = {}>(
     ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
     ...overrideResponse,
   }) as MockWithNullableOverrides<Pet, O, PetMock>;
+
+export const getStatusMock = (): StatusMock =>
+  faker.helpers.arrayElement(['active', 'inactive'] as const);
+
+export const getPetListMock = (): PetListMock =>
+  Array.from(
+    { length: faker.number.int({ min: 1, max: 10 }) },
+    (_, i) => i + 1,
+  ).map(() => ({ ...getPetMock() }));
+
+export const getScoreMock = (): ScoreMock =>
+  faker.number.float({ fractionDigits: 2 });

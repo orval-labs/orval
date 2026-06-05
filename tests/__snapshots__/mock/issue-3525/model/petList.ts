@@ -4,8 +4,6 @@
  * Issue 3525 - strict mock return types (OpenAPI 3.0)
  * OpenAPI spec version: 1.0.0
  */
+import type { Pet } from './pet';
 
-export * from './pet';
-export * from './petList';
-export * from './score';
-export * from './status';
+export type PetList = Pet[];

@@ -181,15 +181,19 @@ async function writeFakerSchemaMocks(
     output,
   };
 
-  const { implementation, imports } = generateFakerForSchemas(
-    schemasWithDef,
-    context,
-    fakerEntry,
-  );
+  const { implementation, imports, strictMockSchemaTypeNames } =
+    generateFakerForSchemas(schemasWithDef, context, fakerEntry);
 
   if (!implementation.trim()) {
     return undefined;
   }
+
+  const finalizedImplementation = builder.finalizeMockImplementation
+    ? builder.finalizeMockImplementation(implementation, {
+        mockOptions: output.override.mock,
+        strictSchemaTypeNames: strictMockSchemaTypeNames,
+      })
+    : implementation;
 
   let filePath: string;
   let schemaImportPath: string | undefined;
@@ -242,7 +246,7 @@ async function writeFakerSchemaMocks(
   }
 
   const importsHeader = generateDependencyImports(
-    implementation,
+    finalizedImplementation,
     [
       {
         exports: [{ name: 'faker', values: true }],
@@ -260,7 +264,7 @@ async function writeFakerSchemaMocks(
     false,
   );
 
-  const content = `${header}${importsHeader}\n\n${implementation}`;
+  const content = `${header}${importsHeader}\n\n${finalizedImplementation}`;
   await writeGeneratedFile(filePath, content);
   return filePath;
 }
