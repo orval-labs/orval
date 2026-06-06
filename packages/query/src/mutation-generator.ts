@@ -151,6 +151,55 @@ const getStaticRoutePrefix = (route: string): string | undefined => {
   return hasLiteralSegment ? prefix : undefined;
 };
 
+export const getMutationOptionsUrl = (
+  route: string,
+  pathParamNames: Iterable<string>,
+  pathRoute?: string,
+): string => {
+  const pathParams = new Set(pathParamNames);
+  if (pathParams.size === 0) return route;
+
+  const formatPathRoute = (value: string) =>
+    value.replace(/\$\{([^}]+)\}/g, (match, expression: string) =>
+      pathParams.has(expression) ? `{${expression}}` : match,
+    );
+
+  if (pathRoute) {
+    if (route.endsWith(pathRoute)) {
+      return `${route.slice(0, -pathRoute.length)}${formatPathRoute(
+        pathRoute,
+      )}`;
+    }
+
+    const routeWithoutLeadingSlash = pathRoute.startsWith('/')
+      ? pathRoute.slice(1)
+      : undefined;
+    if (routeWithoutLeadingSlash && route.endsWith(routeWithoutLeadingSlash)) {
+      return `${route.slice(
+        0,
+        -routeWithoutLeadingSlash.length,
+      )}${formatPathRoute(routeWithoutLeadingSlash)}`;
+    }
+  }
+
+  return pathRoute ? route : formatPathRoute(route);
+};
+
+const getMutationOptionsPathParamNames = (
+  props: GeneratorVerbOptions['props'],
+) =>
+  props.flatMap((prop) => {
+    if (prop.type === GetterPropType.PARAM) return [prop.name];
+    if (prop.type === GetterPropType.NAMED_PATH_PARAMS) {
+      return prop.destructured
+        .replace(/^\{\s*|\s*\}$/g, '')
+        .split(',')
+        .map((param) => param.trim())
+        .filter(Boolean);
+    }
+    return [];
+  });
+
 /**
  * Check whether the target invalidation needs to call the query key function.
  * Returns false when no params are specified and the route has required path
@@ -307,6 +356,7 @@ export const generateMutationHook = async ({
     mutator,
     response,
     operationId,
+    route: pathRoute,
     override,
   } = verbOptions;
   const { route, context, output } = options;
@@ -465,7 +515,11 @@ ${
                 mutationOptionsMutator.name
               }({...mutationOptions, mutationFn}${
                 mutationOptionsMutator.hasSecondArg
-                  ? `, { url: \`${route.replaceAll('/${', '/{')}\` }`
+                  ? `, { url: \`${getMutationOptionsUrl(
+                      route,
+                      getMutationOptionsPathParamNames(props),
+                      pathRoute,
+                    )}\` }`
                   : ''
               }${
                 mutationOptionsMutator.hasThirdArg

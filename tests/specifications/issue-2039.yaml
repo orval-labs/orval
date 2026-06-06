@@ -1,0 +1,42 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Issue 2039
+paths:
+  /api/v{version}/entity/{entityId}:
+    post:
+      operationId: createEntity
+      parameters:
+        - name: version
+          in: path
+          required: true
+          schema:
+            type: number
+        - name: entityId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Created entity
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                properties:
+                  id:
+                    type: string

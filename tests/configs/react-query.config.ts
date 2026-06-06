@@ -84,6 +84,26 @@ export default defineConfig({
       target: '../specifications/issue-2540/issue-2540.yaml',
     },
   },
+  issue2039: {
+    output: {
+      target: '../generated/react-query/issue-2039/endpoints.ts',
+      schemas: '../generated/react-query/issue-2039/model',
+      client: 'react-query',
+      override: {
+        query: {
+          mutationOptions: {
+            path: '../mutators/custom-mutation.ts',
+            name: 'useCustomMutation',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-2039.yaml',
+    },
+  },
   // #3301: filtering endpoints by tags must not drop unreferenced
   // `components.schemas`. `includeUnreferencedSchemas: true` keeps every schema
   // (including the orphan `UnusedModel`/`UnusedStatus`) while the `stream` tag
