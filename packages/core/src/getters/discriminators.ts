@@ -45,7 +45,15 @@ export function resolveDiscriminators(
           subTypeSchema = transformedSchemas[mappingValue];
         }
 
-        if (isBoolean(subTypeSchema) || propertyName === undefined) {
+        // The mapped subtype may be missing from the schema set — e.g. a
+        // subtype removed by `filters.tags`, or absent in a malformed spec —
+        // in which case there is nothing to augment. Skip it rather than
+        // dereferencing `undefined`.
+        if (
+          subTypeSchema === undefined ||
+          isBoolean(subTypeSchema) ||
+          propertyName === undefined
+        ) {
           continue;
         }
 
