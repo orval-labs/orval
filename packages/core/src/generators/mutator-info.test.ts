@@ -278,6 +278,20 @@ describe('getMutatorInfo', () => {
     });
   });
 
+  describe('named re-export', () => {
+    // Regression test for https://github.com/orval-labs/orval/issues/2342.
+    // A mutator file may re-export the configured mutator from another
+    // package. The external module is not bundled, so orval cannot inspect
+    // its arity and falls back to the standard single-arg mutator contract.
+    it('should accept a named mutator re-export from an external module', async () => {
+      const result = await getMutatorInfo(
+        path.join(basePath, 're-export-tests', 'external-named-export.ts'),
+        { namedExport: 'customInstance' },
+      );
+      expect(result).toEqual({ numberOfParams: 1 });
+    });
+  });
+
   describe('factory call expression', () => {
     // Regression test for https://github.com/orval-labs/orval/issues/3402.
     // When a mutator is defined as `export const foo = makeFactory(...)` or
