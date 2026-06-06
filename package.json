@@ -61,7 +61,7 @@
     "typescript": "5.9.3",
     "npm-run-all2": "8.0.4",
     "vite": "7.2.2",
-    "vite-plus": "0.1.22",
+    "vite-plus": "0.1.24",
     "vitest": "4.0.18",
     "@types/node": "22.18.12",
     "@scalar/openapi-types": "0.8.0"
