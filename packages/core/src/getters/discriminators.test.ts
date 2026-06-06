@@ -733,7 +733,7 @@ describe('resolveDiscriminators getter', () => {
     // assertions below already proves it was skipped. The surviving subtype is
     // still augmented with its discriminant.
     const result = resolveDiscriminators(structuredClone(schemas), context);
-    const catProps = (result.Cat as OpenApiSchemaObject).properties as
+    const catProps = result.Cat.properties as
       | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
       | undefined;
     expect(catProps?.petType).toMatchObject({
