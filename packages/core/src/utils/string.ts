@@ -270,6 +270,47 @@ export function jsStringEscape(input: string) {
 }
 
 /**
+ * Escape a string for embedding inside a single-quoted JS string literal.
+ *
+ * Unlike {@link jsStringEscape}, this escapes only what a string literal
+ * actually needs: backslashes, single quotes, and line terminators. It
+ * deliberately does NOT escape `/` or `*`, which are meaningless inside a
+ * string literal, so escaping them produces "useless escapes" that round-trip
+ * to the same value but trip ESLint's `no-useless-escape` in generated code
+ * (e.g. RegExp pattern literals, see #3337).
+ *
+ * Use {@link jsStringEscape} instead when the value is embedded in a JS comment,
+ * where the comment delimiters must be neutralized.
+ *
+ * @param input String to escape
+ */
+export function jsStringLiteralEscape(input: string) {
+  return input.replaceAll(/['\\\n\r\u2028\u2029]/g, (character) => {
+    switch (character) {
+      case "'":
+      case '\\': {
+        return '\\' + character;
+      }
+      case '\n': {
+        return String.raw`\n`;
+      }
+      case '\r': {
+        return String.raw`\r`;
+      }
+      case '\u2028': {
+        return String.raw`\u2028`;
+      }
+      case '\u2029': {
+        return String.raw`\u2029`;
+      }
+      default: {
+        return '';
+      }
+    }
+  });
+}
+
+/**
  * Deduplicates a TypeScript union type string.
  * Handles types like "A | B | B" → "A | B" and "null | null" → "null".
  * Only splits on top-level | (not inside {} () [] <> or string literals).

@@ -3660,6 +3660,34 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(regexpConsts).toHaveLength(1);
   });
 
+  it('emits a RegExp pattern literal without useless escapes (#3337)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      pattern: String.raw`^(0|[1-9]\d*)$`,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      'sbu',
+      false,
+      false,
+      { required: true },
+    );
+
+    const regexpConst = result.consts.find((c) => c.includes('RegExp'));
+    expect(regexpConst).toBeDefined();
+    // The `*` quantifier must stay bare — `\*` would trip `no-useless-escape`.
+    expect(regexpConst).not.toContain(String.raw`\*`);
+    expect(regexpConst).toContain(String.raw`new RegExp('^(0|[1-9]\\d*)$')`);
+  });
+
   it('does not emit stringFormat for custom format+pattern in v3', () => {
     const schemaFormatPattern: OpenApiSchemaObject = {
       type: 'string',
