@@ -56,3 +56,68 @@ describe('writeSplitTagsMode — schemas path follows needSchema (#2309)', () =>
     expect(fs.existsSync(schemasPath)).toBe(true);
   });
 });
+
+describe('writeSplitTagsMode — barrel index.ts at target root (#3553)', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-split-tags-barrel-'));
+  });
+
+  afterEach(() => {
+    fs.removeSync(tmpDir);
+  });
+
+  it('writes index.ts when indexFiles is true', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: true,
+      }),
+    };
+
+    const paths = await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const indexPath = path.join(tmpDir, 'index.ts');
+    expect(paths).toContain(indexPath);
+    expect(fs.existsSync(indexPath)).toBe(true);
+
+    const content = fs.readFileSync(indexPath, 'utf8');
+    expect(content).toContain("export * from './pets/pets'\n");
+  });
+
+  it('does not write index.ts when indexFiles is false', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: false,
+      }),
+    };
+
+    const paths = await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const indexPath = path.join(tmpDir, 'index.ts');
+    expect(paths).not.toContain(indexPath);
+    expect(fs.existsSync(indexPath)).toBe(false);
+  });
+
+  it('includes index.ts in returned file list', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: true,
+      }),
+    };
+
+    const paths = await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const indexPath = path.join(tmpDir, 'index.ts');
+    expect(paths).toContain(indexPath);
+  });
+});
