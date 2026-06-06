@@ -5,6 +5,7 @@ import {
   escape,
   escapeRegExp,
   jsStringEscape,
+  jsStringLiteralEscape,
   stringify,
 } from './string';
 
@@ -208,6 +209,62 @@ describe('jsStringEscape', () => {
       expect(jsStringEscape('\n\n')).toBe(String.raw`\n\n`);
       expect(jsStringEscape('/*')).toBe(String.raw`\/\*`);
       expect(jsStringEscape('*/')).toBe(String.raw`\*\/`);
+    });
+  });
+});
+
+describe('jsStringLiteralEscape', () => {
+  describe('escapes only what a single-quoted string literal needs', () => {
+    it('escapes single quotes', () => {
+      expect(jsStringLiteralEscape("don't")).toBe(String.raw`don\'t`);
+    });
+
+    it('escapes backslashes', () => {
+      expect(jsStringLiteralEscape(String.raw`path\to\file`)).toBe(
+        String.raw`path\\to\\file`,
+      );
+    });
+
+    it('escapes line terminators', () => {
+      expect(jsStringLiteralEscape('line1\nline2')).toBe(
+        String.raw`line1\nline2`,
+      );
+      expect(jsStringLiteralEscape('line1\rline2')).toBe(
+        String.raw`line1\rline2`,
+      );
+      // Line/paragraph separators (U+2028/U+2029) escape to text.
+      expect(jsStringLiteralEscape('\u2028\u2029')).toBe(
+        String.raw`\u2028\u2029`,
+      );
+    });
+  });
+
+  describe('does NOT escape characters that are meaningless inside a string literal', () => {
+    // These would produce `no-useless-escape` errors in generated code (#3337).
+    it('does not escape asterisks', () => {
+      expect(jsStringLiteralEscape('hello*world')).toBe('hello*world');
+    });
+
+    it('does not escape forward slashes', () => {
+      expect(jsStringLiteralEscape('path/to/file')).toBe('path/to/file');
+    });
+
+    it('does not escape double quotes', () => {
+      expect(jsStringLiteralEscape('say "hello"')).toBe('say "hello"');
+    });
+
+    it('does not escape comment delimiters', () => {
+      expect(jsStringLiteralEscape('/* comment */')).toBe('/* comment */');
+    });
+  });
+
+  describe('RegExp pattern (#3337)', () => {
+    it('keeps a quantifier pattern free of useless escapes', () => {
+      // `\d` survives the string-literal layer as `\\d`; `*` stays bare so the
+      // generated `new RegExp('...')` does not trip `no-useless-escape`.
+      const escaped = jsStringLiteralEscape(String.raw`^(0|[1-9]\d*)$`);
+      expect(escaped).toBe(String.raw`^(0|[1-9]\\d*)$`);
+      expect(escaped).not.toContain(String.raw`\*`);
     });
   });
 });
