@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { getMutationOptionsUrl } from './mutation-generator';
+import { GetterPropType } from '@orval/core';
+
+import {
+  getMutationOptionsPathParamNames,
+  getMutationOptionsUrl,
+} from './mutation-generator';
 
 describe('getMutationOptionsUrl', () => {
   it('keeps static routes unchanged', () => {
@@ -52,5 +57,37 @@ describe('getMutationOptionsUrl', () => {
     expect(
       getMutationOptionsUrl('/api/${tenant}/entity/${entityId}', ['entityId']),
     ).toBe('/api/${tenant}/entity/{entityId}');
+  });
+});
+
+describe('getMutationOptionsPathParamNames', () => {
+  it('extracts names from destructured named path params', () => {
+    expect(
+      getMutationOptionsPathParamNames([
+        {
+          type: GetterPropType.PARAM,
+          name: 'petId',
+          definition: 'petId: string',
+          implementation: 'petId',
+          default: undefined,
+          required: true,
+        },
+        {
+          type: GetterPropType.NAMED_PATH_PARAMS,
+          name: 'params',
+          definition: 'params: PathParams',
+          implementation:
+            '{ version = 1, entityId: entity, ...rest, tenantId }',
+          default: false,
+          required: true,
+          destructured: '{ version = 1, entityId: entity, ...rest, tenantId }',
+          schema: {
+            name: 'PathParams',
+            model: '',
+            imports: [],
+          },
+        },
+      ]),
+    ).toEqual(['petId', 'version', 'entityId', 'tenantId']);
   });
 });

@@ -185,7 +185,15 @@ export const getMutationOptionsUrl = (
   return pathRoute ? route : formatPathRoute(route);
 };
 
-const getMutationOptionsPathParamNames = (
+const getMutationOptionsNamedPathParamName = (param: string) => {
+  const trimmedParam = param.trim();
+  if (!trimmedParam || trimmedParam.startsWith('...')) return undefined;
+
+  const [name] = trimmedParam.split(/[=:]/);
+  return name?.trim() || undefined;
+};
+
+export const getMutationOptionsPathParamNames = (
   props: GeneratorVerbOptions['props'],
 ) =>
   props.flatMap((prop) => {
@@ -194,8 +202,10 @@ const getMutationOptionsPathParamNames = (
       return prop.destructured
         .replace(/^\{\s*|\s*\}$/g, '')
         .split(',')
-        .map((param) => param.trim())
-        .filter(Boolean);
+        .flatMap((param) => {
+          const name = getMutationOptionsNamedPathParamName(param);
+          return name ? [name] : [];
+        });
     }
     return [];
   });
