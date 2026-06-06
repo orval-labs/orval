@@ -729,11 +729,9 @@ describe('resolveDiscriminators getter', () => {
       },
     };
 
-    expect(() =>
-      resolveDiscriminators(structuredClone(schemas), context),
-    ).not.toThrow();
-
-    // The surviving subtype is still augmented with its discriminant.
+    // Dereferencing the absent `Dog` target would throw, so reaching the
+    // assertions below already proves it was skipped. The surviving subtype is
+    // still augmented with its discriminant.
     const result = resolveDiscriminators(structuredClone(schemas), context);
     const catProps = (result.Cat as OpenApiSchemaObject).properties as
       | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
