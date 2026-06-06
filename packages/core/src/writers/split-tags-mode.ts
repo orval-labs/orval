@@ -75,7 +75,9 @@ export async function writeSplitTagsMode({
     }
   }
 
-  const tagEntries = Object.entries(target);
+  const tagEntries = Object.entries(target).toSorted(([a], [b]) =>
+    a.localeCompare(b),
+  );
 
   const generatedFilePathsArray = await Promise.all(
     tagEntries.map(async ([tag, target]) => {
@@ -349,7 +351,7 @@ export async function writeSplitTagsMode({
           tag,
           tag + serviceSuffix + importExtension,
         );
-        return `export * from '${tagFile}'\n`;
+        return `export * from '${tagFile}';\n`;
       })
       .join('');
     indexFilePath = path.join(dirname, `index${extension}`);
