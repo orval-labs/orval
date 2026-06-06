@@ -255,14 +255,23 @@ export async function normalizeOptions(
         'mock.generators must be an array of generator entries (e.g. [{ type: "msw" }]).',
       );
     }
+    const sharedMockPath =
+      mocksOption.path && isString(mocksOption.path)
+        ? normalizePath(mocksOption.path, outputWorkspace)
+        : undefined;
     mocks = {
       indexMockFiles: mocksOption.indexMockFiles ?? false,
+      path: sharedMockPath,
       generators: mocksOption.generators.map((m) =>
         isFunction(m)
           ? m
           : ({
               ...getDefaultMockOptionsForType(m.type),
               ...m,
+              path:
+                m.path && isString(m.path)
+                  ? normalizePath(m.path, outputWorkspace)
+                  : sharedMockPath,
             } as GlobalMockOptions),
       ),
     };

@@ -5,10 +5,11 @@ import fs from 'fs-extra';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  createSplitModeOperation,
   createSplitModeOutput,
   createSplitModeProps,
 } from '../test-utils/split-modes';
-import { OutputMode } from '../types';
+import { type GeneratorDependency, OutputMockType, OutputMode } from '../types';
 import { writeTagsMode } from './tags-mode';
 
 // Regression coverage for https://github.com/orval-labs/orval/issues/2309
@@ -54,5 +55,193 @@ describe('writeTagsMode — schemas path follows needSchema (#2309)', () => {
     const schemasPath = path.join(tmpDir, 'petstore.schemas.ts');
     expect(paths).toContain(schemasPath);
     expect(fs.existsSync(schemasPath)).toBe(true);
+  });
+});
+
+// Regression: when some mock generators have an explicit `path` and others
+// fall back to `dirname` (no shared `mock.path`), the generators without a
+// path must still compute the correct relative schema import from the mock
+// file's actual location (one level deeper in `<dirname>/<kebabTag>/`).
+
+describe('writeTagsMode — mixed generator paths use correct schema imports', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-tags-mode-'));
+  });
+
+  afterEach(() => {
+    fs.removeSync(tmpDir);
+  });
+
+  it('uses correct schema import when MSW has no path but another generator does', async () => {
+    const fakerDir = path.join(tmpDir, 'faker-output');
+    const target = path.join(tmpDir, 'petstore.ts');
+
+    const mockImportsCalls: {
+      imports: { dependency: string }[];
+    }[] = [];
+    const baseProps = createSplitModeProps(target);
+
+    const props = {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        operations: {
+          listPets: createSplitModeOperation({
+            mockOutputs: [
+              {
+                type: OutputMockType.MSW,
+                implementation: {
+                  function: '',
+                  handler: '',
+                  handlerName: 'mockHandler',
+                },
+                imports: [{ name: 'Pet' }],
+              },
+            ],
+          }),
+        },
+        importsMock: (args: Record<string, unknown>) => {
+          mockImportsCalls.push(
+            args as unknown as (typeof mockImportsCalls)[number],
+          );
+          return '';
+        },
+      },
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS,
+        schemas: path.join(tmpDir, 'model'),
+        mock: {
+          indexMockFiles: false,
+          generators: [
+            { type: OutputMockType.MSW },
+            { type: OutputMockType.FAKER, path: fakerDir },
+          ],
+        },
+      }),
+    };
+
+    await writeTagsMode({ ...props, needSchema: false });
+
+    const mswMockPath = path.join(tmpDir, 'pets', 'pets.msw.ts');
+    expect(fs.existsSync(mswMockPath)).toBe(true);
+
+    const mswMockCall = mockImportsCalls.find((call) =>
+      call.imports.some(
+        (imp) =>
+          imp.dependency.includes('model') && imp.dependency.startsWith('../'),
+      ),
+    );
+    expect(mswMockCall).toBeDefined();
+  });
+});
+
+// Regression: when `shouldDeinlineMocks` is true (a generator or shared
+// `mock.path` is set) and `indexMockFiles: true`, tags mode must emit a
+// dedicated `index.msw.ts` barrel re-exporting the per-tag mock under
+// `get<PascalledTag>Mock`. The function name must be built from the same
+// transformation the mock file uses (`pascal(kebab(tag))` because
+// `generateTargetForTags` stores tags in their kebab form).
+
+describe('writeTagsMode — index mock barrel re-exports get<PascalledTag>Mock', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-tags-mode-'));
+  });
+
+  afterEach(() => {
+    fs.removeSync(tmpDir);
+  });
+
+  it('re-exports the per-tag mock from the index mock barrel', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const mockDir = path.join(tmpDir, 'mocks');
+    const baseProps = createSplitModeProps(target);
+
+    const props = {
+      ...baseProps,
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS,
+        mock: {
+          indexMockFiles: true,
+          // `path` triggers `shouldDeinlineMocks` so the per-tag mock file
+          // (and the re-exporting index barrel) is actually written.
+          path: mockDir,
+          generators: [{ type: OutputMockType.MSW }],
+        },
+      }),
+    };
+
+    await writeTagsMode({ ...props, needSchema: false });
+
+    const indexMockPath = path.join(mockDir, 'index.msw.ts');
+    expect(fs.existsSync(indexMockPath)).toBe(true);
+    const content = fs.readFileSync(indexMockPath, 'utf8');
+    // The tag is `pets`; `pascal('pets')` is `Pets`. The barrel must
+    // re-export `getPetsMock` (not e.g. `getListPetsMock`) to match the
+    // function name the per-tag mock file actually defines.
+    expect(content).toMatch(
+      /export \{ getPetsMock \} from '\.\/pets\/pets\.msw'/,
+    );
+  });
+});
+
+describe('writeTagsMode — inline mocks upgrade schema imports used at runtime', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-tags-mode-'));
+  });
+
+  afterEach(() => {
+    fs.removeSync(tmpDir);
+  });
+
+  it('marks an implementation schema import as a runtime import when the mock needs it', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const importsCalls: Array<{ imports: readonly GeneratorDependency[] }> = [];
+    const baseProps = createSplitModeProps(target);
+    const props = {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        operations: {
+          listPets: createSplitModeOperation({
+            imports: [{ name: 'DisplayColor' }],
+            implementation: 'export type Color = DisplayColor;',
+            mockOutputs: [
+              {
+                type: OutputMockType.MSW,
+                implementation: {
+                  function: '',
+                  handler: '',
+                  handlerName: 'mockHandler',
+                },
+                imports: [{ name: 'DisplayColor', values: true }],
+              },
+            ],
+          }),
+        },
+        imports: (args: { imports: readonly GeneratorDependency[] }) => {
+          importsCalls.push(args);
+          return '';
+        },
+      },
+      output: createSplitModeOutput(target, { mode: OutputMode.TAGS }),
+    };
+
+    await writeTagsMode({ ...props, needSchema: false });
+
+    expect(importsCalls[0]?.imports).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          exports: expect.arrayContaining([
+            expect.objectContaining({ name: 'DisplayColor', values: true }),
+          ]),
+        }),
+      ]),
+    );
   });
 });

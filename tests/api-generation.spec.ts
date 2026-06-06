@@ -1045,6 +1045,7 @@ test('default index-mock-file-split emits dedicated mock barrels in split mode (
   expect(fakerBarrel).toMatch(/export \* from '\.\/endpoints\.faker'/);
 });
 
+<<<<<<< HEAD
 test('react-query issue-3534 includes baseUrl in the broad-invalidation predicate', async () => {
   // Regression for #3534: when `baseUrl` is set, query keys are prefixed with
   // it (e.g. `${process.env.API_URL}/pets/${petId}`). The predicate-based broad
@@ -1138,4 +1139,26 @@ test('react-query issue-3534 carries baseUrl on the verb-prefixed key element', 
   expect(content).toContain(
     'query.queryKey[1].startsWith(`${process.env.API_URL}/pets/`)',
   );
+});
+
+test('mock function generator is treated as MSW in every write mode (#3554)', async () => {
+  const splitFile = generated(
+    'mock',
+    'petstore-custom-mock-builder-split',
+    'endpoints.msw.ts',
+  );
+  const tagsSplitFile = generated(
+    'mock',
+    'petstore-custom-mock-builder-tags-split',
+    'pets',
+    'pets.msw.ts',
+  );
+
+  const splitContent = await readFile(splitFile, 'utf8');
+  expect(splitContent).toContain('listPetsMockHandler');
+  expect(splitContent).toContain('const listPetsMockHandler =');
+
+  const tagsSplitContent = await readFile(tagsSplitFile, 'utf8');
+  expect(tagsSplitContent).toContain('listPetsMockHandler');
+  expect(tagsSplitContent).toContain('const listPetsMockHandler =');
 });
