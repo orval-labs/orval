@@ -9,9 +9,9 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test --no-watch",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
-    "test:snapshots:update": "bun run test:snapshots --update",
+    "test:snapshots:update": "vp run test:snapshots --update",
     "lint": "ng lint",
-    "generate-api": "orval",
+    "generate-api": "vp exec orval",
     "clean": "rimraf .turbo dist .angular src/api",
     "nuke": "rimraf .turbo dist .angular src/api node_modules"
   },

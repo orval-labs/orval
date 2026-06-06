@@ -1,6 +1,6 @@
 # composite-routes-with-tags-split
 
-```
-bun install
-bun run dev
+```bash
+vp install
+vp run dev
 ```

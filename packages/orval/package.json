@@ -1,55 +1,35 @@
 {
   "name": "orval",
-  "description": "A swagger client generator for typescript",
   "version": "8.15.0",
-  "license": "MIT",
-  "type": "module",
-  "files": [
-    "dist",
-    "!dist/**/*.d.ts.map",
-    "!dist/**/*.d.mts.map"
-  ],
-  "bin": "./dist/bin/orval.mjs",
-  "types": "./dist/index.d.mts",
-  "exports": {
-    ".": {
-      "development": "./src/index.ts",
-      "default": "./dist/index.mjs"
-    },
-    "./bin/orval": {
-      "development": "./src/bin/orval.ts",
-      "default": "./dist/bin/orval.mjs"
-    },
-    "./package.json": "./package.json"
-  },
-  "engines": {
-    "node": ">=22.18.0"
-  },
+  "description": "A swagger client generator for typescript",
   "keywords": [
-    "rest",
-    "client",
-    "swagger",
-    "open-api",
-    "fetch",
-    "data fetching",
-    "code-generation",
     "angular",
+    "axios",
+    "client",
+    "code-generation",
+    "data fetching",
+    "effect",
+    "fetch",
+    "hono",
+    "mock",
+    "msw",
+    "open-api",
     "react",
     "react-query",
+    "rest",
     "svelte",
     "svelte-query",
-    "vue",
-    "vue-query",
-    "msw",
-    "mock",
-    "axios",
-    "vue-query",
-    "vue",
+    "swagger",
     "swr",
-    "zod",
-    "effect",
-    "hono"
+    "vue",
+    "vue-query",
+    "zod"
   ],
+  "homepage": "https://orval.dev",
+  "bugs": {
+    "url": "https://github.com/orval-labs/orval/issues"
+  },
+  "license": "MIT",
   "author": {
     "name": "Victor Bury",
     "email": "victor@anymaniax.com"
@@ -58,18 +38,20 @@
     "type": "git",
     "url": "git+https://github.com/orval-labs/orval.git"
   },
-  "homepage": "https://orval.dev",
-  "bugs": {
-    "url": "https://github.com/orval-labs/orval/issues"
+  "bin": {
+    "orval": "./dist/bin/orval.mjs"
   },
-  "scripts": {
-    "build": "tsdown --config-loader unrun",
-    "dev": "tsdown --config-loader unrun --watch src",
-    "lint": "eslint .",
-    "test": "vitest",
-    "typecheck": "tsc --noEmit",
-    "clean": "rimraf .turbo dist",
-    "nuke": "rimraf .turbo dist node_modules"
+  "files": [
+    "dist",
+    "!dist/**/*.d.ts.map",
+    "!dist/**/*.d.mts.map"
+  ],
+  "type": "module",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./bin/orval": "./dist/bin/orval.mjs",
+    "./package.json": "./package.json"
   },
   "dependencies": {
     "@commander-js/extra-typings": "^14.0.0",
@@ -106,9 +88,7 @@
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/js-yaml": "^4.0.9",
-    "eslint": "catalog:",
     "rimraf": "catalog:",
-    "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
@@ -120,11 +100,7 @@
       "optional": true
     }
   },
-  "publishConfig": {
-    "exports": {
-      ".": "./dist/index.mjs",
-      "./bin/orval": "./dist/bin/orval.mjs",
-      "./package.json": "./package.json"
-    }
+  "engines": {
+    "node": ">=22.18.0"
   }
 }
