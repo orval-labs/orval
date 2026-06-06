@@ -125,12 +125,13 @@ function isImportedBinding(ast: Program, name: string): boolean {
   });
 }
 
-// Default for mutator exports whose initializer is a CallExpression
-// (factory pattern, e.g. `axios.create({...})`). The AST cannot reveal
-// the returned callable's arity, so we assume the orval standard
-// contract: a single-arg mutator invoked as
-// `customInstance({ url, method, data, ... })`.
-// See https://github.com/orval-labs/orval/issues/3402.
+// Default for mutator exports where arity cannot be inspected:
+// factory-pattern CallExpression initializers (e.g. `axios.create({...})`)
+// and external re-exports. In both cases, the AST cannot reveal the returned
+// callable's arity, so we assume the orval standard contract:
+// a single-arg mutator invoked as `customInstance({ url, method, data, ... })`.
+// See https://github.com/orval-labs/orval/issues/3402 and
+// https://github.com/orval-labs/orval/issues/2342.
 function standardMutatorInfo(): GeneratorMutatorParsingInfo {
   return { numberOfParams: 1 };
 }
