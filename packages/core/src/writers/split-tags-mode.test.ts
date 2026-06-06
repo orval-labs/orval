@@ -308,3 +308,86 @@ describe('writeSplitTagsMode — mock barrel extension follows tsconfig', () => 
     expect(content).toContain("from './pets/pets.msw.js'");
   });
 });
+
+describe('writeSplitTagsMode — barrel index.ts at target root (#3553)', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-split-tags-barrel-'));
+  });
+
+  afterEach(() => {
+    fs.removeSync(tmpDir);
+  });
+
+  it('writes index.ts when indexFiles is true', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: true,
+      }),
+    };
+
+    const paths = await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const indexPath = path.join(tmpDir, 'index.ts');
+    expect(paths).toContain(indexPath);
+    expect(fs.existsSync(indexPath)).toBe(true);
+
+    const content = fs.readFileSync(indexPath, 'utf8');
+    expect(content).toContain("export * from './pets/pets'");
+  });
+
+  it('does not write index.ts when indexFiles is false', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: false,
+      }),
+    };
+
+    const paths = await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const indexPath = path.join(tmpDir, 'index.ts');
+    expect(paths).not.toContain(indexPath);
+    expect(fs.existsSync(indexPath)).toBe(false);
+  });
+
+  it('includes index.ts in returned file list', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: true,
+      }),
+    };
+
+    const paths = await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const indexPath = path.join(tmpDir, 'index.ts');
+    expect(paths).toContain(indexPath);
+  });
+
+  it('does not write index.ts when output.workspace is set', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: true,
+        workspace: path.join(tmpDir, 'workspace'),
+      }),
+    };
+
+    const paths = await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const indexPath = path.join(tmpDir, 'index.ts');
+    expect(paths).not.toContain(indexPath);
+    expect(fs.existsSync(indexPath)).toBe(false);
+  });
+});

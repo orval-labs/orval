@@ -363,6 +363,28 @@ export async function writeSplitTagsMode({
     }
   }
 
+  let indexFilePath: string | undefined;
+  if (output.indexFiles && !output.workspace && tagEntries.length > 0) {
+    const importExtension = getImportExtension(
+      output.fileExtension,
+      output.tsconfig,
+    );
+    const serviceSuffix =
+      OutputClient.ANGULAR === output.client ? '.service' : '';
+    const indexContent = tagEntries
+      .map(([tag]) => {
+        const tagFile = upath.joinSafe(
+          './',
+          tag,
+          tag + serviceSuffix + importExtension,
+        );
+        return `export * from '${tagFile}'\n`;
+      })
+      .join('');
+    indexFilePath = path.join(dirname, `index${extension}`);
+    await writeGeneratedFile(indexFilePath, indexContent);
+  }
+
   return [
     ...new Set([
       ...(output.mock.indexMockFiles
@@ -370,6 +392,7 @@ export async function writeSplitTagsMode({
             path.join(mockDir, `index.${ext}${extension}`),
           )
         : []),
+      ...(indexFilePath ? [indexFilePath] : []),
       ...generatedFilePathsArray.flat(),
     ]),
   ];
