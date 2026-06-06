@@ -34,6 +34,14 @@ interface CombineSchemasMockOptions {
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
+  // Names of schemas currently being expanded as `allOf` bases along the active
+  // resolution path. Unlike `existingReferencedProperties` (which records every
+  // visited `$ref`, including `oneOf`/`anyOf` variants and properties), this
+  // tracks *only* the `allOf` inheritance chain. It lets us break cycles made of
+  // top-level named schemas that extend each other via `allOf`
+  // (e.g. `A: allOf[B]`, `B: allOf[A]`), where every `item.isRef` is true so the
+  // `!item.isRef` guard below never fires. See the `shouldSkipRef` comment.
+  existingReferencedAllOfRefs?: string[];
   splitMockImplementations: string[];
 }
 
@@ -47,6 +55,7 @@ export function combineSchemasMock({
   context,
   imports,
   existingReferencedProperties,
+  existingReferencedAllOfRefs = [],
   splitMockImplementations,
 }: CombineSchemasMockOptions): MockDefinition {
   const combineImports: GeneratorImport[] = [];
@@ -134,6 +143,7 @@ export function combineSchemasMock({
           context,
           imports,
           existingReferencedProperties,
+          existingReferencedAllOfRefs,
           splitMockImplementations,
         })
       : undefined;
@@ -161,6 +171,14 @@ export function combineSchemasMock({
     // For allOf: skip if refName is in existingRefs AND this is an inline schema (not a top-level ref)
     // This allows top-level schemas (item.isRef=true) to get base properties from allOf
     // while preventing circular allOf chains in inline property schemas.
+    // Additionally skip if refName is already on the active `allOf` chain
+    // (`existingReferencedAllOfRefs`): a cycle made purely of top-level named
+    // schemas (`A: allOf[B]`, `B: allOf[A]`) has `item.isRef === true` at every
+    // hop, so the `!item.isRef` clause never fires and the chain would otherwise
+    // recurse until the stack overflows. The path-scoped chain still allows the
+    // legitimate polymorphic base-pull (a discriminator parent reached via
+    // `oneOf`, then expanded once as a variant's `allOf` base) because that base
+    // was never entered through `allOf`.
     // For oneOf/anyOf: skip variants that point back to an already-visited schema,
     // otherwise polymorphic recursion (e.g. Base.Parent → oneOf [Derived → allOf [Base]])
     // would infinitely re-expand.
@@ -168,7 +186,8 @@ export function combineSchemasMock({
       separator === 'allOf'
         ? refName &&
           (refName === item.name ||
-            (existingReferencedProperties.includes(refName) && !item.isRef))
+            (existingReferencedProperties.includes(refName) && !item.isRef) ||
+            existingReferencedAllOfRefs.includes(refName))
         : refName && existingReferencedProperties.includes(refName);
 
     if (shouldSkipRef) {
@@ -218,6 +237,13 @@ export function combineSchemasMock({
       context,
       imports,
       existingReferencedProperties,
+      // Record this `allOf` base on the path so a later hop that points back to
+      // it (a cycle) is skipped by `shouldSkipRef`. Only grows on the `allOf`
+      // branch; `oneOf`/`anyOf` variants keep the inherited chain unchanged.
+      existingReferencedAllOfRefs:
+        separator === 'allOf' && refName
+          ? [...existingReferencedAllOfRefs, refName]
+          : existingReferencedAllOfRefs,
       splitMockImplementations,
     });
 

@@ -1521,3 +1521,140 @@ describe('strict mock types (#3525)', () => {
     );
   });
 });
+
+describe('recursion guards for cyclic allOf schemas', () => {
+  const override = {
+    operations: {},
+    tags: {},
+    mock: {},
+  } as NormalizedOverrideOutput;
+
+  // Drive generateMSW end-to-end with a response body that resolves to `root`,
+  // with `schemas` available on the spec for $ref resolution. This exercises
+  // the same expansion path that overflowed the stack on specs containing
+  // allOf inheritance cycles between named component schemas — e.g. the
+  // serialized System.Xml.Linq.* XML DOM types, where XElement → XContainer →
+  // XNode → XObject and the base references its subtypes back. The earlier
+  // `!item.isRef` allOf guard could not break such cycles because every hop is
+  // a top-level $ref; the allOf-ancestor chain (existingReferencedAllOfRefs) now
+  // does. A regression here throws `RangeError: Maximum call stack size exceeded`.
+  const run = (schemas: Record<string, unknown>, root: string) => {
+    const verbOptions = {
+      operationId: 'getRoot',
+      verb: 'get',
+      tags: [],
+      response: {
+        imports: [{ name: root, values: false }],
+        definition: { success: root },
+        types: {
+          success: [
+            {
+              key: '200',
+              value: root,
+              contentType: 'application/json',
+              originalSchema: { $ref: `#/components/schemas/${root}` },
+              imports: [{ name: root, values: false }],
+              schemas: [],
+              isRef: true,
+            },
+          ],
+          errors: [],
+        },
+        contentTypes: ['application/json'],
+      },
+    } as unknown as GeneratorVerbOptions;
+
+    const options = {
+      route: '/root',
+      pathRoute: '/root',
+      output: 'test',
+      override,
+      mock: { type: OutputMockType.MSW, delay: false },
+      context: {
+        target: 'test',
+        workspace: '',
+        spec: {
+          openapi: '3.0.0',
+          info: { title: 'Test', version: '1.0.0' },
+          paths: {},
+          components: { schemas },
+        },
+        output: {
+          target: 'test',
+          namingConvention: 'camelCase',
+          fileExtension: '.ts',
+          mode: 'single',
+          override,
+          client: 'axios-functions',
+          httpClient: 'fetch',
+          clean: false,
+          docs: false,
+          formatter: undefined,
+          headers: false,
+          indexFiles: true,
+          allParamsOptional: false,
+          urlEncodeParameters: false,
+          unionAddMissingProperties: false,
+          optionsParamRequired: false,
+          propertySortOrder: 'specification',
+        },
+      },
+    } as unknown as GeneratorOptions;
+
+    return generateMSW(verbOptions, options);
+  };
+
+  it('does not overflow on a mutual allOf cycle (A allOf B, B allOf A)', () => {
+    const schemas = {
+      A: { allOf: [{ $ref: '#/components/schemas/B' }] },
+      B: { allOf: [{ $ref: '#/components/schemas/A' }] },
+    };
+    expect(() => run(schemas, 'A')).not.toThrow();
+  });
+
+  it('does not overflow on a multi-hop allOf inheritance cycle', () => {
+    const schemas = {
+      A: { allOf: [{ $ref: '#/components/schemas/B' }] },
+      B: { allOf: [{ $ref: '#/components/schemas/C' }] },
+      C: { allOf: [{ $ref: '#/components/schemas/A' }] },
+    };
+    expect(() => run(schemas, 'A')).not.toThrow();
+  });
+
+  // A discriminated base whose subtypes extend it via allOf while the base
+  // carries a property typed as one of those subtypes. This shape resembles the
+  // real System.Xml.Linq.* family but is already handled by the existing guards
+  // (it does NOT overflow pre-fix). It is kept as a guard in the other
+  // direction: the new allOf-ancestor chain must not *over*-cut a legitimate
+  // polymorphic hierarchy — it must keep generating successfully.
+  it('still generates a discriminated allOf inheritance hierarchy', () => {
+    const schemas = {
+      XObject: {
+        type: 'object',
+        required: ['kind'],
+        discriminator: {
+          propertyName: 'kind',
+          mapping: {
+            node: '#/components/schemas/XNode',
+            container: '#/components/schemas/XContainer',
+            element: '#/components/schemas/XElement',
+          },
+        },
+        properties: {
+          kind: { type: 'string' },
+          parent: {
+            allOf: [{ $ref: '#/components/schemas/XElement' }],
+            nullable: true,
+          },
+        },
+      },
+      XNode: { allOf: [{ $ref: '#/components/schemas/XObject' }] },
+      XContainer: { allOf: [{ $ref: '#/components/schemas/XNode' }] },
+      XElement: {
+        allOf: [{ $ref: '#/components/schemas/XContainer' }],
+        properties: { name: { type: 'string' } },
+      },
+    };
+    expect(() => run(schemas, 'XElement')).not.toThrow();
+  });
+});
