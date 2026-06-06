@@ -313,6 +313,27 @@ describe('getBody', () => {
 
       expect(result.implementation).toBe('myBody');
     });
+
+    it('falls back to default naming when extension is non-string', () => {
+      const result = getBody({
+        requestBody: {
+          'x-codegen-request-body-name': 123 as unknown as string,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+          },
+          required: true,
+        },
+        operationName: 'createPet',
+        context: createContext(),
+      });
+
+      expect(result.implementation).toBe('createPetBody');
+    });
   });
 });
 

@@ -148,15 +148,18 @@ function getRequestBodyExtensionName(
   requestBody: OpenApiReferenceObject | OpenApiRequestBodyObject,
   context: ContextSpec,
 ): string | undefined {
+  let value: unknown;
   if (isReference(requestBody)) {
     const { schema } = resolveRef(requestBody, context);
-    return (schema as Record<string, unknown>)?.[
+    value = (schema as Record<string, unknown>)?.[
       'x-codegen-request-body-name'
-    ] as string | undefined;
+    ];
+  } else {
+    value = (requestBody as Record<string, unknown>)?.[
+      'x-codegen-request-body-name'
+    ];
   }
-  return (requestBody as Record<string, unknown>)?.[
-    'x-codegen-request-body-name'
-  ] as string | undefined;
+  return typeof value === 'string' ? value : undefined;
 }
 
 const CONTENT_TYPE_SUFFIX_MAP: Record<string, string> = {
