@@ -34,7 +34,7 @@ export const definePackage = (pack: PackUserConfig = {}) =>
           output: ['dist/**'],
         },
         'build:debug': {
-          command: 'vp pack --unbundle --sourcemap --no-treeshake',
+          command: 'vp pack --unbundle --sourcemap --no-treeshake --no-minify',
           cache: false,
         },
         typecheck: {
