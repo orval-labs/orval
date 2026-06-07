@@ -223,20 +223,46 @@ export function getObject({
 
   if (Array.isArray(itemType)) {
     const typeArray = itemType;
-    // Bridge: item is OpenApiSchemaObject which includes AnyOtherAttribute index signature.
-    // Spreading it directly would carry `any` into the result. Cast to break the chain.
-    const baseItem = schemaItem as Record<string, unknown>;
-    return combineSchemas({
-      schema: {
-        anyOf: typeArray.map(
-          (type) => ({ ...baseItem, type }) as OpenApiSchemaObject,
-        ),
-      },
-      name,
-      separator: 'anyOf',
-      context,
-      nullable,
-    });
+    // A nullable object (`type: ['object', 'null']`, e.g. OAS 3.0 `nullable: true`
+    // after the @scalar upgrade) must stay on the object property-iteration path
+    // below so its `name` is preserved and nested enum properties keep being
+    // extracted into named consts. Routing it through combineSchemas resolves the
+    // object variant with an undefined propName, which drops the name and inlines
+    // those enums instead. See issue #3340. Real unions (e.g. `['string', 'number']`)
+    // keep the combineSchemas path.
+    const nonNullTypes = typeArray.filter((type) => type !== 'null');
+    // Bridge assertion: AnyOtherAttribute infects `properties` to `any`; cast to
+    // the documented property-map shape, matching the itemProperties cast below.
+    const typeArrayProperties = schemaItem.properties as
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+      | undefined;
+    // Only divert when there are properties to walk — an empty nullable object
+    // has no nested enums to extract, and routing it through the property path
+    // would render it as `unknown` instead of `{ [key: string]: unknown }`.
+    const isNullableObject =
+      nonNullTypes.length === 1 &&
+      nonNullTypes[0] === 'object' &&
+      typeArrayProperties != null &&
+      Object.keys(typeArrayProperties).length > 0;
+
+    if (!isNullableObject) {
+      // Bridge: item is OpenApiSchemaObject which includes AnyOtherAttribute index signature.
+      // Spreading it directly would carry `any` into the result. Cast to break the chain.
+      const baseItem = schemaItem as Record<string, unknown>;
+      return combineSchemas({
+        schema: {
+          anyOf: typeArray.map(
+            (type) => ({ ...baseItem, type }) as OpenApiSchemaObject,
+          ),
+        },
+        name,
+        separator: 'anyOf',
+        context,
+        nullable,
+      });
+    }
+    // Fall through to the property-iteration path; `nullable` already carries
+    // the ` | null` computed by getScalar for this type array.
   }
 
   // Bridge assertion: item.properties is typed as { [name: string]: ReferenceObject | SchemaObject }
