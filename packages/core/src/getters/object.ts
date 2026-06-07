@@ -211,6 +211,82 @@ export function getObject({
   if (itemAllOf || itemOneOf || itemAnyOf) {
     const separator = itemAllOf ? 'allOf' : itemOneOf ? 'oneOf' : 'anyOf';
 
+    // A nullable object spelled as the explicit OAS 3.1 composition
+    // `anyOf|oneOf: [{ inline object with properties }, { type: 'null' }]` must
+    // keep its `name` so nested enum properties are extracted into named
+    // `as const` consts. Routing it through combineSchemas resolves the object
+    // member with `combined: true` and an undefined propName, which drops the
+    // name and inlines those enums. Divert the single object member to the
+    // property-iteration path instead — the same fix #3340 applied one level
+    // down for the `type: ['object', 'null']` shape. See issue #3563.
+    // Real unions, `$ref` object members, primitive members, and empty objects
+    // keep the combineSchemas behavior via the guard below.
+    //
+    // Read members from the active `separator` (not `itemAnyOf ?? itemOneOf`)
+    // so this check and the combineSchemas fallback below operate on the same
+    // composition. `allOf` is intersection, not a nullable union, so it yields
+    // no members here and always falls through to combineSchemas.
+    const members =
+      separator === 'anyOf'
+        ? itemAnyOf
+        : separator === 'oneOf'
+          ? itemOneOf
+          : undefined;
+    if (members) {
+      const isNullMember = (
+        member: OpenApiSchemaObject | OpenApiReferenceObject,
+      ): boolean => {
+        if (isReference(member)) {
+          return false;
+        }
+        const memberType = member.type as string | string[] | undefined;
+        return (
+          memberType === 'null' ||
+          (Array.isArray(memberType) &&
+            memberType.length === 1 &&
+            memberType[0] === 'null')
+        );
+      };
+
+      const nonNullMembers = members.filter((member) => !isNullMember(member));
+      const nonNullMember = nonNullMembers[0];
+      // Bridge assertion: AnyOtherAttribute infects member property access to
+      // `any`; cast to the documented shapes after excluding `$ref` members.
+      const nonNullMemberType =
+        nonNullMember && !isReference(nonNullMember)
+          ? (nonNullMember.type as string | string[] | undefined)
+          : undefined;
+      const nonNullMemberProperties =
+        nonNullMember && !isReference(nonNullMember)
+          ? (nonNullMember.properties as
+              | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+              | undefined)
+          : undefined;
+
+      const isNullableObjectComposition =
+        members.some(isNullMember) &&
+        nonNullMembers.length === 1 &&
+        nonNullMember != null &&
+        !isReference(nonNullMember) &&
+        (nonNullMemberType === 'object' ||
+          (nonNullMemberType == null && nonNullMemberProperties != null)) &&
+        nonNullMemberProperties != null &&
+        Object.keys(nonNullMemberProperties).length > 0;
+
+      if (isNullableObjectComposition) {
+        // `nullable` is empty for the composition form (the null lives in a
+        // member, not on the parent), so synthesize ` | null`; the
+        // property-iteration path appends it to the rendered object.
+        return getObject({
+          item: nonNullMember as OpenApiSchemaObject,
+          name,
+          context,
+          nullable: nullable || ' | null',
+          formDataContext,
+        });
+      }
+    }
+
     return combineSchemas({
       schema: schemaItem,
       name,
