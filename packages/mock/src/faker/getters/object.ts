@@ -40,6 +40,9 @@ interface GetMockObjectOptions {
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
+  // Tracks the current contiguous `allOf` composition to break cyclic
+  // inheritance. See `existingReferencedAllOfRefs` docs in getters/combine.ts.
+  existingReferencedAllOfRefs?: string[];
   splitMockImplementations: string[];
   // This is used to add the overrideResponse to the object
   allowOverride?: boolean;
@@ -54,6 +57,7 @@ export function getMockObject({
   context,
   imports,
   existingReferencedProperties,
+  existingReferencedAllOfRefs = [],
   splitMockImplementations,
   allowOverride = false,
 }: GetMockObjectOptions): MockDefinition {
@@ -70,6 +74,7 @@ export function getMockObject({
       context,
       imports,
       existingReferencedProperties,
+      existingReferencedAllOfRefs,
       splitMockImplementations,
     });
   }
@@ -101,6 +106,7 @@ export function getMockObject({
       context,
       imports,
       existingReferencedProperties,
+      existingReferencedAllOfRefs,
       splitMockImplementations,
     });
   }
@@ -128,6 +134,7 @@ export function getMockObject({
       context,
       imports,
       existingReferencedProperties,
+      existingReferencedAllOfRefs,
       splitMockImplementations,
     });
   }
@@ -190,6 +197,10 @@ export function getMockObject({
             context,
             imports,
             existingReferencedProperties,
+            // A property value is a fresh mock instance, not part of this
+            // object's allOf composition — reset the chain.
+            // See `existingReferencedAllOfRefs` docs in getters/combine.ts.
+            existingReferencedAllOfRefs: [],
             splitMockImplementations,
           });
 
@@ -266,6 +277,10 @@ export function getMockObject({
       context,
       imports,
       existingReferencedProperties,
+      // An additionalProperties value is a fresh mock instance — reset the
+      // chain, as with property values above.
+      // See `existingReferencedAllOfRefs` docs in getters/combine.ts.
+      existingReferencedAllOfRefs: [],
       splitMockImplementations,
     });
 

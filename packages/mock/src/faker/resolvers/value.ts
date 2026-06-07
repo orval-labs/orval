@@ -191,6 +191,10 @@ interface ResolveMockValueOptions {
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
+  // Tracks the current contiguous `allOf` composition to break cyclic
+  // inheritance; threaded through to `combineSchemasMock`.
+  // See `existingReferencedAllOfRefs` docs in getters/combine.ts.
+  existingReferencedAllOfRefs?: string[];
   splitMockImplementations: string[];
   allowOverride?: boolean;
 }
@@ -204,6 +208,7 @@ export function resolveMockValue({
   context,
   imports,
   existingReferencedProperties,
+  existingReferencedAllOfRefs = [],
   splitMockImplementations,
   allowOverride,
 }: ResolveMockValueOptions): MockDefinition & { type?: string } {
@@ -388,6 +393,7 @@ export function resolveMockValue({
       context,
       imports,
       existingReferencedProperties,
+      existingReferencedAllOfRefs,
       splitMockImplementations,
       allowOverride,
     });
@@ -453,6 +459,7 @@ export function resolveMockValue({
     context,
     imports,
     existingReferencedProperties,
+    existingReferencedAllOfRefs,
     splitMockImplementations,
     allowOverride,
   });
