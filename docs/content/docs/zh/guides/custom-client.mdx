@@ -46,6 +46,16 @@ export const customClient = async <T>(url: string, options: RequestInit) => {
 };
 ```
 
+## 重新导出 mutator
+
+`mutator.path` 指向的文件也可以从其他模块重新导出指定的 mutator：
+
+```ts title="src/api/custom-client.ts"
+export { customClient } from '@acme/api-client/mutators';
+```
+
+Orval 会把 named re-export 视为有效的 mutator 导出。由于重新导出的实现不在当前配置文件中，Orval 会按标准的单请求参数 mutator 形态推断参数。如果生成的客户端需要额外的请求选项参数，请使用带显式参数的本地 wrapper 函数。
+
 ## Angular HTTP Client
 
 Angular 项目可以把 mutator 写成使用 `HttpClient` 的函数或 service。关键是保持生成代码期望的输入和返回类型一致。

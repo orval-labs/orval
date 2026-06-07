@@ -66,6 +66,21 @@ export type ErrorType<Error> = AxiosError<Error>;
 export type BodyType<BodyData> = CamelCase<BodyData>;
 ```
 
+## Re-exporting a Mutator
+
+The file referenced by `mutator.path` can also re-export the named mutator from
+another module:
+
+```ts title="custom-instance.ts"
+export { customInstance } from '@acme/api-client/mutators';
+```
+
+Named re-exports are treated as valid mutator exports. Because the re-exported
+implementation is outside the configured file, Orval uses the standard
+single-request-argument mutator shape for argument detection. Use a local
+wrapper function with explicit parameters when generated clients need additional
+request option arguments.
+
 ## Angular HTTP Client
 
 For Angular, configure a mutator for the HttpClient:
