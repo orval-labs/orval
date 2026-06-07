@@ -305,6 +305,70 @@ describe('generateSchemasDefinition', () => {
     );
   });
 
+  // Regression test for #3340: enum properties inside a *nullable* nested
+  // object must still be extracted into named `as const` consts, exactly like
+  // non-nullable nested objects and top-level properties. OAS 3.0's
+  // `nullable: true` is upgraded to `type: ['object', 'null']` before
+  // generation, so that is the shape exercised here.
+  it('extracts named const enums from a nullable nested object (#3340)', () => {
+    const schemas: OpenApiSchemasObject = {
+      Test: {
+        type: 'object',
+        properties: {
+          monthSelection: {
+            type: ['object', 'null'],
+            properties: {
+              months: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                  enum: ['JANUARY', 'FEBRUARY', 'MARCH'],
+                },
+              },
+              months2: {
+                type: 'string',
+                enum: ['JANUARY', 'FEBRUARY', 'MARCH'],
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const specContext = {
+      ...context,
+      output: {
+        ...context.output,
+        override: {
+          enumGenerationType: 'const',
+          namingConvention: {},
+          components: {
+            schemas: { suffix: '', itemSuffix: 'Item' },
+            responses: { suffix: '' },
+            parameters: { suffix: '' },
+            requestBodies: { suffix: 'RequestBody' },
+          },
+        },
+      },
+      spec: { components: { schemas } },
+    } as unknown as ContextSpec;
+
+    const result = generateSchemasDefinition(schemas, specContext, '');
+
+    // The nullable nested object references named enum types instead of
+    // inlining the union, and preserves its ` | null`.
+    const monthSelection = result.find((s) => s.name === 'TestMonthSelection');
+    expect(monthSelection).toBeDefined();
+    expect(monthSelection?.model).not.toContain(`'JANUARY'`);
+    expect(monthSelection?.model).toMatch(/months2\?: [A-Z]\w+;/);
+    expect(monthSelection?.model).toContain('| null');
+
+    // The nested enums are emitted as standalone `as const` schemas.
+    const constEnums = result.filter((s) => s.model.includes('as const'));
+    expect(constEnums.length).toBeGreaterThanOrEqual(2);
+    expect(constEnums.every((s) => s.model.includes('JANUARY'))).toBe(true);
+  });
+
   it('should avoid invalid spreads for nullable or boolean oneOf enums', () => {
     const schemas: OpenApiSchemasObject = {
       NumberEnum: {
