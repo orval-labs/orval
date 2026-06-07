@@ -415,6 +415,30 @@ test('react-query issue-1522 passes the enabled option into the queryOptions mut
   expect(occurrences).toBe(2);
 });
 
+test('react-query issue-2039 keeps path params out of mutationOptions metadata URLs', async () => {
+  // Regression for #2039: mutationOptions mutators receive a route metadata
+  // object outside the mutationFn variable scope. Routes with embedded path
+  // params such as `/api/v${version}` must therefore be passed as stable route
+  // patterns, not as template expressions that reference `version`.
+  const content = await readFile(
+    generated('react-query', 'issue-2039', 'endpoints.ts'),
+    'utf8',
+  );
+
+  const expectedMutatorCall = [
+    '  const customOptions = useCustomMutation(',
+    '    { ...mutationOptions, mutationFn },',
+    '    { url: `/api/v{version}/entity/{entityId}` },',
+    "    { operationId: 'createEntity', operationName: 'createEntity' },",
+    '  );',
+  ].join('\n');
+
+  expect(content).toContain(expectedMutatorCall);
+  expect(content).not.toContain(
+    '    { url: `/api/v${version}/entity/{entityId}` },',
+  );
+});
+
 test('react-query issue-3153 passes operationId and operationName to the queryOptions mutator', async () => {
   // Regression for #3153: `mutationOptions` mutators have received
   // `{ operationId, operationName }` as their third argument since #1974, but
