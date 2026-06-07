@@ -79,6 +79,17 @@ describe('constraints', () => {
     expect(effect).toContain('S.pattern(');
   });
 
+  it('emits a RegExp pattern literal without useless escapes (#3337)', () => {
+    const { consts } = gen({
+      type: 'string',
+      pattern: String.raw`^(0|[1-9]\d*)$`,
+    });
+    expect(consts).toContain('RegExp');
+    // The `*` quantifier must stay bare — `\*` would trip `no-useless-escape`.
+    expect(consts).not.toContain(String.raw`\*`);
+    expect(consts).toContain(String.raw`new RegExp('^(0|[1-9]\\d*)$')`);
+  });
+
   it('maps minItems/maxItems on array', () => {
     const { effect } = gen({
       type: 'array',

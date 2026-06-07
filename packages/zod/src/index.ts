@@ -22,6 +22,7 @@ import {
   isObject,
   isString,
   jsStringEscape,
+  jsStringLiteralEscape,
   logVerbose,
   type OpenApiParameterObject,
   type OpenApiReferenceObject,
@@ -797,7 +798,7 @@ export const generateZodValidationSchemaDefinition = (
             } else if (schema.pattern && schema.format) {
               const isStartWithSlash = schema.pattern.startsWith('/');
               const isEndWithSlash = schema.pattern.endsWith('/');
-              const regexp = `new RegExp('${jsStringEscape(
+              const regexp = `new RegExp('${jsStringLiteralEscape(
                 schema.pattern.slice(
                   isStartWithSlash ? 1 : 0,
                   isEndWithSlash ? -1 : undefined,
@@ -1042,7 +1043,7 @@ export const generateZodValidationSchemaDefinition = (
     const isStartWithSlash = matches.startsWith('/');
     const isEndWithSlash = matches.endsWith('/');
 
-    const regexp = `new RegExp('${jsStringEscape(
+    const regexp = `new RegExp('${jsStringLiteralEscape(
       matches.slice(isStartWithSlash ? 1 : 0, isEndWithSlash ? -1 : undefined),
     )}')`;
 

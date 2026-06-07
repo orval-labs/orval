@@ -4,18 +4,18 @@ This is a sample app that uses `hono` as a backend and `Next.js` and `fetch` as 
 
 ## hono-app
 
-```
+```bash
 cd hono-app
-bun install
-bun run dev
+vp install
+vp run dev
 ```
 
 ## next-app
 
-```
+```bash
 cd next-app
-bun install
-bun run dev
+vp install
+vp run dev
 ```
 
 https://github.com/user-attachments/assets/bd3ec820-6ca4-40e2-a077-8954a765683f
