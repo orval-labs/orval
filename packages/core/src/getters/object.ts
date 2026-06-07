@@ -219,10 +219,19 @@ export function getObject({
     // name and inlines those enums. Divert the single object member to the
     // property-iteration path instead — the same fix #3340 applied one level
     // down for the `type: ['object', 'null']` shape. See issue #3563.
-    // `allOf` is intersection, not a nullable union, so it is excluded; real
-    // unions, `$ref` object members, primitive members, and empty objects keep
-    // the combineSchemas behavior via the guard below.
-    const members = itemAnyOf ?? itemOneOf;
+    // Real unions, `$ref` object members, primitive members, and empty objects
+    // keep the combineSchemas behavior via the guard below.
+    //
+    // Read members from the active `separator` (not `itemAnyOf ?? itemOneOf`)
+    // so this check and the combineSchemas fallback below operate on the same
+    // composition. `allOf` is intersection, not a nullable union, so it yields
+    // no members here and always falls through to combineSchemas.
+    const members =
+      separator === 'anyOf'
+        ? itemAnyOf
+        : separator === 'oneOf'
+          ? itemOneOf
+          : undefined;
     if (members) {
       const isNullMember = (
         member: OpenApiSchemaObject | OpenApiReferenceObject,
@@ -239,37 +248,37 @@ export function getObject({
         );
       };
 
-      const objectMembers = members.filter((member) => !isNullMember(member));
-      const objectMember = objectMembers[0];
+      const nonNullMembers = members.filter((member) => !isNullMember(member));
+      const nonNullMember = nonNullMembers[0];
       // Bridge assertion: AnyOtherAttribute infects member property access to
       // `any`; cast to the documented shapes after excluding `$ref` members.
-      const objectMemberType =
-        objectMember && !isReference(objectMember)
-          ? (objectMember.type as string | string[] | undefined)
+      const nonNullMemberType =
+        nonNullMember && !isReference(nonNullMember)
+          ? (nonNullMember.type as string | string[] | undefined)
           : undefined;
-      const objectMemberProperties =
-        objectMember && !isReference(objectMember)
-          ? (objectMember.properties as
+      const nonNullMemberProperties =
+        nonNullMember && !isReference(nonNullMember)
+          ? (nonNullMember.properties as
               | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
               | undefined)
           : undefined;
 
       const isNullableObjectComposition =
         members.some(isNullMember) &&
-        objectMembers.length === 1 &&
-        objectMember != null &&
-        !isReference(objectMember) &&
-        (objectMemberType === 'object' ||
-          (objectMemberType == null && objectMemberProperties != null)) &&
-        objectMemberProperties != null &&
-        Object.keys(objectMemberProperties).length > 0;
+        nonNullMembers.length === 1 &&
+        nonNullMember != null &&
+        !isReference(nonNullMember) &&
+        (nonNullMemberType === 'object' ||
+          (nonNullMemberType == null && nonNullMemberProperties != null)) &&
+        nonNullMemberProperties != null &&
+        Object.keys(nonNullMemberProperties).length > 0;
 
       if (isNullableObjectComposition) {
         // `nullable` is empty for the composition form (the null lives in a
         // member, not on the parent), so synthesize ` | null`; the
         // property-iteration path appends it to the rendered object.
         return getObject({
-          item: objectMember as OpenApiSchemaObject,
+          item: nonNullMember as OpenApiSchemaObject,
           name,
           context,
           nullable: nullable || ' | null',
