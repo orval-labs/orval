@@ -45,7 +45,19 @@ export function resolveDiscriminators(
           subTypeSchema = transformedSchemas[mappingValue];
         }
 
-        if (isBoolean(subTypeSchema) || propertyName === undefined) {
+        // The mapped subtype may be missing from the schema set — e.g. a
+        // subtype removed by `filters.tags`, or absent in a malformed spec — in
+        // which case indexing yields `undefined` at runtime. `!subTypeSchema`
+        // skips that (and the `false` boolean-schema case) before we dereference
+        // it; an explicit `=== undefined` check isn't possible here because the
+        // project does not enable `noUncheckedIndexedAccess`, so indexed access
+        // is typed as always-present. This mirrors the `!variantSchema` guard in
+        // the second loop below.
+        if (
+          !subTypeSchema ||
+          isBoolean(subTypeSchema) ||
+          propertyName === undefined
+        ) {
           continue;
         }
 

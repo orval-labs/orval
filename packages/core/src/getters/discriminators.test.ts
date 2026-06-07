@@ -707,4 +707,38 @@ describe('resolveDiscriminators getter', () => {
 
     expect(animalSchema.oneOf).toHaveLength(2);
   });
+
+  it('skips mapping entries whose target schema is absent', () => {
+    // A discriminator mapping may reference a schema that is absent from the
+    // set (e.g. a subtype removed by tag filtering). The missing target must
+    // be skipped rather than dereferenced.
+    const schemas: OpenApiSchemasObject = {
+      Pet: {
+        type: 'object',
+        discriminator: {
+          propertyName: 'petType',
+          mapping: {
+            cat: '#/components/schemas/Cat',
+            dog: '#/components/schemas/Dog', // Dog is absent below
+          },
+        },
+      },
+      Cat: {
+        type: 'object',
+        properties: { huntingSkill: { type: 'string' } },
+      },
+    };
+
+    // Dereferencing the absent `Dog` target would throw, so reaching the
+    // assertions below already proves it was skipped. The surviving subtype is
+    // still augmented with its discriminant.
+    const result = resolveDiscriminators(structuredClone(schemas), context);
+    const catProps = result.Cat.properties as
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+      | undefined;
+    expect(catProps?.petType).toMatchObject({
+      type: 'string',
+      enum: ['cat'],
+    });
+  });
 });
