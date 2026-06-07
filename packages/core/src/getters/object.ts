@@ -231,8 +231,10 @@ export function getObject({
     // those enums instead. See issue #3340. Real unions (e.g. `['string', 'number']`)
     // keep the combineSchemas path.
     const nonNullTypes = typeArray.filter((type) => type !== 'null');
+    // Bridge assertion: AnyOtherAttribute infects `properties` to `any`; cast to
+    // the documented property-map shape, matching the itemProperties cast below.
     const typeArrayProperties = schemaItem.properties as
-      | Record<string, unknown>
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
       | undefined;
     // Only divert when there are properties to walk — an empty nullable object
     // has no nested enums to extract, and routing it through the property path

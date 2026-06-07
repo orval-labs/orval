@@ -355,18 +355,22 @@ describe('generateSchemasDefinition', () => {
 
     const result = generateSchemasDefinition(schemas, specContext, '');
 
-    // The nullable nested object references named enum types instead of
+    // The nullable nested object references the named enum types instead of
     // inlining the union, and preserves its ` | null`.
     const monthSelection = result.find((s) => s.name === 'TestMonthSelection');
     expect(monthSelection).toBeDefined();
     expect(monthSelection?.model).not.toContain(`'JANUARY'`);
-    expect(monthSelection?.model).toMatch(/months2\?: [A-Z]\w+;/);
+    expect(monthSelection?.model).toContain('TestMonthSelectionMonthsItem');
+    expect(monthSelection?.model).toContain('TestMonthSelectionMonths2');
     expect(monthSelection?.model).toContain('| null');
 
-    // The nested enums are emitted as standalone `as const` schemas.
-    const constEnums = result.filter((s) => s.model.includes('as const'));
-    expect(constEnums.length).toBeGreaterThanOrEqual(2);
-    expect(constEnums.every((s) => s.model.includes('JANUARY'))).toBe(true);
+    // Each nested enum is emitted as its own `as const` schema.
+    expect(
+      result.find((s) => s.name === 'TestMonthSelectionMonthsItem')?.model,
+    ).toContain('as const');
+    expect(
+      result.find((s) => s.name === 'TestMonthSelectionMonths2')?.model,
+    ).toContain('as const');
   });
 
   it('should avoid invalid spreads for nullable or boolean oneOf enums', () => {
