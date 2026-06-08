@@ -44,7 +44,12 @@ export function resolveMockOverride(
   // Regex keys still match against the original (un-normalized) path so users
   // can opt into array-scoped targeting explicitly if ever needed.
   const normalizedPath = stripArrayMarkerSegments(path);
-  const property = Object.entries(properties).find(([key]) => {
+  const entries = Object.entries(properties);
+
+  // Tier 1 — explicit matches: regex (against name or full path) and exact
+  // array-transparent path. Checked first so a specific override (regex or
+  // dotted path like `country.name`) always wins over the bare-name fallback.
+  let property = entries.find(([key]) => {
     if (isRegex(key)) {
       const regex = new RegExp(key.slice(1, -1));
       if (regex.test(item.name) || regex.test(path)) {
@@ -58,6 +63,16 @@ export function resolveMockOverride(
 
     return false;
   });
+
+  // Tier 2 — bare property-name transparency (#3470): a dot-less key applies
+  // wherever the property literally appears, including inside non-array nested
+  // objects, mirroring the array transparency from #2465. Only reached when no
+  // explicit Tier 1 key matched, so it never overrides a more specific key.
+  if (!property) {
+    property = entries.find(
+      ([key]) => !isRegex(key) && !key.includes('.') && key === item.name,
+    );
+  }
 
   if (!property) {
     return;
