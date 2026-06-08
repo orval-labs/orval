@@ -11,6 +11,7 @@ import { generateMSW } from './index';
 describe('generateMSW', () => {
   const mockVerbOptions = {
     operationId: 'getUser',
+    operationName: 'getUser',
     verb: 'get',
     tags: [],
     response: {
@@ -1422,6 +1423,7 @@ describe('strict mock types (#3525)', () => {
 
   const petVerbOptions = {
     operationId: 'getPet',
+    operationName: 'getPet',
     verb: 'get',
     tags: [],
     response: {
@@ -1495,6 +1497,34 @@ describe('strict mock types (#3525)', () => {
     expect(result.implementation.function).not.toContain(', null]');
   });
 
+  it('derives responseMock and handler names from operationName (splitByContentType)', () => {
+    // splitByContentType keeps one operationId across variants but suffixes
+    // operationName (e.g. *WithJson / *WithFormData). The MSW responseMock and
+    // handler names must follow operationName, otherwise sibling variants emit
+    // duplicate declarations and tsc fails with TS2451. See #3342.
+    const result = generateMSW(
+      {
+        ...petVerbOptions,
+        operationId: 'getPet',
+        operationName: 'getPetWithFormData',
+      } as unknown as GeneratorVerbOptions,
+      { ...baseOptions, mock: { type: OutputMockType.MSW } },
+    );
+
+    expect(result.implementation.handlerName).toBe(
+      'getGetPetWithFormDataMockHandler',
+    );
+    expect(result.implementation.function).toContain(
+      'export const getGetPetWithFormDataResponseMock',
+    );
+    expect(result.implementation.handler).toContain(
+      'export const getGetPetWithFormDataMockHandler',
+    );
+    expect(result.implementation.function).not.toContain(
+      'getGetPetResponseMock',
+    );
+  });
+
   it('keeps the loose return type when strict flags are unset', () => {
     const looseOverride = {
       operations: {},
@@ -1541,6 +1571,7 @@ describe('recursion guards for cyclic allOf schemas', () => {
   const run = (schemas: Record<string, unknown>, root: string) => {
     const verbOptions = {
       operationId: 'getRoot',
+      operationName: 'getRoot',
       verb: 'get',
       tags: [],
       response: {

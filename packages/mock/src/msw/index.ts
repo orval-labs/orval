@@ -435,7 +435,7 @@ export function generateMSW(
   generatorOptions: GeneratorOptions,
 ): ClientMockGeneratorBuilder {
   const { pathRoute, override, mock } = generatorOptions;
-  const { operationId, response } = generatorVerbOptions;
+  const { operationName, response } = generatorVerbOptions;
 
   const overrideBaseUrl =
     override.mock && 'baseUrl' in override.mock
@@ -444,8 +444,12 @@ export function generateMSW(
   const mockBaseUrl = mock && isMswMock(mock) ? mock.baseUrl : undefined;
   const route = getRouteMSW(pathRoute, overrideBaseUrl ?? mockBaseUrl);
 
-  const handlerName = `get${pascal(operationId)}MockHandler`;
-  const getResponseMockFunctionName = `get${pascal(operationId)}ResponseMock`;
+  // Derive names from operationName (not operationId): splitByContentType keeps
+  // one operationId across variants but suffixes operationName (e.g. *WithJson /
+  // *WithFormData), and the client side already names functions from it. Using
+  // operationId here would emit duplicate handler names and break tsc. See #3342.
+  const handlerName = `get${pascal(operationName)}MockHandler`;
+  const getResponseMockFunctionName = `get${pascal(operationName)}ResponseMock`;
 
   const splitMockImplementations: string[] = [];
 

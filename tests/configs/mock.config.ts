@@ -655,4 +655,23 @@ export default defineConfig({
       target: '../specifications/faker-array-items-tags-split.yaml',
     },
   },
+  // #3342: splitByContentType must give MSW handlers distinct names per
+  // content-type variant (e.g. *WithJson / *WithFormData), otherwise the
+  // generated mock file fails to compile with duplicate declarations.
+  issue3342: {
+    output: {
+      target: '../generated/mock/issue-3342/endpoints.ts',
+      schemas: '../generated/mock/issue-3342/model',
+      client: 'react-query',
+      mock: true,
+      override: {
+        splitByContentType: true,
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/split-by-content-type.yaml',
+    },
+  },
 });
