@@ -125,16 +125,16 @@ describe('resolveMockOverride (#2465 — bare-key matching across array boundari
     );
   });
 
-  it('still does not match bare keys against non-array nested paths (semantic preserved)', () => {
+  it('matches bare keys against non-array nested paths (#3470)', () => {
     // The non-array nested case (`#.user.firstName` produced by an object
-    // property `user` containing baseUser) was never matched by a bare key
-    // and remains unmatched — users must use an explicit `user.firstName`
-    // key or a regex. #2465 is intentionally scoped to array transparency.
+    // property `user` containing baseUser) is now transparent too, mirroring
+    // the array transparency added in #2465. A bare `firstName` key applies
+    // wherever the property literally appears, at any nesting depth.
     const item: Item = { name: 'firstName', path: '#.user.firstName' };
 
     const result = resolveMockOverride(properties, item);
 
-    expect(result).toBeUndefined();
+    expect(result?.value).toBe('() => faker.person.firstName()');
   });
 
   it('regex keys still match item.name regardless of array markers in the path', () => {
@@ -152,6 +152,50 @@ describe('resolveMockOverride (#2465 — bare-key matching across array boundari
     const item: Item = { name: 'lastName', path: '#.[].lastName' };
 
     const result = resolveMockOverride(properties, item);
+
+    expect(result).toBeUndefined();
+  });
+});
+
+describe('resolveMockOverride (#3470 — nested transparency precedence)', () => {
+  // A bare key and an explicit dotted-path key both target `name`. The
+  // dotted-path key is more specific, so it must win for its own path while
+  // the bare key covers every other occurrence (most-specific-wins).
+  const properties = {
+    name: "'bare'",
+    'country.name': "'France'",
+  };
+
+  it('prefers the explicit dotted-path key for its target path', () => {
+    const item: Item = { name: 'name', path: '#.country.name' };
+
+    const result = resolveMockOverride(properties, item);
+
+    expect(result?.value).toBe("'France'");
+  });
+
+  it('falls back to the bare key for other nested occurrences', () => {
+    const item: Item = { name: 'name', path: '#.user.name' };
+
+    const result = resolveMockOverride(properties, item);
+
+    expect(result?.value).toBe("'bare'");
+  });
+
+  it('keeps the bare key matching the top level', () => {
+    const item: Item = { name: 'name', path: '#.name' };
+
+    const result = resolveMockOverride(properties, item);
+
+    expect(result?.value).toBe("'bare'");
+  });
+
+  it('does not let a dotted key match a leaf at the wrong path (stays anchored)', () => {
+    // `country.name` is a root-anchored path, not a depth-independent name
+    // match. It must not bleed onto `#.address.country.name`.
+    const item: Item = { name: 'name', path: '#.address.country.name' };
+
+    const result = resolveMockOverride({ 'country.name': "'France'" }, item);
 
     expect(result).toBeUndefined();
   });
