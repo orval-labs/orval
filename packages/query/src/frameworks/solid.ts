@@ -130,8 +130,10 @@ export const createSolidAdapter = ({
     // no-op (queryKey is never actually attached). `mergeProps` is Solid's
     // first-party way to compose a new accessor object via getters, so the
     // queryKey is exposed while the underlying store stays untouched and
-    // reactive. The type is properly enforced by the function signature.
-    // See #3347.
+    // reactive. The `as any` cast is required because mergeProps infers a
+    // concrete result type that TS cannot prove assignable to the generic
+    // `…Result<TData, TError>`; the caller-facing type comes from the hook's
+    // explicit return-type annotation. See #3347.
     return `return mergeProps(${queryResultVarName}, { queryKey: ${queryOptionsVarName}.queryKey }) as any;`;
   },
 
