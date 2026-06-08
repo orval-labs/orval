@@ -5262,6 +5262,142 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
       'export const ClearCartResponse = zod.void()\n\n',
     );
   });
+
+  it('generates a response schema for a 201-only response in single mode', async () => {
+    const schema = {
+      pathRoute: '/items',
+      context: {
+        spec: {
+          paths: {
+            '/items': {
+              post: {
+                operationId: 'createItem',
+                responses: {
+                  '201': {
+                    description: 'Created',
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'object',
+                          required: ['id'],
+                          properties: { id: { type: 'string' } },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: { override: { zod: { generateEachHttpStatus: false } } },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/items',
+        verb: 'post',
+        operationName: 'createItem',
+        override: {
+          zod: { strict: {}, generate: { response: true }, coerce: {} },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      schema,
+      testOutput,
+    );
+
+    expect(result.implementation).toBe(
+      'export const CreateItemResponse = zod.object({\n  "id": zod.string()\n})\n\n',
+    );
+  });
+
+  it('generates a response schema for a 202-only response in single mode', async () => {
+    const schema = {
+      pathRoute: '/jobs',
+      context: {
+        spec: {
+          paths: {
+            '/jobs': {
+              post: {
+                operationId: 'runItem',
+                responses: {
+                  '202': {
+                    description: 'Accepted',
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'object',
+                          required: ['job_id'],
+                          properties: { job_id: { type: 'string' } },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: { override: { zod: { generateEachHttpStatus: false } } },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/jobs',
+        verb: 'post',
+        operationName: 'runItem',
+        override: {
+          zod: { strict: {}, generate: { response: true }, coerce: {} },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      schema,
+      testOutput,
+    );
+
+    expect(result.implementation).toBe(
+      'export const RunItemResponse = zod.object({\n  "job_id": zod.string()\n})\n\n',
+    );
+  });
+
+  it('generates zod.void() for a 201 response without a body in single mode', async () => {
+    const schema = {
+      pathRoute: '/items',
+      context: {
+        spec: {
+          paths: {
+            '/items': {
+              post: {
+                operationId: 'createItem',
+                responses: {
+                  '201': { description: 'Created' },
+                },
+              },
+            },
+          },
+        },
+        output: { override: { zod: { generateEachHttpStatus: false } } },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/items',
+        verb: 'post',
+        operationName: 'createItem',
+        override: {
+          zod: { strict: {}, generate: { response: true }, coerce: {} },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      schema,
+      testOutput,
+    );
+
+    expect(result.implementation).toBe(
+      'export const CreateItemResponse = zod.void()\n\n',
+    );
+  });
 });
 
 describe('parsePrefixItemsArrayAsTupleZod', () => {
