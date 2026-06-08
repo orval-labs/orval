@@ -1737,6 +1737,57 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).not.toContain('.hostname()');
   });
 
+  // Regression test for #3472: in Zod v4, string formats must be emitted as
+  // top-level APIs (e.g. `zod.uuid()`, `zod.iso.datetime()`) rather than the
+  // deprecated method-chain form (`zod.string().uuid()`). Zod v3 keeps the
+  // method-chain form. Mirrors the minimal `Example` schema from the issue.
+  it('emits top-level string format validators in v4 and method-chain in v3 (issue #3472)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        id: { type: 'string', format: 'uuid' },
+        createdAt: { type: 'string', format: 'date-time' },
+      },
+    };
+
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+          zod: { dateTimeOptions: {}, timeOptions: {} },
+        },
+      },
+    } as ContextSpec;
+
+    const generate = (isZodV4: boolean) =>
+      parseZodValidationSchemaDefinition(
+        generateZodValidationSchemaDefinition(
+          schema,
+          context,
+          'Example',
+          false,
+          isZodV4,
+          { required: true },
+        ),
+        context,
+        false,
+        false,
+        isZodV4,
+      ).zod;
+
+    // Zod v4: top-level APIs, no `zod.string()` prefix.
+    const v4 = generate(true);
+    expect(v4).toContain('zod.uuid()');
+    expect(v4).toContain('zod.iso.datetime(');
+    expect(v4).not.toContain('zod.string().uuid()');
+    expect(v4).not.toContain('zod.string().datetime(');
+
+    // Zod v3: method-chain form is retained.
+    const v3 = generate(false);
+    expect(v3).toContain('zod.string().uuid()');
+    expect(v3).toContain('zod.string().datetime(');
+  });
+
   describe('description handling', () => {
     const context = makeContextSpec({
       override: {
