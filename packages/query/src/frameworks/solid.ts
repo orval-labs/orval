@@ -124,9 +124,15 @@ export const createSolidAdapter = ({
     queryResultVarName,
     queryOptionsVarName,
   }: QueryReturnStatementContext): string {
-    // Use Object.assign to attach queryKey to the result and cast to any to satisfy TypeScript
-    // The type is properly enforced by the function signature
-    return `return Object.assign(${queryResultVarName}, { queryKey: ${queryOptionsVarName}.queryKey }) as any;`;
+    // Attach queryKey without mutating the Solid Store. The query result is a
+    // read-only store, so `Object.assign` hits its `set` trap: in dev it warns
+    // "Cannot mutate a Store directly", and in every build the assignment is a
+    // no-op (queryKey is never actually attached). `mergeProps` is Solid's
+    // first-party way to compose a new accessor object via getters, so the
+    // queryKey is exposed while the underlying store stays untouched and
+    // reactive. The type is properly enforced by the function signature.
+    // See #3347.
+    return `return mergeProps(${queryResultVarName}, { queryKey: ${queryOptionsVarName}.queryKey }) as any;`;
   },
 
   generateQueryInvocationArgs({
