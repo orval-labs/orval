@@ -1977,10 +1977,15 @@ const getSingleResponse = (
     return;
   }
 
+  const otherSuccess = Object.entries(responses).find(
+    ([code]) => code.startsWith('2') && code !== '204' && code !== '205',
+  )?.[1];
+
   return (
     responses['200'] ??
     responses['2XX'] ??
     responses['2xx'] ??
+    otherSuccess ??
     responses['204'] ??
     responses['205']
   );
