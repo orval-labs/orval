@@ -854,4 +854,66 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  singleMockPath: {
+    output: {
+      target: '../generated/mock/single-mock-path/endpoints.ts',
+      schemas: '../generated/mock/single-mock-path/model',
+      mock: {
+        path: '../generated/mock/single-mock-path/mocks',
+        indexMockFiles: true,
+        generators: [{ type: 'msw' }, { type: 'faker' }],
+      },
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  tagsMockPath: {
+    output: {
+      target: '../generated/mock/tags-mock-path/endpoints.ts',
+      schemas: '../generated/mock/tags-mock-path/model',
+      mock: {
+        path: '../generated/mock/tags-mock-path/mocks',
+        indexMockFiles: true,
+        generators: [{ type: 'msw' }, { type: 'faker' }],
+      },
+      mode: 'tags',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  tagsSplitPerGeneratorPath: {
+    output: {
+      target:
+        '../generated/mock/tags-split-per-generator-path/endpoints.ts',
+      schemas: '../generated/mock/tags-split-per-generator-path/model',
+      mock: {
+        indexMockFiles: true,
+        generators: [
+          {
+            type: 'msw',
+            path: '../generated/mock/tags-split-per-generator-path/msw',
+          },
+          {
+            type: 'faker',
+            path: '../generated/mock/tags-split-per-generator-path/faker',
+          },
+        ],
+      },
+      mode: 'tags-split',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

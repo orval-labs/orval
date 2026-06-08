@@ -60,7 +60,9 @@ export async function writeSplitTagsMode({
         filename + '.schemas' + extension.replace(/\.ts$/, ''),
       );
 
-  const tagEntries = Object.entries(target);
+  const tagEntries = Object.entries(target).toSorted(([a], [b]) =>
+    a.localeCompare(b),
+  );
 
   const generatedFilePathsArray = await Promise.all(
     tagEntries.map(async ([tag, target]) => {
@@ -308,8 +310,7 @@ export async function writeSplitTagsMode({
   if (output.mock.indexMockFiles) {
     for (const { ext, mockDir, tags } of mockIndexEntries) {
       const indexPath = path.join(mockDir, `index.${ext}${extension}`);
-      const sortedTags = [...tags].sort();
-      const indexContent = sortedTags
+      const indexContent = tags
         .map((tag) => {
           const localMockPath = upath.joinSafe('./', tag, tag + '.' + ext);
           return ext === OutputMockType.MSW

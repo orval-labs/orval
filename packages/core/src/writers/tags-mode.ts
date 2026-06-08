@@ -86,7 +86,9 @@ export async function writeTagsMode({
         filename + '.schemas' + extension.replace(/\.ts$/, ''),
       );
 
-  const tagEntries = Object.entries(target);
+  const tagEntries = Object.entries(target).toSorted(([a], [b]) =>
+    a.localeCompare(b),
+  );
 
   const generatedFilePathsArray = await Promise.all(
     tagEntries.map(async ([tag, target]) => {
