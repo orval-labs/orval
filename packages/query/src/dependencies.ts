@@ -328,6 +328,15 @@ const getSolidQueryImports = (
       ],
       dependency: '@tanstack/solid-query',
     },
+    {
+      // `mergeProps` lets the query hook attach `queryKey` to the result
+      // without mutating the read-only Solid Store (see #3347). `addDependency`
+      // only emits an import when the export name appears in the generated
+      // file, so mutation-only outputs never receive an unused `mergeProps`
+      // import.
+      exports: [{ name: 'mergeProps', values: true }],
+      dependency: 'solid-js',
+    },
   ];
 };
 
