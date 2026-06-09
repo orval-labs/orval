@@ -501,13 +501,31 @@ export default defineConfig({
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `indexMockFiles` | `Boolean` | `false` | In `split` and `tags-split` modes, emit one root-level `index.<ext>.ts` file per generator entry that re-exports the mocks (e.g. `index.msw.ts`, `index.faker.ts`). In `tags-split` it re-exports the per-tag mocks; in `split` it re-exports the single mock file. Useful to keep mocks (e.g. MSW) in a dedicated barrel that production/model barrels never import. |
+| `path` | `String` | `undefined` | Shared output directory for all mock files. Per-generator `path` values override this. When set in `single` or `tags` mode, mock code is written to separate files (relative to `path`) instead of being inlined into the implementation file. Ignored on function-form generators, which always fall back to the shared `path`. |
 | `generators` | `Array<MockOptions \| Function>` | `[]` | One entry per output mock file. Each entry can be an object (`MockOptions`) or a custom `ClientMockBuilder` function. |
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mock: {
+        path: './src/api/mocks',
+        generators: [
+          { type: 'msw', path: './src/api/mocks/msw' },
+          { type: 'faker' },
+        ],
+      },
+    },
+  },
+});
+```
 
 ### MSW generator (`type: 'msw'`)
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `type` | `'msw'` | required | Discriminator for MSW handler generation. |
+| `path` | `String` | `undefined` | Output directory for this generator's mock files. Overrides the shared `mock.path` when set. When provided in `single` or `tags` mode, mock code is written to separate files (relative to `path`) instead of being inlined into the implementation file. |
 | `delay` | `Number \| Function \| false` | `false` | Response delay in ms. |
 | `delayFunctionLazyExecute` | `Boolean` | `false` | Execute delay function at runtime instead of at build time. |
 | `baseUrl` | `String` | `''` | Base URL for the generated MSW handlers. |
@@ -523,6 +541,7 @@ The Faker generator emits the same `get<Op>ResponseMock` factories MSW would emi
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `type` | `'faker'` | required | Discriminator for Faker-only output. |
+| `path` | `String` | `undefined` | Output directory for this generator's mock files. Overrides the shared `mock.path` when set. When provided in `single` or `tags` mode, mock code is written to separate files (relative to `path`) instead of being inlined into the implementation file. |
 | `useExamples` | `Boolean` | `false` | Use OpenAPI examples to seed response values. |
 | `generateEachHttpStatus` | `Boolean` | `false` | Generate response factories for every documented status code. |
 | `locale` | `String` | `'en'` | Faker.js locale. |

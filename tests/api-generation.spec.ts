@@ -31,6 +31,58 @@ await describeApiGenerationSnapshots({
   rootDir: path.resolve(import.meta.dirname, '..'),
 });
 
+test('mock issue-3574 strict mock types in tags-split MSW+faker output', async () => {
+  const petsMsw = generated(
+    'mock',
+    'issue-3574-strict-mock-tags-split-fetch',
+    'pets',
+    'pets',
+    'pets.msw.ts',
+  );
+  const petsFaker = generated(
+    'mock',
+    'issue-3574-strict-mock-tags-split-fetch',
+    'pets',
+    'pets',
+    'pets.faker.ts',
+  );
+  const mswContent = await readFile(petsMsw, 'utf8');
+  const fakerContent = await readFile(petsFaker, 'utf8');
+
+  for (const content of [mswContent, fakerContent]) {
+    expect(content).toContain('export type MockWithNullableOverrides');
+    expect(content).toContain('export type PetMock');
+    expect(content).toMatch(/export type KeysWithNull/);
+  }
+
+  expect(mswContent).toMatch(/export const getPetMock|import \{ getPetMock \}/);
+  expect(fakerContent).toMatch(/export const getPetMock|import \{ getPetMock \}/);
+});
+
+test('mock issue-3574 accumulates strict mock types across operations per tag', async () => {
+  const storeMsw = generated(
+    'mock',
+    'issue-3574-strict-mock-tags-split-multi-fetch',
+    'store',
+    'store',
+    'store.msw.ts',
+  );
+  const storeFaker = generated(
+    'mock',
+    'issue-3574-strict-mock-tags-split-multi-fetch',
+    'store',
+    'store',
+    'store.faker.ts',
+  );
+  const mswContent = await readFile(storeMsw, 'utf8');
+  const fakerContent = await readFile(storeFaker, 'utf8');
+
+  for (const content of [mswContent, fakerContent]) {
+    expect(content).toContain('export type PetMock');
+    expect(content).toContain('export type OwnerMock');
+  }
+});
+
 test('angular issue-3103 emits filterParams in tags-split default service', async () => {
   // Keep this focused assertion alongside the snapshot so #3103 fails with a
   // targeted message instead of a full-file snapshot diff.
@@ -991,4 +1043,121 @@ test('default index-mock-file-split emits dedicated mock barrels in split mode (
     'utf8',
   );
   expect(fakerBarrel).toMatch(/export \* from '\.\/endpoints\.faker'/);
+});
+
+test('react-query issue-3534 includes baseUrl in the broad-invalidation predicate', async () => {
+  // Regression for #3534: when `baseUrl` is set, query keys are prefixed with
+  // it (e.g. `${process.env.API_URL}/pets/${petId}`). The predicate-based broad
+  // invalidation emitted for a target with a required path param built its
+  // `startsWith()` prefix from the raw spec path only, so it never matched the
+  // baseUrl-prefixed cache key and the invalidation silently no-opped. The
+  // prefix must carry the same runtime baseUrl as the query key.
+  const content = await readFile(
+    generated('react-query', 'invalidates-base-url', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // The target query key carries the runtime baseUrl prefix...
+  expect(content).toContain(
+    'return [`${process.env.API_URL}/pets/${petId}`] as const;',
+  );
+  // ...so the broad-invalidation predicate must use the SAME prefix as a
+  // template literal (not a bare single-quoted '/pets/').
+  expect(content).toContain(
+    'query.queryKey[0].startsWith(`${process.env.API_URL}/pets/`)',
+  );
+  expect(content).not.toContain("query.queryKey[0].startsWith('/pets/')");
+});
+
+test('react-query issue-3534 includes baseUrl segments in the split-key invalidation', async () => {
+  // Split-key variant of #3534: the partial query key used for broad
+  // invalidation must include the static baseUrl segments, mirroring how the
+  // query key array is built (`getRouteAsArray` on the full route).
+  const content = await readFile(
+    generated('react-query', 'invalidates-base-url-split', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // The target query key splits the static baseUrl into leading segments...
+  expect(content).toContain(
+    "return ['http:', 'example.com', 'pets', petId] as const;",
+  );
+  // ...so the invalidation partial key must share those baseUrl segments
+  // instead of the bare ['pets'].
+  expect(content).toContain("queryKey: ['http:', 'example.com', 'pets']");
+  expect(content).not.toContain("queryClient.invalidateQueries({ queryKey: ['pets'] })");
+});
+
+test('react-query issue-3534 bakes a static baseUrl into the default-mode predicate', async () => {
+  // #3534 (static baseUrl, default mode): a plain string baseUrl must be baked
+  // into the single-quoted startsWith() prefix literal, matching the query key.
+  const content = await readFile(
+    generated('react-query', 'invalidates-base-url-static', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toContain(
+    'return [`http://example.com/pets/${petId}`] as const;',
+  );
+  expect(content).toContain(
+    "query.queryKey[0].startsWith('http://example.com/pets/')",
+  );
+  expect(content).not.toContain("query.queryKey[0].startsWith('/pets/')");
+});
+
+test('react-query issue-3534 emits a runtime baseUrl as an unquoted split-key segment', async () => {
+  // #3534 (runtime baseUrl, split mode): the runtime expression must appear as
+  // an unquoted segment in the partial query key (via `getRouteAsArray`'s
+  // template-tag unwrapping), so it matches the query key array element.
+  const content = await readFile(
+    generated('react-query', 'invalidates-base-url-runtime-split', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toContain(
+    "return [process.env.API_URL, 'pets', petId] as const;",
+  );
+  expect(content).toContain("queryKey: [process.env.API_URL, 'pets']");
+  expect(content).not.toContain("queryClient.invalidateQueries({ queryKey: ['pets'] })");
+});
+
+test('react-query issue-3534 carries baseUrl on the verb-prefixed key element', async () => {
+  // #3534 (verb-prefixed key + baseUrl): a non-GET operation routed to a Query
+  // hook gets a verb-prefixed key (['DELETE', '<route>']). The baseUrl prefix
+  // must land on the route element (queryKey[1]) while queryKey[0] guards the
+  // verb, so the predicate matches the verb-prefixed, baseUrl-prefixed key.
+  const content = await readFile(
+    generated('react-query', 'invalidates-base-url-non-get', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toContain(
+    "return ['DELETE', `${process.env.API_URL}/pets/${petId}`] as const;",
+  );
+  expect(content).toContain("query.queryKey[0] === 'DELETE'");
+  expect(content).toContain(
+    'query.queryKey[1].startsWith(`${process.env.API_URL}/pets/`)',
+  );
+});
+
+test('mock function generator is treated as MSW in every write mode (#3554)', async () => {
+  const splitFile = generated(
+    'mock',
+    'petstore-custom-mock-builder-split',
+    'endpoints.msw.ts',
+  );
+  const tagsSplitFile = generated(
+    'mock',
+    'petstore-custom-mock-builder-tags-split',
+    'pets',
+    'pets.msw.ts',
+  );
+
+  const splitContent = await readFile(splitFile, 'utf8');
+  expect(splitContent).toContain('listPetsMockHandler');
+  expect(splitContent).toContain('const listPetsMockHandler =');
+
+  const tagsSplitContent = await readFile(tagsSplitFile, 'utf8');
+  expect(tagsSplitContent).toContain('listPetsMockHandler');
+  expect(tagsSplitContent).toContain('const listPetsMockHandler =');
 });

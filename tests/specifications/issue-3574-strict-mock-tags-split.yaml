@@ -1,0 +1,52 @@
+openapi: 3.0.4
+info:
+  title: Issue 3574 - strict mock tags-split MSW+faker
+  version: '1.0.0'
+paths:
+  /pets:
+    get:
+      tags:
+        - Pets
+      operationId: getPets
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pet'
+  /pets/{petId}:
+    get:
+      tags:
+        - Pets
+      operationId: getPetById
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+components:
+  schemas:
+    Pet:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        tag:
+          type: string
+          nullable: true
+      additionalProperties: false

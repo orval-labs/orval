@@ -484,6 +484,11 @@ export interface MswMockOptions extends CommonMockOptions {
   delay?: false | number | (() => number);
   // Execute the `delay` function at runtime rather than build time
   delayFunctionLazyExecute?: boolean;
+  // Custom output directory for MSW mock files. Overrides the shared
+  // `OutputMocksConfig.path` when set. When provided in `single` or `tags`
+  // modes, mock code is written to separate files instead of being inlined
+  // into the implementation file.
+  path?: string;
 }
 
 export interface FakerMockOptions extends CommonMockOptions {
@@ -496,6 +501,11 @@ export interface FakerMockOptions extends CommonMockOptions {
   // Defaults to `true`. Set to `false` together with `schemas: true` to get
   // only the consolidated schema factories.
   operationResponses?: boolean;
+  // Custom output directory for faker mock files. Overrides the shared
+  // `OutputMocksConfig.path` when set. When provided in `single` or `tags`
+  // modes, mock code is written to separate files instead of being inlined
+  // into the implementation file.
+  path?: string;
 }
 
 export type GlobalMockOptions = MswMockOptions | FakerMockOptions;
@@ -515,6 +525,11 @@ export interface OutputMocksConfig {
   // re-exports the single mock file. Keeps mocks in a dedicated barrel so the
   // models/production barrels never pull them in.
   indexMockFiles?: boolean;
+  // Shared output directory for all mock files. Individual generators can
+  // override this with their own `path` property. When provided in `single`
+  // or `tags` modes, mock code is written to separate files instead of being
+  // inlined into the implementation file.
+  path?: string;
   generators: (GlobalMockOptions | ClientMockBuilder)[];
 }
 
@@ -528,6 +543,7 @@ export type OutputMocksOption = boolean | OutputMocksConfig | ClientMockBuilder;
 // rest of the pipeline can iterate `generators` without branching on shape.
 export interface NormalizedMocksConfig {
   indexMockFiles: boolean;
+  path?: string;
   generators: (GlobalMockOptions | ClientMockBuilder)[];
 }
 
@@ -1154,9 +1170,16 @@ export interface ContextSpec {
    * Tracks array-item mock factory names already emitted per output file scope.
    * Populated by `@orval/mock` when `arrayItems: true` so shared `$ref` item
    * factories are not re-declared within the same file (single/split) or tag
-   * bucket (tags/tags-split).
+   * bucket (tags/tags-split). Scope keys include the active mock generator
+   * type so separate `.msw.ts` / `.faker.ts` files each get their own copy.
    */
   arrayItemMockFactories?: Map<string, Set<string>>;
+  /**
+   * Set by `@orval/mock` while generating per-operation mock output so
+   * file-scoped helpers (e.g. array-item factory dedup) can distinguish
+   * separate mock generator files.
+   */
+  activeMockOutputType?: OutputMockType;
 }
 
 /**

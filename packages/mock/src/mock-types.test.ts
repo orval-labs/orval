@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyStrictMockReturnType,
   buildStrictMockTypeFileHeader,
+  collectStrictMockSchemaTypeNamesFromImplementation,
   dedupeStrictMockTypeDeclarations,
   getMockFactoryReturnType,
   getMockFactorySignatureParts,
@@ -260,6 +261,32 @@ describe('mock-types', () => {
   describe('getStrictMockTypeName', () => {
     it('appends Mock to the schema name', () => {
       expect(getStrictMockTypeName('Pet')).toBe('PetMock');
+    });
+  });
+
+  describe('collectStrictMockSchemaTypeNamesFromImplementation', () => {
+    it('collects schema names from strict mock factory signatures', () => {
+      const implementation = [
+        'export const getAdminOperationEntityDtoMock = <O extends Partial<AdminOperationEntityDto> = {}>(overrideResponse?: O): MockWithNullableOverrides<AdminOperationEntityDto, O, AdminOperationEntityDtoMock> => ({}) as MockWithNullableOverrides<AdminOperationEntityDto, O, AdminOperationEntityDtoMock>;',
+        'export const getGetTenantsResponseMock = (): TenantInfoDtoMock[] => [];',
+      ].join('\n');
+
+      expect(
+        collectStrictMockSchemaTypeNamesFromImplementation(
+          implementation,
+        ).toSorted(),
+      ).toEqual(['AdminOperationEntityDto', 'TenantInfoDto']);
+    });
+
+    it('does not treat Widget as a schema when the schema is named WidgetMock', () => {
+      const implementation = [
+        'export type WidgetMockMock = { [K in keyof Required<WidgetMock>]: NonNullable<Required<WidgetMock>[K]>; };',
+        'export const getGetWidgetResponseMock = <O extends Partial<Extract<WidgetMock, object>> = {}>(overrideResponse?: O): MockWithNullableOverrides<WidgetMock, O, WidgetMockMock> => ({}) as MockWithNullableOverrides<WidgetMock, O, WidgetMockMock>;',
+      ].join('\n');
+
+      expect(
+        collectStrictMockSchemaTypeNamesFromImplementation(implementation),
+      ).toEqual(['WidgetMock']);
     });
   });
 
