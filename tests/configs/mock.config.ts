@@ -655,6 +655,21 @@ export default defineConfig({
       target: '../specifications/faker-array-items-tags-split.yaml',
     },
   },
+  mswArrayItems: {
+    output: {
+      target: '../generated/mock/msw-array-items/endpoints.ts',
+      schemas: '../generated/mock/msw-array-items/model',
+      client: 'axios',
+      mock: {
+        generators: [{ type: 'msw', arrayItems: true, delay: false }],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/msw-array-items.yaml',
+    },
+  },
   // #3342: splitByContentType must give MSW handlers distinct names per
   // content-type variant (e.g. *WithJson / *WithFormData), otherwise the
   // generated mock file fails to compile with duplicate declarations.

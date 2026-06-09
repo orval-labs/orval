@@ -1,0 +1,42 @@
+openapi: 3.0.3
+info:
+  title: MSW array item factories
+  version: 1.0.0
+paths:
+  /tenants-by-ref:
+    get:
+      operationId: getTenantsByRef
+      tags:
+        - tenants
+      responses:
+        '200':
+          description: List tenants by ref
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantListResponse'
+components:
+  schemas:
+    TenantListResponse:
+      type: object
+      required:
+        - value
+        - count
+      properties:
+        value:
+          type: array
+          items:
+            $ref: '#/components/schemas/TenantResponseModelDto'
+        count:
+          type: integer
+    TenantResponseModelDto:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string

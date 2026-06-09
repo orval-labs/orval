@@ -70,6 +70,18 @@ describe('shouldExtractArrayItemFactories', () => {
     );
   });
 
+  it('returns true when arrayItems is enabled on an MSW-only generator', () => {
+    const context = {
+      output: {
+        mock: {
+          generators: [{ type: 'msw', arrayItems: true }],
+        },
+      },
+    } as unknown as ContextSpec;
+
+    expect(shouldExtractArrayItemFactories(context)).toBe(true);
+  });
+
   it('returns false when arrayItems is not enabled', () => {
     expect(shouldExtractArrayItemFactories(contextWithoutArrayItems)).toBe(
       false,
@@ -102,6 +114,50 @@ describe('extractArrayItemMock', () => {
       'Partial<TenantResponseModelDto>',
     );
     expect(imports).toEqual([{ name: 'TenantResponseModelDto' }]);
+  });
+
+  it('extracts a reusable factory for $ref array items with an MSW generator', () => {
+    const splitMockImplementations: string[] = [];
+    const context = {
+      output: {
+        mock: {
+          generators: [{ type: 'msw', arrayItems: true }],
+        },
+        override: {
+          components: { schemas: { suffix: '', itemSuffix: 'Item' } },
+        },
+      },
+      spec: {
+        openapi: '3.0.3',
+        components: {
+          schemas: {
+            TenantResponseModelDto: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const call = extractArrayItemMock({
+      items: { $ref: '#/components/schemas/TenantResponseModelDto' },
+      propertyName: 'value',
+      operationId: 'getTenantsByRef',
+      tags: [],
+      mapValue,
+      context,
+      splitMockImplementations,
+      imports: [],
+    });
+
+    expect(call).toBe('{...getTenantResponseModelDtoMock()}');
+    expect(splitMockImplementations[0]).toContain(
+      'export const getTenantResponseModelDtoMock',
+    );
   });
 
   it('extracts a reusable factory for inline object array items', () => {

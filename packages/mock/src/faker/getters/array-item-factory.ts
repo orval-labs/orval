@@ -56,17 +56,13 @@ function getFileLevelExtractedFactories(
 }
 
 /**
- * True when the active faker generator entry opts into reusable array-item
- * mock factories for object-like array item schemas in operation responses.
+ * True when any mock generator entry opts into reusable array-item mock
+ * factories for object-like array item schemas in operation responses.
  */
 export function shouldExtractArrayItemFactories(context: ContextSpec): boolean {
-  const fakerEntry = context.output.mock.generators.find(
-    (g) =>
-      !isFunction(g) &&
-      g.type === OutputMockType.FAKER &&
-      g.arrayItems === true,
+  return context.output.mock.generators.some(
+    (g) => !isFunction(g) && g.arrayItems === true,
   );
-  return !!fakerEntry;
 }
 
 /**
