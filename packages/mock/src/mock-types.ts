@@ -245,7 +245,10 @@ export function collectStrictMockSchemaTypeNamesFromImplementation(
     names.add(match[1]);
   }
 
-  return [...names];
+  // `\b([A-Z]\w*)Mock\b` also matches `Widget` inside `WidgetMock` when the
+  // schema itself is named `WidgetMock` (`WidgetMockMock` strict alias). Drop
+  // prefix captures when a longer `{name}Mock` schema name was also collected.
+  return [...names].filter((name) => !names.has(`${name}Mock`));
 }
 
 export function mergeStrictMockSchemaTypeNames(

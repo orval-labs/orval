@@ -277,6 +277,17 @@ describe('mock-types', () => {
         ).toSorted(),
       ).toEqual(['AdminOperationEntityDto', 'TenantInfoDto']);
     });
+
+    it('does not treat Widget as a schema when the schema is named WidgetMock', () => {
+      const implementation = [
+        'export type WidgetMockMock = { [K in keyof Required<WidgetMock>]: NonNullable<Required<WidgetMock>[K]>; };',
+        'export const getGetWidgetResponseMock = <O extends Partial<Extract<WidgetMock, object>> = {}>(overrideResponse?: O): MockWithNullableOverrides<WidgetMock, O, WidgetMockMock> => ({}) as MockWithNullableOverrides<WidgetMock, O, WidgetMockMock>;',
+      ].join('\n');
+
+      expect(
+        collectStrictMockSchemaTypeNamesFromImplementation(implementation),
+      ).toEqual(['WidgetMock']);
+    });
   });
 
   describe('buildStrictMockTypeFileHeader', () => {
