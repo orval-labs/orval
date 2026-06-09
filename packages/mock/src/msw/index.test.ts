@@ -1532,7 +1532,7 @@ describe('arrayItems option', () => {
           },
         },
       },
-    });
+    } as unknown as GeneratorOptions);
 
     expect(result.implementation.function).not.toContain(
       'export const getTenantResponseModelDtoMock',
