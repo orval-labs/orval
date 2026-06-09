@@ -59,6 +59,30 @@ test('mock issue-3574 strict mock types in tags-split MSW+faker output', async (
   expect(fakerContent).toMatch(/export const getPetMock|import \{ getPetMock \}/);
 });
 
+test('mock issue-3574 accumulates strict mock types across operations per tag', async () => {
+  const storeMsw = generated(
+    'mock',
+    'issue-3574-strict-mock-tags-split-multi-fetch',
+    'store',
+    'store',
+    'store.msw.ts',
+  );
+  const storeFaker = generated(
+    'mock',
+    'issue-3574-strict-mock-tags-split-multi-fetch',
+    'store',
+    'store',
+    'store.faker.ts',
+  );
+  const mswContent = await readFile(storeMsw, 'utf8');
+  const fakerContent = await readFile(storeFaker, 'utf8');
+
+  for (const content of [mswContent, fakerContent]) {
+    expect(content).toContain('export type PetMock');
+    expect(content).toContain('export type OwnerMock');
+  }
+});
+
 test('angular issue-3103 emits filterParams in tags-split default service', async () => {
   // Keep this focused assertion alongside the snapshot so #3103 fails with a
   // targeted message instead of a full-file snapshot diff.

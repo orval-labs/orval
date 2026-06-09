@@ -710,6 +710,34 @@ export default defineConfig({
       target: '../specifications/issue-3574-strict-mock-tags-split.yaml',
     },
   },
+  issue3574StrictMockTagsSplitMultiFetch: {
+    output: {
+      target:
+        '../generated/mock/issue-3574-strict-mock-tags-split-multi-fetch/store/store.ts',
+      schemas:
+        '../generated/mock/issue-3574-strict-mock-tags-split-multi-fetch/schemas',
+      mode: 'tags-split',
+      client: 'fetch',
+      mock: {
+        indexMockFiles: true,
+        generators: [
+          { type: 'msw' },
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      override: {
+        mock: {
+          required: true,
+          nonNullable: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3574-strict-mock-tags-split-multi.yaml',
+    },
+  },
   // #3342: splitByContentType must give MSW handlers distinct names per
   // content-type variant (e.g. *WithJson / *WithFormData), otherwise the
   // generated mock file fails to compile with duplicate declarations.

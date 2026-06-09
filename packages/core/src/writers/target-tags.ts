@@ -51,6 +51,9 @@ function mergeOperationMockOutputs(
     type: m.type,
     implementation: { ...m.implementation },
     imports: [...m.imports],
+    strictMockSchemaTypeNames: m.strictMockSchemaTypeNames
+      ? [...m.strictMockSchemaTypeNames]
+      : undefined,
   }));
   for (const op of opMockOutputs) {
     let acc = result.find((m) => m.type === op.type);
