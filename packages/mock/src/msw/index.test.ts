@@ -1465,7 +1465,9 @@ describe('arrayItems option', () => {
       fileExtension: '.ts',
       mode: 'single',
       mock: {
-        generators: [{ type: OutputMockType.MSW, arrayItems: true, delay: false }],
+        generators: [
+          { type: OutputMockType.MSW, arrayItems: true, delay: false },
+        ],
       },
       override: {
         operations: {},
