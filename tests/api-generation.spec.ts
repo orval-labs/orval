@@ -992,3 +992,98 @@ test('default index-mock-file-split emits dedicated mock barrels in split mode (
   );
   expect(fakerBarrel).toMatch(/export \* from '\.\/endpoints\.faker'/);
 });
+
+test('react-query issue-3534 includes baseUrl in the broad-invalidation predicate', async () => {
+  // Regression for #3534: when `baseUrl` is set, query keys are prefixed with
+  // it (e.g. `${process.env.API_URL}/pets/${petId}`). The predicate-based broad
+  // invalidation emitted for a target with a required path param built its
+  // `startsWith()` prefix from the raw spec path only, so it never matched the
+  // baseUrl-prefixed cache key and the invalidation silently no-opped. The
+  // prefix must carry the same runtime baseUrl as the query key.
+  const content = await readFile(
+    generated('react-query', 'invalidates-base-url', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // The target query key carries the runtime baseUrl prefix...
+  expect(content).toContain(
+    'return [`${process.env.API_URL}/pets/${petId}`] as const;',
+  );
+  // ...so the broad-invalidation predicate must use the SAME prefix as a
+  // template literal (not a bare single-quoted '/pets/').
+  expect(content).toContain(
+    'query.queryKey[0].startsWith(`${process.env.API_URL}/pets/`)',
+  );
+  expect(content).not.toContain("query.queryKey[0].startsWith('/pets/')");
+});
+
+test('react-query issue-3534 includes baseUrl segments in the split-key invalidation', async () => {
+  // Split-key variant of #3534: the partial query key used for broad
+  // invalidation must include the static baseUrl segments, mirroring how the
+  // query key array is built (`getRouteAsArray` on the full route).
+  const content = await readFile(
+    generated('react-query', 'invalidates-base-url-split', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // The target query key splits the static baseUrl into leading segments...
+  expect(content).toContain(
+    "return ['http:', 'example.com', 'pets', petId] as const;",
+  );
+  // ...so the invalidation partial key must share those baseUrl segments
+  // instead of the bare ['pets'].
+  expect(content).toContain("queryKey: ['http:', 'example.com', 'pets']");
+  expect(content).not.toContain("queryClient.invalidateQueries({ queryKey: ['pets'] })");
+});
+
+test('react-query issue-3534 bakes a static baseUrl into the default-mode predicate', async () => {
+  // #3534 (static baseUrl, default mode): a plain string baseUrl must be baked
+  // into the single-quoted startsWith() prefix literal, matching the query key.
+  const content = await readFile(
+    generated('react-query', 'invalidates-base-url-static', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toContain(
+    'return [`http://example.com/pets/${petId}`] as const;',
+  );
+  expect(content).toContain(
+    "query.queryKey[0].startsWith('http://example.com/pets/')",
+  );
+  expect(content).not.toContain("query.queryKey[0].startsWith('/pets/')");
+});
+
+test('react-query issue-3534 emits a runtime baseUrl as an unquoted split-key segment', async () => {
+  // #3534 (runtime baseUrl, split mode): the runtime expression must appear as
+  // an unquoted segment in the partial query key (via `getRouteAsArray`'s
+  // template-tag unwrapping), so it matches the query key array element.
+  const content = await readFile(
+    generated('react-query', 'invalidates-base-url-runtime-split', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toContain(
+    "return [process.env.API_URL, 'pets', petId] as const;",
+  );
+  expect(content).toContain("queryKey: [process.env.API_URL, 'pets']");
+  expect(content).not.toContain("queryClient.invalidateQueries({ queryKey: ['pets'] })");
+});
+
+test('react-query issue-3534 carries baseUrl on the verb-prefixed key element', async () => {
+  // #3534 (verb-prefixed key + baseUrl): a non-GET operation routed to a Query
+  // hook gets a verb-prefixed key (['DELETE', '<route>']). The baseUrl prefix
+  // must land on the route element (queryKey[1]) while queryKey[0] guards the
+  // verb, so the predicate matches the verb-prefixed, baseUrl-prefixed key.
+  const content = await readFile(
+    generated('react-query', 'invalidates-base-url-non-get', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toContain(
+    "return ['DELETE', `${process.env.API_URL}/pets/${petId}`] as const;",
+  );
+  expect(content).toContain("query.queryKey[0] === 'DELETE'");
+  expect(content).toContain(
+    'query.queryKey[1].startsWith(`${process.env.API_URL}/pets/`)',
+  );
+});

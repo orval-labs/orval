@@ -243,6 +243,148 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  invalidatesBaseUrl: {
+    output: {
+      target: '../generated/react-query/invalidates-base-url/endpoints.ts',
+      schemas: '../generated/react-query/invalidates-base-url/model',
+      client: 'react-query',
+      // Issue #3534: when baseUrl is set, query keys are prefixed with it
+      // (e.g. `${process.env.API_URL}/pets/...`). The broad-invalidation
+      // predicate must include the same baseUrl prefix, otherwise it never
+      // matches and the invalidation silently no-ops.
+      baseUrl: { runtime: 'process.env.API_URL', imports: [] },
+      override: {
+        query: {
+          mutationInvalidates: [
+            {
+              // showPetById has a required path param but no params mapping →
+              // predicate-based broad invalidation. The startsWith() prefix
+              // must carry the runtime baseUrl.
+              onMutations: ['createPets'],
+              invalidates: ['showPetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  invalidatesBaseUrlSplit: {
+    output: {
+      target: '../generated/react-query/invalidates-base-url-split/endpoints.ts',
+      schemas: '../generated/react-query/invalidates-base-url-split/model',
+      client: 'react-query',
+      // Issue #3534 (split-key variant): static baseUrl segments must be
+      // included in the partial query key used for broad invalidation.
+      baseUrl: 'http://example.com',
+      override: {
+        query: {
+          shouldSplitQueryKey: true,
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['showPetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  invalidatesBaseUrlStatic: {
+    output: {
+      target: '../generated/react-query/invalidates-base-url-static/endpoints.ts',
+      schemas: '../generated/react-query/invalidates-base-url-static/model',
+      client: 'react-query',
+      // Issue #3534 (static baseUrl, default mode): a plain string baseUrl
+      // must be baked into the single-quoted startsWith() prefix literal.
+      baseUrl: 'http://example.com',
+      override: {
+        query: {
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['showPetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  invalidatesBaseUrlRuntimeSplit: {
+    output: {
+      target:
+        '../generated/react-query/invalidates-base-url-runtime-split/endpoints.ts',
+      schemas:
+        '../generated/react-query/invalidates-base-url-runtime-split/model',
+      client: 'react-query',
+      // Issue #3534 (runtime baseUrl, split mode): the runtime expression must
+      // be emitted as an unquoted segment in the partial query key, matching
+      // how `getRouteAsArray` unwraps the template tag in the query key array.
+      baseUrl: { runtime: 'process.env.API_URL', imports: [] },
+      override: {
+        query: {
+          shouldSplitQueryKey: true,
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['showPetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  invalidatesBaseUrlNonGet: {
+    output: {
+      target: '../generated/react-query/invalidates-base-url-non-get/endpoints.ts',
+      schemas: '../generated/react-query/invalidates-base-url-non-get/model',
+      client: 'react-query',
+      // Issue #3534 (verb-prefixed key + baseUrl): a non-GET operation routed
+      // to a Query hook gets a verb-prefixed key (['DELETE', '<route>']). The
+      // baseUrl prefix must land on the route element (queryKey[1]) of the
+      // predicate, alongside the verb guard on queryKey[0].
+      baseUrl: { runtime: 'process.env.API_URL', imports: [] },
+      override: {
+        operations: {
+          deletePetById: {
+            query: { useQuery: true },
+          },
+        },
+        query: {
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['deletePetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   shouldFilterQueryKey: {
     output: {
       target: '../generated/react-query/filter-query-key/endpoints.ts',
