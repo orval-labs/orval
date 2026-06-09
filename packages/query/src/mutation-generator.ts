@@ -6,9 +6,13 @@ import {
   type GeneratorOptions,
   type GeneratorVerbOptions,
   GetterPropType,
+  getFullRoute,
+  getRouteAsArray,
   type InvalidateTarget,
   type InvalidateTargetParam,
   isString,
+  type NormalizedOutputOptions,
+  type OpenApiServerObject,
   type OutputHttpClient,
   pascal,
   type Verbs,
@@ -262,6 +266,16 @@ const generateParamArgs = (
 };
 
 /**
+ * Build the code-literal form of a static route prefix for use inside a
+ * `.startsWith(...)` predicate. A prefix derived from a runtime `baseUrl`
+ * contains a `${...}` interpolation, so it must be emitted as a template
+ * literal; otherwise a plain single-quoted string is enough and keeps the
+ * output byte-identical to the no-baseUrl case.
+ */
+const toPrefixLiteral = (prefix: string): string =>
+  prefix.includes('${') ? `\`${prefix}\`` : `'${prefix}'`;
+
+/**
  * Create a generateInvalidateCall function that has access to the OpenAPI spec
  * for intelligent route-based invalidation when params are not specified.
  */
@@ -269,6 +283,8 @@ const createGenerateInvalidateCall = (
   spec: Record<string, unknown> | undefined,
   shouldSplitQueryKey: boolean,
   useOperationIdAsQueryKey: boolean,
+  baseUrl: NormalizedOutputOptions['baseUrl'],
+  servers: OpenApiServerObject[] | undefined,
 ) => {
   return (target: NormalizedTarget): string => {
     const method =
@@ -293,6 +309,12 @@ const createGenerateInvalidateCall = (
       // starts with a path param like /{tenantId}/...), fall through to
       // the zero-arg call rather than generating an overly-broad match.
       if (prefix !== undefined) {
+        // Issue #3534: the generated query keys are built from the full route
+        // (`getFullRoute` prepends `baseUrl`), so the broad-invalidation
+        // prefix must carry the same `baseUrl` – otherwise the predicate /
+        // partial key never matches a baseUrl-prefixed cache key. `prefix`
+        // has no path params, so `getFullRoute` just concatenates the base.
+        const prefixWithBase = getFullRoute(prefix, servers, baseUrl);
         // Mirror the verb prefix that `getQueryKeyVerbPrefix` injects into
         // non-GET Query keys; without this, the predicate / partial key
         // would never match a verb-prefixed cache key and the broad
@@ -310,12 +332,11 @@ const createGenerateInvalidateCall = (
         if (shouldSplitQueryKey) {
           // Split-key mode: query keys are arrays like ['pets', petId]
           // (or ['DELETE', 'pets', petId] for non-GET Query keys).
-          // Use partial key matching with static route segments.
-          const segments = prefix
-            .split('/')
-            .filter((s) => s !== '')
-            .map((s) => `'${s}'`)
-            .join(', ');
+          // Use partial key matching with static route segments. Reuse
+          // `getRouteAsArray` so baseUrl-derived segments are produced the
+          // same way as the query key (e.g. a runtime baseUrl is emitted as
+          // an unquoted expression, a static one as quoted literals).
+          const segments = getRouteAsArray(prefixWithBase);
           const keyArr = verbPrefix
             ? `['${verbPrefix}', ${segments}]`
             : `[${segments}]`;
@@ -326,10 +347,11 @@ const createGenerateInvalidateCall = (
         // ['/pets/${petId}'] (or ['DELETE', '/pets/${petId}'] for non-GET
         // Query keys). Use a predicate that knows where the route segment
         // lives in the tuple.
+        const prefixLiteral = toPrefixLiteral(prefixWithBase);
         if (verbPrefix) {
-          return `    queryClient.${method}({ predicate: (query) => query.queryKey[0] === '${verbPrefix}' && typeof query.queryKey[1] === 'string' && query.queryKey[1].startsWith('${prefix}') });`;
+          return `    queryClient.${method}({ predicate: (query) => query.queryKey[0] === '${verbPrefix}' && typeof query.queryKey[1] === 'string' && query.queryKey[1].startsWith(${prefixLiteral}) });`;
         }
-        return `    queryClient.${method}({ predicate: (query) => typeof query.queryKey[0] === 'string' && query.queryKey[0].startsWith('${prefix}') });`;
+        return `    queryClient.${method}({ predicate: (query) => typeof query.queryKey[0] === 'string' && query.queryKey[0].startsWith(${prefixLiteral}) });`;
       }
     }
 
@@ -513,6 +535,10 @@ ${
           context.spec,
           !!query.shouldSplitQueryKey,
           !!query.useOperationIdAsQueryKey,
+          // `options.output` is the target file path (a string); the
+          // normalized output – and thus `baseUrl` – lives on `context.output`.
+          context.output.baseUrl,
+          context.spec.servers,
         ),
         uniqueInvalidates,
       })
