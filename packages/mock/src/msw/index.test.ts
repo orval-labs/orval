@@ -1465,6 +1465,7 @@ describe('arrayItems option', () => {
       fileExtension: '.ts',
       mode: 'single',
       mock: {
+        indexMockFiles: false,
         generators: [
           { type: OutputMockType.MSW, arrayItems: true, delay: false },
         ],
@@ -1525,6 +1526,7 @@ describe('arrayItems option', () => {
         output: {
           ...arrayItemsContext.output,
           mock: {
+            indexMockFiles: false,
             generators: [{ type: OutputMockType.MSW, delay: false }],
           },
         },
