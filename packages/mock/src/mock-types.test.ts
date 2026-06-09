@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyStrictMockReturnType,
   buildStrictMockTypeFileHeader,
+  collectStrictMockSchemaTypeNamesFromImplementation,
   dedupeStrictMockTypeDeclarations,
   getMockFactoryReturnType,
   getMockFactorySignatureParts,
@@ -260,6 +261,21 @@ describe('mock-types', () => {
   describe('getStrictMockTypeName', () => {
     it('appends Mock to the schema name', () => {
       expect(getStrictMockTypeName('Pet')).toBe('PetMock');
+    });
+  });
+
+  describe('collectStrictMockSchemaTypeNamesFromImplementation', () => {
+    it('collects schema names from strict mock factory signatures', () => {
+      const implementation = [
+        'export const getAdminOperationEntityDtoMock = <O extends Partial<AdminOperationEntityDto> = {}>(overrideResponse?: O): MockWithNullableOverrides<AdminOperationEntityDto, O, AdminOperationEntityDtoMock> => ({}) as MockWithNullableOverrides<AdminOperationEntityDto, O, AdminOperationEntityDtoMock>;',
+        'export const getGetTenantsResponseMock = (): TenantInfoDtoMock[] => [];',
+      ].join('\n');
+
+      expect(
+        collectStrictMockSchemaTypeNamesFromImplementation(
+          implementation,
+        ).toSorted(),
+      ).toEqual(['AdminOperationEntityDto', 'TenantInfoDto']);
     });
   });
 

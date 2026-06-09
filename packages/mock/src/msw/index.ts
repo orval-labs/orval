@@ -19,11 +19,13 @@ import { getDelay } from '../delay';
 import { getRouteMSW, overrideVarName } from '../faker/getters';
 import {
   applyStrictMockReturnType,
+  collectStrictMockSchemaTypeNamesFromImplementation,
   formatMockFactoryDeclaration,
   getMockFactorySignatureParts,
   getSchemaTypeNamesFromResponses,
   getSimpleSchemaReturnType,
   isStrictMock,
+  mergeStrictMockSchemaTypeNames,
 } from '../mock-types';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
 
@@ -425,8 +427,14 @@ export const ${handlerName} = (overrideResponse?: ${mockReturnType} | ((${infoPa
       handler: handlerImplementation,
     },
     imports: includeResponseImports,
-    strictMockSchemaTypeNames:
-      strictMock && schemaTypeNames.length > 0 ? schemaTypeNames : undefined,
+    strictMockSchemaTypeNames: strictMock
+      ? mergeStrictMockSchemaTypeNames(
+          schemaTypeNames,
+          collectStrictMockSchemaTypeNamesFromImplementation(
+            mockImplementation,
+          ),
+        )
+      : undefined,
   };
 }
 
