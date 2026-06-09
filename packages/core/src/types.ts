@@ -1154,9 +1154,16 @@ export interface ContextSpec {
    * Tracks array-item mock factory names already emitted per output file scope.
    * Populated by `@orval/mock` when `arrayItems: true` so shared `$ref` item
    * factories are not re-declared within the same file (single/split) or tag
-   * bucket (tags/tags-split).
+   * bucket (tags/tags-split). Scope keys include the active mock generator
+   * type so separate `.msw.ts` / `.faker.ts` files each get their own copy.
    */
   arrayItemMockFactories?: Map<string, Set<string>>;
+  /**
+   * Set by `@orval/mock` while generating per-operation mock output so
+   * file-scoped helpers (e.g. array-item factory dedup) can distinguish
+   * separate mock generator files.
+   */
+  activeMockOutputType?: OutputMockType;
 }
 
 /**

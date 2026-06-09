@@ -219,3 +219,49 @@ export function applyStrictMockReturnType(
 
   return result;
 }
+
+const STRICT_MOCK_SCHEMA_TYPE_FROM_OVERRIDES =
+  /MockWithNullableOverrides<([A-Z]\w*),/g;
+const STRICT_MOCK_SCHEMA_TYPE_FROM_MOCK_ALIAS = /\b([A-Z]\w*)Mock\b/g;
+
+/**
+ * Collect schema type names referenced by strict mock factories in generated
+ * implementation text (nested split factories, array item helpers, etc.).
+ */
+export function collectStrictMockSchemaTypeNamesFromImplementation(
+  implementation: string,
+): string[] {
+  const names = new Set<string>();
+
+  for (const match of implementation.matchAll(
+    STRICT_MOCK_SCHEMA_TYPE_FROM_OVERRIDES,
+  )) {
+    names.add(match[1]);
+  }
+
+  for (const match of implementation.matchAll(
+    STRICT_MOCK_SCHEMA_TYPE_FROM_MOCK_ALIAS,
+  )) {
+    names.add(match[1]);
+  }
+
+  // `\b([A-Z]\w*)Mock\b` also matches `Widget` inside `WidgetMock` when the
+  // schema itself is named `WidgetMock` (`WidgetMockMock` strict alias). Drop
+  // prefix captures when a longer `{name}Mock` schema name was also collected.
+  return [...names].filter((name) => !names.has(`${name}Mock`));
+}
+
+export function mergeStrictMockSchemaTypeNames(
+  ...groups: Array<Iterable<string> | undefined>
+): string[] | undefined {
+  const names = new Set<string>();
+
+  for (const group of groups) {
+    if (!group) continue;
+    for (const name of group) {
+      names.add(name);
+    }
+  }
+
+  return names.size > 0 ? [...names] : undefined;
+}

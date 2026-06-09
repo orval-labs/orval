@@ -31,14 +31,17 @@ export function getArrayItemMockFileScope(
   tags: string[],
 ): string {
   const mode = context.output.mode;
+  const mockType = context.activeMockOutputType ?? OutputMockType.MSW;
+  let base: string;
   if (mode === OutputMode.TAGS || mode === OutputMode.TAGS_SPLIT) {
     const tag = tags.length > 0 ? tags[0] : DefaultTag;
-    return `tag:${kebab(tag)}`;
+    base = `tag:${kebab(tag)}`;
+  } else if (mode === OutputMode.SPLIT) {
+    base = 'split';
+  } else {
+    base = 'single';
   }
-  if (mode === OutputMode.SPLIT) {
-    return 'split';
-  }
-  return 'single';
+  return `${base}:${mockType}`;
 }
 
 function getFileLevelExtractedFactories(
