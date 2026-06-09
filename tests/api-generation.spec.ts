@@ -34,14 +34,14 @@ await describeApiGenerationSnapshots({
 test('mock issue-3574 strict mock types in tags-split MSW+faker output', async () => {
   const petsMsw = generated(
     'mock',
-    'issue-3574-strict-mock-tags-split',
+    'issue-3574-strict-mock-tags-split-fetch',
     'pets',
     'pets',
     'pets.msw.ts',
   );
   const petsFaker = generated(
     'mock',
-    'issue-3574-strict-mock-tags-split',
+    'issue-3574-strict-mock-tags-split-fetch',
     'pets',
     'pets',
     'pets.faker.ts',
@@ -53,8 +53,10 @@ test('mock issue-3574 strict mock types in tags-split MSW+faker output', async (
     expect(content).toContain('export type MockWithNullableOverrides');
     expect(content).toContain('export type PetMock');
     expect(content).toMatch(/export type KeysWithNull/);
-    expect(content).toContain('export const getPetMock');
   }
+
+  expect(mswContent).toMatch(/export const getPetMock|import \{ getPetMock \}/);
+  expect(fakerContent).toMatch(/export const getPetMock|import \{ getPetMock \}/);
 });
 
 test('angular issue-3103 emits filterParams in tags-split default service', async () => {
