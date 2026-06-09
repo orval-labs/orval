@@ -311,6 +311,7 @@ export async function writeSplitTagsMode({
     for (const { ext, mockDir, tags } of mockIndexEntries) {
       const indexPath = path.join(mockDir, `index.${ext}${extension}`);
       const indexContent = tags
+        .toSorted((a, b) => a.localeCompare(b))
         .map((tag) => {
           const localMockPath = upath.joinSafe('./', tag, tag + '.' + ext);
           return ext === OutputMockType.MSW

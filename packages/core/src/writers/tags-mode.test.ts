@@ -2,7 +2,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import fs from 'fs-extra';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createSplitModeOperation,
@@ -11,6 +11,78 @@ import {
 } from '../test-utils/split-modes';
 import { type GeneratorDependency, OutputMockType, OutputMode } from '../types';
 import { writeTagsMode } from './tags-mode';
+
+// Regression: the index mock barrel must emit tags in locale-sorted order
+// regardless of I/O completion order inside Promise.all. Without an
+// emit-time sort, the barrel order is non-deterministic.
+
+describe('writeTagsMode — index mock barrel has deterministic tag order', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-tags-mode-'));
+  });
+
+  afterEach(() => {
+    fs.removeSync(tmpDir);
+    vi.restoreAllMocks();
+  });
+
+  it('emits barrel exports in locale-sorted tag order even when I/O completes in reverse', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const mockDir = path.join(tmpDir, 'mocks');
+    const baseProps = createSplitModeProps(target);
+
+    const { writeGeneratedFile: originalWrite } = await import('./file');
+    const writeSpy = vi.spyOn(await import('./file'), 'writeGeneratedFile');
+    writeSpy.mockImplementation(async (filePath, content) => {
+      if (filePath.includes(path.join(mockDir, 'health'))) {
+        await new Promise((r) => setTimeout(r, 10));
+      }
+      await originalWrite(filePath, content);
+    });
+
+    const props = {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        operations: {
+          listPets: createSplitModeOperation({
+            tags: ['pets'],
+            operationName: 'listPets',
+          }),
+          getHealth: createSplitModeOperation({
+            tags: ['health'],
+            operationName: 'getHealth',
+          }),
+          getAdmin: createSplitModeOperation({
+            tags: ['admin'],
+            operationName: 'getAdmin',
+          }),
+        },
+      },
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS,
+        mock: {
+          indexMockFiles: true,
+          path: mockDir,
+          generators: [{ type: OutputMockType.MSW }],
+        },
+      }),
+    };
+
+    await writeTagsMode({ ...props, needSchema: false });
+
+    const indexMockPath = path.join(mockDir, 'index.msw.ts');
+    expect(fs.existsSync(indexMockPath)).toBe(true);
+    const content = fs.readFileSync(indexMockPath, 'utf8');
+    const lines = content.trim().split('\n');
+    expect(lines).toHaveLength(3);
+    expect(lines[0]).toMatch(/getAdminMock/);
+    expect(lines[1]).toMatch(/getHealthMock/);
+    expect(lines[2]).toMatch(/getPetsMock/);
+  });
+});
 
 // Regression coverage for https://github.com/orval-labs/orval/issues/2309
 //

@@ -373,6 +373,7 @@ export async function writeTagsMode({
     for (const { ext, mockDir, tags } of mockIndexEntries) {
       const indexPath = path.join(mockDir, `index.${ext}${extension}`);
       const indexContent = tags
+        .toSorted((a, b) => a.localeCompare(b))
         .map((kebabTag) => {
           const localMockPath = upath.joinSafe(
             './',
