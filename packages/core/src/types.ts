@@ -480,6 +480,11 @@ export interface MswMockOptions extends CommonMockOptions {
   delay?: false | number | (() => number);
   // Execute the `delay` function at runtime rather than build time
   delayFunctionLazyExecute?: boolean;
+  // Custom output directory for MSW mock files. Overrides the shared
+  // `OutputMocksConfig.path` when set. When provided in `single` or `tags`
+  // modes, mock code is written to separate files instead of being inlined
+  // into the implementation file.
+  path?: string;
 }
 
 export interface FakerMockOptions extends CommonMockOptions {
@@ -496,6 +501,11 @@ export interface FakerMockOptions extends CommonMockOptions {
   // operation responses (e.g. `getTenantResponseModelDtoMock` for
   // `value: TenantResponseModelDto[]`). Defaults to `false`.
   arrayItems?: boolean;
+  // Custom output directory for faker mock files. Overrides the shared
+  // `OutputMocksConfig.path` when set. When provided in `single` or `tags`
+  // modes, mock code is written to separate files instead of being inlined
+  // into the implementation file.
+  path?: string;
 }
 
 export type GlobalMockOptions = MswMockOptions | FakerMockOptions;
@@ -515,6 +525,11 @@ export interface OutputMocksConfig {
   // re-exports the single mock file. Keeps mocks in a dedicated barrel so the
   // models/production barrels never pull them in.
   indexMockFiles?: boolean;
+  // Shared output directory for all mock files. Individual generators can
+  // override this with their own `path` property. When provided in `single`
+  // or `tags` modes, mock code is written to separate files instead of being
+  // inlined into the implementation file.
+  path?: string;
   generators: (GlobalMockOptions | ClientMockBuilder)[];
 }
 
@@ -528,6 +543,7 @@ export type OutputMocksOption = boolean | OutputMocksConfig | ClientMockBuilder;
 // rest of the pipeline can iterate `generators` without branching on shape.
 export interface NormalizedMocksConfig {
   indexMockFiles: boolean;
+  path?: string;
   generators: (GlobalMockOptions | ClientMockBuilder)[];
 }
 

@@ -91,6 +91,67 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Regression for https://github.com/orval-labs/orval/issues/3554:
+  // a function-form mock generator (ClientMockBuilder) used to be
+  // silently dropped in `split` mode. It must now be treated as MSW.
+  petstoreCustomMockBuilderSplit: {
+    output: {
+      target:
+        '../generated/mock/petstore-custom-mock-builder-split/endpoints.ts',
+      schemas: '../generated/mock/petstore-custom-mock-builder-split/model',
+      mode: 'split',
+      client: 'axios',
+      mock: (verbOptions, _) => {
+        const handlerName = `${verbOptions.operationId}MockHandler`;
+
+        return {
+          imports: [],
+          implementation: {
+            function: '',
+            handlerName: handlerName,
+            handler: `const ${handlerName} = () => { return { data: { id: 1, name: "myName" } } }\n`,
+          },
+        };
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // Regression for https://github.com/orval-labs/orval/issues/3554:
+  // a function-form mock generator (ClientMockBuilder) used to throw
+  // in `tags-split` mode. The throw was removed but never replaced with
+  // generation — this config verifies the throw is gone and the file is
+  // written.
+  petstoreCustomMockBuilderTagsSplit: {
+    output: {
+      target:
+        '../generated/mock/petstore-custom-mock-builder-tags-split/endpoints.ts',
+      schemas:
+        '../generated/mock/petstore-custom-mock-builder-tags-split/model',
+      mode: 'tags-split',
+      client: 'axios',
+      mock: (verbOptions, _) => {
+        const handlerName = `${verbOptions.operationId}MockHandler`;
+
+        return {
+          imports: [],
+          implementation: {
+            function: '',
+            handlerName: handlerName,
+            handler: `const ${handlerName} = () => { return { data: { id: 1, name: "myName" } } }\n`,
+          },
+        };
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   petstoreTagsSplit: {
     output: {
       target: '../generated/mock/petstore-tags-split/endpoints.ts',
@@ -755,6 +816,103 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/split-by-content-type.yaml',
+    },
+  },
+  splitMockPath: {
+    output: {
+      target: '../generated/mock/split-mock-path/endpoints.ts',
+      schemas: '../generated/mock/split-mock-path/model',
+      mock: {
+        path: '../generated/mock/split-mock-path/mocks',
+        generators: [{ type: 'msw' }, { type: 'faker' }],
+      },
+      mode: 'split',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  tagsSplitMockPath: {
+    output: {
+      target: '../generated/mock/tags-split-mock-path/endpoints.ts',
+      schemas: '../generated/mock/tags-split-mock-path/model',
+      mock: {
+        path: '../generated/mock/tags-split-mock-path/mocks',
+        indexMockFiles: true,
+        generators: [{ type: 'msw' }, { type: 'faker' }],
+      },
+      mode: 'tags-split',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  singleMockPath: {
+    output: {
+      target: '../generated/mock/single-mock-path/endpoints.ts',
+      schemas: '../generated/mock/single-mock-path/model',
+      mock: {
+        path: '../generated/mock/single-mock-path/mocks',
+        indexMockFiles: true,
+        generators: [{ type: 'msw' }, { type: 'faker' }],
+      },
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  tagsMockPath: {
+    output: {
+      target: '../generated/mock/tags-mock-path/endpoints.ts',
+      schemas: '../generated/mock/tags-mock-path/model',
+      mock: {
+        path: '../generated/mock/tags-mock-path/mocks',
+        indexMockFiles: true,
+        generators: [{ type: 'msw' }, { type: 'faker' }],
+      },
+      mode: 'tags',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  tagsSplitPerGeneratorPath: {
+    output: {
+      target:
+        '../generated/mock/tags-split-per-generator-path/endpoints.ts',
+      schemas: '../generated/mock/tags-split-per-generator-path/model',
+      mock: {
+        indexMockFiles: true,
+        generators: [
+          {
+            type: 'msw',
+            path: '../generated/mock/tags-split-per-generator-path/msw',
+          },
+          {
+            type: 'faker',
+            path: '../generated/mock/tags-split-per-generator-path/faker',
+          },
+        ],
+      },
+      mode: 'tags-split',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
     },
   },
 });

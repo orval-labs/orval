@@ -91,6 +91,28 @@ output: {
 
 启用 mock 生成。可以使用 `true` 快速开启，也可以用对象配置多个 generator。
 
+| 选项 | 类型 | 默认值 | 描述 |
+|--------|------|---------|-------------|
+| `indexMockFiles` | `Boolean` | `false` | 在 `split` 和 `tags-split` 模式下，为每个 generator 额外输出一个根级 `index.<ext>.ts`（例如 `index.msw.ts`、`index.faker.ts`）来统一 re-export mock。`tags-split` 下 re-export 每个 tag 的 mock，`split` 下 re-export 单一 mock 文件。适合把 mock（如 MSW）放到独立的 barrel 中，避免被 models/生产代码 barrel 引用。 |
+| `path` | `String` | `undefined` | 所有 mock 文件的共享输出目录。generator 自身的 `path` 会覆盖该值。在 `single` 或 `tags` 模式下设置后，mock 代码会作为独立文件写入（相对于 `path`），而不是内联到实现文件里。函数式 generator 会忽略自身 `path`，始终回退到共享 `path`。 |
+| `generators` | `Array<MockOptions \| Function>` | `[]` | 每个条目对应一份 mock 输出文件。可以是 `MockOptions` 对象，也可以是自定义的 `ClientMockBuilder` 函数。 |
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mock: {
+        path: './src/api/mocks',
+        generators: [
+          { type: 'msw', path: './src/api/mocks/msw' },
+          { type: 'faker' },
+        ],
+      },
+    },
+  },
+});
+```
+
 ### Mocks Options
 
 常见选项包括数组长度、字符串长度、数字范围、是否按 HTTP 状态码生成响应。
@@ -99,9 +121,19 @@ output: {
 
 生成 MSW request handlers，用于浏览器、Node 测试和 Storybook。
 
+| 选项 | 类型 | 默认值 | 描述 |
+|--------|------|---------|-------------|
+| `type` | `'msw'` | required | MSW handler 生成的判别字段。 |
+| `path` | `String` | `undefined` | 该 generator 的 mock 文件输出目录。设置后会覆盖共享的 `mock.path`。在 `single` 或 `tags` 模式下设置后，mock 代码会作为独立文件写入（相对于 `path`），而不是内联到实现文件里。 |
+
 ### Faker generator (`type: 'faker'`)
 
 生成不依赖网络 mock 的数据工厂，适合单元测试和 seed 数据。
+
+| 选项 | 类型 | 默认值 | 描述 |
+|--------|------|---------|-------------|
+| `type` | `'faker'` | required | Faker-only 输出的判别字段。 |
+| `path` | `String` | `undefined` | 该 generator 的 mock 文件输出目录。设置后会覆盖共享的 `mock.path`。在 `single` 或 `tags` 模式下设置后，mock 代码会作为独立文件写入（相对于 `path`），而不是内联到实现文件里。 |
 
 ## indexFiles
 
