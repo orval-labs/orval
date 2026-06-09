@@ -1045,7 +1045,6 @@ test('default index-mock-file-split emits dedicated mock barrels in split mode (
   expect(fakerBarrel).toMatch(/export \* from '\.\/endpoints\.faker'/);
 });
 
-<<<<<<< HEAD
 test('react-query issue-3534 includes baseUrl in the broad-invalidation predicate', async () => {
   // Regression for #3534: when `baseUrl` is set, query keys are prefixed with
   // it (e.g. `${process.env.API_URL}/pets/${petId}`). The predicate-based broad

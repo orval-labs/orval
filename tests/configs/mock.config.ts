@@ -716,7 +716,6 @@ export default defineConfig({
       target: '../specifications/faker-array-items-tags-split.yaml',
     },
   },
-<<<<<<< HEAD
   issue3574StrictMockTagsSplitAngular: {
     output: {
       target:
