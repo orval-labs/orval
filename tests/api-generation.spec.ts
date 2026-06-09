@@ -31,6 +31,32 @@ await describeApiGenerationSnapshots({
   rootDir: path.resolve(import.meta.dirname, '..'),
 });
 
+test('mock issue-3574 strict mock types in tags-split MSW+faker output', async () => {
+  const petsMsw = generated(
+    'mock',
+    'issue-3574-strict-mock-tags-split',
+    'pets',
+    'pets',
+    'pets.msw.ts',
+  );
+  const petsFaker = generated(
+    'mock',
+    'issue-3574-strict-mock-tags-split',
+    'pets',
+    'pets',
+    'pets.faker.ts',
+  );
+  const mswContent = await readFile(petsMsw, 'utf8');
+  const fakerContent = await readFile(petsFaker, 'utf8');
+
+  for (const content of [mswContent, fakerContent]) {
+    expect(content).toContain('export type MockWithNullableOverrides');
+    expect(content).toContain('export type PetMock');
+    expect(content).toMatch(/export type KeysWithNull/);
+    expect(content).toContain('export const getPetMock');
+  }
+});
+
 test('angular issue-3103 emits filterParams in tags-split default service', async () => {
   // Keep this focused assertion alongside the snapshot so #3103 fails with a
   // targeted message instead of a full-file snapshot diff.

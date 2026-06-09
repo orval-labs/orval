@@ -92,6 +92,9 @@ function initialMockOutputsForOperation(
         : '',
     },
     imports: [...m.imports],
+    strictMockSchemaTypeNames: m.strictMockSchemaTypeNames
+      ? [...m.strictMockSchemaTypeNames]
+      : undefined,
   }));
 }
 
@@ -249,6 +252,7 @@ export function generateTargetForTags(
               handlerName: m.implementation.handlerName,
             },
             imports: m.imports,
+            strictMockSchemaTypeNames: m.strictMockSchemaTypeNames,
           }));
 
         transformed[tag] = {

@@ -1,4 +1,4 @@
-import { type ContextSpec, OutputMode } from '@orval/core';
+import { type ContextSpec, OutputMode, OutputMockType } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -11,6 +11,7 @@ const createContextWithArrayItems = (
   mode: OutputMode = OutputMode.SINGLE,
 ): ContextSpec =>
   ({
+    activeMockOutputType: OutputMockType.FAKER,
     output: {
       mode,
       mock: {
@@ -53,13 +54,15 @@ const mapValue =
 describe('getArrayItemMockFileScope', () => {
   it('uses a single scope for single mode', () => {
     const context = createContextWithArrayItems();
-    expect(getArrayItemMockFileScope(context, ['pets'])).toBe('single');
+    expect(getArrayItemMockFileScope(context, ['pets'])).toBe('single:faker');
   });
 
   it('uses per-tag scope for tags-split mode', () => {
     const context = createContextWithArrayItems(OutputMode.TAGS_SPLIT);
-    expect(getArrayItemMockFileScope(context, ['alpha'])).toBe('tag:alpha');
-    expect(getArrayItemMockFileScope(context, ['beta'])).toBe('tag:beta');
+    expect(getArrayItemMockFileScope(context, ['alpha'])).toBe(
+      'tag:alpha:faker',
+    );
+    expect(getArrayItemMockFileScope(context, ['beta'])).toBe('tag:beta:faker');
   });
 });
 
@@ -192,9 +195,43 @@ describe('extractArrayItemMock', () => {
     expect(splitMockImplementationsB).toHaveLength(0);
     expect(
       context.arrayItemMockFactories
-        ?.get('single')
+        ?.get('single:faker')
         ?.has('getTenantResponseModelDtoMock'),
     ).toBe(true);
+  });
+
+  it('emits $ref factories separately per mock generator file', () => {
+    const context = createContextWithArrayItems();
+    context.activeMockOutputType = OutputMockType.MSW;
+    const splitMockImplementationsMsw: string[] = [];
+
+    extractArrayItemMock({
+      items: { $ref: '#/components/schemas/TenantResponseModelDto' },
+      propertyName: 'value',
+      operationId: 'getTenantsByRef',
+      tags: [],
+      mapValue,
+      context,
+      splitMockImplementations: splitMockImplementationsMsw,
+      imports: [],
+    });
+
+    context.activeMockOutputType = OutputMockType.FAKER;
+    const splitMockImplementationsFaker: string[] = [];
+
+    extractArrayItemMock({
+      items: { $ref: '#/components/schemas/TenantResponseModelDto' },
+      propertyName: 'value',
+      operationId: 'getTenantsByRef',
+      tags: [],
+      mapValue,
+      context,
+      splitMockImplementations: splitMockImplementationsFaker,
+      imports: [],
+    });
+
+    expect(splitMockImplementationsMsw).toHaveLength(1);
+    expect(splitMockImplementationsFaker).toHaveLength(1);
   });
 
   it('emits $ref factories separately per tag in tags-split mode', () => {
@@ -227,12 +264,12 @@ describe('extractArrayItemMock', () => {
     expect(splitMockImplementationsBeta).toHaveLength(1);
     expect(
       context.arrayItemMockFactories
-        ?.get('tag:alpha')
+        ?.get('tag:alpha:faker')
         ?.has('getTenantResponseModelDtoMock'),
     ).toBe(true);
     expect(
       context.arrayItemMockFactories
-        ?.get('tag:beta')
+        ?.get('tag:beta:faker')
         ?.has('getTenantResponseModelDtoMock'),
     ).toBe(true);
   });
