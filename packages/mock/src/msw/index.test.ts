@@ -1463,6 +1463,7 @@ describe('arrayItems option', () => {
       target: 'test',
       namingConvention: 'camelCase',
       fileExtension: '.ts',
+      schemaFileExtension: '.ts',
       mode: 'single',
       mock: {
         indexMockFiles: false,
