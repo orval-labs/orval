@@ -222,11 +222,25 @@ export function applyStrictMockReturnType(
 
 const STRICT_MOCK_SCHEMA_TYPE_FROM_OVERRIDES =
   /MockWithNullableOverrides<([A-Z]\w*),/g;
-const STRICT_MOCK_SCHEMA_TYPE_FROM_MOCK_ALIAS = /\b([A-Z]\w*)Mock\b/g;
+const STRICT_MOCK_SCHEMA_TYPE_FROM_OVERRIDE_ALIAS =
+  /MockWithNullableOverrides<[^,]+,\s*[^,]+,\s*([A-Z]\w*Mock)>/g;
+const STRICT_MOCK_SCHEMA_TYPE_FROM_MOCK_ALIAS_RETURN =
+  /\): ([A-Z]\w*Mock)(?:\[\]|;)/g;
+
+/** Inverse of {@link getStrictMockTypeName}: `PetMock` → `Pet`, `WidgetMockMock` → `WidgetMock`. */
+function getSchemaTypeNameFromStrictMockAlias(alias: string): string {
+  return alias.endsWith('Mock') ? alias.slice(0, -4) : alias;
+}
 
 /**
  * Collect schema type names referenced by strict mock factories in generated
  * implementation text (nested split factories, array item helpers, etc.).
+ *
+ * This reverse-parses emitted factory syntax and is therefore coupled to the
+ * current `formatMockFactoryDeclaration` / `getMockFactorySignatureParts`
+ * shape. The structurally robust alternative is to record each nested item's
+ * schema name where split factories are generated (array-item / faker getters,
+ * where the `$ref` name is known) and thread it into `strictMockSchemaTypeNames`.
  */
 export function collectStrictMockSchemaTypeNamesFromImplementation(
   implementation: string,
@@ -239,16 +253,16 @@ export function collectStrictMockSchemaTypeNamesFromImplementation(
     names.add(match[1]);
   }
 
-  for (const match of implementation.matchAll(
-    STRICT_MOCK_SCHEMA_TYPE_FROM_MOCK_ALIAS,
-  )) {
-    names.add(match[1]);
+  for (const pattern of [
+    STRICT_MOCK_SCHEMA_TYPE_FROM_OVERRIDE_ALIAS,
+    STRICT_MOCK_SCHEMA_TYPE_FROM_MOCK_ALIAS_RETURN,
+  ]) {
+    for (const match of implementation.matchAll(pattern)) {
+      names.add(getSchemaTypeNameFromStrictMockAlias(match[1]));
+    }
   }
 
-  // `\b([A-Z]\w*)Mock\b` also matches `Widget` inside `WidgetMock` when the
-  // schema itself is named `WidgetMock` (`WidgetMockMock` strict alias). Drop
-  // prefix captures when a longer `{name}Mock` schema name was also collected.
-  return [...names].filter((name) => !names.has(`${name}Mock`));
+  return [...names];
 }
 
 export function mergeStrictMockSchemaTypeNames(

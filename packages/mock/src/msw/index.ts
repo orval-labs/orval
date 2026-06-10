@@ -430,6 +430,8 @@ export const ${handlerName} = (overrideResponse?: ${mockReturnType} | ((${infoPa
     strictMockSchemaTypeNames: strictMock
       ? mergeStrictMockSchemaTypeNames(
           schemaTypeNames,
+          // Nested split factories: see collectStrictMockSchemaTypeNamesFromImplementation
+          // re regex-coupling note — prefer threading names from getters long-term.
           collectStrictMockSchemaTypeNamesFromImplementation(
             mockImplementation,
           ),

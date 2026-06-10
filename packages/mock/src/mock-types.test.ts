@@ -288,6 +288,19 @@ describe('mock-types', () => {
         collectStrictMockSchemaTypeNamesFromImplementation(implementation),
       ).toEqual(['WidgetMock']);
     });
+
+    it('keeps both Widget and WidgetMock when both schemas are strict-mocked', () => {
+      const implementation = [
+        'export const getWidgetMock = <O extends Partial<Widget> = {}>(overrideResponse?: O): MockWithNullableOverrides<Widget, O, WidgetMock> => ({}) as MockWithNullableOverrides<Widget, O, WidgetMock>;',
+        'export const getWidgetTypeMock = <O extends Partial<WidgetMock> = {}>(overrideResponse?: O): MockWithNullableOverrides<WidgetMock, O, WidgetMockMock> => ({}) as MockWithNullableOverrides<WidgetMock, O, WidgetMockMock>;',
+      ].join('\n');
+
+      expect(
+        collectStrictMockSchemaTypeNamesFromImplementation(
+          implementation,
+        ).toSorted(),
+      ).toEqual(['Widget', 'WidgetMock']);
+    });
   });
 
   describe('buildStrictMockTypeFileHeader', () => {
