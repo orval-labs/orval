@@ -108,13 +108,13 @@ Requires `output.schemas` to be configured (the consolidated file is written int
 
 ### Array Item Factories
 
-Set `arrayItems: true` to emit reusable mock factories for **object-like array item schemas** found in operation responses. This covers array elements that are inlined in the response body (not just entries under `components/schemas`):
+Set `arrayItems: true` on any mock generator entry to emit reusable mock factories for **object-like array item schemas** found in operation responses. This covers array elements that are inlined in the response body (not just entries under `components/schemas`). Works with both `faker` and `msw` generators:
 
 ```ts title="orval.config.ts"
 mock: {
   generators: [
     {
-      type: 'faker',
+      type: 'msw',
       arrayItems: true,
     },
   ],
@@ -146,7 +146,7 @@ When `schemas: true` is also enabled, `$ref` items delegate to the consolidated 
 
 ## Options
 
-Set faker-specific options on the generator entry:
+Shared mock options apply to both `faker` and `msw` generator entries. Faker-only options are listed separately below.
 
 ```ts title="orval.config.ts"
 mock: {
@@ -157,6 +157,7 @@ mock: {
       generateEachHttpStatus: true,
       locale: 'en_GB',
       preferredContentType: 'application/json',
+      arrayItems: true,
     },
   ],
 }
@@ -168,9 +169,14 @@ mock: {
 | `generateEachHttpStatus` | `boolean` | `false` | Emit a separate factory per HTTP status code defined in the spec (not just the success response). |
 | `locale` | `keyof typeof allLocales` | — | Faker locale. Switches the import to `@faker-js/faker/locale/<x>` (e.g. `'en_GB'`, `'fr'`, `'ja'`). |
 | `preferredContentType` | `string` | — | When an operation has multiple response content types, mock the one matching this MIME type. |
+| `arrayItems` | `boolean` | `false` | Emit reusable mock factories for object-like array item schemas in operation responses. See [Array Item Factories](#array-item-factories). |
+
+Faker-only options:
+
+| Option | Type | Default | Description |
+|---|---|---|---|
 | `schemas` | `boolean` | `false` | Emit a consolidated `get<SchemaName>Mock` factory per `components/schemas` entry into `<schemas-dir>/index.faker.ts`. See [Schema Factories](#schema-factories). |
 | `operationResponses` | `boolean` | `true` | Emit per-operation `get<OperationId>ResponseMock` factories. Set to `false` (typically with `schemas: true`) to skip operation-level factories. |
-| `arrayItems` | `boolean` | `false` | Emit reusable mock factories for object-like array item schemas in operation responses. See [Array Item Factories](#array-item-factories). |
 
 ## Customizing Mock Values
 

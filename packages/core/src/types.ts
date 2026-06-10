@@ -470,6 +470,10 @@ export interface CommonMockOptions {
   locale?: keyof typeof allLocales;
   // Selects which response schema is mocked when multiple content types exist
   preferredContentType?: string;
+  // Emit reusable mock factories for object-like array item schemas found in
+  // operation responses (e.g. `getTenantResponseModelDtoMock` for
+  // `value: TenantResponseModelDto[]`). Defaults to `false`.
+  arrayItems?: boolean;
 }
 
 export interface MswMockOptions extends CommonMockOptions {
@@ -497,10 +501,6 @@ export interface FakerMockOptions extends CommonMockOptions {
   // Defaults to `true`. Set to `false` together with `schemas: true` to get
   // only the consolidated schema factories.
   operationResponses?: boolean;
-  // Emit reusable mock factories for object-like array item schemas found in
-  // operation responses (e.g. `getTenantResponseModelDtoMock` for
-  // `value: TenantResponseModelDto[]`). Defaults to `false`.
-  arrayItems?: boolean;
   // Custom output directory for faker mock files. Overrides the shared
   // `OutputMocksConfig.path` when set. When provided in `single` or `tags`
   // modes, mock code is written to separate files instead of being inlined

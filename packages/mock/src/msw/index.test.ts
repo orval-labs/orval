@@ -1399,6 +1399,147 @@ describe('generateMSW', () => {
   });
 });
 
+describe('arrayItems option', () => {
+  const tenantListResponseType = {
+    key: '200',
+    value: 'TenantListResponse',
+    contentType: 'application/json',
+    originalSchema: { $ref: '#/components/schemas/TenantListResponse' },
+    imports: [{ name: 'TenantListResponse' }],
+    schemas: [],
+    type: 'object',
+    isEnum: false,
+    isRef: true,
+    hasReadonlyProps: false,
+  };
+
+  const tenantsByRefVerbOptions = {
+    operationId: 'getTenantsByRef',
+    operationName: 'getTenantsByRef',
+    verb: 'get',
+    tags: ['tenants'],
+    response: {
+      imports: [{ name: 'TenantListResponse' }],
+      definition: { success: 'TenantListResponse' },
+      types: { success: [tenantListResponseType] },
+      contentTypes: ['application/json'],
+    },
+  } as unknown as GeneratorVerbOptions;
+
+  const arrayItemsContext = {
+    target: 'test',
+    workspace: '',
+    spec: {
+      openapi: '3.0.3',
+      info: { title: 'Test', version: '1.0.0' },
+      paths: {},
+      components: {
+        schemas: {
+          TenantListResponse: {
+            type: 'object',
+            required: ['value', 'count'],
+            properties: {
+              value: {
+                type: 'array',
+                items: {
+                  $ref: '#/components/schemas/TenantResponseModelDto',
+                },
+              },
+              count: { type: 'integer' },
+            },
+          },
+          TenantResponseModelDto: {
+            type: 'object',
+            required: ['id', 'name'],
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              name: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    output: {
+      target: 'test',
+      namingConvention: 'camelCase',
+      fileExtension: '.ts',
+      schemaFileExtension: '.ts',
+      mode: 'single',
+      mock: {
+        indexMockFiles: false,
+        generators: [
+          { type: OutputMockType.MSW, arrayItems: true, delay: false },
+        ],
+      },
+      override: {
+        operations: {},
+        tags: {},
+        components: { schemas: { suffix: '', itemSuffix: 'Item' } },
+      },
+      client: 'axios-functions',
+      httpClient: 'fetch',
+      clean: false,
+      docs: false,
+      formatter: undefined,
+      headers: false,
+      indexFiles: true,
+      allParamsOptional: false,
+      urlEncodeParameters: false,
+      unionAddMissingProperties: false,
+      optionsParamRequired: false,
+      propertySortOrder: 'specification',
+    },
+  };
+
+  const arrayItemsOptions = {
+    route: '/tenants-by-ref',
+    pathRoute: '/tenants-by-ref',
+    output: 'test',
+    override: { operations: {}, tags: {} } as NormalizedOverrideOutput,
+    context: arrayItemsContext,
+    mock: {
+      type: OutputMockType.MSW,
+      arrayItems: true,
+      delay: false,
+    },
+  } as unknown as GeneratorOptions;
+
+  it('extracts reusable array item factories when arrayItems is enabled on the MSW generator', () => {
+    const result = generateMSW(tenantsByRefVerbOptions, arrayItemsOptions);
+
+    expect(result.implementation.function).toContain(
+      'export const getTenantResponseModelDtoMock',
+    );
+    expect(result.implementation.function).toContain(
+      'getGetTenantsByRefResponseMock',
+    );
+    expect(result.implementation.function).toContain(
+      '...getTenantResponseModelDtoMock()',
+    );
+  });
+
+  it('does not extract array item factories when arrayItems is disabled', () => {
+    const result = generateMSW(tenantsByRefVerbOptions, {
+      ...arrayItemsOptions,
+      mock: { type: OutputMockType.MSW, delay: false },
+      context: {
+        ...arrayItemsContext,
+        output: {
+          ...arrayItemsContext.output,
+          mock: {
+            indexMockFiles: false,
+            generators: [{ type: OutputMockType.MSW, delay: false }],
+          },
+        },
+      },
+    } as unknown as GeneratorOptions);
+
+    expect(result.implementation.function).not.toContain(
+      'export const getTenantResponseModelDtoMock',
+    );
+  });
+});
+
 describe('strict mock types (#3525)', () => {
   const petResponseType = {
     key: '200',
