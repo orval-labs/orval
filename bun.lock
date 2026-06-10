@@ -490,6 +490,18 @@
         "vitest": "catalog:",
       },
     },
+    "samples/paginated-response-tags-split": {
+      "name": "paginated-response-tags-split",
+      "version": "8.16.0",
+      "dependencies": {
+        "axios": "catalog:axios",
+      },
+      "devDependencies": {
+        "orval": "workspace:*",
+        "prettier": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
     "samples/react-app": {
       "name": "react-app",
       "version": "8.16.0",
@@ -3376,6 +3388,8 @@
     "pacote": ["pacote@21.3.1", "", { "dependencies": { "@npmcli/git": "^7.0.0", "@npmcli/installed-package-contents": "^4.0.0", "@npmcli/package-json": "^7.0.0", "@npmcli/promise-spawn": "^9.0.0", "@npmcli/run-script": "^10.0.0", "cacache": "^20.0.0", "fs-minipass": "^3.0.0", "minipass": "^7.0.2", "npm-package-arg": "^13.0.0", "npm-packlist": "^10.0.1", "npm-pick-manifest": "^11.0.1", "npm-registry-fetch": "^19.0.0", "proc-log": "^6.0.0", "promise-retry": "^2.0.1", "sigstore": "^4.0.0", "ssri": "^13.0.0", "tar": "^7.4.3" }, "bin": { "pacote": "bin/index.js" } }, "sha512-O0EDXi85LF4AzdjG74GUwEArhdvawi/YOHcsW6IijKNj7wm8IvEWNF5GnfuxNpQ/ZpO3L37+v8hqdVh8GgWYhg=="],
 
     "paginated-response": ["paginated-response@workspace:samples/paginated-response"],
+
+    "paginated-response-tags-split": ["paginated-response-tags-split@workspace:samples/paginated-response-tags-split"],
 
     "parent-module": ["parent-module@1.0.1", "", { "dependencies": { "callsites": "^3.0.0" } }, "sha512-GQ2EWRpQV8/o+Aw8YqtfZZPfNRWZYkbidE9k5rpl/hC3vtHHBfGm2Ifi6qWV+coDGkrUKZAxE3Lot5kcsRlh+g=="],
 
