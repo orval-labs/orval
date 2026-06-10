@@ -6,10 +6,10 @@ const rootDir = path.resolve(import.meta.dirname, '..', '..');
 await describeApiGenerationSnapshots({
   dirs: [
     path.resolve(import.meta.dirname, 'api', 'models'),
-    path.resolve(import.meta.dirname, 'api', 'Pets'),
-    path.resolve(import.meta.dirname, 'api', 'Owners'),
-    path.resolve(import.meta.dirname, 'api', 'Species'),
-    path.resolve(import.meta.dirname, 'api', 'Shelters'),
+    path.resolve(import.meta.dirname, 'api', 'pets'),
+    path.resolve(import.meta.dirname, 'api', 'owners'),
+    path.resolve(import.meta.dirname, 'api', 'species'),
+    path.resolve(import.meta.dirname, 'api', 'shelters'),
   ],
   snapshotsDir: path.resolve(import.meta.dirname, '__snapshots__', 'api'),
   rootDir,
