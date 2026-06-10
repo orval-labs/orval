@@ -333,6 +333,22 @@ my-app/src/
     └── petstore.ts
 ```
 
+When [`schemas`](#schemas) is configured, models go to a dedicated directory with per-file output. With [`indexFiles`](#indexfiles) enabled (the default), a barrel `index.ts` re-exports all schemas so service files import from a single path. With `indexFiles: false`, each schema is imported individually (e.g., `../models/pet`). All schemas — domain types, generic wrappers, and bound aliases — live in this single shared directory and are never duplicated per tag:
+
+```
+my-app/src/
+├── models/
+│   ├── index.ts
+│   ├── pet.ts
+│   ├── listResponse.ts
+│   ├── pagination.ts
+│   └── userListResponse.ts
+├── pets/
+│   └── pets.ts              ← imports from ../models
+└── users/
+    └── users.ts             ← imports from ../models
+```
+
 ## baseUrl
 
 **Type:** `String | Object`
@@ -2273,6 +2289,33 @@ export interface LocalizedCategory {
 ```
 
 Each schema's `$dynamicRef: '#category'` resolves to its own type because it declares `$dynamicAnchor: category`.
+
+#### Output layout with `$dynamicRef` generics
+
+Generic templates, bound aliases, and their type arguments are all emitted as individual model files in the same shared location — they are never duplicated per tag. In `tags` and `tags-split` mode, every tag's service file imports from a single shared schema source.
+
+With [`schemas`](#schemas) configured and `tags-split` mode ([`indexFiles`](#indexfiles) shown at its default, `true`):
+
+```
+models/
+├── index.ts                      ← barrel re-exports everything (indexFiles: true)
+├── apiEnvelopeTemplate.ts        ← generic template (ApiEnvelopeTemplate<T>)
+├── paginatedTemplate.ts          ← generic template (PaginatedTemplate<T>)
+├── pet.ts                        ← domain type
+├── owner.ts                      ← domain type
+├── paginatedPetItems.ts          ← bound alias (PaginatedTemplate<Pet>)
+└── paginatedOwnerItems.ts        ← bound alias (PaginatedTemplate<Owner>)
+pets/
+└── pets.ts                       ← import { ... } from '../models'
+owners/
+└── owners.ts                     ← import { ... } from '../models'
+```
+
+With [`indexFiles: false`](#indexfiles), no barrel is generated and service files import each schema individually (e.g., `import type { Pet } from '../models/pet'`).
+
+Without a dedicated `schemas` directory, all schemas go into a single `petstore.schemas.ts` file at the output root.
+
+When using [`input.filters.tags`](/docs/reference/configuration/input#tags) to filter endpoints, schemas referenced exclusively through `$dynamicAnchor` + `$ref` bindings in inline response `$defs` are automatically discovered and included in the output — no manual [`filters.schemas`](/docs/reference/configuration/input#schemas) configuration is needed.
 
 #### Limitations
 

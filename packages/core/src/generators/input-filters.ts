@@ -48,9 +48,11 @@ function findRefs(value: unknown): string[] {
 
   const obj = value as Record<string, unknown>;
 
-  if (typeof obj.$ref === 'string') return [obj.$ref];
-
-  return Object.values(obj).flatMap((val) => findRefs(val));
+  const refs: string[] = [];
+  if (typeof obj.$ref === 'string') {
+    refs.push(obj.$ref);
+  }
+  return refs.concat(Object.values(obj).flatMap((val) => findRefs(val)));
 }
 
 function parseComponentRef(

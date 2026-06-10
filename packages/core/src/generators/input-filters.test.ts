@@ -612,4 +612,174 @@ describe('collectReferencedComponents', () => {
       expect.arrayContaining(['Error', 'ErrorDetail']),
     );
   });
+
+  it('collects $ref inside $defs sibling of a top-level $ref', () => {
+    const spec = makeSpec({
+      paths: {
+        '/pets': {
+          get: {
+            tags: ['pets'],
+            responses: {
+              200: {
+                content: {
+                  'application/json': {
+                    schema: {
+                      $defs: {
+                        dataType: {
+                          $dynamicAnchor: 'dataType',
+                          $ref: '#/components/schemas/Pet',
+                        },
+                      },
+                      $ref: '#/components/schemas/SingleResponse',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      components: {
+        schemas: {
+          Pet: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+          SingleResponse: {
+            type: 'object',
+            properties: {
+              data: { $dynamicRef: '#dataType' },
+            },
+            $defs: {
+              dataType: { $dynamicAnchor: 'dataType', not: {} },
+            },
+          },
+        },
+      },
+    });
+
+    const result = collectReferencedComponents(spec, ['pets'], 'include');
+    expect(result.schemas).toEqual(
+      expect.arrayContaining(['Pet', 'SingleResponse']),
+    );
+  });
+
+  it('collects $ref inside $defs when response uses generic list wrapper', () => {
+    const spec = makeSpec({
+      paths: {
+        '/pets': {
+          get: {
+            tags: ['pets'],
+            responses: {
+              200: {
+                content: {
+                  'application/json': {
+                    schema: {
+                      $defs: {
+                        itemType: {
+                          $dynamicAnchor: 'itemType',
+                          $ref: '#/components/schemas/Pet',
+                        },
+                      },
+                      $ref: '#/components/schemas/ListResponse',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      components: {
+        schemas: {
+          Pet: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+          ListResponse: {
+            type: 'object',
+            properties: {
+              data: {
+                type: 'array',
+                items: { $dynamicRef: '#itemType' },
+              },
+              pagination: { $ref: '#/components/schemas/Pagination' },
+            },
+            $defs: {
+              itemType: { $dynamicAnchor: 'itemType', not: {} },
+            },
+          },
+          Pagination: {
+            type: 'object',
+            properties: { total: { type: 'integer' } },
+          },
+        },
+      },
+    });
+
+    const result = collectReferencedComponents(spec, ['pets'], 'include');
+    expect(result.schemas).toEqual(
+      expect.arrayContaining(['Pet', 'ListResponse', 'Pagination']),
+    );
+  });
+
+  it('collects $ref inside nested allOf -> $defs with $dynamicAnchor', () => {
+    const spec = makeSpec({
+      paths: {
+        '/folders': {
+          get: {
+            tags: ['folders'],
+            responses: {
+              200: {
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/components/schemas/Folder' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      components: {
+        schemas: {
+          Folder: {
+            allOf: [
+              {
+                $defs: {
+                  folderType: {
+                    $dynamicAnchor: 'folderType',
+                    $ref: '#/components/schemas/Folder',
+                  },
+                  resourceType: {
+                    $dynamicAnchor: 'resourceType',
+                    $ref: '#/components/schemas/Resource',
+                  },
+                },
+                $ref: '#/components/schemas/FolderTemplate',
+              },
+            ],
+          },
+          FolderTemplate: {
+            type: 'object',
+            properties: {
+              children: {
+                type: 'array',
+                items: { $dynamicRef: '#folderType' },
+              },
+            },
+          },
+          Resource: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+        },
+      },
+    });
+
+    const result = collectReferencedComponents(spec, ['folders'], 'include');
+    expect(result.schemas).toEqual(
+      expect.arrayContaining(['Folder', 'FolderTemplate', 'Resource']),
+    );
+  });
 });
