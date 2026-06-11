@@ -312,6 +312,81 @@ export default defineConfig({
       target: '../specifications/issue-1026.yaml',
     },
   },
+  invalidates: {
+    output: {
+      target: '../generated/vue-query/invalidates/endpoints.ts',
+      schemas: '../generated/vue-query/invalidates/model',
+      client: 'vue-query',
+      mock: true,
+      headers: true,
+      override: {
+        query: {
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['listPets'],
+            },
+            {
+              onMutations: ['deletePetById'],
+              invalidates: [
+                { query: 'listPets', invalidateMode: 'reset' },
+                {
+                  query: 'showPetById',
+                  params: ['petId'],
+                  invalidateMode: 'reset',
+                },
+              ],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  invalidatesOtherFile: {
+    output: {
+      target: '../generated/vue-query/invalidates-other-file',
+      schemas: '../generated/vue-query/invalidates-other-file/model',
+      client: 'vue-query',
+      mode: 'tags',
+      mock: true,
+      headers: true,
+      override: {
+        query: {
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: [
+                'listPets',
+                { query: 'healthCheck', file: './health' },
+              ],
+            },
+            {
+              onMutations: ['deletePetById'],
+              invalidates: [
+                { query: 'listPets', invalidateMode: 'reset' },
+                { query: 'healthCheck', file: './health' },
+                {
+                  query: 'showPetById',
+                  params: ['petId'],
+                  invalidateMode: 'reset',
+                },
+              ],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   // Unsupported for now, see for context: https://github.com/orval-labs/orval/pull/931#issuecomment-1752355686
   // namedParameters: {
   //   output: {
