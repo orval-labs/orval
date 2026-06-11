@@ -338,3 +338,14 @@ describe('enum/const value escaping (#3505)', () => {
     expect(consts).toContain(String.raw`"path": "C:\\logs\\" as const`);
   });
 });
+
+describe('mixed-type enum escaping (#3505 oneOf literal path)', () => {
+  it('JS-escapes backslashes in string literals of mixed enums', () => {
+    const { effect } = gen({
+      type: 'string',
+      enum: ['C:\\logs\\', 1],
+    } as OpenApiSchemaObject);
+    expect(effect).toContain(String.raw`S.Literal('C:\\logs\\')`);
+    expect(effect).toContain('S.Literal(1)');
+  });
+});

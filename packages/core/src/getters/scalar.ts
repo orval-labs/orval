@@ -243,7 +243,7 @@ export function getScalar({
       value += nullable;
 
       if (schemaConst) {
-        value = `'${schemaConst}'`;
+        value = `'${jsStringLiteralEscape(schemaConst)}'`;
       }
 
       return {
