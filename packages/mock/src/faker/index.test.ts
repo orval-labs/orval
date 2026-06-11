@@ -162,6 +162,68 @@ describe('discriminated GlobalMockOptions union', () => {
   });
 });
 
+describe('generateFakerForSchemas property overrides (schemas: true)', () => {
+  const idOverride = () => 'faker.string.uuid()';
+  const createdOverride = () => 'faker.date.recent().toISOString()';
+  const archiveDurationOverride = () =>
+    `P${'faker.number.int({ min: 1, max: 365 })'}D`;
+
+  const context = createTestContextSpec({
+    override: {
+      mock: {
+        properties: {
+          '/^([Ii]d)$/': idOverride,
+          '/^([Cc]reated)$/': createdOverride,
+          '/^([Aa]rchive[Dd]uration)$/': archiveDurationOverride,
+        },
+      },
+    },
+  });
+
+  const petSchema = {
+    name: 'Pet',
+    model: 'Pet',
+    imports: [],
+    schema: {
+      type: 'object',
+      required: ['id', 'name'],
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' },
+        created: { type: 'string', format: 'date-time' },
+        archiveDuration: { type: 'string' },
+      },
+    },
+  };
+
+  it('invokes override.mock.properties functions as IIFEs, not raw arrow functions', () => {
+    const result = generateFakerForSchemas([petSchema], context, {
+      type: OutputMockType.FAKER,
+      schemas: true,
+    });
+
+    expect(result.implementation).toContain(`id: (${String(idOverride)})()`);
+    expect(result.implementation).toContain(
+      `created: (${String(createdOverride)})()`,
+    );
+    expect(result.implementation).toContain(
+      `archiveDuration: (${String(archiveDurationOverride)})()`,
+    );
+    expect(result.implementation).not.toMatch(/\bid: \(\) =>/);
+    expect(result.implementation).not.toMatch(/\bcreated: \(\) =>/);
+    expect(result.implementation).not.toMatch(/\barchiveDuration: \(\) =>/);
+  });
+
+  it('keeps default faker generation for non-overridden properties', () => {
+    const result = generateFakerForSchemas([petSchema], context, {
+      type: OutputMockType.FAKER,
+      schemas: true,
+    });
+
+    expect(result.implementation).toContain('name: faker.string.alpha(');
+  });
+});
+
 describe('generateFakerForSchemas strict mock types (#3525)', () => {
   const context = createTestContextSpec({
     override: {
