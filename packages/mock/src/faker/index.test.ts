@@ -2,6 +2,7 @@ import type {
   ClientMockBuilder,
   FakerMockOptions,
   GeneratorOptions,
+  GeneratorSchema,
   GeneratorVerbOptions,
   GlobalMockOptions,
   MswMockOptions,
@@ -180,7 +181,7 @@ describe('generateFakerForSchemas property overrides (schemas: true)', () => {
     },
   });
 
-  const petSchema = {
+  const petSchema: GeneratorSchema = {
     name: 'Pet',
     model: 'Pet',
     imports: [],
