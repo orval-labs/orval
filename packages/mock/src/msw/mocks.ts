@@ -38,7 +38,7 @@ function getMockPropertiesWithoutFunc(
   return mockProperties;
 }
 
-function getMockWithoutFunc(
+export function getMockWithoutFunc(
   spec: OpenApiDocument,
   override?: NormalizedOverrideOutput,
 ): MockOptions {

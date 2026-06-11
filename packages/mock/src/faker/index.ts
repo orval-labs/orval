@@ -18,6 +18,7 @@ import {
   isStrictMock,
 } from '../mock-types';
 import { generateMSW } from '../msw';
+import { getMockWithoutFunc } from '../msw/mocks';
 import { getMockScalar } from './getters';
 
 function getFakerDependencies(
@@ -115,7 +116,9 @@ export function generateFakerForSchemas(
     schemas.filter((s) => !!s.schema).map((s) => `get${pascal(s.name)}Mock`),
   );
 
-  const mockOptions = context.output.override.mock;
+  // Serialize override.mock.properties functions the same way operation
+  // response mocks do (IIFE expressions), not raw function references.
+  const mockOptions = getMockWithoutFunc(context.spec, context.output.override);
 
   for (const generatorSchema of schemas) {
     const { name, schema } = generatorSchema;
