@@ -5,7 +5,6 @@ import {
   type ClientBuilder,
   type ClientGeneratorsBuilder,
   type ContextSpec,
-  escape,
   type GeneratorDependency,
   type GeneratorOptions,
   type GeneratorVerbOptions,
@@ -267,17 +266,17 @@ export const generateEffectValidationSchemaDefinition = (
       context.output.override.useDates;
 
     if (isDateType) {
-      defaultValue = `new Date("${escape(schema.default)}")`;
+      defaultValue = `new Date(${JSON.stringify(schema.default)})`;
     } else if (isObject(schema.default)) {
       const entries = Object.entries(schema.default)
         .map(([key, value]) => {
           const safeKey = JSON.stringify(key);
           if (isString(value)) {
-            return `${safeKey}: "${escape(value)}" as const`;
+            return `${safeKey}: ${JSON.stringify(value)} as const`;
           }
           if (Array.isArray(value)) {
             const arrayItems = value.map((item) =>
-              isString(item) ? `"${escape(item)}" as const` : `${item}`,
+              isString(item) ? `${JSON.stringify(item)} as const` : `${item}`,
             );
             return `${safeKey}: [${arrayItems.join(', ')}]`;
           }
@@ -595,14 +594,17 @@ export const generateEffectValidationSchemaDefinition = (
     if (uniqueEnumValues.every((value) => isString(value))) {
       functions.push([
         'enum',
-        `[${uniqueEnumValues.map((value) => `'${escape(value)}'`).join(', ')}]`,
+        `[${uniqueEnumValues.map((value) => `'${jsStringLiteralEscape(value)}'`).join(', ')}]`,
       ]);
     } else {
       functions.push([
         'oneOf',
         uniqueEnumValues.map((value) => ({
           functions: [
-            ['literal', isString(value) ? `'${escape(value)}'` : value],
+            [
+              'literal',
+              isString(value) ? `'${jsStringLiteralEscape(value)}'` : value,
+            ],
           ],
           consts: [],
         })),

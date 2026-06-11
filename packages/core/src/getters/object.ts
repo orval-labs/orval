@@ -9,7 +9,13 @@ import {
   type ScalarValue,
   SchemaType,
 } from '../types';
-import { escape, isReference, isString, jsDoc, pascal } from '../utils';
+import {
+  isReference,
+  isString,
+  jsDoc,
+  jsStringLiteralEscape,
+  pascal,
+} from '../utils';
 import { combineSchemas } from './combine';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getKey } from './keys';
@@ -40,7 +46,9 @@ function getPropertyNamesEnumKeyType(
 
     if (enumValues.length > 0) {
       return {
-        value: enumValues.map((val) => `'${escape(val)}'`).join(' | '),
+        value: enumValues
+          .map((val) => `'${jsStringLiteralEscape(val)}'`)
+          .join(' | '),
         imports: [],
         dependencies: [],
       };
@@ -49,7 +57,7 @@ function getPropertyNamesEnumKeyType(
 
   if (isString(propertyNames.const)) {
     return {
-      value: `'${escape(propertyNames.const)}'`,
+      value: `'${jsStringLiteralEscape(propertyNames.const)}'`,
       imports: [],
       dependencies: [],
     };
@@ -452,7 +460,7 @@ export function getObject({
       if (!hasConst) {
         constLiteral = undefined;
       } else if (isString(constValue)) {
-        constLiteral = `'${escape(constValue)}'`;
+        constLiteral = `'${jsStringLiteralEscape(constValue)}'`;
       } else {
         constLiteral = JSON.stringify(constValue);
       }
@@ -672,7 +680,7 @@ export function getObject({
     return {
       value:
         typeof constValue === 'string'
-          ? `'${escape(constValue)}'`
+          ? `'${jsStringLiteralEscape(constValue)}'`
           : JSON.stringify(constValue),
       imports: [],
       schemas: [],

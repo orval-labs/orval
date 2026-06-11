@@ -10211,3 +10211,220 @@ describe('generateZod preprocess regression (#3511)', () => {
     );
   });
 });
+
+describe('enum/const value escaping (#3505)', () => {
+  const context = makeContextSpec();
+
+  it('JS-escapes backslashes in z.enum values', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      enum: [String.raw`App\Models\Document`, String.raw`App\Models\Template`],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      'testEnumBackslash',
+      false,
+      false,
+      { required: true },
+    );
+
+    expect(result.functions).toContainEqual([
+      'enum',
+      String.raw`['App\\Models\\Document', 'App\\Models\\Template']`,
+    ]);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+    expect(parsed.zod).toBe(
+      String.raw`zod.enum(['App\\Models\\Document', 'App\\Models\\Template'])`,
+    );
+  });
+
+  it('JS-escapes a z.enum value ending in a backslash', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      enum: ['C:\\logs\\', 'C:\\tmp\\'],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      'testEnumTrailingBackslash',
+      false,
+      false,
+      { required: true },
+    );
+
+    expect(result.functions).toContainEqual([
+      'enum',
+      String.raw`['C:\\logs\\', 'C:\\tmp\\']`,
+    ]);
+  });
+
+  it('does not escape forward slashes in z.enum values (#3530)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      enum: ['Asia/Tokyo', 'America/New_York'],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      'testEnumSlash',
+      false,
+      false,
+      { required: true },
+    );
+
+    expect(result.functions).toContainEqual([
+      'enum',
+      "['Asia/Tokyo', 'America/New_York']",
+    ]);
+  });
+
+  it('JS-escapes backslashes in z.literal values from mixed enums', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      enum: [String.raw`App\Models\Document`, 1],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      'testMixedEnumBackslash',
+      false,
+      false,
+      { required: true },
+    );
+
+    expect(result.functions).toContainEqual([
+      'oneOf',
+      [
+        {
+          functions: [['literal', String.raw`'App\\Models\\Document'`]],
+          consts: [],
+        },
+        { functions: [['literal', 1]], consts: [] },
+      ],
+    ]);
+  });
+
+  it('JS-escapes backslashes in string const values (zod v3 branch)', () => {
+    const schema = {
+      type: 'string',
+      const: String.raw`App\Models\Document`,
+    } as OpenApiSchemaObject;
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      'testConstBackslashV3',
+      false,
+      false,
+      { required: true },
+    );
+
+    expect(result.functions).toContainEqual([
+      'literal',
+      String.raw`"App\\Models\\Document"`,
+    ]);
+  });
+
+  it('JS-escapes backslashes in string const values (zod v4 branch)', () => {
+    const schema = {
+      type: 'string',
+      const: String.raw`App\Models\Document`,
+    } as OpenApiSchemaObject;
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      'testConstBackslashV4',
+      false,
+      true,
+      { required: true },
+    );
+
+    expect(result.functions).toContainEqual([
+      'literal',
+      String.raw`"App\\Models\\Document"`,
+    ]);
+  });
+
+  it('JS-escapes backslashes in string values of object defaults', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        path: { type: 'string' },
+      },
+      default: { path: 'C:\\logs\\' },
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      'testDefaultBackslash',
+      false,
+      false,
+      { required: false },
+    );
+
+    expect(result.consts).toEqual([
+      String.raw`export const testDefaultBackslashDefault = { path: "C:\\logs\\" as const };`,
+    ]);
+  });
+
+  it('JS-escapes backslashes in string array items of object defaults', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        paths: { type: 'array', items: { type: 'string' } },
+      },
+      default: { paths: ['C:\\logs\\'] },
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      'testDefaultArrayBackslash',
+      false,
+      false,
+      { required: false },
+    );
+
+    expect(result.consts).toEqual([
+      String.raw`export const testDefaultArrayBackslashDefault = { paths: ["C:\\logs\\" as const] };`,
+    ]);
+  });
+
+  it('keeps date defaults byte-identical under useDates (no churn)', () => {
+    const dateContext = makeContextSpec({
+      override: { useDates: true },
+    });
+    const schema = {
+      type: 'string',
+      format: 'date-time',
+      default: '2024-01-01T00:00:00Z',
+    } as OpenApiSchemaObject;
+
+    const result = generateZodValidationSchemaDefinition(
+      schema,
+      dateContext,
+      'testDateDefault',
+      false,
+      false,
+      { required: false },
+    );
+
+    expect(result.consts).toEqual([
+      'export const testDateDefaultDefault = new Date("2024-01-01T00:00:00Z");',
+    ]);
+  });
+});

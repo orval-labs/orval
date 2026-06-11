@@ -930,4 +930,17 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  'issue-3505': {
+    output: {
+      target: '../generated/mock/issue-3505/endpoints.ts',
+      schemas: '../generated/mock/issue-3505/model',
+      client: 'axios',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3505.yaml',
+    },
+  },
 });

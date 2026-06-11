@@ -261,3 +261,38 @@ describe('getScalar (nullable composition: type: null + combiner)', () => {
     expect(result.value).toBe('null');
   });
 });
+
+describe('getScalar (string const value escaping #3505)', () => {
+  it('JS-escapes backslashes in string const values', () => {
+    const schema = {
+      type: 'string',
+      const: String.raw`App\Models\Document`,
+    } as OpenApiSchemaObject;
+
+    const result = getScalar({ item: schema, name: 'kind', context });
+
+    expect(result.value).toBe(String.raw`'App\\Models\\Document'`);
+  });
+
+  it('JS-escapes a const value ending in a backslash', () => {
+    const schema = {
+      type: 'string',
+      const: 'C:\\logs\\',
+    } as OpenApiSchemaObject;
+
+    const result = getScalar({ item: schema, name: 'prefix', context });
+
+    expect(result.value).toBe(String.raw`'C:\\logs\\'`);
+  });
+
+  it('does not escape forward slashes in const values (#3530)', () => {
+    const schema = {
+      type: 'string',
+      const: 'Asia/Tokyo',
+    } as OpenApiSchemaObject;
+
+    const result = getScalar({ item: schema, name: 'timezone', context });
+
+    expect(result.value).toBe("'Asia/Tokyo'");
+  });
+});

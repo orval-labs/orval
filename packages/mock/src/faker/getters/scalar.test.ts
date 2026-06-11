@@ -943,3 +943,64 @@ describe('getMockScalar (array items $ref extraction and recursion guard)', () =
     expect(result.value).not.toBe('[]');
   });
 });
+
+describe('getMockScalar (enum value escaping #3505)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+  };
+
+  it('JS-escapes backslashes in string enum values', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as OpenApiSchemaObjectType,
+        enum: [
+          String.raw`App\Models\Document`,
+          String.raw`App\Models\Template`,
+        ],
+        name: 'visitableType',
+      },
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe(
+      String.raw`faker.helpers.arrayElement(['App\\Models\\Document','App\\Models\\Template'] as const)`,
+    );
+  });
+
+  it('JS-escapes an enum value ending in a backslash', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as OpenApiSchemaObjectType,
+        enum: ['C:\\logs\\'],
+        name: 'directoryPrefix',
+      },
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe(
+      String.raw`faker.helpers.arrayElement(['C:\\logs\\'] as const)`,
+    );
+  });
+
+  it('does not escape forward slashes in enum values (#3530)', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as OpenApiSchemaObjectType,
+        enum: ['Asia/Tokyo', 'America/New_York'],
+        name: 'timezone',
+      },
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe(
+      "faker.helpers.arrayElement(['Asia/Tokyo','America/New_York'] as const)",
+    );
+  });
+});
