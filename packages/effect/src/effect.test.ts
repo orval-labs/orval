@@ -297,3 +297,44 @@ describe('brand', () => {
     expect(effect).toContain('.pipe(S.brand("UserId"))');
   });
 });
+
+describe('enum/const value escaping (#3505)', () => {
+  it('JS-escapes backslashes in string enum values', () => {
+    const { effect } = gen({
+      type: 'string',
+      enum: [String.raw`App\Models\Document`, String.raw`App\Models\Template`],
+    });
+    expect(effect).toContain(
+      String.raw`S.Literal('App\\Models\\Document', 'App\\Models\\Template')`,
+    );
+  });
+
+  it('JS-escapes an enum value ending in a backslash', () => {
+    const { effect } = gen({
+      type: 'string',
+      enum: ['C:\\logs\\', 'C:\\tmp\\'],
+    });
+    expect(effect).toContain(String.raw`S.Literal('C:\\logs\\', 'C:\\tmp\\')`);
+  });
+
+  it('does not escape forward slashes in enum values (#3530)', () => {
+    const { effect } = gen({
+      type: 'string',
+      enum: ['Asia/Tokyo', 'America/New_York'],
+    });
+    expect(effect).toContain("S.Literal('Asia/Tokyo', 'America/New_York')");
+  });
+
+  it('JS-escapes backslashes in string values of object defaults', () => {
+    const { consts } = gen({
+      type: 'object',
+      properties: {
+        config: {
+          type: 'object',
+          default: { path: 'C:\\logs\\' },
+        } as OpenApiSchemaObject,
+      },
+    });
+    expect(consts).toContain(String.raw`"path": "C:\\logs\\" as const`);
+  });
+});

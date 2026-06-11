@@ -364,4 +364,13 @@ export default defineConfig({
     },
     input: '../specifications/issue-3171.yaml',
   },
+  'issue-3505': {
+    output: {
+      target: '../generated/zod/issue-3505/issue-3505.ts',
+      client: 'zod',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: '../specifications/issue-3505.yaml',
+  },
 });

@@ -6,7 +6,6 @@ import {
   type ClientBuilder,
   type ClientGeneratorsBuilder,
   type ContextSpec,
-  escape,
   generateMutator,
   type GeneratorDependency,
   type GeneratorMutator,
@@ -580,7 +579,7 @@ export const generateZodValidationSchemaDefinition = (
 
     if (isDateType) {
       // OpenApiSchemaObject defines default as 'any'
-      defaultValue = `new Date("${escape(schema.default)}")`;
+      defaultValue = `new Date(${JSON.stringify(schema.default)})`;
     } else if (isObject(schema.default)) {
       // Narrow string literals individually with `as const` so `zod.enum([...])`
       // properties accept the emitted default (#3244). Whole-object/array
@@ -589,12 +588,12 @@ export const generateZodValidationSchemaDefinition = (
       const entries = Object.entries(schema.default)
         .map(([key, value]) => {
           if (isString(value)) {
-            return `${key}: "${escape(value)}" as const`;
+            return `${key}: ${JSON.stringify(value)} as const`;
           }
 
           if (Array.isArray(value)) {
             const arrayItems = value.map((item) =>
-              isString(item) ? `"${escape(item)}" as const` : `${item}`,
+              isString(item) ? `${JSON.stringify(item)} as const` : `${item}`,
             );
             return `${key}: [${arrayItems.join(', ')}]`;
           }
@@ -794,7 +793,7 @@ export const generateZodValidationSchemaDefinition = (
         if (isZodV4) {
           if (!predefinedZodFormats.has(schema.format ?? '')) {
             if ('const' in schema) {
-              functions.push(['literal', `"${schema.const}"`]);
+              functions.push(['literal', JSON.stringify(String(schema.const))]);
             } else if (schema.pattern && schema.format) {
               const isStartWithSlash = schema.pattern.startsWith('/');
               const isEndWithSlash = schema.pattern.endsWith('/');
@@ -810,7 +809,7 @@ export const generateZodValidationSchemaDefinition = (
               functions.push([
                 'stringFormat',
                 [
-                  `'${escape(schema.format)}'`,
+                  `'${jsStringLiteralEscape(schema.format)}'`,
                   `${name}RegExp${constsCounterValue}`,
                 ],
               ]);
@@ -821,7 +820,7 @@ export const generateZodValidationSchemaDefinition = (
           }
         } else {
           if ('const' in schema) {
-            functions.push(['literal', `"${schema.const}"`]);
+            functions.push(['literal', JSON.stringify(String(schema.const))]);
           } else {
             functions.push([type as string, undefined]);
           }
@@ -1053,7 +1052,10 @@ export const generateZodValidationSchemaDefinition = (
     if (schema.format && !predefinedZodFormats.has(schema.format) && isZodV4) {
       functions.push([
         'stringFormat',
-        [`'${escape(schema.format)}'`, `${name}RegExp${constsCounterValue}`],
+        [
+          `'${jsStringLiteralEscape(schema.format)}'`,
+          `${name}RegExp${constsCounterValue}`,
+        ],
       ]);
     } else {
       functions.push(['regex', `${name}RegExp${constsCounterValue}`]);
@@ -1068,14 +1070,17 @@ export const generateZodValidationSchemaDefinition = (
     if (uniqueEnumValues.every((value) => isString(value))) {
       functions.push([
         'enum',
-        `[${uniqueEnumValues.map((value) => `'${escape(value)}'`).join(', ')}]`,
+        `[${uniqueEnumValues.map((value) => `'${jsStringLiteralEscape(value)}'`).join(', ')}]`,
       ]);
     } else {
       functions.push([
         'oneOf',
         uniqueEnumValues.map((value) => ({
           functions: [
-            ['literal', isString(value) ? `'${escape(value)}'` : value],
+            [
+              'literal',
+              isString(value) ? `'${jsStringLiteralEscape(value)}'` : value,
+            ],
           ],
           consts: [],
         })),

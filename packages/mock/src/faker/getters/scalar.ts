@@ -7,11 +7,11 @@
 import {
   type ContextSpec,
   EnumGeneration,
-  escape,
   type GeneratorImport,
   getRefInfo,
   isReference,
   isString,
+  jsStringLiteralEscape,
   mergeDeep,
   type MockOptions,
   type OpenApiSchemaObject,
@@ -586,7 +586,7 @@ function getEnum(
     .filter((e) => e !== null) // TODO fix type, e can absolutely be null
     .map((e) =>
       type === 'string' || (type === undefined && isString(e))
-        ? `'${escape(e)}'`
+        ? `'${jsStringLiteralEscape(e)}'`
         : e,
     )
     .join(',');

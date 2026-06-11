@@ -1161,3 +1161,63 @@ test('mock function generator is treated as MSW in every write mode (#3554)', as
   expect(tagsSplitContent).toContain('listPetsMockHandler');
   expect(tagsSplitContent).toContain('const listPetsMockHandler =');
 });
+
+test('default issue-3505 enum values with backslashes are JS-escaped', async () => {
+  const visitableType = await readFile(
+    generated('default', 'issue-3505', 'model', 'visitableType.ts'),
+    'utf8',
+  );
+
+  expect(visitableType).toContain("'App\\\\Models\\\\Document'");
+  expect(visitableType).toContain("'App\\\\Models\\\\Template'");
+  expect(visitableType).not.toContain("'App\\Models\\Document'");
+
+  const directoryPrefix = await readFile(
+    generated('default', 'issue-3505', 'model', 'directoryPrefix.ts'),
+    'utf8',
+  );
+
+  expect(directoryPrefix).toContain("'C:\\\\logs\\\\'");
+  expect(directoryPrefix).toContain("'C:\\\\tmp\\\\'");
+
+  // Guard against re-introducing the #3530 regression: `/` needs no escape
+  // inside a string literal, so `Asia/Tokyo` must stay untouched.
+  const timezone = await readFile(
+    generated('default', 'issue-3505', 'model', 'timezone.ts'),
+    'utf8',
+  );
+
+  expect(timezone).toContain("'Asia/Tokyo'");
+  expect(timezone).toContain("'America/New_York'");
+  expect(timezone).not.toContain('\\/');
+});
+
+test('zod issue-3505 enum values with backslashes are JS-escaped', async () => {
+  const content = await readFile(
+    generated('zod', 'issue-3505', 'issue-3505.ts'),
+    'utf8',
+  );
+
+  expect(content).toContain("'App\\\\Models\\\\Document'");
+  expect(content).toContain("'C:\\\\logs\\\\'");
+  expect(content).not.toContain("'App\\Models\\Document'");
+
+  // #3530 guard: forward slashes stay unescaped.
+  expect(content).toContain("'Asia/Tokyo'");
+  expect(content).not.toContain('Asia\\/Tokyo');
+});
+
+test('mock issue-3505 enum values with backslashes are JS-escaped', async () => {
+  const content = await readFile(
+    generated('mock', 'issue-3505', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toContain("'App\\\\Models\\\\Document'");
+  expect(content).toContain("'C:\\\\logs\\\\'");
+  expect(content).not.toContain("'App\\Models\\Document'");
+
+  // #3530 guard: forward slashes stay unescaped.
+  expect(content).toContain("'Asia/Tokyo'");
+  expect(content).not.toContain('Asia\\/Tokyo');
+});

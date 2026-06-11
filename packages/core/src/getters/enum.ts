@@ -7,10 +7,10 @@ import {
 } from '../types';
 import {
   conventionName,
-  escape,
   isNumeric,
   isString,
   jsStringEscape,
+  jsStringLiteralEscape,
   sanitize,
 } from '../utils';
 
@@ -315,7 +315,9 @@ export function getEnumUnionFromSchema(
   const schemaEnum = schema.enum as SchemaEnumValue[];
   return schemaEnum
     .filter((val): val is Exclude<SchemaEnumValue, null> => val !== null)
-    .map((val) => (isString(val) ? `'${escape(val)}'` : String(val)))
+    .map((val) =>
+      isString(val) ? `'${jsStringLiteralEscape(val)}'` : String(val),
+    )
     .join(' | ');
 }
 
