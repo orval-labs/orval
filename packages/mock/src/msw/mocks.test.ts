@@ -1,3 +1,4 @@
+import type { ResReqTypesValue } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
 import { createTestContextSpec } from '../../../core/src/test-utils/context';
@@ -18,7 +19,7 @@ describe('getResponsesMockDefinition', () => {
           contentType: 'application/octet-stream',
           imports: undefined,
           isRef: false,
-        },
+        } as unknown as ResReqTypesValue,
       ],
       mockOptionsWithoutFunc: {},
       context,

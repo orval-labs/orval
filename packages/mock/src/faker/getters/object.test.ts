@@ -1,4 +1,8 @@
-import type { ContextSpec, MockOptions } from '@orval/core';
+import type {
+  ContextSpec,
+  MockOptions,
+  OpenApiSchemaObject,
+} from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
 import { createTestContextSpec } from '../../../../core/src/test-utils/context';
@@ -267,23 +271,27 @@ describe('getMockObject', () => {
     const childSchemas = Object.fromEntries(
       Array.from({ length: 40 }, (_, i) => [
         `Child${i}`,
-        { type: 'object', properties: { id: { type: 'integer' } } },
+        {
+          type: 'object',
+          properties: { id: { type: 'integer' } },
+        } satisfies OpenApiSchemaObject,
       ]),
-    );
+    ) as Record<string, OpenApiSchemaObject>;
     const delegationContext: ContextSpec = createTestContextSpec({
       spec: {
-        openapi: '3.0.0',
+        openapi: '3.1.0',
         info: { title: 'Test', version: '1.0.0' },
         paths: {},
         components: { schemas: childSchemas },
       },
       output: {
         mock: {
+          indexMockFiles: false,
           generators: [{ type: 'faker', schemas: true }],
         },
-        override: {
-          mock: { required: true, nonNullable: true },
-        },
+      },
+      override: {
+        mock: { required: true, nonNullable: true },
       },
     });
 
