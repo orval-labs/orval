@@ -61,7 +61,8 @@ export const getAngularFilteredParamsExpression = (
     : '';
 
   return `(() => {
-${passthroughDecl}  const filteredParams: Record<string, ${filteredParamValueType}> = {};
+${passthroughDecl}  const requiredNullableParamKeys = ${preserveNullable ? `new Set<string>(${JSON.stringify(requiredNullableParamKeys)})` : 'new Set<string>()'};
+  const filteredParams: Record<string, ${filteredParamValueType}> = {};
   for (const [key, value] of Object.entries(${paramsExpression})) {
 ${passthroughBranch}    if (Array.isArray(value)) {
       const filtered = value.filter(
