@@ -204,7 +204,6 @@ export function getMockObject({
             splitMockImplementations,
           });
 
-          imports.push(...resolvedValue.imports);
           includedProperties.push(key);
 
           const keyDefinition = getKey(key);

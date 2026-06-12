@@ -262,4 +262,77 @@ describe('getMockObject', () => {
       /\.map\(\(\) => \(faker\.helpers\.arrayElement/,
     );
   });
+
+  it('does not duplicate imports when resolving many delegated schema refs (#3590)', () => {
+    const childSchemas = Object.fromEntries(
+      Array.from({ length: 40 }, (_, i) => [
+        `Child${i}`,
+        { type: 'object', properties: { id: { type: 'integer' } } },
+      ]),
+    );
+    const delegationContext: ContextSpec = createTestContextSpec({
+      spec: {
+        openapi: '3.0.0',
+        info: { title: 'Test', version: '1.0.0' },
+        paths: {},
+        components: { schemas: childSchemas },
+      },
+      output: {
+        mock: {
+          generators: [{ type: 'faker', schemas: true }],
+        },
+        override: {
+          mock: { required: true, nonNullable: true },
+        },
+      },
+    });
+
+    const properties = Object.fromEntries(
+      Array.from({ length: 40 }, (_, i) => [
+        `prop${i}`,
+        { $ref: `#/components/schemas/Child${i}` },
+      ]),
+    );
+
+    expect(() =>
+      getMockObject({
+        item: {
+          name: 'Parent',
+          type: 'object',
+          properties,
+          required: ['prop0'],
+        },
+        operationId: 'Parent',
+        tags: [],
+        context: delegationContext,
+        imports: [],
+        existingReferencedProperties: ['Parent'],
+        existingReferencedAllOfRefs: ['Parent'],
+        splitMockImplementations: [],
+        mockOptions: { required: true, nonNullable: true },
+        allowOverride: true,
+      }),
+    ).not.toThrow();
+
+    const result = getMockObject({
+      item: {
+        name: 'Parent',
+        type: 'object',
+        properties,
+        required: ['prop0'],
+      },
+      operationId: 'Parent',
+      tags: [],
+      context: delegationContext,
+      imports: [],
+      existingReferencedProperties: ['Parent'],
+      existingReferencedAllOfRefs: ['Parent'],
+      splitMockImplementations: [],
+      mockOptions: { required: true, nonNullable: true },
+      allowOverride: true,
+    });
+
+    // Two imports per delegated ref (factory + strict mock type), not exponential.
+    expect(result.imports.length).toBeLessThan(200);
+  });
 });

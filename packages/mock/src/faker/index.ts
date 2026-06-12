@@ -22,6 +22,7 @@ import {
   isStrictMock,
   mergeStrictMockSchemaKinds,
 } from '../mock-types';
+import { appendImportsDelta } from './imports';
 import { generateMSW } from '../msw';
 import { getMockWithoutFunc } from '../msw/mocks';
 import { getMockScalar } from './getters';
@@ -139,24 +140,30 @@ export function generateFakerForSchemas(
 
     const factoryName = `get${pascal(name)}Mock`;
     const factoryImports: GeneratorImport[] = [];
+    const factoryImportsBefore = factoryImports.length;
+    const schemaName = pascal(name);
 
     const result = getMockScalar({
       item: {
         ...(schema as Record<string, unknown>),
-        name,
+        name: schemaName,
       } as Parameters<typeof getMockScalar>[0]['item'],
       imports: factoryImports,
       mockOptions,
       operationId: name,
       tags: [],
       context,
-      existingReferencedProperties: [],
+      // Seed the schema under generation on both stacks so allOf/oneOf cycles
+      // (e.g. System.Xml.Linq-style inheritance) terminate instead of overflowing
+      // the stack while building consolidated schema factories (#3590).
+      existingReferencedProperties: [schemaName],
+      existingReferencedAllOfRefs: [schemaName],
       splitMockImplementations,
       allowOverride: true,
       isRef: false,
     } as Parameters<typeof getMockScalar>[0]);
 
-    allImports.push(...result.imports, ...factoryImports);
+    appendImportsDelta(allImports, factoryImports, factoryImportsBefore);
 
     // Match the behavior of operation-response factories: only declare the
     // `overrideResponse` parameter when the generated expression actually

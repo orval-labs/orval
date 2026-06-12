@@ -1,0 +1,41 @@
+import { describe, expect, it } from 'vitest';
+
+import type { GeneratorImport } from '@orval/core';
+
+import { appendImportsDelta } from './imports';
+
+describe('appendImportsDelta', () => {
+  it('appends only entries added since sinceIndex', () => {
+    const target: GeneratorImport[] = [{ name: 'Existing', values: true }];
+    const source: GeneratorImport[] = [
+      { name: 'Existing', values: true },
+      { name: 'NewA', values: true },
+      { name: 'NewB', values: false },
+    ];
+
+    appendImportsDelta(target, source, 1);
+
+    expect(target).toEqual([
+      { name: 'Existing', values: true },
+      { name: 'NewA', values: true },
+      { name: 'NewB', values: false },
+    ]);
+  });
+
+  it('does not duplicate when source is the same array mutated in place (#3590)', () => {
+    const shared: GeneratorImport[] = [];
+    const target: GeneratorImport[] = [];
+
+    shared.push({ name: 'getPetMock', values: true, schemaFactory: true });
+    appendImportsDelta(target, shared, 0);
+
+    shared.push({ name: 'PetMock', values: false, schemaFactory: true });
+    appendImportsDelta(target, shared, 1);
+
+    expect(target).toEqual([
+      { name: 'getPetMock', values: true, schemaFactory: true },
+      { name: 'PetMock', values: false, schemaFactory: true },
+    ]);
+    expect(target.length).toBe(2);
+  });
+});
