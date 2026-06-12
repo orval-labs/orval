@@ -30,3 +30,25 @@ export function mergeReturnedMockImports(
     appendImportsDelta(sharedImports, resolvedImports, 0);
   }
 }
+
+/** Recover type imports referenced by nested oneOf split mock helpers. */
+export function collectSplitMockTypeImports(
+  implementations: readonly string[],
+): GeneratorImport[] {
+  const seen = new Set<string>();
+  const imports: GeneratorImport[] = [];
+
+  for (const impl of implementations) {
+    for (const match of impl.matchAll(
+      /export const get\w+Mock = \(\s*overrideResponse: Partial<(\w+)[^)]*\):\s*(\w+)\s*=>/g,
+    )) {
+      for (const name of [match[1], match[2]]) {
+        if (!name || seen.has(name)) continue;
+        seen.add(name);
+        imports.push({ name, values: false });
+      }
+    }
+  }
+
+  return imports;
+}

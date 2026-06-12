@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import type { GeneratorImport } from '@orval/core';
 
-import { appendImportsDelta, mergeReturnedMockImports } from './imports';
+import {
+  appendImportsDelta,
+  collectSplitMockTypeImports,
+  mergeReturnedMockImports,
+} from './imports';
 
 describe('appendImportsDelta', () => {
   it('appends only entries added since sinceIndex', () => {
@@ -57,5 +61,19 @@ describe('appendImportsDelta', () => {
       { name: 'getPetMock', values: true, schemaFactory: true },
     ]);
     expect(shared.length).toBe(1);
+  });
+});
+
+describe('collectSplitMockTypeImports', () => {
+  it('collects types from nested oneOf split mock helpers', () => {
+    const implementation = [
+      'export const getExampleResponsePointInFutureAbsoluteMock = (',
+      '  overrideResponse: Partial<PointInFutureAbsolute> = {},',
+      '): PointInFutureAbsolute => ({ kind: "absolute" });',
+    ].join('\n');
+
+    expect(collectSplitMockTypeImports([implementation])).toEqual([
+      { name: 'PointInFutureAbsolute', values: false },
+    ]);
   });
 });
