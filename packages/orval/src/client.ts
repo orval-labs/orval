@@ -305,6 +305,7 @@ export const generateOperations = (
             implementation: generated.implementation,
             imports: generated.imports,
             strictMockSchemaTypeNames: generated.strictMockSchemaTypeNames,
+            strictMockSchemaKinds: generated.strictMockSchemaKinds,
           };
         });
 

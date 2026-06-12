@@ -14,10 +14,13 @@ import { prop } from 'remeda';
 import {
   formatMockFactoryDeclaration,
   getMockFactorySignatureParts,
+  getStrictMockTypeName,
+  isStrictMock,
 } from '../../mock-types';
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
 import { getMockScalar } from '../getters/scalar';
+import { mergeReturnedMockImports } from '../imports';
 
 function isRegex(key: string) {
   return key.startsWith('/') && key.endsWith('/');
@@ -361,6 +364,18 @@ export function resolveMockValue({
         values: true,
         schemaFactory: true,
       });
+      const isObjectLike =
+        newSchema.type === 'object' ||
+        !!newSchema.allOf ||
+        resolvesToObjectLike(newSchema, context);
+      const mockTypeName = getStrictMockTypeName(pascal(name));
+      if (isStrictMock(mockOptions) && isObjectLike) {
+        imports.push({
+          name: mockTypeName,
+          values: false,
+          schemaFactory: true,
+        });
+      }
       // For object-like refs the historical inline output is `{ ...body }`
       // so the spread form keeps callers (combineSchemasMock, object
       // properties) working without other changes. For everything else
@@ -371,12 +386,10 @@ export function resolveMockValue({
       // the factory return a primitive union, which is not spreadable: emitting
       // `{ ...get<X>Mock() }` is invalid TypeScript (TS2698) and would discard
       // the value as `{}` at runtime, so it must use the bare call (#3200).
-      const isObjectLike =
-        newSchema.type === 'object' ||
-        !!newSchema.allOf ||
-        resolvesToObjectLike(newSchema, context);
+      const strictObjectCast =
+        isStrictMock(mockOptions) && isObjectLike ? ` as ${mockTypeName}` : '';
       const callValue = isObjectLike
-        ? `{ ...${factoryName}() }`
+        ? `{ ...${factoryName}()${strictObjectCast} }`
         : `${factoryName}()`;
 
       return {
@@ -392,6 +405,7 @@ export function resolveMockValue({
       };
     }
 
+    const importsBefore = imports.length;
     const scalar = getMockScalar({
       item: newSchema,
       mockOptions,
@@ -456,8 +470,17 @@ export function resolveMockValue({
         ? `${funcName}()`
         : `{...${funcName}()}`;
 
-      scalar.imports.push({ name: newSchema.name });
+      const typeImport: GeneratorImport = {
+        name: newSchema.name,
+        values: false,
+      };
+      scalar.imports.push(typeImport);
+      if (scalar.imports !== imports) {
+        imports.push(typeImport);
+      }
     }
+
+    mergeReturnedMockImports(imports, importsBefore, scalar.imports);
 
     return {
       ...scalar,
@@ -465,6 +488,7 @@ export function resolveMockValue({
     };
   }
 
+  const importsBefore = imports.length;
   const scalar = getMockScalar({
     item: schema,
     mockOptions,
@@ -478,6 +502,7 @@ export function resolveMockValue({
     splitMockImplementations,
     allowOverride,
   });
+  mergeReturnedMockImports(imports, importsBefore, scalar.imports);
   return {
     ...scalar,
     type: getType(schema),

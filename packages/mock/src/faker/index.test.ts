@@ -7,6 +7,7 @@ import type {
   GlobalMockOptions,
   MswMockOptions,
   NormalizedOverrideOutput,
+  OpenApiSchemaObject,
 } from '@orval/core';
 import { isFakerMock, isMswMock, OutputMockType } from '@orval/core';
 import { describe, expect, expectTypeOf, it } from 'vitest';
@@ -287,6 +288,7 @@ describe('generateFakerForSchemas strict mock types (#3525)', () => {
     );
 
     expect(result.strictMockSchemaTypeNames).toEqual(['Status']);
+    expect(result.strictMockSchemaKinds).toEqual({ Status: 'alias' });
     expect(result.implementation).not.toContain('overrideResponse');
     expect(result.implementation).toContain(
       'export const getStatusMock = (): StatusMock =>',
@@ -296,12 +298,68 @@ describe('generateFakerForSchemas strict mock types (#3525)', () => {
     const finalized = dedupeStrictMockTypeDeclarations(result.implementation, {
       mockOptions: { required: true, nonNullable: true },
       strictSchemaTypeNames: result.strictMockSchemaTypeNames,
+      strictMockSchemaKinds: result.strictMockSchemaKinds,
     });
 
-    expect(finalized).toContain('export type StatusMock = {');
+    expect(finalized).toContain('export type StatusMock = Status;');
+    expect(finalized).not.toContain(
+      'export type StatusMock = {\n  [K in keyof Required<Status>]',
+    );
     expect(finalized).toContain('export type KeysWithNull<O>');
     expect(finalized.indexOf('export type StatusMock')).toBeLessThan(
       finalized.indexOf('export const getStatusMock'),
     );
+  });
+});
+
+describe('generateFakerForSchemas recursion guards', () => {
+  const strictContext = createTestContextSpec({
+    override: {
+      mock: {
+        required: true,
+        nonNullable: true,
+      },
+    },
+  });
+
+  const run = (schemas: Record<string, OpenApiSchemaObject>, root: string) => {
+    strictContext.spec.components = { schemas };
+    return generateFakerForSchemas(
+      [
+        {
+          name: root,
+          model: root,
+          imports: [],
+          schema: schemas[root]!,
+        },
+      ],
+      strictContext,
+      { type: OutputMockType.FAKER, schemas: true },
+    );
+  };
+
+  it('does not overflow on a mutual allOf cycle (A allOf B, B allOf A)', () => {
+    expect(() =>
+      run(
+        {
+          A: { allOf: [{ $ref: '#/components/schemas/B' }] },
+          B: { allOf: [{ $ref: '#/components/schemas/A' }] },
+        },
+        'A',
+      ),
+    ).not.toThrow();
+  });
+
+  it('does not overflow on a multi-hop allOf inheritance cycle', () => {
+    expect(() =>
+      run(
+        {
+          A: { allOf: [{ $ref: '#/components/schemas/B' }] },
+          B: { allOf: [{ $ref: '#/components/schemas/C' }] },
+          C: { allOf: [{ $ref: '#/components/schemas/A' }] },
+        },
+        'A',
+      ),
+    ).not.toThrow();
   });
 });

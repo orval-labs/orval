@@ -15,7 +15,10 @@ import {
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
 import { escapeRegExp } from '../utils/string';
 import { writeGeneratedFile } from './file';
-import { getFinalizeMockImplementationOptions } from './finalize-mock-implementation';
+import {
+  getFinalizeMockImplementationOptions,
+  filterLocalStrictMockTypeImports,
+} from './finalize-mock-implementation';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { collapseInlineMockOutputs } from './mock-outputs';
 import {
@@ -168,13 +171,20 @@ export async function writeSingleMode({
         const entry = output.mock.generators.find(
           (g) => !isFunction(g) && g.type === mockOutput.type,
         );
-        const filteredMockImports = mockOutput.imports.filter(
-          (impMock) =>
-            !normalizedImports.some(
-              (imp) =>
-                imp.name === impMock.name &&
-                (imp.alias ?? '') === (impMock.alias ?? ''),
-            ),
+        const finalizeMockOptions = getFinalizeMockImplementationOptions(
+          output,
+          mockOutput,
+        );
+        const filteredMockImports = filterLocalStrictMockTypeImports(
+          mockOutput.imports.filter(
+            (impMock) =>
+              !normalizedImports.some(
+                (imp) =>
+                  imp.name === impMock.name &&
+                  (imp.alias ?? '') === (impMock.alias ?? ''),
+              ),
+          ),
+          finalizeMockOptions.strictSchemaTypeNames,
         );
         const importsMockForBuilder = schemasPath
           ? generateImportsForBuilder(

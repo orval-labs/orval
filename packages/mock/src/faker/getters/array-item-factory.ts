@@ -16,6 +16,8 @@ import {
 import {
   formatMockFactoryDeclaration,
   getMockFactorySignatureParts,
+  getStrictMockTypeName,
+  isStrictMock,
 } from '../../mock-types';
 import type { MockSchema } from '../../types';
 import { overrideVarName } from './object';
@@ -296,6 +298,7 @@ export function extractArrayItemMock({
   const { factoryName, typeName } = names;
   const scope = getArrayItemMockFileScope(context, tags);
   const fileLevelFactories = getFileLevelExtractedFactories(context, scope);
+  const mockOptions = context.output.override.mock;
   const alreadyExtracted =
     fileLevelFactories.has(factoryName) ||
     splitMockImplementations.some((f) =>
@@ -303,7 +306,6 @@ export function extractArrayItemMock({
     );
 
   if (!alreadyExtracted) {
-    const mockOptions = context.output.override.mock;
     const { param, returnType, returnCast } = getMockFactorySignatureParts(
       typeName,
       mockOptions,
@@ -327,5 +329,9 @@ export function extractArrayItemMock({
 
   imports.push({ name: typeName });
 
-  return `{...${factoryName}()}`;
+  const strictCast = isStrictMock(mockOptions)
+    ? ` as ${getStrictMockTypeName(typeName)}`
+    : '';
+
+  return `{...${factoryName}()${strictCast}}`;
 }

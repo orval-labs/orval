@@ -16,8 +16,15 @@ import {
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
 import { escapeRegExp } from '../utils/string';
 import { writeGeneratedFile } from './file';
-import { getFinalizeMockImplementationOptions } from './finalize-mock-implementation';
+import {
+  getFinalizeMockImplementationOptions,
+  filterLocalStrictMockTypeImports,
+} from './finalize-mock-implementation';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
+import {
+  collectRecoveredSchemaFactoryImports,
+  mergeGeneratorImports,
+} from './mock-imports';
 import { collapseInlineMockOutputs } from './mock-outputs';
 import {
   getMockDir,
@@ -313,20 +320,46 @@ export async function writeTagsMode({
               schemaCustomImportPath ??
               resolveMockSchemasPath(mockFilePath, schemasTarget);
 
-            const importsMockForBuilder = generateImportsForBuilder(
+            const finalizeMockOptions = getFinalizeMockImplementationOptions(
               output,
-              mockOutput.imports,
-              mockRelativeSchemasPath,
+              mockOutput,
             );
 
-            let mockData = header;
             const finalizedMockImplementation =
               builder.finalizeMockImplementation
                 ? builder.finalizeMockImplementation(
                     mockOutput.implementation,
-                    getFinalizeMockImplementationOptions(output, mockOutput),
+                    finalizeMockOptions,
                   )
                 : mockOutput.implementation;
+
+            const usesSchemaFactories = output.mock.generators.some(
+              (g) =>
+                !isFunction(g) &&
+                g.type === OutputMockType.FAKER &&
+                g.schemas === true,
+            );
+            const recoveredSchemaFactoryImports =
+              usesSchemaFactories && output.schemas
+                ? collectRecoveredSchemaFactoryImports(
+                    finalizedMockImplementation,
+                    builder.schemas.filter((s) => s.schema).map((s) => s.name),
+                  )
+                : [];
+
+            const importsMockForBuilder = generateImportsForBuilder(
+              output,
+              filterLocalStrictMockTypeImports(
+                mergeGeneratorImports(
+                  mockOutput.imports,
+                  recoveredSchemaFactoryImports,
+                ),
+                finalizeMockOptions.strictSchemaTypeNames,
+              ),
+              mockRelativeSchemasPath,
+            );
+
+            let mockData = header;
             mockData += builder.importsMock({
               implementation: finalizedMockImplementation,
               imports: importsMockForBuilder,
