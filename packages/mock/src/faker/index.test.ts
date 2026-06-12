@@ -7,6 +7,7 @@ import type {
   GlobalMockOptions,
   MswMockOptions,
   NormalizedOverrideOutput,
+  OpenApiSchemaObject,
 } from '@orval/core';
 import { isFakerMock, isMswMock, OutputMockType } from '@orval/core';
 import { describe, expect, expectTypeOf, it } from 'vitest';
@@ -321,7 +322,7 @@ describe('generateFakerForSchemas recursion guards', () => {
     },
   });
 
-  const run = (schemas: Record<string, unknown>, root: string) => {
+  const run = (schemas: Record<string, OpenApiSchemaObject>, root: string) => {
     strictContext.spec.components = { schemas };
     return generateFakerForSchemas(
       [
@@ -329,7 +330,7 @@ describe('generateFakerForSchemas recursion guards', () => {
           name: root,
           model: root,
           imports: [],
-          schema: schemas[root],
+          schema: schemas[root]!,
         },
       ],
       strictContext,
