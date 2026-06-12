@@ -16,7 +16,10 @@ import {
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
 import { escapeRegExp } from '../utils/string';
 import { writeGeneratedFile } from './file';
-import { getFinalizeMockImplementationOptions } from './finalize-mock-implementation';
+import {
+  getFinalizeMockImplementationOptions,
+  filterLocalStrictMockTypeImports,
+} from './finalize-mock-implementation';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { collapseInlineMockOutputs } from './mock-outputs';
 import {
@@ -313,9 +316,17 @@ export async function writeTagsMode({
               schemaCustomImportPath ??
               resolveMockSchemasPath(mockFilePath, schemasTarget);
 
+            const finalizeMockOptions = getFinalizeMockImplementationOptions(
+              output,
+              mockOutput,
+            );
+
             const importsMockForBuilder = generateImportsForBuilder(
               output,
-              mockOutput.imports,
+              filterLocalStrictMockTypeImports(
+                mockOutput.imports,
+                finalizeMockOptions.strictSchemaTypeNames,
+              ),
               mockRelativeSchemasPath,
             );
 
@@ -324,7 +335,7 @@ export async function writeTagsMode({
               builder.finalizeMockImplementation
                 ? builder.finalizeMockImplementation(
                     mockOutput.implementation,
-                    getFinalizeMockImplementationOptions(output, mockOutput),
+                    finalizeMockOptions,
                   )
                 : mockOutput.implementation;
             mockData += builder.importsMock({

@@ -363,6 +363,18 @@ export function resolveMockValue({
         values: true,
         schemaFactory: true,
       });
+      const isObjectLike =
+        newSchema.type === 'object' ||
+        !!newSchema.allOf ||
+        resolvesToObjectLike(newSchema, context);
+      const mockTypeName = getStrictMockTypeName(pascal(name));
+      if (isStrictMock(mockOptions) && isObjectLike) {
+        imports.push({
+          name: mockTypeName,
+          values: false,
+          schemaFactory: true,
+        });
+      }
       // For object-like refs the historical inline output is `{ ...body }`
       // so the spread form keeps callers (combineSchemasMock, object
       // properties) working without other changes. For everything else
@@ -373,11 +385,6 @@ export function resolveMockValue({
       // the factory return a primitive union, which is not spreadable: emitting
       // `{ ...get<X>Mock() }` is invalid TypeScript (TS2698) and would discard
       // the value as `{}` at runtime, so it must use the bare call (#3200).
-      const isObjectLike =
-        newSchema.type === 'object' ||
-        !!newSchema.allOf ||
-        resolvesToObjectLike(newSchema, context);
-      const mockTypeName = getStrictMockTypeName(pascal(name));
       const strictObjectCast =
         isStrictMock(mockOptions) && isObjectLike ? ` as ${mockTypeName}` : '';
       const callValue = isObjectLike
