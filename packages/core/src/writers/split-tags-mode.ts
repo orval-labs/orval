@@ -14,7 +14,10 @@ import {
 } from '../utils';
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
 import { writeGeneratedFile } from './file';
-import { getFinalizeMockImplementationOptions } from './finalize-mock-implementation';
+import {
+  getFinalizeMockImplementationOptions,
+  filterLocalStrictMockTypeImports,
+} from './finalize-mock-implementation';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { getMockDir, resolveMockSchemasPath } from './mock-utils';
 import { generateTargetForTags } from './target-tags';
@@ -253,16 +256,24 @@ export async function writeSplitTagsMode({
             schemaCustomImportPath ??
             resolveMockSchemasPath(mockFilePath, schemasTarget);
 
+          const finalizeMockOptions = getFinalizeMockImplementationOptions(
+            output,
+            mockOutput,
+          );
+
           const importsMockForBuilder = generateImportsForBuilder(
             output,
-            mockOutput.imports,
+            filterLocalStrictMockTypeImports(
+              mockOutput.imports,
+              finalizeMockOptions.strictSchemaTypeNames,
+            ),
             mockRelativeSchemasPath,
           );
 
           const finalizedMockImplementation = builder.finalizeMockImplementation
             ? builder.finalizeMockImplementation(
                 mockOutput.implementation,
-                getFinalizeMockImplementationOptions(output, mockOutput),
+                finalizeMockOptions,
               )
             : mockOutput.implementation;
           let mockData = header;

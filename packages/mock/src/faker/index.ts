@@ -18,6 +18,7 @@ import {
   classifyStrictMockSchemaType,
   collectStrictMockSchemaTypeNamesFromImplementation,
   getMockFactorySignatureParts,
+  getStrictMockTypeName,
   isStrictMock,
   mergeStrictMockSchemaKinds,
 } from '../mock-types';
@@ -122,6 +123,11 @@ export function generateFakerForSchemas(
   const localFactoryNames = new Set(
     schemas.filter((s) => !!s.schema).map((s) => `get${pascal(s.name)}Mock`),
   );
+  const localMockTypeNames = new Set(
+    schemas
+      .filter((s) => !!s.schema)
+      .map((s) => getStrictMockTypeName(pascal(s.name))),
+  );
 
   // Serialize override.mock.properties functions the same way operation
   // response mocks do (IIFE expressions), not raw function references.
@@ -205,6 +211,9 @@ export function generateFakerForSchemas(
     // local factory call). Without this we'd emit
     // `import { getPetMock } from '.'` next to its own `export const`.
     if (imp.schemaFactory && localFactoryNames.has(imp.name)) continue;
+    if (imp.schemaFactory && !imp.values && localMockTypeNames.has(imp.name)) {
+      continue;
+    }
 
     const key = `${imp.name}::${imp.alias ?? ''}`;
     const existing = mergedImports.get(key);
