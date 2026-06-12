@@ -13,6 +13,7 @@ import {
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
 import { resolveMockValue } from '../resolvers/value';
+import { mergeReturnedMockImports } from '../imports';
 import { combineSchemasMock } from './combine';
 
 export const overrideVarName = 'overrideResponse';
@@ -184,6 +185,7 @@ export function getMockObject({
             return;
           }
 
+          const importsBefore = imports.length;
           const resolvedValue = resolveMockValue({
             schema: {
               ...(prop as Record<string, unknown>),
@@ -203,6 +205,12 @@ export function getMockObject({
             existingReferencedAllOfRefs: [],
             splitMockImplementations,
           });
+
+          mergeReturnedMockImports(
+            imports,
+            importsBefore,
+            resolvedValue.imports,
+          );
 
           includedProperties.push(key);
 

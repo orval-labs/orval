@@ -20,6 +20,7 @@ import {
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
 import { getMockScalar } from '../getters/scalar';
+import { mergeReturnedMockImports } from '../imports';
 
 function isRegex(key: string) {
   return key.startsWith('/') && key.endsWith('/');
@@ -404,6 +405,7 @@ export function resolveMockValue({
       };
     }
 
+    const importsBefore = imports.length;
     const scalar = getMockScalar({
       item: newSchema,
       mockOptions,
@@ -468,8 +470,17 @@ export function resolveMockValue({
         ? `${funcName}()`
         : `{...${funcName}()}`;
 
-      scalar.imports.push({ name: newSchema.name });
+      const typeImport: GeneratorImport = {
+        name: newSchema.name,
+        values: false,
+      };
+      scalar.imports.push(typeImport);
+      if (scalar.imports !== imports) {
+        imports.push(typeImport);
+      }
     }
+
+    mergeReturnedMockImports(imports, importsBefore, scalar.imports);
 
     return {
       ...scalar,
@@ -477,6 +488,7 @@ export function resolveMockValue({
     };
   }
 
+  const importsBefore = imports.length;
   const scalar = getMockScalar({
     item: schema,
     mockOptions,
@@ -490,6 +502,7 @@ export function resolveMockValue({
     splitMockImplementations,
     allowOverride,
   });
+  mergeReturnedMockImports(imports, importsBefore, scalar.imports);
   return {
     ...scalar,
     type: getType(schema),

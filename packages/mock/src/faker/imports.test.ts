@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { GeneratorImport } from '@orval/core';
 
-import { appendImportsDelta } from './imports';
+import { appendImportsDelta, mergeReturnedMockImports } from './imports';
 
 describe('appendImportsDelta', () => {
   it('appends only entries added since sinceIndex', () => {
@@ -37,5 +37,25 @@ describe('appendImportsDelta', () => {
       { name: 'PetMock', values: false, schemaFactory: true },
     ]);
     expect(target.length).toBe(2);
+  });
+
+  it('mergeReturnedMockImports appends returned imports when shared array is unchanged', () => {
+    const shared: GeneratorImport[] = [];
+    mergeReturnedMockImports(shared, 0, [
+      { name: 'DomainStatusEnum', values: true },
+    ]);
+
+    expect(shared).toEqual([{ name: 'DomainStatusEnum', values: true }]);
+  });
+
+  it('mergeReturnedMockImports skips when shared array was mutated in place', () => {
+    const shared: GeneratorImport[] = [];
+    shared.push({ name: 'getPetMock', values: true, schemaFactory: true });
+    mergeReturnedMockImports(shared, 0, shared);
+
+    expect(shared).toEqual([
+      { name: 'getPetMock', values: true, schemaFactory: true },
+    ]);
+    expect(shared.length).toBe(1);
   });
 });

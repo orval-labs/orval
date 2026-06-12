@@ -265,6 +265,9 @@ export function getResponsesMockDefinition({
     });
 
     appendImportsDelta(result.imports, responseImports, importsBefore);
+    if (scalar.imports !== responseImports) {
+      appendImportsDelta(result.imports, scalar.imports, 0);
+    }
     result.definitions.push(
       transformer ? transformer(scalar.value, returnType) : scalar.value,
     );
