@@ -82,7 +82,7 @@ export function generateTarget(
       }
       if (opMock.strictMockSchemaKinds) {
         acc.strictMockSchemaKinds = {
-          ...(acc.strictMockSchemaKinds ?? {}),
+          ...acc.strictMockSchemaKinds,
           ...opMock.strictMockSchemaKinds,
         };
       }

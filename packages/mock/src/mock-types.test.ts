@@ -358,12 +358,14 @@ describe('mock-types', () => {
         {
           value: 'Pet[]',
           imports: [{ name: 'Pet', values: false }],
+          key: '200',
+          contentType: 'application/json',
           originalSchema: {
             type: 'array',
             items: { $ref: '#/components/schemas/Pet' },
           },
         },
-      ] as ResReqTypesValue[];
+      ] as unknown as ResReqTypesValue[];
 
       expect(getStrictMockSchemaKindsFromResponses(responses)).toEqual({
         Pet: 'object',
@@ -375,12 +377,14 @@ describe('mock-types', () => {
         {
           value: 'Status',
           imports: [{ name: 'Status', values: false }],
+          key: '200',
+          contentType: 'application/json',
           originalSchema: {
             type: 'string',
             enum: ['active', 'inactive'],
           },
         },
-      ] as ResReqTypesValue[];
+      ] as unknown as ResReqTypesValue[];
 
       expect(getStrictMockSchemaKindsFromResponses(responses)).toEqual({
         Status: 'alias',
