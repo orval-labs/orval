@@ -8,6 +8,7 @@ import {
 } from '@orval/core';
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
+import { appendImportsDelta } from '../imports';
 import { resolveMockValue } from '../resolvers';
 
 function getReferenceName(
@@ -141,25 +142,31 @@ export function combineSchemasMock({
 
   const itemResolvedValue =
     isRefAndNotExisting || hasResolvableProperties
-      ? resolveMockValue({
-          schema: Object.fromEntries(itemEntriesForResolve) as MockSchemaObject,
-          combine: {
-            separator: 'allOf',
-            includedProperties: [],
-          },
-          mockOptions,
-          operationId,
-          tags,
-          context,
-          imports,
-          existingReferencedProperties,
-          existingReferencedAllOfRefs,
-          splitMockImplementations,
-        })
+      ? (() => {
+          const importsBefore = imports.length;
+          const resolved = resolveMockValue({
+            schema: Object.fromEntries(
+              itemEntriesForResolve,
+            ) as MockSchemaObject,
+            combine: {
+              separator: 'allOf',
+              includedProperties: [],
+            },
+            mockOptions,
+            operationId,
+            tags,
+            context,
+            imports,
+            existingReferencedProperties,
+            existingReferencedAllOfRefs,
+            splitMockImplementations,
+          });
+          appendImportsDelta(combineImports, imports, importsBefore);
+          return resolved;
+        })()
       : undefined;
 
   includedProperties.push(...(itemResolvedValue?.includedProperties ?? []));
-  combineImports.push(...(itemResolvedValue?.imports ?? []));
   let containsOnlyPrimitiveValues = true;
 
   const allRequiredFields: string[] = [];
@@ -229,6 +236,7 @@ export function combineSchemasMock({
       };
     })();
 
+    const importsBefore = imports.length;
     const resolvedValue = resolveMockValue({
       schema,
       combine: {
@@ -253,7 +261,7 @@ export function combineSchemasMock({
       splitMockImplementations,
     });
 
-    combineImports.push(...resolvedValue.imports);
+    appendImportsDelta(combineImports, imports, importsBefore);
     includedProperties.push(...(resolvedValue.includedProperties ?? []));
 
     if (resolvedValue.value === '{}') {

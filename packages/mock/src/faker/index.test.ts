@@ -310,3 +310,55 @@ describe('generateFakerForSchemas strict mock types (#3525)', () => {
     );
   });
 });
+
+describe('generateFakerForSchemas recursion guards', () => {
+  const strictContext = createTestContextSpec({
+    override: {
+      mock: {
+        required: true,
+        nonNullable: true,
+      },
+    },
+  });
+
+  const run = (schemas: Record<string, unknown>, root: string) => {
+    strictContext.spec.components = { schemas };
+    return generateFakerForSchemas(
+      [
+        {
+          name: root,
+          model: root,
+          imports: [],
+          schema: schemas[root],
+        },
+      ],
+      strictContext,
+      { type: OutputMockType.FAKER, schemas: true },
+    );
+  };
+
+  it('does not overflow on a mutual allOf cycle (A allOf B, B allOf A)', () => {
+    expect(() =>
+      run(
+        {
+          A: { allOf: [{ $ref: '#/components/schemas/B' }] },
+          B: { allOf: [{ $ref: '#/components/schemas/A' }] },
+        },
+        'A',
+      ),
+    ).not.toThrow();
+  });
+
+  it('does not overflow on a multi-hop allOf inheritance cycle', () => {
+    expect(() =>
+      run(
+        {
+          A: { allOf: [{ $ref: '#/components/schemas/B' }] },
+          B: { allOf: [{ $ref: '#/components/schemas/C' }] },
+          C: { allOf: [{ $ref: '#/components/schemas/A' }] },
+        },
+        'A',
+      ),
+    ).not.toThrow();
+  });
+});

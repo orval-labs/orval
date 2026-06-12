@@ -19,6 +19,10 @@ import {
   filterLocalStrictMockTypeImports,
 } from './finalize-mock-implementation';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
+import {
+  collectRecoveredSchemaFactoryImports,
+  mergeGeneratorImports,
+} from './mock-imports';
 import { getMockDir, resolveMockSchemasPath } from './mock-utils';
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
@@ -261,21 +265,39 @@ export async function writeSplitTagsMode({
             mockOutput,
           );
 
-          const importsMockForBuilder = generateImportsForBuilder(
-            output,
-            filterLocalStrictMockTypeImports(
-              mockOutput.imports,
-              finalizeMockOptions.strictSchemaTypeNames,
-            ),
-            mockRelativeSchemasPath,
-          );
-
           const finalizedMockImplementation = builder.finalizeMockImplementation
             ? builder.finalizeMockImplementation(
                 mockOutput.implementation,
                 finalizeMockOptions,
               )
             : mockOutput.implementation;
+
+          const usesSchemaFactories = output.mock.generators.some(
+            (g) =>
+              !isFunction(g) &&
+              g.type === OutputMockType.FAKER &&
+              g.schemas === true,
+          );
+          const recoveredSchemaFactoryImports =
+            usesSchemaFactories && output.schemas
+              ? collectRecoveredSchemaFactoryImports(
+                  finalizedMockImplementation,
+                  builder.schemas.filter((s) => s.schema).map((s) => s.name),
+                )
+              : [];
+
+          const importsMockForBuilder = generateImportsForBuilder(
+            output,
+            filterLocalStrictMockTypeImports(
+              mergeGeneratorImports(
+                mockOutput.imports,
+                recoveredSchemaFactoryImports,
+              ),
+              finalizeMockOptions.strictSchemaTypeNames,
+            ),
+            mockRelativeSchemasPath,
+          );
+
           let mockData = header;
           mockData += builder.importsMock({
             implementation: finalizedMockImplementation,
