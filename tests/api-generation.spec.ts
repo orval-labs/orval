@@ -1207,6 +1207,25 @@ test('zod issue-3505 enum values with backslashes are JS-escaped', async () => {
   expect(content).not.toContain('Asia\\/Tokyo');
 });
 
+test('mock issue-3590 strict faker schema mocks typecheck and emit correct aliases', async () => {
+  const fakerContent = await readFile(
+    generated('mock', 'issue-3590', 'model', 'index.faker.ts'),
+    'utf8',
+  );
+
+  expect(fakerContent).toContain('export type StatusMock = Status;');
+  expect(fakerContent).toContain('export type PhotoUploadMock = ArrayBuffer;');
+  expect(fakerContent).toContain(
+    '...(getPetSettingMock() as PetSettingMock)',
+  );
+  expect(fakerContent).toContain(
+    '...(getPetDetailResponseSettingsItemMock() as PetDetailSettingsItemMock)',
+  );
+  expect(fakerContent).not.toContain(
+    '[K in keyof Required<Status>]',
+  );
+});
+
 test('mock issue-3505 enum values with backslashes are JS-escaped', async () => {
   const content = await readFile(
     generated('mock', 'issue-3505', 'endpoints.ts'),

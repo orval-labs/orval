@@ -14,6 +14,8 @@ import { prop } from 'remeda';
 import {
   formatMockFactoryDeclaration,
   getMockFactorySignatureParts,
+  getStrictMockTypeName,
+  isStrictMock,
 } from '../../mock-types';
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
@@ -375,8 +377,11 @@ export function resolveMockValue({
         newSchema.type === 'object' ||
         !!newSchema.allOf ||
         resolvesToObjectLike(newSchema, context);
+      const mockTypeName = getStrictMockTypeName(pascal(name));
+      const strictObjectCast =
+        isStrictMock(mockOptions) && isObjectLike ? ` as ${mockTypeName}` : '';
       const callValue = isObjectLike
-        ? `{ ...${factoryName}() }`
+        ? `{ ...${factoryName}()${strictObjectCast} }`
         : `${factoryName}()`;
 
       return {

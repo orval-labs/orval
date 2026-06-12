@@ -10,12 +10,16 @@ import {
   type GeneratorVerbOptions,
   type GlobalMockOptions,
   pascal,
+  type StrictMockSchemaKind,
 } from '@orval/core';
 
 import {
   formatMockFactoryDeclaration,
+  classifyStrictMockSchemaType,
+  collectStrictMockSchemaTypeNamesFromImplementation,
   getMockFactorySignatureParts,
   isStrictMock,
+  mergeStrictMockSchemaKinds,
 } from '../mock-types';
 import { generateMSW } from '../msw';
 import { getMockWithoutFunc } from '../msw/mocks';
@@ -77,6 +81,7 @@ export function generateFaker(
     },
     imports: result.imports,
     strictMockSchemaTypeNames: result.strictMockSchemaTypeNames,
+    strictMockSchemaKinds: result.strictMockSchemaKinds,
   };
 }
 
@@ -84,6 +89,7 @@ export interface GenerateFakerForSchemasResult {
   implementation: string;
   imports: GeneratorImport[];
   strictMockSchemaTypeNames?: string[];
+  strictMockSchemaKinds?: Record<string, StrictMockSchemaKind>;
 }
 
 /**
@@ -102,6 +108,7 @@ export function generateFakerForSchemas(
 ): GenerateFakerForSchemasResult {
   const factories: string[] = [];
   const strictMockTypeNames = new Set<string>();
+  const strictMockSchemaKinds: Record<string, StrictMockSchemaKind> = {};
   const allImports: GeneratorImport[] = [];
   // Shared across schemas so we emit each helper (e.g. an `allOf`-discriminator
   // sub-factory) once even when several schemas reference the same union arm.
@@ -170,6 +177,7 @@ export function generateFakerForSchemas(
 
     if (isStrictMock(mockOptions)) {
       strictMockTypeNames.add(typeName);
+      strictMockSchemaKinds[typeName] = classifyStrictMockSchemaType(schema);
     }
 
     factories.push(factory);
@@ -221,6 +229,13 @@ export function generateFakerForSchemas(
     .filter(Boolean)
     .join('\n\n');
 
+  for (const name of collectStrictMockSchemaTypeNamesFromImplementation(
+    implementation,
+  )) {
+    strictMockTypeNames.add(name);
+    strictMockSchemaKinds[name] ??= 'object';
+  }
+
   const aggregatedStrictNames = [...strictMockTypeNames];
 
   return {
@@ -228,5 +243,6 @@ export function generateFakerForSchemas(
     imports: uniqueImports,
     strictMockSchemaTypeNames:
       aggregatedStrictNames.length > 0 ? aggregatedStrictNames : undefined,
+    strictMockSchemaKinds: mergeStrictMockSchemaKinds(strictMockSchemaKinds),
   };
 }

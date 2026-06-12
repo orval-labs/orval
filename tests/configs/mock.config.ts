@@ -685,6 +685,27 @@ export default defineConfig({
       target: '../specifications/issue-3525-widget-mock.yaml',
     },
   },
+  issue3590: {
+    output: {
+      target: '../generated/mock/issue-3590/endpoints.ts',
+      schemas: '../generated/mock/issue-3590/model',
+      client: 'fetch',
+      mock: {
+        generators: [{ type: 'faker', schemas: true, arrayItems: true }],
+      },
+      override: {
+        mock: {
+          required: true,
+          nonNullable: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3590.yaml',
+    },
+  },
   fakerArrayItems: {
     output: {
       target: '../generated/mock/faker-array-items/endpoints.ts',
