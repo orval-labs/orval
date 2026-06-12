@@ -1,5 +1,6 @@
 export * from './file';
 export * from './schemas';
+export * from './schemas-tags-split';
 export * from './single-mode';
 export * from './split-mode';
 export * from './split-tags-mode';

@@ -25,6 +25,7 @@ import {
   upath,
   writeGeneratedFile,
   writeSchemas,
+  writeSchemasTagsSplit,
   writeSingleMode,
   type WriteSpecBuilder,
   writeSplitMode,
@@ -330,6 +331,10 @@ export async function writeSpecs(
     const schemasPath = isString(output.schemas)
       ? output.schemas
       : output.schemas.path;
+
+    const shouldSplitSchemasByTags =
+      isObject(output.schemas) && output.schemas.splitByTags;
+
     const isZodSchemas =
       (!isString(output.schemas) && output.schemas.type === 'zod') ||
       // Auto-promote a string `schemas:` to the zod writer when client is zod
@@ -339,6 +344,31 @@ export async function writeSpecs(
       (isString(output.schemas) &&
         output.client === 'zod' &&
         output.override.zod.generateReusableSchemas);
+
+    if (shouldSplitSchemasByTags && output.operationSchemas) {
+      throw new Error(
+        'schemas.splitByTags cannot be used with output.operationSchemas. ' +
+          'The tags-split schema mode handles operation type placement within tag directories.',
+      );
+    }
+
+    if (shouldSplitSchemasByTags && isZodSchemas) {
+      throw new Error(
+        'schemas.splitByTags is not yet supported with zod schemas. ' +
+          'Use type: "typescript" instead.',
+      );
+    }
+
+    if (
+      shouldSplitSchemasByTags &&
+      !isString(output.schemas) &&
+      output.schemas.importPath
+    ) {
+      throw new Error(
+        'schemas.splitByTags cannot be used with schemas.importPath. ' +
+          'Cross-directory factory imports are not yet supported with tag-based schema splitting.',
+      );
+    }
 
     if (isZodSchemas) {
       // Use the schema-specific extension so the global `fileExtension` (which
@@ -384,8 +414,26 @@ export async function writeSpecs(
     } else {
       const fileExtension = output.fileExtension || '.ts';
 
-      // Split schemas if operationSchemas path is configured
-      if (output.operationSchemas) {
+      // Split schemas by tag into subdirectories
+      if (shouldSplitSchemasByTags) {
+        const operations = Object.values(builder.operations).map((op) => ({
+          imports: op.imports,
+          tags: op.tags,
+        }));
+
+        await writeSchemasTagsSplit({
+          schemaPath: schemasPath,
+          schemas,
+          target,
+          namingConvention: output.namingConvention,
+          fileExtension,
+          header,
+          indexFiles: output.indexFiles,
+          tsconfig: output.tsconfig,
+          factoryOutputDirectory: output.factoryMethods?.outputDirectory,
+          operations,
+        });
+      } else if (output.operationSchemas) {
         const { regularSchemas, operationSchemas: opSchemas } =
           splitSchemasByType(schemas);
 

@@ -197,6 +197,64 @@ export default defineConfig({
       },
     },
   },
+  petstoreTagsSplitSchemas: {
+    output: {
+      target:
+        '../generated/axios/petstore-tags-split-schemas/endpoints.ts',
+      schemas: {
+        path: '../generated/axios/petstore-tags-split-schemas/model',
+        type: 'typescript',
+        splitByTags: true,
+      },
+      mock: true,
+      mode: 'tags-split',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
+  tagsSplitSharedModels: {
+    output: {
+      target:
+        '../generated/axios/tags-split-shared-models/endpoints.ts',
+      schemas: {
+        path: '../generated/axios/tags-split-shared-models/model',
+        type: 'typescript',
+        splitByTags: true,
+      },
+      mock: true,
+      mode: 'tags-split',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/tags-split-shared.yaml',
+    },
+  },
+  splitModeSplitSchemas: {
+    output: {
+      target: '../generated/axios/split-mode-split-schemas/endpoints.ts',
+      schemas: {
+        path: '../generated/axios/split-mode-split-schemas/model',
+        type: 'typescript',
+        splitByTags: true,
+      },
+      mode: 'split',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/tags-split-shared.yaml',
+    },
+  },
   petstoreTagsSplitMutator: {
     output: {
       target: '../generated/axios/petstore-tags-split-mutator/endpoints.ts',

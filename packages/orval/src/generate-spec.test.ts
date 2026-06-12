@@ -1094,3 +1094,184 @@ describe('generateSpec - schemas.importPath', () => {
     }
   });
 });
+
+describe('generateSpec - schemas.splitByTags validation', () => {
+  const SPEC_WITH_TAGS: OpenApiDocument = {
+    openapi: '3.1.0',
+    info: { title: 'Tagged', version: '1.0.0' },
+    paths: {
+      '/pets': {
+        get: {
+          operationId: 'listPets',
+          tags: ['pets'],
+          responses: {
+            '200': {
+              description: 'List',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/Pet' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        Pet: {
+          type: 'object',
+          properties: { id: { type: 'integer' }, name: { type: 'string' } },
+          required: ['id', 'name'],
+        },
+      },
+    },
+  };
+
+  it('works with split mode (not just tags-split)', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: SPEC_WITH_TAGS },
+          output: {
+            target: './endpoints.ts',
+            mode: 'split',
+            schemas: { path: './model', type: 'typescript', splitByTags: true },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const modelDir = path.join(workspace, 'model');
+      expect(await fs.pathExists(modelDir)).toBe(true);
+
+      const entries = await fs.readdir(modelDir);
+      const subdirs: string[] = [];
+      for (const entry of entries) {
+        const stat = await fs.stat(path.join(modelDir, entry));
+        if (stat.isDirectory()) subdirs.push(entry);
+      }
+      expect(subdirs).toContain('pets');
+      expect(await fs.pathExists(path.join(modelDir, 'pets', 'pet.ts'))).toBe(
+        true,
+      );
+      expect(await fs.pathExists(path.join(modelDir, 'index.ts'))).toBe(true);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects splitByTags with operationSchemas', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: SPEC_WITH_TAGS },
+          output: {
+            target: './endpoints.ts',
+            mode: 'tags-split',
+            schemas: { path: './model', type: 'typescript', splitByTags: true },
+            operationSchemas: './ops',
+          },
+        },
+        workspace,
+      );
+
+      await expect(generateSpec(workspace, options)).rejects.toThrow(
+        'schemas.splitByTags cannot be used with output.operationSchemas',
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('generates tag-split schema directories with splitByTags', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: SPEC_WITH_TAGS },
+          output: {
+            target: './endpoints.ts',
+            mode: 'tags-split',
+            schemas: { path: './model', type: 'typescript', splitByTags: true },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const modelDir = path.join(workspace, 'model');
+      expect(await fs.pathExists(modelDir)).toBe(true);
+
+      const entries = await fs.readdir(modelDir);
+      const subdirs: string[] = [];
+      for (const entry of entries) {
+        const stat = await fs.stat(path.join(modelDir, entry));
+        if (stat.isDirectory()) subdirs.push(entry);
+      }
+      expect(subdirs).toContain('pets');
+      expect(await fs.pathExists(path.join(modelDir, 'pets', 'pet.ts'))).toBe(
+        true,
+      );
+      expect(await fs.pathExists(path.join(modelDir, 'index.ts'))).toBe(true);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects splitByTags with zod schemas', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: SPEC_WITH_TAGS },
+          output: {
+            target: './endpoints.ts',
+            mode: 'tags-split',
+            schemas: { path: './model', type: 'zod', splitByTags: true },
+          },
+        },
+        workspace,
+      );
+
+      await expect(generateSpec(workspace, options)).rejects.toThrow(
+        'schemas.splitByTags is not yet supported with zod schemas',
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects splitByTags with schemas.importPath', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: SPEC_WITH_TAGS },
+          output: {
+            target: './endpoints.ts',
+            mode: 'tags-split',
+            schemas: {
+              path: './model',
+              type: 'typescript',
+              splitByTags: true,
+              importPath: '@/models',
+            },
+          },
+        },
+        workspace,
+      );
+
+      await expect(generateSpec(workspace, options)).rejects.toThrow(
+        'schemas.splitByTags cannot be used with schemas.importPath',
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
