@@ -10,6 +10,7 @@ import type {
   Pet,
   PetCategory,
   PetDetail,
+  PetDetailSettingsItem,
   PetList,
   PetProfile,
   PetSetting,
