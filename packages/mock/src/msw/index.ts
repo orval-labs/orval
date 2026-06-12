@@ -500,7 +500,7 @@ export function generateMSW(
     baseDefinition.strictMockSchemaTypeNames,
   );
   const strictMockSchemaKinds: Record<string, StrictMockSchemaKind> = {
-    ...(baseDefinition.strictMockSchemaKinds ?? {}),
+    ...baseDefinition.strictMockSchemaKinds,
   };
 
   if (

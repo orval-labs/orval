@@ -12,11 +12,7 @@ import { isFakerMock, isMswMock, OutputMockType } from '@orval/core';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import { createTestContextSpec } from '../../../core/src/test-utils/context';
-import {
-  classifyStrictMockSchemaType,
-  collectStrictMockSchemaTypeNamesFromImplementation,
-  dedupeStrictMockTypeDeclarations,
-} from '../mock-types';
+import { dedupeStrictMockTypeDeclarations } from '../mock-types';
 import {
   generateFaker,
   generateFakerForSchemas,

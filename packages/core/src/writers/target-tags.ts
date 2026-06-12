@@ -76,7 +76,7 @@ function mergeOperationMockOutputs(
     }
     if (op.strictMockSchemaKinds) {
       acc.strictMockSchemaKinds = {
-        ...(acc.strictMockSchemaKinds ?? {}),
+        ...acc.strictMockSchemaKinds,
         ...op.strictMockSchemaKinds,
       };
     }
