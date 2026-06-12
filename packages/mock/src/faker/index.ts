@@ -164,6 +164,9 @@ export function generateFakerForSchemas(
     } as Parameters<typeof getMockScalar>[0]);
 
     appendImportsDelta(allImports, factoryImports, factoryImportsBefore);
+    if (result.imports !== factoryImports) {
+      appendImportsDelta(allImports, result.imports, 0);
+    }
 
     // Match the behavior of operation-response factories: only declare the
     // `overrideResponse` parameter when the generated expression actually

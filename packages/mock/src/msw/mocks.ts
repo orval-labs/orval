@@ -13,7 +13,10 @@ import {
 } from '@orval/core';
 
 import { getMockScalar } from '../faker/getters';
-import { appendImportsDelta } from '../faker/imports';
+import {
+  appendImportsDelta,
+  collectSplitMockTypeImports,
+} from '../faker/imports';
 
 function getMockPropertiesWithoutFunc(
   properties:
@@ -272,6 +275,12 @@ export function getResponsesMockDefinition({
       transformer ? transformer(scalar.value, returnType) : scalar.value,
     );
   }
+
+  appendImportsDelta(
+    result.imports,
+    collectSplitMockTypeImports(splitMockImplementations),
+    0,
+  );
 
   return result;
 }
