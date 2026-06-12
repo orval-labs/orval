@@ -12,7 +12,11 @@ import { isFakerMock, isMswMock, OutputMockType } from '@orval/core';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import { createTestContextSpec } from '../../../core/src/test-utils/context';
-import { dedupeStrictMockTypeDeclarations } from '../mock-types';
+import {
+  classifyStrictMockSchemaType,
+  collectStrictMockSchemaTypeNamesFromImplementation,
+  dedupeStrictMockTypeDeclarations,
+} from '../mock-types';
 import {
   generateFaker,
   generateFakerForSchemas,
@@ -287,6 +291,7 @@ describe('generateFakerForSchemas strict mock types (#3525)', () => {
     );
 
     expect(result.strictMockSchemaTypeNames).toEqual(['Status']);
+    expect(result.strictMockSchemaKinds).toEqual({ Status: 'alias' });
     expect(result.implementation).not.toContain('overrideResponse');
     expect(result.implementation).toContain(
       'export const getStatusMock = (): StatusMock =>',
@@ -296,9 +301,13 @@ describe('generateFakerForSchemas strict mock types (#3525)', () => {
     const finalized = dedupeStrictMockTypeDeclarations(result.implementation, {
       mockOptions: { required: true, nonNullable: true },
       strictSchemaTypeNames: result.strictMockSchemaTypeNames,
+      strictMockSchemaKinds: result.strictMockSchemaKinds,
     });
 
-    expect(finalized).toContain('export type StatusMock = {');
+    expect(finalized).toContain('export type StatusMock = Status;');
+    expect(finalized).not.toContain(
+      'export type StatusMock = {\n  [K in keyof Required<Status>]',
+    );
     expect(finalized).toContain('export type KeysWithNull<O>');
     expect(finalized.indexOf('export type StatusMock')).toBeLessThan(
       finalized.indexOf('export const getStatusMock'),

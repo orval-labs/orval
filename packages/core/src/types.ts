@@ -1340,11 +1340,14 @@ export type GeneratorOperations = Record<string, GeneratorOperation>;
 // A single generator's accumulated mock output, keyed by the generator's
 // `OutputMockType`. Writers iterate over `GeneratorTarget.mockOutputs` to
 // emit one file per entry (e.g. `<file>.msw.ts` and `<file>.faker.ts`).
+export type StrictMockSchemaKind = 'object' | 'alias' | 'binary';
+
 export interface GeneratorMockOutput {
   type: OutputMockType;
   implementation: string;
   imports: GeneratorImport[];
   strictMockSchemaTypeNames?: string[];
+  strictMockSchemaKinds?: Record<string, StrictMockSchemaKind>;
 }
 
 export interface GeneratorMockOutputFull {
@@ -1356,6 +1359,7 @@ export interface GeneratorMockOutputFull {
   };
   imports: GeneratorImport[];
   strictMockSchemaTypeNames?: string[];
+  strictMockSchemaKinds?: Record<string, StrictMockSchemaKind>;
 }
 
 export interface GeneratorTarget {
@@ -1524,6 +1528,7 @@ export interface ClientMockGeneratorBuilder {
   imports: GeneratorImport[];
   implementation: ClientMockGeneratorImplementation;
   strictMockSchemaTypeNames?: string[];
+  strictMockSchemaKinds?: Record<string, StrictMockSchemaKind>;
 }
 
 export type ClientMockBuilder = (
@@ -1689,6 +1694,7 @@ export type ResReqTypesValue = ScalarValue & {
 export interface FinalizeMockImplementationOptions {
   mockOptions?: Pick<MockOptions, 'required' | 'nonNullable'>;
   strictSchemaTypeNames?: readonly string[];
+  strictMockSchemaKinds?: Readonly<Record<string, StrictMockSchemaKind>>;
 }
 
 export interface WriteSpecBuilder {
