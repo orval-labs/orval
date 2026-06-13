@@ -131,8 +131,13 @@ export const generateRequestFunction = (
           | undefined) ?? []
       ).some((s) => resolveSchemaRef(s, context).schema.type === 'array');
 
+    const style = parameterObject.style ?? 'form';
+
     return (
-      parameterObject.in === 'query' && isArrayLike && parameterObject.explode
+      parameterObject.in === 'query' &&
+      isArrayLike &&
+      style === 'form' &&
+      (parameterObject.explode ?? true)
     );
   });
 
