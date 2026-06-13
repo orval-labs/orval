@@ -114,10 +114,6 @@ export const searchPets = (
       url: `/search`,
       method: 'GET',
       params: (() => {
-        const requiredNullableParamKeys = new Set<string>([
-          'requirednullableString',
-          'requirednullableStringTwo',
-        ]);
         const filteredParams: Record<
           string,
           string | number | boolean | Array<string | number | boolean>
@@ -242,7 +238,6 @@ export const listPets = (
       url: `/pets`,
       method: 'GET',
       params: (() => {
-        const requiredNullableParamKeys = new Set<string>([]);
         const filteredParams: Record<
           string,
           string | number | boolean | Array<string | number | boolean>
