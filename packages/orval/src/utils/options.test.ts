@@ -315,6 +315,291 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('preserves schemas.importPath through normalization', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            schemas: {
+              path: './models',
+              type: 'typescript',
+              importPath: '@acme/models',
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.schemas).toEqual({
+        path: expect.any(String) as string,
+        type: 'typescript',
+        importPath: '@acme/models',
+      });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a relative path as schemas.importPath', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              schemas: {
+                path: './models',
+                type: 'typescript',
+                importPath: './models',
+              },
+            },
+          },
+          workspace,
+        ),
+      ).rejects.toThrow('schemas.importPath must be a package specifier');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects an empty string as schemas.importPath', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              schemas: {
+                path: './models',
+                type: 'typescript',
+                importPath: '',
+              },
+            },
+          },
+          workspace,
+        ),
+      ).rejects.toThrow(
+        'schemas.importPath must be a non-empty package specifier',
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a parent-relative path as schemas.importPath', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              schemas: {
+                path: './models',
+                type: 'typescript',
+                importPath: '../models',
+              },
+            },
+          },
+          workspace,
+        ),
+      ).rejects.toThrow('schemas.importPath must be a package specifier');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects an absolute path as schemas.importPath', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              schemas: {
+                path: './models',
+                type: 'typescript',
+                importPath: '/abs/models',
+              },
+            },
+          },
+          workspace,
+        ),
+      ).rejects.toThrow('not an absolute path');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a Windows drive-letter absolute path as schemas.importPath', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              schemas: {
+                path: './models',
+                type: 'typescript',
+                importPath: String.raw`C:\models`,
+              },
+            },
+          },
+          workspace,
+        ),
+      ).rejects.toThrow('not an absolute path');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a Windows UNC path as schemas.importPath', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              schemas: {
+                path: './models',
+                type: 'typescript',
+                importPath: String.raw`\\server\share\models`,
+              },
+            },
+          },
+          workspace,
+        ),
+      ).rejects.toThrow('not an absolute path');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a whitespace-only string as schemas.importPath', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              schemas: {
+                path: './models',
+                type: 'typescript',
+                importPath: '   ',
+              },
+            },
+          },
+          workspace,
+        ),
+      ).rejects.toThrow('whitespace-only string');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects leading/trailing whitespace in schemas.importPath', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              schemas: {
+                path: './models',
+                type: 'typescript',
+                importPath: '  @acme/models  ',
+              },
+            },
+          },
+          workspace,
+        ),
+      ).rejects.toThrow('leading or trailing whitespace');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('defaults zod dateTimeOptions to { offset: true } so RFC3339 offset values are accepted', async () => {
     const workspace = await createTempWorkspace();
 
@@ -379,6 +664,73 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('defaults generateReusableSchemas to false', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'zod',
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.zod.generateReusableSchemas).toBe(
+        false,
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('normalizes effect options without falling back to zod', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'effect',
+            override: {
+              zod: {
+                strict: { body: true },
+                useBrandedTypes: true,
+              },
+              effect: {
+                strict: { response: true },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.effect.strict.response).toBe(true);
+      expect(normalized.output.override.effect.strict.body).toBe(false);
+      expect(normalized.output.override.effect.useBrandedTypes).toBe(false);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('resolves hono compositeRoute relative to the workspace', async () => {
     const workspace = await createTempWorkspace();
 
@@ -406,6 +758,61 @@ describe('normalizeOptions', () => {
 
       expect(normalized.output.override.hono.compositeRoute).toBe(
         path.join(workspace, 'routes.ts'),
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('defaults hono handlerGenerationStrategy to "smart"', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: { target: './generated.ts' },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.hono.handlerGenerationStrategy).toBe(
+        'smart',
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves an explicit hono handlerGenerationStrategy', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            override: { hono: { handlerGenerationStrategy: 'skip' } },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.hono.handlerGenerationStrategy).toBe(
+        'skip',
       );
     } finally {
       await rm(workspace, { recursive: true, force: true });

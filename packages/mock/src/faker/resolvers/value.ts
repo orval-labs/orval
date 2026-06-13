@@ -11,6 +11,10 @@ import {
 } from '@orval/core';
 import { prop } from 'remeda';
 
+import {
+  formatMockFactoryDeclaration,
+  getMockFactorySignatureParts,
+} from '../../mock-types';
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
 import { getMockScalar } from '../getters/scalar';
@@ -19,12 +23,33 @@ function isRegex(key: string) {
   return key.startsWith('/') && key.endsWith('/');
 }
 
+// Drop `[]` array-items segments from a dotted JSON-pointer-ish path. Treating
+// the marker as transparent for property override matching lets a bare
+// property-name override apply wherever the property literally appears, even
+// inside arrays (#2465). Segment-based so both leading (`[].id`) and embedded
+// (`foo.[].id`) markers normalize equivalently.
+function stripArrayMarkerSegments(s: string): string {
+  return s
+    .split('.')
+    .filter((seg) => seg !== '[]')
+    .join('.');
+}
+
 export function resolveMockOverride(
   properties: Record<string, unknown> | undefined = {},
   item: OpenApiSchemaObject & { name: string; path?: string },
+  nonNullableOption?: boolean,
 ) {
   const path = item.path ?? `#.${item.name}`;
-  const property = Object.entries(properties).find(([key]) => {
+  // Regex keys still match against the original (un-normalized) path so users
+  // can opt into array-scoped targeting explicitly if ever needed.
+  const normalizedPath = stripArrayMarkerSegments(path);
+  const entries = Object.entries(properties);
+
+  // Tier 1 — explicit matches: regex (against name or full path) and exact
+  // array-transparent path. Checked first so a specific override (regex or
+  // dotted path like `country.name`) always wins over the bare-name fallback.
+  let property = entries.find(([key]) => {
     if (isRegex(key)) {
       const regex = new RegExp(key.slice(1, -1));
       if (regex.test(item.name) || regex.test(path)) {
@@ -32,29 +57,64 @@ export function resolveMockOverride(
       }
     }
 
-    if (`#.${key}` === path) {
+    if (`#.${stripArrayMarkerSegments(key)}` === normalizedPath) {
       return true;
     }
 
     return false;
   });
 
+  // Tier 2 — bare property-name transparency (#3470): a dot-less key applies
+  // wherever the property literally appears, including inside non-array nested
+  // objects, mirroring the array transparency from #2465. Only reached when no
+  // explicit Tier 1 key matched, so it never overrides a more specific key.
+  if (!property) {
+    property = entries.find(
+      ([key]) => !isRegex(key) && !key.includes('.') && key === item.name,
+    );
+  }
+
   if (!property) {
     return;
   }
 
-  const isNullable = Array.isArray(item.type) && item.type.includes('null');
-
   return {
-    value: getNullable(property[1] as string, isNullable),
+    value: getNullable(
+      property[1] as string,
+      isNullableSchema(item),
+      nonNullableOption,
+    ),
     imports: [],
     name: item.name,
     overrided: true,
   };
 }
 
-export function getNullable(value: string, nullable?: boolean) {
-  return nullable ? `faker.helpers.arrayElement([${value}, null])` : value;
+/** OpenAPI 3.0 `nullable: true` or 3.1 `type` unions that include `null`. */
+export function isNullableSchema(schema: unknown): boolean {
+  if (!schema || typeof schema !== 'object') {
+    return false;
+  }
+
+  const { type, nullable } = schema as {
+    type?: unknown;
+    nullable?: unknown;
+  };
+
+  return nullable === true || (Array.isArray(type) && type.includes('null'));
+}
+
+/** When `nonNullableOption` is true (`override.mock.nonNullable`), omit the null branch. */
+export function getNullable(
+  value: string,
+  nullable?: boolean,
+  nonNullableOption?: boolean,
+) {
+  if (!nullable || nonNullableOption) {
+    return value;
+  }
+
+  return `faker.helpers.arrayElement([${value}, null])`;
 }
 
 /**
@@ -146,6 +206,10 @@ interface ResolveMockValueOptions {
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
+  // Tracks the current contiguous `allOf` composition to break cyclic
+  // inheritance; threaded through to `combineSchemasMock`.
+  // See `existingReferencedAllOfRefs` docs in getters/combine.ts.
+  existingReferencedAllOfRefs?: string[];
   splitMockImplementations: string[];
   allowOverride?: boolean;
 }
@@ -159,6 +223,7 @@ export function resolveMockValue({
   context,
   imports,
   existingReferencedProperties,
+  existingReferencedAllOfRefs = [],
   splitMockImplementations,
   allowOverride,
 }: ResolveMockValueOptions): MockDefinition & { type?: string } {
@@ -300,20 +365,30 @@ export function resolveMockValue({
       // so the spread form keeps callers (combineSchemasMock, object
       // properties) working without other changes. For everything else
       // (scalars, arrays, nullables) emit the bare call.
+      //
+      // A `oneOf`/`anyOf` is only object-like when *every* branch resolves to
+      // an object. A composition of primitives (e.g. `number | string`) makes
+      // the factory return a primitive union, which is not spreadable: emitting
+      // `{ ...get<X>Mock() }` is invalid TypeScript (TS2698) and would discard
+      // the value as `{}` at runtime, so it must use the bare call (#3200).
       const isObjectLike =
         newSchema.type === 'object' ||
         !!newSchema.allOf ||
-        !!newSchema.oneOf ||
-        !!newSchema.anyOf;
+        resolvesToObjectLike(newSchema, context);
       const callValue = isObjectLike
         ? `{ ...${factoryName}() }`
         : `${factoryName}()`;
 
       return {
-        value: getNullable(callValue, Boolean(newSchema.nullable)),
+        value: getNullable(
+          callValue,
+          Boolean(newSchema.nullable),
+          mockOptions?.nonNullable,
+        ),
         imports,
         name: newSchema.name,
         type: getType(newSchema),
+        nullWrapped: Boolean(newSchema.nullable) && !mockOptions?.nonNullable,
       };
     }
 
@@ -333,6 +408,7 @@ export function resolveMockValue({
       context,
       imports,
       existingReferencedProperties,
+      existingReferencedAllOfRefs,
       splitMockImplementations,
       allowOverride,
     });
@@ -352,13 +428,27 @@ export function resolveMockValue({
           | undefined;
         const discriminatedProperty = discriminator?.propertyName;
 
-        let type = `Partial<${newSchema.name}>`;
+        let overrideType = `Partial<${newSchema.name}>`;
         if (discriminatedProperty) {
-          type = `Omit<${type}, '${discriminatedProperty}'>`;
+          overrideType = `Omit<${overrideType}, '${discriminatedProperty}'>`;
         }
 
-        const args = `${overrideVarName}: ${type} = {}`;
-        const func = `export const ${funcName} = (${args}): ${newSchema.name} => ({${scalar.value.startsWith('...') ? '' : '...'}${scalar.value}, ...${overrideVarName}});`;
+        const { param, returnType, returnCast } = getMockFactorySignatureParts(
+          newSchema.name,
+          mockOptions,
+          {
+            isOverridable: true,
+            overrideType,
+          },
+        );
+        const func = formatMockFactoryDeclaration(
+          funcName,
+          param,
+          returnType,
+          `{${scalar.value.startsWith('...') ? '' : '...'}${scalar.value}, ...${overrideVarName}}`,
+          returnCast,
+          { terminateStatement: true },
+        );
         splitMockImplementations.push(func);
       }
 
@@ -384,6 +474,7 @@ export function resolveMockValue({
     context,
     imports,
     existingReferencedProperties,
+    existingReferencedAllOfRefs,
     splitMockImplementations,
     allowOverride,
   });
@@ -402,4 +493,63 @@ function getType(schema: MockSchema) {
     (schema.type as string | undefined) ??
     (schema.properties ? 'object' : schema.items ? 'array' : undefined)
   );
+}
+
+// Whether a schema (or a `$ref` to one) ultimately produces an object mock.
+// Used to decide if a delegated `get<X>Mock()` call may be spread into an
+// object literal. Object-like schemas are `type: 'object'`, `properties`,
+// `additionalProperties` and `allOf`; a `oneOf`/`anyOf` qualifies only when
+// every branch resolves to an object. A union containing a primitive
+// (e.g. `number | string`) does not, since spreading that union is invalid
+// TypeScript. `seen` carries the `$ref`s on the current resolution path to
+// guard against self-referential compositions. A fresh copy is taken at each
+// `$ref` hop so sibling branches sharing a `$ref` don't falsely trip the guard.
+function resolvesToObjectLike(
+  schema: MockSchema,
+  context: ContextSpec,
+  seen = new Set<string>(),
+): boolean {
+  let resolved: Partial<OpenApiSchemaObject> | undefined;
+
+  if (isReference(schema)) {
+    // A non-string or already-visited `$ref` can't be resolved further here.
+    if (typeof schema.$ref !== 'string' || seen.has(schema.$ref)) {
+      return false;
+    }
+    seen = new Set(seen).add(schema.$ref);
+    const { refPaths } = getRefInfo(schema.$ref, context);
+    resolved = Array.isArray(refPaths)
+      ? (prop(
+          context.spec,
+          // @ts-expect-error: refPaths are not guaranteed to be valid keys of the spec
+          ...refPaths,
+        ) as Partial<OpenApiSchemaObject>)
+      : undefined;
+  } else {
+    resolved = schema as Partial<OpenApiSchemaObject>;
+  }
+
+  if (!resolved) {
+    return false;
+  }
+
+  if (
+    resolved.type === 'object' ||
+    resolved.properties ||
+    resolved.additionalProperties ||
+    resolved.allOf
+  ) {
+    return true;
+  }
+
+  const branches = (resolved.oneOf ?? resolved.anyOf) as
+    | MockSchema[]
+    | undefined;
+  if (branches && branches.length > 0) {
+    return branches.every((branch) =>
+      resolvesToObjectLike(branch, context, seen),
+    );
+  }
+
+  return false;
 }

@@ -1,6 +1,11 @@
 import { isArray, isBoolean } from 'remeda';
 
-import type { ContextSpec, OpenApiSchemasObject } from '../types';
+import type {
+  ContextSpec,
+  OpenApiReferenceObject,
+  OpenApiSchemaObject,
+  OpenApiSchemasObject,
+} from '../types';
 import { getPropertySafe, isReference, pascal } from '../utils';
 import { getRefInfo } from './ref';
 
@@ -40,7 +45,19 @@ export function resolveDiscriminators(
           subTypeSchema = transformedSchemas[mappingValue];
         }
 
-        if (isBoolean(subTypeSchema) || propertyName === undefined) {
+        // The mapped subtype may be missing from the schema set — e.g. a
+        // subtype removed by `filters.tags`, or absent in a malformed spec — in
+        // which case indexing yields `undefined` at runtime. `!subTypeSchema`
+        // skips that (and the `false` boolean-schema case) before we dereference
+        // it; an explicit `=== undefined` check isn't possible here because the
+        // project does not enable `noUncheckedIndexedAccess`, so indexed access
+        // is typed as always-present. This mirrors the `!variantSchema` guard in
+        // the second loop below.
+        if (
+          !subTypeSchema ||
+          isBoolean(subTypeSchema) ||
+          propertyName === undefined
+        ) {
           continue;
         }
 
@@ -94,6 +111,138 @@ export function resolveDiscriminators(
         subTypeSchema.required = [
           ...new Set([...(subTypeSchema.required ?? []), propertyName]),
         ];
+      }
+    }
+  }
+
+  // Break the circular type-alias that forms when a discriminator parent has
+  // top-level `oneOf` listing variants that inherit via `allOf: [$ref: parent, ...]`.
+  // The parent emits as `type Parent = (Variant1 & {...}) | ...` and each variant
+  // would emit as `type VariantN = Omit<Parent, key> & {...}`, producing TS2456.
+  // Rewrite each variant's `$ref` back to the parent by inlining the parent's
+  // non-discriminator properties (or dropping the entry entirely when the parent
+  // contributes nothing beyond the discriminator key). See issue #3432.
+  for (const [parentName, parentSchema] of Object.entries(transformedSchemas)) {
+    if (isBoolean(parentSchema)) {
+      continue;
+    }
+    const variants = parentSchema.oneOf ?? parentSchema.anyOf;
+    if (!variants || !parentSchema.discriminator) {
+      continue;
+    }
+    const { propertyName, mapping } = parentSchema.discriminator;
+    if (!propertyName) {
+      continue;
+    }
+    const mappedRefs = mapping ? Object.values(mapping) : [];
+    const variantArrayRefs = variants
+      .filter(
+        (item): item is OpenApiReferenceObject & { $ref: string } =>
+          isReference(item) && typeof item.$ref === 'string',
+      )
+      .map((item) => item.$ref);
+    const variantRefs = [...new Set([...mappedRefs, ...variantArrayRefs])];
+
+    const parentProperties = parentSchema.properties as
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+      | undefined;
+    const parentRequired = parentSchema.required;
+    const inheritableProps: Record<
+      string,
+      OpenApiSchemaObject | OpenApiReferenceObject
+    > = {};
+    if (parentProperties) {
+      for (const [key, value] of Object.entries(parentProperties)) {
+        if (key !== propertyName) {
+          inheritableProps[key] = value;
+        }
+      }
+    }
+    const inheritableRequired = parentRequired?.filter(
+      (key) => key !== propertyName,
+    );
+    const hasInheritableProps = Object.keys(inheritableProps).length > 0;
+
+    for (const mappingValue of variantRefs) {
+      let variantSchema;
+      try {
+        const { originalName } = getRefInfo(mappingValue, context);
+        const name = pascal(originalName);
+        variantSchema =
+          transformedSchemas[name] ?? transformedSchemas[originalName];
+      } catch {
+        variantSchema = transformedSchemas[mappingValue];
+      }
+      if (!variantSchema || isBoolean(variantSchema)) {
+        continue;
+      }
+      const variantAllOf = variantSchema.allOf as
+        | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+        | undefined;
+      if (!variantAllOf) {
+        continue;
+      }
+
+      const rewritten: (OpenApiSchemaObject | OpenApiReferenceObject)[] = [];
+      for (const item of variantAllOf) {
+        if (!isReference(item) || !item.$ref) {
+          rewritten.push(item);
+          continue;
+        }
+        let refOriginalName: string | undefined;
+        try {
+          refOriginalName = getRefInfo(item.$ref, context).originalName;
+        } catch {
+          refOriginalName = undefined;
+        }
+        const refMatchesParent =
+          refOriginalName === parentName ||
+          (refOriginalName !== undefined &&
+            pascal(refOriginalName) === pascal(parentName));
+        if (!refMatchesParent) {
+          rewritten.push(item);
+          continue;
+        }
+        // Preserve the parent's other object-level constraints
+        // (additionalProperties, minProperties, description, etc.) by shallow-
+        // cloning the parent and only stripping the parts that would re-create
+        // the cycle or are now meaningless on the variant.
+        const inlinedParent = {
+          ...(parentSchema as Record<string, unknown>),
+        } as OpenApiSchemaObject;
+        delete (inlinedParent as Record<string, unknown>).oneOf;
+        delete (inlinedParent as Record<string, unknown>).discriminator;
+        delete (inlinedParent as Record<string, unknown>).allOf;
+        delete (inlinedParent as Record<string, unknown>).anyOf;
+
+        if (hasInheritableProps) {
+          // Fresh per-variant clone so downstream in-place mutations on one
+          // variant don't leak across siblings.
+          inlinedParent.properties = { ...inheritableProps };
+        } else {
+          delete (inlinedParent as Record<string, unknown>).properties;
+        }
+        if (inheritableRequired && inheritableRequired.length > 0) {
+          inlinedParent.required = [...inheritableRequired];
+        } else {
+          delete (inlinedParent as Record<string, unknown>).required;
+        }
+
+        // Drop the entry entirely when the parent contributed nothing beyond
+        // a bare `type: 'object'` — the second allOf member (the variant's
+        // own inline object) already asserts object-ness.
+        const meaningfulKeys = Object.keys(
+          inlinedParent as Record<string, unknown>,
+        ).filter((key) => key !== 'type');
+        if (meaningfulKeys.length > 0) {
+          rewritten.push(inlinedParent);
+        }
+      }
+
+      if (rewritten.length === 0) {
+        delete (variantSchema as Record<string, unknown>).allOf;
+      } else {
+        variantSchema.allOf = rewritten;
       }
     }
   }

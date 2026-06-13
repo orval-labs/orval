@@ -1,0 +1,43 @@
+---
+title: Hooks
+description: 在生成事件中运行脚本
+---
+
+Hooks 用于在 Orval 生成文件前后执行脚本，常见场景包括格式化、生成索引、运行自定义检查或通知其他工具。
+
+## afterAllFilesWrite
+
+**类型：** `String | String[] | Function | Object`
+
+在所有文件写入完成后执行。Orval 会把生成文件路径作为参数传给命令。
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    hooks: {
+      afterAllFilesWrite: 'prettier --write',
+    },
+  },
+});
+```
+
+### 禁用文件注入
+
+如果不希望 Orval 自动把生成文件路径追加到命令后，可以使用对象形式：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    hooks: {
+      afterAllFilesWrite: {
+        command: 'prettier --write .',
+        injectGeneratedDirsAndFiles: false,
+      },
+    },
+  },
+});
+```
+
+在 CI 中使用 hooks 时，建议保持命令幂等，并让失败正确返回非零退出码。

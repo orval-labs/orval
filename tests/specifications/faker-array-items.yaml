@@ -1,0 +1,200 @@
+openapi: 3.0.3
+info:
+  title: Faker array item factories
+  version: 1.0.0
+paths:
+  /tenants:
+    get:
+      operationId: getTenants
+      tags:
+        - tenants
+      responses:
+        '200':
+          description: List tenants
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - value
+                  - count
+                properties:
+                  value:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - name
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        name:
+                          type: string
+                  count:
+                    type: integer
+  /tenants-by-ref:
+    get:
+      operationId: getTenantsByRef
+      tags:
+        - tenants
+      responses:
+        '200':
+          description: List tenants by ref
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantListResponse'
+  /tenants-a:
+    get:
+      operationId: getTenantsA
+      tags:
+        - tenants
+      responses:
+        '200':
+          description: List tenants (shared ref A)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantListResponse'
+  /tenants-b:
+    get:
+      operationId: getTenantsB
+      tags:
+        - tenants
+      responses:
+        '200':
+          description: List tenants (shared ref B)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantListResponse'
+  /names:
+    get:
+      operationId: getNames
+      tags:
+        - edge-cases
+      responses:
+        '200':
+          description: Scalar ref array items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  names:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Name'
+  /things:
+    get:
+      operationId: getThings
+      tags:
+        - edge-cases
+      responses:
+        '200':
+          description: oneOf array items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  things:
+                    type: array
+                    items:
+                      oneOf:
+                        - $ref: '#/components/schemas/Cat'
+                        - $ref: '#/components/schemas/Dog'
+  /nullable-rows:
+    get:
+      operationId: getNullable
+      tags:
+        - edge-cases
+      responses:
+        '200':
+          description: Nullable object array items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rows:
+                    type: array
+                    items:
+                      type: object
+                      nullable: true
+                      properties:
+                        id:
+                          type: string
+  /collide:
+    get:
+      operationId: getCollide
+      tags:
+        - edge-cases
+      responses:
+        '200':
+          description: Same property name under nested parents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  outer:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            a:
+                              type: string
+                  inner:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            b:
+                              type: number
+components:
+  schemas:
+    Name:
+      type: string
+      format: email
+    Cat:
+      type: object
+      properties:
+        meow:
+          type: boolean
+    Dog:
+      type: object
+      properties:
+        bark:
+          type: boolean
+    TenantResponseModelDto:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    TenantListResponse:
+      type: object
+      required:
+        - value
+        - count
+      properties:
+        value:
+          type: array
+          items:
+            $ref: '#/components/schemas/TenantResponseModelDto'
+        count:
+          type: integer

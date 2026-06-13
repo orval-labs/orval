@@ -43,12 +43,12 @@ Edit `withDefaults()` for the common case. Then override the method in the diver
 ### One adapter file changed
 
 ```bash
-bun run --filter @orval/query test                                        # Unit tests
-bun run --filter @orval/core build && bun run --filter @orval/query build   # Rebuild
-bun run update-samples                                                      # Regenerate ALL samples
+vp run -F @orval/query test                                        # Unit tests
+vp run -F @orval/core build:debug && vp run -F @orval/query build:debug   # Rebuild
+vp run update-samples                                                      # Regenerate ALL samples
 # Inspect that framework's sample output
-bun run test:cli                                                            # Verify all generated code compiles
-bun run test:samples                                                        # Run sample app tests
+vp run test:cli                                                            # Verify all generated code compiles
+vp run test:samples                                                        # Run sample app tests
 ```
 
 ### Shared generator or `withDefaults()` changed
@@ -59,11 +59,11 @@ Same steps, but inspect ALL framework samples — changes propagate to every fra
 
 Also check that imports in generated files are correct (no missing or extra imports).
 
-**Always use `bun run update-samples`** to regenerate across all frameworks. Never regenerate only one sample when shared code changed.
+**Always use `vp run update-samples`** to regenerate across all frameworks. Never regenerate only one sample when shared code changed.
 
 ## Common Pitfalls
 
-- **Forgetting `bun run update-samples`** after changing generation logic — CI will catch stale samples as a diff.
+- **Forgetting `vp run update-samples`** after changing generation logic — CI will catch stale samples as a diff.
 - **Testing only one framework** after changing `withDefaults()` or shared generators — regressions in other frameworks won't be caught.
 - **Adding `if (isAngular)` in shared generators** — use adapter methods instead. The FrameworkAdapter pattern exists to avoid framework conditionals in shared code.
 - **Framework detection helpers in `utils.ts`** (`isAngular()`, `isVue()`, etc.) are for `dependencies.ts` only — never use them in generators or adapter code.

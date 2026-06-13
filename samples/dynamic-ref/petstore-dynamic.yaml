@@ -1,0 +1,122 @@
+openapi: 3.1.0
+info:
+  title: Petstore with dynamic references
+  version: 1.0.0
+  description: >
+    Demonstrates OpenAPI 3.1 `$dynamicRef` / `$dynamicAnchor` for
+    polymorphic schema dispatch.
+
+    The `Pet` base schema defines a `$dynamicAnchor` that is overridden
+    by `Cat` and `Dog`.  Each schema has a `playmates` property using
+    `$dynamicRef: '#Pet'` — which resolves to `Cat[]` inside Cat, and
+    `Dog[]` inside Dog.
+
+    `Lizard` does NOT override the anchor, so its `playmates` falls
+    back to `Pet[]` via the `$dynamicAnchor` fallback per JSON Schema
+    Draft 2020-12.
+paths:
+  /pets:
+    get:
+      operationId: listPets
+      summary: List all pets
+      responses:
+        '200':
+          description: A list of pets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pet'
+  /pets/{petId}:
+    get:
+      operationId: showPetById
+      summary: Get a pet by ID
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A pet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+components:
+  schemas:
+    Pet:
+      $dynamicAnchor: Pet
+      type: object
+      properties:
+        petType:
+          type: string
+        name:
+          type: string
+        playmates:
+          type: array
+          items:
+            $dynamicRef: '#Pet'
+      required:
+        - petType
+        - name
+    Cat:
+      $dynamicAnchor: Pet
+      type: object
+      properties:
+        petType:
+          type: string
+          enum:
+            - cat
+        name:
+          type: string
+        meow:
+          type: boolean
+        playmates:
+          type: array
+          items:
+            $dynamicRef: '#Pet'
+      required:
+        - petType
+        - name
+        - meow
+    Dog:
+      $dynamicAnchor: Pet
+      type: object
+      properties:
+        petType:
+          type: string
+          enum:
+            - dog
+        name:
+          type: string
+        bark:
+          type: boolean
+        playmates:
+          type: array
+          items:
+            $dynamicRef: '#Pet'
+      required:
+        - petType
+        - name
+        - bark
+    Lizard:
+      type: object
+      properties:
+        petType:
+          type: string
+          enum:
+            - lizard
+        name:
+          type: string
+        lovesRocks:
+          type: boolean
+        playmates:
+          type: array
+          items:
+            $dynamicRef: '#Pet'
+      required:
+        - petType
+        - name

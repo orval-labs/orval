@@ -1,15 +1,15 @@
 {
   "name": "swr-basic",
-  "version": "8.12.3",
+  "version": "8.17.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "generate-api": "orval",
+    "generate-api": "vp exec orval",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
-    "test:snapshots:update": "bun run test:snapshots --update"
+    "test:snapshots:update": "vp run test:snapshots --update"
   },
   "dependencies": {
     "axios": "catalog:axios",

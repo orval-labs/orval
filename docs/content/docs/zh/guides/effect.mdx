@@ -1,0 +1,85 @@
+---
+title: Effect
+description: 从 OpenAPI 生成 Effect schema
+---
+
+从 OpenAPI 规范生成 [Effect Schema](https://effect.website/docs/schema/introduction/) schema，用于运行时校验。
+
+## 配置
+
+将 `client` 选项设置为 `effect`：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'effect',
+      mode: 'single',
+      target: './src/api/schemas',
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## 生成结果
+
+Orval 会为 OpenAPI 规范中的每个 model 生成 Effect schema：
+
+```ts
+import { Schema as S } from 'effect';
+
+export const CreatePetsBody = S.Struct({
+  id: S.Number,
+  name: S.String,
+  tag: S.optional(S.String),
+});
+```
+
+## 用法
+
+### 解码数据
+
+```ts
+import { Schema as S } from 'effect';
+import { CreatePetsBody } from './src/api/schemas';
+
+const pet = { id: 1, name: 'Buddy', tag: 'dog' };
+const parsedPet = S.decodeUnknownSync(CreatePetsBody)(pet);
+// => { id: 1, name: "Buddy", tag: "dog" }
+```
+
+### 类型推导
+
+```ts
+import { Schema as S } from 'effect';
+import { CreatePetsBody } from './src/api/schemas';
+
+type Pet = S.Schema.Type<typeof CreatePetsBody>;
+
+const pet: Pet = { id: 1, name: 'Buddy', tag: 'dog' };
+```
+
+### 安全解码
+
+```ts
+import { Either } from 'effect';
+import { Schema as S } from 'effect';
+
+const unknownData: unknown = { id: 1, name: 'Buddy', tag: 'dog' };
+
+const result = S.decodeUnknownEither(CreatePetsBody)(unknownData);
+if (Either.isRight(result)) {
+  console.log(result.right);
+} else {
+  console.error(result.left);
+}
+```
+
+## 与 HTTP 客户端组合
+
+查看 [Client with Effect](/zh/docs/guides/client-with-effect) 指南，了解如何将 Effect schema 与 React Query、SWR 或其他 HTTP 客户端一起使用。

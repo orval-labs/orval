@@ -91,6 +91,67 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Regression for https://github.com/orval-labs/orval/issues/3554:
+  // a function-form mock generator (ClientMockBuilder) used to be
+  // silently dropped in `split` mode. It must now be treated as MSW.
+  petstoreCustomMockBuilderSplit: {
+    output: {
+      target:
+        '../generated/mock/petstore-custom-mock-builder-split/endpoints.ts',
+      schemas: '../generated/mock/petstore-custom-mock-builder-split/model',
+      mode: 'split',
+      client: 'axios',
+      mock: (verbOptions, _) => {
+        const handlerName = `${verbOptions.operationId}MockHandler`;
+
+        return {
+          imports: [],
+          implementation: {
+            function: '',
+            handlerName: handlerName,
+            handler: `const ${handlerName} = () => { return { data: { id: 1, name: "myName" } } }\n`,
+          },
+        };
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // Regression for https://github.com/orval-labs/orval/issues/3554:
+  // a function-form mock generator (ClientMockBuilder) used to throw
+  // in `tags-split` mode. The throw was removed but never replaced with
+  // generation — this config verifies the throw is gone and the file is
+  // written.
+  petstoreCustomMockBuilderTagsSplit: {
+    output: {
+      target:
+        '../generated/mock/petstore-custom-mock-builder-tags-split/endpoints.ts',
+      schemas:
+        '../generated/mock/petstore-custom-mock-builder-tags-split/model',
+      mode: 'tags-split',
+      client: 'axios',
+      mock: (verbOptions, _) => {
+        const handlerName = `${verbOptions.operationId}MockHandler`;
+
+        return {
+          imports: [],
+          implementation: {
+            function: '',
+            handlerName: handlerName,
+            handler: `const ${handlerName} = () => { return { data: { id: 1, name: "myName" } } }\n`,
+          },
+        };
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   petstoreTagsSplit: {
     output: {
       target: '../generated/mock/petstore-tags-split/endpoints.ts',
@@ -262,6 +323,19 @@ export default defineConfig({
       target: '../specifications/discriminator-oneof-allof.yaml',
     },
   },
+  discriminatorOneofAllofInherited: {
+    output: {
+      target:
+        '../generated/mock/discriminator-oneof-allof-inherited/endpoints.ts',
+      schemas: '../generated/mock/discriminator-oneof-allof-inherited/model',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/discriminator-oneof-allof-inherited.yaml',
+    },
+  },
   mswMixedContentUnion: {
     output: {
       target: '../generated/mock/msw-mixed-content-union/endpoints.ts',
@@ -309,6 +383,20 @@ export default defineConfig({
       target: '../specifications/msw-mixed-content-each-status.yaml',
     },
   },
+  mockConstraints: {
+    output: {
+      target: '../generated/mock/mock-constraints/endpoints.ts',
+      schemas: '../generated/mock/mock-constraints/model',
+      mock: {
+        generators: [{ type: 'msw' }],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/mock-constraints.yaml',
+    },
+  },
   mswMixedContentUnionVendor: {
     output: {
       target: '../generated/mock/msw-mixed-content-union-vendor/endpoints.ts',
@@ -322,6 +410,21 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/msw-mixed-content-union-vendor.yaml',
+    },
+  },
+  issue2327: {
+    output: {
+      target: '../generated/mock/issue-2327/endpoints.ts',
+      schemas: '../generated/mock/issue-2327/model',
+      client: 'axios',
+      mock: {
+        generators: [{ type: 'msw' }],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-2327.yaml',
     },
   },
   mixedSuccessStatus: {
@@ -420,6 +523,424 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/faker-schemas-string-enum-ref.yaml',
+    },
+  },
+  issue3200: {
+    output: {
+      target: '../generated/mock/issue-3200/endpoints.ts',
+      schemas: '../generated/mock/issue-3200/model',
+      client: 'axios',
+      mock: {
+        generators: [
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3200.yaml',
+    },
+  },
+  issue2465: {
+    output: {
+      target: '../generated/mock/issue-2465/endpoints.ts',
+      schemas: '../generated/mock/issue-2465/model',
+      client: 'fetch',
+      mock: true,
+      override: {
+        mock: {
+          properties: {
+            firstName: () => faker.person.firstName(),
+            lastName: () => faker.person.lastName(),
+            email: () => faker.internet.email(),
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-2465.yaml',
+    },
+  },
+  issue3484: {
+    output: {
+      target: '../generated/mock/issue-3484/endpoints.ts',
+      schemas: '../generated/mock/issue-3484/model',
+      client: 'fetch',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3484.yaml',
+    },
+  },
+  issue3525: {
+    output: {
+      target: '../generated/mock/issue-3525/endpoints.ts',
+      schemas: '../generated/mock/issue-3525/model',
+      client: 'fetch',
+      mock: {
+        generators: [
+          { type: 'msw' },
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      override: {
+        mock: {
+          required: true,
+          nonNullable: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3525.yaml',
+    },
+  },
+  issue3525Multi: {
+    output: {
+      target: '../generated/mock/issue-3525-multi/endpoints.ts',
+      schemas: '../generated/mock/issue-3525-multi/model',
+      client: 'fetch',
+      mock: {
+        generators: [
+          { type: 'msw' },
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      override: {
+        mock: {
+          required: true,
+          nonNullable: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3525-multi.yaml',
+    },
+  },
+  issue3525Oas31: {
+    output: {
+      target: '../generated/mock/issue-3525-oas31/endpoints.ts',
+      schemas: '../generated/mock/issue-3525-oas31/model',
+      client: 'fetch',
+      mock: {
+        generators: [
+          { type: 'msw' },
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      override: {
+        mock: {
+          required: true,
+          nonNullable: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3525-oas31.yaml',
+    },
+  },
+  issue3525WidgetMock: {
+    output: {
+      target: '../generated/mock/issue-3525-widget-mock/endpoints.ts',
+      schemas: '../generated/mock/issue-3525-widget-mock/model',
+      client: 'fetch',
+      mock: {
+        generators: [{ type: 'msw' }],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3525-widget-mock.yaml',
+    },
+  },
+  issue3525WidgetMockStrict: {
+    output: {
+      target: '../generated/mock/issue-3525-widget-mock-strict/endpoints.ts',
+      schemas: '../generated/mock/issue-3525-widget-mock-strict/model',
+      client: 'fetch',
+      mock: {
+        generators: [{ type: 'msw' }],
+      },
+      override: {
+        mock: {
+          required: true,
+          nonNullable: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3525-widget-mock.yaml',
+    },
+  },
+  fakerArrayItems: {
+    output: {
+      target: '../generated/mock/faker-array-items/endpoints.ts',
+      schemas: '../generated/mock/faker-array-items/model',
+      client: 'axios',
+      mock: {
+        generators: [{ type: 'faker', arrayItems: true }],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/faker-array-items.yaml',
+    },
+  },
+  fakerArrayItemsTagsSplit: {
+    output: {
+      target: '../generated/mock/faker-array-items-tags-split/endpoints.ts',
+      schemas: '../generated/mock/faker-array-items-tags-split/model',
+      mode: 'tags-split',
+      client: 'axios',
+      mock: {
+        generators: [{ type: 'faker', arrayItems: true }],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/faker-array-items-tags-split.yaml',
+    },
+  },
+  mswArrayItems: {
+    output: {
+      target: '../generated/mock/msw-array-items/endpoints.ts',
+      schemas: '../generated/mock/msw-array-items/model',
+      client: 'axios',
+      mock: {
+        generators: [{ type: 'msw', arrayItems: true, delay: false }],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/msw-array-items.yaml',
+    },
+  },
+  issue3574StrictMockTagsSplitAngular: {
+    output: {
+      target:
+        '../generated/mock/issue-3574-strict-mock-tags-split/pets/pets.service.ts',
+      schemas: '../generated/mock/issue-3574-strict-mock-tags-split/schemas',
+      mode: 'tags-split',
+      client: 'angular',
+      mock: {
+        indexMockFiles: true,
+        generators: [
+          { type: 'msw', delay: 150 },
+          { type: 'faker', arrayItems: true },
+        ],
+      },
+      override: {
+        mock: {
+          required: true,
+          nonNullable: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3574-strict-mock-tags-split.yaml',
+    },
+  },
+  issue3574StrictMockTagsSplitFetch: {
+    output: {
+      target:
+        '../generated/mock/issue-3574-strict-mock-tags-split-fetch/pets/pets.ts',
+      schemas:
+        '../generated/mock/issue-3574-strict-mock-tags-split-fetch/schemas',
+      mode: 'tags-split',
+      client: 'fetch',
+      mock: {
+        indexMockFiles: true,
+        generators: [
+          { type: 'msw' },
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      override: {
+        mock: {
+          required: true,
+          nonNullable: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3574-strict-mock-tags-split.yaml',
+    },
+  },
+  issue3574StrictMockTagsSplitMultiFetch: {
+    output: {
+      target:
+        '../generated/mock/issue-3574-strict-mock-tags-split-multi-fetch/store/store.ts',
+      schemas:
+        '../generated/mock/issue-3574-strict-mock-tags-split-multi-fetch/schemas',
+      mode: 'tags-split',
+      client: 'fetch',
+      mock: {
+        indexMockFiles: true,
+        generators: [
+          { type: 'msw' },
+          { type: 'faker', schemas: true, operationResponses: true },
+        ],
+      },
+      override: {
+        mock: {
+          required: true,
+          nonNullable: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3574-strict-mock-tags-split-multi.yaml',
+    },
+  },
+  // #3342: splitByContentType must give MSW handlers distinct names per
+  // content-type variant (e.g. *WithJson / *WithFormData), otherwise the
+  // generated mock file fails to compile with duplicate declarations.
+  issue3342: {
+    output: {
+      target: '../generated/mock/issue-3342/endpoints.ts',
+      schemas: '../generated/mock/issue-3342/model',
+      client: 'react-query',
+      mock: true,
+      override: {
+        splitByContentType: true,
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/split-by-content-type.yaml',
+    },
+  },
+  splitMockPath: {
+    output: {
+      target: '../generated/mock/split-mock-path/endpoints.ts',
+      schemas: '../generated/mock/split-mock-path/model',
+      mock: {
+        path: '../generated/mock/split-mock-path/mocks',
+        generators: [{ type: 'msw' }, { type: 'faker' }],
+      },
+      mode: 'split',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  tagsSplitMockPath: {
+    output: {
+      target: '../generated/mock/tags-split-mock-path/endpoints.ts',
+      schemas: '../generated/mock/tags-split-mock-path/model',
+      mock: {
+        path: '../generated/mock/tags-split-mock-path/mocks',
+        indexMockFiles: true,
+        generators: [{ type: 'msw' }, { type: 'faker' }],
+      },
+      mode: 'tags-split',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  singleMockPath: {
+    output: {
+      target: '../generated/mock/single-mock-path/endpoints.ts',
+      schemas: '../generated/mock/single-mock-path/model',
+      mock: {
+        path: '../generated/mock/single-mock-path/mocks',
+        indexMockFiles: true,
+        generators: [{ type: 'msw' }, { type: 'faker' }],
+      },
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  tagsMockPath: {
+    output: {
+      target: '../generated/mock/tags-mock-path/endpoints.ts',
+      schemas: '../generated/mock/tags-mock-path/model',
+      mock: {
+        path: '../generated/mock/tags-mock-path/mocks',
+        indexMockFiles: true,
+        generators: [{ type: 'msw' }, { type: 'faker' }],
+      },
+      mode: 'tags',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  tagsSplitPerGeneratorPath: {
+    output: {
+      target:
+        '../generated/mock/tags-split-per-generator-path/endpoints.ts',
+      schemas: '../generated/mock/tags-split-per-generator-path/model',
+      mock: {
+        indexMockFiles: true,
+        generators: [
+          {
+            type: 'msw',
+            path: '../generated/mock/tags-split-per-generator-path/msw',
+          },
+          {
+            type: 'faker',
+            path: '../generated/mock/tags-split-per-generator-path/faker',
+          },
+        ],
+      },
+      mode: 'tags-split',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  'issue-3505': {
+    output: {
+      target: '../generated/mock/issue-3505/endpoints.ts',
+      schemas: '../generated/mock/issue-3505/model',
+      client: 'axios',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3505.yaml',
     },
   },
 });

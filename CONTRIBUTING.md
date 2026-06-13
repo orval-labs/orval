@@ -41,7 +41,7 @@ gh repo clone <your-github-name>/orval
 Install dependencies and set up Git hooks:
 
 ```bash
-bun install && bun run prepare
+vp install && vp run prepare
 ```
 
 ### Implement your changes

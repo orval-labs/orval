@@ -45,6 +45,7 @@ const createOutput = (
     operationSchemas: undefined,
     namingConvention: 'camelCase',
     fileExtension: '.ts',
+    schemaFileExtension: '.ts',
     mode: 'single',
     mock: { indexMockFiles: false, generators: [] },
     override: {
@@ -54,6 +55,7 @@ const createOutput = (
       jsDoc: {},
       header: false,
       hono: {
+        handlerGenerationStrategy: 'smart',
         compositeRoute: '',
         validator: true,
         validatorOutputPath: '',
@@ -94,9 +96,29 @@ const createOutput = (
           response: false,
         },
         generateEachHttpStatus: false,
+        generateReusableSchemas: false,
+        generateMeta: false,
         useBrandedTypes: false,
         dateTimeOptions: {},
         timeOptions: {},
+      },
+      effect: {
+        strict: {
+          param: false,
+          query: false,
+          header: false,
+          body: false,
+          response: false,
+        },
+        generate: {
+          param: true,
+          query: true,
+          header: true,
+          body: true,
+          response: true,
+        },
+        generateEachHttpStatus: false,
+        useBrandedTypes: false,
       },
       fetch: {
         includeHttpResponseReturnType: true,
@@ -997,6 +1019,80 @@ describe('angular HttpClient generator', () => {
       expect(impl).not.toContain('getPetById<TData');
       expect(impl).toContain('getPetById(');
       expect(impl).toContain('this.http.get(');
+      expect(impl).toContain("responseType: 'text'");
+      expect(impl).toContain('as Observable<string>');
+    });
+
+    it('emits HttpClient generic for JSON primitive string responses', () => {
+      const verbOption = createVerbOption({
+        operationId: 'authenticate',
+        operationName: 'authenticate',
+        verb: 'post',
+        route: '/api/auth',
+        pathRoute: '/api/auth',
+        params: [],
+        body: {
+          implementation: 'authenticateBody',
+          definition: 'AuthenticateBody',
+          imports: [],
+          schemas: [],
+          originalSchema: {} as never,
+          contentType: 'application/json',
+          formData: '',
+          formUrlEncoded: '',
+          isOptional: true,
+        },
+        props: [
+          {
+            name: 'authenticateBody',
+            definition: 'authenticateBody?: AuthenticateBody',
+            implementation: 'authenticateBody?: AuthenticateBody',
+            default: false,
+            required: false,
+            type: GetterPropType.BODY,
+          },
+        ],
+        response: baseResponse({
+          definition: { success: 'string', errors: 'Error' },
+          types: {
+            success: [createSuccessType('string', 'application/json')],
+            errors: [],
+          },
+          contentTypes: ['application/json'],
+        }),
+      });
+      const options = createGeneratorOptions({ route: '/api/auth' });
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).not.toContain('authenticate<TData');
+      expect(impl).toContain('this.http.post<string>');
+      expect(impl).toContain("if (options?.observe === 'events')");
+      expect(impl).toContain("if (options?.observe === 'response')");
+      expect(impl).not.toContain("responseType: 'text'");
+    });
+
+    it('casts Blob responses when responseType is injected', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'Blob', errors: 'Error' },
+          types: {
+            success: [createSuccessType('Blob', 'application/octet-stream')],
+            errors: [],
+          },
+          contentTypes: ['application/octet-stream'],
+          isBlob: true,
+        }),
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).not.toContain('getPetById<TData');
+      expect(impl).toContain("responseType: 'blob'");
+      expect(impl).toContain('this.http.get(');
+      expect(impl).not.toContain('this.http.get<Blob>');
+      expect(impl).toContain('as Observable<Blob>');
     });
 
     it('skips generic TData for Blob response types', () => {
@@ -1044,7 +1140,7 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain('accept?: GetPetFileAccept');
       expect(impl).toContain('Observable<Pet | string>');
       expect(impl).toContain('this.http.get<Pet>');
-      expect(impl).toContain('as Observable<string>');
+      expect(impl).toContain('as Observable<any>');
       // Content-type dispatch logic
       expect(impl).toContain("responseType: 'json'");
       expect(impl).toContain("responseType: 'text'");
@@ -1865,6 +1961,58 @@ describe('angular HttpClient generator', () => {
 
       // Verify cleared
       expect(getHttpClientReturnTypes(['getPetById'])).toBe('');
+    });
+  });
+
+  // ── urlEncodeParameters ─────────────────────────────────────────────
+
+  describe('urlEncodeParameters', () => {
+    const createOptionsWithUrlEncode = (urlEncodeParameters: boolean) => {
+      const output = createOutput({ urlEncodeParameters });
+      return createGeneratorOptions({
+        route: '/api/pets/${petId}',
+        context: createContextSpec(output),
+      });
+    };
+
+    it('encodes path parameters when urlEncodeParameters is true', () => {
+      const verbOption = createVerbOption();
+      const options = createOptionsWithUrlEncode(true);
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain(
+        '`/api/pets/${encodeURIComponent(String(petId))}`',
+      );
+      expect(impl).not.toContain('`/api/pets/${petId}`');
+    });
+
+    it('leaves the route unchanged when urlEncodeParameters is false', () => {
+      const verbOption = createVerbOption();
+      const options = createOptionsWithUrlEncode(false);
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain('`/api/pets/${petId}`');
+      expect(impl).not.toContain('encodeURIComponent');
+    });
+
+    it('encodes the route passed to the mutator config', () => {
+      const verbOption = createVerbOption({
+        mutator: {
+          name: 'customInstance',
+          path: './mutator',
+          default: true,
+          hasThirdArg: false,
+          hasSecondArg: false,
+        } as GeneratorVerbOptions['mutator'],
+      });
+      const options = createOptionsWithUrlEncode(true);
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain('/api/pets/${encodeURIComponent(String(petId))}');
+      expect(impl).not.toContain('url: `/api/pets/${petId}`');
     });
   });
 });

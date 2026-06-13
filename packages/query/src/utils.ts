@@ -67,6 +67,12 @@ export const normalizeQueryOptions = (
     ...(queryOptions.shouldExportQueryKey
       ? { shouldExportQueryKey: true }
       : {}),
+    ...(queryOptions.shouldFilterQueryKey
+      ? { shouldFilterQueryKey: true }
+      : {}),
+    ...(queryOptions.queryKeyFilter
+      ? { queryKeyFilter: queryOptions.queryKeyFilter }
+      : {}),
     ...(queryOptions.shouldExportHttpClient
       ? { shouldExportHttpClient: true }
       : {}),

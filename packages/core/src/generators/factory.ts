@@ -9,6 +9,7 @@ import { PropertySortOrder } from '../types';
 import {
   conventionName,
   getFileInfo,
+  getSchemasImportPath,
   isString,
   logWarning,
   pascal,
@@ -34,6 +35,13 @@ function getSchemaImportPath(
   if (context.output.factoryMethods?.mode === 'single') {
     return undefined;
   }
+
+  const importPathBase = getSchemasImportPath(context.output.schemas);
+  if (importPathBase) {
+    const baseName = conventionName(refName, context.output.namingConvention);
+    return upath.joinSafe(importPathBase, baseName);
+  }
+
   let outputDir = context.output.factoryMethods?.outputDirectory;
   let schemasPath = getSchemasPath(context);
 
@@ -226,28 +234,46 @@ function buildPayload(
   }
 
   const schema = target;
+  const payloads: string[] = [];
 
-  if (schema.allOf)
-    return buildAllOfPayload(
-      getSchemas(schema.allOf) ?? [],
-      context,
-      parents,
-      imports,
+  if (schema.allOf) {
+    payloads.push(
+      buildAllOfPayload(
+        getSchemas(schema.allOf) ?? [],
+        context,
+        parents,
+        imports,
+      ),
     );
-  if (schema.oneOf)
-    return buildFirstOfPayload(
-      getSchemas(schema.oneOf) ?? [],
-      context,
-      parents,
-      imports,
+  } else if (schema.oneOf) {
+    payloads.push(
+      buildFirstOfPayload(
+        getSchemas(schema.oneOf) ?? [],
+        context,
+        parents,
+        imports,
+      ),
     );
-  if (schema.anyOf)
-    return buildFirstOfPayload(
-      getSchemas(schema.anyOf) ?? [],
-      context,
-      parents,
-      imports,
+  } else if (schema.anyOf) {
+    payloads.push(
+      buildFirstOfPayload(
+        getSchemas(schema.anyOf) ?? [],
+        context,
+        parents,
+        imports,
+      ),
     );
+  }
+
+  if (Object.keys(getProperties(schema)).length > 0) {
+    payloads.push(buildObjectPayload(schema, context, parents, imports));
+  }
+
+  if (payloads.length > 0) {
+    return payloads.length === 1
+      ? payloads[0]
+      : `Object.assign({}, ${payloads.join(', ')})`;
+  }
 
   const { constValue } = getExtendedProps(schema);
   if (constValue !== undefined) return formatValue(constValue);
@@ -255,8 +281,7 @@ function buildPayload(
 
   const schemaType = inferSchemaType(schema);
 
-  if (schemaType === 'object' || schema.properties)
-    return buildObjectPayload(schema, context, parents, imports);
+  if (schemaType === 'object') return '{}';
   if (schemaType === 'array')
     return buildArrayPayload(schema, context, parents, imports);
 
@@ -311,15 +336,24 @@ function resolveImportPath(
   context: ContextSpec,
 ): string | undefined {
   const baseName = conventionName(refName, context.output.namingConvention);
+  const pkgBase = getSchemasImportPath(context.output.schemas);
+
   switch (mode) {
     case 'split': {
-      return `./${baseName}.factory`;
+      return pkgBase
+        ? upath.joinSafe(pkgBase, `${baseName}.factory`)
+        : `./${baseName}.factory`;
     }
     case 'single-split': {
-      return `./${conventionName('factoryMethods', context.output.namingConvention)}`;
+      return pkgBase
+        ? upath.joinSafe(
+            pkgBase,
+            conventionName('factoryMethods', context.output.namingConvention),
+          )
+        : `./${conventionName('factoryMethods', context.output.namingConvention)}`;
     }
     case 'single': {
-      return `./${baseName}`;
+      return pkgBase ? upath.joinSafe(pkgBase, baseName) : `./${baseName}`;
     }
   }
 }

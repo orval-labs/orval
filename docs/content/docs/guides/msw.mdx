@@ -95,6 +95,21 @@ export default defineConfig({
 
 `preferredContentType` accepts common MIME literals and any custom string (via a loose `(string & {})` fallback), so vendor-specific types are supported too.
 
+### Array Item Factories
+
+Set `arrayItems: true` on the MSW generator entry to emit reusable mock factories for object-like array item schemas in operation responses (for example, `getTenantResponseModelDtoMock` for `value: TenantResponseModelDto[]`). The factories are written into the same `.msw.ts` / endpoints mock file as the handlers and response mocks. See the [Faker guide — Array Item Factories](/docs/guides/faker#array-item-factories) for configuration details and supported shapes.
+
+```ts title="orval.config.ts"
+mock: {
+  generators: [
+    {
+      type: 'msw',
+      arrayItems: true,
+    },
+  ],
+}
+```
+
 ### 2. Aggregated Handlers
 
 Functions that combine all handlers for easy setup:
@@ -220,7 +235,7 @@ This produces handlers like `http.get('https://api.example.com/pets/:petId', ...
 
 ## Dynamic Imports
 
-Enable `mock.indexMockFiles` to emit a root-level `index.<ext>.ts` file for each generator entry in `tags-split` mode. The MSW entry produces an `index.msw.ts` that can be dynamically imported:
+Enable `mock.indexMockFiles` to emit a root-level `index.<ext>.ts` file for each generator entry in `split` and `tags-split` modes. The MSW entry produces an `index.msw.ts` that can be dynamically imported. This keeps MSW in a dedicated barrel that your production/model barrels never re-export — handy under `jsdom`/`vitest`, where MSW references stream globals at module-evaluation time:
 
 ```ts title="orval.config.ts"
 export default defineConfig({

@@ -1,14 +1,14 @@
 {
   "name": "mcp-custom-server",
-  "version": "8.12.3",
+  "version": "8.17.0",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "tsc --noCheck",
     "dev": "bun src/server.ts",
-    "generate-api": "orval",
+    "generate-api": "vp exec orval",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
-    "test:snapshots:update": "bun run test:snapshots --update"
+    "test:snapshots:update": "vp run test:snapshots --update"
   },
   "dependencies": {
     "@hono/mcp": "^0.2.5",

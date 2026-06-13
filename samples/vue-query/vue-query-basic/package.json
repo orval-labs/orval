@@ -1,15 +1,15 @@
 {
   "name": "vue-query-basic",
-  "version": "8.12.3",
+  "version": "8.17.0",
   "type": "module",
   "private": true,
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "serve": "vite preview",
-    "generate-api": "orval",
+    "generate-api": "vp exec orval",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
-    "test:snapshots:update": "bun run test:snapshots --update",
+    "test:snapshots:update": "vp run test:snapshots --update",
     "test": "vitest --run"
   },
   "dependencies": {

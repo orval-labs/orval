@@ -1,13 +1,13 @@
 {
   "name": "solid-query-basic",
-  "version": "8.12.3",
+  "version": "8.17.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
-    "generate-api": "orval",
+    "generate-api": "vp exec orval",
     "test": "tsc --noEmit"
   },
   "devDependencies": {

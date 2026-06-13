@@ -132,3 +132,167 @@ describe('isBinaryScalarSchema', () => {
     ).toBe(false);
   });
 });
+
+describe('getScalar (nullable composition: type: null + combiner)', () => {
+  // Some OAS 3.1 producers (e.g. @scalar/openapi-upgrader) encode a nullable
+  // $ref as `{ type: 'null', allOf: [{ $ref }] }` rather than the canonical
+  // `{ anyOf: [{ $ref }, { type: 'null' }] }`. Orval must treat this as a
+  // nullable union (`T | null`) instead of collapsing it to `null` and
+  // dropping the composition. See discussion on #3163.
+  const compositionContext = {
+    output: {
+      override: {
+        enumGenerationType: 'const',
+        components: {
+          schemas: { suffix: '', itemSuffix: 'Item' },
+          responses: { suffix: '' },
+          parameters: { suffix: '' },
+          requestBodies: { suffix: 'RequestBody' },
+        },
+      },
+      unionAddMissingProperties: false,
+    },
+    target: 'spec',
+    workspace: '',
+    spec: {
+      components: {
+        schemas: {
+          TimeIncrement: {
+            type: 'object',
+            properties: { value: { type: 'number' } },
+          },
+        },
+      },
+    },
+  } as unknown as ContextSpec;
+
+  it('type: null with allOf [$ref] produces `Ref | null`', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'null',
+      allOf: [{ $ref: '#/components/schemas/TimeIncrement' }],
+    };
+
+    const result = getScalar({
+      item: schema,
+      name: 'timeStep',
+      context: compositionContext,
+    });
+
+    expect(result.value).toBe('TimeIncrement | null');
+  });
+
+  it('type: null with anyOf [$ref, scalar] keeps the union and appends null', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'null',
+      anyOf: [
+        { $ref: '#/components/schemas/TimeIncrement' },
+        { type: 'string' },
+      ],
+    };
+
+    const result = getScalar({
+      item: schema,
+      name: 'timeStep',
+      context: compositionContext,
+    });
+
+    expect(result.value).toBe('TimeIncrement | string | null');
+  });
+
+  it('type: null with oneOf [$ref, scalar] keeps the union and appends null', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'null',
+      oneOf: [
+        { $ref: '#/components/schemas/TimeIncrement' },
+        { type: 'string' },
+      ],
+    };
+
+    const result = getScalar({
+      item: schema,
+      name: 'timeStep',
+      context: compositionContext,
+    });
+
+    expect(result.value).toBe('TimeIncrement | string | null');
+  });
+
+  it('type: null with allOf [inline object, $ref] keeps both members and appends null', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'null',
+      allOf: [
+        { type: 'object', properties: { x: { type: 'integer' } } },
+        { $ref: '#/components/schemas/TimeIncrement' },
+      ],
+    };
+
+    const result = getScalar({
+      item: schema,
+      name: 'thing',
+      context: compositionContext,
+    });
+
+    expect(result.value).toContain('TimeIncrement');
+    expect(result.value).toContain('x?: number');
+    expect(result.value).toContain('null');
+  });
+
+  it('plain type: null (no combiner) still resolves to null', () => {
+    const schema: OpenApiSchemaObject = { type: 'null' };
+
+    const result = getScalar({
+      item: schema,
+      name: 'nothing',
+      context: compositionContext,
+    });
+
+    expect(result.value).toBe('null');
+  });
+
+  it('type: null with an empty combiner array still resolves to null', () => {
+    const schema: OpenApiSchemaObject = { type: 'null', allOf: [] };
+
+    const result = getScalar({
+      item: schema,
+      name: 'nothing',
+      context: compositionContext,
+    });
+
+    expect(result.value).toBe('null');
+  });
+});
+
+describe('getScalar (string const value escaping #3505)', () => {
+  it('JS-escapes backslashes in string const values', () => {
+    const schema = {
+      type: 'string',
+      const: String.raw`App\Models\Document`,
+    } as OpenApiSchemaObject;
+
+    const result = getScalar({ item: schema, name: 'kind', context });
+
+    expect(result.value).toBe(String.raw`'App\\Models\\Document'`);
+  });
+
+  it('JS-escapes a const value ending in a backslash', () => {
+    const schema = {
+      type: 'string',
+      const: 'C:\\logs\\',
+    } as OpenApiSchemaObject;
+
+    const result = getScalar({ item: schema, name: 'prefix', context });
+
+    expect(result.value).toBe(String.raw`'C:\\logs\\'`);
+  });
+
+  it('does not escape forward slashes in const values (#3530)', () => {
+    const schema = {
+      type: 'string',
+      const: 'Asia/Tokyo',
+    } as OpenApiSchemaObject;
+
+    const result = getScalar({ item: schema, name: 'timezone', context });
+
+    expect(result.value).toBe("'Asia/Tokyo'");
+  });
+});

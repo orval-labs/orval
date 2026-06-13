@@ -19,6 +19,7 @@ import {
   type GetterProp,
   GetterPropType,
   isBoolean,
+  makeRouteSafe,
   pascal,
   toObjectString,
 } from '@orval/core';
@@ -316,8 +317,18 @@ export const generateHttpClientImplementation = (
     paramsSerializer,
     paramsFilter,
   }: GeneratorVerbOptions,
-  { route, context }: HttpClientGeneratorContext,
+  { route: _route, context }: HttpClientGeneratorContext,
 ) => {
+  // Opt-in URL-encoding of path parameters (`urlEncodeParameters`), applied once
+  // at the single point the route enters this builder so the mutator config and
+  // every inline interpolation below stay consistent. `makeRouteSafe` is not
+  // idempotent — applying it more than once double-encodes — so it must run here
+  // exactly once and nowhere downstream.
+  let route = _route;
+  if (context.output.urlEncodeParameters) {
+    route = makeRouteSafe(route);
+  }
+
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
@@ -727,7 +738,7 @@ export const generateHttpClientImplementation = (
     if (accept.includes('json') || accept.includes('+json')) {
       return ${buildHttpClientCall(`<${parsedJsonReturnType}>`, buildOptionsObject('json'))}${jsonValidationPipe};
     } else if (accept.startsWith('text/') || accept.includes('xml')) {
-      return ${buildHttpClientCall('', buildOptionsObject('text'))} as Observable<string>;
+      return ${buildHttpClientCall('', buildOptionsObject('text'))} as Observable<any>;
     }${
       blobSuccessTypes.length > 0
         ? ` else {
@@ -741,25 +752,40 @@ export const generateHttpClientImplementation = (
 `;
   }
 
-  // When the validation pipe is active the runtime payload is always the
-  // parsed output type, so we emit `HttpClient.<verb><PetsOutput>(...)`
-  // rather than threading a caller-overridable `TData` through the call.
-  const httpTypeArg = hasTDataGeneric
-    ? '<TData>'
-    : shouldValidateResponse && isModelType
-      ? `<${parsedDataType}>`
-      : '';
+  // Angular's HttpClient overloads conflict when both a type generic and an
+  // injected `responseType` (e.g. `'blob'` / `'text'`) are present — omit the
+  // generic and cast instead. JSON primitives still need `<string>` (etc.) because
+  // they use the default JSON overload without a custom `responseType`.
+  const hasInjectedResponseType = (optionsArgument: string) =>
+    typeof optionsArgument === 'string' &&
+    /\bresponseType:\s*['"]/.test(optionsArgument);
+  const httpCallExpr = (
+    optionsArgument: string,
+    observeKind: 'body' | 'events' | 'response',
+  ) => {
+    if (hasInjectedResponseType(optionsArgument)) {
+      const castType =
+        observeKind === 'events'
+          ? `HttpEvent<${observableDataType}>`
+          : observeKind === 'response'
+            ? `AngularHttpResponse<${observableDataType}>`
+            : observableDataType;
+      return `this.http.${verb}(${optionsArgument}) as Observable<${castType}>`;
+    }
+
+    return `this.http.${verb}<${observableDataType}>(${optionsArgument})`;
+  };
   const observeImplementation = isRequestOptions
     ? `${paramsDeclaration}if (options?.observe === 'events') {
-      return this.http.${verb}${httpTypeArg}(${observeOptions?.events ?? options})${eventValidationPipe};
+      return ${httpCallExpr(observeOptions?.events ?? options, 'events')}${eventValidationPipe};
     }
 
     if (options?.observe === 'response') {
-      return this.http.${verb}${httpTypeArg}(${observeOptions?.response ?? options})${responseValidationPipe};
+      return ${httpCallExpr(observeOptions?.response ?? options, 'response')}${responseValidationPipe};
     }
 
-    return this.http.${verb}${httpTypeArg}(${observeOptions?.body ?? options})${validationPipe};`
-    : `return this.http.${verb}${httpTypeArg}(${options})${validationPipe};`;
+    return ${httpCallExpr(observeOptions?.body ?? options, 'body')}${validationPipe};`
+    : `return ${httpCallExpr(options, 'body')}${validationPipe};`;
 
   return ` ${overloads}
   ${functionName}(

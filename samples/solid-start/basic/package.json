@@ -1,13 +1,13 @@
 {
   "name": "solid-start-basic",
-  "version": "8.12.3",
+  "version": "8.17.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vinxi dev",
     "build": "vinxi build",
     "start": "vinxi start",
-    "generate-api": "orval",
+    "generate-api": "vp exec orval",
     "test": "tsc --noEmit"
   },
   "dependencies": {

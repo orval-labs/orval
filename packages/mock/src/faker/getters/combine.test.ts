@@ -23,6 +23,7 @@ function createMockContext(): ContextSpec {
       target: '',
       namingConvention: NamingConvention.CAMEL_CASE,
       fileExtension: '.ts',
+      schemaFileExtension: '.ts',
       mode: OutputMode.SINGLE,
       mock: { indexMockFiles: false, generators: [] },
       client: OutputClient.FETCH,
@@ -66,7 +67,12 @@ function createMockContext(): ContextSpec {
           parameters: { suffix: '' },
           requestBodies: { suffix: '' },
         },
-        hono: { compositeRoute: '', validator: false, validatorOutputPath: '' },
+        hono: {
+          handlerGenerationStrategy: 'smart',
+          compositeRoute: '',
+          validator: false,
+          validatorOutputPath: '',
+        },
         query: {
           useQuery: false,
           useSuspenseQuery: false,
@@ -116,8 +122,28 @@ function createMockContext(): ContextSpec {
           },
           generateEachHttpStatus: false,
           useBrandedTypes: false,
+          generateReusableSchemas: false,
+          generateMeta: false,
           dateTimeOptions: {},
           timeOptions: { precision: 3 },
+        },
+        effect: {
+          strict: {
+            param: false,
+            query: false,
+            header: false,
+            body: false,
+            response: false,
+          },
+          generate: {
+            param: false,
+            query: false,
+            header: false,
+            body: false,
+            response: false,
+          },
+          generateEachHttpStatus: false,
+          useBrandedTypes: false,
         },
         fetch: {
           includeHttpResponseReturnType: false,
@@ -539,5 +565,79 @@ describe('combineSchemasMock', () => {
     expect(result).toBeDefined();
     // Derived1 should not appear because it's a circular reference here.
     expect(result.value).not.toContain('Derived1');
+  });
+
+  // Regression test: a cycle made purely of top-level named schemas that
+  // extend each other via `allOf` (`A: allOf[B]`, `B: allOf[A]`) used to
+  // overflow the stack. Every hop has `item.isRef === true`, so the
+  // `!item.isRef` guard never fired; the `existingReferencedAllOfRefs` chain
+  // breaks the cycle instead.
+  it('terminates on a mutual allOf cycle between top-level schemas', () => {
+    const context = createMockContext();
+    context.spec.components = {
+      schemas: {
+        A: { allOf: [{ $ref: '#/components/schemas/B' }] },
+        B: { allOf: [{ $ref: '#/components/schemas/A' }] },
+      },
+    };
+
+    const item: MockSchemaObject = {
+      name: 'A',
+      isRef: true,
+      allOf: [{ $ref: '#/components/schemas/B' }],
+    };
+
+    let result: ReturnType<typeof combineSchemasMock> | undefined;
+    expect(() => {
+      result = combineSchemasMock({
+        item,
+        separator: 'allOf',
+        operationId: 'testOp',
+        tags: ['test'],
+        context,
+        imports: [],
+        // `A` is already on the resolution path (it is the schema being expanded).
+        existingReferencedProperties: ['A'],
+        splitMockImplementations: [],
+      });
+    }).not.toThrow();
+
+    expect(result).toBeDefined();
+  });
+
+  // Regression test: a longer `allOf` inheritance chain that loops back
+  // (`A: allOf[B]`, `B: allOf[C]`, `C: allOf[A]`) — mirrors the real-world
+  // `System.Xml.Linq.*` hierarchy. Must terminate rather than overflow.
+  it('terminates on a multi-hop allOf inheritance cycle', () => {
+    const context = createMockContext();
+    context.spec.components = {
+      schemas: {
+        A: { allOf: [{ $ref: '#/components/schemas/B' }] },
+        B: { allOf: [{ $ref: '#/components/schemas/C' }] },
+        C: { allOf: [{ $ref: '#/components/schemas/A' }] },
+      },
+    };
+
+    const item: MockSchemaObject = {
+      name: 'A',
+      isRef: true,
+      allOf: [{ $ref: '#/components/schemas/B' }],
+    };
+
+    let result: ReturnType<typeof combineSchemasMock> | undefined;
+    expect(() => {
+      result = combineSchemasMock({
+        item,
+        separator: 'allOf',
+        operationId: 'testOp',
+        tags: ['test'],
+        context,
+        imports: [],
+        existingReferencedProperties: ['A'],
+        splitMockImplementations: [],
+      });
+    }).not.toThrow();
+
+    expect(result).toBeDefined();
   });
 });

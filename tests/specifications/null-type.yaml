@@ -55,6 +55,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/NullableObject'
+  /nullable-ref:
+    get:
+      tags:
+        - nullables
+      summary: 'Nullable $ref (type null + allOf) response'
+      operationId: fetchNullableRef
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NullableRefContainer'
 components:
   schemas:
     NullableObject:
@@ -76,6 +89,25 @@ components:
           type:
             - 'boolean'
             - 'null'
+    TimeIncrement:
+      type: object
+      properties:
+        value:
+          type: number
+        unit:
+          type: string
+    NullableRefContainer:
+      type: object
+      properties:
+        time_step:
+          # Non-canonical nullable-$ref encoding emitted by some OAS 3.1
+          # generators (e.g. Swashbuckle's UseAllOfToExtendReferenceSchemas;
+          # passed through by @scalar/openapi-upgrader):
+          # `{ type: 'null', allOf: [{ $ref }] }`. Orval should read the intent
+          # and emit `TimeIncrement | null`, not collapse to `null`.
+          type: 'null'
+          allOf:
+            - $ref: '#/components/schemas/TimeIncrement'
     NullStringEnum:
       type:
         - string

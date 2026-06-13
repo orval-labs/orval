@@ -257,11 +257,13 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'useQuery', values: true },
       { name: 'useInfiniteQuery', values: true },
       { name: 'useMutation', values: true },
+      { name: 'useQueryClient', values: true },
       { name: 'UseQueryOptions' },
       { name: 'UseInfiniteQueryOptions' },
       { name: 'UseMutationOptions' },
       { name: 'QueryFunction' },
       { name: 'MutationFunction' },
+      { name: 'MutationFunctionContext' },
       { name: 'QueryKey' },
       { name: 'UseQueryReturnType' },
       { name: 'UseInfiniteQueryReturnType' },
@@ -327,6 +329,15 @@ const getSolidQueryImports = (
         { name: 'InvalidateOptions' },
       ],
       dependency: '@tanstack/solid-query',
+    },
+    {
+      // `mergeProps` lets the query hook attach `queryKey` to the result
+      // without mutating the read-only Solid Store (see #3347). `addDependency`
+      // only emits an import when the export name appears in the generated
+      // file, so mutation-only outputs never receive an unused `mergeProps`
+      // import.
+      exports: [{ name: 'mergeProps', values: true }],
+      dependency: 'solid-js',
     },
   ];
 };

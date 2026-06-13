@@ -59,6 +59,7 @@ export const createSplitModeOutput = (
   ({
     target,
     fileExtension: '.ts',
+    schemaFileExtension: '.ts',
     mode: OutputMode.SPLIT,
     namingConvention: NamingConvention.CAMEL_CASE,
     client: OutputClient.AXIOS,
@@ -96,6 +97,7 @@ export const createSplitModeOutput = (
       angular: { provideIn: false },
       swr: {},
       zod: {},
+      effect: {},
       fetch: {},
     },
     ...overrides,

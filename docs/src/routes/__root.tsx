@@ -4,10 +4,18 @@ import {
   HeadContent,
   Outlet,
   Scripts,
+  useLocation,
+  useNavigate,
 } from '@tanstack/react-router';
 import { RootProvider } from 'fumadocs-ui/provider/tanstack';
-import * as React from 'react';
+import type * as React from 'react';
 
+import {
+  getLocaleFromPathname,
+  getLocalizedPath,
+  i18nUI,
+  type Locale,
+} from '@/lib/i18n';
 import appCss from '@/styles/app.css?url';
 
 export const Route = createRootRouteWithContext<{
@@ -66,13 +74,32 @@ function RootComponent() {
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate();
+  const pathname = useLocation({
+    select: (location) => location.pathname,
+  });
+  const locale = getLocaleFromPathname(pathname);
+
+  function onLocaleChange(nextLocale: string) {
+    navigate({
+      href: getLocalizedPath(pathname, nextLocale as Locale),
+    });
+  }
+
   return (
-    <html suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
       <body className="flex flex-col min-h-screen">
-        <RootProvider>{children}</RootProvider>
+        <RootProvider
+          i18n={{
+            ...i18nUI.provider(locale),
+            onLocaleChange,
+          }}
+        >
+          {children}
+        </RootProvider>
         <Scripts />
       </body>
     </html>

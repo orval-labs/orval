@@ -584,4 +584,195 @@ describe('generateFactory', () => {
     expect(result?.model).not.toContain('user: createRefTarget()');
     expect(result?.model).toContain('token: createRefTarget()');
   });
+
+  it('combines combiner payloads with parent properties using Object.assign', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      oneOf: [
+        {
+          type: 'object',
+          required: ['variantProp'],
+          properties: { variantProp: { type: 'string' } },
+        },
+      ],
+      required: ['parentProp'],
+      properties: {
+        parentProp: { type: 'string' },
+      },
+    };
+
+    const result = generateFactory(
+      schema,
+      'CombinedWithProps',
+      createMockContext(),
+    );
+    expect(result?.model).toContain(
+      "Object.assign({}, {\n    variantProp: ''\n  }, {\n    parentProp: ''\n  })",
+    );
+  });
+});
+
+describe('generateFactory with schemas.importPath', () => {
+  it('uses importPath for $ref imports in split mode', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['target'],
+      properties: {
+        target: { $ref: '#/components/schemas/RefTarget' },
+      },
+    };
+
+    const result = generateFactory(
+      schema,
+      'WithRef',
+      createMockContext({
+        factoryMethods: { ...baseFactoryMethods, mode: 'split' },
+        schemas: {
+          path: '/libs/models',
+          type: 'typescript',
+          importPath: '@acme/models',
+        },
+      }),
+    );
+    expect(result?.imports).toContainEqual({
+      name: 'createRefTarget',
+      importPath: '@acme/models/refTarget.factory',
+      isConstant: true,
+    });
+    expect(result?.imports).toContainEqual({
+      name: 'RefTarget',
+      importPath: '@acme/models/refTarget',
+    });
+  });
+
+  it('uses importPath for circular reference casts in split mode', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['child'],
+      properties: {
+        child: { $ref: '#/components/schemas/CircularChild' },
+      },
+    };
+
+    const result = generateFactory(
+      schema,
+      'CircularParent',
+      createMockContext({
+        factoryMethods: { ...baseFactoryMethods, mode: 'split' },
+        schemas: {
+          path: '/libs/models',
+          type: 'typescript',
+          importPath: '@acme/models',
+        },
+      }),
+    );
+    expect(result?.model).toContain('child: {} as CircularChild');
+    expect(result?.imports).toContainEqual({
+      name: 'CircularChild',
+      importPath: '@acme/models/circularChild',
+    });
+    expect(result?.imports).toContainEqual({
+      name: 'CircularParent',
+      importPath: '@acme/models/circularParent',
+    });
+  });
+
+  it('uses importPath for factory function imports in single mode', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['target'],
+      properties: {
+        target: { $ref: '#/components/schemas/RefTarget' },
+      },
+    };
+
+    const result = generateFactory(
+      schema,
+      'WithRef',
+      createMockContext({
+        factoryMethods: { ...baseFactoryMethods, mode: 'single' },
+        schemas: {
+          path: '/libs/models',
+          type: 'typescript',
+          importPath: '@acme/models',
+        },
+      }),
+    );
+    expect(result?.imports).toContainEqual({
+      name: 'createRefTarget',
+      importPath: '@acme/models/refTarget',
+      isConstant: true,
+    });
+  });
+
+  it('uses importPath for type imports in single-split mode (factory combined into single file)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['target'],
+      properties: {
+        target: { $ref: '#/components/schemas/RefTarget' },
+      },
+    };
+
+    const result = generateFactory(
+      schema,
+      'WithRefCombined',
+      createMockContext({
+        factoryMethods: { ...baseFactoryMethods, mode: 'single-split' },
+        schemas: {
+          path: '/libs/models',
+          type: 'typescript',
+          importPath: '@acme/models',
+        },
+      }),
+    );
+    expect(result?.imports).not.toContainEqual(
+      expect.objectContaining({ name: 'createRefTarget' }),
+    );
+    expect(result?.imports).toContainEqual({
+      name: 'RefTarget',
+      importPath: '@acme/models/refTarget',
+    });
+    expect(result?.imports).toContainEqual({
+      name: 'WithRefCombined',
+      importPath: '@acme/models/withRefCombined',
+    });
+  });
+
+  it('bypasses factoryMethods.outputDirectory when importPath is set (split mode)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['target'],
+      properties: {
+        target: { $ref: '#/components/schemas/RefTarget' },
+      },
+    };
+
+    const result = generateFactory(
+      schema,
+      'WithRef',
+      createMockContext({
+        factoryMethods: {
+          ...baseFactoryMethods,
+          mode: 'split',
+          outputDirectory: '/libs/factories',
+        },
+        schemas: {
+          path: '/libs/models',
+          type: 'typescript',
+          importPath: '@acme/models',
+        },
+      }),
+    );
+
+    const factoryImport = result?.imports.find(
+      (i) => i.name === 'createRefTarget',
+    );
+    expect(factoryImport?.importPath).toBe('@acme/models/refTarget.factory');
+    expect(factoryImport?.importPath).not.toContain('factories');
+
+    const typeImport = result?.imports.find((i) => i.name === 'RefTarget');
+    expect(typeImport?.importPath).toBe('@acme/models/refTarget');
+    expect(typeImport?.importPath).not.toContain('factories');
+  });
 });

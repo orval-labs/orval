@@ -2,7 +2,13 @@
 import type { ContextSpec, OpenApiSchemaObjectType } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
+import { createTestContextSpec } from '../../../../core/src/test-utils/context';
 import { getMockScalar } from './scalar';
+
+const scalarContext = (
+  override: Partial<ContextSpec['output']['override']> = {},
+  output?: Partial<ContextSpec['output']>,
+) => createTestContextSpec({ override, output });
 
 describe('getMockScalar (int64 format handling)', () => {
   const baseArg = {
@@ -23,7 +29,7 @@ describe('getMockScalar (int64 format handling)', () => {
   it('should return faker.number.bigInt() when format is int64, useBigInt is true, and mockOptions.format.int64 is NOT specified', () => {
     const result = getMockScalar({
       ...baseArg,
-      context: { output: { override: { useBigInt: true } } } as ContextSpec,
+      context: scalarContext({ useBigInt: true }),
     });
 
     expect(result.value).toBe('faker.number.bigInt({min: 1, max: 100})');
@@ -32,7 +38,7 @@ describe('getMockScalar (int64 format handling)', () => {
   it('should return faker.number.int() when format is int64, useBigInt is false, and mockOptions.format.int64 is NOT specified', () => {
     const result = getMockScalar({
       ...baseArg,
-      context: { output: { override: { useBigInt: false } } } as ContextSpec,
+      context: scalarContext({ useBigInt: false }),
     });
 
     expect(result.value).toBe('faker.number.int({min: 1, max: 100})');
@@ -48,7 +54,7 @@ describe('getMockScalar (int64 format handling)', () => {
           int64: specified,
         },
       },
-      context: { output: { override: { useBigInt: true } } } as ContextSpec,
+      context: scalarContext({ useBigInt: true }),
     });
 
     expect(result.value).toBe(specified);
@@ -74,7 +80,7 @@ describe('getMockScalar (uint64 format handling)', () => {
   it('should return faker.number.bigInt() when format is uint64, useBigInt is true, and mockOptions.format.uint64 is NOT specified', () => {
     const result = getMockScalar({
       ...baseArg,
-      context: { output: { override: { useBigInt: true } } } as ContextSpec,
+      context: scalarContext({ useBigInt: true }),
     });
 
     expect(result.value).toBe('faker.number.bigInt({min: 1, max: 100})');
@@ -83,7 +89,7 @@ describe('getMockScalar (uint64 format handling)', () => {
   it('should return faker.number.int() when format is uint64, useBigInt is false, and mockOptions.format.uint64 is NOT specified', () => {
     const result = getMockScalar({
       ...baseArg,
-      context: { output: { override: { useBigInt: false } } } as ContextSpec,
+      context: scalarContext({ useBigInt: false }),
     });
 
     expect(result.value).toBe('faker.number.int({min: 1, max: 100})');
@@ -99,7 +105,7 @@ describe('getMockScalar (uint64 format handling)', () => {
           uint64: specified,
         },
       },
-      context: { output: { override: { useBigInt: true } } } as ContextSpec,
+      context: scalarContext({ useBigInt: true }),
     });
 
     expect(result.value).toBe(specified);
@@ -119,7 +125,7 @@ describe('getMockScalar (example handling with falsy values)', () => {
     existingReferencedProperties: [],
     splitMockImplementations: [],
     mockOptions: { useExamples: true },
-    context: { output: { override: {} } } as ContextSpec, // TODO this should be: satisfies ContextSpec
+    context: scalarContext(),
   };
 
   it('should return the example value when it is a false value', () => {
@@ -153,17 +159,13 @@ describe('getMockScalar (example handling with falsy values)', () => {
 describe('getMockScalar (multipleOf handling)', () => {
   const createContext = (
     packageJsonDeps?: Record<string, string>,
-  ): ContextSpec => {
-    const context = {
-      output: {
-        override: {},
-        ...(packageJsonDeps && {
-          packageJson: { dependencies: packageJsonDeps },
-        }),
-      },
-    } as ContextSpec;
-    return context;
-  };
+  ): ContextSpec =>
+    scalarContext(
+      {},
+      packageJsonDeps
+        ? { packageJson: { dependencies: packageJsonDeps } }
+        : undefined,
+    );
 
   const baseArg = {
     imports: [],
@@ -321,7 +323,7 @@ describe('getMockScalar (nested arrays handling)', () => {
       tags: [],
       existingReferencedProperties: [],
       splitMockImplementations: [],
-      context: { output: { override: {} } } as ContextSpec,
+      context: scalarContext(),
       combine: { separator: 'anyOf' as const, includedProperties: [] },
     });
     // Should avoid putting Array.from in an object {
@@ -343,7 +345,7 @@ describe('getMockScalar (nested arrays handling)', () => {
       tags: [],
       existingReferencedProperties: [],
       splitMockImplementations: [],
-      context: { output: { override: {} } } as ContextSpec,
+      context: scalarContext(),
       mockOptions: { arrayMin: 1, arrayMax: 5 },
     });
 
@@ -358,7 +360,7 @@ describe('getMockScalar (undefined filtering)', () => {
     tags: [],
     existingReferencedProperties: [],
     splitMockImplementations: [],
-    context: { output: { override: {} } } as ContextSpec,
+    context: scalarContext(),
   };
 
   it('should not include min/max when they are undefined for integer type', () => {
@@ -444,6 +446,205 @@ describe('getMockScalar (undefined filtering)', () => {
       'faker.string.alpha({length: {min: 5, max: 20}})',
     );
   });
+
+  it('should clamp min to maxLength when only maxLength is specified and no global stringMin is set', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        maxLength: 5,
+        name: 'test-item',
+      },
+    });
+
+    // faker.string.alpha's `length: { min, max }` requires both bounds, so we
+    // collapse to the explicit value rather than inventing a missing one.
+    expect(result.value).toBe('faker.string.alpha({length: {min: 5, max: 5}})');
+  });
+
+  it('should clamp max to minLength when only minLength is specified and no global stringMax is set', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        minLength: 30,
+        name: 'test-item',
+      },
+    });
+
+    expect(result.value).toBe(
+      'faker.string.alpha({length: {min: 30, max: 30}})',
+    );
+  });
+
+  it('should use global stringMin when only maxLength is specified and global stringMin does not exceed maxLength', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        maxLength: 50,
+        name: 'test-item',
+      },
+      mockOptions: { stringMin: 10, stringMax: 20 },
+    });
+
+    expect(result.value).toBe(
+      'faker.string.alpha({length: {min: 10, max: 50}})',
+    );
+  });
+
+  it('should clamp min to maxLength when global stringMin would exceed maxLength', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        maxLength: 5,
+        name: 'test-item',
+      },
+      mockOptions: { stringMin: 10, stringMax: 20 },
+    });
+
+    expect(result.value).toBe('faker.string.alpha({length: {min: 5, max: 5}})');
+  });
+
+  it('should use global stringMax when only minLength is specified and global stringMax is not below minLength', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        minLength: 5,
+        name: 'test-item',
+      },
+      mockOptions: { stringMin: 10, stringMax: 20 },
+    });
+
+    expect(result.value).toBe(
+      'faker.string.alpha({length: {min: 5, max: 20}})',
+    );
+  });
+
+  it('should clamp max to minLength when global stringMax would be below minLength', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        minLength: 30,
+        name: 'test-item',
+      },
+      mockOptions: { stringMin: 10, stringMax: 20 },
+    });
+
+    expect(result.value).toBe(
+      'faker.string.alpha({length: {min: 30, max: 30}})',
+    );
+  });
+
+  it('should clamp both bounds to 0 when maxLength is 0 (avoids invalid faker range)', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        maxLength: 0,
+        name: 'test-item',
+      },
+      mockOptions: { stringMin: 10, stringMax: 20 },
+    });
+
+    expect(result.value).toBe('faker.string.alpha({length: {min: 0, max: 0}})');
+  });
+
+  it('should clamp min to maxItems when only maxItems is specified and no global arrayMin is set', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'array' as const,
+        maxItems: 5,
+        name: 'test-item',
+        items: { type: 'string' },
+      },
+    });
+
+    // Without a global arrayMin to fall back to, reuse maxItems so the
+    // generated faker.number.int always has a bounded upper range.
+    expect(result.value).toContain('faker.number.int({min: 5, max: 5})');
+  });
+
+  it('should clamp max to minItems when only minItems is specified and no global arrayMax is set', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'array' as const,
+        minItems: 3,
+        name: 'test-item',
+        items: { type: 'string' },
+      },
+    });
+
+    // Avoid relying on faker's internal default max which can produce
+    // huge arrays; reuse minItems instead.
+    expect(result.value).toContain('faker.number.int({min: 3, max: 3})');
+  });
+
+  it('should use global arrayMax when only minItems is specified and global arrayMax is not below minItems', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'array' as const,
+        minItems: 3,
+        name: 'test-item',
+        items: { type: 'string' },
+      },
+      mockOptions: { arrayMin: 1, arrayMax: 10 },
+    });
+
+    expect(result.value).toContain('faker.number.int({min: 3, max: 10})');
+  });
+
+  it('should clamp max to minItems when global arrayMax would be below minItems', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'array' as const,
+        minItems: 100,
+        name: 'test-item',
+        items: { type: 'string' },
+      },
+      mockOptions: { arrayMin: 1, arrayMax: 10 },
+    });
+
+    expect(result.value).toContain('faker.number.int({min: 100, max: 100})');
+  });
+
+  it('should use global arrayMin when only maxItems is specified and global arrayMin does not exceed maxItems', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'array' as const,
+        maxItems: 5,
+        name: 'test-item',
+        items: { type: 'string' },
+      },
+      mockOptions: { arrayMin: 1, arrayMax: 10 },
+    });
+
+    expect(result.value).toContain('faker.number.int({min: 1, max: 5})');
+  });
+
+  it('should omit length entirely when only one global string bound is configured and no schema bound is set', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        name: 'test-item',
+      },
+      mockOptions: { stringMin: 10 },
+    });
+
+    // faker.string.alpha's `length: { min, max }` requires both bounds. With
+    // only one global side configured we cannot build a valid pair, so fall
+    // back to faker's default length rather than emitting a one-sided object.
+    expect(result.value).toBe('faker.string.alpha()');
+  });
 });
 
 describe('getMockScalar (exclusiveMinimum/exclusiveMaximum handling)', () => {
@@ -453,7 +654,7 @@ describe('getMockScalar (exclusiveMinimum/exclusiveMaximum handling)', () => {
     tags: [],
     existingReferencedProperties: [],
     splitMockImplementations: [],
-    context: { output: { override: {} } } as ContextSpec,
+    context: scalarContext(),
   };
 
   describe('OpenAPI 3.0 (boolean exclusiveMinimum/exclusiveMaximum)', () => {
@@ -569,7 +770,7 @@ describe('getMockScalar (@-prefixed property names)', () => {
     tags: [],
     existingReferencedProperties: [],
     splitMockImplementations: [],
-    context: { output: { override: {} } } as ContextSpec,
+    context: scalarContext(),
   };
 
   it('should preserve @type as a quoted property key in mock objects', () => {
@@ -604,7 +805,7 @@ describe('getMockScalar (pattern-backed string escaping)', () => {
       tags: [],
       existingReferencedProperties: [],
       splitMockImplementations: [],
-      context: { output: { override: {} } } as ContextSpec,
+      context: scalarContext(),
     });
 
     expect(result.value).toBe(
@@ -624,7 +825,7 @@ describe('getMockScalar (pattern-backed string escaping)', () => {
       tags: [],
       existingReferencedProperties: [],
       splitMockImplementations: [],
-      context: { output: { override: {} } } as ContextSpec,
+      context: scalarContext(),
     });
 
     expect(result.value).toBe(
@@ -645,7 +846,7 @@ describe('getMockScalar (post-upgrader OAS 3.0 example handling)', () => {
     existingReferencedProperties: [],
     splitMockImplementations: [],
     mockOptions: { useExamples: true },
-    context: { output: { override: {} } } as ContextSpec,
+    context: scalarContext(),
   };
 
   it('uses examples[0] for a string property when useExamples is true', () => {
@@ -669,7 +870,7 @@ describe('getMockScalar (array items $ref extraction and recursion guard)', () =
     tags: [],
     splitMockImplementations: [],
     existingReferencedProperties: ['Foo'],
-    context: { output: { override: {} } } as ContextSpec,
+    context: scalarContext(),
   };
 
   it('returns [] when items.$ref is a circular reference', () => {
@@ -740,5 +941,66 @@ describe('getMockScalar (array items $ref extraction and recursion guard)', () =
     });
 
     expect(result.value).not.toBe('[]');
+  });
+});
+
+describe('getMockScalar (enum value escaping #3505)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+  };
+
+  it('JS-escapes backslashes in string enum values', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as OpenApiSchemaObjectType,
+        enum: [
+          String.raw`App\Models\Document`,
+          String.raw`App\Models\Template`,
+        ],
+        name: 'visitableType',
+      },
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe(
+      String.raw`faker.helpers.arrayElement(['App\\Models\\Document','App\\Models\\Template'] as const)`,
+    );
+  });
+
+  it('JS-escapes an enum value ending in a backslash', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as OpenApiSchemaObjectType,
+        enum: ['C:\\logs\\'],
+        name: 'directoryPrefix',
+      },
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe(
+      String.raw`faker.helpers.arrayElement(['C:\\logs\\'] as const)`,
+    );
+  });
+
+  it('does not escape forward slashes in enum values (#3530)', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as OpenApiSchemaObjectType,
+        enum: ['Asia/Tokyo', 'America/New_York'],
+        name: 'timezone',
+      },
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe(
+      "faker.helpers.arrayElement(['Asia/Tokyo','America/New_York'] as const)",
+    );
   });
 });

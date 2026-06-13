@@ -1,3 +1,7 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+
 import type { OpenApiDocument } from '@orval/core';
 import * as orvalCore from '@orval/core';
 import { describe, expect, it, vi } from 'vitest';
@@ -257,6 +261,112 @@ describe('validation', () => {
       expect(warnings).toContain('OpenAPI spec validation is disabled');
     } finally {
       warnSpy.mockRestore();
+    }
+  });
+
+  it('should resolve external $ref injected by override.transformer (#3327)', async () => {
+    // A transformer can inject a NEW external $ref (e.g. refs.yaml#/...) that was
+    // absent from the original spec, so it never went through the initial bundle.
+    // The injected refs must be bundled & dereferenced against the spec's origin,
+    // otherwise generation fails with "Can't resolve external reference".
+    const workspace = await mkdtemp(
+      path.join(os.tmpdir(), 'orval-issue-3327-'),
+    );
+    const specPath = path.join(workspace, 'spec.yaml');
+
+    // JSON is a strict subset of YAML, so JSON content in .yaml files parses fine.
+    const spec = {
+      openapi: '3.0.2',
+      info: { title: 'repro', version: '1.0.0' },
+      paths: {
+        '/path': {
+          get: {
+            operationId: 'getPath',
+            responses: {
+              '200': {
+                description: 'ok',
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/components/schemas/Field' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      components: {
+        schemas: {
+          Field: { type: 'object', properties: { id: { type: 'string' } } },
+        },
+      },
+    };
+    const refs = {
+      components: {
+        schemas: {
+          Point: {
+            type: 'object',
+            properties: { kind: { type: 'string', enum: ['Point'] } },
+          },
+          LineString: {
+            type: 'object',
+            properties: { kind: { type: 'string', enum: ['LineString'] } },
+          },
+        },
+      },
+    };
+
+    try {
+      await writeFile(specPath, JSON.stringify(spec), 'utf8');
+      await writeFile(
+        path.join(workspace, 'refs.yaml'),
+        JSON.stringify(refs),
+        'utf8',
+      );
+
+      const normalizedOptions = await normalizeOptions(
+        {
+          output: { target: '' },
+          input: {
+            target: specPath,
+            override: {
+              transformer: (input: OpenApiDocument) => {
+                const next = structuredClone(input);
+                const field = next.components?.schemas?.Field as
+                  | { properties: Record<string, unknown> }
+                  | undefined;
+                if (field) {
+                  field.properties.geometry = {
+                    oneOf: [
+                      { $ref: 'refs.yaml#/components/schemas/Point' },
+                      { $ref: 'refs.yaml#/components/schemas/LineString' },
+                    ],
+                  };
+                }
+                return next;
+              },
+            },
+          },
+        },
+        workspace,
+        {},
+      );
+
+      const result = await importSpecs(workspace, normalizedOptions);
+
+      // The external schemas should now be merged into the generated output.
+      const names = result.schemas.map((s) => s.name);
+      expect(names).toContain('Point');
+      expect(names).toContain('LineString');
+
+      // Field.geometry should reference the resolved named types, not a raw
+      // external file ref.
+      const field = result.schemas.find((s) => s.name === 'Field');
+      expect(field?.model).toContain('Point');
+      expect(field?.model).toContain('LineString');
+      expect(field?.model).not.toContain('refs.yaml');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
     }
   });
 });

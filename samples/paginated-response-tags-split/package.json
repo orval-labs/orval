@@ -1,0 +1,19 @@
+{
+  "name": "paginated-response-tags-split",
+  "version": "8.17.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate-api": "vp exec orval",
+    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots:update": "vp run test:snapshots --update"
+  },
+  "devDependencies": {
+    "orval": "workspace:*",
+    "prettier": "catalog:",
+    "vitest": "catalog:"
+  },
+  "dependencies": {
+    "axios": "catalog:axios"
+  }
+}

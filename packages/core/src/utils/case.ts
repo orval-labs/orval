@@ -100,6 +100,7 @@ export function pascal(s = '') {
   }
 
   const isStartWithUnderscore = s.startsWith('_');
+  const cacheKey = s;
 
   if (regexps.upper.test(s)) {
     s = low(s);
@@ -113,7 +114,7 @@ export function pascal(s = '') {
     ? `_${pascalString}`
     : pascalString;
 
-  pascalMemory[s] = pascalWithUnderscore;
+  pascalMemory[cacheKey] = pascalWithUnderscore;
 
   return pascalWithUnderscore;
 }

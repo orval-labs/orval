@@ -102,8 +102,13 @@ export const generateAngularHttpRequestFunction = (
     formUrlEncoded,
     override,
   }: GeneratorVerbOptions,
-  { route, context }: GeneratorOptions,
+  { route: _route, context }: GeneratorOptions,
 ) => {
+  let route = _route;
+  if (context.output.urlEncodeParameters) {
+    route = makeRouteSafe(route);
+  }
+
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
@@ -661,6 +666,7 @@ export const getQueryErrorType = (
   response: GetterResponse,
   httpClient: OutputHttpClient,
   mutator?: GeneratorMutator,
+  forceSuccessResponse?: boolean,
 ) => {
   const errorsType = dedupeUnionTypes(response.definition.errors || 'unknown');
 
@@ -668,11 +674,21 @@ export const getQueryErrorType = (
     return mutator.hasErrorType
       ? `${mutator.default ? pascal(operationName) : ''}ErrorType<${errorsType}>`
       : errorsType;
-  } else {
-    return httpClient === OutputHttpClient.AXIOS
-      ? `AxiosError<${errorsType}>`
-      : errorsType;
   }
+
+  if (httpClient === OutputHttpClient.AXIOS) {
+    return `AxiosError<${errorsType}>`;
+  }
+
+  // With `forceSuccessResponse`, the fetch client narrows its return type to
+  // the success body and throws `globalThis.Error & { info?, status? }` on
+  // non-2xx responses instead of returning the error body. TError must match
+  // that thrown shape rather than the raw OpenAPI error type. See #3300.
+  if (forceSuccessResponse) {
+    return `globalThis.Error & { info?: ${errorsType}; status?: number }`;
+  }
+
+  return errorsType;
 };
 
 export const getHooksOptionImplementation = (

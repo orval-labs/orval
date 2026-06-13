@@ -1,0 +1,63 @@
+openapi: 3.1.0
+info:
+  title: Orval additionalProperties index signature bug repro
+  version: 0.0.1
+paths:
+  /things:
+    get:
+      operationId: getThings
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThingsResponse'
+  /counters:
+    get:
+      operationId: getCounters
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Counters'
+components:
+  schemas:
+    # Minimal primitive-incompatible case (no $ref/anyOf): a string named
+    # property next to a number index signature is the textbook TS2411 shape.
+    Counters:
+      type: object
+      properties:
+        label:
+          type: string
+      required:
+        - label
+      additionalProperties:
+        type: number
+    ItemDetail:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: {}
+    ThingsResponse:
+      type: object
+      properties:
+        summary:
+          type: string
+      required:
+        - summary
+      additionalProperties:
+        anyOf:
+          - type: object
+            properties:
+              added:
+                $ref: '#/components/schemas/ItemDetail'
+              removed:
+                $ref: '#/components/schemas/ItemDetail'
+            required:
+              - added
+              - removed
+          - type: 'null'
+        default: null

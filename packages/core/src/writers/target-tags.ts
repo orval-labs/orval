@@ -39,6 +39,7 @@ function flattenMockOutput(full: GeneratorMockOutputFull): GeneratorMockOutput {
     type: full.type,
     implementation: full.implementation.function + full.implementation.handler,
     imports: full.imports,
+    strictMockSchemaTypeNames: full.strictMockSchemaTypeNames,
   };
 }
 
@@ -50,6 +51,9 @@ function mergeOperationMockOutputs(
     type: m.type,
     implementation: { ...m.implementation },
     imports: [...m.imports],
+    strictMockSchemaTypeNames: m.strictMockSchemaTypeNames
+      ? [...m.strictMockSchemaTypeNames]
+      : undefined,
   }));
   for (const op of opMockOutputs) {
     let acc = result.find((m) => m.type === op.type);
@@ -58,6 +62,14 @@ function mergeOperationMockOutputs(
       result.push(acc);
     }
     acc.imports.push(...op.imports);
+    if (op.strictMockSchemaTypeNames?.length) {
+      acc.strictMockSchemaTypeNames = [
+        ...new Set([
+          ...(acc.strictMockSchemaTypeNames ?? []),
+          ...op.strictMockSchemaTypeNames,
+        ]),
+      ];
+    }
     acc.implementation.function += op.implementation.function;
     acc.implementation.handler += op.implementation.handler;
     if (op.implementation.handlerName) {
@@ -83,6 +95,9 @@ function initialMockOutputsForOperation(
         : '',
     },
     imports: [...m.imports],
+    strictMockSchemaTypeNames: m.strictMockSchemaTypeNames
+      ? [...m.strictMockSchemaTypeNames]
+      : undefined,
   }));
 }
 
@@ -240,6 +255,7 @@ export function generateTargetForTags(
               handlerName: m.implementation.handlerName,
             },
             imports: m.imports,
+            strictMockSchemaTypeNames: m.strictMockSchemaTypeNames,
           }));
 
         transformed[tag] = {

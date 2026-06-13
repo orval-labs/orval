@@ -1,0 +1,51 @@
+---
+title: SWR
+description: 从 OpenAPI 生成类型安全的 SWR hooks
+---
+
+SWR 客户端会为读取操作生成 hooks，并复用生成的请求函数。它适合使用 SWR 进行数据获取和缓存的 React 项目。
+
+## 配置
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      client: 'swr',
+    },
+  },
+});
+```
+
+## 生成结果
+
+生成内容包括 SWR hooks、请求函数、key helper 和响应类型。
+
+## 用法
+
+```tsx
+const { data, error, isLoading } = useListPets();
+```
+
+## 条件请求
+
+需要延迟请求时，可以让 key 为 `null` 或通过生成 hook 的参数控制 enabled 条件。
+
+## 完整示例
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'swr',
+      override: {
+        swr: {
+          useSWRMutationForGet: false,
+        },
+      },
+    },
+  },
+});
+```

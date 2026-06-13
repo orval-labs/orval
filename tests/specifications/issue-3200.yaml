@@ -1,0 +1,53 @@
+openapi: 3.0.0
+info:
+  title: Issue 3200
+  description: |
+    Reproduces the case where an object schema used as a dictionary
+    (`additionalProperties: { $ref: <primitive union> }`) generates an invalid
+    faker schema mock under `schemas: true`. The delegated `$ref` was wrapped in
+    `{ ...get<X>Mock() }`, but the factory returns a primitive union
+    (e.g. number | string), so spreading it is invalid TypeScript (TS2698) and
+    yields `{}` at runtime. The generated dictionary value should be the bare
+    `get<X>Mock()` call instead.
+  version: 1.0.0
+paths:
+  /integer-map:
+    get:
+      operationId: getIntegerMap
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StringToIntegerMap'
+  /number-map:
+    get:
+      operationId: getNumberMap
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StringToNumberMap'
+components:
+  schemas:
+    # oneOf of primitives -> `number | string`
+    IntegerLike:
+      oneOf:
+        - type: integer
+        - type: string
+    StringToIntegerMap:
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/IntegerLike'
+    # anyOf of primitives -> `number | string` (covers the anyOf arm too)
+    NumberLike:
+      anyOf:
+        - type: number
+        - type: string
+    StringToNumberMap:
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/NumberLike'

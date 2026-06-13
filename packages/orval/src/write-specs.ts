@@ -7,6 +7,7 @@ import {
   fixCrossDirectoryImports,
   fixRegularSchemaImports,
   generateDependencyImports,
+  generateMutator,
   getFileInfo,
   getImportExtension,
   getMockFileExtensionByTypeName,
@@ -180,15 +181,19 @@ async function writeFakerSchemaMocks(
     output,
   };
 
-  const { implementation, imports } = generateFakerForSchemas(
-    schemasWithDef,
-    context,
-    fakerEntry,
-  );
+  const { implementation, imports, strictMockSchemaTypeNames } =
+    generateFakerForSchemas(schemasWithDef, context, fakerEntry);
 
   if (!implementation.trim()) {
     return undefined;
   }
+
+  const finalizedImplementation = builder.finalizeMockImplementation
+    ? builder.finalizeMockImplementation(implementation, {
+        mockOptions: output.override.mock,
+        strictSchemaTypeNames: strictMockSchemaTypeNames,
+      })
+    : implementation;
 
   let filePath: string;
   let schemaImportPath: string | undefined;
@@ -241,7 +246,7 @@ async function writeFakerSchemaMocks(
   }
 
   const importsHeader = generateDependencyImports(
-    implementation,
+    finalizedImplementation,
     [
       {
         exports: [{ name: 'faker', values: true }],
@@ -259,9 +264,45 @@ async function writeFakerSchemaMocks(
     false,
   );
 
-  const content = `${header}${importsHeader}\n\n${implementation}`;
+  const content = `${header}${importsHeader}\n\n${finalizedImplementation}`;
   await writeGeneratedFile(filePath, content);
   return filePath;
+}
+
+function isSchemaValidatorClient(
+  client: NormalizedOptions['output']['client'],
+): boolean {
+  return client === 'zod' || client === 'effect';
+}
+
+function shouldGenerateZodSchemasInline(
+  output: NormalizedOptions['output'],
+  hasOperations: boolean,
+): boolean {
+  if (output.client !== 'zod' || output.schemas) {
+    return false;
+  }
+  // With `generateReusableSchemas`, operations reference component schemas by
+  // name, so the component definitions must be emitted inline alongside the
+  // operations (otherwise the references are dangling). Without the flag,
+  // operations inline their own schemas, so we only emit the component
+  // schemas inline when there are no operations.
+  // `NormalizedOutputOptions` types this as a required `boolean`, so use it
+  // directly (a `=== true` compare trips no-unnecessary-boolean-literal-compare).
+  if (output.override.zod.generateReusableSchemas) {
+    return true;
+  }
+  return !hasOperations;
+}
+
+function shouldGenerateSchemas(
+  output: NormalizedOptions['output'],
+  hasOperations: boolean,
+): boolean {
+  return (
+    (!output.schemas && !isSchemaValidatorClient(output.client)) ||
+    shouldGenerateZodSchemasInline(output, hasOperations)
+  );
 }
 
 export async function writeSpecs(
@@ -277,9 +318,62 @@ export async function writeSpecs(
   const header = getHeader(output.override.header, info);
 
   if (output.schemas) {
-    if (isString(output.schemas)) {
+    const schemasPath = isString(output.schemas)
+      ? output.schemas
+      : output.schemas.path;
+    const isZodSchemas =
+      (!isString(output.schemas) && output.schemas.type === 'zod') ||
+      // Auto-promote a string `schemas:` to the zod writer when client is zod
+      // and the reusable flag is on. We deliberately don't promote when the
+      // user explicitly set `{ type: 'typescript' }` — that signals intent
+      // to keep TS types, even alongside a zod client.
+      (isString(output.schemas) &&
+        output.client === 'zod' &&
+        output.override.zod.generateReusableSchemas);
+
+    if (isZodSchemas) {
+      // Use the schema-specific extension so the global `fileExtension` (which
+      // also drives client/mock outputs) isn't dragged into the zod world.
+      const fileExtension = output.schemaFileExtension;
+
+      // Reusable component schemas live as separate files under `schemasPath`,
+      // so we resolve the user's `override.zod.params` mutator once relative
+      // to that directory and pass it down. Each emitted schema file lives in
+      // the same dir, so the relative import is identical across files.
+      const schemasParamsMutator = output.override.zod.params
+        ? await generateMutator({
+            output: path.join(schemasPath, `__params__${fileExtension}`),
+            mutator: output.override.zod.params,
+            name: 'zodParams',
+            workspace,
+            tsconfig: output.tsconfig,
+          })
+        : undefined;
+
+      await writeZodSchemas(
+        builder,
+        schemasPath,
+        fileExtension,
+        header,
+        output,
+        schemasParamsMutator,
+      );
+
+      await writeZodSchemasFromVerbs(
+        builder.verbOptions,
+        schemasPath,
+        fileExtension,
+        header,
+        output,
+        {
+          spec: builder.spec,
+          target: builder.target,
+          workspace,
+          output,
+        },
+      );
+    } else {
       const fileExtension = output.fileExtension || '.ts';
-      const schemaPath = output.schemas;
 
       // Split schemas if operationSchemas path is configured
       if (output.operationSchemas) {
@@ -292,7 +386,7 @@ export async function writeSpecs(
         fixCrossDirectoryImports(
           opSchemas,
           regularSchemaNames,
-          schemaPath,
+          schemasPath,
           output.operationSchemas,
           output.namingConvention,
           fileExtension,
@@ -301,7 +395,7 @@ export async function writeSpecs(
         fixRegularSchemaImports(
           regularSchemas,
           operationSchemaNames,
-          schemaPath,
+          schemasPath,
           output.operationSchemas,
           output.namingConvention,
           fileExtension,
@@ -311,7 +405,7 @@ export async function writeSpecs(
         // Write regular schemas to schemas path
         if (regularSchemas.length > 0) {
           await writeSchemas({
-            schemaPath,
+            schemaPath: schemasPath,
             schemas: regularSchemas,
             target,
             namingConvention: output.namingConvention,
@@ -340,7 +434,7 @@ export async function writeSpecs(
           // Add re-export from operations in the main schemas index
           if (output.indexFiles) {
             await addOperationSchemasReExport(
-              schemaPath,
+              schemasPath,
               output.operationSchemas,
               header,
             );
@@ -348,7 +442,7 @@ export async function writeSpecs(
         }
       } else {
         await writeSchemas({
-          schemaPath,
+          schemaPath: schemasPath,
           schemas,
           target,
           namingConvention: output.namingConvention,
@@ -358,114 +452,6 @@ export async function writeSpecs(
           tsconfig: output.tsconfig,
           factoryOutputDirectory: output.factoryMethods?.outputDirectory,
         });
-      }
-    } else {
-      const schemaType = output.schemas.type;
-
-      if (schemaType === 'typescript') {
-        const fileExtension = output.fileExtension || '.ts';
-
-        // Split schemas if operationSchemas path is configured
-        if (output.operationSchemas) {
-          const { regularSchemas, operationSchemas: opSchemas } =
-            splitSchemasByType(schemas);
-
-          // Fix cross-directory imports before writing (both directions)
-          const regularSchemaNames = new Set(regularSchemas.map((s) => s.name));
-          const operationSchemaNames = new Set(opSchemas.map((s) => s.name));
-          fixCrossDirectoryImports(
-            opSchemas,
-            regularSchemaNames,
-            output.schemas.path,
-            output.operationSchemas,
-            output.namingConvention,
-            fileExtension,
-            output.tsconfig,
-          );
-          fixRegularSchemaImports(
-            regularSchemas,
-            operationSchemaNames,
-            output.schemas.path,
-            output.operationSchemas,
-            output.namingConvention,
-            fileExtension,
-            output.tsconfig,
-          );
-
-          if (regularSchemas.length > 0) {
-            await writeSchemas({
-              schemaPath: output.schemas.path,
-              schemas: regularSchemas,
-              target,
-              namingConvention: output.namingConvention,
-              fileExtension,
-              header,
-              indexFiles: output.indexFiles,
-              tsconfig: output.tsconfig,
-              factoryOutputDirectory: output.factoryMethods?.outputDirectory,
-            });
-          }
-
-          if (opSchemas.length > 0) {
-            await writeSchemas({
-              schemaPath: output.operationSchemas,
-              schemas: opSchemas,
-              target,
-              namingConvention: output.namingConvention,
-              fileExtension,
-              header,
-              indexFiles: output.indexFiles,
-              tsconfig: output.tsconfig,
-              factoryOutputDirectory: output.factoryMethods?.outputDirectory,
-            });
-
-            // Add re-export from operations in the main schemas index
-            if (output.indexFiles) {
-              await addOperationSchemasReExport(
-                output.schemas.path,
-                output.operationSchemas,
-                header,
-              );
-            }
-          }
-        } else {
-          await writeSchemas({
-            schemaPath: output.schemas.path,
-            schemas,
-            target,
-            namingConvention: output.namingConvention,
-            fileExtension,
-            header,
-            indexFiles: output.indexFiles,
-            tsconfig: output.tsconfig,
-            factoryOutputDirectory: output.factoryMethods?.outputDirectory,
-          });
-        }
-      } else {
-        // schemaType === 'zod'
-        const fileExtension = '.zod.ts';
-
-        await writeZodSchemas(
-          builder,
-          output.schemas.path,
-          fileExtension,
-          header,
-          output,
-        );
-
-        await writeZodSchemasFromVerbs(
-          builder.verbOptions,
-          output.schemas.path,
-          fileExtension,
-          header,
-          output,
-          {
-            spec: builder.spec,
-            target: builder.target,
-            workspace,
-            output,
-          },
-        );
       }
     }
   }
@@ -479,10 +465,48 @@ export async function writeSpecs(
 
   if (output.target) {
     const writeMode = getWriteMode(output.mode);
-    const isZodClient = output.client === 'zod';
     const hasOperations = Object.keys(builder.operations).length > 0;
-    const needZodSchemasInline =
-      isZodClient && !output.schemas && !hasOperations;
+    const needZodSchemasInline = shouldGenerateZodSchemasInline(
+      output,
+      hasOperations,
+    );
+    // The zod client's `import * as zod from 'zod'` is a *usage-gated* dependency
+    // import: it's only emitted when an operation's generated schema actually
+    // references the `zod` token. When every operation is a pure-`$ref` alias
+    // (e.g. `export const FooResponse = Bar`), the client emits no zod import —
+    // so the inline schema block (which always uses zod) must supply it itself.
+    // When an operation does use zod the client already imports it, and a second
+    // import would redeclare the `zod` binding — so the inline block omits it.
+    const operationsUseZod = Object.values(builder.operations).some(
+      (operation) => /\bzod\b/.test(operation.implementation),
+    );
+    const includeZodImport = !operationsUseZod;
+
+    // Inline component schemas (when `generateReusableSchemas` is on without a
+    // dedicated `output.schemas` dir) need their own `paramsMutator` resolved
+    // relative to `output.target`. Per-operation mutators in `generateZodRoute`
+    // don't cover the shared `export const Pet = …` definitions emitted here,
+    // so without this the inlined components would silently skip injection.
+    const inlineSchemasParamsMutator =
+      needZodSchemasInline && output.override.zod.params
+        ? await generateMutator({
+            output: output.target,
+            mutator: output.override.zod.params,
+            name: 'zodParams',
+            workspace,
+            tsconfig: output.tsconfig,
+          })
+        : undefined;
+    // Every non-`single` mode (`split` / `tags` / `tags-split`) writes inline
+    // schemas to a separate `.schemas` file alongside the operation file(s),
+    // so they need their own params-mutator import. Only in `single` mode do
+    // the schemas concatenate into the operation file and inherit its import
+    // (emitted via each verb's `mutators` array in `generateZodRoute`) — re-
+    // emitting from inline would produce a duplicate `import` line there.
+    // With no operations at all, even in `single` mode the file builder has
+    // no operation mutators to lean on, so we still emit.
+    const isSchemasInSeparateFile = output.mode !== OutputMode.SINGLE;
+    const includeParamsImport = !hasOperations || isSchemasInSeparateFile;
 
     implementationPaths = await writeMode({
       builder,
@@ -490,9 +514,16 @@ export async function writeSpecs(
       output,
       projectName,
       header,
-      needSchema: (!output.schemas && !isZodClient) || needZodSchemasInline,
+      needSchema: shouldGenerateSchemas(output, hasOperations),
       generateSchemasInline: needZodSchemasInline
-        ? () => generateZodSchemasInline(builder, output)
+        ? () =>
+            generateZodSchemasInline(
+              builder,
+              output,
+              includeZodImport,
+              inlineSchemasParamsMutator,
+              includeParamsImport,
+            )
         : undefined,
     });
   }

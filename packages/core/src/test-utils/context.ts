@@ -1,5 +1,6 @@
 import {
   type ContextSpec,
+  type DynamicScopeEntry,
   EnumGeneration,
   FormDataArrayHandling,
   NamingConvention,
@@ -15,6 +16,7 @@ interface CreateTestContextSpecOptions {
   spec?: Partial<ContextSpec['spec']>;
   output?: Partial<ContextSpec['output']>;
   override?: Partial<ContextSpec['output']['override']>;
+  dynamicScope?: Partial<Record<string, DynamicScopeEntry>>;
 }
 
 export function createTestContextSpec({
@@ -23,11 +25,13 @@ export function createTestContextSpec({
   spec,
   output,
   override,
+  dynamicScope,
 }: CreateTestContextSpecOptions = {}): ContextSpec {
   const baseOutput: ContextSpec['output'] = {
     target: '',
     namingConvention: NamingConvention.CAMEL_CASE,
     fileExtension: '.ts',
+    schemaFileExtension: '.ts',
     mode: OutputMode.SINGLE,
     mock: { indexMockFiles: false, generators: [] },
     client: OutputClient.FETCH,
@@ -66,7 +70,12 @@ export function createTestContextSpec({
         parameters: { suffix: '' },
         requestBodies: { suffix: '' },
       },
-      hono: { compositeRoute: '', validator: false, validatorOutputPath: '' },
+      hono: {
+        handlerGenerationStrategy: 'smart',
+        compositeRoute: '',
+        validator: false,
+        validatorOutputPath: '',
+      },
       query: {
         useQuery: false,
         useSuspenseQuery: false,
@@ -81,6 +90,7 @@ export function createTestContextSpec({
         shouldExportMutatorHooks: false,
         shouldExportHttpClient: false,
         shouldExportQueryKey: false,
+        shouldFilterQueryKey: false,
         shouldSplitQueryKey: false,
         useOperationIdAsQueryKey: false,
         signal: false,
@@ -116,8 +126,28 @@ export function createTestContextSpec({
         },
         generateEachHttpStatus: false,
         useBrandedTypes: false,
+        generateReusableSchemas: false,
+        generateMeta: false,
         dateTimeOptions: {},
         timeOptions: { precision: 3 },
+      },
+      effect: {
+        strict: {
+          param: false,
+          query: false,
+          header: false,
+          body: false,
+          response: false,
+        },
+        generate: {
+          param: false,
+          query: false,
+          header: false,
+          body: false,
+          response: false,
+        },
+        generateEachHttpStatus: false,
+        useBrandedTypes: false,
       },
       fetch: {
         includeHttpResponseReturnType: false,
@@ -152,5 +182,6 @@ export function createTestContextSpec({
         ...override,
       },
     },
+    dynamicScope,
   };
 }

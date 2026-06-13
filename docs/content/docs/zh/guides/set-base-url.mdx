@@ -1,0 +1,40 @@
+---
+title: Custom Base URL
+description: 为 API 客户端配置 base URL
+---
+
+base URL 决定生成客户端请求哪个 API 主机。不同运行环境通常需要不同地址，因此建议把环境差异放在运行时配置或自定义客户端中。
+
+## 配置
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      baseUrl: 'https://api.example.com',
+    },
+  },
+});
+```
+
+## 从 OpenAPI 规范读取
+
+OpenAPI `servers` 字段可以作为默认 base URL 来源。需要与规范保持一致时可以使用这种方式。
+
+## 运行时 base URL
+
+前端项目常常需要按环境切换地址。此时推荐在 mutator 中读取环境变量或运行时配置。
+
+## HTTP Client 配置
+
+### Axios
+
+在 Axios 实例中设置 `baseURL`。
+
+### Fetch Client
+
+在自定义 fetch mutator 中拼接 base URL。
+
+### Angular HTTP Client
+
+在 Angular 中可以通过 provider、environment 或 service 注入 base URL。

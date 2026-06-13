@@ -10,14 +10,19 @@
     "tanstack",
     "zods"
   ],
-  "files.associations": {
-    "turbo.json": "jsonc"
-  },
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "eslint.enable": false,
+  "prettier.enable": false,
   "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "file",
+  "editor.defaultFormatter": "oxc.oxc-vscode",
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit"
+    "source.fixAll.oxc": "explicit"
   },
-  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+  "npm.scriptRunner": "vp",
+  "[mdx]": {
+    "editor.defaultFormatter": "unifiedjs.vscode-mdx"
+  },
   "debug.javascript.terminalOptions": {
     "skipFiles": [
       "**/node_modules/**",
@@ -25,16 +30,5 @@
       "**/node/corepack/**"
     ]
   },
-  "[mdx]": {
-    "editor.defaultFormatter": "unifiedjs.vscode-mdx"
-  },
-  "[yaml]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[markdown]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[html]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+  "oxc.fmt.configPath": "./vite.config.ts"
 }

@@ -6,9 +6,13 @@ import {
   type GeneratorOptions,
   type GeneratorVerbOptions,
   GetterPropType,
+  getFullRoute,
+  getRouteAsArray,
   type InvalidateTarget,
   type InvalidateTargetParam,
   isString,
+  type NormalizedOutputOptions,
+  type OpenApiServerObject,
   type OutputHttpClient,
   pascal,
   type Verbs,
@@ -151,6 +155,65 @@ const getStaticRoutePrefix = (route: string): string | undefined => {
   return hasLiteralSegment ? prefix : undefined;
 };
 
+export const getMutationOptionsUrl = (
+  route: string,
+  pathParamNames: Iterable<string>,
+  pathRoute?: string,
+): string => {
+  const pathParams = new Set(pathParamNames);
+  if (pathParams.size === 0) return route;
+
+  const formatPathRoute = (value: string) =>
+    value.replace(/\$\{([^}]+)\}/g, (match, expression: string) =>
+      pathParams.has(expression) ? `{${expression}}` : match,
+    );
+
+  if (pathRoute) {
+    if (route.endsWith(pathRoute)) {
+      return `${route.slice(0, -pathRoute.length)}${formatPathRoute(
+        pathRoute,
+      )}`;
+    }
+
+    const routeWithoutLeadingSlash = pathRoute.startsWith('/')
+      ? pathRoute.slice(1)
+      : undefined;
+    if (routeWithoutLeadingSlash && route.endsWith(routeWithoutLeadingSlash)) {
+      return `${route.slice(
+        0,
+        -routeWithoutLeadingSlash.length,
+      )}${formatPathRoute(routeWithoutLeadingSlash)}`;
+    }
+  }
+
+  return pathRoute ? route : formatPathRoute(route);
+};
+
+const getMutationOptionsNamedPathParamName = (param: string) => {
+  const trimmedParam = param.trim();
+  if (!trimmedParam || trimmedParam.startsWith('...')) return undefined;
+
+  const [name] = trimmedParam.split(/[=:]/);
+  return name?.trim() || undefined;
+};
+
+export const getMutationOptionsPathParamNames = (
+  props: GeneratorVerbOptions['props'],
+) =>
+  props.flatMap((prop) => {
+    if (prop.type === GetterPropType.PARAM) return [prop.name];
+    if (prop.type === GetterPropType.NAMED_PATH_PARAMS) {
+      return prop.destructured
+        .replace(/^\{\s*|\s*\}$/g, '')
+        .split(',')
+        .flatMap((param) => {
+          const name = getMutationOptionsNamedPathParamName(param);
+          return name ? [name] : [];
+        });
+    }
+    return [];
+  });
+
 /**
  * Check whether the target invalidation needs to call the query key function.
  * Returns false when no params are specified and the route has required path
@@ -203,6 +266,16 @@ const generateParamArgs = (
 };
 
 /**
+ * Build the code-literal form of a static route prefix for use inside a
+ * `.startsWith(...)` predicate. A prefix derived from a runtime `baseUrl`
+ * contains a `${...}` interpolation, so it must be emitted as a template
+ * literal; otherwise a plain single-quoted string is enough and keeps the
+ * output byte-identical to the no-baseUrl case.
+ */
+const toPrefixLiteral = (prefix: string): string =>
+  prefix.includes('${') ? `\`${prefix}\`` : `'${prefix}'`;
+
+/**
  * Create a generateInvalidateCall function that has access to the OpenAPI spec
  * for intelligent route-based invalidation when params are not specified.
  */
@@ -210,6 +283,8 @@ const createGenerateInvalidateCall = (
   spec: Record<string, unknown> | undefined,
   shouldSplitQueryKey: boolean,
   useOperationIdAsQueryKey: boolean,
+  baseUrl: NormalizedOutputOptions['baseUrl'],
+  servers: OpenApiServerObject[] | undefined,
 ) => {
   return (target: NormalizedTarget): string => {
     const method =
@@ -234,6 +309,12 @@ const createGenerateInvalidateCall = (
       // starts with a path param like /{tenantId}/...), fall through to
       // the zero-arg call rather than generating an overly-broad match.
       if (prefix !== undefined) {
+        // Issue #3534: the generated query keys are built from the full route
+        // (`getFullRoute` prepends `baseUrl`), so the broad-invalidation
+        // prefix must carry the same `baseUrl` – otherwise the predicate /
+        // partial key never matches a baseUrl-prefixed cache key. `prefix`
+        // has no path params, so `getFullRoute` just concatenates the base.
+        const prefixWithBase = getFullRoute(prefix, servers, baseUrl);
         // Mirror the verb prefix that `getQueryKeyVerbPrefix` injects into
         // non-GET Query keys; without this, the predicate / partial key
         // would never match a verb-prefixed cache key and the broad
@@ -251,12 +332,11 @@ const createGenerateInvalidateCall = (
         if (shouldSplitQueryKey) {
           // Split-key mode: query keys are arrays like ['pets', petId]
           // (or ['DELETE', 'pets', petId] for non-GET Query keys).
-          // Use partial key matching with static route segments.
-          const segments = prefix
-            .split('/')
-            .filter((s) => s !== '')
-            .map((s) => `'${s}'`)
-            .join(', ');
+          // Use partial key matching with static route segments. Reuse
+          // `getRouteAsArray` so baseUrl-derived segments are produced the
+          // same way as the query key (e.g. a runtime baseUrl is emitted as
+          // an unquoted expression, a static one as quoted literals).
+          const segments = getRouteAsArray(prefixWithBase);
           const keyArr = verbPrefix
             ? `['${verbPrefix}', ${segments}]`
             : `[${segments}]`;
@@ -267,10 +347,11 @@ const createGenerateInvalidateCall = (
         // ['/pets/${petId}'] (or ['DELETE', '/pets/${petId}'] for non-GET
         // Query keys). Use a predicate that knows where the route segment
         // lives in the tuple.
+        const prefixLiteral = toPrefixLiteral(prefixWithBase);
         if (verbPrefix) {
-          return `    queryClient.${method}({ predicate: (query) => query.queryKey[0] === '${verbPrefix}' && typeof query.queryKey[1] === 'string' && query.queryKey[1].startsWith('${prefix}') });`;
+          return `    queryClient.${method}({ predicate: (query) => query.queryKey[0] === '${verbPrefix}' && typeof query.queryKey[1] === 'string' && query.queryKey[1].startsWith(${prefixLiteral}) });`;
         }
-        return `    queryClient.${method}({ predicate: (query) => typeof query.queryKey[0] === 'string' && query.queryKey[0].startsWith('${prefix}') });`;
+        return `    queryClient.${method}({ predicate: (query) => typeof query.queryKey[0] === 'string' && query.queryKey[0].startsWith(${prefixLiteral}) });`;
       }
     }
 
@@ -307,6 +388,7 @@ export const generateMutationHook = async ({
     mutator,
     response,
     operationId,
+    route: pathRoute,
     override,
   } = verbOptions;
   const { route, context, output } = options;
@@ -342,6 +424,7 @@ export const generateMutationHook = async ({
     response,
     httpClient,
     mutator,
+    override.fetch.forceSuccessResponse,
   );
 
   const dataType = mutator?.isHook
@@ -452,6 +535,10 @@ ${
           context.spec,
           !!query.shouldSplitQueryKey,
           !!query.useOperationIdAsQueryKey,
+          // `options.output` is the target file path (a string); the
+          // normalized output – and thus `baseUrl` – lives on `context.output`.
+          context.output.baseUrl,
+          context.spec.servers,
         ),
         uniqueInvalidates,
       })
@@ -464,7 +551,11 @@ ${
                 mutationOptionsMutator.name
               }({...mutationOptions, mutationFn}${
                 mutationOptionsMutator.hasSecondArg
-                  ? `, { url: \`${route.replaceAll('/${', '/{')}\` }`
+                  ? `, { url: \`${getMutationOptionsUrl(
+                      route,
+                      getMutationOptionsPathParamNames(props),
+                      pathRoute,
+                    )}\` }`
                   : ''
               }${
                 mutationOptionsMutator.hasThirdArg

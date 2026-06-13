@@ -14,6 +14,33 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  issue3321: {
+    output: {
+      target: '../generated/fetch/issue-3321/endpoints.ts',
+      schemas: '../generated/fetch/issue-3321/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3321/spec.yaml',
+    },
+  },
+  issue3327: {
+    output: {
+      target: '../generated/fetch/issue-3327/endpoints.ts',
+      schemas: '../generated/fetch/issue-3327/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3327/spec.yaml',
+      override: {
+        transformer: '../transformers/issue-3327-inject-external-ref.js',
+      },
+    },
+  },
   mutator: {
     output: {
       target: '../generated/fetch/mutator/endpoints.ts',
@@ -113,6 +140,27 @@ export default defineConfig({
     output: {
       target: '../generated/fetch/named-parameters/endpoints.ts',
       schemas: '../generated/fetch/named-parameters/model',
+      client: 'fetch',
+      override: {
+        useNamedParameters: true,
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // Issue: `useNamedParameters` + zod schema output. The client references a
+  // named `${Op}PathParameters` type, which must be emitted as a zod schema
+  // (with companion `zod.input` type) instead of a plain TS type.
+  namedParametersZod: {
+    output: {
+      target: '../generated/fetch/named-parameters-zod/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/named-parameters-zod/model',
+        type: 'zod',
+      },
       client: 'fetch',
       override: {
         useNamedParameters: true,

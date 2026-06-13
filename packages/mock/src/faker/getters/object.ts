@@ -2,11 +2,11 @@ import {
   type ContextSpec,
   type GeneratorImport,
   getKey,
+  getRefInfo,
   isReference,
   type MockOptions,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
-  pascal,
   PropertySortOrder,
 } from '@orval/core';
 
@@ -17,10 +17,13 @@ import { combineSchemasMock } from './combine';
 
 export const overrideVarName = 'overrideResponse';
 
-function getReferenceName(ref?: string): string {
+function getReferenceName(
+  ref: string | undefined,
+  context: ContextSpec,
+): string {
   if (!ref) return '';
 
-  return pascal(ref.split('/').pop() ?? '');
+  return getRefInfo(ref, context).name;
 }
 
 interface GetMockObjectOptions {
@@ -37,6 +40,9 @@ interface GetMockObjectOptions {
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
+  // Tracks the current contiguous `allOf` composition to break cyclic
+  // inheritance. See `existingReferencedAllOfRefs` docs in getters/combine.ts.
+  existingReferencedAllOfRefs?: string[];
   splitMockImplementations: string[];
   // This is used to add the overrideResponse to the object
   allowOverride?: boolean;
@@ -51,6 +57,7 @@ export function getMockObject({
   context,
   imports,
   existingReferencedProperties,
+  existingReferencedAllOfRefs = [],
   splitMockImplementations,
   allowOverride = false,
 }: GetMockObjectOptions): MockDefinition {
@@ -67,6 +74,7 @@ export function getMockObject({
       context,
       imports,
       existingReferencedProperties,
+      existingReferencedAllOfRefs,
       splitMockImplementations,
     });
   }
@@ -98,6 +106,7 @@ export function getMockObject({
       context,
       imports,
       existingReferencedProperties,
+      existingReferencedAllOfRefs,
       splitMockImplementations,
     });
   }
@@ -125,6 +134,7 @@ export function getMockObject({
       context,
       imports,
       existingReferencedProperties,
+      existingReferencedAllOfRefs,
       splitMockImplementations,
     });
   }
@@ -163,7 +173,9 @@ export function getMockObject({
           // Fixes issue #910
           if (
             isReference(prop) &&
-            existingReferencedProperties.includes(getReferenceName(prop.$ref))
+            existingReferencedProperties.includes(
+              getReferenceName(prop.$ref, context),
+            )
           ) {
             if (isRequired) {
               const keyDefinition = getKey(key);
@@ -176,6 +188,7 @@ export function getMockObject({
             schema: {
               ...(prop as Record<string, unknown>),
               name: key,
+              parentName: schemaItem.name,
               path: schemaItem.path ? `${schemaItem.path}.${key}` : `#.${key}`,
             },
             mockOptions,
@@ -184,6 +197,10 @@ export function getMockObject({
             context,
             imports,
             existingReferencedProperties,
+            // A property value is a fresh mock instance, not part of this
+            // object's allOf composition — reset the chain.
+            // See `existingReferencedAllOfRefs` docs in getters/combine.ts.
+            existingReferencedAllOfRefs: [],
             splitMockImplementations,
           });
 
@@ -195,13 +212,19 @@ export function getMockObject({
           const hasDefault = 'default' in prop && prop.default !== undefined;
 
           if (!isRequired && !resolvedValue.overrided && !hasDefault) {
-            const nullValue = hasNullable ? 'null' : 'undefined';
-            return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, ${nullValue}])`;
+            const omitValue =
+              mockOptions?.nonNullable || !hasNullable ? 'undefined' : 'null';
+            return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, ${omitValue}])`;
           }
 
           const isNullable =
             Array.isArray(prop.type) && prop.type.includes('null');
-          if (isNullable && !resolvedValue.overrided) {
+          if (
+            isNullable &&
+            !resolvedValue.nullWrapped &&
+            !resolvedValue.overrided &&
+            !mockOptions?.nonNullable
+          ) {
             return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, null])`;
           }
 
@@ -236,7 +259,7 @@ export function getMockObject({
     if (
       isReference(additionalProperties) &&
       existingReferencedProperties.includes(
-        getReferenceName(additionalProperties.$ref),
+        getReferenceName(additionalProperties.$ref, context),
       )
     ) {
       return { value: `{}`, imports: [], name: schemaItem.name };
@@ -254,6 +277,10 @@ export function getMockObject({
       context,
       imports,
       existingReferencedProperties,
+      // An additionalProperties value is a fresh mock instance — reset the
+      // chain, as with property values above.
+      // See `existingReferencedAllOfRefs` docs in getters/combine.ts.
+      existingReferencedAllOfRefs: [],
       splitMockImplementations,
     });
 

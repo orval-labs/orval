@@ -78,10 +78,13 @@ export const listPetsHandlers = factory.createHandlers(
 
 Add your business logic to the generated handlers:
 
-> Re-running orval refreshes the file header, imports, and `factory` line so
-> changes to your config (paths, validators, etc.) take effect — but the body
-> of each `factory.createHandlers(...)` call is preserved verbatim, so your
-> business logic is safe across regeneration.
+> Re-running orval reconciles your handler files according to
+> [`override.hono.handlerGenerationStrategy`](/docs/reference/configuration/output#handlergenerationstrategy)
+> (default `smart`). With `smart`, orval only updates the parts it owns — its own
+> imports (names, paths, casing) and the `zValidator(...)` arguments, and appends
+> handlers for new operations — while preserving your custom imports, middleware,
+> handler bodies, and top-level helpers. Use `skip` to freeze a file, or `full`
+> for the legacy behavior that rebuilds the wrapper and keeps only the body.
 
 ```ts title="src/handlers/listPets.ts"
 export const listPetsHandlers = factory.createHandlers(

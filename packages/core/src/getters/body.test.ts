@@ -221,6 +221,120 @@ describe('getBody', () => {
 
     expect(result.isOptional).toBe(true);
   });
+
+  describe('x-codegen-request-body-name', () => {
+    it('uses custom name from inline request body extension', () => {
+      const result = getBody({
+        requestBody: {
+          'x-codegen-request-body-name': 'petData',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+          },
+          required: true,
+        },
+        operationName: 'createPet',
+        context: createContext(),
+      });
+
+      expect(result.implementation).toBe('petData');
+    });
+
+    it('uses custom name from referenced request body extension', () => {
+      const context = createContext();
+      context.spec.components = {
+        ...context.spec.components,
+        requestBodies: {
+          CreatePetBody: {
+            'x-codegen-request-body-name': 'resource',
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: { name: { type: 'string' } },
+                },
+              },
+            },
+          },
+        },
+      };
+
+      const result = getBody({
+        requestBody: { $ref: '#/components/requestBodies/CreatePetBody' },
+        operationName: 'createPet',
+        context,
+      });
+
+      expect(result.implementation).toBe('resource');
+    });
+
+    it('falls back to default naming when extension is absent', () => {
+      const result = getBody({
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+          },
+          required: true,
+        },
+        operationName: 'createPet',
+        context: createContext(),
+      });
+
+      expect(result.implementation).toBe('createPetBody');
+    });
+
+    it('sanitizes the extension value through standard naming pipeline', () => {
+      const result = getBody({
+        requestBody: {
+          'x-codegen-request-body-name': 'my-body',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+          },
+          required: true,
+        },
+        operationName: 'createPet',
+        context: createContext(),
+      });
+
+      expect(result.implementation).toBe('myBody');
+    });
+
+    it('falls back to default naming when extension is non-string', () => {
+      const result = getBody({
+        requestBody: {
+          'x-codegen-request-body-name': 123 as unknown as string,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+          },
+          required: true,
+        },
+        operationName: 'createPet',
+        context: createContext(),
+      });
+
+      expect(result.implementation).toBe('createPetBody');
+    });
+  });
 });
 
 describe('getBodiesByContentType', () => {

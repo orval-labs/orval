@@ -105,3 +105,16 @@ export function getRefInfo($ref: string, context: ContextSpec): RefInfo {
     refPaths,
   };
 }
+
+/**
+ * Extracts the anchor name from a fragment-only `$dynamicRef` (e.g. `#category` → `category`).
+ *
+ * Returns `undefined` for external-document `$dynamicRef` values (e.g. `other.json#anchor`)
+ * which are not supported.
+ */
+export function getDynamicAnchorName(dynamicRef: string): string | undefined {
+  if (!dynamicRef.startsWith('#') || dynamicRef.length <= 1) {
+    return undefined;
+  }
+  return dynamicRef.slice(1);
+}

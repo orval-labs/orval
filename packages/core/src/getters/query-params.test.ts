@@ -136,6 +136,47 @@ describe('getQueryParams getter', () => {
     });
   }
 
+  it('uses x-enum-varnames on the parameter itself for primitive enums (post Swagger 2 upgrade)', () => {
+    // After Swagger 2 → OAS 3 upgrade, primitive enum params end up with
+    // `schema` holding the type/enum but `x-enum-varnames` left at the
+    // parameter level.
+    const constContext = createTestContextSpec({
+      override: {
+        enumGenerationType: EnumGeneration.CONST,
+      },
+    });
+
+    const result = getQueryParams({
+      queryParams: [
+        {
+          parameter: {
+            name: 'sortBy',
+            in: 'query',
+            schema: {
+              type: 'integer',
+              enum: [0, 1, 2],
+            },
+            // @ts-expect-error vendor extension
+            'x-enum-varnames': [
+              'SORT_BY_UNSPECIFIED',
+              'SORT_BY_START',
+              'SORT_BY_END',
+            ],
+          },
+          imports: [],
+        },
+      ],
+      operationName: 'list',
+      context: constContext,
+    });
+
+    const enumDep = result?.deps[0];
+    expect(enumDep?.model).toContain('SORT_BY_UNSPECIFIED: 0');
+    expect(enumDep?.model).toContain('SORT_BY_START: 1');
+    expect(enumDep?.model).toContain('SORT_BY_END: 2');
+    expect(enumDep?.model).not.toContain('NUMBER_');
+  });
+
   it('queryParamWithDescription should be documented', () => {
     const result = getQueryParams({
       queryParams: [

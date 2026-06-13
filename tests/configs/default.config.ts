@@ -436,6 +436,25 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  indexMockFileSplit: {
+    output: {
+      target: '../generated/default/index-mock-file-split/endpoints.ts',
+      schemas: '../generated/default/index-mock-file-split/model',
+      client: 'fetch',
+      // Both generators so split mode emits `index.msw.ts` AND `index.faker.ts`,
+      // exercising the per-extension barrel loop (not just the single MSW case).
+      mock: {
+        indexMockFiles: true,
+        generators: [{ type: 'msw' }, { type: 'faker' }],
+      },
+      mode: 'split',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   petstoreNamingConventionCamelCase: {
     input: '../specifications/petstore.yaml',
     output: {
@@ -595,6 +614,15 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  'jsdoc-formatting': {
+    input: '../specifications/jsdoc-formatting.yaml',
+    output: {
+      target: '../generated/default/jsdoc-formatting/endpoints.ts',
+      schemas: '../generated/default/jsdoc-formatting/model',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
   'multi-files-with-same-import-names': {
     output: {
       target:
@@ -726,6 +754,20 @@ export default defineConfig({
       target: '../specifications/issue-1935/issue-1935.yaml',
     },
   },
+  'issue-2206-msw-info-typing': {
+    output: {
+      target: '../generated/default/issue-2206-msw-info-typing/endpoints.ts',
+      schemas: '../generated/default/issue-2206-msw-info-typing/model',
+      mode: 'split',
+      client: 'react-query',
+      mock: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-2206.yaml',
+    },
+  },
   'boolean-discriminator': {
     output: {
       target: '../generated/default/boolean-discriminator/endpoints.ts',
@@ -780,6 +822,15 @@ export default defineConfig({
       mode: 'split',
       client: 'react-query',
       fileExtension: '.generated.ts',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
+  'issue-3505': {
+    input: '../specifications/issue-3505.yaml',
+    output: {
+      target: '../generated/default/issue-3505/endpoints.ts',
+      schemas: '../generated/default/issue-3505/model',
       clean: true,
       formatter: 'prettier',
     },

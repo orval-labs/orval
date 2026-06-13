@@ -17,6 +17,16 @@ import {
 
 import { getDelay } from '../delay';
 import { getRouteMSW, overrideVarName } from '../faker/getters';
+import {
+  applyStrictMockReturnType,
+  collectStrictMockSchemaTypeNamesFromImplementation,
+  formatMockFactoryDeclaration,
+  getMockFactorySignatureParts,
+  getSchemaTypeNamesFromResponses,
+  getSimpleSchemaReturnType,
+  isStrictMock,
+  mergeStrictMockSchemaTypeNames,
+} from '../mock-types';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
 
 function getMSWDependencies(
@@ -227,12 +237,54 @@ function generateDefinition(
     hasStringReturnType &&
     mockReturnType !== 'string';
 
+  const mockOptionsFromOverride = override.mock;
+  const strictMock = isStrictMock(mockOptionsFromOverride);
+  const schemaTypeNames = strictMock
+    ? getSchemaTypeNamesFromResponses(responses)
+    : [];
+  const strictMockReturnType = strictMock
+    ? applyStrictMockReturnType(nonVoidMockReturnType, schemaTypeNames)
+    : nonVoidMockReturnType;
+  const simpleSchemaReturnType = strictMock
+    ? getSimpleSchemaReturnType(nonVoidMockReturnType, schemaTypeNames)
+    : undefined;
+
+  let mockFactoryParam = '';
+  let mockFactoryReturnType = nonVoidMockReturnType;
+  let mockFactoryReturnCast = '';
+
+  if (isResponseOverridable) {
+    if (strictMock && simpleSchemaReturnType) {
+      const signature = getMockFactorySignatureParts(
+        simpleSchemaReturnType,
+        mockOptionsFromOverride,
+        {
+          isOverridable: true,
+          overrideType: overrideResponseType,
+        },
+      );
+      mockFactoryParam = signature.param;
+      mockFactoryReturnType = signature.returnType;
+      mockFactoryReturnCast = signature.returnCast;
+    } else {
+      mockFactoryParam = `overrideResponse: ${overrideResponseType} = {}`;
+      mockFactoryReturnType = strictMock
+        ? strictMockReturnType
+        : nonVoidMockReturnType;
+    }
+  } else if (strictMock) {
+    mockFactoryReturnType = strictMockReturnType;
+  }
+
   const mockImplementation = isReturnHttpResponse
-    ? `${mockImplementations}export const ${getResponseMockFunctionName} = (${
-        isResponseOverridable
-          ? `overrideResponse: ${overrideResponseType} = {}`
-          : ''
-      })${mockData ? '' : `: ${nonVoidMockReturnType}`} => (${value})\n\n`
+    ? `${mockImplementations}${formatMockFactoryDeclaration(
+        getResponseMockFunctionName,
+        mockFactoryParam,
+        mockFactoryReturnType,
+        value,
+        mockFactoryReturnCast,
+        { omitReturnType: Boolean(mockData) },
+      )}\n\n`
     : mockImplementations;
 
   const delay = getDelay(override, isFunction(mock) ? undefined : mock);
@@ -375,6 +427,16 @@ export const ${handlerName} = (overrideResponse?: ${mockReturnType} | ((${infoPa
       handler: handlerImplementation,
     },
     imports: includeResponseImports,
+    strictMockSchemaTypeNames: strictMock
+      ? mergeStrictMockSchemaTypeNames(
+          schemaTypeNames,
+          // Nested split factories: see collectStrictMockSchemaTypeNamesFromImplementation
+          // re regex-coupling note — prefer threading names from getters long-term.
+          collectStrictMockSchemaTypeNamesFromImplementation(
+            mockImplementation,
+          ),
+        )
+      : undefined,
   };
 }
 
@@ -383,7 +445,7 @@ export function generateMSW(
   generatorOptions: GeneratorOptions,
 ): ClientMockGeneratorBuilder {
   const { pathRoute, override, mock } = generatorOptions;
-  const { operationId, response } = generatorVerbOptions;
+  const { operationName, response } = generatorVerbOptions;
 
   const overrideBaseUrl =
     override.mock && 'baseUrl' in override.mock
@@ -392,8 +454,12 @@ export function generateMSW(
   const mockBaseUrl = mock && isMswMock(mock) ? mock.baseUrl : undefined;
   const route = getRouteMSW(pathRoute, overrideBaseUrl ?? mockBaseUrl);
 
-  const handlerName = `get${pascal(operationId)}MockHandler`;
-  const getResponseMockFunctionName = `get${pascal(operationId)}ResponseMock`;
+  // Derive names from operationName (not operationId): splitByContentType keeps
+  // one operationId across variants but suffixes operationName (e.g. *WithJson /
+  // *WithFormData), and the client side already names functions from it. Using
+  // operationId here would emit duplicate handler names and break tsc. See #3342.
+  const handlerName = `get${pascal(operationName)}MockHandler`;
+  const getResponseMockFunctionName = `get${pascal(operationName)}ResponseMock`;
 
   const splitMockImplementations: string[] = [];
 
@@ -415,6 +481,9 @@ export function generateMSW(
   const mockImplementations = [baseDefinition.implementation.function];
   const handlerImplementations = [baseDefinition.implementation.handler];
   const imports = [...baseDefinition.imports];
+  const strictMockSchemaTypeNames = new Set(
+    baseDefinition.strictMockSchemaTypeNames,
+  );
 
   if (
     generatorOptions.mock &&
@@ -442,8 +511,13 @@ export function generateMSW(
       mockImplementations.push(definition.implementation.function);
       handlerImplementations.push(definition.implementation.handler);
       imports.push(...definition.imports);
+      for (const name of definition.strictMockSchemaTypeNames ?? []) {
+        strictMockSchemaTypeNames.add(name);
+      }
     }
   }
+
+  const aggregatedStrictNames = [...strictMockSchemaTypeNames];
 
   return {
     implementation: {
@@ -452,5 +526,7 @@ export function generateMSW(
       handler: handlerImplementations.join('\n'),
     },
     imports: imports,
+    strictMockSchemaTypeNames:
+      aggregatedStrictNames.length > 0 ? aggregatedStrictNames : undefined,
   };
 }

@@ -40,6 +40,13 @@ export interface NormalizedOutputOptions {
   operationSchemas?: string;
   namingConvention: NamingConvention;
   fileExtension: string;
+  /**
+   * File extension for schema artifacts (TS types or Zod schemas) under
+   * `schemas:`. Defaults to `.zod.ts` when the output is Zod schemas
+   * (`schemas: { type: 'zod' }` or `client: 'zod'` + `generateReusableSchemas`),
+   * otherwise `.ts`. A user-set `output.fileExtension` always wins.
+   */
+  schemaFileExtension: string;
   mode: OutputMode;
   // Always normalized to an object form; an empty `generators` array means
   // no mocks are emitted.
@@ -125,6 +132,7 @@ export interface NormalizedOverrideOutput {
   angular: NormalizedAngularOptions;
   swr: SwrOptions;
   zod: NormalizedZodOptions;
+  effect: NormalizedEffectOptions;
   fetch: NormalizedFetchOptions;
   operationName?: (
     operation: OpenApiOperationObject,
@@ -195,6 +203,7 @@ export interface NormalizedOperationOptions {
   angular?: NormalizedAngularOptions;
   swr?: SwrOptions;
   zod?: NormalizedZodOptions;
+  effect?: NormalizedEffectOptions;
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,
@@ -299,11 +308,13 @@ export interface NormalizedFactoryMethodsOptions {
 export interface SchemaOptions {
   path: string;
   type: SchemaGenerationType;
+  importPath?: string;
 }
 
 export interface NormalizedSchemaOptions {
   path: string;
   type: SchemaGenerationType;
+  importPath?: string;
 }
 
 export interface OutputOptions {
@@ -318,6 +329,14 @@ export interface OutputOptions {
   operationSchemas?: string;
   namingConvention?: NamingConvention;
   fileExtension?: string;
+  /**
+   * Optional file extension applied only to schema artifacts (TS types or
+   * Zod schemas) under `schemas:`. Takes precedence over `fileExtension`
+   * for schema files. Defaults to `.zod.ts` when the output is Zod schemas
+   * (`schemas: { type: 'zod' }` or `client: 'zod'` + `generateReusableSchemas`),
+   * otherwise mirrors `fileExtension`.
+   */
+  schemaFileExtension?: string;
   mode?: OutputMode;
   // Mocks config. Accepts:
   // - `true` shorthand: emits both msw + faker with defaults
@@ -347,6 +366,17 @@ export interface InputFiltersOptions {
   mode?: 'include' | 'exclude';
   tags?: (string | RegExp)[];
   schemas?: (string | RegExp)[];
+  /**
+   * When `tags` is set, orval limits the output to only the schemas referenced
+   * by the matching operations. Set this to `true` to keep every
+   * `#/components/schemas` entry (including unreferenced ones) while still
+   * filtering endpoints by `tags`. The other component sections (`responses`,
+   * `parameters`, `requestBodies`) remain pruned to what the matching
+   * operations use. Ignored when `schemas` is set.
+   *
+   * @default false
+   */
+  includeUnreferencedSchemas?: boolean;
 }
 
 export interface InputOptions {
@@ -383,6 +413,7 @@ export const OutputClient = {
   VUE_QUERY: 'vue-query',
   SWR: 'swr',
   ZOD: 'zod',
+  EFFECT: 'effect',
   HONO: 'hono',
   FETCH: 'fetch',
   MCP: 'mcp',
@@ -439,6 +470,10 @@ export interface CommonMockOptions {
   locale?: keyof typeof allLocales;
   // Selects which response schema is mocked when multiple content types exist
   preferredContentType?: string;
+  // Emit reusable mock factories for object-like array item schemas found in
+  // operation responses (e.g. `getTenantResponseModelDtoMock` for
+  // `value: TenantResponseModelDto[]`). Defaults to `false`.
+  arrayItems?: boolean;
 }
 
 export interface MswMockOptions extends CommonMockOptions {
@@ -449,6 +484,11 @@ export interface MswMockOptions extends CommonMockOptions {
   delay?: false | number | (() => number);
   // Execute the `delay` function at runtime rather than build time
   delayFunctionLazyExecute?: boolean;
+  // Custom output directory for MSW mock files. Overrides the shared
+  // `OutputMocksConfig.path` when set. When provided in `single` or `tags`
+  // modes, mock code is written to separate files instead of being inlined
+  // into the implementation file.
+  path?: string;
 }
 
 export interface FakerMockOptions extends CommonMockOptions {
@@ -461,6 +501,11 @@ export interface FakerMockOptions extends CommonMockOptions {
   // Defaults to `true`. Set to `false` together with `schemas: true` to get
   // only the consolidated schema factories.
   operationResponses?: boolean;
+  // Custom output directory for faker mock files. Overrides the shared
+  // `OutputMocksConfig.path` when set. When provided in `single` or `tags`
+  // modes, mock code is written to separate files instead of being inlined
+  // into the implementation file.
+  path?: string;
 }
 
 export type GlobalMockOptions = MswMockOptions | FakerMockOptions;
@@ -475,8 +520,16 @@ export type GlobalMockOptions = MswMockOptions | FakerMockOptions;
 //   }
 export interface OutputMocksConfig {
   // When true, emits one root-level `index.<ext>.ts` per generator entry
-  // (e.g. `index.msw.ts` and/or `index.faker.ts`) in tags-split mode
+  // (e.g. `index.msw.ts` and/or `index.faker.ts`) in `split` and `tags-split`
+  // modes. In `tags-split` it re-exports each per-tag mock; in `split` it
+  // re-exports the single mock file. Keeps mocks in a dedicated barrel so the
+  // models/production barrels never pull them in.
   indexMockFiles?: boolean;
+  // Shared output directory for all mock files. Individual generators can
+  // override this with their own `path` property. When provided in `single`
+  // or `tags` modes, mock code is written to separate files instead of being
+  // inlined into the implementation file.
+  path?: string;
   generators: (GlobalMockOptions | ClientMockBuilder)[];
 }
 
@@ -490,6 +543,7 @@ export type OutputMocksOption = boolean | OutputMocksConfig | ClientMockBuilder;
 // rest of the pipeline can iterate `generators` without branching on shape.
 export interface NormalizedMocksConfig {
   indexMockFiles: boolean;
+  path?: string;
   generators: (GlobalMockOptions | ClientMockBuilder)[];
 }
 
@@ -500,7 +554,8 @@ export type OverrideMockOptions = Partial<GlobalMockOptions> & {
   stringMax?: number;
   numberMin?: number;
   numberMax?: number;
-  required?: boolean;
+  required?: boolean; // When true, all properties are required (and thus not optional) in mocks.
+  nonNullable?: boolean; // When true, nullable mock values are never wrapped in `arrayElement([value, null])`.
   properties?: MockProperties;
   format?: Record<string, unknown>;
   fractionDigits?: number;
@@ -620,6 +675,7 @@ export interface OverrideOutput {
   swr?: SwrOptions;
   angular?: AngularOptions;
   zod?: ZodOptions;
+  effect?: EffectOptions;
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,
@@ -678,8 +734,22 @@ export interface OverrideOutputContentType {
   exclude?: string[];
 }
 
+/**
+ * Strategy controlling how an existing hono handler file is treated on
+ * regeneration.
+ *
+ * - `smart` (default): non-destructively reconcile orval-owned imports and
+ *   `zValidator` arguments and append handlers for new operations, preserving
+ *   all user-authored imports, middleware, bodies, and top-level code.
+ * - `skip`: leave an existing handler file byte-for-byte unchanged.
+ * - `full`: rebuild the preamble and validator chain from the spec, splicing
+ *   back only the handler body. Drops custom imports/middleware/helpers.
+ */
+export type HonoHandlerStrategy = 'smart' | 'skip' | 'full';
+
 export interface NormalizedHonoOptions {
   handlers?: string;
+  handlerGenerationStrategy: HonoHandlerStrategy;
   compositeRoute: string;
   validator: boolean | 'hono';
   validatorOutputPath: string;
@@ -724,8 +794,41 @@ export interface ZodOptions {
     body?: Mutator;
     response?: Mutator;
   };
+  /**
+   * Mutator referencing a function called once per emitted validator at schema
+   * construction time. It receives codegen-time context (operation, location,
+   * schema name, field path, validator name) and returns a Zod `params` object
+   * (e.g. `{ error: ... }`) that is appended as the trailing argument.
+   *
+   * The plural name follows Zod's own term for the validator's second argument
+   * (`z.string(params)`) and is unrelated to the singular `param` key used by
+   * `generate` / `coerce` / `preprocess` above, which refers to the path-parameter
+   * location.
+   */
+  params?: Mutator;
   dateTimeOptions?: ZodDateTimeOptions;
   timeOptions?: ZodTimeOptions;
+  generateEachHttpStatus?: boolean;
+  useBrandedTypes?: boolean;
+  /**
+   * When true, emits one reusable Zod schema per `#/components/schemas/*` `$ref`
+   * (with `namingConvention` applied to the name) and references it everywhere
+   * instead of inlining. Default `false`. See `docs/superpowers/specs/2026-05-26-reusable-zod-schemas-design.md`.
+   */
+  generateReusableSchemas?: boolean;
+  /**
+   * When true (zod v4 only), attaches registry metadata to generated
+   * **component** schemas via `.meta({ id, description?, deprecated? })`: `id` is
+   * the schema name, plus `description`/`deprecated` when the OpenAPI schema
+   * provides them. On zod v3 (which has no `.meta()`) descriptions still emit
+   * via `.describe()`. Default `false`.
+   */
+  generateMeta?: boolean;
+}
+
+export interface EffectOptions {
+  strict?: ZodOptions['strict'];
+  generate?: ZodOptions['generate'];
   generateEachHttpStatus?: boolean;
   useBrandedTypes?: boolean;
 }
@@ -761,10 +864,20 @@ export interface NormalizedZodOptions {
     body?: NormalizedMutator;
     response?: NormalizedMutator;
   };
+  params?: NormalizedMutator;
   generateEachHttpStatus: boolean;
   useBrandedTypes: boolean;
+  generateReusableSchemas: boolean;
+  generateMeta: boolean;
   dateTimeOptions: ZodDateTimeOptions;
   timeOptions: ZodTimeOptions;
+}
+
+export interface NormalizedEffectOptions {
+  strict: NormalizedZodOptions['strict'];
+  generate: NormalizedZodOptions['generate'];
+  generateEachHttpStatus: boolean;
+  useBrandedTypes: boolean;
 }
 
 /**
@@ -793,6 +906,7 @@ export type MutationInvalidatesConfig = MutationInvalidatesRule[];
 
 export interface HonoOptions {
   handlers?: string;
+  handlerGenerationStrategy?: HonoHandlerStrategy;
   compositeRoute?: string;
   validator?: boolean | 'hono';
   validatorOutputPath?: string;
@@ -837,6 +951,8 @@ export interface NormalizedQueryOptions {
   shouldExportMutatorHooks?: boolean;
   shouldExportHttpClient?: boolean;
   shouldExportQueryKey?: boolean;
+  shouldFilterQueryKey?: boolean;
+  queryKeyFilter?: string;
   shouldSplitQueryKey?: boolean;
   useOperationIdAsQueryKey?: boolean;
   signal?: boolean;
@@ -864,6 +980,8 @@ export interface QueryOptions {
   shouldExportMutatorHooks?: boolean;
   shouldExportHttpClient?: boolean;
   shouldExportQueryKey?: boolean;
+  shouldFilterQueryKey?: boolean;
+  queryKeyFilter?: string;
   shouldSplitQueryKey?: boolean;
   useOperationIdAsQueryKey?: boolean;
   signal?: boolean;
@@ -972,6 +1090,7 @@ export interface OperationOptions {
   angular?: AngularOptions;
   swr?: SwrOptions;
   zod?: ZodOptions;
+  effect?: EffectOptions;
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,
@@ -1042,6 +1161,43 @@ export interface ContextSpec {
   spec: OpenApiDocument;
   parents?: string[];
   output: NormalizedOutputOptions;
+  /**
+   * Per-schema dynamic scope mapping `$dynamicAnchor` names to concrete schema
+   * entries or generic parameter placeholders. Populated by `buildDynamicScope`.
+   */
+  dynamicScope?: Partial<Record<string, DynamicScopeEntry>>;
+  /**
+   * Tracks array-item mock factory names already emitted per output file scope.
+   * Populated by `@orval/mock` when `arrayItems: true` so shared `$ref` item
+   * factories are not re-declared within the same file (single/split) or tag
+   * bucket (tags/tags-split). Scope keys include the active mock generator
+   * type so separate `.msw.ts` / `.faker.ts` files each get their own copy.
+   */
+  arrayItemMockFactories?: Map<string, Set<string>>;
+  /**
+   * Set by `@orval/mock` while generating per-operation mock output so
+   * file-scoped helpers (e.g. array-item factory dedup) can distinguish
+   * separate mock generator files.
+   */
+  activeMockOutputType?: OutputMockType;
+}
+
+/**
+ * Maps a `$dynamicAnchor` name to its resolution target.
+ *
+ * Concrete entry (bound via `$ref`):
+ *   - `name` — the generated TypeScript type name (e.g. `User`)
+ *   - `schemaName` — the original key in `components.schemas` (e.g. `User`)
+ *
+ * Parameter entry (unbound `$defs` placeholder):
+ *   - `isParameter` — `true`, signals this is a generic type parameter
+ *   - `name` — the `$dynamicAnchor` name used as the type parameter (e.g. `itemType`)
+ *   - `schemaName` — same as `name` for parameters
+ */
+export interface DynamicScopeEntry {
+  name: string;
+  schemaName: string;
+  isParameter?: boolean;
 }
 
 export interface GlobalOptions {
@@ -1188,6 +1344,7 @@ export interface GeneratorMockOutput {
   type: OutputMockType;
   implementation: string;
   imports: GeneratorImport[];
+  strictMockSchemaTypeNames?: string[];
 }
 
 export interface GeneratorMockOutputFull {
@@ -1198,6 +1355,7 @@ export interface GeneratorMockOutputFull {
     handlerName: string;
   };
   imports: GeneratorImport[];
+  strictMockSchemaTypeNames?: string[];
 }
 
 export interface GeneratorTarget {
@@ -1365,6 +1523,7 @@ export interface ClientMockGeneratorImplementation {
 export interface ClientMockGeneratorBuilder {
   imports: GeneratorImport[];
   implementation: ClientMockGeneratorImplementation;
+  strictMockSchemaTypeNames?: string[];
 }
 
 export type ClientMockBuilder = (
@@ -1527,6 +1686,11 @@ export type ResReqTypesValue = ScalarValue & {
   originalSchema?: OpenApiSchemaObject;
 };
 
+export interface FinalizeMockImplementationOptions {
+  mockOptions?: Pick<MockOptions, 'required' | 'nonNullable'>;
+  strictSchemaTypeNames?: readonly string[];
+}
+
 export interface WriteSpecBuilder {
   operations: GeneratorOperations;
   verbOptions: Record<string, GeneratorVerbOptions>;
@@ -1536,6 +1700,11 @@ export interface WriteSpecBuilder {
   footer: GeneratorClientFooter;
   imports: GeneratorClientImports;
   importsMock: GenerateMockImports;
+  /** Hoists shared strict-mock type aliases once per aggregated mock file. */
+  finalizeMockImplementation?: (
+    implementation: string,
+    options: FinalizeMockImplementationOptions,
+  ) => string;
   extraFiles: ClientFileBuilder[];
   info: OpenApiInfoObject;
   target: string;
@@ -1623,6 +1792,11 @@ export type GeneratorApiBuilder = GeneratorApiOperations & {
   footer: GeneratorClientFooter;
   imports: GeneratorClientImports;
   importsMock: GenerateMockImports;
+  /** Hoists shared strict-mock type aliases once per aggregated mock file. */
+  finalizeMockImplementation?: (
+    implementation: string,
+    options: FinalizeMockImplementationOptions,
+  ) => string;
   extraFiles: ClientFileBuilder[];
 };
 

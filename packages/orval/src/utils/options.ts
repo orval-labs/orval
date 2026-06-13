@@ -4,6 +4,7 @@ import { styleText } from 'node:util';
 
 import {
   type ConfigExternal,
+  type EffectOptions,
   FormDataArrayHandling,
   type GlobalMockOptions,
   type GlobalOptions,
@@ -26,6 +27,7 @@ import {
   type McpServerOptions,
   type Mutator,
   NamingConvention,
+  type NormalizedEffectOptions,
   type NormalizedFactoryMethodsOptions,
   type NormalizedHonoOptions,
   type NormalizedHookOptions,
@@ -116,9 +118,68 @@ function normalizeSchemasOption(
     return normalizePath(schemas, workspace);
   }
 
+  if (schemas.importPath !== undefined && !schemas.importPath) {
+    throw new Error(
+      `schemas.importPath must be a non-empty package specifier (e.g. '@acme/models'). Received an empty string.`,
+    );
+  }
+
+  if (schemas.importPath?.trim() === '') {
+    throw new Error(
+      `schemas.importPath must be a non-empty package specifier (e.g. '@acme/models'). Received a whitespace-only string.`,
+    );
+  }
+
+  if (schemas.importPath && schemas.importPath.trim() !== schemas.importPath) {
+    throw new Error(
+      `schemas.importPath must be a non-empty package specifier (e.g. '@acme/models'). Received a value with leading or trailing whitespace: "${schemas.importPath}"`,
+    );
+  }
+
+  if (schemas.importPath?.startsWith('.')) {
+    throw new Error(
+      `schemas.importPath must be a package specifier (e.g. '@acme/models'), not a relative path. Received: "${schemas.importPath}"`,
+    );
+  }
+
+  if (
+    schemas.importPath &&
+    (nodePath.isAbsolute(schemas.importPath) ||
+      /^[A-Za-z]:[\\/]/.test(schemas.importPath) ||
+      schemas.importPath.startsWith('\\\\'))
+  ) {
+    throw new Error(
+      `schemas.importPath must be a package specifier (e.g. '@acme/models'), not an absolute path. Received: "${schemas.importPath}"`,
+    );
+  }
+
   return {
     path: normalizePath(schemas.path, workspace),
     type: schemas.type,
+    importPath: schemas.importPath,
+  };
+}
+
+function normalizeEffectOptions(
+  effect?: EffectOptions,
+): NormalizedEffectOptions {
+  return {
+    strict: {
+      param: effect?.strict?.param ?? false,
+      query: effect?.strict?.query ?? false,
+      header: effect?.strict?.header ?? false,
+      body: effect?.strict?.body ?? false,
+      response: effect?.strict?.response ?? false,
+    },
+    generate: {
+      param: effect?.generate?.param ?? true,
+      query: effect?.generate?.query ?? true,
+      header: effect?.generate?.header ?? true,
+      body: effect?.generate?.body ?? true,
+      response: effect?.generate?.response ?? true,
+    },
+    generateEachHttpStatus: effect?.generateEachHttpStatus ?? false,
+    useBrandedTypes: effect?.useBrandedTypes ?? false,
   };
 }
 
@@ -194,14 +255,23 @@ export async function normalizeOptions(
         'mock.generators must be an array of generator entries (e.g. [{ type: "msw" }]).',
       );
     }
+    const sharedMockPath =
+      mocksOption.path && isString(mocksOption.path)
+        ? normalizePath(mocksOption.path, outputWorkspace)
+        : undefined;
     mocks = {
       indexMockFiles: mocksOption.indexMockFiles ?? false,
+      path: sharedMockPath,
       generators: mocksOption.generators.map((m) =>
         isFunction(m)
           ? m
           : ({
               ...getDefaultMockOptionsForType(m.type),
               ...m,
+              path:
+                m.path && isString(m.path)
+                  ? normalizePath(m.path, outputWorkspace)
+                  : sharedMockPath,
             } as GlobalMockOptions),
       ),
     };
@@ -219,6 +289,24 @@ export async function normalizeOptions(
   }
 
   const defaultFileExtension = '.ts';
+
+  // Reusable Zod schemas land in `*.zod.ts` files by default so they sit
+  // alongside any existing TypeScript types without a name collision. We
+  // expose this as a separate `schemaFileExtension` field (not by flipping
+  // the global `fileExtension`) so that non-schema writers (mode writers,
+  // mock writers, the workspace barrel) keep their own extensions and don't
+  // start emitting `*.zod.ts` for unrelated artifacts. A user-set
+  // `output.fileExtension` overrides this default at the call site.
+  const isZodSchemasOutput =
+    !!outputOptions.schemas &&
+    ((!isString(outputOptions.schemas) &&
+      outputOptions.schemas.type === 'zod') ||
+      (isString(outputOptions.schemas) &&
+        (outputOptions.client ?? client) === 'zod' &&
+        outputOptions.override?.zod?.generateReusableSchemas === true));
+  const defaultSchemaFileExtension = isZodSchemasOutput
+    ? '.zod.ts'
+    : defaultFileExtension;
 
   const factoryMethodsConfig = outputOptions.factoryMethods;
   let factoryMethods: NormalizedFactoryMethodsOptions | undefined = undefined;
@@ -249,6 +337,7 @@ export async function normalizeOptions(
     shouldExportMutatorHooks: true,
     shouldExportHttpClient: true,
     shouldExportQueryKey: true,
+    shouldFilterQueryKey: false,
     shouldSplitQueryKey: false,
     ...normalizeQueryOptions(outputOptions.override?.query, workspace),
   };
@@ -291,6 +380,10 @@ export async function normalizeOptions(
       namingConvention:
         outputOptions.namingConvention ?? NamingConvention.CAMEL_CASE,
       fileExtension: outputOptions.fileExtension ?? defaultFileExtension,
+      schemaFileExtension:
+        outputOptions.schemaFileExtension ??
+        outputOptions.fileExtension ??
+        defaultSchemaFileExtension,
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
       httpClient:
@@ -456,15 +549,27 @@ export async function normalizeOptions(
                 }
               : {}),
           },
+          ...(outputOptions.override?.zod?.params
+            ? {
+                params: normalizeMutator(
+                  workspace,
+                  outputOptions.override.zod.params,
+                ),
+              }
+            : {}),
           generateEachHttpStatus:
             outputOptions.override?.zod?.generateEachHttpStatus ?? false,
           useBrandedTypes:
             outputOptions.override?.zod?.useBrandedTypes ?? false,
+          generateReusableSchemas:
+            outputOptions.override?.zod?.generateReusableSchemas ?? false,
+          generateMeta: outputOptions.override?.zod?.generateMeta ?? false,
           dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {
             offset: true,
           },
           timeOptions: outputOptions.override?.zod?.timeOptions ?? {},
         },
+        effect: normalizeEffectOptions(outputOptions.override?.effect),
         swr: {
           generateErrorTypes: false,
           ...outputOptions.override?.swr,
@@ -747,6 +852,7 @@ function normalizeOperationsAndTags(
           query,
           angular,
           zod,
+          effect,
           ...rest
         },
       ]) => {
@@ -838,13 +944,22 @@ function normalizeOperationsAndTags(
                           }
                         : {}),
                     },
+                    ...(zod.params
+                      ? {
+                          params: normalizeMutator(workspace, zod.params),
+                        }
+                      : {}),
                     generateEachHttpStatus: zod.generateEachHttpStatus ?? false,
                     useBrandedTypes: zod.useBrandedTypes ?? false,
+                    generateReusableSchemas:
+                      zod.generateReusableSchemas ?? false,
+                    generateMeta: zod.generateMeta ?? false,
                     dateTimeOptions: zod.dateTimeOptions ?? { offset: true },
                     timeOptions: zod.timeOptions ?? {},
                   },
                 }
               : {}),
+            ...(effect ? { effect: normalizeEffectOptions(effect) } : {}),
             ...(transformer
               ? { transformer: normalizePath(transformer, workspace) }
               : {}),
@@ -920,6 +1035,7 @@ function normalizeHonoOptions(
     ...(hono.handlers
       ? { handlers: nodePath.resolve(workspace, hono.handlers) }
       : {}),
+    handlerGenerationStrategy: hono.handlerGenerationStrategy ?? 'smart',
     compositeRoute: hono.compositeRoute
       ? nodePath.resolve(workspace, hono.compositeRoute)
       : '',
@@ -945,11 +1061,9 @@ function normalizeMcpOptions(
   mcp: McpOptions = {},
   workspace: string,
 ): NormalizedMcpOptions {
-  return {
-    ...(mcp.server
-      ? { server: normalizeMcpServerOptions(mcp.server, workspace) }
-      : {}),
-  };
+  return mcp.server
+    ? { server: normalizeMcpServerOptions(mcp.server, workspace) }
+    : {};
 }
 
 function normalizeJSDocOptions(
@@ -1047,6 +1161,22 @@ function normalizeQueryOptions(
     ...(isNullish(queryOptions.shouldExportQueryKey)
       ? {}
       : { shouldExportQueryKey: queryOptions.shouldExportQueryKey }),
+    ...(isNullish(globalOptions.shouldFilterQueryKey)
+      ? {}
+      : {
+          shouldFilterQueryKey: globalOptions.shouldFilterQueryKey,
+        }),
+    ...(isNullish(queryOptions.shouldFilterQueryKey)
+      ? {}
+      : { shouldFilterQueryKey: queryOptions.shouldFilterQueryKey }),
+    ...(isNullish(globalOptions.queryKeyFilter)
+      ? {}
+      : {
+          queryKeyFilter: globalOptions.queryKeyFilter,
+        }),
+    ...(isNullish(queryOptions.queryKeyFilter)
+      ? {}
+      : { queryKeyFilter: queryOptions.queryKeyFilter }),
     ...(isNullish(globalOptions.shouldExportHttpClient)
       ? {}
       : {

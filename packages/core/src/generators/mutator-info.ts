@@ -78,24 +78,62 @@ function parseFile(
       sourceType: 'module',
     });
 
-    const foundSpecifier = ast.body
+    const foundExport = ast.body
       .filter((x) => x.type === 'ExportNamedDeclaration')
-      .flatMap((x) => x.specifiers)
-      .find(
-        (x) =>
-          x.exported.type === 'Identifier' &&
-          x.exported.name === name &&
-          x.local.type === 'Identifier',
-      );
+      .map((declaration) => ({
+        declaration,
+        specifier: declaration.specifiers.find(
+          (specifier) =>
+            specifier.exported.type === 'Identifier' &&
+            specifier.exported.name === name &&
+            specifier.local.type === 'Identifier',
+        ),
+      }))
+      .find((item) => item.specifier);
 
-    if (foundSpecifier && 'name' in foundSpecifier.local) {
+    const foundSpecifier = foundExport?.specifier;
+
+    if (foundExport && foundSpecifier && 'name' in foundSpecifier.local) {
       const exportedFuncName = foundSpecifier.local.name;
 
-      return parseFunction(ast, exportedFuncName);
+      const mutatorInfo = parseFunction(ast, exportedFuncName);
+      if (mutatorInfo) {
+        return mutatorInfo;
+      }
+
+      if (
+        foundExport.declaration.source ||
+        isImportedBinding(ast, exportedFuncName)
+      ) {
+        return standardMutatorInfo();
+      }
     }
   } catch {
     return;
   }
+}
+
+function isImportedBinding(ast: Program, name: string): boolean {
+  return ast.body.some((node) => {
+    if (node.type !== 'ImportDeclaration') {
+      return false;
+    }
+
+    return node.specifiers.some(
+      (specifier) => 'name' in specifier.local && specifier.local.name === name,
+    );
+  });
+}
+
+// Default for mutator exports where arity cannot be inspected:
+// factory-pattern CallExpression initializers (e.g. `axios.create({...})`)
+// and external re-exports. In both cases, the AST cannot reveal the returned
+// callable's arity, so we assume the orval standard contract:
+// a single-arg mutator invoked as `customInstance({ url, method, data, ... })`.
+// See https://github.com/orval-labs/orval/issues/3402 and
+// https://github.com/orval-labs/orval/issues/2342.
+function standardMutatorInfo(): GeneratorMutatorParsingInfo {
+  return { numberOfParams: 1 };
 }
 
 function parseFunction(
@@ -156,6 +194,11 @@ function parseFunction(
   if (declaration?.init) {
     if ('name' in declaration.init) {
       return parseFunction(ast, declaration.init.name);
+    }
+
+    // Init is a factory CallExpression — see standardMutatorInfo() above.
+    if (declaration.init.type === 'CallExpression') {
+      return standardMutatorInfo();
     }
 
     if (

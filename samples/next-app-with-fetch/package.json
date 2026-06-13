@@ -1,6 +1,6 @@
 {
   "name": "next-app-with-fetch",
-  "version": "8.12.3",
+  "version": "8.17.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,9 +8,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "generate-api": "orval",
+    "generate-api": "vp exec orval",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
-    "test:snapshots:update": "bun run test:snapshots --update",
+    "test:snapshots:update": "vp run test:snapshots --update",
     "format": "prettier --write ."
   },
   "dependencies": {

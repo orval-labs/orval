@@ -25,7 +25,7 @@ export default defineConfig({
 
 **Type:** `String | Function`
 **Default:** `'axios-functions'`
-**Options:** `angular`, `axios`, `axios-functions`, `react-query`, `svelte-query`, `vue-query`, `swr`, `zod`, `hono`, `fetch`, `mcp`
+**Options:** `angular`, `axios`, `axios-functions`, `react-query`, `svelte-query`, `vue-query`, `swr`, `zod`, `effect`, `hono`, `fetch`, `mcp`
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -79,10 +79,12 @@ export default defineConfig({
 
 ## schemas
 
-**Type:** `String`
+**Type:** `String | Object | false`
 **Default:** Same as `target`
 
-Output path for generated model types.
+Output path for generated model types. Set to `false` to disable separate schema file output.
+
+### String form
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -93,6 +95,93 @@ export default defineConfig({
   },
 });
 ```
+
+### Object form
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      schemas: {
+        path: './api/model',
+        type: 'typescript', // 'typescript' | 'zod'
+      },
+    },
+  },
+});
+```
+
+| Property   | Type     | Description                                     |
+| ---------- | -------- | ----------------------------------------------- |
+| `path`     | `string` | Filesystem path for schema output               |
+| `type`     | `string` | `'typescript'` or `'zod'`                       |
+| `importPath` | `string` | Optional package import specifier (see below)  |
+
+### importPath
+
+When `importPath` is set, generated client files import schema types from
+that package specifier instead of computing a relative filesystem path:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      target: './libs/client/angular/src/lib/endpoints',
+      schemas: {
+        path: './libs/client/models/src/lib',
+        type: 'typescript',
+        importPath: '@acme/client/models',
+      },
+    },
+  },
+});
+```
+
+```ts
+// Without importPath — computed relative path:
+import type { Pet } from '../models/pet';
+
+// With importPath: '@acme/client/models':
+import type { Pet } from '@acme/client/models';
+```
+
+Schemas are still written to the filesystem `path` — only the generated
+import statements change.
+
+**Requirements when using `importPath`:**
+
+- The target package must export the types at the specified import path.
+- With `indexFiles: true` (recommended), all types are imported from the
+  single `importPath` (e.g., `@acme/models`).
+- With `indexFiles: false`, each schema is imported individually
+  (e.g., `@acme/models/pet`). The package must support these subpath exports.
+  For Zod schemas (`type: 'zod'`) the per-file suffix is `.zod`, so the
+  package must also expose `./pet.zod` (e.g., `@acme/models/pet.zod`).
+- If using faker schema factories
+  (`mock: { generators: [{ type: 'faker', schemas: true }] }`),
+  the package must also export `./index.faker`.
+- If using factory methods (`factoryMethods`), each schema is imported
+  individually regardless of `indexFiles`.
+- When `importPath` is set, the relative-path computation in
+  `factoryMethods.outputDirectory` is bypassed: factories resolve imports
+  against the package specifier rather than the on-disk factory output
+  directory.
+- Config normalization rejects invalid `importPath` values (empty, whitespace,
+  relative, or absolute paths) before generation runs — see
+  [Validation of `importPath`](#validation-of-importpath) below.
+
+### Validation of `importPath`
+
+During config normalization, orval rejects the following `importPath` values
+with a clear error message before generation runs:
+
+- Empty string.
+- Strings that are empty after trimming whitespace (e.g. `"   "`), or that
+  contain leading/trailing whitespace around a valid-looking specifier.
+- Relative specifiers starting with `./` or `../` (e.g. `./models`,
+  `../models`).
+- Absolute paths — POSIX (starting with `/`, e.g. `/abs/models`) or Windows
+  (drive-letter like `C:\models`, or UNC like `\\server\share\models`).
 
 ## operationSchemas
 
@@ -140,6 +229,30 @@ src/gen/
 └── model
     ├── listPetsParams.ts
     └── pets.ts
+```
+
+## schemaFileExtension
+
+**Type:** `String`
+**Default:** `'.zod.ts'` when generating Zod schemas (`schemas: { type: 'zod' }` or `client: 'zod'` + [`generateReusableSchemas`](#generatereusableschemas)), otherwise the same as [`fileExtension`](#fileextension).
+
+Override the file extension for schema artifacts only — without affecting the global `fileExtension` (which still drives client output, mock files, etc.). Useful when you want client files at one extension and schema files at another:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'split',
+      client: 'zod',
+      target: './gen/endpoints',
+      schemas: './gen/model',
+      fileExtension: '.ts',
+      // Keep client files at .ts but emit reusable Zod schemas as .zod.ts:
+      schemaFileExtension: '.zod.ts',
+      override: { zod: { generateReusableSchemas: true } },
+    },
+  },
+});
 ```
 
 ## namingConvention
@@ -218,6 +331,22 @@ my-app/src/
 └── pets/
     ├── petstore.msw.ts
     └── petstore.ts
+```
+
+When [`schemas`](#schemas) is configured, models go to a dedicated directory with per-file output. With [`indexFiles`](#indexfiles) enabled (the default), a barrel `index.ts` re-exports all schemas so service files import from a single path. With `indexFiles: false`, each schema is imported individually (e.g., `../models/pet`). All schemas — domain types, generic wrappers, and bound aliases — live in this single shared directory and are never duplicated per tag:
+
+```
+my-app/src/
+├── models/
+│   ├── index.ts
+│   ├── pet.ts
+│   ├── listResponse.ts
+│   ├── pagination.ts
+│   └── userListResponse.ts
+├── pets/
+│   └── pets.ts              ← imports from ../models
+└── users/
+    └── users.ts             ← imports from ../models
 ```
 
 ## baseUrl
@@ -387,14 +516,32 @@ export default defineConfig({
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `indexMockFiles` | `Boolean` | `false` | In `tags-split` mode, emit one root-level `index.<ext>.ts` file per generator entry that re-exports the per-tag mocks (e.g. `index.msw.ts`, `index.faker.ts`). |
+| `indexMockFiles` | `Boolean` | `false` | In `split` and `tags-split` modes, emit one root-level `index.<ext>.ts` file per generator entry that re-exports the mocks (e.g. `index.msw.ts`, `index.faker.ts`). In `tags-split` it re-exports the per-tag mocks; in `split` it re-exports the single mock file. Useful to keep mocks (e.g. MSW) in a dedicated barrel that production/model barrels never import. |
+| `path` | `String` | `undefined` | Shared output directory for all mock files. Per-generator `path` values override this. When set in `single` or `tags` mode, mock code is written to separate files (relative to `path`) instead of being inlined into the implementation file. Ignored on function-form generators, which always fall back to the shared `path`. |
 | `generators` | `Array<MockOptions \| Function>` | `[]` | One entry per output mock file. Each entry can be an object (`MockOptions`) or a custom `ClientMockBuilder` function. |
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mock: {
+        path: './src/api/mocks',
+        generators: [
+          { type: 'msw', path: './src/api/mocks/msw' },
+          { type: 'faker' },
+        ],
+      },
+    },
+  },
+});
+```
 
 ### MSW generator (`type: 'msw'`)
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `type` | `'msw'` | required | Discriminator for MSW handler generation. |
+| `path` | `String` | `undefined` | Output directory for this generator's mock files. Overrides the shared `mock.path` when set. When provided in `single` or `tags` mode, mock code is written to separate files (relative to `path`) instead of being inlined into the implementation file. |
 | `delay` | `Number \| Function \| false` | `false` | Response delay in ms. |
 | `delayFunctionLazyExecute` | `Boolean` | `false` | Execute delay function at runtime instead of at build time. |
 | `baseUrl` | `String` | `''` | Base URL for the generated MSW handlers. |
@@ -410,6 +557,7 @@ The Faker generator emits the same `get<Op>ResponseMock` factories MSW would emi
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `type` | `'faker'` | required | Discriminator for Faker-only output. |
+| `path` | `String` | `undefined` | Output directory for this generator's mock files. Overrides the shared `mock.path` when set. When provided in `single` or `tags` mode, mock code is written to separate files (relative to `path`) instead of being inlined into the implementation file. |
 | `useExamples` | `Boolean` | `false` | Use OpenAPI examples to seed response values. |
 | `generateEachHttpStatus` | `Boolean` | `false` | Generate response factories for every documented status code. |
 | `locale` | `String` | `'en'` | Faker.js locale. |
@@ -881,6 +1029,50 @@ Export mutator hooks.
 
 Export query keys.
 
+### shouldFilterQueryKey
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Add `.filter(q => q !== undefined)` to the query key. If false, `as const` is added instead.
+The filter can be adjusted with the `queryKeyFilter` option
+
+When shouldFilterQueryKey is true:
+```ts title="endpoints.ts"
+export const getShowPetByIdQueryKey = (petId: string) => {
+  return ['pets', petId].filter(q => q !== undefined);
+};
+```
+
+When shouldFilterQueryKey is false:
+```ts title="endpoints.ts"
+export const getShowPetByIdQueryKey = (petId: string) => {
+  return ['pets', petId] as const;
+};
+```
+
+### queryKeyFilter
+
+**Type:** `String`
+**Default:** `'q => q !== undefined'`
+
+Adjusts how the queryKey is filtered, when `shouldFilterQueryKey` is `true`. Default is `'q => q !== undefined'`, which will result
+in it ending up beeing
+```ts title="endpoints.ts"
+.filter(q => q !== undefined)
+```
+
+One option could be to only make it filter out all falsy keys:
+```ts title="orval.config.ts"
+  shouldFilterQueryKey: true,
+  queryKeyFilter: 'Boolean'
+```
+
+which would result in the generated code being
+```ts title="endpoints.ts"
+.filter(Boolean)
+```
+
 ### shouldSplitQueryKey
 
 **Type:** `Boolean`
@@ -1003,6 +1195,7 @@ export default defineConfig({
           },
           generateEachHttpStatus: true,
           useBrandedTypes: true,
+          generateReusableSchemas: true,
         },
       },
     },
@@ -1034,6 +1227,65 @@ Control which schemas are generated.
 
 Add preprocess functions to schemas.
 
+### params
+
+**Type:** [`Mutator`](#mutator)
+
+Inject a Zod `params` argument (e.g. `{ error: ... }`) into every generated validator. The referenced function is called once per validator at schema construction time and receives codegen-time context (operation, location, schema name, field path, validator name). Whatever it returns is passed as the trailing argument of the call.
+
+Useful for i18n error keys, branded error messages, or any field-aware customisation that Zod's global error map cannot disambiguate on its own (because `issue.path` does not carry operation/schema identity).
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        zod: {
+          params: { path: './zod-params.ts', name: 'zodParams' },
+        },
+      },
+    },
+  },
+});
+```
+
+```ts title="zod-params.ts"
+import type { ZodParamsContext } from 'orval';
+import { i18n } from './i18n';
+
+export const zodParams = (ctx: ZodParamsContext) => ({
+  error: (issue: { input: unknown; path: PropertyKey[] }) =>
+    i18n.t(
+      `errors.${ctx.schemaName}.${ctx.fieldPath.join('.')}.${ctx.validator}`,
+      { value: issue.input },
+    ),
+});
+```
+
+The `'schema'` location is used for shared component schemas emitted under [`generateReusableSchemas`](#generatereusableschemas). Component schemas have no single owning operation, so `operationId` is the empty string in that case — branch on `ctx.location === 'schema'` if your error keys need to fall back to a schema-only namespace.
+
+Generated output (excerpt):
+
+```ts
+import { zodParams } from './zod-params';
+
+export const CreateUserBody = zod.object({
+  email: zod
+    .string(zodParams({ operationId: 'createUser', location: 'body', schemaName: 'CreateUserBody', fieldPath: ['email'], validator: 'string' }))
+    .email(zodParams({ operationId: 'createUser', location: 'body', schemaName: 'CreateUserBody', fieldPath: ['email'], validator: 'email' })),
+});
+```
+
+Injection scope:
+
+- Applied to base types (`string`, `number`, `boolean`, `bigint`, `date`, `integer`), constraints (`min`, `max`, `gt`, `lt`, `multipleOf`, `regex`, `length`), formats (`email`, `url`, `uuid`, `hostname`, `datetime`, `time`), and `literal`, `enum`, `instanceof`, `stringFormat`.
+- Skipped on modifiers (`optional`, `nullable`, `nullish`, `default`, `describe`) and structural calls (`object`, `array`, `tuple`, `union`, `rest`, `passthrough`, `strict`).
+- `fieldPath` only includes object property names, mirroring Zod's own `issue.path`. Array indices and tuple positions are not appended — the inner element of `{ tags: array<string> }` and a top-level `tags: string` both see `fieldPath: ['tags']`. Use the `validator` field to distinguish a container (`'array'`, `'tuple'`) from its element (`'string'`, `'number'`).
+
+For static messages, return an object with a string `error`: `return { error: 'My message' }`. The function may return `undefined` to fall back to Zod defaults for a specific call.
+
+> The `{ error }` shape is Zod v4-only — on v3 it is silently ignored and the default message is used. If your project supports both Zod v3 and v4, return `{ message: 'My message' }` instead, which works on both.
+
 ### dateTimeOptions / timeOptions
 
 **Type:** `Object`
@@ -1049,6 +1301,99 @@ Configure Zod datetime/time validation options. `dateTimeOptions` defaults to `{
 **Default:** `false`
 
 Append [`.brand()`](https://zod.dev/api?id=branded-types) to generated Zod schemas using the schema name as the brand identifier. For array request/response bodies, only the top-level array wrapper schema is branded — the exported `*Item` helper schema is not branded.
+
+### generateReusableSchemas
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Emit one reusable Zod schema per OpenAPI `#/components/schemas/*` `$ref` instead of inlining. The exported name is the last `$ref` segment with `namingConvention` applied. Other schemas and operation files reference the export by name (cycles are wrapped in `zod.lazy(() => Name)` only on the edges that close them).
+
+Behavior:
+
+- When `schemas:` is configured (string or `{ type: 'zod' }`) and `client: 'zod'` is set, the schemas directory holds reusable Zod schemas instead of TypeScript types. The schema files default to a `.zod.ts` extension; use [`schemaFileExtension`](#schemafileextension) to override it independently from the global [`fileExtension`](#fileextension) if you keep both TS types and reusable Zod schemas in the same directory.
+- Operation files import the named exports — pure-`$ref` body/response wrappers (e.g. `PetCreateBody`) are skipped so consumers import the component schema directly.
+- `$ref` siblings: `nullable`, `default`, `description` chain onto the named ref (e.g. `Pet.nullable().describe(...)`). `properties`, `example`, and other non-chainable siblings fall back to inlining at that one site.
+- The `namingConvention` must produce valid JavaScript identifiers (`camelCase`, `PascalCase`, or `snake_case`). `kebab-case` is rejected with a clear error because it would emit dashed exports.
+- **Trade-off — `readOnly` on shared component schemas:** without this flag, request bodies generated from `$ref` schemas strip `readOnly: true` properties so they don't appear in input validators. With this flag on, request and response endpoints share the same exported schema, so `readOnly` properties remain in body validators too. Either avoid `readOnly` on component schemas you share between requests and responses, or split into separate request/response schemas in the OpenAPI source.
+
+### generateMeta
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Attach registry metadata to generated **component** schemas via [`.meta()`](https://zod.dev/metadata) (zod v4 only): `id` is the schema name, plus `description` and `deprecated` when the OpenAPI schema provides them.
+
+```ts
+// override: { zod: { generateMeta: true } }
+export const Pet = zod
+  .object({ name: zod.string() })
+  .meta({ id: 'Pet', description: 'A pet in the store', deprecated: true });
+```
+
+Behavior:
+
+- Applies only to **component** schemas emitted as named exports (`schemas: { type: 'zod' }`, or `client: 'zod'` + [`generateReusableSchemas`](#generatereusableschemas)). Operation wrapper schemas are left untouched, so registry `id`s stay unique.
+- `id` is always emitted; `description`/`deprecated` only when present. Property-level descriptions still use `.describe()`.
+- **zod v3** has no `.meta()` — the option is a no-op there, and descriptions continue to emit via `.describe()`.
+- The registry `id` makes [`z.toJSONSchema()`](https://zod.dev/json-schema) reference the schema as `#/$defs/<id>`, round-tripping the component structure.
+
+---
+
+## override.effect
+
+Effect schema generation options:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        effect: {
+          strict: {
+            response: true,
+            query: true,
+            param: true,
+            header: true,
+            body: true,
+          },
+          generate: {
+            param: true,
+            body: true,
+            response: true,
+            query: true,
+            header: true,
+          },
+          generateEachHttpStatus: true,
+          useBrandedTypes: true,
+        },
+      },
+    },
+  },
+});
+```
+
+### strict
+
+**Type:** `Object`
+
+Enable strict mode for schemas.
+
+### generate
+
+**Type:** `Object`
+
+Control which schemas are generated.
+
+### useBrandedTypes
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Append `S.brand()` to generated Effect schemas using the schema name as the brand identifier. For array request/response bodies, only the top-level array wrapper schema is branded.
 
 ---
 
@@ -1202,6 +1547,7 @@ export default defineConfig({
       override: {
         hono: {
           handlers: 'src/handlers',
+          handlerGenerationStrategy: 'smart',
           validatorOutputPath: 'src/validator.ts',
           compositeRoute: 'src/routes.ts',
         },
@@ -1216,6 +1562,41 @@ export default defineConfig({
 **Type:** `String`
 
 Changes output path for Hono handlers.
+
+### handlerGenerationStrategy
+
+**Type:** `'smart' | 'skip' | 'full'`
+
+**Default:** `'smart'`
+
+Controls how an **existing** handler file is treated when you re-run orval. A
+file that does not exist yet is always generated fresh.
+
+- `smart` (default) — non-destructively reconcile only the parts orval owns: its
+  own imports (names, module paths, casing) and the `zValidator(...)` arguments,
+  and append handlers for new operations. Your custom imports, middleware,
+  handler bodies, and top-level helpers are preserved. Requires the optional
+  `typescript` peer dependency (see note below); if it is absent, smart falls
+  back to `skip` with a warning.
+- `skip` — leave an existing handler file byte-for-byte unchanged. New operations
+  still get fresh files (in `split` mode).
+- `full` — rebuild the file header, imports, and validator chain from the spec,
+  splicing back only each handler body. **Destructive:** custom imports,
+  middleware, and top-level helpers are dropped. Use only if you keep handlers
+  minimal and want maximal sync with the spec.
+
+<Callout type="info">
+  `smart` and `full` use the TypeScript compiler API to parse existing handler
+  files. `typescript` is an optional peer dependency — virtually every orval
+  project already has it, so nothing extra is installed.
+</Callout>
+
+<Callout type="warn">
+  If `output.clean` is enabled and the handlers directory lives under the output
+  target directory, handler files are deleted before generation runs, which
+  defeats `smart`/`skip` preservation. Disable `clean` (or scope it) when
+  relying on handler preservation.
+</Callout>
 
 ### validatorOutputPath
 
@@ -1424,6 +1805,7 @@ export default defineConfig({
             iban: () => faker.finance.iban(),
           },
           required: true,
+          nonNullable: true,
           delay: 500,
           arrayMin: 1,
           arrayMax: 10,
@@ -1451,6 +1833,13 @@ Provide custom generators for OpenAPI `format` values.
 **Type:** `Boolean`
 
 Make all properties required in mocks.
+
+### nonNullable
+
+**Type:** `Boolean`
+**Default:** `false`
+
+When `true`, nullable properties are generated without `faker.helpers.arrayElement([value, null])`. For OpenAPI 3.1 null-union array items (`type: ['string', 'null']`), this also skips null inside `.map()` callbacks. Optional properties may still be omitted via `arrayElement([value, undefined])` unless `required` is also `true`. You can still pass `null` at runtime through the factory's `overrideResponse` argument.
 
 ### delay
 
@@ -1788,6 +2177,151 @@ Make the `options` parameter required. Since the `options` parameter appears las
 **Default:** `'Specification'`
 
 How to sort properties in generated types.
+
+### `$dynamicRef` / `$dynamicAnchor` support
+
+Orval automatically resolves JSON Schema 2020-12 `$dynamicRef` / `$dynamicAnchor` keywords in OpenAPI 3.1 specs. No configuration is needed.
+
+#### Supported patterns
+
+| Pattern | Description |
+|---------|-------------|
+| Generic template emission | Schemas with `$defs` entries that have `$dynamicAnchor` but no `$ref` are emitted as TypeScript generic interfaces (e.g., `interface PaginatedResponse<itemType>`). |
+| Type alias binding | Schemas that `$ref` a generic template and bind `$defs` entries with `$dynamicAnchor` + `$ref` are emitted as type aliases (e.g., `type UserListResponse = PaginatedResponse<User>`). |
+| Self-referential `$dynamicAnchor` | Recursive schemas where `$dynamicRef` resolves to the declaring schema itself (e.g., tree nodes). |
+| `allOf` bound aliases | Schemas that combine a generic template reference with additional properties via `allOf` emit intersection types (e.g., `type X = Template<Args> & { extra }`). |
+
+#### Generic template example
+
+Define a reusable generic schema with an unbound `$dynamicAnchor` in `$defs`:
+
+```yaml title="OpenAPI 3.1 spec"
+components:
+  schemas:
+    PaginatedResponse:
+      $defs:
+        itemType:
+          $dynamicAnchor: itemType
+          not: {}
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $dynamicRef: '#itemType'
+        total:
+          type: integer
+```
+
+Then bind it to concrete types:
+
+```yaml
+    UserListResponse:
+      $defs:
+        itemType:
+          $dynamicAnchor: itemType
+          $ref: '#/components/schemas/User'
+      $ref: '#/components/schemas/PaginatedResponse'
+
+    OrderListResponse:
+      $defs:
+        itemType:
+          $dynamicAnchor: itemType
+          $ref: '#/components/schemas/Order'
+      $ref: '#/components/schemas/PaginatedResponse'
+```
+
+Generated TypeScript:
+
+```ts
+export interface PaginatedResponse<itemType> {
+  items: itemType[];
+  total: number;
+}
+
+export type UserListResponse = PaginatedResponse<User>;
+export type OrderListResponse = PaginatedResponse<Order>;
+```
+
+The generic parameter name (`itemType`) comes from the `$dynamicAnchor` value. The type alias name (`UserListResponse`) comes from the schema key in `components.schemas`. Endpoints that reference a bound alias use the alias name directly (e.g., `Promise<AxiosResponse<UserListResponse>>`).
+
+#### Self-referential `$dynamicAnchor` example
+
+When a schema declares `$dynamicAnchor` and uses `$dynamicRef` with the same anchor, the type resolves to itself:
+
+```yaml title="OpenAPI 3.1 spec"
+components:
+  schemas:
+    BaseCategory:
+      $dynamicAnchor: category
+      type: object
+      properties:
+        id:
+          type: string
+        children:
+          type: array
+          items:
+            $dynamicRef: '#category'
+
+    LocalizedCategory:
+      $dynamicAnchor: category
+      allOf:
+        - $ref: '#/components/schemas/BaseCategory'
+        - type: object
+          properties:
+            displayName:
+              type: string
+```
+
+Generated TypeScript:
+
+```ts
+export interface BaseCategory {
+  id?: string;
+  children?: BaseCategory[];
+}
+
+export interface LocalizedCategory {
+  id?: string;
+  children?: LocalizedCategory[];
+  displayName?: string;
+}
+```
+
+Each schema's `$dynamicRef: '#category'` resolves to its own type because it declares `$dynamicAnchor: category`.
+
+#### Output layout with `$dynamicRef` generics
+
+Generic templates, bound aliases, and their type arguments are all emitted as individual model files in the same shared location — they are never duplicated per tag. In `tags` and `tags-split` mode, every tag's service file imports from a single shared schema source.
+
+With [`schemas`](#schemas) configured and `tags-split` mode ([`indexFiles`](#indexfiles) shown at its default, `true`):
+
+```
+models/
+├── index.ts                      ← barrel re-exports everything (indexFiles: true)
+├── apiEnvelopeTemplate.ts        ← generic template (ApiEnvelopeTemplate<T>)
+├── paginatedTemplate.ts          ← generic template (PaginatedTemplate<T>)
+├── pet.ts                        ← domain type
+├── owner.ts                      ← domain type
+├── paginatedPetItems.ts          ← bound alias (PaginatedTemplate<Pet>)
+└── paginatedOwnerItems.ts        ← bound alias (PaginatedTemplate<Owner>)
+pets/
+└── pets.ts                       ← import { ... } from '../models'
+owners/
+└── owners.ts                     ← import { ... } from '../models'
+```
+
+With [`indexFiles: false`](#indexfiles), no barrel is generated and service files import each schema individually (e.g., `import type { Pet } from '../models/pet'`).
+
+Without a dedicated `schemas` directory, all schemas go into a single `petstore.schemas.ts` file at the output root.
+
+When using [`input.filters.tags`](/docs/reference/configuration/input#tags) to filter endpoints, schemas referenced exclusively through `$dynamicAnchor` + `$ref` bindings in inline response `$defs` are automatically discovered and included in the output — no manual [`filters.schemas`](/docs/reference/configuration/input#schemas) configuration is needed.
+
+#### Limitations
+
+- Each schema in `components.schemas` is generated once with a single dynamic scope. If the same named component is referenced by multiple endpoints that each provide different `$defs` bindings, only one binding applies. The common pattern — putting `$defs` bindings on inline response schemas — works correctly.
+- `$dynamicRef` values targeting external documents (e.g., `other.json#anchor`) fall back to `unknown`.
+- Inline `$defs` entries without `$ref` that have `$dynamicAnchor` are treated as generic type parameters, not concrete bindings.
 
 ### contentType
 

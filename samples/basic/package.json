@@ -1,14 +1,14 @@
 {
   "name": "basic",
-  "version": "8.12.3",
+  "version": "8.17.0",
   "description": "",
   "private": true,
   "type": "module",
   "main": "index.html",
   "scripts": {
-    "generate-api": "orval",
+    "generate-api": "vp exec orval",
     "test:snapshots": "vitest run --config vitest.snapshots.ts",
-    "test:snapshots:update": "bun run test:snapshots --update",
+    "test:snapshots:update": "vp run test:snapshots --update",
     "example": "run-p 'example:*'",
     "example:basic": "orval --input ./petstore.yaml --output ./api/endpoints/petstoreFromFileSpec.ts",
     "example:config": "orval"

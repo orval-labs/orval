@@ -17,6 +17,7 @@ import { generateAxiosRequestFunction } from '../client';
 import type {
   FrameworkAdapterConfig,
   MutationHookBodyContext,
+  MutationOnSuccessContext,
   MutationReturnTypeContext,
   QueryReturnStatementContext,
   QueryReturnTypeContext,
@@ -167,28 +168,63 @@ export const createVueAdapter = ({
 
   generateMutationImplementation({
     mutationOptionsFnName,
+    hasInvalidation,
     isRequestOptions,
   }): string {
-    return `${mutationOptionsFnName}(${
+    return `${mutationOptionsFnName}(${hasInvalidation ? `queryClient ?? backupQueryClient, ` : ''}${
       isRequestOptions ? 'options' : 'mutationOptions'
     })`;
   },
 
   supportsMutationInvalidation(): boolean {
-    // Vue is NOT in the list: isAngularClient || isReact(outputClient) || isSvelte(outputClient)
-    return false;
+    return hasQueryV5;
   },
 
-  generateMutationOnSuccess(): string {
-    return '';
+  generateMutationOnSuccess({
+    operationName,
+    definitions,
+    isRequestOptions,
+    generateInvalidateCall,
+    uniqueInvalidates,
+  }: MutationOnSuccessContext): string {
+    const invalidateCalls = uniqueInvalidates
+      .map((t) => generateInvalidateCall(t))
+      .join('\n');
+    if (hasQueryV5WithMutationContextOnSuccess) {
+      if (isRequestOptions) {
+        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
+        if (!options?.skipInvalidation) {
+    ${invalidateCalls}
+        }
+        unref(unref(typeof mutationOptions === 'function' ? mutationOptions() : mutationOptions)?.onSuccess)?.(data, variables, onMutateResult, context);
+      };`;
+      }
+      return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
+    ${invalidateCalls}
+        unref(unref(typeof mutationOptions === 'function' ? mutationOptions() : mutationOptions)?.onSuccess)?.(data, variables, onMutateResult, context);
+      };`;
+    }
+    if (isRequestOptions) {
+      return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext${hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
+        if (!options?.skipInvalidation) {
+    ${invalidateCalls}
+        }
+        unref(unref(typeof mutationOptions === 'function' ? mutationOptions() : mutationOptions)?.onSuccess)?.(data, variables, context);
+      };`;
+    }
+    return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext${hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
+    ${invalidateCalls}
+        unref(unref(typeof mutationOptions === 'function' ? mutationOptions() : mutationOptions)?.onSuccess)?.(data, variables, context);
+      };`;
   },
 
   generateMutationHookBody({
     operationPrefix,
     mutationImplementation,
+    hasInvalidation,
     optionalQueryClientArgument,
   }: MutationHookBodyContext): string {
-    return `      return ${operationPrefix}Mutation(${mutationImplementation}${optionalQueryClientArgument ? `, queryClient` : ''});`;
+    return `      ${hasInvalidation ? `const backupQueryClient = useQueryClient();\n      ` : ''}return ${operationPrefix}Mutation(${mutationImplementation}${optionalQueryClientArgument ? `, queryClient` : ''});`;
   },
 
   generateRequestFunction(

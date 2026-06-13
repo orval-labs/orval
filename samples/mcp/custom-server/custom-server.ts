@@ -1,11 +1,19 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type {
+  McpServer,
+  RegisteredTool,
+} from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPTransport } from '@hono/mcp';
 import { Hono } from 'hono';
 
-export const customServer = (createMcpServer: () => McpServer) => {
+export const customServer = (
+  createMcpServer: () => {
+    server: McpServer;
+    tools: Record<string, RegisteredTool>;
+  },
+) => {
   const app = new Hono();
 
-  const server = createMcpServer();
+  const { server } = createMcpServer();
   const transport = new StreamableHTTPTransport();
 
   app.all('/mcp', async (c) => {

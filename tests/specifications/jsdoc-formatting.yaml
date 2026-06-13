@@ -1,0 +1,209 @@
+openapi: 3.0.0
+info:
+  title: jsdoc-formatting
+  description: 'jsdoc-formatting'
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    NotFoundError:
+      description: |
+        This error indicated that a requested resource was not found
+      type: object
+      required:
+        - key
+        - message
+        - origin
+        - details
+      properties:
+        key:
+          type: string
+          default: 'not_found.generic'
+        message:
+          type: string
+          default: 'an object could not be found'
+        details:
+          type: object
+          properties:
+            object:
+              description: Object which was being accessed/used for the request
+              type: string
+    Currency:
+      description: |
+        An object encoding rules how to convert integer currency object to string
+        representation and vice versa.
+      required:
+        - code
+        - displayName
+        - scale
+        - symbol
+        - decimalSymbol
+        - thousandSymbol
+        - format
+        - baseRate
+        - defaultUnitExponent
+      properties:
+        code:
+          $ref: '#/components/schemas/CurrencyCode'
+        displayName:
+          description: 'Name of the currency used in the UI, examples: EUR, USD'
+          type: string
+          minLength: 1
+        scale:
+          description: 'A constant used to convert currency from integer to float and vice versa, examples: 1, 10, 100, 1000'
+          type: integer
+          enum:
+            - 1
+            - 10
+            - 100
+            - 1000
+        symbol:
+          description: 'Symbol sequence used to identify currency used when displaying money values in this currency, examples: € $'
+          type: string
+          minLength: 1
+          maxLength: 3
+        decimalSymbol:
+          description: 'A symbol used to separate fractional part of money value, examples: . ,'
+          type: string
+          minLength: 1
+          maxLength: 1
+        thousandSymbol:
+          description: 'A symbol used to separate thousands and millions in money values, examples: . ,'
+          type: string
+          minLength: 1
+          maxLength: 1
+        format:
+          description: 'A string template used to convert monetary values to strings displayed in UI, Examples: `%v %s`, `%s %v`'
+          type: string
+          pattern: '.*%v.*'
+        baseRate:
+          description: 'A conversion ratio to base currency (object with currencyId #0). Amount in this currency is multiplied by baseRate to get amount in base currency.'
+          type: number
+          format: float
+          minimum: 0
+        defaultUnitExponent:
+          description: 'Exponent value of default currency unit used for all money operations, examples: -3, -2, -1, 0, 1, 2, 3'
+          type: integer
+      example:
+        code: EUR
+        currencyId: 0
+        displayName: Euros
+        scale: 100
+        symbol: €
+        decimalSymbol: '.'
+        thousandSymbol: ','
+        format: '%v %s'
+        baseRate: 1.0
+        defaultUnitExponent: -2
+
+    CurrencyCode:
+      description: Unique currency identifier (as defined in ISO 4217)
+      type: string
+      minLength: 3
+      maxLength: 3
+      pattern: '^[A-Z][A-Z][A-Z]$'
+      example: 'EUR'
+
+    NewReward:
+      type: object
+      required:
+        - userID
+      properties:
+        userID:
+          type: string
+          description: The operator's internal unique identifier of the user receiving the reward.
+          example: '23213'
+        endsAt:
+          type: string
+          format: date-time
+          description: |
+            The date and time when the reward expires, in RFC 3339 format.
+            If set it must be after the campaign's start time and overrides
+            the campaign's expiration time with this expiration time for the reward.
+            Currently not supported for integration providers.
+        betCount:
+          type: integer
+          example: 100
+          description: |
+            The total number of promotional actions allocated to a specific reward in the campaign.
+            If set it overrides the campaign's bet count with this bet count for the reward.
+            Currently not supported for integration providers.
+          minimum: 1
+        betValue:
+          type: number
+          format: float
+          example: 10.50
+          description: |
+            The monetary value of specific reward's promotional action in the campaign,
+            denominated in the specified `currencyCode` (e.g., 10.50 EUR per action).
+            If set it overrides the campaign's bet value with this bet value for the reward.
+            Currently not supported for integration providers.
+
+    NewRewardCampaign:
+      type: object
+      required:
+        - name
+        - currencyCode
+        - providerProducts
+        - betValue
+        - betCount
+        - startsAt
+        - endsAt
+      properties:
+        id:
+          type: string
+          example: 'myCampaign-123'
+          description: |
+            The unique identifier provided by an operator to keep
+            track of their internal reward campaign ID. Only to be used
+            for Integration purposes.
+        name:
+          type: string
+          example: 'Birthday Gift'
+          description: The name of the reward campaign, used for display purposes.
+          maxLength: 30
+        currencyCode:
+          type: string
+          example: 'EUR'
+          description: 'The ISO 4217 currency code for the monetary values in the campaign (e.g., USD, EUR).'
+        providerProducts:
+          type: object
+          description: |
+            Specifies products promoted in the campaign that must be supported by the operator.
+            Currently only one provider is supported. However, this is subject to change in the future.
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          minItems: 1
+          maxItems: 1
+          example:
+            agt: ['826', '843']
+        betValue:
+          type: number
+          format: float
+          example: 10.50
+          description: |
+            The monetary value of each promotional action in the campaign,
+            denominated in the specified `currencyCode` (e.g., 10.50 EUR per action).
+        betMinOdds:
+          type: number
+          format: float
+          example: 1.50
+          description: |
+            The minimum odds a bet must have to qualify for the campaign.
+        betCount:
+          type: integer
+          example: 100
+          description: |
+            The total number of promotional actions allocated to
+            participants in the campaign.
+          minimum: 1
+        startsAt:
+          type: string
+          format: date-time
+          description: The date and time when the campaign begins, in RFC 3339 format.
+        endsAt:
+          type: string
+          format: date-time
+          description: The date and time when the campaign ends, in RFC 3339 format.

@@ -67,13 +67,21 @@ export function generateMock(
     mock: GlobalMockOptions;
   },
 ) {
-  switch (generatorOptions.mock.type) {
-    case OutputMockType.FAKER: {
-      return generateFaker(generatorVerbOptions, generatorOptions);
+  const { context } = generatorOptions;
+  const previousActiveMockOutputType = context.activeMockOutputType;
+  context.activeMockOutputType = generatorOptions.mock.type;
+
+  try {
+    switch (generatorOptions.mock.type) {
+      case OutputMockType.FAKER: {
+        return generateFaker(generatorVerbOptions, generatorOptions);
+      }
+      default: {
+        return generateMSW(generatorVerbOptions, generatorOptions);
+      }
     }
-    default: {
-      return generateMSW(generatorVerbOptions, generatorOptions);
-    }
+  } finally {
+    context.activeMockOutputType = previousActiveMockOutputType;
   }
 }
 
@@ -83,4 +91,8 @@ export {
   generateFakerForSchemas,
   generateFakerImports,
 } from './faker';
+export {
+  buildStrictMockTypeFileHeader,
+  dedupeStrictMockTypeDeclarations,
+} from './mock-types';
 export { generateMSW, generateMSWImports } from './msw';

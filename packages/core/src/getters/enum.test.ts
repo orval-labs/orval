@@ -5,6 +5,7 @@ import {
   getEnumDescriptions,
   getEnumImplementation,
   getEnumNames,
+  getEnumUnionFromSchema,
 } from './enum';
 
 describe('getEnumImplementation', () => {
@@ -239,6 +240,61 @@ describe('getEnumNames', () => {
     } as unknown as OpenApiSchemaObject;
 
     expect(getEnumNames(schema)).toEqual(['Alpha', undefined, 'Charlie']);
+  });
+});
+
+describe('getEnumUnionFromSchema — value escaping (#3505)', () => {
+  it('should JS-escape backslashes in enum values', () => {
+    const schema = {
+      enum: [String.raw`App\Models\Document`, String.raw`App\Models\Template`],
+    } as OpenApiSchemaObject;
+
+    const result = getEnumUnionFromSchema(schema);
+
+    expect(result).toBe(
+      String.raw`'App\\Models\\Document' | 'App\\Models\\Template'`,
+    );
+  });
+
+  it('should JS-escape a value ending in a backslash', () => {
+    const schema = {
+      enum: ['C:\\logs\\'],
+    } as OpenApiSchemaObject;
+
+    const result = getEnumUnionFromSchema(schema);
+
+    expect(result).toBe(String.raw`'C:\\logs\\'`);
+  });
+
+  it('should not escape forward slashes (#3530)', () => {
+    const schema = {
+      enum: ['Asia/Tokyo', 'America/New_York'],
+    } as OpenApiSchemaObject;
+
+    const result = getEnumUnionFromSchema(schema);
+
+    expect(result).toBe("'Asia/Tokyo' | 'America/New_York'");
+  });
+
+  it('should not escape asterisks', () => {
+    const schema = { enum: ['a*b'] } as OpenApiSchemaObject;
+
+    expect(getEnumUnionFromSchema(schema)).toBe("'a*b'");
+  });
+});
+
+describe('getEnumImplementation — backslash escaping (#3505)', () => {
+  it('should preserve backslash-escaped values in keys and values of the const body', () => {
+    const result = getEnumImplementation(
+      String.raw`'App\\Models\\Document' | 'App\\Models\\Template'`,
+    );
+
+    expect(result).toContain(
+      String.raw`'App\\Models\\Document': 'App\\Models\\Document'`,
+    );
+    expect(result).toContain(
+      String.raw`'App\\Models\\Template': 'App\\Models\\Template'`,
+    );
   });
 });
 
