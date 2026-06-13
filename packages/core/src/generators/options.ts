@@ -42,11 +42,21 @@ export const getAngularFilteredParamsExpression = (
     }
 `
     : '';
-  const preserveNullableBranch = preserveRequiredNullables
-    ? `    } else if (value === null && requiredNullableParamKeys.has(key)) {
+
+  // Generate requiredNullableParamKeys only if preserveRequiredNullables are 'true'
+  // Otherwise, typescript throw an error (TS6133: 'requiredNullableParamKeys' is declared but its value is never read.)
+  let preserveNullableBranch: string;
+  let requiredNullableParamKeysBranch: string;
+  if (preserveRequiredNullables) {
+    preserveNullableBranch = `    } else if (value === null && requiredNullableParamKeys.has(key)) {
       filteredParams[key] = null;
-`
-    : '';
+`;
+    requiredNullableParamKeysBranch = `const requiredNullableParamKeys = new Set<string>(${JSON.stringify(requiredNullableParamKeys)});`;
+  } else {
+    preserveNullableBranch = '';
+    requiredNullableParamKeysBranch = '';
+  }
+
   const scalarBranch = `    } else if (
       value != null &&
       (typeof value === 'string' ||
@@ -61,7 +71,7 @@ export const getAngularFilteredParamsExpression = (
     : '';
 
   return `(() => {
-${passthroughDecl}  const requiredNullableParamKeys = new Set<string>(${JSON.stringify(requiredNullableParamKeys)});
+${passthroughDecl}  ${requiredNullableParamKeysBranch}
   const filteredParams: Record<string, ${filteredParamValueType}> = {};
   for (const [key, value] of Object.entries(${paramsExpression})) {
 ${passthroughBranch}    if (Array.isArray(value)) {
