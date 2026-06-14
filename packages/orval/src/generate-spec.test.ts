@@ -1224,7 +1224,7 @@ describe('generateSpec - schemas.splitByTags validation', () => {
     }
   });
 
-  it('rejects splitByTags with zod schemas', async () => {
+  it('generates zod schemas with splitByTags', async () => {
     const workspace = await createTempWorkspace();
     try {
       const options = await normalizeOptions(
@@ -1239,9 +1239,23 @@ describe('generateSpec - schemas.splitByTags validation', () => {
         workspace,
       );
 
-      await expect(generateSpec(workspace, options)).rejects.toThrow(
-        'schemas.splitByTags is not yet supported with zod schemas',
-      );
+      await generateSpec(workspace, options);
+
+      const modelDir = path.join(workspace, 'model');
+      expect(await fs.pathExists(modelDir)).toBe(true);
+
+      const entries = await fs.readdir(modelDir);
+      const subdirs: string[] = [];
+      for (const entry of entries) {
+        const stat = await fs.stat(path.join(modelDir, entry));
+        if (stat.isDirectory()) subdirs.push(entry);
+      }
+      expect(subdirs).toContain('pets');
+
+      expect(
+        await fs.pathExists(path.join(modelDir, 'pets', 'pet.zod.ts')),
+      ).toBe(true);
+      expect(await fs.pathExists(path.join(modelDir, 'index.ts'))).toBe(true);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }

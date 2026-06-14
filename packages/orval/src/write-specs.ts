@@ -1,6 +1,7 @@
 import path from 'node:path';
 
 import {
+  buildSchemaTagMap,
   type ContextSpec,
   createSuccessMessage,
   type FakerMockOptions,
@@ -44,6 +45,7 @@ import {
   generateZodSchemasInline,
   writeZodSchemas,
   writeZodSchemasFromVerbs,
+  writeZodSchemaTagsSplitBarrel,
 } from './write-zod-specs';
 
 async function runExternalFormatter(
@@ -352,13 +354,6 @@ export async function writeSpecs(
       );
     }
 
-    if (shouldSplitSchemasByTags && isZodSchemas) {
-      throw new Error(
-        'schemas.splitByTags is not yet supported with zod schemas. ' +
-          'Use type: "typescript" instead.',
-      );
-    }
-
     if (isZodSchemas) {
       // Use the schema-specific extension so the global `fileExtension` (which
       // also drives client/mock outputs) isn't dragged into the zod world.
@@ -378,28 +373,73 @@ export async function writeSpecs(
           })
         : undefined;
 
-      await writeZodSchemas(
-        builder,
-        schemasPath,
-        fileExtension,
-        header,
-        output,
-        schemasParamsMutator,
-      );
+      if (shouldSplitSchemasByTags) {
+        const operations = Object.values(builder.operations).map((op) => ({
+          imports: op.imports,
+          tags: op.tags,
+        }));
+        const schemaTagMap = buildSchemaTagMap(operations, schemas);
 
-      await writeZodSchemasFromVerbs(
-        builder.verbOptions,
-        schemasPath,
-        fileExtension,
-        header,
-        output,
-        {
-          spec: builder.spec,
-          target: builder.target,
-          workspace,
+        const componentDirs = await writeZodSchemas(
+          builder,
+          schemasPath,
+          fileExtension,
+          header,
           output,
-        },
-      );
+          schemasParamsMutator,
+          schemaTagMap,
+        );
+
+        const verbDirs = await writeZodSchemasFromVerbs(
+          builder.verbOptions,
+          schemasPath,
+          fileExtension,
+          header,
+          output,
+          {
+            spec: builder.spec,
+            target: builder.target,
+            workspace,
+            output,
+          },
+          schemaTagMap,
+        );
+
+        if (output.indexFiles) {
+          await writeZodSchemaTagsSplitBarrel(
+            schemasPath,
+            fileExtension,
+            header,
+            componentDirs,
+            verbDirs,
+            output.namingConvention,
+            output.tsconfig,
+          );
+        }
+      } else {
+        await writeZodSchemas(
+          builder,
+          schemasPath,
+          fileExtension,
+          header,
+          output,
+          schemasParamsMutator,
+        );
+
+        await writeZodSchemasFromVerbs(
+          builder.verbOptions,
+          schemasPath,
+          fileExtension,
+          header,
+          output,
+          {
+            spec: builder.spec,
+            target: builder.target,
+            workspace,
+            output,
+          },
+        );
+      }
     } else {
       const fileExtension = output.fileExtension || '.ts';
 
