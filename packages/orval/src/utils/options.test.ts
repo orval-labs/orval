@@ -693,6 +693,56 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('resolves global zod mutators relative to the output workspace', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const outputWorkspace = path.join(workspace, 'generated');
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './api.ts',
+            workspace: './generated',
+            client: 'zod',
+            override: {
+              zod: {
+                preprocess: {
+                  param: './param.ts',
+                  query: './query.ts',
+                  header: './header.ts',
+                  body: './body.ts',
+                  response: './response.ts',
+                },
+                params: './params.ts',
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.zod.preprocess).toMatchObject({
+        param: { path: path.join(outputWorkspace, 'param.ts') },
+        query: { path: path.join(outputWorkspace, 'query.ts') },
+        header: { path: path.join(outputWorkspace, 'header.ts') },
+        body: { path: path.join(outputWorkspace, 'body.ts') },
+        response: { path: path.join(outputWorkspace, 'response.ts') },
+      });
+      expect(normalized.output.override.zod.params?.path).toBe(
+        path.join(outputWorkspace, 'params.ts'),
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('normalizes effect options without falling back to zod', async () => {
     const workspace = await createTempWorkspace();
 
