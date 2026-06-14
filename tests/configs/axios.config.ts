@@ -146,6 +146,50 @@ export default defineConfig({
       target: '../specifications/tags-split-shared.yaml',
     },
   },
+  petstoreTagsSplitZodSchemas: {
+    output: {
+      target:
+        '../generated/axios/petstore-tags-split-zod-schemas/endpoints.ts',
+      schemas: {
+        path: '../generated/axios/petstore-tags-split-zod-schemas/model',
+        type: 'zod',
+        splitByTags: true,
+      },
+      mode: 'tags-split',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
+  petstoreTagsSplitZodReusableSchemas: {
+    output: {
+      target:
+        '../generated/axios/petstore-tags-split-zod-reusable/endpoints.ts',
+      schemas: {
+        path: '../generated/axios/petstore-tags-split-zod-reusable/model',
+        type: 'zod',
+        splitByTags: true,
+      },
+      mode: 'tags-split',
+      client: 'zod',
+      override: {
+        zod: {
+          generateReusableSchemas: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/tags-split-shared.yaml',
+    },
+  },
   petstoreTagsSplitMutator: {
     output: {
       target: '../generated/axios/petstore-tags-split-mutator/endpoints.ts',
