@@ -30,6 +30,7 @@ import {
   type ResReqTypesValue,
   toObjectString,
   upath,
+  getImportExtension,
 } from '@orval/core';
 
 import {
@@ -1431,7 +1432,10 @@ const buildSchemaImportDependencies = (
       const baseName = imp.schemaName ?? imp.name;
       const name = conventionName(baseName, output.namingConvention);
       const suffix = isZod ? '.zod' : '';
-      const importExtension = output.fileExtension.replace(/\.ts$/, '');
+      const importExtension = getImportExtension(
+        output.fileExtension,
+        output.tsconfig,
+      );
       return {
         exports: isZod ? [{ ...imp, values: true }] : [imp],
         dependency: upath.joinSafe(

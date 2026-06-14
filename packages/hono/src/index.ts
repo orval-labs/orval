@@ -25,6 +25,8 @@ import {
   type OpenApiInfoObject,
   pascal,
   sanitize,
+  getImportExtension,
+  type Tsconfig,
   upath,
 } from '@orval/core';
 import { generateZod } from '@orval/zod';
@@ -76,14 +78,24 @@ const HONO_DEPENDENCIES: GeneratorDependency[] = [
  *
  * Otherwise, treated as a package name and returned directly.
  *
- * @return A module specifier that can be used at _from_ to import _to_. It is
- * extensionless to conform with the rest of orval.
+ * @param tsconfig Optional tsconfig used to derive the runtime import
+ * extension. Under `module: 'nodenext'/'node16'` the source extension (e.g.
+ * `.ts`) is rewritten to its runtime equivalent (e.g. `.js`); otherwise the
+ * extension is dropped to match the rest of orval.
+ *
+ * @return A module specifier that can be used at _from_ to import _to_.
  */
-const generateModuleSpecifier = (from: string, to: string) => {
+const generateModuleSpecifier = (
+  from: string,
+  to: string,
+  tsconfig?: Tsconfig,
+) => {
   if (to.startsWith('.') || nodePath.isAbsolute(to)) {
-    return upath
-      .getRelativeImportPath(nodePath.resolve(from), nodePath.resolve(to), true)
-      .replace(/\.ts$/, '');
+    const resolvedFrom = nodePath.resolve(from);
+    const resolvedTo = nodePath.resolve(to);
+    const relative = upath.getRelativeImportPath(resolvedFrom, resolvedTo);
+    const sourceExt = nodePath.extname(to);
+    return `${relative}${sourceExt ? getImportExtension(sourceExt, tsconfig) : ''}`;
   }
 
   // Not a relative or absolute file path. Import as-is.
@@ -98,7 +110,9 @@ export const getHonoHeader: ClientHeaderBuilder = ({
   tag,
   clientImplementation,
 }) => {
-  const targetInfo = getFileInfo(output.target);
+  const targetInfo = getFileInfo(output.target, {
+    extension: output.fileExtension,
+  });
 
   let handlers: string;
 
@@ -368,6 +382,7 @@ const buildDesiredImports = ({
   zodModule,
   contextModule,
   validator,
+  tsconfig,
 }: {
   verbList: GeneratorVerbOptions[];
   path: string;
@@ -375,6 +390,7 @@ const buildDesiredImports = ({
   zodModule: string;
   contextModule: string;
   validator: boolean | 'hono';
+  tsconfig?: Tsconfig;
 }): DesiredImports => {
   const contextNames = verbList.map(
     (verb) => `${pascal(verb.operationName)}Context`,
@@ -390,15 +406,18 @@ const buildDesiredImports = ({
       hasValidators && validatorModule != undefined
         ? {
             names: ['zValidator'],
-            module: generateModuleSpecifier(path, validatorModule),
+            module: generateModuleSpecifier(path, validatorModule, tsconfig),
           }
         : undefined,
     context: {
       names: contextNames,
-      module: generateModuleSpecifier(path, contextModule),
+      module: generateModuleSpecifier(path, contextModule, tsconfig),
     },
     zod: hasValidators
-      ? { names: zodNames, module: generateModuleSpecifier(path, zodModule) }
+      ? {
+          names: zodNames,
+          module: generateModuleSpecifier(path, zodModule, tsconfig),
+        }
       : undefined,
   };
 };
@@ -413,6 +432,7 @@ const generateFreshHandlerFile = ({
   contextModule,
   validator,
   bodyFor,
+  tsconfig,
 }: {
   verbList: GeneratorVerbOptions[];
   path: string;
@@ -422,6 +442,7 @@ const generateFreshHandlerFile = ({
   contextModule: string;
   validator: boolean | 'hono';
   bodyFor?: (operationName: string) => string | undefined;
+  tsconfig?: Tsconfig;
 }): string => {
   const [handlerCode, hasZValidator] = getHonoHandlers(
     ...verbList.map((verbOption) => ({
@@ -437,21 +458,23 @@ const generateFreshHandlerFile = ({
 
   if (hasZValidator && validatorModule != undefined) {
     imports.push(
-      `import { zValidator } from '${generateModuleSpecifier(path, validatorModule)}';`,
+      `import { zValidator } from '${generateModuleSpecifier(path, validatorModule, tsconfig)}';`,
     );
   }
 
   imports.push(
     `import { ${verbList
       .map((verb) => `${pascal(verb.operationName)}Context`)
-      .join(',\n')} } from '${generateModuleSpecifier(path, contextModule)}';`,
+      .join(
+        ',\n',
+      )} } from '${generateModuleSpecifier(path, contextModule, tsconfig)}';`,
   );
 
   if (hasZValidator) {
     imports.push(
       getZvalidatorImports(
         verbList,
-        generateModuleSpecifier(path, zodModule),
+        generateModuleSpecifier(path, zodModule, tsconfig),
         validatorModule === '@hono/zod-validator',
       ),
     );
@@ -478,6 +501,7 @@ export const generateHandlerFile = async ({
   zodModule,
   contextModule,
   strategy,
+  tsconfig,
 }: {
   verbs: GeneratorVerbOptions[];
   path: string;
@@ -486,6 +510,7 @@ export const generateHandlerFile = async ({
   zodModule: string;
   contextModule: string;
   strategy: HonoHandlerStrategy;
+  tsconfig?: Tsconfig;
 }) => {
   const validator =
     validatorModule === '@hono/zod-validator'
@@ -503,6 +528,7 @@ export const generateHandlerFile = async ({
       zodModule,
       contextModule,
       validator,
+      tsconfig,
     });
   }
 
@@ -541,6 +567,7 @@ export const generateHandlerFile = async ({
       contextModule,
       validator,
       bodyFor: (operationName) => bodies.get(`${operationName}Handlers`),
+      tsconfig,
     });
   }
 
@@ -552,6 +579,7 @@ export const generateHandlerFile = async ({
       zodModule,
       contextModule,
       validator,
+      tsconfig,
     }),
     handlers: verbList.map((verbOption) => ({
       handlerName: `${verbOption.operationName}Handlers`,
@@ -573,7 +601,9 @@ const generateHandlerFiles = async (
   validatorModule: string,
 ) => {
   const header = getHeader(output.override.header, getSpecInfo(context));
-  const { extension, dirname, filename } = getFileInfo(output.target);
+  const { extension, dirname, filename } = getFileInfo(output.target, {
+    extension: output.fileExtension,
+  });
   const strategy = output.override.hono.handlerGenerationStrategy;
 
   // This function _does not control_ where the .zod and .context modules land.
@@ -596,14 +626,24 @@ const generateHandlerFiles = async (
         let zodModule: string;
         let contextModule: string;
         if (output.mode === 'tags') {
-          zodModule = nodePath.join(dirname, `${kebab(tag)}.zod`);
-          contextModule = nodePath.join(dirname, `${kebab(tag)}.context`);
+          zodModule = nodePath.join(dirname, `${kebab(tag)}.zod${extension}`);
+          contextModule = nodePath.join(
+            dirname,
+            `${kebab(tag)}.context${extension}`,
+          );
         } else if (output.mode === 'tags-split') {
-          zodModule = nodePath.join(dirname, tag, tag + '.zod');
-          contextModule = nodePath.join(dirname, tag, tag + '.context');
+          zodModule = nodePath.join(dirname, tag, tag + '.zod' + extension);
+          contextModule = nodePath.join(
+            dirname,
+            tag,
+            tag + '.context' + extension,
+          );
         } else {
-          zodModule = nodePath.join(dirname, `${filename}.zod`);
-          contextModule = nodePath.join(dirname, `${filename}.context`);
+          zodModule = nodePath.join(dirname, `${filename}.zod${extension}`);
+          contextModule = nodePath.join(
+            dirname,
+            `${filename}.context${extension}`,
+          );
         }
 
         return {
@@ -615,6 +655,7 @@ const generateHandlerFiles = async (
             zodModule,
             contextModule,
             strategy,
+            tsconfig: output.tsconfig,
           }),
           path,
         };
@@ -641,13 +682,14 @@ const generateHandlerFiles = async (
             validatorModule,
             zodModule:
               output.mode === 'tags'
-                ? nodePath.join(dirname, `${kebab(tag)}.zod`)
-                : nodePath.join(dirname, tag, tag + '.zod'),
+                ? nodePath.join(dirname, `${kebab(tag)}.zod${extension}`)
+                : nodePath.join(dirname, tag, tag + '.zod' + extension),
             contextModule:
               output.mode === 'tags'
-                ? nodePath.join(dirname, `${kebab(tag)}.context`)
-                : nodePath.join(dirname, tag, tag + '.context'),
+                ? nodePath.join(dirname, `${kebab(tag)}.context${extension}`)
+                : nodePath.join(dirname, tag, tag + '.context' + extension),
             strategy,
+            tsconfig: output.tsconfig,
           }),
           path: handlerPath,
         };
@@ -668,9 +710,13 @@ const generateHandlerFiles = async (
         header,
         verbs: Object.values(verbOptions),
         validatorModule,
-        zodModule: nodePath.join(dirname, `${filename}.zod`),
-        contextModule: nodePath.join(dirname, `${filename}.context`),
+        zodModule: nodePath.join(dirname, `${filename}.zod${extension}`),
+        contextModule: nodePath.join(
+          dirname,
+          `${filename}.context${extension}`,
+        ),
         strategy,
+        tsconfig: output.tsconfig,
       }),
       path: handlerPath,
     },
@@ -737,10 +783,12 @@ const generateContextFile = ({
   path,
   verbs,
   schemaModule,
+  tsconfig,
 }: {
   path: string;
   verbs: GeneratorVerbOptions[];
   schemaModule: string;
+  tsconfig?: Tsconfig;
 }) => {
   let content = `import type { Context, Env } from 'hono';\n\n`;
 
@@ -780,7 +828,7 @@ const generateContextFile = ({
       .toSorted()
       .join(
         ',\n  ',
-      )}\n} from '${generateModuleSpecifier(path, schemaModule)}';\n\n`;
+      )}\n} from '${generateModuleSpecifier(path, schemaModule, tsconfig)}';\n\n`;
   }
 
   content += contexts.join('\n');
@@ -795,7 +843,9 @@ const generateContextFiles = (
   schemaModule: string,
 ) => {
   const header = getHeader(output.override.header, getSpecInfo(context));
-  const { extension, dirname, filename } = getFileInfo(output.target);
+  const { extension, dirname, filename } = getFileInfo(output.target, {
+    extension: output.fileExtension,
+  });
 
   if (output.mode === 'tags' || output.mode === 'tags-split') {
     const groupByTags = getVerbOptionGroupByTag(verbOptions);
@@ -809,6 +859,7 @@ const generateContextFiles = (
         verbs,
         path,
         schemaModule: schemaModule,
+        tsconfig: output.tsconfig,
       });
       return { content: `${header}${code}`, path };
     });
@@ -819,6 +870,7 @@ const generateContextFiles = (
     verbs: Object.values(verbOptions),
     path,
     schemaModule: schemaModule,
+    tsconfig: output.tsconfig,
   });
 
   return [
@@ -834,7 +886,9 @@ const generateZodFiles = async (
   output: NormalizedOutputOptions,
   context: ContextSpec,
 ) => {
-  const { extension, dirname, filename } = getFileInfo(output.target);
+  const { extension, dirname, filename } = getFileInfo(output.target, {
+    extension: output.fileExtension,
+  });
 
   const header = getHeader(output.override.header, getSpecInfo(context));
 
@@ -944,7 +998,9 @@ const generateZvalidator = (
 
   let validatorPath = output.override.hono.validatorOutputPath;
   if (!output.override.hono.validatorOutputPath) {
-    const { extension, dirname, filename } = getFileInfo(output.target);
+    const { extension, dirname, filename } = getFileInfo(output.target, {
+      extension: output.fileExtension,
+    });
 
     validatorPath = nodePath.join(dirname, `${filename}.validator${extension}`);
   }
@@ -960,7 +1016,9 @@ const generateCompositeRoutes = (
   output: NormalizedOutputOptions,
   context: ContextSpec,
 ) => {
-  const targetInfo = getFileInfo(output.target);
+  const targetInfo = getFileInfo(output.target, {
+    extension: output.fileExtension,
+  });
   const compositeRouteInfo = getFileInfo(output.override.hono.compositeRoute);
 
   const header = getHeader(output.override.header, getSpecInfo(context));
@@ -986,7 +1044,11 @@ const generateCompositeRoutes = (
 
         const handlersPath = generateModuleSpecifier(
           compositeRouteInfo.path,
-          nodePath.join(handlerFileInfo.dirname, `./${operationName}`),
+          nodePath.join(
+            handlerFileInfo.dirname,
+            `./${operationName}${targetInfo.extension}`,
+          ),
+          output.tsconfig,
         );
 
         return `import { ${importHandlerName} } from '${handlersPath}';`;
@@ -1008,9 +1070,15 @@ const generateCompositeRoutes = (
         const handlersPath = generateModuleSpecifier(
           compositeRouteInfo.path,
           nodePath.join(targetInfo.dirname, tag),
+          output.tsconfig,
         );
 
-        return `import {\n${importHandlerNames}\n} from '${handlersPath}/${tag}.handlers';`;
+        const handlersImportExt = getImportExtension(
+          targetInfo.extension,
+          output.tsconfig,
+        );
+
+        return `import {\n${importHandlerNames}\n} from '${handlersPath}/${tag}.handlers${handlersImportExt}';`;
       })
       .join('\n');
   }
@@ -1038,7 +1106,9 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
   output,
   context,
 ) => {
-  const { path, pathWithoutExtension } = getFileInfo(output.target);
+  const { path, pathWithoutExtension, extension } = getFileInfo(output.target, {
+    extension: output.fileExtension,
+  });
   const validator = generateZvalidator(output, context);
   let schemaModule: string;
 
@@ -1051,7 +1121,7 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
   } else if (output.mode === 'single') {
     schemaModule = path;
   } else {
-    schemaModule = `${pathWithoutExtension}.schemas`;
+    schemaModule = `${pathWithoutExtension}.schemas${extension}`;
   }
 
   const contexts = generateContextFiles(
