@@ -33,6 +33,31 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  zodNodeNext: {
+    output: {
+      target: '../generated/axios/zod-nodenext/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/axios/zod-nodenext/model',
+      },
+      client: 'zod',
+      tsconfig: {
+        compilerOptions: {
+          module: 'nodenext',
+        },
+      },
+      override: {
+        zod: {
+          generateReusableSchemas: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   mutator: {
     output: {
       target: '../generated/axios/mutator/endpoints.ts',
