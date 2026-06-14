@@ -13,6 +13,8 @@
  * OpenAPI spec version: 1.0.27-SNAPSHOT
  */
 import {
+  FilterPetsByStatusParams,
+  Pet,
   FindPetsByStatusParams,
   FindPetsByTagsParams,
   UpdatePetWithFormParams,
@@ -20,6 +22,7 @@ import {
 } from './http-schemas';
 
 import {
+  filterPetsByStatus,
   findPetsByStatus,
   findPetsByTags,
   getPetById,
@@ -33,6 +36,51 @@ import {
   getUserByName,
   deleteUser,
 } from './http-client';
+
+/**
+ * Has a required query parameter alongside an optional request body, so the
+ * generated client sorts the query parameter before the body. Guards against
+ * the MCP handler passing the body and query arguments in the wrong order.
+ * @summary Filter pets by status with an optional example body.
+ */
+
+export type filterPetsByStatusArgs = {
+  queryParams: FilterPetsByStatusParams;
+  bodyParams: Pet;
+};
+
+export const filterPetsByStatusHandler = async (
+  args: filterPetsByStatusArgs,
+  options?: RequestInit,
+) => {
+  const res = await filterPetsByStatus(
+    args.queryParams,
+    args.bodyParams,
+    options,
+  );
+
+  if (res.status >= 400) {
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(res.data ?? null),
+        },
+      ],
+      isError: true,
+    };
+  }
+
+  return {
+    content: [
+      {
+        type: 'text' as const,
+        text: JSON.stringify(res.data ?? null),
+      },
+    ],
+    structuredContent: res.data,
+  };
+};
 
 /**
  * Multiple status values can be provided with comma separated strings.

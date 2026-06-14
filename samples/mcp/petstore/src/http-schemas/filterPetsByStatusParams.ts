@@ -13,19 +13,9 @@
  * OpenAPI spec version: 1.0.27-SNAPSHOT
  */
 
-export * from './apiResponse';
-export * from './category';
-export * from './filterPetsByStatusParams';
-export * from './findPetsByStatusParams';
-export * from './findPetsByTagsParams';
-export * from './getInventory200';
-export * from './loginUserParams';
-export * from './order';
-export * from './orderStatus';
-export * from './pet';
-export * from './petBody';
-export * from './petStatus';
-export * from './tag';
-export * from './updatePetWithFormParams';
-export * from './user';
-export * from './userArrayBody';
+export type FilterPetsByStatusParams = {
+  /**
+   * Status value that needs to be considered for filter
+   */
+  status: string;
+};
