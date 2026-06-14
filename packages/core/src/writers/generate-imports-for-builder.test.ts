@@ -122,7 +122,7 @@ describe('generateImportsForBuilder', () => {
       const output = createMockOutput({
         indexFiles: false,
         fileExtension: '.gen.ts',
-        schemas: { path: './schemas', type: 'zod' },
+        schemas: { path: './schemas', type: 'zod', splitByTags: false },
       });
       const imports = [createMockImport('User')];
 
@@ -140,7 +140,7 @@ describe('generateImportsForBuilder', () => {
       const output = createMockOutput({
         indexFiles: false,
         fileExtension: '.ts',
-        schemas: { path: './schemas', type: 'zod' },
+        schemas: { path: './schemas', type: 'zod', splitByTags: false },
       });
       const imports = [
         createMockImport('PortfolioResponseSchema', 'PortfolioResponse'),
@@ -184,7 +184,7 @@ describe('generateImportsForBuilder', () => {
       const output = createMockOutput({
         indexFiles: true,
         fileExtension: '.gen.ts',
-        schemas: { path: './schemas', type: 'zod' },
+        schemas: { path: './schemas', type: 'zod', splitByTags: false },
       });
       const imports = [createMockImport('User')];
 
@@ -208,6 +208,7 @@ describe('generateImportsForBuilder', () => {
           path: '/libs/models',
           type: 'typescript',
           importPath: '@acme/models',
+          splitByTags: false,
         },
       });
       const imports = [createMockImport('User'), createMockImport('Pet')];
@@ -230,6 +231,7 @@ describe('generateImportsForBuilder', () => {
           path: '/libs/models',
           type: 'typescript',
           importPath: '@acme/models',
+          splitByTags: false,
         },
       });
       const imports = [createMockImport('User'), createMockImport('Pet')];
@@ -262,6 +264,7 @@ describe('generateImportsForBuilder', () => {
           path: '/libs/models',
           type: 'typescript',
           importPath: '@acme/models',
+          splitByTags: false,
         },
       });
       const imports = [createMockImport('User')];
@@ -284,6 +287,7 @@ describe('generateImportsForBuilder', () => {
           path: '/libs/models',
           type: 'zod',
           importPath: '@acme/models',
+          splitByTags: false,
         },
       });
       const imports = [createMockImport('User')];
@@ -306,6 +310,7 @@ describe('generateImportsForBuilder', () => {
           path: '/libs/models',
           type: 'typescript',
           importPath: '@acme/models',
+          splitByTags: false,
         },
       });
       const imports: GeneratorImport[] = [
