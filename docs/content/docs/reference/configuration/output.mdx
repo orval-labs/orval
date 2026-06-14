@@ -219,8 +219,6 @@ import type { Error } from '../error';
 - Works with any `mode` (`single`, `split`, `tags`, `tags-split`).
 - Incompatible with `operationSchemas` — operation-derived types are placed
   within their tag directories automatically.
-- Incompatible with `schemas.importPath` — cross-directory factory imports
-  are not yet supported.
 - Incompatible with `type: 'zod'` — not yet implemented for zod schemas.
 - Schema-to-tag mapping is transitive: if `Pet` imports `Dog` which imports
   `Dachshund`, all three land in the same directory.

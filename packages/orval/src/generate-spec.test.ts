@@ -1246,32 +1246,4 @@ describe('generateSpec - schemas.splitByTags validation', () => {
       await rm(workspace, { recursive: true, force: true });
     }
   });
-
-  it('rejects splitByTags with schemas.importPath', async () => {
-    const workspace = await createTempWorkspace();
-    try {
-      const options = await normalizeOptions(
-        {
-          input: { target: SPEC_WITH_TAGS },
-          output: {
-            target: './endpoints.ts',
-            mode: 'tags-split',
-            schemas: {
-              path: './model',
-              type: 'typescript',
-              splitByTags: true,
-              importPath: '@/models',
-            },
-          },
-        },
-        workspace,
-      );
-
-      await expect(generateSpec(workspace, options)).rejects.toThrow(
-        'schemas.splitByTags cannot be used with schemas.importPath',
-      );
-    } finally {
-      await rm(workspace, { recursive: true, force: true });
-    }
-  });
 });
