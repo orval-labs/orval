@@ -339,7 +339,7 @@ export async function normalizeOptions(
     shouldExportQueryKey: true,
     shouldFilterQueryKey: false,
     shouldSplitQueryKey: false,
-    ...normalizeQueryOptions(outputOptions.override?.query, workspace),
+    ...normalizeQueryOptions(outputOptions.override?.query, outputWorkspace),
   };
 
   const normalizedOptions: NormalizedOptions = {
