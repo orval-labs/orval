@@ -743,6 +743,48 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('resolves global query mutators relative to the output workspace', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const outputWorkspace = path.join(workspace, 'generated');
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './api.ts',
+            workspace: './generated',
+            client: 'react-query',
+            override: {
+              query: {
+                queryKey: './queryKey.ts',
+                queryOptions: './queryOptions.ts',
+                mutationOptions: './mutationOptions.ts',
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.query).toMatchObject({
+        queryKey: { path: path.join(outputWorkspace, 'queryKey.ts') },
+        queryOptions: { path: path.join(outputWorkspace, 'queryOptions.ts') },
+        mutationOptions: {
+          path: path.join(outputWorkspace, 'mutationOptions.ts'),
+        },
+      });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('normalizes effect options without falling back to zod', async () => {
     const workspace = await createTempWorkspace();
 
