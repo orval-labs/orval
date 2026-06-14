@@ -46,7 +46,7 @@ import {
 
 export type filterPetsByStatusArgs = {
   queryParams: FilterPetsByStatusParams;
-  bodyParams: Pet;
+  bodyParams?: Pet;
 };
 
 export const filterPetsByStatusHandler = async (

@@ -81,7 +81,7 @@ const createMcpServer = (
         'Has a required query parameter alongside an optional request body, so the\ngenerated client sorts the query parameter before the body. Guards against\nthe MCP handler passing the body and query arguments in the wrong order.',
       inputSchema: {
         queryParams: FilterPetsByStatusQueryParams,
-        bodyParams: FilterPetsByStatusBody,
+        bodyParams: FilterPetsByStatusBody.optional(),
       },
       outputSchema: FilterPetsByStatusResponse,
       annotations: { destructiveHint: false },

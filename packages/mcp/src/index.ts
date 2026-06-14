@@ -154,7 +154,9 @@ export const generateMcp: ClientBuilder = (verbOptions) => {
     );
   }
   if (verbOptions.body.definition) {
-    handlerArgsTypes.push(`  bodyParams: ${verbOptions.body.definition};`);
+    handlerArgsTypes.push(
+      `  bodyParams${verbOptions.body.isOptional ? '?' : ''}: ${verbOptions.body.definition};`,
+    );
   }
 
   const handlerArgsName = `${verbOptions.operationName}Args`;
@@ -251,7 +253,9 @@ export const generateServer = (
       if (verbOption.queryParams)
         inputSchemaTypes.push(`queryParams: ${pascalOperationName}QueryParams`);
       if (verbOption.body.definition)
-        inputSchemaTypes.push(`bodyParams: ${pascalOperationName}Body`);
+        inputSchemaTypes.push(
+          `bodyParams: ${pascalOperationName}Body${verbOption.body.isOptional ? '.optional()' : ''}`,
+        );
 
       const inputSchemaImplementation =
         inputSchemaTypes.length > 0
