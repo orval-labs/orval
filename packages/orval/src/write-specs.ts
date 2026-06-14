@@ -1,6 +1,7 @@
 import path from 'node:path';
 
 import {
+  buildSchemaTagMap,
   type ContextSpec,
   createSuccessMessage,
   type FakerMockOptions,
@@ -25,6 +26,7 @@ import {
   upath,
   writeGeneratedFile,
   writeSchemas,
+  writeSchemasTagsSplit,
   writeSingleMode,
   type WriteSpecBuilder,
   writeSplitMode,
@@ -43,6 +45,7 @@ import {
   generateZodSchemasInline,
   writeZodSchemas,
   writeZodSchemasFromVerbs,
+  writeZodSchemaTagsSplitBarrel,
 } from './write-zod-specs';
 
 async function runExternalFormatter(
@@ -321,6 +324,10 @@ export async function writeSpecs(
     const schemasPath = isString(output.schemas)
       ? output.schemas
       : output.schemas.path;
+
+    const shouldSplitSchemasByTags =
+      isObject(output.schemas) && output.schemas.splitByTags;
+
     const isZodSchemas =
       (!isString(output.schemas) && output.schemas.type === 'zod') ||
       // Auto-promote a string `schemas:` to the zod writer when client is zod
@@ -330,6 +337,13 @@ export async function writeSpecs(
       (isString(output.schemas) &&
         output.client === 'zod' &&
         output.override.zod.generateReusableSchemas);
+
+    if (shouldSplitSchemasByTags && output.operationSchemas) {
+      throw new Error(
+        'schemas.splitByTags cannot be used with output.operationSchemas. ' +
+          'The tags-split schema mode handles operation type placement within tag directories.',
+      );
+    }
 
     if (isZodSchemas) {
       // Use the schema-specific extension so the global `fileExtension` (which
@@ -350,33 +364,96 @@ export async function writeSpecs(
           })
         : undefined;
 
-      await writeZodSchemas(
-        builder,
-        schemasPath,
-        fileExtension,
-        header,
-        output,
-        schemasParamsMutator,
-      );
+      if (shouldSplitSchemasByTags) {
+        const operations = Object.values(builder.operations).map((op) => ({
+          imports: op.imports,
+          tags: op.tags,
+        }));
+        const schemaTagMap = buildSchemaTagMap(operations, schemas);
 
-      await writeZodSchemasFromVerbs(
-        builder.verbOptions,
-        schemasPath,
-        fileExtension,
-        header,
-        output,
-        {
-          spec: builder.spec,
-          target: builder.target,
-          workspace,
+        const componentDirs = await writeZodSchemas(
+          builder,
+          schemasPath,
+          fileExtension,
+          header,
           output,
-        },
-      );
+          schemasParamsMutator,
+          schemaTagMap,
+        );
+
+        const verbDirs = await writeZodSchemasFromVerbs(
+          builder.verbOptions,
+          schemasPath,
+          fileExtension,
+          header,
+          output,
+          {
+            spec: builder.spec,
+            target: builder.target,
+            workspace,
+            output,
+          },
+          schemaTagMap,
+        );
+
+        if (output.indexFiles) {
+          await writeZodSchemaTagsSplitBarrel(
+            schemasPath,
+            fileExtension,
+            header,
+            componentDirs,
+            verbDirs,
+            output.namingConvention,
+            output.tsconfig,
+          );
+        }
+      } else {
+        await writeZodSchemas(
+          builder,
+          schemasPath,
+          fileExtension,
+          header,
+          output,
+          schemasParamsMutator,
+        );
+
+        await writeZodSchemasFromVerbs(
+          builder.verbOptions,
+          schemasPath,
+          fileExtension,
+          header,
+          output,
+          {
+            spec: builder.spec,
+            target: builder.target,
+            workspace,
+            output,
+          },
+        );
+      }
     } else {
       const fileExtension = output.fileExtension || '.ts';
 
-      // Split schemas if operationSchemas path is configured
-      if (output.operationSchemas) {
+      // Split schemas by tag into subdirectories
+      if (shouldSplitSchemasByTags) {
+        const operations = Object.values(builder.operations).map((op) => ({
+          imports: op.imports,
+          tags: op.tags,
+        }));
+
+        await writeSchemasTagsSplit({
+          schemaPath: schemasPath,
+          schemas,
+          target,
+          namingConvention: output.namingConvention,
+          fileExtension,
+          header,
+          indexFiles: output.indexFiles,
+          tsconfig: output.tsconfig,
+          factoryOutputDirectory: output.factoryMethods?.outputDirectory,
+          operations,
+        });
+      } else if (output.operationSchemas) {
         const { regularSchemas, operationSchemas: opSchemas } =
           splitSchemasByType(schemas);
 

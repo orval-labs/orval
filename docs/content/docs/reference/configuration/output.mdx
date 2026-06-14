@@ -111,11 +111,12 @@ export default defineConfig({
 });
 ```
 
-| Property   | Type     | Description                                     |
-| ---------- | -------- | ----------------------------------------------- |
-| `path`     | `string` | Filesystem path for schema output               |
-| `type`     | `string` | `'typescript'` or `'zod'`                       |
-| `importPath` | `string` | Optional package import specifier (see below)  |
+| Property      | Type      | Description                                     |
+| ------------- | --------- | ----------------------------------------------- |
+| `path`        | `string`  | Filesystem path for schema output               |
+| `type`        | `string`  | `'typescript'` or `'zod'`                       |
+| `importPath`  | `string`  | Optional package import specifier (see below)   |
+| `splitByTags` | `boolean` | Organize schemas into per-tag subdirectories (default `false`, see below) |
 
 ### importPath
 
@@ -169,6 +170,57 @@ import statements change.
 - Config normalization rejects invalid `importPath` values (empty, whitespace,
   relative, or absolute paths) before generation runs — see
   [Validation of `importPath`](#validation-of-importpath) below.
+
+### splitByTags
+
+When `splitByTags` is `true`, schemas are organized into per-tag
+subdirectories instead of a single flat directory. Schemas referenced by
+only one tag go in that tag's directory; schemas referenced by multiple
+tags (or not referenced by any operation) remain at the root of the schema
+directory. Works with any `mode` (`single`, `split`, `tags`, `tags-split`).
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      schemas: {
+        path: './api/model',
+        splitByTags: true,
+      },
+    },
+  },
+});
+```
+
+Result:
+
+```
+api/model/
+├── error.ts               ← schemas used by 2+ tags (or unreferenced)
+├── pagination.ts
+├── pets/                  ← schemas only used by "pets" operations
+│   ├── pet.ts
+│   ├── createPetsBody.ts
+│   ├── listPetsParams.ts
+│   └── index.ts
+└── index.ts               ← root barrel re-exporting shared files + tag dirs
+```
+
+Cross-tag imports from within a tag subdirectory resolve to the parent:
+
+```ts
+// pets/pet.ts
+import type { Error } from '../error';
+```
+
+**Requirements:**
+
+- Works with any `mode` (`single`, `split`, `tags`, `tags-split`).
+- Incompatible with `operationSchemas` — operation-derived types are placed
+  within their tag directories automatically.
+- Schema-to-tag mapping is transitive: if `Pet` imports `Dog` which imports
+  `Dachshund`, all three land in the same directory.
 
 ### Validation of `importPath`
 
@@ -347,6 +399,28 @@ my-app/src/
 │   └── pets.ts              ← imports from ../models
 └── users/
     └── users.ts             ← imports from ../models
+```
+
+To organize schemas into per-tag subdirectories instead of a flat directory, use [`splitByTags`](#splitbytags):
+
+```
+my-app/src/
+├── models/
+│   ├── pagination.ts          ← shared schemas at root
+│   ├── error.ts
+│   ├── pets/
+│   │   ├── pet.ts
+│   │   ├── listPetsParams.ts
+│   │   └── index.ts
+│   ├── users/
+│   │   ├── user.ts
+│   │   ├── listUsersParams.ts
+│   │   └── index.ts
+│   └── index.ts               ← root barrel
+├── pets/
+│   └── pets.ts
+└── users/
+    └── users.ts
 ```
 
 ## baseUrl

@@ -36,7 +36,7 @@ export interface NormalizedOptions {
 export interface NormalizedOutputOptions {
   workspace?: string;
   target: string;
-  schemas?: string | SchemaOptions;
+  schemas?: string | NormalizedSchemaOptions;
   operationSchemas?: string;
   namingConvention: NamingConvention;
   fileExtension: string;
@@ -309,12 +309,21 @@ export interface SchemaOptions {
   path: string;
   type: SchemaGenerationType;
   importPath?: string;
+  /**
+   * When `true`, schemas are organized into per-tag subdirectories instead of
+   * a single flat directory. Schemas referenced by multiple tags remain at the
+   * root of the schema directory.
+   *
+   * @default false
+   */
+  splitByTags?: boolean;
 }
 
 export interface NormalizedSchemaOptions {
   path: string;
   type: SchemaGenerationType;
   importPath?: string;
+  splitByTags: boolean;
 }
 
 export interface OutputOptions {
