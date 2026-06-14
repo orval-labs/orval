@@ -4,6 +4,7 @@ import {
   type ContextSpec,
   conventionName,
   type GeneratorMutator,
+  getImportExtension,
   getRefInfo,
   isComponentRef,
   type NamingConvention,
@@ -14,6 +15,7 @@ import {
   type OpenApiSchemaObject,
   pascal,
   resolveValue,
+  type Tsconfig,
   type ZodCoerceType,
 } from '@orval/core';
 import {
@@ -51,6 +53,7 @@ interface WriteZodOutputOptions {
   namingConvention: NamingConvention;
   indexFiles: boolean;
   packageJson?: NormalizedOutputOptions['packageJson'];
+  tsconfig?: Tsconfig;
   override: {
     useNamedParameters?: boolean;
     zod: {
@@ -390,8 +393,9 @@ async function writeZodSchemaIndex(
   schemaNames: string[],
   namingConvention: NamingConvention,
   shouldMergeExisting = false,
+  tsconfig?: Tsconfig,
 ) {
-  const importFileExtension = fileExtension.replace(/\.ts$/, '');
+  const importFileExtension = getImportExtension(fileExtension, tsconfig);
   const indexPath = path.join(schemasPath, `index.ts`);
 
   let existingExports = '';
@@ -667,6 +671,7 @@ export async function writeZodSchemas(
       schemaNames,
       output.namingConvention,
       false,
+      output.tsconfig,
     );
   }
 }
@@ -740,7 +745,7 @@ async function writeZodSchemasReusable(
   for (const entry of rewritten) {
     const fileName = conventionName(entry.name, output.namingConvention);
     const filePath = path.join(schemasPath, `${fileName}${fileExtension}`);
-    const importExt = fileExtension.replace(/\.ts$/, '');
+    const importExt = getImportExtension(fileExtension, output.tsconfig);
     const rendered = renderReusableSchemaEntry(entry, context);
     const refImports = buildSiblingImports({
       usedRefs: entry.usedRefs,
@@ -778,6 +783,7 @@ async function writeZodSchemasReusable(
       schemaNames,
       output.namingConvention,
       true,
+      output.tsconfig,
     );
   }
 }
@@ -1059,7 +1065,7 @@ export async function writeZodSchemasFromVerbs(
     let importStatements: string[] | undefined;
     if (useReusableSchemas && parsedZodDefinition.usedRefs.size > 0) {
       zodExpression = rewriteSentinelsToDirect(zodExpression);
-      const importExt = fileExtension.replace(/\.ts$/, '');
+      const importExt = getImportExtension(fileExtension, output.tsconfig);
       importStatements = [...parsedZodDefinition.usedRefs]
         .filter((refName) => refName !== name)
         .toSorted()
@@ -1097,6 +1103,7 @@ export async function writeZodSchemasFromVerbs(
       schemaNames,
       output.namingConvention,
       true,
+      output.tsconfig,
     );
   }
 }
