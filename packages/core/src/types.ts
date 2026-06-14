@@ -323,7 +323,7 @@ export interface NormalizedSchemaOptions {
   path: string;
   type: SchemaGenerationType;
   importPath?: string;
-  splitByTags?: boolean;
+  splitByTags: boolean;
 }
 
 export interface OutputOptions {
