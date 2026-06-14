@@ -511,7 +511,7 @@ export async function normalizeOptions(
             ...(outputOptions.override?.zod?.preprocess?.param
               ? {
                   param: normalizeMutator(
-                    workspace,
+                    outputWorkspace,
                     outputOptions.override.zod.preprocess.param,
                   ),
                 }
@@ -519,7 +519,7 @@ export async function normalizeOptions(
             ...(outputOptions.override?.zod?.preprocess?.query
               ? {
                   query: normalizeMutator(
-                    workspace,
+                    outputWorkspace,
                     outputOptions.override.zod.preprocess.query,
                   ),
                 }
@@ -527,7 +527,7 @@ export async function normalizeOptions(
             ...(outputOptions.override?.zod?.preprocess?.header
               ? {
                   header: normalizeMutator(
-                    workspace,
+                    outputWorkspace,
                     outputOptions.override.zod.preprocess.header,
                   ),
                 }
@@ -535,7 +535,7 @@ export async function normalizeOptions(
             ...(outputOptions.override?.zod?.preprocess?.body
               ? {
                   body: normalizeMutator(
-                    workspace,
+                    outputWorkspace,
                     outputOptions.override.zod.preprocess.body,
                   ),
                 }
@@ -543,7 +543,7 @@ export async function normalizeOptions(
             ...(outputOptions.override?.zod?.preprocess?.response
               ? {
                   response: normalizeMutator(
-                    workspace,
+                    outputWorkspace,
                     outputOptions.override.zod.preprocess.response,
                   ),
                 }
@@ -552,7 +552,7 @@ export async function normalizeOptions(
           ...(outputOptions.override?.zod?.params
             ? {
                 params: normalizeMutator(
-                  workspace,
+                  outputWorkspace,
                   outputOptions.override.zod.params,
                 ),
               }
