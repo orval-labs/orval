@@ -15,6 +15,7 @@
 
 import {
   Pet,
+  FilterPetsByStatusParams,
   FindPetsByStatusParams,
   FindPetsByTagsParams,
   UpdatePetWithFormParams,
@@ -65,6 +66,80 @@ export type HTTPStatusCodes =
   | HTTPStatusCode3xx
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
+
+export type filterPetsByStatusResponse200 = {
+  data: Pet[];
+  status: 200;
+};
+
+export type filterPetsByStatusResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type filterPetsByStatusResponseDefault = {
+  data: void;
+  status: Exclude<HTTPStatusCodes, 200 | 400>;
+};
+
+export type filterPetsByStatusResponseSuccess =
+  filterPetsByStatusResponse200 & {
+    headers: Headers;
+  };
+export type filterPetsByStatusResponseError = (
+  | filterPetsByStatusResponse400
+  | filterPetsByStatusResponseDefault
+) & {
+  headers: Headers;
+};
+
+export type filterPetsByStatusResponse =
+  | filterPetsByStatusResponseSuccess
+  | filterPetsByStatusResponseError;
+
+export const getFilterPetsByStatusUrl = (params: FilterPetsByStatusParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `https://petstore3.swagger.io/api/v3/pet/filterByStatus?${stringifiedParams}`
+    : `https://petstore3.swagger.io/api/v3/pet/filterByStatus`;
+};
+
+/**
+ * Has a required query parameter alongside an optional request body, so the
+ * generated client sorts the query parameter before the body. Guards against
+ * the MCP handler passing the body and query arguments in the wrong order.
+ * @summary Filter pets by status with an optional example body.
+ */
+export const filterPetsByStatus = async (
+  params: FilterPetsByStatusParams,
+  pet?: Pet,
+  options?: RequestInit,
+): Promise<filterPetsByStatusResponse> => {
+  const res = await fetch(getFilterPetsByStatusUrl(params), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pet),
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: filterPetsByStatusResponse['data'] = body ? JSON.parse(body) : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as filterPetsByStatusResponse;
+};
 
 export type findPetsByStatusResponse200ApplicationJson = {
   data: Pet[];

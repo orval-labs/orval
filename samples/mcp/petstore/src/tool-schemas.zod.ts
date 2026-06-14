@@ -14,6 +14,63 @@
  */
 import { z as zod } from 'zod';
 
+export const FilterPetsByStatusQueryParams = zod.object({
+  status: zod
+    .string()
+    .describe('Status value that needs to be considered for filter'),
+});
+
+export const FilterPetsByStatusBody = zod.object({
+  id: zod.number().optional(),
+  name: zod.string(),
+  category: zod
+    .object({
+      id: zod.number().optional(),
+      name: zod.string().optional(),
+    })
+    .optional(),
+  photoUrls: zod.array(zod.string()),
+  tags: zod
+    .array(
+      zod.object({
+        id: zod.number().optional(),
+        name: zod.string().optional(),
+      }),
+    )
+    .optional(),
+  status: zod
+    .enum(['available', 'pending', 'sold'])
+    .optional()
+    .describe('pet status in the store'),
+});
+
+export const FilterPetsByStatusResponseItem = zod.object({
+  id: zod.number().optional(),
+  name: zod.string(),
+  category: zod
+    .object({
+      id: zod.number().optional(),
+      name: zod.string().optional(),
+    })
+    .optional(),
+  photoUrls: zod.array(zod.string()),
+  tags: zod
+    .array(
+      zod.object({
+        id: zod.number().optional(),
+        name: zod.string().optional(),
+      }),
+    )
+    .optional(),
+  status: zod
+    .enum(['available', 'pending', 'sold'])
+    .optional()
+    .describe('pet status in the store'),
+});
+export const FilterPetsByStatusResponse = zod.array(
+  FilterPetsByStatusResponseItem,
+);
+
 export const FindPetsByStatusQueryParams = zod.object({
   status: zod
     .string()
