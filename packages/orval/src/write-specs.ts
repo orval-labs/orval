@@ -359,17 +359,6 @@ export async function writeSpecs(
       );
     }
 
-    if (
-      shouldSplitSchemasByTags &&
-      !isString(output.schemas) &&
-      output.schemas.importPath
-    ) {
-      throw new Error(
-        'schemas.splitByTags cannot be used with schemas.importPath. ' +
-          'Cross-directory factory imports are not yet supported with tag-based schema splitting.',
-      );
-    }
-
     if (isZodSchemas) {
       // Use the schema-specific extension so the global `fileExtension` (which
       // also drives client/mock outputs) isn't dragged into the zod world.
