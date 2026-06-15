@@ -1069,16 +1069,15 @@ const generateCompositeRoutes = (
 
         const handlersPath = generateModuleSpecifier(
           compositeRouteInfo.path,
-          nodePath.join(targetInfo.dirname, tag),
+          nodePath.join(
+            targetInfo.dirname,
+            tag,
+            `${tag}.handlers${targetInfo.extension}`,
+          ),
           output.tsconfig,
         );
 
-        const handlersImportExt = getImportExtension(
-          targetInfo.extension,
-          output.tsconfig,
-        );
-
-        return `import {\n${importHandlerNames}\n} from '${handlersPath}/${tag}.handlers${handlersImportExt}';`;
+        return `import {\n${importHandlerNames}\n} from '${handlersPath}';`;
       })
       .join('\n');
   }
