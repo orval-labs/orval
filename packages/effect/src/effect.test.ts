@@ -232,6 +232,21 @@ describe('defaults', () => {
     expect(consts).toContain('"foo-bar": 1');
     expect(consts).toContain('"baz qux": "hi" as const');
   });
+
+  it('serializes object items in array defaults instead of [object Object] (#3583)', () => {
+    const { consts } = gen({
+      type: 'object',
+      properties: {
+        config: {
+          type: 'object',
+          default: { items: [{ id: 1 }, { id: 2 }] },
+        } as OpenApiSchemaObject,
+      },
+    });
+    expect(consts).not.toContain('[object Object]');
+    expect(consts).toContain('{"id":1}');
+    expect(consts).toContain('{"id":2}');
+  });
 });
 
 describe('formats', () => {
