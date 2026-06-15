@@ -63,7 +63,13 @@ export const createReactAdapter = ({
     queryResultVarName,
     queryOptionsVarName,
   }: QueryReturnStatementContext): string {
-    return `return { ...${queryResultVarName}, queryKey: ${queryOptionsVarName}.queryKey };`;
+    // Spreading the tracked query result reads every field, subscribing the
+    // consumer to all of them and defeating React Query v5's per-property
+    // render optimization (it also trips @tanstack/query/no-rest-destructuring).
+    // withQueryKey re-exposes the fields as lazy getters so tracking is
+    // preserved, without mutating the hook result (react-compiler safe). The
+    // helper is emitted once per file by generateQueryHeader. See #3573.
+    return `return withQueryKey(${queryResultVarName}, ${queryOptionsVarName}.queryKey);`;
   },
 
   shouldGenerateOverrideTypes(): boolean {

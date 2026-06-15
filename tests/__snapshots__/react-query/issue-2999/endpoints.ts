@@ -23,6 +23,21 @@ import type { CreateMuscleDto, Muscle } from './model';
 import { customFetch } from '../../../mutators/custom-fetch';
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
+const withQueryKey = <T extends object, K>(
+  query: T,
+  queryKey: K,
+): T & { queryKey: K } => {
+  const result = { queryKey } as T & { queryKey: K };
+  for (const key of Object.keys(query)) {
+    Object.defineProperty(result, key, {
+      enumerable: true,
+      configurable: true,
+      get: () => (query as Record<string, unknown>)[key],
+    });
+  }
+  return result;
+};
+
 export const getMusclesControllerFindAllUrl = () => {
   return `/muscles`;
 };
@@ -176,7 +191,7 @@ export function useMusclesControllerFindAll<
     TError
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+  return withQueryKey(query, queryOptions.queryKey);
 }
 
 /**
@@ -390,7 +405,7 @@ export function useMusclesControllerCreate<
     TError
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+  return withQueryKey(query, queryOptions.queryKey);
 }
 
 /**
@@ -606,7 +621,7 @@ export function useMusclesControllerFindOne<
     TError
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+  return withQueryKey(query, queryOptions.queryKey);
 }
 
 /**

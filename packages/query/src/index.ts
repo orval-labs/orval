@@ -29,7 +29,28 @@ export {
   getVueQueryDependencies,
 } from './dependencies';
 
+// Lazy-getter merge helper emitted once per file for the react-query client.
+// It attaches `queryKey` to the hook result without spreading it (which would
+// read every tracked field and over-subscribe the consumer) or mutating it
+// (which react-compiler forbids). Each field is re-exposed as an own getter so
+// React Query v5's per-property tracking still fires only for fields the
+// consumer actually reads. See #3573.
+const WITH_QUERY_KEY_HELPER = `const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
+  const result = { queryKey } as T & { queryKey: K };
+  for (const key of Object.keys(query)) {
+    Object.defineProperty(result, key, {
+      enumerable: true,
+      configurable: true,
+      get: () => (query as Record<string, unknown>)[key],
+    });
+  }
+  return result;
+};`;
+
 export const generateQueryHeader: ClientHeaderBuilder = (params) => {
+  const needsWithQueryKey =
+    params.clientImplementation.includes('withQueryKey(');
+
   return `${
     params.hasAwaitedType
       ? ''
@@ -42,7 +63,7 @@ ${
     : ''
 }
 ${getQueryHeader(params)}
-`;
+${needsWithQueryKey ? `${WITH_QUERY_KEY_HELPER}\n\n` : ''}`;
 };
 
 export const generateQuery: ClientBuilder = async (

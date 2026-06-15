@@ -52,6 +52,21 @@ import type { RequestHandlerOptions } from 'msw';
 import type { Cat, Dachshund, Dog, Labradoodle } from './model';
 
 import { customInstance } from '../../../mutators/custom-instance';
+const withQueryKey = <T extends object, K>(
+  query: T,
+  queryKey: K,
+): T & { queryKey: K } => {
+  const result = { queryKey } as T & { queryKey: K };
+  for (const key of Object.keys(query)) {
+    Object.defineProperty(result, key, {
+      enumerable: true,
+      configurable: true,
+      get: () => (query as Record<string, unknown>)[key],
+    });
+  }
+  return result;
+};
+
 /**
  * @summary List all pets
  */
@@ -279,7 +294,7 @@ export function useListPetsInfinite<
     queryKey: DataTag<QueryKey, TData, TError>;
   };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+  return withQueryKey(query, queryOptions.queryKey);
 }
 
 export const getListPetsQueryOptions = <
@@ -405,7 +420,7 @@ export function useListPets<
     TError
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+  return withQueryKey(query, queryOptions.queryKey);
 }
 
 export const getListPetsSuspenseQueryOptions = <
@@ -538,7 +553,7 @@ export function useListPetsSuspense<
     queryKey: DataTag<QueryKey, TData, TError>;
   };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+  return withQueryKey(query, queryOptions.queryKey);
 }
 
 export const getListPetsSuspenseInfiniteQueryOptions = <
@@ -715,7 +730,7 @@ export function useListPetsSuspenseInfinite<
     queryKey: DataTag<QueryKey, TData, TError>;
   };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+  return withQueryKey(query, queryOptions.queryKey);
 }
 
 /**
@@ -950,7 +965,7 @@ export function useShowPetById<
     TError
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+  return withQueryKey(query, queryOptions.queryKey);
 }
 
 export const getShowPetByIdSuspenseQueryOptions = <
@@ -1083,7 +1098,7 @@ export function useShowPetByIdSuspense<
     queryKey: DataTag<QueryKey, TData, TError>;
   };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+  return withQueryKey(query, queryOptions.queryKey);
 }
 
 /**
@@ -1300,7 +1315,7 @@ export function useHealthCheck<
     TError
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+  return withQueryKey(query, queryOptions.queryKey);
 }
 
 export const getHealthCheckSuspenseQueryOptions = <
@@ -1423,7 +1438,7 @@ export function useHealthCheckSuspense<
     queryKey: DataTag<QueryKey, TData, TError>;
   };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+  return withQueryKey(query, queryOptions.queryKey);
 }
 
 /**
@@ -1597,7 +1612,7 @@ export function useShowPetWithOwner<
     TError
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+  return withQueryKey(query, queryOptions.queryKey);
 }
 
 export const getShowPetWithOwnerSuspenseQueryOptions = <
@@ -1730,7 +1745,7 @@ export function useShowPetWithOwnerSuspense<
     queryKey: DataTag<QueryKey, TData, TError>;
   };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+  return withQueryKey(query, queryOptions.queryKey);
 }
 
 export const getListPetsResponseLabradoodleMock = (

@@ -21,6 +21,21 @@ import type { InternalServerError500 } from '../model/internalServerError500';
 
 import type { UserProfile } from '../model/userProfile';
 
+const withQueryKey = <T extends object, K>(
+  query: T,
+  queryKey: K,
+): T & { queryKey: K } => {
+  const result = { queryKey } as T & { queryKey: K };
+  for (const key of Object.keys(query)) {
+    Object.defineProperty(result, key, {
+      enumerable: true,
+      configurable: true,
+      get: () => (query as Record<string, unknown>)[key],
+    });
+  }
+  return result;
+};
+
 export type getUserResponse200 = {
   data: UserProfile;
   status: 200;
@@ -188,5 +203,5 @@ export function useGetUser<
     TError
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 
-  return { ...query, queryKey: queryOptions.queryKey };
+  return withQueryKey(query, queryOptions.queryKey);
 }
