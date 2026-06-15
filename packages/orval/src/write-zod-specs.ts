@@ -494,7 +494,7 @@ export async function writeZodSchemaTagsSplitBarrel(
   namingConvention: NamingConvention,
   tsconfig?: Tsconfig,
 ) {
-  const importExt = fileExtension.replace(/\.ts$/, '');
+  const importExt = getImportExtension(fileExtension, tsconfig);
   const indexImportExt = getImportExtension('.ts', tsconfig);
 
   const allDirs = new Map<string, string[]>();
@@ -519,6 +519,7 @@ export async function writeZodSchemaTagsSplitBarrel(
       schemaNames,
       namingConvention,
       false,
+      tsconfig,
     );
   }
 
