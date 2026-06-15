@@ -1405,7 +1405,19 @@ ${Object.entries(objectArgs)
       .map((prop) => parseProperty(prop, [...fieldPath, key]))
       .join('');
     appendConstsChunk(schema.consts.join('\n'));
-    return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
+    const fieldZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
+    // Opt-in via `coerce.<location>: ['array', ...]`: a server framework (e.g.
+    // Hono) delivers a single repeated-key value as a scalar, not a 1-element
+    // array, so `?t=a` would fail z.array(...). Wrap so both `?t=a` and
+    // `?t=a&t=b` parse. Undefined passes through so an outer `.optional()`/
+    // `.default()` still applies. Already-arrays are left untouched (no-op for
+    // JSON-body arrays).
+    const coerceArrays =
+      Array.isArray(coerceTypes) && coerceTypes.includes('array');
+    if (coerceArrays && schema.functions.some(([fn]) => fn === 'array')) {
+      return `  "${key}": zod.preprocess((value) => value === undefined || Array.isArray(value) ? value : [value], ${fieldZod})`;
+    }
+    return `  "${key}": ${fieldZod}`;
   })
   .join(',\n')}
 })`;
