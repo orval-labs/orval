@@ -70,4 +70,19 @@ describe('generateQueryHeader withQueryKey emission (issue #3573)', () => {
 
     expect(header).not.toContain('const withQueryKey =');
   });
+
+  it('lets the explicit queryKey win over a queryKey field on the result', () => {
+    const header = generateQueryHeader({
+      ...baseParams,
+      clientImplementation:
+        'return withQueryKey(query, queryOptions.queryKey);',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+
+    // Without this guard the loop would redefine `queryKey` as a getter onto
+    // the result's own queryKey, diverging from the previous
+    // `{ ...query, queryKey }` spread where the explicit key was set last and
+    // always won. See #3573 review feedback.
+    expect(header).toContain("if (key === 'queryKey') continue;");
+  });
 });

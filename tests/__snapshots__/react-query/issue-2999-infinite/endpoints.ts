@@ -33,6 +33,9 @@ const withQueryKey = <T extends object, K>(
 ): T & { queryKey: K } => {
   const result = { queryKey } as T & { queryKey: K };
   for (const key of Object.keys(query)) {
+    // The explicit queryKey always wins, matching the previous
+    // `{ ...query, queryKey }` spread where it was set last.
+    if (key === 'queryKey') continue;
     Object.defineProperty(result, key, {
       enumerable: true,
       configurable: true,
