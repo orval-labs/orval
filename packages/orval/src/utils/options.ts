@@ -155,7 +155,7 @@ function normalizeSchemasOption(
 
   return {
     path: normalizePath(schemas.path, workspace),
-    type: schemas.type,
+    type: schemas.type ?? 'typescript',
     importPath: schemas.importPath,
   };
 }

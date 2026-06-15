@@ -307,7 +307,7 @@ export interface NormalizedFactoryMethodsOptions {
 
 export interface SchemaOptions {
   path: string;
-  type: SchemaGenerationType;
+  type?: SchemaGenerationType;
   importPath?: string;
 }
 
