@@ -181,6 +181,9 @@ function adjustMutatorPathForDir(mutatorPath: string, tagDir: string): string {
   if (mutatorPath.startsWith('./')) {
     return `../${mutatorPath.slice(2)}`;
   }
+  if (mutatorPath.startsWith('../')) {
+    return `../${mutatorPath}`;
+  }
   return mutatorPath;
 }
 

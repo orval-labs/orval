@@ -8,10 +8,8 @@ import {
 } from '../types';
 import { conventionName, getImportExtension, upath } from '../utils';
 import { writeGeneratedFile } from './file';
-import { buildSchemaTagMap } from './schema-tag-mapper';
+import { buildSchemaTagMap, SHARED_DIR } from './schema-tag-mapper';
 import { writeSchemas } from './schemas';
-
-const ROOT = '.';
 
 interface WriteSchemasTagsSplitOptions {
   schemaPath: string;
@@ -43,7 +41,7 @@ export async function writeSchemasTagsSplit({
 
   const groups = new Map<string, GeneratorSchema[]>();
   for (const schema of schemas) {
-    const group = schemaTagMap.get(schema.name) ?? ROOT;
+    const group = schemaTagMap.get(schema.name) ?? SHARED_DIR;
     if (!groups.has(group)) {
       groups.set(group, []);
     }
@@ -51,7 +49,7 @@ export async function writeSchemasTagsSplit({
   }
 
   for (const [groupDir, groupSchemas] of groups) {
-    const isRoot = groupDir === ROOT;
+    const isRoot = groupDir === SHARED_DIR;
     const groupPath = isRoot ? schemaPath : nodePath.join(schemaPath, groupDir);
 
     fixCrossTagImports(
@@ -85,14 +83,14 @@ export async function writeSchemasTagsSplit({
   if (indexFiles && groups.size > 0) {
     const rootIndexPath = nodePath.join(schemaPath, 'index.ts');
 
-    const rootSchemas = groups.get(ROOT) ?? [];
+    const rootSchemas = groups.get(SHARED_DIR) ?? [];
     const rootExports = rootSchemas.map((s) => {
       const fileName = conventionName(s.name, namingConvention);
       return `export * from './${fileName}${importExtension}';`;
     });
 
     const tagDirs = [...groups.keys()]
-      .filter((dir) => dir !== ROOT)
+      .filter((dir) => dir !== SHARED_DIR)
       .toSorted((a: string, b: string) =>
         a.localeCompare(b, 'en', { numeric: true }),
       );
@@ -117,7 +115,7 @@ function fixCrossTagImports(
   namingConvention: NamingConvention,
   importExtension: string,
 ): void {
-  const isRoot = currentGroupDir === ROOT;
+  const isRoot = currentGroupDir === SHARED_DIR;
   const fromPath = isRoot
     ? schemaPath
     : nodePath.join(schemaPath, currentGroupDir);
@@ -131,7 +129,7 @@ function fixCrossTagImports(
         }
 
         const toPath =
-          targetGroup === ROOT
+          targetGroup === SHARED_DIR
             ? schemaPath
             : nodePath.join(schemaPath, targetGroup);
         const relativePath = upath.relativeSafe(fromPath, toPath);

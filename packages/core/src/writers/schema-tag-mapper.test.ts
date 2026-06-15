@@ -118,4 +118,22 @@ describe('buildSchemaTagMap', () => {
 
     expect(result.get('Pets')).toBe('default');
   });
+
+  it('matches imports by name (TS identifier) not schemaName', () => {
+    const operations = [
+      {
+        imports: [{ name: 'Pet', schemaName: 'PetSchema' }],
+        implementation: '',
+        mockOutputs: [],
+        tags: ['pets'],
+        operationName: 'listPets',
+      } as GeneratorOperation,
+    ];
+    const schemas = [makeSchema('Pet')];
+
+    const result = buildSchemaTagMap(operations, schemas);
+
+    expect(result.get('Pet')).toBe('pets');
+    expect(result.get('PetSchema')).toBeUndefined();
+  });
 });

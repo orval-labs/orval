@@ -379,6 +379,7 @@ describe('normalizeOptions', () => {
         path: expect.any(String) as string,
         type: 'typescript',
         importPath: '@acme/models',
+        splitByTags: false,
       });
     } finally {
       await rm(workspace, { recursive: true, force: true });

@@ -2,12 +2,18 @@ import os from 'node:os';
 import path from 'node:path';
 
 import fs from 'fs-extra';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { type GeneratorSchema, NamingConvention } from '../types';
 import { writeSchemasTagsSplit } from './schemas-tags-split';
 
 const tmpDir = () => fs.mkdtemp(path.join(os.tmpdir(), 'orval-test-'));
+
+let dir = '';
+
+afterEach(async () => {
+  if (dir) await fs.remove(dir);
+});
 
 const makeSchema = (
   name: string,
@@ -50,8 +56,6 @@ describe('writeSchemasTagsSplit', () => {
     );
     expect(await fs.pathExists(path.join(dir, 'index.ts'))).toBe(true);
     expect(await fs.pathExists(path.join(dir, 'pets', 'index.ts'))).toBe(true);
-
-    await fs.remove(dir);
   });
 
   it('places shared schemas at root', async () => {
@@ -72,8 +76,6 @@ describe('writeSchemasTagsSplit', () => {
     expect(await fs.pathExists(path.join(dir, 'pets', 'pet.ts'))).toBe(true);
     expect(await fs.pathExists(path.join(dir, 'error.ts'))).toBe(true);
     expect(await fs.pathExists(path.join(dir, '_shared'))).toBe(false);
-
-    await fs.remove(dir);
   });
 
   it('generates correct cross-tag import paths to root', async () => {
@@ -96,8 +98,6 @@ describe('writeSchemasTagsSplit', () => {
       'utf8',
     );
     expect(petContent).toContain("from '../error'");
-
-    await fs.remove(dir);
   });
 
   it('appends import extension for ESM module resolution', async () => {
@@ -121,8 +121,6 @@ describe('writeSchemasTagsSplit', () => {
       'utf8',
     );
     expect(petContent).toContain("from '../error.js'");
-
-    await fs.remove(dir);
   });
 
   it('does not write root index when indexFiles is false', async () => {
@@ -141,8 +139,6 @@ describe('writeSchemasTagsSplit', () => {
     expect(await fs.pathExists(path.join(dir, 'index.ts'))).toBe(false);
     expect(await fs.pathExists(path.join(dir, 'pets', 'index.ts'))).toBe(false);
     expect(await fs.pathExists(path.join(dir, 'pets', 'pet.ts'))).toBe(true);
-
-    await fs.remove(dir);
   });
 
   it('handles all schemas at root when no operations reference them', async () => {
@@ -164,8 +160,6 @@ describe('writeSchemasTagsSplit', () => {
     expect(await fs.pathExists(path.join(dir, 'store.ts'))).toBe(true);
     expect(await fs.pathExists(path.join(dir, 'pets'))).toBe(false);
     expect(await fs.pathExists(path.join(dir, 'stores'))).toBe(false);
-
-    await fs.remove(dir);
   });
 
   it('handles all schemas in one tag', async () => {
@@ -184,8 +178,6 @@ describe('writeSchemasTagsSplit', () => {
 
     expect(await fs.pathExists(path.join(dir, 'pets', 'pet.ts'))).toBe(true);
     expect(await fs.pathExists(path.join(dir, 'pets', 'store.ts'))).toBe(true);
-
-    await fs.remove(dir);
   });
 
   it('handles empty schemas array', async () => {
@@ -200,8 +192,6 @@ describe('writeSchemasTagsSplit', () => {
     });
 
     expect(await fs.pathExists(path.join(dir, 'index.ts'))).toBe(false);
-
-    await fs.remove(dir);
   });
 
   it('root barrel exports both shared files and tag directories', async () => {
@@ -235,7 +225,5 @@ describe('writeSchemasTagsSplit', () => {
     expect(indexContent).toContain("export * from './pagination'");
     expect(indexContent).toContain("export * from './pets'");
     expect(indexContent).toContain("export * from './stores'");
-
-    await fs.remove(dir);
   });
 });
