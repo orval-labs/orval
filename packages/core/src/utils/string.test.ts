@@ -334,5 +334,14 @@ describe('stringify', () => {
     it('leaves a valid identifier key unquoted', () => {
       expect(stringify({ version: 1 })).toBe('{ version: 1, }');
     });
+
+    it('emits __proto__ as a computed key so it is a data property, not a prototype setter', () => {
+      // Both `{ __proto__: x }` and `{ '__proto__': x }` set the object's
+      // prototype (Annex B.3.1); only the computed form `{ ['__proto__']: x }`
+      // creates a normal own data property. Defaults arrive via spec parsing
+      // (JSON.parse), which carries a real own `__proto__` property.
+      const parsed = JSON.parse('{ "__proto__": "x" }');
+      expect(stringify(parsed)).toBe("{ ['__proto__']: 'x', }");
+    });
   });
 });

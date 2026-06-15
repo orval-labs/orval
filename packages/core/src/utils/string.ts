@@ -47,11 +47,17 @@ export function stringify(data?: unknown): string | undefined {
     const strValue = stringify(
       value as string | unknown[] | Record<string, unknown>,
     );
+    // `__proto__` must be emitted as a computed key, otherwise the object
+    // literal sets the prototype instead of creating a data property (this
+    // holds for both the bare and quoted forms, per Annex B.3.1).
     // Non-identifier keys (dashes, spaces, quotes) must be quoted to stay valid
     // TS, and escaped in case the key itself contains a quote or backslash.
-    const safeKey = keyword.isIdentifierNameES5(key)
-      ? key
-      : `'${jsStringLiteralEscape(key)}'`;
+    const safeKey =
+      key === '__proto__'
+        ? `['${jsStringLiteralEscape(key)}']`
+        : keyword.isIdentifierNameES5(key)
+          ? key
+          : `'${jsStringLiteralEscape(key)}'`;
     if (entries.length === 1) {
       result = `{ ${safeKey}: ${strValue}, }`;
     } else if (!index) {
