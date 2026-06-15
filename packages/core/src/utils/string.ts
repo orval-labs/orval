@@ -30,7 +30,7 @@ export function stringify(data?: unknown): string | undefined {
   }
 
   if (isString(data)) {
-    return `'${data.replaceAll("'", String.raw`\'`)}'`;
+    return `'${jsStringLiteralEscape(data)}'`;
   }
 
   if (isNumber(data) || isBoolean(data) || isFunction(data)) {
@@ -47,14 +47,19 @@ export function stringify(data?: unknown): string | undefined {
     const strValue = stringify(
       value as string | unknown[] | Record<string, unknown>,
     );
+    // Non-identifier keys (dashes, spaces, quotes) must be quoted to stay valid
+    // TS, and escaped in case the key itself contains a quote or backslash.
+    const safeKey = keyword.isIdentifierNameES5(key)
+      ? key
+      : `'${jsStringLiteralEscape(key)}'`;
     if (entries.length === 1) {
-      result = `{ ${key}: ${strValue}, }`;
+      result = `{ ${safeKey}: ${strValue}, }`;
     } else if (!index) {
-      result = `{ ${key}: ${strValue}, `;
+      result = `{ ${safeKey}: ${strValue}, `;
     } else if (entries.length - 1 === index) {
-      result += `${key}: ${strValue}, }`;
+      result += `${safeKey}: ${strValue}, }`;
     } else {
-      result += `${key}: ${strValue}, `;
+      result += `${safeKey}: ${strValue}, `;
     }
   }
   return result;
