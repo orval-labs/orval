@@ -1067,13 +1067,21 @@ const generateCompositeRoutes = (
           .map((verbOption) => ` ${verbOption.operationName}Handlers`)
           .join(`, \n`);
 
+        const handlerFilePath =
+          output.mode === 'tags-split'
+            ? nodePath.join(
+                targetInfo.dirname,
+                tag,
+                `${tag}.handlers${targetInfo.extension}`,
+              )
+            : nodePath.join(
+                targetInfo.dirname,
+                `${tag}.handlers${targetInfo.extension}`,
+              );
+
         const handlersPath = generateModuleSpecifier(
           compositeRouteInfo.path,
-          nodePath.join(
-            targetInfo.dirname,
-            tag,
-            `${tag}.handlers${targetInfo.extension}`,
-          ),
+          handlerFilePath,
           output.tsconfig,
         );
 
