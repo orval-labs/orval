@@ -1,0 +1,37 @@
+openapi: 3.0.3
+info:
+  title: stringify default value escaping repro
+  version: 1.0.0
+paths:
+  /files/{prefix}/{namespace}/{tz}:
+    get:
+      operationId: listFiles
+      parameters:
+        - name: prefix
+          in: path
+          required: true
+          description: trailing backslash must stay terminated
+          schema:
+            type: string
+            default: 'C:\logs\'
+        - name: namespace
+          in: path
+          required: true
+          description: embedded backslashes must not be dropped
+          schema:
+            type: string
+            default: 'App\Models\Document'
+        - name: tz
+          in: path
+          required: true
+          description: forward slash must not be over-escaped (#3530)
+          schema:
+            type: string
+            default: 'Asia/Tokyo'
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: string
