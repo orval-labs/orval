@@ -5,6 +5,7 @@ import { OutputMockType, type WriteModeProps } from '../types';
 import {
   conventionName,
   getFileInfo,
+  getImportExtension,
   getSchemasImportPath,
   isFunction,
   isString,
@@ -74,7 +75,10 @@ export async function writeTagsMode({
           { extension: output.fileExtension },
         ).dirname,
       ))
-    : './' + filename + '.schemas' + extension.replace(/\.ts$/, '');
+    : './' +
+      filename +
+      '.schemas' +
+      getImportExtension(extension, output.tsconfig);
 
   const schemasTarget = output.schemas
     ? getFileInfo(
@@ -83,7 +87,7 @@ export async function writeTagsMode({
       ).dirname
     : path.join(
         dirname,
-        filename + '.schemas' + extension.replace(/\.ts$/, ''),
+        filename + '.schemas' + getImportExtension(extension, output.tsconfig),
       );
 
   const tagEntries = Object.entries(target).toSorted(([a], [b]) =>
@@ -370,6 +374,7 @@ export async function writeTagsMode({
   );
 
   if (shouldDeinlineMocks && output.mock.indexMockFiles) {
+    const mockImportExtension = getImportExtension(extension, output.tsconfig);
     for (const { ext, mockDir, tags } of mockIndexEntries) {
       const indexPath = path.join(mockDir, `index.${ext}${extension}`);
       const indexContent = tags
@@ -378,7 +383,7 @@ export async function writeTagsMode({
           const localMockPath = upath.joinSafe(
             './',
             kebabTag,
-            kebabTag + '.' + ext,
+            kebabTag + '.' + ext + mockImportExtension,
           );
           return ext === OutputMockType.MSW
             ? `export { get${pascal(kebabTag)}Mock } from '${localMockPath}'\n`

@@ -317,3 +317,96 @@ describe('writeTagsMode — inline mocks upgrade schema imports used at runtime'
     );
   });
 });
+
+// Regression coverage for https://github.com/orval-labs/orval/discussions/3596
+//
+// When `output.schemas` is unset, the schemas import specifier is derived from
+// the target filename. Under `module: 'NodeNext' / 'node16'` the specifier must
+// carry the runtime extension (`.js`), otherwise the emitted import won't
+// resolve. The extension used to be stripped via `extension.replace(/\.ts$/, '')`;
+// it now flows through `getImportExtension`.
+
+describe('writeTagsMode — schemas import extension follows tsconfig module', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-tags-mode-'));
+  });
+
+  afterEach(() => {
+    fs.removeSync(tmpDir);
+  });
+
+  it('appends .js to the schemas specifier under module: NodeNext', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const importsCalls: Array<{ imports: readonly GeneratorDependency[] }> = [];
+    const baseProps = createSplitModeProps(target);
+    const props = {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        operations: {
+          listPets: createSplitModeOperation({
+            imports: [{ name: 'Pet' }],
+            implementation: 'export const listPets = (): Pet | null => null;',
+          }),
+        },
+        imports: (args: { imports: readonly GeneratorDependency[] }) => {
+          importsCalls.push(args);
+          return '';
+        },
+      },
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS,
+        indexFiles: true,
+        schemas: undefined,
+        tsconfig: { compilerOptions: { module: 'NodeNext' } },
+      }),
+    };
+
+    await writeTagsMode({ ...props, needSchema: false });
+
+    expect(importsCalls.length).toBeGreaterThan(0);
+    expect(importsCalls[0]?.imports).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ dependency: './petstore.schemas.js' }),
+      ]),
+    );
+  });
+
+  it('keeps the schemas specifier extensionless without tsconfig', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const importsCalls: Array<{ imports: readonly GeneratorDependency[] }> = [];
+    const baseProps = createSplitModeProps(target);
+    const props = {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        operations: {
+          listPets: createSplitModeOperation({
+            imports: [{ name: 'Pet' }],
+            implementation: 'export const listPets = (): Pet | null => null;',
+          }),
+        },
+        imports: (args: { imports: readonly GeneratorDependency[] }) => {
+          importsCalls.push(args);
+          return '';
+        },
+      },
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS,
+        indexFiles: true,
+        schemas: undefined,
+      }),
+    };
+
+    await writeTagsMode({ ...props, needSchema: false });
+
+    expect(importsCalls.length).toBeGreaterThan(0);
+    expect(importsCalls[0]?.imports).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ dependency: './petstore.schemas' }),
+      ]),
+    );
+  });
+});

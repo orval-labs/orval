@@ -2526,6 +2526,74 @@ describe('angular httpResource generator', () => {
 
   // ── urlEncodeParameters ─────────────────────────────────────────────
 
+  describe('schema import extension follows tsconfig module', () => {
+    it('appends .js to per-schema imports under module: NodeNext with indexFiles false', async () => {
+      const verb = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+          definition: { success: 'Pet', errors: 'Error' },
+        }),
+      });
+
+      const output = createOutput({
+        target: '/tmp/pets.ts',
+        schemas: '/tmp/model',
+        indexFiles: false,
+        tsconfig: {
+          compilerOptions: { module: 'NodeNext' },
+        },
+      });
+
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: '/tmp/pets.ts',
+        projectName: 'pets',
+      });
+
+      const extraFiles = await generateHttpResourceExtraFiles(
+        { getPetById: verb },
+        output,
+        context,
+      );
+
+      const resourceFile = extraFiles[0];
+      expect(resourceFile?.content).toMatch(
+        /from\s+['"]\.\/model\/pet\.js['"]/,
+      );
+    });
+
+    it('keeps per-schema imports extensionless without tsconfig', async () => {
+      const verb = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+          definition: { success: 'Pet', errors: 'Error' },
+        }),
+      });
+
+      const output = createOutput({
+        target: '/tmp/pets.ts',
+        schemas: '/tmp/model',
+        indexFiles: false,
+      });
+
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: '/tmp/pets.ts',
+        projectName: 'pets',
+      });
+
+      const extraFiles = await generateHttpResourceExtraFiles(
+        { getPetById: verb },
+        output,
+        context,
+      );
+
+      const resourceFile = extraFiles[0];
+      expect(resourceFile?.content).toMatch(/from\s+['"]\.\/model\/pet['"]/);
+      expect(resourceFile?.content).not.toMatch(/from\s+['"]\.\/model\/pet\./);
+    });
+  });
+
   describe('urlEncodeParameters', () => {
     const generateRetrievalHeader = (urlEncodeParameters: boolean): string => {
       const verbOption = createVerbOption();
