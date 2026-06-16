@@ -2,6 +2,7 @@ import {
   escapeRegExp,
   type FinalizeMockImplementationOptions,
   type MockOptions,
+  type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   type ResReqTypesValue,
   type StrictMockSchemaKind,
@@ -63,7 +64,9 @@ export function classifyStrictMockSchemaType(
 }
 
 function isComposedObjectSchema(schema: OpenApiSchemaObject): boolean {
-  const branches = schema.oneOf ?? schema.anyOf ?? schema.allOf;
+  const branches = (schema.oneOf ?? schema.anyOf ?? schema.allOf) as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
   if (!branches?.length) {
     return false;
   }
