@@ -33,6 +33,31 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  zodNodeNext: {
+    output: {
+      target: '../generated/axios/zod-nodenext/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/axios/zod-nodenext/model',
+      },
+      client: 'zod',
+      tsconfig: {
+        compilerOptions: {
+          module: 'nodenext',
+        },
+      },
+      override: {
+        zod: {
+          generateReusableSchemas: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   mutator: {
     output: {
       target: '../generated/axios/mutator/endpoints.ts',
@@ -78,6 +103,26 @@ export default defineConfig({
       mock: true,
       mode: 'tags-split',
       client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
+  petstoreTagsSplitNodeNext: {
+    output: {
+      target: '../generated/axios/petstore-tags-split-nodenext/endpoints.ts',
+      mode: 'tags-split',
+      client: 'axios',
+      tsconfig: {
+        compilerOptions: {
+          module: 'nodenext',
+        },
+      },
       clean: true,
       formatter: 'prettier',
     },

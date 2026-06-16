@@ -42,7 +42,6 @@ export class SwaggerPetstoreService {
         url: `/v${version}/pets`,
         method: 'GET',
         params: (() => {
-          const requiredNullableParamKeys = new Set<string>([]);
           const filteredParams: Record<
             string,
             string | number | boolean | Array<string | number | boolean>
@@ -90,7 +89,6 @@ export class SwaggerPetstoreService {
         headers: { 'Content-Type': 'application/json' },
         data: createPetsBody,
         params: (() => {
-          const requiredNullableParamKeys = new Set<string>([]);
           const filteredParams: Record<
             string,
             string | number | boolean | Array<string | number | boolean>

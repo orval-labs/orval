@@ -1192,6 +1192,26 @@ test('default issue-3505 enum values with backslashes are JS-escaped', async () 
   expect(timezone).not.toContain('\\/');
 });
 
+test('default issue-3583 param default values with backslashes are JS-escaped', async () => {
+  const endpoints = await readFile(
+    generated('default', 'issue-3583', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // Trailing backslash must stay escaped, otherwise `\'` swallows the closing
+  // quote and the parameter list fails to parse.
+  expect(endpoints).toContain("prefix: string = 'C:\\\\logs\\\\'");
+
+  // Embedded backslashes must survive, otherwise the default silently
+  // evaluates to `AppModelsDocument`.
+  expect(endpoints).toContain("namespace: string = 'App\\\\Models\\\\Document'");
+  expect(endpoints).not.toContain("'App\\Models\\Document'");
+
+  // Forward slashes must not be over-escaped (#3530 guard).
+  expect(endpoints).toContain("tz: string = 'Asia/Tokyo'");
+  expect(endpoints).not.toContain('\\/');
+});
+
 test('zod issue-3505 enum values with backslashes are JS-escaped', async () => {
   const content = await readFile(
     generated('zod', 'issue-3505', 'issue-3505.ts'),

@@ -350,6 +350,40 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('defaults schemas.type to typescript when omitted', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            schemas: {
+              path: './models',
+              importPath: '@acme/models',
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.schemas).toEqual({
+        path: expect.any(String) as string,
+        type: 'typescript',
+        importPath: '@acme/models',
+      });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('rejects a relative path as schemas.importPath', async () => {
     const workspace = await createTempWorkspace();
 
@@ -688,6 +722,98 @@ describe('normalizeOptions', () => {
       expect(normalized.output.override.zod.generateReusableSchemas).toBe(
         false,
       );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('resolves global zod mutators relative to the output workspace', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const outputWorkspace = path.join(workspace, 'generated');
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './api.ts',
+            workspace: './generated',
+            client: 'zod',
+            override: {
+              zod: {
+                preprocess: {
+                  param: './param.ts',
+                  query: './query.ts',
+                  header: './header.ts',
+                  body: './body.ts',
+                  response: './response.ts',
+                },
+                params: './params.ts',
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.zod.preprocess).toMatchObject({
+        param: { path: path.join(outputWorkspace, 'param.ts') },
+        query: { path: path.join(outputWorkspace, 'query.ts') },
+        header: { path: path.join(outputWorkspace, 'header.ts') },
+        body: { path: path.join(outputWorkspace, 'body.ts') },
+        response: { path: path.join(outputWorkspace, 'response.ts') },
+      });
+      expect(normalized.output.override.zod.params?.path).toBe(
+        path.join(outputWorkspace, 'params.ts'),
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('resolves global query mutators relative to the output workspace', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const outputWorkspace = path.join(workspace, 'generated');
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './api.ts',
+            workspace: './generated',
+            client: 'react-query',
+            override: {
+              query: {
+                queryKey: './queryKey.ts',
+                queryOptions: './queryOptions.ts',
+                mutationOptions: './mutationOptions.ts',
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.query).toMatchObject({
+        queryKey: { path: path.join(outputWorkspace, 'queryKey.ts') },
+        queryOptions: { path: path.join(outputWorkspace, 'queryOptions.ts') },
+        mutationOptions: {
+          path: path.join(outputWorkspace, 'mutationOptions.ts'),
+        },
+      });
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }

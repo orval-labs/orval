@@ -228,7 +228,6 @@ export class PetsService {
         url: `/v${version}/pets`,
         method: 'GET',
         params: (() => {
-          const requiredNullableParamKeys = new Set<string>([]);
           const filteredParams: Record<
             string,
             string | number | boolean | Array<string | number | boolean>

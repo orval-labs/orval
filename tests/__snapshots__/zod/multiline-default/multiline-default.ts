@@ -9,15 +9,7 @@ import * as zod from 'zod';
 /**
  * @summary Endpoint demonstrating multiline default value
  */
-export const createMultilineDefaultBodyRerankPromptDefault = `# Task
-You are a helpful assistant. Rerank the following information blocks according to their relevance to the given question.
-Return only the indices of the most relevant blocks in descending order of relevance, using the exact response format specified below.
-
-# Question
-{question}
-
-# Information Blocks
-{blocks}`;
+export const createMultilineDefaultBodyRerankPromptDefault = `# Task\nYou are a helpful assistant. Rerank the following information blocks according to their relevance to the given question.\nReturn only the indices of the most relevant blocks in descending order of relevance, using the exact response format specified below.\n\n# Question\n{question}\n\n# Information Blocks\n{blocks}`;
 
 export const CreateMultilineDefaultBody = zod.object({
   rerank_prompt: zod

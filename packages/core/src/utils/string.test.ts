@@ -302,4 +302,46 @@ describe('stringify', () => {
     // eslint-disable-next-line unicorn/no-null -- Regression test for explicit null serialization
     expect(stringify(null)).toBe('null');
   });
+
+  describe('string default values are JS-escaped (#3583)', () => {
+    it('escapes backslashes so the value round-trips', () => {
+      // Without escaping, `App\Models\Document` evaluates to `AppModelsDocument`.
+      expect(stringify('App\\Models\\Document')).toBe(
+        "'App\\\\Models\\\\Document'",
+      );
+    });
+
+    it('escapes a trailing backslash so the literal stays terminated', () => {
+      // Without escaping, the trailing `\'` escapes the closing quote and the
+      // generated file fails to parse.
+      expect(stringify('C:\\logs\\')).toBe("'C:\\\\logs\\\\'");
+    });
+
+    it('does not over-escape forward slashes (#3530 guard)', () => {
+      expect(stringify('Asia/Tokyo')).toBe("'Asia/Tokyo'");
+    });
+
+    it('keeps escaping single quotes', () => {
+      expect(stringify("it's")).toBe(String.raw`'it\'s'`);
+    });
+  });
+
+  describe('object keys are quoted when not valid identifiers (#3583)', () => {
+    it('quotes a non-identifier key', () => {
+      expect(stringify({ 'foo-bar': 1 })).toBe("{ 'foo-bar': 1, }");
+    });
+
+    it('leaves a valid identifier key unquoted', () => {
+      expect(stringify({ version: 1 })).toBe('{ version: 1, }');
+    });
+
+    it('emits __proto__ as a computed key so it is a data property, not a prototype setter', () => {
+      // Both `{ __proto__: x }` and `{ '__proto__': x }` set the object's
+      // prototype (Annex B.3.1); only the computed form `{ ['__proto__']: x }`
+      // creates a normal own data property. Defaults arrive via spec parsing
+      // (JSON.parse), which carries a real own `__proto__` property.
+      const parsed = JSON.parse('{ "__proto__": "x" }');
+      expect(stringify(parsed)).toBe("{ ['__proto__']: 'x', }");
+    });
+  });
 });

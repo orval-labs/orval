@@ -15,6 +15,7 @@
 
 export * from './apiResponse';
 export * from './category';
+export * from './filterPetsByStatusParams';
 export * from './findPetsByStatusParams';
 export * from './findPetsByTagsParams';
 export * from './getInventory200';

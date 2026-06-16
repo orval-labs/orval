@@ -835,4 +835,13 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  'issue-3583': {
+    input: '../specifications/issue-3583.yaml',
+    output: {
+      target: '../generated/default/issue-3583/endpoints.ts',
+      schemas: '../generated/default/issue-3583/model',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
 });

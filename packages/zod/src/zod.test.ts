@@ -4620,6 +4620,51 @@ const bodyOnlyApiSchema = {
     },
   },
 } as unknown as GeneratorOptions;
+
+// An operation with an array query param, to assert the single→array coercion
+// (`coerce.query: ['array']`) that lets a single repeated-key value parse.
+const arrayQueryApiSchema = {
+  pathRoute: '/cats',
+  context: {
+    spec: {
+      paths: {
+        '/cats': {
+          post: {
+            operationId: 'listCats',
+            parameters: [
+              {
+                name: 'tags',
+                in: 'query',
+                required: false,
+                explode: true,
+                schema: { type: 'array', items: { type: 'string' } },
+              },
+            ],
+            responses: {
+              '200': {
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: { name: { type: 'string' } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    output: {
+      override: {
+        zod: {
+          generateEachHttpStatus: false,
+        },
+      },
+    },
+  },
+} as unknown as GeneratorOptions;
 describe('generatePartOfSchemaGenerateZod', () => {
   it('Default Config', async () => {
     const result = await generateZod(
@@ -5138,6 +5183,97 @@ describe('generatePartOfSchemaGenerateZod', () => {
     expect(names).not.toContain('prependParam');
     expect(names).not.toContain('prependQuery');
     expect(names).not.toContain('prependHeader');
+  });
+
+  it("wraps array query params in a single→array preprocess when coerce includes 'array'", async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: true,
+              body: true,
+              response: true,
+              query: true,
+              header: true,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: ['array'],
+              header: false,
+            },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      arrayQueryApiSchema,
+      testOutput,
+    );
+
+    // A single repeated-key value arrives as a scalar; the wrap turns it into a
+    // 1-element array so both `?tags=a` and `?tags=a&tags=b` satisfy z.array(...).
+    expect(result.implementation).toContain(
+      'zod.preprocess((value) => value === undefined || Array.isArray(value) ? value : [value], zod.array(zod.string())',
+    );
+  });
+
+  it("leaves array query params untouched when coerce does not include 'array' (opt-in)", async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: true,
+              body: true,
+              response: true,
+              query: true,
+              header: true,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      arrayQueryApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toContain(
+      '"tags": zod.array(zod.string()).optional()',
+    );
+    expect(result.implementation).not.toContain('zod.preprocess');
   });
 });
 
