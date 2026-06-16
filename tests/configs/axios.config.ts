@@ -133,6 +133,70 @@ export default defineConfig({
       },
     },
   },
+  petstoreTagsSplitNodeNextWorkspace: {
+    output: {
+      target: './endpoints.ts',
+      workspace: '../generated/axios/petstore-tags-split-nodenext-workspace/',
+      mode: 'tags-split',
+      client: 'axios',
+      indexFiles: true,
+      tsconfig: {
+        compilerOptions: {
+          module: 'nodenext',
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
+  petstoreTagsSplitNodeNextMutator: {
+    output: {
+      target: '../generated/axios/petstore-tags-split-nodenext-mutator/endpoints.ts',
+      mode: 'tags-split',
+      client: 'axios',
+      tsconfig: {
+        compilerOptions: {
+          module: 'nodenext',
+        },
+      },
+      override: {
+        mutator: '../mutators/custom-client.ts',
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
+  petstoreTagsSplitWorkspaceGeneratedExt: {
+    output: {
+      target: './endpoints.generated.ts',
+      workspace:
+        '../generated/axios/petstore-tags-split-workspace-generated-ext/',
+      mode: 'tags-split',
+      client: 'axios',
+      indexFiles: true,
+      fileExtension: '.generated.ts',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
   petstoreTagsSplitMutator: {
     output: {
       target: '../generated/axios/petstore-tags-split-mutator/endpoints.ts',
