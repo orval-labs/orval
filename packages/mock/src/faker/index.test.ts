@@ -18,6 +18,7 @@ import {
   generateFakerForSchemas,
   generateFakerImports,
 } from './index';
+import { resolveMockValue } from './resolvers';
 
 const mockVerbOptions = {
   operationId: 'getUser',
@@ -304,4 +305,61 @@ describe('generateFakerForSchemas strict mock types (#3525)', () => {
       finalized.indexOf('export const getStatusMock'),
     );
   });
+});
+
+describe('resolveMockValue returns one factory import per ref-property (#3606)', () => {
+  // Delegation to a `get<X>Mock` factory requires output.schemas to be set and
+  // the $ref to point at a components schema.
+  const context = createTestContextSpec({
+    output: {
+      schemas: 'model',
+      mock: {
+        indexMockFiles: false,
+        generators: [{ type: OutputMockType.FAKER, schemas: true }],
+      },
+    },
+    spec: {
+      components: {
+        schemas: {
+          LeafDTO: { type: 'object', properties: { id: { type: 'string' } } },
+        },
+      },
+    },
+  });
+
+  // Resolve N identical $ref properties the way the object-property caller in
+  // getters/object.ts does: one shared `imports` array threaded through every
+  // call, collecting what each resolution reports as the imports IT added.
+  const collectImportsFor = (refPropCount: number) => {
+    const imports: { name: string }[] = [];
+    const collected: { name: string }[] = [];
+
+    for (let i = 0; i < refPropCount; i++) {
+      const result = resolveMockValue({
+        schema: {
+          $ref: '#/components/schemas/LeafDTO',
+          path: `#.p${i}`,
+        },
+        mockOptions: undefined,
+        operationId: 'getUser',
+        tags: [],
+        context,
+        imports,
+        existingReferencedProperties: [],
+        splitMockImplementations: [],
+      } as Parameters<typeof resolveMockValue>[0]);
+
+      collected.push(...result.imports);
+    }
+
+    return collected;
+  };
+
+  it.each([8, 16, 32])(
+    'collects exactly N factory imports for N ref-properties (N=%i)',
+    (refPropCount) => {
+      const collected = collectImportsFor(refPropCount);
+      expect(collected).toHaveLength(refPropCount);
+    },
+  );
 });

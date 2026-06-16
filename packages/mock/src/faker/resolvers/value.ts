@@ -356,11 +356,12 @@ export function resolveMockValue({
 
     if (canDelegate) {
       const factoryName = `get${pascal(name)}Mock`;
-      imports.push({
+      const factoryImport: GeneratorImport = {
         name: factoryName,
         values: true,
         schemaFactory: true,
-      });
+      };
+
       // For object-like refs the historical inline output is `{ ...body }`
       // so the spread form keeps callers (combineSchemasMock, object
       // properties) working without other changes. For everything else
@@ -385,7 +386,7 @@ export function resolveMockValue({
           Boolean(newSchema.nullable),
           mockOptions?.nonNullable,
         ),
-        imports,
+        imports: [factoryImport],
         name: newSchema.name,
         type: getType(newSchema),
         nullWrapped: Boolean(newSchema.nullable) && !mockOptions?.nonNullable,
