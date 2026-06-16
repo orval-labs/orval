@@ -247,6 +247,26 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  useDatesExamples: {
+    input: '../specifications/use-dates-examples.yaml',
+    output: {
+      target: '../generated/mock/use-dates-examples/endpoints.ts',
+      schemas: '../generated/mock/use-dates-examples/model',
+      client: 'react-query',
+      httpClient: 'axios',
+      mock: {
+        generators: [{ type: 'msw', useExamples: true }],
+      },
+      override: {
+        useDates: true,
+        mock: {
+          useExamples: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
   zodSchemaResponse: {
     output: {
       target: '../generated/mock/zod-schema-response/endpoints.ts',
