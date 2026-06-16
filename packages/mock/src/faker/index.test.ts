@@ -1,6 +1,7 @@
 import type {
   ClientMockBuilder,
   FakerMockOptions,
+  GeneratorImport,
   GeneratorOptions,
   GeneratorSchema,
   GeneratorVerbOptions,
@@ -327,39 +328,34 @@ describe('resolveMockValue returns one factory import per ref-property (#3606)',
     },
   });
 
-  // Resolve N identical $ref properties the way the object-property caller in
-  // getters/object.ts does: one shared `imports` array threaded through every
-  // call, collecting what each resolution reports as the imports IT added.
-  const collectImportsFor = (refPropCount: number) => {
-    const imports: { name: string }[] = [];
-    const collected: { name: string }[] = [];
+  const resolveLeafRef = (imports: GeneratorImport[]) =>
+    resolveMockValue({
+      schema: { $ref: '#/components/schemas/LeafDTO' },
+      operationId: 'getUser',
+      tags: [],
+      context,
+      imports,
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
 
-    for (let i = 0; i < refPropCount; i++) {
-      const result = resolveMockValue({
-        schema: {
-          $ref: '#/components/schemas/LeafDTO',
-          path: `#.p${i}`,
-        },
-        mockOptions: undefined,
-        operationId: 'getUser',
-        tags: [],
-        context,
-        imports,
-        existingReferencedProperties: [],
-        splitMockImplementations: [],
-      } as Parameters<typeof resolveMockValue>[0]);
+  it('returns only its own factory import', () => {
+    // Shared imports array given to both calls. The first call can't reveal the
+    // bug since imports is empty.
+    const imports: GeneratorImport[] = [];
 
-      collected.push(...result.imports);
-    }
+    const first = resolveLeafRef(imports);
+    expect(first.imports).toHaveLength(1);
+    expect(first.imports[0]).toMatchObject({
+      name: 'getLeafDTOMock',
+      schemaFactory: true,
+    });
 
-    return collected;
-  };
-
-  it.each([8, 16, 32])(
-    'collects exactly N factory imports for N ref-properties (N=%i)',
-    (refPropCount) => {
-      const collected = collectImportsFor(refPropCount);
-      expect(collected).toHaveLength(refPropCount);
-    },
-  );
+    const second = resolveLeafRef(imports);
+    expect(second.imports).toHaveLength(1);
+    expect(second.imports[0]).toMatchObject({
+      name: 'getLeafDTOMock',
+      schemaFactory: true,
+    });
+  });
 });
