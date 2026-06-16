@@ -76,4 +76,15 @@ describe('collectSplitMockTypeImports', () => {
       { name: 'PointInFutureAbsolute', values: false },
     ]);
   });
+
+  it('collects types from strict generic split mock helpers', () => {
+    const implementation = [
+      'export const getPetMock = <O extends Partial<Pet> = {}>(overrideResponse?: O):',
+      'MockWithNullableOverrides<Pet, O, PetMock> => ({}) as MockWithNullableOverrides<Pet, O, PetMock>;',
+    ].join('\n');
+
+    expect(collectSplitMockTypeImports([implementation])).toEqual([
+      { name: 'Pet', values: false },
+    ]);
+  });
 });

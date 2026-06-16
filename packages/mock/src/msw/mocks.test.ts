@@ -8,6 +8,12 @@ describe('getResponsesMockDefinition', () => {
   it('aggregates imports when response.imports is undefined (#3590)', () => {
     const context = createTestContextSpec();
 
+    const splitImplementation = [
+      'export const getExampleResponsePointInFutureAbsoluteMock = (',
+      '  overrideResponse: Partial<PointInFutureAbsolute> = {},',
+      '): PointInFutureAbsolute => ({ kind: "absolute" });',
+    ].join('\n');
+
     const result = getResponsesMockDefinition({
       operationId: 'getPetPhoto',
       tags: ['Pets'],
@@ -23,11 +29,13 @@ describe('getResponsesMockDefinition', () => {
       ],
       mockOptionsWithoutFunc: {},
       context,
-      splitMockImplementations: [],
+      splitMockImplementations: [splitImplementation],
     });
 
     expect(result.definitions).toHaveLength(1);
     expect(result.definitions[0]).toContain('ArrayBuffer');
-    expect(result.imports.length).toBeGreaterThanOrEqual(0);
+    expect(result.imports).toEqual([
+      { name: 'PointInFutureAbsolute', values: false },
+    ]);
   });
 });

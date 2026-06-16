@@ -54,14 +54,32 @@ export function classifyStrictMockSchemaType(
     typeof schema.$ref === 'string' ||
     schema.type === 'object' ||
     schema.properties ||
-    schema.allOf ||
-    schema.oneOf ||
-    schema.anyOf
+    isComposedObjectSchema(schema)
   ) {
     return 'object';
   }
 
   return 'alias';
+}
+
+function isComposedObjectSchema(schema: OpenApiSchemaObject): boolean {
+  const branches = schema.oneOf ?? schema.anyOf ?? schema.allOf;
+  if (!branches?.length) {
+    return false;
+  }
+
+  return branches.some((branch) => {
+    const item = branch as OpenApiSchemaObject;
+    if (
+      typeof item.$ref === 'string' ||
+      item.type === 'object' ||
+      item.properties
+    ) {
+      return true;
+    }
+
+    return isComposedObjectSchema(item);
+  });
 }
 
 export function getStrictMockTypeDeclaration(

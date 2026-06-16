@@ -14,7 +14,10 @@ import {
 } from '../utils';
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
 import { writeGeneratedFile } from './file';
-import { getFinalizeMockImplementationOptions } from './finalize-mock-implementation';
+import {
+  filterLocalStrictMockTypeImports,
+  getFinalizeMockImplementationOptions,
+} from './finalize-mock-implementation';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import {
   collectRecoveredSchemaFactoryImports,
@@ -222,12 +225,10 @@ export async function writeSplitMode({
           )
         : mockOutput.implementation;
 
-      const usesSchemaFactories = output.mock.generators.some(
-        (g) =>
-          !isFunction(g) &&
-          g.type === OutputMockType.FAKER &&
-          g.schemas === true,
-      );
+      const usesSchemaFactories =
+        !isFunction(rawEntry) &&
+        rawEntry.type === OutputMockType.FAKER &&
+        rawEntry.schemas === true;
       const recoveredSchemaFactoryImports =
         usesSchemaFactories && output.schemas
           ? collectRecoveredSchemaFactoryImports(
@@ -238,9 +239,12 @@ export async function writeSplitMode({
 
       const importsMockForBuilder = generateImportsForBuilder(
         output,
-        mergeGeneratorImports(
-          mockOutput.imports,
-          recoveredSchemaFactoryImports,
+        filterLocalStrictMockTypeImports(
+          mergeGeneratorImports(
+            mockOutput.imports,
+            recoveredSchemaFactoryImports,
+          ),
+          finalizeMockOptions.strictSchemaTypeNames,
         ),
         mockRelativeSchemasPath,
       );

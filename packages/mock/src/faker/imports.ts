@@ -38,15 +38,24 @@ export function collectSplitMockTypeImports(
   const seen = new Set<string>();
   const imports: GeneratorImport[] = [];
 
+  const addType = (name: string | undefined) => {
+    if (!name || seen.has(name)) return;
+    seen.add(name);
+    imports.push({ name, values: false });
+  };
+
   for (const impl of implementations) {
     for (const match of impl.matchAll(
       /export const get\w+Mock = \(\s*overrideResponse: Partial<(\w+)[^)]*\):\s*(\w+)\s*=>/g,
     )) {
-      for (const name of [match[1], match[2]]) {
-        if (!name || seen.has(name)) continue;
-        seen.add(name);
-        imports.push({ name, values: false });
-      }
+      addType(match[1]);
+      addType(match[2]);
+    }
+
+    for (const match of impl.matchAll(
+      /export const get\w+Mock[\s\S]*?MockWithNullableOverrides<(?:Extract<(\w+),[^>]+>|(\w+)),/g,
+    )) {
+      addType(match[1] ?? match[2]);
     }
   }
 

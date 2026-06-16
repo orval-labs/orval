@@ -69,6 +69,16 @@ describe('mock-types', () => {
       expect(
         classifyStrictMockSchemaType({ type: 'string', format: 'binary' }),
       ).toBe('binary');
+      expect(
+        classifyStrictMockSchemaType({
+          oneOf: [{ type: 'string' }, { type: 'number' }],
+        }),
+      ).toBe('alias');
+      expect(
+        classifyStrictMockSchemaType({
+          oneOf: [{ $ref: '#/components/schemas/Pet' }],
+        }),
+      ).toBe('object');
     });
   });
 

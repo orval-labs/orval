@@ -333,12 +333,10 @@ export async function writeTagsMode({
                   )
                 : mockOutput.implementation;
 
-            const usesSchemaFactories = output.mock.generators.some(
-              (g) =>
-                !isFunction(g) &&
-                g.type === OutputMockType.FAKER &&
-                g.schemas === true,
-            );
+            const usesSchemaFactories =
+              !isFunction(rawEntry) &&
+              rawEntry.type === OutputMockType.FAKER &&
+              rawEntry.schemas === true;
             const recoveredSchemaFactoryImports =
               usesSchemaFactories && output.schemas
                 ? collectRecoveredSchemaFactoryImports(
