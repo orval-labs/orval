@@ -181,4 +181,51 @@ describe('formatSchemaExampleValue', () => {
       '{ createdAt: new Date("2023-12-31T15:43:32.883Z"), documents: [{ createdAt: new Date("2023-12-31T18:51:18.320Z"), id: "9c7e0421-f759-4068-b753-708465856b87" }] }',
     );
   });
+
+  it('wraps scalar oneOf date-time examples in new Date()', () => {
+    const value = formatSchemaExampleValue(
+      '2023-12-31T06:46:39.477Z',
+      {
+        oneOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }],
+      },
+      dateContext,
+    );
+
+    expect(value).toBe('new Date("2023-12-31T06:46:39.477Z")');
+  });
+
+  it('does not overflow on cyclic compositor traversal', () => {
+    const context = createTestContextSpec({
+      override: { useDates: true },
+      spec: {
+        components: {
+          schemas: {
+            Node: {
+              type: 'object',
+              properties: {
+                createdAt: { type: 'string', format: 'date-time' },
+              },
+              allOf: [{ $ref: '#/components/schemas/Node' }],
+            },
+          },
+        },
+      },
+    });
+
+    expect(() =>
+      formatSchemaExampleValue(
+        { createdAt: '2023-12-31T06:46:39.477Z' },
+        { $ref: '#/components/schemas/Node' },
+        context,
+      ),
+    ).not.toThrow();
+
+    expect(
+      formatSchemaExampleValue(
+        { createdAt: '2023-12-31T06:46:39.477Z' },
+        { $ref: '#/components/schemas/Node' },
+        context,
+      ),
+    ).toBe('{ createdAt: new Date("2023-12-31T06:46:39.477Z") }');
+  });
 });

@@ -54,6 +54,34 @@ function mergePropertySchemas(
   return merged;
 }
 
+function getEffectiveScalarFormat(
+  resolved: OpenApiSchemaObject | undefined,
+  context: ContextSpec,
+): 'date' | 'date-time' | undefined {
+  if (!resolved) {
+    return undefined;
+  }
+
+  if (isDateFormat(resolved.format)) {
+    return resolved.format;
+  }
+
+  const oneOf = resolved.oneOf as OpenApiSchemaObject[] | undefined;
+  const anyOf = resolved.anyOf as OpenApiSchemaObject[] | undefined;
+
+  for (const variant of [...(oneOf ?? []), ...(anyOf ?? [])]) {
+    const resolvable =
+      isReference(variant) || isSchemaObject(variant) ? variant : undefined;
+    const resolvedVariant = resolveSchema(resolvable, context);
+
+    if (isDateFormat(resolvedVariant?.format)) {
+      return resolvedVariant.format;
+    }
+  }
+
+  return undefined;
+}
+
 /**
  * Resolves compositional schemas (allOf / oneOf / anyOf) so example formatting
  * can see property formats on nested and referenced types.
@@ -61,7 +89,22 @@ function mergePropertySchemas(
 function resolveExampleSchema(
   schema: OpenApiSchemaObject | undefined,
   context: ContextSpec,
+  seenRefs: Set<string> = new Set(),
 ): OpenApiSchemaObject | undefined {
+  if (!schema) {
+    return undefined;
+  }
+
+  if (isReference(schema)) {
+    const ref = schema.$ref;
+    if (ref && seenRefs.has(ref)) {
+      return resolveRef<OpenApiSchemaObject>(schema, context).schema;
+    }
+    if (ref) {
+      seenRefs = new Set(seenRefs).add(ref);
+    }
+  }
+
   const resolved = resolveSchema(schema, context);
   if (!resolved) {
     return undefined;
@@ -74,13 +117,13 @@ function resolveExampleSchema(
 
   const properties = mergePropertySchemas(
     resolved,
-    ...compositors.map((sub) => resolveExampleSchema(sub, context)),
+    ...compositors.map((sub) => resolveExampleSchema(sub, context, seenRefs)),
   );
   // OpenApiSchemaObject includes AnyOtherAttribute; cast before spread (see object.ts).
   const baseResolved = resolved as Record<string, unknown>;
 
   if (resolved.type === 'array' && isSchemaObject(resolved.items)) {
-    const items = resolveExampleSchema(resolved.items, context);
+    const items = resolveExampleSchema(resolved.items, context, seenRefs);
     const itemProperties = items?.properties;
     const normalizedItems =
       itemProperties && Object.keys(itemProperties).length > 0
@@ -103,7 +146,7 @@ function resolveExampleSchema(
 
   if (compositors.length > 0 && (oneOf ?? anyOf)) {
     const variantProperties = mergePropertySchemas(
-      ...compositors.map((sub) => resolveExampleSchema(sub, context)),
+      ...compositors.map((sub) => resolveExampleSchema(sub, context, seenRefs)),
     );
 
     if (Object.keys(variantProperties).length > 0) {
@@ -112,6 +155,14 @@ function resolveExampleSchema(
         properties: variantProperties,
       };
     }
+  }
+
+  const scalarFormat = getEffectiveScalarFormat(resolved, context);
+  if (scalarFormat) {
+    return {
+      ...baseResolved,
+      format: scalarFormat,
+    } as OpenApiSchemaObject;
   }
 
   return resolved;
@@ -180,7 +231,7 @@ function formatLiteralValue(
   if (
     context.output.override.useDates &&
     typeof example === 'string' &&
-    isDateFormat(resolved?.format)
+    isDateFormat(getEffectiveScalarFormat(resolved, context))
   ) {
     return `new Date(${JSON.stringify(example)})`;
   }
