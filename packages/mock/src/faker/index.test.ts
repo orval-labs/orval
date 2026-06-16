@@ -1,6 +1,7 @@
 import type {
   ClientMockBuilder,
   FakerMockOptions,
+  GeneratorImport,
   GeneratorOptions,
   GeneratorSchema,
   GeneratorVerbOptions,
@@ -18,6 +19,7 @@ import {
   generateFakerForSchemas,
   generateFakerImports,
 } from './index';
+import { resolveMockValue } from './resolvers';
 
 const mockVerbOptions = {
   operationId: 'getUser',
@@ -303,5 +305,57 @@ describe('generateFakerForSchemas strict mock types (#3525)', () => {
     expect(finalized.indexOf('export type StatusMock')).toBeLessThan(
       finalized.indexOf('export const getStatusMock'),
     );
+  });
+});
+
+describe('resolveMockValue returns one factory import per ref-property (#3606)', () => {
+  // Delegation to a `get<X>Mock` factory requires output.schemas to be set and
+  // the $ref to point at a components schema.
+  const context = createTestContextSpec({
+    output: {
+      schemas: 'model',
+      mock: {
+        indexMockFiles: false,
+        generators: [{ type: OutputMockType.FAKER, schemas: true }],
+      },
+    },
+    spec: {
+      components: {
+        schemas: {
+          LeafDTO: { type: 'object', properties: { id: { type: 'string' } } },
+        },
+      },
+    },
+  });
+
+  const resolveLeafRef = (imports: GeneratorImport[]) =>
+    resolveMockValue({
+      schema: { $ref: '#/components/schemas/LeafDTO' },
+      operationId: 'getUser',
+      tags: [],
+      context,
+      imports,
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+  it('returns only its own factory import', () => {
+    // Shared imports array given to both calls. The first call can't reveal the
+    // bug since imports is empty.
+    const imports: GeneratorImport[] = [];
+
+    const first = resolveLeafRef(imports);
+    expect(first.imports).toHaveLength(1);
+    expect(first.imports[0]).toMatchObject({
+      name: 'getLeafDTOMock',
+      schemaFactory: true,
+    });
+
+    const second = resolveLeafRef(imports);
+    expect(second.imports).toHaveLength(1);
+    expect(second.imports[0]).toMatchObject({
+      name: 'getLeafDTOMock',
+      schemaFactory: true,
+    });
   });
 });
