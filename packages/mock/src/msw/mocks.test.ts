@@ -5,7 +5,7 @@ import { createTestContextSpec } from '../../../core/src/test-utils/context';
 import { getResponsesMockDefinition } from './mocks';
 
 describe('getResponsesMockDefinition (useExamples + transformer)', () => {
-  const petResponse: ResReqTypesValue = {
+  const petResponse = {
     key: '200',
     value: 'Pet',
     contentType: 'application/json',
@@ -30,7 +30,8 @@ describe('getResponsesMockDefinition (useExamples + transformer)', () => {
     isEnum: false,
     isRef: false,
     hasReadonlyProps: false,
-  };
+    dependencies: [],
+  } satisfies ResReqTypesValue;
 
   const baseOptions = {
     operationId: 'getPet',

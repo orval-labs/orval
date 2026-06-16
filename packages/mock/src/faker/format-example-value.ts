@@ -28,7 +28,7 @@ function resolveSchema(
   }
 
   if (isReference(schema)) {
-    return resolveRef(schema, context).schema;
+    return resolveRef<OpenApiSchemaObject>(schema, context).schema;
   }
 
   return schema;
@@ -76,6 +76,8 @@ function resolveExampleSchema(
     resolved,
     ...compositors.map((sub) => resolveExampleSchema(sub, context)),
   );
+  // OpenApiSchemaObject includes AnyOtherAttribute; cast before spread (see object.ts).
+  const baseResolved = resolved as Record<string, unknown>;
 
   if (resolved.type === 'array' && isSchemaObject(resolved.items)) {
     const items = resolveExampleSchema(resolved.items, context);
@@ -86,17 +88,17 @@ function resolveExampleSchema(
         : items;
 
     return {
-      ...resolved,
+      ...baseResolved,
       ...(Object.keys(properties).length > 0 ? { properties } : {}),
       items: normalizedItems ?? resolved.items,
-    };
+    } as OpenApiSchemaObject;
   }
 
   if (Object.keys(properties).length > 0) {
     return {
-      ...resolved,
+      ...baseResolved,
       properties,
-    };
+    } as OpenApiSchemaObject;
   }
 
   if (compositors.length > 0 && (oneOf ?? anyOf)) {
