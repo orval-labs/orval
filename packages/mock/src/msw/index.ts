@@ -442,7 +442,7 @@ export const ${handlerName} = (overrideResponse?: ${mockReturnType} | ((${infoPa
       : undefined,
     strictMockSchemaKinds: strictMock
       ? mergeStrictMockSchemaKinds(
-          getStrictMockSchemaKindsFromResponses(responses),
+          getStrictMockSchemaKindsFromResponses(responses, context),
           Object.fromEntries(
             (
               collectStrictMockSchemaTypeNamesFromImplementation(

@@ -12,7 +12,11 @@ import {
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
-import { resolveMockValue } from '../resolvers/value';
+import {
+  resolveMockValue,
+  getNullable,
+  isNullableSchema,
+} from '../resolvers/value';
 import { mergeReturnedMockImports } from '../imports';
 import { combineSchemasMock } from './combine';
 
@@ -113,6 +117,33 @@ export function getMockObject({
   }
 
   if (Array.isArray(itemType)) {
+    const nonNullTypes = mockOptions?.nonNullable
+      ? itemType.filter((type) => type !== 'null')
+      : itemType;
+
+    if (nonNullTypes.length === 0) {
+      return { value: 'null', imports: [], name: schemaItem.name };
+    }
+
+    if (nonNullTypes.length === 1) {
+      return getMockObject({
+        item: {
+          ...schemaItem,
+          type: nonNullTypes[0],
+        } as MockSchemaObject & Record<string, unknown>,
+        mockOptions,
+        operationId,
+        tags,
+        combine,
+        context,
+        imports,
+        existingReferencedProperties,
+        existingReferencedAllOfRefs,
+        splitMockImplementations,
+        allowOverride,
+      });
+    }
+
     // Spread the base schema into each type entry so that object properties
     // (e.g. `properties`, `required`, `additionalProperties`) are preserved.
     // Without this, `{ type: "object", properties: {...} }` collapses to
@@ -121,7 +152,7 @@ export function getMockObject({
     const baseItem = schemaItem as Record<string, unknown>;
     return combineSchemasMock({
       item: {
-        anyOf: itemType.map((type) => ({
+        anyOf: nonNullTypes.map((type) => ({
           ...baseItem,
           type,
         })) as unknown as MockSchema[],
@@ -251,7 +282,11 @@ export function getMockObject({
         : '';
 
     return {
-      value,
+      value: getNullable(
+        value,
+        isNullableSchema(schemaItem),
+        mockOptions?.nonNullable,
+      ),
       imports,
       name: schemaItem.name,
       includedProperties,

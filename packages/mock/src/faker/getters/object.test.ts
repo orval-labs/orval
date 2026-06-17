@@ -112,6 +112,36 @@ describe('getMockObject', () => {
     expect(result.value).toBe('faker.helpers.arrayElement([null,])');
   });
 
+  it('does not emit null for nullable object schemas when nonNullable is true', () => {
+    const result = getObjectMock(
+      {
+        name: 'nullableWidget',
+        type: ['object', 'null'],
+        properties: {
+          id: { type: 'string' },
+        },
+      },
+      { nonNullable: true },
+    );
+
+    expect(result.value).not.toContain('null');
+    expect(result.value).toContain('id:');
+  });
+
+  it('wraps nullable object schemas with null when nonNullable is false', () => {
+    const result = getObjectMock({
+      name: 'nullableWidget',
+      type: 'object',
+      nullable: true,
+      properties: {
+        id: { type: 'string' },
+      },
+    });
+
+    expect(result.value).toContain(', null]');
+    expect(result.value).toMatch(/^faker\.helpers\.arrayElement\(\[\{/);
+  });
+
   it('wraps optional nullable properties with null by default', () => {
     const result = getObjectMock(petSchema);
 
