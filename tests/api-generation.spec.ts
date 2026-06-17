@@ -1227,6 +1227,64 @@ test('zod issue-3505 enum values with backslashes are JS-escaped', async () => {
   expect(content).not.toContain('Asia\\/Tokyo');
 });
 
+test('mock issue-3590 strict faker schema mocks typecheck and emit correct aliases', async () => {
+  const fakerContent = await readFile(
+    generated('mock', 'issue-3590', 'model', 'index.faker.ts'),
+    'utf8',
+  );
+
+  expect(fakerContent).toContain('export type StatusMock = Status;');
+  expect(fakerContent).toContain('export type PhotoUploadMock = ArrayBuffer;');
+  expect(fakerContent).toContain(
+    '...(getPetSettingMock() as PetSettingMock)',
+  );
+  expect(fakerContent).toContain(
+    '...(getPetDetailResponseSettingsItemMock() as PetDetailSettingsItemMock)',
+  );
+  expect(fakerContent).not.toContain(
+    '[K in keyof Required<Status>]',
+  );
+});
+
+test('mock issue-3590 wide schema imports do not overflow when building index.faker.ts', async () => {
+  const fakerContent = await readFile(
+    generated('mock', 'issue-3590-wide-schema-imports', 'model', 'index.faker.ts'),
+    'utf8',
+  );
+
+  expect(fakerContent).toContain('export const getWideParentMock');
+  expect(fakerContent).toContain('getChild0Mock()');
+  expect(fakerContent).toContain('getChild29Mock()');
+});
+
+test('mock issue-3590 tags-split recovers consolidated schema factory imports', async () => {
+  const petsFaker = generated(
+    'mock',
+    'issue-3590-tags-split-schema-imports',
+    'pets',
+    'pets',
+    'pets.faker.ts',
+  );
+  const content = await readFile(petsFaker, 'utf8');
+
+  expect(content).toContain("from '../../schemas/index.faker'");
+  expect(content).toMatch(/import \{[^}]*getPetMock/);
+  expect(content).toMatch(/import type \{[^}]*PetMock/);
+  expect(content).toContain('getPetMock()');
+});
+
+test('mock issue-3590 binary responses generate when response.imports is absent', async () => {
+  const endpoints = generated(
+    'mock',
+    'issue-3590-binary-response-imports',
+    'endpoints.ts',
+  );
+  const content = await readFile(endpoints, 'utf8');
+
+  expect(content).toContain('getGetPetPhotoResponseMock');
+  expect(content).toMatch(/ArrayBuffer|binary/);
+});
+
 test('mock issue-3505 enum values with backslashes are JS-escaped', async () => {
   const content = await readFile(
     generated('mock', 'issue-3505', 'endpoints.ts'),

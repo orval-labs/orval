@@ -185,8 +185,12 @@ async function writeFakerSchemaMocks(
     output,
   };
 
-  const { implementation, imports, strictMockSchemaTypeNames } =
-    generateFakerForSchemas(schemasWithDef, context, fakerEntry);
+  const {
+    implementation,
+    imports,
+    strictMockSchemaTypeNames,
+    strictMockSchemaKinds,
+  } = generateFakerForSchemas(schemasWithDef, context, fakerEntry);
 
   if (!implementation.trim()) {
     return undefined;
@@ -196,6 +200,7 @@ async function writeFakerSchemaMocks(
     ? builder.finalizeMockImplementation(implementation, {
         mockOptions: output.override.mock,
         strictSchemaTypeNames: strictMockSchemaTypeNames,
+        strictMockSchemaKinds,
       })
     : implementation;
 

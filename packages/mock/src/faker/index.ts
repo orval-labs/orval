@@ -10,13 +10,19 @@ import {
   type GeneratorVerbOptions,
   type GlobalMockOptions,
   pascal,
+  type StrictMockSchemaKind,
 } from '@orval/core';
 
 import {
   formatMockFactoryDeclaration,
+  classifyStrictMockSchemaType,
+  collectStrictMockSchemaTypeNamesFromImplementation,
   getMockFactorySignatureParts,
+  getStrictMockTypeName,
   isStrictMock,
+  mergeStrictMockSchemaKinds,
 } from '../mock-types';
+import { appendImportsDelta } from './imports';
 import { generateMSW } from '../msw';
 import { getMockWithoutFunc } from '../msw/mocks';
 import { getMockScalar } from './getters';
@@ -77,6 +83,7 @@ export function generateFaker(
     },
     imports: result.imports,
     strictMockSchemaTypeNames: result.strictMockSchemaTypeNames,
+    strictMockSchemaKinds: result.strictMockSchemaKinds,
   };
 }
 
@@ -84,6 +91,7 @@ export interface GenerateFakerForSchemasResult {
   implementation: string;
   imports: GeneratorImport[];
   strictMockSchemaTypeNames?: string[];
+  strictMockSchemaKinds?: Record<string, StrictMockSchemaKind>;
 }
 
 /**
@@ -102,6 +110,7 @@ export function generateFakerForSchemas(
 ): GenerateFakerForSchemasResult {
   const factories: string[] = [];
   const strictMockTypeNames = new Set<string>();
+  const strictMockSchemaKinds: Record<string, StrictMockSchemaKind> = {};
   const allImports: GeneratorImport[] = [];
   // Shared across schemas so we emit each helper (e.g. an `allOf`-discriminator
   // sub-factory) once even when several schemas reference the same union arm.
@@ -115,6 +124,11 @@ export function generateFakerForSchemas(
   const localFactoryNames = new Set(
     schemas.filter((s) => !!s.schema).map((s) => `get${pascal(s.name)}Mock`),
   );
+  const localMockTypeNames = new Set(
+    schemas
+      .filter((s) => !!s.schema)
+      .map((s) => getStrictMockTypeName(pascal(s.name))),
+  );
 
   // Serialize override.mock.properties functions the same way operation
   // response mocks do (IIFE expressions), not raw function references.
@@ -126,24 +140,33 @@ export function generateFakerForSchemas(
 
     const factoryName = `get${pascal(name)}Mock`;
     const factoryImports: GeneratorImport[] = [];
+    const factoryImportsBefore = factoryImports.length;
+    const schemaName = pascal(name);
 
     const result = getMockScalar({
       item: {
         ...(schema as Record<string, unknown>),
-        name,
+        name: schemaName,
       } as Parameters<typeof getMockScalar>[0]['item'],
       imports: factoryImports,
       mockOptions,
       operationId: name,
       tags: [],
       context,
-      existingReferencedProperties: [],
+      // Seed the schema under generation on both stacks so allOf/oneOf cycles
+      // (e.g. System.Xml.Linq-style inheritance) terminate instead of overflowing
+      // the stack while building consolidated schema factories (#3590).
+      existingReferencedProperties: [schemaName],
+      existingReferencedAllOfRefs: [schemaName],
       splitMockImplementations,
       allowOverride: true,
       isRef: false,
     } as Parameters<typeof getMockScalar>[0]);
 
-    allImports.push(...result.imports, ...factoryImports);
+    appendImportsDelta(allImports, factoryImports, factoryImportsBefore);
+    if (result.imports !== factoryImports) {
+      appendImportsDelta(allImports, result.imports, 0);
+    }
 
     // Match the behavior of operation-response factories: only declare the
     // `overrideResponse` parameter when the generated expression actually
@@ -170,6 +193,7 @@ export function generateFakerForSchemas(
 
     if (isStrictMock(mockOptions)) {
       strictMockTypeNames.add(typeName);
+      strictMockSchemaKinds[typeName] = classifyStrictMockSchemaType(schema);
     }
 
     factories.push(factory);
@@ -197,6 +221,9 @@ export function generateFakerForSchemas(
     // local factory call). Without this we'd emit
     // `import { getPetMock } from '.'` next to its own `export const`.
     if (imp.schemaFactory && localFactoryNames.has(imp.name)) continue;
+    if (imp.schemaFactory && !imp.values && localMockTypeNames.has(imp.name)) {
+      continue;
+    }
 
     const key = `${imp.name}::${imp.alias ?? ''}`;
     const existing = mergedImports.get(key);
@@ -221,6 +248,13 @@ export function generateFakerForSchemas(
     .filter(Boolean)
     .join('\n\n');
 
+  for (const name of collectStrictMockSchemaTypeNamesFromImplementation(
+    implementation,
+  )) {
+    strictMockTypeNames.add(name);
+    strictMockSchemaKinds[name] ??= 'object';
+  }
+
   const aggregatedStrictNames = [...strictMockTypeNames];
 
   return {
@@ -228,5 +262,6 @@ export function generateFakerForSchemas(
     imports: uniqueImports,
     strictMockSchemaTypeNames:
       aggregatedStrictNames.length > 0 ? aggregatedStrictNames : undefined,
+    strictMockSchemaKinds: mergeStrictMockSchemaKinds(strictMockSchemaKinds),
   };
 }

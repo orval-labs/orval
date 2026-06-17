@@ -40,6 +40,7 @@ function flattenMockOutput(full: GeneratorMockOutputFull): GeneratorMockOutput {
     implementation: full.implementation.function + full.implementation.handler,
     imports: full.imports,
     strictMockSchemaTypeNames: full.strictMockSchemaTypeNames,
+    strictMockSchemaKinds: full.strictMockSchemaKinds,
   };
 }
 
@@ -53,6 +54,9 @@ function mergeOperationMockOutputs(
     imports: [...m.imports],
     strictMockSchemaTypeNames: m.strictMockSchemaTypeNames
       ? [...m.strictMockSchemaTypeNames]
+      : undefined,
+    strictMockSchemaKinds: m.strictMockSchemaKinds
+      ? { ...m.strictMockSchemaKinds }
       : undefined,
   }));
   for (const op of opMockOutputs) {
@@ -69,6 +73,12 @@ function mergeOperationMockOutputs(
           ...op.strictMockSchemaTypeNames,
         ]),
       ];
+    }
+    if (op.strictMockSchemaKinds) {
+      acc.strictMockSchemaKinds = {
+        ...acc.strictMockSchemaKinds,
+        ...op.strictMockSchemaKinds,
+      };
     }
     acc.implementation.function += op.implementation.function;
     acc.implementation.handler += op.implementation.handler;
@@ -97,6 +107,9 @@ function initialMockOutputsForOperation(
     imports: [...m.imports],
     strictMockSchemaTypeNames: m.strictMockSchemaTypeNames
       ? [...m.strictMockSchemaTypeNames]
+      : undefined,
+    strictMockSchemaKinds: m.strictMockSchemaKinds
+      ? { ...m.strictMockSchemaKinds }
       : undefined,
   }));
 }
@@ -256,6 +269,7 @@ export function generateTargetForTags(
             },
             imports: m.imports,
             strictMockSchemaTypeNames: m.strictMockSchemaTypeNames,
+            strictMockSchemaKinds: m.strictMockSchemaKinds,
           }));
 
         transformed[tag] = {

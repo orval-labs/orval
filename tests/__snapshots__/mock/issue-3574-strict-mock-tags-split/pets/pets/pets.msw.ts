@@ -43,7 +43,7 @@ export const getGetPetsResponseMock = (): PetMock[] =>
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
-  ).map(() => ({ ...getPetMock() }));
+  ).map(() => ({ ...(getPetMock() as PetMock) }));
 
 export const getGetPetByIdResponseMock = <
   O extends Partial<Extract<Pet, object>> = {},

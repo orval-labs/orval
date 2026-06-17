@@ -24,17 +24,11 @@ export type PetMock = {
   [K in keyof Required<Pet>]: NonNullable<Required<Pet>[K]>;
 };
 
-export type StatusMock = {
-  [K in keyof Required<Status>]: NonNullable<Required<Status>[K]>;
-};
+export type StatusMock = Status;
 
-export type PetListMock = {
-  [K in keyof Required<PetList>]: NonNullable<Required<PetList>[K]>;
-};
+export type PetListMock = PetList;
 
-export type ScoreMock = {
-  [K in keyof Required<Score>]: NonNullable<Required<Score>[K]>;
-};
+export type ScoreMock = Score;
 
 export const getPetMock = <O extends Partial<Pet> = {}>(
   overrideResponse?: O,
@@ -58,7 +52,7 @@ export const getPetListMock = (): PetListMock =>
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
-  ).map(() => ({ ...getPetMock() }));
+  ).map(() => ({ ...(getPetMock() as PetMock) }));
 
 export const getScoreMock = (): ScoreMock =>
   faker.number.float({ fractionDigits: 2 });

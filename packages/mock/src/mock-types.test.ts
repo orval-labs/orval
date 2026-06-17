@@ -10,7 +10,9 @@ import {
   getMockFactorySignatureParts,
   getSchemaTypeNamesFromResponses,
   getSimpleSchemaReturnType,
+  getStrictMockSchemaKindsFromResponses,
   getStrictMockHelperTypeDeclarations,
+  classifyStrictMockSchemaType,
   getStrictMockTypeDeclaration,
   getStrictMockTypeDeclarations,
   getStrictMockTypeName,
@@ -38,6 +40,48 @@ describe('mock-types', () => {
     });
   });
 
+  describe('classifyStrictMockSchemaType', () => {
+    it('classifies object, enum, array, scalar, and binary schemas', () => {
+      expect(
+        classifyStrictMockSchemaType({
+          type: 'object',
+          properties: { id: { type: 'string' } },
+        }),
+      ).toBe('object');
+      expect(
+        classifyStrictMockSchemaType({
+          type: 'string',
+          enum: ['active', 'inactive'],
+        }),
+      ).toBe('alias');
+      expect(
+        classifyStrictMockSchemaType({
+          $ref: '#/components/schemas/Pet',
+        }),
+      ).toBe('object');
+      expect(
+        classifyStrictMockSchemaType({
+          type: 'array',
+          items: { type: 'string' },
+        }),
+      ).toBe('alias');
+      expect(classifyStrictMockSchemaType({ type: 'number' })).toBe('alias');
+      expect(
+        classifyStrictMockSchemaType({ type: 'string', format: 'binary' }),
+      ).toBe('binary');
+      expect(
+        classifyStrictMockSchemaType({
+          oneOf: [{ type: 'string' }, { type: 'number' }],
+        }),
+      ).toBe('alias');
+      expect(
+        classifyStrictMockSchemaType({
+          oneOf: [{ $ref: '#/components/schemas/Pet' }],
+        }),
+      ).toBe('object');
+    });
+  });
+
   describe('getStrictMockTypeDeclarations', () => {
     it('deduplicates schema names and joins mock type aliases', () => {
       const result = getStrictMockTypeDeclarations(['Pet', 'Pet', 'Error']);
@@ -58,9 +102,24 @@ describe('mock-types', () => {
   });
 
   describe('getStrictMockTypeDeclaration', () => {
-    it('emits a Required/NonNullable mapped type alias', () => {
+    it('emits a Required/NonNullable mapped type alias for objects', () => {
       expect(getStrictMockTypeDeclaration('Pet')).toBe(
         'export type PetMock = {\n  [K in keyof Required<Pet>]: NonNullable<Required<Pet>[K]>;\n};',
+      );
+    });
+
+    it('aliases enum and scalar schemas to the source type', () => {
+      expect(getStrictMockTypeDeclaration('Status', 'alias')).toBe(
+        'export type StatusMock = Status;',
+      );
+      expect(getStrictMockTypeDeclaration('Score', 'alias')).toBe(
+        'export type ScoreMock = Score;',
+      );
+    });
+
+    it('uses ArrayBuffer for binary schema mocks', () => {
+      expect(getStrictMockTypeDeclaration('PhotoUpload', 'binary')).toBe(
+        'export type PhotoUploadMock = ArrayBuffer;',
       );
     });
   });
@@ -300,6 +359,46 @@ describe('mock-types', () => {
           implementation,
         ).toSorted(),
       ).toEqual(['Widget', 'WidgetMock']);
+    });
+  });
+
+  describe('getStrictMockSchemaKindsFromResponses', () => {
+    it('classifies array item schemas instead of the array wrapper', () => {
+      const responses = [
+        {
+          value: 'Pet[]',
+          imports: [{ name: 'Pet', values: false }],
+          key: '200',
+          contentType: 'application/json',
+          originalSchema: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/Pet' },
+          },
+        },
+      ] as unknown as ResReqTypesValue[];
+
+      expect(getStrictMockSchemaKindsFromResponses(responses)).toEqual({
+        Pet: 'object',
+      });
+    });
+
+    it('classifies enum response schemas as aliases', () => {
+      const responses = [
+        {
+          value: 'Status',
+          imports: [{ name: 'Status', values: false }],
+          key: '200',
+          contentType: 'application/json',
+          originalSchema: {
+            type: 'string',
+            enum: ['active', 'inactive'],
+          },
+        },
+      ] as unknown as ResReqTypesValue[];
+
+      expect(getStrictMockSchemaKindsFromResponses(responses)).toEqual({
+        Status: 'alias',
+      });
     });
   });
 

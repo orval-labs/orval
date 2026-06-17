@@ -705,6 +705,87 @@ export default defineConfig({
       target: '../specifications/issue-3525-widget-mock.yaml',
     },
   },
+  issue3590: {
+    output: {
+      target: '../generated/mock/issue-3590/endpoints.ts',
+      schemas: '../generated/mock/issue-3590/model',
+      client: 'fetch',
+      mock: {
+        generators: [{ type: 'faker', schemas: true, arrayItems: true }],
+      },
+      override: {
+        mock: {
+          required: true,
+          nonNullable: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3590.yaml',
+    },
+  },
+  issue3590WideSchemaImports: {
+    output: {
+      target: '../generated/mock/issue-3590-wide-schema-imports/endpoints.ts',
+      schemas: '../generated/mock/issue-3590-wide-schema-imports/model',
+      client: 'fetch',
+      mock: {
+        generators: [{ type: 'faker', schemas: true, arrayItems: true }],
+      },
+      override: {
+        mock: {
+          required: true,
+          nonNullable: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3590-wide-schema-imports.yaml',
+    },
+  },
+  issue3590TagsSplitSchemaImports: {
+    output: {
+      target:
+        '../generated/mock/issue-3590-tags-split-schema-imports/pets/pets.ts',
+      schemas:
+        '../generated/mock/issue-3590-tags-split-schema-imports/schemas',
+      mode: 'tags-split',
+      client: 'fetch',
+      mock: {
+        generators: [{ type: 'faker', schemas: true, arrayItems: true }],
+      },
+      override: {
+        mock: {
+          required: true,
+          nonNullable: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3590-tags-split-schema-imports.yaml',
+    },
+  },
+  issue3590BinaryResponseImports: {
+    output: {
+      target: '../generated/mock/issue-3590-binary-response-imports/endpoints.ts',
+      schemas: '../generated/mock/issue-3590-binary-response-imports/model',
+      client: 'fetch',
+      mock: {
+        generators: [{ type: 'faker' }],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3590-binary-response-imports.yaml',
+    },
+  },
   fakerArrayItems: {
     output: {
       target: '../generated/mock/faker-array-items/endpoints.ts',
