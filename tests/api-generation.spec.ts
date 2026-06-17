@@ -1415,3 +1415,117 @@ test('axios tags-split workspace barrel keeps a multi-part fileExtension single 
   // No doubled prefix may appear.
   expect(barrel).not.toContain('.generated.generated');
 });
+
+test('axios tags-split + schemas.splitByTags separates per-tag schemas from cross-tag shared schemas (#3592)', async () => {
+  // Regression for the layout half of #3592: with `output.mode: 'tags-split'`
+  // and `schemas.splitByTags: true`, schema files are organized into per-tag
+  // subdirectories under `schemas.path`, while schemas referenced by more than
+  // one tag stay at the root of `schemas.path`. The root `index.ts` barrel
+  // re-exports both the shared files and each per-tag barrel.
+  //
+  // `tags-split-shared.yaml` is the canonical fixture: the `pets` and `stores`
+  // tags each own a distinct set of schemas, while `Error`, `SortOrder`, and
+  // `Pagination` are referenced by both tags. `Pagination` is the interesting
+  // case — it is only referenced indirectly via `PetList` and `StoreList`, but
+  // because both of those are tag-scoped, `Pagination` itself is shared.
+  const root = generated('axios', 'tags-split-shared-models', 'model');
+
+  // Per-tag schemas live under `<tag>/` with their own barrel.
+  const petsBarrel = await readFile(path.join(root, 'pets', 'index.ts'), 'utf8');
+  expect(petsBarrel).toContain("export * from './pet';");
+  expect(petsBarrel).toContain("export * from './petList';");
+  expect(petsBarrel).toContain("export * from './createPetBody';");
+  // Schemas owned by another tag must not leak into the wrong subdir.
+  expect(petsBarrel).not.toContain('store');
+
+  const storesBarrel = await readFile(
+    path.join(root, 'stores', 'index.ts'),
+    'utf8',
+  );
+  expect(storesBarrel).toContain("export * from './store';");
+  expect(storesBarrel).toContain("export * from './storeList';");
+  expect(storesBarrel).toContain("export * from './createStoreBody';");
+  expect(storesBarrel).not.toContain('pet');
+
+  // Shared schemas referenced by both tags stay at the root, not in any tag
+  // subdir. `Pagination` is shared even though it is only reached via
+  // `PetList`/`StoreList` — both tag-scoped wrappers reference it.
+  await expect(readFile(path.join(root, 'error.ts'), 'utf8')).resolves;
+  await expect(readFile(path.join(root, 'sortOrder.ts'), 'utf8')).resolves;
+  await expect(readFile(path.join(root, 'pagination.ts'), 'utf8')).resolves;
+  // No tag owns a schema named after the other tag.
+  await expect(
+    readFile(path.join(root, 'pets', 'store.ts'), 'utf8'),
+  ).rejects.toThrow();
+  await expect(
+    readFile(path.join(root, 'stores', 'pet.ts'), 'utf8'),
+  ).rejects.toThrow();
+
+  // The root barrel re-exports every shared file and each per-tag barrel, so
+  // consumers can still import any schema from the model root.
+  const rootBarrel = await readFile(path.join(root, 'index.ts'), 'utf8');
+  expect(rootBarrel).toContain("export * from './sortOrder';");
+  expect(rootBarrel).toContain("export * from './error';");
+  expect(rootBarrel).toContain("export * from './pagination';");
+  expect(rootBarrel).toContain("export * from './pets';");
+  expect(rootBarrel).toContain("export * from './stores';");
+});
+
+test('axios tags-split + schemas.splitByTags imports schemas via the model barrel in endpoints and faker files (#3592)', async () => {
+  // Regression for the import half of #3592: with `output.mode: 'tags-split'`
+  // and `schemas.splitByTags: true`, operation files (and their co-located
+  // faker mocks) must import schemas from the model root barrel (`'../model'`)
+  // rather than from a per-tag subdir. This is what lets a tag file transparently
+  // pull in a schema that lives in another tag's subdir or at the shared root.
+  const pets = await readFile(
+    generated('axios', 'tags-split-shared-models', 'pets', 'pets.ts'),
+    'utf8',
+  );
+  expect(pets).toContain(
+    "import type { CreatePetBody, ListPetsParams, Pet, PetList } from '../model';",
+  );
+  // The operation file must not reach into a specific tag subdir; that would
+  // couple tags to each other's internal layout.
+  expect(pets).not.toMatch(/from '\.\.\/model\/(pets|stores|_shared)/);
+
+  const petsFaker = await readFile(
+    generated('axios', 'tags-split-shared-models', 'pets', 'pets.faker.ts'),
+    'utf8',
+  );
+  expect(petsFaker).toContain("import type { Pet, PetList } from '../model';");
+});
+
+test('axios split mode + schemas.splitByTags produces the same per-tag schema layout (#3592)', async () => {
+  // Regression for the `mode: 'split'` combination: #3592 is not specific to
+  // `tags-split`. In `split` mode the endpoint files collapse into a single
+  // `endpoints.ts`, but `schemas.splitByTags` still organizes schema files
+  // into per-tag subdirectories with shared schemas at the root. The combined
+  // `endpoints.ts` imports every referenced schema from the `'./model'` barrel.
+  const root = generated('axios', 'split-mode-split-schemas', 'model');
+
+  // Same per-tag layout as the tags-split case above.
+  const petsBarrel = await readFile(path.join(root, 'pets', 'index.ts'), 'utf8');
+  expect(petsBarrel).toContain("export * from './pet';");
+  expect(petsBarrel).toContain("export * from './petList';");
+
+  const storesBarrel = await readFile(
+    path.join(root, 'stores', 'index.ts'),
+    'utf8',
+  );
+  expect(storesBarrel).toContain("export * from './store';");
+  expect(storesBarrel).toContain("export * from './storeList';");
+
+  // Shared schemas still live at the root.
+  await expect(readFile(path.join(root, 'pagination.ts'), 'utf8')).resolves;
+  await expect(readFile(path.join(root, 'sortOrder.ts'), 'utf8')).resolves;
+  await expect(readFile(path.join(root, 'error.ts'), 'utf8')).resolves;
+
+  // The combined `endpoints.ts` pulls every referenced schema, across both
+  // tags, from the single `'./model'` barrel.
+  const endpoints = await readFile(
+    generated('axios', 'split-mode-split-schemas', 'endpoints.ts'),
+    'utf8',
+  );
+  expect(endpoints).toContain("} from './model';");
+  expect(endpoints).not.toMatch(/from '\.\/model\/(pets|stores|_shared)/);
+});
