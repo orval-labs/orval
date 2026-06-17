@@ -276,7 +276,9 @@ export const generateEffectValidationSchemaDefinition = (
           }
           if (Array.isArray(value)) {
             const arrayItems = value.map((item) =>
-              isString(item) ? `${JSON.stringify(item)} as const` : `${item}`,
+              isString(item)
+                ? `${JSON.stringify(item)} as const`
+                : JSON.stringify(item),
             );
             return `${safeKey}: [${arrayItems.join(', ')}]`;
           }

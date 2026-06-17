@@ -9,7 +9,7 @@ import {
   createSplitModeOutput,
   createSplitModeProps,
 } from '../test-utils/split-modes';
-import { OutputMockType, OutputMode } from '../types';
+import { type GeneratorDependency, OutputMockType, OutputMode } from '../types';
 import { writeSplitTagsMode } from './split-tags-mode';
 
 // Regression coverage for https://github.com/orval-labs/orval/issues/2309
@@ -174,5 +174,137 @@ describe('writeSplitTagsMode — index mock barrel has deterministic tag order',
     expect(lines[0]).toMatch(/getAdminMock/);
     expect(lines[1]).toMatch(/getHealthMock/);
     expect(lines[2]).toMatch(/getPetsMock/);
+  });
+});
+
+// Regression coverage for https://github.com/orval-labs/orval/discussions/3596
+//
+// When `output.schemas` is unset, the schemas import specifier is derived from
+// the target filename. Under `module: 'NodeNext' / 'node16'` the specifier must
+// carry the runtime extension (`.js`), otherwise the emitted import won't
+// resolve. The extension used to be stripped via `extension.replace(/\.ts$/, '')`;
+// it now flows through `getImportExtension`. In `tags-split` the tag files live
+// in a subdirectory so the relative specifier uses `../`.
+
+describe('writeSplitTagsMode — schemas import extension follows tsconfig module', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-split-tags-mode-'));
+  });
+
+  afterEach(() => {
+    fs.removeSync(tmpDir);
+  });
+
+  it('appends .js to the schemas specifier under module: NodeNext', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const importsCalls: Array<{ imports: readonly GeneratorDependency[] }> = [];
+    const baseProps = createSplitModeProps(target);
+    const props = {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        operations: {
+          listPets: createSplitModeOperation({
+            imports: [{ name: 'Pet' }],
+            implementation: 'export const listPets = (): Pet | null => null;',
+          }),
+        },
+        imports: (args: { imports: readonly GeneratorDependency[] }) => {
+          importsCalls.push(args);
+          return '';
+        },
+      },
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: true,
+        schemas: undefined,
+        tsconfig: { compilerOptions: { module: 'NodeNext' } },
+      }),
+    };
+
+    await writeSplitTagsMode({ ...props, needSchema: false });
+
+    expect(importsCalls.length).toBeGreaterThan(0);
+    expect(importsCalls[0]?.imports).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ dependency: '../petstore.schemas.js' }),
+      ]),
+    );
+  });
+
+  it('keeps the schemas specifier extensionless without tsconfig', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const importsCalls: Array<{ imports: readonly GeneratorDependency[] }> = [];
+    const baseProps = createSplitModeProps(target);
+    const props = {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        operations: {
+          listPets: createSplitModeOperation({
+            imports: [{ name: 'Pet' }],
+            implementation: 'export const listPets = (): Pet | null => null;',
+          }),
+        },
+        imports: (args: { imports: readonly GeneratorDependency[] }) => {
+          importsCalls.push(args);
+          return '';
+        },
+      },
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: true,
+        schemas: undefined,
+      }),
+    };
+
+    await writeSplitTagsMode({ ...props, needSchema: false });
+
+    expect(importsCalls.length).toBeGreaterThan(0);
+    expect(importsCalls[0]?.imports).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ dependency: '../petstore.schemas' }),
+      ]),
+    );
+  });
+});
+
+// The mock index barrel must also honor the tsconfig module setting so
+// NodeNext projects get `.js` extensions on the barrel re-exports.
+describe('writeSplitTagsMode — mock barrel extension follows tsconfig', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-split-tags-mode-'));
+  });
+
+  afterEach(() => {
+    fs.removeSync(tmpDir);
+  });
+
+  it('appends .js to mock barrel re-exports under module: NodeNext', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const mockDir = path.join(tmpDir, 'mocks');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        tsconfig: { compilerOptions: { module: 'NodeNext' } },
+        mock: {
+          indexMockFiles: true,
+          path: mockDir,
+          generators: [{ type: OutputMockType.MSW }],
+        },
+      }),
+    };
+
+    await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const indexMockPath = path.join(mockDir, 'index.msw.ts');
+    expect(fs.existsSync(indexMockPath)).toBe(true);
+    const content = fs.readFileSync(indexMockPath, 'utf8');
+    expect(content).toContain("from './pets/pets.msw.js'");
   });
 });

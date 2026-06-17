@@ -359,23 +359,24 @@ export function resolveMockValue({
 
     if (canDelegate) {
       const factoryName = `get${pascal(name)}Mock`;
-      imports.push({
+      const factoryImport: GeneratorImport = {
         name: factoryName,
         values: true,
         schemaFactory: true,
-      });
+      };
       const isObjectLike =
         newSchema.type === 'object' ||
         !!newSchema.allOf ||
         resolvesToObjectLike(newSchema, context);
       const mockTypeName = getStrictMockTypeName(pascal(name));
-      if (isStrictMock(mockOptions) && isObjectLike) {
-        imports.push({
-          name: mockTypeName,
-          values: false,
-          schemaFactory: true,
-        });
-      }
+      const strictMockTypeImport: GeneratorImport | undefined =
+        isStrictMock(mockOptions) && isObjectLike
+          ? {
+              name: mockTypeName,
+              values: false,
+              schemaFactory: true,
+            }
+          : undefined;
       // For object-like refs the historical inline output is `{ ...body }`
       // so the spread form keeps callers (combineSchemasMock, object
       // properties) working without other changes. For everything else
@@ -398,7 +399,9 @@ export function resolveMockValue({
           Boolean(newSchema.nullable),
           mockOptions?.nonNullable,
         ),
-        imports,
+        imports: strictMockTypeImport
+          ? [factoryImport, strictMockTypeImport]
+          : [factoryImport],
         name: newSchema.name,
         type: getType(newSchema),
         nullWrapped: Boolean(newSchema.nullable) && !mockOptions?.nonNullable,

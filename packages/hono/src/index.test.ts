@@ -137,3 +137,51 @@ describe('generateHandlerFile strategies', () => {
     expect(result).not.toContain("zValidator('json'");
   });
 });
+
+// Regression coverage for https://github.com/orval-labs/orval/discussions/3596
+//
+// `generateModuleSpecifier` used to strip `.ts` unconditionally, producing
+// extensionless imports that don't resolve under `module: 'NodeNext'`. It now
+// threads the output tsconfig through `getImportExtension` so the runtime
+// extension (`.js`) is appended when required.
+
+describe('generateHandlerFile — NodeNext module resolution', () => {
+  let dir: string;
+
+  beforeEach(async () => {
+    dir = await mkdtemp(path.join(tmpdir(), 'orval-hono-nodenext-'));
+  });
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('appends .js to relative handler imports under module: NodeNext', async () => {
+    const file = path.join(dir, 'listPets.ts');
+    const result = await generateHandlerFile({
+      verbs: [verb('listPets')],
+      path: file,
+      header: '/* eslint-disable */\n',
+      zodModule: path.join(dir, 'endpoints.zod.ts'),
+      contextModule: path.join(dir, 'endpoints.context.ts'),
+      strategy: 'smart',
+      tsconfig: { compilerOptions: { module: 'NodeNext' } },
+    });
+
+    expect(result).toContain("from './endpoints.context.js';");
+  });
+
+  it('keeps relative handler imports extensionless without tsconfig', async () => {
+    const file = path.join(dir, 'listPets.ts');
+    const result = await generateHandlerFile({
+      verbs: [verb('listPets')],
+      path: file,
+      header: '/* eslint-disable */\n',
+      zodModule: path.join(dir, 'endpoints.zod.ts'),
+      contextModule: path.join(dir, 'endpoints.context.ts'),
+      strategy: 'smart',
+    });
+
+    expect(result).toContain("from './endpoints.context';");
+  });
+});

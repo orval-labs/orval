@@ -350,6 +350,40 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('defaults schemas.type to typescript when omitted', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            schemas: {
+              path: './models',
+              importPath: '@acme/models',
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.schemas).toEqual({
+        path: expect.any(String) as string,
+        type: 'typescript',
+        importPath: '@acme/models',
+      });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('rejects a relative path as schemas.importPath', async () => {
     const workspace = await createTempWorkspace();
 

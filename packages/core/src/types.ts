@@ -307,7 +307,7 @@ export interface NormalizedFactoryMethodsOptions {
 
 export interface SchemaOptions {
   path: string;
-  type: SchemaGenerationType;
+  type?: SchemaGenerationType;
   importPath?: string;
 }
 
@@ -833,7 +833,16 @@ export interface EffectOptions {
   useBrandedTypes?: boolean;
 }
 
-export type ZodCoerceType = 'string' | 'number' | 'boolean' | 'bigint' | 'date';
+export type ZodCoerceType =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'bigint'
+  | 'date'
+  // Not a real `z.coerce.array()` — opting 'array' into `coerce.<location>`
+  // wraps array params in a single→array preprocess so a single repeated-key
+  // query value (delivered as a scalar by the server framework) still parses.
+  | 'array';
 
 export interface NormalizedZodOptions {
   strict: {

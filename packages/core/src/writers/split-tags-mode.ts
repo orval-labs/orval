@@ -5,6 +5,7 @@ import { OutputClient, OutputMockType, type WriteModeProps } from '../types';
 import {
   conventionName,
   getFileInfo,
+  getImportExtension,
   getSchemasImportPath,
   isFunction,
   isString,
@@ -64,7 +65,7 @@ export async function writeSplitTagsMode({
       ).dirname
     : path.join(
         dirname,
-        filename + '.schemas' + extension.replace(/\.ts$/, ''),
+        filename + '.schemas' + getImportExtension(extension, output.tsconfig),
       );
 
   const tagEntries = Object.entries(target).toSorted(([a], [b]) =>
@@ -100,7 +101,10 @@ export async function writeSplitTagsMode({
                 { extension: output.fileExtension },
               ).dirname,
             ))
-          : '../' + filename + '.schemas' + extension.replace(/\.ts$/, '');
+          : '../' +
+            filename +
+            '.schemas' +
+            getImportExtension(extension, output.tsconfig);
 
         const tagNames = new Set(tagEntries.map(([t]) => t));
         const serviceSuffix =
@@ -339,12 +343,17 @@ export async function writeSplitTagsMode({
   );
 
   if (output.mock.indexMockFiles) {
+    const mockImportExtension = getImportExtension(extension, output.tsconfig);
     for (const { ext, mockDir, tags } of mockIndexEntries) {
       const indexPath = path.join(mockDir, `index.${ext}${extension}`);
       const indexContent = tags
         .toSorted((a, b) => a.localeCompare(b))
         .map((tag) => {
-          const localMockPath = upath.joinSafe('./', tag, tag + '.' + ext);
+          const localMockPath = upath.joinSafe(
+            './',
+            tag,
+            tag + '.' + ext + mockImportExtension,
+          );
           return ext === OutputMockType.MSW
             ? `export { get${pascal(tag)}Mock } from '${localMockPath}'\n`
             : `export * from '${localMockPath}'\n`;
