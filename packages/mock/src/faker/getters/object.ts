@@ -281,12 +281,14 @@ export function getMockObject({
         ? '}'
         : '';
 
+    // Nullable object schemas are wrapped at the root only. When `combine` is
+    // set, this object contributes properties to a oneOf/anyOf/allOf merge and
+    // must stay a plain `{ ... }` fragment (see combineSchemasMock).
+    const nullableAtRoot =
+      !combine && isNullableSchema(schemaItem) && !mockOptions?.nonNullable;
+
     return {
-      value: getNullable(
-        value,
-        isNullableSchema(schemaItem),
-        mockOptions?.nonNullable,
-      ),
+      value: nullableAtRoot ? getNullable(value, true) : value,
       imports,
       name: schemaItem.name,
       includedProperties,
