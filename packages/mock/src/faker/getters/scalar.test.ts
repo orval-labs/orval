@@ -863,6 +863,73 @@ describe('getMockScalar (post-upgrader OAS 3.0 example handling)', () => {
   });
 });
 
+describe('getMockScalar (useDates + useExamples)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+    mockOptions: { useExamples: true },
+    context: scalarContext({ useDates: true }),
+  };
+
+  it('wraps property-level date-time examples in new Date()', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        format: 'date-time',
+        name: 'createdAt',
+        example: '2023-12-31T06:46:39.477Z',
+      },
+    });
+
+    expect(result.value).toBe('new Date("2023-12-31T06:46:39.477Z")');
+  });
+
+  it('wraps property-level date examples in new Date()', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'string' as const,
+        format: 'date',
+        name: 'birthDate',
+        example: '2023-12-31',
+      },
+    });
+
+    expect(result.value).toBe('new Date("2023-12-31")');
+  });
+
+  it('wraps nested date fields inside property-level array examples', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: 'array' as const,
+        name: 'documents',
+        items: {
+          type: 'object',
+          properties: {
+            createdAt: { type: 'string', format: 'date-time' },
+            id: { type: 'string', format: 'uuid' },
+          },
+        },
+        example: [
+          {
+            createdAt: '2023-12-31T23:34:12.969Z',
+            id: 'd8895621-ee99-4f57-87d2-c288217fa0bf',
+          },
+        ],
+      },
+    });
+
+    expect(result.value).toBe(
+      '[{ createdAt: new Date("2023-12-31T23:34:12.969Z"), id: "d8895621-ee99-4f57-87d2-c288217fa0bf" }]',
+    );
+  });
+});
+
 describe('getMockScalar (array items $ref extraction and recursion guard)', () => {
   const baseArg = {
     imports: [],

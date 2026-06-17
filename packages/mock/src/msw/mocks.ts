@@ -12,6 +12,7 @@ import {
   stringify,
 } from '@orval/core';
 
+import { formatSchemaExampleValue } from '../faker/format-example-value';
 import { getMockScalar } from '../faker/getters';
 import {
   appendImportsDelta,
@@ -221,10 +222,13 @@ export function getResponsesMockDefinition({
       );
 
       if (exampleValue !== undefined) {
+        const formatted = formatSchemaExampleValue(
+          exampleValue,
+          originalSchema,
+          context,
+        );
         result.definitions.push(
-          transformer
-            ? transformer(exampleValue, returnType)
-            : JSON.stringify(exampleValue),
+          transformer ? transformer(formatted, returnType) : formatted,
         );
         continue;
       }
