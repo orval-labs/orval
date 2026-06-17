@@ -138,7 +138,7 @@ describe('mock-types', () => {
   describe('getStrictMockTypeDeclaration', () => {
     it('emits a Required/NonNullable mapped type alias for objects', () => {
       expect(getStrictMockTypeDeclaration('Pet')).toBe(
-        'export type PetMock = {\n  [K in keyof Required<Pet>]: NonNullable<Required<Pet>[K]>;\n};',
+        'export type PetMock = {\n  [K in keyof Required<NonNullable<Pet>>]: NonNullable<Required<NonNullable<Pet>>[K]>;\n};',
       );
     });
 
@@ -163,7 +163,7 @@ describe('mock-types', () => {
           schemaNullableAtRoot: true,
         }),
       ).toBe(
-        'export type WidgetMock = {\n  [K in keyof Required<Widget>]: NonNullable<Required<Widget>[K]>;\n} | null;',
+        'export type WidgetMock = {\n  [K in keyof Required<NonNullable<Widget>>]: NonNullable<Required<NonNullable<Widget>>[K]>;\n} | null;',
       );
     });
   });
@@ -484,6 +484,37 @@ describe('mock-types', () => {
         {
           Widget: 'object',
           Status: 'alias',
+        },
+      );
+    });
+
+    it('matches oneOf branch schemas when the response import uses an alias', () => {
+      const context = createTestContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Widget: {
+                type: 'string',
+                enum: ['active', 'inactive'],
+              },
+            },
+          },
+        },
+      });
+      const responses = [
+        {
+          imports: [{ name: 'Widget', alias: 'CustomStatus', values: false }],
+          key: '200',
+          contentType: 'application/json',
+          originalSchema: {
+            oneOf: [{ $ref: '#/components/schemas/Widget' }],
+          },
+        },
+      ] as unknown as ResReqTypesValue[];
+
+      expect(getStrictMockSchemaKindsFromResponses(responses, context)).toEqual(
+        {
+          CustomStatus: 'alias',
         },
       );
     });

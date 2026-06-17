@@ -34,8 +34,8 @@ export type MockWithNullableOverrides<
 };
 
 export type PetDetailResponseMock = {
-  [K in keyof Required<PetDetailResponse>]: NonNullable<
-    Required<PetDetailResponse>[K]
+  [K in keyof Required<NonNullable<PetDetailResponse>>]: NonNullable<
+    Required<NonNullable<PetDetailResponse>>[K]
   >;
 };
 

@@ -31,7 +31,9 @@ export type MockWithNullableOverrides<
 };
 
 export type PetMock = {
-  [K in keyof Required<Pet>]: NonNullable<Required<Pet>[K]>;
+  [K in keyof Required<NonNullable<Pet>>]: NonNullable<
+    Required<NonNullable<Pet>>[K]
+  >;
 };
 
 export type StatusMock = Status;
@@ -39,15 +41,21 @@ export type StatusMock = Status;
 export type PetCategoryMock = PetCategory;
 
 export type PetSettingMock = {
-  [K in keyof Required<PetSetting>]: NonNullable<Required<PetSetting>[K]>;
+  [K in keyof Required<NonNullable<PetSetting>>]: NonNullable<
+    Required<NonNullable<PetSetting>>[K]
+  >;
 };
 
 export type PetProfileMock = {
-  [K in keyof Required<PetProfile>]: NonNullable<Required<PetProfile>[K]>;
+  [K in keyof Required<NonNullable<PetProfile>>]: NonNullable<
+    Required<NonNullable<PetProfile>>[K]
+  >;
 };
 
 export type PetDetailMock = {
-  [K in keyof Required<PetDetail>]: NonNullable<Required<PetDetail>[K]>;
+  [K in keyof Required<NonNullable<PetDetail>>]: NonNullable<
+    Required<NonNullable<PetDetail>>[K]
+  >;
 };
 
 export type PhotoUploadMock = ArrayBuffer;
@@ -57,8 +65,8 @@ export type PetListMock = PetList;
 export type ScoreMock = Score;
 
 export type PetDetailSettingsItemMock = {
-  [K in keyof Required<PetDetailSettingsItem>]: NonNullable<
-    Required<PetDetailSettingsItem>[K]
+  [K in keyof Required<NonNullable<PetDetailSettingsItem>>]: NonNullable<
+    Required<NonNullable<PetDetailSettingsItem>>[K]
   >;
 };
 

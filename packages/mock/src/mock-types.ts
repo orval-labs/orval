@@ -130,7 +130,7 @@ export function getStrictMockTypeDeclaration(
     return `export type ${mockTypeName} = ArrayBuffer;`;
   }
 
-  const mappedType = `{\n  [K in keyof Required<${typeName}>]: NonNullable<Required<${typeName}>[K]>;\n}`;
+  const mappedType = `{\n  [K in keyof Required<NonNullable<${typeName}>>]: NonNullable<Required<NonNullable<${typeName}>>[K]>;\n}`;
   const objectMockType = options?.schemaNullableAtRoot
     ? `${mappedType} | null`
     : mappedType;
@@ -157,10 +157,32 @@ export function getStrictMockTypeDeclarations(
     .join('\n\n');
 }
 
+function strictMockResolvedImportMatches(
+  typeName: string,
+  resolvedImport: { name?: string; alias?: string } | undefined,
+  importBareName?: string,
+): boolean {
+  const resolvedName = resolvedImport?.name;
+  if (!resolvedName) {
+    return false;
+  }
+
+  if (typeName === resolvedName) {
+    return true;
+  }
+
+  if (resolvedImport.alias && typeName === resolvedImport.alias) {
+    return true;
+  }
+
+  return importBareName !== undefined && importBareName === resolvedName;
+}
+
 function resolveStrictMockSchemaForTypeName(
   typeName: string,
   originalSchema: OpenApiSchemaObject | undefined,
   context?: ContextSpec,
+  importBareName?: string,
 ): OpenApiSchemaObject | undefined {
   if (!originalSchema) {
     return undefined;
@@ -183,9 +205,13 @@ function resolveStrictMockSchemaForTypeName(
       }
 
       const resolved = resolveRef(branch as OpenApiReferenceObject, context);
-      const branchName =
-        resolved.imports[0]?.alias ?? resolved.imports[0]?.name;
-      if (branchName === typeName) {
+      if (
+        strictMockResolvedImportMatches(
+          typeName,
+          resolved.imports[0],
+          importBareName,
+        )
+      ) {
         return resolved.schema as OpenApiSchemaObject;
       }
     }
@@ -198,8 +224,13 @@ function resolveStrictMockSchemaForTypeName(
       originalSchema as OpenApiReferenceObject,
       context,
     );
-    const refName = resolved.imports[0]?.alias ?? resolved.imports[0]?.name;
-    if (refName === typeName) {
+    if (
+      strictMockResolvedImportMatches(
+        typeName,
+        resolved.imports[0],
+        importBareName,
+      )
+    ) {
       return resolved.schema as OpenApiSchemaObject;
     }
 
@@ -342,6 +373,7 @@ export function getStrictMockSchemaKindsFromResponses(
         importName,
         response.originalSchema,
         context,
+        imp.name,
       );
       if (!schemaForImport) {
         continue;

@@ -22,6 +22,21 @@ import { combineSchemasMock } from './combine';
 
 export const overrideVarName = 'overrideResponse';
 
+function wrapRootNullableObjectValue(
+  value: string,
+  schemaItem: MockSchemaObject,
+  mockOptions: MockOptions | undefined,
+  combine?: GetMockObjectOptions['combine'],
+): { value: string; nullWrapped: boolean } {
+  const nullableAtRoot =
+    !combine && isNullableSchema(schemaItem) && !mockOptions?.nonNullable;
+
+  return {
+    value: nullableAtRoot ? getNullable(value, true) : value,
+    nullWrapped: nullableAtRoot,
+  };
+}
+
 function getReferenceName(
   ref: string | undefined,
   context: ContextSpec,
@@ -281,14 +296,16 @@ export function getMockObject({
         ? '}'
         : '';
 
-    // Nullable object schemas are wrapped at the root only. When `combine` is
-    // set, this object contributes properties to a oneOf/anyOf/allOf merge and
-    // must stay a plain `{ ... }` fragment (see combineSchemasMock).
-    const nullableAtRoot =
-      !combine && isNullableSchema(schemaItem) && !mockOptions?.nonNullable;
+    const { value: finalValue, nullWrapped } = wrapRootNullableObjectValue(
+      value,
+      schemaItem,
+      mockOptions,
+      combine,
+    );
 
     return {
-      value: nullableAtRoot ? getNullable(value, true) : value,
+      value: finalValue,
+      nullWrapped,
       imports,
       name: schemaItem.name,
       includedProperties,
@@ -297,7 +314,19 @@ export function getMockObject({
 
   if (itemAdditionalProperties) {
     if (itemAdditionalProperties === true) {
-      return { value: `{}`, imports: [], name: schemaItem.name };
+      const { value: finalValue, nullWrapped } = wrapRootNullableObjectValue(
+        `{}`,
+        schemaItem,
+        mockOptions,
+        combine,
+      );
+
+      return {
+        value: finalValue,
+        nullWrapped,
+        imports: [],
+        name: schemaItem.name,
+      };
     }
     const additionalProperties = itemAdditionalProperties;
     if (
@@ -306,7 +335,19 @@ export function getMockObject({
         getReferenceName(additionalProperties.$ref, context),
       )
     ) {
-      return { value: `{}`, imports: [], name: schemaItem.name };
+      const { value: finalValue, nullWrapped } = wrapRootNullableObjectValue(
+        `{}`,
+        schemaItem,
+        mockOptions,
+        combine,
+      );
+
+      return {
+        value: finalValue,
+        nullWrapped,
+        imports: [],
+        name: schemaItem.name,
+      };
     }
 
     const resolvedValue = resolveMockValue({
@@ -328,13 +369,29 @@ export function getMockObject({
       splitMockImplementations,
     });
 
+    const objectValue = `{
+        [${DEFAULT_OBJECT_KEY_MOCK}]: ${resolvedValue.value}
+      }`;
+    const { value: finalValue, nullWrapped } = wrapRootNullableObjectValue(
+      objectValue,
+      schemaItem,
+      mockOptions,
+      combine,
+    );
+
     return {
       ...resolvedValue,
-      value: `{
-        [${DEFAULT_OBJECT_KEY_MOCK}]: ${resolvedValue.value}
-      }`,
+      value: finalValue,
+      nullWrapped: nullWrapped || resolvedValue.nullWrapped,
     };
   }
 
-  return { value: '{}', imports: [], name: schemaItem.name };
+  const { value: finalValue, nullWrapped } = wrapRootNullableObjectValue(
+    '{}',
+    schemaItem,
+    mockOptions,
+    combine,
+  );
+
+  return { value: finalValue, nullWrapped, imports: [], name: schemaItem.name };
 }
