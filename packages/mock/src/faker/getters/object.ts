@@ -164,6 +164,28 @@ export function getMockObject({
     // Without this, `{ type: "object", properties: {...} }` collapses to
     // `{ type: "object" }` and the mock generator returns `{}` instead of
     // building the actual object shape. Mirrors the fix in core getters/object.ts.
+    const isPropertylessObject =
+      !itemProperties &&
+      (!itemRequired || itemRequired.length === 0) &&
+      !itemAdditionalProperties;
+
+    if (
+      isPropertylessObject &&
+      nonNullTypes.includes('object') &&
+      nonNullTypes.includes('null') &&
+      nonNullTypes.every((type) => type === 'object' || type === 'null')
+    ) {
+      if (mockOptions?.nonNullable) {
+        return { value: '{}', imports: [], name: schemaItem.name };
+      }
+
+      return {
+        value: 'faker.helpers.arrayElement([{}, null])',
+        imports: [],
+        name: schemaItem.name,
+      };
+    }
+
     const baseItem = schemaItem as Record<string, unknown>;
     return combineSchemasMock({
       item: {
@@ -382,7 +404,7 @@ export function getMockObject({
     return {
       ...resolvedValue,
       value: finalValue,
-      nullWrapped: nullWrapped || resolvedValue.nullWrapped,
+      nullWrapped,
     };
   }
 

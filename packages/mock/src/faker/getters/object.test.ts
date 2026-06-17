@@ -109,7 +109,7 @@ describe('getMockObject', () => {
       splitMockImplementations: [],
     });
 
-    expect(result.value).toBe('faker.helpers.arrayElement([null,])');
+    expect(result.value).toBe('faker.helpers.arrayElement([{}, null])');
   });
 
   it('does not emit null for nullable object schemas when nonNullable is true', () => {
