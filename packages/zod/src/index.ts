@@ -2,6 +2,7 @@
 
 import {
   buildDynamicScope,
+  buildInlineDynamicScope,
   camel,
   type ClientBuilder,
   type ClientGeneratorsBuilder,
@@ -1663,26 +1664,38 @@ function buildScopedContext(
   refName: string | undefined,
   resolvedSchema: OpenApiSchemaObject,
 ): ContextSpec {
-  if (!refName) return childContext;
+  if (refName) {
+    const schemaName = extractSchemaNameFromRef(refName);
+    if (!schemaName) return childContext;
 
-  const schemaName = extractSchemaNameFromRef(refName);
-  if (!schemaName) return childContext;
+    const schemaRecord = resolvedSchema as Record<string, unknown>;
+    const hasDynamicAnchor = typeof schemaRecord.$dynamicAnchor === 'string';
+    const defs = schemaRecord.$defs as Record<string, unknown> | undefined;
+    const hasDefsAnchors =
+      defs &&
+      typeof defs === 'object' &&
+      Object.values(defs).some(
+        (d) => d && typeof d === 'object' && '$dynamicAnchor' in d,
+      );
 
-  const schemaRecord = resolvedSchema as Record<string, unknown>;
-  const hasDynamicAnchor = typeof schemaRecord.$dynamicAnchor === 'string';
-  const defs = schemaRecord.$defs as Record<string, unknown> | undefined;
-  const hasDefsAnchors =
-    defs &&
-    typeof defs === 'object' &&
-    Object.values(defs).some(
-      (d) => d && typeof d === 'object' && '$dynamicAnchor' in d,
-    );
+    if (!hasDynamicAnchor && !hasDefsAnchors) return childContext;
 
-  if (!hasDynamicAnchor && !hasDefsAnchors) return childContext;
+    return {
+      ...childContext,
+      dynamicScope: buildDynamicScope(schemaName, resolvedSchema, childContext),
+    };
+  }
+
+  // Anonymous inline subschema (reached via allOf/items/nested props without a
+  // $ref). Detect inline $dynamicAnchor / $defs anchors and merge them over the
+  // existing scope so the inline override shadows the parent anchor while
+  // non-overridden parent anchors remain reachable. See #3492.
+  const inlineScope = buildInlineDynamicScope(resolvedSchema);
+  if (Object.keys(inlineScope).length === 0) return childContext;
 
   return {
     ...childContext,
-    dynamicScope: buildDynamicScope(schemaName, resolvedSchema, childContext),
+    dynamicScope: { ...childContext.dynamicScope, ...inlineScope },
   };
 }
 
@@ -1702,6 +1715,15 @@ function dereferenceDynamicRef(
     schemaName,
   } = resolveDynamicRef(anchorName, context);
 
+  // Cycle key. Inline overrides resolve with `schemaName: undefined`, so every
+  // resolution of the same anchor collapses to `@?`. This is correct for a
+  // self-referential inline override. A false positive is possible only in the
+  // contrived shape where an inline override A (reached via `$dynamicRef`) itself
+  // contains a *distinct* nested inline override B of the same anchor with a
+  // `$dynamicRef` descendant — B's resolution inherits A's key from `parents`
+  // and returns `{}` instead of B. Siblings don't leak (each `dereference` uses
+  // an immutable parent context), only this nested-via-`$dynamicRef` shape.
+  // Acceptable given how exotic it is. See #3492.
   const dynamicRefPath = `$dynamicRef:${dynamicRef}@${schemaName ?? '?'}`;
   if (context.parents?.includes(dynamicRefPath)) {
     return {};

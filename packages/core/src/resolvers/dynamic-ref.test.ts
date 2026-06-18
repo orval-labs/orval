@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest';
 
 import { createTestContextSpec } from '../test-utils/context';
 import type { OpenApiDocument } from '../types';
-import { buildDynamicScope, resolveDynamicRef } from './ref';
+import {
+  buildDynamicScope,
+  buildInlineDynamicScope,
+  resolveDynamicRef,
+} from './ref';
 
 function createContext(spec: OpenApiDocument) {
   return createTestContextSpec({
@@ -861,5 +865,155 @@ describe('null safety in $defs entries', () => {
       schemaName: 'foo_bar2',
       isParameter: true,
     });
+  });
+});
+
+describe('buildInlineDynamicScope', () => {
+  it('builds an inline entry from a direct $dynamicAnchor', () => {
+    const inlineSchema = {
+      $dynamicAnchor: 'Pet',
+      type: 'object',
+      properties: { meow: { type: 'boolean' } },
+    } as never;
+
+    const scope = buildInlineDynamicScope(inlineSchema);
+
+    expect(scope.Pet).toEqual({
+      name: 'Pet',
+      schemaName: 'Pet',
+      inlineSchema,
+    });
+  });
+
+  it('builds an inline entry from a $defs $dynamicAnchor without $ref', () => {
+    const defSchema = {
+      $dynamicAnchor: 'itemType',
+      type: 'object',
+      properties: { id: { type: 'string' } },
+    };
+    const inlineSchema = {
+      type: 'object',
+      $defs: { itemType: defSchema },
+    } as never;
+
+    const scope = buildInlineDynamicScope(inlineSchema);
+
+    expect(scope.itemType).toEqual({
+      name: 'itemType',
+      schemaName: 'itemType',
+      inlineSchema: defSchema,
+    });
+  });
+
+  it('ignores $defs anchors that are bound via $ref', () => {
+    const inlineSchema = {
+      type: 'object',
+      $defs: {
+        itemType: {
+          $dynamicAnchor: 'itemType',
+          $ref: '#/components/schemas/User',
+        },
+      },
+    } as never;
+
+    const scope = buildInlineDynamicScope(inlineSchema);
+
+    expect(scope.itemType).toBeUndefined();
+  });
+
+  it('combines a direct anchor and $defs anchors', () => {
+    const defSchema = { $dynamicAnchor: 'child', type: 'string' };
+    const inlineSchema = {
+      $dynamicAnchor: 'parent',
+      type: 'object',
+      $defs: { child: defSchema },
+    } as never;
+
+    const scope = buildInlineDynamicScope(inlineSchema);
+
+    expect(scope.parent).toEqual({
+      name: 'parent',
+      schemaName: 'parent',
+      inlineSchema,
+    });
+    expect(scope.child).toEqual({
+      name: 'child',
+      schemaName: 'child',
+      inlineSchema: defSchema,
+    });
+  });
+
+  it('returns an empty scope for a schema without anchors', () => {
+    const inlineSchema = {
+      type: 'object',
+      properties: { id: { type: 'string' } },
+    } as never;
+
+    const scope = buildInlineDynamicScope(inlineSchema);
+
+    expect(scope).toEqual({});
+  });
+});
+
+describe('resolveDynamicRef — inline overrides', () => {
+  it('returns the inline schema when the scope entry carries one', () => {
+    const spec = {
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          Pet: {
+            $dynamicAnchor: 'Pet',
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+        },
+      },
+    } as OpenApiDocument;
+    const inlineSchema = {
+      $dynamicAnchor: 'Pet',
+      type: 'object',
+      properties: { meow: { type: 'boolean' } },
+    } as never;
+    const context = {
+      ...createContext(spec),
+      dynamicScope: { Pet: { name: 'Pet', schemaName: 'Pet', inlineSchema } },
+    };
+
+    const result = resolveDynamicRef('Pet', context);
+
+    expect(result.schema).toBe(inlineSchema);
+    expect(result.resolvedTypeName).toBe('Pet');
+    expect(result.schemaName).toBeUndefined();
+  });
+
+  it('prefers the inline schema over a same-named component', () => {
+    const spec = {
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          Pet: {
+            $dynamicAnchor: 'Pet',
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+        },
+      },
+    } as OpenApiDocument;
+    const inlineSchema = {
+      type: 'object',
+      properties: { purr: { type: 'boolean' } },
+    } as never;
+    const context = {
+      ...createContext(spec),
+      dynamicScope: { Pet: { name: 'Pet', schemaName: 'Pet', inlineSchema } },
+    };
+
+    const result = resolveDynamicRef('Pet', context);
+
+    expect(result.schema).toBe(inlineSchema);
+    // The global Pet component must not be resolved.
+    expect(
+      (result.schema as Record<string, unknown>).properties,
+    ).not.toHaveProperty('name');
   });
 });

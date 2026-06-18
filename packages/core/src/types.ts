@@ -1209,11 +1209,18 @@ export interface ContextSpec {
  *   - `isParameter` — `true`, signals this is a generic type parameter
  *   - `name` — the `$dynamicAnchor` name used as the type parameter (e.g. `itemType`)
  *   - `schemaName` — same as `name` for parameters
+ *
+ * Inline entry (anonymous subschema overriding an anchor without a `$ref`):
+ *   - `inlineSchema` — the concrete schema object to resolve `$dynamicRef` against.
+ *     Takes precedence over the component lookup in `resolveDynamicRef`, so an
+ *     inline `$dynamicAnchor` (e.g. inside `allOf` / `items`) correctly shadows
+ *     the outer/global anchor. `schemaName` is the anchor name itself.
  */
 export interface DynamicScopeEntry {
   name: string;
   schemaName: string;
   isParameter?: boolean;
+  inlineSchema?: OpenApiSchemaObject;
 }
 
 export interface GlobalOptions {

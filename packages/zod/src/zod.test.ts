@@ -9791,6 +9791,151 @@ describe('$dynamicRef / $dynamicAnchor', () => {
       expect(itemsProps.meow).toBeDefined();
     });
 
+    it('resolves $dynamicRef to an inline $dynamicAnchor override, shadowing the global anchor (#3492)', () => {
+      const ctx = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+              Owner: {
+                type: 'object',
+                properties: {
+                  pet: {
+                    allOf: [
+                      {
+                        // inline override reached without a $ref — previously
+                        // ignored, so #Pet below resolved to the global Pet.
+                        $dynamicAnchor: 'Pet',
+                        type: 'object',
+                        properties: {
+                          meow: { type: 'boolean' },
+                          playmates: {
+                            type: 'array',
+                            items: { $dynamicRef: '#Pet' },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const resolved = dereference({ $ref: '#/components/schemas/Owner' }, ctx);
+
+      const pet = (resolved.properties as Record<string, unknown>)
+        .pet as Record<string, unknown>;
+      const inline = (pet.allOf as Record<string, unknown>[])[0];
+      const playmates = (inline.properties as Record<string, unknown>)
+        .playmates as Record<string, unknown>;
+      const items = playmates.items as Record<string, unknown>;
+      const itemsProps = items.properties as Record<string, unknown>;
+
+      // #Pet resolved to the inline override (meow), not the global Pet (name).
+      expect(itemsProps.meow).toBeDefined();
+      expect(itemsProps.name).toBeUndefined();
+    });
+
+    it('resolves $dynamicRef to an inline override reached via array items (#3492)', () => {
+      const ctx = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+              Owner: {
+                type: 'object',
+                properties: {
+                  pets: {
+                    type: 'array',
+                    items: {
+                      $dynamicAnchor: 'Pet',
+                      type: 'object',
+                      properties: {
+                        meow: { type: 'boolean' },
+                        sibling: { $dynamicRef: '#Pet' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const resolved = dereference({ $ref: '#/components/schemas/Owner' }, ctx);
+
+      const pets = (resolved.properties as Record<string, unknown>)
+        .pets as Record<string, unknown>;
+      const items = pets.items as Record<string, unknown>;
+      const itemsProps = items.properties as Record<string, unknown>;
+
+      expect(itemsProps.meow).toBeDefined();
+      expect(itemsProps.name).toBeUndefined();
+      // The sibling $dynamicRef also resolves to the inline override.
+      const siblingProps = (itemsProps.sibling as Record<string, unknown>)
+        .properties as Record<string, unknown>;
+      expect(siblingProps.meow).toBeDefined();
+    });
+
+    it('breaks cycles for a self-referential inline $dynamicAnchor override (#3492)', () => {
+      const ctx = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Owner: {
+                type: 'object',
+                properties: {
+                  pet: {
+                    allOf: [
+                      {
+                        $dynamicAnchor: 'Pet',
+                        type: 'object',
+                        properties: {
+                          meow: { type: 'boolean' },
+                          playmates: {
+                            type: 'array',
+                            items: { $dynamicRef: '#Pet' },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const resolved = dereference({ $ref: '#/components/schemas/Owner' }, ctx);
+
+      const pet = (resolved.properties as Record<string, unknown>)
+        .pet as Record<string, unknown>;
+      const inline = (pet.allOf as Record<string, unknown>[])[0];
+      const playmates = (inline.properties as Record<string, unknown>)
+        .playmates as Record<string, unknown>;
+      const items = playmates.items as Record<string, unknown>;
+      const itemsProps = items.properties as Record<string, unknown>;
+
+      // First-level resolution inlines the override...
+      expect(itemsProps.meow).toBeDefined();
+      // ...and the recursive $dynamicRef is broken into {} via parents tracking.
+      const innerPlaymates = itemsProps.playmates as Record<string, unknown>;
+      expect(innerPlaymates.items).toEqual({});
+    });
+
     it('returns empty for external $dynamicRef', () => {
       const ctx = makeContextSpec({
         spec: { components: { schemas: {} } },
