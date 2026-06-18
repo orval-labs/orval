@@ -433,4 +433,48 @@ describe('generateImportsForBuilder', () => {
       ]);
     });
   });
+
+  describe('splitByTags routing', () => {
+    // `buildSchemaTagMap` keys on `schema.name`, which is the pascal-cased
+    // TS identifier produced by `getRefInfo`. The lookup here must use
+    // `schemaImport.name` (same identifier), not `schemaName` (the original
+    // `components.schemas` key). When they differ, routing by `schemaName`
+    // silently misses the map and places the import at the schemas root
+    // instead of the tag subdirectory.
+    it('routes by the TS identifier (name), not schemaName, when they differ', () => {
+      const output = createMockOutput({ indexFiles: false });
+      // `name: 'Pet'` is the TS identifier the map is keyed by.
+      // `schemaName: 'PetSchema'` is the original components.schemas key.
+      // The tag dir ('pets') must come from looking up `Pet`, not `PetSchema`
+      // (which would miss the map and produce no tag segment).
+      const imports = [createMockImport('Pet', 'PetSchema')];
+      const schemaTagMap = new Map<string, string>([['Pet', 'pets']]);
+
+      const result = generateImportsForBuilder(
+        output,
+        imports,
+        '../models',
+        schemaTagMap,
+      );
+
+      expect(result).toHaveProperty('0.dependency', '../models/pets/petSchema');
+    });
+
+    it('inserts the tag subdir for matched schemas and leaves unmatched at root', () => {
+      const output = createMockOutput({ indexFiles: false });
+      // `Pet` is in the map; `Error` is not. Only `Pet` gets the tag segment.
+      const imports = [createMockImport('Pet'), createMockImport('Error')];
+      const schemaTagMap = new Map<string, string>([['Pet', 'pets']]);
+
+      const result = generateImportsForBuilder(
+        output,
+        imports,
+        '../models',
+        schemaTagMap,
+      );
+
+      const deps = result.map((r) => r.dependency).sort();
+      expect(deps).toEqual(['../models/error', '../models/pets/pet']);
+    });
+  });
 });

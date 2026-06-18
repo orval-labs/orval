@@ -101,10 +101,13 @@ export function generateImportsForBuilder(
       // When schemas are split by tag, route each import into its tag
       // subdirectory. Schemas referenced by 0 or 2+ tags land at the schemas
       // root (sentinel `'.'`); their path is unchanged from the flat layout.
-      // The lookup uses the original schema name (`schemaName` preferred),
-      // not the TS identifier, because `buildSchemaTagMap` keys on the
-      // original name.
-      const tagDir = schemaTagMap?.get(baseName);
+      // The lookup uses the TS identifier (`schemaImport.name`), not
+      // `schemaName`, because `buildSchemaTagMap` keys on `schema.name`
+      // which is the pascal-cased TS identifier produced by `getRefInfo`.
+      // `baseName` (which prefers `schemaName`) is only correct for the
+      // filename computation below, where `conventionName` happens to be
+      // idempotent on already-pascal-cased input.
+      const tagDir = schemaTagMap?.get(schemaImport.name);
       const tagSegment = tagDir && tagDir !== '.' ? `${tagDir}/` : '';
       const dependency = upath.joinSafe(
         relativeSchemasPath,
