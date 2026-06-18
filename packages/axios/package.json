@@ -1,6 +1,6 @@
 {
   "name": "@orval/axios",
-  "version": "8.17.0",
+  "version": "8.18.0",
   "homepage": "https://orval.dev/docs/guides/custom-axios",
   "bugs": {
     "url": "https://github.com/orval-labs/orval/issues"

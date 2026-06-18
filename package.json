@@ -1,6 +1,6 @@
 {
   "name": "orval-workspaces",
-  "version": "8.17.0",
+  "version": "8.18.0",
   "private": true,
   "license": "MIT",
   "workspaces": [
