@@ -82,7 +82,7 @@ export const getFetchNullableObjectResponseMock = (): NullableObject | null =>
   ]);
 
 export const getFetchNullableAnyObjectResponseMock =
-  (): NullableAnyObject | null => faker.helpers.arrayElement([null]);
+  (): NullableAnyObject | null => faker.helpers.arrayElement([{}, null]);
 
 export const getFetchNullableEnumsResponseMock =
   (): NullableStringEnum | null =>

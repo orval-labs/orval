@@ -53,127 +53,189 @@ export type MockWithNullableOverrides<
 };
 
 export type Child0Mock = {
-  [K in keyof Required<Child0>]: NonNullable<Required<Child0>[K]>;
+  [K in keyof Required<NonNullable<Child0>>]: NonNullable<
+    Required<NonNullable<Child0>>[K]
+  >;
 };
 
 export type Child1Mock = {
-  [K in keyof Required<Child1>]: NonNullable<Required<Child1>[K]>;
+  [K in keyof Required<NonNullable<Child1>>]: NonNullable<
+    Required<NonNullable<Child1>>[K]
+  >;
 };
 
 export type Child2Mock = {
-  [K in keyof Required<Child2>]: NonNullable<Required<Child2>[K]>;
+  [K in keyof Required<NonNullable<Child2>>]: NonNullable<
+    Required<NonNullable<Child2>>[K]
+  >;
 };
 
 export type Child3Mock = {
-  [K in keyof Required<Child3>]: NonNullable<Required<Child3>[K]>;
+  [K in keyof Required<NonNullable<Child3>>]: NonNullable<
+    Required<NonNullable<Child3>>[K]
+  >;
 };
 
 export type Child4Mock = {
-  [K in keyof Required<Child4>]: NonNullable<Required<Child4>[K]>;
+  [K in keyof Required<NonNullable<Child4>>]: NonNullable<
+    Required<NonNullable<Child4>>[K]
+  >;
 };
 
 export type Child5Mock = {
-  [K in keyof Required<Child5>]: NonNullable<Required<Child5>[K]>;
+  [K in keyof Required<NonNullable<Child5>>]: NonNullable<
+    Required<NonNullable<Child5>>[K]
+  >;
 };
 
 export type Child6Mock = {
-  [K in keyof Required<Child6>]: NonNullable<Required<Child6>[K]>;
+  [K in keyof Required<NonNullable<Child6>>]: NonNullable<
+    Required<NonNullable<Child6>>[K]
+  >;
 };
 
 export type Child7Mock = {
-  [K in keyof Required<Child7>]: NonNullable<Required<Child7>[K]>;
+  [K in keyof Required<NonNullable<Child7>>]: NonNullable<
+    Required<NonNullable<Child7>>[K]
+  >;
 };
 
 export type Child8Mock = {
-  [K in keyof Required<Child8>]: NonNullable<Required<Child8>[K]>;
+  [K in keyof Required<NonNullable<Child8>>]: NonNullable<
+    Required<NonNullable<Child8>>[K]
+  >;
 };
 
 export type Child9Mock = {
-  [K in keyof Required<Child9>]: NonNullable<Required<Child9>[K]>;
+  [K in keyof Required<NonNullable<Child9>>]: NonNullable<
+    Required<NonNullable<Child9>>[K]
+  >;
 };
 
 export type Child10Mock = {
-  [K in keyof Required<Child10>]: NonNullable<Required<Child10>[K]>;
+  [K in keyof Required<NonNullable<Child10>>]: NonNullable<
+    Required<NonNullable<Child10>>[K]
+  >;
 };
 
 export type Child11Mock = {
-  [K in keyof Required<Child11>]: NonNullable<Required<Child11>[K]>;
+  [K in keyof Required<NonNullable<Child11>>]: NonNullable<
+    Required<NonNullable<Child11>>[K]
+  >;
 };
 
 export type Child12Mock = {
-  [K in keyof Required<Child12>]: NonNullable<Required<Child12>[K]>;
+  [K in keyof Required<NonNullable<Child12>>]: NonNullable<
+    Required<NonNullable<Child12>>[K]
+  >;
 };
 
 export type Child13Mock = {
-  [K in keyof Required<Child13>]: NonNullable<Required<Child13>[K]>;
+  [K in keyof Required<NonNullable<Child13>>]: NonNullable<
+    Required<NonNullable<Child13>>[K]
+  >;
 };
 
 export type Child14Mock = {
-  [K in keyof Required<Child14>]: NonNullable<Required<Child14>[K]>;
+  [K in keyof Required<NonNullable<Child14>>]: NonNullable<
+    Required<NonNullable<Child14>>[K]
+  >;
 };
 
 export type Child15Mock = {
-  [K in keyof Required<Child15>]: NonNullable<Required<Child15>[K]>;
+  [K in keyof Required<NonNullable<Child15>>]: NonNullable<
+    Required<NonNullable<Child15>>[K]
+  >;
 };
 
 export type Child16Mock = {
-  [K in keyof Required<Child16>]: NonNullable<Required<Child16>[K]>;
+  [K in keyof Required<NonNullable<Child16>>]: NonNullable<
+    Required<NonNullable<Child16>>[K]
+  >;
 };
 
 export type Child17Mock = {
-  [K in keyof Required<Child17>]: NonNullable<Required<Child17>[K]>;
+  [K in keyof Required<NonNullable<Child17>>]: NonNullable<
+    Required<NonNullable<Child17>>[K]
+  >;
 };
 
 export type Child18Mock = {
-  [K in keyof Required<Child18>]: NonNullable<Required<Child18>[K]>;
+  [K in keyof Required<NonNullable<Child18>>]: NonNullable<
+    Required<NonNullable<Child18>>[K]
+  >;
 };
 
 export type Child19Mock = {
-  [K in keyof Required<Child19>]: NonNullable<Required<Child19>[K]>;
+  [K in keyof Required<NonNullable<Child19>>]: NonNullable<
+    Required<NonNullable<Child19>>[K]
+  >;
 };
 
 export type Child20Mock = {
-  [K in keyof Required<Child20>]: NonNullable<Required<Child20>[K]>;
+  [K in keyof Required<NonNullable<Child20>>]: NonNullable<
+    Required<NonNullable<Child20>>[K]
+  >;
 };
 
 export type Child21Mock = {
-  [K in keyof Required<Child21>]: NonNullable<Required<Child21>[K]>;
+  [K in keyof Required<NonNullable<Child21>>]: NonNullable<
+    Required<NonNullable<Child21>>[K]
+  >;
 };
 
 export type Child22Mock = {
-  [K in keyof Required<Child22>]: NonNullable<Required<Child22>[K]>;
+  [K in keyof Required<NonNullable<Child22>>]: NonNullable<
+    Required<NonNullable<Child22>>[K]
+  >;
 };
 
 export type Child23Mock = {
-  [K in keyof Required<Child23>]: NonNullable<Required<Child23>[K]>;
+  [K in keyof Required<NonNullable<Child23>>]: NonNullable<
+    Required<NonNullable<Child23>>[K]
+  >;
 };
 
 export type Child24Mock = {
-  [K in keyof Required<Child24>]: NonNullable<Required<Child24>[K]>;
+  [K in keyof Required<NonNullable<Child24>>]: NonNullable<
+    Required<NonNullable<Child24>>[K]
+  >;
 };
 
 export type Child25Mock = {
-  [K in keyof Required<Child25>]: NonNullable<Required<Child25>[K]>;
+  [K in keyof Required<NonNullable<Child25>>]: NonNullable<
+    Required<NonNullable<Child25>>[K]
+  >;
 };
 
 export type Child26Mock = {
-  [K in keyof Required<Child26>]: NonNullable<Required<Child26>[K]>;
+  [K in keyof Required<NonNullable<Child26>>]: NonNullable<
+    Required<NonNullable<Child26>>[K]
+  >;
 };
 
 export type Child27Mock = {
-  [K in keyof Required<Child27>]: NonNullable<Required<Child27>[K]>;
+  [K in keyof Required<NonNullable<Child27>>]: NonNullable<
+    Required<NonNullable<Child27>>[K]
+  >;
 };
 
 export type Child28Mock = {
-  [K in keyof Required<Child28>]: NonNullable<Required<Child28>[K]>;
+  [K in keyof Required<NonNullable<Child28>>]: NonNullable<
+    Required<NonNullable<Child28>>[K]
+  >;
 };
 
 export type Child29Mock = {
-  [K in keyof Required<Child29>]: NonNullable<Required<Child29>[K]>;
+  [K in keyof Required<NonNullable<Child29>>]: NonNullable<
+    Required<NonNullable<Child29>>[K]
+  >;
 };
 
 export type WideParentMock = {
-  [K in keyof Required<WideParent>]: NonNullable<Required<WideParent>[K]>;
+  [K in keyof Required<NonNullable<WideParent>>]: NonNullable<
+    Required<NonNullable<WideParent>>[K]
+  >;
 };
 
 export const getChild0Mock = <O extends Partial<Child0> = {}>(

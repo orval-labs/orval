@@ -312,6 +312,31 @@ describe('generateFakerForSchemas strict mock types (#3525)', () => {
       finalized.indexOf('export const getStatusMock'),
     );
   });
+
+  it('does not emit null for nullable object schemas under strict nonNullable', () => {
+    const result = generateFakerForSchemas(
+      [
+        {
+          name: 'Widget',
+          model: 'Widget',
+          imports: [],
+          schema: {
+            type: ['object', 'null'],
+            properties: {
+              id: { type: 'string' },
+            },
+          },
+        },
+      ],
+      context,
+      { type: OutputMockType.FAKER, schemas: true },
+    );
+
+    expect(result.implementation).toContain(
+      'export const getWidgetMock = <O extends Partial<Widget> = {}>(overrideResponse?: O): MockWithNullableOverrides<Widget, O, WidgetMock> =>',
+    );
+    expect(result.implementation).not.toContain(', null]');
+  });
 });
 
 describe('generateFakerForSchemas recursion guards', () => {

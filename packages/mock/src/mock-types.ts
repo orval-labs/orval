@@ -1,9 +1,11 @@
 import {
   escapeRegExp,
+  type ContextSpec,
   type FinalizeMockImplementationOptions,
   type MockOptions,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
+  resolveRef,
   type ResReqTypesValue,
   type StrictMockSchemaKind,
 } from '@orval/core';
@@ -36,8 +38,22 @@ export type MockWithNullableOverrides<
 };`;
 }
 
+export function isSchemaNullableAtRoot(schema?: OpenApiSchemaObject): boolean {
+  if (!schema) {
+    return false;
+  }
+
+  if (schema.nullable === true) {
+    return true;
+  }
+
+  const type = schema.type;
+  return Array.isArray(type) && type.includes('null');
+}
+
 export function classifyStrictMockSchemaType(
   schema?: OpenApiSchemaObject,
+  context?: ContextSpec,
 ): StrictMockSchemaKind {
   if (!schema) {
     return 'object';
@@ -51,8 +67,22 @@ export function classifyStrictMockSchemaType(
     return 'binary';
   }
 
+  if (typeof schema.$ref === 'string') {
+    if (context) {
+      const { schema: resolved } = resolveRef(
+        schema as OpenApiReferenceObject,
+        context,
+      );
+      return classifyStrictMockSchemaType(
+        resolved as OpenApiSchemaObject,
+        context,
+      );
+    }
+
+    return 'object';
+  }
+
   if (
-    typeof schema.$ref === 'string' ||
     schema.type === 'object' ||
     schema.properties ||
     isComposedObjectSchema(schema)
@@ -88,6 +118,7 @@ function isComposedObjectSchema(schema: OpenApiSchemaObject): boolean {
 export function getStrictMockTypeDeclaration(
   typeName: string,
   kind: StrictMockSchemaKind = 'object',
+  options?: { schemaNullableAtRoot?: boolean },
 ): string {
   const mockTypeName = getStrictMockTypeName(typeName);
 
@@ -99,12 +130,18 @@ export function getStrictMockTypeDeclaration(
     return `export type ${mockTypeName} = ArrayBuffer;`;
   }
 
-  return `export type ${mockTypeName} = {\n  [K in keyof Required<${typeName}>]: NonNullable<Required<${typeName}>[K]>;\n};`;
+  const mappedType = `{\n  [K in keyof Required<NonNullable<${typeName}>>]: NonNullable<Required<NonNullable<${typeName}>>[K]>;\n}`;
+  const objectMockType = options?.schemaNullableAtRoot
+    ? `${mappedType} | null`
+    : mappedType;
+
+  return `export type ${mockTypeName} = ${objectMockType};`;
 }
 
 export function getStrictMockTypeDeclarations(
   typeNames: Iterable<string>,
   kinds?: Readonly<Record<string, StrictMockSchemaKind>>,
+  nullableAtRoot?: Readonly<Record<string, boolean>>,
 ): string {
   const unique = [...new Set(typeNames)];
   if (unique.length === 0) {
@@ -113,9 +150,94 @@ export function getStrictMockTypeDeclarations(
 
   return unique
     .map((typeName) =>
-      getStrictMockTypeDeclaration(typeName, kinds?.[typeName] ?? 'object'),
+      getStrictMockTypeDeclaration(typeName, kinds?.[typeName] ?? 'object', {
+        schemaNullableAtRoot: nullableAtRoot?.[typeName],
+      }),
     )
     .join('\n\n');
+}
+
+function strictMockResolvedImportMatches(
+  typeName: string,
+  resolvedImport: { name?: string; alias?: string } | undefined,
+  importBareName?: string,
+): boolean {
+  const resolvedName = resolvedImport?.name;
+  if (!resolvedName) {
+    return false;
+  }
+
+  if (typeName === resolvedName) {
+    return true;
+  }
+
+  if (resolvedImport.alias && typeName === resolvedImport.alias) {
+    return true;
+  }
+
+  return importBareName !== undefined && importBareName === resolvedName;
+}
+
+function resolveStrictMockSchemaForTypeName(
+  typeName: string,
+  originalSchema: OpenApiSchemaObject | undefined,
+  context?: ContextSpec,
+  importBareName?: string,
+): OpenApiSchemaObject | undefined {
+  if (!originalSchema) {
+    return undefined;
+  }
+
+  if (!context) {
+    return originalSchema;
+  }
+
+  const branches = (originalSchema.oneOf ??
+    originalSchema.anyOf ??
+    originalSchema.allOf) as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+
+  if (branches?.length) {
+    for (const branch of branches) {
+      if (typeof branch.$ref !== 'string') {
+        continue;
+      }
+
+      const resolved = resolveRef(branch as OpenApiReferenceObject, context);
+      if (
+        strictMockResolvedImportMatches(
+          typeName,
+          resolved.imports[0],
+          importBareName,
+        )
+      ) {
+        return resolved.schema as OpenApiSchemaObject;
+      }
+    }
+
+    return undefined;
+  }
+
+  if (typeof originalSchema.$ref === 'string') {
+    const resolved = resolveRef(
+      originalSchema as OpenApiReferenceObject,
+      context,
+    );
+    if (
+      strictMockResolvedImportMatches(
+        typeName,
+        resolved.imports[0],
+        importBareName,
+      )
+    ) {
+      return resolved.schema as OpenApiSchemaObject;
+    }
+
+    return undefined;
+  }
+
+  return originalSchema;
 }
 
 export function getMockFactoryReturnType(
@@ -232,6 +354,7 @@ export function getSchemaTypeNamesFromResponses(
 
 export function getStrictMockSchemaKindsFromResponses(
   responses: ResReqTypesValue[],
+  context?: ContextSpec,
 ): Record<string, StrictMockSchemaKind> {
   const kinds: Record<string, StrictMockSchemaKind> = {};
 
@@ -242,11 +365,24 @@ export function getStrictMockSchemaKindsFromResponses(
       }
 
       const importName = imp.alias ?? imp.name;
-      if (/^[A-Z]\w*$/.test(importName) && response.originalSchema) {
-        kinds[importName] = classifyStrictMockSchemaType(
-          response.originalSchema,
-        );
+      if (!/^[A-Z]\w*$/.test(importName)) {
+        continue;
       }
+
+      const schemaForImport = resolveStrictMockSchemaForTypeName(
+        importName,
+        response.originalSchema,
+        context,
+        imp.name,
+      );
+      if (!schemaForImport) {
+        continue;
+      }
+
+      kinds[importName] = classifyStrictMockSchemaType(
+        schemaForImport,
+        context,
+      );
     }
 
     const { value } = response;
@@ -262,14 +398,17 @@ export function getStrictMockSchemaKindsFromResponses(
     const schema = response.originalSchema;
     if (value.endsWith('[]') && schema.type === 'array' && schema.items) {
       const items = schema.items as OpenApiSchemaObject;
-      kinds[baseType] =
-        typeof items.$ref === 'string'
-          ? 'object'
-          : classifyStrictMockSchemaType(items);
+      kinds[baseType] = classifyStrictMockSchemaType(items, context);
       continue;
     }
 
-    kinds[baseType] = classifyStrictMockSchemaType(schema);
+    const schemaForType =
+      resolveStrictMockSchemaForTypeName(
+        baseType,
+        response.originalSchema,
+        context,
+      ) ?? response.originalSchema;
+    kinds[baseType] = classifyStrictMockSchemaType(schemaForType, context);
   }
 
   return kinds;

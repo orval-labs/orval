@@ -24,7 +24,9 @@ export type MockWithNullableOverrides<
 };
 
 export type PetMock = {
-  [K in keyof Required<Pet>]: NonNullable<Required<Pet>[K]>;
+  [K in keyof Required<NonNullable<Pet>>]: NonNullable<
+    Required<NonNullable<Pet>>[K]
+  >;
 };
 
 export const getPetMock = <O extends Partial<Pet> = {}>(

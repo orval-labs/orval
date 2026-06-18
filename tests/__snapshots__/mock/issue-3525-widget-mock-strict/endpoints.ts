@@ -56,7 +56,9 @@ export type MockWithNullableOverrides<
 };
 
 export type WidgetMockMock = {
-  [K in keyof Required<WidgetMock>]: NonNullable<Required<WidgetMock>[K]>;
+  [K in keyof Required<NonNullable<WidgetMock>>]: NonNullable<
+    Required<NonNullable<WidgetMock>>[K]
+  >;
 };
 
 export const getGetWidgetResponseMock = <

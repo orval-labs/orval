@@ -27,24 +27,32 @@ export type MockWithNullableOverrides<
 };
 
 export type ResponseBaseMock = {
-  [K in keyof Required<ResponseBase>]: NonNullable<Required<ResponseBase>[K]>;
+  [K in keyof Required<NonNullable<ResponseBase>>]: NonNullable<
+    Required<NonNullable<ResponseBase>>[K]
+  >;
 };
 
 export type PetMock = {
-  [K in keyof Required<Pet>]: NonNullable<Required<Pet>[K]>;
+  [K in keyof Required<NonNullable<Pet>>]: NonNullable<
+    Required<NonNullable<Pet>>[K]
+  >;
 };
 
 export type PetOwnerMock = {
-  [K in keyof Required<PetOwner>]: NonNullable<Required<PetOwner>[K]>;
+  [K in keyof Required<NonNullable<PetOwner>>]: NonNullable<
+    Required<NonNullable<PetOwner>>[K]
+  >;
 };
 
 export type HealthStatusMock = {
-  [K in keyof Required<HealthStatus>]: NonNullable<Required<HealthStatus>[K]>;
+  [K in keyof Required<NonNullable<HealthStatus>>]: NonNullable<
+    Required<NonNullable<HealthStatus>>[K]
+  >;
 };
 
 export type PetDetailResponseMock = {
-  [K in keyof Required<PetDetailResponse>]: NonNullable<
-    Required<PetDetailResponse>[K]
+  [K in keyof Required<NonNullable<PetDetailResponse>>]: NonNullable<
+    Required<NonNullable<PetDetailResponse>>[K]
   >;
 };
 
