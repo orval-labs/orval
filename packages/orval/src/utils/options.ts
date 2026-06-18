@@ -755,6 +755,26 @@ export async function normalizeOptions(
     );
   }
 
+  // `schemas.splitByTags` routes schema files into per-tag subdirectories and
+  // (when `indexFiles: false`) skips the root barrel. Operation files and the
+  // consolidated `<schemas>/index.faker.ts` file both currently assume either
+  // a flat schemas directory or a root barrel, so without `indexFiles: true`
+  // they emit imports that don't resolve (e.g. `../model/pet` when the file
+  // lives at `../model/pets/pet.ts`). Reject the combination until the import
+  // resolvers are taught to honor `splitByTags` directly.
+  if (
+    isObject(normalizedOptions.output.schemas) &&
+    normalizedOptions.output.schemas.splitByTags &&
+    !normalizedOptions.output.indexFiles
+  ) {
+    throw new Error(
+      styleText(
+        'red',
+        `\`schemas.splitByTags\` currently requires \`output.indexFiles: true\`. With \`indexFiles: false\`, operation files and the consolidated faker factory file emit schema imports that don't resolve against the per-tag layout. Set \`indexFiles: true\` (the default) or remove \`splitByTags\`.`,
+      ),
+    );
+  }
+
   return normalizedOptions;
 }
 

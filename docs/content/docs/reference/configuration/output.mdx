@@ -224,6 +224,10 @@ import type { Error } from '../error';
   within their tag directories automatically.
 - Schema-to-tag mapping is transitive: if `Pet` imports `Dog` which imports
   `Dachshund`, all three land in the same directory.
+- Requires `indexFiles: true` (the default). The operation writers and the
+  consolidated `<schemas>/index.faker.ts` file currently route schema imports
+  through the schemas root barrel, which is not generated when `indexFiles`
+  is false.
 
 ### Validation of `importPath`
 

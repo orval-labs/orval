@@ -1364,4 +1364,104 @@ describe('normalizeOptions', () => {
       }
     });
   });
+
+  describe('schemas.splitByTags with indexFiles', () => {
+    it('rejects splitByTags + indexFiles:false', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                schemas: {
+                  path: './models',
+                  type: 'typescript',
+                  splitByTags: true,
+                },
+                indexFiles: false,
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(/splitByTags.*requires.*indexFiles.*true/s);
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('accepts splitByTags + indexFiles:true (default)', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              schemas: {
+                path: './models',
+                type: 'typescript',
+                splitByTags: true,
+              },
+            },
+          },
+          workspace,
+        );
+
+        expect(normalized.output.schemas).toMatchObject({
+          splitByTags: true,
+        });
+        // `indexFiles` defaults to true; splitByTags should be accepted.
+        expect(normalized.output.indexFiles).toBe(true);
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('does not reject indexFiles:false when splitByTags is not set', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              schemas: {
+                path: './models',
+                type: 'typescript',
+              },
+              indexFiles: false,
+            },
+          },
+          workspace,
+        );
+
+        expect(normalized.output.indexFiles).toBe(false);
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+  });
 });
