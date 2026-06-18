@@ -159,7 +159,10 @@ import statements change.
   package must also expose `./pet.zod` (e.g., `@acme/models/pet.zod`).
 - If using faker schema factories
   (`mock: { generators: [{ type: 'faker', schemas: true }] }`),
-  the package must also export `./index.faker`.
+  the package must also export `./index.faker`. When the package can't expose a
+  sub-path (e.g. `importPath` resolves to a single barrel file via tsconfig
+  path mappings), set [`schemasImportPath`](#schemasimportpath) on the faker
+  generator to point faker factories at a separate import path.
 - If using factory methods (`factoryMethods`), each schema is imported
   individually regardless of `indexFiles`.
 - When `importPath` is set, the relative-path computation in
@@ -558,10 +561,55 @@ The Faker generator emits the same `get<Op>ResponseMock` factories MSW would emi
 |--------|------|---------|-------------|
 | `type` | `'faker'` | required | Discriminator for Faker-only output. |
 | `path` | `String` | `undefined` | Output directory for this generator's mock files. Overrides the shared `mock.path` when set. When provided in `single` or `tags` mode, mock code is written to separate files (relative to `path`) instead of being inlined into the implementation file. |
+| `schemas` | `Boolean` | `false` | Emit a consolidated mock factory file (`get<SchemaName>Mock`) for every entry under `components/schemas`. |
+| `schemasImportPath` | `String` | `undefined` | Package specifier for importing the schema-level faker factories emitted by `schemas: true` (e.g. `@acme/models/fakers`). When set, used verbatim instead of appending `/index.faker` to `schemas.importPath` — useful when the production barrel can't expose a sub-path export. Requires `schemas: true` and `schemas.importPath`. Only applies when `schemas: true` is set on the same generator. |
+| `operationResponses` | `Boolean` | `true` | Emit per-operation response mock factories (the historical behavior). Set to `false` together with `schemas: true` to get only the consolidated schema factories. |
 | `useExamples` | `Boolean` | `false` | Use OpenAPI examples to seed response values. |
 | `generateEachHttpStatus` | `Boolean` | `false` | Generate response factories for every documented status code. |
 | `locale` | `String` | `'en'` | Faker.js locale. |
 | `preferredContentType` | `String` | `undefined` | Preferred content type when an operation lists more than one. |
+| `arrayItems` | `Boolean` | `false` | Emit reusable mock factories for object-like array item schemas in operation responses. |
+
+#### `schemasImportPath`
+
+Only applies when `schemas: true` is set on the same faker generator (requires
+both `schemas: true` and `schemas.importPath`). When `schemas.importPath`
+resolves to a single barrel file (e.g. via tsconfig path mappings), appending
+`/index.faker` produces an unresolvable sub-path. `schemasImportPath` lets you
+point faker factories at a separate import path so you can expose them through a
+dedicated barrel:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      target: './libs/client/sdk/generated',
+      schemas: {
+        path: './libs/data-layer/sdk/generated',
+        importPath: '@acme/data-layer/sdk',
+      },
+      mock: {
+        path: './libs/client/sdk/mocks',
+        generators: [
+          {
+            type: 'faker',
+            schemas: true,
+            schemasImportPath: '@acme/data-layer/sdk/fakers',
+          },
+        ],
+      },
+    },
+  },
+});
+```
+
+```ts
+// Without schemasImportPath (default — joins importPath with /index.faker):
+import { getPetMock } from '@acme/data-layer/sdk/index.faker'; // may not resolve
+
+// With schemasImportPath: '@acme/data-layer/sdk/fakers':
+import { getPetMock } from '@acme/data-layer/sdk/fakers';
+```
 
 ## indexFiles
 

@@ -497,6 +497,13 @@ export interface FakerMockOptions extends CommonMockOptions {
   // `components/schemas` (one `get<SchemaName>Mock` per schema). Defaults to
   // `false` — schema factories are opt-in to preserve existing output.
   schemas?: boolean;
+  // Package specifier for importing the schema-level faker factories (the
+  // `get<SchemaName>Mock` functions emitted when `schemas: true`). When set,
+  // it is used verbatim as the schema factory import path instead of appending
+  // `/index.faker` to `schemas.importPath`. This lets consumers expose fakers
+  // through a dedicated barrel separate from the production type barrel.
+  // Requires `schemas.importPath` to also be set.
+  schemasImportPath?: string;
   // Emit per-operation response mock factories (the historical behavior).
   // Defaults to `true`. Set to `false` together with `schemas: true` to get
   // only the consolidated schema factories.
