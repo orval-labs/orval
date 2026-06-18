@@ -36,6 +36,7 @@ export async function writeSingleMode({
   header,
   needSchema,
   generateSchemasInline,
+  schemaTagMap,
 }: WriteModeProps): Promise<string[]> {
   try {
     const {
@@ -143,6 +144,7 @@ export async function writeSingleMode({
           output,
           normalizedImports,
           relativeSchemasPath,
+          schemaTagMap,
         )
       : generateImportsForBuilder(
           output,
@@ -191,6 +193,7 @@ export async function writeSingleMode({
               output,
               filteredMockImports,
               relativeSchemasPath,
+              schemaTagMap,
             )
           : generateImportsForBuilder(
               output,
@@ -309,6 +312,7 @@ export async function writeSingleMode({
                 output,
                 mockOutput.imports,
                 mockRelativeSchemasPath,
+                schemaTagMap,
               )
             : generateImportsForBuilder(
                 output,

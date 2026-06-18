@@ -255,6 +255,28 @@ export default defineConfig({
       target: '../specifications/tags-split-shared.yaml',
     },
   },
+  splitByTagsFakerSchemasNoIndex: {
+    output: {
+      target:
+        '../generated/axios/split-by-tags-faker-schemas-no-index/endpoints.ts',
+      schemas: {
+        path: '../generated/axios/split-by-tags-faker-schemas-no-index/model',
+        type: 'typescript',
+        splitByTags: true,
+      },
+      indexFiles: false,
+      mock: {
+        generators: [{ type: 'faker', schemas: true }],
+      },
+      mode: 'tags-split',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/tags-split-shared.yaml',
+    },
+  },
   petstoreTagsSplitZodSchemas: {
     output: {
       target:

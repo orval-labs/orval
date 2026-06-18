@@ -1792,6 +1792,14 @@ export interface WriteModeProps {
   header: string;
   needSchema: boolean;
   generateSchemasInline?: () => string;
+  // Schema-to-tag map computed by `writeSpecs` when `schemas.splitByTags` is
+  // enabled. Mode writers forward it to `generateImportsForBuilder` so the
+  // `indexFiles: false` branch can route each schema import into its tag
+  // subdirectory instead of assuming a flat layout. `undefined` when
+  // `splitByTags` is disabled, in which case routing falls back to the flat
+  // layout. The `'.'` sentinel marks schemas referenced by 0 or 2+ tags
+  // (shared, kept at the schemas root).
+  schemaTagMap?: Map<string, string>;
 }
 
 export interface GeneratorApiOperations {

@@ -42,6 +42,7 @@ export async function writeTagsMode({
   header,
   needSchema,
   generateSchemasInline,
+  schemaTagMap,
 }: WriteModeProps): Promise<string[]> {
   const {
     path: targetPath,
@@ -168,6 +169,7 @@ export async function writeTagsMode({
           output,
           normalizedImports,
           schemasPathRelative,
+          schemaTagMap,
         );
 
         data += builder.imports({
@@ -202,6 +204,7 @@ export async function writeTagsMode({
                   ),
               ),
               schemasPathRelative,
+              schemaTagMap,
             );
 
             data += builder.importsMock({
@@ -359,6 +362,7 @@ export async function writeTagsMode({
                 finalizeMockOptions.strictSchemaTypeNames,
               ),
               mockRelativeSchemasPath,
+              schemaTagMap,
             );
 
             let mockData = header;

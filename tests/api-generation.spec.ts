@@ -1529,3 +1529,85 @@ test('axios split mode + schemas.splitByTags produces the same per-tag schema la
   expect(endpoints).toContain("} from './model';");
   expect(endpoints).not.toMatch(/from '\.\/model\/(pets|stores|_shared)/);
 });
+
+test('axios splitByTags + indexFiles:false routes per-tag schema imports into tag subdirectories (#3592)', async () => {
+  // Regression for the `indexFiles: false` combination that was previously
+  // rejected: when schemas are split by tag and no root barrel exists, each
+  // operation file must import its schemas from the actual per-tag path
+  // (`../model/pets/pet`) or the shared root (`../model/error`), never from
+  // a non-existent root barrel (`../model/pet` or `.`).
+  const pets = await readFile(
+    generated(
+      'axios',
+      'split-by-tags-faker-schemas-no-index',
+      'pets',
+      'pets.ts',
+    ),
+    'utf8',
+  );
+  // Per-tag schemas resolve into the tag subdirectory.
+  expect(pets).toContain("import type { Pet } from '../model/pets/pet';");
+  expect(pets).toContain(
+    "import type { CreatePetBody } from '../model/pets/createPetBody';",
+  );
+  expect(pets).toContain(
+    "import type { PetList } from '../model/pets/petList';",
+  );
+  // No flat-layout import paths may remain.
+  expect(pets).not.toContain("from '../model/pet';");
+  expect(pets).not.toContain("from '../model/petList';");
+  expect(pets).not.toContain("from '../model';");
+});
+
+test('axios splitByTags + indexFiles:false + faker schemas:true routes faker factory imports into tag subdirectories (#3592)', async () => {
+  // Regression for the consolidated `<schemas>/index.faker.ts` file under
+  // the same combination: with no root barrel, factory imports must resolve
+  // to each schema's actual on-disk location. Shared schemas import from
+  // `./<file>` at the schemas root; tag-scoped schemas from `./<tag>/<file>`.
+  const fakerFile = await readFile(
+    generated(
+      'axios',
+      'split-by-tags-faker-schemas-no-index',
+      'model',
+      'index.faker.ts',
+    ),
+    'utf8',
+  );
+  // Shared schemas (referenced by 2+ tags) stay at the root.
+  expect(fakerFile).toContain("import type { Error } from './error';");
+  expect(fakerFile).toContain("import type { SortOrder } from './sortOrder';");
+  expect(fakerFile).toContain(
+    "import type { Pagination } from './pagination';",
+  );
+  // Tag-scoped schemas route into their tag subdirectory.
+  expect(fakerFile).toContain(
+    "import type { Pet } from './pets/pet';",
+  );
+  expect(fakerFile).toContain(
+    "import type { Store } from './stores/store';",
+  );
+  // No flat-layout or extensionless root-barrel imports may remain.
+  expect(fakerFile).not.toContain("from '.'");
+  expect(fakerFile).not.toMatch(/from '\.\/(pet|store)';/);
+});
+
+test('axios splitByTags + indexFiles:false stores files do not import peer tag subdirectories (#3592)', async () => {
+  // Symmetry check on the second tag: stores schemas route to the stores
+  // subdir, and pets-only schemas are not referenced from the stores file.
+  const stores = await readFile(
+    generated(
+      'axios',
+      'split-by-tags-faker-schemas-no-index',
+      'stores',
+      'stores.ts',
+    ),
+    'utf8',
+  );
+  expect(stores).toContain("import type { Store } from '../model/stores/store';");
+  expect(stores).toContain(
+    "import type { StoreList } from '../model/stores/storeList';",
+  );
+  // No cross-tag leak.
+  expect(stores).not.toContain("from '../model/pets/");
+  expect(stores).not.toContain("from '../model/pet';");
+});

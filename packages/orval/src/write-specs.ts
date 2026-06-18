@@ -3,6 +3,7 @@ import path from 'node:path';
 import {
   buildSchemaTagMap,
   type ContextSpec,
+  conventionName,
   createSuccessMessage,
   type FakerMockOptions,
   fixCrossDirectoryImports,
@@ -21,6 +22,7 @@ import {
   type OpenApiInfoObject,
   OutputMockType,
   OutputMode,
+  pascal,
   splitSchemasByType,
   SupportedFormatter,
   upath,
@@ -161,6 +163,7 @@ async function writeFakerSchemaMocks(
   builder: WriteSpecBuilder,
   options: NormalizedOptions,
   header: string,
+  schemaTagMap?: Map<string, string>,
 ): Promise<string | undefined> {
   const { output } = options;
   // Pick the opted-in faker entry directly. The duplicate-type guard in
@@ -236,13 +239,53 @@ async function writeFakerSchemaMocks(
   }
 
   // Route every schema-related import (both type-only and runtime value
-  // forms) onto the consolidated schemas path. Both `import { Foo }` and
+  // forms) onto the resolved schema path. Both `import { Foo }` and
   // `import type { Foo }` come from the same module here, so we treat
   // them uniformly — `generateDependencyImports` splits values vs types
   // back out into separate `import` / `import type` lines as needed.
-  const reroutedImports = imports.map((imp) =>
-    imp.importPath ? imp : { ...imp, importPath: schemaImportPath },
-  );
+  //
+  // When `indexFiles` is true the schemas root barrel (`.`) covers every
+  // schema, so all imports can route there. When `indexFiles` is false the
+  // root barrel is not generated, so each import must resolve to its actual
+  // file. With `splitByTags: true` that file lives under a per-tag
+  // subdirectory (`./<tag>/<file>`) for tag-scoped schemas, or at the
+  // schemas root (`./<file>`) for shared schemas. Schema-factory imports
+  // (`get<X>Mock` from peer factories) are local to this consolidated file
+  // and always resolve to `'.'`.
+  const isZodSchemaOutput =
+    isObject(output.schemas) && output.schemas.type === 'zod';
+  const importExtension = getImportExtension(fileExtension, output.tsconfig);
+  const schemaSuffix = isZodSchemaOutput ? '.zod' : '';
+
+  // Build a pascal-cased-name → import path lookup so the consolidated file
+  // can route each schema type import to its on-disk location. The map is
+  // only populated when per-file routing is required (no root barrel); when
+  // `indexFiles: true` every entry maps to `'.'` and the lookup short-circuits.
+  const perSchemaImportPath = new Map<string, string>();
+  if (
+    schemaImportPath === '.' &&
+    !output.indexFiles &&
+    isObject(output.schemas)
+  ) {
+    for (const schema of builder.schemas) {
+      const tsName = pascal(schema.name);
+      const fileName = conventionName(schema.name, output.namingConvention);
+      const tagDir = schemaTagMap?.get(schema.name);
+      const tagSegment = tagDir && tagDir !== '.' ? `${tagDir}/` : '';
+      perSchemaImportPath.set(
+        tsName,
+        `./${tagSegment}${fileName}${schemaSuffix}${importExtension}`,
+      );
+    }
+  }
+
+  const reroutedImports = imports.map((imp) => {
+    if (imp.importPath) return imp;
+    if (imp.schemaFactory) return { ...imp, importPath: '.' };
+    const resolved = perSchemaImportPath.get(imp.name);
+    if (resolved) return { ...imp, importPath: resolved };
+    return { ...imp, importPath: schemaImportPath };
+  });
 
   // `generateDependencyImports` expects a list of `{ exports, dependency }`
   // groups (one per source module). Bucket all rerouted imports by their
@@ -325,6 +368,24 @@ export async function writeSpecs(
 ) {
   const { info, schemas, target } = builder;
   const { output } = options;
+
+  // Compute the schema→tag map once when splitByTags is enabled so every
+  // downstream writer (zod schemas, typescript schemas, the mode writers,
+  // and the consolidated faker factory file) route imports consistently.
+  // Declared at function scope because it is consumed both inside the
+  // schemas-writing branch and by `writeFakerSchemaMocks` / mode dispatch
+  // which live outside that branch.
+  const shouldSplitSchemasByTags =
+    isObject(output.schemas) && output.schemas.splitByTags;
+  const schemaTagMap = shouldSplitSchemasByTags
+    ? buildSchemaTagMap(
+        Object.values(builder.operations).map((op) => ({
+          imports: op.imports,
+          tags: op.tags,
+        })),
+        schemas,
+      )
+    : undefined;
   const projectTitle = projectName ?? info.title;
 
   const header = getHeader(output.override.header, info);
@@ -333,9 +394,6 @@ export async function writeSpecs(
     const schemasPath = isString(output.schemas)
       ? output.schemas
       : output.schemas.path;
-
-    const shouldSplitSchemasByTags =
-      isObject(output.schemas) && output.schemas.splitByTags;
 
     const isZodSchemas =
       (!isString(output.schemas) && output.schemas.type === 'zod') ||
@@ -374,12 +432,6 @@ export async function writeSpecs(
         : undefined;
 
       if (shouldSplitSchemasByTags) {
-        const operations = Object.values(builder.operations).map((op) => ({
-          imports: op.imports,
-          tags: op.tags,
-        }));
-        const schemaTagMap = buildSchemaTagMap(operations, schemas);
-
         const componentDirs = await writeZodSchemas(
           builder,
           schemasPath,
@@ -445,11 +497,6 @@ export async function writeSpecs(
 
       // Split schemas by tag into subdirectories
       if (shouldSplitSchemasByTags) {
-        const operations = Object.values(builder.operations).map((op) => ({
-          imports: op.imports,
-          tags: op.tags,
-        }));
-
         await writeSchemasTagsSplit({
           schemaPath: schemasPath,
           schemas,
@@ -460,7 +507,10 @@ export async function writeSpecs(
           indexFiles: output.indexFiles,
           tsconfig: output.tsconfig,
           factoryOutputDirectory: output.factoryMethods?.outputDirectory,
-          operations,
+          operations: Object.values(builder.operations).map((op) => ({
+            imports: op.imports,
+            tags: op.tags,
+          })),
         });
       } else if (output.operationSchemas) {
         const { regularSchemas, operationSchemas: opSchemas } =
@@ -545,7 +595,12 @@ export async function writeSpecs(
   // Emit a consolidated faker mock file for `components/schemas` when the
   // faker generator opts in with `schemas: true`. Lives alongside the
   // generated TS schema types so factories can import them directly.
-  const fakerSchemaPath = await writeFakerSchemaMocks(builder, options, header);
+  const fakerSchemaPath = await writeFakerSchemaMocks(
+    builder,
+    options,
+    header,
+    schemaTagMap,
+  );
 
   let implementationPaths: string[] = [];
 
@@ -601,6 +656,7 @@ export async function writeSpecs(
       projectName,
       header,
       needSchema: shouldGenerateSchemas(output, hasOperations),
+      schemaTagMap,
       generateSchemasInline: needZodSchemasInline
         ? () =>
             generateZodSchemasInline(

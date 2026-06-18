@@ -335,6 +335,7 @@ describe('generateImportsForBuilder', () => {
           path: '/libs/models',
           type: 'typescript',
           importPath: '@acme/models',
+          splitByTags: false,
         },
         mock: {
           indexMockFiles: false,
@@ -373,6 +374,7 @@ describe('generateImportsForBuilder', () => {
           path: '/libs/models',
           type: 'typescript',
           importPath: '@acme/models',
+          splitByTags: false,
         },
         mock: {
           indexMockFiles: false,
