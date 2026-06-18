@@ -751,31 +751,6 @@ export const getMutationRequestArgs = (
     : '';
 };
 
-export const getHttpFunctionQueryProps = (
-  isVue: boolean,
-  httpClient: OutputHttpClient,
-  queryProperties: string,
-  isAngular = false,
-  hasMutator = false,
-) => {
-  const result =
-    isVue && httpClient === OutputHttpClient.FETCH && queryProperties
-      ? queryProperties
-          .split(',')
-          .map((prop) => `unref(${prop})`)
-          .join(',')
-      : queryProperties;
-
-  // For Angular, prefix with http since request functions take HttpClient as first param
-  // Skip when custom mutator is used - mutator handles HTTP client internally
-  // http is required as first param so no assertion needed
-  if ((isAngular || httpClient === OutputHttpClient.ANGULAR) && !hasMutator) {
-    return result ? `http, ${result}` : 'http';
-  }
-
-  return result;
-};
-
 export const getQueryHeader: ClientHeaderBuilder = (params) => {
   if (params.output.httpClient === OutputHttpClient.FETCH) {
     return generateFetchHeader(params);
