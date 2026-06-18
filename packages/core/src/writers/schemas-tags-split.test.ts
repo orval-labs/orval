@@ -36,7 +36,7 @@ const baseOptions = {
 
 describe('writeSchemasTagsSplit', () => {
   it('writes schemas into per-tag subdirectories', async () => {
-    const dir = await tmpDir();
+    dir = await tmpDir();
     const schemas = [makeSchema('Pet'), makeSchema('Store')];
     const operations = [
       { imports: [{ name: 'Pet' }], tags: ['pets'] },
@@ -59,7 +59,7 @@ describe('writeSchemasTagsSplit', () => {
   });
 
   it('places shared schemas at root', async () => {
-    const dir = await tmpDir();
+    dir = await tmpDir();
     const schemas = [makeSchema('Pet'), makeSchema('Error')];
     const operations = [
       { imports: [{ name: 'Pet' }, { name: 'Error' }], tags: ['pets'] },
@@ -79,7 +79,7 @@ describe('writeSchemasTagsSplit', () => {
   });
 
   it('generates correct cross-tag import paths to root', async () => {
-    const dir = await tmpDir();
+    dir = await tmpDir();
     const schemas = [makeSchema('Pet', ['Error']), makeSchema('Error')];
     const operations = [
       { imports: [{ name: 'Pet' }, { name: 'Error' }], tags: ['pets'] },
@@ -101,7 +101,7 @@ describe('writeSchemasTagsSplit', () => {
   });
 
   it('appends import extension for ESM module resolution', async () => {
-    const dir = await tmpDir();
+    dir = await tmpDir();
     const schemas = [makeSchema('Pet', ['Error']), makeSchema('Error')];
     const operations = [
       { imports: [{ name: 'Pet' }, { name: 'Error' }], tags: ['pets'] },
@@ -124,7 +124,7 @@ describe('writeSchemasTagsSplit', () => {
   });
 
   it('does not write root index when indexFiles is false', async () => {
-    const dir = await tmpDir();
+    dir = await tmpDir();
     const schemas = [makeSchema('Pet')];
     const operations = [{ imports: [{ name: 'Pet' }], tags: ['pets'] }];
 
@@ -142,7 +142,7 @@ describe('writeSchemasTagsSplit', () => {
   });
 
   it('handles all schemas at root when no operations reference them', async () => {
-    const dir = await tmpDir();
+    dir = await tmpDir();
     const schemas = [makeSchema('Pet'), makeSchema('Store')];
     const operations: Array<{
       imports: Array<{ name: string }>;
@@ -163,7 +163,7 @@ describe('writeSchemasTagsSplit', () => {
   });
 
   it('handles all schemas in one tag', async () => {
-    const dir = await tmpDir();
+    dir = await tmpDir();
     const schemas = [makeSchema('Pet'), makeSchema('Store')];
     const operations = [
       { imports: [{ name: 'Pet' }, { name: 'Store' }], tags: ['pets'] },
@@ -181,7 +181,7 @@ describe('writeSchemasTagsSplit', () => {
   });
 
   it('handles empty schemas array', async () => {
-    const dir = await tmpDir();
+    dir = await tmpDir();
     const operations = [{ imports: [{ name: 'Pet' }], tags: ['pets'] }];
 
     await writeSchemasTagsSplit({
@@ -195,7 +195,7 @@ describe('writeSchemasTagsSplit', () => {
   });
 
   it('root barrel exports both shared files and tag directories', async () => {
-    const dir = await tmpDir();
+    dir = await tmpDir();
     const schemas = [
       makeSchema('Pet', ['Error']),
       makeSchema('Error'),

@@ -1295,6 +1295,17 @@ export async function writeZodSchemasFromVerbs(
   if (isSplit) {
     const dirSchemas: WrittenSchemaInfo = new Map();
     for (const entry of uniqueVerbsSchemas) {
+      // Skip pure-$ref wrappers that were not written as files. The writing
+      // loop above applies the same condition via `continue`; without it
+      // here, the tag barrel would re-export non-existent files.
+      if (
+        useReusableSchemas &&
+        entry.schema &&
+        typeof (entry.schema as { $ref?: unknown }).$ref === 'string' &&
+        Object.keys(entry.schema).length === 1
+      ) {
+        continue;
+      }
       const dir = entry.verbTagDir ?? ROOT_DIR;
       if (!dirSchemas.has(dir)) dirSchemas.set(dir, []);
       dirSchemas.get(dir)!.push(entry.name);
