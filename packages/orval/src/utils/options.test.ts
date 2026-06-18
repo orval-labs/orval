@@ -409,7 +409,7 @@ describe('normalizeOptions', () => {
           },
           workspace,
         ),
-      ).rejects.toThrow('schemas.importPath must be a package specifier');
+      ).rejects.toThrow('`schemas.importPath` must be a package specifier');
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -441,7 +441,7 @@ describe('normalizeOptions', () => {
           workspace,
         ),
       ).rejects.toThrow(
-        'schemas.importPath must be a non-empty package specifier',
+        '`schemas.importPath` must be a non-empty package specifier',
       );
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -473,7 +473,7 @@ describe('normalizeOptions', () => {
           },
           workspace,
         ),
-      ).rejects.toThrow('schemas.importPath must be a package specifier');
+      ).rejects.toThrow('`schemas.importPath` must be a package specifier');
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -632,6 +632,259 @@ describe('normalizeOptions', () => {
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
+  });
+
+  describe('faker schemasImportPath validation', () => {
+    it('rejects a relative path as schemasImportPath', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                schemas: {
+                  path: './models',
+                  type: 'typescript',
+                  importPath: '@acme/models',
+                },
+                mock: {
+                  generators: [
+                    {
+                      type: 'faker',
+                      schemas: true,
+                      schemasImportPath: './fakers',
+                    },
+                  ],
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(
+          '`mock.generators[faker].schemasImportPath` must be a package specifier',
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('rejects an empty string as schemasImportPath', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                schemas: {
+                  path: './models',
+                  type: 'typescript',
+                  importPath: '@acme/models',
+                },
+                mock: {
+                  generators: [
+                    {
+                      type: 'faker',
+                      schemas: true,
+                      schemasImportPath: '',
+                    },
+                  ],
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(
+          '`mock.generators[faker].schemasImportPath` must be a non-empty package specifier',
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('rejects an absolute path as schemasImportPath', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                schemas: {
+                  path: './models',
+                  type: 'typescript',
+                  importPath: '@acme/models',
+                },
+                mock: {
+                  generators: [
+                    {
+                      type: 'faker',
+                      schemas: true,
+                      schemasImportPath: '/abs/fakers',
+                    },
+                  ],
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(
+          '`mock.generators[faker].schemasImportPath` must be a package specifier',
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('rejects schemasImportPath when schemas.importPath is not set', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                schemas: {
+                  path: './models',
+                  type: 'typescript',
+                },
+                mock: {
+                  generators: [
+                    {
+                      type: 'faker',
+                      schemas: true,
+                      schemasImportPath: '@acme/models/fakers',
+                    },
+                  ],
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(
+          '`mock.generators[faker].schemasImportPath` requires `schemas.importPath` to also be set',
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('rejects schemasImportPath when schemas: true is not set on the faker generator', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                schemas: {
+                  path: './models',
+                  type: 'typescript',
+                  importPath: '@acme/models',
+                },
+                mock: {
+                  generators: [
+                    {
+                      type: 'faker',
+                      schemasImportPath: '@acme/models/fakers',
+                    },
+                  ],
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(
+          '`mock.generators[faker].schemasImportPath` requires `schemas: true`',
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('accepts a valid schemasImportPath when schemas.importPath is set', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              schemas: {
+                path: './models',
+                type: 'typescript',
+                importPath: '@acme/models',
+              },
+              mock: {
+                generators: [
+                  {
+                    type: 'faker',
+                    schemas: true,
+                    schemasImportPath: '@acme/models/fakers',
+                  },
+                ],
+              },
+            },
+          },
+          workspace,
+        );
+
+        const fakerGenerator = normalized.output.mock.generators[0] as {
+          schemasImportPath?: string;
+        };
+        expect(fakerGenerator.schemasImportPath).toBe('@acme/models/fakers');
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
   });
 
   it('defaults zod dateTimeOptions to { offset: true } so RFC3339 offset values are accepted', async () => {

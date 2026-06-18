@@ -321,6 +321,72 @@ describe('generateImportsForBuilder', () => {
         },
       ]);
     });
+
+    it('should use faker schemasImportPath verbatim for schemaFactory imports', () => {
+      const output = createMockOutput({
+        indexFiles: false,
+        fileExtension: '.ts',
+        schemas: {
+          path: '/libs/models',
+          type: 'typescript',
+          importPath: '@acme/models',
+        },
+        mock: {
+          indexMockFiles: false,
+          generators: [
+            {
+              type: 'faker',
+              schemas: true,
+              schemasImportPath: '@acme/models/fakers',
+            },
+          ],
+        },
+      });
+      const imports: GeneratorImport[] = [
+        { name: 'createUser', schemaFactory: true },
+        { name: 'createPet', schemaFactory: true },
+      ];
+
+      const result = generateImportsForBuilder(output, imports, '@acme/models');
+
+      expect(result).toEqual([
+        {
+          exports: [
+            { name: 'createUser', schemaFactory: true },
+            { name: 'createPet', schemaFactory: true },
+          ],
+          dependency: '@acme/models/fakers',
+        },
+      ]);
+    });
+
+    it('should fall back to index.faker join when schemasImportPath is not set', () => {
+      const output = createMockOutput({
+        indexFiles: false,
+        fileExtension: '.ts',
+        schemas: {
+          path: '/libs/models',
+          type: 'typescript',
+          importPath: '@acme/models',
+        },
+        mock: {
+          indexMockFiles: false,
+          generators: [{ type: 'faker', schemas: true }],
+        },
+      });
+      const imports: GeneratorImport[] = [
+        { name: 'createUser', schemaFactory: true },
+      ];
+
+      const result = generateImportsForBuilder(output, imports, '@acme/models');
+
+      expect(result).toEqual([
+        {
+          exports: [{ name: 'createUser', schemaFactory: true }],
+          dependency: '@acme/models/index.faker',
+        },
+      ]);
+    });
   });
 
   describe('naming conventions', () => {
