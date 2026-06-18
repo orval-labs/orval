@@ -1557,6 +1557,27 @@ test('axios splitByTags + indexFiles:false routes per-tag schema imports into ta
   expect(pets).not.toContain("from '../model/pet';");
   expect(pets).not.toContain("from '../model/petList';");
   expect(pets).not.toContain("from '../model';");
+
+  // Symmetry check on the second tag: stores schemas route to the stores
+  // subdir, and pets-only schemas are not referenced from the stores file.
+  const stores = await readFile(
+    generated(
+      'axios',
+      'split-by-tags-faker-schemas-no-index',
+      'stores',
+      'stores.ts',
+    ),
+    'utf8',
+  );
+  expect(stores).toContain(
+    "import type { Store } from '../model/stores/store';",
+  );
+  expect(stores).toContain(
+    "import type { StoreList } from '../model/stores/storeList';",
+  );
+  // No cross-tag leak.
+  expect(stores).not.toContain("from '../model/pets/");
+  expect(stores).not.toContain("from '../model/pet';");
 });
 
 test('axios splitByTags + indexFiles:false + faker schemas:true routes faker factory imports into tag subdirectories (#3592)', async () => {
@@ -1589,25 +1610,4 @@ test('axios splitByTags + indexFiles:false + faker schemas:true routes faker fac
   // No flat-layout or extensionless root-barrel imports may remain.
   expect(fakerFile).not.toContain("from '.'");
   expect(fakerFile).not.toMatch(/from '\.\/(pet|store)';/);
-});
-
-test('axios splitByTags + indexFiles:false stores files do not import peer tag subdirectories (#3592)', async () => {
-  // Symmetry check on the second tag: stores schemas route to the stores
-  // subdir, and pets-only schemas are not referenced from the stores file.
-  const stores = await readFile(
-    generated(
-      'axios',
-      'split-by-tags-faker-schemas-no-index',
-      'stores',
-      'stores.ts',
-    ),
-    'utf8',
-  );
-  expect(stores).toContain("import type { Store } from '../model/stores/store';");
-  expect(stores).toContain(
-    "import type { StoreList } from '../model/stores/storeList';",
-  );
-  // No cross-tag leak.
-  expect(stores).not.toContain("from '../model/pets/");
-  expect(stores).not.toContain("from '../model/pet';");
 });

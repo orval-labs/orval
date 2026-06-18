@@ -197,28 +197,6 @@ export default defineConfig({
       },
     },
   },
-  petstoreTagsSplitSchemas: {
-    output: {
-      target:
-        '../generated/axios/petstore-tags-split-schemas/endpoints.ts',
-      schemas: {
-        path: '../generated/axios/petstore-tags-split-schemas/model',
-        type: 'typescript',
-        splitByTags: true,
-      },
-      mock: true,
-      mode: 'tags-split',
-      client: 'axios',
-      clean: true,
-      formatter: 'prettier',
-    },
-    input: {
-      target: '../specifications/petstore.yaml',
-      override: {
-        transformer: '../transformers/add-version.js',
-      },
-    },
-  },
   tagsSplitSharedModels: {
     output: {
       target:
