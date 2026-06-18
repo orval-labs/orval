@@ -1450,9 +1450,9 @@ test('axios tags-split + schemas.splitByTags separates per-tag schemas from cros
   // Shared schemas referenced by both tags stay at the root, not in any tag
   // subdir. `Pagination` is shared even though it is only reached via
   // `PetList`/`StoreList` — both tag-scoped wrappers reference it.
-  await expect(readFile(path.join(root, 'error.ts'), 'utf8')).resolves;
-  await expect(readFile(path.join(root, 'sortOrder.ts'), 'utf8')).resolves;
-  await expect(readFile(path.join(root, 'pagination.ts'), 'utf8')).resolves;
+  await expect(readFile(path.join(root, 'error.ts'), 'utf8')).resolves.toBeDefined();
+  await expect(readFile(path.join(root, 'sortOrder.ts'), 'utf8')).resolves.toBeDefined();
+  await expect(readFile(path.join(root, 'pagination.ts'), 'utf8')).resolves.toBeDefined();
   // No tag owns a schema named after the other tag.
   await expect(
     readFile(path.join(root, 'pets', 'store.ts'), 'utf8'),
