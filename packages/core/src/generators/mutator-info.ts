@@ -57,7 +57,7 @@ async function bundleFile(
     resolve: alias ? { alias } : undefined,
     treeshake: false,
     transform: {
-      target: normalizeTarget(compilerOptions?.target) ?? 'es2015',
+      target: normalizeTarget(compilerOptions?.target) ?? 'esnext',
     },
   });
 
