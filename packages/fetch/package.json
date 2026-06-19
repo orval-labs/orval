@@ -23,8 +23,7 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "@orval/core": "workspace:*",
-    "@scalar/openapi-types": "catalog:"
+    "@orval/core": "workspace:*"
   },
   "devDependencies": {
     "rimraf": "catalog:",

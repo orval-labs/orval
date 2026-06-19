@@ -1302,7 +1302,7 @@ function normalizeQueryOptions(
   };
 }
 
-export function getDefaultFilesHeader({
+function getDefaultFilesHeader({
   title,
   description,
   version,

@@ -72,7 +72,6 @@
     "@scalar/openapi-types": "catalog:",
     "chokidar": "^5.0.0",
     "commander": "^15.0.0",
-    "enquirer": "^2.4.1",
     "execa": "^9.6.1",
     "find-up": "8.0.0",
     "fs-extra": "^11.3.2",
