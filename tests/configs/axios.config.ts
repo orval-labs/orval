@@ -496,4 +496,27 @@ export default defineConfig({
       target: '../specifications/issue-3910/issue-3910.yaml',
     },
   },
+  formatTypeAxios: {
+    output: {
+      target: '../generated/axios/format-type/endpoints.ts',
+      schemas: '../generated/axios/format-type/model',
+      client: 'axios',
+      override: {
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            import: { name: 'Dayjs', importPath: 'dayjs' },
+          },
+          date: {
+            type: 'Temporal.PlainDate',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/date-type.yaml',
+    },
+  },
 });

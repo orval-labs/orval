@@ -200,6 +200,7 @@ export interface NormalizedOverrideOutput {
   requestOptions: Record<string, unknown> | boolean;
   useDates?: boolean;
   useDatesTransform?: boolean;
+  formatType?: NormalizedFormatTypeMap;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
@@ -984,6 +985,7 @@ export interface OverrideOutput {
    * Implies `useDates`. @default false
    */
   useDatesTransform?: boolean;
+  formatType?: FormatTypeMap;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
@@ -1441,6 +1443,51 @@ export type SchemaExtension<
 > = {
   [T in PrimitiveSchemaType]: SchemaExtensionEntry<T, never, TVersion>;
 }[PrimitiveSchemaType][];
+
+/** Known OpenAPI string formats with autocomplete, open to any string */
+export type StringFormat = 'date' | 'date-time' | 'time' | (string & {});
+
+/** User-facing configuration for a single string-format type override */
+export interface FormatTypeConfig {
+  /** TypeScript type name (e.g. 'Dayjs', 'Temporal.PlainDate', 'UUID') */
+  type: string;
+  /** Import for the type if needed */
+  import?: { name: string; importPath: string; default?: boolean };
+  /** Zod schema config */
+  zod?: {
+    /** Expression appended as .transform() (e.g. 'dayjs') */
+    transform?: string;
+    /** Import for the transform function */
+    transformImport?: { name: string; importPath: string; default?: boolean };
+    /** Replace the entire Zod schema chain with a custom codec reference */
+    codec?: string;
+    /** Import for the codec */
+    codecImport?: { name: string; importPath: string; default?: boolean };
+  };
+  /** Faker mock expression override */
+  mock?: string;
+  /** Import for the mock expression's runtime dependency */
+  mockImport?: { name: string; importPath: string; default?: boolean };
+}
+
+export type FormatTypeMap = { [K in StringFormat]?: FormatTypeConfig };
+
+export interface NormalizedFormatTypeConfig {
+  type: string;
+  import?: GeneratorImport;
+  zod?: {
+    transform?: string;
+    transformImport?: GeneratorImport;
+    codec?: string;
+    codecImport?: GeneratorImport;
+  };
+  mock?: string;
+  mockImport?: GeneratorImport;
+}
+
+export type NormalizedFormatTypeMap = {
+  [K in StringFormat]?: NormalizedFormatTypeConfig;
+};
 
 export interface NormalizedZodOptions {
   variant: ZodVariantOption;

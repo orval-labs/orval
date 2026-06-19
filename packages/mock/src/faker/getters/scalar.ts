@@ -232,15 +232,31 @@ export function getMockScalar({
   // Mirrors the guard on the media-type map in core's `body.ts`.
   if (item.format && Object.hasOwn(ALL_FORMAT, item.format)) {
     let value = ALL_FORMAT[item.format];
+    const formatConfig = context.output.override.formatType?.[item.format];
+    const mockImports: GeneratorImport[] = [];
 
-    const dateFormats = ['date', 'date-time'];
-    if (dateFormats.includes(item.format) && context.output.override.useDates) {
-      value = `new Date(${value})`;
+    if (formatConfig) {
+      if (formatConfig.mock) {
+        value = formatConfig.mock;
+        if (formatConfig.mockImport) {
+          mockImports.push({ ...formatConfig.mockImport, values: true });
+        }
+      } else if (formatConfig.type === 'Date') {
+        value = `new Date(${value})`;
+      }
+    } else {
+      const dateFormats = ['date', 'date-time'];
+      if (
+        dateFormats.includes(item.format) &&
+        context.output.override.useDates
+      ) {
+        value = `new Date(${value})`;
+      }
     }
 
     return {
       value: getNullable(value, isNullable, nonNullableOption),
-      imports: [],
+      imports: mockImports,
       name: item.name,
       overrided: false,
       nullWrapped,

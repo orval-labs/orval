@@ -1,0 +1,78 @@
+openapi: '3.1.0'
+info:
+  title: Date Type Test
+  version: '1.0.0'
+paths:
+  /events:
+    get:
+      operationId: listEvents
+      parameters:
+        - name: after
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+    post:
+      operationId: createEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEvent'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+components:
+  schemas:
+    Event:
+      type: object
+      required:
+        - id
+        - name
+        - startsAt
+        - date
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        startsAt:
+          type: string
+          format: date-time
+        date:
+          type: string
+          format: date
+        status:
+          $ref: '#/components/schemas/EventStatus'
+    CreateEvent:
+      type: object
+      required:
+        - name
+        - startsAt
+      properties:
+        name:
+          type: string
+        startsAt:
+          type: string
+          format: date-time
+        date:
+          type: string
+          format: date
+    EventStatus:
+      type: string
+      enum: [DRAFT, PUBLISHED, CANCELLED]
+      default: DRAFT

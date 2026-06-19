@@ -3,6 +3,8 @@ import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 import { resolveExampleRefs } from '../resolvers';
 import type {
   ContextSpec,
+  GeneratorImport,
+  NormalizedOverrideOutput,
   OpenApiPrimitiveSchemaType,
   OpenApiSchemaObject,
   ScalarValue,
@@ -17,6 +19,19 @@ import { getArray } from './array';
 import { combineSchemas } from './combine';
 import type { FormDataContext } from './object';
 import { getObject } from './object';
+
+export function resolveFormatType(
+  format: string | undefined,
+  override: NormalizedOverrideOutput,
+): { type: string; import?: GeneratorImport } | undefined {
+  if (!format) return undefined;
+  const config = override.formatType?.[format];
+  if (config) return { type: config.type, import: config.import };
+  if (override.useDates && (format === 'date' || format === 'date-time')) {
+    return { type: 'Date' };
+  }
+  return undefined;
+}
 
 /** Bridge type for enum values extracted from OpenAPI schemas infected by AnyOtherAttribute */
 type SchemaEnumValue = string | number | boolean | null;
@@ -326,11 +341,16 @@ export function getScalar({
         }
       }
 
-      if (
-        context.output.override.useDates &&
-        (schemaFormat === 'date' || schemaFormat === 'date-time')
-      ) {
-        value = 'Date';
+      const formatImports: GeneratorImport[] = [];
+      if (!isEnum) {
+        const formatResolved = resolveFormatType(
+          schemaFormat,
+          context.output.override,
+        );
+        if (formatResolved) {
+          value = formatResolved.type;
+          if (formatResolved.import) formatImports.push(formatResolved.import);
+        }
       }
 
       value += nullable;
@@ -351,7 +371,7 @@ export function getScalar({
         value: value,
         isEnum,
         type: 'string',
-        imports: [],
+        imports: formatImports,
         schemas: [],
         isRef: false,
         hasReadonlyProps: schemaReadOnly ?? false,

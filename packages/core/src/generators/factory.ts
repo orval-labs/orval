@@ -500,14 +500,22 @@ function buildDefaultPayload(
 ): string {
   if (isBooleanJsonSchema(schema)) return formatValue(undefined);
   if (
-    context.output.override.useDates &&
     typeof schema.default === 'string' &&
     (schema.format === 'date' || schema.format === 'date-time')
   ) {
     // The default is document text, and this builds a single-quoted literal by
     // hand: an unescaped `'` closed it and appended expressions to the
     // `new Date(...)` argument, which the factory then evaluated on every call.
-    return `new Date('${jsStringLiteralEscape(schema.default)}')`;
+    const dateDefault = `new Date('${jsStringLiteralEscape(schema.default)}')`;
+    const formatConfig = context.output.override.formatType?.[schema.format];
+    if (formatConfig) {
+      return formatConfig.type === 'Date'
+        ? dateDefault
+        : formatValue(schema.default);
+    }
+    if (context.output.override.useDates) {
+      return dateDefault;
+    }
   }
   return formatValue(schema.default);
 }
@@ -543,6 +551,12 @@ function buildPrimitivePayload(
       return formatValue(enumValues[0]);
     }
     if (schema.format === 'date' || schema.format === 'date-time') {
+      const formatConfig = context.output.override.formatType?.[schema.format];
+      if (formatConfig) {
+        return formatConfig.type === 'Date'
+          ? 'new Date(0)'
+          : `'${new Date(0).toISOString()}'`;
+      }
       return context.output.override.useDates
         ? 'new Date(0)'
         : `'${new Date(0).toISOString()}'`;
