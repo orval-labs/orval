@@ -65,7 +65,8 @@
     "vite-plus": "0.1.24",
     "vitest": "4.0.18",
     "@types/node": "22.18.12",
-    "@scalar/openapi-types": "0.8.0"
+    "@scalar/openapi-types": "0.8.0",
+    "dayjs": "1.11.21"
   },
   "catalogs": {
     "angular": {

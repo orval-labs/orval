@@ -35,7 +35,7 @@ export function createUser(): User {
     name: '',
     status: createStatus(),
     avatar: '',
-    createdAt: '1970-01-01T00:00:00.000Z',
+    createdAt: '',
     tags: [],
     circular: createCircularParent()
   };

@@ -484,10 +484,17 @@ function buildDefaultPayload(
   context: ContextSpec,
 ): string {
   if (
-    context.output.override.useDates &&
     typeof schema.default === 'string' &&
-    (schema.format === 'date' || schema.format === 'date-time')
+    (schema.format === 'date' || schema.format === 'date-time') &&
+    (context.output.override.formatType?.[schema.format] ||
+      context.output.override.useDates)
   ) {
+    const formatConfig = context.output.override.formatType?.[schema.format];
+    if (formatConfig) {
+      return formatConfig.type === 'Date'
+        ? `new Date('${schema.default}')`
+        : formatValue(schema.default);
+    }
     return `new Date('${schema.default}')`;
   }
   return formatValue(schema.default);
@@ -517,10 +524,18 @@ function buildPrimitivePayload(
       const first = enumValues[0];
       return typeof first === 'string' ? JSON.stringify(first) : String(first);
     }
-    if (schema.format === 'date' || schema.format === 'date-time') {
-      return context.output.override.useDates
-        ? 'new Date(0)'
-        : `'${new Date(0).toISOString()}'`;
+    if (
+      (schema.format === 'date' || schema.format === 'date-time') &&
+      (context.output.override.formatType?.[schema.format] ||
+        context.output.override.useDates)
+    ) {
+      const formatConfig = context.output.override.formatType?.[schema.format];
+      if (formatConfig) {
+        return formatConfig.type === 'Date'
+          ? 'new Date(0)'
+          : `'${new Date(0).toISOString()}'`;
+      }
+      return 'new Date(0)';
     }
     return "''";
   }

@@ -260,13 +260,22 @@ export const generateEffectValidationSchemaDefinition = (
     defaultVarName = `${name}Default${constsCounterValue}`;
     let defaultValue: string | undefined;
 
-    const isDateType =
+    const effectFormatConfig =
       schema.type === 'string' &&
-      (schema.format === 'date' || schema.format === 'date-time') &&
-      context.output.override.useDates;
+      (schema.format === 'date' || schema.format === 'date-time')
+        ? context.output.override.formatType?.[schema.format]
+        : undefined;
+    const isDateType =
+      !!effectFormatConfig ||
+      (schema.type === 'string' &&
+        (schema.format === 'date' || schema.format === 'date-time') &&
+        context.output.override.useDates);
 
     if (isDateType) {
-      defaultValue = `new Date(${JSON.stringify(schema.default)})`;
+      defaultValue =
+        effectFormatConfig && effectFormatConfig.type !== 'Date'
+          ? JSON.stringify(schema.default)
+          : `new Date(${JSON.stringify(schema.default)})`;
     } else if (isObject(schema.default)) {
       const entries = Object.entries(schema.default)
         .map(([key, value]) => {
@@ -403,8 +412,20 @@ export const generateEffectValidationSchemaDefinition = (
           break;
         }
 
+        const effectSchemaFormatConfig =
+          context.output.override.formatType?.[schema.format ?? ''];
+        if (effectSchemaFormatConfig) {
+          if (effectSchemaFormatConfig.type === 'Date') {
+            functions.push(['date', undefined]);
+            break;
+          }
+          // Non-Date formatType (e.g. Dayjs, Temporal): fall through to emit
+          // S.String — Effect transform support is not yet implemented.
+        }
+
         if (
           context.output.override.useDates &&
+          !effectSchemaFormatConfig &&
           (schema.format === 'date' || schema.format === 'date-time')
         ) {
           functions.push(['date', undefined]);

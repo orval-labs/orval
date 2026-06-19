@@ -10,6 +10,7 @@ import {
   type ContextSpec,
   generateMutator,
   type GeneratorDependency,
+  type GeneratorImport,
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
@@ -819,14 +820,22 @@ export const generateZodValidationSchemaDefinition = (
     defaultVarName = `${name}Default${constsCounterValue}`;
     let defaultValue: string | undefined;
 
-    const isDateType =
+    const zodFormatConfig =
       schema.type === 'string' &&
-      (schema.format === 'date' || schema.format === 'date-time') &&
-      context.output.override.useDates;
+      (schema.format === 'date' || schema.format === 'date-time')
+        ? context.output.override.formatType?.[schema.format]
+        : undefined;
+    const isDateType =
+      !!zodFormatConfig ||
+      (schema.type === 'string' &&
+        (schema.format === 'date' || schema.format === 'date-time') &&
+        context.output.override.useDates);
 
     if (isDateType) {
-      // OpenApiSchemaObject defines default as 'any'
-      defaultValue = `new Date(${JSON.stringify(schema.default)})`;
+      defaultValue =
+        zodFormatConfig && zodFormatConfig.type !== 'Date'
+          ? JSON.stringify(schema.default)
+          : `new Date(${JSON.stringify(schema.default)})`;
     } else if (isObject(schema.default)) {
       // Narrow string literals individually with `as const` so `zod.enum([...])`
       // properties accept the emitted default (#3244). Whole-object/array
@@ -1013,8 +1022,19 @@ export const generateZodValidationSchemaDefinition = (
           break;
         }
 
+        // formatType: codec replacement or transform
+        const formatConfig =
+          context.output.override.formatType?.[schema.format ?? ''];
+        if (formatConfig?.zod?.codec) {
+          // Replace entire schema with codec reference. Break (not return) so
+          // the function's normal optional/nullable/default logic still runs.
+          functions.push(['codec', formatConfig.zod.codec]);
+          break;
+        }
+
         if (
           context.output.override.useDates &&
+          !formatConfig &&
           (schema.format === 'date' || schema.format === 'date-time')
         ) {
           functions.push(['date', undefined]);
@@ -1081,6 +1101,9 @@ export const generateZodValidationSchemaDefinition = (
           const formatAPI = getZodDateFormat(isZodV4);
 
           functions.push([formatAPI, undefined]);
+          if (formatConfig?.zod?.transform) {
+            functions.push(['transform', formatConfig.zod.transform]);
+          }
           break;
         }
 
@@ -1089,6 +1112,9 @@ export const generateZodValidationSchemaDefinition = (
           const formatAPI = getZodTimeFormat(isZodV4);
 
           functions.push([formatAPI, JSON.stringify(options)]);
+          if (formatConfig?.zod?.transform) {
+            functions.push(['transform', formatConfig.zod.transform]);
+          }
           break;
         }
 
@@ -1097,6 +1123,9 @@ export const generateZodValidationSchemaDefinition = (
           const formatAPI = getZodDateTimeFormat(isZodV4);
 
           functions.push([formatAPI, JSON.stringify(options)]);
+          if (formatConfig?.zod?.transform) {
+            functions.push(['transform', formatConfig.zod.transform]);
+          }
           break;
         }
 
@@ -1949,6 +1978,11 @@ ${Object.entries(mergedProperties)
         parts.push('deprecated: true');
       }
       return `.meta({ ${parts.join(', ')} })`;
+    }
+
+    // formatType codec: emit bare reference instead of zod.xxx() chain
+    if (fn === 'codec') {
+      return args as string;
     }
 
     // File | string for text contentMediaType/encoding (user can pass string, runtime wraps in Blob)
@@ -3349,16 +3383,33 @@ export const generateZod: ClientBuilder = async (verbOptions, options) => {
     options,
   );
 
+  // Collect formatType Zod imports (transform/codec)
+  const formatType = options.context.output.override.formatType;
+  const formatTypeImports: GeneratorImport[] = [];
+  if (formatType) {
+    for (const config of Object.values(formatType)) {
+      if (config.zod?.transformImport) {
+        formatTypeImports.push({ ...config.zod.transformImport, values: true });
+      }
+      if (config.zod?.codecImport) {
+        formatTypeImports.push({ ...config.zod.codecImport, values: true });
+      }
+    }
+  }
+
   return {
     implementation: implementation ? `${implementation}\n\n` : '',
     // Zod schemas are runtime values (not type-only), so mark with values: true
     // to prevent the import writer from emitting `import type { ... }`. Sort
     // by name so import order is stable across runs.
-    imports: [...usedRefs].toSorted().map((name) => ({
-      name,
-      schemaName: name,
-      values: true,
-    })),
+    imports: [
+      ...[...usedRefs].toSorted().map((name) => ({
+        name,
+        schemaName: name,
+        values: true,
+      })),
+      ...formatTypeImports,
+    ],
     mutators,
   };
 };

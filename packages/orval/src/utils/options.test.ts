@@ -16,11 +16,98 @@ vi.mock('@orval/core', async (importOriginal) => {
   };
 });
 
-import { normalizeOptions } from './options';
+import { normalizeFormatType, normalizeOptions } from './options';
 
 const createTempWorkspace = async () => {
   return mkdtemp(path.join(os.tmpdir(), 'orval-options-'));
 };
+
+describe('normalizeFormatType', () => {
+  it('returns undefined for undefined input', () => {
+    expect(normalizeFormatType(undefined)).toBeUndefined();
+  });
+
+  it('returns empty object for empty config', () => {
+    expect(normalizeFormatType({})).toEqual({});
+  });
+
+  it('throws when type is missing', () => {
+    expect(() => normalizeFormatType({ date: { type: '' } })).toThrow(
+      'override.formatType.date.type is required',
+    );
+  });
+
+  it('throws when both codec and transform are set', () => {
+    expect(() =>
+      normalizeFormatType({
+        'date-time': {
+          type: 'Dayjs',
+          zod: { codec: 'c', transform: 't' },
+        },
+      }),
+    ).toThrow('codec and transform are mutually exclusive');
+  });
+
+  it('normalizes imports', () => {
+    const result = normalizeFormatType({
+      'date-time': {
+        type: 'Dayjs',
+        import: { name: 'Dayjs', importPath: 'dayjs' },
+        zod: {
+          transform: 'dayjs',
+          transformImport: {
+            name: 'dayjs',
+            importPath: 'dayjs',
+            default: true,
+          },
+        },
+        mock: 'dayjs()',
+        mockImport: { name: 'dayjs', importPath: 'dayjs', default: true },
+      },
+    });
+
+    expect(result?.['date-time']?.type).toBe('Dayjs');
+    expect(result?.['date-time']?.import).toEqual({
+      name: 'Dayjs',
+      importPath: 'dayjs',
+    });
+    expect(result?.['date-time']?.zod?.transformImport).toEqual({
+      name: 'dayjs',
+      importPath: 'dayjs',
+      default: true,
+    });
+    expect(result?.['date-time']?.mockImport).toEqual({
+      name: 'dayjs',
+      importPath: 'dayjs',
+      default: true,
+    });
+  });
+
+  it('handles multiple formats', () => {
+    const result = normalizeFormatType({
+      date: { type: 'Temporal.PlainDate' },
+      'date-time': { type: 'Temporal.Instant' },
+      uuid: { type: 'UUID' },
+    });
+
+    expect(Object.keys(result!)).toEqual(['date', 'date-time', 'uuid']);
+  });
+
+  it('allows transformImport without transform', () => {
+    const result = normalizeFormatType({
+      date: {
+        type: 'Dayjs',
+        zod: { transformImport: { name: 'dayjs', importPath: 'dayjs' } },
+      },
+    });
+
+    expect(result?.date?.zod?.transform).toBeUndefined();
+    expect(result?.date?.zod?.transformImport).toEqual({
+      name: 'dayjs',
+      importPath: 'dayjs',
+    });
+  });
+});
 
 describe('normalizeOptions', () => {
   it('keeps package mutator specifiers as imports', async () => {
@@ -1798,6 +1885,142 @@ describe('normalizeOptions', () => {
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
+  });
+
+  describe('formatType normalization', () => {
+    it('returns undefined formatType when not configured', async () => {
+      const workspace = await createTempWorkspace();
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: { target: './generated.ts' },
+          },
+          workspace,
+        );
+        expect(normalized.output.override.formatType).toBeUndefined();
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('throws when formatType entry has no type', async () => {
+      const workspace = await createTempWorkspace();
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                override: {
+                  formatType: {
+                    date: { type: '' },
+                  },
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow('override.formatType.date.type is required');
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('throws when both zod.codec and zod.transform are set', async () => {
+      const workspace = await createTempWorkspace();
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                override: {
+                  formatType: {
+                    'date-time': {
+                      type: 'Dayjs',
+                      zod: { codec: 'isoCodec', transform: 'dayjs' },
+                    },
+                  },
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(
+          'override.formatType.date-time.zod: codec and transform are mutually exclusive',
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('normalizes formatType with imports', async () => {
+      const workspace = await createTempWorkspace();
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              override: {
+                formatType: {
+                  'date-time': {
+                    type: 'Dayjs',
+                    import: { name: 'Dayjs', importPath: 'dayjs' },
+                    mock: 'dayjs(faker.date.past())',
+                    mockImport: {
+                      name: 'dayjs',
+                      importPath: 'dayjs',
+                      default: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          workspace,
+        );
+
+        const dt = normalized.output.override.formatType?.['date-time'];
+        expect(dt?.type).toBe('Dayjs');
+        expect(dt?.import).toEqual({ name: 'Dayjs', importPath: 'dayjs' });
+        expect(dt?.mock).toBe('dayjs(faker.date.past())');
+        expect(dt?.mockImport).toEqual({
+          name: 'dayjs',
+          importPath: 'dayjs',
+          default: true,
+        });
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
   });
 
   describe('optionsParamRequired with fetch httpClient', () => {

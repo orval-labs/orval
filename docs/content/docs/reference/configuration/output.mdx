@@ -3036,6 +3036,105 @@ export function handleDates(body: any) {
 
 > If using `fetch` client with `useDates: true`, query parameters of type Date are stringified using `toISOString()`.
 
+### formatType
+
+**Type:** `{ [format: string]: FormatTypeConfig }`
+**Default:** `undefined`
+
+Map any OpenAPI string format (e.g. `date`, `date-time`, `time`, `uuid`, `email`) to a custom TypeScript type. Each format can specify its own type, import, Zod schema (transform or codec), and mock expression.
+
+`formatType` takes precedence over `useDates` when both are set. You do not need `useDates: true` when using `formatType`.
+
+#### Config shape
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `type` | `string` | Yes | — | TypeScript type name (e.g. `'Dayjs'`, `'Temporal.PlainDate'`, `'UUID'`) |
+| `import` | `{ name, importPath, default? }` | No | — | Import for the type. Omit for globals like `Temporal`. |
+| `zod.transform` | `string` | No | — | Expression appended as `.transform(expr)` to Zod schemas |
+| `zod.transformImport` | `{ name, importPath, default? }` | No | — | Import for the transform function |
+| `zod.codec` | `string` | No | — | Replace entire Zod schema chain with a custom codec reference |
+| `zod.codecImport` | `{ name, importPath, default? }` | No | — | Import for the codec |
+| `mock` | `string` | No | — | Faker mock expression override |
+| `mockImport` | `{ name, importPath, default? }` | No | — | Runtime import for the mock expression |
+
+> `formatType` currently handles **type mapping** — emitting custom TypeScript types, Zod schemas, and mock expressions. Runtime response/request transforms (deserializing date strings in HTTP responses, serializing custom types in request bodies) are planned for a follow-up.
+
+#### Temporal API example
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        formatType: {
+          date: {
+            type: 'Temporal.PlainDate',
+          },
+          'date-time': {
+            type: 'Temporal.Instant',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+This generates `Temporal.Instant` and `Temporal.PlainDate` in model files instead of `string`.
+
+#### dayjs with Zod transform
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            import: { name: 'Dayjs', importPath: 'dayjs' },
+            zod: {
+              transform: 'dayjs',
+              transformImport: { name: 'dayjs', importPath: 'dayjs', default: true },
+            },
+            mock: 'dayjs(faker.date.past())',
+            mockImport: { name: 'dayjs', importPath: 'dayjs', default: true },
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+#### Zod codec replacement
+
+For full control over the Zod schema, use `zod.codec` to replace the entire validation chain with a custom codec:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'zod',
+      override: {
+        formatType: {
+          'date-time': {
+            type: 'Temporal.Instant',
+            zod: {
+              codec: 'isoDatetimeCodec',
+              codecImport: { name: 'isoDatetimeCodec', importPath: './zod-codec' },
+            },
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+> Formats not listed in `formatType` fall back to `string`. You can configure only the formats you need. When both `formatType` and `useDates` are set, `formatType` entries take precedence for their configured formats; `useDates` still applies to `date` and `date-time` formats that have no `formatType` entry.
+
 ### useBigInt
 
 **Type:** `Boolean`
