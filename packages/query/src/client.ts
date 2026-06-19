@@ -20,10 +20,7 @@ import {
   pascal,
   toObjectString,
 } from '@orval/core';
-import {
-  generateFetchHeader,
-  generateRequestFunction as generateFetchRequestFunction,
-} from '@orval/fetch';
+import { generateFetchHeader } from '@orval/fetch';
 
 import { getHasSignal, vueUnRefParams, vueWrapTypeWithMaybeRef } from './utils';
 
@@ -70,23 +67,6 @@ export const ANGULAR_HTTP_DEPENDENCIES = [
     dependency: 'rxjs/operators',
   },
 ] as const satisfies readonly GeneratorDependency[];
-
-export const generateQueryRequestFunction = (
-  verbOptions: GeneratorVerbOptions,
-  options: GeneratorOptions,
-  isVue: boolean,
-  isAngularClient = false,
-) => {
-  if (
-    isAngularClient ||
-    options.context.output.httpClient === OutputHttpClient.ANGULAR
-  ) {
-    return generateAngularHttpRequestFunction(verbOptions, options);
-  }
-  return options.context.output.httpClient === OutputHttpClient.AXIOS
-    ? generateAxiosRequestFunction(verbOptions, options, isVue)
-    : generateFetchRequestFunction(verbOptions, options);
-};
 
 export const generateAngularHttpRequestFunction = (
   {

@@ -19,7 +19,7 @@ export interface MockDefinition {
 
 type OpenApiObjectSchema = Extract<OpenApiSchemaObject, object>;
 
-export type MockSchemaRef = OpenApiReferenceObject;
+type MockSchemaRef = OpenApiReferenceObject;
 
 export type MockSchemaObject = Omit<OpenApiObjectSchema, 'enum'> & {
   name: string;

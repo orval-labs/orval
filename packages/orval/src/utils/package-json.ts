@@ -60,11 +60,6 @@ const isPackageJson = (obj: unknown): obj is PackageJson => isObject(obj);
 
 const resolvedCache = new Map<string, Record<string, string>>();
 
-/** @internal visible for testing */
-export const _resetResolvedCache = () => {
-  resolvedCache.clear();
-};
-
 const resolveAndAttachVersions = (
   pkg: PackageJson,
   workspace: string,
