@@ -35,6 +35,13 @@ export async function getMutatorInfo(
   return parseFile(code, namedExport);
 }
 
+function normalizeTarget(target?: string): string | undefined {
+  if (!target) return undefined;
+  if (target === 'es6') return 'es2015';
+  if (target === 'es7') return 'es2016';
+  return target;
+}
+
 async function bundleFile(
   root: string,
   fileName: string,
@@ -50,7 +57,7 @@ async function bundleFile(
     resolve: alias ? { alias } : undefined,
     treeshake: false,
     transform: {
-      target: compilerOptions?.target ?? 'es2015',
+      target: normalizeTarget(compilerOptions?.target) ?? 'es2015',
     },
   });
 
@@ -77,7 +84,22 @@ function getExternalOption(
   alias?: Record<string, string>,
 ): ExternalOption {
   if (external) {
-    return (id) => external.some((pattern) => matchesExternal(pattern, id));
+    const matchers = external.map((pattern) => {
+      if (isPackagePattern(pattern)) {
+        return (id: string) => id === pattern || id.startsWith(`${pattern}/`);
+      }
+
+      if (!pattern.includes('*')) {
+        return (id: string) => id === pattern;
+      }
+
+      const regex = new RegExp(
+        `^${pattern.replaceAll(/[$()+./?[\\\]^{|}]/g, String.raw`\$&`).replaceAll('*', '.*')}$`,
+      );
+      return (id: string) => regex.test(id);
+    });
+
+    return (id) => matchers.some((match) => match(id));
   }
 
   const aliasKeys = Object.keys(alias ?? {});
@@ -86,22 +108,6 @@ function getExternalOption(
     !isResolved &&
     id !== entry &&
     !aliasKeys.some((key) => id === key || id.startsWith(`${key}/`));
-}
-
-function matchesExternal(pattern: string, id: string): boolean {
-  if (pattern === id) {
-    return true;
-  }
-
-  if (isPackagePattern(pattern) && id.startsWith(`${pattern}/`)) {
-    return true;
-  }
-
-  const regex = new RegExp(
-    `^${pattern.replaceAll(/[$()+./?[\\\]^{|}]/g, String.raw`\$&`).replaceAll('*', '.*')}$`,
-  );
-
-  return regex.test(id);
 }
 
 function isPackagePattern(pattern: string): boolean {
