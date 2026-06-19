@@ -1,6 +1,8 @@
+import path from 'node:path';
+
 import { Parser, type Program } from 'acorn';
-import { build, type BuildOptions } from 'esbuild';
 import { isArray } from 'remeda';
+import { type ExternalOption, rolldown } from 'rolldown';
 
 import type { GeneratorMutatorParsingInfo, Tsconfig } from '../types';
 
@@ -40,27 +42,74 @@ async function bundleFile(
   external?: string[],
   compilerOptions?: Tsconfig['compilerOptions'],
 ): Promise<string> {
-  const result = await build({
-    absWorkingDir: root,
-    entryPoints: [fileName],
-    write: false,
+  const bundle = await rolldown({
+    cwd: root,
+    input: fileName,
     platform: 'node',
-    bundle: true,
-    format: 'esm',
-    metafile: false,
-    target: compilerOptions?.target ?? 'es6',
-    minify: false,
-    minifyIdentifiers: false,
-    minifySyntax: false,
-    minifyWhitespace: false,
-    treeShaking: false,
-    keepNames: false,
-    alias,
-    external: external ?? ['*'],
-  } satisfies BuildOptions);
-  const { text } = result.outputFiles[0];
+    external: getExternalOption(fileName, external, alias),
+    resolve: alias ? { alias } : undefined,
+    treeshake: false,
+    transform: {
+      target: compilerOptions?.target ?? 'es2015',
+    },
+  });
 
-  return text;
+  try {
+    const result = await bundle.generate({
+      format: 'esm',
+      sourcemap: false,
+    });
+    const chunk = result.output.find((output) => output.type === 'chunk');
+
+    if (!chunk) {
+      throw new Error(`Rolldown did not generate a chunk for ${fileName}`);
+    }
+
+    return chunk.code;
+  } finally {
+    await bundle.close();
+  }
+}
+
+function getExternalOption(
+  entry: string,
+  external?: string[],
+  alias?: Record<string, string>,
+): ExternalOption {
+  if (external) {
+    return (id) => external.some((pattern) => matchesExternal(pattern, id));
+  }
+
+  const aliasKeys = Object.keys(alias ?? {});
+
+  return (id, _parentId, isResolved) =>
+    !isResolved &&
+    id !== entry &&
+    !aliasKeys.some((key) => id === key || id.startsWith(`${key}/`));
+}
+
+function matchesExternal(pattern: string, id: string): boolean {
+  if (pattern === id) {
+    return true;
+  }
+
+  if (isPackagePattern(pattern) && id.startsWith(`${pattern}/`)) {
+    return true;
+  }
+
+  const regex = new RegExp(
+    `^${pattern.replaceAll(/[$()+./?[\\\]^{|}]/g, String.raw`\$&`).replaceAll('*', '.*')}$`,
+  );
+
+  return regex.test(id);
+}
+
+function isPackagePattern(pattern: string): boolean {
+  return (
+    !pattern.startsWith('.') &&
+    !path.isAbsolute(pattern) &&
+    !pattern.includes('*')
+  );
 }
 
 function parseFile(
@@ -68,11 +117,10 @@ function parseFile(
   name: string,
 ): GeneratorMutatorParsingInfo | undefined {
   try {
-    // `file` is esbuild's bundled output, not the user's source. esbuild may
-    // emit any modern syntax (notably dynamic `import()`, which it preserves
-    // even when targeting es6 in ESM mode), so we parse with the latest
-    // ecmaVersion to avoid spurious SyntaxErrors that would mask the export
-    // we are looking for. See https://github.com/orval-labs/orval/issues/1634.
+    // `file` is bundled output, not the user's source. The bundler may emit
+    // modern syntax, so we parse with the latest ecmaVersion to avoid spurious
+    // SyntaxErrors that would mask the export we are looking for.
+    // See https://github.com/orval-labs/orval/issues/1634.
     const ast = Parser.parse(file, {
       ecmaVersion: 'latest',
       sourceType: 'module',

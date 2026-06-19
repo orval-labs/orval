@@ -27,11 +27,11 @@
     "acorn": "^8.15.0",
     "compare-versions": "^6.1.1",
     "debug": "^4.4.3",
-    "esbuild": "^0.28.0",
     "esutils": "2.0.3",
     "fs-extra": "^11.3.2",
     "jiti": "^2.6.1",
     "remeda": "^2.33.6",
+    "rolldown": "^1.0.0",
     "tinyglobby": "^0.2.16",
     "typedoc": "^0.28.19"
   },
