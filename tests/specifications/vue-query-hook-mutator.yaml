@@ -1,0 +1,40 @@
+openapi: 3.0.4
+info:
+  title: Vue Query hook mutator - path and query param unref
+  version: 1.0.0
+paths:
+  /api/v{version}/product/{productId}:
+    get:
+      operationId: getProduct
+      parameters:
+        - name: version
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32

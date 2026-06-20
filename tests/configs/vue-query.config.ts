@@ -148,6 +148,25 @@ export default defineConfig({
       },
     },
   },
+  hookMutator: {
+    output: {
+      target: '../generated/vue-query/hook-mutator/endpoints.ts',
+      schemas: '../generated/vue-query/hook-mutator/model',
+      client: 'vue-query',
+      httpClient: 'axios',
+      override: {
+        mutator: {
+          path: '../mutators/use-custom-instance-vue.ts',
+          name: 'useCustomInstance',
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/vue-query-hook-mutator.yaml',
+    },
+  },
   httpClientFetchWithCustomFetch: {
     output: {
       target:
