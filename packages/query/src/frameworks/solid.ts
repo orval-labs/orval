@@ -1,12 +1,5 @@
-import {
-  type GeneratorOptions,
-  type GeneratorVerbOptions,
-  OutputClient,
-  OutputHttpClient,
-} from '@orval/core';
-import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
+import { OutputClient } from '@orval/core';
 
-import { generateAxiosRequestFunction } from '../client';
 import type {
   FrameworkAdapterConfig,
   MutationHookBodyContext,
@@ -181,14 +174,5 @@ export const createSolidAdapter = ({
   getOptionalQueryClientArgument(): string {
     // Solid Query expects queryClient to be an Accessor: () => QueryClient
     return ', queryClient?: () => QueryClient';
-  },
-
-  generateRequestFunction(
-    verbOptions: GeneratorVerbOptions,
-    options: GeneratorOptions,
-  ): string {
-    return options.context.output.httpClient === OutputHttpClient.AXIOS
-      ? generateAxiosRequestFunction(verbOptions, options, false)
-      : generateFetchRequestFunction(verbOptions, options);
   },
 });

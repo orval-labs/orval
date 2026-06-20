@@ -22,7 +22,8 @@ import {
 } from '@orval/core';
 import { generateFetchHeader } from '@orval/fetch';
 
-import { getHasSignal, vueUnRefParams, vueWrapTypeWithMaybeRef } from './utils';
+import type { FrameworkAdapter } from './framework-adapter';
+import { getHasSignal } from './utils';
 
 export const AXIOS_DEPENDENCIES = [
   {
@@ -288,18 +289,16 @@ export const generateAxiosRequestFunction = (
     paramsSerializer,
   }: GeneratorVerbOptions,
   { route: _route, context }: GeneratorOptions,
-  isVue: boolean,
+  adapter: FrameworkAdapter,
 ) => {
-  let props = _props;
+  const props = adapter.transformProps(_props);
   let route = _route;
-
-  if (isVue) {
-    props = vueWrapTypeWithMaybeRef(_props);
-  }
 
   if (context.output.urlEncodeParameters) {
     route = makeRouteSafe(route);
   }
+
+  const unrefStatements = adapter.getRequestUnrefStatements(props);
 
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = !override.formData.disabled;
@@ -359,7 +358,7 @@ export const generateAxiosRequestFunction = (
           : '';
 
       const callback = `(\n    ${propsImplementation}\n ${hookSecondArg}${getSignalDefinition({ hasSignal, hasSignalParam })}) => {
-        ${isVue ? vueUnRefParams(props) : ''}
+        ${unrefStatements}
         ${bodyForm}
         return ${operationName}(
           ${mutatorConfig},
@@ -373,7 +372,7 @@ export const generateAxiosRequestFunction = (
           response.definition.success || 'unknown'
         }>();
 
-        return ${isVue ? callback : `useCallback(${callback}, [${operationName}])`}
+        return ${adapter.wrapHookMutatorCallback(callback, operationName)}
       }
     `;
     }
@@ -383,7 +382,7 @@ export const generateAxiosRequestFunction = (
         ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
         : ''
     }${getSignalDefinition({ hasSignal, hasSignalParam })}) => {
-      ${isVue ? vueUnRefParams(props) : ''}
+      ${unrefStatements}
       ${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
@@ -424,7 +423,7 @@ export const generateAxiosRequestFunction = (
   const httpRequestFunctionImplementation = `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${queryProps} ${optionsArgs} ): Promise<AxiosResponse<${
     response.definition.success || 'unknown'
   }>> => {
-    ${isVue ? vueUnRefParams(props) : ''}
+    ${unrefStatements}
     ${bodyForm}
     return axios${
       isSyntheticDefaultImportsAllowed ? '' : '.default'

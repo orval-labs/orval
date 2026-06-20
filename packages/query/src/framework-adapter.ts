@@ -148,8 +148,14 @@ export interface FrameworkAdapter {
   /** Vue/Angular: skip DataTag annotation on queryKey. Others: include it. */
   shouldAnnotateQueryKey(): boolean;
 
-  /** Vue: unref named path params inside queryOptionsFn. Others: empty string. */
-  getUnrefStatements(props: GetterProps): string;
+  /** Vue: unref all params at the top of the HTTP request fn. Others: empty string. */
+  getRequestUnrefStatements(props: GetterProps): string;
+
+  /**
+   * Vue: unref named path params inside queryOptionsFn (other params stay
+   * reactive for the query key). Others: empty string.
+   */
+  getQueryOptionsUnrefStatements(props: GetterProps): string;
 
   // --- Query Hook Generation ---
   /** Angular: inject(HttpClient). Svelte v6: empty. Others: queryOptions = fn(...). */
@@ -271,6 +277,12 @@ export interface FrameworkAdapter {
     options: GeneratorOptions,
   ): string;
 
+  /**
+   * Wrap a hook-mutator request callback for the HTTP request function.
+   * React/Solid/Svelte: memoize with `useCallback`. Vue: return the callback unchanged.
+   */
+  wrapHookMutatorCallback(callback: string, operationName: string): string;
+
   /** Map a prop to its representation in query properties (e.g., destructured for named path params or name) */
   getQueryPropertyForProp(
     prop: GetterProp,
@@ -314,7 +326,10 @@ type DefaultableFields =
   | 'isAngularHttp'
   | 'getHttpFirstParam'
   | 'getMutationHttpPrefix'
-  | 'getUnrefStatements'
+  | 'getRequestUnrefStatements'
+  | 'getQueryOptionsUnrefStatements'
+  | 'wrapHookMutatorCallback'
+  | 'generateRequestFunction'
   | 'getQueryInvocationSuffix'
   | 'transformProps'
   | 'shouldDestructureNamedPathParams'
