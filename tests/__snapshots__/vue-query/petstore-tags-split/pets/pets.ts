@@ -44,7 +44,7 @@ export const listPets = (
 
   return axios.get(`/pets`, {
     ...options,
-    params: { ...unref(params), ...options?.params },
+    params: { ...params, ...options?.params },
   });
 };
 
@@ -132,7 +132,7 @@ export const createPets = (
 
   return axios.post(`/pets`, createPetsBody, {
     ...options,
-    params: { ...unref(params), ...options?.params },
+    params: { ...params, ...options?.params },
   });
 };
 

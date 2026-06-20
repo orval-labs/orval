@@ -52,7 +52,7 @@ export const listPets = (
   return customInstance<Pets>({
     url: `/v${version}/pets`,
     method: 'GET',
-    params: unref(params),
+    params,
     signal,
   });
 };
@@ -272,7 +272,7 @@ export const createPets = (
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: createPetsBody,
-    params: unref(params),
+    params,
     signal,
   });
 };

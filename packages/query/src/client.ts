@@ -123,7 +123,6 @@ export const generateAngularHttpRequestFunction = (
       hasSignal,
       hasSignalParam,
       isExactOptionalPropertyTypes,
-      isVue: false,
       isAngular: context.output.httpClient === OutputHttpClient.ANGULAR,
     });
 
@@ -335,7 +334,6 @@ export const generateAxiosRequestFunction = (
       hasSignal,
       hasSignalParam,
       isExactOptionalPropertyTypes,
-      isVue,
     });
 
     const bodyDefinition = body.definition.replace('[]', String.raw`\[\]`);
@@ -355,45 +353,29 @@ export const generateAxiosRequestFunction = (
       : '';
 
     if (mutator.isHook) {
-      const ret = `${
+      const hookSecondArg =
+        isRequestOptions && mutator.hasSecondArg
+          ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
+          : '';
+
+      const callback = `(\n    ${propsImplementation}\n ${hookSecondArg}${getSignalDefinition({ hasSignal, hasSignalParam })}) => {
+        ${isVue ? vueUnRefParams(props) : ''}
+        ${bodyForm}
+        return ${operationName}(
+          ${mutatorConfig},
+          ${requestOptions});
+        }`;
+
+      return `${
         override.query.shouldExportMutatorHooks ? 'export ' : ''
       }const use${pascal(operationName)}Hook = () => {
         const ${operationName} = ${mutator.name}<${
           response.definition.success || 'unknown'
         }>();
 
-        return useCallback((\n    ${propsImplementation}\n ${
-          isRequestOptions && mutator.hasSecondArg
-            ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
-            : ''
-        }${getSignalDefinition({ hasSignal, hasSignalParam })}) => {${bodyForm}
-        return ${operationName}(
-          ${mutatorConfig},
-          ${requestOptions});
-        }, [${operationName}])
+        return ${isVue ? callback : `useCallback(${callback}, [${operationName}])`}
       }
     `;
-
-      const vueRet = `${
-        override.query.shouldExportMutatorHooks ? 'export ' : ''
-      }const use${pascal(operationName)}Hook = () => {
-        const ${operationName} = ${mutator.name}<${
-          response.definition.success || 'unknown'
-        }>();
-
-        return (\n    ${propsImplementation}\n ${
-          isRequestOptions && mutator.hasSecondArg
-            ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
-            : ''
-        }${getSignalDefinition({ hasSignal, hasSignalParam })}) => {${bodyForm}
-        return ${operationName}(
-          ${mutatorConfig},
-          ${requestOptions});
-        }
-      }
-    `;
-
-      return isVue ? vueRet : ret;
     }
 
     return `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${propsImplementation}\n ${
@@ -429,7 +411,6 @@ export const generateAxiosRequestFunction = (
     isExactOptionalPropertyTypes,
     hasSignal,
     hasSignalParam,
-    isVue: isVue,
   });
 
   const optionsArgs = generateRequestOptionsArguments({
