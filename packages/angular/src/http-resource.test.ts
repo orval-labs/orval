@@ -429,6 +429,40 @@ describe('angular httpResource generator', () => {
       expect(importNames).toContain('Pet');
       expect(importNames).not.toContain('Error');
     });
+
+    it('keeps zod array response imports type-only when parse is not generated', async () => {
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      });
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+          definition: { success: 'Pet[]', errors: 'Error' },
+          types: {
+            success: [createSuccessType('Pet[]', 'application/json')],
+            errors: [],
+          },
+        }),
+      });
+
+      const result = await generateHttpResourceClient(
+        verbOption,
+        createGeneratorOptions({
+          route: '/api/pets',
+          context: createContextSpec(output),
+          override: output.override,
+          output: output.target,
+        }),
+        'angular',
+        output,
+      );
+
+      expect(result.imports).toContainEqual({ name: 'Pet' });
+      expect(result.imports).not.toContainEqual({ name: 'Pet', values: true });
+    });
   });
 
   // ─── Route registry fallback ──────────────────────────────────────
