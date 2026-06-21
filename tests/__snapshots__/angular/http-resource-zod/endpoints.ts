@@ -31,15 +31,13 @@ import {
   Observable
 } from 'rxjs';
 
-import {
-  Pet,
-  PetWithTag,
-  Pets
-} from './model';
 import type {
   CreatePetsBody,
   CreatePetsParams,
-  ListPetsParams
+  ListPetsParams,
+  Pet,
+  PetWithTag,
+  Pets
 } from './model';
 
 import {
