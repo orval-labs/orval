@@ -618,6 +618,70 @@ import { getPetMock } from '@acme/data-layer/sdk/fakers';
 
 Generate `index.ts` files for schemas.
 
+## tagsSplitDeduplication
+
+**Type:** `Boolean`
+**Default:** `false`
+
+In `tags-split` mode, extract shared infrastructure types (e.g. `HTTPStatusCode*` emitted by the fetch client) into a single `common-types.ts` file and generate a barrel `index.ts` at the target root.
+
+When enabled alongside [`indexFiles: true`](#indexfiles):
+
+- Shared types that would otherwise be duplicated across per-tag files are collected and written once to `[commonTypesFileName].ts`
+- Each per-tag file imports shared types from the common file instead of declaring them inline
+- A barrel `index.ts` is generated with named re-exports for public shared types plus `export *` re-exports for each per-tag implementation file
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: './src/api/endpoints.ts',
+      schemas: './src/api/model',
+      client: 'fetch',
+      indexFiles: true,
+      tagsSplitDeduplication: true,
+    },
+  },
+});
+```
+
+Resulting structure:
+
+```
+src/api/
+├── common-types.ts           ← shared types extracted once
+├── index.ts                  ← barrel with named + wildcard re-exports
+├── pets/
+│   └── pets.ts               ← import type { ... } from '../common-types'
+└── health/
+    └── health.ts             ← import type { ... } from '../common-types'
+```
+
+When disabled (default), shared types are inlined per-tag and no barrel is generated — identical to previous behavior.
+
+Suppressed when [`workspace`](#workspace) is set (the workspace barrel handles aggregation).
+
+## commonTypesFileName
+
+**Type:** `String`
+**Default:** `'common-types'`
+
+The file name (without extension) used for the shared types file when [`tagsSplitDeduplication`](#tagssplitdeduplication) is enabled.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      indexFiles: true,
+      tagsSplitDeduplication: true,
+      commonTypesFileName: 'shared',  // generates shared.ts
+    },
+  },
+});
+```
+
 ## docs
 
 **Type:** `Boolean | Object`

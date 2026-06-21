@@ -430,6 +430,8 @@ export async function normalizeOptions(
       unionAddMissingProperties:
         outputOptions.unionAddMissingProperties ?? false,
       factoryMethods,
+      tagsSplitDeduplication: outputOptions.tagsSplitDeduplication ?? false,
+      commonTypesFileName: outputOptions.commonTypesFileName ?? 'common-types',
       override: {
         ...outputOptions.override,
         mock: {

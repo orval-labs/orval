@@ -58,6 +58,7 @@ export function generateTarget(
     paramsSerializer: [],
     paramsFilter: [],
     fetchReviver: [],
+    sharedTypes: [],
   };
   const operations = Object.values(builder.operations);
   for (const [index, operation] of operations.entries()) {
@@ -146,7 +147,15 @@ export function generateTarget(
         clientImplementation: target.implementation,
       });
 
-      target.implementation = header.implementation + target.implementation;
+      const inlinedSharedTypes =
+        header.sharedTypes && header.sharedTypes.length > 0
+          ? header.sharedTypes
+              .map((t) => `${t.exported ? 'export ' : ''}${t.code}`)
+              .join('\n') + '\n\n'
+          : '';
+
+      target.implementation =
+        inlinedSharedTypes + header.implementation + target.implementation;
 
       const footer = builder.footer({
         outputClient: options.client,

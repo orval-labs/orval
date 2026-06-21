@@ -320,13 +320,14 @@ describe('writeSplitTagsMode — barrel index.ts at target root (#3553)', () => 
     fs.removeSync(tmpDir);
   });
 
-  it('writes index.ts when indexFiles is true', async () => {
+  it('writes index.ts when indexFiles and tagsSplitDeduplication are true', async () => {
     const target = path.join(tmpDir, 'petstore.ts');
     const props = {
       ...createSplitModeProps(target),
       output: createSplitModeOutput(target, {
         mode: OutputMode.TAGS_SPLIT,
         indexFiles: true,
+        tagsSplitDeduplication: true,
       }),
     };
 
@@ -340,6 +341,24 @@ describe('writeSplitTagsMode — barrel index.ts at target root (#3553)', () => 
     expect(content).toContain("export * from './pets/pets'");
   });
 
+  it('does not write index.ts when tagsSplitDeduplication is false', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: true,
+        tagsSplitDeduplication: false,
+      }),
+    };
+
+    const paths = await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const indexPath = path.join(tmpDir, 'index.ts');
+    expect(paths).not.toContain(indexPath);
+    expect(fs.existsSync(indexPath)).toBe(false);
+  });
+
   it('does not write index.ts when indexFiles is false', async () => {
     const target = path.join(tmpDir, 'petstore.ts');
     const props = {
@@ -347,6 +366,7 @@ describe('writeSplitTagsMode — barrel index.ts at target root (#3553)', () => 
       output: createSplitModeOutput(target, {
         mode: OutputMode.TAGS_SPLIT,
         indexFiles: false,
+        tagsSplitDeduplication: true,
       }),
     };
 
@@ -364,6 +384,7 @@ describe('writeSplitTagsMode — barrel index.ts at target root (#3553)', () => 
       output: createSplitModeOutput(target, {
         mode: OutputMode.TAGS_SPLIT,
         indexFiles: true,
+        tagsSplitDeduplication: true,
       }),
     };
 
@@ -380,6 +401,7 @@ describe('writeSplitTagsMode — barrel index.ts at target root (#3553)', () => 
       output: createSplitModeOutput(target, {
         mode: OutputMode.TAGS_SPLIT,
         indexFiles: true,
+        tagsSplitDeduplication: true,
         workspace: path.join(tmpDir, 'workspace'),
       }),
     };
@@ -389,5 +411,64 @@ describe('writeSplitTagsMode — barrel index.ts at target root (#3553)', () => 
     const indexPath = path.join(tmpDir, 'index.ts');
     expect(paths).not.toContain(indexPath);
     expect(fs.existsSync(indexPath)).toBe(false);
+  });
+
+  it('does not write common-types.ts when no shared types are present', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: true,
+        tagsSplitDeduplication: true,
+      }),
+    };
+
+    const paths = await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const commonTypesPath = path.join(tmpDir, 'common-types.ts');
+    expect(paths).not.toContain(commonTypesPath);
+    expect(fs.existsSync(commonTypesPath)).toBe(false);
+  });
+
+  it('writes common-types.ts when shared types are present', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const baseProps = createSplitModeProps(target);
+    const props = {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        header: () => ({
+          implementation: '',
+          implementationMock: '',
+          sharedTypes: [
+            {
+              name: 'HTTPStatusCode2xx',
+              exported: true,
+              code: 'type HTTPStatusCode2xx = 200 | 201;',
+            },
+          ],
+        }),
+      },
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: true,
+        tagsSplitDeduplication: true,
+      }),
+    };
+
+    const paths = await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const commonTypesPath = path.join(tmpDir, 'common-types.ts');
+    expect(paths).toContain(commonTypesPath);
+    expect(fs.existsSync(commonTypesPath)).toBe(true);
+
+    const content = fs.readFileSync(commonTypesPath, 'utf8');
+    expect(content).toContain('export type HTTPStatusCode2xx');
+
+    const indexPath = path.join(tmpDir, 'index.ts');
+    const indexContent = fs.readFileSync(indexPath, 'utf8');
+    expect(indexContent).toContain('HTTPStatusCode2xx');
+    expect(indexContent).toContain("from './common-types'");
   });
 });
