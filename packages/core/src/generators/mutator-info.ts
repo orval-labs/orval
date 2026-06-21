@@ -24,22 +24,9 @@ export async function getMutatorInfo(
     tsconfig,
   } = options ?? {};
 
-  const code = await bundleFile(
-    root,
-    filePath,
-    alias,
-    external,
-    tsconfig?.compilerOptions,
-  );
+  const code = await bundleFile(root, filePath, alias, external);
 
   return parseFile(code, namedExport);
-}
-
-function normalizeTarget(target?: string): string | undefined {
-  if (!target) return undefined;
-  if (target === 'es6') return 'es2015';
-  if (target === 'es7') return 'es2016';
-  return target;
 }
 
 async function bundleFile(
@@ -47,7 +34,6 @@ async function bundleFile(
   fileName: string,
   alias?: Record<string, string>,
   external?: string[],
-  compilerOptions?: Tsconfig['compilerOptions'],
 ): Promise<string> {
   const bundle = await rolldown({
     cwd: root,
@@ -57,7 +43,7 @@ async function bundleFile(
     resolve: alias ? { alias } : undefined,
     treeshake: false,
     transform: {
-      target: normalizeTarget(compilerOptions?.target) ?? 'esnext',
+      target: 'esnext',
     },
   });
 
