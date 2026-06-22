@@ -9,7 +9,12 @@ import {
   createSplitModeOutput,
   createSplitModeProps,
 } from '../test-utils/split-modes';
-import { type GeneratorDependency, OutputMockType, OutputMode } from '../types';
+import {
+  type GeneratorDependency,
+  OutputClient,
+  OutputMockType,
+  OutputMode,
+} from '../types';
 import { writeSplitMode } from './split-mode';
 
 // Regression coverage for https://github.com/orval-labs/orval/issues/2309
@@ -55,6 +60,51 @@ describe('writeSplitMode — schemas path follows needSchema (#2309)', () => {
     const schemasPath = path.join(tmpDir, 'petstore.schemas.ts');
     expect(paths).toContain(schemasPath);
     expect(fs.existsSync(schemasPath)).toBe(true);
+  });
+
+  it('imports from the configured schemas directory even before it exists', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const schemaPath = path.join(tmpDir, 'sample.schemas');
+    const props = createSplitModeProps(target);
+    const builder = props.builder;
+    builder.operations = {
+      listPets: createSplitModeOperation({
+        imports: [{ name: 'Pet' }],
+        implementation: 'export type ListPetsResponse = Pet;',
+      }),
+    };
+    builder.imports = ({ imports }) =>
+      imports
+        .map(
+          ({ dependency, exports }) =>
+            `import type { ${exports
+              .map((entry) => entry.name)
+              .join(', ')} } from '${dependency}';`,
+        )
+        .join('\n');
+
+    const output = createSplitModeOutput(target, {
+      client: OutputClient.ANGULAR,
+      indexFiles: true,
+      mode: OutputMode.SPLIT,
+      schemas: schemaPath,
+    });
+
+    await writeSplitMode({
+      ...props,
+      builder,
+      output,
+      needSchema: false,
+    });
+
+    const content = await fs.readFile(
+      path.join(tmpDir, 'petstore.service.ts'),
+      'utf8',
+    );
+
+    expect(content).toContain("from './sample.schemas'");
+    expect(content).not.toContain("from './.'");
+    expect(content).not.toContain("from './sample'");
   });
 });
 
