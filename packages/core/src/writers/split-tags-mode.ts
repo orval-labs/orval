@@ -78,10 +78,7 @@ export async function writeSplitTagsMode({
         const relativeSchemasPath = output.schemas
           ? upath.getRelativeImportPath(
               importerPath,
-              getFileInfo(
-                isString(output.schemas) ? output.schemas : output.schemas.path,
-                { extension: output.fileExtension },
-              ).dirname,
+              isString(output.schemas) ? output.schemas : output.schemas.path,
             )
           : '../' + filename + '.schemas' + extension.replace(/\.ts$/, '');
 

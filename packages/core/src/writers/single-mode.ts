@@ -49,10 +49,7 @@ export async function writeSingleMode({
     const schemasPath = output.schemas
       ? upath.getRelativeImportPath(
           path,
-          getFileInfo(
-            isString(output.schemas) ? output.schemas : output.schemas.path,
-            { extension: output.fileExtension },
-          ).dirname,
+          isString(output.schemas) ? output.schemas : output.schemas.path,
         )
       : undefined;
 

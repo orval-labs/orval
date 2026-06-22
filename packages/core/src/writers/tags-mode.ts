@@ -65,10 +65,7 @@ export async function writeTagsMode({
         const schemasPathRelative = output.schemas
           ? upath.getRelativeImportPath(
               targetPath,
-              getFileInfo(
-                isString(output.schemas) ? output.schemas : output.schemas.path,
-                { extension: output.fileExtension },
-              ).dirname,
+              isString(output.schemas) ? output.schemas : output.schemas.path,
             )
           : './' + filename + '.schemas' + extension.replace(/\.ts$/, '');
 
