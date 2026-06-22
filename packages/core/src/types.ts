@@ -1075,6 +1075,14 @@ export interface NormalizedFetchOptions {
   jsonReviver?: Mutator;
   runtimeValidation: boolean;
   useRuntimeFetcher: boolean;
+  /**
+   * Serialization format for array query parameters that do not have an explicit
+   * `explode` setting in the OpenAPI spec.
+   *
+   * - `repeat` — repeat the key for each value: `foo=1&foo=2`
+   * - `brackets` — append `[]` to the key: `foo[]=1&foo[]=2`
+   * - `comma` — join values with a comma: `foo=1,2`
+   */
   arrayFormat?: 'repeat' | 'brackets' | 'comma';
 }
 
@@ -1084,6 +1092,14 @@ export interface FetchOptions {
   jsonReviver?: Mutator;
   runtimeValidation?: boolean;
   useRuntimeFetcher?: boolean;
+  /**
+   * Serialization format for array query parameters that do not have an explicit
+   * `explode` setting in the OpenAPI spec.
+   *
+   * - `repeat` — repeat the key for each value: `foo=1&foo=2`
+   * - `brackets` — append `[]` to the key: `foo[]=1&foo[]=2`
+   * - `comma` — join values with a comma: `foo=1,2`
+   */
   arrayFormat?: 'repeat' | 'brackets' | 'comma';
 }
 

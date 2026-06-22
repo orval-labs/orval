@@ -1,3 +1,4 @@
+/** Example `paramsSerializer` mutator that repeats the key for each array item. */
 export const customParamsSerializer = (
   params: Record<string, unknown>,
 ): string =>

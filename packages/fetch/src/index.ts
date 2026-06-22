@@ -52,11 +52,18 @@ const FETCH_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+/** Returns the list of generator dependencies required by the fetch client (e.g. zod). */
 export const getFetchDependencies = () => FETCH_DEPENDENCIES;
 
 const isRawRequestBodyContentType = (contentType: string) =>
   contentType === 'text/plain' || isBinaryContentType(contentType);
 
+/**
+ * Generates the URL helper function and the fetch request function for a single
+ * OpenAPI operation. Handles query-param serialization (explode, arrayFormat,
+ * paramsSerializer), request body encoding, response parsing, and optional
+ * runtime Zod validation.
+ */
 export const generateRequestFunction = (
   {
     queryParams,
@@ -657,6 +664,11 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   );
 };
 
+/**
+ * Derives the TypeScript response type name for a fetch operation.
+ * Returns the operation-scoped name when `includeHttpResponseReturnType` is
+ * enabled, otherwise falls back to the success response definition name.
+ */
 export const fetchResponseTypeName = (
   includeHttpResponseReturnType: boolean | undefined,
   definitionSuccessResponse: string,
@@ -667,6 +679,7 @@ export const fetchResponseTypeName = (
     : definitionSuccessResponse;
 };
 
+/** Builds the full fetch client output (imports + implementation) for one verb. */
 export const generateClient: ClientBuilder = (verbOptions, options) => {
   const isZodOutput =
     typeof options.context.output.schemas === 'object' &&
@@ -720,6 +733,7 @@ export type HTTPStatusCodes = HTTPStatusCode1xx | HTTPStatusCode2xx | HTTPStatus
 
 `;
 
+/** Emits HTTP status-code union types at the top of the generated file when they are needed. */
 export const generateFetchHeader: ClientHeaderBuilder = ({
   clientImplementation,
 }) => {
@@ -735,6 +749,7 @@ const fetchClientBuilder: ClientGeneratorsBuilder = {
   dependencies: getFetchDependencies,
 };
 
+/** Returns the fetch client builder factory used by orval's plugin system. */
 export const builder = () => () => fetchClientBuilder;
 
 export default builder;
