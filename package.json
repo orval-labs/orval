@@ -76,8 +76,8 @@
       "@angular/forms": "22.0.2",
       "@angular/router": "22.0.2",
       "rxjs": "7.8.2",
-      "@angular/build": "22.0.2",
-      "@angular/cli": "22.0.2",
+      "@angular/build": "22.0.3",
+      "@angular/cli": "22.0.3",
       "@tanstack/angular-query-experimental": "5.90.25"
     },
     "axios": {
