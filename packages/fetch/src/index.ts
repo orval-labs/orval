@@ -72,6 +72,7 @@ export const generateRequestFunction = (
     formUrlEncoded,
     override,
     doc,
+    paramsSerializer,
   }: GeneratorVerbOptions,
   { route: _route, context, pathRoute }: GeneratorOptions,
 ) => {
@@ -103,17 +104,15 @@ export const generateRequestFunction = (
     return schema as OpenApiParameterObject;
   });
 
-  const explodeParameters = parameterObjects.filter((parameterObject) => {
-    if (!parameterObject.schema) {
-      return false;
-    }
+  const arrayFormat = override.fetch.arrayFormat;
 
+  const isArrayLikeParam = (parameterObject: OpenApiParameterObject) => {
+    if (!parameterObject.schema) return false;
     const { schema: schemaObject } = resolveSchemaRef(
       parameterObject.schema,
       context,
     );
-
-    const isArrayLike =
+    return (
       schemaObject.type === 'array' ||
       (
         (schemaObject.oneOf as
@@ -129,16 +128,34 @@ export const generateRequestFunction = (
         (schemaObject.allOf as
           | (OpenApiSchemaObject | OpenApiReferenceObject)[]
           | undefined) ?? []
-      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array');
-
-    return (
-      parameterObject.in === 'query' && isArrayLike && parameterObject.explode
+      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array')
     );
-  });
+  };
+
+  const explodeParameters = parameterObjects.filter(
+    (parameterObject) =>
+      parameterObject.in === 'query' &&
+      isArrayLikeParam(parameterObject) &&
+      parameterObject.explode,
+  );
+
+  // Array params where the spec does not explicitly set explode — arrayFormat applies here.
+  const arrayFormatParameters = arrayFormat
+    ? parameterObjects.filter(
+        (parameterObject) =>
+          parameterObject.in === 'query' &&
+          isArrayLikeParam(parameterObject) &&
+          parameterObject.explode === undefined,
+      )
+    : [];
 
   const explodeParametersNames = explodeParameters.map(
     (parameter) => parameter.name,
   );
+  const arrayFormatParametersNames = arrayFormatParameters.map(
+    (parameter) => parameter.name,
+  );
+
   const hasExplodedDateParams =
     context.output.override.useDates &&
     explodeParameters.some((parameter) => {
@@ -163,8 +180,26 @@ export const generateRequestFunction = (
       `
       : '';
 
+  const arrayFormatImplementation =
+    arrayFormatParameters.length > 0
+      ? `const arrayFormatParameters = ${JSON.stringify(arrayFormatParametersNames)};
+
+    if (Array.isArray(value) && arrayFormatParameters.includes(key)) {
+      ${
+        arrayFormat === 'repeat'
+          ? `value.forEach((v) => { normalizedParams.append(key, v === null ? 'null' : String(v)); });`
+          : arrayFormat === 'brackets'
+            ? `value.forEach((v) => { normalizedParams.append(key + '[]', v === null ? 'null' : String(v)); });`
+            : `normalizedParams.append(key, value.map((v) => v === null ? 'null' : String(v)).join(','));`
+      }
+      return;
+    }
+      `
+      : '';
+
   const isExplodeParametersOnly =
-    explodeParameters.length === parameters.length;
+    explodeParameters.length + arrayFormatParameters.length ===
+    parameters.length;
 
   const hasDateParams =
     context.output.override.useDates &&
@@ -181,13 +216,27 @@ export const generateRequestFunction = (
       normalizedParams.append(key, value === null ? 'null' : ${hasDateParams ? 'value instanceof Date ? value.toISOString() : ' : ''}String(value))
     }`;
 
-  const getUrlFnImplementation = `export const ${getUrlFnName} = (${getUrlFnProps}) => {
+  const getUrlFnImplementation = paramsSerializer
+    ? `export const ${getUrlFnName} = (${getUrlFnProps}) => {
+${
+  queryParams
+    ? `  const stringifiedParams = ${paramsSerializer.name}(params);`
+    : ''
+}
+
+  ${
+    queryParams
+      ? `return stringifiedParams.length > 0 ? \`${route}?\${stringifiedParams}\` : \`${route}\``
+      : `return \`${route}\``
+  }
+}\n`
+    : `export const ${getUrlFnName} = (${getUrlFnProps}) => {
 ${
   queryParams
     ? `  const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    ${explodeArrayImplementation}
+    ${explodeArrayImplementation}${arrayFormatImplementation}
     ${isExplodeParametersOnly ? '' : normalParamsImplementation}
   });`
     : ''

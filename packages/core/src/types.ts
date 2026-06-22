@@ -1075,6 +1075,7 @@ export interface NormalizedFetchOptions {
   jsonReviver?: Mutator;
   runtimeValidation: boolean;
   useRuntimeFetcher: boolean;
+  arrayFormat?: 'repeat' | 'brackets' | 'comma';
 }
 
 export interface FetchOptions {
@@ -1083,6 +1084,7 @@ export interface FetchOptions {
   jsonReviver?: Mutator;
   runtimeValidation?: boolean;
   useRuntimeFetcher?: boolean;
+  arrayFormat?: 'repeat' | 'brackets' | 'comma';
 }
 
 export type InputTransformerFn = (

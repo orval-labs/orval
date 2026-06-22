@@ -1,0 +1,25 @@
+openapi: 3.0.4
+info:
+  title: Array format serialization
+  version: 1.0.0
+paths:
+  /api/items:
+    get:
+      operationId: listItems
+      parameters:
+        - name: tags
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
