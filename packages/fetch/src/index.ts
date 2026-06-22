@@ -167,6 +167,17 @@ export const generateRequestFunction = (
       return schema.format === 'date-time';
     });
 
+  const hasArrayFormatDateParams =
+    context.output.override.useDates &&
+    arrayFormatParameters.some((parameter) => {
+      if (!parameter.schema) {
+        return false;
+      }
+
+      const { schema } = resolveSchemaRef(parameter.schema, context);
+      return schema.format === 'date-time';
+    });
+
   const explodeArrayImplementation =
     explodeParameters.length > 0
       ? `const explodeParameters = ${JSON.stringify(explodeParametersNames)};
@@ -187,10 +198,10 @@ export const generateRequestFunction = (
     if (Array.isArray(value) && arrayFormatParameters.includes(key)) {
       ${
         arrayFormat === 'repeat'
-          ? `value.forEach((v) => { normalizedParams.append(key, v === null ? 'null' : String(v)); });`
+          ? `value.forEach((v) => { normalizedParams.append(key, v === null ? 'null' : ${hasArrayFormatDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}String(v)); });`
           : arrayFormat === 'brackets'
-            ? `value.forEach((v) => { normalizedParams.append(key + '[]', v === null ? 'null' : String(v)); });`
-            : `normalizedParams.append(key, value.map((v) => v === null ? 'null' : String(v)).join(','));`
+            ? `value.forEach((v) => { normalizedParams.append(key + '[]', v === null ? 'null' : ${hasArrayFormatDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}String(v)); });`
+            : `normalizedParams.append(key, value.map((v) => v === null ? 'null' : ${hasArrayFormatDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}String(v)).join(','));`
       }
       return;
     }
@@ -199,7 +210,7 @@ export const generateRequestFunction = (
 
   const isExplodeParametersOnly =
     explodeParameters.length + arrayFormatParameters.length ===
-    parameters.length;
+    parameterObjects.filter((p) => p.in === 'query').length;
 
   const hasDateParams =
     context.output.override.useDates &&

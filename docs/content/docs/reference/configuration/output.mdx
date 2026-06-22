@@ -2584,11 +2584,13 @@ export const customParamsSerializer = (
   params: Record<string, unknown>,
 ): string =>
   new URLSearchParams(
-    Object.entries(params ?? {}).flatMap(([k, v]) =>
-      Array.isArray(v)
-        ? v.map((item) => [k, String(item)])
-        : [[k, String(v)]],
-    ),
+    Object.entries(params ?? {})
+      .filter(([_, v]) => v !== undefined)
+      .flatMap(([k, v]) =>
+        Array.isArray(v)
+          ? v.map((item) => [k, String(item)])
+          : [[k, String(v)]],
+      ),
   ).toString();
 ```
 
