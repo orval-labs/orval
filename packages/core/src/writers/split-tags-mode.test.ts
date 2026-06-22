@@ -63,9 +63,13 @@ describe('writeSplitTagsMode — schemas path follows needSchema (#2309)', () =>
     expect(fs.existsSync(schemasPath)).toBe(true);
   });
 
-  it('imports from the configured schemas directory even before it exists', async () => {
+  // Regression coverage for https://github.com/orval-labs/orval/issues/3624.
+  // A schemas directory whose name contains a dot (e.g. the idiomatic
+  // `*.schemas` suffix) is misclassified as a file by `isDirectory`, which made
+  // the relative import collapse to `../.` — an unresolvable specifier.
+  it('imports from a dotted schemas directory without collapsing to "../." (#3624)', async () => {
     const target = path.join(tmpDir, 'petstore.ts');
-    const schemaPath = path.join(tmpDir, 'model');
+    const schemaPath = path.join(tmpDir, 'petstore.schemas');
     const builder = createSplitModeBuilder(target);
     builder.operations = {
       listPets: createSplitModeOperation({
@@ -105,7 +109,7 @@ describe('writeSplitTagsMode — schemas path follows needSchema (#2309)', () =>
       'utf8',
     );
 
-    expect(content).toContain("from '../model'");
+    expect(content).toContain("from '../petstore.schemas'");
     expect(content).not.toContain("from '../.'");
   });
 });

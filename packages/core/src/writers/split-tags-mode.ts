@@ -94,12 +94,16 @@ export async function writeSplitTagsMode({
         const schemaCustomImportPath = getSchemasImportPath(output.schemas);
         const relativeSchemasPath = output.schemas
           ? (schemaCustomImportPath ??
+            // `output.schemas(.path)` is a directory. Resolve the relative
+            // import to it directly (with the file extension kept) so the path
+            // stays correct even when the directory does not exist on disk yet
+            // and when its name contains a dot, e.g. `*.schemas` (#3624).
+            // Deriving it from `getFileInfo(...).dirname` collapsed to `../.`
+            // in those cases.
             upath.getRelativeImportPath(
               importerPath,
-              getFileInfo(
-                isString(output.schemas) ? output.schemas : output.schemas.path,
-                { extension: output.fileExtension },
-              ).dirname,
+              isString(output.schemas) ? output.schemas : output.schemas.path,
+              true,
             ))
           : '../' +
             filename +
