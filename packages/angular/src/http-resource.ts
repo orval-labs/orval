@@ -1544,7 +1544,10 @@ const getHttpResourceRelativeSchemasPath = (
     typeof output.schemas === 'string' ? output.schemas : output.schemas?.path;
 
   if (schemasPath) {
-    return upath.getRelativeImportPath(outputPath, schemasPath);
+    return upath.getRelativeImportPath(
+      outputPath,
+      getFileInfo(schemasPath).dirname,
+    );
   }
 
   const { dirname, filename, extension } = getFileInfo(output.target, {

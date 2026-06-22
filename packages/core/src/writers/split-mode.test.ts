@@ -384,4 +384,45 @@ describe('writeSplitMode — schemas import extension follows tsconfig module', 
       ]),
     );
   });
+
+  it('imports from the configured schemas directory even before it exists', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const schemaPath = path.join(tmpDir, 'model');
+    const builder = createSplitModeBuilder(target);
+    builder.operations = {
+      listPets: createSplitModeOperation({
+        imports: [{ name: 'Pet' }],
+        implementation: 'export type ListPetsResponse = Pet;',
+      }),
+    };
+    builder.imports = ({ imports }) =>
+      imports
+        .map(
+          ({ dependency, exports }) =>
+            `import type { ${exports.map((entry) => entry.name).join(', ')} } from '${dependency}';`,
+        )
+        .join('\n');
+
+    const output = createSplitModeOutput(target, {
+      client: OutputClient.ANGULAR,
+      indexFiles: true,
+      mode: OutputMode.SPLIT,
+      schemas: schemaPath,
+    });
+    const props = {
+      ...createSplitModeProps(target),
+      builder,
+      output,
+    };
+
+    await writeSplitMode({ ...props, needSchema: false });
+
+    const content = await fs.readFile(
+      path.join(tmpDir, 'petstore.service.ts'),
+      'utf8',
+    );
+
+    expect(content).toContain("from './model'");
+    expect(content).not.toContain("from './.'");
+  });
 });
