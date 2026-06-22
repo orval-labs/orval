@@ -1,0 +1,24 @@
+components:
+  schemas:
+    Point:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [Point]
+        coordinates:
+          type: array
+          items:
+            type: number
+    LineString:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [LineString]
+        coordinates:
+          type: array
+          items:
+            type: array
+            items:
+              type: number

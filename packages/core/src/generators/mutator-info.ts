@@ -1,12 +1,8 @@
-import { type ecmaVersion, Parser, type Program } from 'acorn';
+import { Parser, type Program } from 'acorn';
 import { build, type BuildOptions } from 'esbuild';
 import { isArray } from 'remeda';
 
-import type {
-  GeneratorMutatorParsingInfo,
-  Tsconfig,
-  TsConfigTarget,
-} from '../types';
+import type { GeneratorMutatorParsingInfo, Tsconfig } from '../types';
 
 export async function getMutatorInfo(
   filePath: string,
@@ -34,11 +30,7 @@ export async function getMutatorInfo(
     tsconfig?.compilerOptions,
   );
 
-  return parseFile(
-    code,
-    namedExport,
-    getEcmaVersion(tsconfig?.compilerOptions?.target),
-  );
+  return parseFile(code, namedExport);
 }
 
 async function bundleFile(
@@ -74,29 +66,74 @@ async function bundleFile(
 function parseFile(
   file: string,
   name: string,
-  ecmaVersion: ecmaVersion = 6,
 ): GeneratorMutatorParsingInfo | undefined {
   try {
-    const ast = Parser.parse(file, { ecmaVersion, sourceType: 'module' });
+    // `file` is esbuild's bundled output, not the user's source. esbuild may
+    // emit any modern syntax (notably dynamic `import()`, which it preserves
+    // even when targeting es6 in ESM mode), so we parse with the latest
+    // ecmaVersion to avoid spurious SyntaxErrors that would mask the export
+    // we are looking for. See https://github.com/orval-labs/orval/issues/1634.
+    const ast = Parser.parse(file, {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+    });
 
-    const foundSpecifier = ast.body
+    const foundExport = ast.body
       .filter((x) => x.type === 'ExportNamedDeclaration')
-      .flatMap((x) => x.specifiers)
-      .find(
-        (x) =>
-          x.exported.type === 'Identifier' &&
-          x.exported.name === name &&
-          x.local.type === 'Identifier',
-      );
+      .map((declaration) => ({
+        declaration,
+        specifier: declaration.specifiers.find(
+          (specifier) =>
+            specifier.exported.type === 'Identifier' &&
+            specifier.exported.name === name &&
+            specifier.local.type === 'Identifier',
+        ),
+      }))
+      .find((item) => item.specifier);
 
-    if (foundSpecifier && 'name' in foundSpecifier.local) {
+    const foundSpecifier = foundExport?.specifier;
+
+    if (foundExport && foundSpecifier && 'name' in foundSpecifier.local) {
       const exportedFuncName = foundSpecifier.local.name;
 
-      return parseFunction(ast, exportedFuncName);
+      const mutatorInfo = parseFunction(ast, exportedFuncName);
+      if (mutatorInfo) {
+        return mutatorInfo;
+      }
+
+      if (
+        foundExport.declaration.source ||
+        isImportedBinding(ast, exportedFuncName)
+      ) {
+        return standardMutatorInfo();
+      }
     }
   } catch {
     return;
   }
+}
+
+function isImportedBinding(ast: Program, name: string): boolean {
+  return ast.body.some((node) => {
+    if (node.type !== 'ImportDeclaration') {
+      return false;
+    }
+
+    return node.specifiers.some(
+      (specifier) => 'name' in specifier.local && specifier.local.name === name,
+    );
+  });
+}
+
+// Default for mutator exports where arity cannot be inspected:
+// factory-pattern CallExpression initializers (e.g. `axios.create({...})`)
+// and external re-exports. In both cases, the AST cannot reveal the returned
+// callable's arity, so we assume the orval standard contract:
+// a single-arg mutator invoked as `customInstance({ url, method, data, ... })`.
+// See https://github.com/orval-labs/orval/issues/3402 and
+// https://github.com/orval-labs/orval/issues/2342.
+function standardMutatorInfo(): GeneratorMutatorParsingInfo {
+  return { numberOfParams: 1 };
 }
 
 function parseFunction(
@@ -159,6 +196,11 @@ function parseFunction(
       return parseFunction(ast, declaration.init.name);
     }
 
+    // Init is a factory CallExpression — see standardMutatorInfo() above.
+    if (declaration.init.type === 'CallExpression') {
+      return standardMutatorInfo();
+    }
+
     if (
       'body' in declaration.init &&
       'params' in declaration.init &&
@@ -199,21 +241,5 @@ function parseFunction(
         numberOfParams: declaration.init.params.length,
       };
     }
-  }
-}
-
-function getEcmaVersion(target?: TsConfigTarget): ecmaVersion | undefined {
-  if (!target) {
-    return;
-  }
-
-  if (target.toLowerCase() === 'esnext') {
-    return 'latest';
-  }
-
-  try {
-    return Number(target.toLowerCase().replace('es', '')) as ecmaVersion;
-  } catch {
-    return;
   }
 }

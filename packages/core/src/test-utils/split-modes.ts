@@ -5,6 +5,7 @@ import {
   NamingConvention,
   type NormalizedOutputOptions,
   OutputClient,
+  OutputMockType,
   OutputMode,
   type WriteSpecBuilder,
 } from '../types';
@@ -18,15 +19,24 @@ export const createSplitModeOperation = (
   overrides: Partial<GeneratorOperation> = {},
 ): GeneratorOperation => ({
   imports: [],
-  importsMock: [],
   implementation: '',
-  implementationMock: { function: '', handler: '', handlerName: 'mockHandler' },
+  mockOutputs: [
+    {
+      type: OutputMockType.MSW,
+      implementation: {
+        function: '',
+        handler: '',
+        handlerName: 'mockHandler',
+      },
+      imports: [],
+    },
+  ],
   tags: ['pets'],
   operationName: 'listPets',
   ...overrides,
 });
 
-export const createSplitModeBuilder = (target: string): WriteSpecBuilder =>
+const createSplitModeBuilder = (target: string): WriteSpecBuilder =>
   ({
     operations: { listPets: createSplitModeOperation() },
     verbOptions: {},
@@ -49,12 +59,13 @@ export const createSplitModeOutput = (
   ({
     target,
     fileExtension: '.ts',
+    schemaFileExtension: '.ts',
     mode: OutputMode.SPLIT,
     namingConvention: NamingConvention.CAMEL_CASE,
     client: OutputClient.AXIOS,
     httpClient: 'axios',
     schemas: undefined,
-    mock: false,
+    mock: { indexMockFiles: false, generators: [] },
     clean: false,
     docs: false,
     headers: false,
@@ -86,6 +97,7 @@ export const createSplitModeOutput = (
       angular: { provideIn: false },
       swr: {},
       zod: {},
+      effect: {},
       fetch: {},
     },
     ...overrides,

@@ -1,22 +1,23 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import {
   type ContextSpec,
   EnumGeneration,
-  escape,
   type GeneratorImport,
+  getRefInfo,
+  isReference,
   isString,
+  jsStringLiteralEscape,
   mergeDeep,
   type MockOptions,
   type OpenApiSchemaObject,
-  pascal,
 } from '@orval/core';
 
-import type { MockDefinition, MockSchemaObject } from '../../types';
+import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { isFakerVersionV9 } from '../compatible-v9';
 import { DEFAULT_FORMAT_MOCK } from '../constants';
 import {
@@ -24,6 +25,8 @@ import {
   resolveMockOverride,
   resolveMockValue,
 } from '../resolvers';
+import { extractArrayItemMock } from './array-item-factory';
+import { formatSchemaExampleValue } from '../format-example-value';
 import { getMockObject } from './object';
 
 interface GetMockScalarOptions {
@@ -41,6 +44,10 @@ interface GetMockScalarOptions {
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
+  // Tracks the current contiguous `allOf` composition to break cyclic
+  // inheritance; threaded through to `combineSchemasMock`.
+  // See `existingReferencedAllOfRefs` docs in getters/combine.ts.
+  existingReferencedAllOfRefs?: string[];
   splitMockImplementations: string[];
   // This is used to add the overrideResponse to the object
   allowOverride?: boolean;
@@ -55,10 +62,12 @@ export function getMockScalar({
   combine,
   context,
   existingReferencedProperties,
+  existingReferencedAllOfRefs = [],
   splitMockImplementations,
   allowOverride = false,
 }: GetMockScalarOptions): MockDefinition {
   const safeMockOptions: MockOptions = mockOptions ?? {};
+  const nonNullableOption = safeMockOptions.nonNullable;
   // Add the property to the existing properties to validate on object recursion
   if (item.isRef) {
     existingReferencedProperties = [...existingReferencedProperties, item.name];
@@ -67,6 +76,7 @@ export function getMockScalar({
   const operationProperty = resolveMockOverride(
     safeMockOptions.operations?.[operationId]?.properties,
     item,
+    nonNullableOption,
   );
 
   if (operationProperty) {
@@ -86,13 +96,21 @@ export function getMockScalar({
     overrideTag = mergeDeep(overrideTag, options);
   }
 
-  const tagProperty = resolveMockOverride(overrideTag.properties, item);
+  const tagProperty = resolveMockOverride(
+    overrideTag.properties,
+    item,
+    nonNullableOption,
+  );
 
   if (tagProperty) {
     return tagProperty;
   }
 
-  const property = resolveMockOverride(safeMockOptions.properties, item);
+  const property = resolveMockOverride(
+    safeMockOptions.properties,
+    item,
+    nonNullableOption,
+  );
 
   if (property) {
     return property;
@@ -114,7 +132,11 @@ export function getMockScalar({
         : item.example;
     if (propertyExample !== undefined) {
       return {
-        value: JSON.stringify(propertyExample),
+        value: formatSchemaExampleValue(
+          propertyExample,
+          item as OpenApiSchemaObject,
+          context,
+        ),
         imports: [],
         name: item.name,
         overrided: true,
@@ -132,7 +154,13 @@ export function getMockScalar({
     ),
   };
 
+  // Both OpenAPI 3.1 `type: [..., 'null']` and OpenAPI 3.0 `nullable: true`
+  // reach here as a null union, because @scalar/openapi-parser upgrades 3.0
+  // inputs to 3.1 before mock generation. When this getter wraps the value via
+  // `getNullable` it flags the returned MockDefinition with `nullWrapped` so the
+  // object property layer does not add a second `arrayElement([..., null])`.
   const isNullable = Array.isArray(item.type) && item.type.includes('null');
+  const nullWrapped = isNullable && !nonNullableOption;
   // The @scalar/openapi-parser upgrader rewrites `format: binary` to
   // `contentMediaType: application/octet-stream` when upgrading OAS 3.0 → 3.1;
   // treat both equivalently so the mock emits the binary format value
@@ -144,10 +172,11 @@ export function getMockScalar({
     ALL_FORMAT.binary
   ) {
     return {
-      value: getNullable(ALL_FORMAT.binary, isNullable),
+      value: getNullable(ALL_FORMAT.binary, isNullable, nonNullableOption),
       imports: [],
       name: item.name,
       overrided: false,
+      nullWrapped,
     };
   }
   if (item.format && ALL_FORMAT[item.format]) {
@@ -159,10 +188,11 @@ export function getMockScalar({
     }
 
     return {
-      value: getNullable(value, isNullable),
+      value: getNullable(value, isNullable, nonNullableOption),
       imports: [],
       name: item.name,
       overrided: false,
+      nullWrapped,
     };
   }
 
@@ -200,6 +230,7 @@ export function getMockScalar({
       let value = getNullable(
         `faker.number.${intFunction}(${intParts.length > 0 ? `{${intParts.join(', ')}}` : ''})`,
         isNullable,
+        nonNullableOption,
       );
       if (type === 'number') {
         const floatParts: string[] = [];
@@ -213,6 +244,7 @@ export function getMockScalar({
         value = getNullable(
           `faker.number.float(${floatParts.length > 0 ? `{${floatParts.join(', ')}}` : ''})`,
           isNullable,
+          nonNullableOption,
         );
       }
       const numberImports: GeneratorImport[] = [];
@@ -234,17 +266,30 @@ export function getMockScalar({
         enums: item.enum,
         imports: numberImports,
         name: item.name,
+        // `item.enum` / `const` reassign `value` after `getNullable`, discarding
+        // the wrap — so only the plain numeric path is actually null-wrapped.
+        nullWrapped: nullWrapped && !item.enum && !('const' in item),
       };
     }
 
     case 'boolean': {
       let value = 'faker.datatype.boolean()';
-      if ('const' in item) {
+      const booleanImports: GeneratorImport[] = [];
+      if (item.enum) {
+        value = getEnum(
+          item,
+          booleanImports,
+          context,
+          existingReferencedProperties,
+          'boolean',
+        );
+      } else if ('const' in item) {
         value = JSON.stringify(item.const);
       }
       return {
         value,
-        imports: [],
+        enums: item.enum,
+        imports: booleanImports,
         name: item.name,
       };
     }
@@ -254,14 +299,23 @@ export function getMockScalar({
         return { value: '[]', imports: [], name: item.name };
       }
 
+      const itemsRef = extractItemsRef(item.items);
       if (
-        '$ref' in item.items &&
+        itemsRef &&
         existingReferencedProperties.includes(
-          pascal(item.items.$ref.split('/').pop() ?? ''),
+          getRefInfo(itemsRef, context).name,
         )
       ) {
         return { value: '[]', imports: [], name: item.name };
       }
+
+      // If `items` is a single-element `allOf`/`oneOf`/`anyOf` wrapping a
+      // `$ref`, treat it as a direct `$ref`. This avoids double-wrapping when
+      // the inner schema is an enum array (whose `getEnum` already emits
+      // `faker.helpers.arrayElements(...)`) and keeps recursion semantics in
+      // line with direct-$ref items.
+      const resolvedItems =
+        itemsRef && !('$ref' in item.items) ? { $ref: itemsRef } : item.items;
 
       const {
         value,
@@ -269,8 +323,9 @@ export function getMockScalar({
         imports: resolvedImports,
       } = resolveMockValue({
         schema: {
-          ...item.items,
+          ...resolvedItems,
           name: item.name,
+          parentName: item.parentName,
           path: item.path ? `${item.path}.[]` : '#.[]',
         },
         combine,
@@ -280,6 +335,7 @@ export function getMockScalar({
         context,
         imports,
         existingReferencedProperties,
+        existingReferencedAllOfRefs,
         splitMockImplementations,
       });
 
@@ -293,6 +349,21 @@ export function getMockScalar({
 
       let mapValue = value;
 
+      const extractedItemCall = extractArrayItemMock({
+        items: resolvedItems,
+        propertyName: item.name,
+        parentName: item.parentName,
+        operationId,
+        tags,
+        mapValue,
+        context,
+        splitMockImplementations,
+        imports: resolvedImports,
+      });
+      if (extractedItemCall) {
+        mapValue = extractedItemCall;
+      }
+
       if (
         combine &&
         !value.startsWith('faker') &&
@@ -302,12 +373,39 @@ export function getMockScalar({
         mapValue = `{${value}}`;
       }
 
-      const arrMin = (item.minItems ?? safeMockOptions.arrayMin) as
-        | number
-        | undefined;
-      const arrMax = (item.maxItems ?? safeMockOptions.arrayMax) as
-        | number
-        | undefined;
+      // Use global defaults for the missing bound only when they do not
+      // invert the range; otherwise reuse the explicit schema bound so we
+      // never invent values the user did not supply (and never produce
+      // min > max). This also avoids relying on faker's internal default
+      // upper bound when only `minItems` is specified, which can otherwise
+      // produce very large arrays.
+      const arrSchemaMin = item.minItems;
+      const arrSchemaMax = item.maxItems;
+      const arrGlobalMin = safeMockOptions.arrayMin;
+      const arrGlobalMax = safeMockOptions.arrayMax;
+
+      let arrMin: number | undefined;
+      if (arrSchemaMin !== undefined) {
+        arrMin = arrSchemaMin;
+      } else if (arrSchemaMax === undefined) {
+        arrMin = arrGlobalMin;
+      } else if (arrGlobalMin === undefined || arrGlobalMin > arrSchemaMax) {
+        arrMin = arrSchemaMax;
+      } else {
+        arrMin = arrGlobalMin;
+      }
+
+      let arrMax: number | undefined;
+      if (arrSchemaMax !== undefined) {
+        arrMax = arrSchemaMax;
+      } else if (arrSchemaMin === undefined) {
+        arrMax = arrGlobalMax;
+      } else if (arrGlobalMax === undefined || arrGlobalMax < arrSchemaMin) {
+        arrMax = arrSchemaMin;
+      } else {
+        arrMax = arrGlobalMax;
+      }
+
       const arrParts: string[] = [];
       if (arrMin !== undefined) arrParts.push(`min: ${arrMin}`);
       if (arrMax !== undefined) arrParts.push(`max: ${arrMax}`);
@@ -325,15 +423,46 @@ export function getMockScalar({
     }
 
     case 'string': {
-      const strMin = (item.minLength ?? safeMockOptions.stringMin) as
-        | number
-        | undefined;
-      const strMax = (item.maxLength ?? safeMockOptions.stringMax) as
-        | number
-        | undefined;
+      // faker.string.alpha's `length: { min, max }` form requires BOTH bounds.
+      // When only one side is schema-specified, fall back to the global default
+      // for the missing side only if it does not invert the range; otherwise
+      // reuse the explicit bound so we never invent values the user did not
+      // supply (and never produce min > max).
+      const schemaMin = item.minLength;
+      const schemaMax = item.maxLength;
+      const globalMin = safeMockOptions.stringMin;
+      const globalMax = safeMockOptions.stringMax;
+
+      let strMin: number | undefined;
+      if (schemaMin !== undefined) {
+        strMin = schemaMin;
+      } else if (schemaMax === undefined) {
+        strMin = globalMin;
+      } else if (globalMin === undefined || globalMin > schemaMax) {
+        strMin = schemaMax;
+      } else {
+        strMin = globalMin;
+      }
+
+      let strMax: number | undefined;
+      if (schemaMax !== undefined) {
+        strMax = schemaMax;
+      } else if (schemaMin === undefined) {
+        strMax = globalMax;
+      } else if (globalMax === undefined || globalMax < schemaMin) {
+        strMax = schemaMin;
+      } else {
+        strMax = globalMax;
+      }
+
+      // faker.string.alpha's `length: { min, max }` requires both bounds, so
+      // only emit a length argument when we have a complete pair. If only one
+      // side could be resolved (e.g., no schema bound and only one global is
+      // configured) we fall back to faker's own default length.
       const strLenParts: string[] = [];
-      if (strMin !== undefined) strLenParts.push(`min: ${strMin}`);
-      if (strMax !== undefined) strLenParts.push(`max: ${strMax}`);
+      if (strMin !== undefined && strMax !== undefined) {
+        strLenParts.push(`min: ${strMin}`, `max: ${strMax}`);
+      }
       const length =
         strLenParts.length > 0 ? `{length: {${strLenParts.join(', ')}}}` : '';
       let value = `faker.string.alpha(${length})`;
@@ -354,10 +483,11 @@ export function getMockScalar({
       }
 
       return {
-        value: getNullable(value, isNullable),
+        value: getNullable(value, isNullable, nonNullableOption),
         enums: item.enum,
         name: item.name,
         imports: stringImports,
+        nullWrapped,
       };
     }
 
@@ -401,11 +531,32 @@ export function getMockScalar({
         context,
         imports,
         existingReferencedProperties,
+        existingReferencedAllOfRefs,
         splitMockImplementations,
         allowOverride,
       });
     }
   }
+}
+
+// Returns the $ref string from array `items` — either direct ($ref on items
+// itself) or wrapped in a single-element allOf/oneOf/anyOf composition.
+// Multi-element compositions return undefined to preserve combine semantics.
+export function extractItemsRef(items: MockSchema): string | undefined {
+  if (isReference(items)) {
+    return items.$ref;
+  }
+  for (const key of ['allOf', 'oneOf', 'anyOf'] as const) {
+    const composed = items[key] as MockSchema[] | undefined;
+    if (
+      Array.isArray(composed) &&
+      composed.length === 1 &&
+      isReference(composed[0])
+    ) {
+      return composed[0].$ref;
+    }
+  }
+  return;
 }
 
 function getItemType(item: MockSchemaObject) {
@@ -433,14 +584,14 @@ function getEnum(
   imports: GeneratorImport[],
   context: ContextSpec,
   existingReferencedProperties: string[],
-  type?: 'string' | 'number',
+  type?: 'string' | 'number' | 'boolean',
 ) {
   if (!item.enum) return '';
   const joinedEnumValues = item.enum
     .filter((e) => e !== null) // TODO fix type, e can absolutely be null
     .map((e) =>
       type === 'string' || (type === undefined && isString(e))
-        ? `'${escape(e)}'`
+        ? `'${jsStringLiteralEscape(e)}'`
         : e,
     )
     .join(',');

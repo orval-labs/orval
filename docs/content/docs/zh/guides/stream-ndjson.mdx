@@ -1,0 +1,49 @@
+---
+title: Stream NDJSON
+description: 使用 Newline Delimited JSON 进行类型安全流式读取
+---
+
+NDJSON 用换行分隔 JSON 对象，适合服务端持续推送事件、日志或批量结果。Orval 可以为这类响应生成类型安全的读取代码。
+
+## OpenAPI Schema
+
+```yaml
+responses:
+  '200':
+    content:
+      application/x-ndjson:
+        schema:
+          type: object
+```
+
+## 配置
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  events: {
+    input: './openapi.yaml',
+    output: {
+      target: './src/events.ts',
+      client: 'fetch',
+    },
+  },
+});
+```
+
+## 生成结果
+
+生成函数会返回可读取的 stream，并保留每条消息的 TypeScript 类型。
+
+## 读取 Stream
+
+调用方需要逐块读取响应体，把每行解析为 JSON。注意处理半行、空行和连接关闭。
+
+## 用法示例
+
+```ts
+for await (const event of streamEvents()) {
+  console.log(event);
+}
+```
+
+流式接口需要额外关注取消、超时和错误恢复。

@@ -156,6 +156,185 @@ describe('getBody', () => {
 
     expect(result.isOptional).toBe(false);
   });
+
+  // Regression: #2028 — when an OpenAPI 3.0 spec leaves `required` off the
+  // requestBody, orval used to emit a required body parameter. The fix in
+  // PR #3263 treats `required !== true` as optional. This test pins the
+  // exact shape from #2028: an inline requestBody whose content schema is a
+  // `$ref` to components/schemas (not a $ref on the requestBody itself).
+  it('treats inline request bodies with a $ref schema and no required flag as optional (#2028)', () => {
+    const context = createContext();
+    context.spec.components = {
+      ...context.spec.components,
+      schemas: {
+        ...context.spec.components?.schemas,
+        BodyDto: {
+          type: 'object',
+          properties: {
+            x: { type: 'string' },
+          },
+        },
+      },
+    };
+
+    const result = getBody({
+      requestBody: {
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/BodyDto' },
+          },
+        },
+      },
+      operationName: 'createThing',
+      context,
+    });
+
+    expect(result.isOptional).toBe(true);
+  });
+
+  it('treats referenced request bodies marked required: false as optional', () => {
+    const context = createContext();
+    context.spec.components = {
+      ...context.spec.components,
+      requestBodies: {
+        SearchPetsBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  query: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = getBody({
+      requestBody: { $ref: '#/components/requestBodies/SearchPetsBody' },
+      operationName: 'searchPets',
+      context,
+    });
+
+    expect(result.isOptional).toBe(true);
+  });
+
+  describe('x-codegen-request-body-name', () => {
+    it('uses custom name from inline request body extension', () => {
+      const result = getBody({
+        requestBody: {
+          'x-codegen-request-body-name': 'petData',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+          },
+          required: true,
+        },
+        operationName: 'createPet',
+        context: createContext(),
+      });
+
+      expect(result.implementation).toBe('petData');
+    });
+
+    it('uses custom name from referenced request body extension', () => {
+      const context = createContext();
+      context.spec.components = {
+        ...context.spec.components,
+        requestBodies: {
+          CreatePetBody: {
+            'x-codegen-request-body-name': 'resource',
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: { name: { type: 'string' } },
+                },
+              },
+            },
+          },
+        },
+      };
+
+      const result = getBody({
+        requestBody: { $ref: '#/components/requestBodies/CreatePetBody' },
+        operationName: 'createPet',
+        context,
+      });
+
+      expect(result.implementation).toBe('resource');
+    });
+
+    it('falls back to default naming when extension is absent', () => {
+      const result = getBody({
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+          },
+          required: true,
+        },
+        operationName: 'createPet',
+        context: createContext(),
+      });
+
+      expect(result.implementation).toBe('createPetBody');
+    });
+
+    it('sanitizes the extension value through standard naming pipeline', () => {
+      const result = getBody({
+        requestBody: {
+          'x-codegen-request-body-name': 'my-body',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+          },
+          required: true,
+        },
+        operationName: 'createPet',
+        context: createContext(),
+      });
+
+      expect(result.implementation).toBe('myBody');
+    });
+
+    it('falls back to default naming when extension is non-string', () => {
+      const result = getBody({
+        requestBody: {
+          'x-codegen-request-body-name': 123 as unknown as string,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+          },
+          required: true,
+        },
+        operationName: 'createPet',
+        context: createContext(),
+      });
+
+      expect(result.implementation).toBe('createPetBody');
+    });
+  });
 });
 
 describe('getBodiesByContentType', () => {

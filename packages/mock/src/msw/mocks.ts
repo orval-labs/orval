@@ -12,7 +12,12 @@ import {
   stringify,
 } from '@orval/core';
 
+import { formatSchemaExampleValue } from '../faker/format-example-value';
 import { getMockScalar } from '../faker/getters';
+import {
+  appendImportsDelta,
+  collectSplitMockTypeImports,
+} from '../faker/imports';
 
 function getMockPropertiesWithoutFunc(
   properties:
@@ -38,7 +43,7 @@ function getMockPropertiesWithoutFunc(
   return mockProperties;
 }
 
-function getMockWithoutFunc(
+export function getMockWithoutFunc(
   spec: OpenApiDocument,
   override?: NormalizedOverrideOutput,
 ): MockOptions {
@@ -92,6 +97,7 @@ function getMockWithoutFunc(
     numberMin: override?.mock?.numberMin,
     numberMax: override?.mock?.numberMax,
     required: override?.mock?.required,
+    nonNullable: override?.mock?.nonNullable,
     fractionDigits: override?.mock?.fractionDigits,
     ...(override?.mock?.properties
       ? {
@@ -216,10 +222,13 @@ export function getResponsesMockDefinition({
       );
 
       if (exampleValue !== undefined) {
+        const formatted = formatSchemaExampleValue(
+          exampleValue,
+          originalSchema,
+          context,
+        );
         result.definitions.push(
-          transformer
-            ? transformer(exampleValue, returnType)
-            : JSON.stringify(exampleValue),
+          transformer ? transformer(formatted, returnType) : formatted,
         );
         continue;
       }
@@ -242,6 +251,8 @@ export function getResponsesMockDefinition({
 
     const resolvedSchema = resolveRef(originalSchema, context).schema;
 
+    const responseImports = imports ?? [];
+    const importsBefore = responseImports.length;
     const scalar = getMockScalar({
       item: {
         ...(resolvedSchema as Record<string, unknown>),
@@ -250,7 +261,7 @@ export function getResponsesMockDefinition({
           ? { isRef: true }
           : {}),
       },
-      imports,
+      imports: responseImports,
       mockOptions: mockOptionsWithoutFunc,
       operationId,
       tags,
@@ -260,11 +271,20 @@ export function getResponsesMockDefinition({
       allowOverride: true,
     });
 
-    result.imports.push(...scalar.imports);
+    appendImportsDelta(result.imports, responseImports, importsBefore);
+    if (scalar.imports !== responseImports) {
+      appendImportsDelta(result.imports, scalar.imports, 0);
+    }
     result.definitions.push(
       transformer ? transformer(scalar.value, returnType) : scalar.value,
     );
   }
+
+  appendImportsDelta(
+    result.imports,
+    collectSplitMockTypeImports(splitMockImplementations),
+    0,
+  );
 
   return result;
 }

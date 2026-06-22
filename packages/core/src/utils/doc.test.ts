@@ -44,6 +44,110 @@ describe('jsDoc', () => {
 `);
   });
 
+  it('prefixes each line of a multi-line description with *', () => {
+    expect(
+      jsDoc({
+        description: 'line one\nline two\nline three',
+      }),
+    ).toBe(`/**
+ * line one
+ * line two
+ * line three
+ */
+`);
+  });
+
+  it('prefixes each line of multi-line array descriptions with *', () => {
+    expect(
+      jsDoc({
+        description: ['first\nsecond', 'third'],
+      }),
+    ).toBe(`/**
+ * first
+ * second
+ * third
+ */
+`);
+  });
+
+  it('handles CRLF line endings in description', () => {
+    expect(
+      jsDoc({
+        description: 'line one\r\nline two\r\nline three',
+      }),
+    ).toBe(`/**
+ * line one
+ * line two
+ * line three
+ */
+`);
+  });
+
+  it('trims trailing empty description lines', () => {
+    expect(
+      jsDoc({
+        description: 'line one\n\nline two\n',
+      }),
+    ).toBe(`/**
+ * line one
+ *
+ * line two
+ */
+`);
+  });
+
+  it('preserves intentional empty lines in array descriptions', () => {
+    expect(
+      jsDoc({
+        description: ['Generated', '', 'Do not edit'],
+      }),
+    ).toBe(`/**
+ * Generated
+ *
+ * Do not edit
+ */
+`);
+  });
+
+  it('trims trailing empty array description lines', () => {
+    expect(
+      jsDoc({
+        description: ['line one', 'line two', ''],
+      }),
+    ).toBe(`/**
+ * line one
+ * line two
+ */
+`);
+  });
+
+  it('does not render multi-line descriptions as one-line docs', () => {
+    expect(
+      jsDoc(
+        {
+          description: 'line one\nline two\n',
+        },
+        true,
+      ),
+    ).toBe(`/**
+   * line one
+   * line two
+   */
+`);
+  });
+
+  it('escapes */ in multi-line descriptions', () => {
+    expect(
+      jsDoc({
+        description: 'line with /* comment\nline with */ end',
+      }),
+    ).toBe(String.raw`/**
+ * line with /* comment
+ * line with *\/ end
+ */
+`);
+  });
+
   it('stops traversing circular item schemas', () => {
     interface CircularItems {
       [key: string]: unknown;

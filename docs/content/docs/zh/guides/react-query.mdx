@@ -1,0 +1,72 @@
+---
+title: React Query
+description: 从 OpenAPI 生成类型安全的 React Query hooks
+---
+
+React Query 客户端会为读取操作生成 query hooks，为写操作生成 mutation hooks。它适合使用 TanStack Query 管理远程状态的 React 项目。
+
+## 配置
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      schemas: './src/model',
+      client: 'react-query',
+    },
+  },
+});
+```
+
+## 生成结果
+
+生成内容包括：
+
+- `useQuery` hooks
+- `useMutation` hooks
+- query key helpers
+- 请求和响应类型
+- 可选的缓存读写辅助函数
+
+## Infinite Queries
+
+启用 `useInfinite` 后，Orval 会生成 infinite query hook。你需要指定分页参数，通常通过 `useInfiniteQueryParam` 配置。
+
+## 单个操作覆盖
+
+可以在 `override.operations` 中为单个 operation 开启或关闭 query 能力。
+
+## Set Query Data
+
+启用 `useSetQueryData` 后，会生成类型安全的缓存写入函数。它会使用 TanStack Query 的 `setQueriesData`，因此可以按 query key 前缀更新缓存。
+
+## Get Query Data
+
+启用 `useGetQueryData` 后，会生成读取缓存的 helper，返回类型与操作响应保持一致。
+
+## 完整示例
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      client: 'react-query',
+      override: {
+        query: {
+          useQuery: true,
+          useMutation: true,
+          useInvalidate: true,
+          useSetQueryData: true,
+          useGetQueryData: true,
+        },
+      },
+    },
+  },
+});
+```

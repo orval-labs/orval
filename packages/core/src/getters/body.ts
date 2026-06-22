@@ -43,6 +43,11 @@ function buildBody(
         context.output.override.components.requestBodies.suffix
       : camel(definition);
 
+  const overrideName = getRequestBodyExtensionName(requestBody, context);
+  if (overrideName) {
+    implementation = camel(overrideName);
+  }
+
   let isOptional = false;
   if (implementation) {
     implementation = sanitize(implementation, {
@@ -137,6 +142,24 @@ export function getBodiesByContentType({
       contentTypeSuffix: suffix,
     };
   });
+}
+
+function getRequestBodyExtensionName(
+  requestBody: OpenApiReferenceObject | OpenApiRequestBodyObject,
+  context: ContextSpec,
+): string | undefined {
+  let value: unknown;
+  if (isReference(requestBody)) {
+    const { schema } = resolveRef(requestBody, context);
+    value = (schema as Record<string, unknown>)?.[
+      'x-codegen-request-body-name'
+    ];
+  } else {
+    value = (requestBody as Record<string, unknown>)?.[
+      'x-codegen-request-body-name'
+    ];
+  }
+  return typeof value === 'string' ? value : undefined;
 }
 
 const CONTENT_TYPE_SUFFIX_MAP: Record<string, string> = {

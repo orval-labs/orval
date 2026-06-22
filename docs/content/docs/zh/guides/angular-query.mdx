@@ -1,0 +1,125 @@
+---
+title: Angular Query
+description: 生成 TanStack Query for Angular 查询函数
+---
+
+Angular Query 客户端会从 OpenAPI 操作生成可注入、类型安全的 TanStack Query for Angular 函数。它适合已经使用 Angular signals 和 TanStack Query 管理远程数据的项目。
+
+## 配置
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      schemas: './src/model',
+      client: 'angular-query',
+    },
+  },
+});
+```
+
+## 生成结果
+
+Orval 会生成：
+
+- 每个操作对应的查询函数和 mutation 函数
+- 请求和响应类型
+- query key 工具
+- 可选的缓存更新、失效和运行时校验辅助函数
+
+## Signal 响应式
+
+生成的查询函数遵循 Angular Query 的 signals 模型。查询参数可以来自 signal，也可以来自普通值。参数变化时，query key 会随之更新。
+
+## Mutations
+
+写操作会生成 mutation options。你可以在组件或 service 中组合 `injectMutation`，并把生成的 mutation options 传入。
+
+```ts
+const createPetMutation = injectMutation(() => createPetMutationOptions());
+```
+
+## Query Invalidation
+
+启用 `override.query.useInvalidate` 后，Orval 会生成失效辅助函数，用来让相关缓存重新请求。
+
+```ts
+await invalidateListPets(queryClient);
+```
+
+## Set Query Data
+
+启用 `override.query.useSetQueryData` 后，会生成类型安全的缓存写入函数。它使用 TanStack Query 的 `setQueriesData`，因此可以按 query key 前缀更新多条缓存。
+
+## Get Query Data
+
+启用 `override.query.useGetQueryData` 后，会生成读取缓存的辅助函数。返回值类型与对应操作的响应类型一致。
+
+## 自动 Mutation 失效
+
+`override.query.mutationInvalidates` 可以让 mutation 成功后自动失效相关查询。它适合常见的增删改场景，避免在每个组件里重复写 `onSuccess`。
+
+### 组合用户回调
+
+如果你同时传入自己的 `onSuccess`，Orval 会把自动失效逻辑和用户回调组合起来执行。
+
+### 跳过自动失效
+
+个别操作不需要自动失效时，可以在 operation override 中关闭对应配置。
+
+## Query Options
+
+可以通过全局配置或单个 operation override 设置 query options，例如 `staleTime`、`gcTime`、`enabled` 等。
+
+## 单个操作配置
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'angular-query',
+      override: {
+        operations: {
+          listPets: {
+            query: {
+              useQuery: true,
+            },
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+## Zod 运行时校验
+
+配合 Zod 输出时，可以开启运行时校验，让响应在进入应用状态前被 schema 检查。
+
+## 完整示例
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      schemas: './src/model',
+      client: 'angular-query',
+      override: {
+        query: {
+          useInvalidate: true,
+          useSetQueryData: true,
+          useGetQueryData: true,
+        },
+      },
+    },
+  },
+});
+```

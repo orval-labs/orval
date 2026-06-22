@@ -1,0 +1,92 @@
+---
+title: 安装
+description: 在项目中安装 Orval
+---
+
+把 Orval 安装为项目的开发依赖。
+
+## 包管理器
+
+<Tabs items={["bun", "npm", "yarn", "pnpm"]}>
+  <Tab value="bun">
+```bash
+bun add -d orval
+```
+  </Tab>
+  <Tab value="npm">
+```bash
+npm install orval -D
+```
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn add orval -D
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash
+pnpm add orval -D
+```
+  </Tab>
+</Tabs>
+
+## 全局安装
+
+也可以把 Orval 安装为全局命令：
+
+<Tabs items={["bun", "npm", "yarn", "pnpm"]}>
+  <Tab value="bun">
+```bash
+bun add -g orval
+```
+  </Tab>
+  <Tab value="npm">
+```bash
+npm install orval -g
+```
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn global add orval
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash
+pnpm add orval -g
+```
+  </Tab>
+</Tabs>
+
+## 验证安装
+
+安装完成后，可以执行版本命令确认 Orval 可用：
+
+<Tabs items={["bun", "npm", "yarn", "pnpm"]}>
+  <Tab value="bun">
+```bash
+bunx orval --version
+```
+  </Tab>
+  <Tab value="npm">
+```bash
+npx orval --version
+```
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn orval --version
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash
+pnpm orval --version
+```
+  </Tab>
+</Tabs>
+
+## 下一步
+
+<Cards>
+  <Card title="快速开始" href="/zh/docs/quick-start" description="生成第一个 API 客户端" />
+  <Card title="配置" href="/zh/docs/reference/configuration" description="了解配置选项" />
+</Cards>

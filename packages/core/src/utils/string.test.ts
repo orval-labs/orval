@@ -5,6 +5,7 @@ import {
   escape,
   escapeRegExp,
   jsStringEscape,
+  jsStringLiteralEscape,
   stringify,
 } from './string';
 
@@ -212,6 +213,62 @@ describe('jsStringEscape', () => {
   });
 });
 
+describe('jsStringLiteralEscape', () => {
+  describe('escapes only what a single-quoted string literal needs', () => {
+    it('escapes single quotes', () => {
+      expect(jsStringLiteralEscape("don't")).toBe(String.raw`don\'t`);
+    });
+
+    it('escapes backslashes', () => {
+      expect(jsStringLiteralEscape(String.raw`path\to\file`)).toBe(
+        String.raw`path\\to\\file`,
+      );
+    });
+
+    it('escapes line terminators', () => {
+      expect(jsStringLiteralEscape('line1\nline2')).toBe(
+        String.raw`line1\nline2`,
+      );
+      expect(jsStringLiteralEscape('line1\rline2')).toBe(
+        String.raw`line1\rline2`,
+      );
+      // Line/paragraph separators (U+2028/U+2029) escape to text.
+      expect(jsStringLiteralEscape('\u2028\u2029')).toBe(
+        String.raw`\u2028\u2029`,
+      );
+    });
+  });
+
+  describe('does NOT escape characters that are meaningless inside a string literal', () => {
+    // These would produce `no-useless-escape` errors in generated code (#3337).
+    it('does not escape asterisks', () => {
+      expect(jsStringLiteralEscape('hello*world')).toBe('hello*world');
+    });
+
+    it('does not escape forward slashes', () => {
+      expect(jsStringLiteralEscape('path/to/file')).toBe('path/to/file');
+    });
+
+    it('does not escape double quotes', () => {
+      expect(jsStringLiteralEscape('say "hello"')).toBe('say "hello"');
+    });
+
+    it('does not escape comment delimiters', () => {
+      expect(jsStringLiteralEscape('/* comment */')).toBe('/* comment */');
+    });
+  });
+
+  describe('RegExp pattern (#3337)', () => {
+    it('keeps a quantifier pattern free of useless escapes', () => {
+      // `\d` survives the string-literal layer as `\\d`; `*` stays bare so the
+      // generated `new RegExp('...')` does not trip `no-useless-escape`.
+      const escaped = jsStringLiteralEscape(String.raw`^(0|[1-9]\d*)$`);
+      expect(escaped).toBe(String.raw`^(0|[1-9]\\d*)$`);
+      expect(escaped).not.toContain(String.raw`\*`);
+    });
+  });
+});
+
 describe('escape', () => {
   it('should escape a single occurrence of the character', () => {
     expect(escape("don't")).toBe(String.raw`don\'t`);
@@ -244,5 +301,47 @@ describe('stringify', () => {
   it('returns the null literal for null', () => {
     // eslint-disable-next-line unicorn/no-null -- Regression test for explicit null serialization
     expect(stringify(null)).toBe('null');
+  });
+
+  describe('string default values are JS-escaped (#3583)', () => {
+    it('escapes backslashes so the value round-trips', () => {
+      // Without escaping, `App\Models\Document` evaluates to `AppModelsDocument`.
+      expect(stringify('App\\Models\\Document')).toBe(
+        "'App\\\\Models\\\\Document'",
+      );
+    });
+
+    it('escapes a trailing backslash so the literal stays terminated', () => {
+      // Without escaping, the trailing `\'` escapes the closing quote and the
+      // generated file fails to parse.
+      expect(stringify('C:\\logs\\')).toBe("'C:\\\\logs\\\\'");
+    });
+
+    it('does not over-escape forward slashes (#3530 guard)', () => {
+      expect(stringify('Asia/Tokyo')).toBe("'Asia/Tokyo'");
+    });
+
+    it('keeps escaping single quotes', () => {
+      expect(stringify("it's")).toBe(String.raw`'it\'s'`);
+    });
+  });
+
+  describe('object keys are quoted when not valid identifiers (#3583)', () => {
+    it('quotes a non-identifier key', () => {
+      expect(stringify({ 'foo-bar': 1 })).toBe("{ 'foo-bar': 1, }");
+    });
+
+    it('leaves a valid identifier key unquoted', () => {
+      expect(stringify({ version: 1 })).toBe('{ version: 1, }');
+    });
+
+    it('emits __proto__ as a computed key so it is a data property, not a prototype setter', () => {
+      // Both `{ __proto__: x }` and `{ '__proto__': x }` set the object's
+      // prototype (Annex B.3.1); only the computed form `{ ['__proto__']: x }`
+      // creates a normal own data property. Defaults arrive via spec parsing
+      // (JSON.parse), which carries a real own `__proto__` property.
+      const parsed = JSON.parse('{ "__proto__": "x" }');
+      expect(stringify(parsed)).toBe("{ ['__proto__']: 'x', }");
+    });
   });
 });

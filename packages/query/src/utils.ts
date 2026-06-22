@@ -9,10 +9,7 @@ import {
   type Mutator,
   type NormalizedMutator,
   type NormalizedQueryOptions,
-  OutputClient,
-  type OutputClientFunc,
   type QueryOptions,
-  TEMPLATE_TAG_REGEX,
 } from '@orval/core';
 
 export const normalizeQueryOptions = (
@@ -67,6 +64,12 @@ export const normalizeQueryOptions = (
       : {}),
     ...(queryOptions.shouldExportQueryKey
       ? { shouldExportQueryKey: true }
+      : {}),
+    ...(queryOptions.shouldFilterQueryKey
+      ? { shouldFilterQueryKey: true }
+      : {}),
+    ...(queryOptions.queryKeyFilter
+      ? { queryKeyFilter: queryOptions.queryKeyFilter }
       : {}),
     ...(queryOptions.shouldExportHttpClient
       ? { shouldExportHttpClient: true }
@@ -136,30 +139,6 @@ export const vueUnRefParams = (props: GetterProps): string => {
     })
     .join('\n');
 };
-
-export const wrapRouteParameters = (
-  route: string,
-  prepend: string,
-  append: string,
-): string => route.replaceAll(TEMPLATE_TAG_REGEX, `\${${prepend}$1${append}}`);
-
-export const makeRouteSafe = (route: string): string =>
-  wrapRouteParameters(route, 'encodeURIComponent(String(', '))');
-
-export const isVue = (client: OutputClient | OutputClientFunc) =>
-  OutputClient.VUE_QUERY === client;
-
-export const isSolid = (client: OutputClient | OutputClientFunc) =>
-  OutputClient.SOLID_QUERY === client;
-
-export const isAngular = (client: OutputClient | OutputClientFunc) =>
-  OutputClient.ANGULAR_QUERY === client;
-
-export const isReact = (client: OutputClient | OutputClientFunc) =>
-  OutputClient.REACT_QUERY === client;
-
-export const isSvelte = (client: OutputClient | OutputClientFunc) =>
-  OutputClient.SVELTE_QUERY === client;
 
 export const getQueryTypeForFramework = (type: string): string => {
   // Angular Query and Svelte Query don't have suspense variants, map them to regular queries

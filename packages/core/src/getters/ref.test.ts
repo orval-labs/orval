@@ -1,6 +1,22 @@
 import { describe, expect, it } from 'vitest';
 
-import { isComponentRef } from './ref';
+import type { ContextSpec, OpenApiDocument } from '../types';
+import { getDynamicAnchorName, getRefInfo, isComponentRef } from './ref';
+
+function createRefContext(): ContextSpec {
+  return {
+    target: 'core-test',
+    workspace: '/tmp',
+    spec: {},
+    output: {
+      override: {
+        components: {
+          schemas: { suffix: '' },
+        },
+      },
+    },
+  } as ContextSpec;
+}
 
 describe('isComponentRef', () => {
   it.each([
@@ -38,5 +54,99 @@ describe('isComponentRef', () => {
     // RFC 6901: literal "/" inside a name is encoded as "~1".
     // The decoded name is "My/Type" but the ref string segment has no literal slash.
     expect(isComponentRef('#/components/schemas/My~1Type')).toBe(true);
+  });
+});
+
+describe('getDynamicAnchorName', () => {
+  it('extracts fragment-only anchors and rejects unsupported refs', () => {
+    const cases = [
+      ['#category', 'category'],
+      ['other-file.json#anchor', undefined],
+      ['https://example.com/schemas/base#anchor', undefined],
+      ['#', undefined],
+    ] as const;
+
+    for (const [dynamicRef, expected] of cases) {
+      expect(getDynamicAnchorName(dynamicRef)).toBe(expected);
+    }
+  });
+});
+
+function createRefInfoContext(spec: OpenApiDocument): ContextSpec {
+  return {
+    target: 'core-test',
+    workspace: '/tmp',
+    spec,
+    output: {
+      override: { components: { schemas: { suffix: '' } } },
+    },
+  } as ContextSpec;
+}
+
+describe('getRefInfo', () => {
+  it('decodes ~0 tilde escape per RFC 6901', () => {
+    const info = getRefInfo(
+      '#/components/schemas/My~0Type',
+      createRefContext(),
+    );
+    expect(info.originalName).toBe('My~Type');
+  });
+
+  it('decodes both ~1 and ~0 in the same segment', () => {
+    const info = getRefInfo(
+      '#/components/schemas/Path~1To~0Thing',
+      createRefContext(),
+    );
+    expect(info.originalName).toBe('Path/To~Thing');
+  });
+
+  it('decodes order is ~1 then ~0', () => {
+    // "~01" should decode to "~1", not to "/" then "0"
+    const info = getRefInfo(
+      '#/components/schemas/Foo~01Bar',
+      createRefContext(),
+    );
+    expect(info.originalName).toBe('Foo~1Bar');
+  });
+
+  it('percent-decodes before tilde unescaping per RFC 6901 section 6', () => {
+    // %7E is the percent-encoding of "~", so %7E0 → ~0 → ~ and %7E1 → ~1 → /
+    expect(
+      getRefInfo('#/components/schemas/My%7E0Type', createRefContext())
+        .originalName,
+    ).toBe('My~Type');
+    expect(
+      getRefInfo('#/components/schemas/A%7E1B', createRefContext())
+        .originalName,
+    ).toBe('A/B');
+  });
+
+  it('resolves a fragment-only ref to its local schema name', () => {
+    const context = createRefInfoContext({
+      openapi: '3.1.0',
+      components: { schemas: { Pet: { type: 'object' } } },
+    });
+
+    const info = getRefInfo('#/components/schemas/Pet', context);
+
+    expect(info.name).toBe('Pet');
+    expect(info.originalName).toBe('Pet');
+    expect(info.refPaths).toEqual(['components', 'schemas', 'Pet']);
+  });
+
+  it('resolves an external-file ref (pathname branch) and derives name from filename', () => {
+    // Exercises line 97: the return branch reached when pathname is non-empty
+    const context = createRefInfoContext({
+      openapi: '3.1.0',
+      components: { schemas: {} },
+    });
+
+    const info = getRefInfo(
+      './models/pet-model.yaml#/components/schemas/Pet',
+      context,
+    );
+
+    expect(info.name).toBe('Pet');
+    expect(info.originalName).toBe('Pet');
   });
 });

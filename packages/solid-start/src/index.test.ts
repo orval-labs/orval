@@ -28,7 +28,9 @@ function makeOutput(useDates = false): ContextSpec['output'] {
     target: '',
     namingConvention: NamingConvention.CAMEL_CASE,
     fileExtension: '.ts',
+    schemaFileExtension: '.ts',
     mode: OutputMode.SINGLE,
+    mock: { indexMockFiles: false, generators: [] },
     client: OutputClient.FETCH,
     httpClient: OutputHttpClient.FETCH,
     clean: false,
@@ -41,6 +43,12 @@ function makeOutput(useDates = false): ContextSpec['output'] {
     unionAddMissingProperties: false,
     optionsParamRequired: false,
     propertySortOrder: PropertySortOrder.ALPHABETICAL,
+    factoryMethods: {
+      functionNamePrefix: 'create',
+      mode: 'single',
+      outputDirectory: '',
+      includeOptionalProperty: false,
+    },
     override: {
       title: undefined,
       transformer: undefined,
@@ -64,7 +72,12 @@ function makeOutput(useDates = false): ContextSpec['output'] {
         parameters: { suffix: '' },
         requestBodies: { suffix: '' },
       },
-      hono: { compositeRoute: '', validator: false, validatorOutputPath: '' },
+      hono: {
+        handlerGenerationStrategy: 'smart',
+        compositeRoute: '',
+        validator: false,
+        validatorOutputPath: '',
+      },
       query: {
         useQuery: false,
         useSuspenseQuery: false,
@@ -114,8 +127,28 @@ function makeOutput(useDates = false): ContextSpec['output'] {
         },
         generateEachHttpStatus: false,
         useBrandedTypes: false,
+        generateReusableSchemas: false,
+        generateMeta: false,
         dateTimeOptions: {},
         timeOptions: { precision: 3 },
+      },
+      effect: {
+        strict: {
+          param: false,
+          query: false,
+          header: false,
+          body: false,
+          response: false,
+        },
+        generate: {
+          param: false,
+          query: false,
+          header: false,
+          body: false,
+          response: false,
+        },
+        generateEachHttpStatus: false,
+        useBrandedTypes: false,
       },
       fetch: {
         includeHttpResponseReturnType: false,
@@ -389,9 +422,7 @@ describe('generateSolidStart — query string serialization', () => {
     expect(implementation).toContain('const explodeParameters = ["country"]');
     expect(implementation).toContain('Array.isArray(value)');
     // scalar fallback still present (the ternary after the Array.isArray branch)
-    expect(implementation).toContain(
-      "value === null ? 'null' : value.toString()",
-    );
+    expect(implementation).toContain("value === null ? 'null' : String(value)");
   });
 
   it('generates per-element append for an array param declared via oneOf', async () => {

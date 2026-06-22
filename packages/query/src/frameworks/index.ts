@@ -93,7 +93,7 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => ({
         if (param.type === GetterPropType.NAMED_PATH_PARAMS)
           return param.destructured;
         return param.name === 'params'
-          ? `{...params, '${queryParam}': pageParam || params?.['${queryParam}']}`
+          ? `{...params, '${queryParam}': pageParam ?? params?.['${queryParam}']}`
           : param.name;
       })
       .join(',');
@@ -209,7 +209,7 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => ({
   ...adapter,
 });
 
-export type QueryClientType =
+type QueryClientType =
   | 'react-query'
   | 'vue-query'
   | 'svelte-query'

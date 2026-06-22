@@ -9,7 +9,13 @@ import {
   type ScalarValue,
   SchemaType,
 } from '../types';
-import { escape, isReference, isString, jsDoc, pascal } from '../utils';
+import {
+  isReference,
+  isString,
+  jsDoc,
+  jsStringLiteralEscape,
+  pascal,
+} from '../utils';
 import { combineSchemas } from './combine';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getKey } from './keys';
@@ -40,7 +46,9 @@ function getPropertyNamesEnumKeyType(
 
     if (enumValues.length > 0) {
       return {
-        value: enumValues.map((val) => `'${escape(val)}'`).join(' | '),
+        value: enumValues
+          .map((val) => `'${jsStringLiteralEscape(val)}'`)
+          .join(' | '),
         imports: [],
         dependencies: [],
       };
@@ -49,7 +57,7 @@ function getPropertyNamesEnumKeyType(
 
   if (isString(propertyNames.const)) {
     return {
-      value: `'${escape(propertyNames.const)}'`,
+      value: `'${jsStringLiteralEscape(propertyNames.const)}'`,
       imports: [],
       dependencies: [],
     };
@@ -124,10 +132,11 @@ function getPropertyNamesRecordType(
 }
 
 /**
- * Context for multipart/form-data type generation.
+ * Context for form request body (multipart/form-data and
+ * application/x-www-form-urlencoded) type generation.
  * Discriminated union with two states:
  *
- * 1. `{ atPart: false, encoding }` - At form-data root, before property iteration
+ * 1. `{ atPart: false, encoding }` - At form root, before property iteration
  *    - May traverse through allOf/anyOf/oneOf to reach properties
  *    - Carries encoding map so getObject can look up `encoding[key]`
  *
@@ -136,11 +145,19 @@ function getPropertyNamesRecordType(
  *    - Used by getScalar for file type detection (precedence over contentMediaType)
  *    - Arrays pass this through to items; combiners inside arrays also get context
  *
- * `undefined` means not in form-data context (or nested inside plain object field = JSON)
+ * `urlEncoded` marks an application/x-www-form-urlencoded body. Such bodies are
+ * built with URLSearchParams, whose values are always strings, so getScalar
+ * keeps file/binary fields as `string` instead of `Blob` (#1624).
+ *
+ * `undefined` means not in form context (or nested inside plain object field = JSON)
  */
 export type FormDataContext =
-  | { atPart: false; encoding: Record<string, { contentType?: string }> }
-  | { atPart: true; partContentType?: string };
+  | {
+      atPart: false;
+      encoding: Record<string, { contentType?: string }>;
+      urlEncoded?: boolean;
+    }
+  | { atPart: true; partContentType?: string; urlEncoded?: boolean };
 
 interface GetObjectOptions {
   item: OpenApiSchemaObject;
@@ -202,6 +219,82 @@ export function getObject({
   if (itemAllOf || itemOneOf || itemAnyOf) {
     const separator = itemAllOf ? 'allOf' : itemOneOf ? 'oneOf' : 'anyOf';
 
+    // A nullable object spelled as the explicit OAS 3.1 composition
+    // `anyOf|oneOf: [{ inline object with properties }, { type: 'null' }]` must
+    // keep its `name` so nested enum properties are extracted into named
+    // `as const` consts. Routing it through combineSchemas resolves the object
+    // member with `combined: true` and an undefined propName, which drops the
+    // name and inlines those enums. Divert the single object member to the
+    // property-iteration path instead — the same fix #3340 applied one level
+    // down for the `type: ['object', 'null']` shape. See issue #3563.
+    // Real unions, `$ref` object members, primitive members, and empty objects
+    // keep the combineSchemas behavior via the guard below.
+    //
+    // Read members from the active `separator` (not `itemAnyOf ?? itemOneOf`)
+    // so this check and the combineSchemas fallback below operate on the same
+    // composition. `allOf` is intersection, not a nullable union, so it yields
+    // no members here and always falls through to combineSchemas.
+    const members =
+      separator === 'anyOf'
+        ? itemAnyOf
+        : separator === 'oneOf'
+          ? itemOneOf
+          : undefined;
+    if (members) {
+      const isNullMember = (
+        member: OpenApiSchemaObject | OpenApiReferenceObject,
+      ): boolean => {
+        if (isReference(member)) {
+          return false;
+        }
+        const memberType = member.type as string | string[] | undefined;
+        return (
+          memberType === 'null' ||
+          (Array.isArray(memberType) &&
+            memberType.length === 1 &&
+            memberType[0] === 'null')
+        );
+      };
+
+      const nonNullMembers = members.filter((member) => !isNullMember(member));
+      const nonNullMember = nonNullMembers[0];
+      // Bridge assertion: AnyOtherAttribute infects member property access to
+      // `any`; cast to the documented shapes after excluding `$ref` members.
+      const nonNullMemberType =
+        nonNullMember && !isReference(nonNullMember)
+          ? (nonNullMember.type as string | string[] | undefined)
+          : undefined;
+      const nonNullMemberProperties =
+        nonNullMember && !isReference(nonNullMember)
+          ? (nonNullMember.properties as
+              | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+              | undefined)
+          : undefined;
+
+      const isNullableObjectComposition =
+        members.some(isNullMember) &&
+        nonNullMembers.length === 1 &&
+        nonNullMember != null &&
+        !isReference(nonNullMember) &&
+        (nonNullMemberType === 'object' ||
+          (nonNullMemberType == null && nonNullMemberProperties != null)) &&
+        nonNullMemberProperties != null &&
+        Object.keys(nonNullMemberProperties).length > 0;
+
+      if (isNullableObjectComposition) {
+        // `nullable` is empty for the composition form (the null lives in a
+        // member, not on the parent), so synthesize ` | null`; the
+        // property-iteration path appends it to the rendered object.
+        return getObject({
+          item: nonNullMember as OpenApiSchemaObject,
+          name,
+          context,
+          nullable: nullable || ' | null',
+          formDataContext,
+        });
+      }
+    }
+
     return combineSchemas({
       schema: schemaItem,
       name,
@@ -214,20 +307,46 @@ export function getObject({
 
   if (Array.isArray(itemType)) {
     const typeArray = itemType;
-    // Bridge: item is OpenApiSchemaObject which includes AnyOtherAttribute index signature.
-    // Spreading it directly would carry `any` into the result. Cast to break the chain.
-    const baseItem = schemaItem as Record<string, unknown>;
-    return combineSchemas({
-      schema: {
-        anyOf: typeArray.map(
-          (type) => ({ ...baseItem, type }) as OpenApiSchemaObject,
-        ),
-      },
-      name,
-      separator: 'anyOf',
-      context,
-      nullable,
-    });
+    // A nullable object (`type: ['object', 'null']`, e.g. OAS 3.0 `nullable: true`
+    // after the @scalar upgrade) must stay on the object property-iteration path
+    // below so its `name` is preserved and nested enum properties keep being
+    // extracted into named consts. Routing it through combineSchemas resolves the
+    // object variant with an undefined propName, which drops the name and inlines
+    // those enums instead. See issue #3340. Real unions (e.g. `['string', 'number']`)
+    // keep the combineSchemas path.
+    const nonNullTypes = typeArray.filter((type) => type !== 'null');
+    // Bridge assertion: AnyOtherAttribute infects `properties` to `any`; cast to
+    // the documented property-map shape, matching the itemProperties cast below.
+    const typeArrayProperties = schemaItem.properties as
+      | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+      | undefined;
+    // Only divert when there are properties to walk — an empty nullable object
+    // has no nested enums to extract, and routing it through the property path
+    // would render it as `unknown` instead of `{ [key: string]: unknown }`.
+    const isNullableObject =
+      nonNullTypes.length === 1 &&
+      nonNullTypes[0] === 'object' &&
+      typeArrayProperties != null &&
+      Object.keys(typeArrayProperties).length > 0;
+
+    if (!isNullableObject) {
+      // Bridge: item is OpenApiSchemaObject which includes AnyOtherAttribute index signature.
+      // Spreading it directly would carry `any` into the result. Cast to break the chain.
+      const baseItem = schemaItem as Record<string, unknown>;
+      return combineSchemas({
+        schema: {
+          anyOf: typeArray.map(
+            (type) => ({ ...baseItem, type }) as OpenApiSchemaObject,
+          ),
+        },
+        name,
+        separator: 'anyOf',
+        context,
+        nullable,
+      });
+    }
+    // Fall through to the property-iteration path; `nullable` already carries
+    // the ` | null` computed by getScalar for this type array.
   }
 
   // Bridge assertion: item.properties is typed as { [name: string]: ReferenceObject | SchemaObject }
@@ -289,13 +408,15 @@ export function getObject({
         propName = propName + 'Property';
       }
 
-      // Transition multipart context: atPart: false → atPart: true
-      // Look up encoding[key].contentType and pass to property resolution
+      // Transition form context: atPart: false → atPart: true
+      // Look up encoding[key].contentType and pass to property resolution.
+      // The urlEncoded flag is carried through so nested scalars stay strings.
       const propertyFormDataContext: FormDataContext | undefined =
         formDataContext && !formDataContext.atPart
           ? {
               atPart: true,
               partContentType: formDataContext.encoding[key]?.contentType, // eslint-disable-line @typescript-eslint/no-unnecessary-condition -- Record index access can return undefined at runtime
+              urlEncoded: formDataContext.urlEncoded,
             }
           : undefined;
 
@@ -322,7 +443,12 @@ export function getObject({
             .join('\n')}\n`
         : '';
 
-      if (isReadOnly) {
+      // Propagate readonly state from nested schemas ($ref targets or inline
+      // objects), not just this property's own readOnly flag. Otherwise an
+      // object whose readonly props come solely from nested schemas is never
+      // wrapped in `NonReadonly<>`, leaking the readonly modifier into request
+      // body types. See issue #826.
+      if (isReadOnly || resolvedValue.hasReadonlyProps) {
         acc.hasReadonlyProps = true;
       }
 
@@ -334,7 +460,7 @@ export function getObject({
       if (!hasConst) {
         constLiteral = undefined;
       } else if (isString(constValue)) {
-        constLiteral = `'${escape(constValue)}'`;
+        constLiteral = `'${jsStringLiteralEscape(constValue)}'`;
       } else {
         constLiteral = JSON.stringify(constValue);
       }
@@ -416,18 +542,31 @@ export function getObject({
               context,
             );
             if (recordType) {
+              // `propertyNames` constrains the keys to a literal union, so this
+              // emits `Partial<Record<'a' | 'b', T>>` — specific optional keys,
+              // not a string index signature. Named properties never collide
+              // with it, so keep the precise additionalProperties value type.
               acc.value += '\n}';
               acc.value += ` & ${recordType.value}`;
               acc.useTypeAlias = true;
               acc.imports.push(...recordType.imports);
               acc.dependencies.push(...recordType.dependencies);
+              acc.imports.push(...resolvedValue.imports);
+              acc.schemas.push(...resolvedValue.schemas);
+              acc.dependencies.push(...resolvedValue.dependencies);
             } else {
+              // A bare `[key: string]: T` index signature also covers the named
+              // keys, so any named property whose type differs from T makes the
+              // object unrepresentable (TS2411) — or unconstructable if T is
+              // pushed into an intersection, since the index still constrains
+              // the named keys. Fall back to `unknown`, matching
+              // `additionalProperties: true`, so the generated type stays valid
+              // and assignable regardless of the named property types. The
+              // additionalProperties value type (and its imports) is dropped
+              // here, so it is intentionally not pushed. See issues #3321 / #3255.
               const keyType = getIndexSignatureKey(schemaItem);
-              acc.value += `\n  [key: ${keyType}]: ${resolvedValue.value};\n}`;
+              acc.value += `\n  [key: ${keyType}]: unknown;\n}`;
             }
-            acc.imports.push(...resolvedValue.imports);
-            acc.schemas.push(...resolvedValue.schemas);
-            acc.dependencies.push(...resolvedValue.dependencies);
           }
         } else {
           acc.value += '\n}';
@@ -541,7 +680,7 @@ export function getObject({
     return {
       value:
         typeof constValue === 'string'
-          ? `'${escape(constValue)}'`
+          ? `'${jsStringLiteralEscape(constValue)}'`
           : JSON.stringify(constValue),
       imports: [],
       schemas: [],

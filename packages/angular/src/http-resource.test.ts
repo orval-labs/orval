@@ -53,8 +53,9 @@ const createOutput = (
     operationSchemas: undefined,
     namingConvention: 'camelCase',
     fileExtension: '.ts',
+    schemaFileExtension: '.ts',
     mode: 'single',
-    mock: undefined,
+    mock: { indexMockFiles: false, generators: [] },
     override: {
       operations: {},
       tags: {},
@@ -62,6 +63,7 @@ const createOutput = (
       jsDoc: {},
       header: false,
       hono: {
+        handlerGenerationStrategy: 'smart',
         compositeRoute: '',
         validator: true,
         validatorOutputPath: '',
@@ -105,8 +107,28 @@ const createOutput = (
         },
         generateEachHttpStatus: false,
         useBrandedTypes: false,
+        generateReusableSchemas: false,
+        generateMeta: false,
         dateTimeOptions: {},
         timeOptions: {},
+      },
+      effect: {
+        strict: {
+          param: false,
+          query: false,
+          header: false,
+          body: false,
+          response: false,
+        },
+        generate: {
+          param: true,
+          query: true,
+          header: true,
+          body: true,
+          response: true,
+        },
+        generateEachHttpStatus: false,
+        useBrandedTypes: false,
       },
       fetch: {
         includeHttpResponseReturnType: true,
@@ -135,6 +157,12 @@ const createOutput = (
     optionsParamRequired: false,
     unionAddMissingProperties: false,
     propertySortOrder: 'Specification',
+    factoryMethods: {
+      functionNamePrefix: 'create',
+      mode: 'single',
+      outputDirectory: '',
+      includeOptionalProperty: false,
+    },
     ...overrides,
   } satisfies NormalizedOutputOptions;
 
@@ -400,6 +428,40 @@ describe('angular httpResource generator', () => {
       const importNames = result.imports.map((imp) => imp.name);
       expect(importNames).toContain('Pet');
       expect(importNames).not.toContain('Error');
+    });
+
+    it('keeps zod array response imports type-only when parse is not generated', async () => {
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      });
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+          definition: { success: 'Pet[]', errors: 'Error' },
+          types: {
+            success: [createSuccessType('Pet[]', 'application/json')],
+            errors: [],
+          },
+        }),
+      });
+
+      const result = await generateHttpResourceClient(
+        verbOption,
+        createGeneratorOptions({
+          route: '/api/pets',
+          context: createContextSpec(output),
+          override: output.override,
+          output: output.target,
+        }),
+        'angular',
+        output,
+      );
+
+      expect(result.imports).toContainEqual({ name: 'Pet' });
+      expect(result.imports).not.toContainEqual({ name: 'Pet', values: true });
     });
   });
 
@@ -891,7 +953,166 @@ describe('angular httpResource generator', () => {
       } as never);
 
       expect(header.match(/type AngularHttpParamValue =/g)).toHaveLength(1);
-      expect(header.match(/function filterParams\(/g)).toHaveLength(3);
+      expect(header.match(/preserveRequiredNullables = false,/g)).toHaveLength(
+        1,
+      );
+    });
+
+    // Issue #3326 — schema-aware passthrough + custom paramsFilter mutator
+    describe('query parameter filtering (#3326)', () => {
+      const customFilter = {
+        name: 'myFilter',
+        path: './my-filter',
+        default: false,
+        hasErrorType: false,
+        errorTypeName: '',
+        hasSecondArg: false,
+        hasThirdArg: false,
+        isHook: false,
+      };
+
+      it('does not emit a passthrough set without a paramsSerializer', () => {
+        const verbOption = createVerbOption({
+          queryParams: {
+            schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+            deps: [],
+            isOptional: true,
+            originalSchema: {} as never,
+            requiredNullableKeys: [],
+            nonPrimitiveKeys: ['filters'],
+          },
+        });
+        routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+        const header = generateHttpResourceHeader({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          output: createOutput(),
+          verbOptions: { getPetById: verbOption },
+          clientImplementation: '',
+        } as never);
+
+        // Without a serializer the passthrough set would make `filterParams`
+        // return `unknown` (uncompilable against HttpClient). See #3326.
+        expect(header).not.toContain('new Set<string>(["filters"])');
+      });
+
+      it('passes nonPrimitiveKeys through when a paramsSerializer is configured', () => {
+        const verbOption = createVerbOption({
+          queryParams: {
+            schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+            deps: [],
+            isOptional: true,
+            originalSchema: {} as never,
+            requiredNullableKeys: [],
+            nonPrimitiveKeys: ['filters'],
+          },
+          paramsSerializer: {
+            name: 'mySerializer',
+            path: './my-serializer',
+            default: false,
+            hasErrorType: false,
+            errorTypeName: '',
+            hasSecondArg: false,
+            hasThirdArg: false,
+            isHook: false,
+          },
+        });
+        routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+        const header = generateHttpResourceHeader({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          output: createOutput(),
+          verbOptions: { getPetById: verbOption },
+          clientImplementation: '',
+        } as never);
+
+        // The serializer can consume the raw object, so the passthrough set
+        // surfaces as the fourth filterParams argument.
+        expect(header).toContain('new Set<string>(["filters"])');
+      });
+
+      it('replaces the built-in filter with the user-supplied paramsFilter', () => {
+        const verbOption = createVerbOption({
+          queryParams: {
+            schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+            deps: [],
+            isOptional: true,
+            originalSchema: {} as never,
+            requiredNullableKeys: [],
+          },
+          paramsFilter: customFilter,
+        });
+        routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+        const header = generateHttpResourceHeader({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          output: createOutput(),
+          verbOptions: { getPetById: verbOption },
+          clientImplementation: '',
+        } as never);
+
+        // The user's filter is invoked directly with `params?.()`.
+        expect(header).toContain('myFilter(params?.() ?? {})');
+        // No built-in helper body is emitted when every retrieval has paramsFilter.
+        expect(header).not.toContain('function filterParams(');
+      });
+
+      it('emits the shared helper when at least one retrieval lacks paramsFilter', () => {
+        const verbA = createVerbOption({
+          operationName: 'a',
+          queryParams: {
+            schema: { name: 'AParams', model: '', imports: [] },
+            deps: [],
+            isOptional: true,
+            originalSchema: {} as never,
+            requiredNullableKeys: [],
+          },
+          paramsFilter: customFilter,
+        });
+        const verbB = createVerbOption({
+          operationName: 'b',
+          queryParams: {
+            schema: { name: 'BParams', model: '', imports: [] },
+            deps: [],
+            isOptional: true,
+            originalSchema: {} as never,
+            requiredNullableKeys: [],
+          },
+        });
+        routeRegistry.set('a', '/api/a');
+        routeRegistry.set('b', '/api/b');
+
+        const header = generateHttpResourceHeader({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          output: createOutput(),
+          verbOptions: { a: verbA, b: verbB },
+          clientImplementation: '',
+        } as never);
+
+        // Helper present (for verbB) AND user filter referenced (for verbA).
+        expect(header).toContain('function filterParams(');
+        expect(header).toContain('myFilter(params?.() ?? {})');
+      });
     });
   });
 
@@ -2334,6 +2555,111 @@ describe('angular httpResource generator', () => {
       expect(petsFile?.content).not.toContain('createPet');
       expect(healthFile?.content).toContain('getHealthResource');
       expect(healthFile?.content).not.toContain('getPetByIdResource');
+    });
+  });
+
+  // ── urlEncodeParameters ─────────────────────────────────────────────
+
+  describe('schema import extension follows tsconfig module', () => {
+    it('appends .js to per-schema imports under module: NodeNext with indexFiles false', async () => {
+      const verb = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+          definition: { success: 'Pet', errors: 'Error' },
+        }),
+      });
+
+      const output = createOutput({
+        target: '/tmp/pets.ts',
+        schemas: '/tmp/model',
+        indexFiles: false,
+        tsconfig: {
+          compilerOptions: { module: 'NodeNext' },
+        },
+      });
+
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: '/tmp/pets.ts',
+        projectName: 'pets',
+      });
+
+      const extraFiles = await generateHttpResourceExtraFiles(
+        { getPetById: verb },
+        output,
+        context,
+      );
+
+      const resourceFile = extraFiles[0];
+      expect(resourceFile?.content).toMatch(
+        /from\s+['"]\.\/model\/pet\.js['"]/,
+      );
+    });
+
+    it('keeps per-schema imports extensionless without tsconfig', async () => {
+      const verb = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+          definition: { success: 'Pet', errors: 'Error' },
+        }),
+      });
+
+      const output = createOutput({
+        target: '/tmp/pets.ts',
+        schemas: '/tmp/model',
+        indexFiles: false,
+      });
+
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: '/tmp/pets.ts',
+        projectName: 'pets',
+      });
+
+      const extraFiles = await generateHttpResourceExtraFiles(
+        { getPetById: verb },
+        output,
+        context,
+      );
+
+      const resourceFile = extraFiles[0];
+      expect(resourceFile?.content).toMatch(/from\s+['"]\.\/model\/pet['"]/);
+      expect(resourceFile?.content).not.toMatch(/from\s+['"]\.\/model\/pet\./);
+    });
+  });
+
+  describe('urlEncodeParameters', () => {
+    const generateRetrievalHeader = (urlEncodeParameters: boolean): string => {
+      const verbOption = createVerbOption();
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      return generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput({ urlEncodeParameters }),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+    };
+
+    it('encodes the signal path parameter when urlEncodeParameters is true', () => {
+      const header = generateRetrievalHeader(true);
+
+      expect(header).toContain(
+        '`/api/pets/${encodeURIComponent(String(petId()))}`',
+      );
+      expect(header).not.toContain('`/api/pets/${petId()}`');
+    });
+
+    it('leaves the route unchanged when urlEncodeParameters is false', () => {
+      const header = generateRetrievalHeader(false);
+
+      expect(header).toContain('`/api/pets/${petId()}`');
+      expect(header).not.toContain('encodeURIComponent');
     });
   });
 });

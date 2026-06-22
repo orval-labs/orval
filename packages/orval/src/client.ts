@@ -4,7 +4,6 @@ import type {
   AngularOptions,
   ClientFileBuilder,
   ClientGeneratorsBuilder,
-  ClientMockBuilder,
   ClientMockGeneratorBuilder,
   ContextSpec,
   GeneratorClientFooter,
@@ -26,8 +25,10 @@ import {
   isFunction,
   logWarning,
   OutputClient,
+  OutputMockType,
   pascal,
 } from '@orval/core';
+import effect from '@orval/effect';
 import fetchClient from '@orval/fetch';
 import hono from '@orval/hono';
 import mcp from '@orval/mcp';
@@ -58,6 +59,7 @@ const getGeneratorClient = (
     'vue-query': query({ output, type: 'vue-query' })(),
     swr: swr()(),
     zod: zod()(),
+    effect: effect()(),
     hono: hono()(),
     fetch: fetchClient()(),
     mcp: mcp()(),
@@ -123,9 +125,11 @@ export const generateClientHeader: GeneratorClientHeader = ({
   output,
   verbOptions,
   tag,
+  isDefaultTagBucket,
   clientImplementation,
 }) => {
   const { header } = getGeneratorClient(outputClient, output);
+
   return {
     implementation: header
       ? header({
@@ -138,6 +142,7 @@ export const generateClientHeader: GeneratorClientHeader = ({
           output,
           verbOptions,
           tag,
+          isDefaultTagBucket,
           clientImplementation,
         })
       : '',
@@ -223,31 +228,27 @@ export const generateClientTitle: GeneratorClientTitle = ({
   };
 };
 
-const generateMock = (
+/**
+ * Invokes the underlying mock generator (msw, faker, or a user-provided
+ * ClientMockBuilder) for a single generator entry. Returns the standard
+ * `ClientMockGeneratorBuilder` shape (function/handler/handlerName +
+ * imports) regardless of which generator handled it.
+ */
+const invokeMockGenerator = (
   verbOption: GeneratorVerbOptions,
   options: GeneratorOptions,
+  entry: NonNullable<NormalizedOutputOptions['mock']['generators'][number]>,
 ): ClientMockGeneratorBuilder => {
-  if (!options.mock) {
-    return {
-      implementation: {
-        function: '',
-        handler: '',
-        handlerName: '',
-      },
-      imports: [],
-    };
+  if (isFunction(entry)) {
+    return entry(verbOption, {
+      ...options,
+      mock: entry,
+    });
   }
-
-  if (isFunction(options.mock)) {
-    return options.mock(verbOption, options);
-  }
-
-  return mock.generateMock(
-    verbOption,
-    options as typeof options & {
-      mock: Exclude<(typeof options)['mock'], ClientMockBuilder | undefined>;
-    },
-  );
+  return mock.generateMock(verbOption, {
+    ...options,
+    mock: entry,
+  });
 };
 
 export const generateOperations = (
@@ -276,7 +277,37 @@ export const generateOperations = (
         return acc;
       }
 
-      const generatedMock = generateMock(verbOption, options);
+      // Run every configured mock generator for this operation. Each entry
+      // contributes its own GeneratorMockOutputFull so writers can split the
+      // results across per-type output files (e.g. `.msw.ts` + `.faker.ts`).
+      // Function-form entries (ClientMockBuilder) inherit the historical
+      // `msw` file extension and are treated as msw outputs for downstream
+      // bookkeeping.
+      const mockOutputs = output.mock.generators
+        .filter((entry) => {
+          // A faker entry with `operationResponses: false` opts out of the
+          // per-operation `get<Op>ResponseMock` factories. The consolidated
+          // schemas file (when `schemas: true`) is emitted separately and is
+          // unaffected by this filter.
+          if (
+            !isFunction(entry) &&
+            entry.type === OutputMockType.FAKER &&
+            entry.operationResponses === false
+          ) {
+            return false;
+          }
+          return true;
+        })
+        .map((entry) => {
+          const generated = invokeMockGenerator(verbOption, options, entry);
+          return {
+            type: isFunction(entry) ? OutputMockType.MSW : entry.type,
+            implementation: generated.implementation,
+            imports: generated.imports,
+            strictMockSchemaTypeNames: generated.strictMockSchemaTypeNames,
+            strictMockSchemaKinds: generated.strictMockSchemaKinds,
+          };
+        });
 
       const hasImplementation = client.implementation.trim().length > 0;
       const preferredOperationKey = verbOption.operationName;
@@ -298,14 +329,14 @@ export const generateOperations = (
           ? (client.docComment ?? verbOption.doc) + client.implementation
           : client.implementation,
         imports: [...baseUrlImports, ...client.imports],
-        implementationMock: generatedMock.implementation,
-        importsMock: generatedMock.imports,
+        mockOutputs,
         tags: verbOption.tags,
         mutator: verbOption.mutator,
         clientMutators: client.mutators,
         formData: verbOption.formData,
         formUrlEncoded: verbOption.formUrlEncoded,
         paramsSerializer: verbOption.paramsSerializer,
+        paramsFilter: verbOption.paramsFilter,
         operationName: verbOption.operationName,
         fetchReviver: verbOption.fetchReviver,
       };

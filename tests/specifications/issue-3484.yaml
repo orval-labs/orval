@@ -1,0 +1,57 @@
+openapi: 3.1.0
+info:
+  version: 1.0.0
+  title: Issue 3484 - double-wrapped null branch in faker/MSW mocks
+  license:
+    name: MIT
+
+# Regression spec for https://github.com/orval-labs/orval/issues/3484
+# A *required* property whose type is an OpenAPI 3.1 nullable union
+# (`type: [<scalar>, 'null']`) must emit a single null branch
+# (`faker.helpers.arrayElement([<value>, null])`), not a double-wrapped
+# `arrayElement([arrayElement([<value>, null]), null])` (which skews null to
+# ~75%). OpenAPI 3.0 `nullable: true` is upgraded to the same union before the
+# mock getters run, so the all-of snapshot covers the 3.0 shape; this spec
+# pins the per-scalar matrix: string, integer, string-enum, and boolean.
+
+paths:
+  /pet:
+    get:
+      operationId: getPet
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+
+components:
+  schemas:
+    Pet:
+      type: object
+      required:
+        - tag
+        - count
+        - kind
+        - flag
+      properties:
+        tag:
+          type:
+            - string
+            - 'null'
+        count:
+          type:
+            - integer
+            - 'null'
+        kind:
+          type:
+            - string
+            - 'null'
+          enum:
+            - cat
+            - dog
+        flag:
+          type:
+            - boolean
+            - 'null'

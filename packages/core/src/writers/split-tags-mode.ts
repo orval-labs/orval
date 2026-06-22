@@ -1,12 +1,12 @@
 import path from 'node:path';
 
-import fs from 'fs-extra';
-
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { OutputClient, type WriteModeProps } from '../types';
+import { OutputClient, OutputMockType, type WriteModeProps } from '../types';
 import {
   conventionName,
   getFileInfo,
+  getImportExtension,
+  getSchemasImportPath,
   isFunction,
   isString,
   isSyntheticDefaultImportsAllow,
@@ -15,7 +15,16 @@ import {
 } from '../utils';
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
 import { writeGeneratedFile } from './file';
+import {
+  getFinalizeMockImplementationOptions,
+  filterLocalStrictMockTypeImports,
+} from './finalize-mock-implementation';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
+import {
+  collectRecoveredSchemaFactoryImports,
+  mergeGeneratorImports,
+} from './mock-imports';
+import { getMockDir, resolveMockSchemasPath } from './mock-utils';
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
@@ -41,19 +50,27 @@ export async function writeSplitTagsMode({
     output.tsconfig,
   );
 
-  const mockOption =
-    output.mock && !isFunction(output.mock) ? output.mock : undefined;
-  const indexFilePath = mockOption?.indexMockFiles
-    ? path.join(
-        dirname,
-        'index.' + getMockFileExtensionByTypeName(mockOption) + extension,
-      )
-    : undefined;
-  if (indexFilePath) {
-    await fs.outputFile(indexFilePath, '');
+  interface MockIndexEntry {
+    ext: OutputMockType;
+    mockDir: string;
+    tags: string[];
   }
+  const mockIndexEntries: MockIndexEntry[] = [];
+  const seenMockIndexKeys = new Set<string>();
 
-  const tagEntries = Object.entries(target);
+  const schemasTarget = output.schemas
+    ? getFileInfo(
+        isString(output.schemas) ? output.schemas : output.schemas.path,
+        { extension: output.fileExtension },
+      ).dirname
+    : path.join(
+        dirname,
+        filename + '.schemas' + getImportExtension(extension, output.tsconfig),
+      );
+
+  const tagEntries = Object.entries(target).toSorted(([a], [b]) =>
+    a.localeCompare(b),
+  );
 
   const generatedFilePathsArray = await Promise.all(
     tagEntries.map(async ([tag, target]) => {
@@ -61,32 +78,34 @@ export async function writeSplitTagsMode({
         const {
           imports,
           implementation,
-          implementationMock,
-          importsMock,
+          mockOutputs,
           mutators,
           clientMutators,
           formData,
           fetchReviver,
           formUrlEncoded,
           paramsSerializer,
+          paramsFilter,
         } = target;
 
         let implementationData = header;
-        let mockData = header;
 
         const importerPath = path.join(dirname, tag, tag + extension);
+        const schemaCustomImportPath = getSchemasImportPath(output.schemas);
         const relativeSchemasPath = output.schemas
-          ? upath.getRelativeImportPath(
+          ? (schemaCustomImportPath ??
+            upath.getRelativeImportPath(
               importerPath,
-              isString(output.schemas) ? output.schemas : output.schemas.path,
-            )
-          : '../' + filename + '.schemas' + extension.replace(/\.ts$/, '');
+              getFileInfo(
+                isString(output.schemas) ? output.schemas : output.schemas.path,
+                { extension: output.fileExtension },
+              ).dirname,
+            ))
+          : '../' +
+            filename +
+            '.schemas' +
+            getImportExtension(extension, output.tsconfig);
 
-        // In tags-split mode, each tag lives in its own subdirectory
-        // (dirname/tag/tag.ext). Imports with a custom `importPath` (from the
-        // `file` option in mutationInvalidates) are specified relative to the
-        // output root (dirname) but the consuming file is one level deeper.
-        // Resolve these paths so that the generated import is correct.
         const tagNames = new Set(tagEntries.map(([t]) => t));
         const serviceSuffix =
           OutputClient.ANGULAR === output.client ? '.service' : '';
@@ -94,8 +113,6 @@ export async function writeSplitTagsMode({
         const adjustedImports = imports.map((imp) => {
           if (!imp.importPath) return imp;
 
-          // Only adjust relative paths (./foo, ../bar). Package imports
-          // like 'rxjs' or '@tanstack/react-query' must be left as-is.
           if (!imp.importPath.startsWith('.')) return imp;
 
           const resolvedPath = path.resolve(dirname, imp.importPath);
@@ -103,9 +120,6 @@ export async function writeSplitTagsMode({
 
           let targetFile: string;
           if (tagNames.has(targetBasename)) {
-            // Target is a known tag directory. Use the real generated
-            // filename which includes the Angular `.service` suffix when
-            // applicable (e.g. dirname/health/health.service.ts).
             const tagFilename = targetBasename + serviceSuffix + extension;
             targetFile = path.join(resolvedPath, tagFilename);
           } else {
@@ -140,21 +154,6 @@ export async function writeSplitTagsMode({
           hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
           packageJson: output.packageJson,
           output,
-        });
-
-        const importsMockForBuilder = generateImportsForBuilder(
-          output,
-          importsMock,
-          relativeSchemasPath,
-        );
-
-        mockData += builder.importsMock({
-          implementation: implementationMock,
-          imports: importsMockForBuilder,
-          projectName,
-          hasSchemaDir: !!output.schemas,
-          isAllowSyntheticDefaultImports,
-          options: isFunction(output.mock) ? undefined : output.mock,
         });
 
         const schemasPath =
@@ -203,6 +202,12 @@ export async function writeSplitTagsMode({
             oneMore: true,
           });
         }
+        if (paramsFilter) {
+          implementationData += generateMutatorImports({
+            mutators: paramsFilter,
+            oneMore: true,
+          });
+        }
 
         if (fetchReviver) {
           implementationData += generateMutatorImports({
@@ -222,7 +227,6 @@ export async function writeSplitTagsMode({
         }
 
         implementationData += `\n${implementation}`;
-        mockData += `\n${implementationMock}`;
 
         const implementationFilename =
           tag +
@@ -236,25 +240,98 @@ export async function writeSplitTagsMode({
         );
         await writeGeneratedFile(implementationPath, implementationData);
 
-        const mockPath = output.mock
-          ? path.join(
-              dirname,
-              tag,
-              tag +
-                '.' +
-                getMockFileExtensionByTypeName(output.mock) +
-                extension,
-            )
-          : undefined;
+        const mockPaths: string[] = [];
 
-        if (mockPath) {
-          await writeGeneratedFile(mockPath, mockData);
+        for (const mockOutput of mockOutputs) {
+          const rawEntry = output.mock.generators.find((g) => {
+            if (isFunction(g)) return mockOutput.type === OutputMockType.MSW;
+            return g.type === mockOutput.type;
+          });
+          if (!rawEntry) continue;
+
+          const mockExtension = isFunction(rawEntry)
+            ? OutputMockType.MSW
+            : getMockFileExtensionByTypeName(rawEntry);
+          const mockDir = getMockDir(rawEntry, output.mock) ?? dirname;
+
+          const mockFilePath = path.join(
+            mockDir,
+            tag,
+            tag + '.' + mockExtension + extension,
+          );
+
+          const mockRelativeSchemasPath =
+            schemaCustomImportPath ??
+            resolveMockSchemasPath(mockFilePath, schemasTarget);
+
+          const finalizeMockOptions = getFinalizeMockImplementationOptions(
+            output,
+            mockOutput,
+          );
+
+          const finalizedMockImplementation = builder.finalizeMockImplementation
+            ? builder.finalizeMockImplementation(
+                mockOutput.implementation,
+                finalizeMockOptions,
+              )
+            : mockOutput.implementation;
+
+          const usesSchemaFactories =
+            !isFunction(rawEntry) &&
+            rawEntry.type === OutputMockType.FAKER &&
+            rawEntry.schemas === true;
+          const recoveredSchemaFactoryImports =
+            usesSchemaFactories && output.schemas
+              ? collectRecoveredSchemaFactoryImports(
+                  finalizedMockImplementation,
+                  builder.schemas.filter((s) => s.schema).map((s) => s.name),
+                )
+              : [];
+
+          const importsMockForBuilder = generateImportsForBuilder(
+            output,
+            filterLocalStrictMockTypeImports(
+              mergeGeneratorImports(
+                mockOutput.imports,
+                recoveredSchemaFactoryImports,
+              ),
+              finalizeMockOptions.strictSchemaTypeNames,
+            ),
+            mockRelativeSchemasPath,
+          );
+
+          let mockData = header;
+          mockData += builder.importsMock({
+            implementation: finalizedMockImplementation,
+            imports: importsMockForBuilder,
+            projectName,
+            hasSchemaDir: !!output.schemas,
+            isAllowSyntheticDefaultImports,
+            options: isFunction(rawEntry) ? undefined : rawEntry,
+          });
+          mockData += `\n${finalizedMockImplementation}`;
+
+          await writeGeneratedFile(mockFilePath, mockData);
+          mockPaths.push(mockFilePath);
+
+          const indexKey = `${mockExtension}::${mockDir}`;
+          let indexEntry = mockIndexEntries.find(
+            (e) => e.ext === mockExtension && e.mockDir === mockDir,
+          );
+          if (!indexEntry) {
+            indexEntry = { ext: mockExtension, mockDir, tags: [] };
+            mockIndexEntries.push(indexEntry);
+            seenMockIndexKeys.add(indexKey);
+          }
+          if (!indexEntry.tags.includes(tag)) {
+            indexEntry.tags.push(tag);
+          }
         }
 
         return [
           implementationPath,
           ...(schemasPath ? [schemasPath] : []),
-          ...(mockPath ? [mockPath] : []),
+          ...mockPaths,
         ];
       } catch (error) {
         throw new Error(
@@ -265,24 +342,34 @@ export async function writeSplitTagsMode({
     }),
   );
 
-  // Write mock index file after Promise.all to ensure deterministic export order.
-  if (indexFilePath && mockOption) {
-    const indexContent = tagEntries
-      .map(([tag]) => {
-        const localMockPath = upath.joinSafe(
-          './',
-          tag,
-          tag + '.' + getMockFileExtensionByTypeName(mockOption),
-        );
-        return `export { get${pascal(tag)}Mock } from '${localMockPath}'\n`;
-      })
-      .join('');
-    await fs.appendFile(indexFilePath, indexContent);
+  if (output.mock.indexMockFiles) {
+    const mockImportExtension = getImportExtension(extension, output.tsconfig);
+    for (const { ext, mockDir, tags } of mockIndexEntries) {
+      const indexPath = path.join(mockDir, `index.${ext}${extension}`);
+      const indexContent = tags
+        .toSorted((a, b) => a.localeCompare(b))
+        .map((tag) => {
+          const localMockPath = upath.joinSafe(
+            './',
+            tag,
+            tag + '.' + ext + mockImportExtension,
+          );
+          return ext === OutputMockType.MSW
+            ? `export { get${pascal(tag)}Mock } from '${localMockPath}'\n`
+            : `export * from '${localMockPath}'\n`;
+        })
+        .join('');
+      await writeGeneratedFile(indexPath, indexContent);
+    }
   }
 
   return [
     ...new Set([
-      ...(indexFilePath ? [indexFilePath] : []),
+      ...(output.mock.indexMockFiles
+        ? mockIndexEntries.map(({ mockDir, ext }) =>
+            path.join(mockDir, `index.${ext}${extension}`),
+          )
+        : []),
       ...generatedFilePathsArray.flat(),
     ]),
   ];

@@ -1,9 +1,11 @@
 import {
+  dynamicImport,
   isObject,
   isString,
   logWarning,
   type NormalizedOptions,
   type OpenApiDocument,
+  type OverrideInput,
   type WriteSpecBuilder,
 } from '@orval/core';
 import { bundle } from '@scalar/json-magic/bundle';
@@ -18,16 +20,115 @@ import { isNullish } from 'remeda';
 
 import { importOpenApi } from './import-open-api';
 
-async function resolveSpec(
-  input: string | Record<string, unknown>,
+interface ResolveSpecOptions {
   parserOptions?: {
     headers?: {
       domains: string[];
       headers: Record<string, string>;
     }[];
-  },
-  unsafeDisableValidation = false,
+  };
+  transformer?: OverrideInput['transformer'];
+  workspace: string;
+  unsafeDisableValidation?: boolean;
+}
+
+async function resolveSpec(
+  input: string | Record<string, unknown>,
+  {
+    parserOptions,
+    transformer,
+    workspace,
+    unsafeDisableValidation = false,
+  }: ResolveSpecOptions,
 ): Promise<OpenApiDocument> {
+  const dereferencedData = await bundleAndDereferenceExternalRefs(
+    input,
+    parserOptions,
+  );
+
+  // Apply user-provided transformer before validation so users can repair
+  // malformed specs in-place. The transformer is typed against
+  // `OpenApiDocument`, but we pass the raw bundled object — repairing a spec
+  // necessarily means it does not yet conform to the type at call time.
+  let transformedData = dereferencedData;
+  if (transformer) {
+    const applied = await applyInputTransformer(
+      dereferencedData,
+      transformer,
+      workspace,
+    );
+    // A transformer may inject NEW external $refs that were absent from the
+    // original spec (e.g. `refs.yaml#/...`), so the initial bundle never
+    // resolved them. Re-run the bundle + dereference pipeline on its output so
+    // those refs are resolved too (#3327). External refs resolve relative to
+    // the original spec file, so reuse the string target as the bundle origin;
+    // an object input has no file base and cannot introduce relative refs.
+    transformedData = hasExternalRef(applied)
+      ? await bundleAndDereferenceExternalRefs(
+          applied,
+          parserOptions,
+          isString(input) ? input : undefined,
+        )
+      : applied;
+  }
+
+  if (unsafeDisableValidation) {
+    logWarning(
+      `🚨 OpenAPI spec validation is disabled.\n` +
+        `  Code generation with invalid specs is not guaranteed to work and may break in minor updates.\n` +
+        `  Bug reports with validation disabled will not be accepted.`,
+    );
+  } else {
+    validateComponentKeys(transformedData);
+
+    const { valid, errors } = await validateSpec(transformedData);
+    if (!valid) {
+      throw new Error(
+        `OpenAPI spec validation failed:\n${JSON.stringify(errors, undefined, 2)}`,
+      );
+    }
+  }
+
+  const { specification } = upgrade(transformedData);
+
+  // upgrade() returns @scalar/openapi-types/3.1 Document (openapi: string);
+  // OpenApiDocument uses the legacy OpenAPIV3_1 namespace (openapi version literals).
+  return specification as OpenApiDocument;
+}
+
+async function applyInputTransformer(
+  data: Record<string, unknown>,
+  transformer: NonNullable<OverrideInput['transformer']>,
+  workspace: string,
+): Promise<Record<string, unknown>> {
+  const transformerFn = await dynamicImport(transformer, workspace);
+  const result: unknown = await transformerFn(
+    data as unknown as OpenApiDocument,
+  );
+  if (!isObject(result)) {
+    const source = isString(transformer)
+      ? transformer
+      : transformerFn.name || '<inline function>';
+    throw new Error(
+      `input.override.transformer must return an OpenAPI document object; ` +
+        `got ${result === undefined ? 'undefined' : typeof result} from ${source}. ` +
+        `Ensure your transformer returns the (possibly modified) spec.`,
+    );
+  }
+  return result;
+}
+
+/**
+ * Bundle external references into the document and then resolve the `x-ext`
+ * entries that `@scalar/json-magic` produces. Shared by the initial pass and
+ * the post-transformer pass (#3327); `origin` lets the second pass resolve refs
+ * relative to the original spec file when the input is an in-memory object.
+ */
+async function bundleAndDereferenceExternalRefs(
+  input: string | Record<string, unknown>,
+  parserOptions: ResolveSpecOptions['parserOptions'],
+  origin?: string,
+): Promise<Record<string, unknown>> {
   const data = await bundle(input, {
     plugins: [
       readFiles(),
@@ -38,31 +139,29 @@ async function resolveSpec(
       parseYaml(),
     ],
     treeShake: false,
+    ...(origin ? { origin } : {}),
   });
-  const dereferencedData = dereferenceExternalRef(
-    data as Record<string, unknown>,
-  );
+  return dereferenceExternalRef(data as Record<string, unknown>);
+}
 
-  if (unsafeDisableValidation) {
-    logWarning(
-      `🚨 OpenAPI spec validation is disabled.\n` +
-        `  Code generation with invalid specs is not guaranteed to work and may break in minor updates.\n` +
-        `  Bug reports with validation disabled will not be accepted.`,
-    );
-  } else {
-    validateComponentKeys(dereferencedData);
-
-    const { valid, errors } = await validateSpec(dereferencedData);
-    if (!valid) {
-      throw new Error(
-        `OpenAPI spec validation failed:\n${JSON.stringify(errors, undefined, 2)}`,
-      );
-    }
+/**
+ * Report whether any `$ref` in the document points to an external document.
+ * Per the JSON Reference rules a ref is external when it does not start with
+ * `#` (an in-document pointer). Used to decide whether a transformer introduced
+ * new external refs that need a second bundle pass (#3327) — when it did not,
+ * the already-bundled spec is returned untouched.
+ */
+function hasExternalRef(obj: unknown): boolean {
+  if (Array.isArray(obj)) {
+    return obj.some((item) => hasExternalRef(item));
   }
-
-  const { specification } = upgrade(dereferencedData);
-
-  return specification;
+  if (isObject(obj)) {
+    if ('$ref' in obj && isString(obj.$ref) && !obj.$ref.startsWith('#')) {
+      return true;
+    }
+    return Object.values(obj).some((value) => hasExternalRef(value));
+  }
+  return false;
 }
 
 export async function importSpecs(
@@ -72,11 +171,12 @@ export async function importSpecs(
 ): Promise<WriteSpecBuilder> {
   const { input, output } = options;
 
-  const spec = await resolveSpec(
-    input.target,
-    input.parserOptions,
-    input.unsafeDisableValidation,
-  );
+  const spec = await resolveSpec(input.target, {
+    parserOptions: input.parserOptions,
+    transformer: input.override.transformer,
+    workspace,
+    unsafeDisableValidation: input.unsafeDisableValidation,
+  });
 
   return importOpenApi({
     spec,
@@ -301,6 +401,26 @@ function updateInternalRefs(
 }
 
 /**
+ * Decode a single JSON Pointer reference token taken from an x-ext `$ref`.
+ *
+ * The token carries two layers of encoding: it sits in a URI fragment, so it
+ * may be percent-encoded (e.g. `%7B` for `{` in templated paths), and it is a
+ * JSON Pointer token, so `~1`/`~0` stand for `/`/`~` (RFC 6901). Percent-
+ * encoding is the outer layer and is removed first; a malformed sequence is
+ * left as-is rather than throwing. Without this, tokens such as `~1pets`
+ * never match the real `/pets` key and the external `$ref` fails to resolve.
+ */
+function decodeRefToken(token: string): string {
+  let decoded = token;
+  try {
+    decoded = decodeURIComponent(token);
+  } catch {
+    // Malformed percent-encoding — fall back to the raw token.
+  }
+  return decoded.replaceAll('~1', '/').replaceAll('~0', '~');
+}
+
+/**
  * Replace x-ext refs with standard component refs, or inline the content.
  * `inliningRefs` tracks the inline chain to break cycles in recursive
  * external schemas that aren't under `components.schemas` (#1642).
@@ -358,7 +478,8 @@ function replaceXExtRefs(
 
           const extDoc = extensions[extKey];
           let refObj: unknown = extDoc;
-          for (const p of parts) {
+          for (const rawPart of parts) {
+            const p = decodeRefToken(rawPart);
             if (
               refObj &&
               (isObject(refObj) || Array.isArray(refObj)) &&

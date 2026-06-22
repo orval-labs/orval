@@ -75,4 +75,24 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  urlEncodeParameters: {
+    output: {
+      target: '../generated/angular-query/url-encode-parameters/endpoints.ts',
+      schemas: '../generated/angular-query/url-encode-parameters/model',
+      client: 'angular-query',
+      httpClient: 'angular',
+      mock: true,
+      urlEncodeParameters: true,
+      override: {
+        query: {
+          signal: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

@@ -14,6 +14,33 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  issue3321: {
+    output: {
+      target: '../generated/fetch/issue-3321/endpoints.ts',
+      schemas: '../generated/fetch/issue-3321/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3321/spec.yaml',
+    },
+  },
+  issue3327: {
+    output: {
+      target: '../generated/fetch/issue-3327/endpoints.ts',
+      schemas: '../generated/fetch/issue-3327/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3327/spec.yaml',
+      override: {
+        transformer: '../transformers/issue-3327-inject-external-ref.js',
+      },
+    },
+  },
   mutator: {
     output: {
       target: '../generated/fetch/mutator/endpoints.ts',
@@ -124,6 +151,27 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Issue: `useNamedParameters` + zod schema output. The client references a
+  // named `${Op}PathParameters` type, which must be emitted as a zod schema
+  // (with companion `zod.input` type) instead of a plain TS type.
+  namedParametersZod: {
+    output: {
+      target: '../generated/fetch/named-parameters-zod/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/named-parameters-zod/model',
+        type: 'zod',
+      },
+      client: 'fetch',
+      override: {
+        useNamedParameters: true,
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   headers: {
     output: {
       target: '../generated/fetch/headers/endpoints.ts',
@@ -135,6 +183,40 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/petstore.yaml',
+    },
+  },
+  // Issue #1879: header parameter referenced via a JSON Pointer `$ref` that
+  // targets another path's parameter (`#/paths/~1requestA/post/parameters/0`)
+  // used to type the header as a dangling synthesized name (`N0`) and import
+  // it from a non-existent module. The snapshot pins the corrected output.
+  'issue-1879-header-pathref': {
+    output: {
+      target: '../generated/fetch/issue-1879/endpoints.ts',
+      schemas: '../generated/fetch/issue-1879/model',
+      client: 'fetch',
+      headers: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-1879/header-pathref.yaml',
+    },
+  },
+  // Issue #2410 (follow-up to PR #3422): OAS 3.1 nullable union variant of
+  // the IFormFile $ref in an x-www-form-urlencoded body. Pins that
+  // isBinaryScalarSchema recognises `type: ['string','null']` so the
+  // url-encoded short-circuit keeps the property type as `string | null`
+  // (URLSearchParams-friendly) rather than leaking the Blob alias.
+  'issue-2410-nullable-binary': {
+    output: {
+      target: '../generated/fetch/issue-2410-nullable-binary/endpoints.ts',
+      schemas: '../generated/fetch/issue-2410-nullable-binary/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-2410-nullable-binary.yaml',
     },
   },
   formData: {
@@ -206,6 +288,18 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/form-url-encoded.yaml',
+    },
+  },
+  binaryRequestBody: {
+    output: {
+      target: '../generated/fetch/binary-request-body/endpoints.ts',
+      schemas: '../generated/fetch/binary-request-body/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/binary-request-body.yaml',
     },
   },
   parameters: {
@@ -299,6 +393,33 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/parameters.yaml',
+    },
+  },
+  urlEncodeParameters: {
+    output: {
+      target: '../generated/fetch/url-encode-parameters/endpoints.ts',
+      client: 'fetch',
+      urlEncodeParameters: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  usedatesOnlyDateParams: {
+    output: {
+      target: '../generated/fetch/usedates-only-date-params/endpoints.ts',
+      schemas: '../generated/fetch/usedates-only-date-params/model',
+      client: 'fetch',
+      override: {
+        useDates: true,
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/usedates-only-date-params.yaml',
     },
   },
   forceSuccessResponse: {

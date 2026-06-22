@@ -1,54 +1,34 @@
 {
   "name": "@orval/zod",
-  "version": "8.10.0",
+  "version": "8.18.0",
+  "homepage": "https://orval.dev/docs/guides/zod",
+  "bugs": {
+    "url": "https://github.com/orval-labs/orval/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/orval-labs/orval.git",
     "directory": "packages/zod"
   },
-  "homepage": "https://orval.dev/docs/guides/zod",
-  "bugs": {
-    "url": "https://github.com/orval-labs/orval/issues"
-  },
-  "type": "module",
-  "types": "./dist/index.d.mts",
-  "exports": {
-    ".": {
-      "development": "./src/index.ts",
-      "default": "./dist/index.mjs"
-    },
-    "./package.json": "./package.json"
-  },
   "files": [
     "dist",
     "!dist/**/*.d.ts.map",
     "!dist/**/*.d.mts.map"
   ],
-  "scripts": {
-    "build": "tsdown --config-loader unrun",
-    "dev": "tsdown --config-loader unrun --watch src",
-    "lint": "eslint .",
-    "test": "vitest",
-    "typecheck": "tsc --noEmit",
-    "clean": "rimraf .turbo dist",
-    "nuke": "rimraf .turbo dist node_modules"
+  "type": "module",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
   },
   "dependencies": {
     "@orval/core": "workspace:*",
     "remeda": "^2.33.6"
   },
   "devDependencies": {
-    "eslint": "catalog:",
     "rimraf": "catalog:",
-    "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
-  },
-  "publishConfig": {
-    "exports": {
-      ".": "./dist/index.mjs",
-      "./package.json": "./package.json"
-    }
   }
 }

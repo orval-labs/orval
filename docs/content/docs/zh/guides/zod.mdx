@@ -1,0 +1,48 @@
+---
+title: Zod
+description: 从 OpenAPI 生成 Zod schemas
+---
+
+Zod 生成器会把 OpenAPI schema 转换为 Zod schema。这样你既可以使用 TypeScript 类型，也可以在运行时校验外部数据。
+
+## 配置
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      client: 'zod',
+    },
+  },
+});
+```
+
+## 生成结果
+
+Orval 会为 schema、请求体和响应生成 Zod 对象。命名会保持可预测，便于在业务代码中导入。
+
+## 用法
+
+### 解析数据
+
+```ts
+const pet = petSchema.parse(data);
+```
+
+### 类型推导
+
+```ts
+type Pet = z.infer<typeof petSchema>;
+```
+
+### 安全解析
+
+```ts
+const result = petSchema.safeParse(data);
+```
+
+## 与 HTTP 客户端组合
+
+可以将 Zod schema 和 React Query、Fetch、Axios 等客户端组合，在响应进入 UI 前进行运行时校验。

@@ -1,0 +1,76 @@
+openapi: 3.0.0
+info:
+  title: Issue 2999 — NestJS-style swagger
+  version: 1.0.0
+paths:
+  /muscles:
+    get:
+      tags:
+        - Muscles
+      operationId: MusclesController_findAll
+      summary: Return all muscles
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Muscle'
+    post:
+      tags:
+        - Muscles
+      operationId: MusclesController_create
+      summary: Create muscle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMuscleDto'
+      responses:
+        '201':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Muscle'
+  /muscles/{id}:
+    get:
+      tags:
+        - Muscles
+      operationId: MusclesController_findOne
+      summary: Return one muscle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Muscle'
+components:
+  schemas:
+    Muscle:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    CreateMuscleDto:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string

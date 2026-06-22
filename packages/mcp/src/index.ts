@@ -12,6 +12,7 @@ import {
   getFileInfo,
   getFullRoute,
   getParamsInPath,
+  GetterPropType,
   isObject,
   isString,
   jsDoc,
@@ -20,6 +21,7 @@ import {
   type OpenApiInfoObject,
   pascal,
   upath,
+  type Verbs,
 } from '@orval/core';
 import { generateClient, generateFetchHeader } from '@orval/fetch';
 import { generateZod } from '@orval/zod';
@@ -35,6 +37,30 @@ const getHeader = (
   const header = option(info);
 
   return Array.isArray(header) ? jsDoc({ description: header }) : header;
+};
+
+const getAnnotations = (verb: Verbs): string => {
+  switch (verb) {
+    case 'get':
+    case 'head': {
+      return '{ readOnlyHint: true, destructiveHint: false }';
+    }
+    case 'post': {
+      return '{ destructiveHint: false }';
+    }
+    case 'put': {
+      return '{ destructiveHint: false, idempotentHint: true }';
+    }
+    case 'patch': {
+      return '{ destructiveHint: false }';
+    }
+    case 'delete': {
+      return '{ idempotentHint: true }';
+    }
+    default: {
+      return '';
+    }
+  }
 };
 
 const getSpecInfo = (context: ContextSpec): OpenApiInfoObject =>
@@ -128,7 +154,9 @@ export const generateMcp: ClientBuilder = (verbOptions) => {
     );
   }
   if (verbOptions.body.definition) {
-    handlerArgsTypes.push(`  bodyParams: ${verbOptions.body.definition};`);
+    handlerArgsTypes.push(
+      `  bodyParams${verbOptions.body.isOptional ? '?' : ''}: ${verbOptions.body.definition};`,
+    );
   }
 
   const handlerArgsName = `${verbOptions.operationName}Args`;
@@ -149,21 +177,44 @@ ${handlerArgsTypes.join('\n')}
 
     fetchParams.push(pathParamsArgs);
   }
-  if (verbOptions.body.definition) fetchParams.push(`args.bodyParams`);
-  if (verbOptions.queryParams) fetchParams.push(`args.queryParams`);
+  // Body and query args must follow the same order as the generated client
+  // function signature, which sorts required params before optional ones (see
+  // `getProps`/`sortByPriority`). Emitting a fixed body-then-query order would
+  // swap the two arguments whenever the query param is required and the body is
+  // optional, sending the body as the query string and vice versa.
+  for (const prop of verbOptions.props) {
+    if (prop.type === GetterPropType.BODY) {
+      fetchParams.push('args.bodyParams');
+    } else if (prop.type === GetterPropType.QUERY_PARAM) {
+      fetchParams.push('args.queryParams');
+    }
+  }
 
   const handlerName = `${verbOptions.operationName}Handler`;
   const handlerImplementation = `
 export const ${handlerName} = async (${handlerArgsTypes.length > 0 ? `args: ${handlerArgsName}, ` : ''}options?: RequestInit) => {
   const res = await ${verbOptions.operationName}(${fetchParams.length > 0 ? `${fetchParams.join(', ')}, ` : ''}options);
 
+  if (res.status >= 400) {
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(res.data ?? null),
+        },
+      ],
+      isError: true,
+    };
+  }
+
   return {
     content: [
       {
         type: 'text' as const,
-        text: JSON.stringify(res),
+        text: JSON.stringify(res.data ?? null),
       },
     ],
+    structuredContent: res.data,
   };
 };`;
 
@@ -189,35 +240,61 @@ export const generateServer = (
   const header = getHeader(output.override.header, info);
 
   const mcpServerOptions = output.override.mcp.server;
+  const hasResponseSchema =
+    output.override.zod.generate.response &&
+    !output.override.zod.generateEachHttpStatus;
 
   const toolImplementations = Object.values(verbOptions)
     .map((verbOption) => {
       const pascalOperationName = pascal(verbOption.operationName);
       const inputSchemaTypes = [];
       if (verbOption.params.length > 0)
-        inputSchemaTypes.push(`  pathParams: ${pascalOperationName}Params`);
+        inputSchemaTypes.push(`pathParams: ${pascalOperationName}Params`);
       if (verbOption.queryParams)
-        inputSchemaTypes.push(
-          `  queryParams: ${pascalOperationName}QueryParams`,
-        );
+        inputSchemaTypes.push(`queryParams: ${pascalOperationName}QueryParams`);
       if (verbOption.body.definition)
-        inputSchemaTypes.push(`  bodyParams: ${pascalOperationName}Body`);
+        inputSchemaTypes.push(
+          `bodyParams: ${pascalOperationName}Body${verbOption.body.isOptional ? '.optional()' : ''}`,
+        );
 
       const inputSchemaImplementation =
         inputSchemaTypes.length > 0
-          ? `  {
-  ${inputSchemaTypes.join(',\n  ')}
-  },`
+          ? `\n    inputSchema: {\n      ${inputSchemaTypes.join(',\n      ')}\n    },`
           : '';
 
-      const handlerCallImplementation = inputSchemaImplementation
-        ? `(args) => ${verbOption.operationName}Handler(args, options)`
-        : `() => ${verbOption.operationName}Handler(options)`;
+      const outputSchemaImplementation = hasResponseSchema
+        ? `\n    outputSchema: ${pascalOperationName}Response,`
+        : '';
+
+      const annotationsValue = getAnnotations(verbOption.verb);
+      const annotationsImplementation = annotationsValue
+        ? `\n    annotations: ${annotationsValue},`
+        : '';
+
+      const titleImplementation = verbOption.summary
+        ? `\n    title: '${jsStringEscape(verbOption.summary)}',`
+        : '';
+      const operationDescription = verbOption.originalOperation.description as
+        | string
+        | undefined;
+      const descriptionValue =
+        (operationDescription && operationDescription.length > 0
+          ? operationDescription
+          : verbOption.summary) ?? '';
+      const descriptionImplementation = descriptionValue
+        ? `\n    description: '${jsStringEscape(descriptionValue)}',`
+        : '';
+
+      const handlerCallImplementation =
+        inputSchemaTypes.length > 0
+          ? `(args) => ${verbOption.operationName}Handler(args, options)`
+          : `() => ${verbOption.operationName}Handler(options)`;
 
       const toolImplementation = `
-server.tool(
+tools.${verbOption.operationName} = server.registerTool(
   '${jsStringEscape(verbOption.operationName)}',
-  '${jsStringEscape(verbOption.summary ?? '')}',${inputSchemaImplementation ? `\n${inputSchemaImplementation}` : ''}
+  {${titleImplementation}${descriptionImplementation}${inputSchemaImplementation}${outputSchemaImplementation}${annotationsImplementation}
+  },
   ${handlerCallImplementation}
 );`;
 
@@ -238,6 +315,7 @@ server.tool(
         imports.push(`  ${pascalOperationName}QueryParams`);
       if (verbOption.body.definition)
         imports.push(`  ${pascalOperationName}Body`);
+      if (hasResponseSchema) imports.push(`  ${pascalOperationName}Response`);
 
       return imports;
     })
@@ -253,14 +331,15 @@ server.tool(
   const importHandlersImplementation = `import {\n${importHandlers}\n} from './handlers';`;
 
   const createMcpServerImplementation = `
-const createMcpServer = (options?: RequestInit) => {
+const createMcpServer = (options?: RequestInit): { server: McpServer; tools: Record<string, RegisteredTool> } => {
   const server = new McpServer({
     name: '${camel(info.title)}Server',
     version: '1.0.0',
   });
+  const tools: Record<string, RegisteredTool> = {};
 ${toolImplementations}
 
-  return server;
+  return { server, tools };
 };
 `;
 
@@ -273,7 +352,8 @@ ${toolImplementations}
     : `{ ${serverFunctionName} }`;
 
   const importMcpServer = `import {
-  McpServer
+  McpServer,
+  type RegisteredTool,
 } from '@modelcontextprotocol/sdk/server/mcp.js';
 `;
 
@@ -289,7 +369,7 @@ ${importTransport}
 
   const customServerConnectImplementation = `\n${serverFunctionName}(createMcpServer);\n`;
   const stdioServerConnectImplementation = `
-const server = createMcpServer();
+const { server } = createMcpServer();
 const transport = new StdioServerTransport();
 
 server.connect(transport).then(() => {
@@ -336,7 +416,6 @@ const generateZodFiles = async (
           pathRoute: verbOption.pathRoute,
           override: output.override,
           context,
-          mock: output.mock,
           output: output.target,
         },
         output.client,
@@ -395,7 +474,6 @@ const generateHttpClientFiles = async (
         pathRoute: verbOption.pathRoute,
         override: output.override,
         context,
-        mock: output.mock,
         output: output.target,
       };
 

@@ -1,19 +1,22 @@
 import {
   type ContextSpec,
   type GeneratorImport,
+  getRefInfo,
   isReference,
   isSchema,
   type MockOptions,
-  pascal,
 } from '@orval/core';
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { resolveMockValue } from '../resolvers';
 
-function getReferenceName(ref?: string): string {
+function getReferenceName(
+  ref: string | undefined,
+  context: ContextSpec,
+): string {
   if (!ref) return '';
 
-  return pascal(ref.split('/').pop() ?? '');
+  return getRefInfo(ref, context).name;
 }
 
 interface CombineSchemasMockOptions {
@@ -31,6 +34,24 @@ interface CombineSchemasMockOptions {
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
+  // Schemas on the *current contiguous `allOf` composition* — the chain of
+  // `allOf` bases entered to reach the schema being expanded right now. This is
+  // the canonical doc for this field; other sites just point here.
+  //
+  // Why it exists: to break cycles built purely from top-level named schemas
+  // that extend each other (`A: allOf[B]`, `B: allOf[A]`). There every hop is a
+  // `$ref`, so `item.isRef` is always true and the `!item.isRef` clause in
+  // `shouldSkipRef` never fires; this chain catches the repeat instead. (It is
+  // narrower than `existingReferencedProperties`, which records every visited
+  // `$ref` — variants and properties included.)
+  //
+  // Invariant: it grows only on a direct `allOf` -> `allOf` base descent, and
+  // resets to `[]` when crossing into a `oneOf`/`anyOf` variant or a property
+  // value. Those boundaries begin a fresh mock instance whose own `allOf` base
+  // is legitimate and must still be pulled in, so keeping the chain across them
+  // would wrongly skip that base. Such re-entry can't loop forever anyway —
+  // `existingReferencedProperties` already bounds it.
+  existingReferencedAllOfRefs?: string[];
   splitMockImplementations: string[];
 }
 
@@ -44,6 +65,7 @@ export function combineSchemasMock({
   context,
   imports,
   existingReferencedProperties,
+  existingReferencedAllOfRefs = [],
   splitMockImplementations,
 }: CombineSchemasMockOptions): MockDefinition {
   const combineImports: GeneratorImport[] = [];
@@ -54,12 +76,73 @@ export function combineSchemasMock({
   const isRefAndNotExisting =
     isReference(item) && !existingReferencedProperties.includes(item.name);
 
+  // When a oneOf schema declares a discriminator with a mapping AND the
+  // discriminator property is also declared on the parent's `properties`,
+  // skip that property here. Each variant already encodes a constrained value
+  // for it via `resolveDiscriminators`; emitting the parent's free-choice enum
+  // alongside the picked variant would override the constrained value and
+  // guarantee a discriminator mismatch (#2155).
+  const discriminator = item.discriminator as
+    | { propertyName?: string; mapping?: Record<string, string> }
+    | undefined;
+  const itemProperties = item.properties as Record<string, unknown> | undefined;
+  const discriminatorPropertyName =
+    separator === 'oneOf' &&
+    discriminator?.mapping &&
+    discriminator.propertyName &&
+    itemProperties &&
+    discriminator.propertyName in itemProperties
+      ? discriminator.propertyName
+      : undefined;
+
+  const itemEntriesForResolve = Object.entries(item).filter(
+    ([key]) => key !== separator,
+  );
+  if (discriminatorPropertyName && itemProperties) {
+    const propertiesIdx = itemEntriesForResolve.findIndex(
+      ([key]) => key === 'properties',
+    );
+    if (propertiesIdx !== -1) {
+      const filteredProperties = Object.fromEntries(
+        Object.entries(itemProperties).filter(
+          ([key]) => key !== discriminatorPropertyName,
+        ),
+      );
+      if (Object.keys(filteredProperties).length === 0) {
+        itemEntriesForResolve.splice(propertiesIdx, 1);
+      } else {
+        itemEntriesForResolve[propertiesIdx] = [
+          'properties',
+          filteredProperties,
+        ];
+      }
+    }
+    // Keep `required` in sync with the filtered properties — leaving the
+    // discriminator key in `required` would describe a schema whose required
+    // field is missing from `properties`.
+    const requiredIdx = itemEntriesForResolve.findIndex(
+      ([key]) => key === 'required',
+    );
+    if (requiredIdx !== -1 && Array.isArray(itemRequired)) {
+      const filteredRequired = itemRequired.filter(
+        (key) => key !== discriminatorPropertyName,
+      );
+      if (filteredRequired.length === 0) {
+        itemEntriesForResolve.splice(requiredIdx, 1);
+      } else {
+        itemEntriesForResolve[requiredIdx] = ['required', filteredRequired];
+      }
+    }
+  }
+
+  const hasResolvableProperties = itemEntriesForResolve.some(
+    ([key]) => key === 'properties',
+  );
+
   const itemResolvedValue =
-    isRefAndNotExisting || item.properties
+    isRefAndNotExisting || hasResolvableProperties
       ? resolveMockValue({
-          schema: Object.fromEntries(
-            Object.entries(item).filter(([key]) => key !== separator),
-          ) as MockSchemaObject,
+          schema: Object.fromEntries(itemEntriesForResolve) as MockSchemaObject,
           combine: {
             separator: 'allOf',
             includedProperties: [],
@@ -70,6 +153,7 @@ export function combineSchemasMock({
           context,
           imports,
           existingReferencedProperties,
+          existingReferencedAllOfRefs,
           splitMockImplementations,
         })
       : undefined;
@@ -93,18 +177,24 @@ export function combineSchemasMock({
   let value = separator === 'allOf' ? '' : 'faker.helpers.arrayElement([';
 
   for (const val of separatorItems) {
-    const refName = isReference(val) ? getReferenceName(val.$ref) : '';
-    // For allOf: skip if refName is in existingRefs AND this is an inline schema (not a top-level ref)
-    // This allows top-level schemas (item.isRef=true) to get base properties from allOf
-    // while preventing circular allOf chains in inline property schemas.
-    // For oneOf/anyOf: skip variants that point back to an already-visited schema,
-    // otherwise polymorphic recursion (e.g. Base.Parent → oneOf [Derived → allOf [Base]])
-    // would infinitely re-expand.
+    const refName = isReference(val) ? getReferenceName(val.$ref, context) : '';
+    // For allOf: skip a base that would otherwise re-expand forever, in any of:
+    //   - `refName === item.name`: the schema lists itself as its own base;
+    //   - an already-seen *inline* base (`!item.isRef`): a circular inline allOf;
+    //   - a ref already on the contiguous allOf chain
+    //     (`existingReferencedAllOfRefs`): a top-level allOf cycle — see that
+    //     field's docs above.
+    // Top-level refs (`item.isRef`) are otherwise allowed through so a schema
+    // still inherits its base properties.
+    // For oneOf/anyOf: skip a variant pointing back to an already-visited schema,
+    // otherwise polymorphic recursion re-expands forever
+    // (e.g. Base.Parent → oneOf [Derived → allOf [Base]]).
     const shouldSkipRef =
       separator === 'allOf'
         ? refName &&
           (refName === item.name ||
-            (existingReferencedProperties.includes(refName) && !item.isRef))
+            (existingReferencedProperties.includes(refName) && !item.isRef) ||
+            existingReferencedAllOfRefs.includes(refName))
         : refName && existingReferencedProperties.includes(refName);
 
     if (shouldSkipRef) {
@@ -154,6 +244,12 @@ export function combineSchemasMock({
       context,
       imports,
       existingReferencedProperties,
+      // Grow the chain on an allOf base hop; reset it on a oneOf/anyOf variant
+      // (a fresh instance). See `existingReferencedAllOfRefs` docs above.
+      existingReferencedAllOfRefs:
+        separator === 'allOf' && refName
+          ? [...existingReferencedAllOfRefs, refName]
+          : [],
       splitMockImplementations,
     });
 

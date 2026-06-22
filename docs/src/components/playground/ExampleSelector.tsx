@@ -1,21 +1,48 @@
 import { ChevronDown } from 'lucide-react';
 
+import type { Locale } from '@/lib/i18n';
 import type { ExampleCategory } from '@/lib/playground/types';
 
 interface ExampleSelectorProps {
   examples: ExampleCategory[];
+  id: string;
+  label: string;
+  locale: Locale;
   value: string;
   onChange: (selectId: string) => void;
 }
 
+const exampleNames: Record<Locale, Record<string, string>> = {
+  en: {},
+  zh: {
+    Basic: '基础',
+    'With Validation': '带校验',
+  },
+};
+
+const tagNames: Record<Locale, Record<string, string>> = {
+  en: {},
+  zh: {
+    validation: '校验',
+  },
+};
+
 export const ExampleSelector = ({
   examples,
+  id,
+  label,
+  locale,
   value,
   onChange,
 }: ExampleSelectorProps) => {
+  const getExampleName = (name: string) => exampleNames[locale][name] ?? name;
+  const getTagName = (tag: string) => tagNames[locale][tag] ?? tag;
+
   return (
     <div className="relative">
       <select
+        aria-label={label}
+        id={id}
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
@@ -34,8 +61,10 @@ export const ExampleSelector = ({
                 value={example.selectId}
                 className="bg-[#1a0a2e] text-white py-2"
               >
-                {example.name}
-                {example.tags.length > 0 ? ` (${example.tags.join(', ')})` : ''}
+                {getExampleName(example.name)}
+                {example.tags.length > 0
+                  ? ` (${example.tags.map(getTagName).join(', ')})`
+                  : ''}
               </option>
             ))}
           </optgroup>

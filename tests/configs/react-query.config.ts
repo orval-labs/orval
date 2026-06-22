@@ -1,6 +1,133 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  issue2999: {
+    output: {
+      target: '../generated/react-query/issue-2999/endpoints.ts',
+      schemas: '../generated/react-query/issue-2999/model',
+      client: 'react-query',
+      httpClient: 'fetch',
+      override: {
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+        },
+        fetch: {
+          includeHttpResponseReturnType: false,
+        },
+        query: {
+          version: 5,
+          useQuery: true,
+          useInvalidate: true,
+          usePrefetch: true,
+          signal: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-2999.yaml',
+    },
+  },
+  // Follow-up to #2999: a second reporter saw the same "duplicated hook" with
+  // `useInfinite` + `runtimeValidation` enabled and suspected that combination
+  // triggered the duplicate. It does not — the overload block is still exactly
+  // four declarations per hook. This entry reuses the issue-2999 spec with that
+  // exact flag set so the regression test can pin the count under it too.
+  issue2999Infinite: {
+    output: {
+      target: '../generated/react-query/issue-2999-infinite/endpoints.ts',
+      schemas: '../generated/react-query/issue-2999-infinite/model',
+      client: 'react-query',
+      httpClient: 'fetch',
+      override: {
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+        },
+        fetch: {
+          includeHttpResponseReturnType: false,
+        },
+        query: {
+          version: 5,
+          useQuery: true,
+          useInvalidate: true,
+          usePrefetch: true,
+          useInfinite: true,
+          signal: true,
+          runtimeValidation: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-2999.yaml',
+    },
+  },
+  'issue-2540-external-ref-import-path': {
+    output: {
+      target:
+        '../generated/react-query/issue-2540-external-ref-import-path/endpoints.ts',
+      schemas:
+        '../generated/react-query/issue-2540-external-ref-import-path/model',
+      client: 'react-query',
+      mode: 'tags-split',
+      // indexFiles:false forces direct file-path imports, which is where #2540's
+      // wrong external-YAML-basename path used to surface (the barrel masked it).
+      indexFiles: false,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-2540/issue-2540.yaml',
+    },
+  },
+  issue2039: {
+    output: {
+      target: '../generated/react-query/issue-2039/endpoints.ts',
+      schemas: '../generated/react-query/issue-2039/model',
+      client: 'react-query',
+      override: {
+        query: {
+          mutationOptions: {
+            path: '../mutators/custom-mutation.ts',
+            name: 'useCustomMutation',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-2039.yaml',
+    },
+  },
+  // #3301: filtering endpoints by tags must not drop unreferenced
+  // `components.schemas`. `includeUnreferencedSchemas: true` keeps every schema
+  // (including the orphan `UnusedModel`/`UnusedStatus`) while the `stream` tag
+  // is still excluded from the generated endpoints.
+  'issue-3301-include-unreferenced-schemas': {
+    output: {
+      target:
+        '../generated/react-query/issue-3301-include-unreferenced-schemas/endpoints.ts',
+      schemas:
+        '../generated/react-query/issue-3301-include-unreferenced-schemas/model',
+      client: 'react-query',
+      mode: 'tags-split',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3301/issue-3301.yaml',
+      filters: {
+        mode: 'exclude',
+        tags: ['stream'],
+        includeUnreferencedSchemas: true,
+      },
+    },
+  },
   basic: {
     output: {
       target: '../generated/react-query/basic/endpoints.ts',
@@ -103,6 +230,197 @@ export default defineConfig({
               // shouldSplitQueryKey test: showPetById has required path
               // param but no params mapping → should generate partial
               // key matching with static route segments.
+              onMutations: ['createPets'],
+              invalidates: ['showPetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  invalidatesBaseUrl: {
+    output: {
+      target: '../generated/react-query/invalidates-base-url/endpoints.ts',
+      schemas: '../generated/react-query/invalidates-base-url/model',
+      client: 'react-query',
+      // Issue #3534: when baseUrl is set, query keys are prefixed with it
+      // (e.g. `${process.env.API_URL}/pets/...`). The broad-invalidation
+      // predicate must include the same baseUrl prefix, otherwise it never
+      // matches and the invalidation silently no-ops.
+      baseUrl: { runtime: 'process.env.API_URL', imports: [] },
+      override: {
+        query: {
+          mutationInvalidates: [
+            {
+              // showPetById has a required path param but no params mapping →
+              // predicate-based broad invalidation. The startsWith() prefix
+              // must carry the runtime baseUrl.
+              onMutations: ['createPets'],
+              invalidates: ['showPetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  invalidatesBaseUrlSplit: {
+    output: {
+      target: '../generated/react-query/invalidates-base-url-split/endpoints.ts',
+      schemas: '../generated/react-query/invalidates-base-url-split/model',
+      client: 'react-query',
+      // Issue #3534 (split-key variant): static baseUrl segments must be
+      // included in the partial query key used for broad invalidation.
+      baseUrl: 'http://example.com',
+      override: {
+        query: {
+          shouldSplitQueryKey: true,
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['showPetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  invalidatesBaseUrlStatic: {
+    output: {
+      target: '../generated/react-query/invalidates-base-url-static/endpoints.ts',
+      schemas: '../generated/react-query/invalidates-base-url-static/model',
+      client: 'react-query',
+      // Issue #3534 (static baseUrl, default mode): a plain string baseUrl
+      // must be baked into the single-quoted startsWith() prefix literal.
+      baseUrl: 'http://example.com',
+      override: {
+        query: {
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['showPetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  invalidatesBaseUrlRuntimeSplit: {
+    output: {
+      target:
+        '../generated/react-query/invalidates-base-url-runtime-split/endpoints.ts',
+      schemas:
+        '../generated/react-query/invalidates-base-url-runtime-split/model',
+      client: 'react-query',
+      // Issue #3534 (runtime baseUrl, split mode): the runtime expression must
+      // be emitted as an unquoted segment in the partial query key, matching
+      // how `getRouteAsArray` unwraps the template tag in the query key array.
+      baseUrl: { runtime: 'process.env.API_URL', imports: [] },
+      override: {
+        query: {
+          shouldSplitQueryKey: true,
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['showPetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  invalidatesBaseUrlNonGet: {
+    output: {
+      target: '../generated/react-query/invalidates-base-url-non-get/endpoints.ts',
+      schemas: '../generated/react-query/invalidates-base-url-non-get/model',
+      client: 'react-query',
+      // Issue #3534 (verb-prefixed key + baseUrl): a non-GET operation routed
+      // to a Query hook gets a verb-prefixed key (['DELETE', '<route>']). The
+      // baseUrl prefix must land on the route element (queryKey[1]) of the
+      // predicate, alongside the verb guard on queryKey[0].
+      baseUrl: { runtime: 'process.env.API_URL', imports: [] },
+      override: {
+        operations: {
+          deletePetById: {
+            query: { useQuery: true },
+          },
+        },
+        query: {
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['deletePetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  shouldFilterQueryKey: {
+    output: {
+      target: '../generated/react-query/filter-query-key/endpoints.ts',
+      schemas: '../generated/react-query/filter-query-key/model',
+      client: 'react-query',
+      override: {
+        query: {
+          shouldSplitQueryKey: true,
+          shouldFilterQueryKey: true,
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['showPetById'],
+            },
+          ],
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  shouldFilterBooleanQueryKey: {
+    output: {
+      target: '../generated/react-query/filter-boolean-query-key/endpoints.ts',
+      schemas: '../generated/react-query/filter-boolean-query-key/model',
+      client: 'react-query',
+      override: {
+        query: {
+          shouldSplitQueryKey: true,
+          shouldFilterQueryKey: true,
+          queryKeyFilter: 'Boolean',
+          mutationInvalidates: [
+            {
               onMutations: ['createPets'],
               invalidates: ['showPetById'],
             },
@@ -424,9 +742,7 @@ export default defineConfig({
       mode: 'split',
       client: 'react-query',
       mock: {
-        type: 'msw',
-        delay: 0,
-        useExamples: true,
+        generators: [{ type: 'msw', delay: 0, useExamples: true }],
       },
       headers: true,
       clean: true,
@@ -932,8 +1248,7 @@ export default defineConfig({
       schemas: '../generated/react-query/mockWithoutDelay/model',
       client: 'react-query',
       mock: {
-        type: 'msw',
-        delay: false,
+        generators: [{ type: 'msw', delay: false }],
       },
       clean: true,
       formatter: 'prettier',
@@ -1070,6 +1385,29 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  petstoreCustomQueryOptionsWithOperation: {
+    output: {
+      target:
+        '../generated/react-query/custom-query-options-with-operation/endpoints.ts',
+      schemas:
+        '../generated/react-query/custom-query-options-with-operation/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useInvalidate: true,
+          queryOptions: {
+            path: '../mutators/custom-query-options-with-operation.ts',
+            name: 'customQueryOptionsWithOperation',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   useSetQueryData: {
     output: {
       target: '../generated/react-query/use-set-query-data/endpoints.ts',
@@ -1173,7 +1511,7 @@ export default defineConfig({
       schemas: '../generated/react-query/issue-3269/model',
       client: 'react-query',
       mode: 'tags-split',
-      mock: { type: 'msw' },
+      mock: { generators: [{ type: 'msw' }] },
       clean: true,
       formatter: 'prettier',
     },
@@ -1200,6 +1538,62 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3066.yaml',
+    },
+  },
+  // Regression for issue #708. When an operation generates both a regular
+  // query and an infinite query, the two must not share a query key, otherwise
+  // React Query serves one query's cached data for the other (the infinite
+  // `{ pages, pageParams }` shape leaking into the regular query, and vice
+  // versa). The infinite query key fn (`getGetListInfiniteQueryKey`) must be
+  // distinct from the regular one (`getGetListQueryKey`) and carry an
+  // `'infinite'` segment so the cache entries never collide.
+  issue708: {
+    output: {
+      target: '../generated/react-query/issue-708/endpoints.ts',
+      schemas: '../generated/react-query/issue-708/model',
+      client: 'react-query',
+      mode: 'single',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'page',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-708.yaml',
+    },
+  },
+  issue1522: {
+    output: {
+      target: '../generated/react-query/issue-1522/endpoints.ts',
+      schemas: '../generated/react-query/issue-1522/model',
+      client: 'react-query',
+      allParamsOptional: true,
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        query: {
+          useInfinite: true,
+          useInfiniteQueryParam: 'page',
+        },
+        operations: {
+          listHouseCats: {
+            query: {
+              queryOptions: {
+                path: '../mutators/custom-query-options.ts',
+                name: 'customQueryOptions',
+              },
+            },
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-1522.yaml',
     },
   },
 });

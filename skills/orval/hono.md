@@ -410,7 +410,7 @@ export default defineConfig({
       schemas: 'next-app/app/gen/models',
       clean: true,
       baseUrl: 'http://localhost:8787',
-      mock: true,
+      mocks: true,
     },
   },
   petstoreApi: {

@@ -1,0 +1,34 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Issue 3525 - schema named WidgetMock
+  license:
+    name: MIT
+
+# Regression spec: a schema whose name ends in "Mock" must not trigger
+# strict-mock dedupe/hoisting when override.mock.required/nonNullable are off.
+
+paths:
+  /widget:
+    get:
+      operationId: getWidget
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WidgetMock'
+
+components:
+  schemas:
+    WidgetMock:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+          nullable: true

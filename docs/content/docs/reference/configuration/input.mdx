@@ -75,7 +75,18 @@ export default defineConfig({
 });
 ```
 
-The transformer function receives an `OpenApiDocument` and should return a transformed `OpenApiDocument`. You can use the `defineTransformer` helper from `orval` for type inference.
+The transformer runs **before** spec validation (and before the internal
+OpenAPI 2.0 → 3.1 upgrade), so you can use it to repair malformed specs (e.g.
+fix non-compliant fields) without having to disable validation entirely. If
+your spec is OpenAPI 2.0 (Swagger), the transformer receives the 2.0
+document — not the upgraded 3.1 form.
+
+The transformer function receives an `OpenApiDocument` and must return an
+`OpenApiDocument` or a `Promise<OpenApiDocument>` — async transformers are
+supported, so you can fetch overrides or run any awaitable repair step inside.
+You may mutate the input in place or return a new object. The
+`defineTransformer` helper from `orval` provides type inference for both sync
+and async returns.
 
 ```ts title="transformer.ts"
 import { defineTransformer } from 'orval';
@@ -87,6 +98,19 @@ export default defineTransformer((inputSchema) => ({
     title: `${inputSchema.info?.title} - Custom`,
   },
 }));
+```
+
+Async example:
+
+```ts title="transformer.ts"
+import { defineTransformer } from 'orval';
+
+export default defineTransformer(async (inputSchema) => {
+  const overrides = await fetch('https://example.com/overrides.json').then(
+    (r) => r.json(),
+  );
+  return { ...inputSchema, ...overrides };
+});
 ```
 
 See [example transformer](https://github.com/orval-labs/orval/blob/master/samples/basic/api/transformer/add-version.js).
@@ -140,7 +164,7 @@ export default defineConfig({
 
 When `tags` is set and `schemas` is not, orval automatically limits the output to only the schemas referenced (directly or transitively) by the matching operations. This prevents unrelated schemas from appearing in the generated output.
 
-If you also specify `schemas`, it takes precedence and the automatic inference is skipped. To filter endpoints by tags while still outputting all schemas, use `schemas: [/.*/]`.
+If you also specify `schemas`, it takes precedence and the automatic inference is skipped. To filter endpoints by tags while still outputting **all** schemas, set [`includeUnreferencedSchemas: true`](#includeunreferencedschemas) — it works in both `include` and `exclude` mode.
 
 ### schemas
 
@@ -156,6 +180,29 @@ export default defineConfig({
     input: {
       filters: {
         schemas: ['Error', /Cat/],
+      },
+    },
+  },
+});
+```
+
+### includeUnreferencedSchemas
+
+**Type:** `Boolean`
+**Default:** `false`
+
+When `tags` is set (and `schemas` is not), orval emits only the schemas referenced by the matching operations. Set `includeUnreferencedSchemas: true` to keep **every** `#/components/schemas` entry — including schemas referenced by no operation — while still filtering endpoints by `tags`. The other component sections (`responses`, `parameters`, `requestBodies`) remain pruned to what the matching operations use. This works in both `include` and `exclude` mode, and is ignored when `schemas` is set.
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      filters: {
+        mode: 'exclude',
+        tags: ['stream'],
+        includeUnreferencedSchemas: true,
       },
     },
   },
@@ -239,11 +286,12 @@ Disable OpenAPI spec validation during code generation.
 </Callout>
 
 When `true`, orval skips both spec-level validation (`@scalar/openapi-parser`)
-and the component-key check — including the post-transformer validation when
-`override.transformer` is used — and proceeds with code generation regardless
-of spec errors. Intended as an escape hatch for specs that use non-standard
+and the component-key check, and proceeds with code generation regardless of
+spec errors. Intended as an escape hatch for specs that use non-standard
 extensions (e.g. FastAPI's `itemSchema` on `text/event-stream` responses) which
-a compliant validator would otherwise reject.
+a compliant validator would otherwise reject. Prefer
+[`override.transformer`](#transformer) — which runs before validation — when
+the spec can be repaired in-place.
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';

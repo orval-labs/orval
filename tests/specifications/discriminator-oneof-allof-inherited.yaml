@@ -1,0 +1,59 @@
+openapi: '3.0.2'
+info:
+  title: Discriminator with oneOf union where the parent carries inheritable properties
+  version: '1.0'
+
+# Companion to `discriminator-oneof-allof.yaml`. The sibling fixture covers the
+# case where the parent has *only* the discriminator key. This one exercises
+# the path where the parent also has a common property (`name`) that each
+# variant must inherit. Together they pin both branches of the #3432 fix:
+# the empty-parent drop branch and the inline-parent-props branch.
+
+components:
+  schemas:
+    Animal:
+      type: object
+      required:
+        - species
+        - name
+      properties:
+        species:
+          type: string
+          enum: [cat, dog]
+        name:
+          type: string
+      discriminator:
+        propertyName: species
+        mapping:
+          cat: '#/components/schemas/Cat'
+          dog: '#/components/schemas/Dog'
+      oneOf:
+        - $ref: '#/components/schemas/Cat'
+        - $ref: '#/components/schemas/Dog'
+
+    Cat:
+      allOf:
+        - $ref: '#/components/schemas/Animal'
+        - type: object
+          properties:
+            livesLeft:
+              type: integer
+    Dog:
+      allOf:
+        - $ref: '#/components/schemas/Animal'
+        - type: object
+          properties:
+            isTrained:
+              type: boolean
+
+paths:
+  /animal:
+    get:
+      operationId: getAnimal
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Animal'

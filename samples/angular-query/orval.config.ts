@@ -52,7 +52,7 @@ export default defineConfig({
       client: 'angular-query',
       httpClient: 'angular',
       mock: {
-        type: 'msw',
+        generators: [{ type: 'msw' }],
       },
       tsconfig: './tsconfig.app.json',
       clean: true,

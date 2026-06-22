@@ -1,7 +1,6 @@
 import {
   collectReferencedComponents,
   type ContextSpec,
-  dynamicImport,
   generateComponentDefinition,
   generateParameterDefinition,
   generateSchemasDefinition,
@@ -10,10 +9,8 @@ import {
   type NormalizedOutputOptions,
   type OpenApiComponentsObject,
   type OpenApiDocument,
-  type OverrideInput,
   type WriteSpecBuilder,
 } from '@orval/core';
-import { validate } from '@scalar/openapi-parser';
 import { pick } from 'remeda';
 
 import { getApiBuilder } from './api';
@@ -31,11 +28,18 @@ function filterSpecComponents(
     filters.mode,
   );
 
+  const allSchemas = spec.components?.schemas ?? {};
+
   return {
     ...spec,
     components: {
       ...spec.components,
-      schemas: pick(spec.components?.schemas ?? {}, referenced.schemas),
+      // `includeUnreferencedSchemas` keeps every `components.schemas` entry —
+      // the section consumers are most likely to depend on — while the other
+      // component sections stay pruned to what the matching operations use.
+      schemas: filters.includeUnreferencedSchemas
+        ? allSchemas
+        : pick(allSchemas, referenced.schemas),
       responses: pick(spec.components?.responses ?? {}, referenced.responses),
       parameters: pick(
         spec.components?.parameters ?? {},
@@ -57,14 +61,8 @@ export async function importOpenApi({
   workspace,
   projectName,
 }: ImportOpenApi): Promise<WriteSpecBuilder> {
-  const transformedOpenApi = await applyTransformer(
-    spec,
-    input.override.transformer,
-    workspace,
-    input.unsafeDisableValidation,
-  );
-
-  const filteredSpec = filterSpecComponents(transformedOpenApi, input);
+  // The transformer has already been applied (pre-validation) in `resolveSpec`.
+  const filteredSpec = filterSpecComponents(spec, input);
 
   const schemas = getApiSchemas({
     input,
@@ -95,32 +93,6 @@ export async function importOpenApi({
     info: filteredSpec.info!,
     spec: filteredSpec,
   };
-}
-
-async function applyTransformer(
-  openApi: OpenApiDocument,
-  transformer: OverrideInput['transformer'],
-  workspace: string,
-  unsafeDisableValidation = false,
-): Promise<OpenApiDocument> {
-  const transformerFn = transformer
-    ? await dynamicImport(transformer, workspace)
-    : undefined;
-
-  if (!transformerFn) {
-    return openApi;
-  }
-
-  const transformedOpenApi = transformerFn(openApi);
-
-  if (!unsafeDisableValidation) {
-    const { valid, errors } = await validate(transformedOpenApi);
-    if (!valid) {
-      throw new Error(`Validation failed`, { cause: errors });
-    }
-  }
-
-  return transformedOpenApi;
 }
 
 interface GetApiSchemasOptions {

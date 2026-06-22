@@ -2,25 +2,48 @@ import {
   type ContextSpec,
   type GeneratorImport,
   getKey,
+  getRefInfo,
   isReference,
   type MockOptions,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
-  pascal,
   PropertySortOrder,
 } from '@orval/core';
 
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
-import { resolveMockValue } from '../resolvers/value';
+import {
+  resolveMockValue,
+  getNullable,
+  isNullableSchema,
+} from '../resolvers/value';
+import { mergeReturnedMockImports } from '../imports';
 import { combineSchemasMock } from './combine';
 
 export const overrideVarName = 'overrideResponse';
 
-function getReferenceName(ref?: string): string {
+function wrapRootNullableObjectValue(
+  value: string,
+  schemaItem: MockSchemaObject,
+  mockOptions: MockOptions | undefined,
+  combine?: GetMockObjectOptions['combine'],
+): { value: string; nullWrapped: boolean } {
+  const nullableAtRoot =
+    !combine && isNullableSchema(schemaItem) && !mockOptions?.nonNullable;
+
+  return {
+    value: nullableAtRoot ? getNullable(value, true) : value,
+    nullWrapped: nullableAtRoot,
+  };
+}
+
+function getReferenceName(
+  ref: string | undefined,
+  context: ContextSpec,
+): string {
   if (!ref) return '';
 
-  return pascal(ref.split('/').pop() ?? '');
+  return getRefInfo(ref, context).name;
 }
 
 interface GetMockObjectOptions {
@@ -37,6 +60,9 @@ interface GetMockObjectOptions {
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
+  // Tracks the current contiguous `allOf` composition to break cyclic
+  // inheritance. See `existingReferencedAllOfRefs` docs in getters/combine.ts.
+  existingReferencedAllOfRefs?: string[];
   splitMockImplementations: string[];
   // This is used to add the overrideResponse to the object
   allowOverride?: boolean;
@@ -51,6 +77,7 @@ export function getMockObject({
   context,
   imports,
   existingReferencedProperties,
+  existingReferencedAllOfRefs = [],
   splitMockImplementations,
   allowOverride = false,
 }: GetMockObjectOptions): MockDefinition {
@@ -67,6 +94,7 @@ export function getMockObject({
       context,
       imports,
       existingReferencedProperties,
+      existingReferencedAllOfRefs,
       splitMockImplementations,
     });
   }
@@ -98,20 +126,70 @@ export function getMockObject({
       context,
       imports,
       existingReferencedProperties,
+      existingReferencedAllOfRefs,
       splitMockImplementations,
     });
   }
 
   if (Array.isArray(itemType)) {
+    const nonNullTypes = mockOptions?.nonNullable
+      ? itemType.filter((type) => type !== 'null')
+      : itemType;
+
+    if (nonNullTypes.length === 0) {
+      return { value: 'null', imports: [], name: schemaItem.name };
+    }
+
+    if (nonNullTypes.length === 1) {
+      return getMockObject({
+        item: {
+          ...schemaItem,
+          type: nonNullTypes[0],
+        } as MockSchemaObject & Record<string, unknown>,
+        mockOptions,
+        operationId,
+        tags,
+        combine,
+        context,
+        imports,
+        existingReferencedProperties,
+        existingReferencedAllOfRefs,
+        splitMockImplementations,
+        allowOverride,
+      });
+    }
+
     // Spread the base schema into each type entry so that object properties
     // (e.g. `properties`, `required`, `additionalProperties`) are preserved.
     // Without this, `{ type: "object", properties: {...} }` collapses to
     // `{ type: "object" }` and the mock generator returns `{}` instead of
     // building the actual object shape. Mirrors the fix in core getters/object.ts.
+    const isPropertylessObject =
+      !itemProperties &&
+      (!itemRequired || itemRequired.length === 0) &&
+      !itemAdditionalProperties;
+
+    if (
+      isPropertylessObject &&
+      nonNullTypes.includes('object') &&
+      nonNullTypes.includes('null') &&
+      nonNullTypes.every((type) => type === 'object' || type === 'null')
+    ) {
+      if (mockOptions?.nonNullable) {
+        return { value: '{}', imports: [], name: schemaItem.name };
+      }
+
+      return {
+        value: 'faker.helpers.arrayElement([{}, null])',
+        imports: [],
+        name: schemaItem.name,
+      };
+    }
+
     const baseItem = schemaItem as Record<string, unknown>;
     return combineSchemasMock({
       item: {
-        anyOf: itemType.map((type) => ({
+        anyOf: nonNullTypes.map((type) => ({
           ...baseItem,
           type,
         })) as unknown as MockSchema[],
@@ -125,6 +203,7 @@ export function getMockObject({
       context,
       imports,
       existingReferencedProperties,
+      existingReferencedAllOfRefs,
       splitMockImplementations,
     });
   }
@@ -163,7 +242,9 @@ export function getMockObject({
           // Fixes issue #910
           if (
             isReference(prop) &&
-            existingReferencedProperties.includes(getReferenceName(prop.$ref))
+            existingReferencedProperties.includes(
+              getReferenceName(prop.$ref, context),
+            )
           ) {
             if (isRequired) {
               const keyDefinition = getKey(key);
@@ -172,10 +253,12 @@ export function getMockObject({
             return;
           }
 
+          const importsBefore = imports.length;
           const resolvedValue = resolveMockValue({
             schema: {
               ...(prop as Record<string, unknown>),
               name: key,
+              parentName: schemaItem.name,
               path: schemaItem.path ? `${schemaItem.path}.${key}` : `#.${key}`,
             },
             mockOptions,
@@ -184,10 +267,19 @@ export function getMockObject({
             context,
             imports,
             existingReferencedProperties,
+            // A property value is a fresh mock instance, not part of this
+            // object's allOf composition — reset the chain.
+            // See `existingReferencedAllOfRefs` docs in getters/combine.ts.
+            existingReferencedAllOfRefs: [],
             splitMockImplementations,
           });
 
-          imports.push(...resolvedValue.imports);
+          mergeReturnedMockImports(
+            imports,
+            importsBefore,
+            resolvedValue.imports,
+          );
+
           includedProperties.push(key);
 
           const keyDefinition = getKey(key);
@@ -195,13 +287,19 @@ export function getMockObject({
           const hasDefault = 'default' in prop && prop.default !== undefined;
 
           if (!isRequired && !resolvedValue.overrided && !hasDefault) {
-            const nullValue = hasNullable ? 'null' : 'undefined';
-            return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, ${nullValue}])`;
+            const omitValue =
+              mockOptions?.nonNullable || !hasNullable ? 'undefined' : 'null';
+            return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, ${omitValue}])`;
           }
 
           const isNullable =
             Array.isArray(prop.type) && prop.type.includes('null');
-          if (isNullable && !resolvedValue.overrided) {
+          if (
+            isNullable &&
+            !resolvedValue.nullWrapped &&
+            !resolvedValue.overrided &&
+            !mockOptions?.nonNullable
+          ) {
             return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, null])`;
           }
 
@@ -220,8 +318,16 @@ export function getMockObject({
         ? '}'
         : '';
 
-    return {
+    const { value: finalValue, nullWrapped } = wrapRootNullableObjectValue(
       value,
+      schemaItem,
+      mockOptions,
+      combine,
+    );
+
+    return {
+      value: finalValue,
+      nullWrapped,
       imports,
       name: schemaItem.name,
       includedProperties,
@@ -230,16 +336,40 @@ export function getMockObject({
 
   if (itemAdditionalProperties) {
     if (itemAdditionalProperties === true) {
-      return { value: `{}`, imports: [], name: schemaItem.name };
+      const { value: finalValue, nullWrapped } = wrapRootNullableObjectValue(
+        `{}`,
+        schemaItem,
+        mockOptions,
+        combine,
+      );
+
+      return {
+        value: finalValue,
+        nullWrapped,
+        imports: [],
+        name: schemaItem.name,
+      };
     }
     const additionalProperties = itemAdditionalProperties;
     if (
       isReference(additionalProperties) &&
       existingReferencedProperties.includes(
-        getReferenceName(additionalProperties.$ref),
+        getReferenceName(additionalProperties.$ref, context),
       )
     ) {
-      return { value: `{}`, imports: [], name: schemaItem.name };
+      const { value: finalValue, nullWrapped } = wrapRootNullableObjectValue(
+        `{}`,
+        schemaItem,
+        mockOptions,
+        combine,
+      );
+
+      return {
+        value: finalValue,
+        nullWrapped,
+        imports: [],
+        name: schemaItem.name,
+      };
     }
 
     const resolvedValue = resolveMockValue({
@@ -254,16 +384,36 @@ export function getMockObject({
       context,
       imports,
       existingReferencedProperties,
+      // An additionalProperties value is a fresh mock instance — reset the
+      // chain, as with property values above.
+      // See `existingReferencedAllOfRefs` docs in getters/combine.ts.
+      existingReferencedAllOfRefs: [],
       splitMockImplementations,
     });
 
+    const objectValue = `{
+        [${DEFAULT_OBJECT_KEY_MOCK}]: ${resolvedValue.value}
+      }`;
+    const { value: finalValue, nullWrapped } = wrapRootNullableObjectValue(
+      objectValue,
+      schemaItem,
+      mockOptions,
+      combine,
+    );
+
     return {
       ...resolvedValue,
-      value: `{
-        [${DEFAULT_OBJECT_KEY_MOCK}]: ${resolvedValue.value}
-      }`,
+      value: finalValue,
+      nullWrapped,
     };
   }
 
-  return { value: '{}', imports: [], name: schemaItem.name };
+  const { value: finalValue, nullWrapped } = wrapRootNullableObjectValue(
+    '{}',
+    schemaItem,
+    mockOptions,
+    combine,
+  );
+
+  return { value: finalValue, nullWrapped, imports: [], name: schemaItem.name };
 }

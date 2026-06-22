@@ -11,6 +11,7 @@ import { generateMSW } from './index';
 describe('generateMSW', () => {
   const mockVerbOptions = {
     operationId: 'getUser',
+    operationName: 'getUser',
     verb: 'get',
     tags: [],
     response: {
@@ -318,6 +319,127 @@ describe('generateMSW', () => {
       );
     });
 
+    it('should generate ArrayBuffer mock for $ref to a format: binary schema', () => {
+      const refBinaryVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          imports: [],
+          definition: { success: 'TestPdfFile' },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: 'TestPdfFile',
+                contentType: '*/*',
+                originalSchema: { type: 'string', format: 'binary' },
+                imports: [{ name: 'TestPdfFile' }],
+                schemas: [],
+                type: 'string',
+                isEnum: false,
+                isRef: true,
+                hasReadonlyProps: false,
+              },
+            ],
+          },
+          contentTypes: ['*/*'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(refBinaryVerbOptions, baseOptions);
+
+      expect(result.implementation.handler).toContain(
+        'HttpResponse.arrayBuffer',
+      );
+      expect(result.implementation.handler).not.toContain('JSON.stringify');
+      // The ref alias return type must be rewritten to ArrayBuffer to stay consistent with the arrayBuffer body.
+      expect(result.implementation.function).toContain(': ArrayBuffer');
+      expect(result.implementation.function).not.toContain(': TestPdfFile');
+    });
+
+    it('should rewrite aliased ref imports for $ref binary schemas', () => {
+      const aliasedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          imports: [],
+          definition: { success: '__TestPdfFile' },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: '__TestPdfFile',
+                contentType: '*/*',
+                originalSchema: { type: 'string', format: 'binary' },
+                imports: [{ name: 'TestPdfFile', alias: '__TestPdfFile' }],
+                schemas: [],
+                type: 'string',
+                isEnum: false,
+                isRef: true,
+                hasReadonlyProps: false,
+              },
+            ],
+          },
+          contentTypes: ['*/*'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(aliasedVerbOptions, baseOptions);
+
+      expect(result.implementation.function).toContain(': ArrayBuffer');
+      expect(result.implementation.function).not.toContain(': __TestPdfFile');
+    });
+
+    it('should not force binary path when preferredContentType narrows to a non-binary success variant', () => {
+      const mixedVerbOptions = {
+        ...mockVerbOptions,
+        response: {
+          imports: [],
+          definition: { success: 'Pet | Blob' },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: 'Pet',
+                contentType: 'application/json',
+                originalSchema: {
+                  type: 'object',
+                  properties: { name: { type: 'string' } },
+                },
+                imports: [],
+                schemas: [],
+                type: 'object',
+                isEnum: false,
+                isRef: true,
+                hasReadonlyProps: false,
+              },
+              {
+                key: '200',
+                value: 'Blob',
+                contentType: 'application/octet-stream',
+                originalSchema: { type: 'string', format: 'binary' },
+                imports: [],
+                schemas: [],
+                type: 'string',
+                isEnum: false,
+                isRef: false,
+                hasReadonlyProps: false,
+              },
+            ],
+          },
+          contentTypes: ['application/json', 'application/octet-stream'],
+        },
+      } as unknown as GeneratorVerbOptions;
+
+      const result = generateMSW(mixedVerbOptions, {
+        ...baseOptions,
+        mock: { preferredContentType: 'application/json' },
+      } as unknown as GeneratorOptions);
+
+      expect(result.implementation.handler).not.toContain(
+        'HttpResponse.arrayBuffer',
+      );
+      expect(result.implementation.handler).toContain('HttpResponse.json');
+    });
+
     it('should type the info parameter in the handler callback', () => {
       const result = generate({
         mock: { type: OutputMockType.MSW, delay: 100 },
@@ -521,7 +643,16 @@ describe('generateMSW', () => {
         response: {
           ...mockVerbOptions.response,
           definition: { success: 'Blob' },
-          types: { success: [{ key: '200', value: 'Blob' }] },
+          types: {
+            success: [
+              {
+                key: '200',
+                value: 'Blob',
+                contentType: 'application/octet-stream',
+              },
+              { key: '200', value: 'Blob', contentType: 'image/png' },
+            ],
+          },
           contentTypes: ['application/octet-stream', 'image/png'],
         },
       } as GeneratorVerbOptions;
@@ -609,7 +740,12 @@ describe('generateMSW', () => {
         response: {
           ...mockVerbOptions.response,
           definition: { success: 'string' },
-          types: { success: [{ key: '200', value: 'string' }] },
+          types: {
+            success: [
+              { key: '200', value: 'string', contentType: 'application/xml' },
+              { key: '200', value: 'string', contentType: 'application/json' },
+            ],
+          },
           contentTypes: ['application/xml', 'application/json'],
         },
       } as GeneratorVerbOptions;
@@ -664,7 +800,12 @@ describe('generateMSW', () => {
         response: {
           ...mockVerbOptions.response,
           definition: { success: 'string' },
-          types: { success: [{ key: '200', value: 'string' }] },
+          types: {
+            success: [
+              { key: '200', value: 'string', contentType: 'text/plain' },
+              { key: '200', value: 'string', contentType: 'text/html' },
+            ],
+          },
           contentTypes: ['text/plain', 'text/html'],
         },
       } as GeneratorVerbOptions;
@@ -911,7 +1052,12 @@ describe('generateMSW', () => {
         response: {
           ...mockVerbOptions.response,
           definition: { success: 'string' },
-          types: { success: [{ key: '200', value: 'string' }] },
+          types: {
+            success: [
+              { key: '200', value: 'string', contentType: 'text/plain' },
+              { key: '200', value: 'string', contentType: 'application/json' },
+            ],
+          },
           contentTypes: ['text/plain', 'application/json'],
         },
       } as GeneratorVerbOptions;
@@ -935,7 +1081,21 @@ describe('generateMSW', () => {
         response: {
           ...mockVerbOptions.response,
           definition: { success: 'string | Pet' },
-          types: { success: [{ key: '200', value: 'string | Pet' }] },
+          types: {
+            success: [
+              { key: '200', value: 'string | Pet', contentType: 'text/plain' },
+              {
+                key: '200',
+                value: 'string | Pet',
+                contentType: 'application/xml',
+              },
+              {
+                key: '200',
+                value: 'string | Pet',
+                contentType: 'application/json',
+              },
+            ],
+          },
           contentTypes: ['text/plain', 'application/xml', 'application/json'],
         },
       } as GeneratorVerbOptions;
@@ -1063,7 +1223,16 @@ describe('generateMSW', () => {
         response: {
           ...mockVerbOptions.response,
           definition: { success: 'string | Pet' },
-          types: { success: [{ key: '200', value: 'string | Pet' }] },
+          types: {
+            success: [
+              { key: '200', value: 'string | Pet', contentType: 'text/plain' },
+              {
+                key: '200',
+                value: 'string | Pet',
+                contentType: 'application/json',
+              },
+            ],
+          },
           contentTypes: ['text/plain', 'application/json'],
         },
       } as GeneratorVerbOptions;
@@ -1227,5 +1396,437 @@ describe('generateMSW', () => {
       expect(petEntries.some((i) => !i.alias)).toBe(true);
       expect(petEntries.some((i) => i.alias === '__Pet')).toBe(true);
     });
+  });
+});
+
+describe('arrayItems option', () => {
+  const tenantListResponseType = {
+    key: '200',
+    value: 'TenantListResponse',
+    contentType: 'application/json',
+    originalSchema: { $ref: '#/components/schemas/TenantListResponse' },
+    imports: [{ name: 'TenantListResponse' }],
+    schemas: [],
+    type: 'object',
+    isEnum: false,
+    isRef: true,
+    hasReadonlyProps: false,
+  };
+
+  const tenantsByRefVerbOptions = {
+    operationId: 'getTenantsByRef',
+    operationName: 'getTenantsByRef',
+    verb: 'get',
+    tags: ['tenants'],
+    response: {
+      imports: [{ name: 'TenantListResponse' }],
+      definition: { success: 'TenantListResponse' },
+      types: { success: [tenantListResponseType] },
+      contentTypes: ['application/json'],
+    },
+  } as unknown as GeneratorVerbOptions;
+
+  const arrayItemsContext = {
+    target: 'test',
+    workspace: '',
+    spec: {
+      openapi: '3.0.3',
+      info: { title: 'Test', version: '1.0.0' },
+      paths: {},
+      components: {
+        schemas: {
+          TenantListResponse: {
+            type: 'object',
+            required: ['value', 'count'],
+            properties: {
+              value: {
+                type: 'array',
+                items: {
+                  $ref: '#/components/schemas/TenantResponseModelDto',
+                },
+              },
+              count: { type: 'integer' },
+            },
+          },
+          TenantResponseModelDto: {
+            type: 'object',
+            required: ['id', 'name'],
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              name: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    output: {
+      target: 'test',
+      namingConvention: 'camelCase',
+      fileExtension: '.ts',
+      schemaFileExtension: '.ts',
+      mode: 'single',
+      mock: {
+        indexMockFiles: false,
+        generators: [
+          { type: OutputMockType.MSW, arrayItems: true, delay: false },
+        ],
+      },
+      override: {
+        operations: {},
+        tags: {},
+        components: { schemas: { suffix: '', itemSuffix: 'Item' } },
+      },
+      client: 'axios-functions',
+      httpClient: 'fetch',
+      clean: false,
+      docs: false,
+      formatter: undefined,
+      headers: false,
+      indexFiles: true,
+      allParamsOptional: false,
+      urlEncodeParameters: false,
+      unionAddMissingProperties: false,
+      optionsParamRequired: false,
+      propertySortOrder: 'specification',
+    },
+  };
+
+  const arrayItemsOptions = {
+    route: '/tenants-by-ref',
+    pathRoute: '/tenants-by-ref',
+    output: 'test',
+    override: { operations: {}, tags: {} } as NormalizedOverrideOutput,
+    context: arrayItemsContext,
+    mock: {
+      type: OutputMockType.MSW,
+      arrayItems: true,
+      delay: false,
+    },
+  } as unknown as GeneratorOptions;
+
+  it('extracts reusable array item factories when arrayItems is enabled on the MSW generator', () => {
+    const result = generateMSW(tenantsByRefVerbOptions, arrayItemsOptions);
+
+    expect(result.implementation.function).toContain(
+      'export const getTenantResponseModelDtoMock',
+    );
+    expect(result.implementation.function).toContain(
+      'getGetTenantsByRefResponseMock',
+    );
+    expect(result.implementation.function).toContain(
+      '...getTenantResponseModelDtoMock()',
+    );
+  });
+
+  it('does not extract array item factories when arrayItems is disabled', () => {
+    const result = generateMSW(tenantsByRefVerbOptions, {
+      ...arrayItemsOptions,
+      mock: { type: OutputMockType.MSW, delay: false },
+      context: {
+        ...arrayItemsContext,
+        output: {
+          ...arrayItemsContext.output,
+          mock: {
+            indexMockFiles: false,
+            generators: [{ type: OutputMockType.MSW, delay: false }],
+          },
+        },
+      },
+    } as unknown as GeneratorOptions);
+
+    expect(result.implementation.function).not.toContain(
+      'export const getTenantResponseModelDtoMock',
+    );
+  });
+});
+
+describe('strict mock types (#3525)', () => {
+  const petResponseType = {
+    key: '200',
+    value: 'Pet',
+    contentType: 'application/json',
+    originalSchema: {
+      type: 'object',
+      required: ['id', 'name'],
+      properties: {
+        id: { type: 'integer' },
+        name: { type: 'string' },
+        tag: { type: 'string', nullable: true },
+      },
+    },
+    imports: [{ name: 'Pet', values: false }],
+    schemas: [],
+    type: 'object',
+    isEnum: false,
+    isRef: true,
+    hasReadonlyProps: false,
+  };
+
+  const petVerbOptions = {
+    operationId: 'getPet',
+    operationName: 'getPet',
+    verb: 'get',
+    tags: [],
+    response: {
+      imports: [{ name: 'Pet', values: false }],
+      definition: { success: 'Pet' },
+      types: { success: [petResponseType] },
+      contentTypes: ['application/json'],
+    },
+  } as unknown as GeneratorVerbOptions;
+
+  const strictOverride = {
+    operations: {},
+    tags: {},
+    mock: {
+      required: true,
+      nonNullable: true,
+    },
+  } as NormalizedOverrideOutput;
+
+  const baseOptions = {
+    route: '/pet',
+    pathRoute: '/pet',
+    output: 'test',
+    override: strictOverride,
+    context: {
+      target: 'test',
+      workspace: '',
+      spec: {
+        openapi: '3.0.0',
+        info: { title: 'Test', version: '1.0.0' },
+        paths: {},
+      },
+      output: {
+        target: 'test',
+        namingConvention: 'camelCase',
+        fileExtension: '.ts',
+        mode: 'single',
+        override: strictOverride,
+        client: 'axios-functions',
+        httpClient: 'fetch',
+        clean: false,
+        docs: false,
+        formatter: undefined,
+        headers: false,
+        indexFiles: true,
+        allParamsOptional: false,
+        urlEncodeParameters: false,
+        unionAddMissingProperties: false,
+        optionsParamRequired: false,
+        propertySortOrder: 'specification',
+      },
+    },
+  } as unknown as GeneratorOptions;
+
+  it('emits PetMock return type for response mocks without per-operation type blocks', () => {
+    const result = generateMSW(petVerbOptions, {
+      ...baseOptions,
+      mock: { type: OutputMockType.MSW },
+    });
+
+    expect(result.implementation.function).not.toContain('export type PetMock');
+    expect(result.implementation.function).not.toContain(
+      'export type KeysWithNull<O>',
+    );
+    expect(result.implementation.function).toContain(
+      'export const getGetPetResponseMock = <O extends Partial<Extract<Pet, object>> = {}>(overrideResponse?: O): MockWithNullableOverrides<Pet, O, PetMock> =>',
+    );
+    expect(result.implementation.function).toContain(
+      ') as MockWithNullableOverrides<Pet, O, PetMock>;',
+    );
+    expect(result.implementation.function).not.toContain(', null]');
+  });
+
+  it('derives responseMock and handler names from operationName (splitByContentType)', () => {
+    // splitByContentType keeps one operationId across variants but suffixes
+    // operationName (e.g. *WithJson / *WithFormData). The MSW responseMock and
+    // handler names must follow operationName, otherwise sibling variants emit
+    // duplicate declarations and tsc fails with TS2451. See #3342.
+    const result = generateMSW(
+      {
+        ...petVerbOptions,
+        operationId: 'getPet',
+        operationName: 'getPetWithFormData',
+      } as unknown as GeneratorVerbOptions,
+      { ...baseOptions, mock: { type: OutputMockType.MSW } },
+    );
+
+    expect(result.implementation.handlerName).toBe(
+      'getGetPetWithFormDataMockHandler',
+    );
+    expect(result.implementation.function).toContain(
+      'export const getGetPetWithFormDataResponseMock',
+    );
+    expect(result.implementation.handler).toContain(
+      'export const getGetPetWithFormDataMockHandler',
+    );
+    expect(result.implementation.function).not.toContain(
+      'getGetPetResponseMock',
+    );
+  });
+
+  it('keeps the loose return type when strict flags are unset', () => {
+    const looseOverride = {
+      operations: {},
+      tags: {},
+      mock: {},
+    } as NormalizedOverrideOutput;
+
+    const result = generateMSW(petVerbOptions, {
+      ...baseOptions,
+      override: looseOverride,
+      context: {
+        ...baseOptions.context,
+        output: {
+          ...baseOptions.context.output,
+          override: looseOverride,
+        },
+      },
+      mock: { type: OutputMockType.MSW },
+    });
+
+    expect(result.implementation.function).not.toContain('export type PetMock');
+    expect(result.implementation.function).toContain(
+      'export const getGetPetResponseMock = (overrideResponse: Partial<Extract<Pet, object>> = {}): Pet =>',
+    );
+  });
+});
+
+describe('recursion guards for cyclic allOf schemas', () => {
+  const override = {
+    operations: {},
+    tags: {},
+    mock: {},
+  } as NormalizedOverrideOutput;
+
+  // Drive generateMSW end-to-end with a response body that resolves to `root`,
+  // with `schemas` available on the spec for $ref resolution. This exercises
+  // the same expansion path that overflowed the stack on specs containing
+  // allOf inheritance cycles between named component schemas — e.g. the
+  // serialized System.Xml.Linq.* XML DOM types, where XElement → XContainer →
+  // XNode → XObject and the base references its subtypes back. The earlier
+  // `!item.isRef` allOf guard could not break such cycles because every hop is
+  // a top-level $ref; the allOf-ancestor chain (existingReferencedAllOfRefs) now
+  // does. A regression here throws `RangeError: Maximum call stack size exceeded`.
+  const run = (schemas: Record<string, unknown>, root: string) => {
+    const verbOptions = {
+      operationId: 'getRoot',
+      operationName: 'getRoot',
+      verb: 'get',
+      tags: [],
+      response: {
+        imports: [{ name: root, values: false }],
+        definition: { success: root },
+        types: {
+          success: [
+            {
+              key: '200',
+              value: root,
+              contentType: 'application/json',
+              originalSchema: { $ref: `#/components/schemas/${root}` },
+              imports: [{ name: root, values: false }],
+              schemas: [],
+              isRef: true,
+            },
+          ],
+          errors: [],
+        },
+        contentTypes: ['application/json'],
+      },
+    } as unknown as GeneratorVerbOptions;
+
+    const options = {
+      route: '/root',
+      pathRoute: '/root',
+      output: 'test',
+      override,
+      mock: { type: OutputMockType.MSW, delay: false },
+      context: {
+        target: 'test',
+        workspace: '',
+        spec: {
+          openapi: '3.0.0',
+          info: { title: 'Test', version: '1.0.0' },
+          paths: {},
+          components: { schemas },
+        },
+        output: {
+          target: 'test',
+          namingConvention: 'camelCase',
+          fileExtension: '.ts',
+          mode: 'single',
+          override,
+          client: 'axios-functions',
+          httpClient: 'fetch',
+          clean: false,
+          docs: false,
+          formatter: undefined,
+          headers: false,
+          indexFiles: true,
+          allParamsOptional: false,
+          urlEncodeParameters: false,
+          unionAddMissingProperties: false,
+          optionsParamRequired: false,
+          propertySortOrder: 'specification',
+        },
+      },
+    } as unknown as GeneratorOptions;
+
+    return generateMSW(verbOptions, options);
+  };
+
+  it('does not overflow on a mutual allOf cycle (A allOf B, B allOf A)', () => {
+    const schemas = {
+      A: { allOf: [{ $ref: '#/components/schemas/B' }] },
+      B: { allOf: [{ $ref: '#/components/schemas/A' }] },
+    };
+    expect(() => run(schemas, 'A')).not.toThrow();
+  });
+
+  it('does not overflow on a multi-hop allOf inheritance cycle', () => {
+    const schemas = {
+      A: { allOf: [{ $ref: '#/components/schemas/B' }] },
+      B: { allOf: [{ $ref: '#/components/schemas/C' }] },
+      C: { allOf: [{ $ref: '#/components/schemas/A' }] },
+    };
+    expect(() => run(schemas, 'A')).not.toThrow();
+  });
+
+  // A discriminated base whose subtypes extend it via allOf while the base
+  // carries a property typed as one of those subtypes. This shape resembles the
+  // real System.Xml.Linq.* family but is already handled by the existing guards
+  // (it does NOT overflow pre-fix). It is kept as a guard in the other
+  // direction: the new allOf-ancestor chain must not *over*-cut a legitimate
+  // polymorphic hierarchy — it must keep generating successfully.
+  it('still generates a discriminated allOf inheritance hierarchy', () => {
+    const schemas = {
+      XObject: {
+        type: 'object',
+        required: ['kind'],
+        discriminator: {
+          propertyName: 'kind',
+          mapping: {
+            node: '#/components/schemas/XNode',
+            container: '#/components/schemas/XContainer',
+            element: '#/components/schemas/XElement',
+          },
+        },
+        properties: {
+          kind: { type: 'string' },
+          parent: {
+            allOf: [{ $ref: '#/components/schemas/XElement' }],
+            nullable: true,
+          },
+        },
+      },
+      XNode: { allOf: [{ $ref: '#/components/schemas/XObject' }] },
+      XContainer: { allOf: [{ $ref: '#/components/schemas/XNode' }] },
+      XElement: {
+        allOf: [{ $ref: '#/components/schemas/XContainer' }],
+        properties: { name: { type: 'string' } },
+      },
+    };
+    expect(() => run(schemas, 'XElement')).not.toThrow();
   });
 });

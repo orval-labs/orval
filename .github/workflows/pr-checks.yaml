@@ -18,34 +18,38 @@ jobs:
         node-version: [22.x]
     steps:
       - uses: actions/checkout@v6
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v6
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1
         with:
           node-version: ${{ matrix.node-version }}
+          cache: true
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: vp install --frozen-lockfile
 
       - name: Check formatting
-        run: bun run format:check
+        run: vp fmt --check
 
       - name: Build packages
-        run: bun run build
-
-      - name: Typecheck packages
-        run: bun run typecheck
+        run: vp run -w build:release
 
       - name: Lint packages
-        run: bun run lint
+        run: vp run -w lint
+
+      - name: Lint samples
+        run: vp run -w lint:samples
+
+      - name: Typecheck packages
+        run: vp run -w typecheck
 
       - name: Test packages
-        run: bun run test
+        run: vp run -w test
 
       - name: Verify snapshot
         # this step also runs the generate-api task
-        run: bun run test:snapshots
+        run: vp run -w test:snapshots
 
       - name: Verify generated code can build
-        run: bun run --filter orval-tests build
+        run: vp run -F orval-tests build

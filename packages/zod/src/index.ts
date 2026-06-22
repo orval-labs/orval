@@ -1,23 +1,28 @@
 /* eslint-disable unicorn/no-array-reduce */
 
 import {
+  buildDynamicScope,
+  buildInlineDynamicScope,
   camel,
   type ClientBuilder,
   type ClientGeneratorsBuilder,
   type ContextSpec,
-  escape,
   generateMutator,
   type GeneratorDependency,
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  getDynamicAnchorName,
   getFormDataFieldFileType,
   getNumberWord,
+  getRefInfo,
   isBoolean,
+  isDynamicReference,
   isNumber,
   isObject,
   isString,
   jsStringEscape,
+  jsStringLiteralEscape,
   logVerbose,
   type OpenApiParameterObject,
   type OpenApiReferenceObject,
@@ -25,6 +30,7 @@ import {
   type OpenApiResponseObject,
   type OpenApiSchemaObject,
   pascal,
+  resolveDynamicRef,
   resolveRef,
   stringify,
   type ZodCoerceType,
@@ -188,14 +194,28 @@ interface TimeOptions {
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 
+const COMPONENT_SCHEMAS_REF_PATTERN = /^#\/components\/schemas\/[^/]+$/;
+
+const isComponentSchemaRef = (ref: string): boolean =>
+  COMPONENT_SCHEMAS_REF_PATTERN.test(ref);
+
 export const generateZodValidationSchemaDefinition = (
-  schema: OpenApiSchemaObject | undefined,
+  schema: OpenApiSchemaObject | OpenApiReferenceObject | undefined,
   context: ContextSpec,
   name: string,
   strict: boolean,
   isZodV4: boolean,
   rules?: {
     required?: boolean;
+    /**
+     * Required keys inherited from sibling `allOf` members. Per JSON Schema /
+     * OpenAPI 3.1, a `required` array in one `allOf` member applies to
+     * properties contributed by ANY member, so it is collected at the `allOf`
+     * level and applied here. Consumed at THIS object level only — never
+     * forwarded into nested property schemas, so a deeper object sharing a key
+     * name is unaffected. (#3171)
+     */
+    additionalRequired?: string[];
     dateTimeOptions?: DateTimeOptions;
     timeOptions?: TimeOptions;
     /**
@@ -209,10 +229,166 @@ export const generateZodValidationSchemaDefinition = (
      * schemas.
      */
     constNameRegistry?: Record<string, number>;
+    /**
+     * When true, plain `$ref`s into `#/components/schemas/*` emit a `namedRef`
+     * placeholder instead of being inlined.
+     */
+    useReusableSchemas?: boolean;
+    /**
+     * When true (and `isZodV4`), the top-level (named component) schema emits a
+     * `.meta({ id, description?, deprecated? })` instead of `.describe(...)`.
+     * Set ONLY for top-level component-schema generation — recursive calls omit
+     * it, so nested schemas keep `.describe()` and never get a duplicate `id`.
+     */
+    emitMeta?: boolean;
   },
 ): ZodValidationSchemaDefinition => {
   if (!schema) return { functions: [], consts: [] };
 
+  const CHAINABLE_SIBLINGS = new Set(['nullable', 'default', 'description']);
+  const isChainable = (k: string) => CHAINABLE_SIBLINGS.has(k);
+
+  const applyChainableSiblings = (
+    functions: [string, unknown][],
+    consts: string[],
+    siblingSchema: OpenApiSchemaObject & {
+      nullable?: boolean;
+      default?: unknown;
+      description?: string;
+    },
+  ): void => {
+    const refRequired = rules?.required ?? false;
+    const refHasDefault = siblingSchema.default !== undefined;
+
+    if (!refRequired && siblingSchema.nullable) {
+      functions.push(['nullish', undefined]);
+    } else if (siblingSchema.nullable) {
+      functions.push(['nullable', undefined]);
+    } else if (!refRequired && !refHasDefault) {
+      functions.push(['optional', undefined]);
+    }
+
+    if (refHasDefault) {
+      const registry = rules?.constNameRegistry ?? {};
+      const counter = isNumber(registry[name]) ? registry[name] + 1 : 0;
+      registry[name] = counter;
+      const suffix = counter ? pascal(getNumberWord(counter)) : '';
+      const defaultVarName = `${name}Default${suffix}`;
+      const defaultLiteral = stringify(siblingSchema.default);
+      if (defaultLiteral !== undefined) {
+        consts.push(`export const ${defaultVarName} = ${defaultLiteral};`);
+        functions.push(['default', defaultVarName]);
+      }
+    }
+
+    if (typeof siblingSchema.description === 'string') {
+      // Use the same single-quoted, fully JS-escaped form as the primitive
+      // description path (see `pushDescriptionOrMeta`). `escape` only escapes
+      // quote chars, so a multi-line description would emit raw newlines and
+      // break the generated string literal (TS1002).
+      functions.push([
+        'describe',
+        `'${jsStringEscape(siblingSchema.description)}'`,
+      ]);
+    }
+  };
+
+  // Ref-aware path: emit a placeholder that the orchestrator will rewrite into
+  // either a direct identifier or `z.lazy(() => Name)`.
+  if (
+    rules?.useReusableSchemas &&
+    '$ref' in schema &&
+    typeof schema.$ref === 'string' &&
+    isComponentSchemaRef(schema.$ref)
+  ) {
+    const siblings = Object.keys(schema).filter((k) => k !== '$ref');
+    const allSiblingsChainable = siblings.every((k) => isChainable(k));
+
+    if (allSiblingsChainable) {
+      const refName = getRefInfo(schema.$ref, context).name;
+      const functions: [string, unknown][] = [
+        ['namedRef', { name: refName, sourceRef: schema.$ref }],
+      ];
+      const consts: string[] = [];
+
+      applyChainableSiblings(
+        functions,
+        consts,
+        schema as OpenApiSchemaObject & {
+          $ref: string;
+          nullable?: boolean;
+          default?: unknown;
+          description?: string;
+        },
+      );
+
+      return { functions, consts };
+    }
+
+    logVerbose(
+      `[orval/zod] $ref ${schema.$ref} has non-chainable siblings ` +
+        `[${siblings.filter((s) => !isChainable(s)).join(', ')}]; falling back to inlining.`,
+    );
+    schema = dereference(
+      schema as OpenApiSchemaObject | OpenApiReferenceObject,
+      context,
+    );
+  }
+
+  // Dynamic-ref-aware path: when useReusableSchemas is true, resolve the
+  // anchor and emit a namedRef sentinel if the target is a concrete component
+  // schema. The SCC pipeline then decides direct vs zod.lazy().
+  if (rules?.useReusableSchemas && isDynamicReference(schema)) {
+    const anchorName = getDynamicAnchorName(schema.$dynamicRef);
+    if (anchorName) {
+      const { resolvedTypeName, schemaName } = resolveDynamicRef(
+        anchorName,
+        context,
+      );
+
+      if (resolvedTypeName !== 'unknown' && schemaName) {
+        const siblings = Object.keys(schema).filter((k) => k !== '$dynamicRef');
+        const allSiblingsChainable = siblings.every((k) => isChainable(k));
+
+        if (allSiblingsChainable) {
+          const sourceRef = `${COMPONENT_SCHEMAS_PREFIX}${encodeSegment(schemaName)}`;
+          const functions: [string, unknown][] = [
+            ['namedRef', { name: resolvedTypeName, sourceRef }],
+          ];
+          const consts: string[] = [];
+
+          applyChainableSiblings(
+            functions,
+            consts,
+            schema as OpenApiSchemaObject & {
+              $dynamicRef: string;
+              nullable?: boolean;
+              default?: unknown;
+              description?: string;
+            },
+          );
+
+          return { functions, consts };
+        }
+
+        logVerbose(
+          `[orval/zod] $dynamicRef ${schema.$dynamicRef} has non-chainable siblings ` +
+            `[${siblings.filter((s) => !isChainable(s)).join(', ')}]; falling back to inlining.`,
+        );
+      }
+    }
+
+    // Not emitted as namedRef (non-chainable siblings, unresolvable anchor,
+    // or external ref) — dereference now so the main body sees a resolved
+    // schema with a proper type instead of the raw $dynamicRef (which
+    // resolveZodType classifies as 'unknown').
+    schema = dereference(
+      schema as OpenApiSchemaObject | OpenApiReferenceObject,
+      context,
+    );
+  }
+
+  const useReusableSchemas = rules?.useReusableSchemas ?? false;
   const consts: string[] = [];
   const constNameRegistry = rules?.constNameRegistry ?? {};
   const constsCounter = isNumber(constNameRegistry[name])
@@ -226,6 +402,37 @@ export const generateZodValidationSchemaDefinition = (
   constNameRegistry[name] = constsCounter;
 
   const functions: [string, unknown][] = [];
+
+  // Emit the schema's trailing description/metadata. On zod v4 with `emitMeta`
+  // (top-level component schemas only) this is a single `.meta({ id, ... })`
+  // carrying the schema name as `id` plus description/deprecated when present;
+  // otherwise it falls back to the plain `.describe(...)`. Called from both
+  // return points (the multi-type union exit and the main exit) so every schema
+  // shape is covered. `.meta()` must be the LAST modifier in the chain — zod v4
+  // turns `.meta({id}).describe(...)` into a `$ref` wrapper, whereas
+  // `.describe(...).meta({id})` (and a lone `.meta`) stay flat.
+  const pushDescriptionOrMeta = () => {
+    // Empty-string descriptions are treated as absent — preserves the prior
+    // `if (schema.description)` falsy-check semantics (which skipped both `''`
+    // and `undefined`), so this change never emits a no-op `.describe('')` or
+    // `description: ''` in meta.
+    const description =
+      typeof schema.description === 'string' && schema.description.length > 0
+        ? schema.description
+        : undefined;
+    const deprecated =
+      'deprecated' in schema && schema.deprecated === true ? true : undefined;
+
+    if (rules?.emitMeta && isZodV4) {
+      const meta: Record<string, unknown> = { id: name };
+      if (description !== undefined) meta.description = description;
+      if (deprecated) meta.deprecated = true;
+      functions.push(['meta', meta]);
+    } else if (description !== undefined) {
+      functions.push(['describe', `'${jsStringEscape(description)}'`]);
+    }
+  };
+
   const type = resolveZodType(schema);
   const required = rules?.required ?? false;
   const hasDefault = schema.default !== undefined;
@@ -269,6 +476,33 @@ export const generateZodValidationSchemaDefinition = (
       | OpenApiReferenceObject
     )[];
 
+    // In JSON Schema / OpenAPI 3.1 a `required` array in any `allOf` member
+    // (and on the composing schema itself) applies to properties contributed by
+    // any member. Collect them all so each member's own properties can be marked
+    // required even when the `required` lives in a sibling member — e.g. props
+    // in a `$ref` base + `required` in a constraint-only sibling. Only valid for
+    // `allOf` (a conjunction); `oneOf`/`anyOf` are alternatives. (#3171)
+    const allOfRequired = schema.allOf
+      ? [
+          ...new Set([
+            ...(schema.required ?? []),
+            ...schemas.flatMap((member) => {
+              // Only the member's top-level `required` is needed. For `$ref`
+              // members resolve shallowly (no deep property dereference) and
+              // tolerate unresolvable refs — they simply contribute no keys.
+              const resolved =
+                '$ref' in member && typeof member.$ref === 'string'
+                  ? tryResolveRefSchema(member.$ref, context)
+                  : (member as OpenApiSchemaObject);
+              const memberRequired = resolved?.required;
+              return Array.isArray(memberRequired)
+                ? (memberRequired as string[])
+                : [];
+            }),
+          ]),
+        ]
+      : undefined;
+
     // Use index-based naming to ensure uniqueness when processing multiple schemas
     // This prevents duplicate schema names when nullable refs are used
     const baseSchemas = schemas.map((schema, index) =>
@@ -280,7 +514,9 @@ export const generateZodValidationSchemaDefinition = (
         isZodV4,
         {
           required: true,
+          additionalRequired: allOfRequired,
           constNameRegistry,
+          useReusableSchemas,
         },
       ),
     );
@@ -305,7 +541,9 @@ export const generateZodValidationSchemaDefinition = (
           isZodV4,
           {
             required: true,
+            additionalRequired: allOfRequired,
             constNameRegistry,
+            useReusableSchemas,
           },
         );
 
@@ -342,17 +580,21 @@ export const generateZodValidationSchemaDefinition = (
 
     if (isDateType) {
       // OpenApiSchemaObject defines default as 'any'
-      defaultValue = `new Date("${escape(schema.default)}")`;
+      defaultValue = `new Date(${JSON.stringify(schema.default)})`;
     } else if (isObject(schema.default)) {
+      // Narrow string literals individually with `as const` so `zod.enum([...])`
+      // properties accept the emitted default (#3244). Whole-object/array
+      // `as const` would make nested arrays `readonly`, which zod v4's
+      // `.default()` rejects against its mutable parameter type (#3399).
       const entries = Object.entries(schema.default)
         .map(([key, value]) => {
           if (isString(value)) {
-            return `${key}: "${escape(value)}"`;
+            return `${key}: ${JSON.stringify(value)} as const`;
           }
 
           if (Array.isArray(value)) {
             const arrayItems = value.map((item) =>
-              isString(item) ? `"${escape(item)}"` : `${item}`,
+              isString(item) ? `${JSON.stringify(item)} as const` : `${item}`,
             );
             return `${key}: [${arrayItems.join(', ')}]`;
           }
@@ -366,10 +608,7 @@ export const generateZodValidationSchemaDefinition = (
             return `${key}: ${value}`;
         })
         .join(', ');
-      // `as const` preserves literal types so `zod.enum([...])` properties
-      // accept the emitted default (#3244).
-      defaultValue =
-        entries.length === 0 ? `{} as const` : `{ ${entries} } as const`;
+      defaultValue = entries.length === 0 ? `{}` : `{ ${entries} }`;
     } else {
       // OpenApiSchemaObject defines default as 'any'
       const rawStringified = stringify(schema.default);
@@ -414,6 +653,7 @@ export const generateZodValidationSchemaDefinition = (
           {
             required: true,
             constNameRegistry,
+            useReusableSchemas,
           },
         ),
       ),
@@ -426,6 +666,8 @@ export const generateZodValidationSchemaDefinition = (
     } else if (!required) {
       functions.push(['optional', undefined]);
     }
+
+    pushDescriptionOrMeta();
 
     return { functions, consts };
   }
@@ -470,6 +712,7 @@ export const generateZodValidationSchemaDefinition = (
                   {
                     required: true,
                     constNameRegistry,
+                    useReusableSchemas,
                   },
                 ),
               ),
@@ -491,6 +734,7 @@ export const generateZodValidationSchemaDefinition = (
                   {
                     required: true,
                     constNameRegistry,
+                    useReusableSchemas,
                   },
                 ),
               ]);
@@ -511,6 +755,7 @@ export const generateZodValidationSchemaDefinition = (
             {
               required: true,
               constNameRegistry,
+              useReusableSchemas,
             },
           ),
         ]);
@@ -549,11 +794,11 @@ export const generateZodValidationSchemaDefinition = (
         if (isZodV4) {
           if (!predefinedZodFormats.has(schema.format ?? '')) {
             if ('const' in schema) {
-              functions.push(['literal', `"${schema.const}"`]);
+              functions.push(['literal', JSON.stringify(String(schema.const))]);
             } else if (schema.pattern && schema.format) {
               const isStartWithSlash = schema.pattern.startsWith('/');
               const isEndWithSlash = schema.pattern.endsWith('/');
-              const regexp = `new RegExp('${jsStringEscape(
+              const regexp = `new RegExp('${jsStringLiteralEscape(
                 schema.pattern.slice(
                   isStartWithSlash ? 1 : 0,
                   isEndWithSlash ? -1 : undefined,
@@ -565,7 +810,7 @@ export const generateZodValidationSchemaDefinition = (
               functions.push([
                 'stringFormat',
                 [
-                  `'${escape(schema.format)}'`,
+                  `'${jsStringLiteralEscape(schema.format)}'`,
                   `${name}RegExp${constsCounterValue}`,
                 ],
               ]);
@@ -576,7 +821,7 @@ export const generateZodValidationSchemaDefinition = (
           }
         } else {
           if ('const' in schema) {
-            functions.push(['literal', `"${schema.const}"`]);
+            functions.push(['literal', JSON.stringify(String(schema.const))]);
           } else {
             functions.push([type as string, undefined]);
           }
@@ -651,6 +896,13 @@ export const generateZodValidationSchemaDefinition = (
         if (hasProperties && hasDefinedProperties) {
           const objectType = getObjectFunctionName(isZodV4, strict);
 
+          // A property is required when this schema requires it OR when a
+          // sibling `allOf` member requires it (propagated via additionalRequired). (#3171)
+          const requiredKeys = new Set<string>([
+            ...(schema.required ?? []),
+            ...(rules?.additionalRequired ?? []),
+          ]);
+
           functions.push([
             objectType,
             Object.keys(properties)
@@ -664,8 +916,9 @@ export const generateZodValidationSchemaDefinition = (
                     strict,
                     isZodV4,
                     {
-                      required: schema.required?.includes(key),
+                      required: requiredKeys.has(key),
                       constNameRegistry,
+                      useReusableSchemas,
                     },
                   ),
               }))
@@ -705,6 +958,7 @@ export const generateZodValidationSchemaDefinition = (
               {
                 required: true,
                 constNameRegistry,
+                useReusableSchemas,
               },
             ),
           ]);
@@ -789,7 +1043,7 @@ export const generateZodValidationSchemaDefinition = (
     const isStartWithSlash = matches.startsWith('/');
     const isEndWithSlash = matches.endsWith('/');
 
-    const regexp = `new RegExp('${jsStringEscape(
+    const regexp = `new RegExp('${jsStringLiteralEscape(
       matches.slice(isStartWithSlash ? 1 : 0, isEndWithSlash ? -1 : undefined),
     )}')`;
 
@@ -799,7 +1053,10 @@ export const generateZodValidationSchemaDefinition = (
     if (schema.format && !predefinedZodFormats.has(schema.format) && isZodV4) {
       functions.push([
         'stringFormat',
-        [`'${escape(schema.format)}'`, `${name}RegExp${constsCounterValue}`],
+        [
+          `'${jsStringLiteralEscape(schema.format)}'`,
+          `${name}RegExp${constsCounterValue}`,
+        ],
       ]);
     } else {
       functions.push(['regex', `${name}RegExp${constsCounterValue}`]);
@@ -814,14 +1071,17 @@ export const generateZodValidationSchemaDefinition = (
     if (uniqueEnumValues.every((value) => isString(value))) {
       functions.push([
         'enum',
-        `[${uniqueEnumValues.map((value) => `'${escape(value)}'`).join(', ')}]`,
+        `[${uniqueEnumValues.map((value) => `'${jsStringLiteralEscape(value)}'`).join(', ')}]`,
       ]);
     } else {
       functions.push([
         'oneOf',
         uniqueEnumValues.map((value) => ({
           functions: [
-            ['literal', isString(value) ? `'${escape(value)}'` : value],
+            [
+              'literal',
+              isString(value) ? `'${jsStringLiteralEscape(value)}'` : value,
+            ],
           ],
           consts: [],
         })),
@@ -841,12 +1101,63 @@ export const generateZodValidationSchemaDefinition = (
     functions.push(['default', defaultVarName]);
   }
 
-  if (schema.description) {
-    functions.push(['describe', `'${jsStringEscape(schema.description)}'`]);
-  }
+  pushDescriptionOrMeta();
 
   return { functions, consts: unique(consts) };
 };
+
+/**
+ * Runtime shape passed to the user-supplied `override.zod.params` function for
+ * every emitted validator. Exported so consumers can type their function with
+ * `import type { ZodParamsContext } from 'orval'` instead of hand-writing it.
+ */
+export interface ZodParamsContext {
+  /** The OpenAPI `operationId`, or `''` for shared component schemas. */
+  operationId: string;
+  /** `'schema'` is used for shared component schemas with no owning operation. */
+  location: 'param' | 'query' | 'header' | 'body' | 'response' | 'schema';
+  /** Generated schema name, e.g. `CreateUserBody`, or the component name. */
+  schemaName: string;
+  /** Path to the current property within the schema. Only object property names are appended. */
+  fieldPath: string[];
+  /** The Zod method being emitted, e.g. `'string'`, `'min'`, `'email'`. */
+  validator: string;
+}
+
+export interface ZodParamsInjection extends Pick<
+  ZodParamsContext,
+  'operationId' | 'location' | 'schemaName'
+> {
+  mutator: GeneratorMutator;
+}
+
+const PARAMS_MODIFIER_VALIDATORS = new Set([
+  'optional',
+  'nullable',
+  'nullish',
+  'default',
+  'describe',
+  // Nullary / degenerate validators — either no params arg accepted in zod v3
+  // (e.g. .unknown(), .any(), .never(), .null(), .undefined(), .void()) or no
+  // meaningful error to attach (unknown/any accept everything).
+  'unknown',
+  'any',
+  'never',
+  'null',
+  'undefined',
+  'void',
+]);
+
+// Validators whose single argument is already a params-shaped options object
+// (e.g. `z.iso.datetime({ offset, precision })`). For these, the injected
+// params must merge into the existing object rather than be appended as a
+// second argument.
+const PARAMS_MERGE_INTO_OPTIONS_VALIDATORS = new Set([
+  'datetime',
+  'time',
+  'iso.datetime',
+  'iso.time',
+]);
 
 export const parseZodValidationSchemaDefinition = (
   input: ZodValidationSchemaDefinition,
@@ -855,12 +1166,14 @@ export const parseZodValidationSchemaDefinition = (
   strict: boolean,
   isZodV4: boolean,
   preprocess?: GeneratorMutator,
-): { zod: string; consts: string } => {
+  paramsInjection?: ZodParamsInjection,
+): { zod: string; consts: string; usedRefs: Set<string> } => {
   if (input.functions.length === 0) {
-    return { zod: '', consts: '' };
+    return { zod: '', consts: '', usedRefs: new Set() };
   }
 
   let consts = '';
+  const usedRefs = new Set<string>();
 
   const appendConstsChunk = (chunk: string) => {
     if (!chunk) {
@@ -892,8 +1205,53 @@ export const parseZodValidationSchemaDefinition = (
     return '';
   };
 
-  const parseProperty = (property: [string, unknown]): string => {
+  const buildParamsArg = (
+    fn: string,
+    fieldPath: readonly string[],
+  ): string | undefined => {
+    if (!paramsInjection) return undefined;
+    if (PARAMS_MODIFIER_VALIDATORS.has(fn)) return undefined;
+    const ctx: ZodParamsContext = {
+      operationId: paramsInjection.operationId,
+      location: paramsInjection.location,
+      schemaName: paramsInjection.schemaName,
+      fieldPath: [...fieldPath],
+      validator: fn,
+    };
+    return `${paramsInjection.mutator.name}(${JSON.stringify(ctx)})`;
+  };
+
+  const parseProperty = (
+    property: [string, unknown],
+    fieldPath: readonly string[] = [],
+  ): string => {
     const [fn, args = ''] = property;
+
+    if (fn === 'namedRef') {
+      const refArgs = args as { name: string; sourceRef: string };
+      usedRefs.add(refArgs.name);
+      return `__REF_${refArgs.name}__`;
+    }
+
+    // `.meta({ id, description?, deprecated? })` — registry metadata for zod v4.
+    // Built explicitly (rather than via stringify) so the description is
+    // JS-string-escaped and the field order is stable: id, description,
+    // deprecated.
+    if (fn === 'meta') {
+      const metaArgs = args as {
+        id: string;
+        description?: string;
+        deprecated?: boolean;
+      };
+      const parts = [`id: '${jsStringEscape(metaArgs.id)}'`];
+      if (metaArgs.description !== undefined) {
+        parts.push(`description: '${jsStringEscape(metaArgs.description)}'`);
+      }
+      if (metaArgs.deprecated) {
+        parts.push('deprecated: true');
+      }
+      return `.meta({ ${parts.join(', ')} })`;
+    }
 
     // File | string for text contentMediaType/encoding (user can pass string, runtime wraps in Blob)
     if (fn === 'fileOrString') {
@@ -951,7 +1309,9 @@ export const parseZodValidationSchemaDefinition = (
         const mergedObjectString = `zod.${objectType}({
 ${Object.entries(mergedProperties)
   .map(([key, schema]) => {
-    const value = schema.functions.map((prop) => parseProperty(prop)).join('');
+    const value = schema.functions
+      .map((prop) => parseProperty(prop, [...fieldPath, key]))
+      .join('');
     appendConstsChunk(schema.consts.join('\n'));
     return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
   })
@@ -970,7 +1330,7 @@ ${Object.entries(mergedProperties)
       let acc = '';
       for (const partSchema of allOfArgs) {
         const value = partSchema.functions
-          .map((prop) => parseProperty(prop))
+          .map((prop) => parseProperty(prop, fieldPath))
           .join('');
         const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
 
@@ -991,8 +1351,9 @@ ${Object.entries(mergedProperties)
       const unionArgs = args as ZodValidationSchemaDefinition[];
       // Can't use zod.union() with a single item
       if (unionArgs.length === 1) {
+        appendConstsChunk(unionArgs[0].consts.join('\n'));
         return unionArgs[0].functions
-          .map((prop: [string, unknown]) => parseProperty(prop))
+          .map((prop: [string, unknown]) => parseProperty(prop, fieldPath))
           .join('');
       }
 
@@ -1004,7 +1365,9 @@ ${Object.entries(mergedProperties)
           functions: [string, unknown][];
           consts: string[];
         }) => {
-          const value = functions.map((prop) => parseProperty(prop)).join('');
+          const value = functions
+            .map((prop) => parseProperty(prop, fieldPath))
+            .join('');
           const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
           // consts are missing here
           appendConstsChunk(argConsts.join('\n'));
@@ -1018,7 +1381,7 @@ ${Object.entries(mergedProperties)
     if (fn === 'additionalProperties') {
       const additionalPropertiesArgs = args as ZodValidationSchemaDefinition;
       const value = additionalPropertiesArgs.functions
-        .map((prop: [string, unknown]) => parseProperty(prop))
+        .map((prop: [string, unknown]) => parseProperty(prop, fieldPath))
         .join('');
       const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
       if (Array.isArray(additionalPropertiesArgs.consts)) {
@@ -1039,9 +1402,23 @@ ${Object.entries(mergedProperties)
       const parsedObject = `zod.${objectType}({
 ${Object.entries(objectArgs)
   .map(([key, schema]) => {
-    const value = schema.functions.map((prop) => parseProperty(prop)).join('');
+    const value = schema.functions
+      .map((prop) => parseProperty(prop, [...fieldPath, key]))
+      .join('');
     appendConstsChunk(schema.consts.join('\n'));
-    return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
+    const fieldZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
+    // Opt-in via `coerce.<location>: ['array', ...]`: a server framework (e.g.
+    // Hono) delivers a single repeated-key value as a scalar, not a 1-element
+    // array, so `?t=a` would fail z.array(...). Wrap so both `?t=a` and
+    // `?t=a&t=b` parse. Undefined passes through so an outer `.optional()`/
+    // `.default()` still applies. Already-arrays are left untouched (no-op for
+    // JSON-body arrays).
+    const coerceArrays =
+      Array.isArray(coerceTypes) && coerceTypes.includes('array');
+    if (coerceArrays && schema.functions.some(([fn]) => fn === 'array')) {
+      return `  "${key}": zod.preprocess((value) => value === undefined || Array.isArray(value) ? value : [value], ${fieldZod})`;
+    }
+    return `  "${key}": ${fieldZod}`;
   })
   .join(',\n')}
 })`;
@@ -1060,7 +1437,7 @@ ${Object.entries(objectArgs)
     if (fn === 'array') {
       const arrayArgs = args as ZodValidationSchemaDefinition;
       const value = arrayArgs.functions
-        .map((prop: [string, unknown]) => parseProperty(prop))
+        .map((prop: [string, unknown]) => parseProperty(prop, fieldPath))
         .join('');
       if (isString(arrayArgs.consts)) {
         appendConstsChunk(arrayArgs.consts);
@@ -1077,14 +1454,16 @@ ${Object.entries(objectArgs)
     if (fn === 'tuple') {
       return `zod.tuple([${(args as ZodValidationSchemaDefinition[])
         .map((x) => {
-          const value = x.functions.map((prop) => parseProperty(prop)).join('');
+          const value = x.functions
+            .map((prop) => parseProperty(prop, fieldPath))
+            .join('');
           return `${value.startsWith('.') ? 'zod' : ''}${value}`;
         })
         .join(',\n')}])`;
     }
     if (fn === 'rest') {
       return `.rest(zod${(args as ZodValidationSchemaDefinition).functions
-        .map((prop) => parseProperty(prop))
+        .map((prop) => parseProperty(prop, fieldPath))
         .join('')})`;
     }
     const shouldCoerceType =
@@ -1093,14 +1472,31 @@ ${Object.entries(objectArgs)
         ? coerceTypes.includes(fn as ZodCoerceType)
         : COERCIBLE_TYPES.has(fn));
 
+    const formattedArgs = formatFunctionArgs(args);
+    const paramsArg = buildParamsArg(fn, fieldPath);
+    let combinedArgs: string;
+    if (
+      paramsArg &&
+      formattedArgs &&
+      PARAMS_MERGE_INTO_OPTIONS_VALIDATORS.has(fn)
+    ) {
+      combinedArgs = `{ ...${formattedArgs}, ...${paramsArg} }`;
+    } else if (paramsArg) {
+      combinedArgs = formattedArgs
+        ? `${formattedArgs}, ${paramsArg}`
+        : paramsArg;
+    } else {
+      combinedArgs = formattedArgs;
+    }
+
     if (
       (fn !== 'date' && shouldCoerceType) ||
       (fn === 'date' && shouldCoerceType && context.output.override.useDates)
     ) {
-      return `.coerce.${fn}(${formatFunctionArgs(args)})`;
+      return `.coerce.${fn}(${combinedArgs})`;
     }
 
-    return `.${fn}(${formatFunctionArgs(args)})`;
+    return `.${fn}(${combinedArgs})`;
   };
 
   appendConstsChunk(input.consts.join('\n'));
@@ -1117,7 +1513,7 @@ ${Object.entries(objectArgs)
   if (consts.includes(',export')) {
     consts = consts.replaceAll(',export', '\nexport');
   }
-  return { zod, consts };
+  return { zod, consts, usedRefs };
 };
 
 const dereferenceScalar = (value: unknown, context: ContextSpec): unknown => {
@@ -1154,12 +1550,27 @@ function tryResolveRefSchema(
   }
 }
 
+const COMPONENT_SCHEMAS_PREFIX = '#/components/schemas/';
+
+function extractSchemaNameFromRef($ref: string): string | undefined {
+  if (!$ref.startsWith(COMPONENT_SCHEMAS_PREFIX)) return undefined;
+  const raw = $ref.slice(COMPONENT_SCHEMAS_PREFIX.length);
+  return decodeURIComponent(raw.replaceAll('~1', '/').replaceAll('~0', '~'));
+}
+
 /**
- * Recursively inlines all `$ref` references in an OpenAPI schema tree,
- * producing a fully-resolved schema suitable for Zod code generation.
+ * Recursively inlines all `$ref` and `$dynamicRef` references in an OpenAPI
+ * schema tree, producing a fully-resolved schema suitable for Zod code generation.
  *
  * Tracks visited `$ref` paths via `context.parents` to break circular
  * references (returning `{}` for cycles).
+ *
+ * `$dynamicRef` is resolved using the dynamic scope attached to `context`:
+ *  1. Look up the anchor name in `context.dynamicScope`.
+ *  2. If not found, fall back to scanning `components.schemas` for a schema
+ *     that declares `$dynamicAnchor` with the same name.
+ *  3. If resolved to a concrete schema, inline it (same as `$ref`).
+ *  4. If unresolved, external, or a generic parameter → return `{}`.
  */
 export const dereference = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
@@ -1168,6 +1579,10 @@ export const dereference = (
   const refName = '$ref' in schema ? schema.$ref : undefined;
   if (refName && context.parents?.includes(refName)) {
     return {};
+  }
+
+  if (isDynamicReference(schema)) {
+    return dereferenceDynamicRef(schema, context);
   }
 
   const childContext: ContextSpec = {
@@ -1203,9 +1618,24 @@ export const dereference = (
     return {};
   }
 
-  const resolvedContext = childContext;
+  const resolvedContext = buildScopedContext(
+    childContext,
+    refName,
+    resolvedSchema,
+  );
 
-  return Object.entries(resolvedSchema).reduce<Record<string, unknown>>(
+  if (isDynamicReference(resolvedSchema)) {
+    return dereferenceDynamicRef(resolvedSchema, resolvedContext);
+  }
+
+  return dereferenceProperties(resolvedSchema, resolvedContext);
+};
+
+function dereferenceProperties(
+  schema: OpenApiSchemaObject,
+  context: ContextSpec,
+): OpenApiSchemaObject {
+  return Object.entries(schema).reduce<Record<string, unknown>>(
     (acc, [key, value]) => {
       if (key === 'properties' && isObject(value)) {
         acc[key] = Object.entries(value).reduce<
@@ -1213,21 +1643,124 @@ export const dereference = (
         >((props, [propKey, propSchema]) => {
           props[propKey] = dereference(
             propSchema as OpenApiSchemaObject | OpenApiReferenceObject,
-            resolvedContext,
+            context,
           );
           return props;
         }, {});
       } else if (key === 'default' || key === 'example' || key === 'examples') {
         acc[key] = value;
       } else {
-        acc[key] = dereferenceScalar(value, resolvedContext);
+        acc[key] = dereferenceScalar(value, context);
       }
 
       return acc;
     },
     {},
   ) as OpenApiSchemaObject;
-};
+}
+
+function buildScopedContext(
+  childContext: ContextSpec,
+  refName: string | undefined,
+  resolvedSchema: OpenApiSchemaObject,
+): ContextSpec {
+  if (refName) {
+    const schemaName = extractSchemaNameFromRef(refName);
+    if (!schemaName) return childContext;
+
+    const schemaRecord = resolvedSchema as Record<string, unknown>;
+    const hasDynamicAnchor = typeof schemaRecord.$dynamicAnchor === 'string';
+    const defs = schemaRecord.$defs as Record<string, unknown> | undefined;
+    const hasDefsAnchors =
+      defs &&
+      typeof defs === 'object' &&
+      Object.values(defs).some(
+        (d) => d && typeof d === 'object' && '$dynamicAnchor' in d,
+      );
+
+    if (!hasDynamicAnchor && !hasDefsAnchors) return childContext;
+
+    return {
+      ...childContext,
+      dynamicScope: buildDynamicScope(schemaName, resolvedSchema, childContext),
+    };
+  }
+
+  // Anonymous inline subschema (reached via allOf/items/nested props without a
+  // $ref). Detect inline $dynamicAnchor / $defs anchors and merge them over the
+  // existing scope so the inline override shadows the parent anchor while
+  // non-overridden parent anchors remain reachable. See #3492.
+  const inlineScope = buildInlineDynamicScope(resolvedSchema);
+  if (Object.keys(inlineScope).length === 0) return childContext;
+
+  return {
+    ...childContext,
+    dynamicScope: { ...childContext.dynamicScope, ...inlineScope },
+  };
+}
+
+function dereferenceDynamicRef(
+  schema: object & { $dynamicRef: string },
+  context: ContextSpec,
+): OpenApiSchemaObject {
+  const dynamicRef = schema.$dynamicRef;
+  const anchorName = getDynamicAnchorName(dynamicRef);
+  if (!anchorName) {
+    return {};
+  }
+
+  const {
+    resolvedTypeName,
+    schema: resolvedSchema,
+    schemaName,
+  } = resolveDynamicRef(anchorName, context);
+
+  // Cycle key. Inline overrides resolve with `schemaName: undefined`, so every
+  // resolution of the same anchor collapses to `@?`. This is correct for a
+  // self-referential inline override. A false positive is possible only in the
+  // contrived shape where an inline override A (reached via `$dynamicRef`) itself
+  // contains a *distinct* nested inline override B of the same anchor with a
+  // `$dynamicRef` descendant — B's resolution inherits A's key from `parents`
+  // and returns `{}` instead of B. Siblings don't leak (each `dereference` uses
+  // an immutable parent context), only this nested-via-`$dynamicRef` shape.
+  // Acceptable given how exotic it is. See #3492.
+  const dynamicRefPath = `$dynamicRef:${dynamicRef}@${schemaName ?? '?'}`;
+  if (context.parents?.includes(dynamicRefPath)) {
+    return {};
+  }
+
+  if (resolvedTypeName === 'unknown' || !isObject(resolvedSchema)) {
+    return {};
+  }
+
+  const childContext: ContextSpec = {
+    ...context,
+    parents: [...(context.parents ?? []), dynamicRefPath],
+  };
+
+  const scopedContext = buildScopedContext(
+    childContext,
+    schemaName
+      ? `${COMPONENT_SCHEMAS_PREFIX}${encodeSegment(schemaName)}`
+      : undefined,
+    resolvedSchema,
+  );
+
+  const siblingProperties = Object.fromEntries(
+    Object.entries(schema).filter(([key]) => key !== '$dynamicRef'),
+  );
+
+  const merged: OpenApiSchemaObject = {
+    ...(resolvedSchema as Record<string, unknown>),
+    ...siblingProperties,
+  } as OpenApiSchemaObject;
+
+  return dereferenceProperties(merged, scopedContext);
+}
+
+function encodeSegment(segment: string): string {
+  return segment.replaceAll('~', '~0').replaceAll('/', '~1');
+}
 
 /**
  * Generate zod schema for form-data request body.
@@ -1241,6 +1774,7 @@ export const generateFormDataZodSchema = (
   strict: boolean,
   isZodV4: boolean,
   encoding?: Record<string, { contentType?: string }>,
+  useReusableSchemas?: boolean,
 ): ZodValidationSchemaDefinition => {
   // Precompute file type overrides for top-level properties only
   const propertyOverrides: Record<string, ZodValidationSchemaDefinition> = {};
@@ -1290,6 +1824,7 @@ export const generateFormDataZodSchema = (
         Object.keys(propertyOverrides).length > 0
           ? propertyOverrides
           : undefined,
+      useReusableSchemas,
     },
   );
 };
@@ -1302,6 +1837,7 @@ const parseBodyAndResponse = ({
   generate,
   isZodV4,
   parseType,
+  useReusableSchemas,
 }: {
   data:
     | OpenApiResponseObject
@@ -1314,6 +1850,7 @@ const parseBodyAndResponse = ({
   generate: boolean;
   isZodV4: boolean;
   parseType: 'body' | 'response';
+  useReusableSchemas?: boolean;
 }): {
   input: ZodValidationSchemaDefinition;
   isArray: boolean;
@@ -1334,18 +1871,44 @@ const parseBodyAndResponse = ({
     | OpenApiRequestBodyObject;
 
   // Only handle JSON and form-data; other content types (e.g., application/octet-stream)
-  // are skipped - unclear if this is correct behavior for root-level binary/text bodies
-  const jsonMedia = resolvedRef.content?.['application/json'];
-  const formDataMedia = resolvedRef.content?.['multipart/form-data'];
-  const [contentType, mediaType] = jsonMedia
-    ? (['application/json', jsonMedia] as const)
-    : formDataMedia
-      ? (['multipart/form-data', formDataMedia] as const)
+  // Only handle JSON and form-data; other content types (e.g., application/octet-stream)
+  // are skipped - unclear if this is correct behavior for root-level binary/text bodies.
+  const contentEntries = Object.entries(resolvedRef.content ?? {});
+
+  const jsonContent = contentEntries.find(
+    isMediaType(
+      // application/json
+      // application/geo+json
+      // application/ld+json
+      // application/manifest+json
+      // application/vnd.api+json (and other valid vendor subtypes)
+      String.raw`^application\/([^/;]+\+)?json$`,
+    ),
+  );
+  const formDataContent = contentEntries.find(
+    isMediaType(String.raw`^multipart\/form-data$`),
+  );
+  const [contentType, mediaType] = jsonContent
+    ? (['application/json', jsonContent[1]] as const)
+    : formDataContent
+      ? (['multipart/form-data', formDataContent[1]] as const)
       : [undefined, undefined];
 
   const schema = mediaType?.schema;
 
   if (!schema) {
+    if (parseType === 'response') {
+      const textPlainContent = contentEntries.find(
+        isMediaType(String.raw`^text\/plain$`),
+      );
+      if (textPlainContent) {
+        return {
+          input: { functions: [['string', undefined]], consts: [] },
+          isArray: false,
+        };
+      }
+    }
+
     return {
       input: { functions: [], consts: [] },
       isArray: false,
@@ -1353,7 +1916,6 @@ const parseBodyAndResponse = ({
   }
 
   const encoding = mediaType.encoding;
-
   const resolvedJsonSchema = dereference(schema, context);
 
   // keep the same behaviour for array
@@ -1367,19 +1929,32 @@ const parseBodyAndResponse = ({
       resolvedJsonSchema.maxLength ??
       resolvedJsonSchema.maxItems;
 
+    // When useReusableSchemas is on, shallow-resolve one level so that $ref
+    // references inside the items schema are preserved for named-ref emission.
+    // E.g. Pets = array of {$ref: Pet} → we want to emit Pet (namedRef)
+    // rather than inlining Pet's full schema.
+    const rawItems: OpenApiSchemaObject | OpenApiReferenceObject =
+      useReusableSchemas
+        ? (() => {
+            const shallowArraySchema = resolveRef(schema, context)
+              .schema as OpenApiSchemaObject;
+            return (shallowArraySchema.items ??
+              resolvedJsonSchema.items) as OpenApiSchemaObject;
+          })()
+        : resolvedJsonSchema.items;
+
     return {
       input: generateZodValidationSchemaDefinition(
         parseType === 'body'
-          ? removeReadOnlyProperties(
-              resolvedJsonSchema.items as OpenApiSchemaObject,
-            )
-          : (resolvedJsonSchema.items as OpenApiSchemaObject),
+          ? removeReadOnlyProperties(rawItems as OpenApiSchemaObject)
+          : (rawItems as OpenApiSchemaObject),
         context,
         name,
         strict,
         isZodV4,
         {
           required: true,
+          useReusableSchemas,
         },
       ),
       isArray: true,
@@ -1390,10 +1965,17 @@ const parseBodyAndResponse = ({
     };
   }
 
-  const effectiveSchema =
-    parseType === 'body'
-      ? removeReadOnlyProperties(resolvedJsonSchema)
-      : resolvedJsonSchema;
+  // When useReusableSchemas is on, pass the original schema (possibly a $ref)
+  // directly to generateZodValidationSchemaDefinition so that component schema
+  // references are emitted as named identifiers instead of being inlined.
+  const effectiveSchema: OpenApiSchemaObject | OpenApiReferenceObject =
+    useReusableSchemas
+      ? parseType === 'body'
+        ? removeReadOnlyProperties(schema as OpenApiSchemaObject)
+        : schema
+      : parseType === 'body'
+        ? removeReadOnlyProperties(resolvedJsonSchema)
+        : resolvedJsonSchema;
 
   const isFormData = contentType === 'multipart/form-data';
 
@@ -1406,6 +1988,7 @@ const parseBodyAndResponse = ({
           strict,
           isZodV4,
           encoding,
+          useReusableSchemas,
         )
       : generateZodValidationSchemaDefinition(
           effectiveSchema,
@@ -1413,10 +1996,38 @@ const parseBodyAndResponse = ({
           name,
           strict,
           isZodV4,
-          { required: true },
+          { required: true, useReusableSchemas },
         ),
     isArray: false,
   };
+};
+
+const isMediaType =
+  (pattern: string) =>
+  ([contentType]: [string, object]): boolean =>
+    new RegExp(pattern).test(contentType.split(';')[0].trim().toLowerCase());
+
+const getSingleResponse = (
+  responses:
+    | Record<string, OpenApiResponseObject | OpenApiReferenceObject | undefined>
+    | undefined,
+) => {
+  if (!responses) {
+    return;
+  }
+
+  const otherSuccess = Object.entries(responses).find(
+    ([code]) => code.startsWith('2') && code !== '204' && code !== '205',
+  )?.[1];
+
+  return (
+    responses['200'] ??
+    responses['2XX'] ??
+    responses['2xx'] ??
+    otherSuccess ??
+    responses['204'] ??
+    responses['205']
+  );
 };
 
 /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
@@ -1428,6 +2039,7 @@ export const parseParameters = ({
   isZodV4,
   strict,
   generate,
+  useReusableSchemas,
 }: {
   data: (OpenApiParameterObject | OpenApiReferenceObject)[] | undefined;
   context: ContextSpec;
@@ -1447,6 +2059,7 @@ export const parseParameters = ({
     body: boolean;
     response: boolean;
   };
+  useReusableSchemas?: boolean;
 }): {
   headers: ZodValidationSchemaDefinition;
   queryParams: ZodValidationSchemaDefinition;
@@ -1489,8 +2102,22 @@ export const parseParameters = ({
       return acc;
     }
 
-    const schema = dereference(parameter.schema, context);
-    schema.description = parameter.description;
+    // When useReusableSchemas is on, preserve `$ref` schemas verbatim so the
+    // generator can take the namedRef path. We only shallow-clone to attach
+    // the parameter-level `description` without mutating the shared ref object.
+    // When off, fall back to dereferencing for backward compatibility.
+    const schemaForGen: OpenApiSchemaObject | OpenApiReferenceObject =
+      useReusableSchemas
+        ? parameter.description
+          ? Object.assign({}, parameter.schema, {
+              description: parameter.description,
+            })
+          : parameter.schema
+        : (() => {
+            const s = dereference(parameter.schema, context);
+            s.description = parameter.description;
+            return s;
+          })();
 
     const mapStrict = {
       path: strict.param,
@@ -1513,13 +2140,14 @@ export const parseParameters = ({
     }
 
     const definition = generateZodValidationSchemaDefinition(
-      schema,
+      schemaForGen,
       context,
       camel(`${operationName}-${parameter.in}-${parameter.name}`),
       mapStrict[parameter.in],
       isZodV4,
       {
         required: parameter.required,
+        useReusableSchemas,
       },
     );
 
@@ -1600,11 +2228,13 @@ export const parseParameters = ({
 };
 
 const generateZodRoute = async (
-  { operationName, verb, override }: GeneratorVerbOptions,
+  { operationId, operationName, verb, override }: GeneratorVerbOptions,
   { pathRoute, context, output }: GeneratorOptions,
 ) => {
   const isZodV4 =
     !!context.output.packageJson && isZodVersionV4(context.output.packageJson);
+  const useReusableSchemas =
+    context.output.override.zod.generateReusableSchemas;
   const spec = context.spec.paths?.[pathRoute];
 
   if (spec == undefined) {
@@ -1623,6 +2253,7 @@ const generateZodRoute = async (
     isZodV4,
     strict: override.zod.strict,
     generate: override.zod.generate,
+    useReusableSchemas,
   });
 
   const requestBody = spec[verb]?.requestBody;
@@ -1634,12 +2265,13 @@ const generateZodRoute = async (
     generate: override.zod.generate.body,
     isZodV4,
     parseType: 'body',
+    useReusableSchemas,
   });
 
   const responses = (
     context.output.override.zod.generateEachHttpStatus
       ? Object.entries(spec[verb]?.responses ?? {})
-      : [['', spec[verb]?.responses?.[200]]]
+      : [['', getSingleResponse(spec[verb]?.responses)]]
   ) as [string, OpenApiResponseObject | OpenApiReferenceObject][];
   const parsedResponses = responses.map(([code, response]) =>
     parseBodyAndResponse({
@@ -1650,83 +2282,112 @@ const generateZodRoute = async (
       generate: override.zod.generate.response,
       isZodV4,
       parseType: 'response',
+      useReusableSchemas,
     }),
   );
 
   const preprocessParams = override.zod.preprocess?.param
     ? await generateMutator({
         output,
-        mutator: override.zod.preprocess.response,
+        mutator: override.zod.preprocess.param,
         name: `${operationName}PreprocessParams`,
         workspace: context.workspace,
         tsconfig: context.output.tsconfig,
       })
     : undefined;
 
-  const inputParams = parseZodValidationSchemaDefinition(
+  const paramsMutator = override.zod.params
+    ? await generateMutator({
+        output,
+        mutator: override.zod.params,
+        name: `${operationName}ZodParams`,
+        workspace: context.workspace,
+        tsconfig: context.output.tsconfig,
+      })
+    : undefined;
+
+  const pascalOperationName = pascal(operationName);
+  const makeParamsInjection = (
+    location: ZodParamsInjection['location'],
+    schemaSuffix: string,
+  ): ZodParamsInjection | undefined =>
+    paramsMutator
+      ? {
+          mutator: paramsMutator,
+          operationId,
+          location,
+          schemaName: `${pascalOperationName}${schemaSuffix}`,
+        }
+      : undefined;
+
+  let inputParams = parseZodValidationSchemaDefinition(
     parsedParameters.params,
     context,
     override.zod.coerce.param,
     override.zod.strict.param,
     isZodV4,
     preprocessParams,
+    makeParamsInjection('param', 'Params'),
   );
 
   const preprocessQueryParams = override.zod.preprocess?.query
     ? await generateMutator({
         output,
-        mutator: override.zod.preprocess.response,
+        mutator: override.zod.preprocess.query,
         name: `${operationName}PreprocessQueryParams`,
         workspace: context.workspace,
         tsconfig: context.output.tsconfig,
       })
     : undefined;
 
-  const inputQueryParams = parseZodValidationSchemaDefinition(
+  let inputQueryParams = parseZodValidationSchemaDefinition(
     parsedParameters.queryParams,
     context,
     override.zod.coerce.query,
     override.zod.strict.query,
     isZodV4,
     preprocessQueryParams,
+    makeParamsInjection('query', 'QueryParams'),
   );
 
   const preprocessHeader = override.zod.preprocess?.header
     ? await generateMutator({
         output,
-        mutator: override.zod.preprocess.response,
+        mutator: override.zod.preprocess.header,
         name: `${operationName}PreprocessHeader`,
         workspace: context.workspace,
         tsconfig: context.output.tsconfig,
       })
     : undefined;
 
-  const inputHeaders = parseZodValidationSchemaDefinition(
+  let inputHeaders = parseZodValidationSchemaDefinition(
     parsedParameters.headers,
     context,
     override.zod.coerce.header,
     override.zod.strict.header,
     isZodV4,
     preprocessHeader,
+    makeParamsInjection('header', 'Header'),
   );
 
   const preprocessBody = override.zod.preprocess?.body
     ? await generateMutator({
         output,
-        mutator: override.zod.preprocess.response,
+        mutator: override.zod.preprocess.body,
         name: `${operationName}PreprocessBody`,
         workspace: context.workspace,
         tsconfig: context.output.tsconfig,
       })
     : undefined;
 
-  const inputBody = parseZodValidationSchemaDefinition(
+  let inputBody = parseZodValidationSchemaDefinition(
     parsedBody.input,
     context,
     override.zod.coerce.body,
     override.zod.strict.body,
     isZodV4,
     preprocessBody,
+    makeParamsInjection('body', 'Body'),
   );
 
   const preprocessResponse = override.zod.preprocess?.response
@@ -1739,7 +2400,7 @@ const generateZodRoute = async (
       })
     : undefined;
 
-  const inputResponses = parsedResponses.map((parsedResponse) =>
+  const inputResponses = parsedResponses.map((parsedResponse, index) =>
     parseZodValidationSchemaDefinition(
       parsedResponse.input,
       context,
@@ -1747,23 +2408,57 @@ const generateZodRoute = async (
       override.zod.strict.response,
       isZodV4,
       preprocessResponse,
+      makeParamsInjection(
+        'response',
+        responses[index][0] ? `${responses[index][0]}Response` : 'Response',
+      ),
     ),
   );
+
+  const SENTINEL_PATTERN = /__REF_([A-Za-z_$][A-Za-z0-9_$]*)__/g;
+  const rewriteSentinels = (s: string): string =>
+    s.replaceAll(SENTINEL_PATTERN, (_m, name: string) => name);
+
+  const allUsedRefs = new Set<string>([
+    ...inputParams.usedRefs,
+    ...inputQueryParams.usedRefs,
+    ...inputHeaders.usedRefs,
+    ...inputBody.usedRefs,
+    ...inputResponses.flatMap((r) => [...r.usedRefs]),
+  ]);
+
+  if (useReusableSchemas && allUsedRefs.size > 0) {
+    inputParams = { ...inputParams, zod: rewriteSentinels(inputParams.zod) };
+    inputQueryParams = {
+      ...inputQueryParams,
+      zod: rewriteSentinels(inputQueryParams.zod),
+    };
+    inputHeaders = {
+      ...inputHeaders,
+      zod: rewriteSentinels(inputHeaders.zod),
+    };
+    inputBody = { ...inputBody, zod: rewriteSentinels(inputBody.zod) };
+    for (let i = 0; i < inputResponses.length; i++) {
+      inputResponses[i] = {
+        ...inputResponses[i],
+        zod: rewriteSentinels(inputResponses[i].zod),
+      };
+    }
+  }
 
   if (
     !inputParams.zod &&
     !inputQueryParams.zod &&
     !inputHeaders.zod &&
     !inputBody.zod &&
-    !inputResponses.some((inputResponse) => inputResponse.zod)
+    responses.length === 0
   ) {
     return {
-      implemtation: '',
+      implementation: '',
       mutators: [],
+      usedRefs: new Set<string>(),
     };
   }
-
-  const pascalOperationName = pascal(operationName);
 
   const useBrandedTypes = override.zod.useBrandedTypes;
   const brand = (name: string) =>
@@ -1773,79 +2468,179 @@ const generateZodRoute = async (
         : `.brand<"${name}">()`
       : '';
 
+  // With `generateReusableSchemas`, operations import component schemas by
+  // their PascalCase name from a sibling schemas module. When an operation's
+  // own pascalized wrapper name (e.g. `ListPetsResponse` from operationId
+  // `listPets`) matches an imported ref, the generated `export const` shadows
+  // the import and produces a self-referential initializer that TS rejects
+  // with TS7022. Detect the collision and append `Schema` (with a counter for
+  // further collisions) so the import keeps its meaning. For the array case
+  // both the wrapper and its `Item` companion are checked together so they
+  // stay in sync. The original name is preserved when there is no collision,
+  // so non-colliding operations are unaffected.
+  //
+  // `localTaken` seeds from the imported refs and accumulates the names this
+  // call hands out, so wrappers within the same operation (`Params`, `Body`,
+  // per-status `Response`, …) can't pick a name another wrapper just claimed.
+  // The fixed suffixes already keep these distinct in practice, but tracking
+  // allocations removes the implicit invariant — future suffix additions stay
+  // safe by construction.
+  const localTaken = new Set(allUsedRefs);
+  const allocateExportName = (baseName: string, hasItem: boolean): string => {
+    const collides = (name: string) =>
+      localTaken.has(name) || (hasItem && localTaken.has(`${name}Item`));
+    const reserve = (name: string) => {
+      localTaken.add(name);
+      if (hasItem) localTaken.add(`${name}Item`);
+    };
+    if (!collides(baseName)) {
+      reserve(baseName);
+      return baseName;
+    }
+    let counter = 0;
+    let candidate = `${baseName}Schema`;
+    while (collides(candidate)) {
+      counter += 1;
+      candidate = `${baseName}Schema${counter}`;
+    }
+    reserve(candidate);
+    return candidate;
+  };
+
+  const paramsName = allocateExportName(`${pascalOperationName}Params`, false);
+  const queryParamsName = allocateExportName(
+    `${pascalOperationName}QueryParams`,
+    false,
+  );
+  const headerName = allocateExportName(`${pascalOperationName}Header`, false);
+  const bodyName = allocateExportName(
+    `${pascalOperationName}Body`,
+    parsedBody.isArray,
+  );
+
   return {
     implementation: [
       ...(inputParams.consts ? [inputParams.consts] : []),
       ...(inputParams.zod
         ? [
-            `export const ${pascalOperationName}Params = ${inputParams.zod}${brand(`${pascalOperationName}Params`)}`,
+            `export const ${paramsName} = ${inputParams.zod}${brand(paramsName)}`,
           ]
         : []),
       ...(inputQueryParams.consts ? [inputQueryParams.consts] : []),
       ...(inputQueryParams.zod
         ? [
-            `export const ${pascalOperationName}QueryParams = ${inputQueryParams.zod}${brand(`${pascalOperationName}QueryParams`)}`,
+            `export const ${queryParamsName} = ${inputQueryParams.zod}${brand(queryParamsName)}`,
           ]
         : []),
       ...(inputHeaders.consts ? [inputHeaders.consts] : []),
       ...(inputHeaders.zod
         ? [
-            `export const ${pascalOperationName}Header = ${inputHeaders.zod}${brand(`${pascalOperationName}Header`)}`,
+            `export const ${headerName} = ${inputHeaders.zod}${brand(headerName)}`,
           ]
         : []),
       ...(inputBody.consts ? [inputBody.consts] : []),
       ...(inputBody.zod
         ? [
             parsedBody.isArray
-              ? `export const ${pascalOperationName}BodyItem = ${inputBody.zod}
-export const ${pascalOperationName}Body = zod.array(${pascalOperationName}BodyItem)${
+              ? `export const ${bodyName}Item = ${inputBody.zod}
+export const ${bodyName} = zod.array(${bodyName}Item)${
                   parsedBody.rules?.min ? `.min(${parsedBody.rules.min})` : ''
                 }${
                   parsedBody.rules?.max ? `.max(${parsedBody.rules.max})` : ''
-                }${brand(`${pascalOperationName}Body`)}`
-              : `export const ${pascalOperationName}Body = ${inputBody.zod}${brand(`${pascalOperationName}Body`)}`,
+                }${brand(bodyName)}`
+              : `export const ${bodyName} = ${inputBody.zod}${brand(bodyName)}`,
           ]
         : []),
       ...inputResponses.flatMap((inputResponse, index) => {
-        const operationResponse = pascal(
-          `${operationName}-${responses[index][0]}-response`,
+        const operationResponse = allocateExportName(
+          pascal(`${operationName}-${responses[index][0]}-response`),
+          parsedResponses[index].isArray,
         );
+
+        if (!inputResponse.zod) {
+          if (!override.zod.generate.response) {
+            return [];
+          }
+
+          const noContentStatusCodes = new Set(['204', '205']);
+          const statusCode = responses[index][0];
+          const isEachHttpStatusMode = !!statusCode;
+
+          let isNoContent: boolean;
+          if (isEachHttpStatusMode) {
+            isNoContent = noContentStatusCodes.has(statusCode);
+          } else {
+            const specResponseKeys = new Set(
+              Object.keys(spec[verb]?.responses ?? {}),
+            );
+            const hasStandardSuccess =
+              specResponseKeys.has('200') ||
+              specResponseKeys.has('2XX') ||
+              specResponseKeys.has('2xx');
+            isNoContent = !hasStandardSuccess;
+          }
+          const noContentSchema = isNoContent ? 'zod.void()' : 'zod.unknown()';
+
+          return [
+            `export const ${operationResponse} = ${noContentSchema}${brand(operationResponse)}`,
+          ];
+        }
+
         return [
           ...(inputResponse.consts ? [inputResponse.consts] : []),
-          ...(inputResponse.zod
-            ? [
-                parsedResponses[index].isArray
-                  ? `export const ${operationResponse}Item = ${
-                      inputResponse.zod
-                    }
+          parsedResponses[index].isArray
+            ? `export const ${operationResponse}Item = ${inputResponse.zod}
 export const ${operationResponse} = zod.array(${operationResponse}Item)${
-                      parsedResponses[index].rules?.min
-                        ? `.min(${parsedResponses[index].rules.min})`
-                        : ''
-                    }${
-                      parsedResponses[index].rules?.max
-                        ? `.max(${parsedResponses[index].rules.max})`
-                        : ''
-                    }${brand(operationResponse)}`
-                  : `export const ${operationResponse} = ${inputResponse.zod}${brand(operationResponse)}`,
-              ]
-            : []),
+                parsedResponses[index].rules?.min
+                  ? `.min(${parsedResponses[index].rules.min})`
+                  : ''
+              }${
+                parsedResponses[index].rules?.max
+                  ? `.max(${parsedResponses[index].rules.max})`
+                  : ''
+              }${brand(operationResponse)}`
+            : `export const ${operationResponse} = ${inputResponse.zod}${brand(operationResponse)}`,
         ];
       }),
     ].join('\n\n'),
-    mutators: preprocessResponse ? [preprocessResponse] : [],
+    mutators: [
+      // Gate each request-side preprocess mutator on its parsed `.zod`: it is
+      // computed for every operation once the target is configured, so without
+      // this an operation lacking the schema would emit an unused import.
+      ...(preprocessParams && inputParams.zod ? [preprocessParams] : []),
+      ...(preprocessQueryParams && inputQueryParams.zod
+        ? [preprocessQueryParams]
+        : []),
+      ...(preprocessHeader && inputHeaders.zod ? [preprocessHeader] : []),
+      ...(preprocessBody && inputBody.zod ? [preprocessBody] : []),
+      ...(preprocessResponse ? [preprocessResponse] : []),
+      // Unconditional even when this operation's parsed schemas don't
+      // reference `paramsMutator.name`: in `single` mode, inline component
+      // schemas (which DO reference it) rely on this entry to emit the
+      // import. The cost is one harmless `import { zodParams }` line on
+      // operations whose request/response have no leaf validators to inject.
+      ...(paramsMutator ? [paramsMutator] : []),
+    ],
+    usedRefs: useReusableSchemas ? allUsedRefs : new Set<string>(),
   };
 };
 
 export const generateZod: ClientBuilder = async (verbOptions, options) => {
-  const { implementation, mutators } = await generateZodRoute(
+  const { implementation, mutators, usedRefs } = await generateZodRoute(
     verbOptions,
     options,
   );
 
   return {
     implementation: implementation ? `${implementation}\n\n` : '',
-    imports: [],
+    // Zod schemas are runtime values (not type-only), so mark with values: true
+    // to prevent the import writer from emitting `import type { ... }`. Sort
+    // by name so import order is stable across runs.
+    imports: [...usedRefs].toSorted().map((name) => ({
+      name,
+      schemaName: name,
+      values: true,
+    })),
     mutators,
   };
 };

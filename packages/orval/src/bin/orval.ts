@@ -73,7 +73,7 @@ cli
       Object.values(OutputClient),
     ),
   )
-  .option('--mock', 'activate the mock')
+  .option('--mock', 'activate mock generation (msw handlers + faker factories)')
   .option('--clean [paths...]', 'Clean output directory')
   .addOption(
     new Option(

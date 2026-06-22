@@ -23,7 +23,9 @@ function createMockContext(): ContextSpec {
       target: '',
       namingConvention: NamingConvention.CAMEL_CASE,
       fileExtension: '.ts',
+      schemaFileExtension: '.ts',
       mode: OutputMode.SINGLE,
+      mock: { indexMockFiles: false, generators: [] },
       client: OutputClient.FETCH,
       httpClient: OutputHttpClient.FETCH,
       clean: false,
@@ -36,6 +38,12 @@ function createMockContext(): ContextSpec {
       unionAddMissingProperties: false,
       optionsParamRequired: false,
       propertySortOrder: PropertySortOrder.ALPHABETICAL,
+      factoryMethods: {
+        functionNamePrefix: 'create',
+        mode: 'single',
+        outputDirectory: '',
+        includeOptionalProperty: false,
+      },
       override: {
         title: undefined,
         transformer: undefined,
@@ -59,7 +67,12 @@ function createMockContext(): ContextSpec {
           parameters: { suffix: '' },
           requestBodies: { suffix: '' },
         },
-        hono: { compositeRoute: '', validator: false, validatorOutputPath: '' },
+        hono: {
+          handlerGenerationStrategy: 'smart',
+          compositeRoute: '',
+          validator: false,
+          validatorOutputPath: '',
+        },
         query: {
           useQuery: false,
           useSuspenseQuery: false,
@@ -109,8 +122,28 @@ function createMockContext(): ContextSpec {
           },
           generateEachHttpStatus: false,
           useBrandedTypes: false,
+          generateReusableSchemas: false,
+          generateMeta: false,
           dateTimeOptions: {},
           timeOptions: { precision: 3 },
+        },
+        effect: {
+          strict: {
+            param: false,
+            query: false,
+            header: false,
+            body: false,
+            response: false,
+          },
+          generate: {
+            param: false,
+            query: false,
+            header: false,
+            body: false,
+            response: false,
+          },
+          generateEachHttpStatus: false,
+          useBrandedTypes: false,
         },
         fetch: {
           includeHttpResponseReturnType: false,
@@ -435,6 +468,76 @@ describe('combineSchemasMock', () => {
     expect(result.value).toBe('undefined');
   });
 
+  // Regression test for #2155: when a `oneOf` schema declares a discriminator
+  // with a mapping AND the discriminator property is also listed in the
+  // parent's `properties`, the parent's free-choice enum must NOT be emitted
+  // alongside the picked variant. Each variant already encodes a constrained
+  // value for that property via `resolveDiscriminators`, so a trailing parent
+  // assignment would statically override it and guarantee a mismatch.
+  it('should not emit the discriminator property when oneOf has a discriminator mapping (#2155)', () => {
+    const item: MockSchemaObject = {
+      name: 'DiscriminatorTest',
+      type: 'object',
+      required: ['type'],
+      properties: {
+        type: { type: 'string', enum: ['item1', 'item2', 'item3'] },
+      },
+      discriminator: {
+        propertyName: 'type',
+        mapping: {
+          item1: '#/components/schemas/Item1',
+          item2: '#/components/schemas/Item2',
+          item3: '#/components/schemas/Item3',
+        },
+      },
+      oneOf: [
+        {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: ['item1'] },
+            property1: { type: 'string' },
+          },
+          required: ['type'],
+        },
+        {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: ['item2'] },
+            property2: { type: 'string' },
+          },
+          required: ['type'],
+        },
+        {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: ['item3'] },
+            property3: { type: 'string' },
+          },
+          required: ['type'],
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'oneOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+    expect(result).toBeDefined();
+    // The picked variant carries the constrained discriminator value
+    // (e.g. `type: 'item1'`); appending the parent's full enum after the
+    // spread would overwrite it. Ensure the trailing override is gone.
+    expect(result.value).not.toMatch(
+      /faker\.helpers\.arrayElement\(\[\s*'item1'\s*,\s*'item2'\s*,\s*'item3'\s*\]/,
+    );
+  });
+
   // Regression test for #2081: a oneOf variant that points back to an
   // already-visited schema must be skipped, otherwise polymorphic recursion
   // (Base → Parent.oneOf → Derived → allOf [Base]) overflows the stack.
@@ -462,5 +565,79 @@ describe('combineSchemasMock', () => {
     expect(result).toBeDefined();
     // Derived1 should not appear because it's a circular reference here.
     expect(result.value).not.toContain('Derived1');
+  });
+
+  // Regression test: a cycle made purely of top-level named schemas that
+  // extend each other via `allOf` (`A: allOf[B]`, `B: allOf[A]`) used to
+  // overflow the stack. Every hop has `item.isRef === true`, so the
+  // `!item.isRef` guard never fired; the `existingReferencedAllOfRefs` chain
+  // breaks the cycle instead.
+  it('terminates on a mutual allOf cycle between top-level schemas', () => {
+    const context = createMockContext();
+    context.spec.components = {
+      schemas: {
+        A: { allOf: [{ $ref: '#/components/schemas/B' }] },
+        B: { allOf: [{ $ref: '#/components/schemas/A' }] },
+      },
+    };
+
+    const item: MockSchemaObject = {
+      name: 'A',
+      isRef: true,
+      allOf: [{ $ref: '#/components/schemas/B' }],
+    };
+
+    let result: ReturnType<typeof combineSchemasMock> | undefined;
+    expect(() => {
+      result = combineSchemasMock({
+        item,
+        separator: 'allOf',
+        operationId: 'testOp',
+        tags: ['test'],
+        context,
+        imports: [],
+        // `A` is already on the resolution path (it is the schema being expanded).
+        existingReferencedProperties: ['A'],
+        splitMockImplementations: [],
+      });
+    }).not.toThrow();
+
+    expect(result).toBeDefined();
+  });
+
+  // Regression test: a longer `allOf` inheritance chain that loops back
+  // (`A: allOf[B]`, `B: allOf[C]`, `C: allOf[A]`) — mirrors the real-world
+  // `System.Xml.Linq.*` hierarchy. Must terminate rather than overflow.
+  it('terminates on a multi-hop allOf inheritance cycle', () => {
+    const context = createMockContext();
+    context.spec.components = {
+      schemas: {
+        A: { allOf: [{ $ref: '#/components/schemas/B' }] },
+        B: { allOf: [{ $ref: '#/components/schemas/C' }] },
+        C: { allOf: [{ $ref: '#/components/schemas/A' }] },
+      },
+    };
+
+    const item: MockSchemaObject = {
+      name: 'A',
+      isRef: true,
+      allOf: [{ $ref: '#/components/schemas/B' }],
+    };
+
+    let result: ReturnType<typeof combineSchemasMock> | undefined;
+    expect(() => {
+      result = combineSchemasMock({
+        item,
+        separator: 'allOf',
+        operationId: 'testOp',
+        tags: ['test'],
+        context,
+        imports: [],
+        existingReferencedProperties: ['A'],
+        splitMockImplementations: [],
+      });
+    }).not.toThrow();
+
+    expect(result).toBeDefined();
   });
 });

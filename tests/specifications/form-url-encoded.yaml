@@ -40,8 +40,86 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /pets/upload:
+    post:
+      summary: Upload pet content as url-encoded form
+      operationId: uploadPetContent
+      tags:
+        - pets
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - 'name'
+              properties:
+                name:
+                  type: string
+                # format: binary field in a url-encoded body must be typed and
+                # appended as a string, not Blob (#1624)
+                content:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Created Pet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /pets/upload-ref:
+    post:
+      summary: Upload pet content using a $ref to a binary component schema
+      operationId: uploadPetContentRef
+      tags:
+        - pets
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - 'name'
+              properties:
+                name:
+                  type: string
+                # $ref to a component schema whose body is `type: string,
+                # format: binary` must still be typed as `string` in a
+                # url-encoded body — URLSearchParams.append only accepts
+                # strings, and the inline-binary case is already handled by
+                # #1624 / #3395. Reproduces the C# `IFormFile` shape from
+                # Swashbuckle (#2410).
+                content:
+                  $ref: '#/components/schemas/IFormFile'
+      responses:
+        '200':
+          description: Created Pet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 components:
   schemas:
+    # ASP.NET Core's Swashbuckle emits IFormFile parameters this way. Used to
+    # cover the $ref-to-binary case in /pets/upload-ref (#2410).
+    IFormFile:
+      type: string
+      format: binary
     Pet:
       type: object
       required:

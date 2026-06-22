@@ -1,0 +1,14 @@
+openapi: 3.0.0
+info:
+  title: Issue 3380 - external path-item $ref
+  version: 1.0.0
+paths:
+  # Regression for #3380: path items defined via a cross-file `$ref`. The
+  # JSON Pointer escape `~1` (for `/`) and percent-encoding (`%7B`/`%7D` for
+  # `{`/`}` in templated paths) in these refs must be decoded for the external
+  # paths to resolve.
+  /pets:
+    $ref: './issue-3380-common.yaml#/paths/~1pets'
+  /pets/{petId}:
+    $ref: './issue-3380-common.yaml#/paths/~1pets~1%7BpetId%7D'
+components: {}

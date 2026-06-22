@@ -89,10 +89,15 @@ function getResReqContentTypes({
     return;
   }
 
-  // For form-data, pass context that tracks encoding for file type detection
+  // For form bodies, pass context that tracks encoding for file type
+  // detection. url-encoded bodies additionally flag `urlEncoded` so file/binary
+  // fields are typed as `string` rather than `Blob` (#1624).
+  const isFormUrlEncoded = formUrlEncodedContentTypes.has(contentType);
   const formDataContext: FormDataContext | undefined = isFormData
     ? { atPart: false, encoding: mediaType.encoding ?? {} }
-    : undefined;
+    : isFormUrlEncoded
+      ? { atPart: false, encoding: mediaType.encoding ?? {}, urlEncoded: true }
+      : undefined;
 
   const resolvedObject = resolveObject({
     schema: mediaType.schema,
@@ -598,25 +603,39 @@ function getSchemaFormDataAndUrlEncoded({
         form += `Object.entries(${propName} ?? {}).forEach(([key, value]) => {\n`;
         form += skipLine;
         form += `  if (value !== undefined && value !== null) {\n`;
-        form += `    if ((typeof File !== 'undefined' && value instanceof File) || value instanceof Blob) {\n`;
-        form += `      ${variableName}.append(key, value);\n`;
-        form += `    } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) {\n`;
-        form += `      ${variableName}.append(key, new Blob([Uint8Array.from(value)]));\n`;
-        form += `    } else if (Array.isArray(value)) {\n`;
-        form += `      value.forEach(v => {\n`;
-        form += `        if ((typeof File !== 'undefined' && v instanceof File) || v instanceof Blob) {\n`;
-        form += `          ${variableName}.append(key, v);\n`;
-        form += `        } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(v)) {\n`;
-        form += `          ${variableName}.append(key, new Blob([Uint8Array.from(v)]));\n`;
-        form += `        } else {\n`;
-        form += `          ${variableName}.append(key, typeof v === 'object' ? JSON.stringify(v) : String(v));\n`;
-        form += `        }\n`;
-        form += `      });\n`;
-        form += `    } else if (typeof value === 'object') {\n`;
-        form += `      ${variableName}.append(key, JSON.stringify(value));\n`;
-        form += `    } else {\n`;
-        form += `      ${variableName}.append(key, String(value));\n`;
-        form += `    }\n`;
+        if (isUrlEncoded) {
+          // url-encoded: URLSearchParams holds strings only, so File/Blob/
+          // Buffer handling does not apply — coerce every value to string (#1624)
+          form += `    if (Array.isArray(value)) {\n`;
+          form += `      value.forEach(v => {\n`;
+          form += `        ${variableName}.append(key, typeof v === 'object' ? JSON.stringify(v) : String(v));\n`;
+          form += `      });\n`;
+          form += `    } else if (typeof value === 'object') {\n`;
+          form += `      ${variableName}.append(key, JSON.stringify(value));\n`;
+          form += `    } else {\n`;
+          form += `      ${variableName}.append(key, String(value));\n`;
+          form += `    }\n`;
+        } else {
+          form += `    if ((typeof File !== 'undefined' && value instanceof File) || value instanceof Blob) {\n`;
+          form += `      ${variableName}.append(key, value);\n`;
+          form += `    } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) {\n`;
+          form += `      ${variableName}.append(key, new Blob([Uint8Array.from(value)]));\n`;
+          form += `    } else if (Array.isArray(value)) {\n`;
+          form += `      value.forEach(v => {\n`;
+          form += `        if ((typeof File !== 'undefined' && v instanceof File) || v instanceof Blob) {\n`;
+          form += `          ${variableName}.append(key, v);\n`;
+          form += `        } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(v)) {\n`;
+          form += `          ${variableName}.append(key, new Blob([Uint8Array.from(v)]));\n`;
+          form += `        } else {\n`;
+          form += `          ${variableName}.append(key, typeof v === 'object' ? JSON.stringify(v) : String(v));\n`;
+          form += `        }\n`;
+          form += `      });\n`;
+          form += `    } else if (typeof value === 'object') {\n`;
+          form += `      ${variableName}.append(key, JSON.stringify(value));\n`;
+          form += `    } else {\n`;
+          form += `      ${variableName}.append(key, String(value));\n`;
+          form += `    }\n`;
+        }
         form += `  }\n`;
         form += `});\n`;
       } else {
@@ -710,6 +729,9 @@ function resolveSchemaPropertiesToFormData({
   encoding,
 }: ResolveSchemaPropertiesToFormDataOptions): string {
   let formDataValues = '';
+  // url-encoded bodies use URLSearchParams (string values only), so file/binary
+  // fields are appended as plain strings rather than wrapped in a Blob (#1624).
+  const isUrlEncoded = variableName === 'formUrlEncoded';
   const schemaProps = getSchemaProperties(schema) ?? {};
   for (const [key, value] of Object.entries(schemaProps)) {
     const { schema: property } = resolveSchemaRef(value, context);
@@ -742,13 +764,19 @@ function resolveSchemaPropertiesToFormData({
     const effectiveContentType =
       partContentType ?? (property.contentMediaType as string | undefined);
 
-    if (fileType === 'binary' || property.format === 'binary') {
+    if (isUrlEncoded && (fileType || property.format === 'binary')) {
+      // url-encoded: file/binary fields are plain strings (URLSearchParams)
+      formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey});\n`;
+    } else if (fileType === 'binary' || property.format === 'binary') {
       // Binary: append directly (value is Blob)
       formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey});\n`;
     } else if (fileType === 'text') {
       // Text file: value is Blob | string, check at runtime
       formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey} instanceof Blob ? ${nonOptionalValueKey} : new Blob([${nonOptionalValueKey}], { type: '${effectiveContentType}' }));\n`;
-    } else if (property.type === 'object') {
+    } else if (
+      property.type === 'object' ||
+      (Array.isArray(property.type) && property.type.includes('object'))
+    ) {
       formDataValue =
         context.output.override.formData.arrayHandling ===
         FormDataArrayHandling.EXPLODE
@@ -763,7 +791,10 @@ function resolveSchemaPropertiesToFormData({
               encoding,
             })
           : `${variableName}.append(\`${keyPrefix}${key}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
-    } else if (property.type === 'array') {
+    } else if (
+      property.type === 'array' ||
+      (Array.isArray(property.type) && property.type.includes('array'))
+    ) {
       let valueStr = 'value';
       let hasNonPrimitiveChild = false;
       const propertyItems = getSchemaItems(property);

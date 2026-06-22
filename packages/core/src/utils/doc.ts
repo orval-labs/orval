@@ -27,6 +27,38 @@ interface JsDocEntry {
   value: boolean | number | string;
 }
 
+function trimTrailingEmptyLines(lines: string[]): string[] {
+  let lastLineIndex = lines.length - 1;
+
+  while (lastLineIndex >= 0 && lines[lastLineIndex]?.trim() === '') {
+    lastLineIndex--;
+  }
+
+  return lines.slice(0, lastLineIndex + 1);
+}
+
+function escapeJsDoc(value: string): string {
+  return value.replaceAll(regex, replacement);
+}
+
+function getDescriptionLines(description?: string[] | string): string[] {
+  const descriptionBlocks = Array.isArray(description)
+    ? description.filter((line) => !line.includes('eslint-disable'))
+    : [description ?? ''];
+
+  return trimTrailingEmptyLines(
+    descriptionBlocks.flatMap((block) =>
+      block.split(/\r?\n/).map((line) => escapeJsDoc(line)),
+    ),
+  );
+}
+
+function getEslintDisable(description?: string[] | string): string | undefined {
+  return Array.isArray(description)
+    ? description.find((line) => line.includes('eslint-disable'))
+    : undefined;
+}
+
 const itemValidationKeys = [
   'minLength',
   'maxLength',
@@ -64,19 +96,23 @@ function getItemValidationDocEntries(
   ];
 }
 
-export function jsDoc(
-  schema: object & JsDocSchema,
-  tryOneLine = false,
-  context?: ContextSpec,
-): string {
-  if (context?.output.override.jsDoc) {
-    const { filter } = context.output.override.jsDoc;
-    if (filter) {
-      return keyValuePairsToJsDoc(filter(schema));
-    }
+function toJsDocEntry(
+  key: string,
+  value?: boolean | number | string,
+): JsDocEntry[] {
+  if (value === undefined || value === false || value === '') {
+    return [];
   }
+
+  return [{ key, value }];
+}
+
+function getSchemaDocEntries(
+  schema: JsDocSchema,
+  itemValidationDocEntries: JsDocEntry[],
+  isNullable: boolean,
+): JsDocEntry[] {
   const {
-    description,
     deprecated,
     summary,
     minLength,
@@ -89,110 +125,77 @@ export function jsDoc(
     maxItems,
     pattern,
   } = schema;
+
+  return [
+    ...toJsDocEntry('deprecated', deprecated),
+    ...toJsDocEntry('summary', summary),
+    ...toJsDocEntry('minLength', minLength),
+    ...toJsDocEntry('maxLength', maxLength),
+    ...toJsDocEntry('minimum', minimum),
+    ...toJsDocEntry('maximum', maximum),
+    ...toJsDocEntry('exclusiveMinimum', exclusiveMinimum),
+    ...toJsDocEntry('exclusiveMaximum', exclusiveMaximum),
+    ...toJsDocEntry('minItems', minItems),
+    ...toJsDocEntry('maxItems', maxItems),
+    ...toJsDocEntry('nullable', isNullable),
+    ...toJsDocEntry('pattern', pattern),
+    ...itemValidationDocEntries.flatMap(({ key, value }) =>
+      toJsDocEntry(key, value),
+    ),
+  ];
+}
+
+function formatJsDocEntry({ key, value }: JsDocEntry): string {
+  if (value === true) {
+    return `@${key}`;
+  }
+
+  return `@${key} ${escapeJsDoc(value.toString())}`;
+}
+
+function renderJsDocBlock(lines: string[], tryOneLine = false): string {
+  if (lines.length === 0) {
+    return '';
+  }
+
+  if (lines.length === 1 && tryOneLine) {
+    return `/** ${lines[0]} */\n`;
+  }
+
+  const linePrefix = `${tryOneLine ? '  ' : ''} *`;
+  const closingPrefix = ` ${tryOneLine ? '  ' : ''}`;
+
+  return `/**\n${lines
+    .map((line) => `${linePrefix}${line ? ` ${line}` : ''}`)
+    .join('\n')}\n${closingPrefix}*/\n`;
+}
+
+export function jsDoc(
+  schema: object & JsDocSchema,
+  tryOneLine = false,
+  context?: ContextSpec,
+): string {
+  if (context?.output.override.jsDoc) {
+    const { filter } = context.output.override.jsDoc;
+    if (filter) {
+      return keyValuePairsToJsDoc(filter(schema));
+    }
+  }
+
   const isNullable =
     schema.type === 'null' ||
     (Array.isArray(schema.type) && schema.type.includes('null'));
   const itemValidationDocEntries = getItemValidationDocEntries(schema.items);
-  // Ensure there aren't any comment terminations in doc
-  const lines = (
-    Array.isArray(description)
-      ? description.filter((d) => !d.includes('eslint-disable'))
-      : [description ?? '']
-  ).map((line) => line.replaceAll(regex, replacement));
+  const lines = [
+    ...getDescriptionLines(schema.description),
+    ...getSchemaDocEntries(schema, itemValidationDocEntries, isNullable).map(
+      (entry) => formatJsDocEntry(entry),
+    ),
+  ];
+  const eslintDisable = getEslintDisable(schema.description);
+  const doc = renderJsDocBlock(lines, tryOneLine);
 
-  const count = [
-    description,
-    deprecated,
-    summary,
-    minLength?.toString(),
-    maxLength?.toString(),
-    minimum?.toString(),
-    maximum?.toString(),
-    exclusiveMinimum?.toString(),
-    exclusiveMaximum?.toString(),
-    minItems?.toString(),
-    maxItems?.toString(),
-    isNullable ? 'null' : '',
-    pattern,
-    ...itemValidationDocEntries.map(({ value }) => value.toString()),
-  ].filter(Boolean).length;
-
-  if (!count) {
-    return '';
-  }
-
-  const oneLine = count === 1 && tryOneLine;
-  const eslintDisable = Array.isArray(description)
-    ? description
-        .find((d) => d.includes('eslint-disable'))
-        ?.replaceAll(regex, replacement)
-    : undefined;
-  let doc = `${eslintDisable ? `/* ${eslintDisable} */\n` : ''}/**`;
-
-  if (description) {
-    if (!oneLine) {
-      doc += `\n${tryOneLine ? '  ' : ''} *`;
-    }
-    doc += ` ${lines.join('\n * ')}`;
-  }
-
-  function appendPrefix() {
-    if (!oneLine) {
-      doc += `\n${tryOneLine ? '  ' : ''} *`;
-    }
-  }
-
-  function tryAppendStringDocLine(key: string, value?: string) {
-    if (value) {
-      appendPrefix();
-      doc += ` @${key} ${value.replaceAll(regex, replacement)}`;
-    }
-  }
-
-  function tryAppendBooleanDocLine(key: string, value?: boolean) {
-    if (value === true) {
-      appendPrefix();
-      doc += ` @${key}`;
-    }
-  }
-
-  function tryAppendNumberDocLine(key: string, value?: number) {
-    if (value !== undefined) {
-      appendPrefix();
-      doc += ` @${key} ${value}`;
-    }
-  }
-
-  tryAppendBooleanDocLine('deprecated', deprecated);
-  tryAppendStringDocLine('summary', summary?.replaceAll(regex, replacement));
-  tryAppendNumberDocLine('minLength', minLength);
-  tryAppendNumberDocLine('maxLength', maxLength);
-  tryAppendNumberDocLine('minimum', minimum);
-  tryAppendNumberDocLine('maximum', maximum);
-  tryAppendNumberDocLine('exclusiveMinimum', exclusiveMinimum);
-  tryAppendNumberDocLine('exclusiveMaximum', exclusiveMaximum);
-  tryAppendNumberDocLine('minItems', minItems);
-  tryAppendNumberDocLine('maxItems', maxItems);
-  tryAppendBooleanDocLine('nullable', isNullable);
-  tryAppendStringDocLine('pattern', pattern);
-
-  for (const { key, value } of itemValidationDocEntries) {
-    if (typeof value === 'string') {
-      tryAppendStringDocLine(key, value);
-      continue;
-    }
-    if (typeof value === 'number') {
-      tryAppendNumberDocLine(key, value);
-      continue;
-    }
-    tryAppendBooleanDocLine(key, value);
-  }
-
-  doc += oneLine ? ' ' : `\n ${tryOneLine ? '  ' : ''}`;
-
-  doc += '*/\n';
-
-  return doc;
+  return `${eslintDisable ? `/* ${escapeJsDoc(eslintDisable)} */\n` : ''}${doc}`;
 }
 
 export function keyValuePairsToJsDoc(
@@ -201,11 +204,7 @@ export function keyValuePairsToJsDoc(
     value: string;
   }[],
 ) {
-  if (keyValues.length === 0) return '';
-  let doc = '/**\n';
-  for (const { key, value } of keyValues) {
-    doc += ` * @${key} ${value}\n`;
-  }
-  doc += ' */\n';
-  return doc;
+  return renderJsDocBlock(
+    keyValues.map(({ key, value }) => `@${key} ${value}`),
+  );
 }

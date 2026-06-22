@@ -1,0 +1,54 @@
+---
+title: Svelte Query
+description: 从 OpenAPI 生成类型安全的 Svelte Query stores
+---
+
+Svelte Query 客户端会生成适配 TanStack Query for Svelte 的查询和 mutation stores。它适合 Svelte 应用中管理远程数据。
+
+## 配置
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      client: 'svelte-query',
+    },
+  },
+});
+```
+
+## 生成结果
+
+生成内容包括查询 store、mutation store、请求函数、query key helper 和类型。
+
+## Infinite Queries
+
+启用 infinite query 后，可以按页加载数据，并由 TanStack Query 管理分页缓存。
+
+## Set Query Data
+
+启用后生成缓存写入 helper，常用于 mutation 成功后更新列表或详情缓存。
+
+## Get Query Data
+
+启用后生成读取缓存的 helper，避免在业务代码里重复拼 query key。
+
+## 完整示例
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'svelte-query',
+      override: {
+        query: {
+          useSetQueryData: true,
+          useGetQueryData: true,
+        },
+      },
+    },
+  },
+});
+```

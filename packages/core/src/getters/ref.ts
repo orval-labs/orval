@@ -37,7 +37,8 @@ export function isComponentRef(ref: string): boolean {
   return COMPONENT_REF_PATTERN.test(ref);
 }
 
-const regex = new RegExp('~1', 'g');
+const TILDE_1 = /~1/g;
+const TILDE_0 = /~0/g;
 
 export interface RefInfo {
   name: string;
@@ -55,7 +56,11 @@ export function getRefInfo($ref: string, context: ContextSpec): RefInfo {
   const refPaths = ref
     .slice(1)
     .split('/')
-    .map((part) => decodeURIComponent(part.replaceAll(regex, '/')));
+    .map((part) =>
+      decodeURIComponent(part)
+        .replaceAll(TILDE_1, '/')
+        .replaceAll(TILDE_0, '~'),
+    );
 
   const getOverrideSuffix = (
     override: NormalizedOverrideOutput,
@@ -99,4 +104,17 @@ export function getRefInfo($ref: string, context: ContextSpec): RefInfo {
     originalName,
     refPaths,
   };
+}
+
+/**
+ * Extracts the anchor name from a fragment-only `$dynamicRef` (e.g. `#category` → `category`).
+ *
+ * Returns `undefined` for external-document `$dynamicRef` values (e.g. `other.json#anchor`)
+ * which are not supported.
+ */
+export function getDynamicAnchorName(dynamicRef: string): string | undefined {
+  if (!dynamicRef.startsWith('#') || dynamicRef.length <= 1) {
+    return undefined;
+  }
+  return dynamicRef.slice(1);
 }

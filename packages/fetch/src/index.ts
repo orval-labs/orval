@@ -10,7 +10,9 @@ import {
   type GeneratorOptions,
   type GeneratorVerbOptions,
   GetterPropType,
+  isBinaryContentType,
   isObject,
+  makeRouteSafe,
   type OpenApiParameterObject,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
@@ -52,6 +54,9 @@ const FETCH_DEPENDENCIES: GeneratorDependency[] = [
 
 export const getFetchDependencies = () => FETCH_DEPENDENCIES;
 
+const isRawRequestBodyContentType = (contentType: string) =>
+  contentType === 'text/plain' || isBinaryContentType(contentType);
+
 export const generateRequestFunction = (
   {
     queryParams,
@@ -68,8 +73,14 @@ export const generateRequestFunction = (
     override,
     doc,
   }: GeneratorVerbOptions,
-  { route, context, pathRoute }: GeneratorOptions,
+  { route: _route, context, pathRoute }: GeneratorOptions,
 ) => {
+  let route = _route;
+
+  if (context.output.urlEncodeParameters) {
+    route = makeRouteSafe(route);
+  }
+
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
@@ -145,7 +156,7 @@ export const generateRequestFunction = (
 
     if (Array.isArray(value) && explodeParameters.includes(key)) {
       value.forEach((v) => {
-        normalizedParams.append(key, v === null ? 'null' : ${hasExplodedDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}v.toString());
+        normalizedParams.append(key, v === null ? 'null' : ${hasExplodedDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}String(v));
       });
       return;
     }
@@ -167,7 +178,7 @@ export const generateRequestFunction = (
     });
 
   const normalParamsImplementation = `if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : ${hasDateParams ? 'value instanceof Date ? value.toISOString() : ' : ''}value.toString())
+      normalizedParams.append(key, value === null ? 'null' : ${hasDateParams ? 'value instanceof Date ? value.toISOString() : ' : ''}String(value))
     }`;
 
   const getUrlFnImplementation = `export const ${getUrlFnName} = (${getUrlFnProps}) => {
@@ -420,7 +431,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   const fetchBodyOption = requestBodyParams
     ? (isFormData && body.formData) ||
       (isFormUrlEncoded && body.formUrlEncoded) ||
-      body.contentType === 'text/plain'
+      isRawRequestBodyContentType(body.contentType)
       ? `body: ${requestBodyParams}`
       : `body: JSON.stringify(${requestBodyParams})`
     : '';

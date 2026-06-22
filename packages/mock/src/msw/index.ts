@@ -9,20 +9,41 @@ import {
   type GeneratorVerbOptions,
   type GlobalMockOptions,
   isFunction,
+  isMswMock,
   isObject,
   pascal,
   type ResReqTypesValue,
+  type StrictMockSchemaKind,
 } from '@orval/core';
 
 import { getDelay } from '../delay';
 import { getRouteMSW, overrideVarName } from '../faker/getters';
+import {
+  applyStrictMockReturnType,
+  collectStrictMockSchemaTypeNamesFromImplementation,
+  formatMockFactoryDeclaration,
+  getMockFactorySignatureParts,
+  getSchemaTypeNamesFromResponses,
+  getSimpleSchemaReturnType,
+  getStrictMockSchemaKindsFromResponses,
+  isStrictMock,
+  mergeStrictMockSchemaKinds,
+  mergeStrictMockSchemaTypeNames,
+} from '../mock-types';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
 
 function getMSWDependencies(
   options?: GlobalMockOptions,
 ): GeneratorDependency[] {
-  const hasDelay = options?.delay !== false;
   const locale = options?.locale;
+
+  const fakerDependency: GeneratorDependency = {
+    exports: [{ name: 'faker', values: true }],
+    dependency: locale ? `@faker-js/faker/locale/${locale}` : '@faker-js/faker',
+  };
+
+  const hasDelay =
+    options && isMswMock(options) ? options.delay !== false : true;
 
   const exports = [
     { name: 'http', values: true },
@@ -34,15 +55,7 @@ function getMSWDependencies(
     exports.push({ name: 'delay', values: true });
   }
 
-  return [
-    { exports, dependency: 'msw' },
-    {
-      exports: [{ name: 'faker', values: true }],
-      dependency: locale
-        ? `@faker-js/faker/locale/${locale}`
-        : '@faker-js/faker',
-    },
-  ];
+  return [{ exports, dependency: 'msw' }, fakerDependency];
 }
 
 export const generateMSWImports: GenerateMockImports = ({
@@ -124,12 +137,18 @@ function generateDefinition(
     : (
         mock as { preferredContentType?: string } | undefined
       )?.preferredContentType?.toLowerCase();
+  // match preferredContentType against `responses` (not the wider `contentTypes` which mixes success and error MIMEs).
   const preferredContentTypeMatch = preferredContentType
-    ? contentTypes.find((ct) => ct.toLowerCase() === preferredContentType)
+    ? responses.find(
+        (r) => r.contentType.toLowerCase() === preferredContentType,
+      )?.contentType
     : undefined;
   const contentTypesByPreference = preferredContentTypeMatch
     ? [preferredContentTypeMatch]
     : contentTypes;
+  const responsesByPreference = preferredContentTypeMatch
+    ? responses.filter((r) => r.contentType === preferredContentTypeMatch)
+    : responses;
 
   const hasTextLikeContentType = contentTypes.some((ct) =>
     isTextLikeContentType(ct),
@@ -143,9 +162,21 @@ function generateDefinition(
   const isTextResponse =
     (isExactlyStringReturnType && hasTextLikeContentType) ||
     contentTypesByPreference.some((ct) => isTextLikeContentType(ct));
+  const isSchemaBinary = (r: ResReqTypesValue) =>
+    r.originalSchema?.format === 'binary' ||
+    (r.originalSchema?.contentMediaType === 'application/octet-stream' &&
+      !r.originalSchema.contentEncoding);
   const isBinaryResponse =
-    returnType === 'Blob' ||
-    contentTypesByPreference.some((ct) => isBinaryLikeContentType(ct));
+    contentTypesByPreference.some((ct) => isBinaryLikeContentType(ct)) ||
+    responsesByPreference.some((r) => isSchemaBinary(r));
+  // Bare ref names of schema-binary responses (include alias for collision-renamed imports).
+  const binaryRefNames = responsesByPreference
+    .filter((r) => isSchemaBinary(r))
+    .flatMap((r) =>
+      r.imports.flatMap((imp) =>
+        imp.alias ? [imp.name, imp.alias] : [imp.name],
+      ),
+    );
   const isReturnHttpResponse = value && value !== 'undefined';
 
   const getResponseMockFunctionName = `${getResponseMockFunctionNameBase}${pascal(
@@ -162,8 +193,12 @@ function generateDefinition(
       ? `${addedSplitMockImplementations.join('\n\n')}\n\n`
       : '';
 
+  const binaryTypeRewriteRegex = new RegExp(
+    String.raw`\b(?:${['Blob', ...binaryRefNames].map((n) => escapeRegExp(n)).join('|')})\b`,
+    'g',
+  );
   const mockReturnType = isBinaryResponse
-    ? returnType.replaceAll(/\bBlob\b/g, 'ArrayBuffer')
+    ? returnType.replaceAll(binaryTypeRewriteRegex, 'ArrayBuffer')
     : returnType;
 
   // Detect when the return type is a union containing void (e.g. "Resource | void"
@@ -205,12 +240,54 @@ function generateDefinition(
     hasStringReturnType &&
     mockReturnType !== 'string';
 
+  const mockOptionsFromOverride = override.mock;
+  const strictMock = isStrictMock(mockOptionsFromOverride);
+  const schemaTypeNames = strictMock
+    ? getSchemaTypeNamesFromResponses(responses)
+    : [];
+  const strictMockReturnType = strictMock
+    ? applyStrictMockReturnType(nonVoidMockReturnType, schemaTypeNames)
+    : nonVoidMockReturnType;
+  const simpleSchemaReturnType = strictMock
+    ? getSimpleSchemaReturnType(nonVoidMockReturnType, schemaTypeNames)
+    : undefined;
+
+  let mockFactoryParam = '';
+  let mockFactoryReturnType = nonVoidMockReturnType;
+  let mockFactoryReturnCast = '';
+
+  if (isResponseOverridable) {
+    if (strictMock && simpleSchemaReturnType) {
+      const signature = getMockFactorySignatureParts(
+        simpleSchemaReturnType,
+        mockOptionsFromOverride,
+        {
+          isOverridable: true,
+          overrideType: overrideResponseType,
+        },
+      );
+      mockFactoryParam = signature.param;
+      mockFactoryReturnType = signature.returnType;
+      mockFactoryReturnCast = signature.returnCast;
+    } else {
+      mockFactoryParam = `overrideResponse: ${overrideResponseType} = {}`;
+      mockFactoryReturnType = strictMock
+        ? strictMockReturnType
+        : nonVoidMockReturnType;
+    }
+  } else if (strictMock) {
+    mockFactoryReturnType = strictMockReturnType;
+  }
+
   const mockImplementation = isReturnHttpResponse
-    ? `${mockImplementations}export const ${getResponseMockFunctionName} = (${
-        isResponseOverridable
-          ? `overrideResponse: ${overrideResponseType} = {}`
-          : ''
-      })${mockData ? '' : `: ${nonVoidMockReturnType}`} => (${value})\n\n`
+    ? `${mockImplementations}${formatMockFactoryDeclaration(
+        getResponseMockFunctionName,
+        mockFactoryParam,
+        mockFactoryReturnType,
+        value,
+        mockFactoryReturnCast,
+        { omitReturnType: Boolean(mockData) },
+      )}\n\n`
     : mockImplementations;
 
   const delay = getDelay(override, isFunction(mock) ? undefined : mock);
@@ -353,6 +430,28 @@ export const ${handlerName} = (overrideResponse?: ${mockReturnType} | ((${infoPa
       handler: handlerImplementation,
     },
     imports: includeResponseImports,
+    strictMockSchemaTypeNames: strictMock
+      ? mergeStrictMockSchemaTypeNames(
+          schemaTypeNames,
+          // Nested split factories: see collectStrictMockSchemaTypeNamesFromImplementation
+          // re regex-coupling note — prefer threading names from getters long-term.
+          collectStrictMockSchemaTypeNamesFromImplementation(
+            mockImplementation,
+          ),
+        )
+      : undefined,
+    strictMockSchemaKinds: strictMock
+      ? mergeStrictMockSchemaKinds(
+          getStrictMockSchemaKindsFromResponses(responses, context),
+          Object.fromEntries(
+            (
+              collectStrictMockSchemaTypeNamesFromImplementation(
+                mockImplementation,
+              ) ?? []
+            ).map((name) => [name, 'object' satisfies StrictMockSchemaKind]),
+          ),
+        )
+      : undefined,
   };
 }
 
@@ -361,15 +460,21 @@ export function generateMSW(
   generatorOptions: GeneratorOptions,
 ): ClientMockGeneratorBuilder {
   const { pathRoute, override, mock } = generatorOptions;
-  const { operationId, response } = generatorVerbOptions;
+  const { operationName, response } = generatorVerbOptions;
 
-  const route = getRouteMSW(
-    pathRoute,
-    override.mock?.baseUrl ?? (isFunction(mock) ? undefined : mock?.baseUrl),
-  );
+  const overrideBaseUrl =
+    override.mock && 'baseUrl' in override.mock
+      ? (override.mock as { baseUrl?: string }).baseUrl
+      : undefined;
+  const mockBaseUrl = mock && isMswMock(mock) ? mock.baseUrl : undefined;
+  const route = getRouteMSW(pathRoute, overrideBaseUrl ?? mockBaseUrl);
 
-  const handlerName = `get${pascal(operationId)}MockHandler`;
-  const getResponseMockFunctionName = `get${pascal(operationId)}ResponseMock`;
+  // Derive names from operationName (not operationId): splitByContentType keeps
+  // one operationId across variants but suffixes operationName (e.g. *WithJson /
+  // *WithFormData), and the client side already names functions from it. Using
+  // operationId here would emit duplicate handler names and break tsc. See #3342.
+  const handlerName = `get${pascal(operationName)}MockHandler`;
+  const getResponseMockFunctionName = `get${pascal(operationName)}ResponseMock`;
 
   const splitMockImplementations: string[] = [];
 
@@ -391,6 +496,12 @@ export function generateMSW(
   const mockImplementations = [baseDefinition.implementation.function];
   const handlerImplementations = [baseDefinition.implementation.handler];
   const imports = [...baseDefinition.imports];
+  const strictMockSchemaTypeNames = new Set(
+    baseDefinition.strictMockSchemaTypeNames,
+  );
+  const strictMockSchemaKinds: Record<string, StrictMockSchemaKind> = {
+    ...baseDefinition.strictMockSchemaKinds,
+  };
 
   if (
     generatorOptions.mock &&
@@ -418,15 +529,30 @@ export function generateMSW(
       mockImplementations.push(definition.implementation.function);
       handlerImplementations.push(definition.implementation.handler);
       imports.push(...definition.imports);
+      for (const name of definition.strictMockSchemaTypeNames ?? []) {
+        strictMockSchemaTypeNames.add(name);
+      }
+      if (definition.strictMockSchemaKinds) {
+        for (const [name, kind] of Object.entries(
+          definition.strictMockSchemaKinds,
+        )) {
+          strictMockSchemaKinds[name] ??= kind;
+        }
+      }
     }
   }
+
+  const aggregatedStrictNames = [...strictMockSchemaTypeNames];
 
   return {
     implementation: {
       function: mockImplementations.join('\n'),
-      handlerName: handlerName,
+      handlerName,
       handler: handlerImplementations.join('\n'),
     },
     imports: imports,
+    strictMockSchemaTypeNames:
+      aggregatedStrictNames.length > 0 ? aggregatedStrictNames : undefined,
+    strictMockSchemaKinds: mergeStrictMockSchemaKinds(strictMockSchemaKinds),
   };
 }

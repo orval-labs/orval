@@ -223,4 +223,86 @@ export default defineConfig({
       target: '../specifications/issue-3103.yaml',
     },
   },
+  issue3326: {
+    output: {
+      target: '../generated/angular/issue-3326/endpoints.ts',
+      schemas: '../generated/angular/issue-3326/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3326.yaml',
+    },
+  },
+  issue3326Filter: {
+    output: {
+      target: '../generated/angular/issue-3326-filter/endpoints.ts',
+      schemas: '../generated/angular/issue-3326-filter/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        paramsFilter: {
+          path: '../mutators/params-filter.ts',
+          name: 'flattenParamsFilter',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-3326.yaml',
+    },
+  },
+  issue3326Serializer: {
+    output: {
+      target: '../generated/angular/issue-3326-serializer/endpoints.ts',
+      schemas: '../generated/angular/issue-3326-serializer/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        paramsSerializer: {
+          path: '../mutators/params-serializer.ts',
+          name: 'customParamsSerializer',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-3326.yaml',
+    },
+  },
+  urlEncodeParameters: {
+    output: {
+      target: '../generated/angular/url-encode-parameters/endpoints.ts',
+      schemas: '../generated/angular/url-encode-parameters/model',
+      client: 'angular',
+      mock: true,
+      urlEncodeParameters: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  urlEncodeParametersHttpResource: {
+    output: {
+      target:
+        '../generated/angular/url-encode-parameters-http-resource/endpoints.ts',
+      schemas: '../generated/angular/url-encode-parameters-http-resource/model',
+      client: 'angular',
+      mock: false,
+      urlEncodeParameters: true,
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

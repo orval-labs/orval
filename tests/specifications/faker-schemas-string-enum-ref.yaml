@@ -1,0 +1,41 @@
+openapi: 3.0.3
+info:
+  title: Faker schemas string enum ref
+  description: |
+    Reproduces the case where a parent schema references a string-typed enum
+    component via $ref, so the generated faker mock calls Object.values(EnumName)
+    at runtime. Without the fix, the consolidated index.faker.ts imports the
+    enum as `import type { ... }`, causing TS1361.
+  version: 1.0.0
+paths:
+  /display:
+    get:
+      operationId: getDisplay
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisplayValueDto'
+components:
+  schemas:
+    DisplayColor:
+      description: A text color that can be used for display purposes.
+      type: string
+      enum:
+        - TEXT_01
+        - TEXT_04
+        - TEXT_CURRENCY_GAIN
+    DisplayValueDto:
+      type: object
+      required:
+        - value
+      properties:
+        color:
+          allOf:
+            - $ref: '#/components/schemas/DisplayColor'
+        value:
+          type: string
+        boldPart:
+          type: string

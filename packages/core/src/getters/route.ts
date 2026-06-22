@@ -1,3 +1,4 @@
+import { TEMPLATE_TAG_REGEX } from '../constants';
 import type {
   BaseUrlFromConstant,
   BaseUrlFromSpec,
@@ -144,6 +145,17 @@ export function getBaseUrlRuntimeImports(
     values: imp.values ?? true,
   }));
 }
+
+// Emits a codegen string: wraps each `${param}` segment of a template-literal
+// route so the generated client encodes path parameters at request time.
+export const wrapRouteParameters = (
+  route: string,
+  prepend: string,
+  append: string,
+): string => route.replaceAll(TEMPLATE_TAG_REGEX, `\${${prepend}$1${append}}`);
+
+export const makeRouteSafe = (route: string): string =>
+  wrapRouteParameters(route, 'encodeURIComponent(String(', '))');
 
 // Creates a mixed use array with path variables and string from template string route
 export function getRouteAsArray(route: string): string {

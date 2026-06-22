@@ -1,8 +1,6 @@
 [![npm version](https://badge.fury.io/js/orval.svg)](https://badge.fury.io/js/orval)
 ![NPM Downloads](https://img.shields.io/npm/dm/orval?color=purple)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![tests](https://github.com/orval-labs/orval/actions/workflows/tests.yaml/badge.svg)](https://github.com/orval-labs/orval/actions/workflows/tests.yaml)
-[![orval](https://snyk.io/advisor/npm-package/orval/badge.svg)](https://snyk.io/advisor/npm-package/orval)
 [![Gurubase](https://img.shields.io/badge/Gurubase-Ask%20Orval%20Guru-006BFF)](https://gurubase.io/g/orval)
 
 <p align="center">
@@ -34,6 +32,7 @@
 - [Angular Query](https://tanstack.com/query/latest/docs/framework/angular/overview)
 - [Hono](https://hono.dev/)
 - [zod](https://zod.dev/)
+- [Effect](https://effect.website/)
 - [native fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
 - [mcp](https://modelcontextprotocol.io/introduction)
 
@@ -51,6 +50,7 @@ You can find some samples below:
 - [angular app](https://github.com/orval-labs/orval/tree/master/samples/angular-app)
 - [angular query](https://github.com/orval-labs/orval/tree/master/samples/angular-query)
 - [hono](https://github.com/orval-labs/orval/tree/master/samples/hono)
+- [swr with effect](https://github.com/orval-labs/orval/tree/master/samples/swr-with-effect)
 - [next app with fetch](https://github.com/orval-labs/orval/tree/master/samples/next-app-with-fetch)
 - [mcp server](https://github.com/orval-labs/orval/tree/master/samples/mcp)
 
@@ -70,42 +70,42 @@ This project uses [Bun](https://bun.sh/) for package management and building. Bu
 
 ### Build Scripts
 
-- **`bun run nuke:all`** - Completely clean your workspace by removing all build artifacts, node_modules, and cached files. Use this when you want to start fresh.
+- **`vp run nuke:all`** - Completely clean your workspace by removing all build artifacts, node_modules, and cached files. Use this when you want to start fresh.
 
-- **`bun run build`** - Build the project and make changes available to the workspace. Run this after making code changes to compile TypeScript and prepare the project for use.
+- **`vp run build`** - Build the project and make changes available to the workspace. Run this after making code changes to compile TypeScript and prepare the project for use.
 
-- **`bun run typecheck`** - Run TypeScript type checking across all packages.
+- **`vp run typecheck`** - Run TypeScript type checking across all packages.
 
 ### Test Scripts
 
-- **`bun run test`** - Run unit tests in all packages.
+- **`vp run test`** - Run unit tests in all packages.
 
-- **`bun run update-samples`** - Generate sample outputs using the newly built version of Orval. This regenerates the sample code based on the current build.
+- **`vp run update-samples`** - Generate sample outputs using the newly built version of Orval. This regenerates the sample code based on the current build.
 
-- **`bun run test:samples`** - Run tests in the samples directory using the newly generated output from `update-samples`.
+- **`vp run test:samples`** - Run tests in the samples directory using the newly generated output from `update-samples`.
 
-- **`bun run test:snapshots`** - Run snapshot tests to verify generated sample outputs match the committed snapshots. Fails if any generated file differs from its snapshot.
+- **`vp run test:snapshots`** - Run snapshot tests to verify generated sample outputs match the committed snapshots. Fails if any generated file differs from its snapshot.
 
-- **`bun run test:snapshots:update`** - Regenerate snapshot files to match the current generated output. Run this after `bun run update-samples` when the generated output has intentionally changed.
+- **`vp run test:snapshots:update`** - Regenerate snapshot files to match the current generated output. Run this after `vp run update-samples` when the generated output has intentionally changed.
 
-- **`bun run test:cli`** - Test that the generated output (not samples) is valid TypeScript. This validates the TypeScript compilation of the generated code.
+- **`vp run test:cli`** - Test that the generated output (not samples) is valid TypeScript. This validates the TypeScript compilation of the generated code.
 
 ### Development Workflow
 
 A typical development workflow would be:
 
 1. Make your code changes
-2. Run `bun run build` to compile your changes
-3. Run `bun run typecheck` to verify package typings
-4. Run `bun run lint` to catch lint issues early
-5. Run `bun run test` to run unit tests in packages
-6. Run `bun run test:snapshots` to verify generated output matches snapshots
+2. Run `vp run build` to compile your changes
+3. Run `vp run typecheck` to verify package typings
+4. Run `vp run lint` to catch lint issues early
+5. Run `vp run test` to run unit tests in packages
+6. Run `vp run test:snapshots` to verify generated output matches snapshots
 
-If step 6 fails because the generated output has intentionally changed, run `bun run test:snapshots:update` to update the snapshots.
+If step 6 fails because the generated output has intentionally changed, run `vp run test:snapshots:update` to update the snapshots.
 
 If you encounter issues or want to start completely fresh:
 
-1. Run `bun run nuke:all` to clean everything
+1. Run `vp run nuke:all` to clean everything
 2. Reinstall dependencies and rebuild from scratch
 
 ## Sponsors

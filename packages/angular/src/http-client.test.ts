@@ -45,8 +45,9 @@ const createOutput = (
     operationSchemas: undefined,
     namingConvention: 'camelCase',
     fileExtension: '.ts',
+    schemaFileExtension: '.ts',
     mode: 'single',
-    mock: undefined,
+    mock: { indexMockFiles: false, generators: [] },
     override: {
       operations: {},
       tags: {},
@@ -54,6 +55,7 @@ const createOutput = (
       jsDoc: {},
       header: false,
       hono: {
+        handlerGenerationStrategy: 'smart',
         compositeRoute: '',
         validator: true,
         validatorOutputPath: '',
@@ -94,9 +96,29 @@ const createOutput = (
           response: false,
         },
         generateEachHttpStatus: false,
+        generateReusableSchemas: false,
+        generateMeta: false,
         useBrandedTypes: false,
         dateTimeOptions: {},
         timeOptions: {},
+      },
+      effect: {
+        strict: {
+          param: false,
+          query: false,
+          header: false,
+          body: false,
+          response: false,
+        },
+        generate: {
+          param: true,
+          query: true,
+          header: true,
+          body: true,
+          response: true,
+        },
+        generateEachHttpStatus: false,
+        useBrandedTypes: false,
       },
       fetch: {
         includeHttpResponseReturnType: true,
@@ -125,6 +147,12 @@ const createOutput = (
     optionsParamRequired: false,
     unionAddMissingProperties: false,
     propertySortOrder: 'Specification',
+    factoryMethods: {
+      functionNamePrefix: 'create',
+      mode: 'single',
+      outputDirectory: '',
+      includeOptionalProperty: false,
+    },
     ...overrides,
   } satisfies NormalizedOutputOptions;
 
@@ -487,6 +515,70 @@ describe('angular HttpClient generator', () => {
 
       expect(header).not.toContain('function filterParams(');
     });
+
+    // Issue #3326: a user-supplied `paramsFilter` mutator owns the filter
+    // logic entirely, so the shared built-in helper would be dead code if
+    // every operation overrides it.
+    it('suppresses the shared filterParams helper when every operation has paramsFilter', () => {
+      const verbOptionWithCustomFilter = createVerbOption({
+        queryParams: createQueryParams({
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+        }),
+        paramsFilter: {
+          name: 'myFilter',
+          path: './my-filter',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'PetService',
+          verbOptions: { getPetById: verbOptionWithCustomFilter },
+        }),
+      );
+
+      expect(header).not.toContain('function filterParams(');
+    });
+
+    it('still emits the shared helper when at least one operation lacks paramsFilter', () => {
+      const verbWithFilter = createVerbOption({
+        operationName: 'a',
+        queryParams: createQueryParams({
+          schema: { name: 'AParams', model: '', imports: [] },
+        }),
+        paramsFilter: {
+          name: 'myFilter',
+          path: './my-filter',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+      const verbWithoutFilter = createVerbOption({
+        operationName: 'b',
+        queryParams: createQueryParams({
+          schema: { name: 'BParams', model: '', imports: [] },
+        }),
+      });
+
+      const header = generateAngularHeader(
+        createHeaderParams({
+          title: 'PetService',
+          verbOptions: { a: verbWithFilter, b: verbWithoutFilter },
+        }),
+      );
+
+      expect(header).toContain('function filterParams(');
+    });
   });
 
   // ── Footer ────────────────────────────────────────────────────────────
@@ -538,6 +630,154 @@ describe('angular HttpClient generator', () => {
   });
 
   // ── Implementation — GET ──────────────────────────────────────────────
+
+  // ── paramsFilter + nonPrimitiveKeys (issue #3326) ─────────────────────
+
+  describe('query parameter filtering (#3326)', () => {
+    const customFilter = {
+      name: 'myFilter',
+      path: './my-filter',
+      default: false,
+      hasErrorType: false,
+      errorTypeName: '',
+      hasSecondArg: false,
+      hasThirdArg: false,
+      isHook: false,
+    };
+
+    it('does not emit a passthrough set without a paramsSerializer', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+          nonPrimitiveKeys: ['filters'],
+        },
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // Without a consumer that can handle a raw object, the passthrough set
+      // would make `filterParams` return `unknown` (uncompilable against
+      // HttpClient). `filters` is dropped instead. See #3326.
+      expect(impl).not.toContain('new Set<string>(["filters"])');
+    });
+
+    it('passes nonPrimitiveKeys through when a paramsSerializer is configured', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+          nonPrimitiveKeys: ['filters'],
+        },
+        paramsSerializer: {
+          name: 'mySerializer',
+          path: './my-serializer',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // The serializer can consume the raw object, so `filters` survives the
+      // built-in filter via the passthrough set.
+      expect(impl).toContain('new Set<string>(["filters"])');
+    });
+
+    it('replaces the built-in filter with the user-supplied paramsFilter', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+        },
+        paramsFilter: customFilter,
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      // Filtered params come from `myFilter(...)`; the built-in helper is
+      // not called for this operation.
+      expect(impl).toContain(
+        'const filteredParams = myFilter({...params, ...options?.params})',
+      );
+      expect(impl).not.toContain('filterParams({...params');
+    });
+
+    it('wraps a configured paramsSerializer around the custom paramsFilter', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+        },
+        paramsFilter: customFilter,
+        paramsSerializer: {
+          name: 'mySerializer',
+          path: './my-serializer',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain(
+        'const filteredParams = mySerializer(myFilter({...params, ...options?.params}))',
+      );
+    });
+
+    it('preserves required nullable params in request-options mode when a paramsSerializer is configured', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: ['filters'],
+        },
+        paramsSerializer: {
+          name: 'mySerializer',
+          path: './my-serializer',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain(
+        'const filteredParams = mySerializer(filterParams({...params, ...options?.params}, new Set<string>(["filters"]), true))',
+      );
+    });
+  });
 
   describe('generateHttpClientImplementation', () => {
     it('generates a GET method with typed return', () => {
@@ -779,6 +1019,80 @@ describe('angular HttpClient generator', () => {
       expect(impl).not.toContain('getPetById<TData');
       expect(impl).toContain('getPetById(');
       expect(impl).toContain('this.http.get(');
+      expect(impl).toContain("responseType: 'text'");
+      expect(impl).toContain('as Observable<string>');
+    });
+
+    it('emits HttpClient generic for JSON primitive string responses', () => {
+      const verbOption = createVerbOption({
+        operationId: 'authenticate',
+        operationName: 'authenticate',
+        verb: 'post',
+        route: '/api/auth',
+        pathRoute: '/api/auth',
+        params: [],
+        body: {
+          implementation: 'authenticateBody',
+          definition: 'AuthenticateBody',
+          imports: [],
+          schemas: [],
+          originalSchema: {} as never,
+          contentType: 'application/json',
+          formData: '',
+          formUrlEncoded: '',
+          isOptional: true,
+        },
+        props: [
+          {
+            name: 'authenticateBody',
+            definition: 'authenticateBody?: AuthenticateBody',
+            implementation: 'authenticateBody?: AuthenticateBody',
+            default: false,
+            required: false,
+            type: GetterPropType.BODY,
+          },
+        ],
+        response: baseResponse({
+          definition: { success: 'string', errors: 'Error' },
+          types: {
+            success: [createSuccessType('string', 'application/json')],
+            errors: [],
+          },
+          contentTypes: ['application/json'],
+        }),
+      });
+      const options = createGeneratorOptions({ route: '/api/auth' });
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).not.toContain('authenticate<TData');
+      expect(impl).toContain('this.http.post<string>');
+      expect(impl).toContain("if (options?.observe === 'events')");
+      expect(impl).toContain("if (options?.observe === 'response')");
+      expect(impl).not.toContain("responseType: 'text'");
+    });
+
+    it('casts Blob responses when responseType is injected', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'Blob', errors: 'Error' },
+          types: {
+            success: [createSuccessType('Blob', 'application/octet-stream')],
+            errors: [],
+          },
+          contentTypes: ['application/octet-stream'],
+          isBlob: true,
+        }),
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).not.toContain('getPetById<TData');
+      expect(impl).toContain("responseType: 'blob'");
+      expect(impl).toContain('this.http.get(');
+      expect(impl).not.toContain('this.http.get<Blob>');
+      expect(impl).toContain('as Observable<Blob>');
     });
 
     it('skips generic TData for Blob response types', () => {
@@ -826,7 +1140,7 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain('accept?: GetPetFileAccept');
       expect(impl).toContain('Observable<Pet | string>');
       expect(impl).toContain('this.http.get<Pet>');
-      expect(impl).toContain('as Observable<string>');
+      expect(impl).toContain('as Observable<any>');
       // Content-type dispatch logic
       expect(impl).toContain("responseType: 'json'");
       expect(impl).toContain("responseType: 'text'");
@@ -1647,6 +1961,58 @@ describe('angular HttpClient generator', () => {
 
       // Verify cleared
       expect(getHttpClientReturnTypes(['getPetById'])).toBe('');
+    });
+  });
+
+  // ── urlEncodeParameters ─────────────────────────────────────────────
+
+  describe('urlEncodeParameters', () => {
+    const createOptionsWithUrlEncode = (urlEncodeParameters: boolean) => {
+      const output = createOutput({ urlEncodeParameters });
+      return createGeneratorOptions({
+        route: '/api/pets/${petId}',
+        context: createContextSpec(output),
+      });
+    };
+
+    it('encodes path parameters when urlEncodeParameters is true', () => {
+      const verbOption = createVerbOption();
+      const options = createOptionsWithUrlEncode(true);
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain(
+        '`/api/pets/${encodeURIComponent(String(petId))}`',
+      );
+      expect(impl).not.toContain('`/api/pets/${petId}`');
+    });
+
+    it('leaves the route unchanged when urlEncodeParameters is false', () => {
+      const verbOption = createVerbOption();
+      const options = createOptionsWithUrlEncode(false);
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain('`/api/pets/${petId}`');
+      expect(impl).not.toContain('encodeURIComponent');
+    });
+
+    it('encodes the route passed to the mutator config', () => {
+      const verbOption = createVerbOption({
+        mutator: {
+          name: 'customInstance',
+          path: './mutator',
+          default: true,
+          hasThirdArg: false,
+          hasSecondArg: false,
+        } as GeneratorVerbOptions['mutator'],
+      });
+      const options = createOptionsWithUrlEncode(true);
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain('/api/pets/${encodeURIComponent(String(petId))}');
+      expect(impl).not.toContain('url: `/api/pets/${petId}`');
     });
   });
 });

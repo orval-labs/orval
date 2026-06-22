@@ -88,6 +88,7 @@ export const createAngularAdapter = ({
     getInfiniteQueryHttpProps(
       props: GetterProps,
       queryParam: string,
+      _httpClient: OutputHttpClient,
       hasMutator: boolean,
     ): string {
       let result = props
@@ -95,7 +96,7 @@ export const createAngularAdapter = ({
           if (param.type === GetterPropType.NAMED_PATH_PARAMS)
             return param.destructured;
           return param.name === 'params'
-            ? `{...params, '${queryParam}': pageParam || params?.['${queryParam}']}`
+            ? `{...params, '${queryParam}': pageParam ?? params?.['${queryParam}']}`
             : param.name;
         })
         .join(',');

@@ -1,0 +1,48 @@
+---
+title: Enum Extensions
+description: 使用 OpenAPI 扩展生成带名称和描述的枚举
+---
+
+Orval 支持读取 OpenAPI schema 上的枚举扩展，用更可读的名称和描述生成 TypeScript 枚举。
+
+## OpenAPI Schema
+
+```yaml
+components:
+  schemas:
+    PetStatus:
+      type: string
+      enum:
+        - available
+        - pending
+        - sold
+      x-enum-varnames:
+        - Available
+        - Pending
+        - Sold
+      x-enum-descriptions:
+        - Pet is available
+        - Pet is pending
+        - Pet is sold
+```
+
+## 生成结果
+
+```ts
+export enum PetStatus {
+  Available = 'available',
+  Pending = 'pending',
+  Sold = 'sold',
+}
+```
+
+## 支持的扩展
+
+常见扩展包括：
+
+- `x-enum-varnames`
+- `x-enumNames`
+- `x-enum-descriptions`
+- `x-enumDescriptions`
+
+这些扩展只影响生成代码的可读性，不改变接口契约中的实际枚举值。

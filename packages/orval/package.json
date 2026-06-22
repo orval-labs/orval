@@ -1,54 +1,35 @@
 {
   "name": "orval",
+  "version": "8.18.0",
   "description": "A swagger client generator for typescript",
-  "version": "8.10.0",
-  "license": "MIT",
-  "type": "module",
-  "files": [
-    "dist",
-    "!dist/**/*.d.ts.map",
-    "!dist/**/*.d.mts.map"
-  ],
-  "bin": "./dist/bin/orval.mjs",
-  "types": "./dist/index.d.mts",
-  "exports": {
-    ".": {
-      "development": "./src/index.ts",
-      "default": "./dist/index.mjs"
-    },
-    "./bin/orval": {
-      "development": "./src/bin/orval.ts",
-      "default": "./dist/bin/orval.mjs"
-    },
-    "./package.json": "./package.json"
-  },
-  "engines": {
-    "node": ">=22.18.0"
-  },
   "keywords": [
-    "rest",
-    "client",
-    "swagger",
-    "open-api",
-    "fetch",
-    "data fetching",
-    "code-generation",
     "angular",
+    "axios",
+    "client",
+    "code-generation",
+    "data fetching",
+    "effect",
+    "fetch",
+    "hono",
+    "mock",
+    "msw",
+    "open-api",
     "react",
     "react-query",
+    "rest",
     "svelte",
     "svelte-query",
-    "vue",
-    "vue-query",
-    "msw",
-    "mock",
-    "axios",
-    "vue-query",
-    "vue",
+    "swagger",
     "swr",
-    "zod",
-    "hono"
+    "vue",
+    "vue-query",
+    "zod"
   ],
+  "homepage": "https://orval.dev",
+  "bugs": {
+    "url": "https://github.com/orval-labs/orval/issues"
+  },
+  "license": "MIT",
   "author": {
     "name": "Victor Bury",
     "email": "victor@anymaniax.com"
@@ -57,24 +38,27 @@
     "type": "git",
     "url": "git+https://github.com/orval-labs/orval.git"
   },
-  "homepage": "https://orval.dev",
-  "bugs": {
-    "url": "https://github.com/orval-labs/orval/issues"
+  "bin": {
+    "orval": "./dist/bin/orval.mjs"
   },
-  "scripts": {
-    "build": "tsdown --config-loader unrun",
-    "dev": "tsdown --config-loader unrun --watch src",
-    "lint": "eslint .",
-    "test": "vitest",
-    "typecheck": "tsc --noEmit",
-    "clean": "rimraf .turbo dist",
-    "nuke": "rimraf .turbo dist node_modules"
+  "files": [
+    "dist",
+    "!dist/**/*.d.ts.map",
+    "!dist/**/*.d.mts.map"
+  ],
+  "type": "module",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./bin/orval": "./dist/bin/orval.mjs",
+    "./package.json": "./package.json"
   },
   "dependencies": {
-    "@commander-js/extra-typings": "^14.0.0",
+    "@commander-js/extra-typings": "^15.0.0",
     "@orval/angular": "workspace:*",
     "@orval/axios": "workspace:*",
     "@orval/core": "workspace:*",
+    "@orval/effect": "workspace:*",
     "@orval/fetch": "workspace:*",
     "@orval/hono": "workspace:*",
     "@orval/mcp": "workspace:*",
@@ -83,18 +67,17 @@
     "@orval/solid-start": "workspace:*",
     "@orval/swr": "workspace:*",
     "@orval/zod": "workspace:*",
-    "@scalar/json-magic": "^0.12.8",
-    "@scalar/openapi-parser": "^0.25.12",
+    "@scalar/json-magic": "^0.12.16",
+    "@scalar/openapi-parser": "^0.28.7",
     "@scalar/openapi-types": "catalog:",
     "chokidar": "^5.0.0",
-    "commander": "^14.0.2",
-    "enquirer": "^2.4.1",
+    "commander": "^15.0.0",
     "execa": "^9.6.1",
     "find-up": "8.0.0",
     "fs-extra": "^11.3.2",
     "get-tsconfig": "^4.14.0",
     "jiti": "^2.6.1",
-    "js-yaml": "4.1.1",
+    "js-yaml": "4.2.0",
     "remeda": "^2.33.6",
     "string-argv": "^0.3.2",
     "typedoc": "^0.28.19",
@@ -104,9 +87,7 @@
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/js-yaml": "^4.0.9",
-    "eslint": "catalog:",
     "rimraf": "catalog:",
-    "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
@@ -118,11 +99,7 @@
       "optional": true
     }
   },
-  "publishConfig": {
-    "exports": {
-      ".": "./dist/index.mjs",
-      "./bin/orval": "./dist/bin/orval.mjs",
-      "./package.json": "./package.json"
-    }
+  "engines": {
+    "node": ">=22.18.0"
   }
 }

@@ -30,7 +30,7 @@ export function stringify(data?: unknown): string | undefined {
   }
 
   if (isString(data)) {
-    return `'${data.replaceAll("'", String.raw`\'`)}'`;
+    return `'${jsStringLiteralEscape(data)}'`;
   }
 
   if (isNumber(data) || isBoolean(data) || isFunction(data)) {
@@ -47,14 +47,25 @@ export function stringify(data?: unknown): string | undefined {
     const strValue = stringify(
       value as string | unknown[] | Record<string, unknown>,
     );
+    // `__proto__` must be emitted as a computed key, otherwise the object
+    // literal sets the prototype instead of creating a data property (this
+    // holds for both the bare and quoted forms, per Annex B.3.1).
+    // Non-identifier keys (dashes, spaces, quotes) must be quoted to stay valid
+    // TS, and escaped in case the key itself contains a quote or backslash.
+    const safeKey =
+      key === '__proto__'
+        ? `['${jsStringLiteralEscape(key)}']`
+        : keyword.isIdentifierNameES5(key)
+          ? key
+          : `'${jsStringLiteralEscape(key)}'`;
     if (entries.length === 1) {
-      result = `{ ${key}: ${strValue}, }`;
+      result = `{ ${safeKey}: ${strValue}, }`;
     } else if (!index) {
-      result = `{ ${key}: ${strValue}, `;
+      result = `{ ${safeKey}: ${strValue}, `;
     } else if (entries.length - 1 === index) {
-      result += `${key}: ${strValue}, }`;
+      result += `${safeKey}: ${strValue}, }`;
     } else {
-      result += `${key}: ${strValue}, `;
+      result += `${safeKey}: ${strValue}, `;
     }
   }
   return result;
@@ -250,6 +261,47 @@ export function jsStringEscape(input: string) {
         return '\\' + character;
       }
       // Four possible LineTerminator characters need to be escaped:
+      case '\n': {
+        return String.raw`\n`;
+      }
+      case '\r': {
+        return String.raw`\r`;
+      }
+      case '\u2028': {
+        return String.raw`\u2028`;
+      }
+      case '\u2029': {
+        return String.raw`\u2029`;
+      }
+      default: {
+        return '';
+      }
+    }
+  });
+}
+
+/**
+ * Escape a string for embedding inside a single-quoted JS string literal.
+ *
+ * Unlike {@link jsStringEscape}, this escapes only what a string literal
+ * actually needs: backslashes, single quotes, and line terminators. It
+ * deliberately does NOT escape `/` or `*`, which are meaningless inside a
+ * string literal, so escaping them produces "useless escapes" that round-trip
+ * to the same value but trip ESLint's `no-useless-escape` in generated code
+ * (e.g. RegExp pattern literals, see #3337).
+ *
+ * Use {@link jsStringEscape} instead when the value is embedded in a JS comment,
+ * where the comment delimiters must be neutralized.
+ *
+ * @param input String to escape
+ */
+export function jsStringLiteralEscape(input: string) {
+  return input.replaceAll(/['\\\n\r\u2028\u2029]/g, (character) => {
+    switch (character) {
+      case "'":
+      case '\\': {
+        return '\\' + character;
+      }
       case '\n': {
         return String.raw`\n`;
       }

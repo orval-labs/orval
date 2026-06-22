@@ -126,6 +126,7 @@ export interface FrameworkAdapter {
   getInfiniteQueryHttpProps(
     props: GetterProps,
     queryParam: string,
+    httpClient: OutputHttpClient,
     hasMutator: boolean,
   ): string;
 

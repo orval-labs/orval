@@ -1,0 +1,19 @@
+components:
+  schemas:
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - name
+    InternalServerError500:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string

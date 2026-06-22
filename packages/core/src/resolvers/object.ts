@@ -160,6 +160,7 @@ export function resolveObject({
     combined,
     projectName: context.projectName ?? context.output.target,
     formDataContext,
+    dynamicScope: context.dynamicScope,
   });
 
   if (resolveObjectCacheMap.has(hashKey)) {

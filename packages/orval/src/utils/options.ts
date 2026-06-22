@@ -3,9 +3,10 @@ import nodePath from 'node:path';
 import { styleText } from 'node:util';
 
 import {
-  type ClientMockBuilder,
   type ConfigExternal,
+  type EffectOptions,
   FormDataArrayHandling,
+  type FakerMockOptions,
   type GlobalMockOptions,
   type GlobalOptions,
   type HonoOptions,
@@ -27,11 +28,14 @@ import {
   type McpServerOptions,
   type Mutator,
   NamingConvention,
+  type NormalizedEffectOptions,
+  type NormalizedFactoryMethodsOptions,
   type NormalizedHonoOptions,
   type NormalizedHookOptions,
   type NormalizedJsDocOptions,
   type NormalizedMcpOptions,
   type NormalizedMcpServerOptions,
+  type NormalizedMocksConfig,
   type NormalizedMutator,
   type NormalizedOperationOptions,
   type NormalizedOptions,
@@ -42,6 +46,7 @@ import {
   type OptionsExport,
   OutputClient,
   OutputHttpClient,
+  OutputMockType,
   OutputMode,
   type OverrideOutput,
   PropertySortOrder,
@@ -49,7 +54,7 @@ import {
   RefComponentSuffix,
   type SchemaOptions,
 } from '@orval/core';
-import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
+import { getDefaultMockOptionsForType } from '@orval/mock';
 
 import pkg from '../../package.json';
 import { loadPackageJson } from './package-json';
@@ -114,9 +119,84 @@ function normalizeSchemasOption(
     return normalizePath(schemas, workspace);
   }
 
+  validatePackageSpecifier(schemas.importPath, 'schemas.importPath');
+
   return {
     path: normalizePath(schemas.path, workspace),
-    type: schemas.type,
+    type: schemas.type ?? 'typescript',
+    importPath: schemas.importPath,
+  };
+}
+
+/**
+ * Validates that a config value is a valid package specifier (bare specifier
+ * or sub-path import like `@acme/models` / `@acme/models/fakers`). Rejects
+ * empty, whitespace-only, relative (`./`, `../`), and absolute paths with a
+ * clear, actionable error message. No-op when the value is `undefined`.
+ */
+function validatePackageSpecifier(
+  value: string | undefined,
+  fieldName: string,
+): void {
+  if (value === undefined) {
+    return;
+  }
+
+  if (!value) {
+    throw new Error(
+      `\`${fieldName}\` must be a non-empty package specifier (e.g. '@acme/models'). Received an empty string.`,
+    );
+  }
+
+  if (value.trim() === '') {
+    throw new Error(
+      `\`${fieldName}\` must be a non-empty package specifier (e.g. '@acme/models'). Received a whitespace-only string.`,
+    );
+  }
+
+  if (value.trim() !== value) {
+    throw new Error(
+      `\`${fieldName}\` must be a non-empty package specifier (e.g. '@acme/models'). Received a value with leading or trailing whitespace: "${value}"`,
+    );
+  }
+
+  if (value.startsWith('.')) {
+    throw new Error(
+      `\`${fieldName}\` must be a package specifier (e.g. '@acme/models'), not a relative path. Received: "${value}"`,
+    );
+  }
+
+  if (
+    nodePath.isAbsolute(value) ||
+    /^[A-Za-z]:[\\/]/.test(value) ||
+    value.startsWith('\\\\')
+  ) {
+    throw new Error(
+      `\`${fieldName}\` must be a package specifier (e.g. '@acme/models'), not an absolute path. Received: "${value}"`,
+    );
+  }
+}
+
+function normalizeEffectOptions(
+  effect?: EffectOptions,
+): NormalizedEffectOptions {
+  return {
+    strict: {
+      param: effect?.strict?.param ?? false,
+      query: effect?.strict?.query ?? false,
+      header: effect?.strict?.header ?? false,
+      body: effect?.strict?.body ?? false,
+      response: effect?.strict?.response ?? false,
+    },
+    generate: {
+      param: effect?.generate?.param ?? true,
+      query: effect?.generate?.query ?? true,
+      header: effect?.generate?.header ?? true,
+      body: effect?.generate?.body ?? true,
+      response: effect?.generate?.response ?? true,
+    },
+    generateEachHttpStatus: effect?.generateEachHttpStatus ?? false,
+    useBrandedTypes: effect?.useBrandedTypes ?? false,
   };
 }
 
@@ -163,22 +243,116 @@ export async function normalizeOptions(
     workspace,
   );
 
-  const mockOption = outputOptions.mock ?? globalOptions.mock;
-  let mock: GlobalMockOptions | ClientMockBuilder | undefined;
-  if (isBoolean(mockOption) && mockOption) {
-    mock = DEFAULT_MOCK_OPTIONS;
-  } else if (isFunction(mockOption)) {
-    mock = mockOption;
-  } else if (mockOption) {
-    mock = {
-      ...DEFAULT_MOCK_OPTIONS,
-      ...mockOption,
+  // Normalize the `mock` option into a canonical `NormalizedMocksConfig`
+  // so the rest of the pipeline can iterate `generators` uniformly without
+  // branching on the input shape (boolean shorthand, function form, or
+  // object form).
+  const mocksOption = outputOptions.mock ?? globalOptions.mock;
+  let mocks: NormalizedMocksConfig = {
+    indexMockFiles: false,
+    generators: [],
+  };
+  if (isBoolean(mocksOption) && mocksOption) {
+    // `mock: true` shorthand emits both an MSW handler file and a faker
+    // factory file using default options for each.
+    mocks = {
+      indexMockFiles: false,
+      generators: [
+        getDefaultMockOptionsForType(OutputMockType.MSW),
+        getDefaultMockOptionsForType(OutputMockType.FAKER),
+      ],
     };
-  } else {
-    mock = undefined;
+  } else if (isFunction(mocksOption)) {
+    // Function form treats the entire mocks option as a single
+    // ClientMockBuilder. Wrap it in the array so writers can still iterate.
+    mocks = { indexMockFiles: false, generators: [mocksOption] };
+  } else if (mocksOption && typeof mocksOption === 'object') {
+    if (!Array.isArray(mocksOption.generators)) {
+      throw new TypeError(
+        'mock.generators must be an array of generator entries (e.g. [{ type: "msw" }]).',
+      );
+    }
+    const sharedMockPath =
+      mocksOption.path && isString(mocksOption.path)
+        ? normalizePath(mocksOption.path, outputWorkspace)
+        : undefined;
+    mocks = {
+      indexMockFiles: mocksOption.indexMockFiles ?? false,
+      path: sharedMockPath,
+      generators: mocksOption.generators.map((m) =>
+        isFunction(m)
+          ? m
+          : ({
+              ...getDefaultMockOptionsForType(m.type),
+              ...m,
+              path:
+                m.path && isString(m.path)
+                  ? normalizePath(m.path, outputWorkspace)
+                  : sharedMockPath,
+            } as GlobalMockOptions),
+      ),
+    };
+  }
+
+  const seenMockTypes = new Set<string>();
+  for (const entry of mocks.generators) {
+    if (isFunction(entry)) continue;
+    if (seenMockTypes.has(entry.type)) {
+      throw new Error(
+        `Duplicate mock generator type "${entry.type}". Each type can only appear once in mock.generators.`,
+      );
+    }
+    seenMockTypes.add(entry.type);
+
+    if (entry.type === OutputMockType.FAKER) {
+      validatePackageSpecifier(
+        entry.schemasImportPath,
+        'mock.generators[faker].schemasImportPath',
+      );
+    }
   }
 
   const defaultFileExtension = '.ts';
+
+  // Reusable Zod schemas land in `*.zod.ts` files by default so they sit
+  // alongside any existing TypeScript types without a name collision. We
+  // expose this as a separate `schemaFileExtension` field (not by flipping
+  // the global `fileExtension`) so that non-schema writers (mode writers,
+  // mock writers, the workspace barrel) keep their own extensions and don't
+  // start emitting `*.zod.ts` for unrelated artifacts. A user-set
+  // `output.fileExtension` overrides this default at the call site.
+  const isZodSchemasOutput =
+    !!outputOptions.schemas &&
+    ((!isString(outputOptions.schemas) &&
+      outputOptions.schemas.type === 'zod') ||
+      (isString(outputOptions.schemas) &&
+        (outputOptions.client ?? client) === 'zod' &&
+        outputOptions.override?.zod?.generateReusableSchemas === true));
+  const defaultSchemaFileExtension = isZodSchemasOutput
+    ? '.zod.ts'
+    : defaultFileExtension;
+
+  const factoryMethodsConfig = outputOptions.factoryMethods;
+  let factoryMethods: NormalizedFactoryMethodsOptions | undefined = undefined;
+
+  if (factoryMethodsConfig) {
+    factoryMethods = {
+      functionNamePrefix: factoryMethodsConfig.functionNamePrefix ?? 'create',
+      mode: factoryMethodsConfig.mode ?? 'split',
+      outputDirectory: factoryMethodsConfig.outputDirectory
+        ? normalizePath(factoryMethodsConfig.outputDirectory, outputWorkspace)
+        : outputOptions.schemas
+          ? normalizePath(
+              isString(outputOptions.schemas)
+                ? outputOptions.schemas
+                : outputOptions.schemas.path,
+              outputWorkspace,
+            )
+          : normalizePath(outputWorkspace, outputWorkspace),
+      includeOptionalProperty:
+        factoryMethodsConfig.includeOptionalProperty ?? true,
+    };
+  }
 
   // `useQuery` / `useMutation` defaults are applied per-verb in
   // `query-generator.ts` so we can tell "unset" from "explicit true" (#2376).
@@ -187,8 +361,9 @@ export async function normalizeOptions(
     shouldExportMutatorHooks: true,
     shouldExportHttpClient: true,
     shouldExportQueryKey: true,
+    shouldFilterQueryKey: false,
     shouldSplitQueryKey: false,
-    ...normalizeQueryOptions(outputOptions.override?.query, workspace),
+    ...normalizeQueryOptions(outputOptions.override?.query, outputWorkspace),
   };
 
   const normalizedOptions: NormalizedOptions = {
@@ -229,6 +404,10 @@ export async function normalizeOptions(
       namingConvention:
         outputOptions.namingConvention ?? NamingConvention.CAMEL_CASE,
       fileExtension: outputOptions.fileExtension ?? defaultFileExtension,
+      schemaFileExtension:
+        outputOptions.schemaFileExtension ??
+        outputOptions.fileExtension ??
+        defaultSchemaFileExtension,
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
       httpClient:
@@ -239,7 +418,7 @@ export async function normalizeOptions(
           ? OutputHttpClient.ANGULAR
           : OutputHttpClient.FETCH),
       mode: normalizeOutputMode(outputOptions.mode ?? mode),
-      mock,
+      mock: mocks,
       clean: outputOptions.clean ?? clean ?? false,
       docs: outputOptions.docs ?? false,
       formatter: outputOptions.formatter ?? globalOptions.formatter,
@@ -250,6 +429,7 @@ export async function normalizeOptions(
       baseUrl: outputOptions.baseUrl,
       unionAddMissingProperties:
         outputOptions.unionAddMissingProperties ?? false,
+      factoryMethods,
       override: {
         ...outputOptions.override,
         mock: {
@@ -292,6 +472,10 @@ export async function normalizeOptions(
         paramsSerializer: normalizeMutator(
           outputWorkspace,
           outputOptions.override?.paramsSerializer,
+        ),
+        paramsFilter: normalizeMutator(
+          outputWorkspace,
+          outputOptions.override?.paramsFilter,
         ),
         header:
           outputOptions.override?.header === false
@@ -351,7 +535,7 @@ export async function normalizeOptions(
             ...(outputOptions.override?.zod?.preprocess?.param
               ? {
                   param: normalizeMutator(
-                    workspace,
+                    outputWorkspace,
                     outputOptions.override.zod.preprocess.param,
                   ),
                 }
@@ -359,7 +543,7 @@ export async function normalizeOptions(
             ...(outputOptions.override?.zod?.preprocess?.query
               ? {
                   query: normalizeMutator(
-                    workspace,
+                    outputWorkspace,
                     outputOptions.override.zod.preprocess.query,
                   ),
                 }
@@ -367,7 +551,7 @@ export async function normalizeOptions(
             ...(outputOptions.override?.zod?.preprocess?.header
               ? {
                   header: normalizeMutator(
-                    workspace,
+                    outputWorkspace,
                     outputOptions.override.zod.preprocess.header,
                   ),
                 }
@@ -375,7 +559,7 @@ export async function normalizeOptions(
             ...(outputOptions.override?.zod?.preprocess?.body
               ? {
                   body: normalizeMutator(
-                    workspace,
+                    outputWorkspace,
                     outputOptions.override.zod.preprocess.body,
                   ),
                 }
@@ -383,21 +567,33 @@ export async function normalizeOptions(
             ...(outputOptions.override?.zod?.preprocess?.response
               ? {
                   response: normalizeMutator(
-                    workspace,
+                    outputWorkspace,
                     outputOptions.override.zod.preprocess.response,
                   ),
                 }
               : {}),
           },
+          ...(outputOptions.override?.zod?.params
+            ? {
+                params: normalizeMutator(
+                  outputWorkspace,
+                  outputOptions.override.zod.params,
+                ),
+              }
+            : {}),
           generateEachHttpStatus:
             outputOptions.override?.zod?.generateEachHttpStatus ?? false,
           useBrandedTypes:
             outputOptions.override?.zod?.useBrandedTypes ?? false,
+          generateReusableSchemas:
+            outputOptions.override?.zod?.generateReusableSchemas ?? false,
+          generateMeta: outputOptions.override?.zod?.generateMeta ?? false,
           dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {
             offset: true,
           },
           timeOptions: outputOptions.override?.zod?.timeOptions ?? {},
         },
+        effect: normalizeEffectOptions(outputOptions.override?.effect),
         swr: {
           generateErrorTypes: false,
           ...outputOptions.override?.swr,
@@ -463,6 +659,84 @@ export async function normalizeOptions(
     throw new Error(
       styleText('red', `Config requires an output target or schemas.`),
     );
+  }
+
+  // The faker generator's `schemasImportPath` overrides where schema-level
+  // faker factories are imported from. Those factories are only emitted when
+  // `schemas: true`, and the override is only meaningful in package-import
+  // mode (`schemas.importPath`). Require both so a standalone
+  // `schemasImportPath` fails fast instead of silently doing nothing.
+  const fakerWithSchemasImportPath =
+    normalizedOptions.output.mock.generators.find(
+      (g): g is FakerMockOptions =>
+        !isFunction(g) &&
+        g.type === OutputMockType.FAKER &&
+        !!g.schemasImportPath,
+    );
+  if (fakerWithSchemasImportPath) {
+    if (fakerWithSchemasImportPath.schemas !== true) {
+      throw new Error(
+        styleText(
+          'red',
+          `\`mock.generators[faker].schemasImportPath\` requires \`schemas: true\` on the same generator. Schema-level faker factories are only emitted when \`schemas: true\`.`,
+        ),
+      );
+    }
+    if (
+      !(
+        isObject(normalizedOptions.output.schemas) &&
+        normalizedOptions.output.schemas.importPath
+      )
+    ) {
+      throw new Error(
+        styleText(
+          'red',
+          `\`mock.generators[faker].schemasImportPath\` requires \`schemas.importPath\` to also be set. It overrides the package specifier used for importing schema-level faker factories.`,
+        ),
+      );
+    }
+  }
+
+  // `paramsFilter` is only consumed by the Angular generator. That runs for
+  // the `angular` client (regardless of `httpClient`, which stays at its
+  // `fetch` default there) and for `angular-query` when it resolves to the
+  // Angular HttpClient. For any other client the mutator would be imported
+  // but never called, so fail fast instead of emitting a dead import.
+  const usesAngularGenerator =
+    normalizedOptions.output.client === OutputClient.ANGULAR ||
+    (normalizedOptions.output.client === OutputClient.ANGULAR_QUERY &&
+      normalizedOptions.output.httpClient === OutputHttpClient.ANGULAR);
+  if (normalizedOptions.output.override.paramsFilter && !usesAngularGenerator) {
+    throw new Error(
+      styleText(
+        'red',
+        `\`override.paramsFilter\` is only supported by the Angular generator (the \`angular\` client, or \`angular-query\` with \`httpClient: 'angular'\`). It has no effect for other clients — use \`override.paramsSerializer\` instead.`,
+      ),
+    );
+  }
+  if (!usesAngularGenerator) {
+    const offendingOperation = Object.entries(
+      normalizedOptions.output.override.operations,
+    ).find(([, opOverride]) => opOverride?.paramsFilter)?.[0];
+    if (offendingOperation) {
+      throw new Error(
+        styleText(
+          'red',
+          `\`override.operations["${offendingOperation}"].paramsFilter\` is only supported by the Angular generator (the \`angular\` client, or \`angular-query\` with \`httpClient: 'angular'\`). It has no effect for other clients — use \`override.paramsSerializer\` instead.`,
+        ),
+      );
+    }
+    const offendingTag = Object.entries(
+      normalizedOptions.output.override.tags,
+    ).find(([, tagOverride]) => tagOverride?.paramsFilter)?.[0];
+    if (offendingTag) {
+      throw new Error(
+        styleText(
+          'red',
+          `\`override.tags["${offendingTag}"].paramsFilter\` is only supported by the Angular generator (the \`angular\` client, or \`angular-query\` with \`httpClient: 'angular'\`). It has no effect for other clients — use \`override.paramsSerializer\` instead.`,
+        ),
+      );
+    }
   }
 
   if (
@@ -634,9 +908,11 @@ function normalizeOperationsAndTags(
           formData,
           formUrlEncoded,
           paramsSerializer,
+          paramsFilter,
           query,
           angular,
           zod,
+          effect,
           ...rest
         },
       ]) => {
@@ -728,13 +1004,22 @@ function normalizeOperationsAndTags(
                           }
                         : {}),
                     },
+                    ...(zod.params
+                      ? {
+                          params: normalizeMutator(workspace, zod.params),
+                        }
+                      : {}),
                     generateEachHttpStatus: zod.generateEachHttpStatus ?? false,
                     useBrandedTypes: zod.useBrandedTypes ?? false,
+                    generateReusableSchemas:
+                      zod.generateReusableSchemas ?? false,
+                    generateMeta: zod.generateMeta ?? false,
                     dateTimeOptions: zod.dateTimeOptions ?? { offset: true },
                     timeOptions: zod.timeOptions ?? {},
                   },
                 }
               : {}),
+            ...(effect ? { effect: normalizeEffectOptions(effect) } : {}),
             ...(transformer
               ? { transformer: normalizePath(transformer, workspace) }
               : {}),
@@ -757,6 +1042,11 @@ function normalizeOperationsAndTags(
                     workspace,
                     paramsSerializer,
                   ),
+                }
+              : {}),
+            ...(paramsFilter
+              ? {
+                  paramsFilter: normalizeMutator(workspace, paramsFilter),
                 }
               : {}),
           },
@@ -805,6 +1095,7 @@ function normalizeHonoOptions(
     ...(hono.handlers
       ? { handlers: nodePath.resolve(workspace, hono.handlers) }
       : {}),
+    handlerGenerationStrategy: hono.handlerGenerationStrategy ?? 'smart',
     compositeRoute: hono.compositeRoute
       ? nodePath.resolve(workspace, hono.compositeRoute)
       : '',
@@ -830,11 +1121,9 @@ function normalizeMcpOptions(
   mcp: McpOptions = {},
   workspace: string,
 ): NormalizedMcpOptions {
-  return {
-    ...(mcp.server
-      ? { server: normalizeMcpServerOptions(mcp.server, workspace) }
-      : {}),
-  };
+  return mcp.server
+    ? { server: normalizeMcpServerOptions(mcp.server, workspace) }
+    : {};
 }
 
 function normalizeJSDocOptions(
@@ -932,6 +1221,22 @@ function normalizeQueryOptions(
     ...(isNullish(queryOptions.shouldExportQueryKey)
       ? {}
       : { shouldExportQueryKey: queryOptions.shouldExportQueryKey }),
+    ...(isNullish(globalOptions.shouldFilterQueryKey)
+      ? {}
+      : {
+          shouldFilterQueryKey: globalOptions.shouldFilterQueryKey,
+        }),
+    ...(isNullish(queryOptions.shouldFilterQueryKey)
+      ? {}
+      : { shouldFilterQueryKey: queryOptions.shouldFilterQueryKey }),
+    ...(isNullish(globalOptions.queryKeyFilter)
+      ? {}
+      : {
+          queryKeyFilter: globalOptions.queryKeyFilter,
+        }),
+    ...(isNullish(queryOptions.queryKeyFilter)
+      ? {}
+      : { queryKeyFilter: queryOptions.queryKeyFilter }),
     ...(isNullish(globalOptions.shouldExportHttpClient)
       ? {}
       : {
@@ -997,7 +1302,7 @@ function normalizeQueryOptions(
   };
 }
 
-export function getDefaultFilesHeader({
+function getDefaultFilesHeader({
   title,
   description,
   version,

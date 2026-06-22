@@ -1,0 +1,82 @@
+---
+title: SolidStart
+description: 从 OpenAPI 生成类型安全的 SolidStart primitives
+---
+
+SolidStart 输出会生成适合 SolidStart 路由和 action 的请求 primitives。它适合希望把 API 调用接入 SolidStart 数据加载和缓存模型的项目。
+
+## 配置
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      client: 'solid-start',
+    },
+  },
+});
+```
+
+## 生成结果
+
+生成代码通常包含请求函数、query/action primitives、类型和缓存辅助函数。
+
+## 基础用法
+
+在路由组件中调用生成的 primitive，让 SolidStart 负责数据加载和缓存。
+
+## 缓存失效
+
+mutation 完成后可以失效或刷新相关数据，确保页面状态与服务端同步。
+
+### 实用示例：刷新按钮
+
+刷新按钮可以调用生成的重新验证或失效 helper，避免手写请求细节。
+
+## 使用 Actions
+
+### 表单
+
+表单提交可以绑定生成的 action，并保持请求体类型安全。
+
+### 使用 useAction 编程式调用
+
+需要在事件处理器中触发写操作时，可以使用 `useAction` 组合生成 action。
+
+## 关键特性
+
+### 原生 Fetch API
+
+SolidStart 输出优先使用标准 fetch 模型。
+
+### 自动缓存管理
+
+生成代码会贴合 SolidStart 的缓存语义。
+
+### SolidStart Primitives
+
+输出不是 React hooks，而是 SolidStart 生态中的 primitives。
+
+## 自定义 HTTP Client（Mutator）
+
+可以通过 mutator 统一鉴权、base URL 和错误格式。
+
+## SolidStart vs Solid Query
+
+SolidStart 输出偏路由和服务端数据流；Solid Query 输出偏客户端远程状态。按应用架构选择即可。
+
+## 完整示例
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './src/petstore.ts',
+      client: 'solid-start',
+    },
+  },
+});
+```

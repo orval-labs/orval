@@ -1,4 +1,5 @@
 import {
+  buildAngularParamsFilterExpression,
   type ClientBuilder,
   type ClientDependenciesBuilder,
   type ClientFooterBuilder,
@@ -11,8 +12,6 @@ import {
   generateOptions,
   generateVerbImports,
   type GeneratorVerbOptions,
-  getAngularFilteredParamsCallExpression,
-  getAngularFilteredParamsExpression,
   getAngularFilteredParamsHelperBody,
   getDefaultContentType,
   getEnumImplementation,
@@ -20,6 +19,7 @@ import {
   type GetterProp,
   GetterPropType,
   isBoolean,
+  makeRouteSafe,
   pascal,
   toObjectString,
 } from '@orval/core';
@@ -231,7 +231,12 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
   returnTypesRegistry.reset();
 
   const relevantVerbs = getRelevantVerbOptionsForTag(verbOptions, tag);
-  const hasQueryParams = relevantVerbs.some((v) => v.queryParams);
+  // Only emit the shared `filterParams` helper when at least one operation in
+  // this file will actually call it. If every operation with queryParams has
+  // its own `paramsFilter` mutator, the helper would be dead code.
+  const hasBuiltInFilteredQueryParams = relevantVerbs.some(
+    (v) => v.queryParams && !v.paramsFilter,
+  );
   const acceptHelpers = buildAcceptHelpers(relevantVerbs, output);
 
   return `
@@ -241,7 +246,7 @@ ${
 
 ${HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE}
 
-${hasQueryParams ? getAngularFilteredParamsHelperBody() : ''}`
+${hasBuiltInFilteredQueryParams ? getAngularFilteredParamsHelperBody() : ''}`
     : ''
 }
 
@@ -310,9 +315,20 @@ export const generateHttpClientImplementation = (
     formData,
     formUrlEncoded,
     paramsSerializer,
+    paramsFilter,
   }: GeneratorVerbOptions,
-  { route, context }: HttpClientGeneratorContext,
+  { route: _route, context }: HttpClientGeneratorContext,
 ) => {
+  // Opt-in URL-encoding of path parameters (`urlEncodeParameters`), applied once
+  // at the single point the route enters this builder so the mutator config and
+  // every inline interpolation below stay consistent. `makeRouteSafe` is not
+  // idempotent — applying it more than once double-encodes — so it must run here
+  // exactly once and nowhere downstream.
+  let route = _route;
+  if (context.output.urlEncodeParameters) {
+    route = makeRouteSafe(route);
+  }
+
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
@@ -405,6 +421,7 @@ export const generateHttpClientImplementation = (
       hasSignal: false,
       isExactOptionalPropertyTypes,
       isAngular: true,
+      paramsFilter,
     });
 
     const requestOptions = isRequestOptions
@@ -447,6 +464,7 @@ export const generateHttpClientImplementation = (
     isFormUrlEncoded,
     paramsSerializer,
     paramsSerializerOptions: override.paramsSerializerOptions,
+    paramsFilter,
     isAngular: true,
     isExactOptionalPropertyTypes,
     hasSignal: false,
@@ -466,24 +484,29 @@ export const generateHttpClientImplementation = (
 
   let paramsDeclaration = '';
   if (angularParamsRef && queryParams) {
-    if (isRequestOptions) {
-      const callExpr = getAngularFilteredParamsCallExpression(
-        '{...params, ...options?.params}',
-        queryParams.requiredNullableKeys ?? [],
-      );
-      paramsDeclaration = paramsSerializer
-        ? `const ${angularParamsRef} = ${paramsSerializer.name}(${callExpr});\n\n    `
-        : `const ${angularParamsRef} = ${callExpr};\n\n    `;
-    } else {
-      const iifeExpr = getAngularFilteredParamsExpression(
-        'params ?? {}',
-        queryParams.requiredNullableKeys ?? [],
-        !!paramsSerializer,
-      );
-      paramsDeclaration = paramsSerializer
-        ? `const ${angularParamsRef} = ${paramsSerializer.name}(${iifeExpr});\n\n    `
-        : `const ${angularParamsRef} = ${iifeExpr};\n\n    `;
-    }
+    const filterExpr = buildAngularParamsFilterExpression({
+      paramsExpression: isRequestOptions
+        ? '{...params, ...options?.params}'
+        : 'params ?? {}',
+      requiredNullableParamKeys: queryParams.requiredNullableKeys ?? [],
+      preserveRequiredNullables: !!paramsSerializer,
+      // Only pass non-primitive params through the built-in `filterParams`
+      // when a `paramsSerializer` can legally consume the raw object/array.
+      // Without one, Angular's `HttpParams` would stringify it to
+      // `[object Object]` and the helper's `unknown` return type is not
+      // assignable to `HttpClient`'s params — so keep them filtered out.
+      // The `paramsFilter` branch bypasses the built-in helper entirely.
+      nonPrimitiveKeys: paramsSerializer
+        ? (queryParams.nonPrimitiveKeys ?? [])
+        : [],
+      paramsFilter,
+      // Request-options path uses the shared `filterParams` helper emitted in
+      // the file header; the non-request-options path inlines an IIFE.
+      useSharedHelper: isRequestOptions,
+    });
+    paramsDeclaration = paramsSerializer
+      ? `const ${angularParamsRef} = ${paramsSerializer.name}(${filterExpr});\n\n    `
+      : `const ${angularParamsRef} = ${filterExpr};\n\n    `;
   }
 
   const optionsInput = {
@@ -715,7 +738,7 @@ export const generateHttpClientImplementation = (
     if (accept.includes('json') || accept.includes('+json')) {
       return ${buildHttpClientCall(`<${parsedJsonReturnType}>`, buildOptionsObject('json'))}${jsonValidationPipe};
     } else if (accept.startsWith('text/') || accept.includes('xml')) {
-      return ${buildHttpClientCall('', buildOptionsObject('text'))} as Observable<string>;
+      return ${buildHttpClientCall('', buildOptionsObject('text'))} as Observable<any>;
     }${
       blobSuccessTypes.length > 0
         ? ` else {
@@ -729,25 +752,40 @@ export const generateHttpClientImplementation = (
 `;
   }
 
-  // When the validation pipe is active the runtime payload is always the
-  // parsed output type, so we emit `HttpClient.<verb><PetsOutput>(...)`
-  // rather than threading a caller-overridable `TData` through the call.
-  const httpTypeArg = hasTDataGeneric
-    ? '<TData>'
-    : shouldValidateResponse && isModelType
-      ? `<${parsedDataType}>`
-      : '';
+  // Angular's HttpClient overloads conflict when both a type generic and an
+  // injected `responseType` (e.g. `'blob'` / `'text'`) are present — omit the
+  // generic and cast instead. JSON primitives still need `<string>` (etc.) because
+  // they use the default JSON overload without a custom `responseType`.
+  const hasInjectedResponseType = (optionsArgument: string) =>
+    typeof optionsArgument === 'string' &&
+    /\bresponseType:\s*['"]/.test(optionsArgument);
+  const httpCallExpr = (
+    optionsArgument: string,
+    observeKind: 'body' | 'events' | 'response',
+  ) => {
+    if (hasInjectedResponseType(optionsArgument)) {
+      const castType =
+        observeKind === 'events'
+          ? `HttpEvent<${observableDataType}>`
+          : observeKind === 'response'
+            ? `AngularHttpResponse<${observableDataType}>`
+            : observableDataType;
+      return `this.http.${verb}(${optionsArgument}) as Observable<${castType}>`;
+    }
+
+    return `this.http.${verb}<${observableDataType}>(${optionsArgument})`;
+  };
   const observeImplementation = isRequestOptions
     ? `${paramsDeclaration}if (options?.observe === 'events') {
-      return this.http.${verb}${httpTypeArg}(${observeOptions?.events ?? options})${eventValidationPipe};
+      return ${httpCallExpr(observeOptions?.events ?? options, 'events')}${eventValidationPipe};
     }
 
     if (options?.observe === 'response') {
-      return this.http.${verb}${httpTypeArg}(${observeOptions?.response ?? options})${responseValidationPipe};
+      return ${httpCallExpr(observeOptions?.response ?? options, 'response')}${responseValidationPipe};
     }
 
-    return this.http.${verb}${httpTypeArg}(${observeOptions?.body ?? options})${validationPipe};`
-    : `return this.http.${verb}${httpTypeArg}(${options})${validationPipe};`;
+    return ${httpCallExpr(observeOptions?.body ?? options, 'body')}${validationPipe};`
+    : `return ${httpCallExpr(options, 'body')}${validationPipe};`;
 
   return ` ${overloads}
   ${functionName}(

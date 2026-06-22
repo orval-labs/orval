@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { globby } from 'globby';
+import { glob } from 'tinyglobby';
 
 import { isDirectory } from './assertion';
 
@@ -37,7 +37,7 @@ export async function removeFilesAndEmptyFolders(
   patterns: string[],
   dir: string,
 ) {
-  const files = await globby(patterns, {
+  const files = await glob(patterns, {
     cwd: dir,
     absolute: true,
   });
@@ -46,7 +46,7 @@ export async function removeFilesAndEmptyFolders(
   await Promise.all(files.map((file) => fs.promises.unlink(file)));
 
   // Find and remove empty directories
-  const directories = await globby(['**/*'], {
+  const directories = await glob(['**/*'], {
     cwd: dir,
     absolute: true,
     onlyDirectories: true,
