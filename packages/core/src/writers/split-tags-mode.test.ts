@@ -112,6 +112,70 @@ describe('writeSplitTagsMode — schemas path follows needSchema (#2309)', () =>
     expect(content).toContain("from '../petstore.schemas'");
     expect(content).not.toContain("from '../.'");
   });
+
+  // Companion to the test above: the mock files derive their schema import from
+  // `schemasTarget`, which was *also* built via `getFileInfo(...).dirname` and
+  // so collapsed a dotted schemas directory to its parent — emitting an import
+  // like `../../<dir>` in the generated `*.msw.ts` instead of
+  // `../petstore.schemas` (#3624).
+  it('mock files import from a dotted schemas directory without collapsing to the parent (#3624)', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const schemaPath = path.join(tmpDir, 'petstore.schemas');
+    const builder = createSplitModeBuilder(target);
+    builder.operations = {
+      listPets: createSplitModeOperation({
+        tags: ['Pets'],
+        mockOutputs: [
+          {
+            type: OutputMockType.MSW,
+            implementation: {
+              function: '',
+              handler: '',
+              handlerName: 'mockHandler',
+            },
+            imports: [{ name: 'Pet' }],
+          },
+        ],
+      }),
+    };
+    builder.importsMock = ({
+      imports,
+    }: {
+      imports: readonly GeneratorDependency[];
+    }) =>
+      imports
+        .map(
+          ({ dependency, exports }: GeneratorDependency) =>
+            `import { ${exports.map((entry: { name: string }) => entry.name).join(', ')} } from '${dependency}';`,
+        )
+        .join('\n');
+
+    const output = createSplitModeOutput(target, {
+      client: OutputClient.ANGULAR,
+      indexFiles: true,
+      mode: OutputMode.TAGS_SPLIT,
+      schemas: schemaPath,
+      mock: {
+        indexMockFiles: false,
+        generators: [{ type: OutputMockType.MSW }],
+      },
+    });
+    const props = {
+      ...createSplitModeProps(target),
+      builder,
+      output,
+    };
+
+    await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const mockContent = await fs.readFile(
+      path.join(tmpDir, 'pets', 'pets.msw.ts'),
+      'utf8',
+    );
+
+    expect(mockContent).toContain("from '../petstore.schemas'");
+    expect(mockContent).not.toContain("from '../../");
+  });
 });
 
 // Regression coverage for https://github.com/orval-labs/orval/issues/3554

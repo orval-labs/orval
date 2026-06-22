@@ -59,10 +59,15 @@ export async function writeSplitTagsMode({
   const seenMockIndexKeys = new Set<string>();
 
   const schemasTarget = output.schemas
-    ? getFileInfo(
-        isString(output.schemas) ? output.schemas : output.schemas.path,
-        { extension: output.fileExtension },
-      ).dirname
+    ? // `output.schemas(.path)` already *is* the schemas directory. Use it
+      // directly rather than `getFileInfo(...).dirname`, which collapses to the
+      // parent directory when the name contains a dot, e.g. `*.schemas` (#3624)
+      // — that broke the mock files' schema imports derived from `schemasTarget`
+      // via `resolveMockSchemasPath`. For a dot-free name `getFileInfo(...)
+      // .dirname` returns the same directory, so existing output is unchanged.
+      isString(output.schemas)
+      ? output.schemas
+      : output.schemas.path
     : path.join(
         dirname,
         filename + '.schemas' + getImportExtension(extension, output.tsconfig),
