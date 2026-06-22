@@ -1035,27 +1035,6 @@ const buildHttpResourceFunction = (
       headers,
     }), ${getBranchOptions()});`;
 
-    // Default-accept overload (when `accept` is omitted): narrow `options` to
-    // the branch the runtime falls back to, so callers that skip `accept`
-    // still get branch-specific typing instead of the broad options union.
-    const defaultOverloadOptionsType = fallbackType
-      ? buildBranchOptionsType(
-          getBranchReturnType(fallbackType),
-          getBranchRawType(fallbackType),
-          omitParse,
-        )
-      : implementationOptionsType;
-    const defaultOverloadReturnType = fallbackType
-      ? getBranchReturnType(fallbackType)
-      : unionReturnType;
-    const defaultOverloadArgs = [
-      requiredPart,
-      optionalPart,
-      `options?: ${defaultOverloadOptionsType}`,
-    ]
-      .filter(Boolean)
-      .join(',\n    ');
-
     const normalizeRequest = isUrlOnly
       ? `const normalizedRequest: HttpResourceRequest = { url: request };`
       : `const normalizedRequest: HttpResourceRequest = request;`;
@@ -1064,9 +1043,6 @@ const buildHttpResourceFunction = (
  * @experimental httpResource is experimental (Angular v19.2+)
  */
 ${branchOverloads}
-export function ${resourceName}(
-    ${defaultOverloadArgs}
-  ): HttpResourceRef<${defaultOverloadReturnType} | undefined>;
 export function ${resourceName}(
     ${implementationArgsWithDefault}
 ): HttpResourceRef<${unionReturnType} | undefined> {
