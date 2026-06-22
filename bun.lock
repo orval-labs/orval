@@ -286,7 +286,6 @@
       "name": "angular-query",
       "version": "8.18.0",
       "dependencies": {
-        "@angular/animations": "catalog:angular",
         "@angular/common": "catalog:angular",
         "@angular/compiler": "catalog:angular",
         "@angular/core": "catalog:angular",
@@ -980,7 +979,6 @@
   },
   "catalogs": {
     "angular": {
-      "@angular/animations": "22.0.2",
       "@angular/build": "22.0.2",
       "@angular/cli": "22.0.2",
       "@angular/common": "22.0.2",

@@ -72,7 +72,6 @@
       "@angular/common": "22.0.2",
       "@angular/compiler": "22.0.2",
       "@angular/compiler-cli": "22.0.2",
-      "@angular/animations": "22.0.2",
       "@angular/platform-browser": "22.0.2",
       "@angular/forms": "22.0.2",
       "@angular/router": "22.0.2",
