@@ -5,11 +5,17 @@ import fs from 'fs-extra';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  createSplitModeBuilder,
   createSplitModeOperation,
   createSplitModeOutput,
   createSplitModeProps,
 } from '../test-utils/split-modes';
-import { type GeneratorDependency, OutputMockType, OutputMode } from '../types';
+import {
+  OutputClient,
+  type GeneratorDependency,
+  OutputMockType,
+  OutputMode,
+} from '../types';
 import { writeSplitMode } from './split-mode';
 
 // Regression coverage for https://github.com/orval-labs/orval/issues/2309
@@ -395,11 +401,15 @@ describe('writeSplitMode — schemas import extension follows tsconfig module', 
         implementation: 'export type ListPetsResponse = Pet;',
       }),
     };
-    builder.imports = ({ imports }) =>
+    builder.imports = ({
+      imports,
+    }: {
+      imports: readonly GeneratorDependency[];
+    }) =>
       imports
         .map(
-          ({ dependency, exports }) =>
-            `import type { ${exports.map((entry) => entry.name).join(', ')} } from '${dependency}';`,
+          ({ dependency, exports }: GeneratorDependency) =>
+            `import type { ${exports.map((entry: { name: string }) => entry.name).join(', ')} } from '${dependency}';`,
         )
         .join('\n');
 
