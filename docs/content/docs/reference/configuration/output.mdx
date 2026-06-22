@@ -1758,6 +1758,35 @@ Custom JSON reviver function (useful for date parsing).
 
 Enable Zod runtime validation for fetch client responses. Requires `schemas: { type: 'zod' }`. When enabled, JSON responses are validated via `Schema.parse()` before being returned.
 
+### arrayFormat
+
+**Type:** `'repeat' | 'brackets' | 'comma'`
+
+Controls how array query parameters are serialized when the OpenAPI spec does not explicitly set `explode` on a parameter. The spec's own `explode` property always takes precedence.
+
+| Value | Output |
+|-------|--------|
+| `repeat` | `?tags=a&tags=b` |
+| `brackets` | `?tags[]=a&tags[]=b` |
+| `comma` | `?tags=a%2Cb` |
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'fetch',
+      override: {
+        fetch: {
+          arrayFormat: 'repeat',
+        },
+      },
+    },
+  },
+});
+```
+
+For full control over serialization (including custom encoding, nested objects, etc.) use [`override.paramsSerializer`](#paramsserializer) instead.
+
 ### useRuntimeFetcher
 
 **Type:** `Boolean`
@@ -2518,9 +2547,9 @@ export const customFormUrlEncodedFn = <Body>(body: Body): URLSearchParams => {
 
 **Type:** `String | Object`
 
-> **Note:** Only valid when using Axios or Angular.
+> **Note:** Valid for Axios, Angular, and the fetch client.
 
-Custom parameter serializer for query parameters:
+Custom parameter serializer for query parameters. When set, the generated URL helper delegates query string building entirely to this function instead of using the built-in logic.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -2537,7 +2566,10 @@ export default defineConfig({
 });
 ```
 
+For Axios and Angular the function receives the params object and can return any value Axios/Angular accepts. For the fetch client it must return a `string` (the raw query string without the leading `?`):
+
 ```ts title="custom-params-serializer-fn.ts"
+// Axios / Angular
 export const customParamsSerializerFn = (
   params: Record<string, any>,
 ): string => {
@@ -2546,6 +2578,18 @@ export const customParamsSerializerFn = (
     .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
     .join('&');
 };
+
+// fetch client — must return a string
+export const customParamsSerializer = (
+  params: Record<string, unknown>,
+): string =>
+  new URLSearchParams(
+    Object.entries(params ?? {}).flatMap(([k, v]) =>
+      Array.isArray(v)
+        ? v.map((item) => [k, String(item)])
+        : [[k, String(v)]],
+    ),
+  ).toString();
 ```
 
 ### paramsSerializerOptions
