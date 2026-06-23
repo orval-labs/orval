@@ -6,6 +6,7 @@ import {
   getDefaultContentType,
   isBoolean,
   isObject,
+  kebab,
   type NormalizedOutputOptions,
   pascal,
   type ResReqTypesValue,
@@ -156,14 +157,14 @@ export const getRelevantVerbOptionsForTag = (
   const allVerbOptions = Object.values(verbOptions);
   if (!tag) return allVerbOptions;
 
-  const camelTag = camel(tag);
+  const kebabTag = kebab(tag);
   const includeUntaggedOperations =
     tag === DefaultTag &&
     allVerbOptions.some((verbOption) => verbOption.tags.length === 0);
 
   return allVerbOptions.filter(
     (verbOption) =>
-      verbOption.tags.some((currentTag) => camel(currentTag) === camelTag) ||
+      verbOption.tags.some((currentTag) => kebab(currentTag) === kebabTag) ||
       (includeUntaggedOperations && verbOption.tags.length === 0),
   );
 };
