@@ -1,11 +1,11 @@
 import {
-  camel,
   DefaultTag,
   type GeneratorVerbOptions,
   getAngularFilteredParamsHelperBody,
   getDefaultContentType,
   isBoolean,
   isObject,
+  kebab,
   type NormalizedOutputOptions,
   pascal,
   type ResReqTypesValue,
@@ -156,14 +156,19 @@ export const getRelevantVerbOptionsForTag = (
   const allVerbOptions = Object.values(verbOptions);
   if (!tag) return allVerbOptions;
 
-  const camelTag = camel(tag);
+  // Match on `kebab` to mirror how the writer keys each tag output
+  // (`kebab(operation.tags[0])`). `camel` is not idempotent through that
+  // round-trip for acronym tags — e.g. camel('AB Widget') === 'aBWidget' but
+  // camel(kebab('AB Widget')) === 'abWidget' — which dropped every operation
+  // and suppressed the shared `filterParams` helper. See #3634.
+  const kebabTag = kebab(tag);
   const includeUntaggedOperations =
     tag === DefaultTag &&
     allVerbOptions.some((verbOption) => verbOption.tags.length === 0);
 
   return allVerbOptions.filter(
     (verbOption) =>
-      verbOption.tags.some((currentTag) => camel(currentTag) === camelTag) ||
+      verbOption.tags.some((currentTag) => kebab(currentTag) === kebabTag) ||
       (includeUntaggedOperations && verbOption.tags.length === 0),
   );
 };

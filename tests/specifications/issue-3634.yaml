@@ -1,0 +1,55 @@
+openapi: 3.0.0
+info:
+  title: Issue 3634 - Angular tags-split filterParams for acronym tags
+  version: 1.0.0
+paths:
+  # Control: a single-word tag. Generates correctly.
+  /widgets:
+    get:
+      tags: [Widget]
+      operationId: listWidgets
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Widget'
+  # Trigger: a tag whose first word is an acronym ("AB") followed by a space.
+  # camel('AB Widget') !== camel(kebab('AB Widget')), so the helper used to be
+  # suppressed even though the operation still calls filterParams.
+  /ab-widgets:
+    get:
+      tags: [AB Widget]
+      operationId: listAbWidgets
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Widget'
+components:
+  schemas:
+    Widget:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32

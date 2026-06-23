@@ -99,6 +99,25 @@ test('angular issue-3103 emits filterParams in tags-split default service', asyn
   expect(content).toContain('const filteredParams = filterParams(');
 });
 
+test('angular issue-3634 defines filterParams for acronym tags in tags-split', async () => {
+  // Regression for #3634: tag files are keyed by `kebab(tag)`, but the helper
+  // gate matched on `camel(tag)`. For an acronym tag like "AB Widget",
+  // camel('AB Widget') ('aBWidget') !== camel(kebab('AB Widget')) ('abWidget'),
+  // so the helper was suppressed even though the operation still calls it,
+  // producing TS2304. The control tag "Widget" was unaffected.
+  const abWidgetServiceFile = generated(
+    'angular',
+    'issue-3634',
+    'ab-widget',
+    'ab-widget.service.ts',
+  );
+  const content = await readFile(abWidgetServiceFile, 'utf8');
+
+  expect(content).toContain('const filteredParams = filterParams(');
+  // The helper must be defined in the same file it is called from.
+  expect(content).toContain('function filterParams(');
+});
+
 test('angular issue-3326 keeps the default filter type-safe (no passthrough)', async () => {
   // Without a paramsSerializer/paramsFilter there is no consumer that can
   // handle a raw object, and Angular's HttpParams only accepts primitives.
