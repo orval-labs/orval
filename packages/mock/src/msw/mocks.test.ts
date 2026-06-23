@@ -1,8 +1,12 @@
-import type { ResReqTypesValue } from '@orval/core';
+import type {
+  NormalizedOverrideOutput,
+  OpenApiDocument,
+  ResReqTypesValue,
+} from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
 import { createTestContextSpec } from '../../../core/src/test-utils/context';
-import { getResponsesMockDefinition } from './mocks';
+import { getMockWithoutFunc, getResponsesMockDefinition } from './mocks';
 
 describe('getResponsesMockDefinition', () => {
   it('aggregates imports when response.imports is undefined (#3590)', () => {
@@ -90,5 +94,37 @@ describe('getResponsesMockDefinition (useExamples + transformer)', () => {
     expect(definitions[0]).toBe(
       'wrap({ createdAt: new Date("2023-12-31T06:46:39.477Z"), birthDate: new Date("2023-12-31") })',
     );
+  });
+});
+
+describe('getMockWithoutFunc (override.mock.schemas)', () => {
+  const spec = {} as OpenApiDocument;
+
+  it('serializes function-valued schema-scoped overrides into IIFE strings', () => {
+    const colorFn = () => 'faker.color.human()';
+    const override = {
+      mock: { schemas: { Apple: { properties: { color: colorFn } } } },
+    } as unknown as NormalizedOverrideOutput;
+
+    const result = getMockWithoutFunc(spec, override);
+
+    expect(result.schemas).toEqual({
+      Apple: { properties: { color: `(${String(colorFn)})()` } },
+    });
+  });
+
+  it('keeps non-function schema-scoped overrides as stringified values', () => {
+    const override = {
+      mock: { schemas: { Car: { properties: { color: 'midnight black' } } } },
+    } as unknown as NormalizedOverrideOutput;
+
+    const result = getMockWithoutFunc(spec, override);
+
+    expect(result.schemas?.Car.properties.color).toBe("'midnight black'");
+  });
+
+  it('omits schemas when no schema-scoped overrides are configured', () => {
+    const result = getMockWithoutFunc(spec, {} as NormalizedOverrideOutput);
+    expect(result.schemas).toBeUndefined();
   });
 });

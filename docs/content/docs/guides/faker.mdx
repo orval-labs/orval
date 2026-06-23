@@ -210,6 +210,44 @@ override: {
 
 You can also scope overrides per-operation or per-tag via `override.operations` and `override.tags`.
 
+### Per-schema overrides
+
+`override.mock.properties` matches by property name, so a `color` override applies to
+**every** schema that has a `color` property. To give the same property name different
+mock values depending on the schema it belongs to, scope the override to a schema by name
+under `override.mock.schemas`:
+
+```ts title="orval.config.ts"
+override: {
+  mock: {
+    schemas: {
+      Apple: {
+        properties: {
+          color: () => faker.helpers.arrayElement(['red', 'green']),
+        },
+      },
+      Car: {
+        properties: {
+          color: () => 'midnight black',
+        },
+      },
+    },
+  },
+}
+```
+
+`getAppleMock()` now mocks `color` as a fruit color and `getCarMock()` as a car color,
+even though both schemas declare `color: string`.
+
+The keys under `properties` use the same matching rules as `override.mock.properties` —
+bare property name, regex (`/.../`), or exact path (`#.foo.bar`) — but only apply to
+properties of the named schema (matched against the schema's own `parentName`). When
+`schemas: true` is enabled, each `get<SchemaName>Mock` factory bakes its schema-scoped
+override in, so references that delegate to the factory keep the override.
+
+**Precedence** (first match wins): `override.operations` → `override.tags` →
+`override.mock.schemas` → `override.mock.properties`.
+
 ## Usage
 
 ### Unit Tests

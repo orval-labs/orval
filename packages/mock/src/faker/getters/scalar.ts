@@ -106,6 +106,24 @@ export function getMockScalar({
     return tagProperty;
   }
 
+  // Schema-scoped overrides (#override.mock.schemas): apply only to properties
+  // of a named schema. `item.parentName` is the enclosing schema name, set when
+  // an object property is resolved (see getters/object.ts) — so the same
+  // property name can mock differently per schema. More specific
+  // operation/tag rules above still win; this beats the global `properties`.
+  const schemaName = item.parentName;
+  const schemaProperty = schemaName
+    ? resolveMockOverride(
+        safeMockOptions.schemas?.[schemaName]?.properties,
+        item,
+        nonNullableOption,
+      )
+    : undefined;
+
+  if (schemaProperty) {
+    return schemaProperty;
+  }
+
   const property = resolveMockOverride(
     safeMockOptions.properties,
     item,
