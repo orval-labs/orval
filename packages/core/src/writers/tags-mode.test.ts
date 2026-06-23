@@ -410,3 +410,66 @@ describe('writeTagsMode — schemas import extension follows tsconfig module', (
     );
   });
 });
+
+// Regression: footer `operationNames` drives per-operation return-type exports
+// (e.g. Angular `*ClientResult` aliases). Untagged operations are routed into
+// the implicit `default` bucket by `addDefaultTagIfEmpty`, so the default
+// bucket's footer must receive their names too. The old filter excluded them
+// via a `tags.length > 0` guard, so the default-tag file silently dropped its
+// footer exports.
+
+describe('writeTagsMode — default-bucket footer includes untagged operations', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-tags-mode-'));
+  });
+
+  afterEach(() => {
+    fs.removeSync(tmpDir);
+    vi.restoreAllMocks();
+  });
+
+  it('passes untagged operation names to the default-bucket footer', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const baseProps = createSplitModeProps(target);
+
+    const footerSpy = vi.fn((_args: { operationNames: string[] }) => ({
+      implementation: '',
+      implementationMock: '',
+    }));
+
+    const props = {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        footer: footerSpy,
+        operations: {
+          listPets: createSplitModeOperation({
+            tags: ['pets'],
+            operationName: 'listPets',
+          }),
+          getHealth: createSplitModeOperation({
+            tags: [],
+            operationName: 'getHealth',
+          }),
+        },
+      } as unknown as typeof baseProps.builder,
+      output: createSplitModeOutput(target, { mode: OutputMode.TAGS }),
+    };
+
+    await writeTagsMode({ ...props, needSchema: false });
+
+    const operationNamesByBucket = footerSpy.mock.calls.map(
+      ([args]) => args.operationNames,
+    );
+
+    // The untagged op must reach a footer call (the `default` bucket), not be
+    // dropped entirely, and it must not leak into the `pets` bucket.
+    const defaultBucket = operationNamesByBucket.find((names) =>
+      names.includes('getHealth'),
+    );
+    expect(defaultBucket).toEqual(['getHealth']);
+    expect(operationNamesByBucket).toContainEqual(['listPets']);
+  });
+});

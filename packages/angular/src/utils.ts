@@ -1,11 +1,10 @@
 import {
-  camel,
-  DefaultTag,
   type GeneratorVerbOptions,
   getAngularFilteredParamsHelperBody,
   getDefaultContentType,
   isBoolean,
   isObject,
+  isOperationInTagBucket,
   type NormalizedOutputOptions,
   pascal,
   type ResReqTypesValue,
@@ -143,28 +142,23 @@ export const createRouteRegistry = () => {
 /**
  * Returns only the operations that belong to the current tag output.
  *
- * In `tags` / `tags-split` mode the writer may route untagged operations into
- * the implicit `default` bucket. When a generated tag file targets that bucket
- * we also include operations whose original tag list was empty; a literal
- * user-defined `default` tag is treated like any other tag unless untagged
- * operations are present in the same output.
+ * Tag matching is delegated to {@link isOperationInTagBucket}, the single source
+ * of truth for tag-bucket identity. Untagged operations resolve to the implicit
+ * `default` bucket, matching how the core writer routes them in
+ * `tags` / `tags-split` mode.
  */
 export const getRelevantVerbOptionsForTag = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   tag?: string,
 ): GeneratorVerbOptions[] => {
   const allVerbOptions = Object.values(verbOptions);
-  if (!tag) return allVerbOptions;
+  // Only an absent tag means "no filter"; an empty/whitespace tag is a real
+  // bucket key that `isOperationInTagBucket` normalises to `default`, matching
+  // the core writer instead of silently matching every operation.
+  if (tag == null) return allVerbOptions;
 
-  const camelTag = camel(tag);
-  const includeUntaggedOperations =
-    tag === DefaultTag &&
-    allVerbOptions.some((verbOption) => verbOption.tags.length === 0);
-
-  return allVerbOptions.filter(
-    (verbOption) =>
-      verbOption.tags.some((currentTag) => camel(currentTag) === camelTag) ||
-      (includeUntaggedOperations && verbOption.tags.length === 0),
+  return allVerbOptions.filter((verbOption) =>
+    isOperationInTagBucket(verbOption, tag),
   );
 };
 

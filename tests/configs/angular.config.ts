@@ -245,6 +245,19 @@ export default defineConfig({
       target: '../specifications/issue-3103.yaml',
     },
   },
+  issue3634: {
+    output: {
+      target: '../generated/angular/issue-3634/endpoints.ts',
+      schemas: '../generated/angular/issue-3634/model',
+      client: 'angular',
+      mode: 'tags-split',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3634.yaml',
+    },
+  },
   issue3326: {
     output: {
       target: '../generated/angular/issue-3326/endpoints.ts',
