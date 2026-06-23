@@ -2581,7 +2581,7 @@ export const customParamsSerializerFn = (
 
 // fetch client — must return a string
 export const customParamsSerializer = (
-  params: Record<string, unknown>,
+  params: Record<string, unknown> | undefined,
 ): string =>
   new URLSearchParams(
     Object.entries(params ?? {})

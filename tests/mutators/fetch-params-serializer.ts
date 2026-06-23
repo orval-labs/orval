@@ -1,6 +1,6 @@
 /** Example `paramsSerializer` mutator that repeats the key for each array item. */
 export const customParamsSerializer = (
-  params: Record<string, unknown>,
+  params: Record<string, unknown> | undefined,
 ): string =>
   new URLSearchParams(
     Object.entries(params ?? {}).flatMap(([k, v]) =>
