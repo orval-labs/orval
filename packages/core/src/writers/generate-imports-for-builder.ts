@@ -20,6 +20,11 @@ export function generateImportsForBuilder(
   output: NormalizedOutputOptions,
   imports: readonly GeneratorImport[],
   relativeSchemasPath: string,
+  // Schema→tag map computed by `writeSpecs` when `schemas.splitByTags` is
+  // enabled. Used only in the `indexFiles: false` branch to insert each
+  // schema's tag subdirectory into the import path. `'.'` is the sentinel
+  // for shared schemas (referenced by 0 or 2+ tags).
+  schemaTagMap?: Map<string, string>,
 ): GeneratorDependency[] {
   const isPackageImport =
     isObject(output.schemas) && !!output.schemas.importPath;
@@ -93,9 +98,20 @@ export function generateImportsForBuilder(
       const importExtension = isPackageImport
         ? ''
         : getImportExtension(output.fileExtension, output.tsconfig);
+      // When schemas are split by tag, route each import into its tag
+      // subdirectory. Schemas referenced by 0 or 2+ tags land at the schemas
+      // root (sentinel `'.'`); their path is unchanged from the flat layout.
+      // The lookup uses the TS identifier (`schemaImport.name`), not
+      // `schemaName`, because `buildSchemaTagMap` keys on `schema.name`
+      // which is the pascal-cased TS identifier produced by `getRefInfo`.
+      // `baseName` (which prefers `schemaName`) is only correct for the
+      // filename computation below, where `conventionName` happens to be
+      // idempotent on already-pascal-cased input.
+      const tagDir = schemaTagMap?.get(schemaImport.name);
+      const tagSegment = tagDir && tagDir !== '.' ? `${tagDir}/` : '';
       const dependency = upath.joinSafe(
         relativeSchemasPath,
-        `${normalizedName}${suffix}${importExtension}`,
+        `${tagSegment}${normalizedName}${suffix}${importExtension}`,
       );
 
       if (!importsByDependency.has(dependency)) {

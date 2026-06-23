@@ -125,6 +125,7 @@ function normalizeSchemasOption(
     path: normalizePath(schemas.path, workspace),
     type: schemas.type ?? 'typescript',
     importPath: schemas.importPath,
+    splitByTags: schemas.splitByTags ?? false,
   };
 }
 

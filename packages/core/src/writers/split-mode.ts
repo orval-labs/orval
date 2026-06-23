@@ -34,6 +34,7 @@ export async function writeSplitMode({
   header,
   needSchema,
   generateSchemasInline,
+  schemaTagMap,
 }: WriteModeProps): Promise<string[]> {
   try {
     const {
@@ -108,6 +109,7 @@ export async function writeSplitMode({
       output,
       imports,
       relativeSchemasPath,
+      schemaTagMap,
     );
 
     implementationData += builder.imports({
@@ -261,6 +263,7 @@ export async function writeSplitMode({
           finalizeMockOptions.strictSchemaTypeNames,
         ),
         mockRelativeSchemasPath,
+        schemaTagMap,
       );
       let mockData = header;
       mockData += builder.importsMock({

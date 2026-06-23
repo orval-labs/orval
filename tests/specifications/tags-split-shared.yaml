@@ -1,0 +1,224 @@
+openapi: '3.1.0'
+info:
+  title: Tags Split Shared Models
+  version: '1.0.0'
+paths:
+  /pets:
+    get:
+      operationId: listPets
+      tags: [pets]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: sort
+          in: query
+          schema:
+            $ref: '#/components/schemas/SortOrder'
+      responses:
+        '200':
+          description: List of pets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetList'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      operationId: createPet
+      tags: [pets]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePetBody'
+      responses:
+        '201':
+          description: Created pet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /pets/{petId}:
+    get:
+      operationId: getPetById
+      tags: [pets]
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A pet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /stores:
+    get:
+      operationId: listStores
+      tags: [stores]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: sort
+          in: query
+          schema:
+            $ref: '#/components/schemas/SortOrder'
+      responses:
+        '200':
+          description: List of stores
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreList'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      operationId: createStore
+      tags: [stores]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStoreBody'
+      responses:
+        '201':
+          description: Created store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Store'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /stores/{storeId}:
+    get:
+      operationId: getStoreById
+      tags: [stores]
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Store'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    SortOrder:
+      type: string
+      enum: [asc, desc]
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+    Pagination:
+      type: object
+      required: [total, page]
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        hasNext:
+          type: boolean
+    Pet:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tag:
+          type: string
+    PetList:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Pet'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+    CreatePetBody:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        tag:
+          type: string
+    Store:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        address:
+          type: string
+    StoreList:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Store'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+    CreateStoreBody:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        address:
+          type: string
