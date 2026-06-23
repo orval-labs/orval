@@ -776,7 +776,25 @@ export interface ZodTimeOptions {
   precision?: -1 | 0 | 1 | 2 | 3;
 }
 
+/**
+ * Target Zod major version for generated output.
+ *
+ * - `4` — always emit Zod 4-style output (`z.strictObject`, `z.looseObject`,
+ *   `z.iso.datetime()`, `.meta()`, …) regardless of the installed `zod` version.
+ * - `3` — always emit Zod 3-compatible output (`.strict()`/`.passthrough()`,
+ *   `z.string().datetime()`, …) regardless of the installed `zod` version.
+ * - `'auto'` — infer the target from the `zod` version resolved in the output
+ *   project's `package.json` (the historical behavior).
+ */
+export type ZodVersionOption = 3 | 4 | 'auto';
+
 export interface ZodOptions {
+  /**
+   * Pin the Zod output target so generation is deterministic instead of
+   * inferred from the installed `zod` version. Defaults to `'auto'`, which
+   * preserves the package-detection behavior. See {@link ZodVersionOption}.
+   */
+  version?: ZodVersionOption;
   strict?: {
     param?: boolean;
     query?: boolean;
@@ -856,6 +874,7 @@ export type ZodCoerceType =
   | 'array';
 
 export interface NormalizedZodOptions {
+  version: ZodVersionOption;
   strict: {
     param: boolean;
     query: boolean;

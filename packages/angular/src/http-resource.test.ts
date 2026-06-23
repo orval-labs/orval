@@ -84,6 +84,7 @@ const createOutput = (
       },
       swr: {},
       zod: {
+        version: 'auto',
         strict: {
           param: false,
           query: false,

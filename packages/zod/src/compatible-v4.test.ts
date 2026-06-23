@@ -8,6 +8,7 @@ import {
   getZodDateTimeFormat,
   getZodTimeFormat,
   isZodVersionV4,
+  resolveIsZodV4,
 } from './compatible-v4';
 
 describe('isZodVersionV4', () => {
@@ -94,6 +95,48 @@ describe('isZodVersionV4 with resolvedVersions', () => {
     };
 
     expect(isZodVersionV4(packageJson)).toBe(false);
+  });
+});
+
+describe('resolveIsZodV4', () => {
+  const v3PackageJson = { dependencies: { zod: '3.24.3' } };
+  const v4PackageJson = { dependencies: { zod: '4.0.0' } };
+
+  describe("when version is 'auto'", () => {
+    it('infers v4 from the resolved zod version', () => {
+      expect(resolveIsZodV4('auto', v4PackageJson)).toBe(true);
+    });
+
+    it('infers v3 from the resolved zod version', () => {
+      expect(resolveIsZodV4('auto', v3PackageJson)).toBe(false);
+    });
+
+    it('returns false when no packageJson is available', () => {
+      expect(resolveIsZodV4('auto', undefined)).toBe(false);
+    });
+  });
+
+  describe('when version is pinned explicitly', () => {
+    it('forces v4 even when the installed zod is v3', () => {
+      expect(resolveIsZodV4(4, v3PackageJson)).toBe(true);
+    });
+
+    it('forces v3 even when the installed zod is v4', () => {
+      expect(resolveIsZodV4(3, v4PackageJson)).toBe(false);
+    });
+
+    it('forces v4 even when no packageJson is available', () => {
+      expect(resolveIsZodV4(4, undefined)).toBe(true);
+    });
+
+    it('forces v3 even when no packageJson is available', () => {
+      expect(resolveIsZodV4(3, undefined)).toBe(false);
+    });
+  });
+
+  it("treats an undefined version like 'auto'", () => {
+    expect(resolveIsZodV4(undefined, v4PackageJson)).toBe(true);
+    expect(resolveIsZodV4(undefined, v3PackageJson)).toBe(false);
   });
 });
 

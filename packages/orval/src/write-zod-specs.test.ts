@@ -36,6 +36,7 @@ const createOutputOptions = (): Parameters<typeof writeZodSchemas>[4] =>
         schemas: { suffix: '', itemSuffix: 'Item' },
       },
       zod: {
+        version: 'auto',
         strict: {
           body: true,
         },

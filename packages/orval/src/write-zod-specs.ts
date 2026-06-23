@@ -17,13 +17,14 @@ import {
   resolveValue,
   type Tsconfig,
   type ZodCoerceType,
+  type ZodVersionOption,
 } from '@orval/core';
 import {
   dereference,
   generateFormDataZodSchema,
   generateZodValidationSchemaDefinition,
-  isZodVersionV4,
   parseZodValidationSchemaDefinition,
+  resolveIsZodV4,
   type ZodValidationSchemaDefinition,
 } from '@orval/zod';
 import fs from 'fs-extra';
@@ -57,6 +58,7 @@ interface WriteZodOutputOptions {
   override: {
     useNamedParameters?: boolean;
     zod: {
+      version: ZodVersionOption;
       strict: {
         body: boolean;
       };
@@ -452,7 +454,10 @@ export function generateZodSchemasInline(
     return '';
   }
 
-  const isZodV4 = !!output.packageJson && isZodVersionV4(output.packageJson);
+  const isZodV4 = resolveIsZodV4(
+    output.override.zod.version,
+    output.packageJson,
+  );
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
   const schemas: ZodSchemaFileEntry[] = [];
@@ -512,7 +517,10 @@ function generateZodSchemasInlineReusable(
   paramsMutator?: GeneratorMutator,
   includeParamsImport = false,
 ): string {
-  const isZodV4 = !!output.packageJson && isZodVersionV4(output.packageJson);
+  const isZodV4 = resolveIsZodV4(
+    output.override.zod.version,
+    output.packageJson,
+  );
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
   const context: ContextSpec = {
@@ -601,7 +609,10 @@ export async function writeZodSchemas(
 
   const schemasWithOpenApiDef = builder.schemas.filter((s) => s.schema);
   const schemasToWrite: ZodSchemaFileToWrite[] = [];
-  const isZodV4 = !!output.packageJson && isZodVersionV4(output.packageJson);
+  const isZodV4 = resolveIsZodV4(
+    output.override.zod.version,
+    output.packageJson,
+  );
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
 
@@ -684,7 +695,10 @@ async function writeZodSchemasReusable(
   output: WriteZodOutputOptions,
   paramsMutator?: GeneratorMutator,
 ) {
-  const isZodV4 = !!output.packageJson && isZodVersionV4(output.packageJson);
+  const isZodV4 = resolveIsZodV4(
+    output.override.zod.version,
+    output.packageJson,
+  );
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
   const context: ContextSpec = {
@@ -803,7 +817,10 @@ export async function writeZodSchemasFromVerbs(
     return;
   }
 
-  const isZodV4 = !!output.packageJson && isZodVersionV4(output.packageJson);
+  const isZodV4 = resolveIsZodV4(
+    output.override.zod.version,
+    output.packageJson,
+  );
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
   const useReusableSchemas =

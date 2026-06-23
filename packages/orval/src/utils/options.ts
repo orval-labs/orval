@@ -583,6 +583,7 @@ export async function normalizeOptions(
                 ),
               }
             : {}),
+          version: outputOptions.override?.zod?.version ?? 'auto',
           generateEachHttpStatus:
             outputOptions.override?.zod?.generateEachHttpStatus ?? false,
           useBrandedTypes:
@@ -1014,6 +1015,7 @@ function normalizeOperationsAndTags(
                           params: normalizeMutator(workspace, zod.params),
                         }
                       : {}),
+                    version: zod.version ?? 'auto',
                     generateEachHttpStatus: zod.generateEachHttpStatus ?? false,
                     useBrandedTypes: zod.useBrandedTypes ?? false,
                     generateReusableSchemas:
