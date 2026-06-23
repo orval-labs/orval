@@ -204,7 +204,7 @@ export interface NormalizedOperationOptions {
   query?: NormalizedQueryOptions;
   angular?: NormalizedAngularOptions;
   swr?: SwrOptions;
-  zod?: NormalizedZodOptions;
+  zod?: NormalizedOperationZodOptions;
   effect?: NormalizedEffectOptions;
   operationName?: (
     operation: OpenApiOperationObject,
@@ -784,17 +784,12 @@ export interface ZodTimeOptions {
  * - `3` — always emit Zod 3-compatible output (`.strict()`/`.passthrough()`,
  *   `z.string().datetime()`, …) regardless of the installed `zod` version.
  * - `'auto'` — infer the target from the `zod` version resolved in the output
- *   project's `package.json` (the historical behavior).
+ *   project's `package.json`; when no `zod` package can be detected, fall back
+ *   to Zod 4 output.
  */
 export type ZodVersionOption = 3 | 4 | 'auto';
 
-export interface ZodOptions {
-  /**
-   * Pin the Zod output target so generation is deterministic instead of
-   * inferred from the installed `zod` version. Defaults to `'auto'`, which
-   * preserves the package-detection behavior. See {@link ZodVersionOption}.
-   */
-  version?: ZodVersionOption;
+interface BaseZodOptions {
   strict?: {
     param?: boolean;
     query?: boolean;
@@ -835,10 +830,20 @@ export interface ZodOptions {
    * location.
    */
   params?: Mutator;
+  useBrandedTypes?: boolean;
+}
+
+export interface ZodOptions extends BaseZodOptions {
+  /**
+   * Pin the Zod output target so generation is deterministic instead of
+   * inferred from the installed `zod` version. Defaults to `'auto'`, which
+   * infers from the detected package and otherwise falls back to Zod 4 output.
+   * See {@link ZodVersionOption}.
+   */
+  version?: ZodVersionOption;
   dateTimeOptions?: ZodDateTimeOptions;
   timeOptions?: ZodTimeOptions;
   generateEachHttpStatus?: boolean;
-  useBrandedTypes?: boolean;
   /**
    * When true, emits one reusable Zod schema per `#/components/schemas/*` `$ref`
    * (with `namingConvention` applied to the name) and references it everywhere
@@ -854,6 +859,14 @@ export interface ZodOptions {
    */
   generateMeta?: boolean;
 }
+
+/**
+ * Per-operation/tag Zod overrides only include settings that are actually
+ * merged into the operation-specific generator path. Output-wide target and
+ * schema-layout settings belong on `override.zod`, not `override.operations.*`
+ * / `override.tags.*`.
+ */
+export interface OperationZodOptions extends BaseZodOptions {}
 
 export interface EffectOptions {
   strict?: ZodOptions['strict'];
@@ -911,6 +924,17 @@ export interface NormalizedZodOptions {
   dateTimeOptions: ZodDateTimeOptions;
   timeOptions: ZodTimeOptions;
 }
+
+export interface NormalizedOperationZodOptions
+  extends Pick<
+    NormalizedZodOptions,
+    | 'strict'
+    | 'generate'
+    | 'coerce'
+    | 'preprocess'
+    | 'params'
+    | 'useBrandedTypes'
+  > {}
 
 export interface NormalizedEffectOptions {
   strict: NormalizedZodOptions['strict'];
@@ -1146,7 +1170,7 @@ export interface OperationOptions {
   query?: QueryOptions;
   angular?: AngularOptions;
   swr?: SwrOptions;
-  zod?: ZodOptions;
+  zod?: OperationZodOptions;
   effect?: EffectOptions;
   operationName?: (
     operation: OpenApiOperationObject,

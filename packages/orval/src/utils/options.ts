@@ -448,6 +448,7 @@ export async function normalizeOptions(
           {
             query: globalQueryOptions,
           },
+          'operations',
         ),
         tags: normalizeOperationsAndTags(
           outputOptions.override?.tags ?? {},
@@ -455,6 +456,7 @@ export async function normalizeOptions(
           {
             query: globalQueryOptions,
           },
+          'tags',
         ),
         mutator: normalizeMutator(
           outputWorkspace,
@@ -903,7 +905,17 @@ function normalizeOperationsAndTags(
   global: {
     query: NormalizedQueryOptions;
   },
+  source: 'operations' | 'tags',
 ): Record<string, NormalizedOperationOptions> {
+  const unsupportedZodKeys = [
+    'version',
+    'dateTimeOptions',
+    'timeOptions',
+    'generateEachHttpStatus',
+    'generateReusableSchemas',
+    'generateMeta',
+  ] as const;
+
   return Object.fromEntries(
     Object.entries(operationsOrTags).map(
       ([
@@ -922,6 +934,25 @@ function normalizeOperationsAndTags(
           ...rest
         },
       ]) => {
+        const unsupportedOperationZodKeys =
+          zod &&
+          unsupportedZodKeys.filter(
+            (unsupportedKey) =>
+              (zod as Record<string, unknown>)[unsupportedKey] !== undefined,
+          );
+
+        if (unsupportedOperationZodKeys && unsupportedOperationZodKeys.length) {
+          const fieldLabel =
+            unsupportedOperationZodKeys.length === 1 ? 'field' : 'fields';
+          const unsupportedFields = unsupportedOperationZodKeys
+            .map((unsupportedKey) => `zod.${unsupportedKey}`)
+            .join(', ');
+
+          logWarning(
+            `⚠️  override.${source}.${key}.zod only supports strict, generate, coerce, preprocess, params, and useBrandedTypes. Ignoring unsupported ${fieldLabel}: ${unsupportedFields}.`,
+          );
+        }
+
         return [
           key,
           {
@@ -1015,14 +1046,7 @@ function normalizeOperationsAndTags(
                           params: normalizeMutator(workspace, zod.params),
                         }
                       : {}),
-                    version: zod.version ?? 'auto',
-                    generateEachHttpStatus: zod.generateEachHttpStatus ?? false,
                     useBrandedTypes: zod.useBrandedTypes ?? false,
-                    generateReusableSchemas:
-                      zod.generateReusableSchemas ?? false,
-                    generateMeta: zod.generateMeta ?? false,
-                    dateTimeOptions: zod.dateTimeOptions ?? { offset: true },
-                    timeOptions: zod.timeOptions ?? {},
                   },
                 }
               : {}),

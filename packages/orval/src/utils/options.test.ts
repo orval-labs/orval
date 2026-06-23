@@ -1030,6 +1030,64 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('warns and strips output-only zod fields from operation and tag overrides', async () => {
+    const workspace = await createTempWorkspace();
+    logWarningSpy.mockClear();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'zod',
+            override: {
+              operations: {
+                listPets: {
+                  zod: {
+                    strict: { body: true },
+                    version: 3,
+                  } as never,
+                },
+              },
+              tags: {
+                Pets: {
+                  zod: {
+                    generate: { response: false },
+                    generateMeta: true,
+                  } as never,
+                },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        expect.stringContaining('override.operations.listPets.zod'),
+      );
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        expect.stringContaining('override.tags.Pets.zod'),
+      );
+      expect(
+        'version' in (normalized.output.override.operations.listPets?.zod ?? {}),
+      ).toBe(false);
+      expect(
+        'generateMeta' in (normalized.output.override.tags.Pets?.zod ?? {}),
+      ).toBe(false);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+      logWarningSpy.mockClear();
+    }
+  });
+
   it('resolves global query mutators relative to the output workspace', async () => {
     const workspace = await createTempWorkspace();
 

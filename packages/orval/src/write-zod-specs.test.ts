@@ -107,6 +107,48 @@ describe('write-zod-specs regressions', () => {
     await fs.remove(root);
   });
 
+  it("defaults 'auto' to zod v4 syntax when no packageJson is available", async () => {
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
+    const schemasPath = path.join(root, 'schemas');
+
+    const builder = {
+      spec: {},
+      target: '',
+      schemas: [
+        {
+          name: 'PetSchema',
+          schema: {
+            type: 'object',
+            properties: {
+              email: {
+                type: 'string',
+                format: 'email',
+              },
+            },
+          },
+        },
+      ],
+    } satisfies Parameters<typeof writeZodSchemas>[0];
+
+    await writeZodSchemas(
+      builder,
+      schemasPath,
+      '.ts',
+      '',
+      createOutputOptions(),
+    );
+
+    const filePath = path.join(schemasPath, 'PetSchema.ts');
+    const fileContent = await fs.readFile(filePath, 'utf8');
+
+    expect(fileContent).toContain('zod.strictObject({');
+    expect(fileContent).toContain('"email": zod.email().optional()');
+    expect(fileContent).not.toContain('.strict()');
+    expect(fileContent).not.toContain('zod.string().email()');
+
+    await fs.remove(root);
+  });
+
   it('merges case-colliding schema files and keeps canonical index export', async () => {
     const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
     const schemasPath = path.join(root, 'schemas');

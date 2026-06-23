@@ -8898,6 +8898,27 @@ const brandedZodOverrideDisabled = {
   },
 };
 
+const withOutputZodVersion = (
+  generatorOptions: GeneratorOptions,
+  version: 3 | 4,
+): GeneratorOptions =>
+  ({
+    ...generatorOptions,
+    context: {
+      ...generatorOptions.context,
+      output: {
+        ...generatorOptions.context.output,
+        override: {
+          ...generatorOptions.context.output.override,
+          zod: {
+            ...generatorOptions.context.output.override.zod,
+            version,
+          },
+        },
+      },
+    },
+  }) as GeneratorOptions;
+
 describe('generateZod (useBrandedTypes)', () => {
   // Group 1: Default behavior — no brand
 
@@ -8968,7 +8989,7 @@ describe('generateZod (useBrandedTypes)', () => {
         operationName: 'test',
         override: brandedZodOverride,
       } as unknown as Parameters<typeof generateZod>[0],
-      basicApiSchema,
+      withOutputZodVersion(basicApiSchema, 3),
       testOutput,
     );
 
@@ -9084,7 +9105,7 @@ describe('generateZod (useBrandedTypes)', () => {
           },
         },
       } as unknown as Parameters<typeof generateZod>[0],
-      arrayBodyApiSchema,
+      withOutputZodVersion(arrayBodyApiSchema, 3),
       testOutput,
     );
 
@@ -9170,7 +9191,7 @@ describe('generateZod (useBrandedTypes)', () => {
           },
         },
       } as unknown as Parameters<typeof generateZod>[0],
-      arrayResponseApiSchema,
+      withOutputZodVersion(arrayResponseApiSchema, 3),
       testOutput,
     );
 
@@ -9211,7 +9232,7 @@ describe('generateZod (useBrandedTypes)', () => {
           },
         },
       } as unknown as Parameters<typeof generateZod>[0],
-      basicApiSchema,
+      withOutputZodVersion(basicApiSchema, 3),
       testOutput,
     );
 
@@ -9299,7 +9320,7 @@ describe('generateZod (useBrandedTypes)', () => {
           },
         },
       } as unknown as Parameters<typeof generateZod>[0],
-      multiStatusApiSchema,
+      withOutputZodVersion(multiStatusApiSchema, 3),
       testOutput,
     );
 
@@ -9328,7 +9349,7 @@ describe('generateZod (useBrandedTypes)', () => {
           },
         },
       } as unknown as Parameters<typeof generateZod>[0],
-      basicApiSchema,
+      withOutputZodVersion(basicApiSchema, 3),
       testOutput,
     );
 
@@ -9356,7 +9377,7 @@ describe('generateZod (useBrandedTypes)', () => {
           },
         },
       } as unknown as Parameters<typeof generateZod>[0],
-      basicApiSchema,
+      withOutputZodVersion(basicApiSchema, 3),
       testOutput,
     );
 

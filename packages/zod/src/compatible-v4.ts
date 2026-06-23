@@ -30,8 +30,10 @@ export const isZodVersionV4 = (packageJson: PackageJson) => {
  *
  * An explicit `override.zod.version` of `3` or `4` always wins; `'auto'` (the
  * default) falls back to inferring from the output project's resolved `zod`
- * version via {@link isZodVersionV4}. This keeps generation deterministic when
- * a target is pinned, while preserving package-detection for `'auto'`.
+ * version via {@link isZodVersionV4}. When no package metadata is available,
+ * `'auto'` now defaults to Zod 4 so fresh or partially-installed workspaces
+ * still get the modern baseline. This keeps generation deterministic when a
+ * target is pinned while preserving package-detection for `'auto'`.
  */
 export const resolveIsZodV4 = (
   version: ZodVersionOption | undefined,
@@ -45,8 +47,9 @@ export const resolveIsZodV4 = (
     return false;
   }
 
-  // 'auto' (or unset) — infer from the installed/resolved zod version.
-  return !!packageJson && isZodVersionV4(packageJson);
+  // 'auto' (or unset) — infer from the installed/resolved zod version and
+  // default to Zod 4 when the target workspace has no detectable package yet.
+  return !packageJson || isZodVersionV4(packageJson);
 };
 
 export const getZodDateFormat = (isZodV4: boolean) => {

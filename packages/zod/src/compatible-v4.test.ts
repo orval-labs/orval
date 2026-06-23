@@ -111,8 +111,8 @@ describe('resolveIsZodV4', () => {
       expect(resolveIsZodV4('auto', v3PackageJson)).toBe(false);
     });
 
-    it('returns false when no packageJson is available', () => {
-      expect(resolveIsZodV4('auto', undefined)).toBe(false);
+    it('defaults to v4 when no packageJson is available', () => {
+      expect(resolveIsZodV4('auto', undefined)).toBe(true);
     });
   });
 
@@ -137,6 +137,7 @@ describe('resolveIsZodV4', () => {
   it("treats an undefined version like 'auto'", () => {
     expect(resolveIsZodV4(undefined, v4PackageJson)).toBe(true);
     expect(resolveIsZodV4(undefined, v3PackageJson)).toBe(false);
+    expect(resolveIsZodV4(undefined, undefined)).toBe(true);
   });
 });
 
