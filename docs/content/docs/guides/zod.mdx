@@ -38,6 +38,84 @@ export const createPetsBody = zod.object({
 });
 ```
 
+## Zod version
+
+Orval generates **Zod 4** output by default (`z.strictObject`, `z.looseObject`, `z.iso.datetime()`, `.meta()`, …). Projects still on Zod 3 are fully supported.
+
+With the default (`'auto'`), Orval infers the target from the `zod` version resolved in your project's `package.json`. When no `zod` package can be detected — for example in a fresh or partially-installed workspace — it falls back to **Zod 4**.
+
+To make generation deterministic, pin the target with `override.zod.version`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'zod',
+      target: './src/api/schemas',
+      override: {
+        zod: {
+          version: 4, // 3 | 4 | 'auto'
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+| Value    | Output                                                                           |
+| -------- | -------------------------------------------------------------------------------- |
+| `4`      | Always emit Zod 4 syntax, regardless of the installed `zod` version.             |
+| `3`      | Always emit Zod 3-compatible syntax, regardless of the installed `zod` version.  |
+| `'auto'` | (default) Infer from the resolved `zod` version; fall back to Zod 4 when none is detected. |
+
+Pinning the version keeps output stable: the same spec produces the same schemas on every machine and in CI, independent of which `zod` version happens to be installed.
+
+## Scoping options per operation or tag
+
+Most `override.zod` settings can be applied to part of your API instead of globally, via `override.operations[operationId].zod` (a single operation) or `override.tags[tagName].zod` (every operation sharing a tag):
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'zod',
+      override: {
+        zod: {
+          strict: { response: true }, // applies everywhere
+        },
+        operations: {
+          listPets: {
+            zod: {
+              coerce: { query: ['number'] }, // only this operation
+            },
+          },
+        },
+        tags: {
+          admin: {
+            zod: {
+              strict: { body: true }, // every operation tagged "admin"
+            },
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+Per-operation and per-tag overrides accept the settings that apply to an individual schema: `strict`, `generate`, `coerce`, `preprocess`, `params`, and `useBrandedTypes`.
+
+Output-wide settings — `version`, `dateTimeOptions`, `timeOptions`, `generateEachHttpStatus`, `generateReusableSchemas`, and `generateMeta` — only make sense for the whole output and must stay on `override.zod`. If you place one on an operation or tag it is ignored — the value from `override.zod` still applies — and Orval prints a build warning:
+
+```
+⚠️  override.operations.listPets.zod only supports strict, generate, coerce, preprocess, params, and useBrandedTypes. Ignoring unsupported field: zod.version.
+```
+
 ## Usage
 
 ### Parsing Data

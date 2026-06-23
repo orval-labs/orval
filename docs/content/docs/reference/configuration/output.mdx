@@ -1362,6 +1362,7 @@ export default defineConfig({
     output: {
       override: {
         zod: {
+          version: 4,
           strict: {
             response: true,
             query: true,
@@ -1388,6 +1389,20 @@ export default defineConfig({
   },
 });
 ```
+
+### version
+
+**Type:** `3 | 4 | 'auto'` — defaults to `'auto'`
+
+Pin the Zod major version that generated output targets, so generation is deterministic instead of inferred from the installed `zod` package.
+
+| Value    | Output                                                                          |
+| -------- | ------------------------------------------------------------------------------- |
+| `4`      | Always emit Zod 4 syntax (`z.strictObject`, `z.iso.datetime()`, `.meta()`, …).   |
+| `3`      | Always emit Zod 3-compatible syntax (`.strict()`, `z.string().datetime()`, …).   |
+| `'auto'` | Infer from the resolved `zod` version; fall back to Zod 4 when none is detected. |
+
+Unlike most `override.zod` options, `version` is output-wide and cannot be set per operation or tag. See the [Zod guide](/docs/guides/zod#zod-version) for details.
 
 ### strict
 
