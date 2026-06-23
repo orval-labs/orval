@@ -1,6 +1,18 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  issue607: {
+    output: {
+      target: '../generated/react-query/issue-607/endpoints.ts',
+      schemas: '../generated/react-query/issue-607/model',
+      client: 'react-query',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-607.yaml',
+    },
+  },
   issue2999: {
     output: {
       target: '../generated/react-query/issue-2999/endpoints.ts',
