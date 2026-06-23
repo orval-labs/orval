@@ -279,6 +279,7 @@ describe('writeSplitMode — separated mocks honor schemas.importPath', () => {
           path: path.join(tmpDir, 'model'),
           type: 'typescript',
           importPath: '@acme/models',
+          splitByTags: false,
         },
         mock: {
           indexMockFiles: false,

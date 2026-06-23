@@ -40,6 +40,7 @@ export async function writeSplitTagsMode({
   header,
   needSchema,
   generateSchemasInline,
+  schemaTagMap,
 }: WriteModeProps): Promise<string[]> {
   const { filename, dirname, extension } = getFileInfo(output.target, {
     backupFilename: conventionName(
@@ -188,6 +189,7 @@ export async function writeSplitTagsMode({
           output,
           adjustedImports,
           relativeSchemasPath,
+          schemaTagMap,
         );
 
         implementationData += builder.imports({
@@ -348,6 +350,7 @@ export async function writeSplitTagsMode({
               finalizeMockOptions.strictSchemaTypeNames,
             ),
             mockRelativeSchemasPath,
+            schemaTagMap,
           );
 
           let mockData = header;
