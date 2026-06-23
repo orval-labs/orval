@@ -114,6 +114,14 @@ describe('resolveIsZodV4', () => {
     it('defaults to v4 when no packageJson is available', () => {
       expect(resolveIsZodV4('auto', undefined)).toBe(true);
     });
+
+    it('defaults to v4 when packageJson has no detectable zod version', () => {
+      expect(resolveIsZodV4('auto', {})).toBe(true);
+      expect(resolveIsZodV4('auto', { dependencies: {} })).toBe(true);
+      expect(
+        resolveIsZodV4('auto', { dependencies: { 'other-pkg': '1.0.0' } }),
+      ).toBe(true);
+    });
   });
 
   describe('when version is pinned explicitly', () => {

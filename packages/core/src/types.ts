@@ -875,7 +875,7 @@ export interface ZodOptions extends BaseZodOptions {
  * schema-layout settings belong on `override.zod`, not `override.operations.*`
  * / `override.tags.*`.
  */
-export interface OperationZodOptions extends BaseZodOptions {}
+export type OperationZodOptions = BaseZodOptions;
 
 export interface EffectOptions {
   strict?: ZodOptions['strict'];
@@ -934,16 +934,10 @@ export interface NormalizedZodOptions {
   timeOptions: ZodTimeOptions;
 }
 
-export interface NormalizedOperationZodOptions
-  extends Pick<
-    NormalizedZodOptions,
-    | 'strict'
-    | 'generate'
-    | 'coerce'
-    | 'preprocess'
-    | 'params'
-    | 'useBrandedTypes'
-  > {}
+export type NormalizedOperationZodOptions = Pick<
+  NormalizedZodOptions,
+  'strict' | 'generate' | 'coerce' | 'preprocess' | 'params' | 'useBrandedTypes'
+>;
 
 export interface NormalizedEffectOptions {
   strict: NormalizedZodOptions['strict'];

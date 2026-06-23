@@ -954,6 +954,20 @@ function normalizeOperationsAndTags(
           );
         }
 
+        // Only emit a normalized zod object when the entry actually carries a
+        // supported operation-level field. Otherwise an unsupported-only entry
+        // (e.g. `{ version: 3 }`) would inject default strict/generate/coerce
+        // values that override global `override.zod.*` during downstream merges,
+        // contradicting the "ignored" warning above.
+        const hasSupportedOperationZodConfig =
+          !!zod &&
+          (zod.strict !== undefined ||
+            zod.generate !== undefined ||
+            zod.coerce !== undefined ||
+            zod.preprocess !== undefined ||
+            zod.params !== undefined ||
+            zod.useBrandedTypes !== undefined);
+
         return [
           key,
           {
@@ -976,7 +990,7 @@ function normalizeOperationsAndTags(
                   query: normalizeQueryOptions(query, workspace, global.query),
                 }
               : {}),
-            ...(zod
+            ...(hasSupportedOperationZodConfig && zod
               ? {
                   zod: {
                     strict: {

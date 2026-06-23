@@ -48,8 +48,15 @@ export const resolveIsZodV4 = (
   }
 
   // 'auto' (or unset) — infer from the installed/resolved zod version and
-  // default to Zod 4 when the target workspace has no detectable package yet.
-  return !packageJson || isZodVersionV4(packageJson);
+  // default to Zod 4 when the target workspace has no detectable zod version
+  // yet. Treat "no packageJson" and "packageJson without a detectable zod
+  // version" identically so partially-installed workspaces still get the
+  // modern baseline instead of silently falling back to Zod 3.
+  if (!packageJson || !getZodPackageVersion(packageJson)) {
+    return true;
+  }
+
+  return isZodVersionV4(packageJson);
 };
 
 export const getZodDateFormat = (isZodV4: boolean) => {
