@@ -664,7 +664,7 @@ ${hookOptions}
       httpFunctionProps ? ', ' : ''
     }${queryOptions});
 
-      ${adapter.getUnrefStatements(props)}
+      ${adapter.getQueryOptionsUnrefStatements(props)}
 
       ${
         queryOptionsMutator

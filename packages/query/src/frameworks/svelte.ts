@@ -1,18 +1,11 @@
 import {
-  type GeneratorOptions,
-  type GeneratorVerbOptions,
   type GetterProps,
   OutputClient,
-  OutputHttpClient,
   pascal,
   toObjectString,
 } from '@orval/core';
-import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
 
-import {
-  generateAxiosRequestFunction,
-  getQueryArgumentsRequestType,
-} from '../client';
+import { getQueryArgumentsRequestType } from '../client';
 import type {
   FrameworkAdapterConfig,
   MutationHookBodyContext,
@@ -249,15 +242,6 @@ export const createSvelteAdapter = ({
         return getQueryTypeForFramework(type);
       }
       return type;
-    },
-
-    generateRequestFunction(
-      verbOptions: GeneratorVerbOptions,
-      options: GeneratorOptions,
-    ): string {
-      return options.context.output.httpClient === OutputHttpClient.AXIOS
-        ? generateAxiosRequestFunction(verbOptions, options, false)
-        : generateFetchRequestFunction(verbOptions, options);
     },
   };
 };
