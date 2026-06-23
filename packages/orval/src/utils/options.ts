@@ -6,6 +6,7 @@ import {
   type ConfigExternal,
   type EffectOptions,
   FormDataArrayHandling,
+  type FakerMockOptions,
   type GlobalMockOptions,
   type GlobalOptions,
   type HonoOptions,
@@ -118,46 +119,62 @@ function normalizeSchemasOption(
     return normalizePath(schemas, workspace);
   }
 
-  if (schemas.importPath !== undefined && !schemas.importPath) {
+  validatePackageSpecifier(schemas.importPath, 'schemas.importPath');
+
+  return {
+    path: normalizePath(schemas.path, workspace),
+    type: schemas.type ?? 'typescript',
+    importPath: schemas.importPath,
+  };
+}
+
+/**
+ * Validates that a config value is a valid package specifier (bare specifier
+ * or sub-path import like `@acme/models` / `@acme/models/fakers`). Rejects
+ * empty, whitespace-only, relative (`./`, `../`), and absolute paths with a
+ * clear, actionable error message. No-op when the value is `undefined`.
+ */
+function validatePackageSpecifier(
+  value: string | undefined,
+  fieldName: string,
+): void {
+  if (value === undefined) {
+    return;
+  }
+
+  if (!value) {
     throw new Error(
-      `schemas.importPath must be a non-empty package specifier (e.g. '@acme/models'). Received an empty string.`,
+      `\`${fieldName}\` must be a non-empty package specifier (e.g. '@acme/models'). Received an empty string.`,
     );
   }
 
-  if (schemas.importPath?.trim() === '') {
+  if (value.trim() === '') {
     throw new Error(
-      `schemas.importPath must be a non-empty package specifier (e.g. '@acme/models'). Received a whitespace-only string.`,
+      `\`${fieldName}\` must be a non-empty package specifier (e.g. '@acme/models'). Received a whitespace-only string.`,
     );
   }
 
-  if (schemas.importPath && schemas.importPath.trim() !== schemas.importPath) {
+  if (value.trim() !== value) {
     throw new Error(
-      `schemas.importPath must be a non-empty package specifier (e.g. '@acme/models'). Received a value with leading or trailing whitespace: "${schemas.importPath}"`,
+      `\`${fieldName}\` must be a non-empty package specifier (e.g. '@acme/models'). Received a value with leading or trailing whitespace: "${value}"`,
     );
   }
 
-  if (schemas.importPath?.startsWith('.')) {
+  if (value.startsWith('.')) {
     throw new Error(
-      `schemas.importPath must be a package specifier (e.g. '@acme/models'), not a relative path. Received: "${schemas.importPath}"`,
+      `\`${fieldName}\` must be a package specifier (e.g. '@acme/models'), not a relative path. Received: "${value}"`,
     );
   }
 
   if (
-    schemas.importPath &&
-    (nodePath.isAbsolute(schemas.importPath) ||
-      /^[A-Za-z]:[\\/]/.test(schemas.importPath) ||
-      schemas.importPath.startsWith('\\\\'))
+    nodePath.isAbsolute(value) ||
+    /^[A-Za-z]:[\\/]/.test(value) ||
+    value.startsWith('\\\\')
   ) {
     throw new Error(
-      `schemas.importPath must be a package specifier (e.g. '@acme/models'), not an absolute path. Received: "${schemas.importPath}"`,
+      `\`${fieldName}\` must be a package specifier (e.g. '@acme/models'), not an absolute path. Received: "${value}"`,
     );
   }
-
-  return {
-    path: normalizePath(schemas.path, workspace),
-    type: schemas.type,
-    importPath: schemas.importPath,
-  };
 }
 
 function normalizeEffectOptions(
@@ -286,6 +303,13 @@ export async function normalizeOptions(
       );
     }
     seenMockTypes.add(entry.type);
+
+    if (entry.type === OutputMockType.FAKER) {
+      validatePackageSpecifier(
+        entry.schemasImportPath,
+        'mock.generators[faker].schemasImportPath',
+      );
+    }
   }
 
   const defaultFileExtension = '.ts';
@@ -339,7 +363,7 @@ export async function normalizeOptions(
     shouldExportQueryKey: true,
     shouldFilterQueryKey: false,
     shouldSplitQueryKey: false,
-    ...normalizeQueryOptions(outputOptions.override?.query, workspace),
+    ...normalizeQueryOptions(outputOptions.override?.query, outputWorkspace),
   };
 
   const normalizedOptions: NormalizedOptions = {
@@ -511,7 +535,7 @@ export async function normalizeOptions(
             ...(outputOptions.override?.zod?.preprocess?.param
               ? {
                   param: normalizeMutator(
-                    workspace,
+                    outputWorkspace,
                     outputOptions.override.zod.preprocess.param,
                   ),
                 }
@@ -519,7 +543,7 @@ export async function normalizeOptions(
             ...(outputOptions.override?.zod?.preprocess?.query
               ? {
                   query: normalizeMutator(
-                    workspace,
+                    outputWorkspace,
                     outputOptions.override.zod.preprocess.query,
                   ),
                 }
@@ -527,7 +551,7 @@ export async function normalizeOptions(
             ...(outputOptions.override?.zod?.preprocess?.header
               ? {
                   header: normalizeMutator(
-                    workspace,
+                    outputWorkspace,
                     outputOptions.override.zod.preprocess.header,
                   ),
                 }
@@ -535,7 +559,7 @@ export async function normalizeOptions(
             ...(outputOptions.override?.zod?.preprocess?.body
               ? {
                   body: normalizeMutator(
-                    workspace,
+                    outputWorkspace,
                     outputOptions.override.zod.preprocess.body,
                   ),
                 }
@@ -543,7 +567,7 @@ export async function normalizeOptions(
             ...(outputOptions.override?.zod?.preprocess?.response
               ? {
                   response: normalizeMutator(
-                    workspace,
+                    outputWorkspace,
                     outputOptions.override.zod.preprocess.response,
                   ),
                 }
@@ -552,7 +576,7 @@ export async function normalizeOptions(
           ...(outputOptions.override?.zod?.params
             ? {
                 params: normalizeMutator(
-                  workspace,
+                  outputWorkspace,
                   outputOptions.override.zod.params,
                 ),
               }
@@ -635,6 +659,42 @@ export async function normalizeOptions(
     throw new Error(
       styleText('red', `Config requires an output target or schemas.`),
     );
+  }
+
+  // The faker generator's `schemasImportPath` overrides where schema-level
+  // faker factories are imported from. Those factories are only emitted when
+  // `schemas: true`, and the override is only meaningful in package-import
+  // mode (`schemas.importPath`). Require both so a standalone
+  // `schemasImportPath` fails fast instead of silently doing nothing.
+  const fakerWithSchemasImportPath =
+    normalizedOptions.output.mock.generators.find(
+      (g): g is FakerMockOptions =>
+        !isFunction(g) &&
+        g.type === OutputMockType.FAKER &&
+        !!g.schemasImportPath,
+    );
+  if (fakerWithSchemasImportPath) {
+    if (fakerWithSchemasImportPath.schemas !== true) {
+      throw new Error(
+        styleText(
+          'red',
+          `\`mock.generators[faker].schemasImportPath\` requires \`schemas: true\` on the same generator. Schema-level faker factories are only emitted when \`schemas: true\`.`,
+        ),
+      );
+    }
+    if (
+      !(
+        isObject(normalizedOptions.output.schemas) &&
+        normalizedOptions.output.schemas.importPath
+      )
+    ) {
+      throw new Error(
+        styleText(
+          'red',
+          `\`mock.generators[faker].schemasImportPath\` requires \`schemas.importPath\` to also be set. It overrides the package specifier used for importing schema-level faker factories.`,
+        ),
+      );
+    }
   }
 
   // `paramsFilter` is only consumed by the Angular generator. That runs for
@@ -1242,7 +1302,7 @@ function normalizeQueryOptions(
   };
 }
 
-export function getDefaultFilesHeader({
+function getDefaultFilesHeader({
   title,
   description,
   version,

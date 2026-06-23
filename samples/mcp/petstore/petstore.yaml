@@ -36,6 +36,47 @@ tags:
   - name: user
     description: Operations about user
 paths:
+  /pet/filterByStatus:
+    post:
+      tags:
+        - pet
+      summary: Filter pets by status with an optional example body.
+      description: |-
+        Has a required query parameter alongside an optional request body, so the
+        generated client sorts the query parameter before the body. Guards against
+        the MCP handler passing the body and query arguments in the wrong order.
+      operationId: filterPetsByStatus
+      parameters:
+        - name: status
+          in: query
+          description: Status value that needs to be considered for filter
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Optional example pet to match against
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pet'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pet'
+        '400':
+          description: Invalid status value
+        default:
+          description: Unexpected error
+      security:
+        - petstore_auth:
+            - write:pets
+            - read:pets
   /pet/findByStatus:
     get:
       tags:

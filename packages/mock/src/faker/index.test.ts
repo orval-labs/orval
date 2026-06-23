@@ -1,12 +1,14 @@
 import type {
   ClientMockBuilder,
   FakerMockOptions,
+  GeneratorImport,
   GeneratorOptions,
   GeneratorSchema,
   GeneratorVerbOptions,
   GlobalMockOptions,
   MswMockOptions,
   NormalizedOverrideOutput,
+  OpenApiSchemaObject,
 } from '@orval/core';
 import { isFakerMock, isMswMock, OutputMockType } from '@orval/core';
 import { describe, expect, expectTypeOf, it } from 'vitest';
@@ -18,6 +20,7 @@ import {
   generateFakerForSchemas,
   generateFakerImports,
 } from './index';
+import { resolveMockValue } from './resolvers';
 
 const mockVerbOptions = {
   operationId: 'getUser',
@@ -287,6 +290,7 @@ describe('generateFakerForSchemas strict mock types (#3525)', () => {
     );
 
     expect(result.strictMockSchemaTypeNames).toEqual(['Status']);
+    expect(result.strictMockSchemaKinds).toEqual({ Status: 'alias' });
     expect(result.implementation).not.toContain('overrideResponse');
     expect(result.implementation).toContain(
       'export const getStatusMock = (): StatusMock =>',
@@ -296,12 +300,145 @@ describe('generateFakerForSchemas strict mock types (#3525)', () => {
     const finalized = dedupeStrictMockTypeDeclarations(result.implementation, {
       mockOptions: { required: true, nonNullable: true },
       strictSchemaTypeNames: result.strictMockSchemaTypeNames,
+      strictMockSchemaKinds: result.strictMockSchemaKinds,
     });
 
-    expect(finalized).toContain('export type StatusMock = {');
+    expect(finalized).toContain('export type StatusMock = Status;');
+    expect(finalized).not.toContain(
+      'export type StatusMock = {\n  [K in keyof Required<Status>]',
+    );
     expect(finalized).toContain('export type KeysWithNull<O>');
     expect(finalized.indexOf('export type StatusMock')).toBeLessThan(
       finalized.indexOf('export const getStatusMock'),
     );
+  });
+
+  it('does not emit null for nullable object schemas under strict nonNullable', () => {
+    const result = generateFakerForSchemas(
+      [
+        {
+          name: 'Widget',
+          model: 'Widget',
+          imports: [],
+          schema: {
+            type: ['object', 'null'],
+            properties: {
+              id: { type: 'string' },
+            },
+          },
+        },
+      ],
+      context,
+      { type: OutputMockType.FAKER, schemas: true },
+    );
+
+    expect(result.implementation).toContain(
+      'export const getWidgetMock = <O extends Partial<Widget> = {}>(overrideResponse?: O): MockWithNullableOverrides<Widget, O, WidgetMock> =>',
+    );
+    expect(result.implementation).not.toContain(', null]');
+  });
+});
+
+describe('generateFakerForSchemas recursion guards', () => {
+  const strictContext = createTestContextSpec({
+    override: {
+      mock: {
+        required: true,
+        nonNullable: true,
+      },
+    },
+  });
+
+  const run = (schemas: Record<string, OpenApiSchemaObject>, root: string) => {
+    strictContext.spec.components = { schemas };
+    return generateFakerForSchemas(
+      [
+        {
+          name: root,
+          model: root,
+          imports: [],
+          schema: schemas[root]!,
+        },
+      ],
+      strictContext,
+      { type: OutputMockType.FAKER, schemas: true },
+    );
+  };
+
+  it('does not overflow on a mutual allOf cycle (A allOf B, B allOf A)', () => {
+    expect(() =>
+      run(
+        {
+          A: { allOf: [{ $ref: '#/components/schemas/B' }] },
+          B: { allOf: [{ $ref: '#/components/schemas/A' }] },
+        },
+        'A',
+      ),
+    ).not.toThrow();
+  });
+
+  it('does not overflow on a multi-hop allOf inheritance cycle', () => {
+    expect(() =>
+      run(
+        {
+          A: { allOf: [{ $ref: '#/components/schemas/B' }] },
+          B: { allOf: [{ $ref: '#/components/schemas/C' }] },
+          C: { allOf: [{ $ref: '#/components/schemas/A' }] },
+        },
+        'A',
+      ),
+    ).not.toThrow();
+  });
+});
+
+describe('resolveMockValue returns one factory import per ref-property (#3606)', () => {
+  // Delegation to a `get<X>Mock` factory requires output.schemas to be set and
+  // the $ref to point at a components schema.
+  const context = createTestContextSpec({
+    output: {
+      schemas: 'model',
+      mock: {
+        indexMockFiles: false,
+        generators: [{ type: OutputMockType.FAKER, schemas: true }],
+      },
+    },
+    spec: {
+      components: {
+        schemas: {
+          LeafDTO: { type: 'object', properties: { id: { type: 'string' } } },
+        },
+      },
+    },
+  });
+
+  const resolveLeafRef = (imports: GeneratorImport[]) =>
+    resolveMockValue({
+      schema: { $ref: '#/components/schemas/LeafDTO' },
+      operationId: 'getUser',
+      tags: [],
+      context,
+      imports,
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+    });
+
+  it('returns only its own factory import', () => {
+    // Shared imports array given to both calls. The first call can't reveal the
+    // bug since imports is empty.
+    const imports: GeneratorImport[] = [];
+
+    const first = resolveLeafRef(imports);
+    expect(first.imports).toHaveLength(1);
+    expect(first.imports[0]).toMatchObject({
+      name: 'getLeafDTOMock',
+      schemaFactory: true,
+    });
+
+    const second = resolveLeafRef(imports);
+    expect(second.imports).toHaveLength(1);
+    expect(second.imports[0]).toMatchObject({
+      name: 'getLeafDTOMock',
+      schemaFactory: true,
+    });
   });
 });

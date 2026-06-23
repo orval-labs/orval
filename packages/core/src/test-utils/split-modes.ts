@@ -36,7 +36,7 @@ export const createSplitModeOperation = (
   ...overrides,
 });
 
-export const createSplitModeBuilder = (target: string): WriteSpecBuilder =>
+const createSplitModeBuilder = (target: string): WriteSpecBuilder =>
   ({
     operations: { listPets: createSplitModeOperation() },
     verbOptions: {},

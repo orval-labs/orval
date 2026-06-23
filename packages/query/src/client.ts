@@ -20,10 +20,7 @@ import {
   pascal,
   toObjectString,
 } from '@orval/core';
-import {
-  generateFetchHeader,
-  generateRequestFunction as generateFetchRequestFunction,
-} from '@orval/fetch';
+import { generateFetchHeader } from '@orval/fetch';
 
 import { getHasSignal, vueUnRefParams, vueWrapTypeWithMaybeRef } from './utils';
 
@@ -70,23 +67,6 @@ export const ANGULAR_HTTP_DEPENDENCIES = [
     dependency: 'rxjs/operators',
   },
 ] as const satisfies readonly GeneratorDependency[];
-
-export const generateQueryRequestFunction = (
-  verbOptions: GeneratorVerbOptions,
-  options: GeneratorOptions,
-  isVue: boolean,
-  isAngularClient = false,
-) => {
-  if (
-    isAngularClient ||
-    options.context.output.httpClient === OutputHttpClient.ANGULAR
-  ) {
-    return generateAngularHttpRequestFunction(verbOptions, options);
-  }
-  return options.context.output.httpClient === OutputHttpClient.AXIOS
-    ? generateAxiosRequestFunction(verbOptions, options, isVue)
-    : generateFetchRequestFunction(verbOptions, options);
-};
 
 export const generateAngularHttpRequestFunction = (
   {
@@ -143,7 +123,6 @@ export const generateAngularHttpRequestFunction = (
       hasSignal,
       hasSignalParam,
       isExactOptionalPropertyTypes,
-      isVue: false,
       isAngular: context.output.httpClient === OutputHttpClient.ANGULAR,
     });
 
@@ -355,7 +334,6 @@ export const generateAxiosRequestFunction = (
       hasSignal,
       hasSignalParam,
       isExactOptionalPropertyTypes,
-      isVue,
     });
 
     const bodyDefinition = body.definition.replace('[]', String.raw`\[\]`);
@@ -375,45 +353,29 @@ export const generateAxiosRequestFunction = (
       : '';
 
     if (mutator.isHook) {
-      const ret = `${
+      const hookSecondArg =
+        isRequestOptions && mutator.hasSecondArg
+          ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
+          : '';
+
+      const callback = `(\n    ${propsImplementation}\n ${hookSecondArg}${getSignalDefinition({ hasSignal, hasSignalParam })}) => {
+        ${isVue ? vueUnRefParams(props) : ''}
+        ${bodyForm}
+        return ${operationName}(
+          ${mutatorConfig},
+          ${requestOptions});
+        }`;
+
+      return `${
         override.query.shouldExportMutatorHooks ? 'export ' : ''
       }const use${pascal(operationName)}Hook = () => {
         const ${operationName} = ${mutator.name}<${
           response.definition.success || 'unknown'
         }>();
 
-        return useCallback((\n    ${propsImplementation}\n ${
-          isRequestOptions && mutator.hasSecondArg
-            ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
-            : ''
-        }${getSignalDefinition({ hasSignal, hasSignalParam })}) => {${bodyForm}
-        return ${operationName}(
-          ${mutatorConfig},
-          ${requestOptions});
-        }, [${operationName}])
+        return ${isVue ? callback : `useCallback(${callback}, [${operationName}])`}
       }
     `;
-
-      const vueRet = `${
-        override.query.shouldExportMutatorHooks ? 'export ' : ''
-      }const use${pascal(operationName)}Hook = () => {
-        const ${operationName} = ${mutator.name}<${
-          response.definition.success || 'unknown'
-        }>();
-
-        return (\n    ${propsImplementation}\n ${
-          isRequestOptions && mutator.hasSecondArg
-            ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
-            : ''
-        }${getSignalDefinition({ hasSignal, hasSignalParam })}) => {${bodyForm}
-        return ${operationName}(
-          ${mutatorConfig},
-          ${requestOptions});
-        }
-      }
-    `;
-
-      return isVue ? vueRet : ret;
     }
 
     return `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${propsImplementation}\n ${
@@ -449,7 +411,6 @@ export const generateAxiosRequestFunction = (
     isExactOptionalPropertyTypes,
     hasSignal,
     hasSignalParam,
-    isVue: isVue,
   });
 
   const optionsArgs = generateRequestOptionsArguments({
@@ -749,31 +710,6 @@ export const getMutationRequestArgs = (
         : ''
       : `${options}${fetcherArg}`
     : '';
-};
-
-export const getHttpFunctionQueryProps = (
-  isVue: boolean,
-  httpClient: OutputHttpClient,
-  queryProperties: string,
-  isAngular = false,
-  hasMutator = false,
-) => {
-  const result =
-    isVue && httpClient === OutputHttpClient.FETCH && queryProperties
-      ? queryProperties
-          .split(',')
-          .map((prop) => `unref(${prop})`)
-          .join(',')
-      : queryProperties;
-
-  // For Angular, prefix with http since request functions take HttpClient as first param
-  // Skip when custom mutator is used - mutator handles HTTP client internally
-  // http is required as first param so no assertion needed
-  if ((isAngular || httpClient === OutputHttpClient.ANGULAR) && !hasMutator) {
-    return result ? `http, ${result}` : 'http';
-  }
-
-  return result;
 };
 
 export const getQueryHeader: ClientHeaderBuilder = (params) => {

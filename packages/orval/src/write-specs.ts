@@ -108,6 +108,10 @@ function getHeader(
 /**
  * Add re-export of operation schemas from the main schemas index file.
  * Handles the case where the index file doesn't exist (no regular schemas).
+ *
+ * NOTE: `operationSchemasPath` is a directory, so under NodeNext the re-export
+ * would need an `/index.js` suffix rather than a bare `.js`. That directory-
+ * import case is tracked separately and intentionally left as-is here.
  */
 async function addOperationSchemasReExport(
   schemaPath: string,
@@ -181,8 +185,12 @@ async function writeFakerSchemaMocks(
     output,
   };
 
-  const { implementation, imports, strictMockSchemaTypeNames } =
-    generateFakerForSchemas(schemasWithDef, context, fakerEntry);
+  const {
+    implementation,
+    imports,
+    strictMockSchemaTypeNames,
+    strictMockSchemaKinds,
+  } = generateFakerForSchemas(schemasWithDef, context, fakerEntry);
 
   if (!implementation.trim()) {
     return undefined;
@@ -192,6 +200,7 @@ async function writeFakerSchemaMocks(
     ? builder.finalizeMockImplementation(implementation, {
         mockOptions: output.override.mock,
         strictSchemaTypeNames: strictMockSchemaTypeNames,
+        strictMockSchemaKinds,
       })
     : implementation;
 
@@ -537,19 +546,28 @@ export async function writeSpecs(
     const mockExtensions = output.mock.generators.map((g) =>
       getMockFileExtensionByTypeName(g),
     );
+    // Append `getImportExtension` so NodeNext / Node16 module resolution gets
+    // the required local-file extension on each barrel re-export. Derive the
+    // specifier from the full path so a multi-part `fileExtension` (e.g.
+    // `.generated.ts`) is stripped once in full rather than just the trailing
+    // `.ts`, which would double the prefix (e.g. `pets.generated.generated`).
+    const importExtension = getImportExtension(
+      output.fileExtension,
+      output.tsconfig,
+    );
     const imports = implementationPaths
       .filter(
         (p) =>
           mockExtensions.length === 0 ||
           !mockExtensions.some((ext) => p.endsWith(`.${ext}.ts`)),
       )
-      .map((p) =>
-        upath.getRelativeImportPath(
-          indexFile,
-          getFileInfo(p).pathWithoutExtension,
-          true,
-        ),
-      );
+      .map((p) => {
+        const relative = upath.getRelativeImportPath(indexFile, p, true);
+        const withoutExt = relative.endsWith(output.fileExtension)
+          ? relative.slice(0, -output.fileExtension.length)
+          : relative.replace(/\.[^/.]+$/, '');
+        return withoutExt + importExtension;
+      });
 
     if (output.schemas) {
       const schemasPath = isString(output.schemas)

@@ -4620,6 +4620,51 @@ const bodyOnlyApiSchema = {
     },
   },
 } as unknown as GeneratorOptions;
+
+// An operation with an array query param, to assert the single→array coercion
+// (`coerce.query: ['array']`) that lets a single repeated-key value parse.
+const arrayQueryApiSchema = {
+  pathRoute: '/cats',
+  context: {
+    spec: {
+      paths: {
+        '/cats': {
+          post: {
+            operationId: 'listCats',
+            parameters: [
+              {
+                name: 'tags',
+                in: 'query',
+                required: false,
+                explode: true,
+                schema: { type: 'array', items: { type: 'string' } },
+              },
+            ],
+            responses: {
+              '200': {
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: { name: { type: 'string' } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    output: {
+      override: {
+        zod: {
+          generateEachHttpStatus: false,
+        },
+      },
+    },
+  },
+} as unknown as GeneratorOptions;
 describe('generatePartOfSchemaGenerateZod', () => {
   it('Default Config', async () => {
     const result = await generateZod(
@@ -5138,6 +5183,97 @@ describe('generatePartOfSchemaGenerateZod', () => {
     expect(names).not.toContain('prependParam');
     expect(names).not.toContain('prependQuery');
     expect(names).not.toContain('prependHeader');
+  });
+
+  it("wraps array query params in a single→array preprocess when coerce includes 'array'", async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: true,
+              body: true,
+              response: true,
+              query: true,
+              header: true,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: ['array'],
+              header: false,
+            },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      arrayQueryApiSchema,
+      testOutput,
+    );
+
+    // A single repeated-key value arrives as a scalar; the wrap turns it into a
+    // 1-element array so both `?tags=a` and `?tags=a&tags=b` satisfy z.array(...).
+    expect(result.implementation).toContain(
+      'zod.preprocess((value) => value === undefined || Array.isArray(value) ? value : [value], zod.array(zod.string())',
+    );
+  });
+
+  it("leaves array query params untouched when coerce does not include 'array' (opt-in)", async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: true,
+              body: true,
+              response: true,
+              query: true,
+              header: true,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      arrayQueryApiSchema,
+      testOutput,
+    );
+
+    expect(result.implementation).toContain(
+      '"tags": zod.array(zod.string()).optional()',
+    );
+    expect(result.implementation).not.toContain('zod.preprocess');
   });
 });
 
@@ -9653,6 +9789,151 @@ describe('$dynamicRef / $dynamicAnchor', () => {
         .properties as Record<string, unknown>;
       expect(itemsProps).toBeDefined();
       expect(itemsProps.meow).toBeDefined();
+    });
+
+    it('resolves $dynamicRef to an inline $dynamicAnchor override, shadowing the global anchor (#3492)', () => {
+      const ctx = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+              Owner: {
+                type: 'object',
+                properties: {
+                  pet: {
+                    allOf: [
+                      {
+                        // inline override reached without a $ref — previously
+                        // ignored, so #Pet below resolved to the global Pet.
+                        $dynamicAnchor: 'Pet',
+                        type: 'object',
+                        properties: {
+                          meow: { type: 'boolean' },
+                          playmates: {
+                            type: 'array',
+                            items: { $dynamicRef: '#Pet' },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const resolved = dereference({ $ref: '#/components/schemas/Owner' }, ctx);
+
+      const pet = (resolved.properties as Record<string, unknown>)
+        .pet as Record<string, unknown>;
+      const inline = (pet.allOf as Record<string, unknown>[])[0];
+      const playmates = (inline.properties as Record<string, unknown>)
+        .playmates as Record<string, unknown>;
+      const items = playmates.items as Record<string, unknown>;
+      const itemsProps = items.properties as Record<string, unknown>;
+
+      // #Pet resolved to the inline override (meow), not the global Pet (name).
+      expect(itemsProps.meow).toBeDefined();
+      expect(itemsProps.name).toBeUndefined();
+    });
+
+    it('resolves $dynamicRef to an inline override reached via array items (#3492)', () => {
+      const ctx = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Pet: {
+                $dynamicAnchor: 'Pet',
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+              Owner: {
+                type: 'object',
+                properties: {
+                  pets: {
+                    type: 'array',
+                    items: {
+                      $dynamicAnchor: 'Pet',
+                      type: 'object',
+                      properties: {
+                        meow: { type: 'boolean' },
+                        sibling: { $dynamicRef: '#Pet' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const resolved = dereference({ $ref: '#/components/schemas/Owner' }, ctx);
+
+      const pets = (resolved.properties as Record<string, unknown>)
+        .pets as Record<string, unknown>;
+      const items = pets.items as Record<string, unknown>;
+      const itemsProps = items.properties as Record<string, unknown>;
+
+      expect(itemsProps.meow).toBeDefined();
+      expect(itemsProps.name).toBeUndefined();
+      // The sibling $dynamicRef also resolves to the inline override.
+      const siblingProps = (itemsProps.sibling as Record<string, unknown>)
+        .properties as Record<string, unknown>;
+      expect(siblingProps.meow).toBeDefined();
+    });
+
+    it('breaks cycles for a self-referential inline $dynamicAnchor override (#3492)', () => {
+      const ctx = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Owner: {
+                type: 'object',
+                properties: {
+                  pet: {
+                    allOf: [
+                      {
+                        $dynamicAnchor: 'Pet',
+                        type: 'object',
+                        properties: {
+                          meow: { type: 'boolean' },
+                          playmates: {
+                            type: 'array',
+                            items: { $dynamicRef: '#Pet' },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const resolved = dereference({ $ref: '#/components/schemas/Owner' }, ctx);
+
+      const pet = (resolved.properties as Record<string, unknown>)
+        .pet as Record<string, unknown>;
+      const inline = (pet.allOf as Record<string, unknown>[])[0];
+      const playmates = (inline.properties as Record<string, unknown>)
+        .playmates as Record<string, unknown>;
+      const items = playmates.items as Record<string, unknown>;
+      const itemsProps = items.properties as Record<string, unknown>;
+
+      // First-level resolution inlines the override...
+      expect(itemsProps.meow).toBeDefined();
+      // ...and the recursive $dynamicRef is broken into {} via parents tracking.
+      const innerPlaymates = itemsProps.playmates as Record<string, unknown>;
+      expect(innerPlaymates.items).toEqual({});
     });
 
     it('returns empty for external $dynamicRef', () => {

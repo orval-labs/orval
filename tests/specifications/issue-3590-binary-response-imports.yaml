@@ -1,0 +1,32 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Issue 3590 - binary response without response.imports
+  license:
+    name: MIT
+
+# Regression for https://github.com/orval-labs/orval/issues/3590
+# MSW/faker response mocks for Blob/binary content types must not assume
+# `response.imports` is always defined when aggregating faker imports.
+
+paths:
+  /pets/{petId}/photo:
+    get:
+      tags:
+        - Pets
+      operationId: getPetPhoto
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: ok
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary

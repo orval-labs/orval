@@ -12,6 +12,7 @@ import {
   getFileInfo,
   getFullRoute,
   getParamsInPath,
+  GetterPropType,
   isObject,
   isString,
   jsDoc,
@@ -153,7 +154,9 @@ export const generateMcp: ClientBuilder = (verbOptions) => {
     );
   }
   if (verbOptions.body.definition) {
-    handlerArgsTypes.push(`  bodyParams: ${verbOptions.body.definition};`);
+    handlerArgsTypes.push(
+      `  bodyParams${verbOptions.body.isOptional ? '?' : ''}: ${verbOptions.body.definition};`,
+    );
   }
 
   const handlerArgsName = `${verbOptions.operationName}Args`;
@@ -174,8 +177,18 @@ ${handlerArgsTypes.join('\n')}
 
     fetchParams.push(pathParamsArgs);
   }
-  if (verbOptions.body.definition) fetchParams.push(`args.bodyParams`);
-  if (verbOptions.queryParams) fetchParams.push(`args.queryParams`);
+  // Body and query args must follow the same order as the generated client
+  // function signature, which sorts required params before optional ones (see
+  // `getProps`/`sortByPriority`). Emitting a fixed body-then-query order would
+  // swap the two arguments whenever the query param is required and the body is
+  // optional, sending the body as the query string and vice versa.
+  for (const prop of verbOptions.props) {
+    if (prop.type === GetterPropType.BODY) {
+      fetchParams.push('args.bodyParams');
+    } else if (prop.type === GetterPropType.QUERY_PARAM) {
+      fetchParams.push('args.queryParams');
+    }
+  }
 
   const handlerName = `${verbOptions.operationName}Handler`;
   const handlerImplementation = `
@@ -240,7 +253,9 @@ export const generateServer = (
       if (verbOption.queryParams)
         inputSchemaTypes.push(`queryParams: ${pascalOperationName}QueryParams`);
       if (verbOption.body.definition)
-        inputSchemaTypes.push(`bodyParams: ${pascalOperationName}Body`);
+        inputSchemaTypes.push(
+          `bodyParams: ${pascalOperationName}Body${verbOption.body.isOptional ? '.optional()' : ''}`,
+        );
 
       const inputSchemaImplementation =
         inputSchemaTypes.length > 0

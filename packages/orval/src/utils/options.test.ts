@@ -350,6 +350,40 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('defaults schemas.type to typescript when omitted', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            schemas: {
+              path: './models',
+              importPath: '@acme/models',
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.schemas).toEqual({
+        path: expect.any(String) as string,
+        type: 'typescript',
+        importPath: '@acme/models',
+      });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('rejects a relative path as schemas.importPath', async () => {
     const workspace = await createTempWorkspace();
 
@@ -375,7 +409,7 @@ describe('normalizeOptions', () => {
           },
           workspace,
         ),
-      ).rejects.toThrow('schemas.importPath must be a package specifier');
+      ).rejects.toThrow('`schemas.importPath` must be a package specifier');
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -407,7 +441,7 @@ describe('normalizeOptions', () => {
           workspace,
         ),
       ).rejects.toThrow(
-        'schemas.importPath must be a non-empty package specifier',
+        '`schemas.importPath` must be a non-empty package specifier',
       );
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -439,7 +473,7 @@ describe('normalizeOptions', () => {
           },
           workspace,
         ),
-      ).rejects.toThrow('schemas.importPath must be a package specifier');
+      ).rejects.toThrow('`schemas.importPath` must be a package specifier');
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -600,6 +634,259 @@ describe('normalizeOptions', () => {
     }
   });
 
+  describe('faker schemasImportPath validation', () => {
+    it('rejects a relative path as schemasImportPath', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                schemas: {
+                  path: './models',
+                  type: 'typescript',
+                  importPath: '@acme/models',
+                },
+                mock: {
+                  generators: [
+                    {
+                      type: 'faker',
+                      schemas: true,
+                      schemasImportPath: './fakers',
+                    },
+                  ],
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(
+          '`mock.generators[faker].schemasImportPath` must be a package specifier',
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('rejects an empty string as schemasImportPath', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                schemas: {
+                  path: './models',
+                  type: 'typescript',
+                  importPath: '@acme/models',
+                },
+                mock: {
+                  generators: [
+                    {
+                      type: 'faker',
+                      schemas: true,
+                      schemasImportPath: '',
+                    },
+                  ],
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(
+          '`mock.generators[faker].schemasImportPath` must be a non-empty package specifier',
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('rejects an absolute path as schemasImportPath', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                schemas: {
+                  path: './models',
+                  type: 'typescript',
+                  importPath: '@acme/models',
+                },
+                mock: {
+                  generators: [
+                    {
+                      type: 'faker',
+                      schemas: true,
+                      schemasImportPath: '/abs/fakers',
+                    },
+                  ],
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(
+          '`mock.generators[faker].schemasImportPath` must be a package specifier',
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('rejects schemasImportPath when schemas.importPath is not set', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                schemas: {
+                  path: './models',
+                  type: 'typescript',
+                },
+                mock: {
+                  generators: [
+                    {
+                      type: 'faker',
+                      schemas: true,
+                      schemasImportPath: '@acme/models/fakers',
+                    },
+                  ],
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(
+          '`mock.generators[faker].schemasImportPath` requires `schemas.importPath` to also be set',
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('rejects schemasImportPath when schemas: true is not set on the faker generator', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                schemas: {
+                  path: './models',
+                  type: 'typescript',
+                  importPath: '@acme/models',
+                },
+                mock: {
+                  generators: [
+                    {
+                      type: 'faker',
+                      schemasImportPath: '@acme/models/fakers',
+                    },
+                  ],
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(
+          '`mock.generators[faker].schemasImportPath` requires `schemas: true`',
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('accepts a valid schemasImportPath when schemas.importPath is set', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              schemas: {
+                path: './models',
+                type: 'typescript',
+                importPath: '@acme/models',
+              },
+              mock: {
+                generators: [
+                  {
+                    type: 'faker',
+                    schemas: true,
+                    schemasImportPath: '@acme/models/fakers',
+                  },
+                ],
+              },
+            },
+          },
+          workspace,
+        );
+
+        const fakerGenerator = normalized.output.mock.generators[0] as {
+          schemasImportPath?: string;
+        };
+        expect(fakerGenerator.schemasImportPath).toBe('@acme/models/fakers');
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+  });
+
   it('defaults zod dateTimeOptions to { offset: true } so RFC3339 offset values are accepted', async () => {
     const workspace = await createTempWorkspace();
 
@@ -688,6 +975,98 @@ describe('normalizeOptions', () => {
       expect(normalized.output.override.zod.generateReusableSchemas).toBe(
         false,
       );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('resolves global zod mutators relative to the output workspace', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const outputWorkspace = path.join(workspace, 'generated');
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './api.ts',
+            workspace: './generated',
+            client: 'zod',
+            override: {
+              zod: {
+                preprocess: {
+                  param: './param.ts',
+                  query: './query.ts',
+                  header: './header.ts',
+                  body: './body.ts',
+                  response: './response.ts',
+                },
+                params: './params.ts',
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.zod.preprocess).toMatchObject({
+        param: { path: path.join(outputWorkspace, 'param.ts') },
+        query: { path: path.join(outputWorkspace, 'query.ts') },
+        header: { path: path.join(outputWorkspace, 'header.ts') },
+        body: { path: path.join(outputWorkspace, 'body.ts') },
+        response: { path: path.join(outputWorkspace, 'response.ts') },
+      });
+      expect(normalized.output.override.zod.params?.path).toBe(
+        path.join(outputWorkspace, 'params.ts'),
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('resolves global query mutators relative to the output workspace', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const outputWorkspace = path.join(workspace, 'generated');
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './api.ts',
+            workspace: './generated',
+            client: 'react-query',
+            override: {
+              query: {
+                queryKey: './queryKey.ts',
+                queryOptions: './queryOptions.ts',
+                mutationOptions: './mutationOptions.ts',
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.query).toMatchObject({
+        queryKey: { path: path.join(outputWorkspace, 'queryKey.ts') },
+        queryOptions: { path: path.join(outputWorkspace, 'queryOptions.ts') },
+        mutationOptions: {
+          path: path.join(outputWorkspace, 'mutationOptions.ts'),
+        },
+      });
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }

@@ -1192,6 +1192,26 @@ test('default issue-3505 enum values with backslashes are JS-escaped', async () 
   expect(timezone).not.toContain('\\/');
 });
 
+test('default issue-3583 param default values with backslashes are JS-escaped', async () => {
+  const endpoints = await readFile(
+    generated('default', 'issue-3583', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // Trailing backslash must stay escaped, otherwise `\'` swallows the closing
+  // quote and the parameter list fails to parse.
+  expect(endpoints).toContain("prefix: string = 'C:\\\\logs\\\\'");
+
+  // Embedded backslashes must survive, otherwise the default silently
+  // evaluates to `AppModelsDocument`.
+  expect(endpoints).toContain("namespace: string = 'App\\\\Models\\\\Document'");
+  expect(endpoints).not.toContain("'App\\Models\\Document'");
+
+  // Forward slashes must not be over-escaped (#3530 guard).
+  expect(endpoints).toContain("tz: string = 'Asia/Tokyo'");
+  expect(endpoints).not.toContain('\\/');
+});
+
 test('zod issue-3505 enum values with backslashes are JS-escaped', async () => {
   const content = await readFile(
     generated('zod', 'issue-3505', 'issue-3505.ts'),
@@ -1207,6 +1227,64 @@ test('zod issue-3505 enum values with backslashes are JS-escaped', async () => {
   expect(content).not.toContain('Asia\\/Tokyo');
 });
 
+test('mock issue-3590 strict faker schema mocks typecheck and emit correct aliases', async () => {
+  const fakerContent = await readFile(
+    generated('mock', 'issue-3590', 'model', 'index.faker.ts'),
+    'utf8',
+  );
+
+  expect(fakerContent).toContain('export type StatusMock = Status;');
+  expect(fakerContent).toContain('export type PhotoUploadMock = ArrayBuffer;');
+  expect(fakerContent).toContain(
+    '...(getPetSettingMock() as PetSettingMock)',
+  );
+  expect(fakerContent).toContain(
+    '...(getPetDetailResponseSettingsItemMock() as PetDetailSettingsItemMock)',
+  );
+  expect(fakerContent).not.toContain(
+    '[K in keyof Required<Status>]',
+  );
+});
+
+test('mock issue-3590 wide schema imports do not overflow when building index.faker.ts', async () => {
+  const fakerContent = await readFile(
+    generated('mock', 'issue-3590-wide-schema-imports', 'model', 'index.faker.ts'),
+    'utf8',
+  );
+
+  expect(fakerContent).toContain('export const getWideParentMock');
+  expect(fakerContent).toContain('getChild0Mock()');
+  expect(fakerContent).toContain('getChild29Mock()');
+});
+
+test('mock issue-3590 tags-split recovers consolidated schema factory imports', async () => {
+  const petsFaker = generated(
+    'mock',
+    'issue-3590-tags-split-schema-imports',
+    'pets',
+    'pets',
+    'pets.faker.ts',
+  );
+  const content = await readFile(petsFaker, 'utf8');
+
+  expect(content).toContain("from '../../schemas/index.faker'");
+  expect(content).toMatch(/import \{[^}]*getPetMock/);
+  expect(content).toMatch(/import type \{[^}]*PetMock/);
+  expect(content).toContain('getPetMock()');
+});
+
+test('mock issue-3590 binary responses generate when response.imports is absent', async () => {
+  const endpoints = generated(
+    'mock',
+    'issue-3590-binary-response-imports',
+    'endpoints.ts',
+  );
+  const content = await readFile(endpoints, 'utf8');
+
+  expect(content).toContain('getGetPetPhotoResponseMock');
+  expect(content).toMatch(/ArrayBuffer|binary/);
+});
+
 test('mock issue-3505 enum values with backslashes are JS-escaped', async () => {
   const content = await readFile(
     generated('mock', 'issue-3505', 'endpoints.ts'),
@@ -1220,4 +1298,80 @@ test('mock issue-3505 enum values with backslashes are JS-escaped', async () => 
   // #3530 guard: forward slashes stay unescaped.
   expect(content).toContain("'Asia/Tokyo'");
   expect(content).not.toContain('Asia\\/Tokyo');
+});
+
+test('axios NodeNext tags-split workspace barrel re-exports carry .js (#3596)', async () => {
+  // Regression for the barrel half of #3596: with `module: "nodenext"` and
+  // `output.workspace`, the generated workspace `index.ts` re-exports each tag
+  // file and the co-located schemas file. NodeNext forbids extensionless
+  // relative specifiers, so every `export * from '...'` in the barrel must
+  // carry a `.js` suffix. #3603 fixed the schema imports inside the tag files
+  // but missed the workspace barrel, which stripped extensions via
+  // `pathWithoutExtension` and never re-applied `getImportExtension`.
+  const barrel = await readFile(
+    generated('axios', 'petstore-tags-split-nodenext-workspace', 'index.ts'),
+    'utf8',
+  );
+
+  expect(barrel).toContain("export * from './health/health.js';");
+  expect(barrel).toContain("export * from './endpoints.schemas.js';");
+  expect(barrel).toContain("export * from './pets/pets.js';");
+  // No extensionless relative re-export may remain. The full barrel content
+  // is also pinned by the file snapshot above.
+  for (const line of barrel.split('\n')) {
+    if (line.startsWith('export * from ')) {
+      expect(line).toContain(".js';");
+    }
+  }
+});
+
+test('axios NodeNext tags-split mutator import defaults to .js without mutator.extension (#3596)', async () => {
+  // Regression for the mutator half of #3596: a relative `override.mutator`
+  // under `module: "nodenext"` must import with a `.js` suffix without the
+  // user pinning `mutator.extension`. Previously `getImport` appended
+  // `mutator.extension ?? ''`, dropping the extension entirely under NodeNext
+  // and forcing the manual `extension: '.js'` workaround. The fix derives the
+  // suffix from the mutator file's own extension via `getImportExtension` when
+  // `mutator.extension` is unset, matching how every generated import behaves.
+  const pets = await readFile(
+    generated(
+      'axios',
+      'petstore-tags-split-nodenext-mutator',
+      'pets',
+      'pets.ts',
+    ),
+    'utf8',
+  );
+
+  expect(pets).toContain(
+    "import listPetsMutator from '../../../../mutators/custom-client.js';",
+  );
+  // The body type re-export picks up the same derived suffix.
+  expect(pets).toContain(
+    "import type { BodyType as CreatePetsBodyType } from '../../../../mutators/custom-client.js';",
+  );
+  // No extensionless mutator import survives.
+  expect(pets).not.toContain("mutators/custom-client';");
+});
+
+test('axios tags-split workspace barrel keeps a multi-part fileExtension single (#3596)', async () => {
+  // Guard for a regression introduced by the barrel fix and caught in review:
+  // with `output.workspace` + a multi-part `fileExtension` (`.generated.ts`),
+  // the barrel must not double the prefix. `getFileInfo().pathWithoutExtension`
+  // strips only the trailing `.ts`, so naively appending
+  // `getImportExtension('.generated.ts')` (`.generated`) yielded
+  // `./pets/pets.generated.generated`. The fix derives the specifier from the
+  // full path and strips `fileExtension` once, matching the `schemas.ts` writer.
+  const barrel = await readFile(
+    generated('axios', 'petstore-tags-split-workspace-generated-ext', 'index.ts'),
+    'utf8',
+  );
+
+  expect(barrel).toContain("export * from './pets/pets.generated';");
+  expect(barrel).toContain("export * from './health/health.generated';");
+  expect(barrel).toContain(
+    "export * from './endpoints.schemas.generated';",
+  );
+  // No doubled prefix may appear.
+  expect(barrel).not.toContain('.generated.generated');
 });

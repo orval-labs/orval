@@ -37,7 +37,7 @@ export const ensureTypeScript = async (): Promise<boolean> => {
   return typeScriptAvailable;
 };
 
-export type ValidatorTarget =
+type ValidatorTarget =
   | 'header'
   | 'param'
   | 'query'
@@ -60,7 +60,7 @@ export interface DesiredHandler {
   stub: string;
 }
 
-export interface OrvalImport {
+interface OrvalImport {
   names: string[];
   /** Module specifier as orval would emit it (relative, extensionless). */
   module: string;

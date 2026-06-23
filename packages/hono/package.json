@@ -1,6 +1,6 @@
 {
   "name": "@orval/hono",
-  "version": "8.17.0",
+  "version": "8.18.0",
   "homepage": "https://orval.dev/docs/guides/hono",
   "bugs": {
     "url": "https://github.com/orval-labs/orval/issues"
@@ -25,8 +25,7 @@
   "dependencies": {
     "@orval/core": "workspace:*",
     "@orval/zod": "workspace:*",
-    "fs-extra": "^11.3.2",
-    "remeda": "^2.33.6"
+    "fs-extra": "^11.3.2"
   },
   "devDependencies": {
     "@hono/zod-validator": "catalog:hono",

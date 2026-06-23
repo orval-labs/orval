@@ -429,6 +429,40 @@ describe('angular httpResource generator', () => {
       expect(importNames).toContain('Pet');
       expect(importNames).not.toContain('Error');
     });
+
+    it('keeps zod array response imports type-only when parse is not generated', async () => {
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      });
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+          definition: { success: 'Pet[]', errors: 'Error' },
+          types: {
+            success: [createSuccessType('Pet[]', 'application/json')],
+            errors: [],
+          },
+        }),
+      });
+
+      const result = await generateHttpResourceClient(
+        verbOption,
+        createGeneratorOptions({
+          route: '/api/pets',
+          context: createContextSpec(output),
+          override: output.override,
+          output: output.target,
+        }),
+        'angular',
+        output,
+      );
+
+      expect(result.imports).toContainEqual({ name: 'Pet' });
+      expect(result.imports).not.toContainEqual({ name: 'Pet', values: true });
+    });
   });
 
   // ─── Route registry fallback ──────────────────────────────────────
@@ -2525,6 +2559,74 @@ describe('angular httpResource generator', () => {
   });
 
   // ── urlEncodeParameters ─────────────────────────────────────────────
+
+  describe('schema import extension follows tsconfig module', () => {
+    it('appends .js to per-schema imports under module: NodeNext with indexFiles false', async () => {
+      const verb = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+          definition: { success: 'Pet', errors: 'Error' },
+        }),
+      });
+
+      const output = createOutput({
+        target: '/tmp/pets.ts',
+        schemas: '/tmp/model',
+        indexFiles: false,
+        tsconfig: {
+          compilerOptions: { module: 'NodeNext' },
+        },
+      });
+
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: '/tmp/pets.ts',
+        projectName: 'pets',
+      });
+
+      const extraFiles = await generateHttpResourceExtraFiles(
+        { getPetById: verb },
+        output,
+        context,
+      );
+
+      const resourceFile = extraFiles[0];
+      expect(resourceFile?.content).toMatch(
+        /from\s+['"]\.\/model\/pet\.js['"]/,
+      );
+    });
+
+    it('keeps per-schema imports extensionless without tsconfig', async () => {
+      const verb = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+          definition: { success: 'Pet', errors: 'Error' },
+        }),
+      });
+
+      const output = createOutput({
+        target: '/tmp/pets.ts',
+        schemas: '/tmp/model',
+        indexFiles: false,
+      });
+
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: '/tmp/pets.ts',
+        projectName: 'pets',
+      });
+
+      const extraFiles = await generateHttpResourceExtraFiles(
+        { getPetById: verb },
+        output,
+        context,
+      );
+
+      const resourceFile = extraFiles[0];
+      expect(resourceFile?.content).toMatch(/from\s+['"]\.\/model\/pet['"]/);
+      expect(resourceFile?.content).not.toMatch(/from\s+['"]\.\/model\/pet\./);
+    });
+  });
 
   describe('urlEncodeParameters', () => {
     const generateRetrievalHeader = (urlEncodeParameters: boolean): string => {

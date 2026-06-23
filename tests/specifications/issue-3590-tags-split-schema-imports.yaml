@@ -1,0 +1,83 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Issue 3590 - tags-split schema factory imports
+  license:
+    name: MIT
+
+# Regression for https://github.com/orval-labs/orval/issues/3590
+# Tag-level faker files must import consolidated `get<Schema>Mock` helpers from
+# index.faker when operation responses delegate to component schemas under strict
+# mocks + `schemas: true`.
+
+paths:
+  /pets/store:
+    post:
+      tags:
+        - Pets
+      operationId: storePet
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetDetailResponse'
+
+components:
+  schemas:
+    ResponseBase:
+      type: object
+      required:
+        - statusCode
+      properties:
+        statusCode:
+          type: integer
+
+    Pet:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+
+    PetOwner:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+
+    HealthStatus:
+      type: object
+      required:
+        - healthy
+      properties:
+        healthy:
+          type: boolean
+
+    PetDetailResponse:
+      type: object
+      required:
+        - pet
+        - owners
+        - healthStatus
+      properties:
+        statusCode:
+          type: integer
+        pet:
+          $ref: '#/components/schemas/Pet'
+        owners:
+          type: array
+          items:
+            $ref: '#/components/schemas/PetOwner'
+        healthStatus:
+          $ref: '#/components/schemas/HealthStatus'
+      allOf:
+        - $ref: '#/components/schemas/ResponseBase'

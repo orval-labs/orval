@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 import {
   generateRequestOptionsArguments,
   getHookOptions,
-  getHttpFunctionQueryProps,
   getQueryArgumentsRequestType,
   getQueryHeader,
   getQueryOptions,
@@ -115,102 +114,6 @@ describe('getQueryHeader', () => {
     } as never);
 
     expect(header).toContain('function filterParams');
-  });
-});
-
-describe('getHttpFunctionQueryProps', () => {
-  describe('without mutator (native Angular)', () => {
-    it('should prefix with http for Angular httpClient', () => {
-      const result = getHttpFunctionQueryProps(
-        false,
-        OutputHttpClient.ANGULAR,
-        'params',
-        true,
-        false,
-      );
-      expect(result).toBe('http, params');
-    });
-
-    it('should return just http when no query properties for Angular', () => {
-      const result = getHttpFunctionQueryProps(
-        false,
-        OutputHttpClient.ANGULAR,
-        '',
-        true,
-        false,
-      );
-      expect(result).toBe('http');
-    });
-
-    it('should prefix with http when isAngular is true', () => {
-      const result = getHttpFunctionQueryProps(
-        false,
-        OutputHttpClient.AXIOS,
-        'params',
-        true,
-        false,
-      );
-      expect(result).toBe('http, params');
-    });
-  });
-
-  describe('with mutator (custom Angular mutator)', () => {
-    it('should NOT prefix with http when mutator is used', () => {
-      const result = getHttpFunctionQueryProps(
-        false,
-        OutputHttpClient.ANGULAR,
-        'params',
-        true,
-        true,
-      );
-      expect(result).toBe('params');
-    });
-
-    it('should return empty string when no query properties and mutator is used', () => {
-      const result = getHttpFunctionQueryProps(
-        false,
-        OutputHttpClient.ANGULAR,
-        '',
-        true,
-        true,
-      );
-      expect(result).toBe('');
-    });
-
-    it('should NOT prefix with http even when isAngular is true if mutator is used', () => {
-      const result = getHttpFunctionQueryProps(
-        false,
-        OutputHttpClient.AXIOS,
-        'params',
-        true,
-        true,
-      );
-      expect(result).toBe('params');
-    });
-  });
-
-  describe('non-Angular clients', () => {
-    it('should return query properties without http prefix for axios', () => {
-      const result = getHttpFunctionQueryProps(
-        false,
-        OutputHttpClient.AXIOS,
-        'params',
-        false,
-        false,
-      );
-      expect(result).toBe('params');
-    });
-
-    it('should return query properties without http prefix for fetch', () => {
-      const result = getHttpFunctionQueryProps(
-        false,
-        OutputHttpClient.FETCH,
-        'params',
-        false,
-        false,
-      );
-      expect(result).toBe('params');
-    });
   });
 });
 

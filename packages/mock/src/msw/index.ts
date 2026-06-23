@@ -13,6 +13,7 @@ import {
   isObject,
   pascal,
   type ResReqTypesValue,
+  type StrictMockSchemaKind,
 } from '@orval/core';
 
 import { getDelay } from '../delay';
@@ -24,7 +25,9 @@ import {
   getMockFactorySignatureParts,
   getSchemaTypeNamesFromResponses,
   getSimpleSchemaReturnType,
+  getStrictMockSchemaKindsFromResponses,
   isStrictMock,
+  mergeStrictMockSchemaKinds,
   mergeStrictMockSchemaTypeNames,
 } from '../mock-types';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
@@ -437,6 +440,18 @@ export const ${handlerName} = (overrideResponse?: ${mockReturnType} | ((${infoPa
           ),
         )
       : undefined,
+    strictMockSchemaKinds: strictMock
+      ? mergeStrictMockSchemaKinds(
+          getStrictMockSchemaKindsFromResponses(responses, context),
+          Object.fromEntries(
+            (
+              collectStrictMockSchemaTypeNamesFromImplementation(
+                mockImplementation,
+              ) ?? []
+            ).map((name) => [name, 'object' satisfies StrictMockSchemaKind]),
+          ),
+        )
+      : undefined,
   };
 }
 
@@ -484,6 +499,9 @@ export function generateMSW(
   const strictMockSchemaTypeNames = new Set(
     baseDefinition.strictMockSchemaTypeNames,
   );
+  const strictMockSchemaKinds: Record<string, StrictMockSchemaKind> = {
+    ...baseDefinition.strictMockSchemaKinds,
+  };
 
   if (
     generatorOptions.mock &&
@@ -514,6 +532,13 @@ export function generateMSW(
       for (const name of definition.strictMockSchemaTypeNames ?? []) {
         strictMockSchemaTypeNames.add(name);
       }
+      if (definition.strictMockSchemaKinds) {
+        for (const [name, kind] of Object.entries(
+          definition.strictMockSchemaKinds,
+        )) {
+          strictMockSchemaKinds[name] ??= kind;
+        }
+      }
     }
   }
 
@@ -528,5 +553,6 @@ export function generateMSW(
     imports: imports,
     strictMockSchemaTypeNames:
       aggregatedStrictNames.length > 0 ? aggregatedStrictNames : undefined,
+    strictMockSchemaKinds: mergeStrictMockSchemaKinds(strictMockSchemaKinds),
   };
 }

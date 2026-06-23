@@ -42,11 +42,21 @@ export const getAngularFilteredParamsExpression = (
     }
 `
     : '';
-  const preserveNullableBranch = preserveRequiredNullables
-    ? `    } else if (value === null && requiredNullableParamKeys.has(key)) {
+
+  // Generate requiredNullableParamKeys only if preserveRequiredNullables are 'true'
+  // Otherwise, typescript throw an error (TS6133: 'requiredNullableParamKeys' is declared but its value is never read.)
+  let preserveNullableBranch: string;
+  let requiredNullableParamKeysBranch: string;
+  if (preserveRequiredNullables) {
+    preserveNullableBranch = `    } else if (value === null && requiredNullableParamKeys.has(key)) {
       filteredParams[key] = null;
-`
-    : '';
+`;
+    requiredNullableParamKeysBranch = `const requiredNullableParamKeys = new Set<string>(${JSON.stringify(requiredNullableParamKeys)});`;
+  } else {
+    preserveNullableBranch = '';
+    requiredNullableParamKeysBranch = '';
+  }
+
   const scalarBranch = `    } else if (
       value != null &&
       (typeof value === 'string' ||
@@ -61,7 +71,7 @@ export const getAngularFilteredParamsExpression = (
     : '';
 
   return `(() => {
-${passthroughDecl}  const requiredNullableParamKeys = new Set<string>(${JSON.stringify(requiredNullableParamKeys)});
+${passthroughDecl}  ${requiredNullableParamKeysBranch}
   const filteredParams: Record<string, ${filteredParamValueType}> = {};
   for (const [key, value] of Object.entries(${paramsExpression})) {
 ${passthroughBranch}    if (Array.isArray(value)) {
@@ -250,7 +260,6 @@ interface GenerateAxiosOptions {
   requestOptions?: object | boolean;
   hasSignal: boolean;
   hasSignalParam?: boolean;
-  isVue: boolean;
   isAngular: boolean;
   paramsSerializer?: GeneratorMutator;
   paramsSerializerOptions?: ParamsSerializerOptions;
@@ -269,7 +278,6 @@ export function generateAxiosOptions({
   requestOptions,
   hasSignal,
   hasSignalParam = false,
-  isVue,
   isAngular,
   paramsSerializer,
   paramsSerializerOptions,
@@ -363,9 +371,7 @@ export function generateAxiosOptions({
     }
 
     if (queryParams) {
-      if (isVue) {
-        value += '\n        params: {...unref(params), ...options?.params},';
-      } else if (isAngular && angularParamsRef) {
+      if (isAngular && angularParamsRef) {
         value += `\n        params: ${angularParamsRef},`;
       } else if (isAngular && paramsSerializer) {
         const callExpr = buildAngularParamsFilterExpression({
@@ -428,7 +434,6 @@ interface GenerateOptionsOptions {
   isExactOptionalPropertyTypes: boolean;
   hasSignal: boolean;
   hasSignalParam?: boolean;
-  isVue?: boolean;
   paramsSerializer?: GeneratorMutator;
   paramsSerializerOptions?: ParamsSerializerOptions;
   paramsFilter?: GeneratorMutator;
@@ -450,7 +455,6 @@ export function generateOptions({
   isExactOptionalPropertyTypes,
   hasSignal,
   hasSignalParam,
-  isVue,
   paramsSerializer,
   paramsSerializerOptions,
   paramsFilter,
@@ -471,7 +475,6 @@ export function generateOptions({
     isExactOptionalPropertyTypes,
     hasSignal,
     hasSignalParam,
-    isVue: isVue ?? false,
     isAngular: isAngular ?? false,
     paramsSerializer,
     paramsSerializerOptions,
@@ -534,7 +537,6 @@ export function generateBodyMutatorConfig(
 
 export function generateQueryParamsAxiosConfig(
   response: GetterResponse,
-  isVue: boolean,
   isAngular: boolean,
   requiredNullableQueryParamKeys?: string[],
   queryParams?: GetterQueryParam,
@@ -547,9 +549,7 @@ export function generateQueryParamsAxiosConfig(
   let value = '';
 
   if (queryParams) {
-    if (isVue) {
-      value += ',\n        params: unref(params)';
-    } else if (isAngular) {
+    if (isAngular) {
       const paramsExpr = buildAngularParamsFilterExpression({
         paramsExpression: 'params ?? {}',
         requiredNullableParamKeys: requiredNullableQueryParamKeys,
@@ -582,7 +582,6 @@ interface GenerateMutatorConfigOptions {
   hasSignal: boolean;
   hasSignalParam?: boolean;
   isExactOptionalPropertyTypes: boolean;
-  isVue?: boolean;
   isAngular?: boolean;
   paramsFilter?: GeneratorMutator;
 }
@@ -599,7 +598,6 @@ export function generateMutatorConfig({
   hasSignal,
   hasSignalParam = false,
   isExactOptionalPropertyTypes,
-  isVue,
   isAngular,
   paramsFilter,
 }: GenerateMutatorConfigOptions) {
@@ -609,7 +607,6 @@ export function generateMutatorConfig({
 
   const queryParamsOptions = generateQueryParamsAxiosConfig(
     response,
-    isVue ?? false,
     isAngular ?? false,
     queryParams?.requiredNullableKeys,
     queryParams,

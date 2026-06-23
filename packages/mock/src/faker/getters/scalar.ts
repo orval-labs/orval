@@ -26,6 +26,7 @@ import {
   resolveMockValue,
 } from '../resolvers';
 import { extractArrayItemMock } from './array-item-factory';
+import { formatSchemaExampleValue } from '../format-example-value';
 import { getMockObject } from './object';
 
 interface GetMockScalarOptions {
@@ -131,7 +132,11 @@ export function getMockScalar({
         : item.example;
     if (propertyExample !== undefined) {
       return {
-        value: JSON.stringify(propertyExample),
+        value: formatSchemaExampleValue(
+          propertyExample,
+          item as OpenApiSchemaObject,
+          context,
+        ),
         imports: [],
         name: item.name,
         overrided: true,

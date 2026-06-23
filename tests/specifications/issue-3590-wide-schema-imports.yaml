@@ -1,0 +1,171 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Issue 3590 - wide schema faker import aggregation
+  license:
+    name: MIT
+
+# Regression for https://github.com/orval-labs/orval/issues/3590
+# With `schemas: true` and strict mocks, a single object schema that delegates
+# to many `$ref` component schemas must not duplicate the shared imports array
+# (stack overflow) when building index.faker.ts.
+
+paths: {}
+
+components:
+  schemas:
+    Child0:
+      type: object
+      properties:
+        id: { type: integer }
+    Child1:
+      type: object
+      properties:
+        id: { type: integer }
+    Child2:
+      type: object
+      properties:
+        id: { type: integer }
+    Child3:
+      type: object
+      properties:
+        id: { type: integer }
+    Child4:
+      type: object
+      properties:
+        id: { type: integer }
+    Child5:
+      type: object
+      properties:
+        id: { type: integer }
+    Child6:
+      type: object
+      properties:
+        id: { type: integer }
+    Child7:
+      type: object
+      properties:
+        id: { type: integer }
+    Child8:
+      type: object
+      properties:
+        id: { type: integer }
+    Child9:
+      type: object
+      properties:
+        id: { type: integer }
+    Child10:
+      type: object
+      properties:
+        id: { type: integer }
+    Child11:
+      type: object
+      properties:
+        id: { type: integer }
+    Child12:
+      type: object
+      properties:
+        id: { type: integer }
+    Child13:
+      type: object
+      properties:
+        id: { type: integer }
+    Child14:
+      type: object
+      properties:
+        id: { type: integer }
+    Child15:
+      type: object
+      properties:
+        id: { type: integer }
+    Child16:
+      type: object
+      properties:
+        id: { type: integer }
+    Child17:
+      type: object
+      properties:
+        id: { type: integer }
+    Child18:
+      type: object
+      properties:
+        id: { type: integer }
+    Child19:
+      type: object
+      properties:
+        id: { type: integer }
+    Child20:
+      type: object
+      properties:
+        id: { type: integer }
+    Child21:
+      type: object
+      properties:
+        id: { type: integer }
+    Child22:
+      type: object
+      properties:
+        id: { type: integer }
+    Child23:
+      type: object
+      properties:
+        id: { type: integer }
+    Child24:
+      type: object
+      properties:
+        id: { type: integer }
+    Child25:
+      type: object
+      properties:
+        id: { type: integer }
+    Child26:
+      type: object
+      properties:
+        id: { type: integer }
+    Child27:
+      type: object
+      properties:
+        id: { type: integer }
+    Child28:
+      type: object
+      properties:
+        id: { type: integer }
+    Child29:
+      type: object
+      properties:
+        id: { type: integer }
+    WideParent:
+      type: object
+      required:
+        - prop0
+      properties:
+        prop0: { $ref: '#/components/schemas/Child0' }
+        prop1: { $ref: '#/components/schemas/Child1' }
+        prop2: { $ref: '#/components/schemas/Child2' }
+        prop3: { $ref: '#/components/schemas/Child3' }
+        prop4: { $ref: '#/components/schemas/Child4' }
+        prop5: { $ref: '#/components/schemas/Child5' }
+        prop6: { $ref: '#/components/schemas/Child6' }
+        prop7: { $ref: '#/components/schemas/Child7' }
+        prop8: { $ref: '#/components/schemas/Child8' }
+        prop9: { $ref: '#/components/schemas/Child9' }
+        prop10: { $ref: '#/components/schemas/Child10' }
+        prop11: { $ref: '#/components/schemas/Child11' }
+        prop12: { $ref: '#/components/schemas/Child12' }
+        prop13: { $ref: '#/components/schemas/Child13' }
+        prop14: { $ref: '#/components/schemas/Child14' }
+        prop15: { $ref: '#/components/schemas/Child15' }
+        prop16: { $ref: '#/components/schemas/Child16' }
+        prop17: { $ref: '#/components/schemas/Child17' }
+        prop18: { $ref: '#/components/schemas/Child18' }
+        prop19: { $ref: '#/components/schemas/Child19' }
+        prop20: { $ref: '#/components/schemas/Child20' }
+        prop21: { $ref: '#/components/schemas/Child21' }
+        prop22: { $ref: '#/components/schemas/Child22' }
+        prop23: { $ref: '#/components/schemas/Child23' }
+        prop24: { $ref: '#/components/schemas/Child24' }
+        prop25: { $ref: '#/components/schemas/Child25' }
+        prop26: { $ref: '#/components/schemas/Child26' }
+        prop27: { $ref: '#/components/schemas/Child27' }
+        prop28: { $ref: '#/components/schemas/Child28' }
+        prop29: { $ref: '#/components/schemas/Child29' }

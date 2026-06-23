@@ -8,7 +8,7 @@ import {
 
 import { ANGULAR_HTTP_DEPENDENCIES, AXIOS_DEPENDENCIES } from './client';
 
-export const REACT_DEPENDENCIES: GeneratorDependency[] = [
+const REACT_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
       {
@@ -20,7 +20,7 @@ export const REACT_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-export const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
+const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
       {

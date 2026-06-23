@@ -1,16 +1,29 @@
+import path from 'node:path';
 import { styleText } from 'node:util';
 
 import fs from 'fs-extra';
 
 import type { GeneratorMutator, NormalizedMutator, Tsconfig } from '../types';
-import { getFileInfo, pascal, upath } from '../utils';
+import { getFileInfo, getImportExtension, pascal, upath } from '../utils';
 import { getMutatorInfo } from './mutator-info';
 
 export const BODY_TYPE_NAME = 'BodyType';
 
-const getImport = (output: string, mutator: NormalizedMutator) => {
+const getImport = (
+  output: string,
+  mutator: NormalizedMutator,
+  tsconfig?: Tsconfig,
+) => {
   const outputFile = getFileInfo(output).path;
-  return `${upath.getRelativeImportPath(outputFile, mutator.path)}${mutator.extension ?? ''}`;
+  // When the user hasn't pinned `mutator.extension`, derive it from the
+  // mutator file's own extension so NodeNext / Node16 projects get the
+  // required `.js` (`.mjs`/`.cjs`/`.jsx`) suffix on the relative import.
+  // `path.extname` reads the real extension; `getFileInfo().extension` only
+  // echoes its (`.ts`-defaulting) input parameter.
+  const ext =
+    mutator.extension ??
+    getImportExtension(path.extname(mutator.path), tsconfig);
+  return `${upath.getRelativeImportPath(outputFile, mutator.path)}${ext}`;
 };
 
 interface GenerateMutatorOptions {
@@ -81,7 +94,7 @@ export async function generateMutator({
     );
   }
 
-  const importStatementPath = getImport(output, mutator);
+  const importStatementPath = getImport(output, mutator, tsconfig);
 
   const isHook = mutator.name
     ? mutator.name.startsWith('use') && !mutatorInfo.numberOfParams

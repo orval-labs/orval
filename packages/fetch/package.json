@@ -1,6 +1,6 @@
 {
   "name": "@orval/fetch",
-  "version": "8.17.0",
+  "version": "8.18.0",
   "homepage": "https://orval.dev/docs/guides/fetch",
   "bugs": {
     "url": "https://github.com/orval-labs/orval/issues"
@@ -23,8 +23,7 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "@orval/core": "workspace:*",
-    "@scalar/openapi-types": "catalog:"
+    "@orval/core": "workspace:*"
   },
   "devDependencies": {
     "rimraf": "catalog:",

@@ -30,6 +30,7 @@ import {
   type ResReqTypesValue,
   toObjectString,
   upath,
+  getImportExtension,
 } from '@orval/core';
 
 import {
@@ -541,25 +542,86 @@ const getHttpResourceResponseImports = (
   });
 };
 
+const getParseSchemaName = (
+  response: {
+    readonly imports: readonly { name: string; isZodSchema?: boolean }[];
+    readonly definition: { readonly success?: string };
+  },
+  factory: HttpResourceFactoryName,
+  output: NormalizedOutputOptions,
+  responseTypeOverride?: string,
+): string | undefined => {
+  if (factory !== 'httpResource') return undefined;
+
+  // Explicit isZodSchema flag on imports (forward-compatible)
+  const zodSchema = response.imports.find((imp) => imp.isZodSchema);
+  if (zodSchema) return zodSchema.name;
+
+  // Check if runtime validation is disabled
+  if (!output.override.angular.runtimeValidation) return undefined;
+
+  // Auto-detect: when schemas.type === 'zod', use the response type as the schema name
+  if (!isZodSchemaOutput(output)) return undefined;
+
+  const responseType = responseTypeOverride ?? response.definition.success;
+  if (!responseType) return undefined;
+  if (isPrimitiveType(responseType)) return undefined;
+
+  // Verify a matching import exists (the response type name resolves to a zod schema)
+  const hasMatchingImport = response.imports.some(
+    (imp) => imp.name === responseType,
+  );
+  if (!hasMatchingImport) return undefined;
+
+  return responseType;
+};
+
+const getHttpResourceZodParsedImportNames = (
+  response: GeneratorVerbOptions['response'],
+  output: NormalizedOutputOptions,
+): Set<string> => {
+  const names = new Set<string>();
+
+  for (const successType of response.types.success) {
+    const schemaName = getParseSchemaName(
+      response,
+      getHttpResourceFactory(
+        response,
+        successType.contentType,
+        successType.value,
+      ),
+      output,
+      successType.value,
+    );
+
+    if (schemaName) {
+      names.add(schemaName);
+    }
+  }
+
+  return names;
+};
+
 const getHttpResourceVerbImports = (
   verbOptions: GeneratorVerbOptions,
   output: NormalizedOutputOptions,
 ): GeneratorImport[] => {
   const { response, body, queryParams, props, headers, params } = verbOptions;
-  const responseImports = isZodSchemaOutput(output)
-    ? [
-        ...getHttpResourceResponseImports(response).map((imp) => ({
-          ...imp,
-          values: true,
-        })),
-        ...getHttpResourceResponseImports(response)
-          .filter((imp) => !isPrimitiveType(imp.name))
-          .map((imp) => ({ name: getSchemaOutputTypeRef(imp.name) })),
-      ]
-    : getHttpResourceResponseImports(response);
+  const responseImports = getHttpResourceResponseImports(response);
+  const parsedZodImportNames = isZodSchemaOutput(output)
+    ? getHttpResourceZodParsedImportNames(response, output)
+    : new Set<string>();
+  const parsedZodImports = responseImports.filter((imp) =>
+    parsedZodImportNames.has(imp.name),
+  );
 
   return [
-    ...responseImports,
+    ...responseImports.map((imp) =>
+      parsedZodImportNames.has(imp.name) ? { ...imp, values: true } : imp,
+    ),
+    ...parsedZodImports
+      .filter((imp) => !isPrimitiveType(imp.name))
+      .map((imp) => ({ name: getSchemaOutputTypeRef(imp.name) })),
     ...body.imports,
     ...props.flatMap((prop) =>
       prop.type === GetterPropType.NAMED_PATH_PARAMS
@@ -582,29 +644,14 @@ const getParseExpression = (
   output: NormalizedOutputOptions,
   responseTypeOverride?: string,
 ): string | undefined => {
-  if (factory !== 'httpResource') return undefined;
-
-  // Explicit isZodSchema flag on imports (forward-compatible)
-  const zodSchema = response.imports.find((imp) => imp.isZodSchema);
-  if (zodSchema) return `${zodSchema.name}.parse`;
-
-  // Check if runtime validation is disabled
-  if (!output.override.angular.runtimeValidation) return undefined;
-
-  // Auto-detect: when schemas.type === 'zod', use the response type as the schema name
-  if (!isZodSchemaOutput(output)) return undefined;
-
-  const responseType = responseTypeOverride ?? response.definition.success;
-  if (!responseType) return undefined;
-  if (isPrimitiveType(responseType)) return undefined;
-
-  // Verify a matching import exists (the response type name resolves to a zod schema)
-  const hasMatchingImport = response.imports.some(
-    (imp) => imp.name === responseType,
+  const schemaName = getParseSchemaName(
+    response,
+    factory,
+    output,
+    responseTypeOverride,
   );
-  if (!hasMatchingImport) return undefined;
 
-  return `${responseType}.parse`;
+  return schemaName ? `${schemaName}.parse` : undefined;
 };
 
 /**
@@ -1431,7 +1478,10 @@ const buildSchemaImportDependencies = (
       const baseName = imp.schemaName ?? imp.name;
       const name = conventionName(baseName, output.namingConvention);
       const suffix = isZod ? '.zod' : '';
-      const importExtension = output.fileExtension.replace(/\.ts$/, '');
+      const importExtension = getImportExtension(
+        output.fileExtension,
+        output.tsconfig,
+      );
       return {
         exports: isZod ? [{ ...imp, values: true }] : [imp],
         dependency: upath.joinSafe(

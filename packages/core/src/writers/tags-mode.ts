@@ -5,6 +5,7 @@ import { OutputMockType, type WriteModeProps } from '../types';
 import {
   conventionName,
   getFileInfo,
+  getImportExtension,
   getSchemasImportPath,
   isFunction,
   isString,
@@ -16,8 +17,15 @@ import {
 import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
 import { escapeRegExp } from '../utils/string';
 import { writeGeneratedFile } from './file';
-import { getFinalizeMockImplementationOptions } from './finalize-mock-implementation';
+import {
+  getFinalizeMockImplementationOptions,
+  filterLocalStrictMockTypeImports,
+} from './finalize-mock-implementation';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
+import {
+  collectRecoveredSchemaFactoryImports,
+  mergeGeneratorImports,
+} from './mock-imports';
 import { collapseInlineMockOutputs } from './mock-outputs';
 import {
   getMockDir,
@@ -74,7 +82,10 @@ export async function writeTagsMode({
           { extension: output.fileExtension },
         ).dirname,
       ))
-    : './' + filename + '.schemas' + extension.replace(/\.ts$/, '');
+    : './' +
+      filename +
+      '.schemas' +
+      getImportExtension(extension, output.tsconfig);
 
   const schemasTarget = output.schemas
     ? getFileInfo(
@@ -83,7 +94,7 @@ export async function writeTagsMode({
       ).dirname
     : path.join(
         dirname,
-        filename + '.schemas' + extension.replace(/\.ts$/, ''),
+        filename + '.schemas' + getImportExtension(extension, output.tsconfig),
       );
 
   const tagEntries = Object.entries(target).toSorted(([a], [b]) =>
@@ -313,20 +324,44 @@ export async function writeTagsMode({
               schemaCustomImportPath ??
               resolveMockSchemasPath(mockFilePath, schemasTarget);
 
-            const importsMockForBuilder = generateImportsForBuilder(
+            const finalizeMockOptions = getFinalizeMockImplementationOptions(
               output,
-              mockOutput.imports,
-              mockRelativeSchemasPath,
+              mockOutput,
             );
 
-            let mockData = header;
             const finalizedMockImplementation =
               builder.finalizeMockImplementation
                 ? builder.finalizeMockImplementation(
                     mockOutput.implementation,
-                    getFinalizeMockImplementationOptions(output, mockOutput),
+                    finalizeMockOptions,
                   )
                 : mockOutput.implementation;
+
+            const usesSchemaFactories =
+              !isFunction(rawEntry) &&
+              rawEntry.type === OutputMockType.FAKER &&
+              rawEntry.schemas === true;
+            const recoveredSchemaFactoryImports =
+              usesSchemaFactories && output.schemas
+                ? collectRecoveredSchemaFactoryImports(
+                    finalizedMockImplementation,
+                    builder.schemas.filter((s) => s.schema).map((s) => s.name),
+                  )
+                : [];
+
+            const importsMockForBuilder = generateImportsForBuilder(
+              output,
+              filterLocalStrictMockTypeImports(
+                mergeGeneratorImports(
+                  mockOutput.imports,
+                  recoveredSchemaFactoryImports,
+                ),
+                finalizeMockOptions.strictSchemaTypeNames,
+              ),
+              mockRelativeSchemasPath,
+            );
+
+            let mockData = header;
             mockData += builder.importsMock({
               implementation: finalizedMockImplementation,
               imports: importsMockForBuilder,
@@ -370,6 +405,7 @@ export async function writeTagsMode({
   );
 
   if (shouldDeinlineMocks && output.mock.indexMockFiles) {
+    const mockImportExtension = getImportExtension(extension, output.tsconfig);
     for (const { ext, mockDir, tags } of mockIndexEntries) {
       const indexPath = path.join(mockDir, `index.${ext}${extension}`);
       const indexContent = tags
@@ -378,7 +414,7 @@ export async function writeTagsMode({
           const localMockPath = upath.joinSafe(
             './',
             kebabTag,
-            kebabTag + '.' + ext,
+            kebabTag + '.' + ext + mockImportExtension,
           );
           return ext === OutputMockType.MSW
             ? `export { get${pascal(kebabTag)}Mock } from '${localMockPath}'\n`

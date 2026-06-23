@@ -431,6 +431,65 @@ export function buildDynamicScope(
 }
 
 /**
+ * Build dynamic scope entries for an **anonymous inline** subschema that declares
+ * `$dynamicAnchor` without a `$ref` (e.g. inside `allOf`, `items`, nested props).
+ *
+ * Unlike {@link buildDynamicScope}, entries carry the concrete `inlineSchema` so
+ * that a descendant `$dynamicRef` resolves to the inline override rather than the
+ * outer/global component. Used when `dereference` enters a subschema without a
+ * named component `$ref`.
+ *
+ * Scope of handling (deliberate, see #3492):
+ *   - Direct `$dynamicAnchor` on the subschema → inline entry.
+ *   - `$defs` `$dynamicAnchor` *without* a `$ref` → inline entry. Note this
+ *     differs from `buildDynamicScope`, which treats unbound `$defs` anchors as
+ *     generic parameters (`isParameter`); inline subschemas are concrete
+ *     instances, so the anchor resolves to the inline schema object itself.
+ *   - `$defs` `$dynamicAnchor` *with* a `$ref` → intentionally NOT collected
+ *     here. Such anchors rely on `resolveDynamicRef`'s global fallback (which
+ *     finds them when the `$ref` target declares the same anchor). Fully
+ *     resolving them would duplicate `buildDynamicScope`'s `$defs` logic.
+ */
+export function buildInlineDynamicScope(
+  schema: OpenApiSchemaObject,
+): Record<string, DynamicScopeEntry> {
+  const scope: Record<string, DynamicScopeEntry> = {};
+  const schemaRecord = schema as Record<string, unknown>;
+
+  if (typeof schemaRecord.$dynamicAnchor === 'string') {
+    const anchor = schemaRecord.$dynamicAnchor;
+    scope[anchor] = {
+      name: anchor,
+      schemaName: anchor,
+      inlineSchema: schema,
+    };
+  }
+
+  const defs = schemaRecord.$defs as
+    | Record<string, OpenApiSchemaObject | OpenApiReferenceObject>
+    | undefined;
+  if (defs && typeof defs === 'object') {
+    for (const defSchema of Object.values(defs)) {
+      if (!defSchema || typeof defSchema !== 'object') continue;
+      const defRecord = defSchema as Record<string, unknown>;
+      if (
+        typeof defRecord.$dynamicAnchor === 'string' &&
+        !(defSchema as OpenApiReferenceObject).$ref
+      ) {
+        const anchor = defRecord.$dynamicAnchor;
+        scope[anchor] = {
+          name: anchor,
+          schemaName: anchor,
+          inlineSchema: defSchema as OpenApiSchemaObject,
+        };
+      }
+    }
+  }
+
+  return scope;
+}
+
+/**
  * Resolve a `$dynamicRef` anchor to its concrete type using the current dynamic scope.
  * Returns `{ schema: {}, resolvedTypeName: 'unknown' }` when no scope override exists.
  */
@@ -492,6 +551,15 @@ export function resolveDynamicRef(
   if (scopeEntry.isParameter) {
     return {
       schema: {},
+      imports,
+      resolvedTypeName: scopeEntry.name,
+      schemaName: undefined,
+    };
+  }
+
+  if (scopeEntry.inlineSchema) {
+    return {
+      schema: scopeEntry.inlineSchema,
       imports,
       resolvedTypeName: scopeEntry.name,
       schemaName: undefined,

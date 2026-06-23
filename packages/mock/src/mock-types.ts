@@ -1,9 +1,16 @@
 import {
   escapeRegExp,
+  type ContextSpec,
   type FinalizeMockImplementationOptions,
   type MockOptions,
+  type OpenApiReferenceObject,
+  type OpenApiSchemaObject,
+  resolveRef,
   type ResReqTypesValue,
+  type StrictMockSchemaKind,
 } from '@orval/core';
+
+export type { StrictMockSchemaKind };
 
 export function isStrictMock(
   mockOptions?: Pick<MockOptions, 'required' | 'nonNullable'>,
@@ -31,13 +38,110 @@ export type MockWithNullableOverrides<
 };`;
 }
 
-export function getStrictMockTypeDeclaration(typeName: string): string {
+export function isSchemaNullableAtRoot(schema?: OpenApiSchemaObject): boolean {
+  if (!schema) {
+    return false;
+  }
+
+  if (schema.nullable === true) {
+    return true;
+  }
+
+  const type = schema.type;
+  return Array.isArray(type) && type.includes('null');
+}
+
+export function classifyStrictMockSchemaType(
+  schema?: OpenApiSchemaObject,
+  context?: ContextSpec,
+): StrictMockSchemaKind {
+  if (!schema) {
+    return 'object';
+  }
+
+  if (
+    schema.format === 'binary' ||
+    (schema.contentMediaType === 'application/octet-stream' &&
+      !schema.contentEncoding)
+  ) {
+    return 'binary';
+  }
+
+  if (typeof schema.$ref === 'string') {
+    if (context) {
+      const { schema: resolved } = resolveRef(
+        schema as OpenApiReferenceObject,
+        context,
+      );
+      return classifyStrictMockSchemaType(
+        resolved as OpenApiSchemaObject,
+        context,
+      );
+    }
+
+    return 'object';
+  }
+
+  if (
+    schema.type === 'object' ||
+    schema.properties ||
+    isComposedObjectSchema(schema)
+  ) {
+    return 'object';
+  }
+
+  return 'alias';
+}
+
+function isComposedObjectSchema(schema: OpenApiSchemaObject): boolean {
+  const branches = (schema.oneOf ?? schema.anyOf ?? schema.allOf) as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+  if (!branches?.length) {
+    return false;
+  }
+
+  return branches.some((branch) => {
+    const item = branch as OpenApiSchemaObject;
+    if (
+      typeof item.$ref === 'string' ||
+      item.type === 'object' ||
+      item.properties
+    ) {
+      return true;
+    }
+
+    return isComposedObjectSchema(item);
+  });
+}
+
+export function getStrictMockTypeDeclaration(
+  typeName: string,
+  kind: StrictMockSchemaKind = 'object',
+  options?: { schemaNullableAtRoot?: boolean },
+): string {
   const mockTypeName = getStrictMockTypeName(typeName);
-  return `export type ${mockTypeName} = {\n  [K in keyof Required<${typeName}>]: NonNullable<Required<${typeName}>[K]>;\n};`;
+
+  if (kind === 'alias') {
+    return `export type ${mockTypeName} = ${typeName};`;
+  }
+
+  if (kind === 'binary') {
+    return `export type ${mockTypeName} = ArrayBuffer;`;
+  }
+
+  const mappedType = `{\n  [K in keyof Required<NonNullable<${typeName}>>]: NonNullable<Required<NonNullable<${typeName}>>[K]>;\n}`;
+  const objectMockType = options?.schemaNullableAtRoot
+    ? `${mappedType} | null`
+    : mappedType;
+
+  return `export type ${mockTypeName} = ${objectMockType};`;
 }
 
 export function getStrictMockTypeDeclarations(
   typeNames: Iterable<string>,
+  kinds?: Readonly<Record<string, StrictMockSchemaKind>>,
+  nullableAtRoot?: Readonly<Record<string, boolean>>,
 ): string {
   const unique = [...new Set(typeNames)];
   if (unique.length === 0) {
@@ -45,8 +149,95 @@ export function getStrictMockTypeDeclarations(
   }
 
   return unique
-    .map((typeName) => getStrictMockTypeDeclaration(typeName))
+    .map((typeName) =>
+      getStrictMockTypeDeclaration(typeName, kinds?.[typeName] ?? 'object', {
+        schemaNullableAtRoot: nullableAtRoot?.[typeName],
+      }),
+    )
     .join('\n\n');
+}
+
+function strictMockResolvedImportMatches(
+  typeName: string,
+  resolvedImport: { name?: string; alias?: string } | undefined,
+  importBareName?: string,
+): boolean {
+  const resolvedName = resolvedImport?.name;
+  if (!resolvedName) {
+    return false;
+  }
+
+  if (typeName === resolvedName) {
+    return true;
+  }
+
+  if (resolvedImport.alias && typeName === resolvedImport.alias) {
+    return true;
+  }
+
+  return importBareName !== undefined && importBareName === resolvedName;
+}
+
+function resolveStrictMockSchemaForTypeName(
+  typeName: string,
+  originalSchema: OpenApiSchemaObject | undefined,
+  context?: ContextSpec,
+  importBareName?: string,
+): OpenApiSchemaObject | undefined {
+  if (!originalSchema) {
+    return undefined;
+  }
+
+  if (!context) {
+    return originalSchema;
+  }
+
+  const branches = (originalSchema.oneOf ??
+    originalSchema.anyOf ??
+    originalSchema.allOf) as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+
+  if (branches?.length) {
+    for (const branch of branches) {
+      if (typeof branch.$ref !== 'string') {
+        continue;
+      }
+
+      const resolved = resolveRef(branch as OpenApiReferenceObject, context);
+      if (
+        strictMockResolvedImportMatches(
+          typeName,
+          resolved.imports[0],
+          importBareName,
+        )
+      ) {
+        return resolved.schema as OpenApiSchemaObject;
+      }
+    }
+
+    return undefined;
+  }
+
+  if (typeof originalSchema.$ref === 'string') {
+    const resolved = resolveRef(
+      originalSchema as OpenApiReferenceObject,
+      context,
+    );
+    if (
+      strictMockResolvedImportMatches(
+        typeName,
+        resolved.imports[0],
+        importBareName,
+      )
+    ) {
+      return resolved.schema as OpenApiSchemaObject;
+    }
+
+    return undefined;
+  }
+
+  return originalSchema;
 }
 
 export function getMockFactoryReturnType(
@@ -161,11 +352,74 @@ export function getSchemaTypeNamesFromResponses(
   return [...names];
 }
 
+export function getStrictMockSchemaKindsFromResponses(
+  responses: ResReqTypesValue[],
+  context?: ContextSpec,
+): Record<string, StrictMockSchemaKind> {
+  const kinds: Record<string, StrictMockSchemaKind> = {};
+
+  for (const response of responses) {
+    for (const imp of response.imports) {
+      if (imp.values || imp.schemaFactory) {
+        continue;
+      }
+
+      const importName = imp.alias ?? imp.name;
+      if (!/^[A-Z]\w*$/.test(importName)) {
+        continue;
+      }
+
+      const schemaForImport = resolveStrictMockSchemaForTypeName(
+        importName,
+        response.originalSchema,
+        context,
+        imp.name,
+      );
+      if (!schemaForImport) {
+        continue;
+      }
+
+      kinds[importName] = classifyStrictMockSchemaType(
+        schemaForImport,
+        context,
+      );
+    }
+
+    const { value } = response;
+    if (!value || !response.originalSchema) {
+      continue;
+    }
+
+    const baseType = value.endsWith('[]') ? value.slice(0, -2) : value;
+    if (!/^[A-Z]\w*$/.test(baseType)) {
+      continue;
+    }
+
+    const schema = response.originalSchema;
+    if (value.endsWith('[]') && schema.type === 'array' && schema.items) {
+      const items = schema.items as OpenApiSchemaObject;
+      kinds[baseType] = classifyStrictMockSchemaType(items, context);
+      continue;
+    }
+
+    const schemaForType =
+      resolveStrictMockSchemaForTypeName(
+        baseType,
+        response.originalSchema,
+        context,
+      ) ?? response.originalSchema;
+    kinds[baseType] = classifyStrictMockSchemaType(schemaForType, context);
+  }
+
+  return kinds;
+}
+
 export function buildStrictMockTypeFileHeader(
   schemaTypeNames: Iterable<string>,
+  kinds?: Readonly<Record<string, StrictMockSchemaKind>>,
 ): string {
   const uniqueSchemaNames = [...new Set(schemaTypeNames)];
-  const schemaBlock = getStrictMockTypeDeclarations(uniqueSchemaNames);
+  const schemaBlock = getStrictMockTypeDeclarations(uniqueSchemaNames, kinds);
 
   return [getStrictMockHelperTypeDeclarations(), schemaBlock]
     .filter(Boolean)
@@ -194,7 +448,10 @@ export function dedupeStrictMockTypeDeclarations(
     return implementation;
   }
 
-  const header = buildStrictMockTypeFileHeader(schemaTypeNames);
+  const header = buildStrictMockTypeFileHeader(
+    schemaTypeNames,
+    options.strictMockSchemaKinds,
+  );
 
   return `${header}\n\n${implementation.trimStart()}`;
 }
@@ -278,4 +535,19 @@ export function mergeStrictMockSchemaTypeNames(
   }
 
   return names.size > 0 ? [...names] : undefined;
+}
+
+export function mergeStrictMockSchemaKinds(
+  ...groups: Array<Readonly<Record<string, StrictMockSchemaKind>> | undefined>
+): Record<string, StrictMockSchemaKind> | undefined {
+  const merged: Record<string, StrictMockSchemaKind> = {};
+
+  for (const group of groups) {
+    if (!group) continue;
+    for (const [name, kind] of Object.entries(group)) {
+      merged[name] ??= kind;
+    }
+  }
+
+  return Object.keys(merged).length > 0 ? merged : undefined;
 }

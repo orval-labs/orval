@@ -1,0 +1,111 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Issue 3590 - strict faker schema mock type errors
+  license:
+    name: MIT
+
+# Regression for https://github.com/orval-labs/orval/issues/3590
+# With override.mock.required and override.mock.nonNullable both true,
+# schemas/index.faker.ts must typecheck: enum *Mock aliases, nested factory
+# spreads, and binary Blob vs ArrayBuffer mocks.
+
+paths: {}
+
+components:
+  schemas:
+    Pet:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        tag:
+          type: string
+          nullable: true
+        birthDate:
+          type: string
+          format: date-time
+          nullable: true
+        photoUrls:
+          type: array
+          items:
+            type: string
+          nullable: true
+
+    Status:
+      type: string
+      enum:
+        - active
+        - inactive
+
+    PetCategory:
+      type: string
+      enum:
+        - dog
+        - cat
+        - bird
+
+    PetSetting:
+      required:
+        - name
+        - category
+      type: object
+      properties:
+        name:
+          type: string
+        category:
+          $ref: '#/components/schemas/PetCategory'
+        notes:
+          type: string
+          nullable: true
+
+    PetProfile:
+      required:
+        - categories
+        - settings
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/PetCategory'
+        settings:
+          type: array
+          items:
+            $ref: '#/components/schemas/PetSetting'
+
+    PetDetail:
+      required:
+        - id
+        - settings
+      type: object
+      properties:
+        id:
+          type: string
+        settings:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+              value:
+                type: string
+
+    PhotoUpload:
+      type: string
+      format: binary
+
+    PetList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Pet'
+
+    Score:
+      type: number

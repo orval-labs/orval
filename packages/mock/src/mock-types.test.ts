@@ -10,12 +10,16 @@ import {
   getMockFactorySignatureParts,
   getSchemaTypeNamesFromResponses,
   getSimpleSchemaReturnType,
+  getStrictMockSchemaKindsFromResponses,
   getStrictMockHelperTypeDeclarations,
+  classifyStrictMockSchemaType,
   getStrictMockTypeDeclaration,
   getStrictMockTypeDeclarations,
   getStrictMockTypeName,
+  isSchemaNullableAtRoot,
   isStrictMock,
 } from './mock-types';
+import { createTestContextSpec } from '../../core/src/test-utils/context';
 
 describe('mock-types', () => {
   describe('isStrictMock', () => {
@@ -35,6 +39,80 @@ describe('mock-types', () => {
       expect(getStrictMockHelperTypeDeclarations()).toContain(
         'export type MockWithNullableOverrides',
       );
+    });
+  });
+
+  describe('classifyStrictMockSchemaType', () => {
+    it('classifies object, enum, array, scalar, and binary schemas', () => {
+      expect(
+        classifyStrictMockSchemaType({
+          type: 'object',
+          properties: { id: { type: 'string' } },
+        }),
+      ).toBe('object');
+      expect(
+        classifyStrictMockSchemaType({
+          type: 'string',
+          enum: ['active', 'inactive'],
+        }),
+      ).toBe('alias');
+      expect(
+        classifyStrictMockSchemaType({
+          $ref: '#/components/schemas/Pet',
+        }),
+      ).toBe('object');
+      expect(
+        classifyStrictMockSchemaType({
+          type: 'array',
+          items: { type: 'string' },
+        }),
+      ).toBe('alias');
+      expect(classifyStrictMockSchemaType({ type: 'number' })).toBe('alias');
+      expect(
+        classifyStrictMockSchemaType({ type: 'string', format: 'binary' }),
+      ).toBe('binary');
+      expect(
+        classifyStrictMockSchemaType({
+          oneOf: [{ type: 'string' }, { type: 'number' }],
+        }),
+      ).toBe('alias');
+      expect(
+        classifyStrictMockSchemaType({
+          oneOf: [{ $ref: '#/components/schemas/Pet' }],
+        }),
+      ).toBe('object');
+    });
+
+    it('resolves $ref targets before classifying', () => {
+      const context = createTestContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Status: {
+                type: 'string',
+                enum: ['active', 'inactive'],
+              },
+            },
+          },
+        },
+      });
+
+      expect(
+        classifyStrictMockSchemaType(
+          { $ref: '#/components/schemas/Status' },
+          context,
+        ),
+      ).toBe('alias');
+    });
+  });
+
+  describe('isSchemaNullableAtRoot', () => {
+    it('detects nullable object schemas', () => {
+      expect(isSchemaNullableAtRoot({ type: 'object', nullable: true })).toBe(
+        true,
+      );
+      expect(isSchemaNullableAtRoot({ type: ['object', 'null'] })).toBe(true);
+      expect(isSchemaNullableAtRoot({ type: 'object' })).toBe(false);
     });
   });
 
@@ -58,9 +136,34 @@ describe('mock-types', () => {
   });
 
   describe('getStrictMockTypeDeclaration', () => {
-    it('emits a Required/NonNullable mapped type alias', () => {
+    it('emits a Required/NonNullable mapped type alias for objects', () => {
       expect(getStrictMockTypeDeclaration('Pet')).toBe(
-        'export type PetMock = {\n  [K in keyof Required<Pet>]: NonNullable<Required<Pet>[K]>;\n};',
+        'export type PetMock = {\n  [K in keyof Required<NonNullable<Pet>>]: NonNullable<Required<NonNullable<Pet>>[K]>;\n};',
+      );
+    });
+
+    it('aliases enum and scalar schemas to the source type', () => {
+      expect(getStrictMockTypeDeclaration('Status', 'alias')).toBe(
+        'export type StatusMock = Status;',
+      );
+      expect(getStrictMockTypeDeclaration('Score', 'alias')).toBe(
+        'export type ScoreMock = Score;',
+      );
+    });
+
+    it('uses ArrayBuffer for binary schema mocks', () => {
+      expect(getStrictMockTypeDeclaration('PhotoUpload', 'binary')).toBe(
+        'export type PhotoUploadMock = ArrayBuffer;',
+      );
+    });
+
+    it('allows null on object mocks when the schema itself is nullable', () => {
+      expect(
+        getStrictMockTypeDeclaration('Widget', 'object', {
+          schemaNullableAtRoot: true,
+        }),
+      ).toBe(
+        'export type WidgetMock = {\n  [K in keyof Required<NonNullable<Widget>>]: NonNullable<Required<NonNullable<Widget>>[K]>;\n} | null;',
       );
     });
   });
@@ -300,6 +403,120 @@ describe('mock-types', () => {
           implementation,
         ).toSorted(),
       ).toEqual(['Widget', 'WidgetMock']);
+    });
+  });
+
+  describe('getStrictMockSchemaKindsFromResponses', () => {
+    it('classifies array item schemas instead of the array wrapper', () => {
+      const responses = [
+        {
+          value: 'Pet[]',
+          imports: [{ name: 'Pet', values: false }],
+          key: '200',
+          contentType: 'application/json',
+          originalSchema: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/Pet' },
+          },
+        },
+      ] as unknown as ResReqTypesValue[];
+
+      expect(getStrictMockSchemaKindsFromResponses(responses)).toEqual({
+        Pet: 'object',
+      });
+    });
+
+    it('classifies enum response schemas as aliases', () => {
+      const responses = [
+        {
+          value: 'Status',
+          imports: [{ name: 'Status', values: false }],
+          key: '200',
+          contentType: 'application/json',
+          originalSchema: {
+            type: 'string',
+            enum: ['active', 'inactive'],
+          },
+        },
+      ] as unknown as ResReqTypesValue[];
+
+      expect(getStrictMockSchemaKindsFromResponses(responses)).toEqual({
+        Status: 'alias',
+      });
+    });
+
+    it('classifies each import from its own branch schema in oneOf responses', () => {
+      const context = createTestContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Widget: {
+                type: 'object',
+                properties: { id: { type: 'string' } },
+              },
+              Status: {
+                type: 'string',
+                enum: ['active', 'inactive'],
+              },
+            },
+          },
+        },
+      });
+      const responses = [
+        {
+          value: 'Widget | Status',
+          imports: [
+            { name: 'Widget', values: false },
+            { name: 'Status', values: false },
+          ],
+          key: '200',
+          contentType: 'application/json',
+          originalSchema: {
+            oneOf: [
+              { $ref: '#/components/schemas/Widget' },
+              { $ref: '#/components/schemas/Status' },
+            ],
+          },
+        },
+      ] as unknown as ResReqTypesValue[];
+
+      expect(getStrictMockSchemaKindsFromResponses(responses, context)).toEqual(
+        {
+          Widget: 'object',
+          Status: 'alias',
+        },
+      );
+    });
+
+    it('matches oneOf branch schemas when the response import uses an alias', () => {
+      const context = createTestContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Widget: {
+                type: 'string',
+                enum: ['active', 'inactive'],
+              },
+            },
+          },
+        },
+      });
+      const responses = [
+        {
+          imports: [{ name: 'Widget', alias: 'CustomStatus', values: false }],
+          key: '200',
+          contentType: 'application/json',
+          originalSchema: {
+            oneOf: [{ $ref: '#/components/schemas/Widget' }],
+          },
+        },
+      ] as unknown as ResReqTypesValue[];
+
+      expect(getStrictMockSchemaKindsFromResponses(responses, context)).toEqual(
+        {
+          CustomStatus: 'alias',
+        },
+      );
     });
   });
 

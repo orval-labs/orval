@@ -274,7 +274,11 @@ export function resolveValue({
       typeof refAnchor === 'string' &&
       context.dynamicScope?.[refAnchor] &&
       context.dynamicScope[refAnchor].name !== refName &&
-      !context.dynamicScope[refAnchor].isParameter
+      !context.dynamicScope[refAnchor].isParameter &&
+      // Inline overrides have no component source (`schemaName` is the anchor
+      // name, not a component key), so the allOf-derivation below does not
+      // apply to them.
+      !context.dynamicScope[refAnchor].inlineSchema
     ) {
       const scopeEntry = context.dynamicScope[refAnchor];
       const specSchemas = (

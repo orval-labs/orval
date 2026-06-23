@@ -209,7 +209,7 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => ({
   ...adapter,
 });
 
-export type QueryClientType =
+type QueryClientType =
   | 'react-query'
   | 'vue-query'
   | 'svelte-query'
