@@ -29,7 +29,7 @@ export const Pet = zod.object({
     .max(petTagMax)
     .optional()
     .describe('Optional classification tag'),
-  email: zod.string().email().optional().describe('Owner contact email'),
+  email: zod.email().optional().describe('Owner contact email'),
   status: zod
     .enum(['available', 'pending', 'sold'])
     .default(petStatusDefault)

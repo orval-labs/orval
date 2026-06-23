@@ -13,12 +13,10 @@ import type { RequestHandlerOptions } from 'msw';
 
 import type { PostFish200 } from './model';
 
-export const PostFishBody = zod
-  .object({
-    name: zod.string(),
-    swimming: zod.boolean(),
-  })
-  .strict();
+export const PostFishBody = zod.strictObject({
+  name: zod.string(),
+  swimming: zod.boolean(),
+});
 
 export const PostFishResponse = zod.object({
   success: zod.boolean().optional(),

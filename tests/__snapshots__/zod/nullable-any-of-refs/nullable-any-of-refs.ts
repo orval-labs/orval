@@ -18,7 +18,7 @@ export const GetAnimalsResponseItem = zod.object({
     .union([
       zod.string().nullable(),
       zod.string().nullable(),
-      zod.string().uuid().nullable(),
+      zod.uuid().nullable(),
     ])
     .nullish(),
   secondaryId: zod
@@ -34,7 +34,7 @@ export const GetNestedAnimalsResponseItem = zod.object({
         .union([
           zod.string().nullable(),
           zod.string().nullable(),
-          zod.string().uuid().nullable(),
+          zod.uuid().nullable(),
         ])
         .nullish(),
       petId: zod
@@ -47,11 +47,7 @@ export const GetNestedAnimalsResponse = zod.array(GetNestedAnimalsResponseItem);
 
 export const GetMixedNullableResponseItem = zod.object({
   mixedId: zod
-    .union([
-      zod.string().nullable(),
-      zod.string().nullable(),
-      zod.string().uuid(),
-    ])
+    .union([zod.string().nullable(), zod.string().nullable(), zod.uuid()])
     .nullish(),
 });
 export const GetMixedNullableResponse = zod.array(GetMixedNullableResponseItem);
@@ -66,7 +62,7 @@ export const GetMixedTypesResponseItem = zod.object({
     ])
     .nullish(),
   mixedTypesNotNull: zod
-    .union([zod.number(), zod.number(), zod.string().uuid()])
+    .union([zod.number(), zod.number(), zod.uuid()])
     .nullish(),
 });
 export const GetMixedTypesResponse = zod.array(GetMixedTypesResponseItem);

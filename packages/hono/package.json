@@ -34,7 +34,7 @@
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "zod": "catalog:zod3"
+    "zod": "catalog:zod4"
   },
   "peerDependencies": {
     "typescript": ">=5"

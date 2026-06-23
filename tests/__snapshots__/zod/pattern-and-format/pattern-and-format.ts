@@ -14,5 +14,5 @@ export const getExampleResponseGuidRegExp = new RegExp(
 );
 
 export const GetExampleResponse = zod.object({
-  guid: zod.string().regex(getExampleResponseGuidRegExp),
+  guid: zod.stringFormat('my-guid', getExampleResponseGuidRegExp),
 });

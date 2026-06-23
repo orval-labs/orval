@@ -25,7 +25,7 @@
     "@angular/router": "catalog:angular",
     "rxjs": "catalog:angular",
     "tslib": "catalog:",
-    "zod": "catalog:zod3"
+    "zod": "catalog:zod4"
   },
   "devDependencies": {
     "@angular-eslint/builder": "22.0.0",

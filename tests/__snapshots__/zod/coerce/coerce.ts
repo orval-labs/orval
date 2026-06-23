@@ -35,7 +35,7 @@ export const AddListQueryParams = zod.object({
     .regex(addListQueryLimitRegExp)
     .optional()
     .describe('How many items to return at one time (max 100)'),
-  birthdate: zod.coerce.string().date().optional().describe('birth date'),
+  birthdate: zod.iso.date().optional().describe('birth date'),
 });
 
 export const addListBodyListItemMax = 10;

@@ -12,7 +12,7 @@
   "dependencies": {
     "@hono/zod-validator": "catalog:hono",
     "hono": "catalog:hono",
-    "zod": "catalog:zod3"
+    "zod": "catalog:zod4"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260131.0",

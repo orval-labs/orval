@@ -11,11 +11,11 @@ export const ListUsersResponse = zod.object({
     .array(
       zod
         .object({
-          id: zod.string().uuid(),
+          id: zod.uuid(),
           name: zod.string().optional(),
           email: zod.string().optional(),
         })
-        .and(zod.object({}).passthrough()),
+        .and(zod.looseObject({})),
     )
     .optional(),
 });
@@ -27,10 +27,10 @@ export const GetUserParams = zod.object({
 export const GetUserResponse = zod.object({
   data: zod
     .object({
-      id: zod.string().uuid(),
+      id: zod.uuid(),
       name: zod.string(),
       email: zod.string(),
     })
-    .and(zod.object({}).passthrough())
+    .and(zod.looseObject({}))
     .optional(),
 });

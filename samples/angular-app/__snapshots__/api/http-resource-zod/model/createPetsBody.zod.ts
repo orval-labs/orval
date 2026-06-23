@@ -22,7 +22,7 @@ export const CreatePetsBody = zod.object({
     .min(1)
     .max(createPetsBodyTagMax)
     .describe('Classification tag'),
-  email: zod.string().email().optional().describe('Owner contact email'),
+  email: zod.email().optional().describe('Owner contact email'),
   status: zod
     .enum(['available', 'pending', 'sold'])
     .default(createPetsBodyStatusDefault)

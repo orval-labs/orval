@@ -162,7 +162,7 @@ export const GetOrderByIdResponse = zod.object({
   id: zod.number().optional(),
   petId: zod.number().optional(),
   quantity: zod.number().optional(),
-  shipDate: zod.string().datetime({ offset: true }).optional(),
+  shipDate: zod.iso.datetime({ offset: true }).optional(),
   status: zod
     .enum(['placed', 'approved', 'delivered'])
     .optional()
