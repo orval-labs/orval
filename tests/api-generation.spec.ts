@@ -134,6 +134,46 @@ test('angular issue-3326 paramsFilter replaces the built-in filter', async () =>
   expect(content).not.toContain('function filterParams(');
 });
 
+test('fetch arrayFormat repeat serializes arrays as repeated keys', async () => {
+  const content = await readFile(
+    generated('fetch', 'array-format-repeat', 'endpoints.ts'),
+    'utf8',
+  );
+  expect(content).toContain('normalizedParams.append(key,');
+  expect(content).not.toContain("key + '[]'");
+  expect(content).not.toContain('.join(');
+});
+
+test('fetch arrayFormat brackets serializes arrays with [] suffix', async () => {
+  const content = await readFile(
+    generated('fetch', 'array-format-brackets', 'endpoints.ts'),
+    'utf8',
+  );
+  expect(content).toContain("key + '[]'");
+  expect(content).not.toContain('.join(');
+});
+
+test('fetch arrayFormat comma serializes arrays as comma-joined values', async () => {
+  const content = await readFile(
+    generated('fetch', 'array-format-comma', 'endpoints.ts'),
+    'utf8',
+  );
+  expect(content).toContain('.join(\',\')');
+  expect(content).not.toContain("key + '[]'");
+});
+
+test('fetch paramsSerializer delegates URL building to a custom serializer', async () => {
+  // When override.paramsSerializer is set for a fetch client, the generated
+  // getXxxUrl helper must call the serializer instead of building a
+  // URLSearchParams inline. See #3326.
+  const file = generated('fetch', 'params-serializer', 'endpoints.ts');
+  const content = await readFile(file, 'utf8');
+
+  expect(content).toContain('customParamsSerializer(params)');
+  expect(content).not.toContain('new URLSearchParams()');
+  expect(content).toContain("import { customParamsSerializer }");
+});
+
 test('react-query issue-708 isolates the infinite query key from the regular one', async () => {
   // Regression for #708: an operation generated as both a regular and an
   // infinite query must not share a query key, otherwise React Query serves

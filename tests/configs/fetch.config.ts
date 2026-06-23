@@ -836,4 +836,70 @@ export default defineConfig({
       target: '../specifications/mixed-content-responses.yaml',
     },
   },
+  fetchArrayFormatRepeat: {
+    output: {
+      target: '../generated/fetch/array-format-repeat/endpoints.ts',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        fetch: {
+          arrayFormat: 'repeat',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/array-format.yaml',
+    },
+  },
+  fetchArrayFormatBrackets: {
+    output: {
+      target: '../generated/fetch/array-format-brackets/endpoints.ts',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        fetch: {
+          arrayFormat: 'brackets',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/array-format.yaml',
+    },
+  },
+  fetchArrayFormatComma: {
+    output: {
+      target: '../generated/fetch/array-format-comma/endpoints.ts',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        fetch: {
+          arrayFormat: 'comma',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/array-format.yaml',
+    },
+  },
+  fetchParamsSerializer: {
+    output: {
+      target: '../generated/fetch/params-serializer/endpoints.ts',
+      schemas: '../generated/fetch/params-serializer/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        paramsSerializer: {
+          path: '../mutators/fetch-params-serializer.ts',
+          name: 'customParamsSerializer',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-3326.yaml',
+    },
+  },
 });

@@ -53,11 +53,18 @@ const FETCH_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+/** Returns the list of generator dependencies required by the fetch client (e.g. zod). */
 export const getFetchDependencies = () => FETCH_DEPENDENCIES;
 
 const isRawRequestBodyContentType = (contentType: string) =>
   contentType === 'text/plain' || isBinaryContentType(contentType);
 
+/**
+ * Generates the URL helper function and the fetch request function for a single
+ * OpenAPI operation. Handles query-param serialization (explode, arrayFormat,
+ * paramsSerializer), request body encoding, response parsing, and optional
+ * runtime Zod validation.
+ */
 export const generateRequestFunction = (
   {
     queryParams,
@@ -73,6 +80,7 @@ export const generateRequestFunction = (
     formUrlEncoded,
     override,
     doc,
+    paramsSerializer,
   }: GeneratorVerbOptions,
   { route: _route, context, pathRoute }: GeneratorOptions,
 ) => {
@@ -104,17 +112,15 @@ export const generateRequestFunction = (
     return schema as OpenApiParameterObject;
   });
 
-  const explodeParameters = parameterObjects.filter((parameterObject) => {
-    if (!parameterObject.schema) {
-      return false;
-    }
+  const arrayFormat = override.fetch.arrayFormat;
 
+  const isArrayLikeParam = (parameterObject: OpenApiParameterObject) => {
+    if (!parameterObject.schema) return false;
     const { schema: schemaObject } = resolveSchemaRef(
       parameterObject.schema,
       context,
     );
-
-    const isArrayLike =
+    return (
       schemaObject.type === 'array' ||
       (
         (schemaObject.oneOf as
@@ -130,19 +136,48 @@ export const generateRequestFunction = (
         (schemaObject.allOf as
           | (OpenApiSchemaObject | OpenApiReferenceObject)[]
           | undefined) ?? []
-      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array');
-
-    return (
-      parameterObject.in === 'query' && isArrayLike && parameterObject.explode
+      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array')
     );
-  });
+  };
+
+  const explodeParameters = parameterObjects.filter(
+    (parameterObject) =>
+      parameterObject.in === 'query' &&
+      isArrayLikeParam(parameterObject) &&
+      parameterObject.explode,
+  );
+
+  // Array params where the spec does not explicitly set explode — arrayFormat applies here.
+  const arrayFormatParameters = arrayFormat
+    ? parameterObjects.filter(
+        (parameterObject) =>
+          parameterObject.in === 'query' &&
+          isArrayLikeParam(parameterObject) &&
+          parameterObject.explode === undefined,
+      )
+    : [];
 
   const explodeParametersNames = explodeParameters.map(
     (parameter) => parameter.name,
   );
+  const arrayFormatParametersNames = arrayFormatParameters.map(
+    (parameter) => parameter.name,
+  );
+
   const hasExplodedDateParams =
     context.output.override.useDates &&
     explodeParameters.some((parameter) => {
+      if (!parameter.schema) {
+        return false;
+      }
+
+      const { schema } = resolveSchemaRef(parameter.schema, context);
+      return schema.format === 'date-time';
+    });
+
+  const hasArrayFormatDateParams =
+    context.output.override.useDates &&
+    arrayFormatParameters.some((parameter) => {
       if (!parameter.schema) {
         return false;
       }
@@ -164,8 +199,26 @@ export const generateRequestFunction = (
       `
       : '';
 
+  const arrayFormatImplementation =
+    arrayFormatParameters.length > 0
+      ? `const arrayFormatParameters = ${JSON.stringify(arrayFormatParametersNames)};
+
+    if (Array.isArray(value) && arrayFormatParameters.includes(key)) {
+      ${
+        arrayFormat === 'repeat'
+          ? `value.forEach((v) => { normalizedParams.append(key, v === null ? 'null' : ${hasArrayFormatDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}String(v)); });`
+          : arrayFormat === 'brackets'
+            ? `value.forEach((v) => { normalizedParams.append(key + '[]', v === null ? 'null' : ${hasArrayFormatDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}String(v)); });`
+            : `normalizedParams.append(key, value.map((v) => v === null ? 'null' : ${hasArrayFormatDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}String(v)).join(','));`
+      }
+      return;
+    }
+      `
+      : '';
+
   const isExplodeParametersOnly =
-    explodeParameters.length === parameters.length;
+    explodeParameters.length + arrayFormatParameters.length ===
+    parameterObjects.filter((p) => p.in === 'query').length;
 
   const hasDateParams =
     context.output.override.useDates &&
@@ -182,13 +235,27 @@ export const generateRequestFunction = (
       normalizedParams.append(key, value === null ? 'null' : ${hasDateParams ? 'value instanceof Date ? value.toISOString() : ' : ''}String(value))
     }`;
 
-  const getUrlFnImplementation = `export const ${getUrlFnName} = (${getUrlFnProps}) => {
+  const getUrlFnImplementation = paramsSerializer
+    ? `export const ${getUrlFnName} = (${getUrlFnProps}) => {
+${
+  queryParams
+    ? `  const stringifiedParams = ${paramsSerializer.name}(params);`
+    : ''
+}
+
+  ${
+    queryParams
+      ? `return stringifiedParams.length > 0 ? \`${route}?\${stringifiedParams}\` : \`${route}\``
+      : `return \`${route}\``
+  }
+}\n`
+    : `export const ${getUrlFnName} = (${getUrlFnProps}) => {
 ${
   queryParams
     ? `  const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    ${explodeArrayImplementation}
+    ${explodeArrayImplementation}${arrayFormatImplementation}
     ${isExplodeParametersOnly ? '' : normalParamsImplementation}
   });`
     : ''
@@ -598,6 +665,11 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   );
 };
 
+/**
+ * Derives the TypeScript response type name for a fetch operation.
+ * Returns the operation-scoped name when `includeHttpResponseReturnType` is
+ * enabled, otherwise falls back to the success response definition name.
+ */
 export const fetchResponseTypeName = (
   includeHttpResponseReturnType: boolean | undefined,
   definitionSuccessResponse: string,
@@ -608,6 +680,7 @@ export const fetchResponseTypeName = (
     : definitionSuccessResponse;
 };
 
+/** Builds the full fetch client output (imports + implementation) for one verb. */
 export const generateClient: ClientBuilder = (verbOptions, options) => {
   const isZodOutput =
     typeof options.context.output.schemas === 'object' &&
@@ -684,6 +757,7 @@ const HTTP_STATUS_CODE_SHARED_TYPES: SharedTypeDeclaration[] = [
   },
 ];
 
+/** Emits HTTP status-code union types at the top of the generated file when they are needed. */
 export const generateFetchHeader: ClientHeaderBuilder = ({
   clientImplementation,
 }) => {
@@ -704,6 +778,7 @@ const fetchClientBuilder: ClientGeneratorsBuilder = {
   dependencies: getFetchDependencies,
 };
 
+/** Returns the fetch client builder factory used by orval's plugin system. */
 export const builder = () => () => fetchClientBuilder;
 
 export default builder;

@@ -622,6 +622,9 @@ export async function normalizeOptions(
             outputOptions.override?.fetch?.runtimeValidation ?? false,
           useRuntimeFetcher:
             outputOptions.override?.fetch?.useRuntimeFetcher ?? false,
+          ...(outputOptions.override?.fetch?.arrayFormat
+            ? { arrayFormat: outputOptions.override.fetch.arrayFormat }
+            : {}),
           ...outputOptions.override?.fetch,
           ...(outputOptions.override?.fetch?.jsonReviver
             ? {
