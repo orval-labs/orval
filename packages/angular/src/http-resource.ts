@@ -1520,10 +1520,10 @@ const getHttpResourceRelativeSchemasPath = (
     typeof output.schemas === 'string' ? output.schemas : output.schemas?.path;
 
   if (schemasPath) {
-    return upath.getRelativeImportPath(
-      outputPath,
-      getFileInfo(schemasPath).dirname,
-    );
+    // Mirror the split-mode writers: resolve the import directly to the schemas
+    // directory (extension kept) so a dotted name like `*.schemas` is not
+    // collapsed to `./.` for the `both`-mode resource files (#3624).
+    return upath.getRelativeImportPath(outputPath, schemasPath, true);
   }
 
   const { dirname, filename, extension } = getFileInfo(output.target, {
