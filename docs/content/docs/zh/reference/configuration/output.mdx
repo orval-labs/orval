@@ -139,6 +139,22 @@ export default defineConfig({
 
 控制是否生成 index 文件。拆分模式下通常保持开启，便于统一导入。
 
+## tagsSplitDeduplication
+
+**类型：** `Boolean`
+**默认值：** `false`
+
+在 `tags-split` 模式下，将共享的基础设施类型（如 fetch 客户端的 `HTTPStatusCode*`）提取到单独的 `common-types.ts` 文件中，并在目标根目录生成 barrel `index.ts`。需要同时开启 `indexFiles: true`。
+
+> 当设置了 [`workspace`](#workspace) 时，此选项会被自动禁用（workspace barrel 会处理聚合）。
+
+## commonTypesFileName
+
+**类型：** `String`
+**默认值：** `'common-types'`
+
+当 `tagsSplitDeduplication` 开启时，共享类型文件的文件名（不含扩展名）。
+
 ## docs
 
 生成接口文档相关输出。只有需要把生成产物和文档系统集成时再开启。

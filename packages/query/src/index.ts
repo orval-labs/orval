@@ -54,7 +54,13 @@ export const generateQueryHeader: ClientHeaderBuilder = (params) => {
   const needsWithQueryKey =
     params.clientImplementation.includes('withQueryKey(');
 
-  return `${
+  const innerHeader = getQueryHeader(params);
+  const innerImpl =
+    typeof innerHeader === 'string' ? innerHeader : innerHeader.implementation;
+  const innerSharedTypes =
+    typeof innerHeader === 'string' ? undefined : innerHeader.sharedTypes;
+
+  const ownImplementation = `${
     params.hasAwaitedType
       ? ''
       : `type AwaitedInput<T> = PromiseLike<T> | T;\n
@@ -65,8 +71,17 @@ ${
     ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
     : ''
 }
-${getQueryHeader(params)}
+${innerImpl}
 ${needsWithQueryKey ? `${WITH_QUERY_KEY_HELPER}\n\n` : ''}`;
+
+  if (innerSharedTypes && innerSharedTypes.length > 0) {
+    return {
+      implementation: ownImplementation,
+      sharedTypes: innerSharedTypes,
+    };
+  }
+
+  return ownImplementation;
 };
 
 export const generateQuery: ClientBuilder = async (

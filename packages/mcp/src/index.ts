@@ -510,7 +510,7 @@ const generateHttpClientFiles = async (
     ',\n',
   )} } from '${relativeSchemasPath}';`;
 
-  const fetchHeader = generateFetchHeader({
+  const rawFetchHeader = generateFetchHeader({
     title: '',
     isRequestOptions: false,
     isMutator: false,
@@ -522,6 +522,16 @@ const generateHttpClientFiles = async (
     verbOptions,
     clientImplementation,
   });
+
+  const fetchHeader =
+    typeof rawFetchHeader === 'string'
+      ? rawFetchHeader
+      : [
+          rawFetchHeader.implementation,
+          ...(rawFetchHeader.sharedTypes ?? []).map(
+            (t) => `${t.exported ? 'export ' : ''}${t.code}`,
+          ),
+        ].join('\n');
 
   const content = [
     header,

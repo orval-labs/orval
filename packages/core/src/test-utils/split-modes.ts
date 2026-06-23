@@ -75,6 +75,8 @@ export const createSplitModeOutput = (
     unionAddMissingProperties: false,
     optionsParamRequired: false,
     propertySortOrder: 'Alphabetical',
+    tagsSplitDeduplication: false,
+    commonTypesFileName: 'common-types',
     override: {
       tags: {},
       operations: {},

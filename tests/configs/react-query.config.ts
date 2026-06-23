@@ -766,6 +766,24 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  petstoreTagsSplitDeduplication: {
+    output: {
+      target:
+        '../generated/react-query/petstore-tags-split-deduplication/endpoints.ts',
+      schemas:
+        '../generated/react-query/petstore-tags-split-deduplication/model',
+      mode: 'tags-split',
+      client: 'react-query',
+      httpClient: 'fetch',
+      indexFiles: true,
+      tagsSplitDeduplication: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   petstoreSplit: {
     output: {
       target: '../generated/react-query/split/endpoints.ts',

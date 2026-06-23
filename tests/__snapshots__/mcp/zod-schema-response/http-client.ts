@@ -56,7 +56,6 @@ export type HTTPStatusCodes =
   | HTTPStatusCode3xx
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
-
 export type listPetsResponse200 = {
   data: Pets;
   status: 200;

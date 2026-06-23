@@ -157,6 +157,8 @@ const createOutput = (
     optionsParamRequired: false,
     unionAddMissingProperties: false,
     propertySortOrder: 'Specification',
+    tagsSplitDeduplication: false,
+    commonTypesFileName: 'common-types',
     factoryMethods: {
       functionNamePrefix: 'create',
       mode: 'single',
@@ -940,7 +942,7 @@ describe('angular httpResource generator', () => {
       routeRegistry.set('getPetById', '/api/pets/${petId}');
       routeRegistry.set('createPet', '/api/pets');
 
-      const header = generateHttpResourceHeader({
+      const rawHeader = generateHttpResourceHeader({
         title: 'PetService',
         isRequestOptions: true,
         isMutator: false,
@@ -951,6 +953,9 @@ describe('angular httpResource generator', () => {
         verbOptions: { getPetById: getVerb, createPet: postVerb },
         clientImplementation: '',
       } as never);
+
+      const header =
+        typeof rawHeader === 'string' ? rawHeader : rawHeader.implementation;
 
       expect(header.match(/type AngularHttpParamValue =/g)).toHaveLength(1);
       expect(header.match(/preserveRequiredNullables = false,/g)).toHaveLength(
@@ -2633,7 +2638,7 @@ describe('angular httpResource generator', () => {
       const verbOption = createVerbOption();
       routeRegistry.set('getPetById', '/api/pets/${petId}');
 
-      return generateHttpResourceHeader({
+      const result = generateHttpResourceHeader({
         title: 'PetService',
         isRequestOptions: true,
         isMutator: false,
@@ -2644,6 +2649,8 @@ describe('angular httpResource generator', () => {
         verbOptions: { getPetById: verbOption },
         clientImplementation: '',
       } as never);
+
+      return typeof result === 'string' ? result : result.implementation;
     };
 
     it('encodes the signal path parameter when urlEncodeParameters is true', () => {
