@@ -13,8 +13,8 @@ import {
   getSuccessResponseType,
   type GetterResponse,
   isObject,
+  isOperationInTagBucket,
   isSyntheticDefaultImportsAllow,
-  kebab,
   makeRouteSafe,
   OutputHttpClient,
   pascal,
@@ -718,11 +718,9 @@ export const getQueryHeader: ClientHeaderBuilder = (params) => {
   }
 
   if (params.output.httpClient === OutputHttpClient.ANGULAR) {
-    const relevantVerbs = params.tag
-      ? Object.values(params.verbOptions).filter(
-          (verbOption) => kebab(verbOption.tags[0] ?? 'default') === params.tag,
-        )
-      : Object.values(params.verbOptions);
+    const relevantVerbs = Object.values(params.verbOptions).filter(
+      (verbOption) => isOperationInTagBucket(verbOption, params.tag),
+    );
     const hasQueryParams = relevantVerbs.some((v) => v.queryParams);
 
     return hasQueryParams ? getAngularFilteredParamsHelperBody() : '';

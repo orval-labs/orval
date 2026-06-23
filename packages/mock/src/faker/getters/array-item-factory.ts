@@ -1,11 +1,10 @@
 import {
   type ContextSpec,
-  DefaultTag,
   type GeneratorImport,
+  getOperationTagKey,
   getRefInfo,
   isFunction,
   isReference,
-  kebab,
   type OpenApiSchemaObject,
   OutputMockType,
   OutputMode,
@@ -36,8 +35,7 @@ export function getArrayItemMockFileScope(
   const mockType = context.activeMockOutputType ?? OutputMockType.MSW;
   let base: string;
   if (mode === OutputMode.TAGS || mode === OutputMode.TAGS_SPLIT) {
-    const tag = tags.length > 0 ? tags[0] : DefaultTag;
-    base = `tag:${kebab(tag)}`;
+    base = `tag:${getOperationTagKey({ tags })}`;
   } else if (mode === OutputMode.SPLIT) {
     base = 'split';
   } else {

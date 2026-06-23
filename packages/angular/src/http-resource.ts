@@ -18,10 +18,11 @@ import {
   getFileInfo,
   getFullRoute,
   GetterPropType,
+  getOperationTagKey,
+  getTagKey,
   isObject,
   isSyntheticDefaultImportsAllow,
   jsDoc,
-  kebab,
   makeRouteSafe,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
@@ -172,7 +173,7 @@ const getVerbOptionsRecord = (
   );
 
 const getPrimaryTag = (verbOption: GeneratorVerbOptions): string =>
-  kebab(verbOption.tags[0] ?? 'default');
+  getOperationTagKey(verbOption);
 
 const hasRetrievalOperations = (
   verbOptions: Record<string, GeneratorVerbOptions>,
@@ -1519,11 +1520,11 @@ const getHttpResourceExtraFilePath = (
 
   switch (output.mode) {
     case OutputMode.TAGS: {
-      const normalizedTag = kebab(tag ?? 'default');
+      const normalizedTag = getTagKey(tag);
       return upath.joinSafe(dirname, `${normalizedTag}.resource${extension}`);
     }
     case OutputMode.TAGS_SPLIT: {
-      const normalizedTag = kebab(tag ?? 'default');
+      const normalizedTag = getTagKey(tag);
       return upath.joinSafe(
         dirname,
         normalizedTag,

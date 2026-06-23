@@ -9,7 +9,12 @@ import {
   OutputClient,
   type WriteSpecBuilder,
 } from '../types';
-import { compareVersions, kebab, pascal } from '../utils';
+import {
+  compareVersions,
+  getOperationTagKey,
+  getTagKey,
+  pascal,
+} from '../utils';
 
 /**
  * Ensures every operation has at least one tag by falling back to the
@@ -118,7 +123,7 @@ function generateTargetTags(
   currentAcc: Record<string, GeneratorTargetFull>,
   operation: GeneratorOperation,
 ): Record<string, GeneratorTargetFull> {
-  const tag = kebab(operation.tags[0]);
+  const tag = getOperationTagKey(operation);
 
   if (!(tag in currentAcc)) {
     currentAcc[tag] = {
@@ -203,10 +208,7 @@ export function generateTargetForTags(
           // Operations can have multiple tags, but they are grouped by the first
           // tag, therefore we only want to handle the case where the tag
           // is the first in the list of tags.
-          .filter(
-            ({ tags }) =>
-              tags.map((tag) => kebab(tag)).indexOf(kebab(tag)) === 0,
-          )
+          .filter(({ tags }) => tags.length > 0 && getTagKey(tags[0]) === tag)
           .map(({ operationName }) => operationName);
 
         const typescriptVersion =

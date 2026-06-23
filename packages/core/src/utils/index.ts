@@ -20,4 +20,5 @@ export * from './resolve-version';
 export * from './schemas-options';
 export * from './sort';
 export * from './string';
+export * from './tags';
 export * from './tsconfig';
