@@ -1,0 +1,60 @@
+openapi: 3.0.0
+info:
+  title: Issue 3634 - tag normalization for multi-word / acronym tags
+  version: 1.0.0
+# Regression for #3634. `Widget` is a single-word control tag (kebab is a no-op).
+# `AB Widget` is the trigger: its camelCase form ("aBWidget") does not round-trip
+# through the kebab bucket key ("ab-widget"), so the old tag matching dropped the
+# operation from its own tag file. Both operations carry a query param so the
+# Angular `filterParams` helper is exercised (it must be defined in the file that
+# calls it), and the Hono composite route must import the tag's handlers from the
+# canonical `ab-widget/` directory.
+paths:
+  /widgets:
+    get:
+      tags: [Widget]
+      operationId: listWidgets
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Widget'
+  /ab-widgets:
+    get:
+      tags: [AB Widget]
+      operationId: listAbWidgets
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Widget'
+components:
+  schemas:
+    Widget:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+      required: [id, label]
