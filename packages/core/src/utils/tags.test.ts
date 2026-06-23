@@ -37,6 +37,11 @@ describe('getTagKey', () => {
     expect(getTagKey(undefined)).toBe('default');
   });
 
+  it('falls back to the default bucket for empty/whitespace tags', () => {
+    expect(getTagKey('')).toBe('default');
+    expect(getTagKey('   ')).toBe('default');
+  });
+
   it('agrees with a raw kebab() call on the same input', () => {
     for (const tag of ['pets', 'Pet Store', 'AB Widget', 'user/admin']) {
       expect(getTagKey(tag)).toBe(kebab(tag));
@@ -74,6 +79,11 @@ describe('isOperationInTagBucket', () => {
   it('matches every operation when no tag bucket is given', () => {
     expect(isOperationInTagBucket({ tags: ['anything'] })).toBe(true);
     expect(isOperationInTagBucket({ tags: [] }, undefined)).toBe(true);
+  });
+
+  it('treats an empty/whitespace tag bucket as the default bucket, not match-all', () => {
+    expect(isOperationInTagBucket({ tags: [] }, '')).toBe(true);
+    expect(isOperationInTagBucket({ tags: ['anything'] }, '')).toBe(false);
   });
 
   it('places untagged operations in the default bucket', () => {

@@ -21,7 +21,8 @@ import { kebab } from './case';
  * Missing or empty tags map to the implicit {@link DefaultTag} bucket.
  */
 export function getTagKey(tag?: string): string {
-  return kebab(tag ?? DefaultTag);
+  const normalizedTag = tag?.trim();
+  return kebab(normalizedTag ? normalizedTag : DefaultTag);
 }
 
 /**
@@ -38,7 +39,9 @@ export function getOperationTagKey(operation: { tags: string[] }): string {
  *
  * Both sides are normalised through {@link getTagKey}, so the comparison is
  * correct regardless of how `tagKey` was spelled or cased by the caller. An
- * absent `tagKey` matches every operation (the "no tag filter" case).
+ * absent (`undefined`) `tagKey` matches every operation (the "no tag filter"
+ * case); an empty/whitespace `tagKey` is normalised to the {@link DefaultTag}
+ * bucket like any other tag.
  *
  * Prefer this over hand-rolling `operation.tags[0] === tagKey`: a raw tag
  * compared against a canonical key silently fails for multi-word/acronym tags.
@@ -47,6 +50,6 @@ export function isOperationInTagBucket(
   operation: { tags: string[] },
   tagKey?: string,
 ): boolean {
-  if (!tagKey) return true;
+  if (tagKey == null) return true;
   return getOperationTagKey(operation) === getTagKey(tagKey);
 }
