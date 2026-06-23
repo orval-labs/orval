@@ -514,4 +514,14 @@ describe('getRelevantVerbOptionsForTag', () => {
   it('returns empty array for empty verbOptions', () => {
     expect(getRelevantVerbOptionsForTag({}, 'pets')).toHaveLength(0);
   });
+
+  it('treats an empty-string tag as the default bucket, not as "no filter"', () => {
+    const verbOptions = {
+      untagged: makeVerb('untagged', []),
+      tagged: makeVerb('tagged', ['pets']),
+    };
+    const result = getRelevantVerbOptionsForTag(verbOptions, '');
+    expect(result).toHaveLength(1);
+    expect(result[0].operationId).toBe('untagged');
+  });
 });

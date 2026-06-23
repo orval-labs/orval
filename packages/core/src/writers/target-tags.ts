@@ -12,7 +12,7 @@ import {
 import {
   compareVersions,
   getOperationTagKey,
-  getTagKey,
+  isOperationInTagBucket,
   pascal,
 } from '../utils';
 
@@ -204,11 +204,13 @@ export function generateTargetForTags(
         const isMutator = !!target.mutators?.some((mutator) =>
           isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
         );
-        const operationNames = Object.values(builder.operations)
-          // Operations can have multiple tags, but they are grouped by the first
-          // tag, therefore we only want to handle the case where the tag
-          // is the first in the list of tags.
-          .filter(({ tags }) => tags.length > 0 && getTagKey(tags[0]) === tag)
+        const operationNames = operations
+          // Operations can have multiple tags, but they are grouped by their
+          // primary (first) tag. Filtering through the canonical
+          // `isOperationInTagBucket` keeps this in lockstep with how the
+          // buckets above were built, including untagged operations that were
+          // routed into the implicit `default` bucket by `addDefaultTagIfEmpty`.
+          .filter((operation) => isOperationInTagBucket(operation, tag))
           .map(({ operationName }) => operationName);
 
         const typescriptVersion =

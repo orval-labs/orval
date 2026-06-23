@@ -152,7 +152,10 @@ export const getRelevantVerbOptionsForTag = (
   tag?: string,
 ): GeneratorVerbOptions[] => {
   const allVerbOptions = Object.values(verbOptions);
-  if (!tag) return allVerbOptions;
+  // Only an absent tag means "no filter"; an empty/whitespace tag is a real
+  // bucket key that `isOperationInTagBucket` normalises to `default`, matching
+  // the core writer instead of silently matching every operation.
+  if (tag == null) return allVerbOptions;
 
   return allVerbOptions.filter((verbOption) =>
     isOperationInTagBucket(verbOption, tag),
