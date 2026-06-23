@@ -8,13 +8,27 @@ type AngularHttpParams =
     >
   | undefined;
 
-export default function (
-  params: Record<
+type AngularHttpParamInput = Record<
+  string,
+  | string
+  | number
+  | boolean
+  | null
+  | readonly (string | number | boolean)[]
+>;
+
+export default function (params: AngularHttpParamInput): AngularHttpParams {
+  const serialized: Record<
     string,
     string | number | boolean | readonly (string | number | boolean)[]
-  >,
-): AngularHttpParams {
-  // do your implementation to transform the params
+  > = {};
 
-  return params;
+  for (const [key, value] of Object.entries(params)) {
+    if (value === null) {
+      continue;
+    }
+    serialized[key] = value;
+  }
+
+  return serialized;
 }

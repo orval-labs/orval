@@ -1,13 +1,5 @@
-import {
-  type GeneratorOptions,
-  type GeneratorVerbOptions,
-  OutputClient,
-  OutputHttpClient,
-  pascal,
-} from '@orval/core';
-import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
+import { OutputClient, pascal } from '@orval/core';
 
-import { generateAxiosRequestFunction } from '../client';
 import type {
   FrameworkAdapterConfig,
   MutationHookBodyContext,
@@ -97,14 +89,5 @@ export const createReactAdapter = ({
     optionalQueryClientArgument,
   }: MutationHookBodyContext): string {
     return `      ${hasInvalidation ? `const backupQueryClient = useQueryClient();\n      ` : ''}return ${operationPrefix}Mutation(${mutationImplementation}${optionalQueryClientArgument ? `, queryClient` : ''});`;
-  },
-
-  generateRequestFunction(
-    verbOptions: GeneratorVerbOptions,
-    options: GeneratorOptions,
-  ): string {
-    return options.context.output.httpClient === OutputHttpClient.AXIOS
-      ? generateAxiosRequestFunction(verbOptions, options, false)
-      : generateFetchRequestFunction(verbOptions, options);
   },
 });

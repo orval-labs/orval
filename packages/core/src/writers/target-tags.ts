@@ -253,6 +253,16 @@ export function generateTargetForTags(
           clientImplementation: target.implementation,
         });
 
+        const sharedTypes = header.sharedTypes;
+        const deduplicationActive =
+          options.tagsSplitDeduplication && !options.workspace;
+        const inlinedSharedTypes =
+          !deduplicationActive && sharedTypes && sharedTypes.length > 0
+            ? sharedTypes
+                .map((t) => `${t.exported ? 'export ' : ''}${t.code}`)
+                .join('\n') + '\n\n'
+            : '';
+
         // Apply the per-tag header/footer wrap to each mock output that has
         // accumulated handler entries. Mock outputs without a handler (faker
         // only) skip the wrap.
@@ -276,6 +286,7 @@ export function generateTargetForTags(
 
         transformed[tag] = {
           implementation:
+            inlinedSharedTypes +
             header.implementation +
             target.implementation +
             footer.implementation,
@@ -288,6 +299,7 @@ export function generateTargetForTags(
           paramsSerializer: target.paramsSerializer,
           paramsFilter: target.paramsFilter,
           fetchReviver: target.fetchReviver,
+          sharedTypes: deduplicationActive ? sharedTypes : undefined,
         };
       }
       allTargetTags = transformed;

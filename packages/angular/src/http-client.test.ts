@@ -147,6 +147,8 @@ const createOutput = (
     optionsParamRequired: false,
     unionAddMissingProperties: false,
     propertySortOrder: 'Specification',
+    tagsSplitDeduplication: false,
+    commonTypesFileName: 'common-types',
     factoryMethods: {
       functionNamePrefix: 'create',
       mode: 'single',

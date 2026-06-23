@@ -1,6 +1,4 @@
 import {
-  type GeneratorOptions,
-  type GeneratorVerbOptions,
   getRouteAsArray,
   type GetterParams,
   type GetterProp,
@@ -11,9 +9,7 @@ import {
   OutputHttpClient,
   pascal,
 } from '@orval/core';
-import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
 
-import { generateAxiosRequestFunction } from '../client';
 import type {
   FrameworkAdapterConfig,
   MutationHookBodyContext,
@@ -140,10 +136,19 @@ export const createVueAdapter = ({
     return false;
   },
 
-  getUnrefStatements(props: GetterProps): string {
+  getRequestUnrefStatements(props: GetterProps): string {
+    return vueUnRefParams(props);
+  },
+
+  getQueryOptionsUnrefStatements(props: GetterProps): string {
     return vueUnRefParams(
       props.filter((prop) => prop.type === GetterPropType.NAMED_PATH_PARAMS),
     );
+  },
+
+  wrapHookMutatorCallback(callback: string): string {
+    // Vue does not wrap the hook mutator callback with useCallback.
+    return callback;
   },
 
   generateEnabledOption(
@@ -225,15 +230,6 @@ export const createVueAdapter = ({
     optionalQueryClientArgument,
   }: MutationHookBodyContext): string {
     return `      ${hasInvalidation ? `const backupQueryClient = useQueryClient();\n      ` : ''}return ${operationPrefix}Mutation(${mutationImplementation}${optionalQueryClientArgument ? `, queryClient` : ''});`;
-  },
-
-  generateRequestFunction(
-    verbOptions: GeneratorVerbOptions,
-    options: GeneratorOptions,
-  ): string {
-    return options.context.output.httpClient === OutputHttpClient.AXIOS
-      ? generateAxiosRequestFunction(verbOptions, options, true)
-      : generateFetchRequestFunction(verbOptions, options);
   },
 
   getQueryPropertyForProp(

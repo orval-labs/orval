@@ -130,23 +130,29 @@ export const generateClientHeader: GeneratorClientHeader = ({
 }) => {
   const { header } = getGeneratorClient(outputClient, output);
 
+  const rawHeader = header
+    ? header({
+        title: titles.implementation,
+        isRequestOptions,
+        isGlobalMutator,
+        isMutator,
+        provideIn,
+        hasAwaitedType,
+        output,
+        verbOptions,
+        tag,
+        isDefaultTagBucket,
+        clientImplementation,
+      })
+    : '';
+
+  const normalizedHeader =
+    typeof rawHeader === 'string' ? { implementation: rawHeader } : rawHeader;
+
   return {
-    implementation: header
-      ? header({
-          title: titles.implementation,
-          isRequestOptions,
-          isGlobalMutator,
-          isMutator,
-          provideIn,
-          hasAwaitedType,
-          output,
-          verbOptions,
-          tag,
-          isDefaultTagBucket,
-          clientImplementation,
-        })
-      : '',
+    implementation: normalizedHeader.implementation,
     implementationMock: `export const ${titles.implementationMock} = () => [\n`,
+    sharedTypes: normalizedHeader.sharedTypes,
   };
 };
 

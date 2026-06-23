@@ -1,7 +1,12 @@
 import path from 'node:path';
 
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { OutputClient, OutputMockType, type WriteModeProps } from '../types';
+import {
+  OutputClient,
+  OutputMockType,
+  type SharedTypeDeclaration,
+  type WriteModeProps,
+} from '../types';
 import {
   conventionName,
   getFileInfo,
@@ -59,10 +64,15 @@ export async function writeSplitTagsMode({
   const seenMockIndexKeys = new Set<string>();
 
   const schemasTarget = output.schemas
-    ? getFileInfo(
-        isString(output.schemas) ? output.schemas : output.schemas.path,
-        { extension: output.fileExtension },
-      ).dirname
+    ? // `output.schemas(.path)` already *is* the schemas directory. Use it
+      // directly rather than `getFileInfo(...).dirname`, which collapses to the
+      // parent directory when the name contains a dot, e.g. `*.schemas` (#3624)
+      // — that broke the mock files' schema imports derived from `schemasTarget`
+      // via `resolveMockSchemasPath`. For a dot-free name `getFileInfo(...)
+      // .dirname` returns the same directory, so existing output is unchanged.
+      isString(output.schemas)
+      ? output.schemas
+      : output.schemas.path
     : path.join(
         dirname,
         filename + '.schemas' + getImportExtension(extension, output.tsconfig),
@@ -71,6 +81,33 @@ export async function writeSplitTagsMode({
   const tagEntries = Object.entries(target).toSorted(([a], [b]) =>
     a.localeCompare(b),
   );
+
+  const deduplicationEnabled =
+    output.tagsSplitDeduplication && !output.workspace;
+
+  const collectedSharedTypes: SharedTypeDeclaration[] = [];
+  const seenSharedTypeNames = new Set<string>();
+  for (const [, target] of tagEntries) {
+    if (!target.sharedTypes) continue;
+    for (const t of target.sharedTypes) {
+      if (!seenSharedTypeNames.has(t.name)) {
+        seenSharedTypeNames.add(t.name);
+        collectedSharedTypes.push(t);
+      }
+    }
+  }
+
+  const commonTypesImportExtension = getImportExtension(
+    extension,
+    output.tsconfig,
+  );
+  const commonTypesBasename = output.commonTypesFileName;
+  const commonTypesPath = path.join(dirname, commonTypesBasename + extension);
+  const commonTypesRelativeImport =
+    '..' +
+    '/' +
+    commonTypesBasename +
+    (deduplicationEnabled ? commonTypesImportExtension : '');
 
   const generatedFilePathsArray = await Promise.all(
     tagEntries.map(async ([tag, target]) => {
@@ -90,16 +127,29 @@ export async function writeSplitTagsMode({
 
         let implementationData = header;
 
+        if (
+          deduplicationEnabled &&
+          target.sharedTypes &&
+          target.sharedTypes.length > 0
+        ) {
+          const typeNames = target.sharedTypes.map((t) => t.name).join(', ');
+          implementationData += `import type { ${typeNames} } from '${commonTypesRelativeImport}';\n`;
+        }
+
         const importerPath = path.join(dirname, tag, tag + extension);
         const schemaCustomImportPath = getSchemasImportPath(output.schemas);
         const relativeSchemasPath = output.schemas
           ? (schemaCustomImportPath ??
+            // `output.schemas(.path)` is a directory. Resolve the relative
+            // import to it directly (with the file extension kept) so the path
+            // stays correct even when the directory does not exist on disk yet
+            // and when its name contains a dot, e.g. `*.schemas` (#3624).
+            // Deriving it from `getFileInfo(...).dirname` collapsed to `../.`
+            // in those cases.
             upath.getRelativeImportPath(
               importerPath,
-              getFileInfo(
-                isString(output.schemas) ? output.schemas : output.schemas.path,
-                { extension: output.fileExtension },
-              ).dirname,
+              isString(output.schemas) ? output.schemas : output.schemas.path,
+              true,
             ))
           : '../' +
             filename +
@@ -363,6 +413,48 @@ export async function writeSplitTagsMode({
     }
   }
 
+  let commonTypesFilePath: string | undefined;
+  if (deduplicationEnabled && collectedSharedTypes.length > 0) {
+    const commonTypesContent =
+      collectedSharedTypes.map((t) => `export ${t.code}`).join('\n') + '\n';
+    commonTypesFilePath = commonTypesPath;
+    await writeGeneratedFile(commonTypesPath, commonTypesContent);
+  }
+
+  let indexFilePath: string | undefined;
+  if (output.indexFiles && deduplicationEnabled && tagEntries.length > 0) {
+    const importExtension = getImportExtension(
+      output.fileExtension,
+      output.tsconfig,
+    );
+    const serviceSuffix =
+      OutputClient.ANGULAR === output.client ? '.service' : '';
+
+    const publicSharedTypeNames = collectedSharedTypes
+      .filter((t) => t.exported)
+      .map((t) => t.name);
+
+    const namedReExports =
+      publicSharedTypeNames.length > 0
+        ? `export type { ${publicSharedTypeNames.join(', ')} } from './${commonTypesBasename}${importExtension}';\n`
+        : '';
+
+    const tagReExports = tagEntries
+      .map(([tag]) => {
+        const tagFile = upath.joinSafe(
+          './',
+          tag,
+          tag + serviceSuffix + importExtension,
+        );
+        return `export * from '${tagFile}';\n`;
+      })
+      .join('');
+
+    const indexContent = namedReExports + tagReExports;
+    indexFilePath = path.join(dirname, `index${extension}`);
+    await writeGeneratedFile(indexFilePath, indexContent);
+  }
+
   return [
     ...new Set([
       ...(output.mock.indexMockFiles
@@ -370,6 +462,8 @@ export async function writeSplitTagsMode({
             path.join(mockDir, `index.${ext}${extension}`),
           )
         : []),
+      ...(commonTypesFilePath ? [commonTypesFilePath] : []),
+      ...(indexFilePath ? [indexFilePath] : []),
       ...generatedFilePathsArray.flat(),
     ]),
   ];

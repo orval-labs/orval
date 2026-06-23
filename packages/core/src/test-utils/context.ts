@@ -47,6 +47,8 @@ export function createTestContextSpec({
     optionsParamRequired: false,
     propertySortOrder: PropertySortOrder.SPECIFICATION,
     factoryMethods: undefined,
+    tagsSplitDeduplication: false,
+    commonTypesFileName: 'common-types',
     override: {
       title: undefined,
       transformer: undefined,

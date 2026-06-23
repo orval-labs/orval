@@ -50,34 +50,43 @@ describe('generateQueryHeader withQueryKey emission (issue #3573)', () => {
   };
 
   it('emits the helper once when the client references withQueryKey', () => {
-    const header = generateQueryHeader({
+    const rawHeader = generateQueryHeader({
       ...baseParams,
       clientImplementation:
         'return withQueryKey(query, queryOptions.queryKey);',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
+
+    const header =
+      typeof rawHeader === 'string' ? rawHeader : rawHeader.implementation;
 
     expect(header).toContain('const withQueryKey =');
     expect(header.match(/const withQueryKey =/g)).toHaveLength(1);
   });
 
   it('omits the helper for mutation-only output that never calls it', () => {
-    const header = generateQueryHeader({
+    const rawHeader = generateQueryHeader({
       ...baseParams,
       clientImplementation: 'return useMutation(mutationOptions);',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
+    const header =
+      typeof rawHeader === 'string' ? rawHeader : rawHeader.implementation;
+
     expect(header).not.toContain('const withQueryKey =');
   });
 
   it('lets the explicit queryKey win over a queryKey field on the result', () => {
-    const header = generateQueryHeader({
+    const rawHeader = generateQueryHeader({
       ...baseParams,
       clientImplementation:
         'return withQueryKey(query, queryOptions.queryKey);',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
+
+    const header =
+      typeof rawHeader === 'string' ? rawHeader : rawHeader.implementation;
 
     // Without this guard the loop would redefine `queryKey` as a getter onto
     // the result's own queryKey, diverging from the previous

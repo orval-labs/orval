@@ -66,7 +66,6 @@ export type HTTPStatusCodes =
   | HTTPStatusCode3xx
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
-
 export type filterPetsByStatusResponse200 = {
   data: Pet[];
   status: 200;

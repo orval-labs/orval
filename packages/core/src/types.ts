@@ -68,6 +68,8 @@ export interface NormalizedOutputOptions {
   optionsParamRequired: boolean;
   propertySortOrder: PropertySortOrder;
   factoryMethods?: NormalizedFactoryMethodsOptions;
+  tagsSplitDeduplication: boolean;
+  commonTypesFileName: string;
 }
 
 export interface NormalizedParamsSerializerOptions {
@@ -360,6 +362,8 @@ export interface OutputOptions {
   optionsParamRequired?: boolean;
   propertySortOrder?: PropertySortOrder;
   factoryMethods?: FactoryMethodsOptions;
+  tagsSplitDeduplication?: boolean;
+  commonTypesFileName?: string;
 }
 
 export interface InputFiltersOptions {
@@ -1396,6 +1400,7 @@ export interface GeneratorTarget {
   paramsSerializer?: GeneratorMutator[];
   paramsFilter?: GeneratorMutator[];
   fetchReviver?: GeneratorMutator[];
+  sharedTypes?: SharedTypeDeclaration[];
 }
 
 export interface GeneratorTargetFull {
@@ -1409,6 +1414,7 @@ export interface GeneratorTargetFull {
   paramsSerializer?: GeneratorMutator[];
   paramsFilter?: GeneratorMutator[];
   fetchReviver?: GeneratorMutator[];
+  sharedTypes?: SharedTypeDeclaration[];
 }
 
 export interface GeneratorOperation {
@@ -1507,6 +1513,17 @@ export type ClientExtraFilesBuilder = (
   context: ContextSpec,
 ) => Promise<ClientFileBuilder[]>;
 
+export interface SharedTypeDeclaration {
+  name: string;
+  exported: boolean;
+  code: string;
+}
+
+export type HeaderResult = {
+  implementation: string;
+  sharedTypes?: SharedTypeDeclaration[];
+};
+
 export type ClientHeaderBuilder = (params: {
   title: string;
   isRequestOptions: boolean;
@@ -1520,7 +1537,7 @@ export type ClientHeaderBuilder = (params: {
   tag?: string;
   isDefaultTagBucket?: boolean;
   clientImplementation: string;
-}) => string;
+}) => string | HeaderResult;
 
 export type ClientFooterBuilder = (params: {
   noFunction?: boolean | undefined;
@@ -1759,6 +1776,7 @@ export interface GeneratorApiOperations {
 export interface GeneratorClientExtra {
   implementation: string;
   implementationMock: string;
+  sharedTypes?: SharedTypeDeclaration[];
 }
 
 export type GeneratorClientTitle = (data: {
