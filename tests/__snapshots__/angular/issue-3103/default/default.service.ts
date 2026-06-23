@@ -172,3 +172,5 @@ export class DefaultService {
     });
   }
 }
+
+export type GetApiProductClientResult = NonNullable<Product>;
