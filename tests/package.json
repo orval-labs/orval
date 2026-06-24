@@ -21,6 +21,7 @@
     "generate:zod": "orval --config ./configs/zod.config.ts",
     "generate:mock": "orval --config ./configs/mock.config.ts",
     "generate:fetch": "orval --config ./configs/fetch.config.ts",
+    "generate:runtime-validation": "orval --config ./configs/runtime-validation.config.ts",
     "generate:mcp": "orval --config ./configs/mcp.config.ts",
     "generate:hono": "orval --config ./configs/hono.config.ts",
     "generate:factory-methods": "orval --config ./configs/factory-methods.config.ts",
