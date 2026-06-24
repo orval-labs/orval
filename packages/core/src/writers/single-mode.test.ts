@@ -208,6 +208,6 @@ describe('writeSingleMode — recovers schema-factory imports stripped by aggreg
       path.join(tmpDir, 'mocks', 'petstore.faker.ts'),
       'utf8',
     );
-    expect(mockContent).toContain('getPetMock');
+    expect(mockContent).toMatch(/import\s*\{[^}]*getPetMock[^}]*\}\s*from/);
   });
 });
