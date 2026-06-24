@@ -150,4 +150,15 @@ describe('normalizeRuntimeValidation', () => {
       strategy: 'both',
     });
   });
+
+  it('is idempotent: returns an already-normalized object unchanged', () => {
+    // Guards the per-operation query inheritance path, which can hand an
+    // already-normalized global value back into normalization.
+    expect(
+      normalizeRuntimeValidation({ enabled: false, strategy: 'throw' }),
+    ).toEqual({ enabled: false, strategy: 'throw' });
+    expect(
+      normalizeRuntimeValidation({ enabled: true, strategy: 'both' }),
+    ).toEqual({ enabled: true, strategy: 'both' });
+  });
 });
