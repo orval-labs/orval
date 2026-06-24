@@ -101,7 +101,7 @@ export function createTestContextSpec({
       angular: {
         provideIn: 'root',
         client: 'httpClient',
-        runtimeValidation: false,
+        runtimeValidation: { enabled: false, strategy: 'throw' },
       },
       swr: {},
       zod: {
@@ -156,7 +156,7 @@ export function createTestContextSpec({
       fetch: {
         includeHttpResponseReturnType: false,
         forceSuccessResponse: false,
-        runtimeValidation: false,
+        runtimeValidation: { enabled: false, strategy: 'throw' },
         useRuntimeFetcher: false,
       },
       enumGenerationType: EnumGeneration.UNION,

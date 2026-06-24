@@ -6,5 +6,6 @@ export * from './models-inline';
 export * from './mutator';
 export * from './options';
 export * from './parameter-definition';
+export * from './runtime-validation';
 export * from './schema-definition';
 export * from './verbs-options';

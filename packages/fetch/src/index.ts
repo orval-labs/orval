@@ -3,6 +3,7 @@ import {
   type ClientBuilder,
   type ClientGeneratorsBuilder,
   type ClientHeaderBuilder,
+  emitResponseValidation,
   generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
@@ -341,7 +342,7 @@ ${
   const hasSchema = response.imports.some((imp) => imp.name === responseType);
 
   const isValidateResponse =
-    override.fetch.runtimeValidation &&
+    override.fetch.runtimeValidation.enabled &&
     !isPrimitiveType &&
     hasSchema &&
     !isNdJson;
@@ -519,6 +520,13 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   const reviver = fetchReviver ? `, ${fetchReviver.name}` : '';
   const schemaValueRef =
     responseType === 'Error' ? 'ErrorSchema' : responseType;
+  const responseValidationExpression = emitResponseValidation({
+    schemaRef: schemaValueRef,
+    operationName,
+    strategy: override.fetch.runtimeValidation.strategy,
+    context: 'fetch-assign',
+    inputExpression: 'parsedBody',
+  });
   const fetchResponseType =
     override.fetch.forceSuccessResponse && hasSuccess
       ? successName
@@ -604,10 +612,10 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     isValidateResponse
       ? hasMixedSuccessContentTypes
         ? `const parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}
-  const data = contentType.includes('json') ? ${schemaValueRef}.parse(parsedBody) : parsedBody`
+  const data = contentType.includes('json') ? ${responseValidationExpression} : parsedBody`
         : successAlwaysJson
           ? `const parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}
-  const data = contentType.includes('json') ? ${schemaValueRef}.parse(parsedBody) : parsedBody`
+  const data = contentType.includes('json') ? ${responseValidationExpression} : parsedBody`
           : `const parsedBody = body !== null ? body : ''
   const data = parsedBody`
       : hasMixedSuccessContentTypes
@@ -699,7 +707,7 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
     'unknown',
   ].includes(responseType);
   const shouldUseRuntimeValidation =
-    verbOptions.override.fetch.runtimeValidation && isZodOutput;
+    verbOptions.override.fetch.runtimeValidation.enabled && isZodOutput;
 
   const normalizedVerbOptions =
     shouldUseRuntimeValidation &&

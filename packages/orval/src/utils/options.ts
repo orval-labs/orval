@@ -44,6 +44,7 @@ import {
   type NormalizedOverrideOutput,
   type NormalizedQueryOptions,
   type NormalizedSchemaOptions,
+  normalizeRuntimeValidation,
   type OperationOptions,
   type OptionsExport,
   OutputClient,
@@ -673,8 +674,9 @@ export async function normalizeOptions(
             outputOptions.override?.angular?.retrievalClient ??
             outputOptions.override?.angular?.client ??
             'httpClient',
-          runtimeValidation:
-            outputOptions.override?.angular?.runtimeValidation ?? false,
+          runtimeValidation: normalizeRuntimeValidation(
+            outputOptions.override?.angular?.runtimeValidation,
+          ),
           ...(outputOptions.override?.angular?.httpResource
             ? { httpResource: outputOptions.override.angular.httpResource }
             : {}),
@@ -685,14 +687,15 @@ export async function normalizeOptions(
             true,
           forceSuccessResponse:
             outputOptions.override?.fetch?.forceSuccessResponse ?? false,
-          runtimeValidation:
-            outputOptions.override?.fetch?.runtimeValidation ?? false,
           useRuntimeFetcher:
             outputOptions.override?.fetch?.useRuntimeFetcher ?? false,
           ...(outputOptions.override?.fetch?.arrayFormat
             ? { arrayFormat: outputOptions.override.fetch.arrayFormat }
             : {}),
           ...outputOptions.override?.fetch,
+          runtimeValidation: normalizeRuntimeValidation(
+            outputOptions.override?.fetch?.runtimeValidation,
+          ),
           ...(outputOptions.override?.fetch?.jsonReviver
             ? {
                 jsonReviver: normalizeMutator(
@@ -1056,7 +1059,9 @@ function normalizeOperationsAndTags(
                     provideIn: angular.provideIn ?? 'root',
                     client:
                       angular.retrievalClient ?? angular.client ?? 'httpClient',
-                    runtimeValidation: angular.runtimeValidation ?? false,
+                    runtimeValidation: normalizeRuntimeValidation(
+                      angular.runtimeValidation,
+                    ),
                     ...(angular.httpResource
                       ? { httpResource: angular.httpResource }
                       : {}),
@@ -1415,14 +1420,11 @@ function normalizeQueryOptions(
     ...(queryOptions.mutationInvalidates
       ? { mutationInvalidates: queryOptions.mutationInvalidates }
       : {}),
-    ...(isNullish(globalOptions.runtimeValidation)
-      ? {}
-      : {
-          runtimeValidation: globalOptions.runtimeValidation,
-        }),
-    ...(isNullish(queryOptions.runtimeValidation)
-      ? {}
-      : { runtimeValidation: queryOptions.runtimeValidation }),
+    runtimeValidation: normalizeRuntimeValidation(
+      isNullish(queryOptions.runtimeValidation)
+        ? globalOptions.runtimeValidation
+        : queryOptions.runtimeValidation,
+    ),
   };
 }
 
