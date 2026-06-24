@@ -22,6 +22,7 @@ await describeApiGenerationSnapshots({
     generated('mock'),
     generated('multi-files'),
     generated('react-query'),
+    generated('runtime-validation'),
     generated('svelte-query'),
     generated('swr'),
     generated('vue-query'),
