@@ -1710,9 +1710,13 @@ Enable Zod runtime validation for Angular output. Requires
 `schemas: { type: 'zod' }`. This option is opt-in for backward compatibility.
 
 - For generated `HttpClient` services, eligible JSON body responses are
-  validated via `Schema.parse()` in the RxJS pipeline.
-- For generated `httpResource` functions, eligible JSON resources receive a
-  `parse: Schema.parse` option.
+  validated against the schema in the RxJS pipeline.
+- For generated `httpResource` functions, eligible JSON resources are validated
+  against the schema via the resource's `parse` option.
+
+The exact mechanism depends on the strategy: `throw` parses directly (e.g.
+`Schema.parse()`), while `both` validates through a safe-parse wrapper so it can
+log before re-throwing.
 
 The boolean form is preserved for backward compatibility: `true` ≡
 `{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first
