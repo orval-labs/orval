@@ -528,6 +528,47 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('does not enable query runtimeValidation for a per-operation override when the global default is disabled', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'angular',
+            override: {
+              // Global query runtimeValidation is omitted -> disabled.
+              operations: {
+                // A per-operation query override that does NOT mention
+                // runtimeValidation must inherit the disabled global value, not
+                // silently flip it on.
+                listPets: {
+                  query: { useQuery: true },
+                },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(
+        normalized.output.override.operations.listPets?.query
+          ?.runtimeValidation,
+      ).toEqual({ enabled: false, strategy: 'throw' });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('normalizes angular retrievalClient as the generated retrieval mode', async () => {
     const workspace = await createTempWorkspace();
 

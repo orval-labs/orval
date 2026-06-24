@@ -46,6 +46,10 @@ export interface EmitResponseValidationOptions {
  *
  * The raw `ZodError` is passed to `console.error` (no `prettifyError`/`flatten`)
  * to stay agnostic across Zod 3 and Zod 4.
+ *
+ * `operationName` is interpolated into a single-quoted string literal; callers
+ * pass sanitized camelCase operation identifiers, so there is no string-literal
+ * injection surface.
  */
 const buildGuardBody = (
   schemaRef: string,
@@ -101,15 +105,23 @@ export const emitResponseValidation = ({
  * Normalizes the user-facing `runtimeValidation` config surface
  * (`boolean | { strategy }`) into the canonical `{ enabled, strategy }` object
  * consumed by the generators.
+ *
+ * Idempotent: an already-normalized value is returned unchanged, so it is safe
+ * to call on an inherited (already-normalized) value — e.g. when a per-operation
+ * `query` override inherits the normalized global default.
  */
 export const normalizeRuntimeValidation = (
-  value: RuntimeValidation | undefined,
+  value: RuntimeValidation | NormalizedRuntimeValidation | undefined,
 ): NormalizedRuntimeValidation => {
   if (!value) {
     return { enabled: false, strategy: 'throw' };
   }
   if (value === true) {
     return { enabled: true, strategy: 'throw' };
+  }
+  // Already-normalized canonical object — return as-is (idempotent).
+  if ('enabled' in value) {
+    return value;
   }
   return { enabled: true, strategy: value.strategy ?? 'throw' };
 };
