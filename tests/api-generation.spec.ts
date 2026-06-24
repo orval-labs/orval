@@ -531,6 +531,31 @@ test('react-query issue-2039 keeps path params out of mutationOptions metadata U
   );
 });
 
+test('react-query issue-607 avoids options operation shadowing hook options', async () => {
+  // Regression for #607: operationId "options" generates an operation
+  // function named `options`; the React Query hook also receives an `options`
+  // parameter. The mutationFn must call the operation function, not the
+  // user-facing hook/options object from the outer scope.
+  const content = await readFile(
+    generated('react-query', 'issue-607', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).toContain('export const options = async (');
+  expect(content).toContain('const optionsRequestFn = options;');
+  expect(content).toContain('ReturnType<typeof optionsRequestFn>');
+  expect(content).toContain('return optionsRequestFn(petId, fetchOptions)');
+  expect(content).not.toContain('return options(petId, fetchOptions)');
+
+  expect(content).toContain('export const petId = async (');
+  expect(content).toContain('const petIdRequestFn2 = petId;');
+  expect(content).toContain('ReturnType<typeof petIdRequestFn2>');
+  expect(content).toContain(
+    'return petIdRequestFn2(petId, petIdRequestFn, fetchOptions)',
+  );
+  expect(content).not.toContain('return petId(petId, fetchOptions)');
+});
+
 test('react-query issue-3153 passes operationId and operationName to the queryOptions mutator', async () => {
   // Regression for #3153: `mutationOptions` mutators have received
   // `{ operationId, operationName }` as their third argument since #1974, but
