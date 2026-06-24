@@ -68,4 +68,24 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  angularQueryBoth: {
+    output: {
+      target: '../generated/runtime-validation/angular-query-both/endpoints.ts',
+      schemas: {
+        path: '../generated/runtime-validation/angular-query-both/model',
+        type: 'zod',
+      },
+      client: 'angular-query',
+      override: {
+        query: {
+          runtimeValidation: { strategy: 'both' },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });
