@@ -40,7 +40,7 @@ export const createPetsBody = zod.object({
 
 ## Zod version
 
-Orval generates **Zod 4** output by default (`z.strictObject`, `z.looseObject`, `z.iso.datetime()`, `.meta()`, …). Projects still on Zod 3 are fully supported.
+Orval uses **Zod 4** as its output baseline (`z.strictObject`, `z.looseObject`, `z.iso.datetime()`, `.meta()`, …), while projects still on Zod 3 are fully supported. The emitted syntax follows whichever `zod` major your project resolves.
 
 With the default (`'auto'`), Orval infers the target from the `zod` version resolved in your project's `package.json`. When no `zod` package can be detected — for example in a fresh or partially-installed workspace — it falls back to **Zod 4**.
 
