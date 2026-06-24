@@ -1299,10 +1299,12 @@ Force a specific version for generated hooks.
 
 ### runtimeValidation
 
-**Type:** `Boolean`
+**Type:** `boolean | { strategy: 'throw' | 'both' }`
 **Default:** `false`
 
 Enable Zod runtime validation for Angular query responses. Requires `schemas: { type: 'zod' }`. When enabled, responses are validated via `Schema.parse()` in the RxJS pipeline. Skipped for primitive types and custom mutators.
+
+The boolean form is preserved for backward compatibility: `true` ≡ `{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first logged through `console.error('[orval] <operation> response validation failed', error)` with the raw `ZodError`, then re-thrown — so the failure still surfaces through the client's native error channel while giving production visibility into contract drift.
 
 ---
 
@@ -1701,7 +1703,7 @@ scope clearer.
 
 ### runtimeValidation
 
-**Type:** `Boolean`
+**Type:** `boolean | { strategy: 'throw' | 'both' }`
 **Default:** `false`
 
 Enable Zod runtime validation for Angular output. Requires
@@ -1711,6 +1713,13 @@ Enable Zod runtime validation for Angular output. Requires
   validated via `Schema.parse()` in the RxJS pipeline.
 - For generated `httpResource` functions, eligible JSON resources receive a
   `parse: Schema.parse` option.
+
+The boolean form is preserved for backward compatibility: `true` ≡
+`{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first
+logged through `console.error('[orval] <operation> response validation failed', error)`
+with the raw `ZodError`, then re-thrown — so the failure still surfaces through
+the client's native error channel (RxJS error / `resource.error()` signal) while
+giving production visibility into contract drift.
 
 Validation is skipped for primitive types, non-JSON responses,
 `observe: 'events' | 'response'`, and custom mutator paths that bypass the
@@ -1939,10 +1948,12 @@ Custom JSON reviver function (useful for date parsing).
 
 ### runtimeValidation
 
-**Type:** `Boolean`
+**Type:** `boolean | { strategy: 'throw' | 'both' }`
 **Default:** `false`
 
 Enable Zod runtime validation for fetch client responses. Requires `schemas: { type: 'zod' }`. When enabled, JSON responses are validated via `Schema.parse()` before being returned.
+
+The boolean form is preserved for backward compatibility: `true` ≡ `{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first logged through `console.error('[orval] <operation> response validation failed', error)` with the raw `ZodError`, then re-thrown (rejecting the returned promise) — giving production visibility into contract drift while still failing fast.
 
 ### arrayFormat
 
@@ -2046,6 +2057,8 @@ export const load = async ({ fetch }) => {
 | `angular-query` | `override.query.runtimeValidation` | ✅ | Validates eligible responses via `Schema.parse()` in RxJS pipeline; skips primitive/`void` and custom mutator paths |
 | `fetch` | `override.fetch.runtimeValidation` | ✅ | Validates JSON responses via `Schema.parse()` |
 | any client with custom mutator | varies | ⚠️ | Runtime validation may be bypassed depending on mutator path and signature (see [#2858](https://github.com/orval-labs/orval/issues/2858)) |
+
+All three supporting clients accept the object form `{ strategy: 'throw' | 'both' }`. `throw` (the default, equivalent to `true`) parses and throws; `both` additionally `console.error`s the raw `ZodError` before re-throwing, for production observability without giving up fail-fast behaviour.
 
 ---
 
