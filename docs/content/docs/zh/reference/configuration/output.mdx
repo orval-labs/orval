@@ -495,7 +495,9 @@ export default defineConfig({
 
 ### runtimeValidation
 
-配合 schema 在运行时校验响应。
+配合 schema 在运行时校验响应。支持布尔值或对象形式：
+`true` 等价于 `{ strategy: 'throw' }`；`{ strategy: 'both' }`
+会先 `console.error` 输出原始 `ZodError`，再抛出错误。
 
 ## override.swr
 

@@ -2053,9 +2053,9 @@ export const load = async ({ fetch }) => {
 
 | Client | Config key | Status | Notes |
 |--------|------------|--------|-------|
-| `angular` | `override.angular.runtimeValidation` | ✅ | Validates JSON body responses via `Schema.parse()`; skips primitive/`void`, `observe: 'events'/'response'`, and custom mutator paths |
-| `angular-query` | `override.query.runtimeValidation` | ✅ | Validates eligible responses via `Schema.parse()` in RxJS pipeline; skips primitive/`void` and custom mutator paths |
-| `fetch` | `override.fetch.runtimeValidation` | ✅ | Validates JSON responses via `Schema.parse()` |
+| `angular` | `override.angular.runtimeValidation` | ✅ | `throw`: `Schema.parse()`; `both`: `safeParse` + `console.error` + throw. Skips primitive/`void`, `observe: 'events'/'response'`, and custom mutator paths |
+| `angular-query` | `override.query.runtimeValidation` | ✅ | `throw`: `Schema.parse()` in RxJS pipeline; `both`: `safeParse` + `console.error` + throw. Skips primitive/`void` and custom mutator paths |
+| `fetch` | `override.fetch.runtimeValidation` | ✅ | `throw`: `Schema.parse()`; `both`: `safeParse` + `console.error` + throw for JSON responses |
 | any client with custom mutator | varies | ⚠️ | Runtime validation may be bypassed depending on mutator path and signature (see [#2858](https://github.com/orval-labs/orval/issues/2858)) |
 
 Runtime validation is **disabled by default** (`false`). When enabled, all three supporting clients accept the object form `{ strategy: 'throw' | 'both' }`, and `true` is shorthand for `{ strategy: 'throw' }`. The `throw` strategy parses and throws; `both` additionally `console.error`s the raw `ZodError` before re-throwing, for production observability without giving up fail-fast behaviour.
