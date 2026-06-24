@@ -1070,7 +1070,7 @@ test('zod issue-3171 applies required from a sibling allOf member to $ref base p
   const content = await readFile(file, 'utf8');
 
   // User: only `id` is required; name/email stay optional.
-  expect(content).toContain('id: zod.string().uuid(),');
+  expect(content).toContain('id: zod.uuid(),');
   expect(content).toContain('name: zod.string().optional(),');
   expect(content).toContain('email: zod.string().optional(),');
 
@@ -1078,14 +1078,42 @@ test('zod issue-3171 applies required from a sibling allOf member to $ref base p
   const start = content.indexOf('export const GetUserResponse');
   expect(start, 'GetUserResponse should be generated').toBeGreaterThan(-1);
   const userFull = content.slice(start);
-  expect(userFull).toContain('id: zod.string().uuid(),');
+  expect(userFull).toContain('id: zod.uuid(),');
   expect(userFull).toContain('name: zod.string(),');
   expect(userFull).toContain('email: zod.string(),');
   expect(userFull).not.toContain('name: zod.string().optional()');
   expect(userFull).not.toContain('email: zod.string().optional()');
 
   // The open-object sibling is preserved (additional properties allowed).
-  expect(content).toContain('.and(zod.object({}).passthrough())');
+  expect(content).toContain('.and(zod.looseObject({}))');
+});
+
+test('zod override.zod.version pins the output target independently of the installed zod', async () => {
+  // `tests` installs Zod 4, so installed-version detection would emit Zod 4 for
+  // both. These two clients generate from the SAME petstore spec but pin
+  // `override.zod.version` to 3 and 4 respectively, proving the explicit target
+  // wins over detection (deterministic generation — issue #3111).
+  const v3 = await readFile(
+    generated('zod', 'force-version-3', 'force-version-3.ts'),
+    'utf8',
+  );
+  const v4 = await readFile(
+    generated('zod', 'force-version-4', 'force-version-4.ts'),
+    'utf8',
+  );
+
+  // version: 3 -> Zod 3 syntax, even though Zod 4 is installed. These remain
+  // valid (deprecated) under Zod 4, so the output still type-checks.
+  expect(v3).toContain('.strict()');
+  expect(v3).toContain('zod.string().email()');
+  expect(v3).not.toContain('zod.strictObject(');
+  expect(v3).not.toContain('zod.email(');
+
+  // version: 4 -> Zod 4 syntax.
+  expect(v4).toContain('zod.strictObject(');
+  expect(v4).toContain('zod.email()');
+  expect(v4).not.toContain('.strict()');
+  expect(v4).not.toContain('zod.string().email()');
 });
 
 test('default index-mock-file-split emits dedicated mock barrels in split mode (#3318)', async () => {

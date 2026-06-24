@@ -373,4 +373,44 @@ export default defineConfig({
     },
     input: '../specifications/issue-3505.yaml',
   },
+  // The next two configs pin `override.zod.version` to prove the explicit target
+  // wins over installed-version detection. `tests` installs Zod 4, so:
+  //   - `version: 3` must still emit Zod 3 syntax (`.strict()`,
+  //     `zod.string().email()`), which remains valid (deprecated) under Zod 4.
+  //   - `version: 4` emits Zod 4 syntax (`zod.strictObject`, `zod.email()`).
+  // The api-generation spec asserts the two outputs diverge accordingly.
+  'force-version-3': {
+    output: {
+      target: '../generated/zod/force-version-3/force-version-3.ts',
+      client: 'zod',
+      override: {
+        zod: {
+          version: 3,
+          strict: { body: true, response: true },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  'force-version-4': {
+    output: {
+      target: '../generated/zod/force-version-4/force-version-4.ts',
+      client: 'zod',
+      override: {
+        zod: {
+          version: 4,
+          strict: { body: true, response: true },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

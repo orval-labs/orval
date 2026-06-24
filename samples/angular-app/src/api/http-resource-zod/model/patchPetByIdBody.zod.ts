@@ -33,7 +33,7 @@ export const PatchPetByIdBody = zod.object({
     .max(patchPetByIdBodyTagMax)
     .optional()
     .describe('Optional classification tag'),
-  email: zod.string().email().optional().describe('Owner contact email'),
+  email: zod.email().optional().describe('Owner contact email'),
   status: zod
     .enum(['available', 'pending', 'sold'])
     .default(patchPetByIdBodyStatusDefault)

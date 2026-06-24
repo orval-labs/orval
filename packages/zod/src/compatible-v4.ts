@@ -1,4 +1,8 @@
-import { compareVersions, type PackageJson } from '@orval/core';
+import {
+  compareVersions,
+  type PackageJson,
+  type ZodVersionOption,
+} from '@orval/core';
 
 const getZodPackageVersion = (packageJson: PackageJson) => {
   return (
@@ -19,6 +23,40 @@ export const isZodVersionV4 = (packageJson: PackageJson) => {
   const withoutRc = version.split('-')[0];
 
   return compareVersions(withoutRc, '4.0.0');
+};
+
+/**
+ * Resolves whether to emit Zod 4-style output.
+ *
+ * An explicit `override.zod.version` of `3` or `4` always wins; `'auto'` (the
+ * default) falls back to inferring from the output project's resolved `zod`
+ * version via {@link isZodVersionV4}. When no package metadata is available,
+ * `'auto'` now defaults to Zod 4 so fresh or partially-installed workspaces
+ * still get the modern baseline. This keeps generation deterministic when a
+ * target is pinned while preserving package-detection for `'auto'`.
+ */
+export const resolveIsZodV4 = (
+  version: ZodVersionOption | undefined,
+  packageJson: PackageJson | undefined,
+): boolean => {
+  if (version === 4) {
+    return true;
+  }
+
+  if (version === 3) {
+    return false;
+  }
+
+  // 'auto' (or unset) — infer from the installed/resolved zod version and
+  // default to Zod 4 when the target workspace has no detectable zod version
+  // yet. Treat "no packageJson" and "packageJson without a detectable zod
+  // version" identically so partially-installed workspaces still get the
+  // modern baseline instead of silently falling back to Zod 3.
+  if (!packageJson || !getZodPackageVersion(packageJson)) {
+    return true;
+  }
+
+  return isZodVersionV4(packageJson);
 };
 
 export const getZodDateFormat = (isZodV4: boolean) => {

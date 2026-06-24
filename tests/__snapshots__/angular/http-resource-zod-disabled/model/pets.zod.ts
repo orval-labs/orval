@@ -23,7 +23,7 @@ export const Pets = zod.array(zod.union([zod.union([zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "tag": zod.string().optional(),
-  "email": zod.string().email().optional(),
+  "email": zod.email().optional(),
   "callingCode": zod.enum(['+33', '+420']).optional(),
   "country": zod.enum(['People\'s Republic of China', 'Uruguay']).optional()
 })))

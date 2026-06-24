@@ -57,6 +57,6 @@
     "typescript": "catalog:",
     "vitest": "catalog:",
     "vue": "catalog:vue",
-    "zod": "catalog:zod3"
+    "zod": "catalog:zod4"
   }
 }

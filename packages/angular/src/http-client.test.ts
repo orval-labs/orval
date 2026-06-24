@@ -74,6 +74,7 @@ const createOutput = (
       angular: angularOverride,
       swr: {},
       zod: {
+        version: 'auto',
         strict: {
           param: false,
           query: false,

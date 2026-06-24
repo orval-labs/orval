@@ -101,6 +101,7 @@ function createMockContext(): ContextSpec {
         },
         swr: {},
         zod: {
+          version: 'auto',
           strict: {
             param: false,
             query: false,
