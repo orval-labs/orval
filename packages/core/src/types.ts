@@ -577,14 +577,22 @@ export type OverrideMockOptions = Partial<GlobalMockOptions> & {
   required?: boolean; // When true, all properties are required (and thus not optional) in mocks.
   nonNullable?: boolean; // When true, nullable mock values are never wrapped in `arrayElement([value, null])`.
   properties?: MockProperties;
+  // Scope property overrides to a named schema (e.g. `components/schemas/Apple`),
+  // so the same property name can mock differently per schema. Matching rules are
+  // identical to `properties` (bare name, `/regex/`, exact `#.path`).
+  schemas?: Record<string, { properties: MockProperties }>;
   format?: Record<string, unknown>;
   fractionDigits?: number;
 };
 
-export type MockOptions = Omit<OverrideMockOptions, 'properties'> & {
+export type MockOptions = Omit<
+  OverrideMockOptions,
+  'properties' | 'schemas'
+> & {
   properties?: Record<string, unknown>;
   operations?: Record<string, { properties: Record<string, unknown> }>;
   tags?: Record<string, { properties: Record<string, unknown> }>;
+  schemas?: Record<string, { properties: Record<string, unknown> }>;
 };
 
 export type MockPropertiesObject = Record<string, unknown>;

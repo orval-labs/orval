@@ -1071,3 +1071,98 @@ describe('getMockScalar (enum value escaping #3505)', () => {
     );
   });
 });
+
+describe('getMockScalar (schema-scoped overrides)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+  };
+
+  const colorItem = (parentName: string) => ({
+    type: 'string' as OpenApiSchemaObjectType,
+    name: 'color',
+    parentName,
+  });
+
+  it('applies a schema-scoped override only inside the matching schema', () => {
+    const mockOptions = {
+      schemas: {
+        Apple: { properties: { color: "'red'" } },
+        Car: { properties: { color: "'midnight black'" } },
+      },
+    };
+
+    const apple = getMockScalar({
+      ...baseArg,
+      item: colorItem('Apple'),
+      mockOptions,
+      context: scalarContext(),
+    });
+    expect(apple.value).toBe("'red'");
+    expect(apple.overrided).toBe(true);
+
+    const car = getMockScalar({
+      ...baseArg,
+      item: colorItem('Car'),
+      mockOptions,
+      context: scalarContext(),
+    });
+    expect(car.value).toBe("'midnight black'");
+  });
+
+  it('falls through to the default mock when the schema name does not match', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: colorItem('Banana'),
+      mockOptions: { schemas: { Apple: { properties: { color: "'red'" } } } },
+      context: scalarContext(),
+    });
+
+    expect(result.value).not.toBe("'red'");
+    expect(result.value).toContain('faker.string.alpha');
+  });
+
+  it('does not apply a schema-scoped override when the item has no parentName', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: { type: 'string' as OpenApiSchemaObjectType, name: 'color' },
+      mockOptions: { schemas: { Apple: { properties: { color: "'red'" } } } },
+      context: scalarContext(),
+    });
+
+    expect(result.value).toContain('faker.string.alpha');
+  });
+
+  it('prefers an operation-scoped override over a schema-scoped one', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: colorItem('Apple'),
+      mockOptions: {
+        operations: {
+          'test-operation': { properties: { color: "'op-color'" } },
+        },
+        schemas: { Apple: { properties: { color: "'red'" } } },
+      },
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe("'op-color'");
+  });
+
+  it('prefers a schema-scoped override over a global property override', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: colorItem('Apple'),
+      mockOptions: {
+        properties: { color: "'global-color'" },
+        schemas: { Apple: { properties: { color: "'red'" } } },
+      },
+      context: scalarContext(),
+    });
+
+    expect(result.value).toBe("'red'");
+  });
+});

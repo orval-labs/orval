@@ -2030,6 +2030,13 @@ export default defineConfig({
             '/tag|name/': 'jon',
             email: () => faker.internet.email(),
           },
+          schemas: {
+            Apple: {
+              properties: {
+                color: () => faker.helpers.arrayElement(['red', 'green']),
+              },
+            },
+          },
           format: {
             email: () => faker.internet.email(),
             iban: () => faker.finance.iban(),
@@ -2052,7 +2059,16 @@ export default defineConfig({
 
 ### properties
 
-Override mock values per property path or regex.
+Override mock values per property path or regex. Applies to every schema that has a
+matching property.
+
+### schemas
+
+Scope property overrides to a named schema, so the same property name can mock differently
+per schema (e.g. `color` on `Apple` vs. `Car`). Keyed by schema name; each entry holds a
+`properties` map using the same matching rules as `properties` (bare name, `/regex/`, exact
+`#.path`). Takes precedence over the global `properties` overrides. See the
+[Faker guide](/docs/guides/faker#per-schema-overrides) for a worked example.
 
 ### format
 
