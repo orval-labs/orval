@@ -6,7 +6,9 @@ import Pet from './query-enabled-reactivity-pet-id.vue';
 
 describe('Query `enabled` reactivity', () => {
   it('works', async () => {
-    // this test is to ensure that we use unref() for `enabled`, like so: `enabled: computed(() => !!unref(petId))`
+    // this test ensures we use unref() inside the `enabled` guard, like so:
+    // `enabled: computed(() => unref(petId) !== null && unref(petId) !== undefined)`
+    // (nullish check, not truthiness — see issue #3241)
 
     const spy = vi.spyOn(customInstanceModule, 'customInstance');
 
@@ -16,7 +18,7 @@ describe('Query `enabled` reactivity', () => {
       },
     });
 
-    // make sure the query is disabled at first, because `petId` is falsy (empty string)
+    // make sure the query is disabled at first, because `petId` is undefined (nullish)
     expect(spy).not.toHaveBeenCalled();
 
     // after the timeout inside of component, `overridePetId` is set to `123` and the query is enabled
