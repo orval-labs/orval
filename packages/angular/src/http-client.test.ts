@@ -3,6 +3,7 @@ import type {
   GeneratorOptions,
   GeneratorVerbOptions,
   NormalizedOutputOptions,
+  NormalizedRuntimeValidation,
   ResReqTypesValue,
 } from '@orval/core';
 import { GetterPropType } from '@orval/core';
@@ -27,14 +28,14 @@ import { createQueryParams } from './test-helpers';
 interface AngularOverride {
   provideIn: 'root' | 'any' | boolean;
   client: 'httpClient' | 'httpResource' | 'both';
-  runtimeValidation: boolean;
+  runtimeValidation: NormalizedRuntimeValidation;
   queryObjectSerialization: 'spec' | 'legacy';
 }
 
 const angularOverride = {
   provideIn: 'root',
   client: 'httpClient',
-  runtimeValidation: false,
+  runtimeValidation: { enabled: false, strategy: 'throw' },
   queryObjectSerialization: 'spec',
 } satisfies AngularOverride;
 
@@ -131,7 +132,7 @@ const createOutput = (
         includeHttpResponseReturnType: true,
         forceSuccessResponse: false,
         serializeResponseHeaders: false,
-        runtimeValidation: false,
+        runtimeValidation: { enabled: false, strategy: 'throw' },
         useRuntimeFetcher: false,
       },
       enumGenerationType: 'const',
@@ -1699,7 +1700,7 @@ describe('angular HttpClient generator', () => {
           ...createOutput().override,
           angular: {
             ...angularOverride,
-            runtimeValidation: true,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         },
       });
@@ -1711,7 +1712,7 @@ describe('angular HttpClient generator', () => {
           ...createVerbOption().override,
           angular: {
             ...angularOverride,
-            runtimeValidation: true,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         } as GeneratorVerbOptions['override'],
       });
@@ -1748,7 +1749,7 @@ describe('angular HttpClient generator', () => {
           ...createOutput().override,
           angular: {
             ...angularOverride,
-            runtimeValidation: true,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         },
       });
@@ -1760,7 +1761,7 @@ describe('angular HttpClient generator', () => {
           ...createVerbOption().override,
           angular: {
             ...angularOverride,
-            runtimeValidation: true,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         } as GeneratorVerbOptions['override'],
       });
@@ -1800,7 +1801,7 @@ describe('angular HttpClient generator', () => {
           ...createOutput().override,
           angular: {
             ...angularOverride,
-            runtimeValidation: true,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         },
       });
@@ -1821,7 +1822,7 @@ describe('angular HttpClient generator', () => {
           ...createVerbOption().override,
           angular: {
             ...angularOverride,
-            runtimeValidation: true,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         } as GeneratorVerbOptions['override'],
       });
@@ -1854,7 +1855,7 @@ describe('angular HttpClient generator', () => {
           ...createOutput().override,
           angular: {
             ...angularOverride,
-            runtimeValidation: true,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         },
       });
@@ -1895,7 +1896,7 @@ describe('angular HttpClient generator', () => {
           ...createVerbOption().override,
           angular: {
             ...angularOverride,
-            runtimeValidation: true,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         } as GeneratorVerbOptions['override'],
       });
@@ -1930,7 +1931,7 @@ describe('angular HttpClient generator', () => {
           ...createOutput().override,
           angular: {
             ...angularOverride,
-            runtimeValidation: true,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         },
       });
@@ -1945,7 +1946,7 @@ describe('angular HttpClient generator', () => {
           paramsSerializerOptions: undefined,
           angular: {
             ...angularOverride,
-            runtimeValidation: true,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
           },
         } as GeneratorVerbOptions['override'],
       });

@@ -101,7 +101,7 @@ export const generateQuery: ClientBuilder = async (
     'unknown',
   ].includes(responseType);
   const shouldUseRuntimeValidation =
-    verbOptions.override.query.runtimeValidation && isZodOutput;
+    verbOptions.override.query.runtimeValidation?.enabled && isZodOutput;
 
   const normalizedVerbOptions =
     shouldUseRuntimeValidation &&

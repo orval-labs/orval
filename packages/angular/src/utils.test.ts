@@ -428,7 +428,7 @@ const makeVerb = (operationId: string, tags: string[]): GeneratorVerbOptions =>
       angular: {
         provideIn: 'root',
         client: 'httpClient',
-        runtimeValidation: false,
+        runtimeValidation: { enabled: false, strategy: 'throw' },
       },
     } as GeneratorVerbOptions['override'],
     deprecated: false,
