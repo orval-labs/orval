@@ -311,7 +311,16 @@ function renderReusableSchemaEntry(
     // emitted here or the body references undeclared names (TS2552). The
     // acyclic branch never hits this — it derives its type via
     // `zod.input<typeof X>`, so it never names them.
-    const subModels = resolved?.schemas ?? [];
+    // Dedupe by name: `resolveValue` can surface the same sub-model twice
+    // (e.g. an allOf/oneOf branch re-resolving a shared inline shape), and two
+    // `export type X` for one name is a TS2300 duplicate-identifier error. The
+    // model writer dedupes the same way (group-by-name in writers/schemas.ts).
+    const seenSubModels = new Set<string>();
+    const subModels = (resolved?.schemas ?? []).filter((s) => {
+      if (seenSubModels.has(s.name)) return false;
+      seenSubModels.add(s.name);
+      return true;
+    });
     const subModelBlock = subModels.length
       ? `${subModels.map((s) => s.model.trimEnd()).join('\n')}\n\n`
       : '';
