@@ -616,6 +616,70 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
 
     await fs.remove(root);
   });
+
+  it('emits the implicit sub-model an inline nested object hoists in a recursive schema', async () => {
+    // A recursive schema (self-loop via `next`) takes the explicit
+    // `zod.ZodType<T>` path, whose TS body is hand-written from
+    // `resolveValue().value`. That body references the implicit sub-model
+    // `resolveValue` mints for the inline `meta` object (`ActionMeta`), which
+    // arrives in `resolved.schemas`. Pre-fix the writer dropped
+    // `resolved.schemas`, so the body named a type that was never declared
+    // (TS2552 in single-file output, TS2305 in split). The acyclic path never
+    // hits this: it derives its type via `zod.input<typeof X>`.
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-reuse-sub-'));
+    const schemasPath = path.join(root, 'schemas');
+
+    const builder = {
+      spec: {
+        components: {
+          schemas: {
+            Action: {
+              type: 'object',
+              properties: {
+                next: { $ref: '#/components/schemas/Action' },
+                meta: {
+                  type: 'object',
+                  properties: { label: { type: 'string' } },
+                },
+              },
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [
+        { name: 'Action', schema: { $ref: '#/components/schemas/Action' } },
+      ],
+    } satisfies Parameters<typeof writeZodSchemas>[0];
+
+    const options = createOutputOptions();
+    options.override.zod.generateReusableSchemas = true;
+
+    await writeZodSchemas(builder, schemasPath, '.ts', '', options);
+
+    const actionContent = await fs.readFile(
+      path.join(schemasPath, 'Action.ts'),
+      'utf8',
+    );
+
+    // The recursive path is taken (so the hand-written body is in play) and
+    // references the hoisted sub-model.
+    expect(actionContent).toContain(
+      'export const Action: zod.ZodType<Action> = ',
+    );
+    expect(actionContent).toMatch(/meta\??: ActionMeta/);
+    // The sub-model is declared locally in the same file — not a dangling
+    // reference, not a cross-file import, and no sibling file is written for
+    // it (it isn't a component).
+    expect(actionContent).toContain('export type ActionMeta = ');
+    expect(actionContent).not.toMatch(/from '\.\/ActionMeta'/);
+    expect(await fs.pathExists(path.join(schemasPath, 'ActionMeta.ts'))).toBe(
+      false,
+    );
+    expect(actionContent).not.toContain('__REF_');
+
+    await fs.remove(root);
+  });
 });
 
 describe('buildSiblingImports', () => {
