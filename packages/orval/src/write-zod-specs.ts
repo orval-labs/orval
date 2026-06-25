@@ -304,6 +304,19 @@ function renderReusableSchemaEntry(
       ? resolveValue({ schema, name: entry.name, context })
       : undefined;
     const typeBody = resolved ? resolved.value : 'unknown';
+    // The recursive type body is hand-written from `resolved.value`, which
+    // references the implicit sub-models `resolveValue` generates for inline
+    // enums and nested objects (e.g. `<Name>Type`, `<Name>Target`,
+    // `<Name><NestedProp>`). Those live in `resolved.schemas` and MUST be
+    // emitted here or the body references undeclared names (TS2552). The
+    // acyclic branch never hits this — it derives its type via
+    // `zod.input<typeof X>`, so it never names them.
+    const subModels = resolved?.schemas ?? [];
+    const subModelBlock = subModels.length
+      ? `${subModels.map((s) => s.model.trimEnd()).join('\n')}\n\n`
+      : '';
+    // Sub-models are declared locally above, so they're never imports.
+    const localNames = new Set(subModels.map((s) => s.name));
     // Dedupe by local binding name (`alias ?? name`). When `resolveValue`
     // surfaces the same component twice — e.g. once aliased, once not —
     // collapsing on the binding key keeps both the file's import list and the
@@ -311,7 +324,9 @@ function renderReusableSchemaEntry(
     const seen = new Set<string>();
     const extraImports: ExtraImport[] = [];
     for (const imp of resolved?.imports ?? []) {
-      if (!imp.name || imp.name === entry.name) continue;
+      if (!imp.name || imp.name === entry.name || localNames.has(imp.name)) {
+        continue;
+      }
       const bindingKey = imp.alias ?? imp.name;
       if (seen.has(bindingKey)) continue;
       seen.add(bindingKey);
@@ -323,7 +338,7 @@ function renderReusableSchemaEntry(
 
     return {
       content:
-        `${consts}export type ${entry.name} = ${typeBody};\n\n` +
+        `${consts}${subModelBlock}export type ${entry.name} = ${typeBody};\n\n` +
         `export const ${entry.name}: zod.ZodType<${entry.name}> = ${entry.zod};\n\n` +
         `export type ${entry.name}Output = zod.output<typeof ${entry.name}>;`,
       extraImports,
