@@ -72,9 +72,11 @@ docker run --rm -v "$(pwd):/app" -w /app ghcr.io/orval-labs/orval
 MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd):/app" -w /app ghcr.io/orval-labs/orval
 
 # Windows CMD
+cd /d "C:\path\to\your-project"
 docker run --rm -v "%cd%:/app" -w /app ghcr.io/orval-labs/orval
 
 # Windows PowerShell
+cd "C:\path\to\your-project"
 docker run --rm -v "${PWD}:/app" -w /app ghcr.io/orval-labs/orval
 ```
 
@@ -91,9 +93,11 @@ docker run --rm --add-host=host.docker.internal:host-gateway -v "$(pwd):/app" -w
 MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd):/app" -w /app -e ORVAL_SWAGGER_URL="https://host.docker.internal:7142/swagger/v1/swagger.json" -e NODE_TLS_REJECT_UNAUTHORIZED=0 ghcr.io/orval-labs/orval --config ./orval.config.ts
 
 # Windows CMD
-docker run --rm -v "%cd%:/app" -w /app -e ORVAL_SWAGGER_URL=https://host.docker.internal:7142/swagger/v1/swagger.json -e NODE_TLS_REJECT_UNAUTHORIZED=0 ghcr.io/orval-labs/orval --config ./orval.config.ts
+cd /d "C:\path\to\your-project"
+docker run --rm -v "%cd%:/app" -w /app -e "ORVAL_SWAGGER_URL=https://host.docker.internal:7142/swagger/v1/swagger.json" -e "NODE_TLS_REJECT_UNAUTHORIZED=0" ghcr.io/orval-labs/orval --config ./orval.config.ts
 
 # Windows PowerShell
+cd "C:\path\to\your-project"
 docker run --rm -v "${PWD}:/app" -w /app -e ORVAL_SWAGGER_URL="https://host.docker.internal:7142/swagger/v1/swagger.json" -e NODE_TLS_REJECT_UNAUTHORIZED=0 ghcr.io/orval-labs/orval --config ./orval.config.ts
 ```
 
