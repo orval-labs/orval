@@ -35,7 +35,7 @@ const context = {
         Base: {
           type: 'object',
           properties: {
-            name: { type: 'string' },
+            baseProp: { type: 'string' },
           },
         },
         Status: {
@@ -74,7 +74,7 @@ describe('combineSchemas (allOf required handling)', () => {
   it('keeps Required<Pick> when parent requires properties defined only in subschemas', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
-      required: ['name'],
+      required: ['baseProp'],
       allOf: [{ $ref: '#/components/schemas/Base' }],
     };
 
@@ -266,6 +266,32 @@ describe('combineSchemas (allOf required handling)', () => {
 
       expect(result.isEnum).toBe(false);
     });
+  });
+
+  it('promotes required field to Required<Pick> when field is defined on $ref parent but required in inline allOf sibling', () => {
+    const schema: OpenApiSchemaObject = {
+      allOf: [
+        { $ref: '#/components/schemas/Base' },
+        {
+          type: 'object',
+          required: ['baseProp'],
+          properties: {
+            url: { type: 'string' },
+          },
+        },
+      ],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'Child',
+      separator: 'allOf',
+      context,
+      nullable: '',
+    });
+
+    expect(result.value).toContain('Required<Pick');
+    expect(result.value).toContain("'baseProp'");
   });
 
   it('normalizes inline object in allOf to match parent object form', () => {

@@ -283,7 +283,7 @@ export function combineSchemas({
     ),
     requiredProperties:
       separator === 'allOf'
-        ? ((schema.required as string[] | undefined) ?? [])
+        ? ((normalizedSchema.required as string[] | undefined) ?? [])
         : [],
   };
   for (const subSchema of items) {
