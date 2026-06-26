@@ -14,6 +14,10 @@ const getImport = (
   mutator: NormalizedMutator,
   tsconfig?: Tsconfig,
 ) => {
+  if (mutator.resolvedPath || !path.isAbsolute(mutator.path)) {
+    return mutator.path;
+  }
+
   const outputFile = getFileInfo(output).path;
   // When the user hasn't pinned `mutator.extension`, derive it from the
   // mutator file's own extension so NodeNext / Node16 projects get the
@@ -47,6 +51,7 @@ export async function generateMutator({
   const isDefault = mutator.default;
   const importName = mutator.name ?? `${name}Mutator`;
   const importPath = mutator.path;
+  const inspectionPath = mutator.resolvedPath ?? mutator.path;
   const mutatorInfoName = isDefault ? 'default' : mutator.name;
 
   if (mutatorInfoName === undefined) {
@@ -58,16 +63,20 @@ export async function generateMutator({
     );
   }
 
-  let rawFile = await fs.readFile(importPath, 'utf8');
+  let rawFile = path.isAbsolute(inspectionPath)
+    ? await fs.readFile(inspectionPath, 'utf8')
+    : '';
   rawFile = removeComments(rawFile);
 
   const hasErrorType =
-    rawFile.includes('export type ErrorType') ||
-    rawFile.includes('export interface ErrorType');
+    !!rawFile &&
+    (rawFile.includes('export type ErrorType') ||
+      rawFile.includes('export interface ErrorType'));
 
   const hasBodyType =
-    rawFile.includes(`export type ${BODY_TYPE_NAME}`) ||
-    rawFile.includes(`export interface ${BODY_TYPE_NAME}`);
+    !!rawFile &&
+    (rawFile.includes(`export type ${BODY_TYPE_NAME}`) ||
+      rawFile.includes(`export interface ${BODY_TYPE_NAME}`));
 
   const errorTypeName = mutator.default
     ? `${pascal(name)}ErrorType`
@@ -77,7 +86,7 @@ export async function generateMutator({
     ? `${pascal(name)}${BODY_TYPE_NAME}`
     : BODY_TYPE_NAME;
 
-  const mutatorInfo = await getMutatorInfo(importPath, {
+  const mutatorInfo = await getMutatorInfo(inspectionPath, {
     root: workspace,
     namedExport: mutatorInfoName,
     alias: mutator.alias,

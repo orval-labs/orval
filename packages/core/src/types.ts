@@ -186,6 +186,7 @@ export interface NormalizedOverrideOutput {
 
 export interface NormalizedMutator {
   path: string;
+  resolvedPath?: string;
   name?: string;
   default: boolean;
   alias?: Record<string, string>;
