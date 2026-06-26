@@ -161,7 +161,42 @@ export default defineConfig({
 
 ## clean
 
-生成前清理输出。不要把手写代码放进被清理的生成目录。
+**类型：** `Boolean | String[]`
+**默认：** `false`
+
+在重新生成前清空 `target` 和 `schemas` 目录。这两个目录中的**所有**文件都会被删除（`.d.ts` 文件会被保留）——不仅仅是 Orval 生成的文件，还包括其中存放的任何其他文件。
+
+设为 `String[]` 时，数组项是追加到删除列表的额外 glob 模式，同时作用于 `target` 和 `schemas` 目录。用取反 glob（以 `!` 开头）来保留特定文件不被删除，或用正向 glob 来额外删除本会被保留的文件。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      // 保留 `important.ts`，并额外删除 `.d.ts` 文件
+      clean: ['!**/important.ts', '**/*.d.ts'],
+    },
+  },
+});
+```
+
+例如，要在生成产物旁保留已提交的 `swagger.json`：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      target: './src/generated',
+      clean: ['!**/swagger.json'],
+    },
+  },
+});
+```
+
+<Callout type="warn">
+`clean` 会删除所配置目录中的全部内容，而不只是生成文件。不要把 `target` 或 `schemas` 直接指向包含你需要保留文件的包或库入口根目录（如 `package.json`、`ng-package.json`、`public-api.ts` 等）。请把生成产物放在专用子目录（例如 `./generated/`）中，以免这些文件被误删。
+</Callout>
+
+出于同样的原因，请将手写文件（mutator、transformer、应用代码）放在 `target` 和 `schemas` 目录之外。
 
 ## formatter
 
