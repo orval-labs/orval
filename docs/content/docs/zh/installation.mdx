@@ -30,6 +30,139 @@ pnpm add orval -D
   </Tab>
 </Tabs>
 
+## Docker
+
+Orval 8+ 需要 Node.js 22.18 或更高版本。如果项目仍使用较旧的 Node LTS，可以用官方 Docker 镜像运行代码生成，而无需在本地安装 Orval。
+
+`/app` 只是容器内的路径。你的项目**不需要** `app` 文件夹 — 把项目根目录挂载到任意容器路径，并让 `-w` 与挂载目标一致即可。
+
+### 基本用法
+
+<Tabs items={["macOS / Linux", "Windows (Git Bash)", "Windows (CMD)", "Windows (PowerShell)"]}>
+  <Tab value="macOS / Linux">
+```bash
+docker run --rm -v "$(pwd):/app" -w /app ghcr.io/orval-labs/orval
+```
+  </Tab>
+  <Tab value="Windows (Git Bash)">
+```bash
+MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd):/app" -w /app ghcr.io/orval-labs/orval
+```
+  </Tab>
+  <Tab value="Windows (CMD)">
+```bat
+docker run --rm -v "%cd%:/app" -w /app ghcr.io/orval-labs/orval
+```
+  </Tab>
+  <Tab value="Windows (PowerShell)">
+```powershell
+docker run --rm -v "${PWD}:/app" -w /app ghcr.io/orval-labs/orval
+```
+  </Tab>
+</Tabs>
+
+通过版本标签固定到特定发布版本（例如 `8.19.0`）：
+
+```bash
+ghcr.io/orval-labs/orval:8.19.0
+```
+
+### 使用配置文件
+
+<Tabs items={["macOS / Linux", "Windows (Git Bash)", "Windows (CMD)", "Windows (PowerShell)"]}>
+  <Tab value="macOS / Linux">
+```bash
+docker run --rm -v "$(pwd):/app" -w /app ghcr.io/orval-labs/orval --config ./orval.config.ts
+```
+  </Tab>
+  <Tab value="Windows (Git Bash)">
+```bash
+MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd):/app" -w /app ghcr.io/orval-labs/orval --config ./orval.config.ts
+```
+  </Tab>
+  <Tab value="Windows (CMD)">
+```bat
+docker run --rm -v "%cd%:/app" -w /app ghcr.io/orval-labs/orval --config ./orval.config.ts
+```
+  </Tab>
+  <Tab value="Windows (PowerShell)">
+```powershell
+docker run --rm -v "${PWD}:/app" -w /app ghcr.io/orval-labs/orval --config ./orval.config.ts
+```
+  </Tab>
+</Tabs>
+
+在 Windows Git Bash 中，请在命令前加上 `MSYS_NO_PATHCONV=1`，否则 Docker 会把 `/app` 错误解析为 `C:/Program Files/Git/app`。
+
+### 从 localhost 获取 OpenAPI
+
+容器内的 `localhost` 指向容器自身，而不是你的电脑。如果 `orval.config.ts` 从本地 API 拉取 spec（例如 `https://localhost:7142/swagger/v1/swagger.json`），请把 `localhost` 替换为 `host.docker.internal`，并通过环境变量传入 URL。
+
+| 宿主机系统 | 替代 `localhost` 的地址 |
+| --- | --- |
+| Windows / macOS（Docker Desktop） | `host.docker.internal` |
+| Linux（Docker Desktop） | `host.docker.internal` |
+| Linux（原生 Docker） | `host.docker.internal`，并添加 `--add-host=host.docker.internal:host-gateway` |
+
+在配置中通过环境变量读取 URL：
+
+```ts
+const inputTarget =
+  process.env.ORVAL_SWAGGER_URL ?? 'https://localhost:7142/swagger/v1/swagger.json';
+```
+
+仅在本地 API 使用自签名证书时设置 `NODE_TLS_REJECT_UNAUTHORIZED=0`。在 CI 或离线构建中，应改为使用已提交的文件，例如 `./src/swagger.json`。
+
+在官方镜像发布前本地测试时，可将 `ghcr.io/orval-labs/orval` 替换为 `orval:local`。
+
+<Tabs items={["macOS / Linux", "Linux（原生 Docker）", "Windows (Git Bash)", "Windows (CMD)", "Windows (PowerShell)"]}>
+  <Tab value="macOS / Linux">
+```bash
+docker run --rm \
+  -v "$(pwd):/app" \
+  -w /app \
+  -e ORVAL_SWAGGER_URL="https://host.docker.internal:7142/swagger/v1/swagger.json" \
+  -e NODE_TLS_REJECT_UNAUTHORIZED=0 \
+  ghcr.io/orval-labs/orval \
+  --config ./orval.config.ts
+```
+  </Tab>
+  <Tab value="Linux（原生 Docker）">
+```bash
+docker run --rm --add-host=host.docker.internal:host-gateway \
+  -v "$(pwd):/app" \
+  -w /app \
+  -e ORVAL_SWAGGER_URL="https://host.docker.internal:7142/swagger/v1/swagger.json" \
+  -e NODE_TLS_REJECT_UNAUTHORIZED=0 \
+  ghcr.io/orval-labs/orval \
+  --config ./orval.config.ts
+```
+  </Tab>
+  <Tab value="Windows (Git Bash)">
+```bash
+MSYS_NO_PATHCONV=1 docker run --rm \
+  -v "$(pwd):/app" \
+  -w /app \
+  -e ORVAL_SWAGGER_URL="https://host.docker.internal:7142/swagger/v1/swagger.json" \
+  -e NODE_TLS_REJECT_UNAUTHORIZED=0 \
+  ghcr.io/orval-labs/orval \
+  --config ./orval.config.ts
+```
+  </Tab>
+  <Tab value="Windows (CMD)">
+```bat
+cd /d "C:\path\to\your-project"
+docker run --rm -v "%cd%:/app" -w /app -e ORVAL_SWAGGER_URL=https://host.docker.internal:7142/swagger/v1/swagger.json -e NODE_TLS_REJECT_UNAUTHORIZED=0 ghcr.io/orval-labs/orval --config ./orval.config.ts
+```
+  </Tab>
+  <Tab value="Windows (PowerShell)">
+```powershell
+cd "C:\path\to\your-project"
+docker run --rm -v "${PWD}:/app" -w /app -e ORVAL_SWAGGER_URL="https://host.docker.internal:7142/swagger/v1/swagger.json" -e NODE_TLS_REJECT_UNAUTHORIZED=0 ghcr.io/orval-labs/orval --config ./orval.config.ts
+```
+  </Tab>
+</Tabs>
+
 ## 全局安装
 
 也可以把 Orval 安装为全局命令：
