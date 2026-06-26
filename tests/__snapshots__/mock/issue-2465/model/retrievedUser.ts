@@ -11,4 +11,11 @@ import type { BaseUser } from './baseUser';
  */
 export type RetrievedUser = BaseUser & {
   id: string;
-};
+} & Required<
+    Pick<
+      BaseUser & {
+        id: string;
+      },
+      'lastName' | 'email'
+    >
+  >;
