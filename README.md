@@ -58,6 +58,51 @@ You can find some samples below:
 
 Try Orval out for yourself using our [Playground](https://orval.dev/playground) application!
 
+### Docker
+
+Orval 8+ requires Node.js 22.18 or newer. Projects on an older Node LTS can run code generation with the official Docker image.
+
+**Basic usage**
+
+```bash
+# macOS / Linux
+docker run --rm -v "$(pwd):/app" -w /app ghcr.io/orval-labs/orval
+
+# Windows Git Bash
+MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd):/app" -w /app ghcr.io/orval-labs/orval
+
+# Windows CMD
+cd /d "C:\path\to\your-project"
+docker run --rm -v "%cd%:/app" -w /app ghcr.io/orval-labs/orval
+
+# Windows PowerShell
+cd "C:\path\to\your-project"
+docker run --rm -v "${PWD}:/app" -w /app ghcr.io/orval-labs/orval
+```
+
+**Local API (`localhost` → `host.docker.internal`)**
+
+```bash
+# macOS / Linux
+docker run --rm -v "$(pwd):/app" -w /app -e ORVAL_SWAGGER_URL="https://host.docker.internal:7142/swagger/v1/swagger.json" -e NODE_TLS_REJECT_UNAUTHORIZED=0 ghcr.io/orval-labs/orval --config ./orval.config.ts
+
+# Linux (native Docker)
+docker run --rm --add-host=host.docker.internal:host-gateway -v "$(pwd):/app" -w /app -e ORVAL_SWAGGER_URL="https://host.docker.internal:7142/swagger/v1/swagger.json" -e NODE_TLS_REJECT_UNAUTHORIZED=0 ghcr.io/orval-labs/orval --config ./orval.config.ts
+
+# Windows Git Bash
+MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd):/app" -w /app -e ORVAL_SWAGGER_URL="https://host.docker.internal:7142/swagger/v1/swagger.json" -e NODE_TLS_REJECT_UNAUTHORIZED=0 ghcr.io/orval-labs/orval --config ./orval.config.ts
+
+# Windows CMD
+cd /d "C:\path\to\your-project"
+docker run --rm -v "%cd%:/app" -w /app -e "ORVAL_SWAGGER_URL=https://host.docker.internal:7142/swagger/v1/swagger.json" -e "NODE_TLS_REJECT_UNAUTHORIZED=0" ghcr.io/orval-labs/orval --config ./orval.config.ts
+
+# Windows PowerShell
+cd "C:\path\to\your-project"
+docker run --rm -v "${PWD}:/app" -w /app -e ORVAL_SWAGGER_URL="https://host.docker.internal:7142/swagger/v1/swagger.json" -e NODE_TLS_REJECT_UNAUTHORIZED=0 ghcr.io/orval-labs/orval --config ./orval.config.ts
+```
+
+Replace `ghcr.io/orval-labs/orval` with `orval:local` when testing locally before the official image is published. See the [installation docs](https://orval.dev/docs/installation#docker) for details.
+
 ## A note about AI
 
 First of all, we do not reject the use of AI agents outright. That said, please do not submit AI-generated output in a PR without reviewing it yourself. Every change must have a clear intent and purpose — do not submit changes you cannot explain in your own words. Making the effort to understand orval's codebase, TypeScript, and API clients beforehand, and reviewing what AI produces, is the contributor's responsibility, not the reviewer's. Finally, we will continue to welcome new contributors and actively support you through review and iteration.

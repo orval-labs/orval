@@ -30,6 +30,139 @@ pnpm add orval -D
   </Tab>
 </Tabs>
 
+## Docker
+
+Orval 8+ requires Node.js 22.18 or newer. If your project targets an older Node LTS version, you can run code generation with the official Docker image instead of installing Orval locally.
+
+`/app` is only a path inside the container. Your project does not need an `app` folder — mount your project root to any container path and set `-w` to match.
+
+### Basic usage
+
+<Tabs items={["macOS / Linux", "Windows (Git Bash)", "Windows (CMD)", "Windows (PowerShell)"]}>
+  <Tab value="macOS / Linux">
+```bash
+docker run --rm -v "$(pwd):/app" -w /app ghcr.io/orval-labs/orval
+```
+  </Tab>
+  <Tab value="Windows (Git Bash)">
+```bash
+MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd):/app" -w /app ghcr.io/orval-labs/orval
+```
+  </Tab>
+  <Tab value="Windows (CMD)">
+```bat
+docker run --rm -v "%cd%:/app" -w /app ghcr.io/orval-labs/orval
+```
+  </Tab>
+  <Tab value="Windows (PowerShell)">
+```powershell
+docker run --rm -v "${PWD}:/app" -w /app ghcr.io/orval-labs/orval
+```
+  </Tab>
+</Tabs>
+
+Pin a specific release with a version tag (for example `8.19.0`):
+
+```bash
+ghcr.io/orval-labs/orval:8.19.0
+```
+
+### With a config file
+
+<Tabs items={["macOS / Linux", "Windows (Git Bash)", "Windows (CMD)", "Windows (PowerShell)"]}>
+  <Tab value="macOS / Linux">
+```bash
+docker run --rm -v "$(pwd):/app" -w /app ghcr.io/orval-labs/orval --config ./orval.config.ts
+```
+  </Tab>
+  <Tab value="Windows (Git Bash)">
+```bash
+MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd):/app" -w /app ghcr.io/orval-labs/orval --config ./orval.config.ts
+```
+  </Tab>
+  <Tab value="Windows (CMD)">
+```bat
+docker run --rm -v "%cd%:/app" -w /app ghcr.io/orval-labs/orval --config ./orval.config.ts
+```
+  </Tab>
+  <Tab value="Windows (PowerShell)">
+```powershell
+docker run --rm -v "${PWD}:/app" -w /app ghcr.io/orval-labs/orval --config ./orval.config.ts
+```
+  </Tab>
+</Tabs>
+
+On Windows Git Bash, prefix commands with `MSYS_NO_PATHCONV=1` so Docker receives `/app` instead of `C:/Program Files/Git/app`.
+
+### Fetching OpenAPI from localhost
+
+Inside a container, `localhost` refers to the container itself, not your machine. If your `orval.config.ts` fetches a spec from a local API (for example `https://localhost:7142/swagger/v1/swagger.json`), replace `localhost` with `host.docker.internal` and pass the URL via an environment variable.
+
+| Host OS | Use instead of `localhost` |
+| --- | --- |
+| Windows / macOS (Docker Desktop) | `host.docker.internal` |
+| Linux (Docker Desktop) | `host.docker.internal` |
+| Linux (native Docker) | `host.docker.internal` with `--add-host=host.docker.internal:host-gateway` |
+
+Read the URL from an environment variable in your config:
+
+```ts
+const inputTarget =
+  process.env.ORVAL_SWAGGER_URL ?? 'https://localhost:7142/swagger/v1/swagger.json';
+```
+
+Set `NODE_TLS_REJECT_UNAUTHORIZED=0` only when your local API uses a self-signed certificate. For CI or offline builds, point Orval at a committed file such as `./src/swagger.json` instead.
+
+Replace `ghcr.io/orval-labs/orval` with `orval:local` when testing with a locally built image before the official image is published.
+
+<Tabs items={["macOS / Linux", "Linux (native Docker)", "Windows (Git Bash)", "Windows (CMD)", "Windows (PowerShell)"]}>
+  <Tab value="macOS / Linux">
+```bash
+docker run --rm \
+  -v "$(pwd):/app" \
+  -w /app \
+  -e ORVAL_SWAGGER_URL="https://host.docker.internal:7142/swagger/v1/swagger.json" \
+  -e NODE_TLS_REJECT_UNAUTHORIZED=0 \
+  ghcr.io/orval-labs/orval \
+  --config ./orval.config.ts
+```
+  </Tab>
+  <Tab value="Linux (native Docker)">
+```bash
+docker run --rm --add-host=host.docker.internal:host-gateway \
+  -v "$(pwd):/app" \
+  -w /app \
+  -e ORVAL_SWAGGER_URL="https://host.docker.internal:7142/swagger/v1/swagger.json" \
+  -e NODE_TLS_REJECT_UNAUTHORIZED=0 \
+  ghcr.io/orval-labs/orval \
+  --config ./orval.config.ts
+```
+  </Tab>
+  <Tab value="Windows (Git Bash)">
+```bash
+MSYS_NO_PATHCONV=1 docker run --rm \
+  -v "$(pwd):/app" \
+  -w /app \
+  -e ORVAL_SWAGGER_URL="https://host.docker.internal:7142/swagger/v1/swagger.json" \
+  -e NODE_TLS_REJECT_UNAUTHORIZED=0 \
+  ghcr.io/orval-labs/orval \
+  --config ./orval.config.ts
+```
+  </Tab>
+  <Tab value="Windows (CMD)">
+```bat
+cd /d "C:\path\to\your-project"
+docker run --rm -v "%cd%:/app" -w /app -e ORVAL_SWAGGER_URL=https://host.docker.internal:7142/swagger/v1/swagger.json -e NODE_TLS_REJECT_UNAUTHORIZED=0 ghcr.io/orval-labs/orval --config ./orval.config.ts
+```
+  </Tab>
+  <Tab value="Windows (PowerShell)">
+```powershell
+cd "C:\path\to\your-project"
+docker run --rm -v "${PWD}:/app" -w /app -e ORVAL_SWAGGER_URL="https://host.docker.internal:7142/swagger/v1/swagger.json" -e NODE_TLS_REJECT_UNAUTHORIZED=0 ghcr.io/orval-labs/orval --config ./orval.config.ts
+```
+  </Tab>
+</Tabs>
+
 ## Global Installation
 
 You can also install Orval globally:
