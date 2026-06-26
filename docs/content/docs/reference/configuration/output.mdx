@@ -782,9 +782,9 @@ export default defineConfig({
 **Type:** `Boolean | String[]`
 **Default:** `false`
 
-Clean generated files before regenerating. Removes every file in the `target` and `schemas` directories (`.d.ts` files are preserved).
+Wipe the `target` and `schemas` directories before regenerating. Every file in those folders is removed (`.d.ts` files are preserved) — not only files produced by Orval, but also any other file that happens to live there.
 
-When set to a `String[]`, the array entries are extra glob patterns appended to the deletion list, applied to both the `target` and `schemas` directories. Use negated globs (prefixed with `!`) to preserve files from removal, or positive globs to also remove files that would otherwise be kept.
+When set to a `String[]`, the array entries are extra glob patterns appended to the deletion list, applied to both the `target` and `schemas` directories. Use negated globs (prefixed with `!`) to preserve specific files from removal, or positive globs to also remove files that would otherwise be kept.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -797,7 +797,24 @@ export default defineConfig({
 });
 ```
 
-Keep hand-written files (mutators, transformers, app code) outside the `target` and `schemas` directories — use a dedicated subfolder such as `./gen/` for output so `clean` does not remove them.
+For example, to keep a committed `swagger.json` next to the generated output:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      target: './src/generated',
+      clean: ['!**/swagger.json'],
+    },
+  },
+});
+```
+
+<Callout type="warn">
+`clean` removes the entire contents of the configured folders, not just generated files. Do not point `target` or `schemas` directly at a package or library entrypoint root that holds files you need to keep (`package.json`, `ng-package.json`, `public-api.ts`, etc.). Place generated output in a dedicated subdirectory such as `./generated/` so those files are never touched.
+</Callout>
+
+Keep hand-written files (mutators, transformers, app code) outside the `target` and `schemas` directories for the same reason.
 
 ## formatter
 

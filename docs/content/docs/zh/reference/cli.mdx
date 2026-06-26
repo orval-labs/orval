@@ -35,7 +35,7 @@ orval --input ./openapi.yaml --output ./src/api.ts
 
 ### --clean
 
-生成前清理输出目录或目标文件。谨慎使用，避免把非生成文件放进输出目录。
+生成前清空输出目录（`target` 和 `schemas`）——会删除其中的所有文件，而不只是生成文件。
 
 ### --formatter
 
