@@ -1,4 +1,6 @@
+import { existsSync } from 'node:fs';
 import { access } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import nodePath from 'node:path';
 import { styleText } from 'node:util';
 
@@ -175,6 +177,66 @@ function validatePackageSpecifier(
     throw new Error(
       `\`${fieldName}\` must be a package specifier (e.g. '@acme/models'), not an absolute path. Received: "${value}"`,
     );
+  }
+}
+
+function looksLikePackageSpecifier(value: string): boolean {
+  return (
+    !!value &&
+    value.trim() === value &&
+    !value.startsWith('.') &&
+    !nodePath.isAbsolute(value) &&
+    !/^[A-Za-z]:[\\/]/.test(value) &&
+    !value.startsWith('\\\\')
+  );
+}
+
+function resolvePackageSpecifier(
+  workspace: string,
+  value: string,
+): string | undefined {
+  try {
+    return createRequire(nodePath.join(workspace, 'package.json')).resolve(
+      value,
+    );
+  } catch {
+    return;
+  }
+}
+
+function isPackageSpecifierCandidate(
+  workspace: string,
+  value: string,
+): boolean {
+  if (!looksLikePackageSpecifier(value)) {
+    return false;
+  }
+
+  if (existsSync(nodePath.resolve(workspace, value))) {
+    return false;
+  }
+
+  if (value.startsWith('@')) {
+    return true;
+  }
+
+  const [packageName] = value.split('/');
+
+  if (!value.includes('/')) {
+    return true;
+  }
+
+  for (let dir = workspace; ; ) {
+    if (existsSync(nodePath.join(dir, 'node_modules', packageName))) {
+      return true;
+    }
+
+    const parent = nodePath.dirname(dir);
+    if (parent === dir) {
+      return false;
+    }
+
+    dir = parent;
   }
 }
 
@@ -771,8 +833,15 @@ function normalizeMutator(
       throw new Error(styleText('red', `Mutator requires a path.`));
     }
 
+    const resolvedPath = looksLikePackageSpecifier(m.path)
+      ? resolvePackageSpecifier(workspace, m.path)
+      : undefined;
+    const isPackageSpecifier =
+      !!resolvedPath || isPackageSpecifierCandidate(workspace, m.path);
+
     return {
-      path: nodePath.resolve(workspace, m.path),
+      path: isPackageSpecifier ? m.path : nodePath.resolve(workspace, m.path),
+      ...(resolvedPath ? { resolvedPath } : {}),
       name: m.name,
       default: m.default ?? !m.name,
       alias: m.alias,
@@ -782,8 +851,15 @@ function normalizeMutator(
   }
 
   if (isString(mutator)) {
+    const resolvedPath = looksLikePackageSpecifier(mutator)
+      ? resolvePackageSpecifier(workspace, mutator)
+      : undefined;
+    const isPackageSpecifier =
+      !!resolvedPath || isPackageSpecifierCandidate(workspace, mutator);
+
     return {
-      path: nodePath.resolve(workspace, mutator),
+      path: isPackageSpecifier ? mutator : nodePath.resolve(workspace, mutator),
+      ...(resolvedPath ? { resolvedPath } : {}),
       default: true,
     };
   }

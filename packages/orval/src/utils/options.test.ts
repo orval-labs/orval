@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -23,6 +23,311 @@ const createTempWorkspace = async () => {
 };
 
 describe('normalizeOptions', () => {
+  it('keeps package mutator specifiers as imports', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const packageDir = path.join(
+        workspace,
+        'node_modules',
+        '@acme',
+        'orval-mutator',
+      );
+      const validSpecPath = path.join(workspace, 'petstore.yaml');
+      const mutatorPath = path.join(packageDir, 'fetch.js');
+
+      await mkdir(packageDir, { recursive: true });
+      await writeFile(
+        path.join(packageDir, 'package.json'),
+        JSON.stringify({
+          name: '@acme/orval-mutator',
+          exports: {
+            './fetch': './fetch.js',
+          },
+        }),
+      );
+      await writeFile(
+        mutatorPath,
+        'export const customInstance = (config) => config;\n',
+      );
+      await writeFile(
+        validSpecPath,
+        'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+      );
+
+      const normalized = await normalizeOptions(
+        {
+          input: { target: validSpecPath },
+          output: {
+            target: './generated.ts',
+            override: {
+              mutator: {
+                path: '@acme/orval-mutator/fetch',
+                name: 'customInstance',
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.mutator?.path).toBe(
+        '@acme/orval-mutator/fetch',
+      );
+      expect(normalized.output.override.mutator?.resolvedPath).toBe(
+        mutatorPath,
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps ESM-only package mutator specifiers as imports', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const packageDir = path.join(
+        workspace,
+        'node_modules',
+        '@acme',
+        'esm-mutator',
+      );
+      const validSpecPath = path.join(workspace, 'petstore.yaml');
+
+      await mkdir(packageDir, { recursive: true });
+      await writeFile(
+        path.join(packageDir, 'package.json'),
+        JSON.stringify({
+          name: '@acme/esm-mutator',
+          type: 'module',
+          exports: {
+            './fetch': {
+              import: './fetch.js',
+            },
+          },
+        }),
+      );
+      await writeFile(
+        path.join(packageDir, 'fetch.js'),
+        'export const customInstance = (config) => config;\n',
+      );
+      await writeFile(
+        validSpecPath,
+        'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+      );
+
+      const normalized = await normalizeOptions(
+        {
+          input: { target: validSpecPath },
+          output: {
+            target: './generated.ts',
+            override: {
+              mutator: {
+                path: '@acme/esm-mutator/fetch',
+                name: 'customInstance',
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.mutator).toMatchObject({
+        path: '@acme/esm-mutator/fetch',
+      });
+      expect(normalized.output.override.mutator?.resolvedPath).toBeUndefined();
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps ESM-only unscoped package subpath mutator specifiers as imports', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const packageDir = path.join(workspace, 'node_modules', 'orval-mutator');
+      const validSpecPath = path.join(workspace, 'petstore.yaml');
+
+      await mkdir(packageDir, { recursive: true });
+      await writeFile(
+        path.join(packageDir, 'package.json'),
+        JSON.stringify({
+          name: 'orval-mutator',
+          type: 'module',
+          exports: {
+            './fetch': {
+              import: './fetch.js',
+            },
+          },
+        }),
+      );
+      await writeFile(
+        path.join(packageDir, 'fetch.js'),
+        'export const customInstance = (config) => config;\n',
+      );
+      await writeFile(
+        validSpecPath,
+        'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+      );
+
+      const normalized = await normalizeOptions(
+        {
+          input: { target: validSpecPath },
+          output: {
+            target: './generated.ts',
+            override: {
+              mutator: {
+                path: 'orval-mutator/fetch',
+                name: 'customInstance',
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.mutator).toMatchObject({
+        path: 'orval-mutator/fetch',
+      });
+      expect(normalized.output.override.mutator?.resolvedPath).toBeUndefined();
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps package subpath mutator specifiers when node_modules is above the workspace', async () => {
+    const repoRoot = await createTempWorkspace();
+
+    try {
+      const workspace = path.join(repoRoot, 'apps', 'api');
+      const packageDir = path.join(repoRoot, 'node_modules', 'orval-mutator');
+      const validSpecPath = path.join(workspace, 'petstore.yaml');
+
+      await mkdir(packageDir, { recursive: true });
+      await mkdir(workspace, { recursive: true });
+      await writeFile(
+        path.join(packageDir, 'package.json'),
+        JSON.stringify({
+          name: 'orval-mutator',
+          type: 'module',
+          exports: {
+            './fetch': {
+              import: './fetch.js',
+            },
+          },
+        }),
+      );
+      await writeFile(
+        path.join(packageDir, 'fetch.js'),
+        'export const customInstance = (config) => config;\n',
+      );
+      await writeFile(
+        validSpecPath,
+        'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+      );
+
+      const normalized = await normalizeOptions(
+        {
+          input: { target: validSpecPath },
+          output: {
+            workspace,
+            target: './generated.ts',
+            override: {
+              mutator: {
+                path: 'orval-mutator/fetch',
+                name: 'customInstance',
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.mutator).toMatchObject({
+        path: 'orval-mutator/fetch',
+      });
+      expect(normalized.output.override.mutator?.resolvedPath).toBeUndefined();
+    } finally {
+      await rm(repoRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps exact root-level local mutator files as local paths', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const validSpecPath = path.join(workspace, 'petstore.yaml');
+      const mutatorPath = path.join(workspace, 'mutator.ts');
+
+      await writeFile(
+        validSpecPath,
+        'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+      );
+      await writeFile(
+        mutatorPath,
+        'export const customInstance = (config) => config;\n',
+      );
+
+      const normalized = await normalizeOptions(
+        {
+          input: { target: validSpecPath },
+          output: {
+            target: './generated.ts',
+            override: {
+              mutator: {
+                path: 'mutator.ts',
+                name: 'customInstance',
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.mutator).toMatchObject({
+        path: mutatorPath,
+      });
+      expect(normalized.output.override.mutator?.resolvedPath).toBeUndefined();
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps unresolved non-relative mutator paths as local workspace paths', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const validSpecPath = path.join(workspace, 'petstore.yaml');
+      await writeFile(
+        validSpecPath,
+        'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+      );
+
+      const normalized = await normalizeOptions(
+        {
+          input: { target: validSpecPath },
+          output: {
+            target: './generated.ts',
+            override: {
+              mutator: {
+                path: 'src/mutator',
+                name: 'customInstance',
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.mutator).toMatchObject({
+        path: path.join(workspace, 'src', 'mutator'),
+      });
+      expect(normalized.output.override.mutator?.resolvedPath).toBeUndefined();
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('resolves the first existing input target from an input target array', async () => {
     const workspace = await createTempWorkspace();
 

@@ -144,7 +144,12 @@ export const generateRequestFunction = (
     (parameterObject) =>
       parameterObject.in === 'query' &&
       isArrayLikeParam(parameterObject) &&
-      parameterObject.explode,
+      (parameterObject.style ?? 'form') === 'form' &&
+      // Respect the OpenAPI default `explode: true` for form-style array query
+      // params, but defer params without an explicit `explode` to arrayFormat
+      // when an `arrayFormat` override is set.
+      (parameterObject.explode ?? true) &&
+      !(arrayFormat && parameterObject.explode === undefined),
   );
 
   // Array params where the spec does not explicitly set explode — arrayFormat applies here.
