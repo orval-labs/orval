@@ -20,6 +20,10 @@ import {
   filterLocalStrictMockTypeImports,
 } from './finalize-mock-implementation';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
+import {
+  collectRecoveredSchemaFactoryImports,
+  mergeGeneratorImports,
+} from './mock-imports';
 import { collapseInlineMockOutputs } from './mock-outputs';
 import {
   getMockDir,
@@ -36,6 +40,7 @@ export async function writeSingleMode({
   header,
   needSchema,
   generateSchemasInline,
+  schemaTagMap,
 }: WriteModeProps): Promise<string[]> {
   try {
     const {
@@ -143,6 +148,7 @@ export async function writeSingleMode({
           output,
           normalizedImports,
           relativeSchemasPath,
+          schemaTagMap,
         )
       : generateImportsForBuilder(
           output,
@@ -175,8 +181,29 @@ export async function writeSingleMode({
           output,
           mockOutput,
         );
+        const finalizedMockImplementation = builder.finalizeMockImplementation
+          ? builder.finalizeMockImplementation(
+              mockOutput.implementation,
+              finalizeMockOptions,
+            )
+          : mockOutput.implementation;
+        const usesSchemaFactories =
+          !!entry &&
+          !isFunction(entry) &&
+          entry.type === OutputMockType.FAKER &&
+          entry.schemas === true;
+        const recoveredSchemaFactoryImports =
+          usesSchemaFactories && output.schemas
+            ? collectRecoveredSchemaFactoryImports(
+                finalizedMockImplementation,
+                builder.schemas.filter((s) => s.schema).map((s) => s.name),
+              )
+            : [];
         const filteredMockImports = filterLocalStrictMockTypeImports(
-          mockOutput.imports.filter(
+          mergeGeneratorImports(
+            mockOutput.imports,
+            recoveredSchemaFactoryImports,
+          ).filter(
             (impMock) =>
               !normalizedImports.some(
                 (imp) =>
@@ -191,6 +218,7 @@ export async function writeSingleMode({
               output,
               filteredMockImports,
               relativeSchemasPath,
+              schemaTagMap,
             )
           : generateImportsForBuilder(
               output,
@@ -198,7 +226,7 @@ export async function writeSingleMode({
               '.',
             );
         data += builder.importsMock({
-          implementation: mockOutput.implementation,
+          implementation: finalizedMockImplementation,
           imports: importsMockForBuilder,
           projectName,
           hasSchemaDir: !!output.schemas,
@@ -303,26 +331,57 @@ export async function writeSingleMode({
           schemaCustomImportPath ??
           resolveMockSchemasPath(mockFilePath, schemasTarget);
 
+        const finalizeMockOptions = getFinalizeMockImplementationOptions(
+          output,
+          mockOutput,
+        );
+
+        const finalizedMockImplementation = builder.finalizeMockImplementation
+          ? builder.finalizeMockImplementation(
+              mockOutput.implementation,
+              finalizeMockOptions,
+            )
+          : mockOutput.implementation;
+
+        const usesSchemaFactories =
+          !isFunction(rawEntry) &&
+          rawEntry.type === OutputMockType.FAKER &&
+          rawEntry.schemas === true;
+        const recoveredSchemaFactoryImports =
+          usesSchemaFactories && output.schemas
+            ? collectRecoveredSchemaFactoryImports(
+                finalizedMockImplementation,
+                builder.schemas.filter((s) => s.schema).map((s) => s.name),
+              )
+            : [];
+
         const importsMockForBuilder =
           schemasPath || mockDir !== dirname
             ? generateImportsForBuilder(
                 output,
-                mockOutput.imports,
+                filterLocalStrictMockTypeImports(
+                  mergeGeneratorImports(
+                    mockOutput.imports,
+                    recoveredSchemaFactoryImports,
+                  ),
+                  finalizeMockOptions.strictSchemaTypeNames,
+                ),
                 mockRelativeSchemasPath,
+                schemaTagMap,
               )
             : generateImportsForBuilder(
                 output,
-                mockOutput.imports.filter((imp) => !!imp.importPath),
+                filterLocalStrictMockTypeImports(
+                  mergeGeneratorImports(
+                    mockOutput.imports,
+                    recoveredSchemaFactoryImports,
+                  ),
+                  finalizeMockOptions.strictSchemaTypeNames,
+                ).filter((imp) => !!imp.importPath),
                 '.',
               );
 
         let mockData = header;
-        const finalizedMockImplementation = builder.finalizeMockImplementation
-          ? builder.finalizeMockImplementation(
-              mockOutput.implementation,
-              getFinalizeMockImplementationOptions(output, mockOutput),
-            )
-          : mockOutput.implementation;
         mockData += builder.importsMock({
           implementation: finalizedMockImplementation,
           imports: importsMockForBuilder,

@@ -7,11 +7,16 @@ import {
   type OutputClient,
   OutputClient as OutputClientConst,
   type OutputClientFunc,
+  OutputHttpClient,
   type PackageJson,
   toObjectString,
 } from '@orval/core';
+import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
 
-import { getQueryArgumentsRequestType } from '../client';
+import {
+  generateAxiosRequestFunction,
+  getQueryArgumentsRequestType,
+} from '../client';
 import {
   isQueryV5,
   isQueryV5WithDataTagError,
@@ -37,177 +42,202 @@ import { createSvelteAdapter } from './svelte';
 import { createVueAdapter } from './vue';
 
 /** Fill in defaults for fields that most adapters leave empty or share a common implementation. */
-const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => ({
-  // --- Original defaults (false / empty string) ---
-  isAngularHttp: false,
-  getHttpFirstParam: () => '',
-  getMutationHttpPrefix: () => '',
-  getUnrefStatements: () => '',
-  getQueryInvocationSuffix: () => '',
+const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
+  // `composed` is the fully-built adapter (defaults + overrides). Defaults that
+  // need sibling fields close over it instead of using `this`, so they stay
+  // correct even if a method is destructured off the adapter.
+  const composed: FrameworkAdapter = {
+    // --- Original defaults (false / empty string) ---
+    isAngularHttp: false,
+    getHttpFirstParam: () => '',
+    getMutationHttpPrefix: () => '',
+    getRequestUnrefStatements: () => '',
+    getQueryOptionsUnrefStatements: () => '',
+    wrapHookMutatorCallback: (callback, operationName) =>
+      `useCallback(${callback}, [${operationName}])`,
+    getQueryInvocationSuffix: () => '',
 
-  // --- Identity / pass-through defaults ---
-  transformProps: (props) => props,
-  getHttpFunctionQueryProps: (qp) => qp,
-  getQueryType: (type) => type,
+    // --- Identity / pass-through defaults ---
+    transformProps: (props) => props,
+    getHttpFunctionQueryProps: (qp) => qp,
+    getQueryType: (type) => type,
 
-  // --- Boolean defaults ---
-  shouldDestructureNamedPathParams: () => true,
-  shouldAnnotateQueryKey: () => true,
-  shouldGenerateOverrideTypes: () => false,
-  shouldCastQueryResult: () => true,
-  shouldCastQueryOptions: () => true,
+    // --- Boolean defaults ---
+    shouldDestructureNamedPathParams: () => true,
+    shouldAnnotateQueryKey: () => true,
+    shouldGenerateOverrideTypes: () => false,
+    shouldCastQueryResult: () => true,
+    shouldCastQueryOptions: () => true,
 
-  // --- String defaults ---
-  getQueryKeyPrefix: () => 'queryOptions?.queryKey ?? ',
-  getQueryOptionsDefinitionPrefix: () => 'Use',
+    // --- String defaults ---
+    getQueryKeyPrefix: () => 'queryOptions?.queryKey ?? ',
+    getQueryOptionsDefinitionPrefix: () => 'Use',
 
-  // --- Common implementation defaults ---
-  getHookPropsDefinitions: (props) => toObjectString(props, 'implementation'),
+    // --- Common implementation defaults ---
+    getHookPropsDefinitions: (props) => toObjectString(props, 'implementation'),
 
-  getQueryKeyRouteString(route, shouldSplitQueryKey) {
-    if (shouldSplitQueryKey) {
-      return getRouteAsArray(route);
-    }
-    return `\`${route}\``;
-  },
+    getQueryKeyRouteString(route, shouldSplitQueryKey) {
+      if (shouldSplitQueryKey) {
+        return getRouteAsArray(route);
+      }
+      return `\`${route}\``;
+    },
 
-  generateEnabledOption(params, options) {
-    if (params.length === 0) return '';
-    if (!isObject(options) || !Object.hasOwn(options, 'enabled')) {
-      return `enabled: ${params
-        .map(({ name }) => `${name} !== null && ${name} !== undefined`)
-        .join(' && ')},`;
-    }
-    return '';
-  },
+    generateEnabledOption(params, options) {
+      if (params.length === 0) return '';
+      if (!isObject(options) || !Object.hasOwn(options, 'enabled')) {
+        return `enabled: ${params
+          .map(({ name }) => `${name} !== null && ${name} !== undefined`)
+          .join(' && ')},`;
+      }
+      return '';
+    },
 
-  getQueryPropertyForProp(prop: GetterProp, body: { implementation: string }) {
-    if (prop.type === GetterPropType.NAMED_PATH_PARAMS)
-      return prop.destructured;
-    return prop.type === GetterPropType.BODY ? body.implementation : prop.name;
-  },
+    getQueryPropertyForProp(
+      prop: GetterProp,
+      body: { implementation: string },
+    ) {
+      if (prop.type === GetterPropType.NAMED_PATH_PARAMS)
+        return prop.destructured;
+      return prop.type === GetterPropType.BODY
+        ? body.implementation
+        : prop.name;
+    },
 
-  getInfiniteQueryHttpProps(props: GetterProps, queryParam: string) {
-    return props
-      .map((param) => {
-        if (param.type === GetterPropType.NAMED_PATH_PARAMS)
-          return param.destructured;
-        return param.name === 'params'
-          ? `{...params, '${queryParam}': pageParam ?? params?.['${queryParam}']}`
-          : param.name;
-      })
-      .join(',');
-  },
+    generateRequestFunction(verbOptions, options) {
+      return options.context.output.httpClient === OutputHttpClient.AXIOS
+        ? generateAxiosRequestFunction(verbOptions, options, composed)
+        : generateFetchRequestFunction(verbOptions, options);
+    },
 
-  generateQueryInit({ queryOptionsFnName, queryProperties, isRequestOptions }) {
-    const queryOptionsVarName = isRequestOptions ? 'queryOptions' : 'options';
-    return `const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
-      queryProperties ? ',' : ''
-    }${isRequestOptions ? 'options' : 'queryOptions'})`;
-  },
+    getInfiniteQueryHttpProps(props: GetterProps, queryParam: string) {
+      return props
+        .map((param) => {
+          if (param.type === GetterPropType.NAMED_PATH_PARAMS)
+            return param.destructured;
+          return param.name === 'params'
+            ? `{...params, '${queryParam}': pageParam ?? params?.['${queryParam}']}`
+            : param.name;
+        })
+        .join(',');
+    },
 
-  generateQueryInvocationArgs({
-    queryOptionsVarName,
-    optionalQueryClientArgument,
-  }) {
-    return `${queryOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''}`;
-  },
+    generateQueryInit({
+      queryOptionsFnName,
+      queryProperties,
+      isRequestOptions,
+    }) {
+      const queryOptionsVarName = isRequestOptions ? 'queryOptions' : 'options';
+      return `const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
+        queryProperties ? ',' : ''
+      }${isRequestOptions ? 'options' : 'queryOptions'})`;
+    },
 
-  getOptionalQueryClientArgument() {
-    return adapter.hasQueryV5 ? ', queryClient?: QueryClient' : '';
-  },
+    generateQueryInvocationArgs({
+      queryOptionsVarName,
+      optionalQueryClientArgument,
+    }) {
+      return `${queryOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''}`;
+    },
 
-  generateQueryArguments({
-    operationName,
-    definitions,
-    mutator,
-    isRequestOptions,
-    type,
-    queryParams,
-    queryParam,
-    initialData,
-    httpClient,
-    hasInvalidation,
-    useRuntimeFetcher,
-  }) {
-    const prefix = adapter.getQueryOptionsDefinitionPrefix?.() ?? 'Use';
-    const definition = getQueryOptionsDefinition({
+    getOptionalQueryClientArgument() {
+      return composed.hasQueryV5 ? ', queryClient?: QueryClient' : '';
+    },
+
+    generateQueryArguments({
       operationName,
-      mutator,
       definitions,
+      mutator,
+      isRequestOptions,
       type,
-      prefix,
-      hasQueryV5: adapter.hasQueryV5,
-      hasQueryV5WithInfiniteQueryOptionsError:
-        adapter.hasQueryV5WithInfiniteQueryOptionsError,
       queryParams,
       queryParam,
-      isReturnType: false,
       initialData,
-      adapter: adapter as FrameworkAdapter,
-    });
-
-    if (!isRequestOptions) {
-      return `${type ? 'queryOptions' : 'mutationOptions'}${
-        initialData === 'defined' ? '' : '?'
-      }: ${definition}`;
-    }
-
-    const requestType = getQueryArgumentsRequestType(
       httpClient,
-      mutator,
+      hasInvalidation,
       useRuntimeFetcher,
-    );
-    const isQueryRequired = initialData === 'defined';
-    const skipInvalidationProp =
-      !type && hasInvalidation ? 'skipInvalidation?: boolean, ' : '';
-    const optionsType = `{ ${
-      type ? 'query' : 'mutation'
-    }${isQueryRequired ? '' : '?'}:${definition}, ${skipInvalidationProp}${requestType}}`;
+    }) {
+      const prefix = composed.getQueryOptionsDefinitionPrefix();
+      const definition = getQueryOptionsDefinition({
+        operationName,
+        mutator,
+        definitions,
+        type,
+        prefix,
+        hasQueryV5: composed.hasQueryV5,
+        hasQueryV5WithInfiniteQueryOptionsError:
+          composed.hasQueryV5WithInfiniteQueryOptionsError,
+        queryParams,
+        queryParam,
+        isReturnType: false,
+        initialData,
+        adapter: composed,
+      });
 
-    return `options${isQueryRequired ? '' : '?'}: ${optionsType}\n`;
-  },
+      if (!isRequestOptions) {
+        return `${type ? 'queryOptions' : 'mutationOptions'}${
+          initialData === 'defined' ? '' : '?'
+        }: ${definition}`;
+      }
 
-  generateMutationOnSuccess({
-    operationName,
-    definitions,
-    isRequestOptions,
-    generateInvalidateCall,
-    uniqueInvalidates,
-  }: MutationOnSuccessContext): string {
-    const invalidateCalls = uniqueInvalidates
-      .map((t) => generateInvalidateCall(t))
-      .join('\n');
-    if (adapter.hasQueryV5WithMutationContextOnSuccess) {
-      if (isRequestOptions) {
+      const requestType = getQueryArgumentsRequestType(
+        httpClient,
+        mutator,
+        useRuntimeFetcher,
+      );
+      const isQueryRequired = initialData === 'defined';
+      const skipInvalidationProp =
+        !type && hasInvalidation ? 'skipInvalidation?: boolean, ' : '';
+      const optionsType = `{ ${
+        type ? 'query' : 'mutation'
+      }${isQueryRequired ? '' : '?'}:${definition}, ${skipInvalidationProp}${requestType}}`;
+
+      return `options${isQueryRequired ? '' : '?'}: ${optionsType}\n`;
+    },
+
+    generateMutationOnSuccess({
+      operationName,
+      definitions,
+      isRequestOptions,
+      generateInvalidateCall,
+      uniqueInvalidates,
+    }: MutationOnSuccessContext): string {
+      const invalidateCalls = uniqueInvalidates
+        .map((t) => generateInvalidateCall(t))
+        .join('\n');
+      if (composed.hasQueryV5WithMutationContextOnSuccess) {
+        if (isRequestOptions) {
+          return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
+        if (!options?.skipInvalidation) {
+    ${invalidateCalls}
+        }
+        mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+      };`;
+        }
         return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
-        if (!options?.skipInvalidation) {
-    ${invalidateCalls}
-        }
-        mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
-      };`;
-      }
-      return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
     ${invalidateCalls}
         mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
       };`;
-    } else {
-      if (isRequestOptions) {
-        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext${adapter.hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
+      } else {
+        if (isRequestOptions) {
+          return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext${composed.hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
         if (!options?.skipInvalidation) {
     ${invalidateCalls}
         }
         mutationOptions?.onSuccess?.(data, variables, context);
       };`;
-      }
-      return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext${adapter.hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
+        }
+        return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, context: TContext${composed.hasQueryV5WithRequiredContextOnSuccess ? '' : ' | undefined'}) => {
     ${invalidateCalls}
         mutationOptions?.onSuccess?.(data, variables, context);
       };`;
-    }
-  },
-  ...adapter,
-});
+      }
+    },
+    ...adapter,
+  };
+
+  return composed;
+};
 
 type QueryClientType =
   | 'react-query'

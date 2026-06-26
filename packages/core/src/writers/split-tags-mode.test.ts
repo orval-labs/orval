@@ -5,11 +5,17 @@ import fs from 'fs-extra';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  createSplitModeBuilder,
   createSplitModeOperation,
   createSplitModeOutput,
   createSplitModeProps,
 } from '../test-utils/split-modes';
-import { type GeneratorDependency, OutputMockType, OutputMode } from '../types';
+import {
+  OutputClient,
+  type GeneratorDependency,
+  OutputMockType,
+  OutputMode,
+} from '../types';
 import { writeSplitTagsMode } from './split-tags-mode';
 
 // Regression coverage for https://github.com/orval-labs/orval/issues/2309
@@ -55,6 +61,120 @@ describe('writeSplitTagsMode — schemas path follows needSchema (#2309)', () =>
     const schemasPath = path.join(tmpDir, 'petstore.schemas.ts');
     expect(paths).toContain(schemasPath);
     expect(fs.existsSync(schemasPath)).toBe(true);
+  });
+
+  // Regression coverage for https://github.com/orval-labs/orval/issues/3624.
+  // A schemas directory whose name contains a dot (e.g. the idiomatic
+  // `*.schemas` suffix) is misclassified as a file by `isDirectory`, which made
+  // the relative import collapse to `../.` — an unresolvable specifier.
+  it('imports from a dotted schemas directory without collapsing to "../." (#3624)', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const schemaPath = path.join(tmpDir, 'petstore.schemas');
+    const builder = createSplitModeBuilder(target);
+    builder.operations = {
+      listPets: createSplitModeOperation({
+        tags: ['Pets'],
+        imports: [{ name: 'Pet' }],
+        implementation: 'export type ListPetsResponse = Pet;',
+      }),
+    };
+    builder.imports = ({
+      imports,
+    }: {
+      imports: readonly GeneratorDependency[];
+    }) =>
+      imports
+        .map(
+          ({ dependency, exports }: GeneratorDependency) =>
+            `import type { ${exports.map((entry: { name: string }) => entry.name).join(', ')} } from '${dependency}';`,
+        )
+        .join('\n');
+
+    const output = createSplitModeOutput(target, {
+      client: OutputClient.ANGULAR,
+      indexFiles: true,
+      mode: OutputMode.TAGS_SPLIT,
+      schemas: schemaPath,
+    });
+    const props = {
+      ...createSplitModeProps(target),
+      builder,
+      output,
+    };
+
+    await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const content = await fs.readFile(
+      path.join(tmpDir, 'pets', 'pets.service.ts'),
+      'utf8',
+    );
+
+    expect(content).toContain("from '../petstore.schemas'");
+    expect(content).not.toContain("from '../.'");
+  });
+
+  // Companion to the test above: the mock files derive their schema import from
+  // `schemasTarget`, which was *also* built via `getFileInfo(...).dirname` and
+  // so collapsed a dotted schemas directory to its parent — emitting an import
+  // like `../../<dir>` in the generated `*.msw.ts` instead of
+  // `../petstore.schemas` (#3624).
+  it('mock files import from a dotted schemas directory without collapsing to the parent (#3624)', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const schemaPath = path.join(tmpDir, 'petstore.schemas');
+    const builder = createSplitModeBuilder(target);
+    builder.operations = {
+      listPets: createSplitModeOperation({
+        tags: ['Pets'],
+        mockOutputs: [
+          {
+            type: OutputMockType.MSW,
+            implementation: {
+              function: '',
+              handler: '',
+              handlerName: 'mockHandler',
+            },
+            imports: [{ name: 'Pet' }],
+          },
+        ],
+      }),
+    };
+    builder.importsMock = ({
+      imports,
+    }: {
+      imports: readonly GeneratorDependency[];
+    }) =>
+      imports
+        .map(
+          ({ dependency, exports }: GeneratorDependency) =>
+            `import { ${exports.map((entry: { name: string }) => entry.name).join(', ')} } from '${dependency}';`,
+        )
+        .join('\n');
+
+    const output = createSplitModeOutput(target, {
+      client: OutputClient.ANGULAR,
+      indexFiles: true,
+      mode: OutputMode.TAGS_SPLIT,
+      schemas: schemaPath,
+      mock: {
+        indexMockFiles: false,
+        generators: [{ type: OutputMockType.MSW }],
+      },
+    });
+    const props = {
+      ...createSplitModeProps(target),
+      builder,
+      output,
+    };
+
+    await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const mockContent = await fs.readFile(
+      path.join(tmpDir, 'pets', 'pets.msw.ts'),
+      'utf8',
+    );
+
+    expect(mockContent).toContain("from '../petstore.schemas'");
+    expect(mockContent).not.toContain("from '../../");
   });
 });
 
@@ -306,5 +426,169 @@ describe('writeSplitTagsMode — mock barrel extension follows tsconfig', () => 
     expect(fs.existsSync(indexMockPath)).toBe(true);
     const content = fs.readFileSync(indexMockPath, 'utf8');
     expect(content).toContain("from './pets/pets.msw.js'");
+  });
+});
+
+describe('writeSplitTagsMode — barrel index.ts at target root (#3553)', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-split-tags-barrel-'));
+  });
+
+  afterEach(() => {
+    fs.removeSync(tmpDir);
+  });
+
+  it('writes index.ts when indexFiles and tagsSplitDeduplication are true', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: true,
+        tagsSplitDeduplication: true,
+      }),
+    };
+
+    const paths = await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const indexPath = path.join(tmpDir, 'index.ts');
+    expect(paths).toContain(indexPath);
+    expect(fs.existsSync(indexPath)).toBe(true);
+
+    const content = fs.readFileSync(indexPath, 'utf8');
+    expect(content).toContain("export * from './pets/pets'");
+  });
+
+  it('does not write index.ts when tagsSplitDeduplication is false', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: true,
+        tagsSplitDeduplication: false,
+      }),
+    };
+
+    const paths = await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const indexPath = path.join(tmpDir, 'index.ts');
+    expect(paths).not.toContain(indexPath);
+    expect(fs.existsSync(indexPath)).toBe(false);
+  });
+
+  it('does not write index.ts when indexFiles is false', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: false,
+        tagsSplitDeduplication: true,
+      }),
+    };
+
+    const paths = await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const indexPath = path.join(tmpDir, 'index.ts');
+    expect(paths).not.toContain(indexPath);
+    expect(fs.existsSync(indexPath)).toBe(false);
+  });
+
+  it('includes index.ts in returned file list', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: true,
+        tagsSplitDeduplication: true,
+      }),
+    };
+
+    const paths = await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const indexPath = path.join(tmpDir, 'index.ts');
+    expect(paths).toContain(indexPath);
+  });
+
+  it('does not write index.ts when output.workspace is set', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: true,
+        tagsSplitDeduplication: true,
+        workspace: path.join(tmpDir, 'workspace'),
+      }),
+    };
+
+    const paths = await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const indexPath = path.join(tmpDir, 'index.ts');
+    expect(paths).not.toContain(indexPath);
+    expect(fs.existsSync(indexPath)).toBe(false);
+  });
+
+  it('does not write common-types.ts when no shared types are present', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const props = {
+      ...createSplitModeProps(target),
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: true,
+        tagsSplitDeduplication: true,
+      }),
+    };
+
+    const paths = await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const commonTypesPath = path.join(tmpDir, 'common-types.ts');
+    expect(paths).not.toContain(commonTypesPath);
+    expect(fs.existsSync(commonTypesPath)).toBe(false);
+  });
+
+  it('writes common-types.ts when shared types are present', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const baseProps = createSplitModeProps(target);
+    const props = {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        header: () => ({
+          implementation: '',
+          implementationMock: '',
+          sharedTypes: [
+            {
+              name: 'HTTPStatusCode2xx',
+              exported: true,
+              code: 'type HTTPStatusCode2xx = 200 | 201;',
+            },
+          ],
+        }),
+      },
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.TAGS_SPLIT,
+        indexFiles: true,
+        tagsSplitDeduplication: true,
+      }),
+    };
+
+    const paths = await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const commonTypesPath = path.join(tmpDir, 'common-types.ts');
+    expect(paths).toContain(commonTypesPath);
+    expect(fs.existsSync(commonTypesPath)).toBe(true);
+
+    const content = fs.readFileSync(commonTypesPath, 'utf8');
+    expect(content).toContain('export type HTTPStatusCode2xx');
+
+    const indexPath = path.join(tmpDir, 'index.ts');
+    const indexContent = fs.readFileSync(indexPath, 'utf8');
+    expect(indexContent).toContain('HTTPStatusCode2xx');
+    expect(indexContent).toContain("from './common-types'");
   });
 });

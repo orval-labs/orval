@@ -66,6 +66,42 @@ const HTTP_METHODS = [
   'trace',
 ];
 
+const MUTATION_OPERATION_LOCAL_NAMES = new Set([
+  'backupQueryClient',
+  'context',
+  'customOptions',
+  'data',
+  'fetchOptions',
+  'http',
+  'mutationFn',
+  'mutationKey',
+  'mutationOptions',
+  'onMutateResult',
+  'onSuccess',
+  'options',
+  'props',
+  'queryClient',
+  'variables',
+]);
+
+const getMutationOperationReferenceName = (
+  operationName: string,
+  localNames: ReadonlySet<string>,
+): string => {
+  if (!localNames.has(operationName)) {
+    return operationName;
+  }
+
+  let candidate = camel(`${operationName}-request-fn`);
+  let index = 2;
+  while (localNames.has(candidate)) {
+    candidate = camel(`${operationName}-request-fn-${index}`);
+    index += 1;
+  }
+
+  return candidate;
+};
+
 interface OperationRouteInfo {
   route: string;
   /** HTTP method (lowercase) — needed to mirror the verb prefix that
@@ -419,6 +455,11 @@ export const generateMutationHook = async ({
     .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
     .join(',');
 
+  const operationLocalNames = new Set(MUTATION_OPERATION_LOCAL_NAMES);
+  for (const { name, type } of props) {
+    operationLocalNames.add(type === GetterPropType.BODY ? 'data' : name);
+  }
+
   const errorType = getQueryErrorType(
     operationName,
     response,
@@ -427,12 +468,19 @@ export const generateMutationHook = async ({
     override.fetch.forceSuccessResponse,
   );
 
+  const operationReferenceName = getMutationOperationReferenceName(
+    operationName,
+    operationLocalNames,
+  );
   const dataType = mutator?.isHook
     ? `ReturnType<typeof use${pascal(operationName)}Hook>`
-    : `typeof ${operationName}`;
+    : `typeof ${operationReferenceName}`;
+  const operationTypeReferenceName = mutator?.isHook
+    ? operationName
+    : operationReferenceName;
 
   const mutationOptionFnReturnType = getQueryOptionsDefinition({
-    operationName,
+    operationName: operationTypeReferenceName,
     mutator,
     definitions,
     prefix: adapter.getQueryOptionsDefinitionPrefix(),
@@ -461,7 +509,7 @@ export const generateMutationHook = async ({
   const useRuntimeFetcher = override.fetch.useRuntimeFetcher;
 
   const mutationArguments = adapter.generateQueryArguments({
-    operationName,
+    operationName: operationTypeReferenceName,
     definitions,
     mutator,
     isRequestOptions,
@@ -472,7 +520,7 @@ export const generateMutationHook = async ({
 
   // Separate arguments for getMutationOptions function (includes http: HttpClient param for Angular)
   const mutationArgumentsForOptions = adapter.generateQueryArguments({
-    operationName,
+    operationName: operationTypeReferenceName,
     definitions,
     mutator,
     isRequestOptions,
@@ -510,7 +558,7 @@ ${hooksOptionImplementation}
 
       ${
         mutator?.isHook
-          ? `const ${operationName} =  use${pascal(operationName)}Hook()`
+          ? `const ${operationReferenceName} =  use${pascal(operationName)}Hook()`
           : ''
       }
 
@@ -520,7 +568,7 @@ ${hooksOptionImplementation}
       }> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props ?? {};` : ''}
 
-          return  ${operationName}(${adapter.getMutationHttpPrefix(mutator)}${properties}${
+          return  ${operationReferenceName}(${adapter.getMutationHttpPrefix(mutator)}${properties}${
             properties ? ',' : ''
           }${getMutationRequestArgs(isRequestOptions, httpClient, mutator, useRuntimeFetcher)})
         }
@@ -603,7 +651,13 @@ ${
     optionalQueryClientArgument,
   });
 
+  const operationReferenceDeclaration =
+    !mutator?.isHook && operationReferenceName !== operationName
+      ? `const ${operationReferenceName} = ${operationName};`
+      : '';
+
   const implementation = `
+${operationReferenceDeclaration}
 ${mutationOptionsFn}
 
     export type ${pascal(

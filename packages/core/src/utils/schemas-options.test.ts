@@ -9,13 +9,18 @@ describe('getSchemasImportPath', () => {
         path: '/libs/models',
         type: 'typescript',
         importPath: '@acme/models',
+        splitByTags: false,
       }),
     ).toBe('@acme/models');
   });
 
   it('returns undefined when schemas is an object without importPath', () => {
     expect(
-      getSchemasImportPath({ path: '/libs/models', type: 'typescript' }),
+      getSchemasImportPath({
+        path: '/libs/models',
+        type: 'typescript',
+        splitByTags: false,
+      }),
     ).toBeUndefined();
   });
 

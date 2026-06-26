@@ -125,6 +125,7 @@ function normalizeSchemasOption(
     path: normalizePath(schemas.path, workspace),
     type: schemas.type ?? 'typescript',
     importPath: schemas.importPath,
+    splitByTags: schemas.splitByTags ?? false,
   };
 }
 
@@ -430,6 +431,8 @@ export async function normalizeOptions(
       unionAddMissingProperties:
         outputOptions.unionAddMissingProperties ?? false,
       factoryMethods,
+      tagsSplitDeduplication: outputOptions.tagsSplitDeduplication ?? false,
+      commonTypesFileName: outputOptions.commonTypesFileName ?? 'common-types',
       override: {
         ...outputOptions.override,
         mock: {
@@ -446,6 +449,7 @@ export async function normalizeOptions(
           {
             query: globalQueryOptions,
           },
+          'operations',
         ),
         tags: normalizeOperationsAndTags(
           outputOptions.override?.tags ?? {},
@@ -453,6 +457,7 @@ export async function normalizeOptions(
           {
             query: globalQueryOptions,
           },
+          'tags',
         ),
         mutator: normalizeMutator(
           outputWorkspace,
@@ -581,6 +586,7 @@ export async function normalizeOptions(
                 ),
               }
             : {}),
+          version: outputOptions.override?.zod?.version ?? 'auto',
           generateEachHttpStatus:
             outputOptions.override?.zod?.generateEachHttpStatus ?? false,
           useBrandedTypes:
@@ -620,6 +626,9 @@ export async function normalizeOptions(
             outputOptions.override?.fetch?.runtimeValidation ?? false,
           useRuntimeFetcher:
             outputOptions.override?.fetch?.useRuntimeFetcher ?? false,
+          ...(outputOptions.override?.fetch?.arrayFormat
+            ? { arrayFormat: outputOptions.override.fetch.arrayFormat }
+            : {}),
           ...outputOptions.override?.fetch,
           ...(outputOptions.override?.fetch?.jsonReviver
             ? {
@@ -897,7 +906,17 @@ function normalizeOperationsAndTags(
   global: {
     query: NormalizedQueryOptions;
   },
+  source: 'operations' | 'tags',
 ): Record<string, NormalizedOperationOptions> {
+  const unsupportedZodKeys = [
+    'version',
+    'dateTimeOptions',
+    'timeOptions',
+    'generateEachHttpStatus',
+    'generateReusableSchemas',
+    'generateMeta',
+  ] as const;
+
   return Object.fromEntries(
     Object.entries(operationsOrTags).map(
       ([
@@ -916,6 +935,39 @@ function normalizeOperationsAndTags(
           ...rest
         },
       ]) => {
+        const unsupportedOperationZodKeys =
+          zod &&
+          unsupportedZodKeys.filter(
+            (unsupportedKey) =>
+              (zod as Record<string, unknown>)[unsupportedKey] !== undefined,
+          );
+
+        if (unsupportedOperationZodKeys && unsupportedOperationZodKeys.length) {
+          const fieldLabel =
+            unsupportedOperationZodKeys.length === 1 ? 'field' : 'fields';
+          const unsupportedFields = unsupportedOperationZodKeys
+            .map((unsupportedKey) => `zod.${unsupportedKey}`)
+            .join(', ');
+
+          logWarning(
+            `⚠️  override.${source}.${key}.zod only supports strict, generate, coerce, preprocess, params, and useBrandedTypes. Ignoring unsupported ${fieldLabel}: ${unsupportedFields}.`,
+          );
+        }
+
+        // Only emit a normalized zod object when the entry actually carries a
+        // supported operation-level field. Otherwise an unsupported-only entry
+        // (e.g. `{ version: 3 }`) would inject default strict/generate/coerce
+        // values that override global `override.zod.*` during downstream merges,
+        // contradicting the "ignored" warning above.
+        const hasSupportedOperationZodConfig =
+          !!zod &&
+          (zod.strict !== undefined ||
+            zod.generate !== undefined ||
+            zod.coerce !== undefined ||
+            zod.preprocess !== undefined ||
+            zod.params !== undefined ||
+            zod.useBrandedTypes !== undefined);
+
         return [
           key,
           {
@@ -938,7 +990,7 @@ function normalizeOperationsAndTags(
                   query: normalizeQueryOptions(query, workspace, global.query),
                 }
               : {}),
-            ...(zod
+            ...(hasSupportedOperationZodConfig && zod
               ? {
                   zod: {
                     strict: {
@@ -1009,13 +1061,7 @@ function normalizeOperationsAndTags(
                           params: normalizeMutator(workspace, zod.params),
                         }
                       : {}),
-                    generateEachHttpStatus: zod.generateEachHttpStatus ?? false,
                     useBrandedTypes: zod.useBrandedTypes ?? false,
-                    generateReusableSchemas:
-                      zod.generateReusableSchemas ?? false,
-                    generateMeta: zod.generateMeta ?? false,
-                    dateTimeOptions: zod.dateTimeOptions ?? { offset: true },
-                    timeOptions: zod.timeOptions ?? {},
                   },
                 }
               : {}),

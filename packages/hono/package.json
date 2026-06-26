@@ -1,6 +1,6 @@
 {
   "name": "@orval/hono",
-  "version": "8.18.0",
+  "version": "8.19.0",
   "homepage": "https://orval.dev/docs/guides/hono",
   "bugs": {
     "url": "https://github.com/orval-labs/orval/issues"
@@ -34,7 +34,7 @@
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "zod": "catalog:zod3"
+    "zod": "catalog:zod4"
   },
   "peerDependencies": {
     "typescript": ">=5"

@@ -482,12 +482,26 @@ describe('getRelevantVerbOptionsForTag', () => {
     expect(result[0].operationId).toBe('op1');
   });
 
-  it('matches tags case-insensitively via camelCase normalisation', () => {
+  it('matches tags case-insensitively via kebab normalisation', () => {
     const verbOptions = {
       op1: makeVerb('op1', ['Pet-Store']),
     };
     const result = getRelevantVerbOptionsForTag(verbOptions, 'pet-store');
     expect(result).toHaveLength(1);
+  });
+
+  it('matches multi-word tags with acronym prefixes (e.g. "AB Widget" → "ab-widget")', () => {
+    const verbOptions = {
+      op1: makeVerb('op1', ['AB Widget']),
+      op2: makeVerb('op2', ['Widget']),
+    };
+    const abResult = getRelevantVerbOptionsForTag(verbOptions, 'ab-widget');
+    expect(abResult).toHaveLength(1);
+    expect(abResult[0].operationId).toBe('op1');
+
+    const widgetResult = getRelevantVerbOptionsForTag(verbOptions, 'widget');
+    expect(widgetResult).toHaveLength(1);
+    expect(widgetResult[0].operationId).toBe('op2');
   });
 
   it('returns empty array when no verbs match the tag', () => {
@@ -499,5 +513,15 @@ describe('getRelevantVerbOptionsForTag', () => {
 
   it('returns empty array for empty verbOptions', () => {
     expect(getRelevantVerbOptionsForTag({}, 'pets')).toHaveLength(0);
+  });
+
+  it('treats an empty-string tag as the default bucket, not as "no filter"', () => {
+    const verbOptions = {
+      untagged: makeVerb('untagged', []),
+      tagged: makeVerb('tagged', ['pets']),
+    };
+    const result = getRelevantVerbOptionsForTag(verbOptions, '');
+    expect(result).toHaveLength(1);
+    expect(result[0].operationId).toBe('untagged');
   });
 });

@@ -1,6 +1,6 @@
 {
   "name": "mcp-custom-server",
-  "version": "8.18.0",
+  "version": "8.19.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,7 +14,7 @@
     "@hono/mcp": "^0.2.5",
     "@modelcontextprotocol/sdk": "catalog:mcp",
     "hono": "^4.12.12",
-    "zod": "catalog:zod3"
+    "zod": "catalog:zod4"
   },
   "devDependencies": {
     "@types/bun": "latest",

@@ -43,6 +43,8 @@ function makeOutput(useDates = false): ContextSpec['output'] {
     unionAddMissingProperties: false,
     optionsParamRequired: false,
     propertySortOrder: PropertySortOrder.ALPHABETICAL,
+    tagsSplitDeduplication: false,
+    commonTypesFileName: 'common-types',
     factoryMethods: {
       functionNamePrefix: 'create',
       mode: 'single',
@@ -104,6 +106,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
       },
       swr: {},
       zod: {
+        version: 'auto',
         strict: {
           param: false,
           query: false,

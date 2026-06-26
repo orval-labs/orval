@@ -1,6 +1,18 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  issue607: {
+    output: {
+      target: '../generated/react-query/issue-607/endpoints.ts',
+      schemas: '../generated/react-query/issue-607/model',
+      client: 'react-query',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-607.yaml',
+    },
+  },
   issue2999: {
     output: {
       target: '../generated/react-query/issue-2999/endpoints.ts',
@@ -759,6 +771,24 @@ export default defineConfig({
       mock: true,
       mode: 'tags-split',
       client: 'react-query',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreTagsSplitDeduplication: {
+    output: {
+      target:
+        '../generated/react-query/petstore-tags-split-deduplication/endpoints.ts',
+      schemas:
+        '../generated/react-query/petstore-tags-split-deduplication/model',
+      mode: 'tags-split',
+      client: 'react-query',
+      httpClient: 'fetch',
+      indexFiles: true,
+      tagsSplitDeduplication: true,
       clean: true,
       formatter: 'prettier',
     },

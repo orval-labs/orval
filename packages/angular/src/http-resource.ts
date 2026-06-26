@@ -18,10 +18,11 @@ import {
   getFileInfo,
   getFullRoute,
   GetterPropType,
+  getOperationTagKey,
+  getTagKey,
   isObject,
   isSyntheticDefaultImportsAllow,
   jsDoc,
-  kebab,
   makeRouteSafe,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
@@ -172,7 +173,7 @@ const getVerbOptionsRecord = (
   );
 
 const getPrimaryTag = (verbOption: GeneratorVerbOptions): string =>
-  kebab(verbOption.tags[0] ?? 'default');
+  getOperationTagKey(verbOption);
 
 const hasRetrievalOperations = (
   verbOptions: Record<string, GeneratorVerbOptions>,
@@ -1035,27 +1036,6 @@ const buildHttpResourceFunction = (
       headers,
     }), ${getBranchOptions()});`;
 
-    // Default-accept overload (when `accept` is omitted): narrow `options` to
-    // the branch the runtime falls back to, so callers that skip `accept`
-    // still get branch-specific typing instead of the broad options union.
-    const defaultOverloadOptionsType = fallbackType
-      ? buildBranchOptionsType(
-          getBranchReturnType(fallbackType),
-          getBranchRawType(fallbackType),
-          omitParse,
-        )
-      : implementationOptionsType;
-    const defaultOverloadReturnType = fallbackType
-      ? getBranchReturnType(fallbackType)
-      : unionReturnType;
-    const defaultOverloadArgs = [
-      requiredPart,
-      optionalPart,
-      `options?: ${defaultOverloadOptionsType}`,
-    ]
-      .filter(Boolean)
-      .join(',\n    ');
-
     const normalizeRequest = isUrlOnly
       ? `const normalizedRequest: HttpResourceRequest = { url: request };`
       : `const normalizedRequest: HttpResourceRequest = request;`;
@@ -1064,9 +1044,6 @@ const buildHttpResourceFunction = (
  * @experimental httpResource is experimental (Angular v19.2+)
  */
 ${branchOverloads}
-export function ${resourceName}(
-    ${defaultOverloadArgs}
-  ): HttpResourceRef<${defaultOverloadReturnType} | undefined>;
 export function ${resourceName}(
     ${implementationArgsWithDefault}
 ): HttpResourceRef<${unionReturnType} | undefined> {
@@ -1519,11 +1496,11 @@ const getHttpResourceExtraFilePath = (
 
   switch (output.mode) {
     case OutputMode.TAGS: {
-      const normalizedTag = kebab(tag ?? 'default');
+      const normalizedTag = getTagKey(tag);
       return upath.joinSafe(dirname, `${normalizedTag}.resource${extension}`);
     }
     case OutputMode.TAGS_SPLIT: {
-      const normalizedTag = kebab(tag ?? 'default');
+      const normalizedTag = getTagKey(tag);
       return upath.joinSafe(
         dirname,
         normalizedTag,
@@ -1544,10 +1521,10 @@ const getHttpResourceRelativeSchemasPath = (
     typeof output.schemas === 'string' ? output.schemas : output.schemas?.path;
 
   if (schemasPath) {
-    return upath.getRelativeImportPath(
-      outputPath,
-      getFileInfo(schemasPath).dirname,
-    );
+    // Mirror the split-mode writers: resolve the import directly to the schemas
+    // directory (extension kept) so a dotted name like `*.schemas` is not
+    // collapsed to `./.` for the `both`-mode resource files (#3624).
+    return upath.getRelativeImportPath(outputPath, schemasPath, true);
   }
 
   const { dirname, filename, extension } = getFileInfo(output.target, {

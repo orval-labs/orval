@@ -44,7 +44,7 @@ import {
   getZodDateFormat,
   getZodDateTimeFormat,
   getZodTimeFormat,
-  isZodVersionV4,
+  resolveIsZodV4,
 } from './compatible-v4';
 
 const ZOD_DEPENDENCIES: GeneratorDependency[] = [
@@ -2231,8 +2231,10 @@ const generateZodRoute = async (
   { operationId, operationName, verb, override }: GeneratorVerbOptions,
   { pathRoute, context, output }: GeneratorOptions,
 ) => {
-  const isZodV4 =
-    !!context.output.packageJson && isZodVersionV4(context.output.packageJson);
+  const isZodV4 = resolveIsZodV4(
+    context.output.override.zod.version,
+    context.output.packageJson,
+  );
   const useReusableSchemas =
     context.output.override.zod.generateReusableSchemas;
   const spec = context.spec.paths?.[pathRoute];
@@ -2652,6 +2654,6 @@ const zodClientBuilder: ClientGeneratorsBuilder = {
 
 export const builder = () => () => zodClientBuilder;
 
-export { isZodVersionV4 } from './compatible-v4';
+export { isZodVersionV4, resolveIsZodV4 } from './compatible-v4';
 
 export default builder;

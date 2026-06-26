@@ -344,6 +344,7 @@ describe('normalizeOptions', () => {
         path: expect.any(String) as string,
         type: 'typescript',
         importPath: '@acme/models',
+        splitByTags: false,
       });
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -378,6 +379,7 @@ describe('normalizeOptions', () => {
         path: expect.any(String) as string,
         type: 'typescript',
         importPath: '@acme/models',
+        splitByTags: false,
       });
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -1027,6 +1029,116 @@ describe('normalizeOptions', () => {
       );
     } finally {
       await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('warns and strips output-only zod fields from operation and tag overrides', async () => {
+    const workspace = await createTempWorkspace();
+    logWarningSpy.mockClear();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'zod',
+            override: {
+              operations: {
+                listPets: {
+                  zod: {
+                    strict: { body: true },
+                    version: 3,
+                  } as never,
+                },
+              },
+              tags: {
+                Pets: {
+                  zod: {
+                    generate: { response: false },
+                    generateMeta: true,
+                  } as never,
+                },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        expect.stringContaining('override.operations.listPets.zod'),
+      );
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        expect.stringContaining('override.tags.Pets.zod'),
+      );
+      expect(
+        'version' in
+          (normalized.output.override.operations.listPets?.zod ?? {}),
+      ).toBe(false);
+      expect(
+        'generateMeta' in (normalized.output.override.tags.Pets?.zod ?? {}),
+      ).toBe(false);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+      logWarningSpy.mockClear();
+    }
+  });
+
+  it('emits no zod object for operation/tag overrides that only carry unsupported fields', async () => {
+    const workspace = await createTempWorkspace();
+    logWarningSpy.mockClear();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'zod',
+            override: {
+              operations: {
+                listPets: {
+                  zod: {
+                    version: 3,
+                  } as never,
+                },
+              },
+              tags: {
+                Pets: {
+                  zod: {
+                    generateMeta: true,
+                  } as never,
+                },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      // An unsupported-only entry must be a true no-op: no normalized zod
+      // object is emitted, so default strict/generate/coerce values can't leak
+      // in and override global `override.zod.*` during downstream merges.
+      expect(
+        normalized.output.override.operations.listPets?.zod,
+      ).toBeUndefined();
+      expect(normalized.output.override.tags.Pets?.zod).toBeUndefined();
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+      logWarningSpy.mockClear();
     }
   });
 

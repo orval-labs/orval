@@ -857,8 +857,14 @@ export const ${swrMutationFetcherName} = (${swrProps} ${swrMutationFetcherOption
   }
 };
 
-export const generateSwrHeader: ClientHeaderBuilder = (params) =>
-  `
+export const generateSwrHeader: ClientHeaderBuilder = (params) => {
+  const innerHeader = getSwrHeader(params);
+  const innerImpl =
+    typeof innerHeader === 'string' ? innerHeader : innerHeader.implementation;
+  const innerSharedTypes =
+    typeof innerHeader === 'string' ? undefined : innerHeader.sharedTypes;
+
+  const ownImplementation = `
   ${
     params.hasAwaitedType
       ? ''
@@ -870,8 +876,18 @@ export const generateSwrHeader: ClientHeaderBuilder = (params) =>
       ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
       : ''
   }
-  ${getSwrHeader(params)}
-`;
+  ${innerImpl}
+ `;
+
+  if (innerSharedTypes && innerSharedTypes.length > 0) {
+    return {
+      implementation: ownImplementation,
+      sharedTypes: innerSharedTypes,
+    };
+  }
+
+  return ownImplementation;
+};
 
 export const generateSwr: ClientBuilder = (verbOptions, options) => {
   const imports = generateVerbImports(verbOptions);

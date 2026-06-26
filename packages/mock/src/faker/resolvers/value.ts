@@ -159,6 +159,11 @@ function isComponentsSchemaRef(refPaths: string[] | undefined): boolean {
  * the schema body so the override actually applies; the shared
  * `get<X>Mock` factory has no knowledge of operation-scoped overrides.
  *
+ * Schema-scoped overrides (`override.mock.schemas`) need no special handling
+ * here: they target a schema's *own* properties, so the schema's `get<X>Mock`
+ * factory — built with the same mock options — already bakes them in, and
+ * delegating to it preserves the override.
+ *
  * Reuses `resolveMockOverride` so the same matching rules apply as for
  * regular property mocks — bare name, regex (`/.../`), and exact-path
  * (`#.foo.bar`). The parent's `path` (where the `$ref` appears in the

@@ -38,6 +38,8 @@ function createMockContext(): ContextSpec {
       unionAddMissingProperties: false,
       optionsParamRequired: false,
       propertySortOrder: PropertySortOrder.ALPHABETICAL,
+      tagsSplitDeduplication: false,
+      commonTypesFileName: 'common-types',
       factoryMethods: {
         functionNamePrefix: 'create',
         mode: 'single',
@@ -99,6 +101,7 @@ function createMockContext(): ContextSpec {
         },
         swr: {},
         zod: {
+          version: 'auto',
           strict: {
             param: false,
             query: false,

@@ -88,6 +88,23 @@ export function getMockWithoutFunc(
         return tagMocks;
       })()
     : undefined;
+  const schemas = override?.mock?.schemas
+    ? (() => {
+        const schemaMocks: Exclude<MockOptions['schemas'], undefined> = {};
+
+        for (const [key, value] of Object.entries(override.mock.schemas)) {
+          if (!value?.properties) {
+            continue;
+          }
+
+          schemaMocks[key] = {
+            properties: getMockPropertiesWithoutFunc(value.properties, spec),
+          };
+        }
+
+        return schemaMocks;
+      })()
+    : undefined;
 
   return {
     arrayMin: override?.mock?.arrayMin,
@@ -114,6 +131,7 @@ export function getMockWithoutFunc(
       : {}),
     ...(operations ? { operations } : {}),
     ...(tags ? { tags } : {}),
+    ...(schemas ? { schemas } : {}),
   };
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "angular-query",
-  "version": "8.18.0",
+  "version": "8.19.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -14,7 +14,6 @@
   },
   "private": true,
   "dependencies": {
-    "@angular/animations": "catalog:angular",
     "@angular/common": "catalog:angular",
     "@angular/compiler": "catalog:angular",
     "@angular/core": "catalog:angular",
@@ -24,20 +23,21 @@
     "@tanstack/angular-query-experimental": "catalog:angular",
     "rxjs": "catalog:angular",
     "tslib": "catalog:",
-    "zod": "^4.3.6"
+    "zod": "catalog:zod4"
   },
   "devDependencies": {
-    "@angular-eslint/builder": "21.3.0",
-    "@angular-eslint/eslint-plugin": "21.3.0",
-    "@angular-eslint/eslint-plugin-template": "21.3.0",
-    "@angular-eslint/template-parser": "21.3.0",
+    "@angular-eslint/builder": "22.0.0",
+    "@angular-eslint/eslint-plugin": "22.0.0",
+    "@angular-eslint/eslint-plugin-template": "22.0.0",
+    "@angular-eslint/template-parser": "22.0.0",
     "@angular/build": "catalog:angular",
     "@angular/cli": "catalog:angular",
     "@angular/compiler-cli": "catalog:angular",
     "@faker-js/faker": "catalog:tooling",
-    "angular-eslint": "21.3.1",
+    "angular-eslint": "22.0.0",
     "eslint": "catalog:",
     "@testing-library/angular": "19.0.0",
+    "jsdom": "catalog:",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
     "prettier": "catalog:",

@@ -228,6 +228,89 @@ describe('generateFakerForSchemas property overrides (schemas: true)', () => {
   });
 });
 
+describe('generateFakerForSchemas schema-scoped overrides (override.mock.schemas)', () => {
+  const appleColor = () => `'red'`;
+  const carColor = () => `'midnight black'`;
+
+  const context = createTestContextSpec({
+    override: {
+      mock: {
+        schemas: {
+          Apple: { properties: { color: appleColor } },
+          Car: { properties: { color: carColor } },
+        },
+      },
+    },
+  });
+
+  const appleSchema: GeneratorSchema = {
+    name: 'Apple',
+    model: 'Apple',
+    imports: [],
+    schema: {
+      type: 'object',
+      required: ['color'],
+      properties: { color: { type: 'string' } },
+    },
+  };
+
+  const carSchema: GeneratorSchema = {
+    name: 'Car',
+    model: 'Car',
+    imports: [],
+    schema: {
+      type: 'object',
+      required: ['color'],
+      properties: { color: { type: 'string' } },
+    },
+  };
+
+  it('applies a different override to the same property name per schema', () => {
+    const result = generateFakerForSchemas([appleSchema, carSchema], context, {
+      type: OutputMockType.FAKER,
+      schemas: true,
+    });
+
+    expect(result.implementation).toContain(`color: (${String(appleColor)})()`);
+    expect(result.implementation).toContain(`color: (${String(carColor)})()`);
+  });
+
+  it('applies the Apple schema-scoped override inside a referencing schema', () => {
+    const basketSchema: GeneratorSchema = {
+      name: 'Basket',
+      model: 'Basket',
+      imports: [],
+      schema: {
+        type: 'object',
+        required: ['apple'],
+        properties: { apple: { $ref: '#/components/schemas/Apple' } },
+      },
+    };
+
+    context.spec.components = {
+      schemas: {
+        Apple: appleSchema.schema as Record<string, unknown>,
+      },
+    };
+
+    const result = generateFakerForSchemas(
+      [appleSchema, basketSchema],
+      context,
+      { type: OutputMockType.FAKER, schemas: true },
+    );
+
+    // `Apple.color` resolves through the Apple schema-scoped override whether
+    // Basket inlines Apple's body or delegates to getAppleMock() — the factory
+    // is built with the same mock options, so the override is baked into both.
+    const basketBody = result.implementation.slice(
+      result.implementation.indexOf('getBasketMock'),
+    );
+    expect(basketBody).toMatch(
+      /apple: (\{ \.\.\.getAppleMock\(\) \}|\{color: \(\(\) => `'red'`\)\(\)\})/,
+    );
+  });
+});
+
 describe('generateFakerForSchemas strict mock types (#3525)', () => {
   const context = createTestContextSpec({
     override: {
@@ -440,5 +523,68 @@ describe('resolveMockValue returns one factory import per ref-property (#3606)',
       name: 'getLeafDTOMock',
       schemaFactory: true,
     });
+  });
+});
+
+describe('schema-scoped overrides are preserved through factory delegation', () => {
+  // A schema-scoped override targets a schema's *own* properties, so its
+  // get<X>Mock factory bakes the override in. A referencing schema can keep
+  // delegating to that factory — the override rides along.
+  const appleColor = () => `'red'`;
+  const context = createTestContextSpec({
+    output: {
+      schemas: 'model',
+      mock: {
+        indexMockFiles: false,
+        generators: [{ type: OutputMockType.FAKER, schemas: true }],
+      },
+    },
+    override: {
+      mock: { schemas: { Apple: { properties: { color: appleColor } } } },
+    },
+    spec: {
+      components: {
+        schemas: {
+          Apple: {
+            type: 'object',
+            required: ['color'],
+            properties: { color: { type: 'string' } },
+          },
+        },
+      },
+    },
+  });
+
+  it('bakes the override into the factory and delegates from referencing schemas', () => {
+    const result = generateFakerForSchemas(
+      [
+        {
+          name: 'Apple',
+          model: 'Apple',
+          imports: [],
+          schema: {
+            type: 'object',
+            required: ['color'],
+            properties: { color: { type: 'string' } },
+          },
+        },
+        {
+          name: 'Basket',
+          model: 'Basket',
+          imports: [],
+          schema: {
+            type: 'object',
+            required: ['apple'],
+            properties: { apple: { $ref: '#/components/schemas/Apple' } },
+          },
+        },
+      ],
+      context,
+      { type: OutputMockType.FAKER, schemas: true },
+    );
+
+    // Factory carries the override; Basket delegates to it.
+    expect(result.implementation).toContain(`color: (${String(appleColor)})()`);
+    expect(result.implementation).toContain('apple: { ...getAppleMock() }');
   });
 });

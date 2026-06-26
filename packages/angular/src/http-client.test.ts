@@ -74,6 +74,7 @@ const createOutput = (
       angular: angularOverride,
       swr: {},
       zod: {
+        version: 'auto',
         strict: {
           param: false,
           query: false,
@@ -147,6 +148,8 @@ const createOutput = (
     optionsParamRequired: false,
     unionAddMissingProperties: false,
     propertySortOrder: 'Specification',
+    tagsSplitDeduplication: false,
+    commonTypesFileName: 'common-types',
     factoryMethods: {
       functionNamePrefix: 'create',
       mode: 'single',

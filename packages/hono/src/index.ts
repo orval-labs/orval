@@ -13,12 +13,13 @@ import {
   type GeneratorImport,
   type GeneratorVerbOptions,
   getFileInfo,
+  getOperationTagKey,
   getOrvalGeneratedTypes,
   getParamsInPath,
   type HonoHandlerStrategy,
   isObject,
+  isOperationInTagBucket,
   jsDoc,
-  kebab,
   logWarning,
   type NormalizedMutator,
   type NormalizedOutputOptions,
@@ -128,7 +129,7 @@ export const getHonoHeader: ClientHeaderBuilder = ({
         // sub-directory. `tags` mode flattens them next to `target`, so the
         // import must be resolved from `targetInfo.dirname` directly.
         const isSplitDir = output.mode === 'tags-split';
-        const tag = kebab(verbOption.tags[0] ?? 'default');
+        const tag = getOperationTagKey(verbOption);
 
         const handlersPath = upath.relativeSafe(
           nodePath.join(targetInfo.dirname, isSplitDir ? tag : ''),
@@ -361,10 +362,7 @@ const getVerbOptionGroupByTag = (
   const grouped: Record<string, GeneratorVerbOptions[]> = {};
 
   for (const value of Object.values(verbOptions)) {
-    const tag = value.tags[0];
-    // this is not always false
-    // TODO look into types
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const tag = getOperationTagKey(value);
     if (!grouped[tag]) {
       grouped[tag] = [];
     }
@@ -614,7 +612,7 @@ const generateHandlerFiles = async (
     // One file per operation in the user-provided directory.
     return Promise.all(
       Object.values(verbOptions).map(async (verbOption) => {
-        const tag = kebab(verbOption.tags[0] ?? 'default');
+        const tag = getOperationTagKey(verbOption);
 
         const path = nodePath.join(
           output.override.hono.handlers ?? '',
@@ -626,11 +624,8 @@ const generateHandlerFiles = async (
         let zodModule: string;
         let contextModule: string;
         if (output.mode === 'tags') {
-          zodModule = nodePath.join(dirname, `${kebab(tag)}.zod${extension}`);
-          contextModule = nodePath.join(
-            dirname,
-            `${kebab(tag)}.context${extension}`,
-          );
+          zodModule = nodePath.join(dirname, `${tag}.zod${extension}`);
+          contextModule = nodePath.join(dirname, `${tag}.context${extension}`);
         } else if (output.mode === 'tags-split') {
           zodModule = nodePath.join(dirname, tag, tag + '.zod' + extension);
           contextModule = nodePath.join(
@@ -671,7 +666,7 @@ const generateHandlerFiles = async (
       Object.entries(groupByTags).map(async ([tag, verbs]) => {
         const handlerPath =
           output.mode === 'tags'
-            ? nodePath.join(dirname, `${kebab(tag)}.handlers${extension}`)
+            ? nodePath.join(dirname, `${tag}.handlers${extension}`)
             : nodePath.join(dirname, tag, tag + '.handlers' + extension);
 
         return {
@@ -682,11 +677,11 @@ const generateHandlerFiles = async (
             validatorModule,
             zodModule:
               output.mode === 'tags'
-                ? nodePath.join(dirname, `${kebab(tag)}.zod${extension}`)
+                ? nodePath.join(dirname, `${tag}.zod${extension}`)
                 : nodePath.join(dirname, tag, tag + '.zod' + extension),
             contextModule:
               output.mode === 'tags'
-                ? nodePath.join(dirname, `${kebab(tag)}.context${extension}`)
+                ? nodePath.join(dirname, `${tag}.context${extension}`)
                 : nodePath.join(dirname, tag, tag + '.context' + extension),
             strategy,
             tsconfig: output.tsconfig,
@@ -853,7 +848,7 @@ const generateContextFiles = (
     return Object.entries(groupByTags).map(([tag, verbs]) => {
       const path =
         output.mode === 'tags'
-          ? nodePath.join(dirname, `${kebab(tag)}.context${extension}`)
+          ? nodePath.join(dirname, `${tag}.context${extension}`)
           : nodePath.join(dirname, tag, tag + '.context' + extension);
       const code = generateContextFile({
         verbs,
@@ -935,7 +930,7 @@ const generateZodFiles = async (
 
         const zodPath =
           output.mode === 'tags'
-            ? nodePath.join(dirname, `${kebab(tag)}.zod${extension}`)
+            ? nodePath.join(dirname, `${tag}.zod${extension}`)
             : nodePath.join(dirname, tag, tag + '.zod' + extension);
 
         content += zods.map((zod) => zod.implementation).join('\n');
@@ -1056,29 +1051,36 @@ const generateCompositeRoutes = (
       .join('\n');
   } else {
     const tags = importHandlers.map((verbOption) =>
-      kebab(verbOption.tags[0] ?? 'default'),
+      getOperationTagKey(verbOption),
     );
     const uniqueTags = tags.filter((t, i) => tags.indexOf(t) === i);
 
     ImportHandlersImplementation = uniqueTags
       .map((tag) => {
         const importHandlerNames = importHandlers
-          .filter((verbOption) => verbOption.tags[0] === tag)
+          .filter((verbOption) => isOperationInTagBucket(verbOption, tag))
           .map((verbOption) => ` ${verbOption.operationName}Handlers`)
           .join(`, \n`);
 
+        const handlerFilePath =
+          output.mode === 'tags-split'
+            ? nodePath.join(
+                targetInfo.dirname,
+                tag,
+                `${tag}.handlers${targetInfo.extension}`,
+              )
+            : nodePath.join(
+                targetInfo.dirname,
+                `${tag}.handlers${targetInfo.extension}`,
+              );
+
         const handlersPath = generateModuleSpecifier(
           compositeRouteInfo.path,
-          nodePath.join(targetInfo.dirname, tag),
+          handlerFilePath,
           output.tsconfig,
         );
 
-        const handlersImportExt = getImportExtension(
-          targetInfo.extension,
-          output.tsconfig,
-        );
-
-        return `import {\n${importHandlerNames}\n} from '${handlersPath}/${tag}.handlers${handlersImportExt}';`;
+        return `import {\n${importHandlerNames}\n} from '${handlersPath}';`;
       })
       .join('\n');
   }

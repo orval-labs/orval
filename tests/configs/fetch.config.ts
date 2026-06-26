@@ -90,6 +90,23 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  petstoreTagsSplitDeduplication: {
+    output: {
+      target:
+        '../generated/fetch/petstore-tags-split-deduplication/endpoints.ts',
+      schemas:
+        '../generated/fetch/petstore-tags-split-deduplication/model',
+      mode: 'tags-split',
+      client: 'fetch',
+      indexFiles: true,
+      tagsSplitDeduplication: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   petstoreSplit: {
     output: {
       target: '../generated/fetch/split/endpoints.ts',
@@ -817,6 +834,72 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/mixed-content-responses.yaml',
+    },
+  },
+  fetchArrayFormatRepeat: {
+    output: {
+      target: '../generated/fetch/array-format-repeat/endpoints.ts',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        fetch: {
+          arrayFormat: 'repeat',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/array-format.yaml',
+    },
+  },
+  fetchArrayFormatBrackets: {
+    output: {
+      target: '../generated/fetch/array-format-brackets/endpoints.ts',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        fetch: {
+          arrayFormat: 'brackets',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/array-format.yaml',
+    },
+  },
+  fetchArrayFormatComma: {
+    output: {
+      target: '../generated/fetch/array-format-comma/endpoints.ts',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        fetch: {
+          arrayFormat: 'comma',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/array-format.yaml',
+    },
+  },
+  fetchParamsSerializer: {
+    output: {
+      target: '../generated/fetch/params-serializer/endpoints.ts',
+      schemas: '../generated/fetch/params-serializer/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        paramsSerializer: {
+          path: '../mutators/fetch-params-serializer.ts',
+          name: 'customParamsSerializer',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-3326.yaml',
     },
   },
 });

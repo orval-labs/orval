@@ -111,11 +111,12 @@ export default defineConfig({
 });
 ```
 
-| Property   | Type     | Description                                     |
-| ---------- | -------- | ----------------------------------------------- |
-| `path`     | `string` | Filesystem path for schema output               |
-| `type`     | `string` | `'typescript'` (default) or `'zod'` — optional |
-| `importPath` | `string` | Optional package import specifier (see below)  |
+| Property      | Type      | Description                                     |
+| ------------- | --------- | ----------------------------------------------- |
+| `path`        | `string`  | Filesystem path for schema output               |
+| `type`        | `string`  | `'typescript'` (default) or `'zod'` — optional |
+| `importPath`  | `string`  | Optional package import specifier (see below)   |
+| `splitByTags` | `boolean` | Organize schemas into per-tag subdirectories (default `false`, see below) |
 
 ### importPath
 
@@ -172,6 +173,57 @@ import statements change.
 - Config normalization rejects invalid `importPath` values (empty, whitespace,
   relative, or absolute paths) before generation runs — see
   [Validation of `importPath`](#validation-of-importpath) below.
+
+### splitByTags
+
+When `splitByTags` is `true`, schemas are organized into per-tag
+subdirectories instead of a single flat directory. Schemas referenced by
+only one tag go in that tag's directory; schemas referenced by multiple
+tags (or not referenced by any operation) remain at the root of the schema
+directory. Works with any `mode` (`single`, `split`, `tags`, `tags-split`).
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      schemas: {
+        path: './api/model',
+        splitByTags: true,
+      },
+    },
+  },
+});
+```
+
+Result:
+
+```
+api/model/
+├── error.ts               ← schemas used by 2+ tags (or unreferenced)
+├── pagination.ts
+├── pets/                  ← schemas only used by "pets" operations
+│   ├── pet.ts
+│   ├── createPetsBody.ts
+│   ├── listPetsParams.ts
+│   └── index.ts
+└── index.ts               ← root barrel re-exporting shared files + tag dirs
+```
+
+Cross-tag imports from within a tag subdirectory resolve to the parent:
+
+```ts
+// pets/pet.ts
+import type { Error } from '../error';
+```
+
+**Requirements:**
+
+- Works with any `mode` (`single`, `split`, `tags`, `tags-split`).
+- Incompatible with `operationSchemas` — operation-derived types are placed
+  within their tag directories automatically.
+- Schema-to-tag mapping is transitive: if `Pet` imports `Dog` which imports
+  `Dachshund`, all three land in the same directory.
 
 ### Validation of `importPath`
 
@@ -350,6 +402,28 @@ my-app/src/
 │   └── pets.ts              ← imports from ../models
 └── users/
     └── users.ts             ← imports from ../models
+```
+
+To organize schemas into per-tag subdirectories instead of a flat directory, use [`splitByTags`](#splitbytags):
+
+```
+my-app/src/
+├── models/
+│   ├── pagination.ts          ← shared schemas at root
+│   ├── error.ts
+│   ├── pets/
+│   │   ├── pet.ts
+│   │   ├── listPetsParams.ts
+│   │   └── index.ts
+│   ├── users/
+│   │   ├── user.ts
+│   │   ├── listUsersParams.ts
+│   │   └── index.ts
+│   └── index.ts               ← root barrel
+├── pets/
+│   └── pets.ts
+└── users/
+    └── users.ts
 ```
 
 ## baseUrl
@@ -617,6 +691,70 @@ import { getPetMock } from '@acme/data-layer/sdk/fakers';
 **Default:** `true`
 
 Generate `index.ts` files for schemas.
+
+## tagsSplitDeduplication
+
+**Type:** `Boolean`
+**Default:** `false`
+
+In `tags-split` mode, extract shared infrastructure types (e.g. `HTTPStatusCode*` emitted by the fetch client) into a single `common-types.ts` file and generate a barrel `index.ts` at the target root.
+
+When enabled alongside [`indexFiles: true`](#indexfiles):
+
+- Shared types that would otherwise be duplicated across per-tag files are collected and written once to `[commonTypesFileName].ts`
+- Each per-tag file imports shared types from the common file instead of declaring them inline
+- A barrel `index.ts` is generated with named re-exports for public shared types plus `export *` re-exports for each per-tag implementation file
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: './src/api/endpoints.ts',
+      schemas: './src/api/model',
+      client: 'fetch',
+      indexFiles: true,
+      tagsSplitDeduplication: true,
+    },
+  },
+});
+```
+
+Resulting structure:
+
+```
+src/api/
+├── common-types.ts           ← shared types extracted once
+├── index.ts                  ← barrel with named + wildcard re-exports
+├── pets/
+│   └── pets.ts               ← import type { ... } from '../common-types'
+└── health/
+    └── health.ts             ← import type { ... } from '../common-types'
+```
+
+When disabled (default), shared types are inlined per-tag and no barrel is generated — identical to previous behavior.
+
+Suppressed when [`workspace`](#workspace) is set (the workspace barrel handles aggregation).
+
+## commonTypesFileName
+
+**Type:** `String`
+**Default:** `'common-types'`
+
+The file name (without extension) used for the shared types file when [`tagsSplitDeduplication`](#tagssplitdeduplication) is enabled.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      indexFiles: true,
+      tagsSplitDeduplication: true,
+      commonTypesFileName: 'shared',  // generates shared.ts
+    },
+  },
+});
+```
 
 ## docs
 
@@ -1224,6 +1362,7 @@ export default defineConfig({
     output: {
       override: {
         zod: {
+          version: 4,
           strict: {
             response: true,
             query: true,
@@ -1250,6 +1389,20 @@ export default defineConfig({
   },
 });
 ```
+
+### version
+
+**Type:** `3 | 4 | 'auto'` — defaults to `'auto'`
+
+Pin the Zod major version that generated output targets, so generation is deterministic instead of inferred from the installed `zod` package.
+
+| Value    | Output                                                                          |
+| -------- | ------------------------------------------------------------------------------- |
+| `4`      | Always emit Zod 4 syntax (`z.strictObject`, `z.iso.datetime()`, `.meta()`, …).   |
+| `3`      | Always emit Zod 3-compatible syntax (`.strict()`, `z.string().datetime()`, …).   |
+| `'auto'` | Infer from the resolved `zod` version; fall back to Zod 4 when none is detected. |
+
+Unlike most `override.zod` options, `version` is output-wide and cannot be set per operation or tag. See the [Zod guide](/docs/guides/zod#zod-version) for details.
 
 ### strict
 
@@ -1758,6 +1911,35 @@ Custom JSON reviver function (useful for date parsing).
 
 Enable Zod runtime validation for fetch client responses. Requires `schemas: { type: 'zod' }`. When enabled, JSON responses are validated via `Schema.parse()` before being returned.
 
+### arrayFormat
+
+**Type:** `'repeat' | 'brackets' | 'comma'`
+
+Controls how array query parameters are serialized when the OpenAPI spec does not explicitly set `explode` on a parameter. The spec's own `explode` property always takes precedence.
+
+| Value | Output |
+|-------|--------|
+| `repeat` | `?tags=a&tags=b` |
+| `brackets` | `?tags[]=a&tags[]=b` |
+| `comma` | `?tags=a%2Cb` |
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'fetch',
+      override: {
+        fetch: {
+          arrayFormat: 'repeat',
+        },
+      },
+    },
+  },
+});
+```
+
+For full control over serialization (including custom encoding, nested objects, etc.) use [`override.paramsSerializer`](#paramsserializer) instead.
+
 ### useRuntimeFetcher
 
 **Type:** `Boolean`
@@ -1848,6 +2030,13 @@ export default defineConfig({
             '/tag|name/': 'jon',
             email: () => faker.internet.email(),
           },
+          schemas: {
+            Apple: {
+              properties: {
+                color: () => faker.helpers.arrayElement(['red', 'green']),
+              },
+            },
+          },
           format: {
             email: () => faker.internet.email(),
             iban: () => faker.finance.iban(),
@@ -1870,7 +2059,16 @@ export default defineConfig({
 
 ### properties
 
-Override mock values per property path or regex.
+Override mock values per property path or regex. Applies to every schema that has a
+matching property.
+
+### schemas
+
+Scope property overrides to a named schema, so the same property name can mock differently
+per schema (e.g. `color` on `Apple` vs. `Car`). Keyed by schema name; each entry holds a
+`properties` map using the same matching rules as `properties` (bare name, `/regex/`, exact
+`#.path`). Takes precedence over the global `properties` overrides. See the
+[Faker guide](/docs/guides/faker#per-schema-overrides) for a worked example.
 
 ### format
 
@@ -2518,9 +2716,9 @@ export const customFormUrlEncodedFn = <Body>(body: Body): URLSearchParams => {
 
 **Type:** `String | Object`
 
-> **Note:** Only valid when using Axios or Angular.
+> **Note:** Valid for Axios, Angular, and the fetch client.
 
-Custom parameter serializer for query parameters:
+Custom parameter serializer for query parameters. When set, the generated URL helper delegates query string building entirely to this function instead of using the built-in logic.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -2537,7 +2735,10 @@ export default defineConfig({
 });
 ```
 
+For Axios and Angular the function receives the params object and can return any value Axios/Angular accepts. For the fetch client it must return a `string` (the raw query string without the leading `?`):
+
 ```ts title="custom-params-serializer-fn.ts"
+// Axios / Angular
 export const customParamsSerializerFn = (
   params: Record<string, any>,
 ): string => {
@@ -2546,6 +2747,20 @@ export const customParamsSerializerFn = (
     .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
     .join('&');
 };
+
+// fetch client — must return a string
+export const customParamsSerializer = (
+  params: Record<string, unknown> | undefined,
+): string =>
+  new URLSearchParams(
+    Object.entries(params ?? {})
+      .filter(([_, v]) => v !== undefined)
+      .flatMap(([k, v]) =>
+        Array.isArray(v)
+          ? v.map((item) => [k, String(item)])
+          : [[k, String(v)]],
+      ),
+  ).toString();
 ```
 
 ### paramsSerializerOptions

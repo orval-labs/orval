@@ -198,6 +198,28 @@ export default defineConfig({
       target: '../specifications/angular-http-resource-both.yaml',
     },
   },
+  issue3624: {
+    output: {
+      target: '../generated/angular/issue-3624/petstore.client.ts',
+      schemas: {
+        path: '../generated/angular/issue-3624/petstore.schemas',
+      },
+      mode: 'split',
+      client: 'angular',
+      mock: false,
+      clean: true,
+      indexFiles: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   multiContentQueryParams: {
     output: {
       target: '../generated/angular/multi-content-query-params/endpoints.ts',
@@ -221,6 +243,19 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3103.yaml',
+    },
+  },
+  issue3634: {
+    output: {
+      target: '../generated/angular/issue-3634/endpoints.ts',
+      schemas: '../generated/angular/issue-3634/model',
+      client: 'angular',
+      mode: 'tags-split',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3634.yaml',
     },
   },
   issue3326: {

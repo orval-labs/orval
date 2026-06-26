@@ -9,7 +9,12 @@ import {
   OutputClient,
   type WriteSpecBuilder,
 } from '../types';
-import { compareVersions, kebab, pascal } from '../utils';
+import {
+  compareVersions,
+  getOperationTagKey,
+  isOperationInTagBucket,
+  pascal,
+} from '../utils';
 
 /**
  * Ensures every operation has at least one tag by falling back to the
@@ -118,7 +123,7 @@ function generateTargetTags(
   currentAcc: Record<string, GeneratorTargetFull>,
   operation: GeneratorOperation,
 ): Record<string, GeneratorTargetFull> {
-  const tag = kebab(operation.tags[0]);
+  const tag = getOperationTagKey(operation);
 
   if (!(tag in currentAcc)) {
     currentAcc[tag] = {
@@ -199,14 +204,13 @@ export function generateTargetForTags(
         const isMutator = !!target.mutators?.some((mutator) =>
           isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
         );
-        const operationNames = Object.values(builder.operations)
-          // Operations can have multiple tags, but they are grouped by the first
-          // tag, therefore we only want to handle the case where the tag
-          // is the first in the list of tags.
-          .filter(
-            ({ tags }) =>
-              tags.map((tag) => kebab(tag)).indexOf(kebab(tag)) === 0,
-          )
+        const operationNames = operations
+          // Operations can have multiple tags, but they are grouped by their
+          // primary (first) tag. Filtering through the canonical
+          // `isOperationInTagBucket` keeps this in lockstep with how the
+          // buckets above were built, including untagged operations that were
+          // routed into the implicit `default` bucket by `addDefaultTagIfEmpty`.
+          .filter((operation) => isOperationInTagBucket(operation, tag))
           .map(({ operationName }) => operationName);
 
         const typescriptVersion =
@@ -251,6 +255,16 @@ export function generateTargetForTags(
           clientImplementation: target.implementation,
         });
 
+        const sharedTypes = header.sharedTypes;
+        const deduplicationActive =
+          options.tagsSplitDeduplication && !options.workspace;
+        const inlinedSharedTypes =
+          !deduplicationActive && sharedTypes && sharedTypes.length > 0
+            ? sharedTypes
+                .map((t) => `${t.exported ? 'export ' : ''}${t.code}`)
+                .join('\n') + '\n\n'
+            : '';
+
         // Apply the per-tag header/footer wrap to each mock output that has
         // accumulated handler entries. Mock outputs without a handler (faker
         // only) skip the wrap.
@@ -274,6 +288,7 @@ export function generateTargetForTags(
 
         transformed[tag] = {
           implementation:
+            inlinedSharedTypes +
             header.implementation +
             target.implementation +
             footer.implementation,
@@ -286,6 +301,7 @@ export function generateTargetForTags(
           paramsSerializer: target.paramsSerializer,
           paramsFilter: target.paramsFilter,
           fetchReviver: target.fetchReviver,
+          sharedTypes: deduplicationActive ? sharedTypes : undefined,
         };
       }
       allTargetTags = transformed;

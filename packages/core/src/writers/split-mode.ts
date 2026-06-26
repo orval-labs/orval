@@ -34,6 +34,7 @@ export async function writeSplitMode({
   header,
   needSchema,
   generateSchemasInline,
+  schemaTagMap,
 }: WriteModeProps): Promise<string[]> {
   try {
     const {
@@ -67,12 +68,15 @@ export async function writeSplitMode({
     const schemaCustomImportPath = getSchemasImportPath(output.schemas);
     const relativeSchemasPath = output.schemas
       ? (schemaCustomImportPath ??
+        // `output.schemas(.path)` is a directory. Resolve the relative import
+        // to it directly (with the file extension kept) so the path stays
+        // correct even when the directory does not exist on disk yet and when
+        // its name contains a dot, e.g. `*.schemas` (#3624). Deriving it from
+        // `getFileInfo(...).dirname` collapsed to `./.` in those cases.
         upath.getRelativeImportPath(
           targetPath,
-          getFileInfo(
-            isString(output.schemas) ? output.schemas : output.schemas.path,
-            { extension: output.fileExtension },
-          ).dirname,
+          isString(output.schemas) ? output.schemas : output.schemas.path,
+          true,
         ))
       : './' +
         filename +
@@ -80,10 +84,16 @@ export async function writeSplitMode({
         getImportExtension(extension, output.tsconfig);
 
     const schemasTarget = output.schemas
-      ? getFileInfo(
-          isString(output.schemas) ? output.schemas : output.schemas.path,
-          { extension: output.fileExtension },
-        ).dirname
+      ? // `output.schemas(.path)` already *is* the schemas directory. Use it
+        // directly rather than `getFileInfo(...).dirname`, which collapses to
+        // the parent directory when the name contains a dot, e.g. `*.schemas`
+        // (#3624) — that broke the mock files' schema imports derived from
+        // `schemasTarget` via `resolveMockSchemasPath`. For a dot-free name
+        // `getFileInfo(...).dirname` returns the same directory, so existing
+        // output is unchanged.
+        isString(output.schemas)
+        ? output.schemas
+        : output.schemas.path
       : path.join(
           dirname,
           filename +
@@ -99,6 +109,7 @@ export async function writeSplitMode({
       output,
       imports,
       relativeSchemasPath,
+      schemaTagMap,
     );
 
     implementationData += builder.imports({
@@ -252,6 +263,7 @@ export async function writeSplitMode({
           finalizeMockOptions.strictSchemaTypeNames,
         ),
         mockRelativeSchemasPath,
+        schemaTagMap,
       );
       let mockData = header;
       mockData += builder.importsMock({

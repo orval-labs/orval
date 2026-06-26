@@ -1,6 +1,6 @@
 {
   "name": "mcp-petstore",
-  "version": "8.18.0",
+  "version": "8.19.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "catalog:mcp",
-    "zod": "catalog:zod3"
+    "zod": "catalog:zod4"
   },
   "devDependencies": {
     "@types/node": "catalog:",

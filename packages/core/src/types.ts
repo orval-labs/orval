@@ -36,7 +36,7 @@ export interface NormalizedOptions {
 export interface NormalizedOutputOptions {
   workspace?: string;
   target: string;
-  schemas?: string | SchemaOptions;
+  schemas?: string | NormalizedSchemaOptions;
   operationSchemas?: string;
   namingConvention: NamingConvention;
   fileExtension: string;
@@ -68,6 +68,8 @@ export interface NormalizedOutputOptions {
   optionsParamRequired: boolean;
   propertySortOrder: PropertySortOrder;
   factoryMethods?: NormalizedFactoryMethodsOptions;
+  tagsSplitDeduplication: boolean;
+  commonTypesFileName: string;
 }
 
 export interface NormalizedParamsSerializerOptions {
@@ -202,7 +204,7 @@ export interface NormalizedOperationOptions {
   query?: NormalizedQueryOptions;
   angular?: NormalizedAngularOptions;
   swr?: SwrOptions;
-  zod?: NormalizedZodOptions;
+  zod?: NormalizedOperationZodOptions;
   effect?: NormalizedEffectOptions;
   operationName?: (
     operation: OpenApiOperationObject,
@@ -309,12 +311,21 @@ export interface SchemaOptions {
   path: string;
   type?: SchemaGenerationType;
   importPath?: string;
+  /**
+   * When `true`, schemas are organized into per-tag subdirectories instead of
+   * a single flat directory. Schemas referenced by multiple tags remain at the
+   * root of the schema directory.
+   *
+   * @default false
+   */
+  splitByTags?: boolean;
 }
 
 export interface NormalizedSchemaOptions {
   path: string;
   type: SchemaGenerationType;
   importPath?: string;
+  splitByTags: boolean;
 }
 
 export interface OutputOptions {
@@ -360,6 +371,8 @@ export interface OutputOptions {
   optionsParamRequired?: boolean;
   propertySortOrder?: PropertySortOrder;
   factoryMethods?: FactoryMethodsOptions;
+  tagsSplitDeduplication?: boolean;
+  commonTypesFileName?: string;
 }
 
 export interface InputFiltersOptions {
@@ -564,14 +577,22 @@ export type OverrideMockOptions = Partial<GlobalMockOptions> & {
   required?: boolean; // When true, all properties are required (and thus not optional) in mocks.
   nonNullable?: boolean; // When true, nullable mock values are never wrapped in `arrayElement([value, null])`.
   properties?: MockProperties;
+  // Scope property overrides to a named schema (e.g. `components/schemas/Apple`),
+  // so the same property name can mock differently per schema. Matching rules are
+  // identical to `properties` (bare name, `/regex/`, exact `#.path`).
+  schemas?: Record<string, { properties: MockProperties }>;
   format?: Record<string, unknown>;
   fractionDigits?: number;
 };
 
-export type MockOptions = Omit<OverrideMockOptions, 'properties'> & {
+export type MockOptions = Omit<
+  OverrideMockOptions,
+  'properties' | 'schemas'
+> & {
   properties?: Record<string, unknown>;
   operations?: Record<string, { properties: Record<string, unknown> }>;
   tags?: Record<string, { properties: Record<string, unknown> }>;
+  schemas?: Record<string, { properties: Record<string, unknown> }>;
 };
 
 export type MockPropertiesObject = Record<string, unknown>;
@@ -772,7 +793,20 @@ export interface ZodTimeOptions {
   precision?: -1 | 0 | 1 | 2 | 3;
 }
 
-export interface ZodOptions {
+/**
+ * Target Zod major version for generated output.
+ *
+ * - `4` — always emit Zod 4-style output (`z.strictObject`, `z.looseObject`,
+ *   `z.iso.datetime()`, `.meta()`, …) regardless of the installed `zod` version.
+ * - `3` — always emit Zod 3-compatible output (`.strict()`/`.passthrough()`,
+ *   `z.string().datetime()`, …) regardless of the installed `zod` version.
+ * - `'auto'` — infer the target from the `zod` version resolved in the output
+ *   project's `package.json`; when no `zod` package can be detected, fall back
+ *   to Zod 4 output.
+ */
+export type ZodVersionOption = 3 | 4 | 'auto';
+
+interface BaseZodOptions {
   strict?: {
     param?: boolean;
     query?: boolean;
@@ -813,10 +847,20 @@ export interface ZodOptions {
    * location.
    */
   params?: Mutator;
+  useBrandedTypes?: boolean;
+}
+
+export interface ZodOptions extends BaseZodOptions {
+  /**
+   * Pin the Zod output target so generation is deterministic instead of
+   * inferred from the installed `zod` version. Defaults to `'auto'`, which
+   * infers from the detected package and otherwise falls back to Zod 4 output.
+   * See {@link ZodVersionOption}.
+   */
+  version?: ZodVersionOption;
   dateTimeOptions?: ZodDateTimeOptions;
   timeOptions?: ZodTimeOptions;
   generateEachHttpStatus?: boolean;
-  useBrandedTypes?: boolean;
   /**
    * When true, emits one reusable Zod schema per `#/components/schemas/*` `$ref`
    * (with `namingConvention` applied to the name) and references it everywhere
@@ -832,6 +876,14 @@ export interface ZodOptions {
    */
   generateMeta?: boolean;
 }
+
+/**
+ * Per-operation/tag Zod overrides only include settings that are actually
+ * merged into the operation-specific generator path. Output-wide target and
+ * schema-layout settings belong on `override.zod`, not `override.operations.*`
+ * / `override.tags.*`.
+ */
+export type OperationZodOptions = BaseZodOptions;
 
 export interface EffectOptions {
   strict?: ZodOptions['strict'];
@@ -852,6 +904,7 @@ export type ZodCoerceType =
   | 'array';
 
 export interface NormalizedZodOptions {
+  version: ZodVersionOption;
   strict: {
     param: boolean;
     query: boolean;
@@ -888,6 +941,11 @@ export interface NormalizedZodOptions {
   dateTimeOptions: ZodDateTimeOptions;
   timeOptions: ZodTimeOptions;
 }
+
+export type NormalizedOperationZodOptions = Pick<
+  NormalizedZodOptions,
+  'strict' | 'generate' | 'coerce' | 'preprocess' | 'params' | 'useBrandedTypes'
+>;
 
 export interface NormalizedEffectOptions {
   strict: NormalizedZodOptions['strict'];
@@ -1075,6 +1133,15 @@ export interface NormalizedFetchOptions {
   jsonReviver?: Mutator;
   runtimeValidation: boolean;
   useRuntimeFetcher: boolean;
+  /**
+   * Serialization format for array query parameters that do not have an explicit
+   * `explode` setting in the OpenAPI spec.
+   *
+   * - `repeat` — repeat the key for each value: `foo=1&foo=2`
+   * - `brackets` — append `[]` to the key: `foo[]=1&foo[]=2`
+   * - `comma` — join values with a comma: `foo=1,2`
+   */
+  arrayFormat?: 'repeat' | 'brackets' | 'comma';
 }
 
 export interface FetchOptions {
@@ -1083,6 +1150,15 @@ export interface FetchOptions {
   jsonReviver?: Mutator;
   runtimeValidation?: boolean;
   useRuntimeFetcher?: boolean;
+  /**
+   * Serialization format for array query parameters that do not have an explicit
+   * `explode` setting in the OpenAPI spec.
+   *
+   * - `repeat` — repeat the key for each value: `foo=1&foo=2`
+   * - `brackets` — append `[]` to the key: `foo[]=1&foo[]=2`
+   * - `comma` — join values with a comma: `foo=1,2`
+   */
+  arrayFormat?: 'repeat' | 'brackets' | 'comma';
 }
 
 export type InputTransformerFn = (
@@ -1105,7 +1181,7 @@ export interface OperationOptions {
   query?: QueryOptions;
   angular?: AngularOptions;
   swr?: SwrOptions;
-  zod?: ZodOptions;
+  zod?: OperationZodOptions;
   effect?: EffectOptions;
   operationName?: (
     operation: OpenApiOperationObject,
@@ -1396,6 +1472,7 @@ export interface GeneratorTarget {
   paramsSerializer?: GeneratorMutator[];
   paramsFilter?: GeneratorMutator[];
   fetchReviver?: GeneratorMutator[];
+  sharedTypes?: SharedTypeDeclaration[];
 }
 
 export interface GeneratorTargetFull {
@@ -1409,6 +1486,7 @@ export interface GeneratorTargetFull {
   paramsSerializer?: GeneratorMutator[];
   paramsFilter?: GeneratorMutator[];
   fetchReviver?: GeneratorMutator[];
+  sharedTypes?: SharedTypeDeclaration[];
 }
 
 export interface GeneratorOperation {
@@ -1507,6 +1585,17 @@ export type ClientExtraFilesBuilder = (
   context: ContextSpec,
 ) => Promise<ClientFileBuilder[]>;
 
+export interface SharedTypeDeclaration {
+  name: string;
+  exported: boolean;
+  code: string;
+}
+
+export type HeaderResult = {
+  implementation: string;
+  sharedTypes?: SharedTypeDeclaration[];
+};
+
 export type ClientHeaderBuilder = (params: {
   title: string;
   isRequestOptions: boolean;
@@ -1520,7 +1609,7 @@ export type ClientHeaderBuilder = (params: {
   tag?: string;
   isDefaultTagBucket?: boolean;
   clientImplementation: string;
-}) => string;
+}) => string | HeaderResult;
 
 export type ClientFooterBuilder = (params: {
   noFunction?: boolean | undefined;
@@ -1748,6 +1837,14 @@ export interface WriteModeProps {
   header: string;
   needSchema: boolean;
   generateSchemasInline?: () => string;
+  // Schema-to-tag map computed by `writeSpecs` when `schemas.splitByTags` is
+  // enabled. Mode writers forward it to `generateImportsForBuilder` so the
+  // `indexFiles: false` branch can route each schema import into its tag
+  // subdirectory instead of assuming a flat layout. `undefined` when
+  // `splitByTags` is disabled, in which case routing falls back to the flat
+  // layout. The `'.'` sentinel marks schemas referenced by 0 or 2+ tags
+  // (shared, kept at the schemas root).
+  schemaTagMap?: Map<string, string>;
 }
 
 export interface GeneratorApiOperations {
@@ -1759,6 +1856,7 @@ export interface GeneratorApiOperations {
 export interface GeneratorClientExtra {
   implementation: string;
   implementationMock: string;
+  sharedTypes?: SharedTypeDeclaration[];
 }
 
 export type GeneratorClientTitle = (data: {
