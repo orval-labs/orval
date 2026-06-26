@@ -136,15 +136,7 @@ export const generateRequestFunction = (
         (schemaObject.allOf as
           | (OpenApiSchemaObject | OpenApiReferenceObject)[]
           | undefined) ?? []
-      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array');
-
-    const style = parameterObject.style ?? 'form';
-
-    return (
-      parameterObject.in === 'query' &&
-      isArrayLike &&
-      style === 'form' &&
-      (parameterObject.explode ?? true)
+      ).some((s) => resolveSchemaRef(s, context).schema.type === 'array')
     );
   };
 
@@ -152,7 +144,12 @@ export const generateRequestFunction = (
     (parameterObject) =>
       parameterObject.in === 'query' &&
       isArrayLikeParam(parameterObject) &&
-      parameterObject.explode,
+      (parameterObject.style ?? 'form') === 'form' &&
+      // Respect the OpenAPI default `explode: true` for form-style array query
+      // params, but defer params without an explicit `explode` to arrayFormat
+      // when an `arrayFormat` override is set.
+      (parameterObject.explode ?? true) &&
+      !(arrayFormat && parameterObject.explode === undefined),
   );
 
   // Array params where the spec does not explicitly set explode — arrayFormat applies here.
