@@ -40,7 +40,7 @@ output: {
 
 指定生成模型类型的输出路径。设为 `false` 可关闭独立 schema 文件输出。
 
-### String form
+### 字符串形式
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -52,7 +52,7 @@ export default defineConfig({
 });
 ```
 
-### Object form
+### 对象形式
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -111,9 +111,9 @@ Schema 文件仍然写入文件系统的 `path` ——只有生成的 import 语
 - 如果使用 faker schema 工厂（`mock: { generators: [{ type: 'faker', schemas: true }] }`），包还必须导出 `./index.faker`。当包无法暴露子路径时（例如 `importPath` 通过 tsconfig path mapping 解析到单个 barrel 文件），在 faker generator 上设置 [`schemasImportPath`](#schemasimportpath) 将 faker 工厂指向单独的导入路径。
 - 如果使用 factory methods（`factoryMethods`），无论 `indexFiles` 如何设置，每个 schema 都会单独导入。
 - 设置 `importPath` 后，`factoryMethods.outputDirectory` 中的相对路径计算会被跳过：工厂会根据包说明符而非磁盘上的工厂输出目录来解析 import。
-- 配置标准化阶段会在生成开始前拒绝无效的 `importPath` 值（空、纯空白、相对路径或绝对路径）——见 [Validation of `importPath`](#validation-of-importpath)。
+- 配置标准化阶段会在生成开始前拒绝无效的 `importPath` 值（空、纯空白、相对路径或绝对路径）——见 [`importPath` 校验](#importpath-校验)。
 
-#### Validation of `importPath`
+#### `importPath` 校验
 
 在配置标准化阶段，orval 会在生成开始前拒绝以下 `importPath` 值，并给出明确的错误信息：
 
