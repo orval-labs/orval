@@ -1260,6 +1260,14 @@ export interface ContextSpec {
    */
   dynamicScope?: Partial<Record<string, DynamicScopeEntry>>;
   /**
+   * Lazily-built index of every `$dynamicAnchor` declared in
+   * `components.schemas`, used by the `resolveDynamicRef` fallback when an
+   * anchor is absent from {@link dynamicScope}. Memoized on first miss so the
+   * O(numSchemas) scan runs once per spec instead of once per `$dynamicRef`.
+   * Populated by `getDynamicAnchorIndex` in `resolvers/ref.ts`.
+   */
+  dynamicAnchorIndex?: Map<string, DynamicAnchorIndexEntry>;
+  /**
    * Tracks array-item mock factory names already emitted per output file scope.
    * Populated by `@orval/mock` when `arrayItems: true` so shared `$ref` item
    * factories are not re-declared within the same file (single/split) or tag
@@ -1298,6 +1306,26 @@ export interface DynamicScopeEntry {
   schemaName: string;
   isParameter?: boolean;
   inlineSchema?: OpenApiSchemaObject;
+}
+
+/**
+ * Compact per-anchor result of the single `$dynamicAnchor` index scan.
+ *
+ * Reproduces the precedence in `resolveDynamicRef`'s fallback without storing
+ * full match arrays:
+ *   - {@link exactName} — a schema whose key equals the anchor name. Always
+ *     wins when present (matches `matches.find(m => m === anchorName)`).
+ *   - {@link firstName} / {@link count} — non-exact matches. Only the first is
+ *     kept; `count` is capped at 2 because the resolution only distinguishes
+ *     "exactly one" from "ambiguous". Recording stops once `count >= 2`, which
+ *     is the safe form of "bail early when ambiguous" — a literal early-return
+ *     at `count === 2` would regress the exact-name rule when the exact schema
+ *     appears later in iteration order.
+ */
+export interface DynamicAnchorIndexEntry {
+  exactName?: string;
+  firstName?: string;
+  count: number;
 }
 
 export interface GlobalOptions {

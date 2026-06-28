@@ -4,6 +4,7 @@ import { prop } from 'remeda';
 import { getRefInfo, isComponentRef, type RefInfo } from '../getters/ref';
 import type {
   ContextSpec,
+  DynamicAnchorIndexEntry,
   DynamicScopeEntry,
   GeneratorImport,
   OpenApiComponentsObject,
@@ -490,6 +491,61 @@ export function buildInlineDynamicScope(
 }
 
 /**
+ * Lazily build and memoize the `$dynamicAnchor` index on the context.
+ *
+ * Scans `components.schemas` once per spec and stores, per anchor name, the
+ * compact match info required by the {@link resolveDynamicRef} fallback (see
+ * {@link DynamicAnchorIndexEntry}). Subsequent fallback lookups are O(1)
+ * instead of re-scanning every schema per `$dynamicRef`.
+ *
+ * Recording of non-exact matches stops once `count >= 2` — the fallback only
+ * distinguishes "exactly one non-exact" from "ambiguous", so further non-exact
+ * names are irrelevant. Iteration continues regardless because a later schema
+ * whose key equals the anchor name is still the definitive (`exactName`)
+ * winner. This is the safe form of "bail early when ambiguous": a literal
+ * early-return at `count === 2` would regress the exact-name rule when the
+ * exact schema appears later in iteration order.
+ */
+export function getDynamicAnchorIndex(
+  context: ContextSpec,
+): Map<string, DynamicAnchorIndexEntry> {
+  const cached = context.dynamicAnchorIndex;
+  if (cached) return cached;
+
+  const index = new Map<string, DynamicAnchorIndexEntry>();
+  const schemas = (
+    (context.spec as Record<string, unknown>).components as
+      | Record<string, unknown>
+      | undefined
+  )?.schemas as Record<string, unknown> | undefined;
+
+  if (schemas && typeof schemas === 'object') {
+    for (const [schemaName, schemaObj] of Object.entries(schemas)) {
+      if (!schemaObj || typeof schemaObj !== 'object') continue;
+      const rec = schemaObj as Record<string, unknown>;
+      const anchor = rec.$dynamicAnchor;
+      if (typeof anchor !== 'string') continue;
+
+      let entry = index.get(anchor);
+      if (!entry) {
+        entry = { count: 0 };
+        index.set(anchor, entry);
+      }
+
+      if (schemaName === anchor) {
+        entry.exactName = schemaName;
+      } else if (entry.count < 2) {
+        entry.count += 1;
+        if (!entry.firstName) entry.firstName = schemaName;
+      }
+    }
+  }
+
+  context.dynamicAnchorIndex = index;
+  return index;
+}
+
+/**
  * Resolve a `$dynamicRef` anchor to its concrete type using the current dynamic scope.
  * Returns `{ schema: {}, resolvedTypeName: 'unknown' }` when no scope override exists.
  */
@@ -507,35 +563,18 @@ export function resolveDynamicRef(
   let scopeEntry = scope[anchorName];
 
   if (!scopeEntry) {
-    const schemas = (
-      (context.spec as Record<string, unknown>).components as
-        | Record<string, unknown>
-        | undefined
-    )?.schemas as Record<string, unknown> | undefined;
-
-    if (schemas && typeof schemas === 'object') {
-      const matches: string[] = [];
-      for (const [schemaName, schemaObj] of Object.entries(schemas)) {
-        if (!schemaObj || typeof schemaObj !== 'object') continue;
-        const rec = schemaObj as Record<string, unknown>;
-        if (rec.$dynamicAnchor === anchorName) {
-          matches.push(schemaName);
-        }
-      }
-      const match =
-        matches.length === 1
-          ? matches[0]
-          : matches.find((m) => m === anchorName);
-      if (match) {
-        const refInfo = getRefInfo(
-          `#/components/schemas/${encodeJsonPointerSegment(match)}`,
-          context,
-        );
-        scopeEntry = {
-          name: refInfo.name,
-          schemaName: refInfo.originalName,
-        };
-      }
+    const entry = getDynamicAnchorIndex(context).get(anchorName);
+    const match =
+      entry?.exactName ?? (entry?.count === 1 ? entry?.firstName : undefined);
+    if (match) {
+      const refInfo = getRefInfo(
+        `#/components/schemas/${encodeJsonPointerSegment(match)}`,
+        context,
+      );
+      scopeEntry = {
+        name: refInfo.name,
+        schemaName: refInfo.originalName,
+      };
     }
   }
 

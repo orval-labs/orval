@@ -6,6 +6,7 @@ import type { OpenApiDocument } from '../types';
 import {
   buildDynamicScope,
   buildInlineDynamicScope,
+  getDynamicAnchorIndex,
   resolveDynamicRef,
 } from './ref';
 
@@ -766,6 +767,111 @@ describe('resolveDynamicRef — $dynamicAnchor fallback', () => {
     const result = resolveDynamicRef('Pet', context);
 
     expect(result.resolvedTypeName).toBe('Pet');
+  });
+});
+
+describe('resolveDynamicRef — $dynamicAnchor index caching', () => {
+  it('builds the index once and reuses it on subsequent calls', () => {
+    const spec = {
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          Pet: {
+            $dynamicAnchor: 'Pet',
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+        },
+      },
+    } as OpenApiDocument;
+    const context = { ...createContext(spec), dynamicScope: {} };
+
+    resolveDynamicRef('Pet', context);
+
+    // The first fallback miss memoizes the index on the context.
+    expect(context.dynamicAnchorIndex).toBeInstanceOf(Map);
+    const cached = context.dynamicAnchorIndex;
+    expect(cached?.get('Pet')?.exactName).toBe('Pet');
+
+    // Mutating the spec AFTER the index is built must not affect resolution:
+    // proves the scan does not re-run per call.
+    ((spec.components as { schemas: Record<string, unknown> }).schemas[
+      'LateArrival'
+    ] as unknown) = { $dynamicAnchor: 'LateArrival', type: 'object' };
+    resolveDynamicRef('LateArrival', context);
+
+    // The stale index is still in place (no rebuild), and the late schema is
+    // absent from it — i.e. the cache is authoritative once built.
+    expect(context.dynamicAnchorIndex).toBe(cached);
+    expect(cached?.has('LateArrival')).toBe(false);
+  });
+
+  it('does not populate the index when dynamicScope already resolves the anchor', () => {
+    const spec = {
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          Pet: { $dynamicAnchor: 'Pet', type: 'object' },
+        },
+      },
+    } as OpenApiDocument;
+    const context = {
+      ...createContext(spec),
+      dynamicScope: { Pet: { name: 'LocalPet', schemaName: 'Pet' } },
+    };
+
+    const result = resolveDynamicRef('Pet', context);
+
+    expect(result.resolvedTypeName).toBe('LocalPet');
+    expect(context.dynamicAnchorIndex).toBeUndefined();
+  });
+
+  it('still resolves to the exact-name schema even when it follows ambiguous non-exact matches', () => {
+    // Regression guard for the literal "bail when count === 2" short-circuit
+    // proposed in #3479: two non-exact matches arrive first, then the
+    // exact-name schema. Resolution must still pick the exact name.
+    const spec = {
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          AliasA: { $dynamicAnchor: 'node', type: 'object' },
+          AliasB: { $dynamicAnchor: 'node', type: 'object' },
+          node: {
+            $dynamicAnchor: 'node',
+            type: 'object',
+            properties: { id: { type: 'string' } },
+          },
+        },
+      },
+    } as OpenApiDocument;
+    const context = { ...createContext(spec), dynamicScope: {} };
+
+    const result = resolveDynamicRef('node', context);
+
+    // Naming convention title-cases the type name; the important assertions are
+    // that resolution did NOT fall through to `unknown` and that it bound to the
+    // exact-name schema (`node`), not one of the ambiguous aliases.
+    expect(result.resolvedTypeName).not.toBe('unknown');
+    expect(result.schemaName).toBe('node');
+    expect(result.schema).toMatchObject({
+      properties: { id: { type: 'string' } },
+    });
+  });
+
+  it('getDynamicAnchorIndex returns an empty index when no schemas declare an anchor', () => {
+    const spec = {
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          Unrelated: { type: 'object' },
+        },
+      },
+    } as OpenApiDocument;
+    const context = { ...createContext(spec), dynamicScope: {} };
+
+    const index = getDynamicAnchorIndex(context);
+
+    expect(index.size).toBe(0);
   });
 });
 
