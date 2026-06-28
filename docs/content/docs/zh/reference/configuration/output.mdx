@@ -36,8 +36,136 @@ output: {
 ## schemas
 
 **类型：** `String | Object | false`
+**默认值：** 与 `target` 相同
 
-指定模型类型输出路径。设为 `false` 可关闭独立 schema 文件输出。
+指定生成模型类型的输出路径。设为 `false` 可关闭独立 schema 文件输出。
+
+### 字符串形式
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      schemas: './api/model',
+    },
+  },
+});
+```
+
+### 对象形式
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      schemas: {
+        path: './api/model',
+        type: 'typescript', // 'typescript' | 'zod'
+      },
+    },
+  },
+});
+```
+
+| 属性          | 类型      | 描述                                           |
+| ------------- | --------- | ---------------------------------------------- |
+| `path`        | `string`  | schema 输出的文件系统路径                       |
+| `type`        | `string`  | `'typescript'`（默认）或 `'zod'` — 可选        |
+| `importPath`  | `string`  | 可选的包导入说明符（见下文）                    |
+| `splitByTags` | `boolean` | 按 tag 将 schema 组织到子目录中（默认 `false`，见下文） |
+
+### importPath
+
+设置 `importPath` 后，生成的 client 文件会从该包说明符导入 schema 类型，而不是计算相对文件系统路径：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      target: './libs/client/angular/src/lib/endpoints',
+      schemas: {
+        path: './libs/client/models/src/lib',
+        type: 'typescript',
+        importPath: '@acme/client/models',
+      },
+    },
+  },
+});
+```
+
+```ts
+// 不设 importPath —— 计算出的相对路径：
+import type { Pet } from '../models/pet';
+
+// 设置 importPath: '@acme/client/models'：
+import type { Pet } from '@acme/client/models';
+```
+
+Schema 文件仍然写入文件系统的 `path` ——只有生成的 import 语句会改变。
+
+**使用 `importPath` 时的要求：**
+
+- 目标包必须在指定的导入路径处导出这些类型。
+- 开启 `indexFiles: true`（推荐）时，所有类型都从单个 `importPath` 导入（如 `@acme/models`）。
+- 关闭 `indexFiles` 时，每个 schema 会单独导入（如 `@acme/models/pet`）。包必须支持这些子路径导出。对于 Zod schema（`type: 'zod'`），单文件后缀为 `.zod`，因此包还必须暴露 `./pet.zod`（如 `@acme/models/pet.zod`）。
+- 如果使用 faker schema 工厂（`mock: { generators: [{ type: 'faker', schemas: true }] }`），包还必须导出 `./index.faker`。当包无法暴露子路径时（例如 `importPath` 通过 tsconfig path mapping 解析到单个 barrel 文件），在 faker generator 上设置 [`schemasImportPath`](#schemasimportpath) 将 faker 工厂指向单独的导入路径。
+- 如果使用 factory methods（`factoryMethods`），无论 `indexFiles` 如何设置，每个 schema 都会单独导入。
+- 设置 `importPath` 后，`factoryMethods.outputDirectory` 中的相对路径计算会被跳过：工厂会根据包说明符而非磁盘上的工厂输出目录来解析 import。
+- 配置标准化阶段会在生成开始前拒绝无效的 `importPath` 值（空、纯空白、相对路径或绝对路径）——见 [`importPath` 校验](#importpath-校验)。
+
+#### `importPath` 校验
+
+在配置标准化阶段，orval 会在生成开始前拒绝以下 `importPath` 值，并给出明确的错误信息：
+
+- 空字符串。
+- 去除首尾空白后为空的字符串（如 `"   "`），或在有效说明符前后带有首尾空白的字符串。
+- 以 `./` 或 `../` 开头的相对说明符（如 `./models`、`../models`）。
+- 绝对路径——POSIX（以 `/` 开头，如 `/abs/models`）或 Windows（盘符形式如 `C:\models`，或 UNC 形式如 `\\server\share\models`）。
+
+### splitByTags
+
+当 `splitByTags` 为 `true` 时，schema 会按 tag 组织到各自的子目录中，而不是全部放在一个扁平目录里。只被一个 tag 引用的 schema 会放入该 tag 的目录；被多个 tag 引用（或没有被任何 operation 引用）的 schema 保留在 schema 目录的根目录。适用于任何 `mode`（`single`、`split`、`tags`、`tags-split`）。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      schemas: {
+        path: './api/model',
+        splitByTags: true,
+      },
+    },
+  },
+});
+```
+
+结果：
+
+```
+api/model/
+├── error.ts               ← 被 2 个以上 tag 使用（或未被引用）的 schema
+├── pagination.ts
+├── pets/                  ← 只被 "pets" operations 使用的 schema
+│   ├── pet.ts
+│   ├── createPetsBody.ts
+│   ├── listPetsParams.ts
+│   └── index.ts
+└── index.ts               ← 根 barrel，re-export 共享文件和 tag 子目录
+```
+
+tag 子目录内部的跨 tag import 会解析到父目录：
+
+```ts
+// pets/pet.ts
+import type { Error } from '../error';
+```
+
+**要求：**
+
+- 适用于任何 `mode`（`single`、`split`、`tags`、`tags-split`）。
+- 与 `operationSchemas` 不兼容——operation 派生的类型会自动放入对应的 tag 目录中。
+- Schema 到 tag 的映射是传递性的：如果 `Pet` 导入 `Dog`，`Dog` 又导入 `Dachshund`，三者都会落入同一目录。
 
 ## operationSchemas
 
@@ -125,6 +253,13 @@ export default defineConfig({
 |--------|------|---------|-------------|
 | `type` | `'msw'` | required | MSW handler 生成的判别字段。 |
 | `path` | `String` | `undefined` | 该 generator 的 mock 文件输出目录。设置后会覆盖共享的 `mock.path`。在 `single` 或 `tags` 模式下设置后，mock 代码会作为独立文件写入（相对于 `path`），而不是内联到实现文件里。 |
+| `delay` | `Number \| Function \| false` | `false` | 响应延迟（毫秒）。 |
+| `delayFunctionLazyExecute` | `Boolean` | `false` | 在运行时而非构建时执行延迟函数。 |
+| `baseUrl` | `String` | `''` | 生成的 MSW handler 的 base URL。 |
+| `useExamples` | `Boolean` | `false` | 使用 OpenAPI examples 来填充响应值。 |
+| `generateEachHttpStatus` | `Boolean` | `false` | 为文档中记录的每个状态码生成响应工厂。 |
+| `locale` | `String` | `'en'` | Faker.js 语言环境。 |
+| `preferredContentType` | `String` | `undefined` | 当 operation 列出多个内容类型时的首选内容类型。 |
 
 ### Faker generator (`type: 'faker'`)
 
@@ -134,6 +269,50 @@ export default defineConfig({
 |--------|------|---------|-------------|
 | `type` | `'faker'` | required | Faker-only 输出的判别字段。 |
 | `path` | `String` | `undefined` | 该 generator 的 mock 文件输出目录。设置后会覆盖共享的 `mock.path`。在 `single` 或 `tags` 模式下设置后，mock 代码会作为独立文件写入（相对于 `path`），而不是内联到实现文件里。 |
+| `schemas` | `Boolean` | `false` | 为 `components/schemas` 下的每个条目生成一个合并的 mock 工厂文件（`get<SchemaName>Mock`）。 |
+| `schemasImportPath` | `String` | `undefined` | 导入 `schemas: true` 生成的 schema 级 faker 工厂的包说明符（如 `@acme/models/fakers`）。设置后将直接使用该值，而不是在 `schemas.importPath` 后追加 `/index.faker`——适用于生产 barrel 无法暴露子路径导出的情况。需要同时设置 `schemas: true` 和 `schemas.importPath`。仅在同一个 generator 上设置了 `schemas: true` 时生效。 |
+| `operationResponses` | `Boolean` | `true` | 生成每个 operation 的响应 mock 工厂（历史默认行为）。与 `schemas: true` 一起设为 `false` 可只获取合并的 schema 工厂。 |
+| `useExamples` | `Boolean` | `false` | 使用 OpenAPI examples 来填充响应值。 |
+| `generateEachHttpStatus` | `Boolean` | `false` | 为文档中记录的每个状态码生成响应工厂。 |
+| `locale` | `String` | `'en'` | Faker.js 语言环境。 |
+| `preferredContentType` | `String` | `undefined` | 当 operation 列出多个内容类型时的首选内容类型。 |
+| `arrayItems` | `Boolean` | `false` | 为 operation 响应中类对象数组项 schema 生成可复用的 mock 工厂。 |
+
+#### schemasImportPath
+
+仅在同一个 faker generator 上设置了 `schemas: true` 时生效（需要同时设置 `schemas: true` 和 `schemas.importPath`）。当 `schemas.importPath` 解析到单个 barrel 文件时（例如通过 tsconfig path mapping），追加 `/index.faker` 会产生无法解析的子路径。`schemasImportPath` 可以将 faker 工厂指向单独的导入路径，从而通过专用 barrel 暴露它们：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      target: './libs/client/sdk/generated',
+      schemas: {
+        path: './libs/data-layer/sdk/generated',
+        importPath: '@acme/data-layer/sdk',
+      },
+      mock: {
+        path: './libs/client/sdk/mocks',
+        generators: [
+          {
+            type: 'faker',
+            schemas: true,
+            schemasImportPath: '@acme/data-layer/sdk/fakers',
+          },
+        ],
+      },
+    },
+  },
+});
+```
+
+```ts
+// 不设 schemasImportPath（默认 —— 在 importPath 后拼接 /index.faker）：
+import { getPetMock } from '@acme/data-layer/sdk/index.faker'; // 可能无法解析
+
+// 设置 schemasImportPath: '@acme/data-layer/sdk/fakers'：
+import { getPetMock } from '@acme/data-layer/sdk/fakers';
+```
 
 ## indexFiles
 
