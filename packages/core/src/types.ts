@@ -1222,15 +1222,23 @@ export type HooksOptions<T = HookCommand | NormalizedHookCommand> = Partial<
 
 export type NormalizedHookOptions = HooksOptions<NormalizedHookCommand>;
 
-export type Verbs = 'post' | 'put' | 'get' | 'patch' | 'delete' | 'head';
+export type Verbs =
+  | 'get'
+  | 'put'
+  | 'post'
+  | 'delete'
+  | 'options'
+  | 'head'
+  | 'patch';
 
 export const Verbs = {
-  POST: 'post' as Verbs,
-  PUT: 'put' as Verbs,
   GET: 'get' as Verbs,
-  PATCH: 'patch' as Verbs,
+  PUT: 'put' as Verbs,
+  POST: 'post' as Verbs,
   DELETE: 'delete' as Verbs,
+  OPTIONS: 'options' as Verbs,
   HEAD: 'head' as Verbs,
+  PATCH: 'patch' as Verbs,
 };
 
 /**

@@ -71,7 +71,18 @@ describe('assertion testing', () => {
 
   it('checks for verbs', () => {
     expect(isVerb(Verbs.GET)).toBeTruthy();
-    expect(isVerb('options')).toBeFalsy();
+    expect(isVerb(Verbs.PUT)).toBeTruthy();
+    expect(isVerb(Verbs.POST)).toBeTruthy();
+    expect(isVerb(Verbs.DELETE)).toBeTruthy();
+    expect(isVerb(Verbs.OPTIONS)).toBeTruthy();
+    expect(isVerb(Verbs.HEAD)).toBeTruthy();
+    expect(isVerb(Verbs.PATCH)).toBeTruthy();
+
+    // Negative checks: casing and unknown verbs
+    expect(isVerb('unknown')).toBeFalsy();
+    expect(isVerb('')).toBeFalsy();
+    expect(isVerb(undefined as unknown as string)).toBeFalsy();
+    expect(isVerb(null as unknown as string)).toBeFalsy();
   });
 
   it('checks for valid URLs', () => {
