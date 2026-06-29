@@ -97,39 +97,7 @@ export default defineConfig({
 
 Mini output imports from `zod/mini` and uses Zod Mini's functional/check-based API. It requires Zod 4; `version: 3` or `version: 'auto'` resolving to Zod 3 is rejected.
 
-Prefer Zod Mini when generated schemas are bundled into frontend apps, Cloudflare Workers, or other startup-sensitive runtimes. Regular Zod puts many helpers on schema instances:
-
-```ts
-// Regular Zod output
-export const Pet = zod.object({
-  name: zod.string().min(1).max(80).regex(PetNameRegExp),
-});
-```
-
-With Mini, checks are top-level functions. Bundlers can reason about these imports more precisely and drop helpers that are never used:
-
-```ts
-// Zod Mini output
-export const Pet = zod.object({
-  name: zod
-    .string()
-    .check(zod.minLength(1), zod.maxLength(80), zod.regex(PetNameRegExp)),
-});
-```
-
-Tree-shaking can still fail to remove startup work if your app loads one large generated schema file. A bundler may remove the unused export binding but keep the top-level schema initializer from that loaded module:
-
-```ts
-// source
-export const UnusedPet = /*#__PURE__*/ zod.object({ name: zod.string() });
-
-// possible bundled shape after the export is removed
-/*#__PURE__*/ object({ name: string() });
-```
-
-That means the schema is no longer importable, but its construction code may still be present and may still run when the module is evaluated. For large APIs, combine Zod Mini with split schema output or route/feature-level imports so unused schema modules are not loaded at startup.
-
-Use regular Zod when bundle size and startup cost are not a concern; it has the more familiar chainable API and better autocomplete ergonomics.
+Prefer Zod Mini when generated schemas are bundled into frontend apps, Cloudflare Workers, or other startup-sensitive runtimes where tree-shaking and bundle size matter. Use regular Zod when those constraints are not important; it has the more familiar chainable API and better autocomplete ergonomics.
 
 One behavior difference: Zod Mini does not load the English locale by default. Configure it once if you want regular Zod's default English messages:
 
