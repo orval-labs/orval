@@ -1870,9 +1870,9 @@ const parseBodyAndResponse = ({
     | OpenApiResponseObject
     | OpenApiRequestBodyObject;
 
-  // Only handle JSON and form-data; other content types (e.g., application/octet-stream)
-  // Only handle JSON and form-data; other content types (e.g., application/octet-stream)
-  // are skipped - unclear if this is correct behavior for root-level binary/text bodies.
+  // Only handle JSON, form-data and form-urlencoded; other content types (e.g.,
+  // application/octet-stream) are skipped - unclear if this is correct behavior
+  // for root-level binary/text bodies.
   const contentEntries = Object.entries(resolvedRef.content ?? {});
 
   const jsonContent = contentEntries.find(
@@ -1888,11 +1888,21 @@ const parseBodyAndResponse = ({
   const formDataContent = contentEntries.find(
     isMediaType(String.raw`^multipart\/form-data$`),
   );
+  // form-urlencoded bodies are plain objects serialized via URLSearchParams, so
+  // they validate like JSON (no file fields) — emit a regular object schema.
+  const formUrlEncodedContent = contentEntries.find(
+    isMediaType(String.raw`^application\/x-www-form-urlencoded$`),
+  );
   const [contentType, mediaType] = jsonContent
     ? (['application/json', jsonContent[1]] as const)
     : formDataContent
       ? (['multipart/form-data', formDataContent[1]] as const)
-      : [undefined, undefined];
+      : formUrlEncodedContent
+        ? ([
+            'application/x-www-form-urlencoded',
+            formUrlEncodedContent[1],
+          ] as const)
+        : [undefined, undefined];
 
   const schema = mediaType?.schema;
 
