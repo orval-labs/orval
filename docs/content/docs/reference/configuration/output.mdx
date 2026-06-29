@@ -1379,6 +1379,7 @@ export default defineConfig({
     output: {
       override: {
         zod: {
+          variant: 'mini',
           version: 4,
           strict: {
             response: true,
@@ -1406,6 +1407,47 @@ export default defineConfig({
   },
 });
 ```
+
+### variant
+
+**Type:** `'classic' | 'mini'` — defaults to `'classic'`
+
+Select the generated Zod API style.
+
+| Value       | Output                                                                 |
+| ----------- | ---------------------------------------------------------------------- |
+| `'classic'` | Import from `zod` and emit the regular chainable Zod API.              |
+| `'mini'`    | Import from `zod/mini` and emit Zod Mini's functional/check-based API. |
+
+Zod Mini requires Zod 4 output. If `variant: 'mini'` is used with `version: 3`, or with `version: 'auto'` resolving to Zod 3, Orval throws instead of generating invalid output.
+
+Use Zod Mini when generated schemas are bundled into frontend apps, Cloudflare Workers, or other startup-sensitive runtimes. Regular Zod emits chainable instance methods:
+
+```ts
+export const Pet = zod.object({
+  name: zod.string().min(1).max(80),
+});
+```
+
+Mini emits top-level check functions, which bundlers can tree-shake more precisely:
+
+```ts
+export const Pet = zod.object({
+  name: zod.string().check(zod.minLength(1), zod.maxLength(80)),
+});
+```
+
+For very large generated outputs, Mini works best together with split schema modules or route/feature-level imports. If your app loads one monolithic generated schema file, a bundler may remove an unused export binding but still keep the top-level schema initializer from that loaded module:
+
+```ts
+// source
+export const UnusedPet = /*#__PURE__*/ zod.object({ name: zod.string() });
+
+// possible bundled shape
+/*#__PURE__*/ object({ name: string() });
+```
+
+So the safest startup optimization is: generate/load smaller schema modules, and use Zod Mini inside those modules.
 
 ### version
 

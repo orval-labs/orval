@@ -75,6 +75,70 @@ export default defineConfig({
 
 Pinning the version keeps output stable: the same spec produces the same schemas on every machine and in CI, independent of which `zod` version happens to be installed.
 
+## Zod Mini
+
+Set `override.zod.variant` to `'mini'` to generate schemas against [Zod Mini](https://zod.dev/packages/mini):
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'zod',
+      override: {
+        zod: {
+          variant: 'mini',
+          version: 4,
+        },
+      },
+    },
+  },
+});
+```
+
+Mini output imports from `zod/mini` and uses Zod Mini's functional/check-based API. It requires Zod 4; `version: 3` or `version: 'auto'` resolving to Zod 3 is rejected.
+
+Prefer Zod Mini when generated schemas are bundled into frontend apps, Cloudflare Workers, or other startup-sensitive runtimes. Regular Zod puts many helpers on schema instances:
+
+```ts
+// Regular Zod output
+export const Pet = zod.object({
+  name: zod.string().min(1).max(80).regex(PetNameRegExp),
+});
+```
+
+With Mini, checks are top-level functions. Bundlers can reason about these imports more precisely and drop helpers that are never used:
+
+```ts
+// Zod Mini output
+export const Pet = zod.object({
+  name: zod
+    .string()
+    .check(zod.minLength(1), zod.maxLength(80), zod.regex(PetNameRegExp)),
+});
+```
+
+Tree-shaking can still fail to remove startup work if your app loads one large generated schema file. A bundler may remove the unused export binding but keep the top-level schema initializer from that loaded module:
+
+```ts
+// source
+export const UnusedPet = /*#__PURE__*/ zod.object({ name: zod.string() });
+
+// possible bundled shape after the export is removed
+/*#__PURE__*/ object({ name: string() });
+```
+
+That means the schema is no longer importable, but its construction code may still be present and may still run when the module is evaluated. For large APIs, combine Zod Mini with split schema output or route/feature-level imports so unused schema modules are not loaded at startup.
+
+Use regular Zod when bundle size and startup cost are not a concern; it has the more familiar chainable API and better autocomplete ergonomics.
+
+One behavior difference: Zod Mini does not load the English locale by default. Configure it once if you want regular Zod's default English messages:
+
+```ts
+import * as zod from 'zod/mini';
+
+zod.config(zod.locales.en());
+```
+
 ## Scoping options per operation or tag
 
 Most `override.zod` settings can be applied to part of your API instead of globally, via `override.operations[operationId].zod` (a single operation) or `override.tags[tagName].zod` (every operation sharing a tag):
@@ -110,7 +174,7 @@ export default defineConfig({
 
 Per-operation and per-tag overrides accept the settings that apply to an individual schema: `strict`, `generate`, `coerce`, `preprocess`, `params`, and `useBrandedTypes`.
 
-Output-wide settings — `version`, `dateTimeOptions`, `timeOptions`, `generateEachHttpStatus`, `generateReusableSchemas`, and `generateMeta` — only make sense for the whole output and must stay on `override.zod`. If you place one on an operation or tag it is ignored — the value from `override.zod` still applies — and Orval prints a build warning:
+Output-wide settings — `variant`, `version`, `dateTimeOptions`, `timeOptions`, `generateEachHttpStatus`, `generateReusableSchemas`, and `generateMeta` — only make sense for the whole output and must stay on `override.zod`. If you place one on an operation or tag it is ignored — the value from `override.zod` still applies — and Orval prints a build warning:
 
 ```
 ⚠️  override.operations.listPets.zod only supports strict, generate, coerce, preprocess, params, and useBrandedTypes. Ignoring unsupported field: zod.version.
