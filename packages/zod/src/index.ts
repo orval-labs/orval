@@ -1935,9 +1935,10 @@ const parseBodyAndResponse = ({
     | OpenApiResponseObject
     | OpenApiRequestBodyObject;
 
-  // Only handle JSON, form-data and form-urlencoded; other content types (e.g.,
-  // application/octet-stream) are skipped - unclear if this is correct behavior
-  // for root-level binary/text bodies.
+  // Only handle JSON, form-data and form-urlencoded here; other content types
+  // (e.g., application/octet-stream) are skipped - unclear if this is correct
+  // behavior for root-level binary/text bodies. The one exception is text/plain
+  // responses, which are handled separately below (as a plain string schema).
   const contentEntries = Object.entries(resolvedRef.content ?? {});
 
   const jsonContent = contentEntries.find(
