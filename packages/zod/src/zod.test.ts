@@ -5736,6 +5736,100 @@ describe('generateFormData', () => {
   });
 });
 
+const formUrlEncodedSchema = {
+  pathRoute: '/token',
+  context: {
+    spec: {
+      paths: {
+        '/token': {
+          post: {
+            operationId: 'xyz',
+            requestBody: {
+              required: true,
+              content: {
+                'application/x-www-form-urlencoded': {
+                  schema: {
+                    type: 'object',
+                    required: ['grant_type'],
+                    properties: {
+                      grant_type: {
+                        type: 'string',
+                      },
+                      client_secret: {
+                        type: 'string',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            responses: {
+              '200': {
+                description: 'ok',
+              },
+            },
+          },
+        },
+      },
+    },
+    output: {
+      override: {
+        zod: {
+          generateEachHttpStatus: false,
+        },
+      },
+    },
+  },
+} as unknown as GeneratorOptions;
+
+describe('generateFormUrlEncoded', () => {
+  // application/x-www-form-urlencoded bodies are plain objects (no file fields),
+  // so they get a regular object schema like JSON — see #3664, where the mcp
+  // client had no <Op>Body to register as the tool inputSchema.
+  it('generates request body schema for application/x-www-form-urlencoded', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/token',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: false,
+              body: true,
+              response: false,
+              query: false,
+              header: false,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      formUrlEncodedSchema,
+      testOutput,
+    );
+    expect(result.implementation).toBe(
+      'export const TestBody = zod.object({\n  "grant_type": zod.string(),\n  "client_secret": zod.string().optional()\n})\n\n',
+    );
+  });
+});
+
 const schemaWithRefProperty = {
   pathRoute: '/cats',
   context: {
