@@ -1829,6 +1829,71 @@ export const generateFormDataZodSchema = (
   );
 };
 
+/**
+ * Generate zod schema for an application/x-www-form-urlencoded request body.
+ *
+ * These bodies are serialized via URLSearchParams, whose values are always
+ * strings, so — unlike multipart/form-data — file/binary top-level fields must
+ * stay `string` rather than becoming `File`. This mirrors core's urlEncoded
+ * handling in getScalar, which skips Blob coercion for such bodies (#1624).
+ * Otherwise it behaves exactly like plain-object generation.
+ */
+export const generateFormUrlEncodedZodSchema = (
+  schema: OpenApiSchemaObject,
+  context: ContextSpec,
+  name: string,
+  strict: boolean,
+  isZodV4: boolean,
+  useReusableSchemas?: boolean,
+): ZodValidationSchemaDefinition => {
+  // Force any top-level field that generateZodValidationSchemaDefinition would
+  // otherwise turn into `File` (format: binary or contentMediaType:
+  // application/octet-stream) back to `string`.
+  const propertyOverrides: Record<string, ZodValidationSchemaDefinition> = {};
+
+  if (schema.properties) {
+    for (const key of Object.keys(schema.properties)) {
+      const propSchema = schema.properties[key];
+      const resolved = propSchema
+        ? dereference(
+            propSchema as OpenApiSchemaObject | OpenApiReferenceObject,
+            context,
+          )
+        : undefined;
+
+      const isBinaryLike =
+        resolved?.type === 'string' &&
+        (resolved.format === 'binary' ||
+          (resolved.contentMediaType === 'application/octet-stream' &&
+            !resolved.contentEncoding));
+
+      if (isBinaryLike) {
+        const stringFunctions: [string, unknown][] = [['string', undefined]];
+        if (!schema.required?.includes(key)) {
+          stringFunctions.push(['optional', undefined]);
+        }
+        propertyOverrides[key] = { functions: stringFunctions, consts: [] };
+      }
+    }
+  }
+
+  return generateZodValidationSchemaDefinition(
+    schema,
+    context,
+    name,
+    strict,
+    isZodV4,
+    {
+      required: true,
+      propertyOverrides:
+        Object.keys(propertyOverrides).length > 0
+          ? propertyOverrides
+          : undefined,
+      useReusableSchemas,
+    },
+  );
+};
+
 const parseBodyAndResponse = ({
   data,
   context,
@@ -1988,6 +2053,7 @@ const parseBodyAndResponse = ({
         : resolvedJsonSchema;
 
   const isFormData = contentType === 'multipart/form-data';
+  const isFormUrlEncoded = contentType === 'application/x-www-form-urlencoded';
 
   return {
     input: isFormData
@@ -2000,14 +2066,23 @@ const parseBodyAndResponse = ({
           encoding,
           useReusableSchemas,
         )
-      : generateZodValidationSchemaDefinition(
-          effectiveSchema,
-          context,
-          name,
-          strict,
-          isZodV4,
-          { required: true, useReusableSchemas },
-        ),
+      : isFormUrlEncoded
+        ? generateFormUrlEncodedZodSchema(
+            effectiveSchema,
+            context,
+            name,
+            strict,
+            isZodV4,
+            useReusableSchemas,
+          )
+        : generateZodValidationSchemaDefinition(
+            effectiveSchema,
+            context,
+            name,
+            strict,
+            isZodV4,
+            { required: true, useReusableSchemas },
+          ),
     isArray: false,
   };
 };
