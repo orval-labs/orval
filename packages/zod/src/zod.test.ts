@@ -5829,6 +5829,77 @@ const formUrlEncodedBinarySchema = {
   },
 } as unknown as GeneratorOptions;
 
+const formUrlEncodedNestedBinarySchema = {
+  pathRoute: '/upload',
+  context: {
+    spec: {
+      paths: {
+        '/upload': {
+          post: {
+            operationId: 'xyz',
+            requestBody: {
+              required: true,
+              content: {
+                'application/x-www-form-urlencoded': {
+                  schema: {
+                    type: 'object',
+                    required: ['id'],
+                    properties: {
+                      id: {
+                        type: 'string',
+                      },
+                      // OAS 3.1 nullable union + the post-upgrade octet-stream
+                      // shape the @scalar upgrader produces from format: binary
+                      attachment: {
+                        type: ['string', 'null'],
+                        contentMediaType: 'application/octet-stream',
+                      },
+                      // array of binary strings
+                      files: {
+                        type: 'array',
+                        items: {
+                          type: 'string',
+                          format: 'binary',
+                        },
+                      },
+                      // binary nested inside allOf composition
+                      meta: {
+                        allOf: [
+                          {
+                            type: 'object',
+                            properties: {
+                              blob: {
+                                type: 'string',
+                                format: 'binary',
+                              },
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            responses: {
+              '200': {
+                description: 'ok',
+              },
+            },
+          },
+        },
+      },
+    },
+    output: {
+      override: {
+        zod: {
+          generateEachHttpStatus: false,
+        },
+      },
+    },
+  },
+} as unknown as GeneratorOptions;
+
 describe('generateFormUrlEncoded', () => {
   // application/x-www-form-urlencoded bodies are plain objects (no file fields),
   // so they get a regular object schema like JSON — see #3664, where the mcp
@@ -5919,6 +5990,56 @@ describe('generateFormUrlEncoded', () => {
     expect(result.implementation).toBe(
       'export const TestBody = zod.object({\n  "name": zod.string(),\n  "attachment": zod.string().optional()\n})\n\n',
     );
+  });
+
+  // The URLSearchParams string contract must hold at ANY depth: nullable unions,
+  // array items, and allOf-composed fields all coerce binary → string, never
+  // File — matching the generated TS model (#3664 review).
+  it('coerces binary to string at any depth for application/x-www-form-urlencoded', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/upload',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: false,
+              body: true,
+              response: false,
+              query: false,
+              header: false,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generateEachHttpStatus: false,
+            dateTimeOptions: {},
+            timeOptions: {},
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      formUrlEncodedNestedBinarySchema,
+      testOutput,
+    );
+    expect(result.implementation).not.toContain('zod.instanceof(File)');
+    expect(result.implementation).toContain('"id": zod.string()');
+    expect(result.implementation).toContain(
+      '"attachment": zod.string().nullish()',
+    );
+    expect(result.implementation).toContain('zod.array(zod.string())');
+    expect(result.implementation).toContain('"blob": zod.string()');
   });
 });
 
