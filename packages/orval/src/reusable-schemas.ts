@@ -3,6 +3,7 @@ import type {
   GeneratorMutator,
   OpenApiSchemaObject,
   ZodCoerceType,
+  ZodVariantOption,
 } from '@orval/core';
 import { buildDynamicScope, getRefInfo } from '@orval/core';
 import {
@@ -141,6 +142,7 @@ export interface ReusableSchemaEntry {
 export interface GenerateReusableSchemaSetOptions {
   strict: boolean;
   isZodV4: boolean;
+  variant?: ZodVariantOption;
   coerce?: boolean | ZodCoerceType[];
   /** Emit `.meta({ id, ... })` on each schema (zod v4). See `ZodOptions.generateMeta`. */
   generateMeta?: boolean;
@@ -228,6 +230,7 @@ export const generateReusableSchemaSet = (
             schemaName: name,
           }
         : undefined,
+      options.variant,
     );
 
     entries.push({

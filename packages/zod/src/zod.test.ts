@@ -43,6 +43,7 @@ import {
   dereference,
   generateZod,
   generateZodValidationSchemaDefinition,
+  getZodDependencies,
   parseZodValidationSchemaDefinition,
   predefinedZodFormats,
   type ZodValidationSchemaDefinition,
@@ -136,6 +137,148 @@ describe('parseZodValidationSchemaDefinition', () => {
     expect(parseResult.zod).toBe(
       'zod.object({\n  "queryParams": zod.record(zod.string(), zod.unknown())\n})',
     );
+  });
+
+  it('renders zod mini wrappers and checks', () => {
+    const parseResult = parseZodValidationSchemaDefinition(
+      {
+        functions: [
+          ['string', undefined],
+          ['min', 'nameMin'],
+          ['max', 'nameMax'],
+          ['regex', 'nameRegExp'],
+          ['nullable', undefined],
+          ['default', 'nameDefault'],
+          ['describe', "'Display name'"],
+        ],
+        consts: [],
+      },
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      true,
+      undefined,
+      undefined,
+      'mini',
+    );
+
+    expect(parseResult.zod).toBe(
+      "zod._default(zod.nullable(zod.string().check(zod.minLength(nameMin)).check(zod.maxLength(nameMax)).check(zod.regex(nameRegExp))), nameDefault).check(zod.describe('Display name'))",
+    );
+  });
+
+  it('renders zod mini number bounds as numeric checks', () => {
+    const parseResult = parseZodValidationSchemaDefinition(
+      {
+        functions: [
+          ['number', undefined],
+          ['min', 'ageMin'],
+          ['max', 'ageMax'],
+          ['multipleOf', 'ageMultipleOf'],
+          ['optional', undefined],
+        ],
+        consts: [],
+      },
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      true,
+      undefined,
+      undefined,
+      'mini',
+    );
+
+    expect(parseResult.zod).toBe(
+      'zod.optional(zod.number().check(zod.gte(ageMin)).check(zod.lte(ageMax)).check(zod.multipleOf(ageMultipleOf)))',
+    );
+  });
+
+  it('renders zod mini allOf fallback as intersections', () => {
+    const parseResult = parseZodValidationSchemaDefinition(
+      {
+        functions: [
+          [
+            'allOf',
+            [
+              { functions: [['string', undefined]], consts: [] },
+              { functions: [['number', undefined]], consts: [] },
+            ],
+          ],
+        ],
+        consts: [],
+      },
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      true,
+      undefined,
+      undefined,
+      'mini',
+    );
+
+    expect(parseResult.zod).toBe(
+      'zod.intersection(zod.string(), zod.number())',
+    );
+  });
+
+  it('renders zod mini preprocess as pipe transform', () => {
+    const parseResult = parseZodValidationSchemaDefinition(
+      { functions: [['string', undefined]], consts: [] },
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      true,
+      {
+        name: 'stripNill',
+        path: './strip-nill',
+        default: false,
+        hasErrorType: false,
+        errorTypeName: '',
+        hasSecondArg: false,
+        hasThirdArg: false,
+        isHook: false,
+      },
+      undefined,
+      'mini',
+    );
+
+    expect(parseResult.zod).toBe(
+      'zod.pipe(zod.transform(stripNill), zod.string())',
+    );
+  });
+});
+
+describe('getZodDependencies', () => {
+  it('uses zod/mini for zod mini output', () => {
+    expect(
+      getZodDependencies(false, false, undefined, undefined, false, {
+        zod: { variant: 'mini' },
+      } as Parameters<typeof getZodDependencies>[5])[0].dependency,
+    ).toBe('zod/mini');
   });
 });
 

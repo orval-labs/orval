@@ -1287,6 +1287,55 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('defaults zod variant to classic and preserves mini when configured output-wide', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const classic = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './classic.ts',
+            client: 'zod',
+          },
+        },
+        workspace,
+      );
+      const mini = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './mini.ts',
+            client: 'zod',
+            override: {
+              zod: {
+                variant: 'mini',
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(classic.output.override.zod.variant).toBe('classic');
+      expect(mini.output.override.zod.variant).toBe('mini');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('resolves global zod mutators relative to the output workspace', async () => {
     const workspace = await createTempWorkspace();
 
@@ -1360,6 +1409,7 @@ describe('normalizeOptions', () => {
                   zod: {
                     strict: { body: true },
                     version: 3,
+                    variant: 'mini',
                   } as never,
                 },
               },
@@ -1385,6 +1435,10 @@ describe('normalizeOptions', () => {
       );
       expect(
         'version' in
+          (normalized.output.override.operations.listPets?.zod ?? {}),
+      ).toBe(false);
+      expect(
+        'variant' in
           (normalized.output.override.operations.listPets?.zod ?? {}),
       ).toBe(false);
       expect(

@@ -648,6 +648,7 @@ export async function normalizeOptions(
                 ),
               }
             : {}),
+          variant: outputOptions.override?.zod?.variant ?? 'classic',
           version: outputOptions.override?.zod?.version ?? 'auto',
           generateEachHttpStatus:
             outputOptions.override?.zod?.generateEachHttpStatus ?? false,
@@ -986,6 +987,7 @@ function normalizeOperationsAndTags(
 ): Record<string, NormalizedOperationOptions> {
   const unsupportedZodKeys = [
     'version',
+    'variant',
     'dateTimeOptions',
     'timeOptions',
     'generateEachHttpStatus',
