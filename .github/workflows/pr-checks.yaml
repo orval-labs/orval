@@ -88,4 +88,4 @@ jobs:
         run: vp run -w build:release
 
       - name: Publish preview packages
-        run: bun run pkg-pr-new publish './packages/*' --commentWithSha --packageManager=bun
+        run: bun run pkg-pr-new publish './packages/*' --bun --commentWithSha --packageManager=bun
