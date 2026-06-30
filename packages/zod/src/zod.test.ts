@@ -9725,6 +9725,76 @@ describe('generateZod (useBrandedTypes)', () => {
     );
   });
 
+  it('chains zod mini array response bounds checks', async () => {
+    const arrayResponseApiSchema = {
+      pathRoute: '/cats',
+      context: {
+        spec: {
+          paths: {
+            '/cats': {
+              get: {
+                operationId: 'xyz',
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'array',
+                          minItems: 1,
+                          maxItems: 2,
+                          items: {
+                            type: 'object',
+                            properties: {
+                              id: { type: 'number' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: {
+          override: {
+            zod: {
+              variant: 'mini',
+              generateEachHttpStatus: false,
+            },
+          },
+        },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'get',
+        operationName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverrideDisabled.zod,
+            generate: {
+              param: false,
+              body: false,
+              response: true,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      withOutputZodVersion(arrayResponseApiSchema, 4),
+      testOutput,
+    );
+
+    expect(result.implementation).toContain(
+      'export const TestResponse = /*#__PURE__*/ zod.array(TestResponseItem).check(/*#__PURE__*/ zod.minLength(1)).check(/*#__PURE__*/ zod.maxLength(2))',
+    );
+  });
+
   // Group 4: Combination with other options
 
   it('appends .brand() after .strict() when both strict and useBrandedTypes are enabled (zod v3)', async () => {
