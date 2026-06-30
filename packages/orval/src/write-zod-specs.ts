@@ -905,6 +905,7 @@ async function writeZodSchemasReusable(
     output.override.zod.version,
     output.packageJson,
   );
+  assertZodTarget({ variant: output.override.zod.variant, isZodV4 });
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
   const context: ContextSpec = {

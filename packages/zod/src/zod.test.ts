@@ -239,6 +239,77 @@ describe('parseZodValidationSchemaDefinition', () => {
     );
   });
 
+  it('renders zod mini allOf merged object consts with separators', () => {
+    const parseResult = parseZodValidationSchemaDefinition(
+      {
+        functions: [
+          [
+            'allOf',
+            [
+              {
+                functions: [['object', {}]],
+                consts: ['export const First = 1;'],
+              },
+              {
+                functions: [['object', {}]],
+                consts: ['export const Second = 2;'],
+              },
+            ],
+          ],
+        ],
+        consts: [],
+      },
+      { output: { override: { useDates: false } } } as ContextSpec,
+      false,
+      true,
+      true,
+      undefined,
+      undefined,
+      'mini',
+    );
+
+    expect(parseResult.consts).toBe(
+      'export const First = 1;\nexport const Second = 2;',
+    );
+  });
+
+  it('renders zod mini tuple and rest consts', () => {
+    const parseResult = parseZodValidationSchemaDefinition(
+      {
+        functions: [
+          [
+            'tuple',
+            [
+              {
+                functions: [['string', undefined]],
+                consts: ['export const TupleItemMin = 1;'],
+              },
+            ],
+          ],
+          [
+            'rest',
+            {
+              functions: [['number', undefined]],
+              consts: ['export const TupleRestMin = 2;'],
+            },
+          ],
+        ],
+        consts: [],
+      },
+      { output: { override: { useDates: false } } } as ContextSpec,
+      false,
+      false,
+      true,
+      undefined,
+      undefined,
+      'mini',
+    );
+
+    expect(parseResult.consts).toBe(
+      'export const TupleItemMin = 1;\nexport const TupleRestMin = 2;',
+    );
+  });
+
   it('renders zod mini preprocess as pipe transform', () => {
     const parseResult = parseZodValidationSchemaDefinition(
       { functions: [['string', undefined]], consts: [] },
