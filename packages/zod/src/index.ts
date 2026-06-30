@@ -235,6 +235,15 @@ export const generateZodValidationSchemaDefinition = (
      */
     useReusableSchemas?: boolean;
     /**
+     * When true, suppress File/Blob coercion for binary string fields anywhere
+     * in the tree (`format: binary` / `contentMediaType: application/octet-stream`),
+     * keeping them as `string`. Set for `application/x-www-form-urlencoded` bodies,
+     * which serialize via URLSearchParams (string-only) — mirrors core's
+     * `formDataContext.urlEncoded` handling in getScalar (#1624). Threaded into
+     * every recursive call so nested/array/composed fields are covered too.
+     */
+    urlEncoded?: boolean;
+    /**
      * When true (and `isZodV4`), the top-level (named component) schema emits a
      * `.meta({ id, description?, deprecated? })` instead of `.describe(...)`.
      * Set ONLY for top-level component-schema generation — recursive calls omit
@@ -389,6 +398,7 @@ export const generateZodValidationSchemaDefinition = (
   }
 
   const useReusableSchemas = rules?.useReusableSchemas ?? false;
+  const urlEncoded = rules?.urlEncoded ?? false;
   const consts: string[] = [];
   const constNameRegistry = rules?.constNameRegistry ?? {};
   const constsCounter = isNumber(constNameRegistry[name])
@@ -517,6 +527,7 @@ export const generateZodValidationSchemaDefinition = (
           additionalRequired: allOfRequired,
           constNameRegistry,
           useReusableSchemas,
+          urlEncoded,
         },
       ),
     );
@@ -544,6 +555,7 @@ export const generateZodValidationSchemaDefinition = (
             additionalRequired: allOfRequired,
             constNameRegistry,
             useReusableSchemas,
+            urlEncoded,
           },
         );
 
@@ -654,6 +666,7 @@ export const generateZodValidationSchemaDefinition = (
             required: true,
             constNameRegistry,
             useReusableSchemas,
+            urlEncoded,
           },
         ),
       ),
@@ -713,6 +726,7 @@ export const generateZodValidationSchemaDefinition = (
                     required: true,
                     constNameRegistry,
                     useReusableSchemas,
+                    urlEncoded,
                   },
                 ),
               ),
@@ -735,6 +749,7 @@ export const generateZodValidationSchemaDefinition = (
                     required: true,
                     constNameRegistry,
                     useReusableSchemas,
+                    urlEncoded,
                   },
                 ),
               ]);
@@ -756,6 +771,7 @@ export const generateZodValidationSchemaDefinition = (
               required: true,
               constNameRegistry,
               useReusableSchemas,
+              urlEncoded,
             },
           ),
         ]);
@@ -774,7 +790,9 @@ export const generateZodValidationSchemaDefinition = (
           break;
         }
 
-        if (schema.format === 'binary') {
+        // url-encoded bodies serialize via URLSearchParams (strings only), so
+        // binary fields stay `string` rather than becoming `File` (#3664).
+        if (!urlEncoded && schema.format === 'binary') {
           functions.push(['instanceof', 'File']);
           break;
         }
@@ -784,6 +802,7 @@ export const generateZodValidationSchemaDefinition = (
         // Swagger 2.0 / OAS 3.0 → OAS 3.1. Treat it the same as
         // format: binary so $ref-based model types generate File validation.
         if (
+          !urlEncoded &&
           schema.contentMediaType === 'application/octet-stream' &&
           !schema.contentEncoding
         ) {
@@ -919,6 +938,7 @@ export const generateZodValidationSchemaDefinition = (
                       required: requiredKeys.has(key),
                       constNameRegistry,
                       useReusableSchemas,
+                      urlEncoded,
                     },
                   ),
               }))
@@ -959,6 +979,7 @@ export const generateZodValidationSchemaDefinition = (
                 required: true,
                 constNameRegistry,
                 useReusableSchemas,
+                urlEncoded,
               },
             ),
           ]);
@@ -1829,6 +1850,15 @@ export const generateFormDataZodSchema = (
   );
 };
 
+/**
+ * Generate zod schema for an application/x-www-form-urlencoded request body.
+ *
+ * These bodies are serialized via URLSearchParams, whose values are always
+ * strings, so — unlike multipart/form-data — file/binary top-level fields must
+ * stay `string` rather than becoming `File`. This mirrors core's urlEncoded
+ * handling in getScalar, which skips Blob coercion for such bodies (#1624).
+ * Otherwise it behaves exactly like plain-object generation.
+ */
 const parseBodyAndResponse = ({
   data,
   context,
@@ -1870,9 +1900,10 @@ const parseBodyAndResponse = ({
     | OpenApiResponseObject
     | OpenApiRequestBodyObject;
 
-  // Only handle JSON and form-data; other content types (e.g., application/octet-stream)
-  // Only handle JSON and form-data; other content types (e.g., application/octet-stream)
-  // are skipped - unclear if this is correct behavior for root-level binary/text bodies.
+  // Only handle JSON, form-data and form-urlencoded here; other content types
+  // (e.g., application/octet-stream) are skipped - unclear if this is correct
+  // behavior for root-level binary/text bodies. The one exception is text/plain
+  // responses, which are handled separately below (as a plain string schema).
   const contentEntries = Object.entries(resolvedRef.content ?? {});
 
   const jsonContent = contentEntries.find(
@@ -1888,11 +1919,25 @@ const parseBodyAndResponse = ({
   const formDataContent = contentEntries.find(
     isMediaType(String.raw`^multipart\/form-data$`),
   );
+  // form-urlencoded bodies are plain objects serialized via URLSearchParams, so
+  // they validate like JSON (no file fields) — emit a regular object schema.
+  const formUrlEncodedContent = contentEntries.find(
+    isMediaType(String.raw`^application\/x-www-form-urlencoded$`),
+  );
   const [contentType, mediaType] = jsonContent
     ? (['application/json', jsonContent[1]] as const)
     : formDataContent
       ? (['multipart/form-data', formDataContent[1]] as const)
-      : [undefined, undefined];
+      : formUrlEncodedContent
+        ? ([
+            'application/x-www-form-urlencoded',
+            formUrlEncodedContent[1],
+          ] as const)
+        : [undefined, undefined];
+
+  // url-encoded bodies serialize via URLSearchParams (strings only); the flag is
+  // threaded into the generator so binary fields stay `string` at any depth.
+  const isFormUrlEncoded = contentType === 'application/x-www-form-urlencoded';
 
   const schema = mediaType?.schema;
 
@@ -1955,6 +2000,7 @@ const parseBodyAndResponse = ({
         {
           required: true,
           useReusableSchemas,
+          urlEncoded: isFormUrlEncoded,
         },
       ),
       isArray: true,
@@ -1996,7 +2042,7 @@ const parseBodyAndResponse = ({
           name,
           strict,
           isZodV4,
-          { required: true, useReusableSchemas },
+          { required: true, useReusableSchemas, urlEncoded: isFormUrlEncoded },
         ),
     isArray: false,
   };
