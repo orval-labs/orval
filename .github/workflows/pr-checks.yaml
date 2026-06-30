@@ -53,3 +53,30 @@ jobs:
 
       - name: Verify generated code can build
         run: vp run -F orval-tests build
+
+  publish-preview:
+    needs: pr-checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: 24
+          cache: true
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: vp install --frozen-lockfile
+
+      - name: Build packages
+        run: vp run -w build:release
+
+      - name: Publish preview packages
+        run: bun run pkg-pr-new publish './packages/*' --commentWithSha --packageManager=bun

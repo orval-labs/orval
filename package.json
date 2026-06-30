@@ -37,6 +37,7 @@
     "@commitlint/config-conventional": "^21.0.1",
     "@socketsecurity/bun-security-scanner": "^1.1.2",
     "@types/node": "catalog:",
+    "pkg-pr-new": "^0.0.75",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:",
