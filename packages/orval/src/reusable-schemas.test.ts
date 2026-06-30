@@ -375,6 +375,23 @@ describe('rewriteReusableSchemas', () => {
     // Self-loop ⇒ recursive; the writer annotates `const node: zod.ZodType<node>`.
     expect(result[0].isRecursive).toBe(true);
   });
+
+  it('adds pure comments to zod mini lazy self-loops', () => {
+    const entries = [
+      {
+        ref: '#/components/schemas/Node',
+        name: 'node',
+        zod: 'zod.object({ child: __REF_node__ })',
+        consts: '',
+        usedRefs: new Set(['node']),
+        variant: 'mini' as const,
+      },
+    ];
+    const result = rewriteReusableSchemas(entries);
+    expect(result[0].zod).toBe(
+      'zod.object({ child: /*#__PURE__*/ zod.lazy(() => node) })',
+    );
+  });
 });
 
 describe('generateReusableSchemaSet with $dynamicRef', () => {

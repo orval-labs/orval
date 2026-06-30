@@ -169,7 +169,7 @@ describe('parseZodValidationSchemaDefinition', () => {
     );
 
     expect(parseResult.zod).toBe(
-      "zod._default(zod.nullable(zod.string().check(zod.minLength(nameMin)).check(zod.maxLength(nameMax)).check(zod.regex(nameRegExp))), nameDefault).check(zod.describe('Display name'))",
+      "/*#__PURE__*/ zod._default(/*#__PURE__*/ zod.nullable(/*#__PURE__*/ zod.string().check(/*#__PURE__*/ zod.minLength(nameMin)).check(/*#__PURE__*/ zod.maxLength(nameMax)).check(/*#__PURE__*/ zod.regex(nameRegExp))), nameDefault).check(/*#__PURE__*/ zod.describe('Display name'))",
     );
   });
 
@@ -201,7 +201,7 @@ describe('parseZodValidationSchemaDefinition', () => {
     );
 
     expect(parseResult.zod).toBe(
-      'zod.optional(zod.number().check(zod.gte(ageMin)).check(zod.lte(ageMax)).check(zod.multipleOf(ageMultipleOf)))',
+      '/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.number().check(/*#__PURE__*/ zod.gte(ageMin)).check(/*#__PURE__*/ zod.lte(ageMax)).check(/*#__PURE__*/ zod.multipleOf(ageMultipleOf)))',
     );
   });
 
@@ -235,7 +235,7 @@ describe('parseZodValidationSchemaDefinition', () => {
     );
 
     expect(parseResult.zod).toBe(
-      'zod.intersection(zod.string(), zod.number())',
+      '/*#__PURE__*/ zod.intersection(/*#__PURE__*/ zod.string(), /*#__PURE__*/ zod.number())',
     );
   });
 
@@ -267,7 +267,7 @@ describe('parseZodValidationSchemaDefinition', () => {
     );
 
     expect(parseResult.zod).toBe(
-      'zod.pipe(zod.transform(stripNill), zod.string())',
+      '/*#__PURE__*/ zod.pipe(/*#__PURE__*/ zod.transform(stripNill), /*#__PURE__*/ zod.string())',
     );
   });
 });

@@ -139,7 +139,7 @@ describe('write-zod-specs regressions', () => {
 
     expect(fileContent).toContain("import * as zod from 'zod/mini';");
     expect(fileContent).toContain(
-      'export const RangeSchema = zod.number().check(zod.gte(RangeSchemaMin)).check(zod.lte(RangeSchemaMax))',
+      'export const RangeSchema = /*#__PURE__*/ zod.number().check(/*#__PURE__*/ zod.gte(RangeSchemaMin)).check(/*#__PURE__*/ zod.lte(RangeSchemaMax))',
     );
 
     await fs.remove(root);
