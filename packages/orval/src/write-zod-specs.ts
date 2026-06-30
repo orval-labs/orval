@@ -227,9 +227,7 @@ function generateZodSchemaFileContent(
     ...new Set(schemas.flatMap((s) => s.importStatements ?? [])),
   ].toSorted();
   const importBlock = [
-    ...(includeZodImport
-      ? [getZodSchemaImportStatement(zodVariant)]
-      : []),
+    ...(includeZodImport ? [getZodSchemaImportStatement(zodVariant)] : []),
     ...refImports,
   ].join('\n');
 
