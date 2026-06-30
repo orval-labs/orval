@@ -18,6 +18,13 @@ export default defineConfig({
       client: 'zod',
       mode: 'single',
       target: './src/api/schemas',
+      override: {
+        zod: {
+          // Prefer Mini for more tree-shakeable generated schemas.
+          variant: 'mini',
+          version: 4,
+        },
+      },
     },
     input: {
       target: './petstore.yaml',
@@ -31,12 +38,49 @@ export default defineConfig({
 Orval generates a Zod schema for each model in your OpenAPI specification:
 
 ```ts
-export const createPetsBody = zod.object({
-  id: zod.number(),
-  name: zod.string(),
-  tag: zod.string().optional(),
+export const createPetsBody = /*#__PURE__*/ zod.object({
+  id: /*#__PURE__*/ zod.number(),
+  name: /*#__PURE__*/ zod.string(),
+  tag: /*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.string()),
 });
 ```
+
+## Tree Shaking
+
+Prefer `variant: 'mini'` when startup time, memory usage, or bundle size matter. Zod Mini uses top-level helpers, so generated validators can be dropped more reliably when their exports are unused:
+
+```ts
+// Regular Zod
+export const User = zod.object({
+  email: zod.email().min(5).max(255),
+});
+
+// Zod Mini
+export const User = /*#__PURE__*/ zod.object({
+  email: /*#__PURE__*/ zod
+    .email()
+    .check(/*#__PURE__*/ zod.minLength(5))
+    .check(/*#__PURE__*/ zod.maxLength(255)),
+});
+```
+
+When `User` is unused, a bundled regular Zod output can still keep the schema initializer as top-level work even if nothing uses it:
+
+```js
+// possible bundled regular Zod output (no export const User, but the zod call is still there)
+object({
+  email: email().min(userEmailMin).max(userEmailMax),
+});
+```
+
+With Zod Mini + pure annotations, the unused schema can disappear entirely:
+
+```js
+// possible bundled Zod Mini output
+// no User schema code emitted at all
+```
+
+In large generated clients this can remove unused schema initializers from the final bundle. In real builds this can mean hundreds of kilobytes less generated validation code loaded at startup.
 
 ## Zod version
 
@@ -56,6 +100,7 @@ export default defineConfig({
       target: './src/api/schemas',
       override: {
         zod: {
+          variant: 'mini',
           version: 4, // 3 | 4 | 'auto'
         },
       },
@@ -118,6 +163,8 @@ export default defineConfig({
       client: 'zod',
       override: {
         zod: {
+          variant: 'mini',
+          version: 4,
           strict: { response: true }, // applies everywhere
         },
         operations: {
@@ -163,7 +210,7 @@ const parsedPet = createPetsBody.parse(pet);
 ### Type Inference
 
 ```ts
-import type { z } from 'zod';
+import type { z } from 'zod/mini';
 import { createPetsBody } from './src/api/schemas';
 
 type Pet = z.infer<typeof createPetsBody>;

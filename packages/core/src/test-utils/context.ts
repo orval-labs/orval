@@ -106,6 +106,7 @@ export function createTestContextSpec({
       swr: {},
       zod: {
         version: 'auto',
+        variant: 'classic',
         strict: {
           param: false,
           query: false,

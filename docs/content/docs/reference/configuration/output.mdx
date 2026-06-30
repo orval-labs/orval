@@ -1416,12 +1416,12 @@ Select the generated Zod API style.
 
 | Value       | Output                                                                 |
 | ----------- | ---------------------------------------------------------------------- |
-| `'classic'` | Import from `zod` and emit the regular chainable Zod API.              |
 | `'mini'`    | Import from `zod/mini` and emit Zod Mini's functional/check-based API. |
+| `'classic'` | Import from `zod` and emit the regular chainable Zod API.              |
+
+`'classic'` is the default to avoid changing existing projects. Prefer `'mini'` when startup time, memory usage, or bundle size matter.
 
 Zod Mini requires Zod 4 output. If `variant: 'mini'` is used with `version: 3`, or with `version: 'auto'` resolving to Zod 3, Orval throws instead of generating invalid output.
-
-Use Zod Mini when generated schemas are bundled into frontend apps, Cloudflare Workers, or other startup-sensitive runtimes where tree-shaking and bundle size matter.
 
 ### version
 

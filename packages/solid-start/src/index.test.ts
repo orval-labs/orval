@@ -107,6 +107,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
       swr: {},
       zod: {
         version: 'auto',
+        variant: 'classic',
         strict: {
           param: false,
           query: false,
