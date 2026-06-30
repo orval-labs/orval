@@ -1379,6 +1379,7 @@ export default defineConfig({
     output: {
       override: {
         zod: {
+          variant: 'mini',
           version: 4,
           strict: {
             response: true,
@@ -1406,6 +1407,21 @@ export default defineConfig({
   },
 });
 ```
+
+### variant
+
+**Type:** `'classic' | 'mini'` — defaults to `'classic'`
+
+Select the generated Zod API style.
+
+| Value       | Output                                                                 |
+| ----------- | ---------------------------------------------------------------------- |
+| `'mini'`    | Import from `zod/mini` and emit Zod Mini's functional/check-based API. |
+| `'classic'` | Import from `zod` and emit the regular chainable Zod API.              |
+
+`'classic'` is the default to avoid changing existing projects. Prefer `'mini'` when startup time, memory usage, or bundle size matter.
+
+Zod Mini requires Zod 4 output. If `variant: 'mini'` is used with `version: 3`, or with `version: 'auto'` resolving to Zod 3, Orval throws instead of generating invalid output.
 
 ### version
 

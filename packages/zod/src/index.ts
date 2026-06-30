@@ -5,6 +5,7 @@ import {
   buildInlineDynamicScope,
   camel,
   type ClientBuilder,
+  type ClientDependenciesBuilder,
   type ClientGeneratorsBuilder,
   type ContextSpec,
   generateMutator,
@@ -34,20 +35,30 @@ import {
   resolveRef,
   stringify,
   type ZodCoerceType,
+  type ZodVariantOption,
 } from '@orval/core';
 import { unique } from 'remeda';
 
 import {
   getLooseObjectFunctionName,
   getObjectFunctionName,
+  getZodImportSource,
   getParameterFunctions,
   getZodDateFormat,
   getZodDateTimeFormat,
   getZodTimeFormat,
+  assertZodTarget,
   resolveIsZodV4,
 } from './compatible-v4';
 
-const ZOD_DEPENDENCIES: GeneratorDependency[] = [
+export const getZodDependencies: ClientDependenciesBuilder = (
+  _hasGlobalMutator,
+  _hasParamsSerializerOptions,
+  _packageJson,
+  _httpClient,
+  _hasTagsMutator,
+  override,
+): GeneratorDependency[] => [
   {
     exports: [
       {
@@ -58,11 +69,9 @@ const ZOD_DEPENDENCIES: GeneratorDependency[] = [
         values: true,
       },
     ],
-    dependency: 'zod',
+    dependency: getZodImportSource(override?.zod.variant),
   },
 ];
-
-export const getZodDependencies = () => ZOD_DEPENDENCIES;
 
 /**
  * values that may appear in "type". Equals SchemaObjectType
@@ -147,6 +156,14 @@ const COERCIBLE_TYPES = new Set([
   'bigint',
   'date',
 ]);
+
+const PURE_COMMENT = '/*#__PURE__*/ ';
+
+const zodMiniCall = (fn: string, args = '') =>
+  `${PURE_COMMENT}zod.${fn}(${args})`;
+
+const zodMiniCoerceCall = (fn: string, args = '') =>
+  `${PURE_COMMENT}zod.coerce.${fn}(${args})`;
 
 export interface ZodValidationSchemaDefinition {
   functions: [string, unknown][];
@@ -1188,6 +1205,7 @@ export const parseZodValidationSchemaDefinition = (
   isZodV4: boolean,
   preprocess?: GeneratorMutator,
   paramsInjection?: ZodParamsInjection,
+  variant: ZodVariantOption = 'classic',
 ): { zod: string; consts: string; usedRefs: Set<string> } => {
   if (input.functions.length === 0) {
     return { zod: '', consts: '', usedRefs: new Set() };
@@ -1240,6 +1258,324 @@ export const parseZodValidationSchemaDefinition = (
       validator: fn,
     };
     return `${paramsInjection.mutator.name}(${JSON.stringify(ctx)})`;
+  };
+
+  const shouldCoerce = (fn: string) =>
+    coerceTypes &&
+    (Array.isArray(coerceTypes)
+      ? coerceTypes.includes(fn as ZodCoerceType)
+      : COERCIBLE_TYPES.has(fn));
+
+  const buildCombinedArgs = (
+    fn: string,
+    args: unknown,
+    fieldPath: readonly string[],
+  ) => {
+    const formattedArgs = formatFunctionArgs(args);
+    const paramsArg = buildParamsArg(fn, fieldPath);
+    if (
+      paramsArg &&
+      formattedArgs &&
+      PARAMS_MERGE_INTO_OPTIONS_VALIDATORS.has(fn)
+    ) {
+      return `{ ...${formattedArgs}, ...${paramsArg} }`;
+    }
+    if (paramsArg) {
+      return formattedArgs ? `${formattedArgs}, ${paramsArg}` : paramsArg;
+    }
+    return formattedArgs;
+  };
+
+  type MiniRendered = { expr: string; kind?: string };
+
+  const renderMiniDefinition = (
+    definition: ZodValidationSchemaDefinition,
+    fieldPath: readonly string[] = [],
+  ): MiniRendered => {
+    let current: MiniRendered | undefined;
+
+    const requireCurrent = (fn: string) => {
+      if (!current) {
+        throw new Error(`Cannot render zod mini ${fn} without a base schema`);
+      }
+      return current;
+    };
+
+    const renderObject = (
+      objectArgs: Record<string, ZodValidationSchemaDefinition>,
+      objectType: string,
+    ): MiniRendered => ({
+      kind: 'object',
+      expr: `${zodMiniCall(
+        objectType,
+        `{
+${Object.entries(objectArgs)
+  .map(([key, schema]) => {
+    const rendered = renderMiniDefinition(schema, [...fieldPath, key]);
+    appendConstsChunk(schema.consts.join('\n'));
+    const coerceArrays =
+      Array.isArray(coerceTypes) &&
+      coerceTypes.includes('array' as ZodCoerceType);
+    if (coerceArrays && schema.functions.some(([fn]) => fn === 'array')) {
+      return `  "${key}": ${zodMiniCall('pipe', `${zodMiniCall('transform', '(value) => value === undefined || Array.isArray(value) ? value : [value]')}, ${rendered.expr}`)}`;
+    }
+    return `  "${key}": ${rendered.expr}`;
+  })
+  .join(',\n')}
+}`,
+      )}`,
+    });
+
+    for (let index = 0; index < definition.functions.length; index++) {
+      const [fn, args = ''] = definition.functions[index];
+
+      if (fn === 'namedRef') {
+        const refArgs = args as { name: string; sourceRef: string };
+        usedRefs.add(refArgs.name);
+        current = { expr: `__REF_${refArgs.name}__`, kind: 'ref' };
+        continue;
+      }
+
+      if (fn === 'fileOrString') {
+        current = {
+          expr: zodMiniCall(
+            'union',
+            `[${zodMiniCall('instanceof', 'File')}, ${zodMiniCall('string')}]`,
+          ),
+          kind: 'union',
+        };
+        continue;
+      }
+
+      if (fn === 'allOf') {
+        const allOfArgs = args as ZodValidationSchemaDefinition[];
+        const allAreObjects =
+          strict &&
+          allOfArgs.length > 0 &&
+          allOfArgs.every((partSchema) => {
+            if (partSchema.functions.length === 0) return false;
+            const firstFn = partSchema.functions[0][0];
+            return firstFn === 'object' || firstFn === 'strictObject';
+          });
+
+        if (allAreObjects) {
+          const mergedProperties: Record<
+            string,
+            ZodValidationSchemaDefinition
+          > = {};
+          const allConsts: string[] = [];
+          for (const partSchema of allOfArgs) {
+            if (partSchema.consts.length > 0) {
+              allConsts.push(partSchema.consts.join('\n'));
+            }
+            const objectFunctionIndex = partSchema.functions.findIndex(
+              ([fnName]) => fnName === 'object' || fnName === 'strictObject',
+            );
+            if (objectFunctionIndex !== -1) {
+              const objectArgs = partSchema.functions[objectFunctionIndex][1];
+              if (isObject(objectArgs)) {
+                Object.assign(
+                  mergedProperties,
+                  objectArgs as Record<string, ZodValidationSchemaDefinition>,
+                );
+              }
+            }
+          }
+          appendConstsChunk(allConsts.join('\n'));
+          current = renderObject(
+            mergedProperties,
+            getObjectFunctionName(true, strict),
+          );
+          continue;
+        }
+
+        const rendered = allOfArgs.map((partSchema) => {
+          appendConstsChunk(partSchema.consts.join('\n'));
+          return renderMiniDefinition(partSchema, fieldPath).expr;
+        });
+        if (rendered.length === 0) {
+          current = { expr: '' };
+          continue;
+        }
+        current = {
+          expr: rendered.reduce((acc, value) =>
+            acc ? zodMiniCall('intersection', `${acc}, ${value}`) : value,
+          ),
+          kind: 'intersection',
+        };
+        continue;
+      }
+
+      if (fn === 'oneOf' || fn === 'anyOf') {
+        const unionArgs = args as ZodValidationSchemaDefinition[];
+        if (unionArgs.length === 1) {
+          appendConstsChunk(unionArgs[0].consts.join('\n'));
+          current = renderMiniDefinition(unionArgs[0], fieldPath);
+          continue;
+        }
+        current = {
+          expr: zodMiniCall(
+            'union',
+            `[${unionArgs
+              .map((arg) => {
+                appendConstsChunk(arg.consts.join('\n'));
+                return renderMiniDefinition(arg, fieldPath).expr;
+              })
+              .join(',')}]`,
+          ),
+          kind: 'union',
+        };
+        continue;
+      }
+
+      if (fn === 'additionalProperties') {
+        const additionalPropertiesArgs = args as ZodValidationSchemaDefinition;
+        const rendered = renderMiniDefinition(
+          additionalPropertiesArgs,
+          fieldPath,
+        );
+        if (Array.isArray(additionalPropertiesArgs.consts)) {
+          appendConstsChunk(additionalPropertiesArgs.consts.join('\n'));
+        }
+        current = {
+          expr: zodMiniCall(
+            'record',
+            `${zodMiniCall('string')}, ${rendered.expr}`,
+          ),
+          kind: 'object',
+        };
+        continue;
+      }
+
+      if (fn === 'object' || fn === 'strictObject' || fn === 'looseObject') {
+        const objectType =
+          fn === 'looseObject'
+            ? 'looseObject'
+            : getObjectFunctionName(true, strict);
+        current = renderObject(
+          args as Record<string, ZodValidationSchemaDefinition>,
+          objectType,
+        );
+        continue;
+      }
+
+      if (fn === 'passthrough' || fn === 'strict') {
+        continue;
+      }
+
+      if (fn === 'array') {
+        const arrayArgs = args as ZodValidationSchemaDefinition;
+        const rendered = renderMiniDefinition(arrayArgs, fieldPath);
+        if (isString(arrayArgs.consts)) {
+          appendConstsChunk(arrayArgs.consts);
+        } else if (Array.isArray(arrayArgs.consts)) {
+          appendConstsChunk(arrayArgs.consts.join('\n'));
+        }
+        current = { expr: zodMiniCall('array', rendered.expr), kind: 'array' };
+        continue;
+      }
+
+      if (fn === 'tuple') {
+        const tupleItems = (args as ZodValidationSchemaDefinition[])
+          .map((x) => {
+            const rendered = renderMiniDefinition(x, fieldPath);
+            appendConstsChunk(x.consts.join('\n'));
+            return rendered.expr;
+          })
+          .join(',\n');
+        const next = definition.functions[index + 1];
+        if (next?.[0] === 'rest') {
+          const restDefinition = next[1] as ZodValidationSchemaDefinition;
+          const rest = renderMiniDefinition(restDefinition, fieldPath).expr;
+          appendConstsChunk(restDefinition.consts.join('\n'));
+          current = {
+            expr: zodMiniCall('tuple', `[${tupleItems}], ${rest}`),
+            kind: 'tuple',
+          };
+          index++;
+        } else {
+          current = {
+            expr: zodMiniCall('tuple', `[${tupleItems}]`),
+            kind: 'tuple',
+          };
+        }
+        continue;
+      }
+
+      const combinedArgs = buildCombinedArgs(fn, args, fieldPath);
+
+      if (fn === 'optional' || fn === 'nullable' || fn === 'nullish') {
+        const value = requireCurrent(fn);
+        current = { expr: zodMiniCall(fn, value.expr), kind: value.kind };
+        continue;
+      }
+
+      if (fn === 'default') {
+        const value = requireCurrent(fn);
+        current = {
+          expr: zodMiniCall('_default', `${value.expr}, ${combinedArgs}`),
+          kind: value.kind,
+        };
+        continue;
+      }
+
+      if (fn === 'describe' || fn === 'meta') {
+        const value = requireCurrent(fn);
+        current = {
+          expr: `${value.expr}.check(${zodMiniCall(fn, combinedArgs)})`,
+          kind: value.kind,
+        };
+        continue;
+      }
+
+      if (
+        fn === 'min' ||
+        fn === 'max' ||
+        fn === 'gt' ||
+        fn === 'lt' ||
+        fn === 'multipleOf' ||
+        fn === 'regex' ||
+        fn === 'length'
+      ) {
+        const value = requireCurrent(fn);
+        const checkName =
+          fn === 'min'
+            ? value.kind === 'number'
+              ? 'gte'
+              : 'minLength'
+            : fn === 'max'
+              ? value.kind === 'number'
+                ? 'lte'
+                : 'maxLength'
+              : fn;
+        current = {
+          expr: `${value.expr}.check(${zodMiniCall(checkName, combinedArgs)})`,
+          kind: value.kind,
+        };
+        continue;
+      }
+
+      if (
+        (fn !== 'date' && shouldCoerce(fn)) ||
+        (fn === 'date' && shouldCoerce(fn) && context.output.override.useDates)
+      ) {
+        current = {
+          expr: zodMiniCoerceCall(fn, combinedArgs),
+          kind: fn,
+        };
+        continue;
+      }
+
+      current = {
+        expr: zodMiniCall(fn, combinedArgs),
+        kind:
+          fn === 'enum' || fn === 'literal' || fn === 'stringFormat'
+            ? 'string'
+            : fn.split('.')[0],
+      };
+    }
+
+    return current ?? { expr: '' };
   };
 
   const parseProperty = (
@@ -1435,7 +1771,8 @@ ${Object.entries(objectArgs)
     // `.default()` still applies. Already-arrays are left untouched (no-op for
     // JSON-body arrays).
     const coerceArrays =
-      Array.isArray(coerceTypes) && coerceTypes.includes('array');
+      Array.isArray(coerceTypes) &&
+      coerceTypes.includes('array' as ZodCoerceType);
     if (coerceArrays && schema.functions.some(([fn]) => fn === 'array')) {
       return `  "${key}": zod.preprocess((value) => value === undefined || Array.isArray(value) ? value : [value], ${fieldZod})`;
     }
@@ -1521,6 +1858,20 @@ ${Object.entries(objectArgs)
   };
 
   appendConstsChunk(input.consts.join('\n'));
+
+  if (variant === 'mini') {
+    const rendered = renderMiniDefinition(input);
+    const value = preprocess
+      ? zodMiniCall(
+          'pipe',
+          `${zodMiniCall('transform', preprocess.name)}, ${rendered.expr}`,
+        )
+      : rendered.expr;
+    if (consts.includes(',export')) {
+      consts = consts.replaceAll(',export', '\nexport');
+    }
+    return { zod: value, consts, usedRefs };
+  }
 
   const schema = input.functions.map((prop) => parseProperty(prop)).join('');
   const value = preprocess
@@ -2277,10 +2628,12 @@ const generateZodRoute = async (
   { operationId, operationName, verb, override }: GeneratorVerbOptions,
   { pathRoute, context, output }: GeneratorOptions,
 ) => {
+  const zodVariant = context.output.override.zod.variant;
   const isZodV4 = resolveIsZodV4(
     context.output.override.zod.version,
     context.output.packageJson,
   );
+  assertZodTarget({ variant: zodVariant, isZodV4 });
   const useReusableSchemas =
     context.output.override.zod.generateReusableSchemas;
   const spec = context.spec.paths?.[pathRoute];
@@ -2376,6 +2729,7 @@ const generateZodRoute = async (
     isZodV4,
     preprocessParams,
     makeParamsInjection('param', 'Params'),
+    zodVariant,
   );
 
   const preprocessQueryParams = override.zod.preprocess?.query
@@ -2396,6 +2750,7 @@ const generateZodRoute = async (
     isZodV4,
     preprocessQueryParams,
     makeParamsInjection('query', 'QueryParams'),
+    zodVariant,
   );
 
   const preprocessHeader = override.zod.preprocess?.header
@@ -2416,6 +2771,7 @@ const generateZodRoute = async (
     isZodV4,
     preprocessHeader,
     makeParamsInjection('header', 'Header'),
+    zodVariant,
   );
 
   const preprocessBody = override.zod.preprocess?.body
@@ -2436,6 +2792,7 @@ const generateZodRoute = async (
     isZodV4,
     preprocessBody,
     makeParamsInjection('body', 'Body'),
+    zodVariant,
   );
 
   const preprocessResponse = override.zod.preprocess?.response
@@ -2460,6 +2817,7 @@ const generateZodRoute = async (
         'response',
         responses[index][0] ? `${responses[index][0]}Response` : 'Response',
       ),
+      zodVariant,
     ),
   );
 
@@ -2515,6 +2873,26 @@ const generateZodRoute = async (
         ? `.brand("${name}")`
         : `.brand<"${name}">()`
       : '';
+
+  const zodArrayWithBounds = (
+    itemName: string,
+    rules: { min?: number; max?: number } | undefined,
+  ) => {
+    const checks = [
+      ...(rules?.min ? [zodMiniCall('minLength', `${rules.min}`)] : []),
+      ...(rules?.max ? [zodMiniCall('maxLength', `${rules.max}`)] : []),
+    ];
+
+    if (zodVariant === 'mini') {
+      return `${zodMiniCall('array', itemName)}${checks
+        .map((check) => `.check(${check})`)
+        .join('')}`;
+    }
+
+    return `zod.array(${itemName})${rules?.min ? `.min(${rules.min})` : ''}${
+      rules?.max ? `.max(${rules.max})` : ''
+    }`;
+  };
 
   // With `generateReusableSchemas`, operations import component schemas by
   // their PascalCase name from a sibling schemas module. When an operation's
@@ -2591,11 +2969,7 @@ const generateZodRoute = async (
         ? [
             parsedBody.isArray
               ? `export const ${bodyName}Item = ${inputBody.zod}
-export const ${bodyName} = zod.array(${bodyName}Item)${
-                  parsedBody.rules?.min ? `.min(${parsedBody.rules.min})` : ''
-                }${
-                  parsedBody.rules?.max ? `.max(${parsedBody.rules.max})` : ''
-                }${brand(bodyName)}`
+export const ${bodyName} = ${zodArrayWithBounds(bodyName + 'Item', parsedBody.rules)}${brand(bodyName)}`
               : `export const ${bodyName} = ${inputBody.zod}${brand(bodyName)}`,
           ]
         : []),
@@ -2627,7 +3001,13 @@ export const ${bodyName} = zod.array(${bodyName}Item)${
               specResponseKeys.has('2xx');
             isNoContent = !hasStandardSuccess;
           }
-          const noContentSchema = isNoContent ? 'zod.void()' : 'zod.unknown()';
+          const noContentSchema = isNoContent
+            ? zodVariant === 'mini'
+              ? zodMiniCall('void')
+              : 'zod.void()'
+            : zodVariant === 'mini'
+              ? zodMiniCall('unknown')
+              : 'zod.unknown()';
 
           return [
             `export const ${operationResponse} = ${noContentSchema}${brand(operationResponse)}`,
@@ -2638,15 +3018,7 @@ export const ${bodyName} = zod.array(${bodyName}Item)${
           ...(inputResponse.consts ? [inputResponse.consts] : []),
           parsedResponses[index].isArray
             ? `export const ${operationResponse}Item = ${inputResponse.zod}
-export const ${operationResponse} = zod.array(${operationResponse}Item)${
-                parsedResponses[index].rules?.min
-                  ? `.min(${parsedResponses[index].rules.min})`
-                  : ''
-              }${
-                parsedResponses[index].rules?.max
-                  ? `.max(${parsedResponses[index].rules.max})`
-                  : ''
-              }${brand(operationResponse)}`
+export const ${operationResponse} = ${zodArrayWithBounds(`${operationResponse}Item`, parsedResponses[index].rules)}${brand(operationResponse)}`
             : `export const ${operationResponse} = ${inputResponse.zod}${brand(operationResponse)}`,
         ];
       }),
@@ -2700,6 +3072,12 @@ const zodClientBuilder: ClientGeneratorsBuilder = {
 
 export const builder = () => () => zodClientBuilder;
 
-export { isZodVersionV4, resolveIsZodV4 } from './compatible-v4';
+export {
+  assertZodTarget,
+  getZodImportSource,
+  getZodTypeName,
+  isZodVersionV4,
+  resolveIsZodV4,
+} from './compatible-v4';
 
 export default builder;

@@ -807,6 +807,8 @@ export interface ZodTimeOptions {
  */
 export type ZodVersionOption = 3 | 4 | 'auto';
 
+export type ZodVariantOption = 'classic' | 'mini';
+
 interface BaseZodOptions {
   strict?: {
     param?: boolean;
@@ -852,6 +854,12 @@ interface BaseZodOptions {
 }
 
 export interface ZodOptions extends BaseZodOptions {
+  /**
+   * Select the generated Zod API style. `classic` imports from `zod`; `mini`
+   * imports from `zod/mini` and emits the functional/check-based Zod Mini API.
+   * Zod Mini requires a Zod 4 target.
+   */
+  variant?: ZodVariantOption;
   /**
    * Pin the Zod output target so generation is deterministic instead of
    * inferred from the installed `zod` version. Defaults to `'auto'`, which
@@ -905,6 +913,7 @@ export type ZodCoerceType =
   | 'array';
 
 export interface NormalizedZodOptions {
+  variant: ZodVariantOption;
   version: ZodVersionOption;
   strict: {
     param: boolean;

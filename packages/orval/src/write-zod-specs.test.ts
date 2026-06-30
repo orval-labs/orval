@@ -36,6 +36,7 @@ const createOutputOptions = (): Parameters<typeof writeZodSchemas>[4] =>
         schemas: { suffix: '', itemSuffix: 'Item' },
       },
       zod: {
+        variant: 'classic',
         version: 'auto',
         strict: {
           body: true,
@@ -102,6 +103,43 @@ describe('write-zod-specs regressions', () => {
     expect(fileContent).not.toContain('\n    export type RangeSchema =');
     expect(fileContent).not.toContain(
       'export const RangeSchema = export const',
+    );
+
+    await fs.remove(root);
+  });
+
+  it('writes zod mini schema files with zod/mini imports', async () => {
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'orval-zod-mini-'));
+    const schemasPath = path.join(root, 'schemas');
+    const output = createOutputOptions();
+    output.override.zod.variant = 'mini';
+    output.override.zod.version = 4;
+
+    const builder = {
+      spec: {},
+      target: '',
+      schemas: [
+        {
+          name: 'RangeSchema',
+          schema: {
+            type: 'number',
+            minimum: 2,
+            maximum: 10,
+          },
+        },
+      ],
+    } satisfies Parameters<typeof writeZodSchemas>[0];
+
+    await writeZodSchemas(builder, schemasPath, '.ts', '', output);
+
+    const fileContent = await fs.readFile(
+      path.join(schemasPath, 'RangeSchema.ts'),
+      'utf8',
+    );
+
+    expect(fileContent).toContain("import * as zod from 'zod/mini';");
+    expect(fileContent).toContain(
+      'export const RangeSchema = /*#__PURE__*/ zod.number().check(/*#__PURE__*/ zod.gte(RangeSchemaMin)).check(/*#__PURE__*/ zod.lte(RangeSchemaMax))',
     );
 
     await fs.remove(root);

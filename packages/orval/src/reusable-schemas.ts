@@ -3,6 +3,7 @@ import type {
   GeneratorMutator,
   OpenApiSchemaObject,
   ZodCoerceType,
+  ZodVariantOption,
 } from '@orval/core';
 import { buildDynamicScope, getRefInfo } from '@orval/core';
 import {
@@ -127,6 +128,7 @@ export interface ReusableSchemaEntry {
   zod: string;
   consts: string;
   usedRefs: Set<string>;
+  variant?: ZodVariantOption;
   /**
    * True when this schema references itself directly or transitively (its node
    * sits in a cycle: an SCC of size > 1, or a self-loop). Such a schema is
@@ -141,6 +143,7 @@ export interface ReusableSchemaEntry {
 export interface GenerateReusableSchemaSetOptions {
   strict: boolean;
   isZodV4: boolean;
+  variant?: ZodVariantOption;
   coerce?: boolean | ZodCoerceType[];
   /** Emit `.meta({ id, ... })` on each schema (zod v4). See `ZodOptions.generateMeta`. */
   generateMeta?: boolean;
@@ -228,6 +231,7 @@ export const generateReusableSchemaSet = (
             schemaName: name,
           }
         : undefined,
+      options.variant,
     );
 
     entries.push({
@@ -236,6 +240,7 @@ export const generateReusableSchemaSet = (
       zod: parsed.zod,
       consts: parsed.consts,
       usedRefs: parsed.usedRefs,
+      variant: options.variant,
     });
 
     for (const usedName of parsed.usedRefs) {
@@ -400,7 +405,9 @@ export const rewriteReusableSchemas = (
         SENTINEL_PATTERN,
         (_match, refName: string) => {
           const isLazy = lazyEdges.has(edgeKey(entry.name, refName));
-          return isLazy ? `zod.lazy(() => ${refName})` : refName;
+          return isLazy
+            ? `${entry.variant === 'mini' ? '/*#__PURE__*/ ' : ''}zod.lazy(() => ${refName})`
+            : refName;
         },
       );
       return [

@@ -20,12 +20,16 @@ import {
   type Tsconfig,
   upath,
   type ZodCoerceType,
+  type ZodVariantOption,
   type ZodVersionOption,
 } from '@orval/core';
 import {
+  assertZodTarget,
   dereference,
   generateFormDataZodSchema,
   generateZodValidationSchemaDefinition,
+  getZodImportSource,
+  getZodTypeName,
   parseZodValidationSchemaDefinition,
   resolveIsZodV4,
   type ZodValidationSchemaDefinition,
@@ -53,6 +57,11 @@ type ZodSchemaFileToWrite = ZodSchemaFileEntry & {
   filePath: string;
 };
 
+const getZodSchemaImportStatement = (variant: ZodVariantOption) =>
+  variant === 'mini'
+    ? `import * as zod from '${getZodImportSource(variant)}';`
+    : `import { z as zod } from '${getZodImportSource(variant)}';`;
+
 interface WriteZodOutputOptions {
   namingConvention: NamingConvention;
   indexFiles: boolean;
@@ -61,6 +70,7 @@ interface WriteZodOutputOptions {
   override: {
     useNamedParameters?: boolean;
     zod: {
+      variant: ZodVariantOption;
       version: ZodVersionOption;
       strict: {
         body: boolean;
@@ -204,6 +214,7 @@ function bodyReferencesMutator(
 function generateZodSchemaFileContent(
   header: string,
   schemas: ZodSchemaFileEntry[],
+  zodVariant: ZodVariantOption,
   // Omit the `import { z as zod }` line when the content is concatenated into a
   // file that already imports zod (e.g. inline single-mode output, where the
   // zod client already emits `import * as zod from 'zod'`).
@@ -216,7 +227,7 @@ function generateZodSchemaFileContent(
     ...new Set(schemas.flatMap((s) => s.importStatements ?? [])),
   ].toSorted();
   const importBlock = [
-    ...(includeZodImport ? [`import { z as zod } from 'zod';`] : []),
+    ...(includeZodImport ? [getZodSchemaImportStatement(zodVariant)] : []),
     ...refImports,
   ].join('\n');
 
@@ -281,6 +292,7 @@ interface RenderedReusableSchemaEntry {
 function renderReusableSchemaEntry(
   entry: ReusableSchemaEntry,
   context: ContextSpec,
+  zodVariant: ZodVariantOption,
 ): RenderedReusableSchemaEntry {
   const consts = entry.consts ? `${entry.consts}\n\n` : '';
 
@@ -348,7 +360,7 @@ function renderReusableSchemaEntry(
     return {
       content:
         `${consts}${subModelBlock}export type ${entry.name} = ${typeBody};\n\n` +
-        `export const ${entry.name}: zod.ZodType<${entry.name}> = ${entry.zod};\n\n` +
+        `export const ${entry.name}: zod.${getZodTypeName(zodVariant)}<${entry.name}> = ${entry.zod};\n\n` +
         `export type ${entry.name}Output = zod.output<typeof ${entry.name}>;`,
       extraImports,
     };
@@ -607,6 +619,7 @@ export function generateZodSchemasInline(
     output.override.zod.version,
     output.packageJson,
   );
+  assertZodTarget({ variant: output.override.zod.variant, isZodV4 });
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
   const schemas: ZodSchemaFileEntry[] = [];
@@ -643,6 +656,9 @@ export function generateZodSchemasInline(
       coerce,
       strict,
       isZodV4,
+      undefined,
+      undefined,
+      output.override.zod.variant,
     );
 
     schemas.push({
@@ -656,7 +672,12 @@ export function generateZodSchemasInline(
     return '';
   }
 
-  return generateZodSchemaFileContent('', schemas, includeZodImport);
+  return generateZodSchemaFileContent(
+    '',
+    schemas,
+    output.override.zod.variant,
+    includeZodImport,
+  );
 }
 
 function generateZodSchemasInlineReusable(
@@ -670,6 +691,7 @@ function generateZodSchemasInlineReusable(
     output.override.zod.version,
     output.packageJson,
   );
+  assertZodTarget({ variant: output.override.zod.variant, isZodV4 });
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
   const context: ContextSpec = {
@@ -701,6 +723,7 @@ function generateZodSchemasInlineReusable(
     strict,
     isZodV4,
     coerce,
+    variant: output.override.zod.variant,
     generateMeta: output.override.zod.generateMeta,
     paramsMutator,
   });
@@ -711,12 +734,18 @@ function generateZodSchemasInlineReusable(
   // recursive entries' TS-type references resolve in-file with no extra
   // imports — discard `extraImports` here.
   const body = rewritten
-    .map((entry) => renderReusableSchemaEntry(entry, context).content)
+    .map(
+      (entry) =>
+        renderReusableSchemaEntry(entry, context, output.override.zod.variant)
+          .content,
+    )
     .join('\n\n');
 
   // Omit the zod import when concatenated into a file that already imports it
   // (inline single-mode output where the zod client emits `import * as zod`).
-  const zodImport = includeZodImport ? `import { z as zod } from 'zod';\n` : '';
+  const zodImport = includeZodImport
+    ? `${getZodSchemaImportStatement(output.override.zod.variant)}\n`
+    : '';
   // In split modes (`split` / `tags-split`) the inline schemas are written to
   // a separate `.schemas` file with no other imports, so the params-mutator
   // import has to be emitted here. In `single` / `tags` modes the schemas are
@@ -764,6 +793,7 @@ export async function writeZodSchemas(
     output.override.zod.version,
     output.packageJson,
   );
+  assertZodTarget({ variant: output.override.zod.variant, isZodV4 });
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
 
@@ -807,6 +837,9 @@ export async function writeZodSchemas(
       coerce,
       strict,
       isZodV4,
+      undefined,
+      undefined,
+      output.override.zod.variant,
     );
 
     schemasToWrite.push({
@@ -820,7 +853,11 @@ export async function writeZodSchemas(
   const groupedSchemasToWrite = groupSchemasByFilePath(schemasToWrite);
 
   for (const schemaGroup of groupedSchemasToWrite) {
-    const fileContent = generateZodSchemaFileContent(header, schemaGroup);
+    const fileContent = generateZodSchemaFileContent(
+      header,
+      schemaGroup,
+      output.override.zod.variant,
+    );
 
     await fs.outputFile(schemaGroup[0].filePath, fileContent);
   }
@@ -868,6 +905,7 @@ async function writeZodSchemasReusable(
     output.override.zod.version,
     output.packageJson,
   );
+  assertZodTarget({ variant: output.override.zod.variant, isZodV4 });
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
   const context: ContextSpec = {
@@ -901,6 +939,7 @@ async function writeZodSchemasReusable(
     strict,
     isZodV4,
     coerce,
+    variant: output.override.zod.variant,
     generateMeta: output.override.zod.generateMeta,
     paramsMutator,
   });
@@ -930,7 +969,11 @@ async function writeZodSchemasReusable(
       ? path.join(schemasPath, tagDir, `${fileName}${fileExtension}`)
       : path.join(schemasPath, `${fileName}${fileExtension}`);
     const importExt = getImportExtension(fileExtension, output.tsconfig);
-    const rendered = renderReusableSchemaEntry(entry, context);
+    const rendered = renderReusableSchemaEntry(
+      entry,
+      context,
+      output.override.zod.variant,
+    );
     const refImports = buildSiblingImports({
       usedRefs: entry.usedRefs,
       extraImports: rendered.extraImports,
@@ -958,7 +1001,7 @@ async function writeZodSchemasReusable(
     ].join('\n');
 
     const fileContent =
-      `${header}import { z as zod } from 'zod';\n` +
+      `${header}${getZodSchemaImportStatement(output.override.zod.variant)}\n` +
       (imports ? `${imports}\n\n` : '\n') +
       `${rendered.content}\n`;
 
@@ -1012,6 +1055,7 @@ export async function writeZodSchemasFromVerbs(
     output.override.zod.version,
     output.packageJson,
   );
+  assertZodTarget({ variant: output.override.zod.variant, isZodV4 });
   const strict = output.override.zod.strict.body;
   const coerce = output.override.zod.coerce.body;
   const useReusableSchemas =
@@ -1271,6 +1315,9 @@ export async function writeZodSchemasFromVerbs(
       coerce,
       strict,
       isZodV4,
+      undefined,
+      undefined,
+      output.override.zod.variant,
     );
 
     // Operation schemas sit at the top of the dependency graph, so any
@@ -1312,7 +1359,11 @@ export async function writeZodSchemasFromVerbs(
   const groupedSchemasToWrite = groupSchemasByFilePath(schemasToWrite);
 
   for (const schemaGroup of groupedSchemasToWrite) {
-    const fileContent = generateZodSchemaFileContent(header, schemaGroup);
+    const fileContent = generateZodSchemaFileContent(
+      header,
+      schemaGroup,
+      output.override.zod.variant,
+    );
 
     await fs.outputFile(schemaGroup[0].filePath, fileContent);
   }

@@ -24,7 +24,14 @@ import {
   type Verbs,
 } from '@orval/core';
 import { generateClient, generateFetchHeader } from '@orval/fetch';
-import { generateZod } from '@orval/zod';
+import { generateZod, getZodImportSource } from '@orval/zod';
+
+const getZodSchemaImportStatement = (
+  variant: NormalizedOutputOptions['override']['zod']['variant'],
+) =>
+  variant === 'mini'
+    ? `import * as zod from '${getZodImportSource(variant)}';`
+    : `import { z as zod } from '${getZodImportSource(variant)}';`;
 
 const getHeader = (
   option: false | ((info: OpenApiInfoObject) => string | string[]),
@@ -433,7 +440,7 @@ const generateZodFiles = async (
     mutators: allMutators,
   });
 
-  let content = `${header}import { z as zod } from 'zod';\n${mutatorsImports}\n`;
+  let content = `${header}${getZodSchemaImportStatement(output.override.zod.variant)}\n${mutatorsImports}\n`;
 
   const zodPath = path.join(dirname, `tool-schemas.zod${extension}`);
 
