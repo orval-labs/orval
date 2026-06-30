@@ -14,8 +14,8 @@ import type {
   UseQueryReturnType,
 } from '@tanstack/vue-query';
 
-import { computed, unref } from 'vue';
-import type { MaybeRef } from 'vue';
+import { computed, toValue, unref } from 'vue';
+import type { MaybeRefOrGetter } from 'vue';
 
 import type { GetUsersUserIdOrdersParams } from './model';
 
@@ -76,8 +76,8 @@ export const getUsersUserIdOrders = async (
 };
 
 export const getGetUsersUserIdOrdersQueryKey = (
-  userId: MaybeRef<number>,
-  params?: MaybeRef<GetUsersUserIdOrdersParams>,
+  userId: MaybeRefOrGetter<number>,
+  params?: MaybeRefOrGetter<GetUsersUserIdOrdersParams>,
 ) => {
   return ['users', userId, 'orders', ...(params ? [params] : [])] as const;
 };
@@ -86,8 +86,8 @@ export const getGetUsersUserIdOrdersQueryOptions = <
   TData = Awaited<ReturnType<typeof getUsersUserIdOrders>>,
   TError = unknown,
 >(
-  userId: MaybeRef<number>,
-  params?: MaybeRef<GetUsersUserIdOrdersParams>,
+  userId: MaybeRefOrGetter<number>,
+  params?: MaybeRefOrGetter<GetUsersUserIdOrdersParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -106,7 +106,7 @@ export const getGetUsersUserIdOrdersQueryOptions = <
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getUsersUserIdOrders>>
   > = ({ signal }) =>
-    getUsersUserIdOrders(unref(userId), unref(params), {
+    getUsersUserIdOrders(toValue(userId), toValue(params), {
       signal,
       ...fetchOptions,
     });
@@ -115,7 +115,7 @@ export const getGetUsersUserIdOrdersQueryOptions = <
     queryKey,
     queryFn,
     enabled: computed(
-      () => unref(userId) !== null && unref(userId) !== undefined,
+      () => toValue(userId) !== null && toValue(userId) !== undefined,
     ),
     ...queryOptions,
   } as UseQueryOptions<
@@ -138,8 +138,8 @@ export function useGetUsersUserIdOrders<
   TData = Awaited<ReturnType<typeof getUsersUserIdOrders>>,
   TError = unknown,
 >(
-  userId: MaybeRef<number>,
-  params?: MaybeRef<GetUsersUserIdOrdersParams>,
+  userId: MaybeRefOrGetter<number>,
+  params?: MaybeRefOrGetter<GetUsersUserIdOrdersParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<

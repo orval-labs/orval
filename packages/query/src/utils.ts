@@ -2,8 +2,6 @@ import nodePath from 'node:path';
 import { styleText } from 'node:util';
 
 import {
-  type GetterProps,
-  GetterPropType,
   isObject,
   isString,
   type Mutator,
@@ -110,34 +108,6 @@ const normalizeMutator = (
   }
 
   return undefined;
-};
-
-export function vueWrapTypeWithMaybeRef(props: GetterProps): GetterProps {
-  return props.map((prop) => {
-    const [paramName, paramType] = prop.implementation.split(':');
-    if (!paramType) return prop;
-    const name =
-      prop.type === GetterPropType.NAMED_PATH_PARAMS ? prop.name : paramName;
-
-    const [type, defaultValue] = paramType.split('=');
-    return {
-      ...prop,
-      implementation: `${name}: MaybeRef<${type.trim()}>${
-        defaultValue ? ` = ${defaultValue}` : ''
-      }`,
-    };
-  });
-}
-
-export const vueUnRefParams = (props: GetterProps): string => {
-  return props
-    .map((prop) => {
-      if (prop.type === GetterPropType.NAMED_PATH_PARAMS) {
-        return `const ${prop.destructured} = unref(${prop.name});`;
-      }
-      return `${prop.name} = unref(${prop.name});`;
-    })
-    .join('\n');
 };
 
 export const getQueryTypeForFramework = (type: string): string => {

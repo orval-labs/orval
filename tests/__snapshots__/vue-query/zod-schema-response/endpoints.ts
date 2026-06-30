@@ -20,8 +20,8 @@ import type {
 import axios from 'axios';
 import type { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import { computed, unref } from 'vue';
-import type { MaybeRef } from 'vue';
+import { computed, toValue, unref } from 'vue';
+import type { MaybeRefOrGetter } from 'vue';
 
 import type {
   CreatePetsBody,
@@ -44,10 +44,10 @@ import type { Cat, Dachshund, Dog, Labradoodle } from './model';
  * @summary List all pets
  */
 export const listPets = (
-  params: MaybeRef<ListPetsParams>,
+  params: MaybeRefOrGetter<ListPetsParams>,
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Pets>> => {
-  params = unref(params);
+  params = toValue(params);
 
   return axios.get(`/pets`, {
     ...options,
@@ -55,7 +55,9 @@ export const listPets = (
   });
 };
 
-export const getListPetsQueryKey = (params?: MaybeRef<ListPetsParams>) => {
+export const getListPetsQueryKey = (
+  params?: MaybeRefOrGetter<ListPetsParams>,
+) => {
   return ['pets', ...(params ? [params] : [])] as const;
 };
 
@@ -63,7 +65,7 @@ export const getListPetsQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = AxiosError<Error>,
 >(
-  params: MaybeRef<ListPetsParams>,
+  params: MaybeRefOrGetter<ListPetsParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -99,7 +101,7 @@ export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = AxiosError<Error>,
 >(
-  params: MaybeRef<ListPetsParams>,
+  params: MaybeRefOrGetter<ListPetsParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -130,12 +132,12 @@ export function useListPets<
  * @summary Create a pet
  */
 export const createPets = (
-  createPetsBody: MaybeRef<CreatePetsBody>,
-  params: MaybeRef<CreatePetsParams>,
+  createPetsBody: MaybeRefOrGetter<CreatePetsBody>,
+  params: MaybeRefOrGetter<CreatePetsParams>,
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Pet>> => {
-  createPetsBody = unref(createPetsBody);
-  params = unref(params);
+  createPetsBody = toValue(createPetsBody);
+  params = toValue(params);
 
   return axios.post(`/pets`, createPetsBody, {
     ...options,
@@ -214,15 +216,15 @@ export const useCreatePets = <TError = AxiosError<Error>, TContext = unknown>(
  * @summary Info for a specific pet
  */
 export const showPetById = (
-  petId: MaybeRef<string>,
+  petId: MaybeRefOrGetter<string>,
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Pet>> => {
-  petId = unref(petId);
+  petId = toValue(petId);
 
   return axios.get(`/pets/${petId}`, options);
 };
 
-export const getShowPetByIdQueryKey = (petId: MaybeRef<string>) => {
+export const getShowPetByIdQueryKey = (petId: MaybeRefOrGetter<string>) => {
   return ['pets', petId] as const;
 };
 
@@ -230,7 +232,7 @@ export const getShowPetByIdQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = AxiosError<Error>,
 >(
-  petId: MaybeRef<string>,
+  petId: MaybeRefOrGetter<string>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
@@ -250,7 +252,7 @@ export const getShowPetByIdQueryOptions = <
     queryKey,
     queryFn,
     enabled: computed(
-      () => unref(petId) !== null && unref(petId) !== undefined,
+      () => toValue(petId) !== null && toValue(petId) !== undefined,
     ),
     ...queryOptions,
   } as UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>;
@@ -269,7 +271,7 @@ export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = AxiosError<Error>,
 >(
-  petId: MaybeRef<string>,
+  petId: MaybeRefOrGetter<string>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
@@ -300,10 +302,10 @@ export function useShowPetById<
  * @summary Deletes a specific pet
  */
 export const deletePetById = (
-  petId: MaybeRef<string>,
+  petId: MaybeRefOrGetter<string>,
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<void>> => {
-  petId = unref(petId);
+  petId = toValue(petId);
 
   return axios.delete(`/pets/${petId}`, options);
 };
@@ -461,15 +463,17 @@ export function useHealthCheck<
  * @summary combinate nullable and $ref
  */
 export const showPetWithOwner = (
-  petId: MaybeRef<string>,
+  petId: MaybeRefOrGetter<string>,
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<PetWithTag>> => {
-  petId = unref(petId);
+  petId = toValue(petId);
 
   return axios.get(`/pets/${petId}/owner`, options);
 };
 
-export const getShowPetWithOwnerQueryKey = (petId: MaybeRef<string>) => {
+export const getShowPetWithOwnerQueryKey = (
+  petId: MaybeRefOrGetter<string>,
+) => {
   return ['pets', petId, 'owner'] as const;
 };
 
@@ -477,7 +481,7 @@ export const getShowPetWithOwnerQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = AxiosError<Error>,
 >(
-  petId: MaybeRef<string>,
+  petId: MaybeRefOrGetter<string>,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -501,7 +505,7 @@ export const getShowPetWithOwnerQueryOptions = <
     queryKey,
     queryFn,
     enabled: computed(
-      () => unref(petId) !== null && unref(petId) !== undefined,
+      () => toValue(petId) !== null && toValue(petId) !== undefined,
     ),
     ...queryOptions,
   } as UseQueryOptions<
@@ -524,7 +528,7 @@ export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = AxiosError<Error>,
 >(
-  petId: MaybeRef<string>,
+  petId: MaybeRefOrGetter<string>,
   options?: {
     query?: Partial<
       UseQueryOptions<
