@@ -7,7 +7,8 @@ import {
   OutputClient,
   type WriteSpecBuilder,
 } from '../types';
-import { compareVersions, pascal } from '../utils';
+import { pascal } from '../utils';
+import { hasTypeScriptAwaitedType } from './typescript-version';
 
 function emptyMockOutputFull(
   type: GeneratorMockOutputFull['type'],
@@ -127,12 +128,7 @@ export function generateTarget(
         isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
       );
 
-      const typescriptVersion =
-        options.packageJson?.dependencies?.typescript ??
-        options.packageJson?.devDependencies?.typescript ??
-        '4.4.0';
-
-      const hasAwaitedType = compareVersions(typescriptVersion, '4.5.0');
+      const hasAwaitedType = hasTypeScriptAwaitedType(options.packageJson);
 
       const header = builder.header({
         outputClient: options.client,
