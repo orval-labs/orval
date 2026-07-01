@@ -100,13 +100,24 @@ export async function runFormatter(
 
 function getComparableFilePath(filePath: string): string {
   const resolvedPath = path.resolve(filePath);
-  const realPath = fs.realpathSync(resolvedPath);
+  let comparablePath = resolvedPath;
+
+  try {
+    comparablePath = fs.realpathSync(resolvedPath);
+  } catch (error) {
+    // The workspace index may not exist yet on a first generation run.
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
+  }
 
   // paths in Linux can be named the same but have different casing,
   // and they are considered different files.
   const isPlatformCaseIndependent =
     process.platform === 'win32' || process.platform === 'darwin';
-  return isPlatformCaseIndependent ? realPath.toLowerCase() : realPath;
+  return isPlatformCaseIndependent
+    ? comparablePath.toLowerCase()
+    : comparablePath;
 }
 
 function excludeFilePath(
