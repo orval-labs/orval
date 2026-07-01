@@ -135,18 +135,20 @@ function excludeFilePath(
     .map(({ filePath }) => filePath);
 }
 
+const moduleSpecifierPatterns = [
+  // import { Pet } from './pet'; export * from './pet';
+  /\b(?:import|export)\b[^;]*\bfrom\s+['"]([^'"]+)['"]/g,
+  // import './setup';
+  /\bimport\s+['"]([^'"]+)['"]/g,
+];
+
 function getDeclaredModuleSpecifiers(data: string): Set<string> {
   const specifiers = new Set<string>();
-  const fromSpecifierPattern =
-    /\b(?:import|export)\b[^;]*?\bfrom\s*(['"])([^'"]+)\1/g;
-  const sideEffectImportPattern = /\bimport\s*(['"])([^'"]+)\1/g;
 
-  for (const match of data.matchAll(fromSpecifierPattern)) {
-    specifiers.add(match[2]);
-  }
-
-  for (const match of data.matchAll(sideEffectImportPattern)) {
-    specifiers.add(match[2]);
+  for (const pattern of moduleSpecifierPatterns) {
+    for (const [, moduleSpecifier] of data.matchAll(pattern)) {
+      specifiers.add(moduleSpecifier);
+    }
   }
 
   return specifiers;
