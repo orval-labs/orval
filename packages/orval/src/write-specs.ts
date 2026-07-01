@@ -694,6 +694,7 @@ export async function writeSpecs(
           mockExtensions.length === 0 ||
           !mockExtensions.some((ext) => p.endsWith(`.${ext}.ts`)),
       )
+      .filter((p) => path.resolve(p) !== path.resolve(indexFile))
       .map((p) => {
         const relative = upath.getRelativeImportPath(indexFile, p, true);
         const withoutExt = relative.endsWith(output.fileExtension)

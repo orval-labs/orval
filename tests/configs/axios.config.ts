@@ -383,4 +383,38 @@ export default defineConfig({
       target: '../specifications/issue-3330.yaml',
     },
   },
+  issue3675IndexTarget: {
+    output: {
+      target: 'index.ts',
+      workspace: '../generated/axios/issue-3675-index-target/',
+      mode: 'split',
+      client: 'axios',
+      indexFiles: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
+  issue3675NonIndexTarget: {
+    output: {
+      target: 'endpoints.ts',
+      workspace: '../generated/axios/issue-3675-non-index-target/',
+      mode: 'split',
+      client: 'axios',
+      indexFiles: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
 });
