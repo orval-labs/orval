@@ -22,10 +22,9 @@ export const getSwaggerPetstore = (axiosInstance: AxiosInstance = axios) => {
    */
   const listPets = (
     params: ListPetsParams,
-    version: number = 1,
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<Pets>> => {
-    return axiosInstance.get(`/v${version}/pets`, {
+    return axiosInstance.get(`/pets`, {
       ...options,
       params: { ...params, ...options?.params },
     });
@@ -37,10 +36,9 @@ export const getSwaggerPetstore = (axiosInstance: AxiosInstance = axios) => {
   const createPets = (
     createPetsBody: CreatePetsBody,
     params: CreatePetsParams,
-    version: number = 1,
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<Pet>> => {
-    return axiosInstance.post(`/v${version}/pets`, createPetsBody, {
+    return axiosInstance.post(`/pets`, createPetsBody, {
       ...options,
       params: { ...params, ...options?.params },
     });
@@ -51,10 +49,9 @@ export const getSwaggerPetstore = (axiosInstance: AxiosInstance = axios) => {
    */
   const showPetById = (
     petId: string,
-    version: number = 1,
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<Pet>> => {
-    return axiosInstance.get(`/v${version}/pets/${petId}`, options);
+    return axiosInstance.get(`/pets/${petId}`, options);
   };
 
   /**
@@ -62,20 +59,18 @@ export const getSwaggerPetstore = (axiosInstance: AxiosInstance = axios) => {
    */
   const deletePetById = (
     petId: string,
-    version: number = 1,
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<void>> => {
-    return axiosInstance.delete(`/v${version}/pets/${petId}`, options);
+    return axiosInstance.delete(`/pets/${petId}`, options);
   };
 
   /**
    * @summary health check
    */
   const healthCheck = (
-    version: number = 1,
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<string>> => {
-    return axiosInstance.get(`/v${version}/health`, {
+    return axiosInstance.get(`/health`, {
       responseType: 'text',
       ...options,
     });
@@ -86,10 +81,9 @@ export const getSwaggerPetstore = (axiosInstance: AxiosInstance = axios) => {
    */
   const showPetWithOwner = (
     petId: string,
-    version: number = 1,
     options?: AxiosRequestConfig,
   ): Promise<AxiosResponse<PetWithTag>> => {
-    return axiosInstance.get(`/v${version}/pets/${petId}/owner`, options);
+    return axiosInstance.get(`/pets/${petId}/owner`, options);
   };
 
   return {
