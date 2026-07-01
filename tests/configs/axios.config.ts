@@ -395,9 +395,6 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/petstore.yaml',
-      override: {
-        transformer: '../transformers/add-version.js',
-      },
     },
   },
   issue3675NonIndexTarget: {
@@ -412,9 +409,6 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/petstore.yaml',
-      override: {
-        transformer: '../transformers/add-version.js',
-      },
     },
   },
 });
