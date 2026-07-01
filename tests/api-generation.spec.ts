@@ -1100,15 +1100,16 @@ test('fetch issue-3663 combines required from a constraint-only allOf overlay', 
   // Base stays fully optional.
   expect(content).toContain('name?: string;');
 
-  // $ref overlay: id/name promoted to required via Required<Pick>.
-  expect(content).toMatch(
-    /export type Foo =[\s\S]*Required<Pick<[\s\S]*'id' \| 'name'/,
-  );
+  // $ref overlay: id/name promoted to required via Required<Pick>. Scope the
+  // match to Foo's own declaration (up to its terminating `;`) so a broken
+  // promotion here can't be masked by BarInline's declaration below.
+  const fooType = content.match(/export type Foo =[\s\S]*?;/)?.[0] ?? '';
+  expect(fooType).toMatch(/Required<Pick<[\s\S]*?'id' \| 'name'/);
 
-  // Inline overlay without `type: object`: same promotion.
-  expect(content).toMatch(
-    /export type BarInline =[\s\S]*Required<Pick<[\s\S]*'id' \| 'name'/,
-  );
+  // Inline overlay without `type: object`: same promotion, scoped to BarInline.
+  const barInlineType =
+    content.match(/export type BarInline =[\s\S]*?;/)?.[0] ?? '';
+  expect(barInlineType).toMatch(/Required<Pick<[\s\S]*?'id' \| 'name'/);
 });
 
 test('zod override.zod.version pins the output target independently of the installed zod', async () => {

@@ -296,8 +296,9 @@ describe('combineSchemas (allOf required handling)', () => {
       nullable: '',
     });
 
-    expect(result.value).toContain('Required<Pick');
-    expect(result.value).toContain("'baseProp'");
+    // Assert the exact Pick argument so a duplicate-union regression
+    // (e.g. `Required<Pick<..., 'baseProp' | 'baseProp'>>`) is caught.
+    expect(result.value).toMatch(/Required<Pick<[^,]+, 'baseProp'>>/);
   });
 
   // #3663: the sparse-fieldset pattern splits a model into a base (all props
@@ -320,8 +321,9 @@ describe('combineSchemas (allOf required handling)', () => {
       nullable: '',
     });
 
-    expect(result.value).toContain('Required<Pick');
-    expect(result.value).toContain("'baseProp'");
+    // Assert the exact Pick argument so a duplicate-union regression
+    // (e.g. `Required<Pick<..., 'baseProp' | 'baseProp'>>`) is caught.
+    expect(result.value).toMatch(/Required<Pick<[^,]+, 'baseProp'>>/);
   });
 
   // #3663: the same overlay written inline without `type: object` fails the
@@ -343,8 +345,9 @@ describe('combineSchemas (allOf required handling)', () => {
       nullable: '',
     });
 
-    expect(result.value).toContain('Required<Pick');
-    expect(result.value).toContain("'baseProp'");
+    // Assert the exact Pick argument so a duplicate-union regression
+    // (e.g. `Required<Pick<..., 'baseProp' | 'baseProp'>>`) is caught.
+    expect(result.value).toMatch(/Required<Pick<[^,]+, 'baseProp'>>/);
   });
 
   it('normalizes inline object in allOf to match parent object form', () => {
