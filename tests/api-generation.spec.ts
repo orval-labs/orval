@@ -1712,6 +1712,7 @@ test('axios workspace barrel re-exports implementation when target is not index.
     'utf8',
   );
 
-  // The barrel must re-export the endpoints implementation.
+  // The barrel must re-export the implementation and generated schemas.
   expect(barrel).toContain("export * from './endpoints'");
+  expect(barrel).toContain("export * from './endpoints.schemas'");
 });

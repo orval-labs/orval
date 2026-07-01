@@ -394,7 +394,7 @@ export default defineConfig({
       formatter: 'prettier',
     },
     input: {
-      target: '../specifications/petstore.yaml',
+      target: '../specifications/issue-3675.yaml',
     },
   },
   issue3675NonIndexTarget: {
@@ -408,7 +408,7 @@ export default defineConfig({
       formatter: 'prettier',
     },
     input: {
-      target: '../specifications/petstore.yaml',
+      target: '../specifications/issue-3675.yaml',
     },
   },
 });
