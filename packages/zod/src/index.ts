@@ -2202,13 +2202,13 @@ export const generateFormDataZodSchema = (
 };
 
 /**
- * Generate zod schema for an application/x-www-form-urlencoded request body.
+ * Parse a request body or response into a zod validation schema definition.
  *
- * These bodies are serialized via URLSearchParams, whose values are always
- * strings, so — unlike multipart/form-data — file/binary top-level fields must
- * stay `string` rather than becoming `File`. This mirrors core's urlEncoded
- * handling in getScalar, which skips Blob coercion for such bodies (#1624).
- * Otherwise it behaves exactly like plain-object generation.
+ * Selects the relevant content type — JSON (and `+json` vendor types),
+ * `multipart/form-data`, or `application/x-www-form-urlencoded`, plus
+ * `text/plain` for responses — and generates the matching schema, handling
+ * array roots. The url-encoded string-contract rationale lives where the flag
+ * is derived (see `isFormUrlEncoded` below).
  */
 const parseBodyAndResponse = ({
   data,
