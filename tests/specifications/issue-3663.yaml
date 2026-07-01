@@ -1,0 +1,57 @@
+openapi: 3.0.0
+info:
+  title: Issue 3663 - allOf constraint-only required overlay
+  version: 1.0.0
+paths:
+  /foo:
+    get:
+      operationId: getFoo
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/foo'
+  /bar:
+    get:
+      operationId: getBar
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/barInline'
+components:
+  schemas:
+    # Base model: every writable field is optional (JSON Merge Patch "partial").
+    fooPartial:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+        detail:
+          type: string
+    # Constraint-only overlay: only lists which fields become required.
+    fooRequiredFields:
+      required:
+        - id
+        - name
+    # Full model composed from the partial base + the required overlay via $ref.
+    # `id` and `name` must be required here even though `required` lives in a
+    # sibling `$ref` whose properties are defined in the other member.
+    foo:
+      allOf:
+        - $ref: '#/components/schemas/fooPartial'
+        - $ref: '#/components/schemas/fooRequiredFields'
+    # Same intent, but the overlay is inline and omits `type: object`.
+    barInline:
+      allOf:
+        - $ref: '#/components/schemas/fooPartial'
+        - required:
+            - id
+            - name

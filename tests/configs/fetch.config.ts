@@ -902,4 +902,15 @@ export default defineConfig({
       target: '../specifications/issue-3326.yaml',
     },
   },
+  'issue-3663': {
+    output: {
+      target: '../generated/fetch/issue-3663/endpoints.ts',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3663.yaml',
+    },
+  },
 });
