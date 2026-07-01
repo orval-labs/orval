@@ -42,6 +42,12 @@ const context = {
           type: 'string',
           enum: ['new', 'in_progress'],
         },
+        // A constraint-only overlay: carries `required` but no properties of its
+        // own. Used to exercise the sparse-fieldset pattern from #3663 where the
+        // required lives in a sibling that references another member's props.
+        RequiredOverlay: {
+          required: ['baseProp'],
+        },
       },
     },
   },
@@ -290,8 +296,58 @@ describe('combineSchemas (allOf required handling)', () => {
       nullable: '',
     });
 
-    expect(result.value).toContain('Required<Pick');
-    expect(result.value).toContain("'baseProp'");
+    // Assert the exact Pick argument so a duplicate-union regression
+    // (e.g. `Required<Pick<..., 'baseProp' | 'baseProp'>>`) is caught.
+    expect(result.value).toMatch(/Required<Pick<[^,]+, 'baseProp'>>/);
+  });
+
+  // #3663: the sparse-fieldset pattern splits a model into a base (all props
+  // optional) and a constraint-only overlay that only lists `required`. When the
+  // overlay is a `$ref`, its `required` lives inside the referenced schema and
+  // must still be promoted onto the base's properties.
+  it('promotes required from a $ref constraint-only overlay (#3663)', () => {
+    const schema: OpenApiSchemaObject = {
+      allOf: [
+        { $ref: '#/components/schemas/Base' },
+        { $ref: '#/components/schemas/RequiredOverlay' },
+      ],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'Foo',
+      separator: 'allOf',
+      context,
+      nullable: '',
+    });
+
+    // Assert the exact Pick argument so a duplicate-union regression
+    // (e.g. `Required<Pick<..., 'baseProp' | 'baseProp'>>`) is caught.
+    expect(result.value).toMatch(/Required<Pick<[^,]+, 'baseProp'>>/);
+  });
+
+  // #3663: the same overlay written inline without `type: object` fails the
+  // `isSchema` gate (no type/properties/composition), so its `required` was
+  // dropped. It must be promoted just like the `$ref` and `type: object` forms.
+  it('promotes required from an inline constraint-only overlay without type (#3663)', () => {
+    const schema: OpenApiSchemaObject = {
+      allOf: [
+        { $ref: '#/components/schemas/Base' },
+        { required: ['baseProp'] },
+      ],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'Foo',
+      separator: 'allOf',
+      context,
+      nullable: '',
+    });
+
+    // Assert the exact Pick argument so a duplicate-union regression
+    // (e.g. `Required<Pick<..., 'baseProp' | 'baseProp'>>`) is caught.
+    expect(result.value).toMatch(/Required<Pick<[^,]+, 'baseProp'>>/);
   });
 
   it('normalizes inline object in allOf to match parent object form', () => {
