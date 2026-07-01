@@ -31,7 +31,7 @@ vi.mock('@orval/core', async (importOriginal) => {
 
 import { execa } from 'execa';
 
-import { runFormatter } from './write-specs';
+import { getUndeclaredModuleSpecifiers, runFormatter } from './write-specs';
 
 const mockedExeca = vi.mocked(execa);
 
@@ -81,5 +81,29 @@ describe('runFormatter', () => {
     expect(logWarning).toHaveBeenCalledWith(
       expect.stringContaining('oxfmt not found'),
     );
+  });
+});
+
+describe('getUndeclaredModuleSpecifiers', () => {
+  it('does not dedupe by substring', () => {
+    const data = "import type { Pet } from './index.schemas';\n";
+
+    expect(
+      getUndeclaredModuleSpecifiers(['./index', './index.schemas'], data),
+    ).toEqual(['./index']);
+  });
+
+  it('dedupes exact import and export module specifiers', () => {
+    const data = [
+      "import type { Pet } from './index.schemas';",
+      "export * from './endpoints';",
+    ].join('\n');
+
+    expect(
+      getUndeclaredModuleSpecifiers(
+        ['./index.schemas', './endpoints', './endpoints.msw'],
+        data,
+      ),
+    ).toEqual(['./endpoints.msw']);
   });
 });

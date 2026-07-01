@@ -98,6 +98,60 @@ export async function runFormatter(
   }
 }
 
+function getComparableFilePath(filePath: string): string {
+  const resolvedPath = path.resolve(filePath);
+  const realPath = fs.realpathSync(resolvedPath);
+
+  // paths in Linux can be named the same but have different casing,
+  // and they are considered different files.
+  const isPlatformCaseIndependent =
+    process.platform === 'win32' || process.platform === 'darwin';
+  return isPlatformCaseIndependent ? realPath.toLowerCase() : realPath;
+}
+
+function excludeFilePath(
+  filePaths: string[],
+  filePathToExclude: string,
+): string[] {
+  const comparablePathToExclude = getComparableFilePath(filePathToExclude);
+  const comparableFilePaths = filePaths.map((filePath) => ({
+    filePath,
+    comparablePath: getComparableFilePath(filePath),
+  }));
+
+  return comparableFilePaths
+    .filter(({ comparablePath }) => comparablePath !== comparablePathToExclude)
+    .map(({ filePath }) => filePath);
+}
+
+function getDeclaredModuleSpecifiers(data: string): Set<string> {
+  const specifiers = new Set<string>();
+  const fromSpecifierPattern =
+    /\b(?:import|export)\b[^;]*?\bfrom\s*(['"])([^'"]+)\1/g;
+  const sideEffectImportPattern = /\bimport\s*(['"])([^'"]+)\1/g;
+
+  for (const match of data.matchAll(fromSpecifierPattern)) {
+    specifiers.add(match[2]);
+  }
+
+  for (const match of data.matchAll(sideEffectImportPattern)) {
+    specifiers.add(match[2]);
+  }
+
+  return specifiers;
+}
+
+export function getUndeclaredModuleSpecifiers(
+  moduleSpecifiers: string[],
+  data: string,
+): string[] {
+  const declaredModuleSpecifiers = getDeclaredModuleSpecifiers(data);
+
+  return moduleSpecifiers.filter(
+    (moduleSpecifier) => !declaredModuleSpecifiers.has(moduleSpecifier),
+  );
+}
+
 function getHeader(
   option: false | ((info: OpenApiInfoObject) => string | string[]),
   info: OpenApiInfoObject,
@@ -688,13 +742,15 @@ export async function writeSpecs(
       output.fileExtension,
       output.tsconfig,
     );
-    const imports = implementationPaths
+    const implementationPathsForIndex = output.indexFiles
+      ? excludeFilePath(implementationPaths, indexFile)
+      : implementationPaths;
+    const imports = implementationPathsForIndex
       .filter(
         (p) =>
           mockExtensions.length === 0 ||
           !mockExtensions.some((ext) => p.endsWith(`.${ext}.ts`)),
       )
-      .filter((p) => path.resolve(p) !== path.resolve(indexFile))
       .map((p) => {
         const relative = upath.getRelativeImportPath(indexFile, p, true);
         const withoutExt = relative.endsWith(output.fileExtension)
@@ -727,7 +783,7 @@ export async function writeSpecs(
     if (output.indexFiles) {
       if (await fs.pathExists(indexFile)) {
         const data = await fs.readFile(indexFile, 'utf8');
-        const importsNotDeclared = imports.filter((imp) => !data.includes(imp));
+        const importsNotDeclared = getUndeclaredModuleSpecifiers(imports, data);
         await fs.appendFile(
           indexFile,
           unique(importsNotDeclared)
@@ -743,7 +799,7 @@ export async function writeSpecs(
         );
       }
 
-      implementationPaths = [indexFile, ...implementationPaths];
+      implementationPaths = [indexFile, ...implementationPathsForIndex];
     }
   }
 
