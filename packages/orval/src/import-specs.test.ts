@@ -87,6 +87,36 @@ const TEST_SPEC: OpenApiDocument = {
   },
 };
 
+const OPTIONAL_SECURITY_SPEC: OpenApiDocument = {
+  openapi: '3.1.0',
+  info: {
+    title: 'Optional Security API',
+    version: '1.0.0',
+  },
+  paths: {
+    '/public-or-authenticated': {
+      get: {
+        operationId: 'publicOrAuthenticated',
+        security: [{}, { ApiKeyAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Success',
+          },
+        },
+      },
+    },
+  },
+  components: {
+    securitySchemes: {
+      ApiKeyAuth: {
+        type: 'apiKey',
+        name: 'x-api-key',
+        in: 'header',
+      },
+    },
+  },
+};
+
 const SSE_ITEM_SCHEMA_SPEC: OpenApiDocument = {
   openapi: '3.1.0',
   info: {
@@ -147,6 +177,24 @@ const SSE_ITEM_SCHEMA_SPEC: OpenApiDocument = {
 };
 
 describe('validation', () => {
+  it('should accept optional security alternatives during import', async () => {
+    const workspace = 'test';
+    const normalizedOptions = await normalizeOptions(
+      {
+        output: { target: '' },
+        input: { target: OPTIONAL_SECURITY_SPEC },
+      },
+      workspace,
+      {},
+    );
+
+    const spec = await importSpecs(workspace, normalizedOptions);
+    expect(spec.verbOptions).toHaveProperty('publicOrAuthenticated');
+    expect(
+      spec.spec.paths?.['/public-or-authenticated']?.get?.security,
+    ).toEqual([{}, { ApiKeyAuth: [] }]);
+  });
+
   it('should throw on non-standard fields like itemSchema by default', async () => {
     const workspace = 'test';
     const normalizedOptions = await normalizeOptions(
