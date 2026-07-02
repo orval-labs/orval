@@ -128,7 +128,7 @@ export default defineConfig({
       override: {
         query: {
           signal: true,
-          runtimeValidation: true,
+          runtimeValidation: { strategy: 'both' },
         },
       },
     },

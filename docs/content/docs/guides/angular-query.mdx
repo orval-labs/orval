@@ -345,7 +345,11 @@ export default defineConfig({
 
 ## Zod Runtime Validation
 
-When using Zod schemas, you can enable automatic runtime validation of HTTP responses. Orval will pipe each response through `Schema.parse()` inside the RxJS Observable pipeline before converting to a Promise:
+When using Zod schemas, you can enable automatic runtime validation of HTTP
+responses. `runtimeValidation` accepts either:
+
+- `true` (shorthand for `{ strategy: 'throw' }`) to parse and throw
+- `{ strategy: 'both' }` to log the raw `ZodError` then throw
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -358,7 +362,7 @@ export default defineConfig({
       schemas: { path: 'src/model', type: 'zod' },
       override: {
         query: {
-          runtimeValidation: true,
+          runtimeValidation: { strategy: 'both' },
         },
       },
     },
@@ -372,11 +376,21 @@ export default defineConfig({
 This generates:
 
 ```ts
-const request$ = http.get<Pets>(url, { params: httpParams })
-  .pipe(map(data => Pets.parse(data)));
+const request$ = http.get<Pets>(url, { params: httpParams }).pipe(
+  map((data) => {
+    const result = Pets.safeParse(data);
+    if (!result.success) {
+      console.error('[orval] listPets response validation failed', result.error);
+      throw result.error;
+    }
+    return result.data;
+  }),
+);
 ```
 
-Validation is automatically skipped for primitive response types (`string`, `void`, etc.) and for operations using a custom mutator.
+Use `runtimeValidation: true` to keep the existing `Schema.parse()` behavior.
+Validation is automatically skipped for primitive response types (`string`,
+`void`, etc.) and for operations using a custom mutator.
 
 ## Full Example
 

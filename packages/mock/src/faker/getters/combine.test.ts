@@ -97,7 +97,7 @@ function createMockContext(): ContextSpec {
         angular: {
           provideIn: 'root',
           client: 'httpClient',
-          runtimeValidation: false,
+          runtimeValidation: { enabled: false, strategy: 'throw' },
         },
         swr: {},
         zod: {
@@ -152,7 +152,7 @@ function createMockContext(): ContextSpec {
         fetch: {
           includeHttpResponseReturnType: false,
           forceSuccessResponse: false,
-          runtimeValidation: false,
+          runtimeValidation: { enabled: false, strategy: 'throw' },
           useRuntimeFetcher: false,
         },
         enumGenerationType: EnumGeneration.UNION,
