@@ -277,9 +277,11 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   },
   {
     exports: [
-      { name: 'unref', values: true },
-      { name: 'MaybeRef' },
       { name: 'computed', values: true },
+      { name: 'unref', values: true },
+      { name: 'toValue', values: true },
+      { name: 'MaybeRef' },
+      { name: 'MaybeRefOrGetter' },
     ],
     dependency: 'vue',
   },
@@ -391,10 +393,10 @@ export const isVueQueryV3 = (packageJson: PackageJson | undefined) => {
 };
 
 export const getVueQueryDependencies: ClientDependenciesBuilder = (
-  hasGlobalMutator: boolean,
-  hasParamsSerializerOptions: boolean,
+  hasGlobalMutator,
+  hasParamsSerializerOptions,
   packageJson,
-  httpClient?: OutputHttpClient,
+  httpClient,
 ) => {
   const hasVueQueryV3 = isVueQueryV3(packageJson);
 

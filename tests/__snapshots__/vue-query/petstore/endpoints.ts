@@ -20,8 +20,8 @@ import type {
 import axios from 'axios';
 import type { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import { computed, unref } from 'vue';
-import type { MaybeRef } from 'vue';
+import { computed, toValue, unref } from 'vue';
+import type { MaybeRefOrGetter } from 'vue';
 
 import type {
   CreatePetsBody,
@@ -44,12 +44,12 @@ import type { Cat, Dachshund, Dog, Labradoodle } from './model';
  * @summary List all pets
  */
 export const listPets = (
-  params: MaybeRef<ListPetsParams>,
-  version: MaybeRef<number> = 1,
+  params: MaybeRefOrGetter<ListPetsParams>,
+  version: MaybeRefOrGetter<number> = 1,
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Pets>> => {
-  params = unref(params);
-  version = unref(version);
+  params = toValue(params);
+  version = toValue(version);
 
   return axios.get(`/v${version}/pets`, {
     ...options,
@@ -58,8 +58,8 @@ export const listPets = (
 };
 
 export const getListPetsInfiniteQueryKey = (
-  params?: MaybeRef<ListPetsParams>,
-  version: MaybeRef<number> = 1,
+  params?: MaybeRefOrGetter<ListPetsParams>,
+  version: MaybeRefOrGetter<number> = 1,
 ) => {
   return [
     'infinite',
@@ -71,8 +71,8 @@ export const getListPetsInfiniteQueryKey = (
 };
 
 export const getListPetsQueryKey = (
-  params?: MaybeRef<ListPetsParams>,
-  version: MaybeRef<number> = 1,
+  params?: MaybeRefOrGetter<ListPetsParams>,
+  version: MaybeRefOrGetter<number> = 1,
 ) => {
   return ['v', version, 'pets', ...(params ? [params] : [])] as const;
 };
@@ -84,8 +84,8 @@ export const getListPetsInfiniteQueryOptions = <
   >,
   TError = AxiosError<Error>,
 >(
-  params: MaybeRef<ListPetsParams>,
-  version: MaybeRef<number> = 1,
+  params: MaybeRefOrGetter<ListPetsParams>,
+  version: MaybeRefOrGetter<number> = 1,
   options?: {
     query?: Partial<
       UseInfiniteQueryOptions<
@@ -109,7 +109,7 @@ export const getListPetsInfiniteQueryOptions = <
     ListPetsParams['limit']
   > = ({ signal, pageParam }) =>
     listPets(
-      { ...unref(params), limit: pageParam ?? unref(params)?.['limit'] },
+      { ...toValue(params), limit: pageParam ?? toValue(params)?.['limit'] },
       version,
       { signal, ...axiosOptions },
     );
@@ -118,7 +118,7 @@ export const getListPetsInfiniteQueryOptions = <
     queryKey,
     queryFn,
     enabled: computed(
-      () => unref(version) !== null && unref(version) !== undefined,
+      () => toValue(version) !== null && toValue(version) !== undefined,
     ),
     ...queryOptions,
   } as UseInfiniteQueryOptions<
@@ -146,8 +146,8 @@ export function useListPetsInfinite<
   >,
   TError = AxiosError<Error>,
 >(
-  params: MaybeRef<ListPetsParams>,
-  version: MaybeRef<number> = 1,
+  params: MaybeRefOrGetter<ListPetsParams>,
+  version: MaybeRefOrGetter<number> = 1,
   options?: {
     query?: Partial<
       UseInfiniteQueryOptions<
@@ -190,8 +190,8 @@ export const getListPetsQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = AxiosError<Error>,
 >(
-  params: MaybeRef<ListPetsParams>,
-  version: MaybeRef<number> = 1,
+  params: MaybeRefOrGetter<ListPetsParams>,
+  version: MaybeRefOrGetter<number> = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -211,7 +211,7 @@ export const getListPetsQueryOptions = <
     queryKey,
     queryFn,
     enabled: computed(
-      () => unref(version) !== null && unref(version) !== undefined,
+      () => toValue(version) !== null && toValue(version) !== undefined,
     ),
     ...queryOptions,
   } as UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>;
@@ -230,8 +230,8 @@ export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = AxiosError<Error>,
 >(
-  params: MaybeRef<ListPetsParams>,
-  version: MaybeRef<number> = 1,
+  params: MaybeRefOrGetter<ListPetsParams>,
+  version: MaybeRefOrGetter<number> = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -262,14 +262,14 @@ export function useListPets<
  * @summary Create a pet
  */
 export const createPets = (
-  createPetsBody: MaybeRef<CreatePetsBody>,
-  params: MaybeRef<CreatePetsParams>,
-  version: MaybeRef<number> = 1,
+  createPetsBody: MaybeRefOrGetter<CreatePetsBody>,
+  params: MaybeRefOrGetter<CreatePetsParams>,
+  version: MaybeRefOrGetter<number> = 1,
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Pet>> => {
-  createPetsBody = unref(createPetsBody);
-  params = unref(params);
-  version = unref(version);
+  createPetsBody = toValue(createPetsBody);
+  params = toValue(params);
+  version = toValue(version);
 
   return axios.post(`/v${version}/pets`, createPetsBody, {
     ...options,
@@ -278,9 +278,9 @@ export const createPets = (
 };
 
 export const getCreatePetsQueryKey = (
-  createPetsBody?: MaybeRef<CreatePetsBody>,
-  params?: MaybeRef<CreatePetsParams>,
-  version: MaybeRef<number> = 1,
+  createPetsBody?: MaybeRefOrGetter<CreatePetsBody>,
+  params?: MaybeRefOrGetter<CreatePetsParams>,
+  version: MaybeRefOrGetter<number> = 1,
 ) => {
   return [
     'POST',
@@ -296,9 +296,9 @@ export const getCreatePetsQueryOptions = <
   TData = Awaited<ReturnType<typeof createPets>>,
   TError = AxiosError<Error>,
 >(
-  createPetsBody: MaybeRef<CreatePetsBody>,
-  params: MaybeRef<CreatePetsParams>,
-  version: MaybeRef<number> = 1,
+  createPetsBody: MaybeRefOrGetter<CreatePetsBody>,
+  params: MaybeRefOrGetter<CreatePetsParams>,
+  version: MaybeRefOrGetter<number> = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
@@ -319,7 +319,7 @@ export const getCreatePetsQueryOptions = <
     queryKey,
     queryFn,
     enabled: computed(
-      () => unref(version) !== null && unref(version) !== undefined,
+      () => toValue(version) !== null && toValue(version) !== undefined,
     ),
     ...queryOptions,
   } as UseQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>;
@@ -338,9 +338,9 @@ export function useCreatePets<
   TData = Awaited<ReturnType<typeof createPets>>,
   TError = AxiosError<Error>,
 >(
-  createPetsBody: MaybeRef<CreatePetsBody>,
-  params: MaybeRef<CreatePetsParams>,
-  version: MaybeRef<number> = 1,
+  createPetsBody: MaybeRefOrGetter<CreatePetsBody>,
+  params: MaybeRefOrGetter<CreatePetsParams>,
+  version: MaybeRefOrGetter<number> = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
@@ -376,19 +376,19 @@ export function useCreatePets<
  * @summary Info for a specific pet
  */
 export const showPetById = (
-  petId: MaybeRef<string>,
-  version: MaybeRef<number> = 1,
+  petId: MaybeRefOrGetter<string>,
+  version: MaybeRefOrGetter<number> = 1,
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<Pet>> => {
-  petId = unref(petId);
-  version = unref(version);
+  petId = toValue(petId);
+  version = toValue(version);
 
   return axios.get(`/v${version}/pets/${petId}`, options);
 };
 
 export const getShowPetByIdQueryKey = (
-  petId: MaybeRef<string>,
-  version: MaybeRef<number> = 1,
+  petId: MaybeRefOrGetter<string>,
+  version: MaybeRefOrGetter<number> = 1,
 ) => {
   return ['v', version, 'pets', petId] as const;
 };
@@ -397,8 +397,8 @@ export const getShowPetByIdQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = AxiosError<Error>,
 >(
-  petId: MaybeRef<string>,
-  version: MaybeRef<number> = 1,
+  petId: MaybeRefOrGetter<string>,
+  version: MaybeRefOrGetter<number> = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
@@ -419,10 +419,10 @@ export const getShowPetByIdQueryOptions = <
     queryFn,
     enabled: computed(
       () =>
-        unref(version) !== null &&
-        unref(version) !== undefined &&
-        unref(petId) !== null &&
-        unref(petId) !== undefined,
+        toValue(version) !== null &&
+        toValue(version) !== undefined &&
+        toValue(petId) !== null &&
+        toValue(petId) !== undefined,
     ),
     ...queryOptions,
   } as UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>;
@@ -441,8 +441,8 @@ export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = AxiosError<Error>,
 >(
-  petId: MaybeRef<string>,
-  version: MaybeRef<number> = 1,
+  petId: MaybeRefOrGetter<string>,
+  version: MaybeRefOrGetter<number> = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
@@ -473,19 +473,19 @@ export function useShowPetById<
  * @summary Deletes a specific pet
  */
 export const deletePetById = (
-  petId: MaybeRef<string>,
-  version: MaybeRef<number> = 1,
+  petId: MaybeRefOrGetter<string>,
+  version: MaybeRefOrGetter<number> = 1,
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<void>> => {
-  petId = unref(petId);
-  version = unref(version);
+  petId = toValue(petId);
+  version = toValue(version);
 
   return axios.delete(`/v${version}/pets/${petId}`, options);
 };
 
 export const getDeletePetByIdQueryKey = (
-  petId: MaybeRef<string>,
-  version: MaybeRef<number> = 1,
+  petId: MaybeRefOrGetter<string>,
+  version: MaybeRefOrGetter<number> = 1,
 ) => {
   return ['DELETE', 'v', version, 'pets', petId] as const;
 };
@@ -494,8 +494,8 @@ export const getDeletePetByIdQueryOptions = <
   TData = Awaited<ReturnType<typeof deletePetById>>,
   TError = AxiosError<Error>,
 >(
-  petId: MaybeRef<string>,
-  version: MaybeRef<number> = 1,
+  petId: MaybeRefOrGetter<string>,
+  version: MaybeRefOrGetter<number> = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof deletePetById>>, TError, TData>
@@ -516,10 +516,10 @@ export const getDeletePetByIdQueryOptions = <
     queryFn,
     enabled: computed(
       () =>
-        unref(version) !== null &&
-        unref(version) !== undefined &&
-        unref(petId) !== null &&
-        unref(petId) !== undefined,
+        toValue(version) !== null &&
+        toValue(version) !== undefined &&
+        toValue(petId) !== null &&
+        toValue(petId) !== undefined,
     ),
     ...queryOptions,
   } as UseQueryOptions<
@@ -542,8 +542,8 @@ export function useDeletePetById<
   TData = Awaited<ReturnType<typeof deletePetById>>,
   TError = AxiosError<Error>,
 >(
-  petId: MaybeRef<string>,
-  version: MaybeRef<number> = 1,
+  petId: MaybeRefOrGetter<string>,
+  version: MaybeRefOrGetter<number> = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof deletePetById>>, TError, TData>
@@ -574,10 +574,10 @@ export function useDeletePetById<
  * @summary health check
  */
 export const healthCheck = (
-  version: MaybeRef<number> = 1,
+  version: MaybeRefOrGetter<number> = 1,
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<string>> => {
-  version = unref(version);
+  version = toValue(version);
 
   return axios.get(`/v${version}/health`, {
     responseType: 'text',
@@ -585,7 +585,9 @@ export const healthCheck = (
   });
 };
 
-export const getHealthCheckQueryKey = (version: MaybeRef<number> = 1) => {
+export const getHealthCheckQueryKey = (
+  version: MaybeRefOrGetter<number> = 1,
+) => {
   return ['v', version, 'health'] as const;
 };
 
@@ -593,7 +595,7 @@ export const getHealthCheckQueryOptions = <
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = AxiosError<Error>,
 >(
-  version: MaybeRef<number> = 1,
+  version: MaybeRefOrGetter<number> = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
@@ -613,7 +615,7 @@ export const getHealthCheckQueryOptions = <
     queryKey,
     queryFn,
     enabled: computed(
-      () => unref(version) !== null && unref(version) !== undefined,
+      () => toValue(version) !== null && toValue(version) !== undefined,
     ),
     ...queryOptions,
   } as UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>;
@@ -632,7 +634,7 @@ export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = AxiosError<Error>,
 >(
-  version: MaybeRef<number> = 1,
+  version: MaybeRefOrGetter<number> = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
@@ -663,19 +665,19 @@ export function useHealthCheck<
  * @summary combinate nullable and $ref
  */
 export const showPetWithOwner = (
-  petId: MaybeRef<string>,
-  version: MaybeRef<number> = 1,
+  petId: MaybeRefOrGetter<string>,
+  version: MaybeRefOrGetter<number> = 1,
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<PetWithTag>> => {
-  petId = unref(petId);
-  version = unref(version);
+  petId = toValue(petId);
+  version = toValue(version);
 
   return axios.get(`/v${version}/pets/${petId}/owner`, options);
 };
 
 export const getShowPetWithOwnerQueryKey = (
-  petId: MaybeRef<string>,
-  version: MaybeRef<number> = 1,
+  petId: MaybeRefOrGetter<string>,
+  version: MaybeRefOrGetter<number> = 1,
 ) => {
   return ['v', version, 'pets', petId, 'owner'] as const;
 };
@@ -684,8 +686,8 @@ export const getShowPetWithOwnerQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = AxiosError<Error>,
 >(
-  petId: MaybeRef<string>,
-  version: MaybeRef<number> = 1,
+  petId: MaybeRefOrGetter<string>,
+  version: MaybeRefOrGetter<number> = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -711,10 +713,10 @@ export const getShowPetWithOwnerQueryOptions = <
     queryFn,
     enabled: computed(
       () =>
-        unref(version) !== null &&
-        unref(version) !== undefined &&
-        unref(petId) !== null &&
-        unref(petId) !== undefined,
+        toValue(version) !== null &&
+        toValue(version) !== undefined &&
+        toValue(petId) !== null &&
+        toValue(petId) !== undefined,
     ),
     ...queryOptions,
   } as UseQueryOptions<
@@ -737,8 +739,8 @@ export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = AxiosError<Error>,
 >(
-  petId: MaybeRef<string>,
-  version: MaybeRef<number> = 1,
+  petId: MaybeRefOrGetter<string>,
+  version: MaybeRefOrGetter<number> = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<

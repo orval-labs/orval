@@ -17,8 +17,8 @@ import type {
   UseQueryReturnType,
 } from '@tanstack/vue-query';
 
-import { computed, unref } from 'vue';
-import type { MaybeRef } from 'vue';
+import { computed, toValue, unref } from 'vue';
+import type { MaybeRefOrGetter } from 'vue';
 
 import type {
   CreatePetsBody,
@@ -34,12 +34,12 @@ import { customInstance } from '../mutator/custom-instance';
  * @summary List all pets
  */
 export const listPets = (
-  params?: MaybeRef<ListPetsParams>,
-  version: MaybeRef<number | undefined | null> = 1,
+  params?: MaybeRefOrGetter<ListPetsParams>,
+  version: MaybeRefOrGetter<number | undefined | null> = 1,
   signal?: AbortSignal,
 ) => {
-  params = unref(params);
-  version = unref(version);
+  params = toValue(params);
+  version = toValue(version);
 
   return customInstance<Pets>({
     url: `/v${encodeURIComponent(String(version))}/pets`,
@@ -50,8 +50,8 @@ export const listPets = (
 };
 
 export const getListPetsInfiniteQueryKey = (
-  params?: MaybeRef<ListPetsParams>,
-  version: MaybeRef<number | undefined | null> = 1,
+  params?: MaybeRefOrGetter<ListPetsParams>,
+  version: MaybeRefOrGetter<number | undefined | null> = 1,
 ) => {
   return [
     'infinite',
@@ -63,8 +63,8 @@ export const getListPetsInfiniteQueryKey = (
 };
 
 export const getListPetsQueryKey = (
-  params?: MaybeRef<ListPetsParams>,
-  version: MaybeRef<number | undefined | null> = 1,
+  params?: MaybeRefOrGetter<ListPetsParams>,
+  version: MaybeRefOrGetter<number | undefined | null> = 1,
 ) => {
   return ['v', version, 'pets', ...(params ? [params] : [])] as const;
 };
@@ -76,8 +76,8 @@ export const getListPetsInfiniteQueryOptions = <
   >,
   TError = Error,
 >(
-  params?: MaybeRef<ListPetsParams>,
-  version: MaybeRef<number | undefined | null> = 1,
+  params?: MaybeRefOrGetter<ListPetsParams>,
+  version: MaybeRefOrGetter<number | undefined | null> = 1,
   options?: {
     query?: Partial<
       UseInfiniteQueryOptions<
@@ -100,7 +100,7 @@ export const getListPetsInfiniteQueryOptions = <
     ListPetsParams['limit']
   > = ({ signal, pageParam }) =>
     listPets(
-      { ...unref(params), limit: pageParam ?? unref(params)?.['limit'] },
+      { ...toValue(params), limit: pageParam ?? toValue(params)?.['limit'] },
       version,
       signal,
     );
@@ -109,7 +109,7 @@ export const getListPetsInfiniteQueryOptions = <
     queryKey,
     queryFn,
     enabled: computed(
-      () => unref(version) !== null && unref(version) !== undefined,
+      () => toValue(version) !== null && toValue(version) !== undefined,
     ),
     ...queryOptions,
   } as UseInfiniteQueryOptions<
@@ -137,8 +137,8 @@ export function useListPetsInfinite<
   >,
   TError = Error,
 >(
-  params?: MaybeRef<ListPetsParams>,
-  version: MaybeRef<number | undefined | null> = 1,
+  params?: MaybeRefOrGetter<ListPetsParams>,
+  version: MaybeRefOrGetter<number | undefined | null> = 1,
   options?: {
     query?: Partial<
       UseInfiniteQueryOptions<
@@ -180,8 +180,8 @@ export const getListPetsQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  params?: MaybeRef<ListPetsParams>,
-  version: MaybeRef<number | undefined | null> = 1,
+  params?: MaybeRefOrGetter<ListPetsParams>,
+  version: MaybeRefOrGetter<number | undefined | null> = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -200,7 +200,7 @@ export const getListPetsQueryOptions = <
     queryKey,
     queryFn,
     enabled: computed(
-      () => unref(version) !== null && unref(version) !== undefined,
+      () => toValue(version) !== null && toValue(version) !== undefined,
     ),
     ...queryOptions,
   } as UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>;
@@ -219,8 +219,8 @@ export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  params?: MaybeRef<ListPetsParams>,
-  version: MaybeRef<number | undefined | null> = 1,
+  params?: MaybeRefOrGetter<ListPetsParams>,
+  version: MaybeRefOrGetter<number | undefined | null> = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -250,12 +250,12 @@ export function useListPets<
  * @summary Create a pet
  */
 export const createPets = (
-  createPetsBody: MaybeRef<CreatePetsBody>,
-  version: MaybeRef<number | undefined | null> = 1,
+  createPetsBody: MaybeRefOrGetter<CreatePetsBody>,
+  version: MaybeRefOrGetter<number | undefined | null> = 1,
   signal?: AbortSignal,
 ) => {
-  createPetsBody = unref(createPetsBody);
-  version = unref(version);
+  createPetsBody = toValue(createPetsBody);
+  version = toValue(version);
 
   return customInstance<Pet>({
     url: `/v${encodeURIComponent(String(version))}/pets`,
@@ -267,8 +267,8 @@ export const createPets = (
 };
 
 export const getCreatePetsQueryKey = (
-  createPetsBody?: MaybeRef<CreatePetsBody>,
-  version: MaybeRef<number | undefined | null> = 1,
+  createPetsBody?: MaybeRefOrGetter<CreatePetsBody>,
+  version: MaybeRefOrGetter<number | undefined | null> = 1,
 ) => {
   return ['POST', 'v', version, 'pets', createPetsBody] as const;
 };
@@ -277,8 +277,8 @@ export const getCreatePetsQueryOptions = <
   TData = Awaited<ReturnType<typeof createPets>>,
   TError = Error,
 >(
-  createPetsBody: MaybeRef<CreatePetsBody>,
-  version: MaybeRef<number | undefined | null> = 1,
+  createPetsBody: MaybeRefOrGetter<CreatePetsBody>,
+  version: MaybeRefOrGetter<number | undefined | null> = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
@@ -297,7 +297,7 @@ export const getCreatePetsQueryOptions = <
     queryKey,
     queryFn,
     enabled: computed(
-      () => unref(version) !== null && unref(version) !== undefined,
+      () => toValue(version) !== null && toValue(version) !== undefined,
     ),
     ...queryOptions,
   } as UseQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>;
@@ -316,8 +316,8 @@ export function useCreatePets<
   TData = Awaited<ReturnType<typeof createPets>>,
   TError = Error,
 >(
-  createPetsBody: MaybeRef<CreatePetsBody>,
-  version: MaybeRef<number | undefined | null> = 1,
+  createPetsBody: MaybeRefOrGetter<CreatePetsBody>,
+  version: MaybeRefOrGetter<number | undefined | null> = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>
@@ -351,12 +351,12 @@ export function useCreatePets<
  * @summary Info for a specific pet
  */
 export const showPetById = (
-  petId: MaybeRef<string | undefined | null>,
-  version: MaybeRef<number | undefined | null> = 1,
+  petId: MaybeRefOrGetter<string | undefined | null>,
+  version: MaybeRefOrGetter<number | undefined | null> = 1,
   signal?: AbortSignal,
 ) => {
-  petId = unref(petId);
-  version = unref(version);
+  petId = toValue(petId);
+  version = toValue(version);
 
   return customInstance<Pet>({
     url: `/v${encodeURIComponent(String(version))}/pets/${encodeURIComponent(String(petId))}`,
@@ -366,8 +366,8 @@ export const showPetById = (
 };
 
 export const getShowPetByIdQueryKey = (
-  petId: MaybeRef<string | undefined | null>,
-  version: MaybeRef<number | undefined | null> = 1,
+  petId: MaybeRefOrGetter<string | undefined | null>,
+  version: MaybeRefOrGetter<number | undefined | null> = 1,
 ) => {
   return ['v', version, 'pets', petId] as const;
 };
@@ -376,8 +376,8 @@ export const getShowPetByIdQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: MaybeRef<string | undefined | null>,
-  version: MaybeRef<number | undefined | null> = 1,
+  petId: MaybeRefOrGetter<string | undefined | null>,
+  version: MaybeRefOrGetter<number | undefined | null> = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
@@ -397,10 +397,10 @@ export const getShowPetByIdQueryOptions = <
     queryFn,
     enabled: computed(
       () =>
-        unref(version) !== null &&
-        unref(version) !== undefined &&
-        unref(petId) !== null &&
-        unref(petId) !== undefined,
+        toValue(version) !== null &&
+        toValue(version) !== undefined &&
+        toValue(petId) !== null &&
+        toValue(petId) !== undefined,
     ),
     ...queryOptions,
   } as UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>;
@@ -419,8 +419,8 @@ export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: MaybeRef<string | undefined | null>,
-  version: MaybeRef<number | undefined | null> = 1,
+  petId: MaybeRefOrGetter<string | undefined | null>,
+  version: MaybeRefOrGetter<number | undefined | null> = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
