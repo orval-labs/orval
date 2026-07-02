@@ -34,6 +34,7 @@ import {
   writeSplitMode,
   writeSplitTagsMode,
   writeTagsMode,
+  type NormalizedOutputOptions,
 } from '@orval/core';
 import { generateFakerForSchemas } from '@orval/mock';
 import { execa, ExecaError } from 'execa';
@@ -105,14 +106,16 @@ function getComparableFilePath(filePath: string): string {
   try {
     comparablePath = fs.realpathSync(resolvedPath);
   } catch (error) {
-    // The workspace index may not exist yet on a first generation run.
+    // The workspace index file may not exist yet on a first-generation run,
+    // so realpathSync throws ENOENT. Fall back to the resolved path.
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
       throw error;
     }
   }
 
-  // paths in Linux can be named the same but have different casing,
-  // and they are considered different files.
+  // Platform heuristic: win32 and darwin are case-insensitive by default.
+  // Linux is case-sensitive even when a case-insensitive filesystem could
+  // theoretically be mounted. We intentionally do not try to cover that.
   const isPlatformCaseIndependent =
     process.platform === 'win32' || process.platform === 'darwin';
   return isPlatformCaseIndependent
@@ -133,36 +136,6 @@ function excludeFilePath(
   return comparableFilePaths
     .filter(({ comparablePath }) => comparablePath !== comparablePathToExclude)
     .map(({ filePath }) => filePath);
-}
-
-const moduleSpecifierPatterns = [
-  // import { Pet } from './pet'; export * from './pet';
-  /\b(?:import|export)\b[^;]*\bfrom\s+['"]([^'"]+)['"]/g,
-  // import './setup';
-  /\bimport\s+['"]([^'"]+)['"]/g,
-];
-
-function getDeclaredModuleSpecifiers(data: string): Set<string> {
-  const specifiers = new Set<string>();
-
-  for (const pattern of moduleSpecifierPatterns) {
-    for (const [, moduleSpecifier] of data.matchAll(pattern)) {
-      specifiers.add(moduleSpecifier);
-    }
-  }
-
-  return specifiers;
-}
-
-export function getUndeclaredModuleSpecifiers(
-  moduleSpecifiers: string[],
-  data: string,
-): string[] {
-  const declaredModuleSpecifiers = getDeclaredModuleSpecifiers(data);
-
-  return moduleSpecifiers.filter(
-    (moduleSpecifier) => !declaredModuleSpecifiers.has(moduleSpecifier),
-  );
 }
 
 function getHeader(
@@ -425,6 +398,41 @@ function shouldGenerateSchemas(
     (!output.schemas && !isSchemaValidatorClient(output.client)) ||
     shouldGenerateZodSchemasInline(output, hasOperations)
   );
+}
+
+function getImplementationPathsForIndex(
+  output: NormalizedOutputOptions,
+  implementationPaths: string[],
+  indexFile: string,
+) {
+  const shouldExcludeSelf = output.indexFiles;
+  const paths = shouldExcludeSelf
+    ? excludeFilePath(implementationPaths, indexFile)
+    : implementationPaths;
+
+  // When the workspace barrel is colocated with the implementation file in
+  // split mode, the generated sibling schemas file (e.g. 'index.schemas.ts')
+  // should not be re-exported — the implementation already imports from it.
+  // Only exclude the auto-generated sibling derived from the target stem;
+  // a user-configured output.schemas dir is a separate concern.
+  const isSplitModeWithColocatedTarget =
+    shouldExcludeSelf &&
+    output.mode === OutputMode.SPLIT &&
+    getComparableFilePath(output.target) === getComparableFilePath(indexFile);
+
+  if (!isSplitModeWithColocatedTarget) {
+    return paths;
+  }
+
+  const targetInfo = getFileInfo(output.target, {
+    extension: output.fileExtension,
+  });
+  const defaultSiblingSchemas = path.join(
+    targetInfo.dirname,
+    `${targetInfo.filename}.schemas${output.fileExtension}`,
+  );
+
+  return excludeFilePath(paths, defaultSiblingSchemas);
 }
 
 export async function writeSpecs(
@@ -755,9 +763,13 @@ export async function writeSpecs(
       output.fileExtension,
       output.tsconfig,
     );
-    const implementationPathsForIndex = output.indexFiles
-      ? excludeFilePath(implementationPaths, indexFile)
-      : implementationPaths;
+
+    const implementationPathsForIndex = getImplementationPathsForIndex(
+      output,
+      implementationPaths,
+      indexFile,
+    );
+
     const imports = implementationPathsForIndex
       .filter(
         (p) =>
@@ -796,7 +808,9 @@ export async function writeSpecs(
     if (output.indexFiles) {
       if (await fs.pathExists(indexFile)) {
         const data = await fs.readFile(indexFile, 'utf8');
-        const importsNotDeclared = getUndeclaredModuleSpecifiers(imports, data);
+        const importsNotDeclared = imports.filter(
+          (imp) => !data.includes(`export * from '${imp}'`),
+        );
         await fs.appendFile(
           indexFile,
           unique(importsNotDeclared)

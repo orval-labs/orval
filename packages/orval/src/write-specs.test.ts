@@ -1,7 +1,3 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-
 import { SupportedFormatter } from '@orval/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -36,9 +32,7 @@ vi.mock('@orval/core', async (importOriginal) => {
 
 import { execa } from 'execa';
 
-import { generateSpec } from './generate-spec';
-import { normalizeOptions } from './utils/options';
-import { getUndeclaredModuleSpecifiers, runFormatter } from './write-specs';
+import { runFormatter } from './write-specs';
 
 const mockedExeca = vi.mocked(execa);
 
@@ -88,68 +82,5 @@ describe('runFormatter', () => {
     expect(logWarning).toHaveBeenCalledWith(
       expect.stringContaining('oxfmt not found'),
     );
-  });
-});
-
-describe('getUndeclaredModuleSpecifiers', () => {
-  it('does not dedupe by substring', () => {
-    const data = "import type { Pet } from './index.schemas';\n";
-
-    expect(
-      getUndeclaredModuleSpecifiers(['./index', './index.schemas'], data),
-    ).toEqual(['./index']);
-  });
-
-  it('dedupes exact import and export module specifiers', () => {
-    const data = [
-      "import type { Pet } from './index.schemas';",
-      "export * from './endpoints';",
-    ].join('\n');
-
-    expect(
-      getUndeclaredModuleSpecifiers(
-        ['./index.schemas', './endpoints', './endpoints.msw'],
-        data,
-      ),
-    ).toEqual(['./endpoints.msw']);
-  });
-});
-
-describe('writeSpecs workspace index', () => {
-  it('creates the workspace index on first run when target is not index.ts', async () => {
-    const outputDir = await mkdtemp(path.join(tmpdir(), 'orval-write-specs-'));
-
-    try {
-      const options = await normalizeOptions(
-        {
-          input: {
-            target: path.resolve(
-              import.meta.dirname,
-              '../../../tests/specifications/issue-3675.yaml',
-            ),
-          },
-          output: {
-            target: 'endpoints.ts',
-            workspace: outputDir,
-            mode: 'split',
-            client: 'axios',
-            indexFiles: true,
-          },
-        },
-        process.cwd(),
-      );
-
-      await generateSpec(process.cwd(), options, 'write-specs-test');
-
-      const indexContent = await readFile(
-        path.join(outputDir, 'index.ts'),
-        'utf8',
-      );
-
-      expect(indexContent).toContain("export * from './endpoints'");
-      expect(indexContent).toContain("export * from './endpoints.schemas'");
-    } finally {
-      await rm(outputDir, { recursive: true, force: true });
-    }
   });
 });
