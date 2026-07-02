@@ -1688,3 +1688,31 @@ test('axios splitByTags + indexFiles:false + faker schemas:true routes faker fac
   expect(fakerFile).not.toContain("from '.'");
   expect(fakerFile).not.toMatch(/from '\.\/(pet|store)';/);
 });
+
+test('axios workspace barrel does not re-export itself when target is index.ts (#3675)', async () => {
+  // Regression for #3675: when `output.target` is `index.ts` and
+  // `output.workspace` is set, the workspace barrel `index.ts` was
+  // appending `export * from './index.ts'` (or `'./index'`), creating
+  // a circular self-import.
+  const barrel = await readFile(
+    generated('axios', 'issue-3675-index-target', 'index.ts'),
+    'utf8',
+  );
+
+  // The barrel must NOT contain a self-referencing re-export.
+  expect(barrel).not.toContain("export * from './index.ts'");
+  expect(barrel).not.toContain("export * from './index'");
+});
+
+test('axios workspace barrel re-exports implementation when target is not index.ts (#3675)', async () => {
+  // When `output.target` has a different name (e.g. `endpoints.ts`), the
+  // workspace `index.ts` barrel must re-export the implementation file.
+  const barrel = await readFile(
+    generated('axios', 'issue-3675-non-index-target', 'index.ts'),
+    'utf8',
+  );
+
+  // The barrel must re-export the implementation and generated schemas.
+  expect(barrel).toContain("export * from './endpoints'");
+  expect(barrel).toContain("export * from './endpoints.schemas'");
+});
