@@ -1716,3 +1716,17 @@ test('axios workspace barrel re-exports implementation when target is not index.
   expect(barrel).toContain("export * from './endpoints'");
   expect(barrel).toContain("export * from './endpoints.schemas'");
 });
+
+test('mock issue-3656 oneOf branch MSW mock imports the enum as a value', async () => {
+  const content = await readFile(
+    generated('mock', 'issue-3656', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // The split oneOf branch helper references the enum as a runtime value...
+  expect(content).toContain('Object.values(ReasonEnum)');
+  // ...so ReasonEnum must be imported as a value, not only as a type.
+  expect(content).toMatch(
+    /import \{[^}]*\bReasonEnum\b[^}]*\} from '\.\/model'/,
+  );
+});
