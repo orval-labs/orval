@@ -4,7 +4,7 @@ import { Parser, type Program } from 'acorn';
 import { isArray } from 'remeda';
 import { type ExternalOption, rolldown } from 'rolldown';
 
-import type { GeneratorMutatorParsingInfo, Tsconfig } from '../types';
+import type { GeneratorMutatorParsingInfo } from '../types';
 
 export async function getMutatorInfo(
   filePath: string,
@@ -13,7 +13,6 @@ export async function getMutatorInfo(
     namedExport?: string;
     alias?: Record<string, string>;
     external?: string[];
-    tsconfig?: Tsconfig;
   },
 ): Promise<GeneratorMutatorParsingInfo | undefined> {
   const {
@@ -21,7 +20,6 @@ export async function getMutatorInfo(
     namedExport = 'default',
     alias,
     external,
-    tsconfig,
   } = options ?? {};
 
   const code = await bundleFile(root, filePath, alias, external);
@@ -52,7 +50,18 @@ async function bundleFile(
       format: 'esm',
       sourcemap: false,
     });
-    const chunk = result.output.find((output) => output.type === 'chunk');
+    let chunk: { code: string } | undefined;
+    for (const output of result.output) {
+      if (output.type !== 'chunk' || !('code' in output)) {
+        continue;
+      }
+
+      chunk ??= output;
+      if (output.isEntry) {
+        chunk = output;
+        break;
+      }
+    }
 
     if (!chunk) {
       throw new Error(`Rolldown did not generate a chunk for ${fileName}`);
@@ -70,6 +79,7 @@ function getExternalOption(
   alias?: Record<string, string>,
 ): ExternalOption {
   if (external) {
+    // External patterns come from developer configuration, not untrusted input.
     const matchers = external.map((pattern) => {
       if (isPackagePattern(pattern)) {
         return (id: string) => id === pattern || id.startsWith(`${pattern}/`);
@@ -192,6 +202,8 @@ function parseFunction(
     ) {
       return childNode;
     }
+
+    return false;
   });
 
   if (!node) {
