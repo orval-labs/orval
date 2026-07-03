@@ -73,6 +73,28 @@ export const useShowPetById = <
 };
 ```
 
+## Reactive Parameters
+
+Generated composables accept reactive parameters so the query re-runs when an
+input changes. On **Vue Query v5** (which requires Vue 3.3+), every parameter is
+typed as [`MaybeRefOrGetter<T>`](https://vuejs.org/api/utility-types.html#maybereforgetter)
+- that is `T | Ref<T> | (() => T)` - and is unwrapped internally with
+[`toValue()`](https://vuejs.org/api/reactivity-utilities.html#tovalue). This lets
+you pass the getter directly, with no `computed` wrapper:
+
+```ts
+// All three forms work:
+useShowPetById(petId.value);
+useShowPetById(petId); 
+useShowPetById(() => props.petId);
+```
+
+`MaybeRefOrGetter<T>` is a superset of `MaybeRef<T>`, so existing call sites that
+pass refs or plain values keep working unchanged. Projects generating against
+Vue Query v4 (or the legacy `vue-query` v3 package) continue to use
+`MaybeRef<T>`/`unref()`, since those targets may run on Vue versions older than
+3.3.
+
 ## Infinite Queries
 
 Generate `useInfiniteQuery` composables:
@@ -137,7 +159,7 @@ When `useSetQueryData: true` is set, Orval generates type-safe helper functions 
 ```ts
 export const setListPetsQueryData = (
   queryClient: QueryClient,
-  params: MaybeRef<ListPetsParams> | undefined,
+  params: MaybeRefOrGetter<ListPetsParams> | undefined,
   updater:
     | Awaited<ReturnType<typeof listPets>>
     | undefined

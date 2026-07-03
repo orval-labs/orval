@@ -272,10 +272,11 @@ test('default issue-873 does not duplicate multi-tag operations across tag files
 
 test('vue-query issue-1026 keeps header params out of the query key getter', async () => {
   // Regression for #1026: with `headers: true` the Vue Query key getter used to
-  // emit `headers = unref(headers);` even though `headers` is not one of its
+  // emit `headers = toValue(headers);` even though `headers` is not one of its
   // parameters, throwing `ReferenceError: headers is not defined` at runtime.
-  // The getter must never unref params (that would also break key reactivity);
-  // `headers` is only unref'd inside the HTTP function where it is a parameter.
+  // The getter must never resolve params (that would also break key reactivity);
+  // `headers` is only resolved inside the HTTP function where it is a parameter.
+  // (Vue Query v5 targets Vue 3.3+, so params resolve via `toValue`.)
   // Keep this focused assertion alongside the snapshot so #1026 fails with a
   // targeted message instead of a full-file snapshot diff.
   const content = await readFile(
@@ -292,15 +293,15 @@ test('vue-query issue-1026 keeps header params out of the query key getter', asy
   const queryKeyFn = content.slice(start, end);
 
   // The getter must not reference `headers` as an identifier: that was the
-  // #1026 bug (`headers = unref(headers);`) and unref-ing a param would also
+  // #1026 bug (`headers = toValue(headers);`) and resolving a param would also
   // break query-key reactivity. A word-boundary regex keeps the intent precise
   // rather than matching `headers` as a loose substring.
   expect(queryKeyFn).not.toMatch(/\bheaders\b/);
 
-  // Sanity check: the HTTP function still receives and unrefs `headers`, so the
-  // assertion above is not passing simply because headers support is missing.
-  expect(content).toContain('headers?: MaybeRef<GetSomeEndpointHeaders>');
-  expect(content).toContain('headers = unref(headers);');
+  // Sanity check: the HTTP function still receives and resolves `headers`, so
+  // the assertion above is not passing simply because headers support is missing.
+  expect(content).toContain('headers?: MaybeRefOrGetter<GetSomeEndpointHeaders>');
+  expect(content).toContain('headers = toValue(headers);');
 });
 
 test('fetch useDates with only date-time query params coerces via String(value)', async () => {
@@ -342,9 +343,11 @@ test('fetch binary request bodies are sent without JSON.stringify', async () => 
   expect(content).not.toContain('JSON.stringify(replaceLotteryLogoBody)');
 });
 
-test('vue-query custom fetch infinite queries unref non-pagination params', async () => {
+test('vue-query custom fetch infinite queries resolve non-pagination params', async () => {
   // Regression for #3385:
-  // functions accept plain values, while Vue query hooks expose MaybeRef<T>.
+  // functions accept plain values, while Vue query hooks expose
+  // MaybeRefOrGetter<T> (Vue Query v5 targets Vue 3.3+, so `toValue` resolves
+  // refs, plain values and getters alike).
   // The infinite query path already unwraps `params` to merge the page param,
   // but must also unwrap the remaining props before calling the request
   // function or the generated output fails TypeScript compilation.
@@ -355,8 +358,8 @@ test('vue-query custom fetch infinite queries unref non-pagination params', asyn
 
   expect(content).toContain(
     `getUsersUserIdOrders(
-      unref(userId),
-      { ...unref(params), limit: pageParam ?? unref(params)?.['limit'] },
+      toValue(userId),
+      { ...toValue(params), limit: pageParam ?? toValue(params)?.['limit'] },
       { signal, ...requestOptions },
     );`,
   );

@@ -17,8 +17,8 @@ import type {
   UseQueryReturnType,
 } from '@tanstack/vue-query';
 
-import { computed, unref } from 'vue';
-import type { MaybeRef } from 'vue';
+import { computed, toValue, unref } from 'vue';
+import type { MaybeRefOrGetter } from 'vue';
 
 import type {
   CreatePetsBody,
@@ -130,7 +130,9 @@ export const listPets = async (
   return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };
 
-export const getListPetsQueryKey = (params?: MaybeRef<ListPetsParams>) => {
+export const getListPetsQueryKey = (
+  params?: MaybeRefOrGetter<ListPetsParams>,
+) => {
   return ['pets', ...(params ? [params] : [])] as const;
 };
 
@@ -138,7 +140,7 @@ export const getListPetsQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  params?: MaybeRef<ListPetsParams>,
+  params?: MaybeRefOrGetter<ListPetsParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -152,7 +154,7 @@ export const getListPetsQueryOptions = <
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
     signal,
-  }) => listPets(unref(params), { signal, ...fetchOptions });
+  }) => listPets(toValue(params), { signal, ...fetchOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
@@ -174,7 +176,7 @@ export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  params?: MaybeRef<ListPetsParams>,
+  params?: MaybeRefOrGetter<ListPetsParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -376,7 +378,7 @@ export const showPetById = async (
 };
 
 export const getShowPetByIdQueryKey = (
-  petId: MaybeRef<string | undefined | null>,
+  petId: MaybeRefOrGetter<string | undefined | null>,
 ) => {
   return ['pets', petId] as const;
 };
@@ -385,7 +387,7 @@ export const getShowPetByIdQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: MaybeRef<string | undefined | null>,
+  petId: MaybeRefOrGetter<string | undefined | null>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
@@ -399,13 +401,13 @@ export const getShowPetByIdQueryOptions = <
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({
     signal,
-  }) => showPetById(unref(petId), { signal, ...fetchOptions });
+  }) => showPetById(toValue(petId), { signal, ...fetchOptions });
 
   return {
     queryKey,
     queryFn,
     enabled: computed(
-      () => unref(petId) !== null && unref(petId) !== undefined,
+      () => toValue(petId) !== null && toValue(petId) !== undefined,
     ),
     ...queryOptions,
   } as UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>;
@@ -424,7 +426,7 @@ export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: MaybeRef<string | undefined | null>,
+  petId: MaybeRefOrGetter<string | undefined | null>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
@@ -733,7 +735,7 @@ export const showPetWithOwner = async (
 };
 
 export const getShowPetWithOwnerQueryKey = (
-  petId: MaybeRef<string | undefined | null>,
+  petId: MaybeRefOrGetter<string | undefined | null>,
 ) => {
   return ['pets', petId, 'owner'] as const;
 };
@@ -742,7 +744,7 @@ export const getShowPetWithOwnerQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,
 >(
-  petId: MaybeRef<string | undefined | null>,
+  petId: MaybeRefOrGetter<string | undefined | null>,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -761,13 +763,13 @@ export const getShowPetWithOwnerQueryOptions = <
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof showPetWithOwner>>
   > = ({ signal }) =>
-    showPetWithOwner(unref(petId), { signal, ...fetchOptions });
+    showPetWithOwner(toValue(petId), { signal, ...fetchOptions });
 
   return {
     queryKey,
     queryFn,
     enabled: computed(
-      () => unref(petId) !== null && unref(petId) !== undefined,
+      () => toValue(petId) !== null && toValue(petId) !== undefined,
     ),
     ...queryOptions,
   } as UseQueryOptions<
@@ -790,7 +792,7 @@ export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,
 >(
-  petId: MaybeRef<string | undefined | null>,
+  petId: MaybeRefOrGetter<string | undefined | null>,
   options?: {
     query?: Partial<
       UseQueryOptions<
