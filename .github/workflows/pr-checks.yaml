@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   pr-checks:
     runs-on: ${{ matrix.os }}
@@ -53,3 +57,35 @@ jobs:
 
       - name: Verify generated code can build
         run: vp run -F orval-tests build
+
+  publish-preview:
+    needs: pr-checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: 24
+          cache: true
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: vp install --frozen-lockfile
+
+      - name: Build packages
+        run: vp run -w build:release
+
+      - name: Publish preview packages
+        run: bun run pkg-pr-new publish './packages/*' --bun --commentWithSha --packageManager=bun

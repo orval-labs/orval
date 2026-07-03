@@ -283,7 +283,7 @@ export function combineSchemas({
     ),
     requiredProperties:
       separator === 'allOf'
-        ? ((normalizedSchema.required as string[] | undefined) ?? [])
+        ? [...((normalizedSchema.required as string[] | undefined) ?? [])]
         : [],
   };
   for (const subSchema of items) {
@@ -298,10 +298,6 @@ export function combineSchemas({
       }
     }
 
-    if (separator === 'allOf' && isSchema(subSchema) && subSchema.required) {
-      resolvedData.requiredProperties.push(...(subSchema.required as string[]));
-    }
-
     const resolvedValue = resolveObject({
       schema: subSchema,
       propName,
@@ -309,6 +305,23 @@ export function combineSchemas({
       context,
       formDataContext,
     });
+
+    // Collect `required` from each allOf member's resolved schema. A member may
+    // carry only `required` (a constraint-only overlay) and contribute those
+    // keys to properties defined in a sibling member — including when the
+    // overlay is itself a `$ref` whose `required` lives in the referenced
+    // schema. Reading `resolvedValue.originalSchema` (the dereferenced target
+    // for component refs) covers both inline and `$ref` overlays, unlike the
+    // raw member which hides `required` behind an unresolved `$ref` or fails
+    // the `isSchema` gate when it has no `type`/`properties`. See #3663.
+    if (separator === 'allOf') {
+      const memberRequired = resolvedValue.originalSchema?.required as
+        | string[]
+        | undefined;
+      if (Array.isArray(memberRequired)) {
+        resolvedData.requiredProperties.push(...memberRequired);
+      }
+    }
 
     const aliasedImports = getAliasedImports({
       context,

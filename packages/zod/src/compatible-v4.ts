@@ -1,6 +1,7 @@
 import {
   compareVersions,
   type PackageJson,
+  type ZodVariantOption,
   type ZodVersionOption,
 } from '@orval/core';
 
@@ -58,6 +59,26 @@ export const resolveIsZodV4 = (
 
   return isZodVersionV4(packageJson);
 };
+
+export const assertZodTarget = ({
+  variant,
+  isZodV4,
+}: {
+  variant: ZodVariantOption | undefined;
+  isZodV4: boolean;
+}) => {
+  if (variant === 'mini' && !isZodV4) {
+    throw new Error(
+      "Zod Mini requires Zod 4 output. Use override.zod.version: 4 or install zod@^4 when override.zod.version is 'auto'.",
+    );
+  }
+};
+
+export const getZodImportSource = (variant: ZodVariantOption | undefined) =>
+  variant === 'mini' ? 'zod/mini' : 'zod';
+
+export const getZodTypeName = (variant: ZodVariantOption | undefined) =>
+  variant === 'mini' ? 'ZodMiniType' : 'ZodType';
 
 export const getZodDateFormat = (isZodV4: boolean) => {
   return isZodV4 ? 'iso.date' : 'date';

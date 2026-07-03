@@ -43,6 +43,7 @@ import {
   dereference,
   generateZod,
   generateZodValidationSchemaDefinition,
+  getZodDependencies,
   parseZodValidationSchemaDefinition,
   predefinedZodFormats,
   type ZodValidationSchemaDefinition,
@@ -136,6 +137,219 @@ describe('parseZodValidationSchemaDefinition', () => {
     expect(parseResult.zod).toBe(
       'zod.object({\n  "queryParams": zod.record(zod.string(), zod.unknown())\n})',
     );
+  });
+
+  it('renders zod mini wrappers and checks', () => {
+    const parseResult = parseZodValidationSchemaDefinition(
+      {
+        functions: [
+          ['string', undefined],
+          ['min', 'nameMin'],
+          ['max', 'nameMax'],
+          ['regex', 'nameRegExp'],
+          ['nullable', undefined],
+          ['default', 'nameDefault'],
+          ['describe', "'Display name'"],
+        ],
+        consts: [],
+      },
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      true,
+      undefined,
+      undefined,
+      'mini',
+    );
+
+    expect(parseResult.zod).toBe(
+      "/*#__PURE__*/ zod._default(/*#__PURE__*/ zod.nullable(/*#__PURE__*/ zod.string().check(/*#__PURE__*/ zod.minLength(nameMin)).check(/*#__PURE__*/ zod.maxLength(nameMax)).check(/*#__PURE__*/ zod.regex(nameRegExp))), nameDefault).check(/*#__PURE__*/ zod.describe('Display name'))",
+    );
+  });
+
+  it('renders zod mini number bounds as numeric checks', () => {
+    const parseResult = parseZodValidationSchemaDefinition(
+      {
+        functions: [
+          ['number', undefined],
+          ['min', 'ageMin'],
+          ['max', 'ageMax'],
+          ['multipleOf', 'ageMultipleOf'],
+          ['optional', undefined],
+        ],
+        consts: [],
+      },
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      true,
+      undefined,
+      undefined,
+      'mini',
+    );
+
+    expect(parseResult.zod).toBe(
+      '/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.number().check(/*#__PURE__*/ zod.gte(ageMin)).check(/*#__PURE__*/ zod.lte(ageMax)).check(/*#__PURE__*/ zod.multipleOf(ageMultipleOf)))',
+    );
+  });
+
+  it('renders zod mini allOf fallback as intersections', () => {
+    const parseResult = parseZodValidationSchemaDefinition(
+      {
+        functions: [
+          [
+            'allOf',
+            [
+              { functions: [['string', undefined]], consts: [] },
+              { functions: [['number', undefined]], consts: [] },
+            ],
+          ],
+        ],
+        consts: [],
+      },
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      true,
+      undefined,
+      undefined,
+      'mini',
+    );
+
+    expect(parseResult.zod).toBe(
+      '/*#__PURE__*/ zod.intersection(/*#__PURE__*/ zod.string(), /*#__PURE__*/ zod.number())',
+    );
+  });
+
+  it('renders zod mini allOf merged object consts with separators', () => {
+    const parseResult = parseZodValidationSchemaDefinition(
+      {
+        functions: [
+          [
+            'allOf',
+            [
+              {
+                functions: [['object', {}]],
+                consts: ['export const First = 1;'],
+              },
+              {
+                functions: [['object', {}]],
+                consts: ['export const Second = 2;'],
+              },
+            ],
+          ],
+        ],
+        consts: [],
+      },
+      { output: { override: { useDates: false } } } as ContextSpec,
+      false,
+      true,
+      true,
+      undefined,
+      undefined,
+      'mini',
+    );
+
+    expect(parseResult.consts).toBe(
+      'export const First = 1;\nexport const Second = 2;',
+    );
+  });
+
+  it('renders zod mini tuple and rest consts', () => {
+    const parseResult = parseZodValidationSchemaDefinition(
+      {
+        functions: [
+          [
+            'tuple',
+            [
+              {
+                functions: [['string', undefined]],
+                consts: ['export const TupleItemMin = 1;'],
+              },
+            ],
+          ],
+          [
+            'rest',
+            {
+              functions: [['number', undefined]],
+              consts: ['export const TupleRestMin = 2;'],
+            },
+          ],
+        ],
+        consts: [],
+      },
+      { output: { override: { useDates: false } } } as ContextSpec,
+      false,
+      false,
+      true,
+      undefined,
+      undefined,
+      'mini',
+    );
+
+    expect(parseResult.consts).toBe(
+      'export const TupleItemMin = 1;\nexport const TupleRestMin = 2;',
+    );
+  });
+
+  it('renders zod mini preprocess as pipe transform', () => {
+    const parseResult = parseZodValidationSchemaDefinition(
+      { functions: [['string', undefined]], consts: [] },
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      true,
+      {
+        name: 'stripNill',
+        path: './strip-nill',
+        default: false,
+        hasErrorType: false,
+        errorTypeName: '',
+        hasSecondArg: false,
+        hasThirdArg: false,
+        isHook: false,
+      },
+      undefined,
+      'mini',
+    );
+
+    expect(parseResult.zod).toBe(
+      '/*#__PURE__*/ zod.pipe(/*#__PURE__*/ zod.transform(stripNill), /*#__PURE__*/ zod.string())',
+    );
+  });
+});
+
+describe('getZodDependencies', () => {
+  it('uses zod/mini for zod mini output', () => {
+    expect(
+      getZodDependencies(false, false, undefined, undefined, false, {
+        zod: { variant: 'mini' },
+      } as Parameters<typeof getZodDependencies>[5])[0].dependency,
+    ).toBe('zod/mini');
   });
 });
 
@@ -9508,6 +9722,76 @@ describe('generateZod (useBrandedTypes)', () => {
     );
     expect(result.implementation).toContain(
       'export const TestResponse = zod.array(TestResponseItem).brand<"TestResponse">()',
+    );
+  });
+
+  it('chains zod mini array response bounds checks', async () => {
+    const arrayResponseApiSchema = {
+      pathRoute: '/cats',
+      context: {
+        spec: {
+          paths: {
+            '/cats': {
+              get: {
+                operationId: 'xyz',
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'array',
+                          minItems: 1,
+                          maxItems: 2,
+                          items: {
+                            type: 'object',
+                            properties: {
+                              id: { type: 'number' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: {
+          override: {
+            zod: {
+              variant: 'mini',
+              generateEachHttpStatus: false,
+            },
+          },
+        },
+      },
+    } as unknown as GeneratorOptions;
+
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'get',
+        operationName: 'test',
+        override: {
+          zod: {
+            ...brandedZodOverrideDisabled.zod,
+            generate: {
+              param: false,
+              body: false,
+              response: true,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      } as unknown as Parameters<typeof generateZod>[0],
+      withOutputZodVersion(arrayResponseApiSchema, 4),
+      testOutput,
+    );
+
+    expect(result.implementation).toContain(
+      'export const TestResponse = /*#__PURE__*/ zod.array(TestResponseItem).check(/*#__PURE__*/ zod.minLength(1)).check(/*#__PURE__*/ zod.maxLength(2))',
     );
   });
 

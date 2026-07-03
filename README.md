@@ -2,6 +2,7 @@
 ![NPM Downloads](https://img.shields.io/npm/dm/orval?color=purple)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Gurubase](https://img.shields.io/badge/Gurubase-Ask%20Orval%20Guru-006BFF)](https://gurubase.io/g/orval)
+[![pkg.pr.new](https://pkg.pr.new/badge/orval-labs/orval)](https://pkg.pr.new/~/orval-labs/orval)
 
 <p align="center">
   <img src="./logo/orval-logo-horizontal.svg?raw=true" width="500" height="160" alt="orval - Restfull Client Generator" />

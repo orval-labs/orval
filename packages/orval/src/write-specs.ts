@@ -34,6 +34,7 @@ import {
   writeSplitMode,
   writeSplitTagsMode,
   writeTagsMode,
+  type NormalizedOutputOptions,
 } from '@orval/core';
 import { generateFakerForSchemas } from '@orval/mock';
 import { execa, ExecaError } from 'execa';
@@ -96,6 +97,45 @@ export async function runFormatter(
       break;
     }
   }
+}
+
+function getComparableFilePath(filePath: string): string {
+  const resolvedPath = path.resolve(filePath);
+  let comparablePath = resolvedPath;
+
+  try {
+    comparablePath = fs.realpathSync(resolvedPath);
+  } catch (error) {
+    // The workspace index file may not exist yet on a first-generation run,
+    // so realpathSync throws ENOENT. Fall back to the resolved path.
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
+  }
+
+  // Platform heuristic: win32 and darwin are case-insensitive by default.
+  // Linux is case-sensitive even when a case-insensitive filesystem could
+  // theoretically be mounted. We intentionally do not try to cover that.
+  const isPlatformCaseIndependent =
+    process.platform === 'win32' || process.platform === 'darwin';
+  return isPlatformCaseIndependent
+    ? comparablePath.toLowerCase()
+    : comparablePath;
+}
+
+function excludeFilePath(
+  filePaths: string[],
+  filePathToExclude: string,
+): string[] {
+  const comparablePathToExclude = getComparableFilePath(filePathToExclude);
+  const comparableFilePaths = filePaths.map((filePath) => ({
+    filePath,
+    comparablePath: getComparableFilePath(filePath),
+  }));
+
+  return comparableFilePaths
+    .filter(({ comparablePath }) => comparablePath !== comparablePathToExclude)
+    .map(({ filePath }) => filePath);
 }
 
 function getHeader(
@@ -358,6 +398,41 @@ function shouldGenerateSchemas(
     (!output.schemas && !isSchemaValidatorClient(output.client)) ||
     shouldGenerateZodSchemasInline(output, hasOperations)
   );
+}
+
+function getImplementationPathsForIndex(
+  output: NormalizedOutputOptions,
+  implementationPaths: string[],
+  indexFile: string,
+) {
+  const shouldExcludeSelf = output.indexFiles;
+  const paths = shouldExcludeSelf
+    ? excludeFilePath(implementationPaths, indexFile)
+    : implementationPaths;
+
+  // When the workspace barrel is colocated with the implementation file in
+  // split mode, the generated sibling schemas file (e.g. 'index.schemas.ts')
+  // should not be re-exported — the implementation already imports from it.
+  // Only exclude the auto-generated sibling derived from the target stem;
+  // a user-configured output.schemas dir is a separate concern.
+  const isSplitModeWithColocatedTarget =
+    shouldExcludeSelf &&
+    output.mode === OutputMode.SPLIT &&
+    getComparableFilePath(output.target) === getComparableFilePath(indexFile);
+
+  if (!isSplitModeWithColocatedTarget) {
+    return paths;
+  }
+
+  const targetInfo = getFileInfo(output.target, {
+    extension: output.fileExtension,
+  });
+  const defaultSiblingSchemas = path.join(
+    targetInfo.dirname,
+    `${targetInfo.filename}.schemas${output.fileExtension}`,
+  );
+
+  return excludeFilePath(paths, defaultSiblingSchemas);
 }
 
 export async function writeSpecs(
@@ -688,7 +763,14 @@ export async function writeSpecs(
       output.fileExtension,
       output.tsconfig,
     );
-    const imports = implementationPaths
+
+    const implementationPathsForIndex = getImplementationPathsForIndex(
+      output,
+      implementationPaths,
+      indexFile,
+    );
+
+    const imports = implementationPathsForIndex
       .filter(
         (p) =>
           mockExtensions.length === 0 ||
@@ -726,7 +808,9 @@ export async function writeSpecs(
     if (output.indexFiles) {
       if (await fs.pathExists(indexFile)) {
         const data = await fs.readFile(indexFile, 'utf8');
-        const importsNotDeclared = imports.filter((imp) => !data.includes(imp));
+        const importsNotDeclared = imports.filter(
+          (imp) => !data.includes(`export * from '${imp}'`),
+        );
         await fs.appendFile(
           indexFile,
           unique(importsNotDeclared)
@@ -742,7 +826,7 @@ export async function writeSpecs(
         );
       }
 
-      implementationPaths = [indexFile, ...implementationPaths];
+      implementationPaths = [indexFile, ...implementationPathsForIndex];
     }
   }
 

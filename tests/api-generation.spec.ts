@@ -1091,6 +1091,30 @@ test('zod issue-3171 applies required from a sibling allOf member to $ref base p
   expect(content).toContain('.and(zod.looseObject({}))');
 });
 
+test('fetch issue-3663 combines required from a constraint-only allOf overlay', async () => {
+  // The sparse-fieldset pattern: `fooPartial` holds all (optional) properties
+  // and a separate overlay lists only `required`. The composed model must mark
+  // those fields required even though `required` lives in a sibling member —
+  // whether the overlay is a `$ref` (Foo) or an inline object without
+  // `type: object` (BarInline). See #3663.
+  const file = generated('fetch', 'issue-3663', 'endpoints.ts');
+  const content = await readFile(file, 'utf8');
+
+  // Base stays fully optional.
+  expect(content).toContain('name?: string;');
+
+  // $ref overlay: id/name promoted to required via Required<Pick>. Scope the
+  // match to Foo's own declaration (up to its terminating `;`) so a broken
+  // promotion here can't be masked by BarInline's declaration below.
+  const fooType = content.match(/export type Foo =[\s\S]*?;/)?.[0] ?? '';
+  expect(fooType).toMatch(/Required<Pick<[\s\S]*?'id' \| 'name'/);
+
+  // Inline overlay without `type: object`: same promotion, scoped to BarInline.
+  const barInlineType =
+    content.match(/export type BarInline =[\s\S]*?;/)?.[0] ?? '';
+  expect(barInlineType).toMatch(/Required<Pick<[\s\S]*?'id' \| 'name'/);
+});
+
 test('zod override.zod.version pins the output target independently of the installed zod', async () => {
   // `tests` installs Zod 4, so installed-version detection would emit Zod 4 for
   // both. These two clients generate from the SAME petstore spec but pin
@@ -1666,4 +1690,32 @@ test('axios splitByTags + indexFiles:false + faker schemas:true routes faker fac
   // No flat-layout or extensionless root-barrel imports may remain.
   expect(fakerFile).not.toContain("from '.'");
   expect(fakerFile).not.toMatch(/from '\.\/(pet|store)';/);
+});
+
+test('axios workspace barrel does not re-export itself when target is index.ts (#3675)', async () => {
+  // Regression for #3675: when `output.target` is `index.ts` and
+  // `output.workspace` is set, the workspace barrel `index.ts` was
+  // appending `export * from './index.ts'` (or `'./index'`), creating
+  // a circular self-import.
+  const barrel = await readFile(
+    generated('axios', 'issue-3675-index-target', 'index.ts'),
+    'utf8',
+  );
+
+  // The barrel must NOT contain a self-referencing re-export.
+  expect(barrel).not.toContain("export * from './index.ts'");
+  expect(barrel).not.toContain("export * from './index'");
+});
+
+test('axios workspace barrel re-exports implementation when target is not index.ts (#3675)', async () => {
+  // When `output.target` has a different name (e.g. `endpoints.ts`), the
+  // workspace `index.ts` barrel must re-export the implementation file.
+  const barrel = await readFile(
+    generated('axios', 'issue-3675-non-index-target', 'index.ts'),
+    'utf8',
+  );
+
+  // The barrel must re-export the implementation and generated schemas.
+  expect(barrel).toContain("export * from './endpoints'");
+  expect(barrel).toContain("export * from './endpoints.schemas'");
 });

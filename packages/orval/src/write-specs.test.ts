@@ -24,6 +24,7 @@ vi.mock('@orval/core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@orval/core')>();
   return {
     ...actual,
+    createSuccessMessage: vi.fn(),
     log: vi.fn(),
     logWarning: vi.fn(),
   };

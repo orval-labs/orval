@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  assertZodTarget,
   getLooseObjectFunctionName,
   getObjectFunctionName,
+  getZodImportSource,
+  getZodTypeName,
   getParameterFunctions,
   getZodDateFormat,
   getZodDateTimeFormat,
@@ -10,6 +13,24 @@ import {
   isZodVersionV4,
   resolveIsZodV4,
 } from './compatible-v4';
+
+describe('zod target helpers', () => {
+  it('resolves import source and recursive type for classic zod', () => {
+    expect(getZodImportSource('classic')).toBe('zod');
+    expect(getZodTypeName('classic')).toBe('ZodType');
+  });
+
+  it('resolves import source and recursive type for zod mini', () => {
+    expect(getZodImportSource('mini')).toBe('zod/mini');
+    expect(getZodTypeName('mini')).toBe('ZodMiniType');
+  });
+
+  it('rejects zod mini when the resolved target is not zod v4', () => {
+    expect(() => assertZodTarget({ variant: 'mini', isZodV4: false })).toThrow(
+      'Zod Mini requires Zod 4 output',
+    );
+  });
+});
 
 describe('isZodVersionV4', () => {
   it('should return false when zod is not in package.json', () => {

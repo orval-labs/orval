@@ -30,7 +30,7 @@ import {
   type Tsconfig,
   upath,
 } from '@orval/core';
-import { generateZod } from '@orval/zod';
+import { generateZod, getZodImportSource } from '@orval/zod';
 import fs from 'fs-extra';
 
 import {
@@ -41,6 +41,13 @@ import {
   reconcileHandlerFile,
 } from './handler-merge';
 import { getRoute } from './route';
+
+const getZodSchemaImportStatement = (
+  variant: NormalizedOutputOptions['override']['zod']['variant'],
+) =>
+  variant === 'mini'
+    ? `import * as zod from '${getZodImportSource(variant)}';`
+    : `import { z as zod } from '${getZodImportSource(variant)}';`;
 
 // Warn at most once per run when the optional `typescript` peer is missing and a
 // non-`skip` strategy was requested, so the degraded behavior is never silent.
@@ -926,7 +933,7 @@ const generateZodFiles = async (
           oneMore: output.mode === 'tags-split',
         });
 
-        let content = `${header}import { z as zod } from 'zod';\n${mutatorsImports}\n`;
+        let content = `${header}${getZodSchemaImportStatement(output.override.zod.variant)}\n${mutatorsImports}\n`;
 
         const zodPath =
           output.mode === 'tags'
@@ -971,7 +978,7 @@ const generateZodFiles = async (
     mutators: allMutators,
   });
 
-  let content = `${header}import { z as zod } from 'zod';\n${mutatorsImports}\n`;
+  let content = `${header}${getZodSchemaImportStatement(output.override.zod.variant)}\n${mutatorsImports}\n`;
 
   const zodPath = nodePath.join(dirname, `${filename}.zod${extension}`);
 
