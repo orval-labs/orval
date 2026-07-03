@@ -526,6 +526,60 @@ describe('resolveMockValue returns one factory import per ref-property (#3606)',
   });
 });
 
+describe('oneOf split helpers forward body imports (#3656)', () => {
+  // A oneOf variant that resolves to an object is split into its own
+  // `get<Op>Response<Variant>Mock` helper. Any import the helper body uses as
+  // a runtime value — e.g. a $ref'd string enum rendered as
+  // `Object.values(ReasonEnum)` — must reach the shared imports array:
+  // mutating that array suppresses the caller-side merge of the returned
+  // imports, so forwarding only the variant's type import loses the enum
+  // value import and the generated mock fails tsc with TS2304.
+  const context = createTestContextSpec({
+    spec: {
+      components: {
+        schemas: {
+          UpdatedDetails: {
+            type: 'object',
+            required: ['event_type', 'reason'],
+            properties: {
+              event_type: { type: 'string', enum: ['updated'] },
+              reason: { $ref: '#/components/schemas/ReasonEnum' },
+            },
+          },
+          ReasonEnum: { type: 'string', enum: ['queue_rebalance'] },
+        },
+      },
+    },
+  });
+
+  it('registers the enum value import used by the split helper', () => {
+    const imports: GeneratorImport[] = [];
+    const splitMockImplementations: string[] = [];
+
+    resolveMockValue({
+      schema: { $ref: '#/components/schemas/UpdatedDetails' },
+      operationId: 'listEvents',
+      tags: [],
+      combine: { separator: 'oneOf', includedProperties: [] },
+      context,
+      imports,
+      existingReferencedProperties: [],
+      splitMockImplementations,
+    });
+
+    // Precondition: the helper body references the enum as a runtime value.
+    expect(splitMockImplementations).toHaveLength(1);
+    expect(splitMockImplementations[0]).toContain('Object.values(ReasonEnum)');
+
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'ReasonEnum', values: true }),
+    );
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'UpdatedDetails', values: false }),
+    );
+  });
+});
+
 describe('schema-scoped overrides are preserved through factory delegation', () => {
   // A schema-scoped override targets a schema's *own* properties, so its
   // get<X>Mock factory bakes the override in. A referencing schema can keep

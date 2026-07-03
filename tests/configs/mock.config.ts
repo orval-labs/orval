@@ -1044,4 +1044,24 @@ export default defineConfig({
       target: '../specifications/issue-3505.yaml',
     },
   },
+  issue3656: {
+    output: {
+      target: '../generated/mock/issue-3656/endpoints.ts',
+      schemas: '../generated/mock/issue-3656/model',
+      client: 'fetch',
+      mock: {
+        generators: [{ type: 'msw' }],
+      },
+      override: {
+        mock: {
+          required: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3656.yaml',
+    },
+  },
 });
