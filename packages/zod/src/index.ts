@@ -176,7 +176,7 @@ function formatDefaultValue(value: unknown): string {
       .map((item) =>
         isString(item)
           ? jsesc(item, { quotes: 'backtick', wrap: true })
-          : String(item),
+          : formatDefaultValue(item),
       )
       .join(', ')}]`;
   }
