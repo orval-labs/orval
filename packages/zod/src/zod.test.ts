@@ -2660,6 +2660,33 @@ describe('generateZodValidationSchemaDefinition`', () => {
       // and inject a computed property [expr].
       expect(parsed.zod).not.toMatch(/\]:/);
     });
+
+    it('preserves backtick in property name (safe inside double-quoted key)', () => {
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'object',
+          properties: {
+            'a`b': { type: 'string' },
+          },
+        },
+        context,
+        'backtickKey',
+        false,
+        false,
+        { required: false },
+      );
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      // JSON.stringify wraps the key in double quotes — backtick is harmless
+      // inside "...", and the runtime string can't close the generation
+      // template literal.
+      expect(parsed.zod).toContain('"a`b"');
+    });
   });
 
   describe('enum handling', () => {
