@@ -31,6 +31,7 @@
     "esutils": "2.0.3",
     "fs-extra": "^11.3.2",
     "jiti": "^2.6.1",
+    "jsesc": "^3.0.0",
     "remeda": "^2.33.6",
     "tinyglobby": "^0.2.16",
     "typedoc": "^0.28.19"
@@ -40,6 +41,7 @@
     "@types/debug": "^4.1.12",
     "@types/esutils": "^2.0.2",
     "@types/fs-extra": "^11.0.4",
+    "@types/jsesc": "^3.0.3",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

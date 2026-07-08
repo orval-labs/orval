@@ -202,6 +202,70 @@ describe('getFullRoute getter', () => {
   }
 });
 
+describe('getFullRoute — GHSA-88f2-fpv8-89q2: servers[].url template-literal injection', () => {
+  it('escapes backtick in server URL', () => {
+    const servers: OpenApiServerObject[] = [
+      {
+        url: 'http://api.x/`+require("fs").writeFileSync("/marker","pwned")+`',
+      },
+    ];
+    const result = getFullRoute('/path', servers, {
+      getBaseUrlFromSpecification: true,
+    });
+    expect(result).not.toMatch(/(?<!\\)`/);
+    expect(result).toContain('\\`+require');
+  });
+
+  it('escapes ${ in server URL', () => {
+    const servers: OpenApiServerObject[] = [
+      {
+        url: 'http://api.x/${globalThis.X = require("fs").writeFileSync("/marker","pwned")}/v1',
+      },
+    ];
+    const result = getFullRoute('/path', servers, {
+      getBaseUrlFromSpecification: true,
+    });
+    expect(result).not.toMatch(/(?<!\\)\$\{/);
+    expect(result).toContain('\\${globalThis');
+  });
+
+  it('escapes backslash in server URL', () => {
+    const servers: OpenApiServerObject[] = [
+      { url: String.raw`http://api.x/\`+code+\`` },
+    ];
+    const result = getFullRoute('/path', servers, {
+      getBaseUrlFromSpecification: true,
+    });
+    expect(result).toContain(String.raw`http://api.x/\\\`+code+\\\``);
+  });
+
+  it('escapes backtick and ${ in variable default value (spec-sourced)', () => {
+    const servers: OpenApiServerObject[] = [
+      {
+        url: 'http://{env}.example.com',
+        variables: {
+          env: {
+            default:
+              '`+require("child_process").execSync("id")+`${globalThis.X}',
+          },
+        },
+      },
+    ];
+    const result = getFullRoute('/path', servers, {
+      getBaseUrlFromSpecification: true,
+    });
+    expect(result).not.toMatch(/(?<!\\)`/);
+    expect(result).not.toMatch(/(?<!\\)\$\{/);
+  });
+});
+
+describe('getRoute — backtick injection in path segments', () => {
+  it('escapes backtick and ${ in static path segment', () => {
+    const result = getRoute('/v1/`+require("child_process").execSync("id")+`');
+    expect(result).not.toMatch(/(?<!\\)`/);
+  });
+});
+
 describe('getBaseUrlRuntimeImports', () => {
   it('returns [] when baseUrl is omitted', () => {
     expect(getBaseUrlRuntimeImports()).toEqual([]);

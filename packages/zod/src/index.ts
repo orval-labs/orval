@@ -37,6 +37,7 @@ import {
   type ZodCoerceType,
   type ZodVariantOption,
 } from '@orval/core';
+import jsesc from 'jsesc';
 import { unique } from 'remeda';
 
 import {
@@ -164,6 +165,23 @@ const zodMiniCall = (fn: string, args = '') =>
 
 const zodMiniCoerceCall = (fn: string, args = '') =>
   `${PURE_COMMENT}zod.coerce.${fn}(${args})`;
+
+/** Escapes string defaults for safe embedding in template literals. */
+function formatDefaultValue(value: unknown): string {
+  if (isString(value)) {
+    return jsesc(value, { quotes: 'backtick', wrap: true });
+  }
+  if (Array.isArray(value)) {
+    return `[${value
+      .map((item) =>
+        isString(item)
+          ? jsesc(item, { quotes: 'backtick', wrap: true })
+          : String(item),
+      )
+      .join(', ')}]`;
+  }
+  return stringify(value) ?? 'null';
+}
 
 export interface ZodValidationSchemaDefinition {
   functions: [string, unknown][];
@@ -839,11 +857,7 @@ export const generateZodValidationSchemaDefinition = (
       defaultValue = entries.length === 0 ? `{}` : `{ ${entries} }`;
     } else {
       // OpenApiSchemaObject defines default as 'any'
-      const rawStringified = stringify(schema.default);
-      defaultValue =
-        rawStringified === undefined
-          ? 'null'
-          : rawStringified.replaceAll("'", '`');
+      defaultValue = formatDefaultValue(schema.default);
 
       // If the schema is an array with enum items, inject inplace to avoid issues with default values
       const isArrayWithEnumItems =

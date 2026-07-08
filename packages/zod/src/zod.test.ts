@@ -2568,6 +2568,66 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
   });
 
+  describe('default value template-literal injection', () => {
+    const context = makeContextSpec({
+      override: {
+        useDates: false,
+      },
+    });
+
+    it('escapes ${ and backtick in string default', () => {
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'string',
+          default:
+            'v${globalThis.X}`+require("child_process").execSync("id")+`w',
+        },
+        context,
+        'evilString',
+        false,
+        false,
+        { required: false },
+      );
+      expect(result.consts).toHaveLength(1);
+      expect(result.consts[0]).not.toMatch(/(?<!\\)\$\{/);
+      const match = result.consts[0].match(/= `(.*)`;/);
+      expect(match).toBeDefined();
+      expect(match![1]).not.toMatch(/(?<!\\)`/);
+    });
+
+    it('escapes ${ in array-of-string default', () => {
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'array',
+          items: { type: 'string' },
+          default: ['safe', 'v${globalThis.X}w'],
+        },
+        context,
+        'evilArray',
+        false,
+        false,
+        { required: false },
+      );
+      expect(result.consts[0]).not.toMatch(/(?<!\\)\$\{/);
+    });
+
+    it('escapes ${ in enum-typed default', () => {
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'string',
+          enum: ['safe', 'v${globalThis.X}w'],
+          default: 'v${globalThis.X}w',
+        },
+        context,
+        'evilEnum',
+        false,
+        false,
+        { required: false },
+      );
+      expect(result.consts[0]).not.toMatch(/(?<!\\)\$\{/);
+    });
+  });
+
   describe('enum handling', () => {
     const context = makeContextSpec({
       override: {

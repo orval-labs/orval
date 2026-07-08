@@ -1,3 +1,5 @@
+import jsesc from 'jsesc';
+
 import { TEMPLATE_TAG_REGEX } from '../constants';
 import type {
   BaseUrlFromConstant,
@@ -51,8 +53,15 @@ const getRoutePath = (path: string): string => {
     : `${prev}${param}${next}`;
 };
 
+/**
+ * Escapes spec-controlled path segments for safe embedding in template literals
+ * (backtick, backslash, `${`). The `route` arg must be a raw OpenAPI path — do
+ * NOT pass pre-escaped output, as jsesc is not idempotent (re-escaping produces
+ * double-escaped output).
+ */
 export function getRoute(route: string) {
-  const splittedRoute = route.split('/');
+  const safeRoute = jsesc(route, { quotes: 'backtick', wrap: false });
+  const splittedRoute = safeRoute.split('/');
 
   let result = '';
   for (const [i, path] of splittedRoute.entries()) {
@@ -65,6 +74,14 @@ export function getRoute(route: string) {
   return result;
 }
 
+/**
+ * Prepends a base URL to an already-processed route.
+ *
+ * `route` must be the output of {@link getRoute} (already escaped for template
+ * literals). This function does NOT re-escape it — jsesc is not idempotent, so
+ * escaping twice would double the backslashes. Only the server URL from
+ * `getBaseUrlFromSpecification` is escaped here, after variable substitution.
+ */
 export function getFullRoute(
   route: string,
   servers: OpenApiServerObject[] | undefined,
@@ -92,7 +109,8 @@ export function getFullRoute(
       );
       if (!server) return '';
       const serverUrl = server.url ?? '';
-      if (!server.variables) return serverUrl;
+      if (!server.variables)
+        return jsesc(serverUrl, { quotes: 'backtick', wrap: false });
 
       let url = serverUrl;
       const variables = baseUrl.variables;
@@ -112,7 +130,7 @@ export function getFullRoute(
           url = url.replaceAll(`{${variableKey}}`, String(variable.default));
         }
       }
-      return url;
+      return jsesc(url, { quotes: 'backtick', wrap: false });
     }
     return baseUrl.baseUrl;
   };

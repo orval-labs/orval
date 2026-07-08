@@ -52,6 +52,7 @@
         "esutils": "2.0.3",
         "fs-extra": "^11.3.2",
         "jiti": "^2.6.1",
+        "jsesc": "^3.0.0",
         "remeda": "^2.33.6",
         "tinyglobby": "^0.2.16",
         "typedoc": "^0.28.19",
@@ -61,6 +62,7 @@
         "@types/debug": "^4.1.12",
         "@types/esutils": "^2.0.2",
         "@types/fs-extra": "^11.0.4",
+        "@types/jsesc": "^3.0.3",
         "rimraf": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:",
@@ -243,9 +245,11 @@
       "version": "8.20.0",
       "dependencies": {
         "@orval/core": "workspace:*",
+        "jsesc": "^3.0.0",
         "remeda": "^2.33.6",
       },
       "devDependencies": {
+        "@types/jsesc": "^3.0.3",
         "rimraf": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:",
@@ -1982,6 +1986,8 @@
     "@types/hast": ["@types/hast@3.0.4", "", { "dependencies": { "@types/unist": "*" } }, "sha512-WPs+bbQw5aCj+x6laNGWLH3wviHtoCv/P3+otBhbOhJgG8qtpdAMlTCxLtsTWA7LH1Oh/bFCHsBn0TPS5m30EQ=="],
 
     "@types/js-yaml": ["@types/js-yaml@4.0.9", "", {}, "sha512-k4MGaQl5TGo/iipqb2UDG2UwjXziSWkh0uysQelTlJpX1qGlpUZYm8PnO4DxG1qBomtJUdYJ6qR6xdIah10JLg=="],
+
+    "@types/jsesc": ["@types/jsesc@3.0.3", "", {}, "sha512-YZZ9ZOAiiSVC6KApWd/fTCDTdTOOMiRU4Lq3/VSmXNPse8IvCVOn5kYRRLu900Ub1lTPurVZFI5unEqLDJR7wg=="],
 
     "@types/json-schema": ["@types/json-schema@7.0.15", "", {}, "sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA=="],
 
