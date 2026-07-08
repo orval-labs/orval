@@ -2628,6 +2628,40 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
   });
 
+  describe('object key injection', () => {
+    const context = makeContextSpec({
+      override: {
+        useDates: false,
+      },
+    });
+
+    it('escapes double quote in schema property name', () => {
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'object',
+          properties: {
+            'a":[require("child_process").execSync("id")],': { type: 'string' },
+          },
+        },
+        context,
+        'evilKey',
+        false,
+        false,
+        { required: false },
+      );
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      // A " in the key must not break out of the JSON.stringify-wrapped key
+      // and inject a computed property [expr].
+      expect(parsed.zod).not.toMatch(/\]:/);
+    });
+  });
+
   describe('enum handling', () => {
     const context = makeContextSpec({
       override: {

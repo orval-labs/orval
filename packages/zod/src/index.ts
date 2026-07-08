@@ -1530,9 +1530,9 @@ ${Object.entries(objectArgs)
       Array.isArray(coerceTypes) &&
       coerceTypes.includes('array' as ZodCoerceType);
     if (coerceArrays && schema.functions.some(([fn]) => fn === 'array')) {
-      return `  "${key}": ${zodMiniCall('pipe', `${zodMiniCall('transform', '(value) => value === undefined || Array.isArray(value) ? value : [value]')}, ${rendered.expr}`)}`;
+      return `  ${JSON.stringify(key)}: ${zodMiniCall('pipe', `${zodMiniCall('transform', '(value) => value === undefined || Array.isArray(value) ? value : [value]')}, ${rendered.expr}`)}`;
     }
-    return `  "${key}": ${rendered.expr}`;
+    return `  ${JSON.stringify(key)}: ${rendered.expr}`;
   })
   .join(',\n')}
 }`,
@@ -1881,7 +1881,7 @@ ${Object.entries(mergedProperties)
       .map((prop) => parseProperty(prop, [...fieldPath, key]))
       .join('');
     appendConstsChunk(schema.consts.join('\n'));
-    return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
+    return `  ${JSON.stringify(key)}: ${value.startsWith('.') ? 'zod' : ''}${value}`;
   })
   .join(',\n')}
 })`;
@@ -2065,9 +2065,9 @@ ${Object.entries(objectArgs)
       Array.isArray(coerceTypes) &&
       coerceTypes.includes('array' as ZodCoerceType);
     if (coerceArrays && schema.functions.some(([fn]) => fn === 'array')) {
-      return `  "${key}": zod.preprocess((value) => value === undefined || Array.isArray(value) ? value : [value], ${fieldZod})`;
+      return `  ${JSON.stringify(key)}: zod.preprocess((value) => value === undefined || Array.isArray(value) ? value : [value], ${fieldZod})`;
     }
-    return `  "${key}": ${fieldZod}`;
+    return `  ${JSON.stringify(key)}: ${fieldZod}`;
   })
   .join(',\n')}
 })`;
