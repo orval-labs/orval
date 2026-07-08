@@ -93,6 +93,7 @@ const generateAxiosImplementation = (
     headers,
     queryParams,
     operationName,
+    typeName,
     response,
     mutator,
     body,
@@ -146,9 +147,7 @@ const generateAxiosImplementation = (
       : '';
 
     const returnType = (title?: string) =>
-      `export type ${pascal(
-        operationName,
-      )}Result = NonNullable<Awaited<ReturnType<${
+      `export type ${pascal(typeName)}Result = NonNullable<Awaited<ReturnType<${
         title
           ? `ReturnType<typeof ${title}>['${operationName}']`
           : `typeof ${operationName}`
@@ -194,7 +193,7 @@ const generateAxiosImplementation = (
   });
 
   const returnType = () =>
-    `export type ${pascal(operationName)}Result = AxiosResponse<${
+    `export type ${pascal(typeName)}Result = AxiosResponse<${
       response.definition.success || 'unknown'
     }>`;
 

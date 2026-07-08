@@ -1359,3 +1359,214 @@ describe('generateSpec - returnTypesToWrite isolation across tags (#3685)', () =
     }
   });
 });
+
+describe('generateSpec - operationName tuple [methodName, typeName]', () => {
+  const GATEWAY_SPEC: OpenApiDocument = {
+    openapi: '3.1.0',
+    info: { title: 'Gateway', version: '1.0.0' },
+    paths: {
+      '/api/catalog/items': {
+        get: {
+          tags: ['catalog'],
+          responses: {
+            '200': {
+              description: 'ok',
+              content: {
+                'application/json': {
+                  schema: { type: 'array', items: { type: 'string' } },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/inventory/products': {
+        get: {
+          tags: ['inventory'],
+          responses: {
+            '200': {
+              description: 'ok',
+              content: {
+                'application/json': {
+                  schema: { type: 'array', items: { type: 'string' } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  it('decouples method names from type names when operationName returns a tuple', async () => {
+    const workspace = await createTempWorkspace();
+    const targetFile = path.join(workspace, 'endpoints.ts');
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: GATEWAY_SPEC },
+          output: {
+            target: './endpoints.ts',
+            client: 'axios',
+            override: {
+              operationName: (_operation, route, verb) => {
+                const segments = route.split('/').filter(Boolean);
+                return [
+                  `${verb}${segments.slice(2).map(cap).join('')}`,
+                  `${verb}${segments.slice(1).map(cap).join('')}`,
+                ];
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const content = await fs.readFile(targetFile, 'utf-8');
+
+      // Method name: bare (no service prefix)
+      expect(content).toContain('getItems');
+      expect(content).toContain('getProducts');
+      // Type name: includes the service segment
+      expect(content).toContain('GetCatalogItemsResult');
+      expect(content).toContain('GetInventoryProductsResult');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('backward compatible when operationName returns a string', async () => {
+    const workspace = await createTempWorkspace();
+    const targetFile = path.join(workspace, 'endpoints.ts');
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: GATEWAY_SPEC },
+          output: {
+            target: './endpoints.ts',
+            client: 'axios',
+            override: {
+              operationName: (_operation, route, verb) => {
+                const segments = route.split('/').filter(Boolean);
+                return `${verb}${segments.map(cap).join('')}`;
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const content = await fs.readFile(targetFile, 'utf-8');
+
+      expect(content).toContain('getApiCatalogItems');
+      expect(content).toContain('GetApiCatalogItemsResult');
+      expect(content).toContain('getApiInventoryProducts');
+      expect(content).toContain('GetApiInventoryProductsResult');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('produces globally unique type names across tags in tags-split mode', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: GATEWAY_SPEC },
+          output: {
+            target: './endpoints.ts',
+            mode: 'tags-split',
+            schemas: { path: './model' },
+            client: 'axios',
+            tagsSplitDeduplication: true,
+            override: {
+              operationName: (_operation, route, verb) => {
+                const segments = route.split('/').filter(Boolean);
+                return [
+                  `${verb}${segments.slice(2).map(cap).join('')}`,
+                  `${verb}${segments.slice(1).map(cap).join('')}`,
+                ];
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const catalogFile = path.join(workspace, 'catalog', 'catalog.ts');
+      const inventoryFile = path.join(workspace, 'inventory', 'inventory.ts');
+
+      expect(await fs.pathExists(catalogFile)).toBe(true);
+      expect(await fs.pathExists(inventoryFile)).toBe(true);
+
+      const catalogContent = await fs.readFile(catalogFile, 'utf-8');
+      const inventoryContent = await fs.readFile(inventoryFile, 'utf-8');
+
+      // Both have the same bare method name (safe — scoped per tag file)
+      expect(catalogContent).toContain('getItems');
+      expect(inventoryContent).toContain('getProducts');
+      expect(catalogContent).not.toContain('getProducts');
+      expect(inventoryContent).not.toContain('getItems');
+
+      // Type names are service-prefixed (globally unique — no barrel collision)
+      expect(catalogContent).toContain('GetCatalogItemsResult');
+      expect(inventoryContent).toContain('GetInventoryProductsResult');
+      expect(catalogContent).not.toContain('GetInventoryProductsResult');
+      expect(inventoryContent).not.toContain('GetCatalogItemsResult');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('decouples swr hook names from error type names', async () => {
+    const workspace = await createTempWorkspace();
+    const targetFile = path.join(workspace, 'endpoints.ts');
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: GATEWAY_SPEC },
+          output: {
+            target: './endpoints.ts',
+            client: 'swr',
+            override: {
+              swr: { useInfinite: false, generateErrorTypes: true },
+              operationName: (_operation, route, verb) => {
+                const segments = route.split('/').filter(Boolean);
+                return [
+                  `${verb}${segments.slice(2).map(cap).join('')}`,
+                  `${verb}${segments.slice(1).map(cap).join('')}`,
+                ];
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const content = await fs.readFile(targetFile, 'utf-8');
+
+      // Hook name uses bare method name
+      expect(content).toContain('useGetItems');
+      expect(content).toContain('useGetProducts');
+      // Error type uses service-prefixed type name
+      expect(content).toContain('GetCatalogItemsQueryError');
+      expect(content).toContain('GetInventoryProductsQueryError');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});

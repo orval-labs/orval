@@ -10,6 +10,7 @@ import { generateHandlerFile } from './index';
 const verb = (operationName: string): GeneratorVerbOptions =>
   ({
     operationName,
+    typeName: operationName,
     params: [],
     body: { definition: '' },
     response: { originalSchema: {} },
@@ -113,6 +114,7 @@ describe('generateHandlerFile strategies', () => {
     const file = path.join(dir, 'uploadPhoto.ts');
     const formVerb = {
       operationName: 'uploadPhoto',
+      typeName: 'uploadPhoto',
       params: [],
       body: {
         definition: 'UploadPhotoBody',

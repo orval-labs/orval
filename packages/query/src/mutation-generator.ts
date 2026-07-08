@@ -420,6 +420,7 @@ export const generateMutationHook = async ({
 }> => {
   const {
     operationName,
+    typeName,
     body,
     props,
     mutator,
@@ -462,7 +463,7 @@ export const generateMutationHook = async ({
   }
 
   const errorType = getQueryErrorType(
-    operationName,
+    typeName,
     response,
     httpClient,
     mutator,
@@ -662,18 +663,18 @@ ${operationReferenceDeclaration}
 ${mutationOptionsFn}
 
     export type ${pascal(
-      operationName,
+      typeName,
     )}MutationResult = NonNullable<Awaited<ReturnType<${dataType}>>>
     ${
       body.definition
-        ? `export type ${pascal(operationName)}MutationBody = ${
+        ? `export type ${pascal(typeName)}MutationBody = ${
             mutator?.bodyTypeName
               ? `${mutator.bodyTypeName}<${body.definition}>`
               : body.definition
           }${body.isOptional ? ' | undefined' : ''}`
         : ''
     }
-    export type ${pascal(operationName)}MutationError = ${errorType}
+    export type ${pascal(typeName)}MutationError = ${errorType}
 
     ${doc}export const ${camel(
       `${operationPrefix}-${operationName}`,

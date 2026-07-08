@@ -248,6 +248,7 @@ const createVerbOption = (
   return {
     operationId: 'getPetById',
     operationName: 'getPetById',
+    typeName: overrides.operationName ?? 'getPetById',
     verb: 'get',
     route: '/pets/${petId}',
     pathRoute: '/pets/{petId}',

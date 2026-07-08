@@ -227,31 +227,31 @@ const getDesiredValidators = (
 ): DesiredValidator[] => {
   if (!validator) return [];
 
-  const pascalOperationName = pascal(verbOption.operationName);
+  const pascalTypeName = pascal(verbOption.typeName);
   const validators: DesiredValidator[] = [];
 
   if (verbOption.headers) {
     validators.push({
       target: 'header',
-      schema: `${pascalOperationName}Header`,
+      schema: `${pascalTypeName}Header`,
     });
   }
   if (verbOption.params.length > 0) {
     validators.push({
       target: 'param',
-      schema: `${pascalOperationName}Params`,
+      schema: `${pascalTypeName}Params`,
     });
   }
   if (verbOption.queryParams) {
     validators.push({
       target: 'query',
-      schema: `${pascalOperationName}QueryParams`,
+      schema: `${pascalTypeName}QueryParams`,
     });
   }
   if (verbOption.body.definition) {
     validators.push({
       target: isFormBody(verbOption.body) ? 'form' : 'json',
-      schema: `${pascalOperationName}Body`,
+      schema: `${pascalTypeName}Body`,
     });
   }
   if (
@@ -263,7 +263,7 @@ const getDesiredValidators = (
   ) {
     validators.push({
       target: 'response',
-      schema: `${pascalOperationName}Response`,
+      schema: `${pascalTypeName}Response`,
     });
   }
 
@@ -323,29 +323,29 @@ const getZvalidatorImports = (
   const specifiers = [];
 
   for (const {
-    operationName,
+    typeName,
     headers,
     params,
     queryParams,
     body,
     response,
   } of verbOptions) {
-    const pascalOperationName = pascal(operationName);
+    const pascalTypeName = pascal(typeName);
 
     if (headers) {
-      specifiers.push(`${pascalOperationName}Header`);
+      specifiers.push(`${pascalTypeName}Header`);
     }
 
     if (params.length > 0) {
-      specifiers.push(`${pascalOperationName}Params`);
+      specifiers.push(`${pascalTypeName}Params`);
     }
 
     if (queryParams) {
-      specifiers.push(`${pascalOperationName}QueryParams`);
+      specifiers.push(`${pascalTypeName}QueryParams`);
     }
 
     if (body.definition) {
-      specifiers.push(`${pascalOperationName}Body`);
+      specifiers.push(`${pascalTypeName}Body`);
     }
 
     if (
@@ -354,7 +354,7 @@ const getZvalidatorImports = (
       response.originalSchema?.['200']?.content?.['application/json'] !=
         undefined
     ) {
-      specifiers.push(`${pascalOperationName}Response`);
+      specifiers.push(`${pascalTypeName}Response`);
     }
   }
 
@@ -398,7 +398,7 @@ const buildDesiredImports = ({
   tsconfig?: Tsconfig;
 }): DesiredImports => {
   const contextNames = verbList.map(
-    (verb) => `${pascal(verb.operationName)}Context`,
+    (verb) => `${pascal(verb.typeName)}Context`,
   );
   const zodNames = verbList.flatMap((verb) =>
     getDesiredValidators(verb, validator).map((v) => v.schema),
@@ -452,7 +452,7 @@ const generateFreshHandlerFile = ({
   const [handlerCode, hasZValidator] = getHonoHandlers(
     ...verbList.map((verbOption) => ({
       handlerName: `${verbOption.operationName}Handlers`,
-      contextTypeName: `${pascal(verbOption.operationName)}Context`,
+      contextTypeName: `${pascal(verbOption.typeName)}Context`,
       verbOption,
       validator,
       bodyOverride: bodyFor?.(verbOption.operationName),
@@ -469,7 +469,7 @@ const generateFreshHandlerFile = ({
 
   imports.push(
     `import { ${verbList
-      .map((verb) => `${pascal(verb.operationName)}Context`)
+      .map((verb) => `${pascal(verb.typeName)}Context`)
       .join(
         ',\n',
       )} } from '${generateModuleSpecifier(path, contextModule, tsconfig)}';`,
@@ -591,7 +591,7 @@ export const generateHandlerFile = async ({
       validators: getDesiredValidators(verbOption, validator),
       stub: getHonoHandlers({
         handlerName: `${verbOption.operationName}Handlers`,
-        contextTypeName: `${pascal(verbOption.operationName)}Context`,
+        contextTypeName: `${pascal(verbOption.typeName)}Context`,
         verbOption,
         validator,
       })[0],
@@ -752,7 +752,7 @@ const getContext = (verbOption: GeneratorVerbOptions) => {
   const hasIn = !!paramType || !!queryType || !!bodyType;
 
   return `export type ${pascal(
-    verbOption.operationName,
+    verbOption.typeName,
   )}Context<E extends Env = any> = Context<E, '${getRoute(
     verbOption.pathRoute,
   )}'${

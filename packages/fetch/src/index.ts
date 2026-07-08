@@ -70,6 +70,7 @@ export const generateRequestFunction = (
     queryParams,
     headers,
     operationName,
+    typeName,
     response,
     mutator,
     body,
@@ -325,7 +326,7 @@ ${
   const responseTypeName = fetchResponseTypeName(
     override.fetch.includeHttpResponseReturnType,
     isNdJson ? 'Response' : response.definition.success,
-    operationName,
+    typeName,
   );
 
   const responseType = response.definition.success;
@@ -678,10 +679,10 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 export const fetchResponseTypeName = (
   includeHttpResponseReturnType: boolean | undefined,
   definitionSuccessResponse: string,
-  operationName: string,
+  typeName: string,
 ) => {
   return includeHttpResponseReturnType
-    ? `${operationName}Response`
+    ? `${typeName}Response`
     : definitionSuccessResponse;
 };
 

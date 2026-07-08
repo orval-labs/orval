@@ -209,6 +209,7 @@ describe('write-zod-specs regressions', () => {
     const verbOptions = {
       firstVerb: {
         operationName: 'fooBar',
+        typeName: 'fooBar',
         originalOperation: {
           requestBody: {
             content: {
@@ -231,6 +232,7 @@ describe('write-zod-specs regressions', () => {
       },
       secondVerb: {
         operationName: 'Foobar',
+        typeName: 'Foobar',
         originalOperation: {
           requestBody: {
             content: {
@@ -357,6 +359,7 @@ describe('write-zod-specs regressions', () => {
     const verbOptions = {
       getPet: {
         operationName: 'getPet',
+        typeName: 'getPet',
         originalOperation: {
           parameters: [],
         },
@@ -817,6 +820,7 @@ describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
     const verbOptions = {
       petCreate: {
         operationName: 'petCreate',
+        typeName: 'petCreate',
         originalOperation: {
           requestBody: {
             content: {
@@ -878,6 +882,7 @@ describe('writeZodSchemasFromVerbs with generateReusableSchemas', () => {
     const verbOptions = {
       findPetsByStatus: {
         operationName: 'findPetsByStatus',
+        typeName: 'findPetsByStatus',
         originalOperation: {
           parameters: [
             {
