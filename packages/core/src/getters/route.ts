@@ -34,6 +34,14 @@ function runtimeExpressionToUrlPrefix(expression: string): string {
 const hasParam = (path: string): boolean => /[^{]*{[\w*_-]*}.*/.test(path);
 
 const getRoutePath = (path: string): string => {
+  // Don't treat ${...} as a path param — OpenAPI params use {param}, not
+  // ${param}. After jsesc boundary escaping, ${ becomes \${, but the { is
+  // still visible to the regex below and would be misinterpreted as a param.
+  const braceIdx = path.indexOf('{');
+  if (braceIdx > 0 && path[braceIdx - 1] === '$') {
+    return path;
+  }
+
   const matches = /([^{]*){?([\w*_-]*)}?(.*)/.exec(path);
   if (!matches?.length) return path; // impossible due to regexp grouping here, but for TS
 
@@ -182,7 +190,7 @@ export function getRouteAsArray(route: string): string {
     .filter((i) => i !== '')
     .flatMap((segment) => {
       if (!segment.includes('${')) {
-        return [`'${segment}'`];
+        return [`'${segment.replaceAll("'", "\\'")}'`];
       }
       // Split by template tags, keeping the delimiters
       return segment
@@ -190,7 +198,7 @@ export function getRouteAsArray(route: string): string {
         .filter(Boolean)
         .map((part) => {
           const match = /^\$\{(.+?)\}$/.exec(part);
-          return match ? match[1] : `'${part}'`;
+          return match ? match[1] : `'${part.replaceAll("'", "\\'")}'`;
         });
     })
     .join(',');

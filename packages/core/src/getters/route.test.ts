@@ -265,12 +265,35 @@ describe('getRoute — spec path injection', () => {
     expect(result).not.toMatch(/(?<!\\)`/);
   });
 
-  it('neutralizes ${...} that is not a valid path param', () => {
-    // ${globalThis.X} in a path is NOT an OpenAPI path param ({param}).
-    // getRoutePath's regex rejects it (dot in param name), so it stays
-    // as literal text — no live interpolation.
-    const result = getRoute('/v1/${globalThis.X}/path');
-    expect(result).not.toMatch(/(?<!\\)\$\{globalThis/);
+  it('does not re-interpret ${...} as a live interpolation', () => {
+    // ${evil} in a path is NOT an OpenAPI path param ({param}).
+    // jsesc escapes ${ to \${, and getRoutePath must not treat the
+    // remaining {evil} as a param — otherwise it re-creates ${evil}.
+    for (const payload of [
+      '/v1/${evil}/path',
+      '/v1/${globalThis.X}/path',
+      '/v1/{petId}${evil}/path',
+    ]) {
+      const result = getRoute(payload);
+      expect(result).not.toMatch(/(?<!\\)\$\{evil/);
+      expect(result).not.toMatch(/(?<!\\)\$\{globalThis/);
+    }
+  });
+
+  it('still converts legitimate path params', () => {
+    expect(getRoute('/v1/{petId}')).toContain('${petId}');
+  });
+});
+
+describe('getRouteAsArray — single-quote injection', () => {
+  it('escapes single quote in static segment', () => {
+    const result = getRouteAsArray("v1/it's/path");
+    expect(result).toContain("it\\'s");
+  });
+
+  it('escapes single quote in non-interpolation part of mixed segment', () => {
+    const result = getRouteAsArray("pre's${petId}");
+    expect(result).toContain("pre\\'s");
   });
 });
 
