@@ -259,10 +259,18 @@ describe('getFullRoute — GHSA-88f2-fpv8-89q2: servers[].url template-literal i
   });
 });
 
-describe('getRoute — backtick injection in path segments', () => {
-  it('escapes backtick and ${ in static path segment', () => {
+describe('getRoute — spec path injection', () => {
+  it('escapes backtick in static path segment', () => {
     const result = getRoute('/v1/`+require("child_process").execSync("id")+`');
     expect(result).not.toMatch(/(?<!\\)`/);
+  });
+
+  it('neutralizes ${...} that is not a valid path param', () => {
+    // ${globalThis.X} in a path is NOT an OpenAPI path param ({param}).
+    // getRoutePath's regex rejects it (dot in param name), so it stays
+    // as literal text — no live interpolation.
+    const result = getRoute('/v1/${globalThis.X}/path');
+    expect(result).not.toMatch(/(?<!\\)\$\{globalThis/);
   });
 });
 

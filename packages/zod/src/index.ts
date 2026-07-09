@@ -834,15 +834,16 @@ export const generateZodValidationSchemaDefinition = (
       // `.default()` rejects against its mutable parameter type (#3399).
       const entries = Object.entries(schema.default)
         .map(([key, value]) => {
+          const safeKey = JSON.stringify(key);
           if (isString(value)) {
-            return `${key}: ${JSON.stringify(value)} as const`;
+            return `${safeKey}: ${JSON.stringify(value)} as const`;
           }
 
           if (Array.isArray(value)) {
             const arrayItems = value.map((item) =>
               isString(item) ? `${JSON.stringify(item)} as const` : `${item}`,
             );
-            return `${key}: [${arrayItems.join(', ')}]`;
+            return `${safeKey}: [${arrayItems.join(', ')}]`;
           }
 
           if (
@@ -851,7 +852,7 @@ export const generateZodValidationSchemaDefinition = (
             isNumber(value) ||
             isBoolean(value)
           )
-            return `${key}: ${value}`;
+            return `${safeKey}: ${value}`;
         })
         .join(', ');
       defaultValue = entries.length === 0 ? `{}` : `{ ${entries} }`;

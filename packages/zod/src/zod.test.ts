@@ -2394,7 +2394,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['default', 'testObjectDefaultDefault'],
         ],
         consts: [
-          'export const testObjectDefaultDefault = { name: "Fluffy" as const, age: 3 };',
+          'export const testObjectDefaultDefault = { "name": "Fluffy" as const, "age": 3 };',
         ],
       });
 
@@ -2409,7 +2409,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'zod.object({\n  "name": zod.string().optional(),\n  "age": zod.number().optional()\n}).default(testObjectDefaultDefault)',
       );
       expect(parsed.consts).toBe(
-        'export const testObjectDefaultDefault = { name: "Fluffy" as const, age: 3 };',
+        'export const testObjectDefaultDefault = { "name": "Fluffy" as const, "age": 3 };',
       );
     });
 
@@ -3331,7 +3331,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
 
       expect(result.consts).toEqual([
-        'export const enumPropertiesObjectDefault = { enabled: true, value: "a" as const };',
+        'export const enumPropertiesObjectDefault = { "enabled": true, "value": "a" as const };',
       ]);
       expect(result.functions).toContainEqual([
         'default',
@@ -3374,7 +3374,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       // empty/literal arrays inside become `readonly` and fail zod v4's
       // `.default()` overload check (regression introduced by #3339).
       expect(result.consts).toEqual([
-        'export const settingsDefault = { checklist: null, available_indexes: [] };',
+        'export const settingsDefault = { "checklist": null, "available_indexes": [] };',
       ]);
       expect(result.consts[0]).not.toContain('as const');
       expect(result.functions).toContainEqual(['default', 'settingsDefault']);
@@ -3402,7 +3402,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
 
       expect(result.consts).toEqual([
-        'export const taggedObjectDefault = { tags: ["a" as const, "b" as const] };',
+        'export const taggedObjectDefault = { "tags": ["a" as const, "b" as const] };',
       ]);
     });
 
@@ -11391,7 +11391,7 @@ describe('enum/const value escaping (#3505)', () => {
     );
 
     expect(result.consts).toEqual([
-      String.raw`export const testDefaultBackslashDefault = { path: "C:\\logs\\" as const };`,
+      String.raw`export const testDefaultBackslashDefault = { "path": "C:\\logs\\" as const };`,
     ]);
   });
 
@@ -11414,7 +11414,7 @@ describe('enum/const value escaping (#3505)', () => {
     );
 
     expect(result.consts).toEqual([
-      String.raw`export const testDefaultArrayBackslashDefault = { paths: ["C:\\logs\\" as const] };`,
+      String.raw`export const testDefaultArrayBackslashDefault = { "paths": ["C:\\logs\\" as const] };`,
     ]);
   });
 
