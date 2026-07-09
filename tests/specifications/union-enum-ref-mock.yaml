@@ -1,0 +1,40 @@
+openapi: 3.0.3
+info:
+  title: Union enum ref mock
+  description: |
+    A parent schema references a string enum component via $ref while
+    enumGenerationType is 'union'. The union renders the enum as a pure type
+    (no runtime value), so the generated faker/msw mock must inline the enum
+    values instead of calling Object.values(EnumName) — which would fail tsc
+    with TS2693 (#3690).
+  version: 1.0.0
+paths:
+  /display:
+    get:
+      operationId: getDisplay
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisplayValueDto'
+components:
+  schemas:
+    DisplayColor:
+      description: A text color that can be used for display purposes.
+      type: string
+      enum:
+        - TEXT_01
+        - TEXT_04
+        - TEXT_CURRENCY_GAIN
+    DisplayValueDto:
+      type: object
+      required:
+        - value
+      properties:
+        color:
+          allOf:
+            - $ref: '#/components/schemas/DisplayColor'
+        value:
+          type: string

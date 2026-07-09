@@ -10,7 +10,12 @@ import type {
   NormalizedOverrideOutput,
   OpenApiSchemaObject,
 } from '@orval/core';
-import { isFakerMock, isMswMock, OutputMockType } from '@orval/core';
+import {
+  EnumGeneration,
+  isFakerMock,
+  isMswMock,
+  OutputMockType,
+} from '@orval/core';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import { createTestContextSpec } from '../../../core/src/test-utils/context';
@@ -534,7 +539,11 @@ describe('oneOf split helpers forward body imports (#3656)', () => {
   // mutating that array suppresses the caller-side merge of the returned
   // imports, so forwarding only the variant's type import loses the enum
   // value import and the generated mock fails tsc with TS2304.
+  // `enum` generation makes the $ref'd enum a runtime object, so the helper
+  // renders it as `Object.values(ReasonEnum)` (see #3690 — `union` inlines the
+  // values instead and forwards no value import).
   const context = createTestContextSpec({
+    override: { enumGenerationType: EnumGeneration.ENUM },
     spec: {
       components: {
         schemas: {
