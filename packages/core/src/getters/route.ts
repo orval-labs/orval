@@ -37,9 +37,15 @@ const getRoutePath = (path: string): string => {
   // Don't treat ${...} as a path param — OpenAPI params use {param}, not
   // ${param}. After jsesc boundary escaping, ${ becomes \${, but the { is
   // still visible to the regex below and would be misinterpreted as a param.
+  // Skip past the ${...} block and continue processing the remaining suffix.
   const braceIdx = path.indexOf('{');
   if (braceIdx > 0 && path[braceIdx - 1] === '$') {
-    return path;
+    const closeIdx = path.indexOf('}', braceIdx);
+    if (closeIdx === -1) return path;
+    const rest = path.slice(closeIdx + 1);
+    return hasParam(rest)
+      ? `${path.slice(0, closeIdx + 1)}${getRoutePath(rest)}`
+      : path;
   }
 
   const matches = /([^{]*){?([\w*_-]*)}?(.*)/.exec(path);
@@ -192,12 +198,13 @@ export function getRouteAsArray(route: string): string {
       if (!segment.includes('${')) {
         return [`'${segment.replaceAll("'", "\\'")}'`];
       }
-      // Split by template tags, keeping the delimiters
+      // Split by template tags, keeping the delimiters.
+      // (?<!\\) prevents matching \${...} (jsesc-escaped) as a template tag.
       return segment
-        .split(/(\$\{.+?\})/g)
+        .split(/(?<!\\)(\$\{.+?\})/g)
         .filter(Boolean)
         .map((part) => {
-          const match = /^\$\{(.+?)\}$/.exec(part);
+          const match = /^(?<!\\)\$\{(.+?)\}$/.exec(part);
           return match ? match[1] : `'${part.replaceAll("'", "\\'")}'`;
         });
     })
