@@ -156,6 +156,7 @@ export function generateTarget(
       const footer = builder.footer({
         outputClient: options.client,
         operationNames,
+        operations,
         hasMutator: target.mutators.length > 0,
         hasAwaitedType,
         titles,

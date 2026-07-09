@@ -206,8 +206,7 @@ export function generateTargetForTags(
           // `isOperationInTagBucket` keeps this in lockstep with how the
           // buckets above were built, including untagged operations that were
           // routed into the implicit `default` bucket by `addDefaultTagIfEmpty`.
-          .filter((operation) => isOperationInTagBucket(operation, tag))
-          .map(({ operationName }) => operationName);
+          .filter((operation) => isOperationInTagBucket(operation, tag));
 
         const hasAwaitedType = hasTypeScriptAwaitedType(options.packageJson);
 
@@ -220,7 +219,10 @@ export function generateTargetForTags(
 
         const footer = builder.footer({
           outputClient: options.client,
-          operationNames,
+          operationNames: operationNames.map(
+            ({ operationName }) => operationName,
+          ),
+          operations: operationNames,
           hasMutator: !!target.mutators?.length,
           hasAwaitedType,
           titles,

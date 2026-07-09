@@ -121,7 +121,14 @@ export async function getApiBuilder({
         acc.verbOptions[verbOption.operationId] = verbOption;
       }
       acc.schemas.push(...schemas);
-      acc.operations = { ...acc.operations, ...pathOperations };
+      for (const [key, value] of Object.entries(pathOperations)) {
+        let operationKey = key;
+        let counter = 1;
+        while (Object.hasOwn(acc.operations, operationKey)) {
+          operationKey = `${key}::${++counter}`;
+        }
+        acc.operations[operationKey] = value;
+      }
 
       return acc;
     },

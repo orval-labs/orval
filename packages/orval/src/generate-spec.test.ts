@@ -1261,3 +1261,101 @@ describe('generateSpec - schemas.splitByTags validation', () => {
     }
   });
 });
+
+describe('generateSpec - returnTypesToWrite isolation across tags (#3685)', () => {
+  it("each tag emits its own *Result type, not the other tag's", async () => {
+    const SPEC: OpenApiDocument = {
+      openapi: '3.1.0',
+      info: { title: 'Collision Demo', version: '1.0.0' },
+      paths: {
+        '/api/catalog/products': {
+          get: {
+            tags: ['catalog'],
+            operationId: 'getCatalogProducts',
+            responses: {
+              '200': {
+                description: 'ok',
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/components/schemas/Product' },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '/api/inventory/products': {
+          get: {
+            tags: ['inventory'],
+            operationId: 'getInventoryProducts',
+            responses: {
+              '200': {
+                description: 'ok',
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/components/schemas/Stock' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      components: {
+        schemas: {
+          Product: {
+            type: 'object',
+            properties: { id: { type: 'string' } },
+          },
+          Stock: {
+            type: 'object',
+            properties: { count: { type: 'integer' } },
+          },
+        },
+      },
+    };
+
+    const workspace = await createTempWorkspace();
+
+    try {
+      const options = await normalizeOptions(
+        {
+          input: { target: SPEC },
+          output: {
+            target: './endpoints.ts',
+            mode: 'tags-split',
+            schemas: './model',
+            client: 'axios',
+            override: {
+              operationName: () => 'getProducts',
+            },
+          },
+        },
+        workspace,
+      );
+
+      await generateSpec(workspace, options);
+
+      const catalogContent = await fs.readFile(
+        path.join(workspace, 'catalog', 'catalog.ts'),
+        'utf-8',
+      );
+      const inventoryContent = await fs.readFile(
+        path.join(workspace, 'inventory', 'inventory.ts'),
+        'utf-8',
+      );
+
+      // Both tags share the same operationName (getProducts) via override,
+      // but each must emit its own *Result type with the correct schema.
+      // Before #3685, the module-level returnTypesToWrite map would
+      // overwrite catalog's entry with inventory's.
+      expect(catalogContent).toContain('AxiosResponse<Product>');
+      expect(catalogContent).not.toContain('AxiosResponse<Stock>');
+
+      expect(inventoryContent).toContain('AxiosResponse<Stock>');
+      expect(inventoryContent).not.toContain('AxiosResponse<Product>');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
