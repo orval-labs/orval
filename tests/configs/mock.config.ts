@@ -545,6 +545,27 @@ export default defineConfig({
       target: '../specifications/faker-schemas-string-enum-ref.yaml',
     },
   },
+  // #3690: with `enumGenerationType: 'union'` a $ref'd string enum is a pure
+  // type (no runtime value), so the msw/faker mock must inline the enum values
+  // instead of calling `Object.values(EnumName)` (which fails tsc with TS2693).
+  unionEnumRefMsw: {
+    output: {
+      target: '../generated/mock/union-enum-ref-msw/endpoints.ts',
+      schemas: '../generated/mock/union-enum-ref-msw/model',
+      client: 'axios',
+      mock: {
+        generators: [{ type: 'msw' }],
+      },
+      override: {
+        enumGenerationType: 'union',
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/union-enum-ref-mock.yaml',
+    },
+  },
   issue3200: {
     output: {
       target: '../generated/mock/issue-3200/endpoints.ts',

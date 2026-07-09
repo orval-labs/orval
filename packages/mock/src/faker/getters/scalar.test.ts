@@ -1,5 +1,6 @@
 /* eslint-disable unicorn/no-null */
 import type { ContextSpec, OpenApiSchemaObjectType } from '@orval/core';
+import { EnumGeneration } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
 import { createTestContextSpec } from '../../../../core/src/test-utils/context';
@@ -1164,5 +1165,68 @@ describe('getMockScalar (schema-scoped overrides)', () => {
     });
 
     expect(result.value).toBe("'red'");
+  });
+});
+
+describe('getMockScalar (referenced string enum by enumGenerationType #3690)', () => {
+  const baseArg = {
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+  };
+
+  const enumRefItem = {
+    type: 'string' as OpenApiSchemaObjectType,
+    enum: ['ONE', 'TWO', 'THREE'],
+    name: 'MyEnum',
+    isRef: true,
+  };
+
+  it('inlines the enum values for `union` (a union type has no runtime value)', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: { ...enumRefItem },
+      context: scalarContext({ enumGenerationType: EnumGeneration.UNION }),
+    });
+
+    expect(result.value).toBe(
+      "faker.helpers.arrayElement(['ONE','TWO','THREE'] as const)",
+    );
+    // No value import: the union type must not be referenced as a value.
+    expect(result.imports).not.toContainEqual(
+      expect.objectContaining({ name: 'MyEnum', values: true }),
+    );
+  });
+
+  it('uses Object.values for `enum` (a native enum is a runtime object)', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: { ...enumRefItem },
+      context: scalarContext({ enumGenerationType: EnumGeneration.ENUM }),
+    });
+
+    expect(result.value).toBe(
+      'faker.helpers.arrayElement(Object.values(MyEnum))',
+    );
+    expect(result.imports).toContainEqual(
+      expect.objectContaining({ name: 'MyEnum', values: true }),
+    );
+  });
+
+  it('uses Object.values for `const` (a const object is a runtime value)', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: { ...enumRefItem },
+      context: scalarContext({ enumGenerationType: EnumGeneration.CONST }),
+    });
+
+    expect(result.value).toBe(
+      'faker.helpers.arrayElement(Object.values(MyEnum))',
+    );
+    expect(result.imports).toContainEqual(
+      expect.objectContaining({ name: 'MyEnum', values: true }),
+    );
   });
 });

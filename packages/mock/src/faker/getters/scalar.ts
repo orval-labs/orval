@@ -635,8 +635,16 @@ function getEnum(
     enumValue += ' as const';
   }
 
-  // But if the value is a reference, we can use the object directly via the imports and using Object.values.
-  if (item.isRef && type === 'string') {
+  // But if the value is a reference to a schema that emits a runtime value
+  // (a native `enum` object or a `const` object), we can use it directly via
+  // the imports and `Object.values`. A `union` reference is a pure type with
+  // no runtime value, so `Object.values` would fail (TS2693) — keep the
+  // inlined values in that case (#3690).
+  if (
+    item.isRef &&
+    type === 'string' &&
+    context.output.override.enumGenerationType !== EnumGeneration.UNION
+  ) {
     enumValue = `Object.values(${item.name})`;
     imports.push({
       name: item.name,
