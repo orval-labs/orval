@@ -1115,6 +1115,20 @@ test('fetch issue-3663 combines required from a constraint-only allOf overlay', 
   expect(barInlineType).toMatch(/Required<Pick<[\s\S]*?'id' \| 'name'/);
 });
 
+test('fetch issue-3695 does not import zod for a path parameter named `z`', async () => {
+  // The fetch client imports zod as `import { z as zod } from 'zod'`. A path
+  // parameter named exactly `z` must not be mistaken for a zod usage and pull
+  // the (otherwise unused) zod import into the client. See #3695.
+  const content = await readFile(
+    generated('fetch', 'issue-3695', 'endpoints.ts'),
+    'utf8',
+  );
+
+  expect(content).not.toContain("from 'zod'");
+  // The parameter itself is still generated as a normal string argument.
+  expect(content).toContain('z: string');
+});
+
 test('zod override.zod.version pins the output target independently of the installed zod', async () => {
   // `tests` installs Zod 4, so installed-version detection would emit Zod 4 for
   // both. These two clients generate from the SAME petstore spec but pin
