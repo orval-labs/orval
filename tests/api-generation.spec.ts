@@ -1758,4 +1758,7 @@ test('mock issue-3691 tuple prefixItems mock values match the generated tuple ty
   // empty slot that would produce invalid `[, ...]` output.
   expect(content).not.toMatch(/emptyElemTuple: \[\s*,/);
   expect(content).toMatch(/emptyElemTuple: \[\s*faker\.string\.alpha/);
+  // The nullable tuple (`anyOf: [tuple, null]`) is the issue's exact shape and
+  // must not regress to the original empty `[]`.
+  expect(content).not.toContain('point: []');
 });
