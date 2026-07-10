@@ -1085,4 +1085,22 @@ export default defineConfig({
       target: '../specifications/issue-3656.yaml',
     },
   },
+  // Regression for https://github.com/orval-labs/orval/issues/3691:
+  // OpenAPI 3.1 tuples (`prefixItems`) must mock each positional element so
+  // the generated mock is assignable to the generated `[T0, T1, ...]` type.
+  'issue-3691': {
+    output: {
+      target: '../generated/mock/issue-3691/endpoints.ts',
+      schemas: '../generated/mock/issue-3691/model',
+      client: 'axios',
+      mock: {
+        generators: [{ type: 'msw' }],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3691.yaml',
+    },
+  },
 });

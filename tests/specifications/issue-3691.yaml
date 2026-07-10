@@ -1,0 +1,72 @@
+openapi: 3.1.0
+info:
+  title: Issue 3691 - tuple prefixItems mock
+  version: 1.0.0
+paths:
+  /example:
+    get:
+      operationId: getExample
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Example'
+components:
+  schemas:
+    Example:
+      type: object
+      required:
+        - plainPoint
+        - objTuple
+        - restTuple
+        - emptyElemTuple
+      properties:
+        # Issue's exact shape: optional tuple wrapped in `anyOf: [tuple, null]`.
+        point:
+          anyOf:
+            - type: array
+              prefixItems:
+                - type: number
+                - type: number
+              minItems: 2
+              maxItems: 2
+            - type: 'null'
+        # Plain (non-nullable) tuple isolates the `case 'array'` mock path.
+        plainPoint:
+          type: array
+          prefixItems:
+            - type: number
+            - type: string
+          minItems: 2
+          maxItems: 2
+        # Object element pins the `combine` propagation decision.
+        objTuple:
+          type: array
+          prefixItems:
+            - type: object
+              properties:
+                id:
+                  type: string
+            - type: string
+          minItems: 2
+          maxItems: 2
+        # prefixItems + items: tuple-with-rest stays type-safe with fixed positions only.
+        restTuple:
+          type: array
+          prefixItems:
+            - type: string
+            - type: number
+          items:
+            type: string
+          minItems: 2
+        # Empty-schema (`{}`, i.e. `unknown`) element must emit a real value, not
+        # an empty slot that would break the `[a, b]` literal.
+        emptyElemTuple:
+          type: array
+          prefixItems:
+            - type: string
+            - {}
+          minItems: 2
+          maxItems: 2

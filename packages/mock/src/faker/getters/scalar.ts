@@ -313,6 +313,44 @@ export function getMockScalar({
     }
 
     case 'array': {
+      // OpenAPI 3.1 tuples carry their positional element schemas in
+      // `prefixItems` (not `items`). Mock each fixed position so the emitted
+      // literal is assignable to the generated `[T0, T1, ...]` tuple type.
+      // Emitting only the fixed positions stays type-safe even when `items`
+      // also defines a rest element, because the generated type is
+      // `[...prefix, ...Additional[]]` and the rest permits zero elements.
+      const prefixItems = item.prefixItems as MockSchema[] | undefined;
+      if (prefixItems && prefixItems.length > 0) {
+        const tupleImports: GeneratorImport[] = [];
+        const tupleValues = prefixItems.map((prefixItem, index) => {
+          const { value: elementValue, imports: elementImports } =
+            resolveMockValue({
+              schema: {
+                ...prefixItem,
+                name: item.name,
+                parentName: item.parentName,
+                path: item.path ? `${item.path}.[${index}]` : `#.[${index}]`,
+              },
+              combine,
+              mockOptions,
+              operationId,
+              tags,
+              context,
+              imports,
+              existingReferencedProperties,
+              existingReferencedAllOfRefs,
+              splitMockImplementations,
+            });
+          tupleImports.push(...elementImports);
+          return elementValue;
+        });
+        return {
+          value: `[${tupleValues.join(', ')}]`,
+          imports: tupleImports,
+          name: item.name,
+        };
+      }
+
       if (!item.items) {
         return { value: '[]', imports: [], name: item.name };
       }
