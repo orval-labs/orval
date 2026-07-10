@@ -1733,3 +1733,29 @@ test('mock issue-3656 oneOf branch MSW mock imports the enum as a value', async 
     /import \{[^}]*\bReasonEnum\b[^}]*\} from '\.\/model'/,
   );
 });
+
+test('mock issue-3691 tuple prefixItems mock values match the generated tuple type', async () => {
+  const content = await readFile(
+    generated('mock', 'issue-3691', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // Each `prefixItems` position must be mocked so the literal is assignable to
+  // the generated tuple type — the old behaviour emitted an empty `[]`.
+  expect(content).not.toContain('plainPoint: []');
+  expect(content).not.toContain('objTuple: []');
+  expect(content).toMatch(
+    /plainPoint: \[\s*faker\.number\.float\([^)]*\),\s*faker\.string\.alpha/,
+  );
+  // Object element keeps its object shape (combine wrapping must not misfire).
+  expect(content).toMatch(/objTuple: \[\s*\{\s*id:/);
+  // `prefixItems` + `items` (tuple-with-rest) emits the fixed positions as a
+  // tuple literal rather than falling through to the `Array.from(...)` path.
+  expect(content).toMatch(
+    /restTuple: \[\s*faker\.string\.alpha\([^)]*\),\s*faker\.number\.float/,
+  );
+  // An empty-schema (`{}`) element must emit a real value (`{}`), never an
+  // empty slot that would produce invalid `[, ...]` output.
+  expect(content).not.toMatch(/emptyElemTuple: \[\s*,/);
+  expect(content).toMatch(/emptyElemTuple: \[\s*faker\.string\.alpha/);
+});
