@@ -33,23 +33,25 @@ function runtimeExpressionToUrlPrefix(expression: string): string {
 
 const hasParam = (path: string): boolean => /[^{]*{[\w*_-]*}.*/.test(path);
 
+const esc = (str: string) => jsesc(str, { quotes: 'backtick', wrap: false });
+
 const getRoutePath = (path: string): string => {
-  // Don't treat ${...} as a path param — OpenAPI params use {param}, not
-  // ${param}. After jsesc boundary escaping, ${ becomes \${, but the { is
-  // still visible to the regex below and would be misinterpreted as a param.
-  // Skip past the ${...} block and continue processing the remaining suffix.
+  // Don't treat ${...} as an OpenAPI path param — the $ makes it literal text,
+  // not a {param} template. Escape the ${...} block and continue processing
+  // any legitimate {param} segments after it.
   const braceIdx = path.indexOf('{');
   if (braceIdx > 0 && path[braceIdx - 1] === '$') {
     const closeIdx = path.indexOf('}', braceIdx);
-    if (closeIdx === -1) return path;
+    if (closeIdx === -1) return esc(path);
+    const before = esc(path.slice(0, closeIdx + 1));
     const rest = path.slice(closeIdx + 1);
     return hasParam(rest)
-      ? `${path.slice(0, closeIdx + 1)}${getRoutePath(rest)}`
-      : path;
+      ? `${before}${getRoutePath(rest)}`
+      : `${before}${esc(rest)}`;
   }
 
   const matches = /([^{]*){?([\w*_-]*)}?(.*)/.exec(path);
-  if (!matches?.length) return path; // impossible due to regexp grouping here, but for TS
+  if (!matches?.length) return esc(path);
 
   const prev = matches[1];
   const rawParam = matches[2];
@@ -60,22 +62,20 @@ const getRoutePath = (path: string): string => {
     dash: true,
     dot: true,
   });
-  const next = hasParam(rest) ? getRoutePath(rest) : rest;
+  const next = hasParam(rest) ? getRoutePath(rest) : esc(rest);
 
   return hasParam(path)
-    ? `${prev}\${${param}}${next}`
-    : `${prev}${param}${next}`;
+    ? `${esc(prev)}\${${param}}${next}`
+    : `${esc(prev)}${param}${next}`;
 };
 
 /**
- * Escapes spec-controlled path segments for safe embedding in template literals
- * (backtick, backslash, `${`). The `route` arg must be a raw OpenAPI path — do
- * NOT pass pre-escaped output, as jsesc is not idempotent (re-escaping produces
- * double-escaped output).
+ * Converts an OpenAPI path (`{param}`) to a template-literal route (`${param}`),
+ * escaping static segments with jsesc for safe embedding in backtick strings.
+ * The `route` arg must be a raw OpenAPI path.
  */
 export function getRoute(route: string) {
-  const safeRoute = jsesc(route, { quotes: 'backtick', wrap: false });
-  const splittedRoute = safeRoute.split('/');
+  const splittedRoute = route.split('/');
 
   let result = '';
   for (const [i, path] of splittedRoute.entries()) {
@@ -83,7 +83,7 @@ export function getRoute(route: string) {
       continue;
     }
 
-    result += path.includes('{') ? `/${getRoutePath(path)}` : `/${path}`;
+    result += path.includes('{') ? `/${getRoutePath(path)}` : `/${esc(path)}`;
   }
   return result;
 }

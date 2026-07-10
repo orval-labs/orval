@@ -265,19 +265,36 @@ describe('getRoute — spec path injection', () => {
     expect(result).not.toMatch(/(?<!\\)`/);
   });
 
-  it('does not re-interpret ${...} as a live interpolation', () => {
-    // ${evil} in a path is NOT an OpenAPI path param ({param}).
-    // jsesc escapes ${ to \${, and getRoutePath must not treat the
-    // remaining {evil} as a param — otherwise it re-creates ${evil}.
+  it('escapes ${...} as literal text, not interpolation', () => {
     for (const payload of [
       '/v1/${evil}/path',
       '/v1/${globalThis.X}/path',
-      '/v1/{petId}${evil}/path',
+      '/v1/some${petId}/path',
     ]) {
       const result = getRoute(payload);
-      expect(result).not.toMatch(/(?<!\\)\$\{evil/);
-      expect(result).not.toMatch(/(?<!\\)\$\{globalThis/);
+      expect(result).not.toMatch(/(?<!\\)\$\{/);
     }
+  });
+
+  it('preserves legitimate params after ${...} in same segment', () => {
+    for (const payload of [
+      '/v1/${evil}{petId}/path',
+      '/v1/${a}${b}{petId}/path',
+    ]) {
+      const result = getRoute(payload);
+      expect(result).toContain('${petId}');
+      expect(result).not.toMatch(/(?<!\\)\$\{(evil|[ab]\})/);
+    }
+  });
+
+  it('does not trigger guard for $ without {', () => {
+    const result = getRoute('/v1/price$/list');
+    expect(result).toContain('price$');
+  });
+
+  it('escapes backslash in static text', () => {
+    const result = getRoute('/v1/path\\to/list');
+    expect(result).toContain('path\\\\to');
   });
 
   it('still converts legitimate path params', () => {
