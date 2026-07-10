@@ -47,10 +47,15 @@ export interface EmitResponseValidationOptions {
  * The raw `ZodError` is passed to `console.error` (no `prettifyError`/`flatten`)
  * to stay agnostic across Zod 3 and Zod 4.
  *
- * `operationName` is interpolated into a single-quoted string literal; callers
- * pass sanitized camelCase operation identifiers, so there is no string-literal
- * injection surface.
+ * `operationName` is interpolated into a single-quoted string literal. The
+ * default is a sanitized camelCase identifier, but `override.operationName` can
+ * return arbitrary strings, so backslashes and single quotes are escaped to
+ * keep the generated literal syntactically valid. Sanitized identifiers contain
+ * neither character, so common output is unchanged.
  */
+const escapeSingleQuoted = (value: string): string =>
+  value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
 const buildGuardBody = (
   schemaRef: string,
   operationName: string,
@@ -58,7 +63,7 @@ const buildGuardBody = (
 ): string =>
   `const result = ${schemaRef}.safeParse(${input}); ` +
   `if (!result.success) { ` +
-  `console.error('[orval] ${operationName} response validation failed', result.error); ` +
+  `console.error('[orval] ${escapeSingleQuoted(operationName)} response validation failed', result.error); ` +
   `throw result.error; ` +
   `} ` +
   `return result.data;`;

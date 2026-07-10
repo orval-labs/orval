@@ -113,6 +113,23 @@ describe('emitResponseValidation', () => {
       );
     });
   });
+
+  describe('operationName escaping', () => {
+    it('escapes single quotes and backslashes so the log literal stays valid', () => {
+      // `override.operationName` can return arbitrary strings, so a name with a
+      // single quote or backslash must not break the generated string literal.
+      expect(
+        emitResponseValidation({
+          schemaRef: 'PetsSchema',
+          operationName: "list\\Pets's",
+          strategy: 'both',
+          context: 'rxjs-map',
+        }),
+      ).toBe(
+        ".pipe(map(data => { const result = PetsSchema.safeParse(data); if (!result.success) { console.error('[orval] list\\\\Pets\\'s response validation failed', result.error); throw result.error; } return result.data; }))",
+      );
+    });
+  });
 });
 
 describe('normalizeRuntimeValidation', () => {

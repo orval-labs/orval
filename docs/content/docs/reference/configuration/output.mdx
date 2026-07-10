@@ -1749,9 +1749,10 @@ with the raw `ZodError`, then re-thrown — so the failure still surfaces throug
 the client's native error channel (RxJS error / `resource.error()` signal) while
 giving production visibility into contract drift.
 
-Validation is skipped for primitive types, non-JSON responses,
-`observe: 'events' | 'response'`, and custom mutator paths that bypass the
-generated validation flow.
+Validation is skipped for primitive types, non-JSON responses, and custom
+mutator paths that bypass the generated validation flow. For Angular
+`HttpClient`, `observe: 'events' | 'response'` responses are still validated by
+cloning the response and validating its JSON body.
 
 ### httpResource
 
@@ -2081,7 +2082,7 @@ export const load = async ({ fetch }) => {
 
 | Client | Config key | Status | Notes |
 |--------|------------|--------|-------|
-| `angular` | `override.angular.runtimeValidation` | ✅ | `throw`: `Schema.parse()`; `both`: `safeParse` + `console.error` + throw. Skips primitive/`void`, `observe: 'events'/'response'`, and custom mutator paths |
+| `angular` | `override.angular.runtimeValidation` | ✅ | `throw`: `Schema.parse()`; `both`: `safeParse` + `console.error` + throw. Validates `observe: 'events'/'response'` by cloning the response body. Skips primitive/`void` and custom mutator paths |
 | `angular-query` | `override.query.runtimeValidation` | ✅ | `throw`: `Schema.parse()` in RxJS pipeline; `both`: `safeParse` + `console.error` + throw. Skips primitive/`void` and custom mutator paths |
 | `fetch` | `override.fetch.runtimeValidation` | ✅ | `throw`: `Schema.parse()`; `both`: `safeParse` + `console.error` + throw for JSON responses |
 | any client with custom mutator | varies | ⚠️ | Runtime validation may be bypassed depending on mutator path and signature (see [#2858](https://github.com/orval-labs/orval/issues/2858)) |
