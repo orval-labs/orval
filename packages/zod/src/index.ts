@@ -216,6 +216,157 @@ const COMPONENT_SCHEMAS_REF_PATTERN = /^#\/components\/schemas\/[^/]+$/;
 const isComponentSchemaRef = (ref: string): boolean =>
   COMPONENT_SCHEMAS_REF_PATTERN.test(ref);
 
+// --- Discriminated unions -------------------------------------------------
+//
+// A `oneOf`/`anyOf` carrying an OpenAPI `discriminator` maps naturally onto
+// `zod.discriminatedUnion(key, [...])`, which gives per-branch validation
+// errors instead of the useless "no union member matched" that a plain
+// `zod.union` produces. Orval shipped this once (PR #1907) but reverted it
+// (PR #2118, issue #2085) because `zod.discriminatedUnion` only accepts
+// *object* options: an inheritance branch (`allOf`) renders as a
+// `zod.object().and(...)` intersection, which zod rejects at construction and
+// crashes the generated module.
+//
+// The fix is to only emit a discriminated union when every branch can be
+// rendered as a single `ZodObject`, and fall back to a plain union otherwise.
+// The go/no-go decision is made here (against the resolved spec, where we have
+// full type information); the render side just trusts the marker and forces
+// `allOf` branches to merge into one object.
+//
+// The property name is smuggled through the definition's function name because
+// the definition tuple only carries `[name, args]` (see PR #1907, which used
+// the same approach).
+const DISCRIMINATOR_MARK = '::discriminator::';
+
+const encodeDiscriminatorSeparator = (base: string, property: string): string =>
+  `${base}${DISCRIMINATOR_MARK}${property}`;
+
+const decodeDiscriminatorSeparator = (
+  fn: string,
+): { base: string; property: string } | null => {
+  const index = fn.indexOf(DISCRIMINATOR_MARK);
+  if (index === -1) return null;
+  return {
+    base: fn.slice(0, index),
+    property: fn.slice(index + DISCRIMINATOR_MARK.length),
+  };
+};
+
+// Follow a single `$ref` to its target; pass concrete schemas through as-is.
+const resolveUnionMemberSchema = (
+  member: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+): OpenApiSchemaObject | undefined => {
+  if (member && '$ref' in member && typeof member.$ref === 'string') {
+    return tryResolveRefSchema(member.$ref, context);
+  }
+  return member as OpenApiSchemaObject;
+};
+
+// A schema that renders to a single `zod.object({...})` — i.e. not a union,
+// not an intersection (`allOf`), and shaped like an object.
+const isPlainObjectSchema = (
+  schema: OpenApiSchemaObject | undefined,
+): boolean => {
+  if (!schema || schema.oneOf || schema.anyOf || schema.allOf) return false;
+  return (
+    schema.type === 'object' ||
+    (isObject(schema.properties) && Object.keys(schema.properties).length > 0)
+  );
+};
+
+// The branch must declare the discriminator key as a literal value — a `const`
+// or an `enum`. Both zod v3 (>=3.20) and v4 build their branch lookup by
+// reading discrete literal values off each option, and throw at construction if
+// a discriminator resolves to a non-literal (e.g. a free `string`). Requiring a
+// literal here keeps such specs on the plain-union path instead.
+const hasLiteralDiscriminator = (
+  schema: OpenApiSchemaObject | undefined,
+  property: string,
+): boolean => {
+  if (!schema || !isObject(schema.properties)) return false;
+  const propertySchema = schema.properties[property];
+  if (!isObject(propertySchema)) return false;
+  return (
+    (propertySchema as { const?: unknown }).const !== undefined ||
+    Array.isArray((propertySchema as { enum?: unknown }).enum)
+  );
+};
+
+// Read the literal discriminator value(s) a branch declares for `property`
+// (a `const` yields one value, an `enum` yields several). Resolves `$ref` and,
+// for `allOf`, honours the render-time merge semantics where a later member
+// overrides an earlier one — so the last part that declares the property wins.
+// Returns null when no literal is found. Used to reject duplicate discriminator
+// values across branches, which `zod.discriminatedUnion` throws on at
+// construction.
+const collectDiscriminatorValues = (
+  member: OpenApiSchemaObject | OpenApiReferenceObject,
+  property: string,
+  context: ContextSpec,
+): unknown[] | null => {
+  const readValues = (
+    schema: OpenApiSchemaObject | undefined,
+  ): unknown[] | null => {
+    if (!schema || !isObject(schema.properties)) return null;
+    const propertySchema = schema.properties[property];
+    if (!isObject(propertySchema)) return null;
+    const constValue = (propertySchema as { const?: unknown }).const;
+    if (constValue !== undefined) return [constValue];
+    const enumValues = (propertySchema as { enum?: unknown }).enum;
+    if (Array.isArray(enumValues)) return enumValues;
+    return null;
+  };
+
+  const resolved = resolveUnionMemberSchema(member, context);
+  if (!resolved) return null;
+
+  if (resolved.allOf) {
+    const parts = (
+      resolved.allOf as (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    ).map((part) => resolveUnionMemberSchema(part, context));
+    for (let index = parts.length - 1; index >= 0; index--) {
+      const values = readValues(parts[index]);
+      if (values) return values;
+    }
+    return null;
+  }
+
+  return readValues(resolved);
+};
+
+// Can this union branch be rendered as a `ZodObject` carrying the discriminator
+// literal? If not, the whole union must stay a plain `zod.union`.
+const isDiscriminatableMember = (
+  member: OpenApiSchemaObject | OpenApiReferenceObject,
+  property: string,
+  useReusableSchemas: boolean,
+  context: ContextSpec,
+): boolean => {
+  const resolved = resolveUnionMemberSchema(member, context);
+  if (!resolved) return false;
+
+  // A nested union can't be a discriminated-union option.
+  if (resolved.oneOf || resolved.anyOf) return false;
+
+  if (resolved.allOf) {
+    // Inheritance: representable only when we can flatten the parts into one
+    // object at render time. That needs the parts inlined property-by-property.
+    // With `useReusableSchemas` the parts stay `$ref` identifiers to other
+    // consts (potentially intersections themselves), so we can't guarantee a
+    // ZodObject — leave it as a plain union.
+    if (useReusableSchemas) return false;
+    const parts = (
+      resolved.allOf as (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    ).map((part) => resolveUnionMemberSchema(part, context));
+    if (!parts.every((part) => isPlainObjectSchema(part))) return false;
+    return parts.some((part) => hasLiteralDiscriminator(part, property));
+  }
+
+  if (!isPlainObjectSchema(resolved)) return false;
+  return hasLiteralDiscriminator(resolved, property);
+};
+
 export const generateZodValidationSchemaDefinition = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject | undefined,
   context: ContextSpec,
@@ -503,6 +654,54 @@ export const generateZodValidationSchemaDefinition = (
       | OpenApiReferenceObject
     )[];
 
+    // Emit a discriminated union only when the opt-in flag is set AND the spec
+    // asks for one AND every branch can be rendered as a `ZodObject` (see the
+    // notes on `isDiscriminatableMember`). Otherwise keep `separator` as-is and
+    // fall back to a plain `zod.union`, which accepts any member shape.
+    const discriminatorProperty = ((): string | undefined => {
+      if (
+        !context.output?.override?.zod?.generateDiscriminatedUnion ||
+        !(schema.oneOf || schema.anyOf) ||
+        !schema.discriminator?.propertyName ||
+        schemas.length <= 1
+      ) {
+        return undefined;
+      }
+
+      const property = schema.discriminator.propertyName;
+      if (
+        !schemas.every((member) =>
+          isDiscriminatableMember(
+            member,
+            property,
+            useReusableSchemas,
+            context,
+          ),
+        )
+      ) {
+        return undefined;
+      }
+
+      // `zod.discriminatedUnion` builds a value->branch map at construction and
+      // throws if two branches share a discriminator value. Require the values
+      // to be unique across all branches; otherwise fall back to a plain union.
+      const seenValues = new Set<string>();
+      for (const member of schemas) {
+        const values = collectDiscriminatorValues(member, property, context);
+        if (!values || values.length === 0) return undefined;
+        for (const value of values) {
+          const key = JSON.stringify(value);
+          if (seenValues.has(key)) return undefined;
+          seenValues.add(key);
+        }
+      }
+
+      return property;
+    })();
+    const unionSeparator = discriminatorProperty
+      ? encodeDiscriminatorSeparator(separator, discriminatorProperty)
+      : separator;
+
     // In JSON Schema / OpenAPI 3.1 a `required` array in any `allOf` member
     // (and on the composing schema itself) applies to properties contributed by
     // any member. Collect them all so each member's own properties can be marked
@@ -582,7 +781,7 @@ export const generateZodValidationSchemaDefinition = (
         functions.push([
           'allOf',
           [
-            { functions: [[separator, baseSchemas]], consts: [] },
+            { functions: [[unionSeparator, baseSchemas]], consts: [] },
             additionalPropertiesDefinition,
           ],
         ]);
@@ -592,7 +791,7 @@ export const generateZodValidationSchemaDefinition = (
         functions.push([separator, baseSchemas]);
       }
     } else {
-      functions.push([separator, baseSchemas]);
+      functions.push([unionSeparator, baseSchemas]);
     }
     skipSwitchStatement = true;
   }
@@ -1326,6 +1525,59 @@ ${Object.entries(objectArgs)
       )}`,
     });
 
+    // Merge an `allOf` of object schemas into one set of properties, or null
+    // when a part isn't a plain object. Mirrors `mergeAllOfObjectsClassic`.
+    const mergeAllOfObjectsMini = (
+      allOfArgs: ZodValidationSchemaDefinition[],
+    ): Record<string, ZodValidationSchemaDefinition> | null => {
+      const allAreObjects =
+        allOfArgs.length > 0 &&
+        allOfArgs.every((partSchema) => {
+          if (partSchema.functions.length === 0) return false;
+          const firstFn = partSchema.functions[0][0];
+          return firstFn === 'object' || firstFn === 'strictObject';
+        });
+      if (!allAreObjects) return null;
+
+      const mergedProperties: Record<string, ZodValidationSchemaDefinition> =
+        {};
+      for (const partSchema of allOfArgs) {
+        if (partSchema.consts.length > 0) {
+          appendConstsChunk(partSchema.consts.join('\n'));
+        }
+        const objectFunctionIndex = partSchema.functions.findIndex(
+          ([fnName]) => fnName === 'object' || fnName === 'strictObject',
+        );
+        if (objectFunctionIndex !== -1) {
+          const objectArgs = partSchema.functions[objectFunctionIndex][1];
+          if (isObject(objectArgs)) {
+            Object.assign(
+              mergedProperties,
+              objectArgs as Record<string, ZodValidationSchemaDefinition>,
+            );
+          }
+        }
+      }
+      return mergedProperties;
+    };
+
+    // Render a single discriminated-union branch as a `ZodObject` (see
+    // `renderDiscriminatedUnionMember` for the classic-variant counterpart).
+    const renderDiscriminatedUnionMemberMini = (
+      member: ZodValidationSchemaDefinition,
+    ): string => {
+      if (member.functions[0]?.[0] === 'allOf') {
+        const merged = mergeAllOfObjectsMini(
+          member.functions[0][1] as ZodValidationSchemaDefinition[],
+        );
+        if (merged !== null) {
+          return renderObject(merged, getObjectFunctionName(true, strict)).expr;
+        }
+      }
+      appendConstsChunk(member.consts.join('\n'));
+      return renderMiniDefinition(member, fieldPath).expr;
+    };
+
     for (let index = 0; index < definition.functions.length; index++) {
       const [fn, args = ''] = definition.functions[index];
 
@@ -1349,39 +1601,11 @@ ${Object.entries(objectArgs)
 
       if (fn === 'allOf') {
         const allOfArgs = args as ZodValidationSchemaDefinition[];
-        const allAreObjects =
-          strict &&
-          allOfArgs.length > 0 &&
-          allOfArgs.every((partSchema) => {
-            if (partSchema.functions.length === 0) return false;
-            const firstFn = partSchema.functions[0][0];
-            return firstFn === 'object' || firstFn === 'strictObject';
-          });
+        const mergedProperties = strict
+          ? mergeAllOfObjectsMini(allOfArgs)
+          : null;
 
-        if (allAreObjects) {
-          const mergedProperties: Record<
-            string,
-            ZodValidationSchemaDefinition
-          > = {};
-          const allConsts: string[] = [];
-          for (const partSchema of allOfArgs) {
-            if (partSchema.consts.length > 0) {
-              allConsts.push(partSchema.consts.join('\n'));
-            }
-            const objectFunctionIndex = partSchema.functions.findIndex(
-              ([fnName]) => fnName === 'object' || fnName === 'strictObject',
-            );
-            if (objectFunctionIndex !== -1) {
-              const objectArgs = partSchema.functions[objectFunctionIndex][1];
-              if (isObject(objectArgs)) {
-                Object.assign(
-                  mergedProperties,
-                  objectArgs as Record<string, ZodValidationSchemaDefinition>,
-                );
-              }
-            }
-          }
-          appendConstsChunk(allConsts.join('\n'));
+        if (mergedProperties !== null) {
           current = renderObject(
             mergedProperties,
             getObjectFunctionName(true, strict),
@@ -1406,11 +1630,24 @@ ${Object.entries(objectArgs)
         continue;
       }
 
-      if (fn === 'oneOf' || fn === 'anyOf') {
+      const discriminator = decodeDiscriminatorSeparator(fn);
+      if (discriminator || fn === 'oneOf' || fn === 'anyOf') {
         const unionArgs = args as ZodValidationSchemaDefinition[];
         if (unionArgs.length === 1) {
           appendConstsChunk(unionArgs[0].consts.join('\n'));
           current = renderMiniDefinition(unionArgs[0], fieldPath);
+          continue;
+        }
+        if (discriminator) {
+          current = {
+            expr: zodMiniCall(
+              'discriminatedUnion',
+              `'${jsStringEscape(discriminator.property)}', [${unionArgs
+                .map((arg) => renderDiscriminatedUnionMemberMini(arg))
+                .join(',')}]`,
+            ),
+            kind: 'union',
+          };
           continue;
         }
         current = {
@@ -1578,6 +1815,95 @@ ${Object.entries(objectArgs)
     return current ?? { expr: '' };
   };
 
+  // Merge an `allOf` of object schemas into a single `zod.object({...})`.
+  // Returns null when a part isn't a plain object (so the caller can fall back
+  // to `.and()`). Used both for strict-mode object merging and to turn an
+  // inheritance branch of a discriminated union into a valid object option.
+  function mergeAllOfObjectsClassic(
+    allOfArgs: ZodValidationSchemaDefinition[],
+    fieldPath: readonly string[],
+  ): string | null {
+    const allAreObjects =
+      allOfArgs.length > 0 &&
+      allOfArgs.every((partSchema) => {
+        if (partSchema.functions.length === 0) return false;
+        const firstFn = partSchema.functions[0][0];
+        // Zod v3 renders a strict object as `object(...).strict()`, so the
+        // object constructor is still the first function.
+        return firstFn === 'object' || firstFn === 'strictObject';
+      });
+    if (!allAreObjects) return null;
+
+    const mergedProperties: Record<string, ZodValidationSchemaDefinition> = {};
+    let allConsts = '';
+    for (const partSchema of allOfArgs) {
+      if (partSchema.consts.length > 0) {
+        allConsts += partSchema.consts.join('\n');
+      }
+      const objectFunctionIndex = partSchema.functions.findIndex(
+        ([fnName]) => fnName === 'object' || fnName === 'strictObject',
+      );
+      if (objectFunctionIndex !== -1) {
+        const objectArgs = partSchema.functions[objectFunctionIndex][1];
+        if (isObject(objectArgs)) {
+          // Later members override earlier ones (derived over base).
+          Object.assign(
+            mergedProperties,
+            objectArgs as Record<string, ZodValidationSchemaDefinition>,
+          );
+        }
+      }
+    }
+
+    if (allConsts.length > 0) {
+      appendConstsChunk(allConsts);
+    }
+
+    const objectType = getObjectFunctionName(isZodV4, strict);
+    const mergedObjectString = `zod.${objectType}({
+${Object.entries(mergedProperties)
+  .map(([key, schema]) => {
+    const value = schema.functions
+      .map((prop) => parseProperty(prop, [...fieldPath, key]))
+      .join('');
+    appendConstsChunk(schema.consts.join('\n'));
+    return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
+  })
+  .join(',\n')}
+})`;
+
+    // Apply strict only once for Zod v3 (v4 uses strictObject above).
+    if (strict && !isZodV4) {
+      return `${mergedObjectString}.strict()`;
+    }
+    return mergedObjectString;
+  }
+
+  // Render a single discriminated-union branch as a `ZodObject`. `allOf`
+  // (inheritance) branches are merged into one object; every other branch is a
+  // plain object or a `$ref` identifier and renders as-is. Generation only
+  // marks the union as discriminated when all branches satisfy this, so the
+  // fallback here should not trigger in practice.
+  const renderDiscriminatedUnionMember = (
+    member: ZodValidationSchemaDefinition,
+    fieldPath: readonly string[],
+  ): string => {
+    if (member.functions[0]?.[0] === 'allOf') {
+      const merged = mergeAllOfObjectsClassic(
+        member.functions[0][1] as ZodValidationSchemaDefinition[],
+        fieldPath,
+      );
+      if (merged !== null) {
+        return merged;
+      }
+    }
+    appendConstsChunk(member.consts.join('\n'));
+    const value = member.functions
+      .map((prop) => parseProperty(prop, fieldPath))
+      .join('');
+    return `${value.startsWith('.') ? 'zod' : ''}${value}`;
+  };
+
   const parseProperty = (
     property: [string, unknown],
     fieldPath: readonly string[] = [],
@@ -1617,70 +1943,13 @@ ${Object.entries(objectArgs)
 
     if (fn === 'allOf') {
       const allOfArgs = args as ZodValidationSchemaDefinition[];
-      // Check if all parts are objects and we need to merge them for strict mode
-      const allAreObjects =
-        strict &&
-        allOfArgs.length > 0 &&
-        allOfArgs.every((partSchema) => {
-          if (partSchema.functions.length === 0) return false;
-          const firstFn = partSchema.functions[0][0];
-          // Check if first function is object or strictObject
-          // For Zod v3 with strict, it will be object followed by strict
-          return firstFn === 'object' || firstFn === 'strictObject';
-        });
-
-      if (allAreObjects) {
-        // Merge all object properties into a single object
-        const mergedProperties: Record<string, ZodValidationSchemaDefinition> =
-          {};
-        let allConsts = '';
-
-        for (const partSchema of allOfArgs) {
-          if (partSchema.consts.length > 0) {
-            allConsts += partSchema.consts.join('\n');
-          }
-
-          // Find the object function (might be first or second after strict)
-          const objectFunctionIndex = partSchema.functions.findIndex(
-            ([fnName]) => fnName === 'object' || fnName === 'strictObject',
-          );
-
-          if (objectFunctionIndex !== -1) {
-            const objectArgs = partSchema.functions[objectFunctionIndex][1];
-            if (isObject(objectArgs)) {
-              // Merge properties (later schemas override earlier ones)
-              Object.assign(
-                mergedProperties,
-                objectArgs as Record<string, ZodValidationSchemaDefinition>,
-              );
-            }
-          }
+      // In strict mode, merge object parts into a single object so the extra
+      // constraint applies once (rather than to each `.and()` term).
+      if (strict) {
+        const merged = mergeAllOfObjectsClassic(allOfArgs, fieldPath);
+        if (merged !== null) {
+          return merged;
         }
-
-        if (allConsts.length > 0) {
-          appendConstsChunk(allConsts);
-        }
-
-        // Generate merged object
-        const objectType = getObjectFunctionName(isZodV4, strict);
-        const mergedObjectString = `zod.${objectType}({
-${Object.entries(mergedProperties)
-  .map(([key, schema]) => {
-    const value = schema.functions
-      .map((prop) => parseProperty(prop, [...fieldPath, key]))
-      .join('');
-    appendConstsChunk(schema.consts.join('\n'));
-    return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
-  })
-  .join(',\n')}
-})`;
-
-        // Apply strict only once for Zod v3 (v4 uses strictObject)
-        if (!isZodV4) {
-          return `${mergedObjectString}.strict()`;
-        }
-
-        return mergedObjectString;
       }
 
       // Fallback to original .and() approach for non-object or non-strict cases
@@ -1704,7 +1973,8 @@ ${Object.entries(mergedProperties)
 
       return acc;
     }
-    if (fn === 'oneOf' || fn === 'anyOf') {
+    const discriminator = decodeDiscriminatorSeparator(fn);
+    if (discriminator || fn === 'oneOf' || fn === 'anyOf') {
       const unionArgs = args as ZodValidationSchemaDefinition[];
       // Can't use zod.union() with a single item
       if (unionArgs.length === 1) {
@@ -1712,6 +1982,13 @@ ${Object.entries(mergedProperties)
         return unionArgs[0].functions
           .map((prop: [string, unknown]) => parseProperty(prop, fieldPath))
           .join('');
+      }
+
+      if (discriminator) {
+        const members = unionArgs.map((member) =>
+          renderDiscriminatedUnionMember(member, fieldPath),
+        );
+        return `.discriminatedUnion('${jsStringEscape(discriminator.property)}', [${members.join(',')}])`;
       }
 
       const union = unionArgs.map(
