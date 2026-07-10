@@ -273,10 +273,11 @@ test('default issue-873 does not duplicate multi-tag operations across tag files
 
 test('vue-query issue-1026 keeps header params out of the query key getter', async () => {
   // Regression for #1026: with `headers: true` the Vue Query key getter used to
-  // emit `headers = unref(headers);` even though `headers` is not one of its
+  // emit `headers = toValue(headers);` even though `headers` is not one of its
   // parameters, throwing `ReferenceError: headers is not defined` at runtime.
-  // The getter must never unref params (that would also break key reactivity);
-  // `headers` is only unref'd inside the HTTP function where it is a parameter.
+  // The getter must never resolve params (that would also break key reactivity);
+  // `headers` is only resolved inside the HTTP function where it is a parameter.
+  // (Vue Query v5 targets Vue 3.3+, so params resolve via `toValue`.)
   // Keep this focused assertion alongside the snapshot so #1026 fails with a
   // targeted message instead of a full-file snapshot diff.
   const content = await readFile(
@@ -293,15 +294,15 @@ test('vue-query issue-1026 keeps header params out of the query key getter', asy
   const queryKeyFn = content.slice(start, end);
 
   // The getter must not reference `headers` as an identifier: that was the
-  // #1026 bug (`headers = unref(headers);`) and unref-ing a param would also
+  // #1026 bug (`headers = toValue(headers);`) and resolving a param would also
   // break query-key reactivity. A word-boundary regex keeps the intent precise
   // rather than matching `headers` as a loose substring.
   expect(queryKeyFn).not.toMatch(/\bheaders\b/);
 
-  // Sanity check: the HTTP function still receives and unrefs `headers`, so the
-  // assertion above is not passing simply because headers support is missing.
-  expect(content).toContain('headers?: MaybeRef<GetSomeEndpointHeaders>');
-  expect(content).toContain('headers = unref(headers);');
+  // Sanity check: the HTTP function still receives and resolves `headers`, so
+  // the assertion above is not passing simply because headers support is missing.
+  expect(content).toContain('headers?: MaybeRefOrGetter<GetSomeEndpointHeaders>');
+  expect(content).toContain('headers = toValue(headers);');
 });
 
 test('fetch useDates with only date-time query params coerces via String(value)', async () => {
@@ -343,9 +344,11 @@ test('fetch binary request bodies are sent without JSON.stringify', async () => 
   expect(content).not.toContain('JSON.stringify(replaceLotteryLogoBody)');
 });
 
-test('vue-query custom fetch infinite queries unref non-pagination params', async () => {
+test('vue-query custom fetch infinite queries resolve non-pagination params', async () => {
   // Regression for #3385:
-  // functions accept plain values, while Vue query hooks expose MaybeRef<T>.
+  // functions accept plain values, while Vue query hooks expose
+  // MaybeRefOrGetter<T> (Vue Query v5 targets Vue 3.3+, so `toValue` resolves
+  // refs, plain values and getters alike).
   // The infinite query path already unwraps `params` to merge the page param,
   // but must also unwrap the remaining props before calling the request
   // function or the generated output fails TypeScript compilation.
@@ -356,8 +359,8 @@ test('vue-query custom fetch infinite queries unref non-pagination params', asyn
 
   expect(content).toContain(
     `getUsersUserIdOrders(
-      unref(userId),
-      { ...unref(params), limit: pageParam ?? unref(params)?.['limit'] },
+      toValue(userId),
+      { ...toValue(params), limit: pageParam ?? toValue(params)?.['limit'] },
       { signal, ...requestOptions },
     );`,
   );
@@ -1688,4 +1691,75 @@ test('axios splitByTags + indexFiles:false + faker schemas:true routes faker fac
   // No flat-layout or extensionless root-barrel imports may remain.
   expect(fakerFile).not.toContain("from '.'");
   expect(fakerFile).not.toMatch(/from '\.\/(pet|store)';/);
+});
+
+test('axios workspace barrel does not re-export itself when target is index.ts (#3675)', async () => {
+  // Regression for #3675: when `output.target` is `index.ts` and
+  // `output.workspace` is set, the workspace barrel `index.ts` was
+  // appending `export * from './index.ts'` (or `'./index'`), creating
+  // a circular self-import.
+  const barrel = await readFile(
+    generated('axios', 'issue-3675-index-target', 'index.ts'),
+    'utf8',
+  );
+
+  // The barrel must NOT contain a self-referencing re-export.
+  expect(barrel).not.toContain("export * from './index.ts'");
+  expect(barrel).not.toContain("export * from './index'");
+});
+
+test('axios workspace barrel re-exports implementation when target is not index.ts (#3675)', async () => {
+  // When `output.target` has a different name (e.g. `endpoints.ts`), the
+  // workspace `index.ts` barrel must re-export the implementation file.
+  const barrel = await readFile(
+    generated('axios', 'issue-3675-non-index-target', 'index.ts'),
+    'utf8',
+  );
+
+  // The barrel must re-export the implementation and generated schemas.
+  expect(barrel).toContain("export * from './endpoints'");
+  expect(barrel).toContain("export * from './endpoints.schemas'");
+});
+
+test('mock issue-3656 oneOf branch MSW mock imports the enum as a value', async () => {
+  const content = await readFile(
+    generated('mock', 'issue-3656', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // The split oneOf branch helper references the enum as a runtime value...
+  expect(content).toContain('Object.values(ReasonEnum)');
+  // ...so ReasonEnum must be imported as a value, not only as a type.
+  expect(content).toMatch(
+    /import \{[^}]*\bReasonEnum\b[^}]*\} from '\.\/model'/,
+  );
+});
+
+test('mock issue-3691 tuple prefixItems mock values match the generated tuple type', async () => {
+  const content = await readFile(
+    generated('mock', 'issue-3691', 'endpoints.ts'),
+    'utf8',
+  );
+
+  // Each `prefixItems` position must be mocked so the literal is assignable to
+  // the generated tuple type — the old behaviour emitted an empty `[]`.
+  expect(content).not.toContain('plainPoint: []');
+  expect(content).not.toContain('objTuple: []');
+  expect(content).toMatch(
+    /plainPoint: \[\s*faker\.number\.float\([^)]*\),\s*faker\.string\.alpha/,
+  );
+  // Object element keeps its object shape (combine wrapping must not misfire).
+  expect(content).toMatch(/objTuple: \[\s*\{\s*id:/);
+  // `prefixItems` + `items` (tuple-with-rest) emits the fixed positions as a
+  // tuple literal rather than falling through to the `Array.from(...)` path.
+  expect(content).toMatch(
+    /restTuple: \[\s*faker\.string\.alpha\([^)]*\),\s*faker\.number\.float/,
+  );
+  // An empty-schema (`{}`) element must emit a real value (`{}`), never an
+  // empty slot that would produce invalid `[, ...]` output.
+  expect(content).not.toMatch(/emptyElemTuple: \[\s*,/);
+  expect(content).toMatch(/emptyElemTuple: \[\s*faker\.string\.alpha/);
+  // The nullable tuple (`anyOf: [tuple, null]`) is the issue's exact shape and
+  // must not regress to the original empty `[]`.
+  expect(content).not.toContain('point: []');
 });

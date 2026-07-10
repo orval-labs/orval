@@ -20,7 +20,7 @@ import {
 import type { MockDefinition, MockSchema, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
 import { getMockScalar } from '../getters/scalar';
-import { mergeReturnedMockImports } from '../imports';
+import { appendImportsDelta, mergeReturnedMockImports } from '../imports';
 
 function isRegex(key: string) {
   return key.startsWith('/') && key.endsWith('/');
@@ -484,7 +484,12 @@ export function resolveMockValue({
       };
       scalar.imports.push(typeImport);
       if (scalar.imports !== imports) {
-        imports.push(typeImport);
+        // Forward the helper's whole import set, not just the type import.
+        // Pushing only `typeImport` mutates `imports`, which suppresses the
+        // `mergeReturnedMockImports` call below and drops the imports the
+        // helper body needs at runtime — e.g. an enum referenced through
+        // `Object.values(...)` (#3656).
+        appendImportsDelta(imports, scalar.imports, 0);
       }
     }
 

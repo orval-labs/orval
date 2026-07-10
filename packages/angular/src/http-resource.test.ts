@@ -112,6 +112,7 @@ const createOutput = (
         useBrandedTypes: false,
         generateReusableSchemas: false,
         generateMeta: false,
+        generateDiscriminatedUnion: false,
         dateTimeOptions: {},
         timeOptions: {},
       },

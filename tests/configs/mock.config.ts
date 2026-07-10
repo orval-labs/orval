@@ -545,6 +545,27 @@ export default defineConfig({
       target: '../specifications/faker-schemas-string-enum-ref.yaml',
     },
   },
+  // #3690: with `enumGenerationType: 'union'` a $ref'd string enum is a pure
+  // type (no runtime value), so the msw/faker mock must inline the enum values
+  // instead of calling `Object.values(EnumName)` (which fails tsc with TS2693).
+  unionEnumRefMsw: {
+    output: {
+      target: '../generated/mock/union-enum-ref-msw/endpoints.ts',
+      schemas: '../generated/mock/union-enum-ref-msw/model',
+      client: 'axios',
+      mock: {
+        generators: [{ type: 'msw' }],
+      },
+      override: {
+        enumGenerationType: 'union',
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/union-enum-ref-mock.yaml',
+    },
+  },
   issue3200: {
     output: {
       target: '../generated/mock/issue-3200/endpoints.ts',
@@ -1042,6 +1063,44 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3505.yaml',
+    },
+  },
+  issue3656: {
+    output: {
+      target: '../generated/mock/issue-3656/endpoints.ts',
+      schemas: '../generated/mock/issue-3656/model',
+      client: 'fetch',
+      mock: {
+        generators: [{ type: 'msw' }],
+      },
+      override: {
+        mock: {
+          required: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3656.yaml',
+    },
+  },
+  // Regression for https://github.com/orval-labs/orval/issues/3691:
+  // OpenAPI 3.1 tuples (`prefixItems`) must mock each positional element so
+  // the generated mock is assignable to the generated `[T0, T1, ...]` type.
+  'issue-3691': {
+    output: {
+      target: '../generated/mock/issue-3691/endpoints.ts',
+      schemas: '../generated/mock/issue-3691/model',
+      client: 'axios',
+      mock: {
+        generators: [{ type: 'msw' }],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3691.yaml',
     },
   },
 });

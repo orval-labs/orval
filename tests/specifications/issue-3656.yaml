@@ -1,0 +1,77 @@
+openapi: 3.0.3
+info:
+  version: 1.0.0
+  title: Issue 3656 - missing enum value import in oneOf branch MSW mock
+  license:
+    name: MIT
+
+# Regression for https://github.com/orval-labs/orval/issues/3656
+# A oneOf discriminator branch whose property references a string-enum schema
+# is split into a get<Op>Response<Variant>Mock helper that calls
+# `Object.values(ReasonEnum)`. The generated mock file must import ReasonEnum
+# as a value, otherwise it fails tsc with TS2304.
+
+paths:
+  /events:
+    get:
+      operationId: listEvents
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+
+components:
+  schemas:
+    Event:
+      type: object
+      required:
+        - id
+        - details
+      properties:
+        id:
+          type: integer
+        details:
+          oneOf:
+            - $ref: '#/components/schemas/UpdatedDetails'
+            - $ref: '#/components/schemas/CreatedDetails'
+          discriminator:
+            propertyName: event_type
+            mapping:
+              updated: '#/components/schemas/UpdatedDetails'
+              created: '#/components/schemas/CreatedDetails'
+
+    UpdatedDetails:
+      type: object
+      required:
+        - event_type
+        - reason
+      properties:
+        event_type:
+          type: string
+          enum:
+            - updated
+        reason:
+          $ref: '#/components/schemas/ReasonEnum'
+
+    CreatedDetails:
+      type: object
+      required:
+        - event_type
+        - title
+      properties:
+        event_type:
+          type: string
+          enum:
+            - created
+        title:
+          type: string
+
+    ReasonEnum:
+      type: string
+      enum:
+        - queue_rebalance

@@ -1403,6 +1403,7 @@ export default defineConfig({
           generateEachHttpStatus: true,
           useBrandedTypes: true,
           generateReusableSchemas: true,
+          generateDiscriminatedUnion: true,
         },
       },
     },
@@ -1575,6 +1576,29 @@ Behavior:
 - `id` is always emitted; `description`/`deprecated` only when present. Property-level descriptions still use `.describe()`.
 - **zod v3** has no `.meta()` — the option is a no-op there, and descriptions continue to emit via `.describe()`.
 - The registry `id` makes [`z.toJSONSchema()`](https://zod.dev/json-schema) reference the schema as `#/$defs/<id>`, round-tripping the component structure.
+
+### generateDiscriminatedUnion
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Emit a `oneOf`/`anyOf` that carries an OpenAPI [`discriminator`](https://spec.openapis.org/oas/v3.1.0#discriminator-object) as [`zod.discriminatedUnion(key, [...])`](https://zod.dev/api?id=discriminated-unions) instead of a plain `zod.union([...])`. A discriminated union picks the branch by its discriminator value first, so validation errors point at the offending field (`type.name`) instead of collapsing into a single "no union member matched" at the union root.
+
+```ts
+// override: { zod: { generateDiscriminatedUnion: true } }
+export const Pet = zod.discriminatedUnion('petType', [
+  zod.object({ petType: zod.literal('cat'), meows: zod.boolean() }),
+  zod.object({ petType: zod.literal('dog'), barks: zod.boolean() }),
+]);
+```
+
+Behavior:
+
+- **Opt-in.** Left `false`, unions are emitted exactly as before, so existing output is unchanged.
+- **Safe fallback.** A discriminated union is emitted only when every branch can be represented as an object carrying a literal (`const`/`enum`) discriminator. If any branch is a non-object, a nested union, or lacks a literal discriminator, generation falls back to a plain `zod.union([...])` rather than emitting code that throws at construction.
+- **Inheritance (`allOf`).** Branches composed with `allOf` are flattened into a single object so they remain valid discriminated-union options — this is the case that previously forced the feature to be reverted ([#2085](https://github.com/orval-labs/orval/issues/2085)). With [`generateReusableSchemas`](#generatereusableschemas), a branch that references an `allOf` schema stays a plain union (the referenced schema can't be guaranteed to be an object from the reference alone).
+- Works with both Zod v3 (>= 3.20) and v4, and with the [`mini`](#variant) variant.
 
 ---
 

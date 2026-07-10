@@ -9,12 +9,8 @@ import {
   OutputClient,
   type WriteSpecBuilder,
 } from '../types';
-import {
-  compareVersions,
-  getOperationTagKey,
-  isOperationInTagBucket,
-  pascal,
-} from '../utils';
+import { getOperationTagKey, isOperationInTagBucket, pascal } from '../utils';
+import { hasTypeScriptAwaitedType } from './typescript-version';
 
 /**
  * Ensures every operation has at least one tag by falling back to the
@@ -213,12 +209,7 @@ export function generateTargetForTags(
           .filter((operation) => isOperationInTagBucket(operation, tag))
           .map(({ operationName }) => operationName);
 
-        const typescriptVersion =
-          options.packageJson?.dependencies?.typescript ??
-          options.packageJson?.devDependencies?.typescript ??
-          '4.4.0';
-
-        const hasAwaitedType = compareVersions(typescriptVersion, '4.5.0');
+        const hasAwaitedType = hasTypeScriptAwaitedType(options.packageJson);
 
         const titles = builder.title({
           outputClient: options.client,

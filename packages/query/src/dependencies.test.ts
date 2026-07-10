@@ -1,7 +1,8 @@
-import { type PackageJson } from '@orval/core';
+import { generateDependencyImports, type PackageJson } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
 import {
+  getVueQueryDependencies,
   isQueryV5,
   isQueryV5WithDataTagError,
   isQueryV5WithInfiniteQueryOptionsError,
@@ -166,5 +167,45 @@ describe('isSolidQueryWithRenamedOptionsTypes', () => {
 
   it('should return false when solid-query is not installed', () => {
     expect(isSolidQueryWithRenamedOptionsTypes({})).toBe(false);
+  });
+});
+
+describe('vue reactivity imports tree-shake from the declared superset', () => {
+  // `getVueQueryDependencies` declares the full reactivity superset
+  // (`MaybeRef`/`unref` and `MaybeRefOrGetter`/`toValue`) unconditionally and
+  // relies on `addDependency` to keep only the names that actually appear in
+  // the generated code. This pins that contract so the v4/v5 split can never
+  // leak an import the output doesn't use (e.g. `toValue` on Vue < 3.3).
+  const vueImports = (implementation: string) =>
+    generateDependencyImports(
+      implementation,
+      getVueQueryDependencies(false, false, undefined, undefined).filter(
+        (dep) => dep.dependency === 'vue',
+      ),
+      undefined,
+      false,
+      false,
+    );
+
+  it('imports only MaybeRefOrGetter/toValue for v5-style output', () => {
+    const result = vueImports(
+      'const x: MaybeRefOrGetter<Foo> = bar; const y = toValue(x); computed(() => y);',
+    );
+    expect(result).toMatch(/\btoValue\b/);
+    expect(result).toMatch(/\bMaybeRefOrGetter\b/);
+    expect(result).toMatch(/\bcomputed\b/);
+    expect(result).not.toMatch(/\bunref\b/);
+    expect(result).not.toMatch(/\bMaybeRef\b/); // standalone MaybeRef, not the OrGetter form
+  });
+
+  it('imports only MaybeRef/unref for pre-v5 output', () => {
+    const result = vueImports(
+      'const x: MaybeRef<Foo> = bar; const y = unref(x); computed(() => y);',
+    );
+    expect(result).toMatch(/\bunref\b/);
+    expect(result).toMatch(/\bMaybeRef\b/);
+    expect(result).toMatch(/\bcomputed\b/);
+    expect(result).not.toMatch(/\btoValue\b/);
+    expect(result).not.toMatch(/\bMaybeRefOrGetter\b/);
   });
 });
