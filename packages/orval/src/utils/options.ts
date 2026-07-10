@@ -657,6 +657,8 @@ export async function normalizeOptions(
           generateReusableSchemas:
             outputOptions.override?.zod?.generateReusableSchemas ?? false,
           generateMeta: outputOptions.override?.zod?.generateMeta ?? false,
+          generateDiscriminatedUnion:
+            outputOptions.override?.zod?.generateDiscriminatedUnion ?? false,
           dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {
             offset: true,
           },
@@ -993,6 +995,7 @@ function normalizeOperationsAndTags(
     'generateEachHttpStatus',
     'generateReusableSchemas',
     'generateMeta',
+    'generateDiscriminatedUnion',
   ] as const;
 
   return Object.fromEntries(

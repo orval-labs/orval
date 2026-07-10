@@ -11321,3 +11321,315 @@ describe('enum/const value escaping (#3505)', () => {
     ]);
   });
 });
+
+// `oneOf`/`anyOf` + `discriminator` should map onto `zod.discriminatedUnion`,
+// which gives per-branch validation errors instead of the opaque "no union
+// member matched" a plain `zod.union` produces. Orval shipped this in PR #1907
+// and then reverted it in PR #2118 because `zod.discriminatedUnion` only
+// accepts object options and an inheritance (`allOf`) branch rendered as a
+// `.and()` intersection, crashing the generated module (issue #2085). These
+// tests lock in the safe behaviour: emit a discriminated union when every
+// branch can render as an object, and fall back to a plain union otherwise.
+describe('discriminated unions (#1907, #2085)', () => {
+  const render = (
+    schema: OpenApiSchemaObject,
+    {
+      context = createTestContextSpec(),
+      isZodV4 = false,
+      strict = false,
+      useReusableSchemas = false,
+      variant = 'classic' as 'classic' | 'mini',
+      // The feature is opt-in, so enable it by default for these tests.
+      generateDiscriminatedUnion = true,
+    } = {},
+  ) => {
+    context.output.override.zod.generateDiscriminatedUnion =
+      generateDiscriminatedUnion;
+    const definition = generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      'test',
+      strict,
+      isZodV4,
+      { required: true, useReusableSchemas },
+    );
+    return parseZodValidationSchemaDefinition(
+      definition,
+      context,
+      false,
+      strict,
+      isZodV4,
+      undefined,
+      undefined,
+      variant,
+    ).zod;
+  };
+
+  const objectBranch = (type: string, extra: Record<string, unknown>) =>
+    ({
+      type: 'object',
+      properties: {
+        type: { type: 'string', enum: [type] },
+        ...extra,
+      },
+    }) as OpenApiSchemaObject;
+
+  const catDogUnion = {
+    oneOf: [
+      objectBranch('cat', { meow: { type: 'boolean' } }),
+      objectBranch('dog', { bark: { type: 'boolean' } }),
+    ],
+    discriminator: { propertyName: 'type' },
+  } as OpenApiSchemaObject;
+
+  it('emits a discriminatedUnion for object branches with a discriminator', () => {
+    const result = render(catDogUnion);
+    expect(result).toContain("zod.discriminatedUnion('type', [");
+    expect(result).not.toContain('zod.union(');
+  });
+
+  it('supports anyOf discriminators, not just oneOf', () => {
+    const result = render({
+      anyOf: catDogUnion.oneOf,
+      discriminator: { propertyName: 'type' },
+    } as OpenApiSchemaObject);
+    expect(result).toContain("zod.discriminatedUnion('type', [");
+  });
+
+  // The exact case that forced the PR #1907 revert (#2085): each branch is an
+  // `allOf` (base + own props). It must be flattened into a single object so
+  // `zod.discriminatedUnion` accepts it — never an `.and()` intersection.
+  it('flattens allOf inheritance branches into objects instead of crashing', () => {
+    const inheritance = {
+      oneOf: [
+        {
+          allOf: [
+            objectBranch('cat', {}),
+            { type: 'object', properties: { meow: { type: 'boolean' } } },
+          ],
+        },
+        {
+          allOf: [
+            objectBranch('dog', {}),
+            { type: 'object', properties: { bark: { type: 'boolean' } } },
+          ],
+        },
+      ],
+      discriminator: { propertyName: 'type' },
+    } as OpenApiSchemaObject;
+
+    const result = render(inheritance);
+    expect(result).toContain("zod.discriminatedUnion('type', [");
+    // No intersection: that is what zod rejects for a discriminated union.
+    expect(result).not.toContain('.and(');
+    // Base and own properties both survive the merge.
+    expect(result).toContain('"meow"');
+    expect(result).toContain('"bark"');
+  });
+
+  // Jolteon's setup: `generateReusableSchemas` keeps each branch as a reference
+  // to its own generated const, so the union lists identifiers.
+  it('references reusable schema branches by identifier', () => {
+    const context = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            Cat: objectBranch('cat', { meow: { type: 'boolean' } }),
+            Dog: objectBranch('dog', { bark: { type: 'boolean' } }),
+          },
+        },
+      } as never,
+    });
+    const result = render(
+      {
+        oneOf: [
+          { $ref: '#/components/schemas/Cat' },
+          { $ref: '#/components/schemas/Dog' },
+        ],
+        discriminator: { propertyName: 'type' },
+      } as unknown as OpenApiSchemaObject,
+      { context, useReusableSchemas: true },
+    );
+    // __REF_X__ placeholders are rewritten to the const name by the orchestrator.
+    expect(result).toBe(
+      "zod.discriminatedUnion('type', [__REF_Cat__,__REF_Dog__])",
+    );
+  });
+
+  it('wraps an optional/nullable discriminated union as union([..., null])', () => {
+    // Pydantic emits an optional discriminated union as
+    // `anyOf: [{ oneOf + discriminator }, null]` — the discriminator sits on the
+    // inner union, so only the inner half becomes a discriminatedUnion.
+    const result = render({
+      anyOf: [
+        {
+          oneOf: catDogUnion.oneOf,
+          discriminator: { propertyName: 'type' },
+        },
+        { type: 'null' },
+      ],
+    } as unknown as OpenApiSchemaObject);
+    expect(result).toContain("zod.discriminatedUnion('type', [");
+    expect(result).toContain('zod.null()');
+    expect(result.startsWith('zod.union([')).toBe(true);
+  });
+
+  it('emits a discriminatedUnion in zod v4', () => {
+    expect(render(catDogUnion, { isZodV4: true })).toContain(
+      "zod.discriminatedUnion('type', [",
+    );
+  });
+
+  it('emits a discriminatedUnion in the zod-mini variant', () => {
+    expect(render(catDogUnion, { isZodV4: true, variant: 'mini' })).toContain(
+      "zod.discriminatedUnion('type', [",
+    );
+  });
+
+  // --- Safe fallbacks: keep a plain union when a discriminated one can't be
+  // built, rather than emitting code that throws at construction. ---
+
+  it('falls back to a plain union when a branch is not an object', () => {
+    const result = render({
+      oneOf: [objectBranch('cat', {}), { type: 'string' }],
+      discriminator: { propertyName: 'type' },
+    } as OpenApiSchemaObject);
+    expect(result).toContain('zod.union([');
+    expect(result).not.toContain('discriminatedUnion');
+  });
+
+  it('falls back to a plain union when a branch lacks the discriminator key', () => {
+    const result = render({
+      oneOf: [
+        objectBranch('cat', {}),
+        { type: 'object', properties: { bark: { type: 'boolean' } } },
+      ],
+      discriminator: { propertyName: 'type' },
+    } as OpenApiSchemaObject);
+    expect(result).toContain('zod.union([');
+    expect(result).not.toContain('discriminatedUnion');
+  });
+
+  // zod (v3 and v4) needs discrete literal values per branch. A free-string
+  // discriminator can't be extracted, so it must stay a plain union rather than
+  // emit code that throws at construction on either version.
+  it('falls back to a plain union when the discriminator is not a literal', () => {
+    const result = render({
+      oneOf: [
+        { type: 'object', properties: { type: { type: 'string' } } },
+        { type: 'object', properties: { type: { type: 'string' } } },
+      ],
+      discriminator: { propertyName: 'type' },
+    } as OpenApiSchemaObject);
+    expect(result).toContain('zod.union([');
+    expect(result).not.toContain('discriminatedUnion');
+  });
+
+  // Reusable schemas + inheritance: the branch const may itself be an
+  // intersection, which we can't introspect from a reference, so stay a union.
+  it('falls back to a plain union for reusable inheritance branches', () => {
+    const context = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            Cat: {
+              allOf: [
+                objectBranch('cat', {}),
+                { type: 'object', properties: { meow: { type: 'boolean' } } },
+              ],
+            },
+            Dog: {
+              allOf: [
+                objectBranch('dog', {}),
+                { type: 'object', properties: { bark: { type: 'boolean' } } },
+              ],
+            },
+          },
+        },
+      } as never,
+    });
+    const result = render(
+      {
+        oneOf: [
+          { $ref: '#/components/schemas/Cat' },
+          { $ref: '#/components/schemas/Dog' },
+        ],
+        discriminator: { propertyName: 'type' },
+      } as unknown as OpenApiSchemaObject,
+      { context, useReusableSchemas: true },
+    );
+    expect(result).toContain('zod.union([');
+    expect(result).not.toContain('discriminatedUnion');
+  });
+
+  it('leaves a discriminator-less oneOf as a plain union', () => {
+    const result = render({
+      oneOf: [objectBranch('cat', {}), objectBranch('dog', {})],
+    } as OpenApiSchemaObject);
+    expect(result).toContain('zod.union([');
+    expect(result).not.toContain('discriminatedUnion');
+  });
+
+  // The feature is off by default: without the opt-in flag, even a
+  // discriminator-carrying union stays a plain `zod.union` (unchanged output).
+  it('emits a plain union when generateDiscriminatedUnion is disabled', () => {
+    const result = render(catDogUnion, { generateDiscriminatedUnion: false });
+    expect(result).toContain('zod.union([');
+    expect(result).not.toContain('discriminatedUnion');
+  });
+
+  // `zod.discriminatedUnion` throws at construction if two branches share a
+  // discriminator value, so a spec with a duplicate literal must stay a plain
+  // union rather than emit code that crashes the generated module.
+  it('falls back to a plain union when two branches share a discriminator value', () => {
+    const result = render({
+      oneOf: [
+        objectBranch('cat', { meow: { type: 'boolean' } }),
+        objectBranch('cat', { purr: { type: 'boolean' } }),
+      ],
+      discriminator: { propertyName: 'type' },
+    } as OpenApiSchemaObject);
+    expect(result).toContain('zod.union([');
+    expect(result).not.toContain('discriminatedUnion');
+  });
+
+  // Overlapping `enum` values across branches collide the same way a duplicate
+  // `const` does — the combined value set must be unique.
+  it('falls back to a plain union when branch enum values overlap', () => {
+    const result = render({
+      oneOf: [
+        {
+          type: 'object',
+          properties: { type: { type: 'string', enum: ['a', 'b'] } },
+        },
+        {
+          type: 'object',
+          properties: { type: { type: 'string', enum: ['b', 'c'] } },
+        },
+      ],
+      discriminator: { propertyName: 'type' },
+    } as OpenApiSchemaObject);
+    expect(result).toContain('zod.union([');
+    expect(result).not.toContain('discriminatedUnion');
+  });
+
+  // A discriminator property name with characters that are special inside a
+  // single-quoted string literal must be escaped, or the generated call is
+  // syntactically broken.
+  it('escapes special characters in the discriminator property name', () => {
+    const result = render({
+      oneOf: [
+        {
+          type: 'object',
+          properties: { "kind'x": { type: 'string', enum: ['cat'] } },
+        },
+        {
+          type: 'object',
+          properties: { "kind'x": { type: 'string', enum: ['dog'] } },
+        },
+      ],
+      discriminator: { propertyName: "kind'x" },
+    } as OpenApiSchemaObject);
+    expect(result).toContain("zod.discriminatedUnion('kind\\'x', [");
+  });
+});

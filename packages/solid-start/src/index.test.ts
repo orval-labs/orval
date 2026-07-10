@@ -133,6 +133,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
         useBrandedTypes: false,
         generateReusableSchemas: false,
         generateMeta: false,
+        generateDiscriminatedUnion: false,
         dateTimeOptions: {},
         timeOptions: { precision: 3 },
       },

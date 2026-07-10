@@ -884,6 +884,14 @@ export interface ZodOptions extends BaseZodOptions {
    * via `.describe()`. Default `false`.
    */
   generateMeta?: boolean;
+  /**
+   * When true, a `oneOf`/`anyOf` that carries an OpenAPI `discriminator` is
+   * emitted as `zod.discriminatedUnion(key, [...])` (better per-branch errors)
+   * instead of a plain `zod.union([...])`, but only when every branch can be
+   * represented as an object — otherwise it safely falls back to a union.
+   * Default `false` (opt-in), so existing output is unchanged.
+   */
+  generateDiscriminatedUnion?: boolean;
 }
 
 /**
@@ -948,6 +956,7 @@ export interface NormalizedZodOptions {
   useBrandedTypes: boolean;
   generateReusableSchemas: boolean;
   generateMeta: boolean;
+  generateDiscriminatedUnion: boolean;
   dateTimeOptions: ZodDateTimeOptions;
   timeOptions: ZodTimeOptions;
 }

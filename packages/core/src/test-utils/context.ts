@@ -132,6 +132,7 @@ export function createTestContextSpec({
         useBrandedTypes: false,
         generateReusableSchemas: false,
         generateMeta: false,
+        generateDiscriminatedUnion: false,
         dateTimeOptions: {},
         timeOptions: { precision: 3 },
       },

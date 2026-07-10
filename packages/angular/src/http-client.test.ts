@@ -100,6 +100,7 @@ const createOutput = (
         generateEachHttpStatus: false,
         generateReusableSchemas: false,
         generateMeta: false,
+        generateDiscriminatedUnion: false,
         useBrandedTypes: false,
         dateTimeOptions: {},
         timeOptions: {},
