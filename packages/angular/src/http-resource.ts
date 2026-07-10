@@ -441,6 +441,7 @@ interface ResourceRequest {
   readonly bodyForm: string;
   readonly request: string;
   readonly isUrlOnly: boolean;
+  readonly bodyGuard?: string;
 }
 
 const buildResourceRequest = (
@@ -456,6 +457,7 @@ const buildResourceRequest = (
     formUrlEncoded,
   }: GeneratorVerbOptions,
   route: string,
+  { supportsIdleGuard }: { readonly supportsIdleGuard: boolean },
 ): ResourceRequest => {
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
@@ -471,8 +473,24 @@ const buildResourceRequest = (
   const hasFormData = isFormData && body.formData;
   const hasFormUrlEncoded = isFormUrlEncoded && body.formUrlEncoded;
 
+  // An optional request body is exposed as an optional `Signal` parameter. When
+  // the caller omits it, the `httpResource` request factory must return
+  // `undefined` so the resource stays idle, rather than firing a request with an
+  // undefined body. This mirrors Angular's `undefined`-request contract (#3700).
+  //
+  // The guard is only emitted where the request is built lazily inside the
+  // factory (single response content-type). The multi-content path builds the
+  // request eagerly at the function-body level, where returning `undefined`
+  // would violate the function's `HttpResourceRef` return type — there we keep
+  // the optional-call (`?.()`) form, which is already runtime-safe.
+  const isDirectBody = !!body.definition && !hasFormData && !hasFormUrlEncoded;
+  const bodyGuard =
+    supportsIdleGuard && isDirectBody && body.isOptional
+      ? `if (!${body.implementation}) return undefined;`
+      : undefined;
+
   const bodyAccess = body.definition
-    ? body.isOptional
+    ? body.isOptional && !bodyGuard
       ? `${body.implementation}?.()`
       : `${body.implementation}()`
     : undefined;
@@ -527,6 +545,7 @@ const buildResourceRequest = (
     bodyForm,
     request,
     isUrlOnly,
+    bodyGuard,
   };
 };
 
@@ -873,9 +892,10 @@ const buildHttpResourceFunction = (
   const signalProps = buildSignalProps(props, params);
   const args = toObjectString(signalProps, 'implementation');
 
-  const { bodyForm, request, isUrlOnly } = buildResourceRequest(
+  const { bodyForm, request, isUrlOnly, bodyGuard } = buildResourceRequest(
     verbOption,
     encodedRoute,
+    { supportsIdleGuard: uniqueContentTypes.length <= 1 },
   );
 
   if (uniqueContentTypes.length > 1) {
@@ -1137,13 +1157,20 @@ export function ${resourceName}(${implementationArgs}): HttpResourceRef<${resour
 `;
   }
 
+  // Statements emitted at the top of the request factory, before the request
+  // object is assembled: the optional-body idle guard (when present) followed by
+  // any form-data/url-encoded body construction.
+  const factoryPrelude = [bodyGuard, bodyForm ? `${bodyForm};` : undefined]
+    .filter(Boolean)
+    .join('\n    ');
+
   return `/**
  * @experimental httpResource is experimental (Angular v19.2+)
  */
 ${functionSignatures};
 export function ${resourceName}(${implementationArgs}): HttpResourceRef<${resourceValueType}> {
   return ${resourceFactory}<${parsedDataType}>(() => {
-    ${bodyForm ? `${bodyForm};` : ''}
+    ${factoryPrelude}
     const request = ${request};
     return ${returnExpression};
   }${resourceCallOptions});
