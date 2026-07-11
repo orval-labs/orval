@@ -207,7 +207,9 @@ function normalizeArtifactsOption(
 
   const schemasDir = artifacts.schemas
     ? normalizePath(
-        isString(artifacts.schemas) ? artifacts.schemas : artifacts.schemas.path,
+        isString(artifacts.schemas)
+          ? artifacts.schemas
+          : artifacts.schemas.path,
         outputWorkspace,
       )
     : undefined;
@@ -314,7 +316,9 @@ function applyArtifactsMockOverrides(
         );
       }
       generators = generators.map((g, i) =>
-        i === existingIndex ? ({ ...existing, path: dir } as GlobalMockOptions) : g,
+        i === existingIndex
+          ? ({ ...existing, path: dir } as GlobalMockOptions)
+          : g,
       );
     }
 
@@ -526,7 +530,8 @@ export async function normalizeOptions(
   // group is just `output.schemas` under a different key, so it is merged
   // in here and flows through the existing `normalizeSchemasOption` call
   // below rather than a parallel schemas pipeline.
-  const mergedSchemasOption = outputOptions.schemas ?? outputOptions.artifacts?.schemas;
+  const mergedSchemasOption =
+    outputOptions.schemas ?? outputOptions.artifacts?.schemas;
 
   // Normalize the `mock` option into a canonical `NormalizedMocksConfig`
   // so the rest of the pipeline can iterate `generators` uniformly without
