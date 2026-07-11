@@ -435,13 +435,124 @@ export type OrvalHttpResourceOptions<
   TValue,
   TRaw = unknown,
   TOmitParse extends boolean = false,
-> = TOmitParse extends true
+> = (TOmitParse extends true
   ? Omit<HttpResourceOptions<TValue, TRaw>, 'parse'>
-  : HttpResourceOptions<TValue, TRaw>;
+  : HttpResourceOptions<TValue, TRaw>) &
+  OrvalHttpResourceRequestExtension;
 ```
 
 When `defaultValue` is configured, generated resource overloads return
 `HttpResourceRef<T>` instead of `HttpResourceRef<T | undefined>`.
+
+### Request headers and HttpContext
+
+Generated `httpResource` helpers can expose the same request-descriptor
+surface as the generated `HttpClient` service methods: OpenAPI `in: header`
+parameters, plus a call-site escape hatch for extra headers and Angular's
+`HttpContext` (for example to flag a request for a global HTTP interceptor).
+
+**OpenAPI `in: header` parameters.** When the top-level `output.headers` option
+is enabled, header parameters declared in your spec are generated as a
+`headers: Signal<XHeaders>` argument and forwarded on every request:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      target: 'src/api/http-resource/petstore.ts',
+      schemas: 'src/api/model',
+      client: 'angular',
+      headers: true, // generate `in: header` parameters
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+```ts
+const correlationId = signal('abc-123');
+const headers = computed(() => ({ 'X-Correlation-Id': correlationId() }));
+
+listPetsResource(params, headers);
+```
+
+**Extra headers and `HttpContext` at the call site.** Every generated
+`httpResource` helper's trailing options bag also accepts `headers`,
+`context`, and `request` — independent of whether the operation declares any
+`in: header` parameters. This mirrors the `HttpClientOptions` already
+available on generated `HttpClient` service methods, so you no longer have to
+drop down to `HttpClient` just to attach interceptor policy or a
+per-request header:
+
+```ts
+import { HttpContext } from '@angular/common/http';
+import { BYPASS_GLOBAL_ERROR_HANDLER } from './http-context-tokens';
+
+const requestId = signal('req-42');
+
+const itemEvents = getItemEventsResource(itemId, {
+  headers: () => ({ 'x-request-id': requestId() }),
+  context: new HttpContext().set(BYPASS_GLOBAL_ERROR_HANDLER, true),
+});
+```
+
+- `headers` — extra headers merged over any generated headers. Accepts either
+  an `HttpHeaders` instance / plain record, or a function returning one.
+- `context` — an Angular `HttpContext` forwarded to the underlying request.
+  Accepts either an `HttpContext` instance or a function returning one.
+- `request` — a last-resort escape hatch that receives the fully-built
+  `HttpResourceRequest` and returns the request Orval actually sends.
+
+<Callout type="info">
+Pass the function form (`headers: () => ...`, `context: () => ...`, or
+`request: (req) => ...`) whenever the value reads a signal. Orval invokes
+these functions **inside** the `httpResource` reactive factory, so the
+resource automatically reloads when the signals they read change. A plain
+object or `HttpContext` instance is read once per request computation and
+does not itself trigger a reload.
+</Callout>
+
+**Precedence.** Generated OpenAPI headers are applied first, extra `headers`
+from the options bag are merged on top (overriding any header with the same
+name), and `request` runs last. For operations with multiple success content
+types, the generated `Accept` header is always re-applied after your
+extension so response-branch dispatch (the `accept` argument) stays correct —
+your `headers`/`context`/`request` can add or override any other header, but
+never `Accept`.
+
+Orval emits the extension as a small, reusable surface alongside
+`OrvalHttpResourceOptions`:
+
+```ts
+export interface OrvalHttpResourceRequestExtension {
+  headers?: HttpResourceRequest['headers'] | (() => HttpResourceRequest['headers']);
+  context?: HttpContext | (() => HttpContext);
+  request?: (request: HttpResourceRequest) => HttpResourceRequest;
+}
+```
+
+`applyOrvalRequestExtension` is the emitted helper that applies these fields;
+you won't normally call it directly, but you may see it referenced from
+`httpResource` factories in the generated output.
+
+Testing works the same way as any other generated `httpResource` call — with
+`HttpTestingController`, assert on the intercepted request's `headers` and
+`context`:
+
+```ts
+const req = httpMock.expectOne('/items/42/events');
+expect(req.request.headers.get('x-request-id')).toBe('req-42');
+expect(req.request.context.get(BYPASS_GLOBAL_ERROR_HANDLER)).toBe(true);
+```
 
 ### Mutator compatibility
 

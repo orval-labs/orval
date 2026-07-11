@@ -396,10 +396,18 @@ const buildSignalProps = (
       case GetterPropType.QUERY_PARAM:
       case GetterPropType.BODY:
       case GetterPropType.HEADER: {
+        // QUERY_PARAM / BODY / HEADER props never encode a real default
+        // value — `getProps()` hardcodes their `unknown`-typed `default`
+        // field to the boolean sentinel `false` (never a real default), so
+        // falling through to `withSignal`'s `prop.default !== undefined`
+        // derivation would treat every one of them as "has a default"
+        // (`false !== undefined` is always true) and silently render
+        // required props as optional Signals. Pass `false` explicitly so
+        // only PARAM derives a real default from `paramDefaults`.
         const hasDefault =
           prop.type === GetterPropType.PARAM
             ? (paramDefaults.get(prop.name) ?? false)
-            : undefined;
+            : false;
         const signalProp = withSignal(prop, { hasDefault });
         return {
           ...prop,
@@ -1070,11 +1078,12 @@ export function ${resourceName}(
     ${bodyForm ? `${bodyForm};` : ''}
     const request = ${request};
     ${normalizeRequest}
+    const extendedRequest = applyOrvalRequestExtension(normalizedRequest, options);
     return {
-      ...normalizedRequest,
-      headers: normalizedRequest.headers instanceof HttpHeaders
-        ? normalizedRequest.headers.set('Accept', accept)
-        : { ...(normalizedRequest.headers ?? {}), Accept: accept },
+      ...extendedRequest,
+      headers: extendedRequest.headers instanceof HttpHeaders
+        ? extendedRequest.headers.set('Accept', accept)
+        : { ...(extendedRequest.headers ?? {}), Accept: accept },
     };
   };
 
@@ -1155,7 +1164,7 @@ export function ${resourceName}(
  */
 ${functionSignatures};
 export function ${resourceName}(${implementationArgs}): HttpResourceRef<${resourceValueType}> {
-  return ${resourceFactory}<${parsedDataType}>(() => ${request}${resourceCallOptions});
+  return ${resourceFactory}<${parsedDataType}>(() => applyOrvalRequestExtension(${request}, options)${resourceCallOptions});
 }
 `;
   }
@@ -1175,16 +1184,88 @@ export function ${resourceName}(${implementationArgs}): HttpResourceRef<${resour
   return ${resourceFactory}<${parsedDataType}>(() => {
     ${factoryPrelude}
     const request = ${request};
-    return ${returnExpression};
+    return applyOrvalRequestExtension(${returnExpression}, options);
   }${resourceCallOptions});
 }
 `;
 };
 
 const buildHttpResourceOptionsUtilities = (omitParse: boolean): string => `
-export type ${HTTP_RESOURCE_OPTIONS_TYPE_NAME}<TValue, TRaw = unknown, TOmitParse extends boolean = ${omitParse}> = TOmitParse extends true
-  ? Omit<HttpResourceOptions<TValue, TRaw>, 'parse'>
-  : HttpResourceOptions<TValue, TRaw>;
+export interface OrvalHttpResourceRequestExtension {
+  /** Extra headers merged over generated headers. Pass a function to read signals reactively. */
+  headers?: HttpResourceRequest['headers'] | (() => HttpResourceRequest['headers']);
+  /** Angular HttpContext forwarded to the underlying request. Pass a function to derive it reactively. */
+  context?: HttpContext | (() => HttpContext);
+  /** Last-resort escape hatch: transform the final request descriptor. Runs inside the resource's reactive context. */
+  request?: (request: HttpResourceRequest) => HttpResourceRequest;
+}
+
+export type ${HTTP_RESOURCE_OPTIONS_TYPE_NAME}<TValue, TRaw = unknown, TOmitParse extends boolean = ${omitParse}> =
+  (TOmitParse extends true
+    ? Omit<HttpResourceOptions<TValue, TRaw>, 'parse'>
+    : HttpResourceOptions<TValue, TRaw>) &
+  OrvalHttpResourceRequestExtension;
+
+function mergeOrvalResourceHeaders(
+  base: HttpResourceRequest['headers'],
+  extra: HttpResourceRequest['headers'],
+): HttpResourceRequest['headers'] {
+  if (!base) return extra;
+  if (!extra) return base;
+  if (base instanceof HttpHeaders || extra instanceof HttpHeaders) {
+    const toHeaderValue = (
+      value: string | readonly string[],
+    ): string | string[] =>
+      Array.isArray(value) ? Array.from(value, String) : String(value);
+    let merged =
+      base instanceof HttpHeaders
+        ? base
+        : Object.entries(base).reduce(
+            (headers, [key, value]) => headers.set(key, toHeaderValue(value)),
+            new HttpHeaders(),
+          );
+    const extraRecord =
+      extra instanceof HttpHeaders
+        ? extra.keys().reduce<Record<string, string[]>>((record, key) => {
+            const values = extra.getAll(key);
+            if (values) record[key] = values;
+            return record;
+          }, {})
+        : extra;
+    for (const [key, value] of Object.entries(extraRecord)) {
+      merged = merged.set(key, toHeaderValue(value));
+    }
+    return merged;
+  }
+  return { ...base, ...extra };
+}
+
+export function applyOrvalRequestExtension(
+  request: string | HttpResourceRequest,
+  options?: OrvalHttpResourceRequestExtension,
+): HttpResourceRequest {
+  const base: HttpResourceRequest = typeof request === 'string' ? { url: request } : request;
+  if (
+    !options ||
+    (options.headers === undefined &&
+      options.context === undefined &&
+      options.request === undefined)
+  ) {
+    return base;
+  }
+  let next: HttpResourceRequest = { ...base };
+  const extraHeaders =
+    typeof options.headers === 'function' ? options.headers() : options.headers;
+  if (extraHeaders !== undefined) {
+    next = { ...next, headers: mergeOrvalResourceHeaders(next.headers, extraHeaders) };
+  }
+  const context =
+    typeof options.context === 'function' ? options.context() : options.context;
+  if (context !== undefined) {
+    next = { ...next, context };
+  }
+  return options.request ? options.request(next) : next;
+}
 `;
 
 const getContentTypeReturnType = (
@@ -1575,24 +1656,43 @@ const buildHttpResourceExtraFile = (
   header: string,
 ) => {
   const implementation = buildHttpResourceFile(verbOptions, output, context);
+  const verbImports = Object.values(verbOptions)
+    .filter((verbOption) =>
+      isRetrievalVerb(
+        verbOption.verb,
+        verbOption.operationName,
+        getClientOverride(verbOption),
+      ),
+    )
+    .flatMap((verbOption) => getHttpResourceVerbImports(verbOption, output));
+
+  // Imports that declare an explicit `importPath` (e.g. rxjs's `map`
+  // operator, pulled in by `getHttpResourceVerbImports`) come from an
+  // external package, not the generated schemas module.
+  // `buildSchemaImportDependencies` has no concept of `importPath` and would
+  // otherwise bucket every import — including these — under the schemas
+  // dependency alongside real model types. Route them through the standard
+  // dependency merge instead, which resolves each import from its own path.
+  const schemaVerbImports = verbImports.filter((imp) => !imp.importPath);
+  const externalVerbImports = mergeDependencies(
+    verbImports
+      .filter(
+        (imp): imp is GeneratorImport & { importPath: string } =>
+          !!imp.importPath,
+      )
+      .map((imp) => ({ exports: [imp], dependency: imp.importPath })),
+  );
+
   const schemaImports = buildSchemaImportDependencies(
     output,
-    Object.values(verbOptions)
-      .filter((verbOption) =>
-        isRetrievalVerb(
-          verbOption.verb,
-          verbOption.operationName,
-          getClientOverride(verbOption),
-        ),
-      )
-      .flatMap((verbOption) => getHttpResourceVerbImports(verbOption, output)),
+    schemaVerbImports,
     getHttpResourceRelativeSchemasPath(output, outputPath),
   );
 
   const dependencies = getAngularHttpResourceOnlyDependencies(false, false);
   const importImplementation = generateDependencyImports(
     implementation,
-    [...schemaImports, ...dependencies],
+    [...schemaImports, ...externalVerbImports, ...dependencies],
     context.projectName,
     !!output.schemas,
     isSyntheticDefaultImportsAllow(output.tsconfig),

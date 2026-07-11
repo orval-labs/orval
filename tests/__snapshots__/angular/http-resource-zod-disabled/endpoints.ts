@@ -15,7 +15,8 @@ import type {
   HttpEvent,
   HttpParams,
   HttpResourceOptions,
-  HttpResourceRef
+  HttpResourceRef,
+  HttpResourceRequest
 } from '@angular/common/http';
 
 import {
@@ -59,9 +60,81 @@ import type {
   Labradoodle
 } from './model';
 
-export type OrvalHttpResourceOptions<TValue, TRaw = unknown, TOmitParse extends boolean = true> = TOmitParse extends true
-  ? Omit<HttpResourceOptions<TValue, TRaw>, 'parse'>
-  : HttpResourceOptions<TValue, TRaw>;
+export interface OrvalHttpResourceRequestExtension {
+  /** Extra headers merged over generated headers. Pass a function to read signals reactively. */
+  headers?: HttpResourceRequest['headers'] | (() => HttpResourceRequest['headers']);
+  /** Angular HttpContext forwarded to the underlying request. Pass a function to derive it reactively. */
+  context?: HttpContext | (() => HttpContext);
+  /** Last-resort escape hatch: transform the final request descriptor. Runs inside the resource's reactive context. */
+  request?: (request: HttpResourceRequest) => HttpResourceRequest;
+}
+
+export type OrvalHttpResourceOptions<TValue, TRaw = unknown, TOmitParse extends boolean = true> =
+  (TOmitParse extends true
+    ? Omit<HttpResourceOptions<TValue, TRaw>, 'parse'>
+    : HttpResourceOptions<TValue, TRaw>) &
+  OrvalHttpResourceRequestExtension;
+
+function mergeOrvalResourceHeaders(
+  base: HttpResourceRequest['headers'],
+  extra: HttpResourceRequest['headers'],
+): HttpResourceRequest['headers'] {
+  if (!base) return extra;
+  if (!extra) return base;
+  if (base instanceof HttpHeaders || extra instanceof HttpHeaders) {
+    const toHeaderValue = (
+      value: string | readonly string[],
+    ): string | string[] =>
+      Array.isArray(value) ? Array.from(value, String) : String(value);
+    let merged =
+      base instanceof HttpHeaders
+        ? base
+        : Object.entries(base).reduce(
+            (headers, [key, value]) => headers.set(key, toHeaderValue(value)),
+            new HttpHeaders(),
+          );
+    const extraRecord =
+      extra instanceof HttpHeaders
+        ? extra.keys().reduce<Record<string, string[]>>((record, key) => {
+            const values = extra.getAll(key);
+            if (values) record[key] = values;
+            return record;
+          }, {})
+        : extra;
+    for (const [key, value] of Object.entries(extraRecord)) {
+      merged = merged.set(key, toHeaderValue(value));
+    }
+    return merged;
+  }
+  return { ...base, ...extra };
+}
+
+export function applyOrvalRequestExtension(
+  request: string | HttpResourceRequest,
+  options?: OrvalHttpResourceRequestExtension,
+): HttpResourceRequest {
+  const base: HttpResourceRequest = typeof request === 'string' ? { url: request } : request;
+  if (
+    !options ||
+    (options.headers === undefined &&
+      options.context === undefined &&
+      options.request === undefined)
+  ) {
+    return base;
+  }
+  let next: HttpResourceRequest = { ...base };
+  const extraHeaders =
+    typeof options.headers === 'function' ? options.headers() : options.headers;
+  if (extraHeaders !== undefined) {
+    next = { ...next, headers: mergeOrvalResourceHeaders(next.headers, extraHeaders) };
+  }
+  const context =
+    typeof options.context === 'function' ? options.context() : options.context;
+  if (context !== undefined) {
+    next = { ...next, context };
+  }
+  return options.request ? options.request(next) : next;
+}
 
 type AngularHttpParamValue = string | number | boolean | Array<string | number | boolean>;
 type AngularHttpParamValueWithNullable = AngularHttpParamValue | null;
@@ -141,7 +214,7 @@ export function listPetsResource(params: Signal<ListPetsParams>,
       url: `/pets`,
       params: filterParams(params?.() ?? {}, new Set<string>([]))
     });
-    return request;
+    return applyOrvalRequestExtension(request, options);
   }, options);
 }
 
@@ -154,7 +227,7 @@ export function showPetByIdResource(petId: Signal<string>,
   options?: OrvalHttpResourceOptions<Pet, unknown, true>): HttpResourceRef<Pet | undefined>;
 export function showPetByIdResource(petId: Signal<string>,
   options?: OrvalHttpResourceOptions<Pet, unknown, true>): HttpResourceRef<Pet | undefined> {
-  return httpResource<Pet>(() => `/pets/${petId()}`, options);
+  return httpResource<Pet>(() => applyOrvalRequestExtension(`/pets/${petId()}`, options), options);
 }
 
 /**
@@ -163,7 +236,7 @@ export function showPetByIdResource(petId: Signal<string>,
 export function healthCheckResource(options: OrvalHttpResourceOptions<string, string, true> & { defaultValue: NoInfer<string> }): HttpResourceRef<string>;
 export function healthCheckResource(options?: OrvalHttpResourceOptions<string, string, true>): HttpResourceRef<string | undefined>;
 export function healthCheckResource(options?: OrvalHttpResourceOptions<string, string, true>): HttpResourceRef<string | undefined> {
-  return httpResource.text<string>(() => `/health`, options);
+  return httpResource.text<string>(() => applyOrvalRequestExtension(`/health`, options), options);
 }
 
 /**
@@ -175,7 +248,7 @@ export function showPetWithOwnerResource(petId: Signal<string>,
   options?: OrvalHttpResourceOptions<PetWithTag, unknown, true>): HttpResourceRef<PetWithTag | undefined>;
 export function showPetWithOwnerResource(petId: Signal<string>,
   options?: OrvalHttpResourceOptions<PetWithTag, unknown, true>): HttpResourceRef<PetWithTag | undefined> {
-  return httpResource<PetWithTag>(() => `/pets/${petId()}/owner`, options);
+  return httpResource<PetWithTag>(() => applyOrvalRequestExtension(`/pets/${petId()}/owner`, options), options);
 }
 
 

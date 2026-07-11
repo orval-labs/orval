@@ -307,6 +307,16 @@ const createVerbOption = (
   } as GeneratorVerbOptions;
 };
 
+/**
+ * `generateHttpResourceHeader` is typed as `ClientHeaderBuilder`, whose
+ * return type is `string | HeaderResult` — but the Angular resource header
+ * builder always returns a plain string. Narrow it once so tests can call
+ * string methods (`.indexOf`, `.slice`) directly instead of only going
+ * through `expect(header).toContain(...)`.
+ */
+const asHeaderString = (header: string | { implementation: string }): string =>
+  typeof header === 'string' ? header : header.implementation;
+
 const createHeaderParams = (
   overrides: Partial<Parameters<typeof generateHttpResourceHeader>[0]> = {},
 ): Parameters<typeof generateHttpResourceHeader>[0] => ({
@@ -522,8 +532,17 @@ describe('angular httpResource generator', () => {
       );
       expect(header).toContain('HttpResourceRef<Pet | undefined>');
       // Simple GET with only path params uses the URL-only form
-      expect(header).toContain('`/api/pets/${petId()}`');
-      expect(header).not.toContain('url:');
+      expect(header).toContain(
+        'applyOrvalRequestExtension(`/api/pets/${petId()}`, options)',
+      );
+      // The generated function body itself does not build a `{ url: ... }`
+      // request object (the shared `applyOrvalRequestExtension` utility does
+      // that internally when normalizing a bare URL string).
+      const headerString = asHeaderString(header);
+      const functionSection = headerString.slice(
+        headerString.indexOf('export function getPetByIdResource'),
+      );
+      expect(functionSection).not.toContain('url:');
     });
 
     it('includes @experimental JSDoc annotation', () => {
@@ -1947,7 +1966,9 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      expect(header).toContain('return customHttpRequest(request)');
+      expect(header).toContain(
+        'return applyOrvalRequestExtension(customHttpRequest(request), options);',
+      );
     });
 
     it('supports caller-provided defaultValue overloads', () => {
@@ -1996,7 +2017,7 @@ describe('angular httpResource generator', () => {
 
       // URL-only: no request object, no "const request"
       expect(header).toContain(
-        'httpResource<Pet>(() => `/api/pets/${petId()}`, options)',
+        'httpResource<Pet>(() => applyOrvalRequestExtension(`/api/pets/${petId()}`, options), options)',
       );
       expect(header).not.toContain('const request');
     });
@@ -2125,7 +2146,290 @@ describe('angular httpResource generator', () => {
 
       // Mutators need the request object to transform
       expect(header).toContain('const request');
-      expect(header).toContain('return customHttpRequest(request)');
+      expect(header).toContain(
+        'return applyOrvalRequestExtension(customHttpRequest(request), options);',
+      );
+    });
+  });
+
+  // ─── Request descriptor extension (#3710) ──────────────────────────
+
+  describe('request descriptor extension (#3710)', () => {
+    it('emits the OrvalHttpResourceRequestExtension type and helpers', () => {
+      const verbOption = createVerbOption();
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain(
+        'export interface OrvalHttpResourceRequestExtension',
+      );
+      expect(header).toContain(
+        "headers?: HttpResourceRequest['headers'] | (() => HttpResourceRequest['headers']);",
+      );
+      expect(header).toContain('context?: HttpContext | (() => HttpContext);');
+      expect(header).toContain(
+        'request?: (request: HttpResourceRequest) => HttpResourceRequest;',
+      );
+      expect(header).toContain(
+        'export type OrvalHttpResourceOptions<TValue, TRaw = unknown, TOmitParse extends boolean = false> =',
+      );
+      expect(header).toContain('OrvalHttpResourceRequestExtension;');
+      expect(header).toContain('function mergeOrvalResourceHeaders(');
+      expect(header).toContain('export function applyOrvalRequestExtension(');
+    });
+
+    it('applies the extension inside the reactive factory for request-object GETs', () => {
+      const verbOption = createVerbOption({
+        queryParams: createQueryParams(),
+        props: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: false,
+            required: true,
+            type: GetterPropType.PARAM,
+          },
+          {
+            name: 'params',
+            definition: 'params: GetPetByIdParams',
+            implementation: 'params: GetPetByIdParams',
+            default: false,
+            required: false,
+            type: GetterPropType.QUERY_PARAM,
+          },
+        ],
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('const request');
+      expect(header).toContain(
+        'return applyOrvalRequestExtension(request, options);',
+      );
+    });
+
+    it('forwards OpenAPI in:header parameters via the headers signal', () => {
+      const verbOption = createVerbOption({
+        headers: {
+          schema: { name: 'GetPetByIdHeaders', model: '', imports: [] },
+          deps: [],
+          isOptional: false,
+        } as never,
+        props: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: false,
+            required: true,
+            type: GetterPropType.PARAM,
+          },
+          {
+            name: 'headers',
+            definition: 'headers: GetPetByIdHeaders',
+            implementation: 'headers: GetPetByIdHeaders',
+            default: false,
+            required: true,
+            type: GetterPropType.HEADER,
+          },
+        ],
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      // Pins a fix alongside #3710: `headersProp.default` is hardcoded to
+      // the boolean sentinel `false` by `getProps()` (never a real default),
+      // so `withSignal`'s naive `prop.default !== undefined` fallback used
+      // to treat every HEADER/QUERY_PARAM/BODY prop as "has a default" and
+      // silently rendered required ones as optional Signals. `headers:` and
+      // `headers?:` are distinct substrings, so this pins the required form.
+      expect(header).toContain('headers: Signal<GetPetByIdHeaders>');
+      expect(header).not.toContain('headers?: Signal<GetPetByIdHeaders>');
+      expect(header).toContain('headers: headers?.()');
+    });
+
+    it('renders required QUERY_PARAM/BODY props as required Signals, not optional', () => {
+      const baseVerbOption = createVerbOption();
+      const verbOption = createVerbOption({
+        operationId: 'searchPets',
+        operationName: 'searchPets',
+        verb: 'post',
+        route: '/pets/search',
+        pathRoute: '/pets/search',
+        override: {
+          ...baseVerbOption.override,
+          operations: {
+            ...baseVerbOption.override.operations,
+            searchPets: {
+              angular: { client: 'httpResource' },
+            },
+          },
+        } as unknown as GeneratorVerbOptions['override'],
+        body: {
+          implementation: 'searchPetsBody',
+          definition: 'SearchPetsBody',
+          imports: [],
+          schemas: [],
+          originalSchema: {} as never,
+          contentType: 'application/json',
+          formData: '',
+          formUrlEncoded: '',
+          isOptional: false,
+        },
+        queryParams: createQueryParams({ isOptional: false }),
+        props: [
+          {
+            name: 'searchPetsBody',
+            definition: 'searchPetsBody: SearchPetsBody',
+            implementation: 'searchPetsBody: SearchPetsBody',
+            default: false,
+            required: true,
+            type: GetterPropType.BODY,
+          },
+          {
+            name: 'params',
+            definition: 'params: SearchPetsParams',
+            implementation: 'params: SearchPetsParams',
+            default: false,
+            required: true,
+            type: GetterPropType.QUERY_PARAM,
+          },
+        ],
+        params: [],
+      });
+      routeRegistry.set('searchPets', '/api/pets/search');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { searchPets: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('searchPetsBody: Signal<SearchPetsBody>');
+      expect(header).not.toContain('searchPetsBody?: Signal<SearchPetsBody>');
+      expect(header).toContain('params: Signal<SearchPetsParams>');
+      expect(header).not.toContain('params?: Signal<SearchPetsParams>');
+    });
+
+    it('re-applies Accept after the extension in multi-content-type branches, without a shadowing outer `headers` const', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'string | Pet', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('string', 'text/plain'),
+              createSuccessType('Pet', 'application/json'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['text/plain', 'application/json'],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      // No outer `const headers = ...` before the per-branch factories — the
+      // TDZ-prone local was renamed to `acceptHeaders` and moved inside each
+      // reactive factory.
+      expect(header).not.toContain('const headers =');
+      expect(header).toContain('const acceptHeaders =');
+
+      const headerString = asHeaderString(header);
+      const applyIndex = headerString.indexOf(
+        'applyOrvalRequestExtension(normalizedRequest, options)',
+      );
+      expect(applyIndex).toBeGreaterThan(-1);
+      const acceptIndex = headerString.indexOf(
+        "extendedRequest.headers.set('Accept', accept)",
+        applyIndex,
+      );
+      // Accept is (re-)applied AFTER the extension is applied, so caller
+      // headers/context can never override branch dispatch.
+      expect(acceptIndex).toBeGreaterThan(applyIndex);
+    });
+
+    it('keeps the request extension fields on Zod-backed (TOmitParse=true) resource options', () => {
+      const verbOption = createVerbOption();
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      });
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output,
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('TOmitParse extends boolean = true');
+      expect(header).toContain(
+        "? Omit<HttpResourceOptions<TValue, TRaw>, 'parse'>",
+      );
+      expect(header).toContain('OrvalHttpResourceRequestExtension;');
+      expect(header).toContain(
+        'export interface OrvalHttpResourceRequestExtension',
+      );
     });
   });
 
@@ -2523,7 +2827,8 @@ describe('angular httpResource generator', () => {
 
       expect(header).toContain('export type OrvalHttpResourceOptions');
       expect(header).toContain('TOmitParse extends boolean = false');
-      expect(header).toContain(': HttpResourceOptions<TValue, TRaw>;');
+      expect(header).toContain(': HttpResourceOptions<TValue, TRaw>) &');
+      expect(header).toContain('OrvalHttpResourceRequestExtension');
     });
 
     it('omits parse from resource options when generating Zod-backed resources', () => {
@@ -2819,6 +3124,23 @@ describe('angular httpResource generator', () => {
       expect(petsFile?.content).not.toContain('createPet');
       expect(healthFile?.content).toContain('getHealthResource');
       expect(healthFile?.content).not.toContain('getPetByIdResource');
+
+      // Regression guard: `getHttpResourceVerbImports` always lists rxjs's
+      // `map` as a candidate import (importPath: 'rxjs'), and the shared
+      // request-extension helpers emitted in every httpResource file contain
+      // the literal substring `.map(String)`. `buildSchemaImportDependencies`
+      // has no concept of `importPath` and used to bucket every candidate
+      // import — including this external one — under the schemas dependency,
+      // so `map` (unused by getHealth's body) would get misrouted to an
+      // `import { map } from '<schemas path>'` that the schemas module never
+      // exports. `map` must either be absent or, if present, imported from
+      // 'rxjs'.
+      const mapImportLine = healthFile?.content
+        .split('\n')
+        .find((line) => /\bimport\b.*\bmap\b/.test(line));
+      if (mapImportLine) {
+        expect(mapImportLine).toContain("from 'rxjs'");
+      }
     });
   });
 

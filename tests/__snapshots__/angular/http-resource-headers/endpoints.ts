@@ -26,12 +26,14 @@ import { Observable } from 'rxjs';
 
 import type {
   CreatePetsBody,
+  CreatePetsHeaders,
   CreatePetsParams,
+  ListPetsHeaders,
   ListPetsParams,
   Pet,
   PetWithTag,
   Pets,
-} from './petstore.schemas';
+} from './model';
 
 export interface OrvalHttpResourceRequestExtension {
   /** Extra headers merged over generated headers. Pass a function to read signals reactively. */
@@ -190,22 +192,26 @@ function filterParams(
  */
 export function listPetsResource(
   params: Signal<ListPetsParams>,
+  headers: Signal<ListPetsHeaders>,
   options: OrvalHttpResourceOptions<Pets, unknown> & {
     defaultValue: NoInfer<Pets>;
   },
 ): HttpResourceRef<Pets>;
 export function listPetsResource(
   params: Signal<ListPetsParams>,
+  headers: Signal<ListPetsHeaders>,
   options?: OrvalHttpResourceOptions<Pets, unknown>,
 ): HttpResourceRef<Pets | undefined>;
 export function listPetsResource(
   params: Signal<ListPetsParams>,
+  headers: Signal<ListPetsHeaders>,
   options?: OrvalHttpResourceOptions<Pets, unknown>,
 ): HttpResourceRef<Pets | undefined> {
   return httpResource<Pets>(() => {
     const request = {
       url: `/pets`,
       params: filterParams(params?.() ?? {}, new Set<string>([])),
+      headers: headers?.(),
     };
     return applyOrvalRequestExtension(request, options);
   }, options);
@@ -324,21 +330,25 @@ export class SwaggerPetstoreService {
   createPets<TData = Pet>(
     createPetsBody: CreatePetsBody,
     params: CreatePetsParams,
+    headers: CreatePetsHeaders,
     options?: HttpClientBodyOptions,
   ): Observable<TData>;
   createPets<TData = Pet>(
     createPetsBody: CreatePetsBody,
     params: CreatePetsParams,
+    headers: CreatePetsHeaders,
     options?: HttpClientEventOptions,
   ): Observable<HttpEvent<TData>>;
   createPets<TData = Pet>(
     createPetsBody: CreatePetsBody,
     params: CreatePetsParams,
+    headers: CreatePetsHeaders,
     options?: HttpClientResponseOptions,
   ): Observable<AngularHttpResponse<TData>>;
   createPets<TData = Pet>(
     createPetsBody: CreatePetsBody,
     params: CreatePetsParams,
+    headers: CreatePetsHeaders,
     options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
     const filteredParams = filterParams(
@@ -351,6 +361,7 @@ export class SwaggerPetstoreService {
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'events',
         params: filteredParams,
+        headers: { ...headers, ...options?.headers },
       });
     }
 
@@ -359,6 +370,7 @@ export class SwaggerPetstoreService {
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'response',
         params: filteredParams,
+        headers: { ...headers, ...options?.headers },
       });
     }
 
@@ -366,6 +378,7 @@ export class SwaggerPetstoreService {
       ...(options as Omit<NonNullable<typeof options>, 'observe'>),
       observe: 'body',
       params: filteredParams,
+      headers: { ...headers, ...options?.headers },
     });
   }
 
