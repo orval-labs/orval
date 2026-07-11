@@ -290,6 +290,20 @@ export function showPetByIdResource(
 This keeps the generated Angular API aligned with your OpenAPI response matrix,
 including plain-text, blob, and array-buffer resource variants where needed.
 
+Content-negotiated resources are just as reactive as single-content-type ones:
+every signal input — path params, the `params` query object, `version`, and
+request-body signals — is read inside the `httpResource` factory, so updating
+any of them triggers a refetch. The `accept` argument itself is a plain value,
+not a signal: it only selects which resource variant (`httpResource`,
+`.text`, or `.arrayBuffer`) gets created, so to switch content types you
+create a new resource rather than mutating a signal.
+
+<Callout title="Tip" type="info">
+Because `accept` is read once at creation time, don't wrap it in a signal —
+call the resource function again with a different `accept` value if you need
+to switch content types at runtime.
+</Callout>
+
 ### `both` mode
 
 Use `both` when you want signal-first retrievals and imperative `HttpClient`

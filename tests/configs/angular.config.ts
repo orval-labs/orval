@@ -232,6 +232,23 @@ export default defineConfig({
       target: '../specifications/angular-multi-content-query-params.yaml',
     },
   },
+  httpResourceMultiContent: {
+    output: {
+      target: '../generated/angular/http-resource-multi-content/endpoints.ts',
+      schemas: '../generated/angular/http-resource-multi-content/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/angular-multi-content-query-params.yaml',
+    },
+  },
   issue3103: {
     output: {
       target: '../generated/angular/issue-3103/endpoints.ts',

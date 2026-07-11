@@ -111,17 +111,17 @@ function filterParams(
  * @experimental httpResource is experimental (Angular v19.2+)
  */
 export function listPetsResource(
-  params: Signal<ListPetsParams> | undefined,
+  params: Signal<ListPetsParams>,
   options: OrvalHttpResourceOptions<Pets, unknown> & {
     defaultValue: NoInfer<Pets>;
   },
 ): HttpResourceRef<Pets>;
 export function listPetsResource(
-  params?: Signal<ListPetsParams>,
+  params: Signal<ListPetsParams>,
   options?: OrvalHttpResourceOptions<Pets, unknown>,
 ): HttpResourceRef<Pets | undefined>;
 export function listPetsResource(
-  params?: Signal<ListPetsParams>,
+  params: Signal<ListPetsParams>,
   options?: OrvalHttpResourceOptions<Pets, unknown>,
 ): HttpResourceRef<Pets | undefined> {
   return httpResource<Pets>(() => {

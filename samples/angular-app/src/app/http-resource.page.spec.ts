@@ -91,4 +91,37 @@ describe('HttpResourcePage', () => {
     expect(compiled.textContent).toContain('Failed to load pets:');
     expect(compiled.textContent).toContain('Rex (#1)');
   });
+
+  it('refetches multi-content resources when input signals change', async () => {
+    const fixture = TestBed.createComponent(HttpResourcePage);
+    fixture.detectChanges();
+
+    httpMock
+      .expectOne('/v1/pets')
+      .flush([{ id: 1, name: 'Rex', requiredNullableString: null }]);
+    httpMock
+      .expectOne('/v1/pets/1')
+      .flush({ id: 1, name: 'Rex', requiredNullableString: null });
+    await fixture.whenStable();
+
+    // Changing the path-param signal must refetch showPetByIdResource, even
+    // though it is a multi-content-type resource (#3713). `whenStable()`
+    // only resolves once in-flight HTTP requests are flushed, so flush
+    // before awaiting it (mirrors the pattern used above).
+    fixture.componentInstance['petId'].set('2');
+    fixture.detectChanges();
+    const petReq = httpMock.expectOne('/v1/pets/2');
+    expect(petReq.request.headers.get('Accept')).toBe('application/json');
+    petReq.flush({ id: 2, name: 'Milo', requiredNullableString: null });
+    await fixture.whenStable();
+
+    // Changing the shared `version` signal must refetch both resources.
+    fixture.componentInstance['version'].set(2);
+    fixture.detectChanges();
+    httpMock.expectOne('/v2/pets').flush([]);
+    httpMock
+      .expectOne('/v2/pets/2')
+      .flush({ id: 2, name: 'Milo', requiredNullableString: null });
+    await fixture.whenStable();
+  });
 });

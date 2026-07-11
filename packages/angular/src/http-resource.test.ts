@@ -1562,6 +1562,218 @@ describe('angular httpResource generator', () => {
       expect(header).toContain('httpResource<Pet>');
       expect(header).toContain('httpResource.text<string>');
       expect(header).toContain('Accept: accept');
+      expect(header).toContain('httpResource<Pet>(buildRequest');
+      expect(header).toContain('httpResource.text<string>(buildRequest');
+    });
+  });
+
+  // ─── Multi-content resource reactivity (issue #3713) ───────────────
+
+  describe('multi-content resource reactivity', () => {
+    it('reads query/param signals inside the httpResource factory', () => {
+      const verbOption = createVerbOption({
+        queryParams: createQueryParams(),
+        response: baseResponse({
+          definition: { success: 'string | Pet', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'text/plain'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'text/plain'],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never) as string;
+
+      const buildRequestIndex = header.indexOf(
+        'const buildRequest = (): HttpResourceRequest =>',
+      );
+      expect(buildRequestIndex).toBeGreaterThan(-1);
+      expect(header.indexOf('params?.()')).toBeGreaterThan(buildRequestIndex);
+      expect(header).toContain('httpResource<Pet>(buildRequest');
+      expect(header).toContain('httpResource.text<string>(buildRequest');
+      expect(header).not.toMatch(/\(\)\s*=>\s*\(\{\s*\.\.\.normalizedRequest/);
+    });
+
+    it('interpolates path-param signals inside the factory for url-only multi-content resources', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'string | Pet', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'text/plain'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'text/plain'],
+        }),
+      });
+      routeRegistry.set('getPetById', '/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never) as string;
+
+      const buildRequestIndex = header.indexOf('const buildRequest');
+      expect(buildRequestIndex).toBeGreaterThan(-1);
+      expect(header.indexOf('${petId()}')).toBeGreaterThan(buildRequestIndex);
+      expect(header).toContain(
+        'const normalizedRequest: HttpResourceRequest = { url: request }',
+      );
+    });
+
+    it('keeps the Accept merge inside the factory', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'string | Pet', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'text/plain'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'text/plain'],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never) as string;
+
+      const buildRequestIndex = header.indexOf('const buildRequest');
+      expect(buildRequestIndex).toBeGreaterThan(-1);
+      expect(header.indexOf('Accept: accept')).toBeGreaterThan(
+        buildRequestIndex,
+      );
+      expect(header).toContain('instanceof HttpHeaders');
+    });
+
+    it('passes buildRequest to the arrayBuffer branch', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'Pet | ArrayBuffer', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('ArrayBuffer', 'application/octet-stream'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'application/octet-stream'],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain(
+        'httpResource.arrayBuffer<ArrayBuffer>(buildRequest',
+      );
+    });
+
+    it('reads the request body signal inside the factory for POST retrieval resources', () => {
+      const verbOption = createVerbOption({
+        operationId: 'searchPets',
+        operationName: 'searchPets',
+        verb: 'post',
+        route: '/pets/search',
+        pathRoute: '/pets/search',
+        params: [],
+        props: [
+          {
+            name: 'searchPetsBody',
+            definition: 'searchPetsBody: SearchPetsBody',
+            implementation: 'searchPetsBody: SearchPetsBody',
+            default: false,
+            required: true,
+            type: GetterPropType.BODY,
+          },
+        ],
+        body: {
+          implementation: 'searchPetsBody',
+          definition: 'searchPetsBody: SearchPetsBody',
+          imports: [],
+          schemas: [],
+          originalSchema: { type: 'object' },
+          contentType: 'application/json',
+          formData: '',
+          formUrlEncoded: '',
+          isOptional: false,
+        },
+        response: baseResponse({
+          definition: { success: 'string | Pet', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'text/plain'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'text/plain'],
+        }),
+      });
+      routeRegistry.set('searchPets', '/api/pets/search');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { searchPets: verbOption },
+        clientImplementation: '',
+      } as never) as string;
+
+      const buildRequestIndex = header.indexOf('const buildRequest');
+      expect(buildRequestIndex).toBeGreaterThan(-1);
+      const bodyAccessIndex = header.indexOf('searchPetsBody()');
+      expect(bodyAccessIndex).toBeGreaterThan(-1);
+      expect(bodyAccessIndex).toBeGreaterThan(buildRequestIndex);
     });
   });
 
