@@ -20,6 +20,7 @@ import {
   logWarning,
   type NormalizedOptions,
   type OpenApiInfoObject,
+  OutputClient,
   OutputMockType,
   OutputMode,
   pascal,
@@ -137,6 +138,73 @@ function excludeFilePath(
     .filter(({ comparablePath }) => comparablePath !== comparablePathToExclude)
     .map(({ filePath }) => filePath);
 }
+
+/**
+ * Appends `export * from '<import>';` lines for every import not already
+ * declared in `indexFile`, or creates the file from scratch when it doesn't
+ * exist yet. Extracted verbatim from the workspace-barrel emission below so
+ * `writeClientGroupBarrel` can compose with a barrel another writer (e.g.
+ * `writeSplitTagsMode`'s `tagsSplitDeduplication` barrel) may have already
+ * written at the same path, without duplicating re-exports.
+ *
+ * `namedReExports` are full, already-formatted re-export statements (e.g.
+ * `export type { Foo } from './x';`) written *before* the wildcard exports.
+ * TypeScript resolves a name explicitly re-exported in a module before
+ * considering it for `export *` ambiguity, so listing a name here first lets
+ * two-plus `export *` sources that both redeclare it coexist without a
+ * TS2308 "already exported a member" error. Passing none preserves the
+ * original byte-for-byte output for existing callers.
+ */
+export async function appendOrCreateBarrel(
+  indexFile: string,
+  imports: string[],
+  namedReExports: string[] = [],
+): Promise<void> {
+  if (await fs.pathExists(indexFile)) {
+    const data = await fs.readFile(indexFile, 'utf8');
+    const reExportsNotDeclared = namedReExports.filter(
+      (line) => !data.includes(line),
+    );
+    const importsNotDeclared = imports.filter(
+      (imp) => !data.includes(`export * from '${imp}'`),
+    );
+    await fs.appendFile(
+      indexFile,
+      reExportsNotDeclared.map((line) => `${line}\n`).join('') +
+        unique(importsNotDeclared)
+          .map((imp) => `export * from '${imp}';\n`)
+          .join(''),
+    );
+  } else {
+    const lines = [
+      ...unique(namedReExports),
+      ...unique(imports).map((imp) => `export * from '${imp}';`),
+    ];
+    await fs.outputFile(indexFile, lines.join('\n') + '\n');
+  }
+}
+
+/**
+ * Some client generators emit identical helper boilerplate verbatim into
+ * every per-tag file of a given kind (e.g. Angular's httpResource generator
+ * writes the same `OrvalHttpResourceOptions` type, `ResourceState` interface,
+ * and `toResourceState` function into every `.resource.ts` file — see
+ * `generateHttpResourceExtraFiles` in `packages/angular/src/http-resource.ts`).
+ * When `writeClientGroupBarrel` wildcard-re-exports two or more such files,
+ * TypeScript raises TS2308 for the redeclared names. This registry lets the
+ * barrel writer re-export those names explicitly from one canonical file
+ * first, which resolves the ambiguity (see `appendOrCreateBarrel` above)
+ * without needing to parse each file's actual export list.
+ */
+const DUPLICATED_BOILERPLATE_EXPORTS_BY_CLIENT: Partial<
+  Record<OutputClient, { fileSuffix: string; typeNames: string[]; valueNames: string[] }>
+> = {
+  [OutputClient.ANGULAR]: {
+    fileSuffix: '.resource',
+    typeNames: ['OrvalHttpResourceOptions', 'ResourceState'],
+    valueNames: ['toResourceState'],
+  },
+};
 
 function getHeader(
   option: false | ((info: OpenApiInfoObject) => string | string[]),
@@ -433,6 +501,128 @@ function getImplementationPathsForIndex(
   );
 
   return excludeFilePath(paths, defaultSiblingSchemas);
+}
+
+/**
+ * Emits `<clientDir>/index.ts`, re-exporting every client file actually
+ * written under `output.artifacts.clientDir` — per-tag implementation files
+ * plus any `builder.extraFiles` (e.g. Angular `*.resource.ts`). Built only
+ * from paths writers actually produced (never guessed from tag names), so a
+ * tag without a retrieval operation — and thus no `.resource.ts` — is never
+ * re-exported as if it existed.
+ *
+ * When `tagsSplitDeduplication` is on, `writeSplitTagsMode` may already have
+ * written a barrel at this same path (re-exporting `.service.ts` files plus
+ * a named `common-types` re-export). `appendOrCreateBarrel` composes with it
+ * by appending only the lines it doesn't already declare — e.g. the
+ * `.resource.ts` re-exports that barrel never included.
+ */
+export async function writeClientGroupBarrel(
+  output: NormalizedOutputOptions,
+  filePaths: string[],
+): Promise<string | undefined> {
+  const { artifacts } = output;
+  if (!artifacts || !output.indexFiles) {
+    return undefined;
+  }
+
+  const { clientDir } = artifacts;
+  const indexFile = path.join(clientDir, `index${output.fileExtension}`);
+  const comparableClientDir = getComparableFilePath(clientDir);
+  const comparableIndexFile = getComparableFilePath(indexFile);
+
+  const mockExtensions = output.mock.generators.map((g) =>
+    getMockFileExtensionByTypeName(g),
+  );
+  // Excluded because it's re-exported with named `export type { ... }`
+  // re-exports by the `tagsSplitDeduplication` barrel already — a second
+  // `export *` for the same path would redeclare those names.
+  const comparableCommonTypesPath = getComparableFilePath(
+    path.join(clientDir, `${output.commonTypesFileName}${output.fileExtension}`),
+  );
+
+  const clientFilePaths = unique(filePaths).filter((filePath) => {
+    const comparablePath = getComparableFilePath(filePath);
+    const isUnderClientDir =
+      comparablePath === comparableClientDir ||
+      comparablePath.startsWith(comparableClientDir + path.sep);
+    if (!isUnderClientDir) {
+      return false;
+    }
+    if (comparablePath === comparableIndexFile) {
+      return false;
+    }
+    if (comparablePath === comparableCommonTypesPath) {
+      return false;
+    }
+    if (filePath.endsWith(`.schemas${output.fileExtension}`)) {
+      return false;
+    }
+    if (
+      mockExtensions.some((ext) => filePath.endsWith(`.${ext}${output.fileExtension}`))
+    ) {
+      return false;
+    }
+    return true;
+  });
+
+  if (clientFilePaths.length === 0) {
+    return undefined;
+  }
+
+  const importExtension = getImportExtension(
+    output.fileExtension,
+    output.tsconfig,
+  );
+
+  const toImportSpecifier = (filePath: string): string => {
+    const relative = upath.getRelativeImportPath(indexFile, filePath, true);
+    const withoutExt = relative.endsWith(output.fileExtension)
+      ? relative.slice(0, -output.fileExtension.length)
+      : relative.replace(/\.[^/.]+$/, '');
+    return withoutExt + importExtension;
+  };
+
+  const imports = clientFilePaths
+    .map(toImportSpecifier)
+    .toSorted((a, b) => a.localeCompare(b));
+
+  // See `DUPLICATED_BOILERPLATE_EXPORTS_BY_CLIENT` above: when 2+ files of a
+  // kind known to carry identical generator boilerplate land in this barrel
+  // (e.g. two `.resource.ts` files under Angular's `both`/`resource`
+  // retrieval mode), wildcard-exporting all of them raises TS2308. Re-export
+  // the shared names explicitly from the first (sorted) such file so the
+  // subsequent `export *` statements — which still carry each file's
+  // tag-specific functions — compile cleanly.
+  const boilerplate =
+    typeof output.client === 'string'
+      ? DUPLICATED_BOILERPLATE_EXPORTS_BY_CLIENT[output.client]
+      : undefined;
+  const namedReExports: string[] = [];
+  if (boilerplate) {
+    const matchingFilePaths = clientFilePaths
+      .filter((filePath) =>
+        filePath.endsWith(`${boilerplate.fileSuffix}${output.fileExtension}`),
+      )
+      .toSorted((a, b) => a.localeCompare(b));
+    if (matchingFilePaths.length > 1) {
+      const canonicalImport = toImportSpecifier(matchingFilePaths[0]);
+      if (boilerplate.typeNames.length > 0) {
+        namedReExports.push(
+          `export type { ${boilerplate.typeNames.join(', ')} } from '${canonicalImport}';`,
+        );
+      }
+      if (boilerplate.valueNames.length > 0) {
+        namedReExports.push(
+          `export { ${boilerplate.valueNames.join(', ')} } from '${canonicalImport}';`,
+        );
+      }
+    }
+  }
+
+  await appendOrCreateBarrel(indexFile, unique(imports), namedReExports);
+
+  return indexFile;
 }
 
 export async function writeSpecs(
@@ -806,25 +996,7 @@ export async function writeSpecs(
     }
 
     if (output.indexFiles) {
-      if (await fs.pathExists(indexFile)) {
-        const data = await fs.readFile(indexFile, 'utf8');
-        const importsNotDeclared = imports.filter(
-          (imp) => !data.includes(`export * from '${imp}'`),
-        );
-        await fs.appendFile(
-          indexFile,
-          unique(importsNotDeclared)
-            .map((imp) => `export * from '${imp}';\n`)
-            .join(''),
-        );
-      } else {
-        await fs.outputFile(
-          indexFile,
-          unique(imports)
-            .map((imp) => `export * from '${imp}';`)
-            .join('\n') + '\n',
-        );
-      }
+      await appendOrCreateBarrel(indexFile, imports);
 
       implementationPaths = [indexFile, ...implementationPathsForIndex];
     }
@@ -841,6 +1013,16 @@ export async function writeSpecs(
       ...implementationPaths,
       ...builder.extraFiles.map((file) => file.path),
     ];
+  }
+
+  if (output.artifacts) {
+    const clientBarrelPath = await writeClientGroupBarrel(
+      output,
+      implementationPaths,
+    );
+    if (clientBarrelPath) {
+      implementationPaths = unique([...implementationPaths, clientBarrelPath]);
+    }
   }
 
   const paths = [

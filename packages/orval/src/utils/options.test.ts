@@ -1834,3 +1834,283 @@ describe('normalizeOptions', () => {
     });
   });
 });
+
+describe('output.artifacts normalization', () => {
+  const testSpec = {
+    openapi: '3.1.0' as const,
+    info: { title: 'Test', version: '1.0.0' },
+    paths: {},
+  };
+
+  const baseConfig = (
+    output: Record<string, unknown>,
+  ): Parameters<typeof normalizeOptions>[0] => ({
+    input: { target: testSpec },
+    output: {
+      target: './client/endpoints.ts',
+      mode: 'tags-split',
+      ...output,
+    },
+  });
+
+  it('maps artifacts.schemas/msw/faker onto the normalized schemas + generator paths and forces indexMockFiles', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        baseConfig({
+          artifacts: {
+            schemas: './schemas',
+            msw: './msw',
+            faker: './faker',
+          },
+        }),
+        workspace,
+      );
+
+      expect(normalized.output.schemas).toBe(path.join(workspace, 'schemas'));
+      expect(normalized.output.artifacts).toEqual({
+        clientDir: path.join(workspace, 'client'),
+        schemasDir: path.join(workspace, 'schemas'),
+        mswDir: path.join(workspace, 'msw'),
+        fakerDir: path.join(workspace, 'faker'),
+      });
+      expect(normalized.output.mock.indexMockFiles).toBe(true);
+
+      const msw = normalized.output.mock.generators.find(
+        (g) => typeof g !== 'function' && g.type === 'msw',
+      );
+      const faker = normalized.output.mock.generators.find(
+        (g) => typeof g !== 'function' && g.type === 'faker',
+      );
+      expect(msw && typeof msw !== 'function' ? msw.path : undefined).toBe(
+        path.join(workspace, 'msw'),
+      );
+      expect(
+        faker && typeof faker !== 'function' ? faker.path : undefined,
+      ).toBe(path.join(workspace, 'faker'));
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('auto-creates msw/faker generators with defaults when mock is unset', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        baseConfig({
+          artifacts: { msw: './msw', faker: './faker' },
+        }),
+        workspace,
+      );
+
+      expect(normalized.output.mock.generators).toHaveLength(2);
+      expect(normalized.output.mock.indexMockFiles).toBe(true);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('defaults clientDir to the dirname of output.target', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        baseConfig({
+          artifacts: { schemas: './schemas' },
+        }),
+        workspace,
+      );
+
+      expect(normalized.output.artifacts?.clientDir).toBe(
+        path.join(workspace, 'client'),
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when mode is not tags-split', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          baseConfig({
+            mode: 'split',
+            artifacts: { schemas: './schemas' },
+          }),
+          workspace,
+        ),
+      ).rejects.toThrow(
+        "`output.artifacts` requires `mode: 'tags-split'`",
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when indexFiles is false', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          baseConfig({
+            indexFiles: false,
+            artifacts: { schemas: './schemas' },
+          }),
+          workspace,
+        ),
+      ).rejects.toThrow(
+        '`output.artifacts` requires `output.indexFiles` to stay enabled',
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when output.workspace is set', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          baseConfig({
+            workspace: './workspace',
+            artifacts: { schemas: './schemas' },
+          }),
+          workspace,
+        ),
+      ).rejects.toThrow(
+        '`output.artifacts` cannot be combined with `output.workspace`',
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when both artifacts.schemas and output.schemas are set', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          baseConfig({
+            schemas: './schemas',
+            artifacts: { schemas: './other-schemas' },
+          }),
+          workspace,
+        ),
+      ).rejects.toThrow(
+        'Both `output.artifacts.schemas` and `output.schemas` are set',
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when an explicit mock.generators[].path conflicts with artifacts.msw', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          baseConfig({
+            artifacts: { msw: './msw' },
+            mock: {
+              generators: [{ type: 'msw', path: './somewhere-else' }],
+            },
+          }),
+          workspace,
+        ),
+      ).rejects.toThrow(/conflicts with `output.artifacts.msw`/);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when artifacts group directories are nested', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          baseConfig({
+            artifacts: {
+              schemas: './client/schemas',
+            },
+          }),
+          workspace,
+        ),
+      ).rejects.toThrow(
+        '`output.artifacts` group directories must be distinct and non-nested',
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when artifacts group directories are equal', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          baseConfig({
+            artifacts: {
+              client: './client',
+              msw: './client',
+            },
+          }),
+          workspace,
+        ),
+      ).rejects.toThrow(
+        '`output.artifacts` group directories must be distinct and non-nested',
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when artifacts.client diverges from the directory of output.target', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          baseConfig({
+            artifacts: { client: './somewhere-else' },
+          }),
+          workspace,
+        ),
+      ).rejects.toThrow(
+        '`output.artifacts.client` ("' +
+          path.join(workspace, 'somewhere-else') +
+          '") must match the directory of `output.target`',
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('leaves output untouched when artifacts is absent (backward compatibility)', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const withArtifacts = await normalizeOptions(
+        baseConfig({}),
+        workspace,
+      );
+
+      expect(withArtifacts.output.artifacts).toBeUndefined();
+      expect(withArtifacts.output.mock).toEqual({
+        indexMockFiles: false,
+        generators: [],
+      });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});

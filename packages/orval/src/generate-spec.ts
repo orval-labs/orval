@@ -45,6 +45,22 @@ export async function generateSpec(
         getFileInfo(schemasPath).dirname,
       );
     }
+    // `artifacts.clientDir` and `artifacts.schemasDir` are already covered
+    // above (clientDir defaults to, or is required to equal, the target's
+    // directory; schemasDir is the same directory as `output.schemas`).
+    // Only the mock group directories are potentially new locations.
+    if (options.output.artifacts?.mswDir) {
+      await removeFilesAndEmptyFolders(
+        ['**/*', '!**/*.d.ts', ...extraPatterns],
+        options.output.artifacts.mswDir,
+      );
+    }
+    if (options.output.artifacts?.fakerDir) {
+      await removeFilesAndEmptyFolders(
+        ['**/*', '!**/*.d.ts', ...extraPatterns],
+        options.output.artifacts.fakerDir,
+      );
+    }
     log(`${projectName} Cleaning output folder`);
   }
 

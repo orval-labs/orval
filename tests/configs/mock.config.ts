@@ -1052,6 +1052,24 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  artifactGroupsFetch: {
+    output: {
+      target: '../generated/mock/artifact-groups-fetch/client/endpoints.ts',
+      client: 'fetch',
+      mode: 'tags-split',
+      tagsSplitDeduplication: true,
+      artifacts: {
+        schemas: '../generated/mock/artifact-groups-fetch/schemas',
+        msw: '../generated/mock/artifact-groups-fetch/msw',
+        faker: '../generated/mock/artifact-groups-fetch/faker',
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   'issue-3505': {
     output: {
       target: '../generated/mock/issue-3505/endpoints.ts',

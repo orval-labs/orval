@@ -340,4 +340,53 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  artifactGroups: {
+    output: {
+      target: '../generated/angular/artifact-groups/client/endpoints.ts',
+      client: 'angular',
+      mode: 'tags-split',
+      tagsSplitDeduplication: true,
+      artifacts: {
+        schemas: '../generated/angular/artifact-groups/schemas',
+        msw: '../generated/angular/artifact-groups/msw',
+        faker: '../generated/angular/artifact-groups/faker',
+      },
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'both',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/angular-http-resource-both.yaml',
+    },
+  },
+  artifactGroupsZod: {
+    output: {
+      target: '../generated/angular/artifact-groups-zod/client/endpoints.ts',
+      client: 'angular',
+      mode: 'tags-split',
+      tagsSplitDeduplication: true,
+      artifacts: {
+        schemas: {
+          type: 'zod',
+          path: '../generated/angular/artifact-groups-zod/schemas',
+        },
+        msw: '../generated/angular/artifact-groups-zod/msw',
+        faker: '../generated/angular/artifact-groups-zod/faker',
+      },
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          runtimeValidation: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

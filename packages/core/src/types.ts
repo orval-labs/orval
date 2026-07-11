@@ -37,6 +37,11 @@ export interface NormalizedOutputOptions {
   workspace?: string;
   target: string;
   schemas?: string | NormalizedSchemaOptions;
+  /**
+   * Normalized `output.artifacts` groups. Undefined unless the user set
+   * `output.artifacts` (v1 requires `mode: 'tags-split'`).
+   */
+  artifacts?: NormalizedArtifactsOptions;
   operationSchemas?: string;
   namingConvention: NamingConvention;
   fileExtension: string;
@@ -329,6 +334,64 @@ export interface NormalizedSchemaOptions {
   splitByTags: boolean;
 }
 
+export interface OutputArtifactGroupOptions {
+  path: string;
+}
+
+export type OutputArtifactGroupOption = string | OutputArtifactGroupOptions;
+
+/**
+ * `output.artifacts` is normalization sugar over existing options: it maps
+ * each group onto `output.schemas`, `mock.generators[].path`, and
+ * `mock.indexMockFiles`, plus one new writer step (the client group barrel).
+ * No parallel emission pipeline is introduced.
+ *
+ * v1 requires `mode: 'tags-split'` and `indexFiles !== false`, and conflicts
+ * with `output.workspace` (a combined entry point is the exact anti-pattern
+ * this option fixes).
+ */
+export interface OutputArtifactsOptions {
+  /**
+   * Emits the schemas group at this path. Accepts the same shape as
+   * `output.schemas` (a string path or the full `SchemaOptions` object, e.g.
+   * `{ path, type: 'zod' }`). Conflicts with an explicit `output.schemas`.
+   */
+  schemas?: string | SchemaOptions;
+  /**
+   * Emits the client group (per-tag implementation files plus any
+   * `builder.extraFiles`, e.g. Angular `*.resource.ts`) at this path, with a
+   * generated `index.ts` barrel re-exporting every client file actually
+   * written under it. Defaults to the directory of `output.target`.
+   */
+  client?: OutputArtifactGroupOption;
+  /**
+   * Routes the `msw` mock generator's output to this path and forces
+   * `mock.indexMockFiles: true` so a dedicated `index.msw.ts` barrel is
+   * emitted there. Auto-creates the `msw` generator entry with defaults if
+   * one isn't already configured; throws if an explicit, differing
+   * `mock.generators[].path` is already set for `msw`.
+   */
+  msw?: OutputArtifactGroupOption;
+  /**
+   * Routes the `faker` mock generator's output to this path and forces
+   * `mock.indexMockFiles: true` so a dedicated `index.faker.ts` barrel is
+   * emitted there. Same auto-create / conflict rules as `msw`.
+   */
+  faker?: OutputArtifactGroupOption;
+}
+
+/**
+ * Normalized, absolute-path form of `OutputArtifactsOptions`. Only the
+ * groups the user declared are populated (besides `clientDir`, which always
+ * defaults to the target directory once `artifacts` is set at all).
+ */
+export interface NormalizedArtifactsOptions {
+  clientDir: string;
+  schemasDir?: string;
+  mswDir?: string;
+  fakerDir?: string;
+}
+
 export interface OutputOptions {
   workspace?: string;
   target: string;
@@ -374,6 +437,14 @@ export interface OutputOptions {
   factoryMethods?: FactoryMethodsOptions;
   tagsSplitDeduplication?: boolean;
   commonTypesFileName?: string;
+  /**
+   * Ergonomic sugar for emitting independently importable artifact groups
+   * (schemas / client / msw / faker) so, e.g., a Node MSW/Faker consumer
+   * never transitively evaluates Angular modules. See
+   * `OutputArtifactsOptions` for the mapping onto existing options and v1
+   * constraints (requires `mode: 'tags-split'`).
+   */
+  artifacts?: OutputArtifactsOptions;
 }
 
 export interface InputFiltersOptions {
