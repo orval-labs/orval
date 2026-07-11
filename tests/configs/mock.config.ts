@@ -853,6 +853,43 @@ export default defineConfig({
       target: '../specifications/msw-array-items.yaml',
     },
   },
+  issue3706MswArrayItemAliases: {
+    output: {
+      target: '../generated/mock/issue-3706-msw-array-item-aliases/endpoints.ts',
+      schemas: '../generated/mock/issue-3706-msw-array-item-aliases/model',
+      client: 'fetch',
+      mock: {
+        generators: [{ type: 'msw', arrayItems: true, delay: false }],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3706-msw-unexported-item-aliases.yaml',
+    },
+  },
+  issue3706MswArrayItemAliasesStrict: {
+    output: {
+      target:
+        '../generated/mock/issue-3706-msw-array-item-aliases-strict/endpoints.ts',
+      schemas: '../generated/mock/issue-3706-msw-array-item-aliases-strict/model',
+      client: 'fetch',
+      mock: {
+        generators: [{ type: 'msw', arrayItems: true, delay: false }],
+      },
+      override: {
+        mock: {
+          required: true,
+          nonNullable: true,
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3706-msw-unexported-item-aliases.yaml',
+    },
+  },
   issue3574StrictMockTagsSplitAngular: {
     output: {
       target:

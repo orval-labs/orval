@@ -513,6 +513,165 @@ describe('extractArrayItemMock', () => {
     expect(splitMockImplementations).toHaveLength(1);
   });
 
+  describe('top-level array responses (no parentName)', () => {
+    it('extracts a factory for a $ref array response, aliasing to <RefName><itemSuffix>', () => {
+      const splitMockImplementations: string[] = [];
+      const imports: Parameters<typeof extractArrayItemMock>[0]['imports'] = [];
+
+      const call = extractArrayItemMock({
+        items: {
+          type: 'object',
+          properties: {
+            sku: { type: 'string' },
+            price: { type: 'number' },
+          },
+        },
+        propertyName: 'CatalogItems',
+        operationId: 'getCatalogItems',
+        tags: [],
+        mapValue: '{sku: faker.string.alpha(), price: faker.number.float()}',
+        context: createContextWithArrayItems(),
+        splitMockImplementations,
+        imports,
+      });
+
+      expect(call).toBe('{...getGetCatalogItemsResponseCatalogItemsItemMock()}');
+      expect(splitMockImplementations).toHaveLength(1);
+      expect(splitMockImplementations[0]).toContain(
+        'export const getGetCatalogItemsResponseCatalogItemsItemMock',
+      );
+      expect(splitMockImplementations[0]).toContain(
+        'Partial<CatalogItemsItem>',
+      );
+      expect(splitMockImplementations[0]).toContain('): CatalogItemsItem');
+      expect(imports).toEqual([{ name: 'CatalogItemsItem' }]);
+    });
+
+    it('reproduces the reported shape: $ref array response named Items on operation getCatalogItemsShort', () => {
+      const splitMockImplementations: string[] = [];
+      const imports: Parameters<typeof extractArrayItemMock>[0]['imports'] = [];
+
+      const call = extractArrayItemMock({
+        items: {
+          type: 'object',
+          properties: { id: { type: 'string' } },
+        },
+        propertyName: 'Items',
+        operationId: 'getCatalogItemsShort',
+        tags: [],
+        mapValue: '{id: faker.string.uuid()}',
+        context: createContextWithArrayItems(),
+        splitMockImplementations,
+        imports,
+      });
+
+      expect(call).toBe('{...getGetCatalogItemsShortResponseItemsItemMock()}');
+      expect(imports).toEqual([{ name: 'ItemsItem' }]);
+      expect(splitMockImplementations[0]).toContain('Partial<ItemsItem>');
+    });
+
+    it('extracts a factory for an inline top-level array response, reusing the emitted element alias', () => {
+      const splitMockImplementations: string[] = [];
+      const imports: Parameters<typeof extractArrayItemMock>[0]['imports'] = [];
+
+      const call = extractArrayItemMock({
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            label: { type: 'string' },
+          },
+        },
+        propertyName: 'GetCatalogItemsInline200Item[]',
+        operationId: 'getCatalogItemsInline',
+        tags: [],
+        mapValue: '{id: faker.string.uuid(), label: faker.string.alpha()}',
+        context: createContextWithArrayItems(),
+        splitMockImplementations,
+        imports,
+      });
+
+      expect(call).toBe(
+        '{...getGetCatalogItemsInlineResponseGetCatalogItemsInline200ItemItemMock()}',
+      );
+      expect(imports).toEqual([{ name: 'GetCatalogItemsInline200Item' }]);
+      expect(splitMockImplementations[0]).toContain(
+        'Partial<GetCatalogItemsInline200Item>',
+      );
+    });
+
+    it('bails out (inlines) when the array-expression base is not a plain identifier', () => {
+      const splitMockImplementationsUnion: string[] = [];
+      const importsUnion: Parameters<typeof extractArrayItemMock>[0]['imports'] =
+        [];
+
+      const callUnion = extractArrayItemMock({
+        items: {
+          oneOf: [{ type: 'object', properties: { a: { type: 'string' } } }],
+        },
+        propertyName: '(Cat | Dog)[]',
+        operationId: 'getThings',
+        tags: [],
+        mapValue: '{a: faker.string.alpha()}',
+        context: createContextWithArrayItems(),
+        splitMockImplementations: splitMockImplementationsUnion,
+        imports: importsUnion,
+      });
+
+      expect(callUnion).toBeUndefined();
+      expect(splitMockImplementationsUnion).toHaveLength(0);
+      expect(importsUnion).toHaveLength(0);
+
+      const splitMockImplementationsReadonly: string[] = [];
+      const importsReadonly: Parameters<
+        typeof extractArrayItemMock
+      >[0]['imports'] = [];
+
+      const callReadonly = extractArrayItemMock({
+        items: {
+          type: 'object',
+          properties: { a: { type: 'string' } },
+        },
+        propertyName: 'readonly Foo[]',
+        operationId: 'getFoo',
+        tags: [],
+        mapValue: '{a: faker.string.alpha()}',
+        context: createContextWithArrayItems(),
+        splitMockImplementations: splitMockImplementationsReadonly,
+        imports: importsReadonly,
+      });
+
+      expect(callReadonly).toBeUndefined();
+      expect(splitMockImplementationsReadonly).toHaveLength(0);
+      expect(importsReadonly).toHaveLength(0);
+    });
+
+    it('bails out (inlines) for a bare ref-name response whose items are a multi-ref allOf without direct properties', () => {
+      const splitMockImplementations: string[] = [];
+      const imports: Parameters<typeof extractArrayItemMock>[0]['imports'] = [];
+
+      const call = extractArrayItemMock({
+        items: {
+          allOf: [
+            { $ref: '#/components/schemas/A' },
+            { $ref: '#/components/schemas/B' },
+          ],
+        },
+        propertyName: 'ComposedItems',
+        operationId: 'getComposed',
+        tags: [],
+        mapValue: '{...getAMock(), ...getBMock()}',
+        context: createContextWithArrayItems(),
+        splitMockImplementations,
+        imports,
+      });
+
+      expect(call).toBeUndefined();
+      expect(splitMockImplementations).toHaveLength(0);
+      expect(imports).toHaveLength(0);
+    });
+  });
+
   it('skips $ref components/schemas items when schemas: true emits consolidated factories', () => {
     const splitMockImplementations: string[] = [];
     const contextWithSchemas = {
