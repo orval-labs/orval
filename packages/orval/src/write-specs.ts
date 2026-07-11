@@ -162,19 +162,20 @@ export async function appendOrCreateBarrel(
 ): Promise<void> {
   if (await fs.pathExists(indexFile)) {
     const data = await fs.readFile(indexFile, 'utf8');
-    const reExportsNotDeclared = namedReExports.filter(
+    const reExportsNotDeclared = unique(namedReExports).filter(
       (line) => !data.includes(line),
     );
-    const importsNotDeclared = imports.filter(
+    const importsNotDeclared = unique(imports).filter(
       (imp) => !data.includes(`export * from '${imp}'`),
     );
-    await fs.appendFile(
-      indexFile,
+    const content =
       reExportsNotDeclared.map((line) => `${line}\n`).join('') +
-        unique(importsNotDeclared)
-          .map((imp) => `export * from '${imp}';\n`)
-          .join(''),
-    );
+      importsNotDeclared.map((imp) => `export * from '${imp}';\n`).join('');
+    if (!content) {
+      return;
+    }
+    const separator = data && !data.endsWith('\n') ? '\n' : '';
+    await fs.appendFile(indexFile, separator + content);
   } else {
     const lines = [
       ...unique(namedReExports),
@@ -197,7 +198,10 @@ export async function appendOrCreateBarrel(
  * without needing to parse each file's actual export list.
  */
 const DUPLICATED_BOILERPLATE_EXPORTS_BY_CLIENT: Partial<
-  Record<OutputClient, { fileSuffix: string; typeNames: string[]; valueNames: string[] }>
+  Record<
+    OutputClient,
+    { fileSuffix: string; typeNames: string[]; valueNames: string[] }
+  >
 > = {
   [OutputClient.ANGULAR]: {
     fileSuffix: '.resource',
@@ -538,7 +542,10 @@ export async function writeClientGroupBarrel(
   // re-exports by the `tagsSplitDeduplication` barrel already — a second
   // `export *` for the same path would redeclare those names.
   const comparableCommonTypesPath = getComparableFilePath(
-    path.join(clientDir, `${output.commonTypesFileName}${output.fileExtension}`),
+    path.join(
+      clientDir,
+      `${output.commonTypesFileName}${output.fileExtension}`,
+    ),
   );
 
   const clientFilePaths = unique(filePaths).filter((filePath) => {
@@ -559,7 +566,9 @@ export async function writeClientGroupBarrel(
       return false;
     }
     if (
-      mockExtensions.some((ext) => filePath.endsWith(`.${ext}${output.fileExtension}`))
+      mockExtensions.some((ext) =>
+        filePath.endsWith(`.${ext}${output.fileExtension}`),
+      )
     ) {
       return false;
     }

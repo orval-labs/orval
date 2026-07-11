@@ -1943,9 +1943,7 @@ describe('output.artifacts normalization', () => {
           }),
           workspace,
         ),
-      ).rejects.toThrow(
-        "`output.artifacts` requires `mode: 'tags-split'`",
-      );
+      ).rejects.toThrow("`output.artifacts` requires `mode: 'tags-split'`");
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -2099,10 +2097,7 @@ describe('output.artifacts normalization', () => {
     const workspace = await createTempWorkspace();
 
     try {
-      const withArtifacts = await normalizeOptions(
-        baseConfig({}),
-        workspace,
-      );
+      const withArtifacts = await normalizeOptions(baseConfig({}), workspace);
 
       expect(withArtifacts.output.artifacts).toBeUndefined();
       expect(withArtifacts.output.mock).toEqual({

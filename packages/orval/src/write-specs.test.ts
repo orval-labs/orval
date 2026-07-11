@@ -110,13 +110,39 @@ describe('appendOrCreateBarrel', () => {
     await rm(workspace, { recursive: true, force: true });
   });
 
-  it('creates a new barrel file with sorted export lines', async () => {
+  it('creates a new barrel file preserving the caller-provided order', async () => {
     const indexFile = path.join(workspace, 'index.ts');
 
     await appendOrCreateBarrel(indexFile, ['./b', './a']);
 
     expect(await fs.readFile(indexFile, 'utf8')).toBe(
       "export * from './b';\nexport * from './a';\n",
+    );
+  });
+
+  it('inserts a separating newline when the existing barrel lacks a trailing one', async () => {
+    const indexFile = path.join(workspace, 'index.ts');
+    await writeFile(indexFile, "export * from './a';");
+
+    await appendOrCreateBarrel(indexFile, ['./b']);
+
+    expect(await fs.readFile(indexFile, 'utf8')).toBe(
+      "export * from './a';\nexport * from './b';\n",
+    );
+  });
+
+  it('deduplicates named re-exports before appending', async () => {
+    const indexFile = path.join(workspace, 'index.ts');
+    await writeFile(indexFile, "export * from './a';\n");
+
+    await appendOrCreateBarrel(
+      indexFile,
+      [],
+      ["export type { Foo } from './b';", "export type { Foo } from './b';"],
+    );
+
+    expect(await fs.readFile(indexFile, 'utf8')).toBe(
+      "export * from './a';\nexport type { Foo } from './b';\n",
     );
   });
 
@@ -183,7 +209,10 @@ describe('writeClientGroupBarrel', () => {
       artifacts: { clientDir },
       mock: {
         indexMockFiles: true,
-        generators: [{ type: OutputMockType.MSW }, { type: OutputMockType.FAKER }],
+        generators: [
+          { type: OutputMockType.MSW },
+          { type: OutputMockType.FAKER },
+        ],
       },
     });
 
