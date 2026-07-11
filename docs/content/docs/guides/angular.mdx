@@ -711,12 +711,19 @@ parameter through an internal `filterParams` helper before handing it to
 
 1. **Primitive params** keep the existing nullish-stripping. `null`/`undefined`
    values are removed, arrays are filtered to primitives only.
-2. **Schema-declared object / array-of-object params** are passed through
-   untouched **only when a `paramsSerializer` is configured** — that serializer
-   is the consumer that turns the raw object into something `HttpParams` can
-   send. Without a serializer (or a `paramsFilter`, see below) there is no
-   consumer that can handle a raw object, so the param is dropped: passing it
-   straight to `HttpParams` would stringify it to `"[object Object]"`.
+2. **Schema-declared object params** are serialized according to the OpenAPI
+   parameter's `style`/`explode` (see
+   [Object query parameters](#object-query-parameters-style--explode) below)
+   **when no `paramsSerializer` is configured**. When a `paramsSerializer`
+   *is* configured, the object is instead passed through untouched — that
+   serializer becomes the consumer responsible for turning the raw object
+   into something `HttpParams` can send.
+3. **Arrays of objects** are passed through untouched **only when a
+   `paramsSerializer` is configured**; without one (or a `paramsFilter`, see
+   below) there is no consumer that can handle a raw object, so the param is
+   dropped. OpenAPI defines no style/explode encoding for arrays of objects,
+   so — unlike plain object params — this case is unaffected by the
+   object-serialization behavior above.
 
 ```yaml title="openapi.yaml"
 parameters:
@@ -728,13 +735,108 @@ parameters:
         type: string
 ```
 
-With the spec above and a configured `paramsSerializer` (e.g. `qs.stringify`),
-the generated client preserves `filters` and forwards it to the serializer
-instead of dropping it. If you need the raw object even without a serializer —
-for example a `mutator` that flattens it into bracketed keys — use
-`override.paramsFilter` (see below). See
-[issue #3326](https://github.com/orval-labs/orval/issues/3326) for the
-motivating bug.
+With the spec above and **no** `paramsSerializer` configured, the generated
+client now serializes `filters` per the OpenAPI default (`style: form`,
+`explode: true`) — spreading its properties as top-level query params. With a
+configured `paramsSerializer` (e.g. `qs.stringify`), the generated client
+instead preserves `filters` as a raw object and forwards it to the serializer.
+If you need the raw object even without a serializer — for example a
+`mutator` that flattens it into bracketed keys — use `override.paramsFilter`
+(see below). See
+[issue #3326](https://github.com/orval-labs/orval/issues/3326) and
+[issue #3705](https://github.com/orval-labs/orval/issues/3705) for the
+motivating bugs.
+
+### Object query parameters (style & explode)
+
+> Added in the fix for
+> [issue #3705](https://github.com/orval-labs/orval/issues/3705).
+
+OpenAPI's default for an `in: query` parameter is `style: form` +
+`explode: true`. For a `type: object` schema that means the object's
+properties are spread as separate top-level query params — not nested under
+the parameter's own name. Orval's generated Angular client now honors this
+(and the `form` + `explode: false` and `deepObject` variants) at request time,
+as long as no `paramsSerializer`/`paramsFilter` is configured for the
+operation.
+
+```yaml title="openapi.yaml"
+paths:
+  /catalog-items:
+    get:
+      operationId: searchCatalog
+      parameters:
+        - name: arg0
+          in: query
+          schema:
+            type: object
+            properties:
+              itemReferences:
+                type: array
+                items:
+                  type: string
+              pageNumber:
+                type: integer
+```
+
+```ts title="generated SearchCatalogParams (unchanged, still nested)"
+export type SearchCatalogParams = {
+  arg0?: {
+    itemReferences?: string[];
+    pageNumber?: number;
+  };
+};
+```
+
+```ts
+searchCatalog({ arg0: { itemReferences: ['a', 'b'], pageNumber: 1 } });
+// -> GET /catalog-items?itemReferences=a&itemReferences=b&pageNumber=1
+```
+
+The generated parameter **type** intentionally keeps the shape your spec
+declares — `arg0` stays nested, mirroring the parameter name reported by your
+tooling. Orval does not invent a flatter name for it, since that name is
+usually an artifact of the source toolchain rather than something meaningful
+in your API. If `arg0` (or similar) is showing up because your Spring/
+springdoc-based backend isn't compiled with parameter names preserved, fix it
+at the source instead: enable the `-parameters` javac flag (or annotate the
+controller method parameter with `@ParameterObject` from
+`springdoc-openapi`) so the generated spec reports the real parameter name.
+
+| `style` | `explode` | Wire format | Strategy |
+| --- | --- | --- | --- |
+| `form` (default) | `true` (default) | `itemReferences=a&itemReferences=b&pageNumber=1` | `flatten` |
+| `form` | `false` | `arg0=itemReferences,a,b,pageNumber,1` | `comma` |
+| `deepObject` | (any) | `arg0[itemReferences]=a&arg0[itemReferences]=b&arg0[pageNumber]=1` | `deepObject` |
+
+Nested non-primitive values inside an exploded/deepObject-serialized object
+(an object-in-object, or an array of objects) are dropped using the same
+primitive-only rules the top-level filter already applies — OpenAPI does not
+define a style/explode encoding for them either, so they never reach the
+wire as `"[object Object]"`.
+
+To restore the pre-#3705 behavior (object-typed query params silently
+dropped), set:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'angular',
+      target: './src/api/petstore.ts',
+      override: {
+        angular: {
+          queryObjectSerialization: 'legacy',
+        },
+      },
+    },
+  },
+});
+```
+
+`queryObjectSerialization` can be set globally, per-tag, or per-operation,
+just like `retrievalClient`/`runtimeValidation`. See the
+[configuration reference](/docs/reference/configuration/output#queryobjectserialization).
 
 ### Custom filter with `override.paramsFilter`
 
@@ -792,8 +894,9 @@ you are responsible for:
 - handling `null` (Angular treats it as the literal string `"null"`)
 - filtering arrays (`new HttpParams({ fromObject: { tags: [{}] } })` is
   invalid)
-- coercing or flattening any object-valued params into a shape `HttpParams`
-  understands — or relying on a downstream `paramsSerializer` to do it
+- serializing object-valued params per their `style`/`explode` (or coercing/
+  flattening them yourself) — or relying on a downstream `paramsSerializer`
+  to do it
 
 The exact rules the default helper applies — useful as a starting point you
 can adapt:
@@ -802,29 +905,57 @@ can adapt:
 // This is the logic orval emits when no `paramsFilter` is configured.
 // `passthroughKeys` is only non-empty when a `paramsSerializer` is also
 // configured (it carries the schema-declared object/array-of-object keys).
-// Copy/adapt the parts you want; drop the rest.
+// `objectParamStrategies` carries the per-key style/explode strategy
+// (issue #3705) and is empty when a `paramsSerializer` is configured or
+// `queryObjectSerialization: 'legacy'` is set. Copy/adapt the parts you
+// want; drop the rest.
 type Primitive = string | number | boolean;
 type Value = Primitive | Primitive[] | null;
+type ObjectParamStrategy = 'flatten' | 'comma' | 'deepObject';
 
 export const defaultFilter = (
   params: Record<string, unknown>,
   requiredNullableKeys = new Set<string>(),
   passthroughKeys = new Set<string>(),
+  objectParamStrategies: Readonly<Record<string, ObjectParamStrategy>> = {},
 ): Record<string, Value | unknown> => {
   const out: Record<string, Value | unknown> = {};
+  const filterPrimitives = (value: unknown[]) =>
+    value.filter(
+      (item): item is Primitive =>
+        item != null &&
+        (typeof item === 'string' ||
+          typeof item === 'number' ||
+          typeof item === 'boolean'),
+    );
   for (const [key, value] of Object.entries(params)) {
     if (passthroughKeys.has(key)) {
       if (value !== undefined) out[key] = value;
       continue;
     }
+    const strategy = objectParamStrategies[key];
+    if (strategy && value != null && typeof value === 'object' && !Array.isArray(value)) {
+      const entries = Object.entries(value as Record<string, unknown>);
+      if (strategy === 'comma') {
+        const parts = entries
+          .filter(([, v]) => v != null && typeof v !== 'object')
+          .flatMap(([k, v]) => [k, String(v)]);
+        if (parts.length) out[key] = parts.join(',');
+      } else {
+        for (const [prop, propValue] of entries) {
+          const targetKey = strategy === 'deepObject' ? `${key}[${prop}]` : prop;
+          if (Array.isArray(propValue)) {
+            const filtered = filterPrimitives(propValue);
+            if (filtered.length) out[targetKey] = filtered;
+          } else if (propValue != null && typeof propValue !== 'object') {
+            out[targetKey] = propValue as Value;
+          }
+        }
+      }
+      continue;
+    }
     if (Array.isArray(value)) {
-      const filtered = value.filter(
-        (item): item is Primitive =>
-          item != null &&
-          (typeof item === 'string' ||
-            typeof item === 'number' ||
-            typeof item === 'boolean'),
-      );
+      const filtered = filterPrimitives(value);
       if (filtered.length) out[key] = filtered;
     } else if (value === null && requiredNullableKeys.has(key)) {
       out[key] = null;
@@ -852,7 +983,10 @@ raw params → paramsFilter → paramsSerializer → HttpParams
 
 `paramsFilter` controls *which keys/values reach the request*;
 `paramsSerializer` controls *how the surviving values are encoded into the
-URL*. Both are optional and independent.
+URL*. Both are optional and independent. Configuring a `paramsSerializer`
+also disables the built-in object-serialization strategies described in
+[Object query parameters](#object-query-parameters-style--explode) above —
+the raw object is passed through to your serializer instead.
 
 ## Advanced helpers
 

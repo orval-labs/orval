@@ -1104,6 +1104,23 @@ export interface AngularOptions {
   client?: 'httpClient' | 'httpResource' | 'both';
   runtimeValidation?: boolean;
   httpResource?: AngularHttpResourceOptions;
+  /**
+   * Controls how object-typed query parameters are serialized when no
+   * `paramsSerializer` is configured.
+   *
+   * - `spec` (default): honor the OpenAPI parameter's `style`/`explode` —
+   *   `form` + `explode: true` (the OpenAPI default) spreads the object's
+   *   properties as top-level query params, `form` + `explode: false` joins
+   *   them into a single comma-separated value, and `deepObject` emits
+   *   bracketed `name[prop]` keys.
+   * - `legacy`: restore the pre-#3705 behavior of silently dropping
+   *   object-typed query params from the generated request.
+   *
+   * Has no effect when a `paramsSerializer` or `paramsFilter` is configured
+   * for the operation — those remain in full control of the raw value. See
+   * issue #3705.
+   */
+  queryObjectSerialization?: 'spec' | 'legacy';
 }
 
 export interface NormalizedAngularOptions {
@@ -1111,6 +1128,7 @@ export interface NormalizedAngularOptions {
   client: 'httpClient' | 'httpResource' | 'both';
   runtimeValidation: boolean;
   httpResource?: AngularHttpResourceOptions;
+  queryObjectSerialization: 'spec' | 'legacy';
 }
 
 export interface AngularHttpResourceOptions {
@@ -1774,6 +1792,21 @@ export interface GetterQueryParam {
    * `paramsFilter` is then responsible for handling them. See issue #3326.
    */
   nonPrimitiveKeys?: string[];
+  /**
+   * Per-parameter serialization strategy for query params whose declared
+   * schema is a plain object, derived from the OpenAPI parameter's
+   * `style`/`explode` (defaulting to `form` + `explode: true` per spec).
+   * Used by Angular generators' default `filterParams` helper to serialize
+   * these values instead of silently dropping them, when no
+   * `paramsSerializer`/`paramsFilter` is configured. See issue #3705.
+   *
+   * - `flatten`: `form` + `explode: true` — spread properties as top-level
+   *   query params.
+   * - `comma`: `form` + `explode: false` — join `prop,value` pairs with commas
+   *   into a single value.
+   * - `deepObject`: `deepObject` style — emit bracketed `name[prop]` keys.
+   */
+  objectQueryParams?: { key: string; strategy: 'flatten' | 'comma' | 'deepObject' }[];
 }
 
 export type GetterPropType =

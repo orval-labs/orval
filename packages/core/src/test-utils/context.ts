@@ -102,6 +102,7 @@ export function createTestContextSpec({
         provideIn: 'root',
         client: 'httpClient',
         runtimeValidation: false,
+        queryObjectSerialization: 'spec',
       },
       swr: {},
       zod: {

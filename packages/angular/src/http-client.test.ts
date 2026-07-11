@@ -28,12 +28,14 @@ interface AngularOverride {
   provideIn: 'root' | 'any' | boolean;
   client: 'httpClient' | 'httpResource' | 'both';
   runtimeValidation: boolean;
+  queryObjectSerialization: 'spec' | 'legacy';
 }
 
 const angularOverride = {
   provideIn: 'root',
   client: 'httpClient',
   runtimeValidation: false,
+  queryObjectSerialization: 'spec',
 } satisfies AngularOverride;
 
 const createOutput = (
@@ -781,6 +783,132 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain(
         'const filteredParams = mySerializer(filterParams({...params, ...options?.params}, new Set<string>(["filters"]), true))',
       );
+    });
+  });
+
+  // ── object query param serialization (issue #3705) ────────────────────
+
+  describe('query parameter object serialization (#3705)', () => {
+    const objectQueryParams: GeneratorVerbOptions['queryParams'] = {
+      schema: { name: 'SearchCatalogParams', model: '', imports: [] },
+      deps: [],
+      isOptional: true,
+      originalSchema: {} as never,
+      requiredNullableKeys: [],
+      objectQueryParams: [{ key: 'arg0', strategy: 'flatten' }],
+    };
+
+    it('emits the object-serialization strategies by default (no serializer/filter)', () => {
+      const verbOption = createVerbOption({ queryParams: objectQueryParams });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).toContain('{"arg0":"flatten"} as const');
+    });
+
+    it('suppresses the strategies when a paramsSerializer is configured (raw passthrough wins)', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          ...objectQueryParams,
+          nonPrimitiveKeys: ['arg0'],
+        },
+        paramsSerializer: {
+          name: 'mySerializer',
+          path: './my-serializer',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).not.toContain('as const');
+      expect(impl).toContain('new Set<string>(["arg0"])');
+    });
+
+    it('suppresses the strategies when a paramsFilter is configured', () => {
+      const verbOption = createVerbOption({
+        queryParams: objectQueryParams,
+        paramsFilter: {
+          name: 'myFilter',
+          path: './my-filter',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+      const options = createGeneratorOptions();
+
+      const impl = generateHttpClientImplementation(verbOption, options);
+
+      expect(impl).not.toContain('as const');
+      expect(impl).not.toContain('filterParams(');
+    });
+
+    it('restores the pre-#3705 (dropping) behavior with queryObjectSerialization: legacy', () => {
+      const legacyVerbOption = createVerbOption({
+        queryParams: objectQueryParams,
+        override: {
+          ...createVerbOption().override,
+          angular: { ...angularOverride, queryObjectSerialization: 'legacy' },
+        } as GeneratorVerbOptions['override'],
+      });
+      const options = createGeneratorOptions();
+
+      const legacyImpl = generateHttpClientImplementation(
+        legacyVerbOption,
+        options,
+      );
+
+      const specVerbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          originalSchema: {} as never,
+          requiredNullableKeys: [],
+        },
+      });
+      const specImpl = generateHttpClientImplementation(
+        specVerbOption,
+        options,
+      );
+
+      expect(legacyImpl).not.toContain('as const');
+      expect(legacyImpl).not.toContain('objectParamStrategies');
+      // Byte-identical (modulo the operation name/type) to a plain query
+      // param operation with no object-serialization metadata at all.
+      expect(legacyImpl.replaceAll('SearchCatalogParams', 'GetPetByIdParams')).toBe(
+        specImpl,
+      );
+    });
+
+    it('includes the object-serialization overload in the header only when an operation needs it', () => {
+      const headerWithObjectParams = generateAngularHeader(
+        createHeaderParams({
+          verbOptions: {
+            searchCatalog: createVerbOption({
+              operationName: 'searchCatalog',
+              queryParams: objectQueryParams,
+            }),
+          },
+        }),
+      );
+      const headerWithoutObjectParams = generateAngularHeader(
+        createHeaderParams(),
+      );
+
+      expect(headerWithObjectParams).toContain('objectParamStrategies');
+      expect(headerWithoutObjectParams).not.toContain('objectParamStrategies');
     });
   });
 

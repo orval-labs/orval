@@ -1,3 +1,4 @@
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -9,10 +10,15 @@ import {
   Verbs,
 } from '../types';
 import {
+  buildAngularParamsFilterExpression,
   generateAxiosOptions,
   generateBodyOptions,
   generateMutatorConfig,
   generateOptions,
+  getAngularFilteredParamsCallExpression,
+  getAngularFilteredParamsExpression,
+  getAngularFilteredParamsHelperBody,
+  getAngularObjectParamStrategies,
 } from './options';
 
 const minimalSchema: GeneratorSchema = {
@@ -504,6 +510,351 @@ describe('generateAxiosOptions', () => {
         'params: paramsSerializerMutator(paramsFilterMutator({...params, ...options?.params}))',
       );
       expect(result).not.toContain('filterParams(');
+    });
+  });
+});
+
+// Issue #3705: object-typed query params are serialized per their OpenAPI
+// `style`/`explode` (form+explode:true -> flatten, form+explode:false ->
+// comma, deepObject -> bracketed keys) instead of being silently dropped,
+// when no `paramsSerializer`/`paramsFilter` is configured.
+describe('Angular object query param serialization (issue #3705)', () => {
+  // Hard constraint: the emitted `filterParams` helper MUST stay byte-for-byte
+  // identical to its pre-#3705 shape whenever no operation in the file needs
+  // the object-serialization overload — this pins the exact string so any
+  // accidental drift in the base helper (which would blow up the snapshot
+  // blast radius across every Angular/angular-query file) fails loudly here.
+  const PRE_3705_HELPER_BODY = `type AngularHttpParamValue = string | number | boolean | Array<string | number | boolean>;
+type AngularHttpParamValueWithNullable = AngularHttpParamValue | null;
+
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys?: ReadonlySet<string>,
+  preserveRequiredNullables?: false,
+  passthroughKeys?: undefined,
+): Record<string, AngularHttpParamValue>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> | undefined,
+  preserveRequiredNullables: true,
+  passthroughKeys?: undefined,
+): Record<string, AngularHttpParamValueWithNullable>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> | undefined,
+  preserveRequiredNullables: boolean | undefined,
+  passthroughKeys: ReadonlySet<string>,
+): Record<string, unknown>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> = new Set(),
+  preserveRequiredNullables = false,
+  passthroughKeys: ReadonlySet<string> = new Set(),
+): Record<string, unknown> {
+  const filteredParams: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (passthroughKeys.has(key)) {
+      if (value !== undefined) {
+        filteredParams[key] = value;
+      }
+      continue;
+    }
+    if (Array.isArray(value)) {
+      const filtered = value.filter(
+        (item) =>
+          item != null &&
+          (typeof item === 'string' ||
+            typeof item === 'number' ||
+            typeof item === 'boolean'),
+      ) as Array<string | number | boolean>;
+      if (filtered.length) {
+        filteredParams[key] = filtered;
+      }
+    } else if (
+      preserveRequiredNullables &&
+      value === null &&
+      requiredNullableKeys.has(key)
+    ) {
+      filteredParams[key] = null;
+    } else if (
+      value != null &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean')
+    ) {
+      filteredParams[key] = value;
+    }
+  }
+  return filteredParams;
+}`;
+
+  describe('getAngularFilteredParamsHelperBody byte-identity', () => {
+    it('returns the exact pre-#3705 body with no arguments', () => {
+      expect(getAngularFilteredParamsHelperBody()).toBe(PRE_3705_HELPER_BODY);
+    });
+
+    it('returns the exact pre-#3705 body when hasObjectParams is false', () => {
+      expect(
+        getAngularFilteredParamsHelperBody({ hasObjectParams: false }),
+      ).toBe(PRE_3705_HELPER_BODY);
+    });
+
+    it('adds the object-serialization overload only when hasObjectParams is true', () => {
+      const body = getAngularFilteredParamsHelperBody({
+        hasObjectParams: true,
+      });
+
+      expect(body).not.toBe(PRE_3705_HELPER_BODY);
+      expect(body).toContain('objectParamStrategies');
+      expect(body).toContain("'flatten' | 'comma' | 'deepObject'");
+    });
+  });
+
+  describe('getAngularFilteredParamsExpression (inline IIFE)', () => {
+    it('is byte-identical when no strategies are passed', () => {
+      const withoutStrategies = getAngularFilteredParamsExpression(
+        'params ?? {}',
+        [],
+        false,
+        [],
+      );
+      const withEmptyStrategies = getAngularFilteredParamsExpression(
+        'params ?? {}',
+        [],
+        false,
+        [],
+        {},
+      );
+
+      expect(withEmptyStrategies).toBe(withoutStrategies);
+      expect(withoutStrategies).not.toContain('objectParamStrategies');
+    });
+
+    it('emits the strategies map and branch when provided', () => {
+      const result = getAngularFilteredParamsExpression(
+        'params ?? {}',
+        [],
+        false,
+        [],
+        { arg0: 'flatten' },
+      );
+
+      expect(result).toContain(
+        `const objectParamStrategies: Readonly<Record<string, 'flatten' | 'comma' | 'deepObject'>> = {"arg0":"flatten"};`,
+      );
+      expect(result).toContain('Object.hasOwn(objectParamStrategies, key)');
+    });
+  });
+
+  describe('getAngularFilteredParamsCallExpression', () => {
+    it('is byte-identical when no strategies are passed', () => {
+      expect(
+        getAngularFilteredParamsCallExpression('params', [], false, []),
+      ).toBe(
+        getAngularFilteredParamsCallExpression('params', [], false, [], {}),
+      );
+    });
+
+    it('emits a 5-argument call with the strategies literal when provided', () => {
+      const result = getAngularFilteredParamsCallExpression(
+        'params',
+        [],
+        false,
+        [],
+        { arg0: 'flatten' },
+      );
+
+      expect(result).toBe(
+        `filterParams(params, new Set<string>([]), false, new Set<string>([]), {"arg0":"flatten"} as const)`,
+      );
+    });
+  });
+
+  describe('getAngularObjectParamStrategies gating', () => {
+    const objectQueryParams: GetterQueryParam['objectQueryParams'] = [
+      { key: 'arg0', strategy: 'flatten' },
+    ];
+
+    it('returns the strategy map when nothing suppresses it', () => {
+      expect(
+        getAngularObjectParamStrategies({
+          queryParams: { ...minimalQueryParam, objectQueryParams },
+          queryObjectSerialization: 'spec',
+        }),
+      ).toEqual({ arg0: 'flatten' });
+    });
+
+    it('suppresses strategies when queryObjectSerialization is legacy', () => {
+      expect(
+        getAngularObjectParamStrategies({
+          queryParams: { ...minimalQueryParam, objectQueryParams },
+          queryObjectSerialization: 'legacy',
+        }),
+      ).toEqual({});
+    });
+
+    it('suppresses strategies when a paramsSerializer is configured', () => {
+      expect(
+        getAngularObjectParamStrategies({
+          queryParams: { ...minimalQueryParam, objectQueryParams },
+          paramsSerializer: minimalParamsSerializer,
+          queryObjectSerialization: 'spec',
+        }),
+      ).toEqual({});
+    });
+
+    it('suppresses strategies when a paramsFilter is configured', () => {
+      expect(
+        getAngularObjectParamStrategies({
+          queryParams: { ...minimalQueryParam, objectQueryParams },
+          paramsFilter: minimalParamsFilter,
+          queryObjectSerialization: 'spec',
+        }),
+      ).toEqual({});
+    });
+
+    it('returns an empty map when there are no object query params', () => {
+      expect(
+        getAngularObjectParamStrategies({
+          queryParams: minimalQueryParam,
+          queryObjectSerialization: 'spec',
+        }),
+      ).toEqual({});
+    });
+  });
+
+  describe('buildAngularParamsFilterExpression threading', () => {
+    it('threads objectParamStrategies through the shared-helper call', () => {
+      const result = buildAngularParamsFilterExpression({
+        paramsExpression: 'params',
+        objectParamStrategies: { arg0: 'flatten' },
+        useSharedHelper: true,
+      });
+
+      expect(result).toContain('{"arg0":"flatten"} as const');
+    });
+
+    it('threads objectParamStrategies through the inline IIFE', () => {
+      const result = buildAngularParamsFilterExpression({
+        paramsExpression: 'params',
+        objectParamStrategies: { arg0: 'flatten' },
+        useSharedHelper: false,
+      });
+
+      expect(result).toContain('objectParamStrategies');
+    });
+
+    it('bypasses strategies entirely when a paramsFilter is configured', () => {
+      const result = buildAngularParamsFilterExpression({
+        paramsExpression: 'params',
+        objectParamStrategies: { arg0: 'flatten' },
+        paramsFilter: minimalParamsFilter,
+        useSharedHelper: true,
+      });
+
+      expect(result).toBe('paramsFilterMutator(params)');
+    });
+  });
+
+  describe('filterParams runtime behavior', () => {
+    // Transpiles the emitted helper body (type annotations + overload
+    // signatures) down to plain JS so the actual runtime branching can be
+    // exercised directly, instead of only asserting on the generated string.
+    const loadFilterParams = (
+      body: string,
+    ): ((
+      params: Record<string, unknown>,
+      requiredNullableKeys?: ReadonlySet<string>,
+      preserveRequiredNullables?: boolean,
+      passthroughKeys?: ReadonlySet<string>,
+      objectParamStrategies?: Record<string, string>,
+    ) => Record<string, unknown>) => {
+      const { outputText } = ts.transpileModule(body, {
+        compilerOptions: {
+          module: ts.ModuleKind.CommonJS,
+          target: ts.ScriptTarget.ES2020,
+        },
+      });
+      const moduleObject: { exports: unknown } = { exports: {} };
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+      const factory = new Function(
+        'module',
+        'exports',
+        `${outputText}\nmodule.exports = filterParams;`,
+      );
+      factory(moduleObject, moduleObject.exports);
+      return moduleObject.exports as ReturnType<typeof loadFilterParams>;
+    };
+
+    it('flattens a form+explode:true object, dropping nested non-primitives', () => {
+      const filterParams = loadFilterParams(
+        getAngularFilteredParamsHelperBody({ hasObjectParams: true }),
+      );
+
+      const result = filterParams(
+        {
+          arg0: {
+            itemReferences: ['a', 'b', null],
+            pageNumber: 1,
+            nested: { a: 1 },
+            tags: [{ x: 1 }],
+          },
+        },
+        new Set(),
+        false,
+        new Set(),
+        { arg0: 'flatten' },
+      );
+
+      expect(result).toEqual({ itemReferences: ['a', 'b'], pageNumber: 1 });
+    });
+
+    it('joins a form+explode:false object into a single comma value', () => {
+      const filterParams = loadFilterParams(
+        getAngularFilteredParamsHelperBody({ hasObjectParams: true }),
+      );
+
+      const result = filterParams(
+        { filters: { a: 1, b: 'x', nested: { c: 1 } } },
+        new Set(),
+        false,
+        new Set(),
+        { filters: 'comma' },
+      );
+
+      expect(result).toEqual({ filters: 'a,1,b,x' });
+    });
+
+    it('emits bracketed keys for deepObject, preserving array values', () => {
+      const filterParams = loadFilterParams(
+        getAngularFilteredParamsHelperBody({ hasObjectParams: true }),
+      );
+
+      const result = filterParams(
+        { filters: { a: 1, tags: ['x', 'y'], nested: { c: 1 } } },
+        new Set(),
+        false,
+        new Set(),
+        { filters: 'deepObject' },
+      );
+
+      expect(result).toEqual({ 'filters[a]': 1, 'filters[tags]': ['x', 'y'] });
+    });
+
+    it('leaves non-strategy keys and sibling primitives untouched', () => {
+      const filterParams = loadFilterParams(
+        getAngularFilteredParamsHelperBody({ hasObjectParams: true }),
+      );
+
+      const result = filterParams(
+        { arg0: { pageNumber: 1 }, q: 'search' },
+        new Set(),
+        false,
+        new Set(),
+        { arg0: 'flatten' },
+      );
+
+      expect(result).toEqual({ pageNumber: 1, q: 'search' });
     });
   });
 });

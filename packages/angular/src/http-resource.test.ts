@@ -31,6 +31,7 @@ interface AngularOverride {
     injector?: string;
     equal?: string;
   };
+  queryObjectSerialization: 'spec' | 'legacy';
 }
 
 const angularOverride = (
@@ -41,6 +42,7 @@ const angularOverride = (
   provideIn: 'root',
   client,
   runtimeValidation,
+  queryObjectSerialization: 'spec',
   ...(httpResource ? { httpResource } : {}),
 });
 
@@ -1120,6 +1122,174 @@ describe('angular httpResource generator', () => {
         // Helper present (for verbB) AND user filter referenced (for verbA).
         expect(header).toContain('function filterParams(');
         expect(header).toContain('myFilter(params?.() ?? {})');
+      });
+    });
+
+    // Issue #3705 — object-typed query params serialized per style/explode
+    describe('query parameter object serialization (#3705)', () => {
+      const objectQueryParams: GeneratorVerbOptions['queryParams'] = {
+        schema: { name: 'SearchCatalogParams', model: '', imports: [] },
+        deps: [],
+        isOptional: true,
+        originalSchema: {} as never,
+        requiredNullableKeys: [],
+        objectQueryParams: [{ key: 'arg0', strategy: 'flatten' }],
+      };
+
+      it('emits the strategies map by default (no serializer/filter)', () => {
+        const verbOption = createVerbOption({
+          operationName: 'searchCatalog',
+          queryParams: objectQueryParams,
+        });
+        routeRegistry.set('searchCatalog', '/api/catalog-items');
+
+        const header = generateHttpResourceHeader({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          output: createOutput(),
+          verbOptions: { searchCatalog: verbOption },
+          clientImplementation: '',
+        } as never);
+
+        expect(header).toContain('{"arg0":"flatten"} as const');
+      });
+
+      it('suppresses the strategies when a paramsSerializer is configured', () => {
+        const verbOption = createVerbOption({
+          operationName: 'searchCatalog',
+          queryParams: { ...objectQueryParams, nonPrimitiveKeys: ['arg0'] },
+          paramsSerializer: {
+            name: 'mySerializer',
+            path: './my-serializer',
+            default: false,
+            hasErrorType: false,
+            errorTypeName: '',
+            hasSecondArg: false,
+            hasThirdArg: false,
+            isHook: false,
+          },
+        });
+        routeRegistry.set('searchCatalog', '/api/catalog-items');
+
+        const header = generateHttpResourceHeader({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          output: createOutput(),
+          verbOptions: { searchCatalog: verbOption },
+          clientImplementation: '',
+        } as never);
+
+        expect(header).not.toContain('as const');
+        expect(header).toContain('new Set<string>(["arg0"])');
+      });
+
+      it('suppresses the strategies when a paramsFilter is configured', () => {
+        const verbOption = createVerbOption({
+          operationName: 'searchCatalog',
+          queryParams: objectQueryParams,
+          paramsFilter: {
+            name: 'myFilter',
+            path: './my-filter',
+            default: false,
+            hasErrorType: false,
+            errorTypeName: '',
+            hasSecondArg: false,
+            hasThirdArg: false,
+            isHook: false,
+          },
+        });
+        routeRegistry.set('searchCatalog', '/api/catalog-items');
+
+        const header = generateHttpResourceHeader({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          output: createOutput(),
+          verbOptions: { searchCatalog: verbOption },
+          clientImplementation: '',
+        } as never);
+
+        expect(header).not.toContain('as const');
+        expect(header).toContain('myFilter(params?.() ?? {})');
+      });
+
+      it('restores the pre-#3705 (dropping) behavior with queryObjectSerialization: legacy', () => {
+        const legacyVerbOption = createVerbOption({
+          operationName: 'searchCatalog',
+          queryParams: objectQueryParams,
+          override: {
+            ...createVerbOption().override,
+            angular: {
+              ...angularOverride('httpResource'),
+              queryObjectSerialization: 'legacy',
+            },
+          } as GeneratorVerbOptions['override'],
+        });
+        routeRegistry.set('searchCatalog', '/api/catalog-items');
+
+        const legacyHeader = generateHttpResourceHeader({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          output: createOutput(),
+          verbOptions: { searchCatalog: legacyVerbOption },
+          clientImplementation: '',
+        } as never);
+
+        expect(legacyHeader).not.toContain('as const');
+        expect(legacyHeader).not.toContain('objectParamStrategies');
+      });
+
+      it('includes the object-serialization overload in the helper only when needed', () => {
+        const verbOption = createVerbOption({
+          operationName: 'searchCatalog',
+          queryParams: objectQueryParams,
+        });
+        routeRegistry.set('searchCatalog', '/api/catalog-items');
+        routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+        const headerWithObjectParams = generateHttpResourceHeader({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          output: createOutput(),
+          verbOptions: { searchCatalog: verbOption },
+          clientImplementation: '',
+        } as never);
+
+        const headerWithoutObjectParams = generateHttpResourceHeader({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          output: createOutput(),
+          verbOptions: { getPetById: createVerbOption() },
+          clientImplementation: '',
+        } as never);
+
+        expect(headerWithObjectParams).toContain('objectParamStrategies');
+        expect(headerWithoutObjectParams).not.toContain(
+          'objectParamStrategies',
+        );
       });
     });
   });
@@ -2213,6 +2383,7 @@ describe('angular httpResource generator', () => {
                 provideIn: 'root',
                 client: 'httpResource',
                 runtimeValidation: true,
+                queryObjectSerialization: 'spec',
                 httpResource: {
                   debugName: 'operation-level',
                 },

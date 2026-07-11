@@ -98,6 +98,7 @@ function createMockContext(): ContextSpec {
           provideIn: 'root',
           client: 'httpClient',
           runtimeValidation: false,
+          queryObjectSerialization: 'spec',
         },
         swr: {},
         zod: {

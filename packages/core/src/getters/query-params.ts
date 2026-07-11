@@ -19,6 +19,7 @@ interface QueryParamsType {
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
   originalSchema: OpenApiSchemaObject;
+  objectStrategy?: 'flatten' | 'comma' | 'deepObject';
 }
 
 const isOpenApiSchemaObject = (
@@ -119,6 +120,88 @@ const isSchemaNonPrimitive = (schema: OpenApiSchemaObject): boolean => {
   return false;
 };
 
+/**
+ * Detects whether a query parameter's resolved schema is a plain object —
+ * i.e. serializable per OpenAPI's `style`/`explode` object rules (form/
+ * deepObject). Unlike {@link isSchemaNonPrimitive}, arrays (including arrays
+ * of objects) are explicitly excluded: OpenAPI defines no style/explode
+ * object-serialization for them, so they stay on the existing
+ * passthrough/drop path.
+ *
+ * Used to compute {@link GetterQueryParam.objectQueryParams}. See issue #3705.
+ */
+const isPlainObjectSchema = (schema: OpenApiSchemaObject): boolean => {
+  const schemaType = getSchemaType(schema);
+  const type = Array.isArray(schemaType)
+    ? schemaType.filter((variant) => variant !== 'null')
+    : schemaType;
+  const additionalProperties = (schema as { additionalProperties?: unknown })
+    .additionalProperties;
+
+  if (type === 'object') {
+    return true;
+  }
+  if (Array.isArray(type) && type.includes('object')) {
+    return true;
+  }
+  if (type === 'array' || (Array.isArray(type) && type.includes('array'))) {
+    return false;
+  }
+
+  const compositions = [
+    ...(Array.isArray(schema.oneOf) ? (schema.oneOf as unknown[]) : []),
+    ...(Array.isArray(schema.anyOf) ? (schema.anyOf as unknown[]) : []),
+    ...(Array.isArray(schema.allOf) ? (schema.allOf as unknown[]) : []),
+  ];
+  if (compositions.length > 0) {
+    return compositions.some(
+      (variant) =>
+        isOpenApiSchemaObject(variant) && isPlainObjectSchema(variant),
+    );
+  }
+
+  if (
+    !type &&
+    ((schema as { properties?: unknown }).properties !== undefined ||
+      (additionalProperties !== undefined && additionalProperties !== false))
+  ) {
+    return true;
+  }
+  return false;
+};
+
+/**
+ * Derives the object-serialization strategy for a query parameter from its
+ * declared `style`/`explode`, following the OpenAPI defaults (`style: form`,
+ * `explode: true` for `form`). Returns `undefined` for parameters that are
+ * not plain-object schemas or that are defined via `content:` (their
+ * spec-correct encoding is a JSON string — a separate follow-up). See issue
+ * #3705.
+ */
+const getObjectQueryParamStrategy = (
+  parameter: OpenApiParameterObject,
+  schema: OpenApiSchemaObject | undefined,
+  isContentBased: boolean,
+): 'flatten' | 'comma' | 'deepObject' | undefined => {
+  if (isContentBased || !schema || !isPlainObjectSchema(schema)) {
+    return undefined;
+  }
+
+  const { style, explode } = parameter as {
+    style?: string;
+    explode?: boolean;
+  };
+
+  if (style === 'deepObject') {
+    return 'deepObject';
+  }
+
+  const resolvedStyle = style ?? 'form';
+  const resolvedExplode = explode ?? resolvedStyle === 'form';
+
+  return resolvedExplode ? 'flatten' : 'comma';
+};
+
 const isSchemaNullable = (schema: OpenApiSchemaObject): boolean => {
   if (schema.nullable === true) {
     return true;
@@ -188,6 +271,12 @@ function getQueryParamsTypes(
       name: queryName,
     });
 
+    const objectStrategy = getObjectQueryParamStrategy(
+      parameter,
+      resolvedValue.originalSchema,
+      schemaParam === undefined,
+    );
+
     const key = getKey(name);
     // Bridge assertion: cast schema to jsDoc's expected parameter shape
     // to avoid AnyOtherAttribute spreading error type
@@ -225,6 +314,7 @@ function getQueryParamsTypes(
         imports: parameterImports,
         schemas: [],
         originalSchema: resolvedValue.originalSchema,
+        objectStrategy,
       };
     }
 
@@ -258,6 +348,7 @@ function getQueryParamsTypes(
           { name: enumName, model: enumValue, imports: resolvedValue.imports },
         ],
         originalSchema: resolvedValue.originalSchema,
+        objectStrategy,
       };
     }
 
@@ -272,6 +363,7 @@ function getQueryParamsTypes(
       imports: resolvedValue.imports,
       schemas: resolvedValue.schemas,
       originalSchema: resolvedValue.originalSchema,
+      objectStrategy,
     };
   });
 }
@@ -308,6 +400,15 @@ export function getQueryParams({
   const nonPrimitiveKeys = types
     .filter(({ originalSchema }) => isSchemaNonPrimitive(originalSchema))
     .map(({ name }) => name);
+  const objectQueryParams = types
+    .filter(
+      (
+        type,
+      ): type is QueryParamsType & {
+        objectStrategy: 'flatten' | 'comma' | 'deepObject';
+      } => type.objectStrategy !== undefined,
+    )
+    .map(({ name, objectStrategy }) => ({ key: name, strategy: objectStrategy }));
 
   const schema = {
     name,
@@ -322,5 +423,6 @@ export function getQueryParams({
     paramNames: types.map(({ name }) => name),
     requiredNullableKeys,
     ...(nonPrimitiveKeys.length > 0 ? { nonPrimitiveKeys } : {}),
+    ...(objectQueryParams.length > 0 ? { objectQueryParams } : {}),
   };
 }

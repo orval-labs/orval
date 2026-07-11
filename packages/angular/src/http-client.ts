@@ -13,6 +13,7 @@ import {
   generateVerbImports,
   type GeneratorVerbOptions,
   getAngularFilteredParamsHelperBody,
+  getAngularObjectParamStrategies,
   getDefaultContentType,
   getEnumImplementation,
   getIsBodyVerb,
@@ -237,6 +238,20 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
   const hasBuiltInFilteredQueryParams = relevantVerbs.some(
     (v) => v.queryParams && !v.paramsFilter,
   );
+  // The helper only needs the object-serialization overload (issue #3705)
+  // when at least one relevant operation actually has a gated strategy to
+  // apply — keeping the base helper byte-identical everywhere else.
+  const hasObjectParams = relevantVerbs.some(
+    (v) =>
+      Object.keys(
+        getAngularObjectParamStrategies({
+          queryParams: v.queryParams,
+          paramsSerializer: v.paramsSerializer,
+          paramsFilter: v.paramsFilter,
+          queryObjectSerialization: v.override.angular.queryObjectSerialization,
+        }),
+      ).length > 0,
+  );
   const acceptHelpers = buildAcceptHelpers(relevantVerbs, output);
 
   return `
@@ -246,7 +261,7 @@ ${
 
 ${HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE}
 
-${hasBuiltInFilteredQueryParams ? getAngularFilteredParamsHelperBody() : ''}`
+${hasBuiltInFilteredQueryParams ? getAngularFilteredParamsHelperBody({ hasObjectParams }) : ''}`
     : ''
 }
 
@@ -452,11 +467,23 @@ export const generateHttpClientImplementation = (
   `;
   }
 
+  // Object-typed query param serialization (issue #3705), already gated for
+  // `override.angular.queryObjectSerialization`, `paramsFilter`, and
+  // `paramsSerializer` — computed once and forwarded verbatim everywhere a
+  // filter expression is built below.
+  const objectParamStrategies = getAngularObjectParamStrategies({
+    queryParams,
+    paramsSerializer,
+    paramsFilter,
+    queryObjectSerialization: override.angular.queryObjectSerialization,
+  });
+
   const optionsBase = {
     route,
     body,
     headers,
     queryParams,
+    objectQueryParamStrategies: objectParamStrategies,
     response,
     verb,
     requestOptions: override.requestOptions,
@@ -499,6 +526,7 @@ export const generateHttpClientImplementation = (
       nonPrimitiveKeys: paramsSerializer
         ? (queryParams.nonPrimitiveKeys ?? [])
         : [],
+      objectParamStrategies,
       paramsFilter,
       // Request-options path uses the shared `filterParams` helper emitted in
       // the file header; the non-request-options path inlines an IIFE.
