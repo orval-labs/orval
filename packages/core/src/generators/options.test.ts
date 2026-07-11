@@ -825,6 +825,44 @@ function filterParams(
       expect(result).toEqual({ filters: 'a,1,b,x' });
     });
 
+    it('includes primitive array items in the comma-joined value', () => {
+      const filterParams = loadFilterParams(
+        getAngularFilteredParamsHelperBody({ hasObjectParams: true }),
+      );
+
+      const result = filterParams(
+        { arg0: { itemReferences: ['a', 'b'], pageNumber: 1 } },
+        new Set(),
+        false,
+        new Set(),
+        { arg0: 'comma' },
+      );
+
+      expect(result).toEqual({ arg0: 'itemReferences,a,b,pageNumber,1' });
+    });
+
+    it('filters null and object items out of comma-joined array values', () => {
+      const filterParams = loadFilterParams(
+        getAngularFilteredParamsHelperBody({ hasObjectParams: true }),
+      );
+
+      const result = filterParams(
+        {
+          arg0: {
+            itemReferences: ['a', null, { x: 1 }, 'b'],
+            nested: { c: 1 },
+            pageNumber: 1,
+          },
+        },
+        new Set(),
+        false,
+        new Set(),
+        { arg0: 'comma' },
+      );
+
+      expect(result).toEqual({ arg0: 'itemReferences,a,b,pageNumber,1' });
+    });
+
     it('emits bracketed keys for deepObject, preserving array values', () => {
       const filterParams = loadFilterParams(
         getAngularFilteredParamsHelperBody({ hasObjectParams: true }),

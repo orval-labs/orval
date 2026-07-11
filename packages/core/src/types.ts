@@ -1806,7 +1806,10 @@ export interface GetterQueryParam {
    *   into a single value.
    * - `deepObject`: `deepObject` style — emit bracketed `name[prop]` keys.
    */
-  objectQueryParams?: { key: string; strategy: 'flatten' | 'comma' | 'deepObject' }[];
+  objectQueryParams?: {
+    key: string;
+    strategy: 'flatten' | 'comma' | 'deepObject';
+  }[];
 }
 
 export type GetterPropType =

@@ -34,7 +34,9 @@ export const getAngularFilteredParamsExpression = (
   requiredNullableParamKeys: string[] = [],
   preserveRequiredNullables = false,
   nonPrimitiveKeys: string[] = [],
-  objectParamStrategies: Readonly<Record<string, AngularObjectParamStrategy>> = {},
+  objectParamStrategies: Readonly<
+    Record<string, AngularObjectParamStrategy>
+  > = {},
 ): string => {
   const hasPassthrough = nonPrimitiveKeys.length > 0;
   const hasObjectStrategies = Object.keys(objectParamStrategies).length > 0;
@@ -63,7 +65,18 @@ export const getAngularFilteredParamsExpression = (
       if (objectStrategy === 'comma') {
         const commaParts: string[] = [];
         for (const [prop, propValue] of entries) {
-          if (
+          if (Array.isArray(propValue)) {
+            const filteredItems = propValue.filter(
+              (item) =>
+                item != null &&
+                (typeof item === 'string' ||
+                  typeof item === 'number' ||
+                  typeof item === 'boolean'),
+            ) as Array<string | number | boolean>;
+            if (filteredItems.length) {
+              commaParts.push(prop, ...filteredItems.map(String));
+            }
+          } else if (
             propValue != null &&
             (typeof propValue === 'string' ||
               typeof propValue === 'number' ||
@@ -300,7 +313,12 @@ function filterParams(
       if (objectStrategy === 'comma') {
         const commaParts: string[] = [];
         for (const [prop, propValue] of entries) {
-          if (
+          if (Array.isArray(propValue)) {
+            const filteredItems = filterPrimitiveArray(propValue);
+            if (filteredItems.length) {
+              commaParts.push(prop, ...filteredItems.map(String));
+            }
+          } else if (
             propValue != null &&
             (typeof propValue === 'string' ||
               typeof propValue === 'number' ||
@@ -365,7 +383,9 @@ export const getAngularFilteredParamsCallExpression = (
   requiredNullableParamKeys: string[] = [],
   preserveRequiredNullables = false,
   nonPrimitiveKeys: string[] = [],
-  objectParamStrategies: Readonly<Record<string, AngularObjectParamStrategy>> = {},
+  objectParamStrategies: Readonly<
+    Record<string, AngularObjectParamStrategy>
+  > = {},
 ): string => {
   const baseArgs = `${paramsExpression}, new Set<string>(${JSON.stringify(requiredNullableParamKeys)})`;
   const hasObjectStrategies = Object.keys(objectParamStrategies).length > 0;

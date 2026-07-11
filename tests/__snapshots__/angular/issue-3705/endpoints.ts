@@ -133,7 +133,12 @@ function filterParams(
       if (objectStrategy === 'comma') {
         const commaParts: string[] = [];
         for (const [prop, propValue] of entries) {
-          if (
+          if (Array.isArray(propValue)) {
+            const filteredItems = filterPrimitiveArray(propValue);
+            if (filteredItems.length) {
+              commaParts.push(prop, ...filteredItems.map(String));
+            }
+          } else if (
             propValue != null &&
             (typeof propValue === 'string' ||
               typeof propValue === 'number' ||

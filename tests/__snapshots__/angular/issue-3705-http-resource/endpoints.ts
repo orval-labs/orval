@@ -19,6 +19,8 @@ import type {
   SearchCatalogParams,
 } from './model';
 
+import { map } from 'rxjs';
+
 export type OrvalHttpResourceOptions<
   TValue,
   TRaw = unknown,
@@ -98,7 +100,12 @@ function filterParams(
       if (objectStrategy === 'comma') {
         const commaParts: string[] = [];
         for (const [prop, propValue] of entries) {
-          if (
+          if (Array.isArray(propValue)) {
+            const filteredItems = filterPrimitiveArray(propValue);
+            if (filteredItems.length) {
+              commaParts.push(prop, ...filteredItems.map(String));
+            }
+          } else if (
             propValue != null &&
             (typeof propValue === 'string' ||
               typeof propValue === 'number' ||

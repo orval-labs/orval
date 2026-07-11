@@ -887,9 +887,9 @@ describe('angular HttpClient generator', () => {
       expect(legacyImpl).not.toContain('objectParamStrategies');
       // Byte-identical (modulo the operation name/type) to a plain query
       // param operation with no object-serialization metadata at all.
-      expect(legacyImpl.replaceAll('SearchCatalogParams', 'GetPetByIdParams')).toBe(
-        specImpl,
-      );
+      expect(
+        legacyImpl.replaceAll('SearchCatalogParams', 'GetPetByIdParams'),
+      ).toBe(specImpl);
     });
 
     it('includes the object-serialization overload in the header only when an operation needs it', () => {
@@ -903,9 +903,8 @@ describe('angular HttpClient generator', () => {
           },
         }),
       );
-      const headerWithoutObjectParams = generateAngularHeader(
-        createHeaderParams(),
-      );
+      const headerWithoutObjectParams =
+        generateAngularHeader(createHeaderParams());
 
       expect(headerWithObjectParams).toContain('objectParamStrategies');
       expect(headerWithoutObjectParams).not.toContain('objectParamStrategies');

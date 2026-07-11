@@ -408,7 +408,10 @@ export function getQueryParams({
         objectStrategy: 'flatten' | 'comma' | 'deepObject';
       } => type.objectStrategy !== undefined,
     )
-    .map(({ name, objectStrategy }) => ({ key: name, strategy: objectStrategy }));
+    .map(({ name, objectStrategy }) => ({
+      key: name,
+      strategy: objectStrategy,
+    }));
 
   const schema = {
     name,

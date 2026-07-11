@@ -678,8 +678,7 @@ export async function normalizeOptions(
           runtimeValidation:
             outputOptions.override?.angular?.runtimeValidation ?? false,
           queryObjectSerialization:
-            outputOptions.override?.angular?.queryObjectSerialization ??
-            'spec',
+            outputOptions.override?.angular?.queryObjectSerialization ?? 'spec',
           ...(outputOptions.override?.angular?.httpResource
             ? { httpResource: outputOptions.override.angular.httpResource }
             : {}),
