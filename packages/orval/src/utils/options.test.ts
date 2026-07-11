@@ -4,6 +4,8 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { ClientMockBuilder } from '@orval/core';
+
 const { logWarningSpy } = vi.hoisted(() => ({
   logWarningSpy: vi.fn(),
 }));
@@ -2024,6 +2026,32 @@ describe('output.artifacts normalization', () => {
           workspace,
         ),
       ).rejects.toThrow(/conflicts with `output.artifacts.msw`/);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('throws when mock.generators contains a function-form entry and artifacts.msw is set', async () => {
+    const workspace = await createTempWorkspace();
+    const entry: ClientMockBuilder = () => ({
+      imports: [],
+      implementation: { function: '', handlerName: 'x', handler: '' },
+    });
+
+    try {
+      await expect(
+        normalizeOptions(
+          baseConfig({
+            artifacts: { msw: './msw' },
+            mock: {
+              generators: [entry],
+            },
+          }),
+          workspace,
+        ),
+      ).rejects.toThrow(
+        /cannot be combined with a custom function-form `mock.generators` entry/,
+      );
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }

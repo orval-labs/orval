@@ -285,6 +285,12 @@ function applyArtifactsMockOverrides(
       continue;
     }
 
+    if (generators.some((g) => isFunction(g))) {
+      throw new Error(
+        `\`output.artifacts.${type}\` cannot be combined with a custom function-form \`mock.generators\` entry. Use the object form (e.g. { type: '${type}', ... }) so the artifacts path can be applied.`,
+      );
+    }
+
     const existingIndex = generators.findIndex(
       (g) => !isFunction(g) && g.type === type,
     );
@@ -295,12 +301,7 @@ function applyArtifactsMockOverrides(
         { ...getDefaultMockOptionsForType(type), path: dir },
       ];
     } else {
-      const existing = generators[existingIndex];
-      if (isFunction(existing)) {
-        throw new Error(
-          `\`output.artifacts.${type}\` cannot be combined with a custom function-form \`mock.generators\` entry for "${type}". Use the object form (e.g. { type: '${type}', ... }) so the artifacts path can be applied.`,
-        );
-      }
+      const existing = generators[existingIndex] as GlobalMockOptions;
       if (existing.path && existing.path !== dir) {
         throw new Error(
           `\`mock.generators[].path\` ("${existing.path}") for "${type}" conflicts with \`output.artifacts.${type}\` ("${dir}"). Configure the path in exactly one place.`,
