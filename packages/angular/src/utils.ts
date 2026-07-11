@@ -84,6 +84,7 @@ export const buildServiceClassOpen = ({
   isGlobalMutator,
   provideIn,
   hasQueryParams,
+  baseUrlFieldInitializer,
 }: {
   title: string;
   isRequestOptions: boolean;
@@ -91,6 +92,12 @@ export const buildServiceClassOpen = ({
   isGlobalMutator: boolean;
   provideIn: string | boolean | undefined;
   hasQueryParams: boolean;
+  /**
+   * When set, injected as an additional `private readonly baseUrl = ...;`
+   * class field — used by `httpResource`-mode mutation-service classes to
+   * pick up the same base-URL DI token as their sibling `HttpClient` output.
+   */
+  baseUrlFieldInitializer?: string;
 }): string => {
   const provideInValue = provideIn
     ? `{ providedIn: '${isBoolean(provideIn) ? 'root' : provideIn}' }`
@@ -112,7 +119,7 @@ ${isRequestOptions && isMutator ? THIRD_PARAMETER_TEMPLATE : ''}
 @Injectable(${provideInValue})
 export class ${title} {
   private readonly http = inject(HttpClient);
-`;
+${baseUrlFieldInitializer ? `  ${baseUrlFieldInitializer}\n` : ''}`;
 };
 
 /**
