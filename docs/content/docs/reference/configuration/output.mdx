@@ -441,6 +441,15 @@ export default defineConfig({
 });
 ```
 
+<Callout type="info">
+For the `angular` client, prefer
+[`override.angular.baseUrl`](#baseurl-1) when you need the base URL resolved
+through Angular's dependency injection (for example, per-API gateway routing
+or `TestBed` overrides) instead of baked into every generated route string.
+`baseUrl` and `override.angular.baseUrl` are mutually exclusive on the same
+output.
+</Callout>
+
 ### runtime
 
 **Type:** `String`
@@ -1791,6 +1800,89 @@ Raw expression passed to `HttpResourceOptions.injector`.
 **Type:** `String`
 
 Raw expression passed to `HttpResourceOptions.equal`.
+
+### baseUrl
+
+**Type:** `Object`
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        angular: {
+          baseUrl: {
+            apiId: 'petstore',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+Opt-in: compose this output's runtime base URL through Angular dependency
+injection (an `InjectionToken`) instead of baking a static prefix into every
+generated route string. See the
+[Angular guide](/docs/guides/angular#di-based-base-url-composition-multiple-apis--gateway-routing)
+for the full precedence chain, the generated artifacts, and a multi-API
+gateway-routing example.
+
+<Callout type="info">
+`angular`-client only. Setting `baseUrl` on any other client logs a warning
+and has no effect.
+</Callout>
+
+#### apiId
+
+**Type:** `String` (required)
+
+Explicit, stable identifier for this API. Must match
+`/^[A-Za-z][A-Za-z0-9_-]*$/`; Orval throws a config-time error otherwise.
+`apiId` is **never** derived from the specification's `info.title` or the
+target file name — it drives every generated identifier, so it needs to stay
+stable across regenerations:
+
+| Generated identifier | Derivation |
+|---|---|
+| `<API_ID>_SERVER_URL` | Embedded fallback URL constant |
+| `<API_ID>_BASE_URL_RESOLVER` | `InjectionToken` for the runtime resolver hook |
+| `<API_ID>_BASE_URL` | `InjectionToken` for the composed, normalized base URL |
+| `<Api>BaseUrlResolverContext` | Resolver context type (`{ apiId, serverUrl }`) |
+| `<Api>BaseUrlResolver` | Resolver function type |
+| `provide<Api>BaseUrl(baseUrl)` | Directly provides the base URL, bypassing the resolver |
+| `provide<Api>BaseUrlResolver(resolver)` | Provides a custom resolver |
+
+`<API_ID>` is `apiId` upper-snake-cased (e.g. `petstore` → `PETSTORE`);
+`<Api>` is `apiId` PascalCased (e.g. `petstore` → `Petstore`).
+
+#### index
+
+**Type:** `Number`
+**Default:** `0`
+
+Which entry of the specification's `servers` array to embed as the default
+fallback URL, same semantics as [`baseUrl.index`](#index) on the top-level
+`baseUrl` option.
+
+#### variables
+
+**Type:** `Record<string, string>`
+
+Values for any `{variable}` placeholders in the selected server URL.
+
+#### Error and warning behavior
+
+- **Missing/invalid `apiId`** — throws
+  `` `override.angular.baseUrl.apiId` must be a non-empty string matching /^[A-Za-z][A-Za-z0-9_-]*$/ `` at config-normalization time.
+- **Combined with `output.baseUrl`** — throws: `` `override.angular.baseUrl` cannot be combined with the top-level `output.baseUrl` ``.
+  Remove `output.baseUrl` from the output; the token's fallback already reads
+  the specification's `servers` field, and a runtime override belongs in a
+  provided resolver.
+- **Set on a non-`angular` client** — logs a warning and is otherwise ignored.
+- **Set under `override.operations[...].angular` or `override.tags[...].angular`**
+  — logs a warning and is ignored. `baseUrl` is an output-level concern
+  configured once via `override.angular.baseUrl`, not per operation or tag.
 
 ---
 

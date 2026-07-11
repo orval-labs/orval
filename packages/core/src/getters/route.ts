@@ -65,6 +65,49 @@ export function getRoute(route: string) {
   return result;
 }
 
+/**
+ * Resolves a concrete base URL from an OpenAPI specification's `servers`
+ * field, applying the same `index`/`variables` selection semantics as
+ * `BaseUrlFromSpec`.
+ *
+ * Unlike `getFullRoute`'s `BaseUrlFromSpec` handling, this returns `''` when
+ * `servers` is missing or empty instead of throwing — callers that want a
+ * relative-URL fallback (e.g. the Angular DI base-url token) can use this
+ * directly, while `getFullRoute` still throws for its own
+ * `getBaseUrlFromSpecification` path to preserve existing behavior.
+ */
+export function resolveServerUrl(
+  servers: OpenApiServerObject[] | undefined,
+  options: { index?: number; variables?: Record<string, string> },
+): string {
+  if (!servers || servers.length === 0) return '';
+
+  const server = servers.at(Math.min(options.index ?? 0, servers.length - 1));
+  if (!server) return '';
+  const serverUrl = server.url ?? '';
+  if (!server.variables) return serverUrl;
+
+  let url = serverUrl;
+  const variables = options.variables;
+  for (const variableKey of Object.keys(server.variables)) {
+    const variable = server.variables[variableKey];
+    if (variables?.[variableKey]) {
+      if (
+        variable.enum &&
+        !variable.enum.some((e) => e == variables[variableKey])
+      ) {
+        throw new Error(
+          `Invalid variable value '${variables[variableKey]}' for variable '${variableKey}' when resolving ${serverUrl}. Valid values are: ${variable.enum.join(', ')}.`,
+        );
+      }
+      url = url.replaceAll(`{${variableKey}}`, variables[variableKey]);
+    } else {
+      url = url.replaceAll(`{${variableKey}}`, String(variable.default));
+    }
+  }
+  return url;
+}
+
 export function getFullRoute(
   route: string,
   servers: OpenApiServerObject[] | undefined,
@@ -87,32 +130,10 @@ export function getFullRoute(
           "Orval is configured to use baseUrl from the specifications 'servers' field, but there exist no servers in the specification.",
         );
       }
-      const server = servers.at(
-        Math.min(baseUrl.index ?? 0, servers.length - 1),
-      );
-      if (!server) return '';
-      const serverUrl = server.url ?? '';
-      if (!server.variables) return serverUrl;
-
-      let url = serverUrl;
-      const variables = baseUrl.variables;
-      for (const variableKey of Object.keys(server.variables)) {
-        const variable = server.variables[variableKey];
-        if (variables?.[variableKey]) {
-          if (
-            variable.enum &&
-            !variable.enum.some((e) => e == variables[variableKey])
-          ) {
-            throw new Error(
-              `Invalid variable value '${variables[variableKey]}' for variable '${variableKey}' when resolving ${serverUrl}. Valid values are: ${variable.enum.join(', ')}.`,
-            );
-          }
-          url = url.replaceAll(`{${variableKey}}`, variables[variableKey]);
-        } else {
-          url = url.replaceAll(`{${variableKey}}`, String(variable.default));
-        }
-      }
-      return url;
+      return resolveServerUrl(servers, {
+        index: baseUrl.index,
+        variables: baseUrl.variables,
+      });
     }
     return baseUrl.baseUrl;
   };

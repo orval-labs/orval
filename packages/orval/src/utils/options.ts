@@ -5,6 +5,7 @@ import nodePath from 'node:path';
 import { styleText } from 'node:util';
 
 import {
+  type AngularBaseUrlOptions,
   type ConfigExternal,
   type EffectOptions,
   FormDataArrayHandling,
@@ -260,6 +261,55 @@ function normalizeEffectOptions(
     },
     generateEachHttpStatus: effect?.generateEachHttpStatus ?? false,
     useBrandedTypes: effect?.useBrandedTypes ?? false,
+  };
+}
+
+const ANGULAR_BASE_URL_API_ID_REGEX = /^[A-Za-z][A-Za-z0-9_-]*$/;
+
+/**
+ * Normalizes and validates `override.angular.baseUrl` (opt-in Angular DI
+ * base-URL composition, see `AngularBaseUrlOptions`).
+ *
+ * - `apiId` must be an explicit, stable identifier (`/^[A-Za-z][A-Za-z0-9_-]*$/`).
+ * - Mutually exclusive with the top-level `output.baseUrl`, which bakes a
+ *   static prefix into every generated route for ALL clients — combining
+ *   both would double-prefix (or conflict with) every URL.
+ * - Only meaningful for the `angular` client; warns (without dropping the
+ *   option) when configured for any other client.
+ */
+function normalizeAngularBaseUrl(
+  baseUrl: AngularBaseUrlOptions,
+  outputClient: unknown,
+  outputBaseUrl: unknown,
+): AngularBaseUrlOptions {
+  if (!baseUrl.apiId || !ANGULAR_BASE_URL_API_ID_REGEX.test(baseUrl.apiId)) {
+    throw new Error(
+      styleText(
+        'red',
+        `\`override.angular.baseUrl.apiId\` must be a non-empty string matching /^[A-Za-z][A-Za-z0-9_-]*$/ (got: ${JSON.stringify(baseUrl.apiId)}).`,
+      ),
+    );
+  }
+
+  if (outputBaseUrl !== undefined) {
+    throw new Error(
+      styleText(
+        'red',
+        "`override.angular.baseUrl` cannot be combined with the top-level `output.baseUrl`. Remove `output.baseUrl` — the base-URL token's server-URL fallback is resolved from the specification's `servers` field, or provide a custom resolver via the generated `provide<Api>BaseUrlResolver` helper.",
+      ),
+    );
+  }
+
+  if (outputClient !== OutputClient.ANGULAR) {
+    logWarning(
+      `⚠️  \`override.angular.baseUrl\` is only supported by the \`angular\` client. It has no effect for other clients.`,
+    );
+  }
+
+  return {
+    apiId: baseUrl.apiId,
+    ...(baseUrl.index !== undefined ? { index: baseUrl.index } : {}),
+    ...(baseUrl.variables ? { variables: baseUrl.variables } : {}),
   };
 }
 
@@ -680,6 +730,15 @@ export async function normalizeOptions(
           ...(outputOptions.override?.angular?.httpResource
             ? { httpResource: outputOptions.override.angular.httpResource }
             : {}),
+          ...(outputOptions.override?.angular?.baseUrl
+            ? {
+                baseUrl: normalizeAngularBaseUrl(
+                  outputOptions.override.angular.baseUrl,
+                  outputOptions.client ?? client,
+                  outputOptions.baseUrl,
+                ),
+              }
+            : {}),
         },
         fetch: {
           includeHttpResponseReturnType:
@@ -1048,6 +1107,12 @@ function normalizeOperationsAndTags(
             zod.preprocess !== undefined ||
             zod.params !== undefined ||
             zod.useBrandedTypes !== undefined);
+
+        if (angular?.baseUrl) {
+          logWarning(
+            `⚠️  override.${source}.${key}.angular.baseUrl is not supported — \`baseUrl\` is an output-level concern and is configured via \`override.angular.baseUrl\`. Ignoring.`,
+          );
+        }
 
         return [
           key,

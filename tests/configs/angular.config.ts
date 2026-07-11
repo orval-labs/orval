@@ -340,4 +340,83 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  baseUrlToken: {
+    output: {
+      target: '../generated/angular/base-url-token/endpoints.ts',
+      schemas: '../generated/angular/base-url-token/model',
+      client: 'angular',
+      mock: false,
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          baseUrl: { apiId: 'petstore-api' },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  baseUrlTokenHttpResource: {
+    output: {
+      target: '../generated/angular/base-url-token-http-resource/endpoints.ts',
+      schemas: '../generated/angular/base-url-token-http-resource/model',
+      client: 'angular',
+      mock: false,
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+          baseUrl: { apiId: 'petstore-api' },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  baseUrlTokenBoth: {
+    output: {
+      target: '../generated/angular/base-url-token-both/endpoints.ts',
+      schemas: '../generated/angular/base-url-token-both/model',
+      client: 'angular',
+      mode: 'tags-split',
+      mock: false,
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'both',
+          baseUrl: { apiId: 'petstore-api' },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  baseUrlTokenZod: {
+    output: {
+      target: '../generated/angular/base-url-token-zod/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/angular/base-url-token-zod/model',
+      },
+      client: 'angular',
+      mock: false,
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          runtimeValidation: true,
+          baseUrl: { apiId: 'petstore-api' },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

@@ -300,4 +300,32 @@ export default defineConfig({
       },
     },
   },
+  petstoreBaseUrlToken: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/base-url-token/petstore.ts',
+      schemas: 'src/api/base-url-token/model',
+      client: 'angular',
+      // Test-driven output for the `override.angular.baseUrl` DI token
+      // feature (issue #3702, see `src/app/base-url-token.spec.ts`): no MSW
+      // mocks are wired up since the token composes an absolute/gateway
+      // prefix that MSW's relative-route matching doesn't need to see.
+      mock: false,
+      tsconfig: './tsconfig.app.json',
+      formatter: 'prettier',
+      clean: true,
+      override: {
+        angular: {
+          retrievalClient: 'both',
+          baseUrl: { apiId: 'petstore' },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+      override: {
+        transformer: 'src/orval/transformer/add-version.ts',
+      },
+    },
+  },
 });

@@ -593,6 +593,252 @@ describe('normalizeOptions', () => {
     }
   });
 
+  describe('override.angular.baseUrl', () => {
+    it('normalizes a valid apiId through', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              client: 'angular',
+              override: {
+                angular: {
+                  baseUrl: { apiId: 'example-api' },
+                },
+              },
+            },
+          },
+          workspace,
+        );
+
+        expect(normalized.output.override.angular.baseUrl).toEqual({
+          apiId: 'example-api',
+        });
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('carries through index and variables', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              client: 'angular',
+              override: {
+                angular: {
+                  baseUrl: {
+                    apiId: 'example-api',
+                    index: 1,
+                    variables: { port: '8080' },
+                  },
+                },
+              },
+            },
+          },
+          workspace,
+        );
+
+        expect(normalized.output.override.angular.baseUrl).toEqual({
+          apiId: 'example-api',
+          index: 1,
+          variables: { port: '8080' },
+        });
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('throws for an invalid apiId', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                client: 'angular',
+                override: {
+                  angular: {
+                    baseUrl: { apiId: '1-not-valid' },
+                  },
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(/apiId/);
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('throws when combined with the top-level output.baseUrl', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                client: 'angular',
+                baseUrl: 'https://example.com',
+                override: {
+                  angular: {
+                    baseUrl: { apiId: 'example-api' },
+                  },
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(/output\.baseUrl/);
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('throws when combined with an empty-string output.baseUrl', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                client: 'angular',
+                baseUrl: '',
+                override: {
+                  angular: {
+                    baseUrl: { apiId: 'example-api' },
+                  },
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(/output\.baseUrl/);
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('warns when configured for a non-Angular client', async () => {
+      const workspace = await createTempWorkspace();
+      logWarningSpy.mockClear();
+
+      try {
+        await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              client: 'axios',
+              override: {
+                angular: {
+                  baseUrl: { apiId: 'example-api' },
+                },
+              },
+            },
+          },
+          workspace,
+        );
+
+        expect(logWarningSpy).toHaveBeenCalled();
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
+    it('warns and drops a per-operation angular.baseUrl override', async () => {
+      const workspace = await createTempWorkspace();
+      logWarningSpy.mockClear();
+
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              client: 'angular',
+              override: {
+                angular: { baseUrl: { apiId: 'example-api' } },
+                operations: {
+                  searchPets: {
+                    angular: { baseUrl: { apiId: 'other-api' } } as never,
+                  },
+                },
+              },
+            },
+          },
+          workspace,
+        );
+
+        expect(logWarningSpy).toHaveBeenCalled();
+        expect(
+          normalized.output.override.operations.searchPets?.angular,
+        ).not.toHaveProperty('baseUrl');
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+  });
+
   it('normalizes schemas: false to undefined', async () => {
     const workspace = await createTempWorkspace();
 
