@@ -535,7 +535,9 @@ describe('extractArrayItemMock', () => {
         imports,
       });
 
-      expect(call).toBe('{...getGetCatalogItemsResponseCatalogItemsItemMock()}');
+      expect(call).toBe(
+        '{...getGetCatalogItemsResponseCatalogItemsItemMock()}',
+      );
       expect(splitMockImplementations).toHaveLength(1);
       expect(splitMockImplementations[0]).toContain(
         'export const getGetCatalogItemsResponseCatalogItemsItemMock',
@@ -602,8 +604,9 @@ describe('extractArrayItemMock', () => {
 
     it('bails out (inlines) when the array-expression base is not a plain identifier', () => {
       const splitMockImplementationsUnion: string[] = [];
-      const importsUnion: Parameters<typeof extractArrayItemMock>[0]['imports'] =
-        [];
+      const importsUnion: Parameters<
+        typeof extractArrayItemMock
+      >[0]['imports'] = [];
 
       const callUnion = extractArrayItemMock({
         items: {
