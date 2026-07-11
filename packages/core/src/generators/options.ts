@@ -25,6 +25,13 @@ export type AngularObjectParamStrategy = 'flatten' | 'comma' | 'deepObject';
  * (including nulls inside arrays) before passing params to HttpClient or a
  * paramsSerializer to avoid runtime and type issues.
  *
+ * Required-nullable params (spec `required: true` + `nullable: true`) are the
+ * exception: dropping them silently would violate the OpenAPI contract. When a
+ * `paramsSerializer` is configured (preserveRequiredNullables), a `null` value
+ * is preserved for the serializer to encode. Without a serializer, `null` is
+ * instead emitted as an empty string (`''`, wire form `?key=`) so the key
+ * still reaches the request. See #3712.
+ *
  * Returns an inline IIFE expression. For paths that benefit from a shared helper
  * (e.g. observe-mode branches), prefer getAngularFilteredParamsCallExpression +
  * getAngularFilteredParamsHelperBody instead.
@@ -118,19 +125,22 @@ export const getAngularFilteredParamsExpression = (
 `
     : '';
 
-  // Generate requiredNullableParamKeys only if preserveRequiredNullables are 'true'
-  // Otherwise, typescript throw an error (TS6133: 'requiredNullableParamKeys' is declared but its value is never read.)
-  let preserveNullableBranch: string;
-  let requiredNullableParamKeysBranch: string;
-  if (preserveRequiredNullables) {
-    preserveNullableBranch = `    } else if (value === null && requiredNullableParamKeys.has(key)) {
-      filteredParams[key] = null;
-`;
-    requiredNullableParamKeysBranch = `const requiredNullableParamKeys = new Set<string>(${JSON.stringify(requiredNullableParamKeys)});`;
-  } else {
-    preserveNullableBranch = '';
-    requiredNullableParamKeysBranch = '';
-  }
+  // With a downstream paramsSerializer (preserveRequiredNullables) the
+  // literal `null` is preserved for it to consume; without one, `null`
+  // becomes an empty string so the required key still reaches the wire as
+  // `?key=` instead of being silently dropped (#3712). The Set declaration
+  // is only emitted when the branch that reads it is emitted, otherwise
+  // TypeScript reports TS6133 (see #3593).
+  const emitRequiredNullableBranch =
+    preserveRequiredNullables || requiredNullableParamKeys.length > 0;
+  const preserveNullableBranch = emitRequiredNullableBranch
+    ? `    } else if (value === null && requiredNullableParamKeys.has(key)) {
+      filteredParams[key] = ${preserveRequiredNullables ? 'null' : "''"};
+`
+    : '';
+  const requiredNullableParamKeysBranch = emitRequiredNullableBranch
+    ? `const requiredNullableParamKeys = new Set<string>(${JSON.stringify(requiredNullableParamKeys)});`
+    : '';
 
   const scalarBranch = `    } else if (
       value != null &&
@@ -178,6 +188,14 @@ ${preserveNullableBranch}${scalarBranch}  }
  * with the flag omitted/false this returns the exact same string as before
  * that feature existed, so files without object query params see zero
  * helper churn.
+ *
+ * Required-nullable handling: a query param that the spec marks both
+ * `required` and `nullable` must still reach the wire when its runtime
+ * value is `null`, or the request violates the OpenAPI contract. When a
+ * `paramsSerializer` is configured (preserveRequiredNullables), the literal
+ * `null` is preserved for the serializer to encode. Without a serializer,
+ * `null` is instead emitted as an empty string (`''`, wire form `?key=`) so
+ * the key is not silently dropped. See #3712.
  */
 export const getAngularFilteredParamsHelperBody = ({
   hasObjectParams = false,
@@ -229,12 +247,12 @@ function filterParams(
       if (filtered.length) {
         filteredParams[key] = filtered;
       }
-    } else if (
-      preserveRequiredNullables &&
-      value === null &&
-      requiredNullableKeys.has(key)
-    ) {
-      filteredParams[key] = null;
+    } else if (value === null && requiredNullableKeys.has(key)) {
+      // With a paramsSerializer (preserveRequiredNullables) the literal null
+      // is passed through for it to consume; without one, emit an empty
+      // string so the required key still reaches the wire as \`?key=\`
+      // instead of being silently dropped. See #3712.
+      filteredParams[key] = preserveRequiredNullables ? null : '';
     } else if (
       value != null &&
       (typeof value === 'string' ||
@@ -356,12 +374,12 @@ function filterParams(
       if (filtered.length) {
         filteredParams[key] = filtered;
       }
-    } else if (
-      preserveRequiredNullables &&
-      value === null &&
-      requiredNullableKeys.has(key)
-    ) {
-      filteredParams[key] = null;
+    } else if (value === null && requiredNullableKeys.has(key)) {
+      // With a paramsSerializer (preserveRequiredNullables) the literal null
+      // is passed through for it to consume; without one, emit an empty
+      // string so the required key still reaches the wire as \`?key=\`
+      // instead of being silently dropped. See #3712.
+      filteredParams[key] = preserveRequiredNullables ? null : '';
     } else if (
       value != null &&
       (typeof value === 'string' ||
