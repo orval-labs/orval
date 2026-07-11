@@ -1,5 +1,5 @@
 import { generateDependencyImports, type PackageJson } from '@orval/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import {
   getVueQueryDependencies,

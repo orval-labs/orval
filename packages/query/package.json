@@ -29,7 +29,6 @@
   },
   "devDependencies": {
     "rimraf": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "typescript": "catalog:"
   }
 }

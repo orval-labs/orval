@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "generate-api": "vp exec orval",
-    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots": "vp test run --config vitest.snapshots.ts",
     "test:snapshots:update": "vp run test:snapshots --update",
     "format": "prettier --write ."
   },
@@ -30,8 +30,7 @@
     "postcss": "8.5.23",
     "prettier": "catalog:",
     "tailwindcss": "^3.4.17",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "typescript": "catalog:"
   },
   "dependenciesMeta": {
     "msw": {

@@ -30,7 +30,6 @@
   "devDependencies": {
     "@types/jsesc": "^3.0.3",
     "rimraf": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "typescript": "catalog:"
   }
 }

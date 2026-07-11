@@ -26,7 +26,7 @@
     "generate:mcp": "orval --config ./configs/mcp.config.ts",
     "generate:hono": "orval --config ./configs/hono.config.ts",
     "generate:factory-methods": "orval --config ./configs/factory-methods.config.ts",
-    "test:snapshots": "vitest run --config vitest.snapshots.ts",
+    "test:snapshots": "vp test run --config vitest.snapshots.ts",
     "test:snapshots:update": "vp run test:snapshots --update",
     "build": "node ./scripts/typecheck-generated.mjs && vp run verify:mock-generated",
     "verify:mock-generated": "node ./scripts/verify-mock-generated.mjs",
@@ -60,7 +60,6 @@
     "svelte": "catalog:svelte",
     "swr": "catalog:swr",
     "typescript": "catalog:",
-    "vitest": "catalog:",
     "vue": "catalog:vue",
     "zod": "catalog:zod4"
   }

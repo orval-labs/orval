@@ -33,7 +33,6 @@
     "hono": "catalog:hono",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
     "zod": "catalog:zod4"
   },
   "peerDependencies": {

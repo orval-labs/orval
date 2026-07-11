@@ -40,8 +40,8 @@
     "pkg-pr-new": "^0.0.86",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vite-plus": "catalog:",
-    "vitest": "catalog:"
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
   },
   "devEngines": {
     "runtime": {
@@ -63,9 +63,8 @@
     "tslib": "2.8.1",
     "typescript-eslint": "8.57.2",
     "typescript": "6.0.3",
-    "vite-plus": "0.1.24",
-    "vite": "7.2.2",
-    "vitest": "4.0.18"
+    "vite-plus": "0.2.9",
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.9"
   },
   "catalogs": {
     "angular": {
