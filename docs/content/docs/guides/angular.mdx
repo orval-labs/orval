@@ -47,6 +47,10 @@ supported as a backward-compatible alias.
 By default, the Angular client generates injectable service classes backed by
 `HttpClient`.
 
+If you also generate MSW/Faker mocks and want them independently importable
+in Node without ever evaluating Angular modules, see
+[Runtime-safe artifact groups](#runtime-safe-artifact-groups) below.
+
 Available Angular retrieval modes:
 
 - `httpClient` — keep retrievals as injectable service methods backed by `HttpClient`
@@ -125,6 +129,188 @@ Quick rule of thumb:
 - choose `both` when your app wants both patterns side-by-side
 - if you do not set `override.angular.retrievalClient`, Orval defaults to `httpClient`
 - create, update, delete, and other mutation-style operations still use `HttpClient` methods by default
+
+## Runtime-safe artifact groups
+
+One OpenAPI document generates code that runs in (at least) three different
+runtimes:
+
+| Group | Runs in | Files |
+|---|---|---|
+| Schemas | Universal (browser + Node) | Plain TS types or Zod schemas |
+| Client (`HttpClient` / `httpResource`) | Browser (Angular) | `*.service.ts`, `*.resource.ts` |
+| Mocks (MSW / Faker) | Node (tests, Storybook, contract tests) | `*.msw.ts`, `*.faker.ts` |
+
+By default Orval writes all of these into one tree with no dedicated entry
+point, so consumers often hand-roll a root barrel (`export * from
+'./generated'`) to get a single import. That barrel re-exports everything —
+including the Angular service classes — so a Node-only MSW consumer (a
+Vitest/Jest setup file, a contract-test runner, Storybook's Node-side loaders)
+transitively evaluates `@angular/core` / `@angular/common/http` the moment it
+imports the mock handlers, which can crash outside a real Angular platform.
+
+You can get most of the way there today with options that already exist,
+independently of each other:
+
+- `output.schemas` — put schemas in their own directory; Orval emits a
+  dedicated `index.ts` barrel there
+- `mock.generators[].path` — give the `msw` and `faker` generators their own
+  directories instead of inlining mocks into the client files
+- `mock.indexMockFiles: true` — emit `index.msw.ts` / `index.faker.ts`
+  barrels at each mock directory's root
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/generated/client/petstore.ts',
+      schemas: 'src/generated/schemas',
+      client: 'angular',
+      tagsSplitDeduplication: true,
+      override: {
+        angular: {
+          retrievalClient: 'both',
+        },
+      },
+      mock: {
+        indexMockFiles: true,
+        generators: [
+          { type: 'msw', path: 'src/generated/msw' },
+          { type: 'faker', path: 'src/generated/faker' },
+        ],
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+This already gives you a Node-safe `msw/index.msw.ts` and `faker/index.faker.ts`
+(both import only `msw`/`@faker-js/faker` plus type-only schema imports) and a
+universal `schemas/index.ts`. The one piece it doesn't give you is a
+**client** barrel — in `tags-split` mode there's no generated entry point that
+re-exports every `*.service.ts` (and, in `both` mode, the sibling
+`*.resource.ts`) file, so you're left hand-writing one yourself.
+
+`output.artifacts` is ergonomic sugar over exactly the primitives above, plus
+that missing client barrel:
+
+- `artifacts.schemas` → normalizes onto `output.schemas`
+- `artifacts.msw` / `artifacts.faker` → normalize onto the matching
+  `mock.generators[].path` and force `mock.indexMockFiles: true`
+- `artifacts.client` (optional; defaults to `output.target`'s directory) → a
+  new `<clientDir>/index.ts` barrel, re-exporting every `*.service.ts` and
+  `*.resource.ts` file actually written for the client group (built from the
+  files Orval wrote, never guessed from tag names)
+
+The equivalent config, using `artifacts`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/generated/client/petstore.ts',
+      client: 'angular',
+      tagsSplitDeduplication: true,
+      override: {
+        angular: {
+          retrievalClient: 'both',
+        },
+      },
+      artifacts: {
+        schemas: 'src/generated/schemas',
+        msw: 'src/generated/msw',
+        faker: 'src/generated/faker',
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+Both configs generate identical `schemas/`, `msw/`, and `faker/` trees. The
+`artifacts` version additionally emits `client/index.ts`:
+
+```
+src/generated/
+├── schemas/
+│   ├── pet.ts
+│   ├── ...
+│   └── index.ts
+├── client/
+│   ├── pets/
+│   │   ├── pets.service.ts
+│   │   └── pets.resource.ts
+│   ├── common-types.ts
+│   └── index.ts
+├── msw/
+│   ├── pets/pets.msw.ts
+│   └── index.msw.ts
+└── faker/
+    ├── pets/pets.faker.ts
+    └── index.faker.ts
+```
+
+In a monorepo, map each barrel to its own package `exports` entry so hosts
+import only what they need:
+
+```json title="package.json (data-access lib)"
+{
+  "exports": {
+    ".": "./src/generated/client/index.ts",
+    "./msw": "./src/generated/msw/index.msw.ts",
+    "./faker": "./src/generated/faker/index.faker.ts"
+  }
+}
+```
+
+```ts
+// browser code — only pulls in Angular + schema types
+import { PetsService } from '@acme/petstore';
+import { listPetsResource } from '@acme/petstore';
+
+// Node test setup — never evaluates Angular
+import { getPetsMock } from '@acme/petstore/msw';
+import type { Pet } from '@acme/petstore/schemas';
+
+// a single operation's handler, imported straight from its tag file
+import { getShowPetByIdMockHandler } from '@acme/petstore/msw/pets/pets.msw';
+```
+
+Wiring `exports`/Nx project boundaries to physically separate packages is a
+host-project concern — Orval's job ends at emitting the group directories and
+barrels above.
+
+<Callout>
+**Caveats**
+
+- `output.artifacts` requires `mode: 'tags-split'` and `indexFiles` to stay
+  enabled (its default) — Orval throws a clear error otherwise.
+- Declaring `artifacts.msw` / `artifacts.faker` forces `mock.indexMockFiles:
+  true` and auto-creates the generator if you haven't configured one.
+- It's incompatible with `output.workspace` (a combined barrel is exactly the
+  anti-pattern this option replaces).
+- `index.msw.ts` re-exports the aggregate `get<Tag>Mock` handler arrays per
+  tag; import a single operation's handler straight from its tag file (see the
+  example above).
+- With `mock.generators[].schemas: true`, the consolidated faker schema
+  factories still live at `<schemasDir>/index.faker.ts` — the schemas barrel
+  never re-exports them, so importing schemas alone stays faker-free. Use
+  `schemasImportPath` if you want them under a dedicated import specifier.
+- Set `tagsSplitDeduplication: true` alongside `artifacts` so shared inline
+  types are hoisted into `common-types.ts` — without it, `export *` silently
+  drops same-named types duplicated across per-tag files.
+</Callout>
 
 ## Setting the Backend URL
 
@@ -342,6 +528,12 @@ import { listPetsResource } from './api/petstore.resource';
 
 This separation works well when your app prefers signal-first reads but still
 needs service methods for writes or imperative request flows.
+
+With `output.artifacts` (see
+[Runtime-safe artifact groups](#runtime-safe-artifact-groups)), both the
+`*.service.ts` and sibling `*.resource.ts` files get re-exported from a single
+generated client barrel, built from the files Orval actually wrote for each
+tag.
 
 ### httpResource options
 

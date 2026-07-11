@@ -300,4 +300,52 @@ export default defineConfig({
       },
     },
   },
+  petstoreArtifactGroups: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/artifact-groups/client/petstore.ts',
+      client: 'angular',
+      tagsSplitDeduplication: true,
+      artifacts: {
+        schemas: 'src/api/artifact-groups/schemas',
+        msw: 'src/api/artifact-groups/msw',
+      },
+      tsconfig: './tsconfig.app.json',
+      formatter: 'prettier',
+      clean: true,
+      override: {
+        angular: {
+          retrievalClient: 'both',
+        },
+        operations: {
+          listPets: {
+            mock: {
+              properties: () => {
+                return {
+                  id: () => faker.number.int({ min: 1, max: 99999 }),
+                };
+              },
+            },
+          },
+          showPetById: {
+            mock: {
+              data: createShowPetMock,
+            },
+          },
+        },
+        mock: {
+          properties: {
+            '/tag|name/': () => faker.person.lastName(),
+            '/phone/': createValidPhone,
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+      override: {
+        transformer: 'src/orval/transformer/add-version.ts',
+      },
+    },
+  },
 });
