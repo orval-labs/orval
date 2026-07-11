@@ -491,7 +491,13 @@ listPetsResource(params, headers);
 `in: header` parameters. This mirrors the `HttpClientOptions` already
 available on generated `HttpClient` service methods, so you no longer have to
 drop down to `HttpClient` just to attach interceptor policy or a
-per-request header:
+per-request header.
+
+The extension fields live on the **trailing options parameter** — the same
+bag that carries `defaultValue`/`debugName`. Pass every other generated
+argument first: path/query signals, an `in: header` signal when
+`output.headers` is enabled, and the `accept` argument on multi-content
+helpers all come before the options bag.
 
 ```ts
 import { HttpContext } from '@angular/common/http';
@@ -499,8 +505,18 @@ import { BYPASS_GLOBAL_ERROR_HANDLER } from './http-context-tokens';
 
 const requestId = signal('req-42');
 
+// operation with a single path param and one content type:
+// the options bag is the second argument
 const itemEvents = getItemEventsResource(itemId, {
   headers: () => ({ 'x-request-id': requestId() }),
+  context: new HttpContext().set(BYPASS_GLOBAL_ERROR_HANDLER, true),
+});
+
+// multi-content operation from the petstore sample
+// (signature: petId, accept, version?, options?) — fill every generated
+// parameter before the options bag, using `undefined` for optional ones
+// you want to skip
+const pet = showPetByIdResource(petId, 'application/json', undefined, {
   context: new HttpContext().set(BYPASS_GLOBAL_ERROR_HANDLER, true),
 });
 ```
