@@ -264,6 +264,16 @@ export { server };
 
 If both `msw` and `faker` generators are configured with `indexMockFiles: true`, you also get an `index.faker.ts` alongside `index.msw.ts`.
 
+<Callout title="Tip" type="info">
+If you also want a dedicated barrel for the **client** implementation (so
+consumers can import it without pulling in `msw`/`faker` at all), use
+`output.artifacts` to emit separate schemas/client/msw/faker groups from one
+config in a single generation pass. See [Runtime-safe artifact
+groups](/docs/guides/angular#runtime-safe-artifact-groups) in the Angular
+guide — the option itself is client-agnostic and works the same way with
+`fetch`, `axios`, and the other client packages.
+</Callout>
+
 ## MSW Best Practices
 
 The generated code follows [MSW best practices](https://mswjs.io/docs/best-practices):

@@ -1888,45 +1888,49 @@ test('artifact groups (angular): client barrel re-exports both the service and t
   expect(content).toMatch(/pets\/pets\.resource/);
 });
 
-test('artifact groups (fetch, client-agnostic): msw/faker entries never transitively reach client implementation files', async () => {
-  const mswEntry = generated(
-    'mock',
-    'artifact-groups-fetch',
-    'msw',
-    'index.msw.ts',
-  );
-  const fakerEntry = generated(
-    'mock',
-    'artifact-groups-fetch',
-    'faker',
-    'index.faker.ts',
-  );
-  const clientDir = generated('mock', 'artifact-groups-fetch', 'client');
+/**
+ * `output.artifacts` (issue #3704) is implemented entirely in the writer
+ * layer (`packages/orval/src/write-specs.ts`) and never branches on
+ * `output.client` — it reads generated implementation + extra-file paths
+ * generically. These directories, one per client package, exist solely to
+ * prove that genericity holds beyond the Angular flagship and the original
+ * `fetch` client-agnostic proof config.
+ */
+const CLIENT_AGNOSTIC_ARTIFACT_GROUP_DIRS = [
+  'artifact-groups-fetch',
+  'artifact-groups-axios',
+  'artifact-groups-react-query',
+  'artifact-groups-swr',
+  'artifact-groups-vue-query',
+  'artifact-groups-svelte-query',
+];
 
-  for (const entry of [mswEntry, fakerEntry]) {
-    const visited = await collectTransitiveRelativeImports(entry);
+for (const dir of CLIENT_AGNOSTIC_ARTIFACT_GROUP_DIRS) {
+  test(`artifact groups (${dir}, client-agnostic): msw/faker entries never transitively reach client implementation files`, async () => {
+    const mswEntry = generated('mock', dir, 'msw', 'index.msw.ts');
+    const fakerEntry = generated('mock', dir, 'faker', 'index.faker.ts');
+    const clientDir = generated('mock', dir, 'client');
+
+    for (const entry of [mswEntry, fakerEntry]) {
+      const visited = await collectTransitiveRelativeImports(entry);
+      expect(visited.size).toBeGreaterThan(0);
+
+      for (const file of visited.keys()) {
+        expect(path.relative(clientDir, file).startsWith('..')).toBe(true);
+      }
+    }
+  });
+
+  test(`artifact groups (${dir}, client-agnostic): client barrel never transitively reaches msw/faker files`, async () => {
+    const clientEntry = generated('mock', dir, 'client', 'index.ts');
+
+    const visited = await collectTransitiveRelativeImports(clientEntry);
     expect(visited.size).toBeGreaterThan(0);
 
-    for (const file of visited.keys()) {
-      expect(path.relative(clientDir, file).startsWith('..')).toBe(true);
+    for (const [file, content] of visited) {
+      expect(file).not.toMatch(/\.(msw|faker)\.ts$/);
+      expect(content).not.toMatch(/from\s+['"]msw['"]/);
+      expect(content).not.toMatch(/from\s+['"]@faker-js\/faker['"]/);
     }
-  }
-});
-
-test('artifact groups (fetch, client-agnostic): client barrel never transitively reaches msw/faker files', async () => {
-  const clientEntry = generated(
-    'mock',
-    'artifact-groups-fetch',
-    'client',
-    'index.ts',
-  );
-
-  const visited = await collectTransitiveRelativeImports(clientEntry);
-  expect(visited.size).toBeGreaterThan(0);
-
-  for (const [file, content] of visited) {
-    expect(file).not.toMatch(/\.(msw|faker)\.ts$/);
-    expect(content).not.toMatch(/from\s+['"]msw['"]/);
-    expect(content).not.toMatch(/from\s+['"]@faker-js\/faker['"]/);
-  }
-});
+  });
+}
