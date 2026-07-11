@@ -1067,6 +1067,14 @@ export function ${resourceName}(
   }
 
   ${
+    blobType
+      ? `if (accept.startsWith('image/') || accept.includes('blob')) {
+    return httpResource.blob<Blob>(buildRequest, ${getBranchOptions(blobType)});
+  }
+
+  `
+      : ''
+  }${
     arrayBufferType
       ? `if (accept.includes('octet-stream') || accept.includes('pdf')) {
     return httpResource.arrayBuffer<ArrayBuffer>(buildRequest, ${getBranchOptions(arrayBufferType)});

@@ -1714,6 +1714,40 @@ describe('angular httpResource generator', () => {
       );
     });
 
+    it('dispatches blob accept values to the blob branch', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'Pet | Blob', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('Blob', 'image/png'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'image/png'],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never) as string;
+
+      expect(header).toContain(
+        "if (accept.startsWith('image/') || accept.includes('blob'))",
+      );
+      expect(header).toContain('httpResource.blob<Blob>(buildRequest');
+    });
+
     it('reads the request body signal inside the factory for POST retrieval resources', () => {
       const verbOption = createVerbOption({
         operationId: 'searchPets',
