@@ -74,6 +74,29 @@ paths:
                       properties:
                         id:
                           type: string
+  /nullable-catalog-items:
+    get:
+      operationId: getNullableCatalogItems
+      tags:
+        - catalog
+      responses:
+        '200':
+          description: List catalog items (nullable top-level array response)
+          content:
+            application/json:
+              schema:
+                type: array
+                nullable: true
+                items:
+                  type: object
+                  required:
+                    - id
+                    - name
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
 components:
   schemas:
     CatalogItems:

@@ -673,6 +673,91 @@ describe('extractArrayItemMock', () => {
       expect(splitMockImplementations).toHaveLength(0);
       expect(imports).toHaveLength(0);
     });
+
+    describe('nullable top-level array responses', () => {
+      it('strips the " | null" suffix for an inline nullable array response, aliasing to <PropertyName><itemSuffix>', () => {
+        const splitMockImplementations: string[] = [];
+        const imports: Parameters<typeof extractArrayItemMock>[0]['imports'] =
+          [];
+
+        const call = extractArrayItemMock({
+          items: {
+            type: 'object',
+            properties: {
+              sku: { type: 'string' },
+              price: { type: 'number' },
+            },
+          },
+          propertyName: 'CatalogItems | null',
+          operationId: 'getNullableCatalogItems',
+          tags: [],
+          mapValue: '{sku: faker.string.alpha(), price: faker.number.float()}',
+          context: createContextWithArrayItems(),
+          splitMockImplementations,
+          imports,
+        });
+
+        expect(call).toBe(
+          '{...getGetNullableCatalogItemsResponseCatalogItemsNullItemMock()}',
+        );
+        expect(imports).toEqual([{ name: 'CatalogItemsItem' }]);
+        expect(splitMockImplementations[0]).toContain(
+          'Partial<CatalogItemsItem>',
+        );
+        expect(splitMockImplementations[0]).toContain('): CatalogItemsItem');
+      });
+
+      it('strips the " | null" suffix for a nullable $ref array response, reusing the emitted element alias', () => {
+        const splitMockImplementations: string[] = [];
+        const imports: Parameters<typeof extractArrayItemMock>[0]['imports'] =
+          [];
+
+        const call = extractArrayItemMock({
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+            },
+          },
+          propertyName: 'GetFoo200Item[] | null',
+          operationId: 'getFoo',
+          tags: [],
+          mapValue: '{id: faker.string.uuid()}',
+          context: createContextWithArrayItems(),
+          splitMockImplementations,
+          imports,
+        });
+
+        expect(call).toBe('{...getGetFooResponseGetFoo200ItemNullItemMock()}');
+        expect(imports).toEqual([{ name: 'GetFoo200Item' }]);
+        expect(splitMockImplementations[0]).toContain('Partial<GetFoo200Item>');
+        expect(splitMockImplementations[0]).toContain('): GetFoo200Item');
+      });
+
+      it('bails out (inlines) when the stripped bare-ref name is not a plain identifier', () => {
+        const splitMockImplementations: string[] = [];
+        const imports: Parameters<typeof extractArrayItemMock>[0]['imports'] =
+          [];
+
+        const call = extractArrayItemMock({
+          items: {
+            type: 'object',
+            properties: { a: { type: 'string' } },
+          },
+          propertyName: '(Cat | Dog) | null',
+          operationId: 'getThings',
+          tags: [],
+          mapValue: '{a: faker.string.alpha()}',
+          context: createContextWithArrayItems(),
+          splitMockImplementations,
+          imports,
+        });
+
+        expect(call).toBeUndefined();
+        expect(splitMockImplementations).toHaveLength(0);
+        expect(imports).toHaveLength(0);
+      });
+    });
   });
 
   it('skips $ref components/schemas items when schemas: true emits consolidated factories', () => {

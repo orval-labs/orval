@@ -7,6 +7,7 @@
 import type {
   CatalogItems,
   GetCatalogItemsInline200Item,
+  GetNullableCatalogItems200Item,
   GetNullableList200,
   Items,
 } from './model';
@@ -157,6 +158,42 @@ export const getNullableList = async (
   } as getNullableListResponse;
 };
 
+export type getNullableCatalogItemsResponse200 = {
+  data: GetNullableCatalogItems200Item[] | null;
+  status: 200;
+};
+
+export type getNullableCatalogItemsResponseSuccess =
+  getNullableCatalogItemsResponse200 & {
+    headers: Headers;
+  };
+export type getNullableCatalogItemsResponse =
+  getNullableCatalogItemsResponseSuccess;
+
+export const getGetNullableCatalogItemsUrl = () => {
+  return `/nullable-catalog-items`;
+};
+
+export const getNullableCatalogItems = async (
+  options?: RequestInit,
+): Promise<getNullableCatalogItemsResponse> => {
+  const res = await fetch(getGetNullableCatalogItemsUrl(), {
+    ...options,
+    method: 'GET',
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getNullableCatalogItemsResponse['data'] = body
+    ? JSON.parse(body)
+    : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as getNullableCatalogItemsResponse;
+};
+
 export type KeysWithNull<O> = {
   [K in keyof O]-?: null extends O[K] ? K : never;
 }[keyof O];
@@ -202,6 +239,8 @@ export type GetNullableList200RowsItemMock = {
     Required<NonNullable<GetNullableList200RowsItem>>[K]
   >;
 };
+
+export type GetNullableCatalogItems200ItemMock = GetNullableCatalogItems200Item;
 
 export const getGetCatalogItemsResponseCatalogItemsItemMock = <
   O extends Partial<CatalogItemsItem> = {},
@@ -308,6 +347,36 @@ export const getGetNullableListResponseMock = <
     GetNullableList200Mock
   >;
 
+export const getGetNullableCatalogItemsResponseGetNullableCatalogItems200ItemNullItemMock =
+  <O extends Partial<GetNullableCatalogItems200Item> = {}>(
+    overrideResponse?: O,
+  ): MockWithNullableOverrides<
+    GetNullableCatalogItems200Item,
+    O,
+    GetNullableCatalogItems200ItemMock
+  > =>
+    ({
+      ...{
+        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      },
+      ...overrideResponse,
+    }) as MockWithNullableOverrides<
+      GetNullableCatalogItems200Item,
+      O,
+      GetNullableCatalogItems200ItemMock
+    >;
+
+export const getGetNullableCatalogItemsResponseMock = ():
+  | GetNullableCatalogItems200ItemMock[]
+  | null =>
+  Array.from(
+    { length: faker.number.int({ min: 1, max: 10 }) },
+    (_, i) => i + 1,
+  ).map(() => ({
+    ...(getGetNullableCatalogItemsResponseGetNullableCatalogItems200ItemNullItemMock() as GetNullableCatalogItems200ItemMock),
+  }));
+
 export const getGetCatalogItemsMockHandler = (
   overrideResponse?:
     | CatalogItems
@@ -405,10 +474,39 @@ export const getGetNullableListMockHandler = (
     options,
   );
 };
+
+export const getGetNullableCatalogItemsMockHandler = (
+  overrideResponse?:
+    | GetNullableCatalogItems200Item[]
+    | null
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) =>
+        | Promise<GetNullableCatalogItems200Item[] | null>
+        | GetNullableCatalogItems200Item[]
+        | null),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    '*/nullable-catalog-items',
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetNullableCatalogItemsResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
 export const getMSWArrayItemFactoriesUnexportedTopLevelArrayItemAliasesMock =
   () => [
     getGetCatalogItemsMockHandler(),
     getGetCatalogItemsInlineMockHandler(),
     getGetCatalogItemsShortMockHandler(),
     getGetNullableListMockHandler(),
+    getGetNullableCatalogItemsMockHandler(),
   ];

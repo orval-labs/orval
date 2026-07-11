@@ -8,6 +8,7 @@
 export * from './catalogItems';
 export * from './catalogItemsItem';
 export * from './getCatalogItemsInline200Item';
+export * from './getNullableCatalogItems200Item';
 export * from './getNullableList200';
 export * from './getNullableList200RowsItem';
 export * from './items';
