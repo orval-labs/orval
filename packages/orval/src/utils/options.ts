@@ -291,7 +291,7 @@ function normalizeAngularBaseUrl(
     );
   }
 
-  if (outputBaseUrl) {
+  if (outputBaseUrl !== undefined) {
     throw new Error(
       styleText(
         'red',

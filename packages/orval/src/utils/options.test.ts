@@ -733,6 +733,39 @@ describe('normalizeOptions', () => {
       }
     });
 
+    it('throws when combined with an empty-string output.baseUrl', async () => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await expect(
+          normalizeOptions(
+            {
+              input: {
+                target: {
+                  openapi: '3.1.0',
+                  info: { title: 'Test', version: '1.0.0' },
+                  paths: {},
+                },
+              },
+              output: {
+                target: './generated.ts',
+                client: 'angular',
+                baseUrl: '',
+                override: {
+                  angular: {
+                    baseUrl: { apiId: 'example-api' },
+                  },
+                },
+              },
+            },
+            workspace,
+          ),
+        ).rejects.toThrow(/output\.baseUrl/);
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+
     it('warns when configured for a non-Angular client', async () => {
       const workspace = await createTempWorkspace();
       logWarningSpy.mockClear();
