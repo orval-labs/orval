@@ -147,19 +147,19 @@ export const PatchPetByIdAccept = {
  * @experimental httpResource is experimental (Angular v19.2+)
  */
 export function searchPetsResource(
-  params: Signal<SearchPetsParams> | undefined,
+  params: Signal<SearchPetsParams>,
   version: Signal<number> | undefined,
   options: OrvalHttpResourceOptions<PetsOutput, unknown, true> & {
     defaultValue: NoInfer<PetsOutput>;
   },
 ): HttpResourceRef<PetsOutput>;
 export function searchPetsResource(
-  params?: Signal<SearchPetsParams>,
+  params: Signal<SearchPetsParams>,
   version?: Signal<number>,
   options?: OrvalHttpResourceOptions<PetsOutput, unknown, true>,
 ): HttpResourceRef<PetsOutput | undefined>;
 export function searchPetsResource(
-  params?: Signal<SearchPetsParams>,
+  params: Signal<SearchPetsParams>,
   version?: Signal<number>,
   options?: OrvalHttpResourceOptions<PetsOutput, unknown, true>,
 ): HttpResourceRef<PetsOutput | undefined> {
@@ -207,49 +207,39 @@ export function listPetsResource(
     | OrvalHttpResourceOptions<PetsOutput, unknown, true>
     | OrvalHttpResourceOptions<string, string, true>,
 ): HttpResourceRef<PetsOutput | string | undefined> {
-  const request = {
-    url: `/v${version?.() ?? 1}/pets`,
-    params: filterParams(params?.() ?? {}, new Set<string>([])),
+  const buildRequest = (): HttpResourceRequest => {
+    const request = {
+      url: `/v${version?.() ?? 1}/pets`,
+      params: filterParams(params?.() ?? {}, new Set<string>([])),
+    };
+    const normalizedRequest: HttpResourceRequest = request;
+    return {
+      ...normalizedRequest,
+      headers:
+        normalizedRequest.headers instanceof HttpHeaders
+          ? normalizedRequest.headers.set('Accept', accept)
+          : { ...(normalizedRequest.headers ?? {}), Accept: accept },
+    };
   };
-  const normalizedRequest: HttpResourceRequest = request;
-  const headers =
-    normalizedRequest.headers instanceof HttpHeaders
-      ? normalizedRequest.headers.set('Accept', accept)
-      : { ...(normalizedRequest.headers ?? {}), Accept: accept };
 
   if (accept.includes('json') || accept.includes('+json')) {
-    return httpResource<PetsOutput>(
-      () => ({
-        ...normalizedRequest,
-        headers,
-      }),
-      {
-        ...(options ?? {}),
-        parse: Pets.parse,
-      } as unknown as OrvalHttpResourceOptions<PetsOutput, unknown, true>,
-    );
+    return httpResource<PetsOutput>(buildRequest, {
+      ...(options ?? {}),
+      parse: Pets.parse,
+    } as unknown as OrvalHttpResourceOptions<PetsOutput, unknown, true>);
   }
 
   if (accept.startsWith('text/') || accept.includes('xml')) {
     return httpResource.text<string>(
-      () => ({
-        ...normalizedRequest,
-        headers,
-      }),
+      buildRequest,
       options as unknown as OrvalHttpResourceOptions<string, string, true>,
     );
   }
 
-  return httpResource<PetsOutput>(
-    () => ({
-      ...normalizedRequest,
-      headers,
-    }),
-    {
-      ...(options ?? {}),
-      parse: Pets.parse,
-    } as unknown as OrvalHttpResourceOptions<PetsOutput, unknown, true>,
-  );
+  return httpResource<PetsOutput>(buildRequest, {
+    ...(options ?? {}),
+    parse: Pets.parse,
+  } as unknown as OrvalHttpResourceOptions<PetsOutput, unknown, true>);
 }
 
 /**
@@ -281,46 +271,36 @@ export function showPetByIdResource(
     | OrvalHttpResourceOptions<string, string, true>
     | OrvalHttpResourceOptions<PetOutput, unknown, true>,
 ): HttpResourceRef<string | PetOutput | undefined> {
-  const request = `/v${version?.() ?? 1}/pets/${petId()}`;
-  const normalizedRequest: HttpResourceRequest = { url: request };
-  const headers =
-    normalizedRequest.headers instanceof HttpHeaders
-      ? normalizedRequest.headers.set('Accept', accept)
-      : { ...(normalizedRequest.headers ?? {}), Accept: accept };
+  const buildRequest = (): HttpResourceRequest => {
+    const request = `/v${version?.() ?? 1}/pets/${petId()}`;
+    const normalizedRequest: HttpResourceRequest = { url: request };
+    return {
+      ...normalizedRequest,
+      headers:
+        normalizedRequest.headers instanceof HttpHeaders
+          ? normalizedRequest.headers.set('Accept', accept)
+          : { ...(normalizedRequest.headers ?? {}), Accept: accept },
+    };
+  };
 
   if (accept.includes('json') || accept.includes('+json')) {
-    return httpResource<PetOutput>(
-      () => ({
-        ...normalizedRequest,
-        headers,
-      }),
-      {
-        ...(options ?? {}),
-        parse: Pet.parse,
-      } as unknown as OrvalHttpResourceOptions<PetOutput, unknown, true>,
-    );
+    return httpResource<PetOutput>(buildRequest, {
+      ...(options ?? {}),
+      parse: Pet.parse,
+    } as unknown as OrvalHttpResourceOptions<PetOutput, unknown, true>);
   }
 
   if (accept.startsWith('text/') || accept.includes('xml')) {
     return httpResource.text<string>(
-      () => ({
-        ...normalizedRequest,
-        headers,
-      }),
+      buildRequest,
       options as unknown as OrvalHttpResourceOptions<string, string, true>,
     );
   }
 
-  return httpResource<PetOutput>(
-    () => ({
-      ...normalizedRequest,
-      headers,
-    }),
-    {
-      ...(options ?? {}),
-      parse: Pet.parse,
-    } as unknown as OrvalHttpResourceOptions<PetOutput, unknown, true>,
-  );
+  return httpResource<PetOutput>(buildRequest, {
+    ...(options ?? {}),
+    parse: Pet.parse,
+  } as unknown as OrvalHttpResourceOptions<PetOutput, unknown, true>);
 }
 
 /**

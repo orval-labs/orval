@@ -134,6 +134,30 @@ test('angular issue-3326 paramsFilter replaces the built-in filter', async () =>
   expect(content).not.toContain('function filterParams(');
 });
 
+test('angular issue-3713 multi-content resources read signals inside the httpResource factory', async () => {
+  // Multi-content-type httpResource resources used to build the request
+  // object (including param/path signal reads) eagerly, before httpResource()
+  // was called — Angular only tracks signals read during factory execution,
+  // so these resources never refetched when inputs changed. See #3713.
+  const file = generated('angular', 'http-resource-multi-content', 'endpoints.ts');
+  const content = await readFile(file, 'utf8');
+  // listItemsResource is emitted as two narrow overloads followed by the
+  // implementation signature; only the implementation has a body, so anchor
+  // on its *last* occurrence.
+  const start = content.lastIndexOf('export function listItemsResource(');
+  const end = content.indexOf('export function', start + 1);
+  const impl = content.slice(start, end === -1 ? undefined : end);
+
+  const buildRequestIdx = impl.indexOf('const buildRequest');
+  expect(buildRequestIdx).toBeGreaterThan(-1);
+  expect(impl.indexOf('params?.()')).toBeGreaterThan(buildRequestIdx);
+  // Prettier may wrap the call across lines (`httpResource<Items>(\n
+  // buildRequest,`), so allow whitespace between the callee and the arg.
+  expect(impl).toMatch(/httpResource<Items>\(\s*buildRequest/);
+  expect(impl).toMatch(/httpResource\.text<string>\(\s*buildRequest/);
+  expect(impl).not.toMatch(/\(\)\s*=>\s*\(\{\s*\.\.\.normalizedRequest/);
+});
+
 test('fetch arrayFormat repeat serializes arrays as repeated keys', async () => {
   const content = await readFile(
     generated('fetch', 'array-format-repeat', 'endpoints.ts'),

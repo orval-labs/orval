@@ -349,9 +349,14 @@ const withSignal = (
   options: { readonly hasDefault?: boolean } = {},
 ): SignalProp => {
   const type = getTypeWithoutDefault(prop.definition);
+  // `prop.default` is `unknown`: for QUERY_PARAM/BODY/HEADER props (the only
+  // ones that reach this fallback — PARAM always supplies `options.hasDefault`
+  // explicitly) core always sets it to the sentinel `false`, never a real
+  // default value, so checking `!== undefined` is always (wrongly) true.
+  // Guard against the boolean sentinel so only a genuine default value counts.
   const derivedDefault =
     getDefaultValueFromImplementation(prop.implementation) !== undefined ||
-    prop.default !== undefined;
+    (typeof prop.default !== 'boolean' && prop.default !== undefined);
   const hasDefault = options.hasDefault ?? derivedDefault;
   const nameMatch = /^([^:]+):/.exec(prop.definition);
   const namePart = nameMatch ? nameMatch[1] : prop.name;
@@ -1043,18 +1048,12 @@ const buildHttpResourceFunction = (
         factory === 'httpResource'
           ? getBranchReturnType(type)
           : getHttpResourceRawType(factory);
-      return `return ${factory}<${returnType}>(() => ({
-      ...normalizedRequest,
-      headers,
-    }), ${getBranchOptions(type)});`;
+      return `return ${factory}<${returnType}>(buildRequest, ${getBranchOptions(type)});`;
     };
 
     const fallbackReturn = fallbackType
       ? buildFallbackReturn(fallbackType)
-      : `return httpResource<${parsedDataType}>(() => ({
-      ...normalizedRequest,
-      headers,
-    }), ${getBranchOptions()});`;
+      : `return httpResource<${parsedDataType}>(buildRequest, ${getBranchOptions()});`;
 
     const normalizeRequest = isUrlOnly
       ? `const normalizedRequest: HttpResourceRequest = { url: request };`
@@ -1067,34 +1066,38 @@ ${branchOverloads}
 export function ${resourceName}(
     ${implementationArgsWithDefault}
 ): HttpResourceRef<${unionReturnType} | undefined> {
-  ${bodyForm ? `${bodyForm};` : ''}
-  const request = ${request};
-  ${normalizeRequest}
-  const headers = normalizedRequest.headers instanceof HttpHeaders
-    ? normalizedRequest.headers.set('Accept', accept)
-    : { ...(normalizedRequest.headers ?? {}), Accept: accept };
+  const buildRequest = (): HttpResourceRequest => {
+    ${bodyForm ? `${bodyForm};` : ''}
+    const request = ${request};
+    ${normalizeRequest}
+    return {
+      ...normalizedRequest,
+      headers: normalizedRequest.headers instanceof HttpHeaders
+        ? normalizedRequest.headers.set('Accept', accept)
+        : { ...(normalizedRequest.headers ?? {}), Accept: accept },
+    };
+  };
 
   if (accept.includes('json') || accept.includes('+json')) {
-    return httpResource<${jsonType ? getBranchReturnType(jsonType) : parsedDataType}>(() => ({
-      ...normalizedRequest,
-      headers,
-    }), ${getBranchOptions(jsonType)});
+    return httpResource<${jsonType ? getBranchReturnType(jsonType) : parsedDataType}>(buildRequest, ${getBranchOptions(jsonType)});
   }
 
   if (accept.startsWith('text/') || accept.includes('xml')) {
-    return httpResource.text<string>(() => ({
-      ...normalizedRequest,
-      headers,
-    }), ${getBranchOptions(textType)});
+    return httpResource.text<string>(buildRequest, ${getBranchOptions(textType)});
   }
 
   ${
+    blobType
+      ? `if (accept.startsWith('image/') || accept.includes('blob')) {
+    return httpResource.blob<Blob>(buildRequest, ${getBranchOptions(blobType)});
+  }
+
+  `
+      : ''
+  }${
     arrayBufferType
       ? `if (accept.includes('octet-stream') || accept.includes('pdf')) {
-    return httpResource.arrayBuffer<ArrayBuffer>(() => ({
-      ...normalizedRequest,
-      headers,
-    }), ${getBranchOptions(arrayBufferType)});
+    return httpResource.arrayBuffer<ArrayBuffer>(buildRequest, ${getBranchOptions(arrayBufferType)});
   }
 
   `
