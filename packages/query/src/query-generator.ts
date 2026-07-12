@@ -358,9 +358,17 @@ const generatePrefetch = ({
 };
 
 const generateQueryImplementation = ({
-  queryOption: { name, queryParam, options, type, queryKeyFnName },
+  queryOption: {
+    name,
+    typeName: optionTypeName,
+    queryParam,
+    options,
+    type,
+    queryKeyFnName,
+  },
   operationId,
   operationName,
+  typeName,
   queryProperties,
   queryKeyProperties,
   queryParams,
@@ -389,6 +397,7 @@ const generateQueryImplementation = ({
 }: {
   queryOption: {
     name: string;
+    typeName: string;
     options?: object | boolean;
     type: (typeof QueryType)[keyof typeof QueryType];
     queryParam?: string;
@@ -397,6 +406,7 @@ const generateQueryImplementation = ({
   isRequestOptions: boolean;
   operationId: string;
   operationName: string;
+  typeName: string;
   queryProperties: string;
   queryKeyProperties: string;
   params: GetterParams;
@@ -500,7 +510,7 @@ const generateQueryImplementation = ({
   });
 
   const errorType = getQueryErrorType(
-    operationName,
+    typeName,
     response,
     httpClient,
     mutator,
@@ -842,9 +852,9 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
 ${queryOptionsFn}
 
 export type ${pascal(
-    name,
+    optionTypeName,
   )}QueryResult = NonNullable<Awaited<ReturnType<${dataType}>>>
-export type ${pascal(name)}QueryError = ${errorType}
+export type ${pascal(optionTypeName)}QueryError = ${errorType}
 
 ${adapter.shouldGenerateOverrideTypes() ? overrideTypes : ''}
 ${doc}
@@ -919,6 +929,7 @@ export const generateQueryHook = async (
   const {
     queryParams,
     operationName,
+    typeName,
     body,
     props: _props,
     verb,
@@ -1064,6 +1075,7 @@ export const generateQueryHook = async (
         ? [
             {
               name: camel(`${operationName}-infinite`),
+              typeName: camel(`${typeName}-infinite`),
               options: query.options,
               type: QueryType.INFINITE,
               queryParam: query.useInfiniteQueryParam,
@@ -1075,6 +1087,7 @@ export const generateQueryHook = async (
         ? [
             {
               name: operationName,
+              typeName,
               options: query.options,
               type: QueryType.QUERY,
               queryKeyFnName: camel(`get-${operationName}-query-key`),
@@ -1085,6 +1098,7 @@ export const generateQueryHook = async (
         ? [
             {
               name: camel(`${operationName}-suspense`),
+              typeName: camel(`${typeName}-suspense`),
               options: query.options,
               type: QueryType.SUSPENSE_QUERY,
               queryKeyFnName: camel(`get-${operationName}-query-key`),
@@ -1095,6 +1109,7 @@ export const generateQueryHook = async (
         ? [
             {
               name: camel(`${operationName}-suspense-infinite`),
+              typeName: camel(`${typeName}-suspense-infinite`),
               options: query.options,
               type: QueryType.SUSPENSE_INFINITE,
               queryParam: query.useInfiniteQueryParam,
@@ -1180,6 +1195,7 @@ ${queryKeyFns}`;
         queryOption,
         operationId,
         operationName,
+        typeName,
         queryProperties,
         queryKeyProperties,
         params,

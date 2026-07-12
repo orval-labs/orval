@@ -5007,6 +5007,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -5051,6 +5052,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -5130,6 +5132,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -5174,6 +5177,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -5217,6 +5221,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -5260,6 +5265,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -5303,6 +5309,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -5347,6 +5354,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
         verb: 'post',
         operationId: 'createCat',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -5408,6 +5416,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
         verb: 'post',
         operationId: 'createCat',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -5472,6 +5481,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
         verb: 'post',
         operationId: 'createCat',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -5526,6 +5536,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -5572,6 +5583,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -5645,6 +5657,7 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
         pathRoute: '/health',
         verb: 'get',
         operationName: 'healthCheck',
+        typeName: 'healthCheck',
         override: {
           zod: { strict: {}, generate: { response: true }, coerce: {} },
         },
@@ -5683,6 +5696,7 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
         pathRoute: '/pets/{petId}',
         verb: 'delete',
         operationName: 'deletePet',
+        typeName: 'deletePet',
         override: {
           zod: { strict: {}, generate: { response: true }, coerce: {} },
         },
@@ -5721,6 +5735,7 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
         pathRoute: '/cart',
         verb: 'post',
         operationName: 'clearCart',
+        typeName: 'clearCart',
         override: {
           zod: { strict: {}, generate: { response: true }, coerce: {} },
         },
@@ -5770,6 +5785,7 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
         pathRoute: '/items',
         verb: 'post',
         operationName: 'createItem',
+        typeName: 'createItem',
         override: {
           zod: { strict: {}, generate: { response: true }, coerce: {} },
         },
@@ -5819,6 +5835,7 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
         pathRoute: '/jobs',
         verb: 'post',
         operationName: 'runItem',
+        typeName: 'runItem',
         override: {
           zod: { strict: {}, generate: { response: true }, coerce: {} },
         },
@@ -5857,6 +5874,7 @@ describe('generateResponseSchemaForNonJsonContentTypes', () => {
         pathRoute: '/items',
         verb: 'post',
         operationName: 'createItem',
+        typeName: 'createItem',
         override: {
           zod: { strict: {}, generate: { response: true }, coerce: {} },
         },
@@ -6033,6 +6051,7 @@ describe('generateFormData', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -6245,6 +6264,7 @@ describe('generateFormUrlEncoded', () => {
         pathRoute: '/token',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -6290,6 +6310,7 @@ describe('generateFormUrlEncoded', () => {
         pathRoute: '/upload',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -6336,6 +6357,7 @@ describe('generateFormUrlEncoded', () => {
         pathRoute: '/upload',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -6433,6 +6455,7 @@ describe('generateZodWithEdgeCases', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -6525,6 +6548,7 @@ describe('generateZodWithLiteralProperty', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -6636,6 +6660,7 @@ describe('generateZod required defaults regression (#2987)', () => {
         pathRoute: '/gizmo',
         verb: 'get',
         operationName: 'getGizmo',
+        typeName: 'getGizmo',
         override: {
           zod: {
             strict: {
@@ -8488,6 +8513,7 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
         pathRoute: '/upload',
         verb: 'post',
         operationName: 'upload',
+        typeName: 'upload',
         override: zodOverride,
       } as unknown as Parameters<typeof generateZod>[0],
       schema,
@@ -8579,6 +8605,7 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
         pathRoute: '/upload-form',
         verb: 'post',
         operationName: 'uploadForm',
+        typeName: 'uploadForm',
         override: zodOverride,
       } as unknown as Parameters<typeof generateZod>[0],
       schema,
@@ -8698,6 +8725,7 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
         pathRoute: '/upload-form',
         verb: 'post',
         operationName: 'uploadForm',
+        typeName: 'uploadForm',
         override: {
           ...zodOverride,
           zod: {
@@ -9570,6 +9598,7 @@ describe('generateZod (useBrandedTypes)', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: brandedZodOverrideDisabled,
       } as unknown as Parameters<typeof generateZod>[0],
       basicApiSchema,
@@ -9585,6 +9614,7 @@ describe('generateZod (useBrandedTypes)', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -9629,6 +9659,7 @@ describe('generateZod (useBrandedTypes)', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: brandedZodOverride,
       } as unknown as Parameters<typeof generateZod>[0],
       withOutputZodVersion(basicApiSchema, 3),
@@ -9661,6 +9692,7 @@ describe('generateZod (useBrandedTypes)', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: brandedZodOverride,
       } as unknown as Parameters<typeof generateZod>[0],
       v4ApiSchema,
@@ -9734,6 +9766,7 @@ describe('generateZod (useBrandedTypes)', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             ...brandedZodOverride.zod,
@@ -9820,6 +9853,7 @@ describe('generateZod (useBrandedTypes)', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             ...brandedZodOverride.zod,
@@ -9894,6 +9928,7 @@ describe('generateZod (useBrandedTypes)', () => {
         pathRoute: '/cats',
         verb: 'get',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             ...brandedZodOverrideDisabled.zod,
@@ -9924,6 +9959,7 @@ describe('generateZod (useBrandedTypes)', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             ...brandedZodOverride.zod,
@@ -10018,6 +10054,7 @@ describe('generateZod (useBrandedTypes)', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             ...brandedZodOverride.zod,
@@ -10048,6 +10085,7 @@ describe('generateZod (useBrandedTypes)', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             ...brandedZodOverride.zod,
@@ -10076,6 +10114,7 @@ describe('generateZod (useBrandedTypes)', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             ...brandedZodOverride.zod,
@@ -10948,6 +10987,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
           pathRoute: '/lizard',
           verb: 'get',
           operationName: 'getLizard',
+          typeName: 'getLizard',
           override: { zod: makeZodOverride() },
         } as unknown as Parameters<typeof generateZod>[0],
         spec,
@@ -10982,6 +11022,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
           pathRoute: '/cat',
           verb: 'get',
           operationName: 'getCat',
+          typeName: 'getCat',
           override: { zod: makeZodOverride() },
         } as unknown as Parameters<typeof generateZod>[0],
         spec,
@@ -11046,6 +11087,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
           pathRoute: '/broken',
           verb: 'get',
           operationName: 'getBroken',
+          typeName: 'getBroken',
           override: { zod: makeZodOverride() },
         } as unknown as Parameters<typeof generateZod>[0],
         spec,
@@ -11088,6 +11130,7 @@ describe('$dynamicRef / $dynamicAnchor', () => {
           pathRoute: '/mixed',
           verb: 'get',
           operationName: 'getMixed',
+          typeName: 'getMixed',
           override: { zod: makeZodOverride() },
         } as unknown as Parameters<typeof generateZod>[0],
         spec,
@@ -11109,6 +11152,7 @@ describe('generateZod preprocess regression (#3511)', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {
@@ -11168,6 +11212,7 @@ describe('generateZod preprocess regression (#3511)', () => {
         pathRoute: '/cats',
         verb: 'post',
         operationName: 'test',
+        typeName: 'test',
         override: {
           zod: {
             strict: {

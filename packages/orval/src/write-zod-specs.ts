@@ -108,6 +108,7 @@ interface WriteZodVerbResponseType {
 
 interface WriteZodSchemasFromVerbsEntry {
   operationName: string;
+  typeName: string;
   tags?: string[];
   originalOperation: {
     requestBody?: OpenApiRequestBodyObject | OpenApiReferenceObject;
@@ -1099,7 +1100,7 @@ export async function writeZodSchemasFromVerbs(
       shouldGenerate.body && bodySchema
         ? [
             {
-              name: `${pascal(verbOption.operationName)}Body`,
+              name: `${pascal(verbOption.typeName)}Body`,
               schema: useReusableSchemas
                 ? bodySchema
                 : dereference(bodySchema, zodContext),
@@ -1125,7 +1126,7 @@ export async function writeZodSchemasFromVerbs(
       pathParams.length > 0
         ? [
             {
-              name: `${pascal(verbOption.operationName)}PathParameters`,
+              name: `${pascal(verbOption.typeName)}PathParameters`,
               schema: {
                 type: 'object' as const,
                 properties: Object.fromEntries(
@@ -1158,7 +1159,7 @@ export async function writeZodSchemasFromVerbs(
       shouldGenerate.query && queryParams && queryParams.length > 0
         ? [
             {
-              name: `${pascal(verbOption.operationName)}Params`,
+              name: `${pascal(verbOption.typeName)}Params`,
               schema: {
                 type: 'object' as const,
                 properties: Object.fromEntries(
@@ -1191,7 +1192,7 @@ export async function writeZodSchemasFromVerbs(
       shouldGenerate.header && headerParams && headerParams.length > 0
         ? [
             {
-              name: `${pascal(verbOption.operationName)}Headers`,
+              name: `${pascal(verbOption.typeName)}Headers`,
               schema: {
                 type: 'object' as const,
                 properties: Object.fromEntries(

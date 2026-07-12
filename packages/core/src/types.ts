@@ -140,7 +140,7 @@ export interface NormalizedOverrideOutput {
     operation: OpenApiOperationObject,
     route: string,
     verb: Verbs,
-  ) => string;
+  ) => string | [string, string];
 
   requestOptions: Record<string, unknown> | boolean;
   useDates?: boolean;
@@ -211,7 +211,7 @@ export interface NormalizedOperationOptions {
     operation: OpenApiOperationObject,
     route: string,
     verb: Verbs,
-  ) => string;
+  ) => string | [string, string];
   fetch?: FetchOptions;
   formData?: NormalizedFormDataType<NormalizedMutator>;
   formUrlEncoded?: boolean | NormalizedMutator;
@@ -709,7 +709,7 @@ export interface OverrideOutput {
     operation: OpenApiOperationObject,
     route: string,
     verb: Verbs,
-  ) => string;
+  ) => string | [string, string];
   fetch?: FetchOptions;
 
   requestOptions?: Record<string, unknown> | boolean;
@@ -1206,7 +1206,7 @@ export interface OperationOptions {
     operation: OpenApiOperationObject,
     route: string,
     verb: Verbs,
-  ) => string;
+  ) => string | [string, string];
   fetch?: FetchOptions;
   formData?: boolean | Mutator | FormDataType<Mutator>;
   formUrlEncoded?: boolean | Mutator;
@@ -1571,6 +1571,7 @@ export interface GeneratorVerbOptions {
   tags: string[];
   operationId: string;
   operationName: string;
+  typeName: string;
   response: GetterResponse;
   body: GetterBody;
   headers?: GetterQueryParam;

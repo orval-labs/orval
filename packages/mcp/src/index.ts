@@ -99,7 +99,7 @@ export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
   const importSchemaNames = new Set(
     Object.values(verbOptions).flatMap((verbOption) => {
       const imports = [];
-      const pascalOperationName = pascal(verbOption.operationName);
+      const pascalOperationName = pascal(verbOption.typeName);
 
       if (verbOption.queryParams) {
         imports.push(`${pascalOperationName}Params`);
@@ -253,7 +253,7 @@ export const generateServer = (
 
   const toolImplementations = Object.values(verbOptions)
     .map((verbOption) => {
-      const pascalOperationName = pascal(verbOption.operationName);
+      const pascalOperationName = pascal(verbOption.typeName);
       const inputSchemaTypes = [];
       if (verbOption.params.length > 0)
         inputSchemaTypes.push(`pathParams: ${pascalOperationName}Params`);
@@ -313,7 +313,7 @@ tools.${verbOption.operationName} = server.registerTool(
     .flatMap((verbOption) => {
       const imports = [];
 
-      const pascalOperationName = pascal(verbOption.operationName);
+      const pascalOperationName = pascal(verbOption.typeName);
 
       if (verbOption.headers) imports.push(`  ${pascalOperationName}Header`);
       if (verbOption.params.length > 0)

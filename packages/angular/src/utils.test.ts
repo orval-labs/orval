@@ -375,6 +375,7 @@ const makeVerb = (operationId: string, tags: string[]): GeneratorVerbOptions =>
   ({
     operationId,
     operationName: operationId,
+    typeName: operationId,
     verb: 'get' as Verbs,
     route: `/api/${operationId}`,
     pathRoute: `/api/${operationId}`,

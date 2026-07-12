@@ -1397,7 +1397,7 @@ export const parseParameters = ({
 };
 
 const generateEffectRoute = (
-  { operationName, verb, override }: GeneratorVerbOptions,
+  { typeName, verb, override }: GeneratorVerbOptions,
   { pathRoute, context }: GeneratorOptions,
 ) => {
   const spec = context.spec.paths?.[pathRoute];
@@ -1415,7 +1415,7 @@ const generateEffectRoute = (
   const parsedParameters = parseParameters({
     data: parameters,
     context,
-    operationName,
+    operationName: typeName,
     strict: effectOptions.strict,
     generate: effectOptions.generate,
   });
@@ -1424,7 +1424,7 @@ const generateEffectRoute = (
   const parsedBody = parseBodyAndResponse({
     data: requestBody,
     context,
-    name: camel(`${operationName}-body`),
+    name: camel(`${typeName}-body`),
     strict: effectOptions.strict.body,
     generate: effectOptions.generate.body,
     parseType: 'body',
@@ -1439,14 +1439,14 @@ const generateEffectRoute = (
     parseBodyAndResponse({
       data: response,
       context,
-      name: camel(`${operationName}-${code}-response`),
+      name: camel(`${typeName}-${code}-response`),
       strict: effectOptions.strict.response,
       generate: effectOptions.generate.response,
       parseType: 'response',
     }),
   );
 
-  const pascalOperationName = pascal(operationName);
+  const pascalTypeName = pascal(typeName);
   const useBrandedTypes = effectOptions.useBrandedTypes;
   const brand = (name: string) => (useBrandedTypes ? name : undefined);
 
@@ -1454,32 +1454,32 @@ const generateEffectRoute = (
     parsedParameters.params,
     context,
     effectOptions.strict.param,
-    brand(`${pascalOperationName}Params`),
+    brand(`${pascalTypeName}Params`),
   );
   const inputQueryParams = parseEffectValidationSchemaDefinition(
     parsedParameters.queryParams,
     context,
     effectOptions.strict.query,
-    brand(`${pascalOperationName}QueryParams`),
+    brand(`${pascalTypeName}QueryParams`),
   );
   const inputHeaders = parseEffectValidationSchemaDefinition(
     parsedParameters.headers,
     context,
     effectOptions.strict.header,
-    brand(`${pascalOperationName}Header`),
+    brand(`${pascalTypeName}Header`),
   );
   const inputBody = parseEffectValidationSchemaDefinition(
     parsedBody.input,
     context,
     effectOptions.strict.body,
-    brand(`${pascalOperationName}Body`),
+    brand(`${pascalTypeName}Body`),
   );
   const inputResponses = parsedResponses.map((parsedResponse, idx) =>
     parseEffectValidationSchemaDefinition(
       parsedResponse.input,
       context,
       effectOptions.strict.response,
-      brand(pascal(`${operationName}-${responses[idx][0]}-response`)),
+      brand(pascal(`${typeName}-${responses[idx][0]}-response`)),
     ),
   );
 
@@ -1497,24 +1497,24 @@ const generateEffectRoute = (
     implementation: [
       ...(inputParams.consts ? [inputParams.consts] : []),
       ...(inputParams.effect
-        ? [`export const ${pascalOperationName}Params = ${inputParams.effect}`]
+        ? [`export const ${pascalTypeName}Params = ${inputParams.effect}`]
         : []),
       ...(inputQueryParams.consts ? [inputQueryParams.consts] : []),
       ...(inputQueryParams.effect
         ? [
-            `export const ${pascalOperationName}QueryParams = ${inputQueryParams.effect}`,
+            `export const ${pascalTypeName}QueryParams = ${inputQueryParams.effect}`,
           ]
         : []),
       ...(inputHeaders.consts ? [inputHeaders.consts] : []),
       ...(inputHeaders.effect
-        ? [`export const ${pascalOperationName}Header = ${inputHeaders.effect}`]
+        ? [`export const ${pascalTypeName}Header = ${inputHeaders.effect}`]
         : []),
       ...(inputBody.consts ? [inputBody.consts] : []),
       ...(inputBody.effect
         ? [
             parsedBody.isArray
-              ? `export const ${pascalOperationName}BodyItem = ${inputBody.effect}
-export const ${pascalOperationName}Body = S.Array(${pascalOperationName}BodyItem)${
+              ? `export const ${pascalTypeName}BodyItem = ${inputBody.effect}
+export const ${pascalTypeName}Body = S.Array(${pascalTypeName}BodyItem)${
                   parsedBody.rules?.min
                     ? `.pipe(S.minItems(${parsedBody.rules.min}))`
                     : ''
@@ -1523,12 +1523,12 @@ export const ${pascalOperationName}Body = S.Array(${pascalOperationName}BodyItem
                     ? `.pipe(S.maxItems(${parsedBody.rules.max}))`
                     : ''
                 }`
-              : `export const ${pascalOperationName}Body = ${inputBody.effect}`,
+              : `export const ${pascalTypeName}Body = ${inputBody.effect}`,
           ]
         : []),
       ...inputResponses.flatMap((inputResponse, index) => {
         const operationResponse = pascal(
-          `${operationName}-${responses[index][0]}-response`,
+          `${typeName}-${responses[index][0]}-response`,
         );
         return [
           ...(inputResponse.consts ? [inputResponse.consts] : []),

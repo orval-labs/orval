@@ -1,0 +1,105 @@
+openapi: 3.0.3
+info:
+  title: Gateway Tuple Demo
+  version: 1.0.0
+paths:
+  /api/catalog/products:
+    get:
+      tags:
+        - catalog
+      operationId: getCatalogProducts
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A list of catalog products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+    post:
+      tags:
+        - catalog
+      operationId: createCatalogProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+  /api/catalog/products/{productId}:
+    get:
+      tags:
+        - catalog
+      operationId: getCatalogProductById
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A single product
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+  /api/inventory/stock:
+    get:
+      tags:
+        - inventory
+      operationId: getInventoryStock
+      parameters:
+        - name: warehouse
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Current stock levels
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+    post:
+      tags:
+        - inventory
+      operationId: updateInventoryStock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+components:
+  schemas:
+    Product:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: integer

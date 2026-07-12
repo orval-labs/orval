@@ -202,6 +202,7 @@ const createVerbOption = (
   ({
     operationId: 'getPetById',
     operationName: 'getPetById',
+    typeName: 'getPetById',
     verb: 'get',
     route: '/pets/${petId}',
     pathRoute: '/pets/{petId}',
@@ -554,6 +555,7 @@ describe('angular HttpClient generator', () => {
     it('still emits the shared helper when at least one operation lacks paramsFilter', () => {
       const verbWithFilter = createVerbOption({
         operationName: 'a',
+        typeName: 'a',
         queryParams: createQueryParams({
           schema: { name: 'AParams', model: '', imports: [] },
         }),
@@ -570,6 +572,7 @@ describe('angular HttpClient generator', () => {
       });
       const verbWithoutFilter = createVerbOption({
         operationName: 'b',
+        typeName: 'b',
         queryParams: createQueryParams({
           schema: { name: 'BParams', model: '', imports: [] },
         }),
@@ -871,6 +874,7 @@ describe('angular HttpClient generator', () => {
       const verbOption = createVerbOption({
         operationId: 'createPet',
         operationName: 'createPet',
+        typeName: 'createPet',
         verb: 'post',
         route: '/pets',
         pathRoute: '/pets',
@@ -912,6 +916,7 @@ describe('angular HttpClient generator', () => {
       const verbOption = createVerbOption({
         operationId: 'updatePet',
         operationName: 'updatePet',
+        typeName: 'updatePet',
         verb: 'put',
         route: '/pets/${petId}',
         pathRoute: '/pets/{petId}',
@@ -961,6 +966,7 @@ describe('angular HttpClient generator', () => {
       const verbOption = createVerbOption({
         operationId: 'deletePet',
         operationName: 'deletePet',
+        typeName: 'deletePet',
         verb: 'delete',
         route: '/pets/${petId}',
         pathRoute: '/pets/{petId}',
@@ -1032,6 +1038,7 @@ describe('angular HttpClient generator', () => {
       const verbOption = createVerbOption({
         operationId: 'authenticate',
         operationName: 'authenticate',
+        typeName: 'authenticate',
         verb: 'post',
         route: '/api/auth',
         pathRoute: '/api/auth',
@@ -1126,6 +1133,7 @@ describe('angular HttpClient generator', () => {
       const verbOption = createVerbOption({
         operationId: 'getPetFile',
         operationName: 'getPetFile',
+        typeName: 'getPetFile',
         response: baseResponse({
           definition: { success: 'Pet | string', errors: 'Error' },
           types: {
@@ -1159,6 +1167,7 @@ describe('angular HttpClient generator', () => {
       const verbOption = createVerbOption({
         operationId: 'updatePet',
         operationName: 'updatePet',
+        typeName: 'updatePet',
         verb: 'put',
         route: '/pets/${petId}',
         pathRoute: '/pets/{petId}',
@@ -1220,6 +1229,7 @@ describe('angular HttpClient generator', () => {
       const verbOption = createVerbOption({
         operationId: 'confirmReservation',
         operationName: 'confirmReservation',
+        typeName: 'confirmReservation',
         verb: 'post',
         route: '/reservations/${token}/confirm',
         pathRoute: '/reservations/{token}/confirm',
@@ -1304,6 +1314,7 @@ describe('angular HttpClient generator', () => {
       const verbOption = createVerbOption({
         operationId: 'updatePet',
         operationName: 'updatePet',
+        typeName: 'updatePet',
         verb: 'put',
         route: '/pets/${petId}',
         pathRoute: '/pets/{petId}',
@@ -1372,6 +1383,7 @@ describe('angular HttpClient generator', () => {
       const verbOption = createVerbOption({
         operationId: 'listPets',
         operationName: 'listPets',
+        typeName: 'listPets',
         route: '/pets',
         pathRoute: '/pets',
         params: [],
@@ -1421,6 +1433,7 @@ describe('angular HttpClient generator', () => {
       const verbOption = createVerbOption({
         operationId: 'deletePet',
         operationName: 'deletePet',
+        typeName: 'deletePet',
         verb: 'delete',
         route: '/pets/${petId}',
         pathRoute: '/pets/{petId}',
@@ -1481,6 +1494,7 @@ describe('angular HttpClient generator', () => {
       const verbOption = createVerbOption({
         operationId: 'listPets',
         operationName: 'listPets',
+        typeName: 'listPets',
         route: '/pets',
         pathRoute: '/pets',
         params: [],
@@ -1708,6 +1722,7 @@ describe('angular HttpClient generator', () => {
       const verbOption = createVerbOption({
         operationId: 'createPet',
         operationName: 'createPet',
+        typeName: 'createPet',
         verb: 'post',
         route: '/pets',
         pathRoute: '/pets',
@@ -1828,6 +1843,7 @@ describe('angular HttpClient generator', () => {
           getPetFile: createVerbOption({
             operationId: 'getPetFile',
             operationName: 'getPetFile',
+            typeName: 'getPetFile',
             response: baseResponse({
               definition: { success: 'Pet | string', errors: 'Error' },
               types: {
@@ -1910,6 +1926,7 @@ describe('angular HttpClient generator', () => {
       const verbOption = createVerbOption({
         operationId: 'listPets',
         operationName: 'listPets',
+        typeName: 'listPets',
         route: '/pets',
         pathRoute: '/pets',
         params: [],

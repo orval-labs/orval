@@ -2216,7 +2216,9 @@ Override by OpenAPI tag (same options as `operations`).
 
 **Type:** `Function`
 
-Custom function to override generated operation names:
+Custom function to override generated operation names.
+
+**Return `string`** to control both the method name and the type-name base together:
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -2231,6 +2233,46 @@ export default defineConfig({
   },
 });
 ```
+
+**Return `[methodName, typeNameBase]`** to decouple method names from type-identifier names. This is useful for gateway-aggregated specs where multiple services share the same REST patterns (`GET /products`, `GET /orders`) — bare method names are safe per-tag (each service class scopes them), but type names (`*Params`, `*Body`, `*Error`, `*Result`) need to be globally unique to avoid barrel-level collisions with `tags-split` + `splitByTags` + `indexFiles`:
+
+```ts title="orval.config.ts"
+import { pascal } from '@orval/core';
+
+export default defineConfig({
+  api: {
+    output: {
+      mode: 'tags-split',
+      schemas: { path: './model', splitByTags: true },
+      override: {
+        operationName: (_operation, route, verb) => {
+          const segments = route.split('/').filter(Boolean);
+          return [
+            `${verb}${pascal(segments.slice(2).join('-'))}`,  // getProducts
+            `${verb}${pascal(segments.slice(1).join('-'))}`,  // getCatalogProducts
+          ];
+        },
+      },
+    },
+  },
+});
+```
+
+Result:
+
+```ts
+// catalog/catalog.service.ts
+class CatalogService {
+  getProducts = (params: GetCatalogProductsParams) => ...;
+}
+
+// inventory/inventory.service.ts
+class InventoryService {
+  getProducts = (params: GetInventoryProductsParams) => ...;
+}
+```
+
+The first element controls the function/hook name. The second controls the base for all operation-specific TypeScript type identifiers (`*Params`, `*Body`, `*Error`, `*Result`, `*Accept`, zod/hono/effect schema names).
 
 ---
 

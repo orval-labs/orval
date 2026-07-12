@@ -2917,7 +2917,13 @@ export const parseParameters = ({
 };
 
 const generateZodRoute = async (
-  { operationId, operationName, verb, override }: GeneratorVerbOptions,
+  {
+    operationId,
+    operationName,
+    typeName,
+    verb,
+    override,
+  }: GeneratorVerbOptions,
   { pathRoute, context, output }: GeneratorOptions,
 ) => {
   const zodVariant = context.output.override.zod.variant;
@@ -2999,7 +3005,7 @@ const generateZodRoute = async (
       })
     : undefined;
 
-  const pascalOperationName = pascal(operationName);
+  const pascalTypeName = pascal(typeName);
   const makeParamsInjection = (
     location: ZodParamsInjection['location'],
     schemaSuffix: string,
@@ -3009,7 +3015,7 @@ const generateZodRoute = async (
           mutator: paramsMutator,
           operationId,
           location,
-          schemaName: `${pascalOperationName}${schemaSuffix}`,
+          schemaName: `${pascalTypeName}${schemaSuffix}`,
         }
       : undefined;
 
@@ -3225,14 +3231,14 @@ const generateZodRoute = async (
     return candidate;
   };
 
-  const paramsName = allocateExportName(`${pascalOperationName}Params`, false);
+  const paramsName = allocateExportName(`${pascalTypeName}Params`, false);
   const queryParamsName = allocateExportName(
-    `${pascalOperationName}QueryParams`,
+    `${pascalTypeName}QueryParams`,
     false,
   );
-  const headerName = allocateExportName(`${pascalOperationName}Header`, false);
+  const headerName = allocateExportName(`${pascalTypeName}Header`, false);
   const bodyName = allocateExportName(
-    `${pascalOperationName}Body`,
+    `${pascalTypeName}Body`,
     parsedBody.isArray,
   );
 
@@ -3267,7 +3273,7 @@ export const ${bodyName} = ${zodArrayWithBounds(bodyName + 'Item', parsedBody.ru
         : []),
       ...inputResponses.flatMap((inputResponse, index) => {
         const operationResponse = allocateExportName(
-          pascal(`${operationName}-${responses[index][0]}-response`),
+          pascal(`${typeName}-${responses[index][0]}-response`),
           parsedResponses[index].isArray,
         );
 

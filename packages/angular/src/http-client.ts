@@ -132,8 +132,8 @@ export const getAngularDependencies: ClientDependenciesBuilder = () => [
  *
  * @returns A PascalCase helper type/const name for the operation's `Accept` values.
  */
-export const getAcceptHelperName = (operationName: string) =>
-  `${pascal(operationName)}Accept`;
+export const getAcceptHelperName = (typeName: string) =>
+  `${pascal(typeName)}Accept`;
 
 /**
  * Collects the distinct successful response content types for a single
@@ -155,11 +155,11 @@ const toAcceptHelperKey = (contentType: string): string =>
     .toLowerCase();
 
 const buildAcceptHelper = (
-  operationName: string,
+  typeName: string,
   contentTypes: string[],
   output: ContextSpec['output'],
 ): string => {
-  const acceptHelperName = getAcceptHelperName(operationName);
+  const acceptHelperName = getAcceptHelperName(typeName);
   const unionValue = contentTypes
     .map((contentType) => `'${contentType}'`)
     .join(' | ');
@@ -200,9 +200,7 @@ export const buildAcceptHelpers = (
       );
       if (contentTypes.length <= 1) return [];
 
-      return [
-        buildAcceptHelper(verbOption.operationName, contentTypes, output),
-      ];
+      return [buildAcceptHelper(verbOption.typeName, contentTypes, output)];
     })
     .join('\n\n');
 
@@ -306,6 +304,7 @@ export const generateHttpClientImplementation = (
     headers,
     queryParams,
     operationName,
+    typeName,
     response,
     mutator,
     body,
@@ -404,7 +403,7 @@ export const generateHttpClientImplementation = (
   returnTypesRegistry.set(
     operationName,
     `export type ${pascal(
-      operationName,
+      typeName,
     )}ClientResult = NonNullable<${resultAliasType}>`,
   );
 
@@ -476,7 +475,7 @@ export const generateHttpClientImplementation = (
   const uniqueContentTypes = getUniqueContentTypes(successTypes);
   const hasMultipleContentTypes = uniqueContentTypes.length > 1;
   const acceptTypeName = hasMultipleContentTypes
-    ? getAcceptHelperName(operationName)
+    ? getAcceptHelperName(typeName)
     : undefined;
 
   const needsObserveBranching = isRequestOptions && !hasMultipleContentTypes;

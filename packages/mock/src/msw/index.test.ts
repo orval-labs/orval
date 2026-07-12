@@ -12,6 +12,7 @@ describe('generateMSW', () => {
   const mockVerbOptions = {
     operationId: 'getUser',
     operationName: 'getUser',
+    typeName: 'getUser',
     verb: 'get',
     tags: [],
     response: {
@@ -1416,6 +1417,7 @@ describe('arrayItems option', () => {
   const tenantsByRefVerbOptions = {
     operationId: 'getTenantsByRef',
     operationName: 'getTenantsByRef',
+    typeName: 'getTenantsByRef',
     verb: 'get',
     tags: ['tenants'],
     response: {
@@ -1565,6 +1567,7 @@ describe('strict mock types (#3525)', () => {
   const petVerbOptions = {
     operationId: 'getPet',
     operationName: 'getPet',
+    typeName: 'getPet',
     verb: 'get',
     tags: [],
     response: {
@@ -1648,6 +1651,7 @@ describe('strict mock types (#3525)', () => {
         ...petVerbOptions,
         operationId: 'getPet',
         operationName: 'getPetWithFormData',
+        typeName: 'getPetWithFormData',
       } as unknown as GeneratorVerbOptions,
       { ...baseOptions, mock: { type: OutputMockType.MSW } },
     );
@@ -1713,6 +1717,7 @@ describe('recursion guards for cyclic allOf schemas', () => {
     const verbOptions = {
       operationId: 'getRoot',
       operationName: 'getRoot',
+      typeName: 'getRoot',
       verb: 'get',
       tags: [],
       response: {

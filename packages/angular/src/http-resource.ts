@@ -831,7 +831,8 @@ const buildHttpResourceFunction = (
   route: string,
   output: NormalizedOutputOptions,
 ): string => {
-  const { operationName, response, props, params, mutator } = verbOption;
+  const { operationName, typeName, response, props, params, mutator } =
+    verbOption;
 
   const dataType = response.definition.success || 'unknown';
   const omitParse = isZodSchemaOutput(output);
@@ -866,7 +867,7 @@ const buildHttpResourceFunction = (
   resourceReturnTypesRegistry.set(
     operationName,
     `export type ${pascal(
-      operationName,
+      typeName,
     )}ResourceResult = NonNullable<${overallReturnType}>`,
   );
   const uniqueContentTypes = getUniqueContentTypes(successTypes);
@@ -905,7 +906,7 @@ const buildHttpResourceFunction = (
 
   if (uniqueContentTypes.length > 1) {
     const defaultContentType = jsonContentType ?? defaultSuccess.contentType;
-    const acceptTypeName = getAcceptHelperName(operationName);
+    const acceptTypeName = getAcceptHelperName(typeName);
     const requiredProps = signalProps.filter(
       (_, index) => props[index]?.required && !props[index]?.default,
     );
