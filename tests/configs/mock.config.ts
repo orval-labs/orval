@@ -1052,6 +1052,133 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  artifactGroupsFetch: {
+    output: {
+      target: '../generated/mock/artifact-groups-fetch/client/endpoints.ts',
+      client: 'fetch',
+      mode: 'tags-split',
+      tagsSplitDeduplication: true,
+      artifacts: {
+        schemas: '../generated/mock/artifact-groups-fetch/schemas',
+        msw: '../generated/mock/artifact-groups-fetch/msw',
+        faker: '../generated/mock/artifact-groups-fetch/faker',
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // The following artifactGroups* entries exist solely to prove
+  // `output.artifacts` (issue #3704) is client-agnostic: the barrel writer
+  // reads generated implementation + extra-file paths generically and never
+  // branches on `output.client`. One entry per remaining client package.
+  artifactGroupsAxios: {
+    output: {
+      target: '../generated/mock/artifact-groups-axios/client/endpoints.ts',
+      client: 'axios',
+      mode: 'tags-split',
+      tagsSplitDeduplication: true,
+      artifacts: {
+        schemas: '../generated/mock/artifact-groups-axios/schemas',
+        msw: '../generated/mock/artifact-groups-axios/msw',
+        faker: '../generated/mock/artifact-groups-axios/faker',
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  artifactGroupsReactQuery: {
+    output: {
+      target:
+        '../generated/mock/artifact-groups-react-query/client/endpoints.ts',
+      client: 'react-query',
+      mode: 'tags-split',
+      tagsSplitDeduplication: true,
+      artifacts: {
+        schemas: '../generated/mock/artifact-groups-react-query/schemas',
+        msw: '../generated/mock/artifact-groups-react-query/msw',
+        faker: '../generated/mock/artifact-groups-react-query/faker',
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  artifactGroupsSwr: {
+    output: {
+      target: '../generated/mock/artifact-groups-swr/client/endpoints.ts',
+      client: 'swr',
+      mode: 'tags-split',
+      tagsSplitDeduplication: true,
+      artifacts: {
+        schemas: '../generated/mock/artifact-groups-swr/schemas',
+        msw: '../generated/mock/artifact-groups-swr/msw',
+        faker: '../generated/mock/artifact-groups-swr/faker',
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  artifactGroupsVueQuery: {
+    output: {
+      target:
+        '../generated/mock/artifact-groups-vue-query/client/endpoints.ts',
+      client: 'vue-query',
+      mode: 'tags-split',
+      tagsSplitDeduplication: true,
+      artifacts: {
+        schemas: '../generated/mock/artifact-groups-vue-query/schemas',
+        msw: '../generated/mock/artifact-groups-vue-query/msw',
+        faker: '../generated/mock/artifact-groups-vue-query/faker',
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  artifactGroupsSvelteQuery: {
+    output: {
+      target:
+        '../generated/mock/artifact-groups-svelte-query/client/endpoints.ts',
+      client: 'svelte-query',
+      mode: 'tags-split',
+      tagsSplitDeduplication: true,
+      artifacts: {
+        schemas: '../generated/mock/artifact-groups-svelte-query/schemas',
+        msw: '../generated/mock/artifact-groups-svelte-query/msw',
+        faker: '../generated/mock/artifact-groups-svelte-query/faker',
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  // NOTE: no artifactGroupsSolidStart entry here. Wiring `client: 'solid-start'`
+  // through this config was the first time solid-start output has ever run
+  // through `tests`' generated-output typecheck gate (`solid-start.config.ts`
+  // has no `generate:solid-start` script and isn't part of `generate-api`'s
+  // `run-p 'generate:*'`), and doing so surfaces pre-existing solid-start
+  // generator defects unrelated to `output.artifacts`: generated files import
+  // `@solidjs/router`, which isn't a devDependency anywhere in this repo
+  // (TS2307), and `pets.ts` has a genuine `TS2395` merged-declaration error
+  // (`Individual declarations in merged declaration 'Pets' must be all
+  // exported or all local`) reproducible from `solid-start.config.ts`'s own
+  // existing `petstoreTagsSplit`/`tags` entries in isolation. Filed as a
+  // follow-up rather than folded into this PR.
   'issue-3505': {
     output: {
       target: '../generated/mock/issue-3505/endpoints.ts',

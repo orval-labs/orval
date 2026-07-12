@@ -9,6 +9,7 @@ import {
   type EffectOptions,
   FormDataArrayHandling,
   type FakerMockOptions,
+  getFileInfo,
   type GlobalMockOptions,
   type GlobalOptions,
   type HonoOptions,
@@ -30,6 +31,7 @@ import {
   type McpServerOptions,
   type Mutator,
   NamingConvention,
+  type NormalizedArtifactsOptions,
   type NormalizedEffectOptions,
   type NormalizedFactoryMethodsOptions,
   type NormalizedHonoOptions,
@@ -46,10 +48,13 @@ import {
   type NormalizedSchemaOptions,
   type OperationOptions,
   type OptionsExport,
+  type OutputArtifactGroupOption,
+  type OutputArtifactsOptions,
   OutputClient,
   OutputHttpClient,
   OutputMockType,
   OutputMode,
+  type OutputOptions,
   type OverrideOutput,
   PropertySortOrder,
   type QueryOptions,
@@ -129,6 +134,190 @@ function normalizeSchemasOption(
     importPath: schemas.importPath,
     splitByTags: schemas.splitByTags ?? false,
   };
+}
+
+function getArtifactGroupPath(option: OutputArtifactGroupOption): string {
+  return isString(option) ? option : option.path;
+}
+
+/**
+ * True when `a` and `b` are the same directory, or one is nested inside the
+ * other. Used to reject overlapping `output.artifacts` group directories —
+ * each group's `clean` boundary must be unambiguous.
+ */
+function pathsOverlap(a: string, b: string): boolean {
+  if (a === b) {
+    return true;
+  }
+
+  const relAB = nodePath.relative(a, b);
+  const relBA = nodePath.relative(b, a);
+  const bInsideA = !relAB.startsWith('..') && !nodePath.isAbsolute(relAB);
+  const aInsideB = !relBA.startsWith('..') && !nodePath.isAbsolute(relBA);
+
+  return bInsideA || aInsideB;
+}
+
+/**
+ * Normalizes `output.artifacts` into absolute group directories. Pure
+ * normalization sugar: does not itself write anything, and does not
+ * duplicate schema validation (`normalizeSchemasOption` still runs
+ * separately against the merged schemas option). v1 requires
+ * `mode: 'tags-split'` — every other mode inlines or kebab-cases mocks
+ * differently, which would make barrel content guesswork instead of a
+ * reflection of the files writers actually produce.
+ */
+function normalizeArtifactsOption(
+  artifacts: OutputArtifactsOptions | undefined,
+  outputOptions: OutputOptions,
+  outputWorkspace: string,
+  mode: OutputMode,
+  target: string,
+): NormalizedArtifactsOptions | undefined {
+  if (!artifacts) {
+    return undefined;
+  }
+
+  if (mode !== OutputMode.TAGS_SPLIT) {
+    throw new Error(
+      `\`output.artifacts\` requires \`mode: 'tags-split'\` (got "${mode}"). Per-tag client files, per-tag mock files, mock directory overrides, and mock index barrels are only first-class in tags-split mode today.`,
+    );
+  }
+
+  if (outputOptions.indexFiles === false) {
+    throw new Error(
+      '`output.artifacts` requires `output.indexFiles` to stay enabled (default `true`) so each group barrel can be emitted. Remove `indexFiles: false` to use `output.artifacts`.',
+    );
+  }
+
+  if (outputOptions.workspace) {
+    throw new Error(
+      '`output.artifacts` cannot be combined with `output.workspace` — a workspace barrel is a single combined entry point, the exact anti-pattern artifact groups replace.',
+    );
+  }
+
+  const schemasDir = artifacts.schemas
+    ? normalizePath(
+        isString(artifacts.schemas)
+          ? artifacts.schemas
+          : artifacts.schemas.path,
+        outputWorkspace,
+      )
+    : undefined;
+
+  const targetDirname = getFileInfo(target).dirname;
+  const clientDir = artifacts.client
+    ? normalizePath(getArtifactGroupPath(artifacts.client), outputWorkspace)
+    : targetDirname;
+
+  // The tags-split writer always places per-tag client files (and Angular's
+  // `*.resource.ts` extra files) under the target's own directory — it has
+  // no awareness of `output.artifacts.client`. An explicit `client` dir that
+  // diverges from `dirname(output.target)` would make the barrel silently
+  // empty (no generated file would ever match it), so this fails loudly
+  // instead: point `output.target` at a file inside the desired client dir.
+  if (artifacts.client && clientDir !== targetDirname) {
+    throw new Error(
+      `\`output.artifacts.client\` ("${clientDir}") must match the directory of \`output.target\` ("${targetDirname}") — per-tag client files are always written alongside \`output.target\`. Move \`output.target\` into the desired client directory instead of pointing \`artifacts.client\` elsewhere.`,
+    );
+  }
+
+  const mswDir = artifacts.msw
+    ? normalizePath(getArtifactGroupPath(artifacts.msw), outputWorkspace)
+    : undefined;
+
+  const fakerDir = artifacts.faker
+    ? normalizePath(getArtifactGroupPath(artifacts.faker), outputWorkspace)
+    : undefined;
+
+  const dirsByGroup: [string, string][] = [
+    ['client', clientDir],
+    ...(schemasDir ? ([['schemas', schemasDir]] as [string, string][]) : []),
+    ...(mswDir ? ([['msw', mswDir]] as [string, string][]) : []),
+    ...(fakerDir ? ([['faker', fakerDir]] as [string, string][]) : []),
+  ];
+
+  for (let i = 0; i < dirsByGroup.length; i += 1) {
+    for (let j = i + 1; j < dirsByGroup.length; j += 1) {
+      const [nameA, dirA] = dirsByGroup[i];
+      const [nameB, dirB] = dirsByGroup[j];
+      if (pathsOverlap(dirA, dirB)) {
+        throw new Error(
+          `\`output.artifacts\` group directories must be distinct and non-nested — "${nameA}" ("${dirA}") and "${nameB}" ("${dirB}") overlap.`,
+        );
+      }
+    }
+  }
+
+  return { clientDir, schemasDir, mswDir, fakerDir };
+}
+
+/**
+ * Applies `output.artifacts.msw` / `.faker` onto the already-normalized mock
+ * generators: auto-creates a generator entry with defaults when the group is
+ * declared but no matching generator exists, otherwise routes the existing
+ * entry's `path` to the artifacts directory (erroring on an explicit,
+ * differing path instead of silently overriding it). Forces
+ * `indexMockFiles: true` for any group that was applied, so the dedicated
+ * `index.msw.ts` / `index.faker.ts` barrel is always emitted.
+ */
+function applyArtifactsMockOverrides(
+  mocks: NormalizedMocksConfig,
+  artifacts: NormalizedArtifactsOptions | undefined,
+): NormalizedMocksConfig {
+  if (!artifacts) {
+    return mocks;
+  }
+
+  const overrides: {
+    type: typeof OutputMockType.MSW | typeof OutputMockType.FAKER;
+    dir?: string;
+  }[] = [
+    { type: OutputMockType.MSW, dir: artifacts.mswDir },
+    { type: OutputMockType.FAKER, dir: artifacts.fakerDir },
+  ];
+
+  let generators = mocks.generators;
+  let indexMockFiles = mocks.indexMockFiles;
+
+  for (const { type, dir } of overrides) {
+    if (!dir) {
+      continue;
+    }
+
+    if (generators.some((g) => isFunction(g))) {
+      throw new Error(
+        `\`output.artifacts.${type}\` cannot be combined with a custom function-form \`mock.generators\` entry. Use the object form (e.g. { type: '${type}', ... }) so the artifacts path can be applied.`,
+      );
+    }
+
+    const existingIndex = generators.findIndex(
+      (g) => !isFunction(g) && g.type === type,
+    );
+
+    if (existingIndex === -1) {
+      generators = [
+        ...generators,
+        { ...getDefaultMockOptionsForType(type), path: dir },
+      ];
+    } else {
+      const existing = generators[existingIndex] as GlobalMockOptions;
+      if (existing.path && existing.path !== dir) {
+        throw new Error(
+          `\`mock.generators[].path\` ("${existing.path}") for "${type}" conflicts with \`output.artifacts.${type}\` ("${dir}"). Configure the path in exactly one place.`,
+        );
+      }
+      generators = generators.map((g, i) =>
+        i === existingIndex
+          ? ({ ...existing, path: dir } as GlobalMockOptions)
+          : g,
+      );
+    }
+
+    indexMockFiles = true;
+  }
+
+  return { ...mocks, generators, indexMockFiles };
 }
 
 /**
@@ -306,6 +495,35 @@ export async function normalizeOptions(
     workspace,
   );
 
+  // Resolved ahead of the mock/schemas blocks below because `output.artifacts`
+  // validation needs the final mode + target, and its result (mswDir /
+  // fakerDir) feeds into the mock generator normalization that follows.
+  const normalizedMode = normalizeOutputMode(outputOptions.mode ?? mode);
+  const normalizedTarget = globalOptions.output
+    ? normalizePath(globalOptions.output, process.cwd())
+    : normalizePath(outputOptions.target, outputWorkspace);
+
+  if (outputOptions.artifacts?.schemas && outputOptions.schemas) {
+    throw new Error(
+      'Both `output.artifacts.schemas` and `output.schemas` are set. Configure the schemas group in exactly one place.',
+    );
+  }
+
+  const artifacts = normalizeArtifactsOption(
+    outputOptions.artifacts,
+    outputOptions,
+    outputWorkspace,
+    normalizedMode,
+    normalizedTarget,
+  );
+
+  // `output.artifacts` is pure normalization sugar: a declared `schemas`
+  // group is just `output.schemas` under a different key, so it is merged
+  // in here and flows through the existing `normalizeSchemasOption` call
+  // below rather than a parallel schemas pipeline.
+  const mergedSchemasOption =
+    outputOptions.schemas ?? outputOptions.artifacts?.schemas;
+
   // Normalize the `mock` option into a canonical `NormalizedMocksConfig`
   // so the rest of the pipeline can iterate `generators` uniformly without
   // branching on the input shape (boolean shorthand, function form, or
@@ -375,6 +593,8 @@ export async function normalizeOptions(
     }
   }
 
+  mocks = applyArtifactsMockOverrides(mocks, artifacts);
+
   const defaultFileExtension = '.ts';
 
   // Reusable Zod schemas land in `*.zod.ts` files by default so they sit
@@ -385,10 +605,9 @@ export async function normalizeOptions(
   // start emitting `*.zod.ts` for unrelated artifacts. A user-set
   // `output.fileExtension` overrides this default at the call site.
   const isZodSchemasOutput =
-    !!outputOptions.schemas &&
-    ((!isString(outputOptions.schemas) &&
-      outputOptions.schemas.type === 'zod') ||
-      (isString(outputOptions.schemas) &&
+    !!mergedSchemasOption &&
+    ((!isString(mergedSchemasOption) && mergedSchemasOption.type === 'zod') ||
+      (isString(mergedSchemasOption) &&
         (outputOptions.client ?? client) === 'zod' &&
         outputOptions.override?.zod?.generateReusableSchemas === true));
   const defaultSchemaFileExtension = isZodSchemasOutput
@@ -404,11 +623,11 @@ export async function normalizeOptions(
       mode: factoryMethodsConfig.mode ?? 'split',
       outputDirectory: factoryMethodsConfig.outputDirectory
         ? normalizePath(factoryMethodsConfig.outputDirectory, outputWorkspace)
-        : outputOptions.schemas
+        : mergedSchemasOption
           ? normalizePath(
-              isString(outputOptions.schemas)
-                ? outputOptions.schemas
-                : outputOptions.schemas.path,
+              isString(mergedSchemasOption)
+                ? mergedSchemasOption
+                : mergedSchemasOption.path,
               outputWorkspace,
             )
           : normalizePath(outputWorkspace, outputWorkspace),
@@ -457,10 +676,9 @@ export async function normalizeOptions(
       parserOptions: inputOptions.parserOptions,
     },
     output: {
-      target: globalOptions.output
-        ? normalizePath(globalOptions.output, process.cwd())
-        : normalizePath(outputOptions.target, outputWorkspace),
-      schemas: normalizeSchemasOption(outputOptions.schemas, outputWorkspace),
+      target: normalizedTarget,
+      schemas: normalizeSchemasOption(mergedSchemasOption, outputWorkspace),
+      artifacts,
       operationSchemas: outputOptions.operationSchemas
         ? normalizePath(outputOptions.operationSchemas, outputWorkspace)
         : undefined,
@@ -480,7 +698,7 @@ export async function normalizeOptions(
         ((outputOptions.client ?? client) === OutputClient.ANGULAR_QUERY
           ? OutputHttpClient.ANGULAR
           : OutputHttpClient.FETCH),
-      mode: normalizeOutputMode(outputOptions.mode ?? mode),
+      mode: normalizedMode,
       mock: mocks,
       clean: outputOptions.clean ?? clean ?? false,
       docs: outputOptions.docs ?? false,

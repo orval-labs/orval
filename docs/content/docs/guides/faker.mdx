@@ -330,3 +330,13 @@ export default defineConfig({
   },
 });
 ```
+
+<Callout title="Tip" type="info">
+If you also want a dedicated barrel for the **client** implementation (so
+consumers can import it without pulling in `faker`/`msw` at all), use
+`output.artifacts` to emit separate schemas/client/msw/faker groups from one
+config in a single generation pass. See [Runtime-safe artifact
+groups](/docs/guides/angular#runtime-safe-artifact-groups) in the Angular
+guide — the option itself is client-agnostic and works the same way with
+`fetch`, `axios`, and the other client packages.
+</Callout>

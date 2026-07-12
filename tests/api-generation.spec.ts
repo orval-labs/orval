@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 import { expect, test } from 'vitest';
@@ -1800,3 +1800,175 @@ test('mock issue-3691 tuple prefixItems mock values match the generated tuple ty
   // must not regress to the original empty `[]`.
   expect(content).not.toContain('point: []');
 });
+
+// --- output.artifacts runtime-safety walker (#3704) ---
+//
+// The whole point of `output.artifacts` is that each generated group is
+// independently importable: a Node/MSW consumer of the `msw`/`faker` group
+// must never transitively pull in an Angular module, and an Angular consumer
+// of the `client` group must never transitively pull in `msw` or
+// `@faker-js/faker`. These tests walk the actual relative-import graph from
+// each group's generated entry file (not just its own content) so a future
+// writer regression that reaches through a shared file would be caught.
+
+const RELATIVE_IMPORT_RE = /\bfrom\s+['"](\.\.?\/[^'"]+)['"]/g;
+
+async function resolveRelativeImport(
+  fromDir: string,
+  specifier: string,
+): Promise<string | undefined> {
+  const base = path.resolve(fromDir, specifier);
+  const candidates = [base, `${base}.ts`, path.join(base, 'index.ts')];
+
+  for (const candidate of candidates) {
+    try {
+      const stats = await stat(candidate);
+      if (stats.isFile()) {
+        return candidate;
+      }
+    } catch {
+      // try the next candidate
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Walks every relative (`./` / `../`) import reachable from `entryFile` and
+ * returns a map of absolute file path -> file content for each file visited
+ * (including the entry file itself). Bare specifiers (`msw`, `@angular/...`,
+ * `@faker-js/faker`, ...) are intentionally left unresolved — callers assert
+ * on their presence directly in the visited files' content instead.
+ */
+async function collectTransitiveRelativeImports(
+  entryFile: string,
+): Promise<Map<string, string>> {
+  const visited = new Map<string, string>();
+  const queue = [entryFile];
+
+  while (queue.length > 0) {
+    const file = queue.pop();
+    if (!file || visited.has(file)) {
+      continue;
+    }
+
+    const content = await readFile(file, 'utf8');
+    visited.set(file, content);
+
+    for (const match of content.matchAll(RELATIVE_IMPORT_RE)) {
+      const resolved = await resolveRelativeImport(
+        path.dirname(file),
+        match[1],
+      );
+      if (resolved && !visited.has(resolved)) {
+        queue.push(resolved);
+      }
+    }
+  }
+
+  return visited;
+}
+
+test('artifact groups (angular): msw/faker entries never transitively reach Angular client files', async () => {
+  const mswEntry = generated(
+    'angular',
+    'artifact-groups',
+    'msw',
+    'index.msw.ts',
+  );
+  const fakerEntry = generated(
+    'angular',
+    'artifact-groups',
+    'faker',
+    'index.faker.ts',
+  );
+
+  for (const entry of [mswEntry, fakerEntry]) {
+    const visited = await collectTransitiveRelativeImports(entry);
+    expect(visited.size).toBeGreaterThan(0);
+
+    for (const [file, content] of visited) {
+      expect(file).not.toMatch(/\.(service|resource)\.ts$/);
+      expect(content).not.toMatch(/from\s+['"]@angular\//);
+    }
+  }
+});
+
+test('artifact groups (angular): client barrel never transitively reaches msw/faker files', async () => {
+  const clientEntry = generated(
+    'angular',
+    'artifact-groups',
+    'client',
+    'index.ts',
+  );
+
+  const visited = await collectTransitiveRelativeImports(clientEntry);
+  expect(visited.size).toBeGreaterThan(0);
+
+  for (const [file, content] of visited) {
+    expect(file).not.toMatch(/\.(msw|faker)\.ts$/);
+    expect(content).not.toMatch(/from\s+['"]msw['"]/);
+    expect(content).not.toMatch(/from\s+['"]@faker-js\/faker['"]/);
+  }
+});
+
+test('artifact groups (angular): client barrel re-exports both the service and the resource file per tag', async () => {
+  const clientIndex = generated(
+    'angular',
+    'artifact-groups',
+    'client',
+    'index.ts',
+  );
+  const content = await readFile(clientIndex, 'utf8');
+
+  expect(content).toMatch(/pets\/pets\.service/);
+  expect(content).toMatch(/pets\/pets\.resource/);
+});
+
+/**
+ * `output.artifacts` (issue #3704) is implemented entirely in the writer
+ * layer (`packages/orval/src/write-specs.ts`) and never branches on
+ * `output.client` — it reads generated implementation + extra-file paths
+ * generically. These directories, one per client package, exist solely to
+ * prove that genericity holds beyond the Angular flagship and the original
+ * `fetch` client-agnostic proof config.
+ */
+const CLIENT_AGNOSTIC_ARTIFACT_GROUP_DIRS = [
+  'artifact-groups-fetch',
+  'artifact-groups-axios',
+  'artifact-groups-react-query',
+  'artifact-groups-swr',
+  'artifact-groups-vue-query',
+  'artifact-groups-svelte-query',
+];
+
+for (const dir of CLIENT_AGNOSTIC_ARTIFACT_GROUP_DIRS) {
+  test(`artifact groups (${dir}, client-agnostic): msw/faker entries never transitively reach client implementation files`, async () => {
+    const mswEntry = generated('mock', dir, 'msw', 'index.msw.ts');
+    const fakerEntry = generated('mock', dir, 'faker', 'index.faker.ts');
+    const clientDir = generated('mock', dir, 'client');
+
+    for (const entry of [mswEntry, fakerEntry]) {
+      const visited = await collectTransitiveRelativeImports(entry);
+      expect(visited.size).toBeGreaterThan(0);
+
+      for (const file of visited.keys()) {
+        expect(path.relative(clientDir, file).startsWith('..')).toBe(true);
+      }
+    }
+  });
+
+  test(`artifact groups (${dir}, client-agnostic): client barrel never transitively reaches msw/faker files`, async () => {
+    const clientEntry = generated('mock', dir, 'client', 'index.ts');
+
+    const visited = await collectTransitiveRelativeImports(clientEntry);
+    expect(visited.size).toBeGreaterThan(0);
+
+    for (const [file, content] of visited) {
+      expect(file).not.toMatch(/\.(msw|faker)\.ts$/);
+      expect(content).not.toMatch(/from\s+['"]msw['"]/);
+      expect(content).not.toMatch(/from\s+['"]@faker-js\/faker['"]/);
+    }
+  });
+}
