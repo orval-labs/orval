@@ -39,10 +39,11 @@ export function searchPetsResource(
   options?: OrvalHttpResourceOptions<Pets, unknown>,
 ): HttpResourceRef<Pets | undefined> {
   return httpResource<Pets>(() => {
+    if (!searchPetsBody) return undefined;
     const request = {
       url: `/search`,
       method: 'POST',
-      body: searchPetsBody?.(),
+      body: searchPetsBody(),
     };
     return request;
   }, options);

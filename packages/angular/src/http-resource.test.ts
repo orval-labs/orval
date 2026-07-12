@@ -632,7 +632,12 @@ describe('angular httpResource generator', () => {
       expect(header).toContain('body: searchPetsBody()');
     });
 
-    it('uses optional chaining for optional retrieval POST bodies', () => {
+    // Regression for #3700: an optional retrieval POST body maps to an optional
+    // Signal parameter. When the caller omits it, the request factory must
+    // return `undefined` so the resource stays idle, instead of firing a request
+    // with an undefined body. Past the guard the signal is known to be defined,
+    // so it is invoked directly (no optional chaining).
+    it('guards optional retrieval POST bodies and keeps the resource idle (#3700)', () => {
       const verbOption = createVerbOption({
         operationId: 'searchPets',
         operationName: 'searchPets',
@@ -677,7 +682,12 @@ describe('angular httpResource generator', () => {
       } as never);
 
       expect(header).toContain('searchPetsBody?: Signal<SearchPetsBody>');
-      expect(header).toContain('body: searchPetsBody?.()');
+      // Idle guard is emitted at the top of the request factory.
+      expect(header).toContain('if (!searchPetsBody) return undefined;');
+      // The body signal is invoked directly once past the guard.
+      expect(header).toContain('body: searchPetsBody()');
+      // The unconditional optional-call form must no longer be emitted.
+      expect(header).not.toContain('body: searchPetsBody?.()');
     });
 
     it('keeps mutations in HttpClient service methods', () => {
