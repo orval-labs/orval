@@ -49,8 +49,6 @@ const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-const returnTypesToWrite = new Map<string, (title?: string) => string>();
-
 export const getAxiosDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator,
   hasParamsSerializerOptions: boolean,
@@ -147,17 +145,14 @@ const generateAxiosImplementation = (
         )
       : '';
 
-    returnTypesToWrite.set(
-      operationName,
-      (title?: string) =>
-        `export type ${pascal(
-          operationName,
-        )}Result = NonNullable<Awaited<ReturnType<${
-          title
-            ? `ReturnType<typeof ${title}>['${operationName}']`
-            : `typeof ${operationName}`
-        }>>>`,
-    );
+    const returnType = (title?: string) =>
+      `export type ${pascal(
+        operationName,
+      )}Result = NonNullable<Awaited<ReturnType<${
+        title
+          ? `ReturnType<typeof ${title}>['${operationName}']`
+          : `typeof ${operationName}`
+      }>>>`;
 
     const propsImplementation =
       mutator.bodyTypeName && body.definition
@@ -167,16 +162,19 @@ const generateAxiosImplementation = (
           )
         : toObjectString(props, 'implementation');
 
-    return `const ${operationName} = (\n    ${propsImplementation}\n ${
-      isRequestOptions && mutator.hasSecondArg
-        ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}<${response.definition.success || 'unknown'}>>,`
-        : ''
-    }) => {${bodyForm}
+    return {
+      implementation: `const ${operationName} = (\n    ${propsImplementation}\n ${
+        isRequestOptions && mutator.hasSecondArg
+          ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}<${response.definition.success || 'unknown'}>>,`
+          : ''
+      }) => {${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
       ${requestOptions});
     }
-  `;
+  `,
+      returnType,
+    };
   }
 
   const options = generateOptions({
@@ -195,13 +193,10 @@ const generateAxiosImplementation = (
     hasSignal: false,
   });
 
-  returnTypesToWrite.set(
-    operationName,
-    () =>
-      `export type ${pascal(operationName)}Result = AxiosResponse<${
-        response.definition.success || 'unknown'
-      }>`,
-  );
+  const returnType = () =>
+    `export type ${pascal(operationName)}Result = AxiosResponse<${
+      response.definition.success || 'unknown'
+    }>`;
 
   // In factory mode, use the axiosInstance parameter
   // In functions mode with global import, .default may be needed based on tsconfig
@@ -209,14 +204,17 @@ const generateAxiosImplementation = (
     ? 'axiosInstance'
     : `axios${isSyntheticDefaultImportsAllowed ? '' : '.default'}`;
 
-  return `const ${operationName} = (\n    ${toObjectString(props, 'implementation')} ${
-    isRequestOptions
-      ? `options${context.output.optionsParamRequired ? '' : '?'}: AxiosRequestConfig\n`
-      : ''
-  } ): Promise<AxiosResponse<${response.definition.success || 'unknown'}>> => {${bodyForm}
+  return {
+    implementation: `const ${operationName} = (\n    ${toObjectString(props, 'implementation')} ${
+      isRequestOptions
+        ? `options${context.output.optionsParamRequired ? '' : '?'}: AxiosRequestConfig\n`
+        : ''
+    } ): Promise<AxiosResponse<${response.definition.success || 'unknown'}>> => {${bodyForm}
     return ${axiosRef}.${verb}(${options});
   }
-`;
+`,
+    returnType,
+  };
 };
 
 export const generateAxiosTitle: ClientTitleBuilder = (title) => {
@@ -258,6 +256,7 @@ ${
 
 export const generateAxiosFooter: ClientFooterBuilder = ({
   operationNames,
+  operations,
   title,
   noFunction,
   hasMutator,
@@ -275,13 +274,11 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
 \n`;
   }
 
-  for (const operationName of operationNames) {
-    if (returnTypesToWrite.has(operationName)) {
-      // Map.has ensures Map.get will not return undefined, but TS still complains
-      // bug https://github.com/microsoft/TypeScript/issues/13086
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const func = returnTypesToWrite.get(operationName)!;
-      footer += func(noFunction ? undefined : title) + '\n';
+  if (operations) {
+    for (const operation of operations) {
+      if (operation.types?.result) {
+        footer += operation.types.result(noFunction ? undefined : title) + '\n';
+      }
     }
   }
 
@@ -294,27 +291,35 @@ export const generateAxios = (
   isFactoryMode = false,
 ) => {
   const imports = generateVerbImports(verbOptions);
-  const implementation = generateAxiosImplementation(
+  const { implementation, returnType } = generateAxiosImplementation(
     verbOptions,
     options,
     isFactoryMode,
   );
 
-  return { implementation, imports };
+  return { implementation, imports, returnType };
 };
 
 // Factory mode generator - axios is optional parameter
 export const generateAxiosFactory: ClientBuilder = (verbOptions, options) => {
-  const { implementation, imports } = generateAxios(verbOptions, options, true);
-  return { implementation, imports };
+  const { implementation, imports, returnType } = generateAxios(
+    verbOptions,
+    options,
+    true,
+  );
+  return { implementation, imports, returnType };
 };
 
 export const generateAxiosFunctions: ClientBuilder = (verbOptions, options) => {
-  const { implementation, imports } = generateAxios(verbOptions, options);
+  const { implementation, imports, returnType } = generateAxios(
+    verbOptions,
+    options,
+  );
 
   return {
     implementation: 'export ' + implementation,
     imports,
+    returnType,
   };
 };
 

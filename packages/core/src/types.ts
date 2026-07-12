@@ -1605,6 +1605,7 @@ export interface GeneratorClient {
   mutators?: GeneratorMutator[];
   /** When set, overrides the default verbOption.doc prepended to the implementation */
   docComment?: string;
+  returnType?: (title?: string) => string;
 }
 
 export interface GeneratorMutatorParsingInfo {
@@ -1669,6 +1670,7 @@ export type ClientHeaderBuilder = (params: {
 export type ClientFooterBuilder = (params: {
   noFunction?: boolean | undefined;
   operationNames: string[];
+  operations?: GeneratorOperation[];
   title?: string;
   hasAwaitedType: boolean;
   hasMutator: boolean;
@@ -1939,6 +1941,7 @@ export type GeneratorClientHeader = (data: {
 export type GeneratorClientFooter = (data: {
   outputClient: OutputClient | OutputClientFunc;
   operationNames: string[];
+  operations?: GeneratorOperation[];
   hasMutator: boolean;
   hasAwaitedType: boolean;
   titles: GeneratorClientExtra;
