@@ -2394,7 +2394,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['default', 'testObjectDefaultDefault'],
         ],
         consts: [
-          'export const testObjectDefaultDefault = { name: "Fluffy" as const, age: 3 };',
+          'export const testObjectDefaultDefault = { "name": "Fluffy" as const, "age": 3 };',
         ],
       });
 
@@ -2409,7 +2409,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'zod.object({\n  "name": zod.string().optional(),\n  "age": zod.number().optional()\n}).default(testObjectDefaultDefault)',
       );
       expect(parsed.consts).toBe(
-        'export const testObjectDefaultDefault = { name: "Fluffy" as const, age: 3 };',
+        'export const testObjectDefaultDefault = { "name": "Fluffy" as const, "age": 3 };',
       );
     });
 
@@ -2565,6 +2565,127 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(secondParsed.consts).not.toContain('petStatusDefaultOne');
       expect(secondParsed.consts).not.toContain('petAgeMaxOne');
       expect(secondParsed.consts).toBe(firstParsed.consts);
+    });
+  });
+
+  describe('default value template-literal injection', () => {
+    const context = makeContextSpec({
+      override: {
+        useDates: false,
+      },
+    });
+
+    it('escapes ${ and backtick in string default', () => {
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'string',
+          default:
+            'v${globalThis.X}`+require("child_process").execSync("id")+`w',
+        },
+        context,
+        'evilString',
+        false,
+        false,
+        { required: false },
+      );
+      expect(result.consts).toHaveLength(1);
+      expect(result.consts[0]).not.toMatch(/(?<!\\)\$\{/);
+      const match = result.consts[0].match(/= `(.*)`;/);
+      expect(match).toBeDefined();
+      expect(match![1]).not.toMatch(/(?<!\\)`/);
+    });
+
+    it('escapes ${ in array-of-string default', () => {
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'array',
+          items: { type: 'string' },
+          default: ['safe', 'v${globalThis.X}w'],
+        },
+        context,
+        'evilArray',
+        false,
+        false,
+        { required: false },
+      );
+      expect(result.consts[0]).not.toMatch(/(?<!\\)\$\{/);
+    });
+
+    it('escapes ${ in enum-typed default', () => {
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'string',
+          enum: ['safe', 'v${globalThis.X}w'],
+          default: 'v${globalThis.X}w',
+        },
+        context,
+        'evilEnum',
+        false,
+        false,
+        { required: false },
+      );
+      expect(result.consts[0]).not.toMatch(/(?<!\\)\$\{/);
+    });
+  });
+
+  describe('object key injection', () => {
+    const context = makeContextSpec({
+      override: {
+        useDates: false,
+      },
+    });
+
+    it('escapes double quote in schema property name', () => {
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'object',
+          properties: {
+            'a":[require("child_process").execSync("id")],': { type: 'string' },
+          },
+        },
+        context,
+        'evilKey',
+        false,
+        false,
+        { required: false },
+      );
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      // A " in the key must not break out of the JSON.stringify-wrapped key
+      // and inject a computed property [expr].
+      expect(parsed.zod).not.toMatch(/\]:/);
+    });
+
+    it('preserves backtick in property name (safe inside double-quoted key)', () => {
+      const result = generateZodValidationSchemaDefinition(
+        {
+          type: 'object',
+          properties: {
+            'a`b': { type: 'string' },
+          },
+        },
+        context,
+        'backtickKey',
+        false,
+        false,
+        { required: false },
+      );
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      // JSON.stringify wraps the key in double quotes — backtick is harmless
+      // inside "...", and the runtime string can't close the generation
+      // template literal.
+      expect(parsed.zod).toContain('"a`b"');
     });
   });
 
@@ -3210,7 +3331,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
 
       expect(result.consts).toEqual([
-        'export const enumPropertiesObjectDefault = { enabled: true, value: "a" as const };',
+        'export const enumPropertiesObjectDefault = { "enabled": true, "value": "a" as const };',
       ]);
       expect(result.functions).toContainEqual([
         'default',
@@ -3253,7 +3374,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       // empty/literal arrays inside become `readonly` and fail zod v4's
       // `.default()` overload check (regression introduced by #3339).
       expect(result.consts).toEqual([
-        'export const settingsDefault = { checklist: null, available_indexes: [] };',
+        'export const settingsDefault = { "checklist": null, "available_indexes": [] };',
       ]);
       expect(result.consts[0]).not.toContain('as const');
       expect(result.functions).toContainEqual(['default', 'settingsDefault']);
@@ -3281,7 +3402,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
 
       expect(result.consts).toEqual([
-        'export const taggedObjectDefault = { tags: ["a" as const, "b" as const] };',
+        'export const taggedObjectDefault = { "tags": ["a" as const, "b" as const] };',
       ]);
     });
 
@@ -11270,7 +11391,7 @@ describe('enum/const value escaping (#3505)', () => {
     );
 
     expect(result.consts).toEqual([
-      String.raw`export const testDefaultBackslashDefault = { path: "C:\\logs\\" as const };`,
+      String.raw`export const testDefaultBackslashDefault = { "path": "C:\\logs\\" as const };`,
     ]);
   });
 
@@ -11293,7 +11414,7 @@ describe('enum/const value escaping (#3505)', () => {
     );
 
     expect(result.consts).toEqual([
-      String.raw`export const testDefaultArrayBackslashDefault = { paths: ["C:\\logs\\" as const] };`,
+      String.raw`export const testDefaultArrayBackslashDefault = { "paths": ["C:\\logs\\" as const] };`,
     ]);
   });
 

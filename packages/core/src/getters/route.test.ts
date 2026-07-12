@@ -202,6 +202,118 @@ describe('getFullRoute getter', () => {
   }
 });
 
+describe('getFullRoute — GHSA-88f2-fpv8-89q2: servers[].url template-literal injection', () => {
+  it('escapes backtick in server URL', () => {
+    const servers: OpenApiServerObject[] = [
+      {
+        url: 'http://api.x/`+require("fs").writeFileSync("/marker","pwned")+`',
+      },
+    ];
+    const result = getFullRoute('/path', servers, {
+      getBaseUrlFromSpecification: true,
+    });
+    expect(result).not.toMatch(/(?<!\\)`/);
+    expect(result).toContain('\\`+require');
+  });
+
+  it('escapes ${ in server URL', () => {
+    const servers: OpenApiServerObject[] = [
+      {
+        url: 'http://api.x/${globalThis.X = require("fs").writeFileSync("/marker","pwned")}/v1',
+      },
+    ];
+    const result = getFullRoute('/path', servers, {
+      getBaseUrlFromSpecification: true,
+    });
+    expect(result).not.toMatch(/(?<!\\)\$\{/);
+    expect(result).toContain('\\${globalThis');
+  });
+
+  it('escapes backslash in server URL', () => {
+    const servers: OpenApiServerObject[] = [
+      { url: String.raw`http://api.x/\`+code+\`` },
+    ];
+    const result = getFullRoute('/path', servers, {
+      getBaseUrlFromSpecification: true,
+    });
+    expect(result).toContain(String.raw`http://api.x/\\\`+code+\\\``);
+  });
+
+  it('escapes backtick and ${ in variable default value (spec-sourced)', () => {
+    const servers: OpenApiServerObject[] = [
+      {
+        url: 'http://{env}.example.com',
+        variables: {
+          env: {
+            default:
+              '`+require("child_process").execSync("id")+`${globalThis.X}',
+          },
+        },
+      },
+    ];
+    const result = getFullRoute('/path', servers, {
+      getBaseUrlFromSpecification: true,
+    });
+    expect(result).not.toMatch(/(?<!\\)`/);
+    expect(result).not.toMatch(/(?<!\\)\$\{/);
+  });
+});
+
+describe('getRoute — spec path injection', () => {
+  it('escapes backtick in static path segment', () => {
+    const result = getRoute('/v1/`+require("child_process").execSync("id")+`');
+    expect(result).not.toMatch(/(?<!\\)`/);
+  });
+
+  it('escapes ${...} as literal text, not interpolation', () => {
+    for (const payload of [
+      '/v1/${evil}/path',
+      '/v1/${globalThis.X}/path',
+      '/v1/some${petId}/path',
+    ]) {
+      const result = getRoute(payload);
+      expect(result).not.toMatch(/(?<!\\)\$\{/);
+    }
+  });
+
+  it('preserves legitimate params after ${...} in same segment', () => {
+    for (const payload of [
+      '/v1/${evil}{petId}/path',
+      '/v1/${a}${b}{petId}/path',
+    ]) {
+      const result = getRoute(payload);
+      expect(result).toContain('${petId}');
+      expect(result).not.toMatch(/(?<!\\)\$\{(evil|[ab]\})/);
+    }
+  });
+
+  it('does not trigger guard for $ without {', () => {
+    const result = getRoute('/v1/price$/list');
+    expect(result).toContain('price$');
+  });
+
+  it('escapes backslash in static text', () => {
+    const result = getRoute('/v1/path\\to/list');
+    expect(result).toContain('path\\\\to');
+  });
+
+  it('still converts legitimate path params', () => {
+    expect(getRoute('/v1/{petId}')).toContain('${petId}');
+  });
+});
+
+describe('getRouteAsArray — single-quote injection', () => {
+  it('escapes single quote in static segment', () => {
+    const result = getRouteAsArray("v1/it's/path");
+    expect(result).toContain("it\\'s");
+  });
+
+  it('escapes single quote in non-interpolation part of mixed segment', () => {
+    const result = getRouteAsArray("pre's${petId}");
+    expect(result).toContain("pre\\'s");
+  });
+});
+
 describe('getBaseUrlRuntimeImports', () => {
   it('returns [] when baseUrl is omitted', () => {
     expect(getBaseUrlRuntimeImports()).toEqual([]);

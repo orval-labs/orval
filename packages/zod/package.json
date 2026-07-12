@@ -24,9 +24,11 @@
   },
   "dependencies": {
     "@orval/core": "workspace:*",
+    "jsesc": "^3.0.0",
     "remeda": "^2.33.6"
   },
   "devDependencies": {
+    "@types/jsesc": "^3.0.3",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

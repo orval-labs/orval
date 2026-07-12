@@ -7,6 +7,7 @@ import {
   type GeneratorVerbOptions,
   GetterPropType,
   getFullRoute,
+  getRoute,
   getRouteAsArray,
   type InvalidateTarget,
   type InvalidateTargetParam,
@@ -350,7 +351,7 @@ const createGenerateInvalidateCall = (
         // prefix must carry the same `baseUrl` – otherwise the predicate /
         // partial key never matches a baseUrl-prefixed cache key. `prefix`
         // has no path params, so `getFullRoute` just concatenates the base.
-        const prefixWithBase = getFullRoute(prefix, servers, baseUrl);
+        const prefixWithBase = getFullRoute(getRoute(prefix), servers, baseUrl);
         // Mirror the verb prefix that `getQueryKeyVerbPrefix` injects into
         // non-GET Query keys; without this, the predicate / partial key
         // would never match a verb-prefixed cache key and the broad

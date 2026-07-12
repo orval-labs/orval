@@ -1,3 +1,5 @@
+import jsesc from 'jsesc';
+
 import { TEMPLATE_TAG_REGEX } from '../constants';
 import type {
   BaseUrlFromConstant,
@@ -31,9 +33,25 @@ function runtimeExpressionToUrlPrefix(expression: string): string {
 
 const hasParam = (path: string): boolean => /[^{]*{[\w*_-]*}.*/.test(path);
 
+const esc = (str: string) => jsesc(str, { quotes: 'backtick', wrap: false });
+
 const getRoutePath = (path: string): string => {
+  // Don't treat ${...} as an OpenAPI path param — the $ makes it literal text,
+  // not a {param} template. Escape the ${...} block and continue processing
+  // any legitimate {param} segments after it.
+  const braceIdx = path.indexOf('{');
+  if (braceIdx > 0 && path[braceIdx - 1] === '$') {
+    const closeIdx = path.indexOf('}', braceIdx);
+    if (closeIdx === -1) return esc(path);
+    const before = esc(path.slice(0, closeIdx + 1));
+    const rest = path.slice(closeIdx + 1);
+    return hasParam(rest)
+      ? `${before}${getRoutePath(rest)}`
+      : `${before}${esc(rest)}`;
+  }
+
   const matches = /([^{]*){?([\w*_-]*)}?(.*)/.exec(path);
-  if (!matches?.length) return path; // impossible due to regexp grouping here, but for TS
+  if (!matches?.length) return esc(path);
 
   const prev = matches[1];
   const rawParam = matches[2];
@@ -44,13 +62,18 @@ const getRoutePath = (path: string): string => {
     dash: true,
     dot: true,
   });
-  const next = hasParam(rest) ? getRoutePath(rest) : rest;
+  const next = hasParam(rest) ? getRoutePath(rest) : esc(rest);
 
   return hasParam(path)
-    ? `${prev}\${${param}}${next}`
-    : `${prev}${param}${next}`;
+    ? `${esc(prev)}\${${param}}${next}`
+    : `${esc(prev)}${param}${next}`;
 };
 
+/**
+ * Converts an OpenAPI path (`{param}`) to a template-literal route (`${param}`),
+ * escaping static segments with jsesc for safe embedding in backtick strings.
+ * The `route` arg must be a raw OpenAPI path.
+ */
 export function getRoute(route: string) {
   const splittedRoute = route.split('/');
 
@@ -60,11 +83,19 @@ export function getRoute(route: string) {
       continue;
     }
 
-    result += path.includes('{') ? `/${getRoutePath(path)}` : `/${path}`;
+    result += path.includes('{') ? `/${getRoutePath(path)}` : `/${esc(path)}`;
   }
   return result;
 }
 
+/**
+ * Prepends a base URL to an already-processed route.
+ *
+ * `route` must be the output of {@link getRoute} (already escaped for template
+ * literals). This function does NOT re-escape it — jsesc is not idempotent, so
+ * escaping twice would double the backslashes. Only the server URL from
+ * `getBaseUrlFromSpecification` is escaped here, after variable substitution.
+ */
 export function getFullRoute(
   route: string,
   servers: OpenApiServerObject[] | undefined,
@@ -92,7 +123,8 @@ export function getFullRoute(
       );
       if (!server) return '';
       const serverUrl = server.url ?? '';
-      if (!server.variables) return serverUrl;
+      if (!server.variables)
+        return jsesc(serverUrl, { quotes: 'backtick', wrap: false });
 
       let url = serverUrl;
       const variables = baseUrl.variables;
@@ -112,7 +144,7 @@ export function getFullRoute(
           url = url.replaceAll(`{${variableKey}}`, String(variable.default));
         }
       }
-      return url;
+      return jsesc(url, { quotes: 'backtick', wrap: false });
     }
     return baseUrl.baseUrl;
   };
@@ -164,15 +196,16 @@ export function getRouteAsArray(route: string): string {
     .filter((i) => i !== '')
     .flatMap((segment) => {
       if (!segment.includes('${')) {
-        return [`'${segment}'`];
+        return [`'${segment.replaceAll("'", "\\'")}'`];
       }
-      // Split by template tags, keeping the delimiters
+      // Split by template tags, keeping the delimiters.
+      // (?<!\\) prevents matching \${...} (jsesc-escaped) as a template tag.
       return segment
-        .split(/(\$\{.+?\})/g)
+        .split(/(?<!\\)(\$\{.+?\})/g)
         .filter(Boolean)
         .map((part) => {
-          const match = /^\$\{(.+?)\}$/.exec(part);
-          return match ? match[1] : `'${part}'`;
+          const match = /^(?<!\\)\$\{(.+?)\}$/.exec(part);
+          return match ? match[1] : `'${part.replaceAll("'", "\\'")}'`;
         });
     })
     .join(',');

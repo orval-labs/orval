@@ -37,6 +37,7 @@ import {
   type ZodCoerceType,
   type ZodVariantOption,
 } from '@orval/core';
+import jsesc from 'jsesc';
 import { unique } from 'remeda';
 
 import {
@@ -164,6 +165,23 @@ const zodMiniCall = (fn: string, args = '') =>
 
 const zodMiniCoerceCall = (fn: string, args = '') =>
   `${PURE_COMMENT}zod.coerce.${fn}(${args})`;
+
+/** Escapes string defaults for safe embedding in template literals. */
+function formatDefaultValue(value: unknown): string {
+  if (isString(value)) {
+    return jsesc(value, { quotes: 'backtick', wrap: true });
+  }
+  if (Array.isArray(value)) {
+    return `[${value
+      .map((item) =>
+        isString(item)
+          ? jsesc(item, { quotes: 'backtick', wrap: true })
+          : formatDefaultValue(item),
+      )
+      .join(', ')}]`;
+  }
+  return stringify(value) ?? 'null';
+}
 
 export interface ZodValidationSchemaDefinition {
   functions: [string, unknown][];
@@ -816,15 +834,16 @@ export const generateZodValidationSchemaDefinition = (
       // `.default()` rejects against its mutable parameter type (#3399).
       const entries = Object.entries(schema.default)
         .map(([key, value]) => {
+          const safeKey = JSON.stringify(key);
           if (isString(value)) {
-            return `${key}: ${JSON.stringify(value)} as const`;
+            return `${safeKey}: ${JSON.stringify(value)} as const`;
           }
 
           if (Array.isArray(value)) {
             const arrayItems = value.map((item) =>
               isString(item) ? `${JSON.stringify(item)} as const` : `${item}`,
             );
-            return `${key}: [${arrayItems.join(', ')}]`;
+            return `${safeKey}: [${arrayItems.join(', ')}]`;
           }
 
           if (
@@ -833,17 +852,13 @@ export const generateZodValidationSchemaDefinition = (
             isNumber(value) ||
             isBoolean(value)
           )
-            return `${key}: ${value}`;
+            return `${safeKey}: ${value}`;
         })
         .join(', ');
       defaultValue = entries.length === 0 ? `{}` : `{ ${entries} }`;
     } else {
       // OpenApiSchemaObject defines default as 'any'
-      const rawStringified = stringify(schema.default);
-      defaultValue =
-        rawStringified === undefined
-          ? 'null'
-          : rawStringified.replaceAll("'", '`');
+      defaultValue = formatDefaultValue(schema.default);
 
       // If the schema is an array with enum items, inject inplace to avoid issues with default values
       const isArrayWithEnumItems =
@@ -1516,9 +1531,9 @@ ${Object.entries(objectArgs)
       Array.isArray(coerceTypes) &&
       coerceTypes.includes('array' as ZodCoerceType);
     if (coerceArrays && schema.functions.some(([fn]) => fn === 'array')) {
-      return `  "${key}": ${zodMiniCall('pipe', `${zodMiniCall('transform', '(value) => value === undefined || Array.isArray(value) ? value : [value]')}, ${rendered.expr}`)}`;
+      return `  ${JSON.stringify(key)}: ${zodMiniCall('pipe', `${zodMiniCall('transform', '(value) => value === undefined || Array.isArray(value) ? value : [value]')}, ${rendered.expr}`)}`;
     }
-    return `  "${key}": ${rendered.expr}`;
+    return `  ${JSON.stringify(key)}: ${rendered.expr}`;
   })
   .join(',\n')}
 }`,
@@ -1867,7 +1882,7 @@ ${Object.entries(mergedProperties)
       .map((prop) => parseProperty(prop, [...fieldPath, key]))
       .join('');
     appendConstsChunk(schema.consts.join('\n'));
-    return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
+    return `  ${JSON.stringify(key)}: ${value.startsWith('.') ? 'zod' : ''}${value}`;
   })
   .join(',\n')}
 })`;
@@ -2051,9 +2066,9 @@ ${Object.entries(objectArgs)
       Array.isArray(coerceTypes) &&
       coerceTypes.includes('array' as ZodCoerceType);
     if (coerceArrays && schema.functions.some(([fn]) => fn === 'array')) {
-      return `  "${key}": zod.preprocess((value) => value === undefined || Array.isArray(value) ? value : [value], ${fieldZod})`;
+      return `  ${JSON.stringify(key)}: zod.preprocess((value) => value === undefined || Array.isArray(value) ? value : [value], ${fieldZod})`;
     }
-    return `  "${key}": ${fieldZod}`;
+    return `  ${JSON.stringify(key)}: ${fieldZod}`;
   })
   .join(',\n')}
 })`;
