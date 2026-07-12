@@ -158,6 +158,32 @@ test('angular issue-3713 multi-content resources read signals inside the httpRes
   expect(impl).not.toMatch(/\(\)\s*=>\s*\(\{\s*\.\.\.normalizedRequest/);
 });
 
+test('angular http-resource-headers exposes request descriptor extension (#3710)', async () => {
+  const file = generated('angular', 'http-resource-headers', 'endpoints.ts');
+  const content = await readFile(file, 'utf8');
+
+  // Emitted extension surface: headers/context/request escape hatch.
+  expect(content).toContain(
+    'export interface OrvalHttpResourceRequestExtension',
+  );
+  expect(content).toContain(
+    "context?: HttpContext | (() => HttpContext);",
+  );
+  expect(content).toContain(
+    'request?: (request: HttpResourceRequest) => HttpResourceRequest;',
+  );
+  expect(content).toContain('export function applyOrvalRequestExtension(');
+
+  // The extension is applied INSIDE the reactive httpResource factory so
+  // signal reads inside `options.headers()`/`options.context()` stay tracked.
+  expect(content).toMatch(/\(\)\s*=>\s*applyOrvalRequestExtension\(/);
+
+  // The already-supported OpenAPI `in: header` forwarding (top-level
+  // `output.headers: true`) still works alongside the new extension.
+  expect(content).toContain('headers: headers?.()');
+  expect(content).toMatch(/headers[?]?:\s*Signal<[A-Za-z]+Headers>/);
+});
+
 test('fetch arrayFormat repeat serializes arrays as repeated keys', async () => {
   const content = await readFile(
     generated('fetch', 'array-format-repeat', 'endpoints.ts'),

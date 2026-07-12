@@ -421,4 +421,44 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  httpResourceHeaders: {
+    output: {
+      target: '../generated/angular/http-resource-headers/endpoints.ts',
+      schemas: '../generated/angular/http-resource-headers/model',
+      client: 'angular',
+      headers: true,
+      mock: false,
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  httpResourceRequestExtensionMultiContent: {
+    output: {
+      target:
+        '../generated/angular/http-resource-request-extension-multi-content/endpoints.ts',
+      schemas:
+        '../generated/angular/http-resource-request-extension-multi-content/model',
+      client: 'angular',
+      headers: true,
+      mock: false,
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/angular-http-resource-request-extension.yaml',
+    },
+  },
 });

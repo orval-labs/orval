@@ -6,21 +6,100 @@
  */
 import type { Pets, SearchPetsBody } from '../model';
 
-import { httpResource } from '@angular/common/http';
+import { HttpHeaders, httpResource } from '@angular/common/http';
 import type {
+  HttpContext,
   HttpResourceOptions,
   HttpResourceRef,
+  HttpResourceRequest,
 } from '@angular/common/http';
 
 import type { ResourceStatus, Signal } from '@angular/core';
+
+export interface OrvalHttpResourceRequestExtension {
+  /** Extra headers merged over generated headers. Pass a function to read signals reactively. */
+  headers?:
+    | HttpResourceRequest['headers']
+    | (() => HttpResourceRequest['headers']);
+  /** Angular HttpContext forwarded to the underlying request. Pass a function to derive it reactively. */
+  context?: HttpContext | (() => HttpContext);
+  /** Last-resort escape hatch: transform the final request descriptor. Runs inside the resource's reactive context. */
+  request?: (request: HttpResourceRequest) => HttpResourceRequest;
+}
 
 export type OrvalHttpResourceOptions<
   TValue,
   TRaw = unknown,
   TOmitParse extends boolean = false,
-> = TOmitParse extends true
+> = (TOmitParse extends true
   ? Omit<HttpResourceOptions<TValue, TRaw>, 'parse'>
-  : HttpResourceOptions<TValue, TRaw>;
+  : HttpResourceOptions<TValue, TRaw>) &
+  OrvalHttpResourceRequestExtension;
+
+function mergeOrvalResourceHeaders(
+  base: HttpResourceRequest['headers'],
+  extra: HttpResourceRequest['headers'],
+): HttpResourceRequest['headers'] {
+  if (!base) return extra;
+  if (!extra) return base;
+  if (base instanceof HttpHeaders || extra instanceof HttpHeaders) {
+    const toHeaderValue = (
+      value: string | readonly string[],
+    ): string | string[] =>
+      Array.isArray(value) ? Array.from(value, String) : String(value);
+    let merged =
+      base instanceof HttpHeaders
+        ? base
+        : Object.entries(base).reduce(
+            (headers, [key, value]) => headers.set(key, toHeaderValue(value)),
+            new HttpHeaders(),
+          );
+    const extraRecord =
+      extra instanceof HttpHeaders
+        ? extra.keys().reduce<Record<string, string[]>>((record, key) => {
+            const values = extra.getAll(key);
+            if (values) record[key] = values;
+            return record;
+          }, {})
+        : extra;
+    for (const [key, value] of Object.entries(extraRecord)) {
+      merged = merged.set(key, toHeaderValue(value));
+    }
+    return merged;
+  }
+  return { ...base, ...extra };
+}
+
+export function applyOrvalRequestExtension(
+  request: string | HttpResourceRequest,
+  options?: OrvalHttpResourceRequestExtension,
+): HttpResourceRequest {
+  const base: HttpResourceRequest =
+    typeof request === 'string' ? { url: request } : request;
+  if (
+    !options ||
+    (options.headers === undefined &&
+      options.context === undefined &&
+      options.request === undefined)
+  ) {
+    return base;
+  }
+  let next: HttpResourceRequest = { ...base };
+  const extraHeaders =
+    typeof options.headers === 'function' ? options.headers() : options.headers;
+  if (extraHeaders !== undefined) {
+    next = {
+      ...next,
+      headers: mergeOrvalResourceHeaders(next.headers, extraHeaders),
+    };
+  }
+  const context =
+    typeof options.context === 'function' ? options.context() : options.context;
+  if (context !== undefined) {
+    next = { ...next, context };
+  }
+  return options.request ? options.request(next) : next;
+}
 /**
  * @experimental httpResource is experimental (Angular v19.2+)
  */
@@ -45,7 +124,7 @@ export function searchPetsResource(
       method: 'POST',
       body: searchPetsBody(),
     };
-    return request;
+    return applyOrvalRequestExtension(request, options);
   }, options);
 }
 
@@ -63,7 +142,10 @@ export function listPetsResource(
 export function listPetsResource(
   options?: OrvalHttpResourceOptions<Pets, unknown>,
 ): HttpResourceRef<Pets | undefined> {
-  return httpResource<Pets>(() => `/pets`, options);
+  return httpResource<Pets>(
+    () => applyOrvalRequestExtension(`/pets`, options),
+    options,
+  );
 }
 
 export type SearchPetsResourceResult = NonNullable<Pets>;

@@ -8,6 +8,7 @@ import type { ListPetsParams, Pet, Pets, SearchPetsParams } from '../model';
 
 import { HttpHeaders, httpResource } from '@angular/common/http';
 import type {
+  HttpContext,
   HttpResourceOptions,
   HttpResourceRef,
   HttpResourceRequest,
@@ -15,13 +16,90 @@ import type {
 
 import type { ResourceStatus, Signal } from '@angular/core';
 
+export interface OrvalHttpResourceRequestExtension {
+  /** Extra headers merged over generated headers. Pass a function to read signals reactively. */
+  headers?:
+    | HttpResourceRequest['headers']
+    | (() => HttpResourceRequest['headers']);
+  /** Angular HttpContext forwarded to the underlying request. Pass a function to derive it reactively. */
+  context?: HttpContext | (() => HttpContext);
+  /** Last-resort escape hatch: transform the final request descriptor. Runs inside the resource's reactive context. */
+  request?: (request: HttpResourceRequest) => HttpResourceRequest;
+}
+
 export type OrvalHttpResourceOptions<
   TValue,
   TRaw = unknown,
   TOmitParse extends boolean = false,
-> = TOmitParse extends true
+> = (TOmitParse extends true
   ? Omit<HttpResourceOptions<TValue, TRaw>, 'parse'>
-  : HttpResourceOptions<TValue, TRaw>;
+  : HttpResourceOptions<TValue, TRaw>) &
+  OrvalHttpResourceRequestExtension;
+
+function mergeOrvalResourceHeaders(
+  base: HttpResourceRequest['headers'],
+  extra: HttpResourceRequest['headers'],
+): HttpResourceRequest['headers'] {
+  if (!base) return extra;
+  if (!extra) return base;
+  if (base instanceof HttpHeaders || extra instanceof HttpHeaders) {
+    const toHeaderValue = (
+      value: string | readonly string[],
+    ): string | string[] =>
+      Array.isArray(value) ? Array.from(value, String) : String(value);
+    let merged =
+      base instanceof HttpHeaders
+        ? base
+        : Object.entries(base).reduce(
+            (headers, [key, value]) => headers.set(key, toHeaderValue(value)),
+            new HttpHeaders(),
+          );
+    const extraRecord =
+      extra instanceof HttpHeaders
+        ? extra.keys().reduce<Record<string, string[]>>((record, key) => {
+            const values = extra.getAll(key);
+            if (values) record[key] = values;
+            return record;
+          }, {})
+        : extra;
+    for (const [key, value] of Object.entries(extraRecord)) {
+      merged = merged.set(key, toHeaderValue(value));
+    }
+    return merged;
+  }
+  return { ...base, ...extra };
+}
+
+export function applyOrvalRequestExtension(
+  request: string | HttpResourceRequest,
+  options?: OrvalHttpResourceRequestExtension,
+): HttpResourceRequest {
+  const base: HttpResourceRequest =
+    typeof request === 'string' ? { url: request } : request;
+  if (
+    !options ||
+    (options.headers === undefined &&
+      options.context === undefined &&
+      options.request === undefined)
+  ) {
+    return base;
+  }
+  let next: HttpResourceRequest = { ...base };
+  const extraHeaders =
+    typeof options.headers === 'function' ? options.headers() : options.headers;
+  if (extraHeaders !== undefined) {
+    next = {
+      ...next,
+      headers: mergeOrvalResourceHeaders(next.headers, extraHeaders),
+    };
+  }
+  const context =
+    typeof options.context === 'function' ? options.context() : options.context;
+  if (context !== undefined) {
+    next = { ...next, context };
+  }
+  return options.request ? options.request(next) : next;
+}
 
 type AngularHttpParamValue =
   | string
@@ -138,7 +216,7 @@ export function searchPetsResource(
         ]),
       ),
     };
-    return request;
+    return applyOrvalRequestExtension(request, options);
   }, options);
 }
 
@@ -171,12 +249,16 @@ export function listPetsResource(
       params: filterParams(params?.() ?? {}, new Set<string>([])),
     };
     const normalizedRequest: HttpResourceRequest = request;
+    const extendedRequest = applyOrvalRequestExtension(
+      normalizedRequest,
+      options,
+    );
     return {
-      ...normalizedRequest,
+      ...extendedRequest,
       headers:
-        normalizedRequest.headers instanceof HttpHeaders
-          ? normalizedRequest.headers.set('Accept', accept)
-          : { ...(normalizedRequest.headers ?? {}), Accept: accept },
+        extendedRequest.headers instanceof HttpHeaders
+          ? extendedRequest.headers.set('Accept', accept)
+          : { ...(extendedRequest.headers ?? {}), Accept: accept },
     };
   };
 
@@ -232,12 +314,16 @@ export function showPetByIdResource(
   const buildRequest = (): HttpResourceRequest => {
     const request = `/v${version?.() ?? 1}/pets/${petId()}`;
     const normalizedRequest: HttpResourceRequest = { url: request };
+    const extendedRequest = applyOrvalRequestExtension(
+      normalizedRequest,
+      options,
+    );
     return {
-      ...normalizedRequest,
+      ...extendedRequest,
       headers:
-        normalizedRequest.headers instanceof HttpHeaders
-          ? normalizedRequest.headers.set('Accept', accept)
-          : { ...(normalizedRequest.headers ?? {}), Accept: accept },
+        extendedRequest.headers instanceof HttpHeaders
+          ? extendedRequest.headers.set('Accept', accept)
+          : { ...(extendedRequest.headers ?? {}), Accept: accept },
     };
   };
 
@@ -282,7 +368,11 @@ export function showPetTextResource(
   options?: OrvalHttpResourceOptions<string, string>,
 ): HttpResourceRef<string | undefined> {
   return httpResource.text<string>(
-    () => `/v${version?.() ?? 1}/pets/${petId()}/text`,
+    () =>
+      applyOrvalRequestExtension(
+        `/v${version?.() ?? 1}/pets/${petId()}/text`,
+        options,
+      ),
     options,
   );
 }
@@ -308,7 +398,11 @@ export function downloadFileResource(
   options?: OrvalHttpResourceOptions<Blob, Blob>,
 ): HttpResourceRef<Blob | undefined> {
   return httpResource.blob<Blob>(
-    () => `/v${version?.() ?? 1}/pet/${petId()}/downloadImage`,
+    () =>
+      applyOrvalRequestExtension(
+        `/v${version?.() ?? 1}/pet/${petId()}/downloadImage`,
+        options,
+      ),
     options,
   );
 }

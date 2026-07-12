@@ -3,9 +3,15 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  provideZonelessChangeDetection,
+  signal,
+} from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
+import { showPetByIdResource } from '../api/http-resource/pets/pets.service';
 import { HttpResourcePage } from './http-resource.page';
 
 describe('HttpResourcePage', () => {
@@ -122,6 +128,83 @@ describe('HttpResourcePage', () => {
     httpMock
       .expectOne('/v2/pets/2')
       .flush({ id: 2, name: 'Milo', requiredNullableString: null });
+    await fixture.whenStable();
+  });
+});
+
+// Integration coverage for the emitted request-extension helper (#3710),
+// driven end-to-end through Angular's reactive `httpResource` machinery and
+// `HttpTestingController` rather than as a substring check of generated
+// text (see tests/api-generation.spec.ts for the generation-shape check).
+@Component({
+  selector: 'app-request-extension-host',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: '',
+})
+class RequestExtensionHostComponent {
+  readonly requestId = signal('req-1');
+  readonly petId = signal('1');
+
+  readonly resource = showPetByIdResource(this.petId, 'application/json', undefined, {
+    headers: () => ({ 'x-request-id': this.requestId(), Accept: 'text/plain' }),
+  });
+}
+
+describe('generated httpResource request extension (#3710)', () => {
+  let httpMock: HttpTestingController;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [RequestExtensionHostComponent],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
+    }).compileComponents();
+
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  it('re-applies the generated Accept header, overriding an extension attempt to change it', async () => {
+    const fixture = TestBed.createComponent(RequestExtensionHostComponent);
+    fixture.detectChanges();
+
+    const req = httpMock.expectOne('/v1/pets/1');
+    // The extension's `headers` function tries to set Accept: 'text/plain',
+    // but the multi-content-type helper re-applies the generated Accept
+    // header last, so JSON dispatch (and the header sent on the wire) must
+    // still be 'application/json'.
+    expect(req.request.headers.get('Accept')).toBe('application/json');
+    expect(req.request.headers.get('x-request-id')).toBe('req-1');
+
+    req.flush({ id: 1, name: 'Rex', requiredNullableString: null });
+    await fixture.whenStable();
+  });
+
+  it('reloads and re-reads the function-form headers when a signal they read changes', async () => {
+    const fixture = TestBed.createComponent(RequestExtensionHostComponent);
+    fixture.detectChanges();
+
+    const firstReq = httpMock.expectOne('/v1/pets/1');
+    expect(firstReq.request.headers.get('x-request-id')).toBe('req-1');
+    firstReq.flush({ id: 1, name: 'Rex', requiredNullableString: null });
+    await fixture.whenStable();
+
+    fixture.componentInstance.requestId.set('req-2');
+    fixture.detectChanges();
+
+    // Do not `await fixture.whenStable()` here: stability cannot be reached
+    // until the newly-issued request below is flushed, so awaiting it before
+    // flushing would hang indefinitely.
+    const secondReq = httpMock.expectOne('/v1/pets/1');
+    expect(secondReq.request.headers.get('x-request-id')).toBe('req-2');
+    secondReq.flush({ id: 1, name: 'Rex', requiredNullableString: null });
     await fixture.whenStable();
   });
 });

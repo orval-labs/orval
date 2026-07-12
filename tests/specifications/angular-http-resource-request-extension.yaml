@@ -1,0 +1,69 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Angular httpResource Request Extension Test
+  description: >-
+    Test spec for the httpResource request descriptor extension (#3710):
+    a required `in: header` parameter combined with multiple success content
+    types, used to pin the applyOrvalRequestExtension + Accept-header
+    ordering in the generated multi-content-type branches.
+paths:
+  /items/{itemId}/events:
+    get:
+      summary: Get item events in multiple formats, requiring a correlation header
+      operationId: getItemEvents
+      tags:
+        - items
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Item events in multiple formats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemEvents'
+            text/plain:
+              schema:
+                type: string
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    ItemEvent:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+    ItemEvents:
+      type: array
+      items:
+        $ref: '#/components/schemas/ItemEvent'
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
