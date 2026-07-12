@@ -462,7 +462,7 @@ describe('normalizeOptions', () => {
     }
   });
 
-  it('defaults angular runtimeValidation to false', async () => {
+  it('defaults angular runtimeValidation to disabled', async () => {
     const workspace = await createTempWorkspace();
 
     try {
@@ -482,7 +482,88 @@ describe('normalizeOptions', () => {
         workspace,
       );
 
-      expect(normalized.output.override.angular.runtimeValidation).toBe(false);
+      expect(normalized.output.override.angular.runtimeValidation).toEqual({
+        enabled: false,
+        strategy: 'throw',
+      });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('normalizes fetch runtimeValidation { strategy: "both" } to the canonical object', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'fetch',
+            override: {
+              fetch: {
+                runtimeValidation: { strategy: 'both' },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      // Guards the spread ordering in normalizeOptions: the raw
+      // `...override.fetch` passthrough must not clobber the normalized value.
+      expect(normalized.output.override.fetch.runtimeValidation).toEqual({
+        enabled: true,
+        strategy: 'both',
+      });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('does not enable query runtimeValidation for a per-operation override when the global default is disabled', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'angular',
+            override: {
+              // Global query runtimeValidation is omitted -> disabled.
+              operations: {
+                // A per-operation query override that does NOT mention
+                // runtimeValidation must inherit the disabled global value, not
+                // silently flip it on.
+                listPets: {
+                  query: { useQuery: true },
+                },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(
+        normalized.output.override.operations.listPets?.query
+          ?.runtimeValidation,
+      ).toEqual({ enabled: false, strategy: 'throw' });
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }

@@ -159,6 +159,55 @@ export default defineConfig({
       },
     },
   },
+  petstoreZodBoth: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/endpoints-zod-both/petstore.ts',
+      schemas: {
+        type: 'zod',
+        path: 'src/api/endpoints-zod-both/model',
+      },
+      client: 'angular',
+      mock: { indexMockFiles: true, generators: [{ type: 'msw' }] },
+      tsconfig: './tsconfig.app.json',
+      formatter: 'prettier',
+      clean: true,
+      override: {
+        angular: {
+          // `both` strategy: safeParse -> console.error(raw ZodError) -> throw.
+          runtimeValidation: { strategy: 'both' },
+        },
+        operations: {
+          listPets: {
+            mock: {
+              properties: () => {
+                return {
+                  id: () => faker.number.int({ min: 1, max: 99999 }),
+                };
+              },
+            },
+          },
+          showPetById: {
+            mock: {
+              data: createShowPetMock,
+            },
+          },
+        },
+        mock: {
+          properties: {
+            '/tag|name/': () => faker.person.lastName(),
+            '/phone/': createValidPhone,
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+      override: {
+        transformer: 'src/orval/transformer/add-version.ts',
+      },
+    },
+  },
   petstoreHttpResource: {
     output: {
       mode: 'tags-split',

@@ -102,7 +102,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
       angular: {
         provideIn: 'root',
         client: 'httpClient',
-        runtimeValidation: false,
+        runtimeValidation: { enabled: false, strategy: 'throw' },
       },
       swr: {},
       zod: {
@@ -158,7 +158,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
       fetch: {
         includeHttpResponseReturnType: false,
         forceSuccessResponse: false,
-        runtimeValidation: false,
+        runtimeValidation: { enabled: false, strategy: 'throw' },
         useRuntimeFetcher: false,
       },
       useDates,

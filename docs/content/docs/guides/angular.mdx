@@ -555,8 +555,9 @@ flushes an invalid JSON payload and asserts that the resource exposes a
 
 Angular output supports runtime validation for Zod-backed responses when
 `schemas.type` is set to `zod` and `override.angular.runtimeValidation` is
-enabled. For JSON model responses, Orval runs `Schema.parse()` on eligible
-responses and catches type mismatches at runtime.
+enabled. For JSON model responses, the default `throw` strategy runs
+`Schema.parse()` on eligible responses. The `both` strategy uses
+`safeParse()`, logs the raw `ZodError` with `console.error`, then re-throws.
 
 This applies to generated Angular `HttpClient` services too, not just
 `httpResource`. If you keep the default Angular retrieval mode
@@ -566,7 +567,9 @@ pipe JSON model responses through Zod.
 ### Setup
 
 1. Set `schemas.type` to `zod` to generate Zod schemas
-2. Set `override.angular.runtimeValidation: true` to enable runtime validation
+2. Set `override.angular.runtimeValidation` to either:
+   - `true` (shorthand for `{ strategy: 'throw' }`)
+   - `{ strategy: 'both' }` for log-then-throw behavior
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -583,7 +586,7 @@ export default defineConfig({
       client: 'angular',
       override: {
         angular: {
-          runtimeValidation: true,
+          runtimeValidation: { strategy: 'both' },
         },
       },
     },
@@ -596,9 +599,9 @@ export default defineConfig({
 
 ### How It Works
 
-For generated `HttpClient` services, JSON responses are piped through the Zod
-schema's `.parse()` method. Generated `httpResource` JSON retrievals use the
-same validation hook through Angular's `HttpResourceOptions.parse`.
+For generated `HttpClient` services, JSON responses are validated in the RxJS
+pipeline. Generated `httpResource` JSON retrievals use Angular's
+`HttpResourceOptions.parse` hook with the same strategy semantics.
 
 ```ts
 // Generated code (simplified)

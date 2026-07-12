@@ -7,6 +7,7 @@ import {
   type ClientHeaderBuilder,
   type ContextSpec,
   conventionName,
+  emitResponseValidation,
   escapeRegExp,
   generateDependencyImports,
   generateFormDataAndUrlEncodedFunction,
@@ -583,7 +584,7 @@ const getParseSchemaName = (
   if (zodSchema) return zodSchema.name;
 
   // Check if runtime validation is disabled
-  if (!output.override.angular.runtimeValidation) return undefined;
+  if (!output.override.angular.runtimeValidation.enabled) return undefined;
 
   // Auto-detect: when schemas.type === 'zod', use the response type as the schema name
   if (!isZodSchemaOutput(output)) return undefined;
@@ -667,6 +668,7 @@ const getParseExpression = (
   },
   factory: HttpResourceFactoryName,
   output: NormalizedOutputOptions,
+  operationName: string,
   responseTypeOverride?: string,
 ): string | undefined => {
   const schemaName = getParseSchemaName(
@@ -676,7 +678,14 @@ const getParseExpression = (
     responseTypeOverride,
   );
 
-  return schemaName ? `${schemaName}.parse` : undefined;
+  return schemaName
+    ? emitResponseValidation({
+        schemaRef: schemaName,
+        operationName,
+        strategy: output.override.angular.runtimeValidation.strategy,
+        context: 'parse-fn',
+      })
+    : undefined;
 };
 
 /**
@@ -700,6 +709,7 @@ const buildHttpResourceOptionsLiteral = (
     verbOption.response,
     factory,
     output,
+    verbOption.operationName,
     responseTypeOverride,
   );
 
@@ -842,7 +852,7 @@ const buildHttpResourceFunction = (
   const resourceName = `${operationName}Resource`;
   const parsedDataType =
     omitParse &&
-    output.override.angular.runtimeValidation &&
+    output.override.angular.runtimeValidation.enabled &&
     !isPrimitiveType(dataType) &&
     hasResponseSchemaImport
       ? getSchemaOutputTypeRef(dataType)
@@ -1212,7 +1222,7 @@ const getHttpResourceGeneratedResponseType = (
 ): string => {
   if (
     isZodSchemaOutput(output) &&
-    output.override.angular.runtimeValidation &&
+    output.override.angular.runtimeValidation.enabled &&
     !!contentType &&
     (contentType.includes('json') || contentType.includes('+json')) &&
     !isPrimitiveType(value) &&

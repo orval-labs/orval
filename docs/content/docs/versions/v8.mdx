@@ -96,13 +96,16 @@ export default defineConfig({
       client: 'fetch',
       override: {
         fetch: {
-          runtimeValidation: true,
+          runtimeValidation: { strategy: 'both' },
         },
       },
     },
   },
 });
 ```
+
+`runtimeValidation: true` remains supported as shorthand for
+`{ strategy: 'throw' }`.
 
 ### React Compiler Support
 
