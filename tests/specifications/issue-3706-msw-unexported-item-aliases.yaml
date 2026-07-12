@@ -1,0 +1,122 @@
+openapi: 3.0.3
+info:
+  title: MSW array item factories - unexported top-level array item aliases
+  version: 1.0.0
+paths:
+  /catalog-items:
+    get:
+      operationId: getCatalogItems
+      tags:
+        - catalog
+      responses:
+        '200':
+          description: List catalog items ($ref array response)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogItems'
+  /catalog-items-inline:
+    get:
+      operationId: getCatalogItemsInline
+      tags:
+        - catalog
+      responses:
+        '200':
+          description: List catalog items (inline top-level array response)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - id
+                    - label
+                  properties:
+                    id:
+                      type: string
+                    label:
+                      type: string
+  /items:
+    get:
+      operationId: getCatalogItemsShort
+      tags:
+        - catalog
+      responses:
+        '200':
+          description: List items ($ref array response, reproduces the reported shape)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Items'
+  /nullable-list:
+    get:
+      operationId: getNullableList
+      tags:
+        - catalog
+      responses:
+        '200':
+          description: Object wrapping a nullable array property (parentName-path regression guard)
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - rows
+                properties:
+                  rows:
+                    type: array
+                    nullable: true
+                    items:
+                      type: object
+                      required:
+                        - id
+                      properties:
+                        id:
+                          type: string
+  /nullable-catalog-items:
+    get:
+      operationId: getNullableCatalogItems
+      tags:
+        - catalog
+      responses:
+        '200':
+          description: List catalog items (nullable top-level array response)
+          content:
+            application/json:
+              schema:
+                type: array
+                nullable: true
+                items:
+                  type: object
+                  required:
+                    - id
+                    - name
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+components:
+  schemas:
+    CatalogItems:
+      type: array
+      items:
+        type: object
+        required:
+          - sku
+          - price
+        properties:
+          sku:
+            type: string
+          price:
+            type: number
+    Items:
+      type: array
+      items:
+        type: object
+        required:
+          - id
+        properties:
+          id:
+            type: string

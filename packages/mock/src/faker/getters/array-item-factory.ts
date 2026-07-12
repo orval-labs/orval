@@ -233,9 +233,60 @@ function getArrayItemFactoryNames({
   }
 
   const itemSuffix = context.output.override.components.schemas.itemSuffix;
-  const typeName = parentName
-    ? `${pascal(parentName)}${pascal(propertyName)}${itemSuffix}`
-    : `${pascal(operationId)}${pascal(propertyName)}${itemSuffix}`;
+
+  let typeName: string;
+  if (parentName) {
+    typeName = `${pascal(parentName)}${pascal(propertyName)}${itemSuffix}`;
+  } else {
+    // No `parentName`: the array IS the top-level response schema, and
+    // `propertyName` here is the response definition string produced by
+    // `getResReqTypes` (core/getters/res-req-types.ts) rather than a nested
+    // property key. Two shapes reach this point:
+    //  - inline top-level array responses, where `propertyName` is the
+    //    response type expression with a trailing `[]`; the part before
+    //    `[]` is the element alias core already emitted via
+    //    `createTypeAliasIfNeeded` (core/resolvers/object.ts), when that
+    //    part is a bare identifier;
+    //  - `$ref`'d array schemas (`items` here is the array's resolved,
+    //    non-`$ref` items schema), where `propertyName` is the bare ref
+    //    name and core aliases the array's items as
+    //    `${pascal(refName)}${itemSuffix}` (core/getters/array.ts).
+    // Nullable top-level arrays reach this branch too: core's scalar getter
+    // appends a trailing ` | null` to either shape above (e.g.
+    // `CatalogItems | null` or `GetFoo200Item[] | null`), so that suffix is
+    // stripped before testing/deriving the type name below. `factoryName`
+    // still keys off the original, unstripped `propertyName` — outputs on
+    // the nullable path never compiled before this fix, so factory naming
+    // there is not a compatibility surface.
+    // If neither shape holds with certainty, bail (`undefined`) so the call
+    // site keeps the pre-#3514 inline item body, which is always
+    // type-correct, instead of referencing a name core never emitted (#3706).
+    const nullableSuffix = ' | null';
+    const workingName = propertyName.endsWith(nullableSuffix)
+      ? propertyName.slice(0, -nullableSuffix.length)
+      : propertyName;
+
+    if (workingName.endsWith('[]')) {
+      const base = workingName.slice(0, -2);
+      if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(base)) {
+        return undefined;
+      }
+      typeName = base;
+    } else {
+      const schema = items as OpenApiSchemaObject;
+      if (schema.allOf && !schema.properties && schema.type !== 'object') {
+        return undefined;
+      }
+      // Defense-in-depth: `workingName` should be a bare ref name here, but
+      // guard against anything that isn't a valid identifier (e.g. a
+      // malformed union expression) rather than emitting a phantom type.
+      if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(workingName)) {
+        return undefined;
+      }
+      typeName = `${pascal(workingName)}${itemSuffix}`;
+    }
+  }
+
   return {
     factoryName: `get${pascal(operationId)}Response${pascal(propertyName)}ItemMock`,
     typeName,
