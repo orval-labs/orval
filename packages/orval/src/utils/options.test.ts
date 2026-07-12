@@ -593,6 +593,137 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('defaults angular queryObjectSerialization to spec (issue #3705)', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.angular.queryObjectSerialization).toBe(
+        'spec',
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('normalizes an explicit angular queryObjectSerialization: legacy override', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            override: {
+              angular: {
+                queryObjectSerialization: 'legacy',
+              },
+              operations: {
+                searchPets: {
+                  angular: {
+                    queryObjectSerialization: 'legacy',
+                  },
+                },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.angular.queryObjectSerialization).toBe(
+        'legacy',
+      );
+      expect(
+        normalized.output.override.operations.searchPets?.angular
+          ?.queryObjectSerialization,
+      ).toBe('legacy');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  // KNOWN LIMITATION (shared with `retrievalClient`/`runtimeValidation`,
+  // pre-existing before #3705): setting ANY per-operation `angular` field
+  // re-defaults the other angular fields to their global fallbacks at the
+  // `override.operations[op].angular` normalization step below, rather than
+  // inheriting the global value. The deep-merge that later combines this
+  // normalized per-operation block with the global `override.angular` (in
+  // `@orval/core`'s `generators/verbs-options.ts`) therefore overwrites a
+  // global non-default `client`/`queryObjectSerialization` with this
+  // re-defaulted value for that one operation. This test documents the
+  // current (unfixed) behavior at the normalization boundary this package
+  // owns — see plan risks for issue #3705.
+  it('re-defaults sibling angular fields to their global fallback when only one per-operation angular field is set', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            override: {
+              angular: {
+                retrievalClient: 'httpResource',
+              },
+              operations: {
+                searchPets: {
+                  angular: {
+                    queryObjectSerialization: 'legacy',
+                  },
+                },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.angular.client).toBe('httpResource');
+      expect(
+        normalized.output.override.operations.searchPets?.angular
+          ?.queryObjectSerialization,
+      ).toBe('legacy');
+      // Documents the limitation: the per-operation block re-defaults
+      // `client` to `'httpClient'` instead of inheriting the global
+      // `'httpResource'`.
+      expect(
+        normalized.output.override.operations.searchPets?.angular?.client,
+      ).toBe('httpClient');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('normalizes schemas: false to undefined', async () => {
     const workspace = await createTempWorkspace();
 

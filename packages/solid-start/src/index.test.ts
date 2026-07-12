@@ -103,6 +103,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
         provideIn: 'root',
         client: 'httpClient',
         runtimeValidation: false,
+        queryObjectSerialization: 'spec',
       },
       swr: {},
       zod: {

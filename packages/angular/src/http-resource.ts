@@ -15,6 +15,7 @@ import {
   type GeneratorImport,
   type GeneratorVerbOptions,
   getAngularFilteredParamsHelperBody,
+  getAngularObjectParamStrategies,
   getFileInfo,
   getFullRoute,
   GetterPropType,
@@ -449,6 +450,24 @@ interface ResourceRequest {
   readonly bodyGuard?: string;
 }
 
+/**
+ * Whether a single operation has at least one gated object-serialization
+ * strategy (issue #3705) to apply. Used to decide whether the shared
+ * `filterParams` helper needs its object-serialization overload.
+ */
+const hasGatedObjectQueryParamStrategies = (
+  verbOption: GeneratorVerbOptions,
+): boolean =>
+  Object.keys(
+    getAngularObjectParamStrategies({
+      queryParams: verbOption.queryParams,
+      paramsSerializer: verbOption.paramsSerializer,
+      paramsFilter: verbOption.paramsFilter,
+      queryObjectSerialization:
+        verbOption.override.angular.queryObjectSerialization,
+    }),
+  ).length > 0;
+
 const buildResourceRequest = (
   {
     verb,
@@ -507,6 +526,15 @@ const buildResourceRequest = (
 
   const paramsAccess = queryParams ? 'params?.()' : undefined;
   const headersAccess = headers ? 'headers?.()' : undefined;
+  // Object-typed query param serialization (issue #3705), gated for
+  // `override.angular.queryObjectSerialization`, `paramsFilter`, and
+  // `paramsSerializer`.
+  const objectParamStrategies = getAngularObjectParamStrategies({
+    queryParams,
+    paramsSerializer,
+    paramsFilter,
+    queryObjectSerialization: override.angular.queryObjectSerialization,
+  });
   const filteredParamsValue = paramsAccess
     ? buildAngularParamsFilterExpression({
         paramsExpression: `${paramsAccess} ?? {}`,
@@ -520,6 +548,7 @@ const buildResourceRequest = (
         nonPrimitiveKeys: paramsSerializer
           ? (queryParams?.nonPrimitiveKeys ?? [])
           : [],
+        objectParamStrategies,
         paramsFilter,
         useSharedHelper: true,
       })
@@ -1307,9 +1336,6 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
   const hasBuiltInFilteredQueryParams = retrievals.some(
     (verbOption) => !!verbOption.queryParams && !verbOption.paramsFilter,
   );
-  const filterParamsHelper = hasBuiltInFilteredQueryParams
-    ? `\n${getAngularFilteredParamsHelperBody()}\n`
-    : '';
   const resources = retrievals
     .map((verbOption) => {
       const fullRoute = routeRegistry.get(
@@ -1340,6 +1366,15 @@ export const generateHttpResourceHeader: ClientHeaderBuilder = ({
   const hasMutationBuiltInFilteredQueryParams = mutations.some(
     (verbOption) => !!verbOption.queryParams && !verbOption.paramsFilter,
   );
+  // The single shared helper emitted below is used by both retrievals and
+  // mutations, so its object-serialization overload (issue #3705) must be
+  // gated across both groups.
+  const hasObjectParams = [...retrievals, ...mutations].some(
+    hasGatedObjectQueryParamStrategies,
+  );
+  const filterParamsHelper = hasBuiltInFilteredQueryParams
+    ? `\n${getAngularFilteredParamsHelperBody({ hasObjectParams })}\n`
+    : '';
 
   const mutationImplementation = mutations
     .map((verbOption) => {
@@ -1366,6 +1401,7 @@ ${buildServiceClassOpen({
   provideIn,
   hasQueryParams:
     hasMutationBuiltInFilteredQueryParams && !hasBuiltInFilteredQueryParams,
+  hasObjectParams: mutations.some(hasGatedObjectQueryParamStrategies),
 })}
 ${mutationImplementation}
 };
@@ -1436,8 +1472,9 @@ const buildHttpResourceFile = (
   const hasBuiltInFilteredQueryParams = retrievals.some(
     (verbOption) => !!verbOption.queryParams && !verbOption.paramsFilter,
   );
+  const hasObjectParams = retrievals.some(hasGatedObjectQueryParamStrategies);
   const filterParamsHelper = hasBuiltInFilteredQueryParams
-    ? `\n${getAngularFilteredParamsHelperBody()}\n`
+    ? `\n${getAngularFilteredParamsHelperBody({ hasObjectParams })}\n`
     : '';
 
   const resources = retrievals

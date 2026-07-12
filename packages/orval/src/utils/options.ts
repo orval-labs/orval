@@ -677,6 +677,8 @@ export async function normalizeOptions(
             'httpClient',
           runtimeValidation:
             outputOptions.override?.angular?.runtimeValidation ?? false,
+          queryObjectSerialization:
+            outputOptions.override?.angular?.queryObjectSerialization ?? 'spec',
           ...(outputOptions.override?.angular?.httpResource
             ? { httpResource: outputOptions.override.angular.httpResource }
             : {}),
@@ -1060,6 +1062,8 @@ function normalizeOperationsAndTags(
                     client:
                       angular.retrievalClient ?? angular.client ?? 'httpClient',
                     runtimeValidation: angular.runtimeValidation ?? false,
+                    queryObjectSerialization:
+                      angular.queryObjectSerialization ?? 'spec',
                     ...(angular.httpResource
                       ? { httpResource: angular.httpResource }
                       : {}),

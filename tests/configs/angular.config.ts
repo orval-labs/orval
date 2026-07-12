@@ -323,6 +323,70 @@ export default defineConfig({
       target: '../specifications/issue-3326.yaml',
     },
   },
+  issue3705: {
+    output: {
+      target: '../generated/angular/issue-3705/endpoints.ts',
+      schemas: '../generated/angular/issue-3705/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3705.yaml',
+    },
+  },
+  issue3705HttpResource: {
+    output: {
+      target: '../generated/angular/issue-3705-http-resource/endpoints.ts',
+      schemas: '../generated/angular/issue-3705-http-resource/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-3705.yaml',
+    },
+  },
+  issue3705Legacy: {
+    output: {
+      target: '../generated/angular/issue-3705-legacy/endpoints.ts',
+      schemas: '../generated/angular/issue-3705-legacy/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          queryObjectSerialization: 'legacy',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-3705.yaml',
+    },
+  },
+  issue3705Serializer: {
+    output: {
+      target: '../generated/angular/issue-3705-serializer/endpoints.ts',
+      schemas: '../generated/angular/issue-3705-serializer/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        paramsSerializer: {
+          path: '../mutators/params-serializer.ts',
+          name: 'customParamsSerializer',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-3705.yaml',
+    },
+  },
   urlEncodeParameters: {
     output: {
       target: '../generated/angular/url-encode-parameters/endpoints.ts',
