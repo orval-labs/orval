@@ -2379,13 +2379,16 @@ describe('angular httpResource generator', () => {
         clientImplementation: '',
       } as never);
 
-      // No outer `const headers = ...` before the per-branch factories — the
-      // TDZ-prone local was renamed to `acceptHeaders` and moved inside each
-      // reactive factory.
+      // No outer `const headers = ...` before the per-branch factories, and no
+      // separate `acceptHeaders` local either — the Accept-header merge is
+      // inlined directly in the shared `buildRequest` closure's return
+      // statement, and that single closure (not a per-branch factory) is
+      // passed to every accept-based branch.
       expect(header).not.toContain('const headers =');
-      expect(header).toContain('const acceptHeaders =');
+      expect(header).toContain('const buildRequest');
 
       const headerString = asHeaderString(header);
+      expect(headerString.match(/const buildRequest/g)).toHaveLength(1);
       const applyIndex = headerString.indexOf(
         'applyOrvalRequestExtension(normalizedRequest, options)',
       );
