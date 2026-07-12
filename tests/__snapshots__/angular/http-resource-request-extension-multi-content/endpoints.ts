@@ -132,58 +132,41 @@ export function getItemEventsResource(
     | OrvalHttpResourceOptions<ItemEvents, unknown>
     | OrvalHttpResourceOptions<string, string>,
 ): HttpResourceRef<ItemEvents | string | undefined> {
-  const request = {
-    url: `/items/${itemId()}/events`,
-    headers: headers?.(),
+  const buildRequest = (): HttpResourceRequest => {
+    const request = {
+      url: `/items/${itemId()}/events`,
+      headers: headers?.(),
+    };
+    const normalizedRequest: HttpResourceRequest = request;
+    const extendedRequest = applyOrvalRequestExtension(
+      normalizedRequest,
+      options,
+    );
+    return {
+      ...extendedRequest,
+      headers:
+        extendedRequest.headers instanceof HttpHeaders
+          ? extendedRequest.headers.set('Accept', accept)
+          : { ...(extendedRequest.headers ?? {}), Accept: accept },
+    };
   };
-  const normalizedRequest: HttpResourceRequest = request;
 
   if (accept.includes('json') || accept.includes('+json')) {
     return httpResource<ItemEvents>(
-      () => {
-        const extendedRequest = applyOrvalRequestExtension(
-          normalizedRequest,
-          options,
-        );
-        const acceptHeaders =
-          extendedRequest.headers instanceof HttpHeaders
-            ? extendedRequest.headers.set('Accept', accept)
-            : { ...(extendedRequest.headers ?? {}), Accept: accept };
-        return { ...extendedRequest, headers: acceptHeaders };
-      },
+      buildRequest,
       options as unknown as OrvalHttpResourceOptions<ItemEvents, unknown>,
     );
   }
 
   if (accept.startsWith('text/') || accept.includes('xml')) {
     return httpResource.text<string>(
-      () => {
-        const extendedRequest = applyOrvalRequestExtension(
-          normalizedRequest,
-          options,
-        );
-        const acceptHeaders =
-          extendedRequest.headers instanceof HttpHeaders
-            ? extendedRequest.headers.set('Accept', accept)
-            : { ...(extendedRequest.headers ?? {}), Accept: accept };
-        return { ...extendedRequest, headers: acceptHeaders };
-      },
+      buildRequest,
       options as unknown as OrvalHttpResourceOptions<string, string>,
     );
   }
 
   return httpResource<ItemEvents>(
-    () => {
-      const extendedRequest = applyOrvalRequestExtension(
-        normalizedRequest,
-        options,
-      );
-      const acceptHeaders =
-        extendedRequest.headers instanceof HttpHeaders
-          ? extendedRequest.headers.set('Accept', accept)
-          : { ...(extendedRequest.headers ?? {}), Accept: accept };
-      return { ...extendedRequest, headers: acceptHeaders };
-    },
+    buildRequest,
     options as unknown as OrvalHttpResourceOptions<ItemEvents, unknown>,
   );
 }
