@@ -36,7 +36,8 @@
     "tslib": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
-    "vite": "catalog:"
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
   },
   "dependencies": {
     "@tanstack/svelte-query": "catalog:svelte",

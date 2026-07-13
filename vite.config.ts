@@ -98,4 +98,7 @@ export default defineConfig({
     '*.{ts,tsx,mts,cts,js,mjs,cjs,jsx}':
       'vp fmt --write --no-error-on-unmatched-pattern',
   },
+  test: {
+    projects: ['packages/*'],
+  },
 });

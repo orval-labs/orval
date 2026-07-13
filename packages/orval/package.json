@@ -90,7 +90,7 @@
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:"
+    "vite-plus": "catalog:"
   },
   "peerDependencies": {
     "prettier": ">=3.0.0"

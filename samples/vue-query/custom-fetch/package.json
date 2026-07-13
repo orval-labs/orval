@@ -24,6 +24,7 @@
     "prettier": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
+    "vite-plus": "catalog:",
     "vue-tsc": "catalog:vue"
   }
 }

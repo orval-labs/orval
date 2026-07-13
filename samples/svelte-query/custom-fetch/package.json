@@ -4,7 +4,7 @@
   "version": "8.24.0",
   "type": "module",
   "scripts": {
-    "dev": "vp  --host",
+    "dev": "vp --host",
     "build": "vp build",
     "preview": "vp preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
@@ -25,7 +25,7 @@
     "tslib": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:"
+    "vite-plus": "catalog:"
   },
   "dependencies": {
     "@tanstack/svelte-query": "catalog:svelte"

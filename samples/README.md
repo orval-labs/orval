@@ -29,8 +29,7 @@ Update `<ORVAL OUTPUT DIR>`
   },
   "devDependencies": {
     "orval": "workspace:*",
-    "prettier": "catalog:",
-    "vitest": "catalog:",
+    "prettier": "catalog:"
   },
 }
 ```
@@ -65,7 +64,7 @@ export default defineConfig({
 No changes needed.
 
 ```ts
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite-plus';
 import pkg from './package.json' with { type: 'json' };
 
 export default defineConfig({

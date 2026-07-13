@@ -43,7 +43,8 @@
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:"
+    "vite-plus": "catalog:",
+    "vitest": "4.1.10"
   },
   "dependenciesMeta": {
     "msw": {

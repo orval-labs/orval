@@ -25,6 +25,7 @@
       "devDependencies": {
         "rimraf": "catalog:",
         "typescript": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "packages/axios": {
@@ -185,7 +186,7 @@
         "rimraf": "catalog:",
         "typescript": "catalog:",
         "vite": "catalog:",
-        "vitest": "catalog:",
+        "vite-plus": "catalog:",
       },
       "peerDependencies": {
         "prettier": ">=3.0.0",
@@ -274,7 +275,8 @@
         "typescript": "catalog:",
         "typescript-eslint": "catalog:",
         "vite": "catalog:",
-        "vitest": "catalog:",
+        "vite-plus": "catalog:",
+        "vitest": "4.1.10",
       },
     },
     "samples/angular-query": {
@@ -311,7 +313,8 @@
         "typescript": "catalog:",
         "typescript-eslint": "catalog:",
         "vite": "catalog:",
-        "vitest": "catalog:",
+        "vite-plus": "catalog:",
+        "vitest": "4.1.10",
       },
     },
     "samples/basic": {
@@ -503,6 +506,7 @@
         "prettier": "catalog:",
         "typescript": "catalog:",
         "vite": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "samples/react-app-with-swr/basic": {
@@ -524,6 +528,7 @@
         "prettier": "catalog:",
         "typescript": "catalog:",
         "vite": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "samples/react-app-with-swr/fetch-client": {
@@ -549,6 +554,7 @@
         "prettier": "catalog:",
         "typescript": "catalog:",
         "vite": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "samples/react-query/basic": {
@@ -571,6 +577,7 @@
         "prettier": "catalog:",
         "typescript": "catalog:",
         "vite": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "samples/react-query/custom-fetch": {
@@ -596,6 +603,7 @@
         "prettier": "catalog:",
         "typescript": "catalog:",
         "vite": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "samples/react-query/form-data": {
@@ -696,6 +704,7 @@
         "typescript": "~5.9.3",
         "vite": "catalog:",
         "vite-plugin-solid": "^2.11.10",
+        "vite-plus": "catalog:",
       },
     },
     "samples/solid-query/custom-fetch": {
@@ -712,6 +721,7 @@
         "typescript": "~5.9.3",
         "vite": "catalog:",
         "vite-plugin-solid": "^2.11.10",
+        "vite-plus": "catalog:",
       },
     },
     "samples/solid-start/basic": {
@@ -733,6 +743,7 @@
         "typescript": "~5.9.3",
         "vite": "catalog:",
         "vite-plugin-solid": "^2.11.10",
+        "vite-plus": "catalog:",
       },
     },
     "samples/svelte-query/basic": {
@@ -760,6 +771,7 @@
         "typescript": "catalog:",
         "typescript-eslint": "catalog:",
         "vite": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "samples/svelte-query/custom-fetch": {
@@ -780,7 +792,7 @@
         "tslib": "catalog:",
         "typescript": "catalog:",
         "vite": "catalog:",
-        "vitest": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "samples/svelte-query/v6-custom-fetch": {
@@ -802,7 +814,7 @@
         "tslib": "catalog:",
         "typescript": "catalog:",
         "vite": "catalog:",
-        "vitest": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "samples/swr-with-effect": {
@@ -829,6 +841,7 @@
         "prettier": "catalog:",
         "typescript": "catalog:",
         "vite": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "samples/swr-with-zod": {
@@ -855,6 +868,7 @@
         "prettier": "catalog:",
         "typescript": "catalog:",
         "vite": "catalog:",
+        "vite-plus": "catalog:",
       },
     },
     "samples/vue-query/custom-fetch": {
@@ -872,6 +886,7 @@
         "prettier": "catalog:",
         "typescript": "catalog:",
         "vite": "catalog:",
+        "vite-plus": "catalog:",
         "vue-tsc": "catalog:vue",
       },
     },
@@ -895,6 +910,7 @@
         "tsd": "^0.33.0",
         "typescript": "catalog:",
         "vite": "catalog:",
+        "vite-plus": "catalog:",
         "vue-tsc": "catalog:vue",
       },
     },
@@ -932,10 +948,6 @@
         "zod": "catalog:zod4",
       },
     },
-  },
-  "overrides": {
-    "vite": "catalog:",
-    "vitest": "catalog:",
   },
   "catalog": {
     "@scalar/openapi-types": "0.9.4",
@@ -4663,6 +4675,8 @@
     "vitest/vite": ["vite@7.3.5", "", { "dependencies": { "esbuild": "^0.27.0", "fdir": "^6.5.0", "picomatch": "^4.0.3", "postcss": "^8.5.6", "rollup": "^4.43.0", "tinyglobby": "^0.2.15" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "peerDependencies": { "@types/node": "^20.19.0 || >=22.12.0", "jiti": ">=1.21.0", "less": "^4.0.0", "lightningcss": "^1.21.0", "sass": "^1.70.0", "sass-embedded": "^1.70.0", "stylus": ">=0.54.8", "sugarss": "^5.0.0", "terser": "^5.16.0", "tsx": "^4.8.1", "yaml": "^2.4.2" }, "optionalPeers": ["@types/node", "jiti", "less", "lightningcss", "sass", "sass-embedded", "stylus", "sugarss", "terser", "tsx", "yaml"], "bin": { "vite": "bin/vite.js" } }, "sha512-KuOaNhcnGFN2zIPGA7wRmzF+lJA1sea7rHq17aiJ++9lzY1WWG6Jpwqwe1KNbRVPIqHmr8GLYx7jbrQcN/7/ww=="],
 
     "vitest/tinyexec": ["tinyexec@1.1.2", "", {}, "sha512-dAqSqE/RabpBKI8+h26GfLq6Vb3JVXs30XYQjdMjaj/c2tS8IYYMbIzP599KtRj7c57/wYApb3QjgRgXmrCukA=="],
+
+    "vitest/vite": ["vite@7.3.5", "", { "dependencies": { "esbuild": "^0.27.0", "fdir": "^6.5.0", "picomatch": "^4.0.3", "postcss": "^8.5.6", "rollup": "^4.43.0", "tinyglobby": "^0.2.15" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "peerDependencies": { "@types/node": "^20.19.0 || >=22.12.0", "jiti": ">=1.21.0", "less": "^4.0.0", "lightningcss": "^1.21.0", "sass": "^1.70.0", "sass-embedded": "^1.70.0", "stylus": ">=0.54.8", "sugarss": "^5.0.0", "terser": "^5.16.0", "tsx": "^4.8.1", "yaml": "^2.4.2" }, "optionalPeers": ["@types/node", "jiti", "less", "lightningcss", "sass", "sass-embedded", "stylus", "sugarss", "terser", "tsx", "yaml"], "bin": { "vite": "bin/vite.js" } }, "sha512-KuOaNhcnGFN2zIPGA7wRmzF+lJA1sea7rHq17aiJ++9lzY1WWG6Jpwqwe1KNbRVPIqHmr8GLYx7jbrQcN/7/ww=="],
 
     "vue/@vue/compiler-sfc": ["@vue/compiler-sfc@3.5.26", "", { "dependencies": { "@babel/parser": "^7.28.5", "@vue/compiler-core": "3.5.26", "@vue/compiler-dom": "3.5.26", "@vue/compiler-ssr": "3.5.26", "@vue/shared": "3.5.26", "estree-walker": "^2.0.2", "magic-string": "^0.30.21", "postcss": "^8.5.6", "source-map-js": "^1.2.1" } }, "sha512-egp69qDTSEZcf4bGOSsprUr4xI73wfrY5oRs6GSgXFTiHrWj4Y3X5Ydtip9QMqiCMCPVwLglB9GBxXtTadJ3mA=="],
 
