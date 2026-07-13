@@ -10,7 +10,7 @@ const projectDir = process.cwd();
 
 describe('resolveInstalledVersion', () => {
   it('resolves version for package with direct package.json access', () => {
-    const version = resolveInstalledVersion('vitest', projectDir);
+    const version = resolveInstalledVersion('typescript', projectDir);
     expect(version).toBeDefined();
     expect(version).toMatch(/^\d+\.\d+\.\d+/);
   });
@@ -45,14 +45,14 @@ describe('resolveInstalledVersion', () => {
 describe('resolveInstalledVersions', () => {
   it('batch resolves from PackageJson-shaped object', () => {
     const packageJson: PackageJson = {
-      dependencies: { vitest: '^4.0.0', remeda: '^2.0.0' },
+      dependencies: { typescript: 'catalog:', remeda: '^2.0.0' },
       devDependencies: { 'nonexistent-pkg-xyz': '*' },
     };
     const result = resolveInstalledVersions(packageJson, projectDir);
-    expect(result).toHaveProperty('vitest');
+    expect(result).toHaveProperty('typescript');
     expect(result).toHaveProperty('remeda');
     expect(result).not.toHaveProperty('nonexistent-pkg-xyz');
-    expect(result.vitest).toMatch(/^\d+\.\d+\.\d+/);
+    expect(result.typescript).toMatch(/^\d+\.\d+\.\d+/);
     expect(result.remeda).toMatch(/^\d+\.\d+\.\d+/);
   });
 
@@ -63,13 +63,13 @@ describe('resolveInstalledVersions', () => {
 
   it('deduplicates packages appearing in multiple dependency groups', () => {
     const packageJson: PackageJson = {
-      dependencies: { vitest: '^4.0.0' },
-      devDependencies: { vitest: '^4.0.0' },
+      dependencies: { typescript: 'catalog:' },
+      devDependencies: { typescript: 'catalog:' },
     };
     const result = resolveInstalledVersions(packageJson, projectDir);
-    const keys = Object.keys(result).filter((k) => k === 'vitest');
+    const keys = Object.keys(result).filter((k) => k === 'typescript');
     expect(keys).toHaveLength(1);
-    expect(result.vitest).toMatch(/^\d+\.\d+\.\d+/);
+    expect(result.typescript).toMatch(/^\d+\.\d+\.\d+/);
   });
 });
 
