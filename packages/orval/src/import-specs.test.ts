@@ -522,38 +522,6 @@ describe('externalRefs', () => {
       await rm(workspace, { recursive: true, force: true });
     }
   });
-
-  it('should suppress warnings when externalRefs.suppressWarning is true', async () => {
-    const { workspace, specPath } = await createExternalRefWorkspace();
-    const warnSpy = vi
-      .spyOn(orvalCore, 'logWarning')
-      .mockImplementation(() => {});
-    try {
-      const normalizedOptions = await normalizeOptions(
-        {
-          output: { target: '' },
-          input: {
-            target: specPath,
-            parserOptions: {
-              externalRefs: { allow: ['*'], suppressWarning: true },
-            },
-          },
-        },
-        workspace,
-        {},
-      );
-      const spec = await importSpecs(workspace, normalizedOptions);
-      expect(spec.verbOptions).toHaveProperty('getX');
-
-      const externalRefWarnings = warnSpy.mock.calls
-        .map(([msg]) => msg)
-        .filter((msg) => msg.includes('External $ref'));
-      expect(externalRefWarnings).toHaveLength(0);
-    } finally {
-      warnSpy.mockRestore();
-      await rm(workspace, { recursive: true, force: true });
-    }
-  });
 });
 
 describe('optionsParamRequired', () => {

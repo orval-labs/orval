@@ -32,7 +32,6 @@ interface ResolveSpecOptions {
     }[];
     externalRefs?: {
       allow?: string[];
-      suppressWarning?: boolean;
     };
   };
   transformer?: OverrideInput['transformer'];
@@ -51,7 +50,6 @@ async function resolveSpec(
 ): Promise<OpenApiDocument> {
   const allowedRefs = parserOptions?.externalRefs?.allow ?? [];
   const isWildcard = allowedRefs.includes('*');
-  const suppressWarning = parserOptions?.externalRefs?.suppressWarning ?? false;
 
   // Load the top-level spec so we can scan for external $refs before
   // bundle() resolves them. The top-level target is trusted (user-configured
@@ -68,7 +66,7 @@ async function resolveSpec(
     if (disallowed.length > 0) {
       throw new Error(formatDisallowedRefsError(disallowed, allowedRefs));
     }
-  } else if (!suppressWarning) {
+  } else {
     const docs = [
       ...new Set(collectExternalRefs(specData).map(getRefDocument)),
     ];

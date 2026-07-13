@@ -232,8 +232,6 @@ export interface NormalizedInputOptions {
     }[];
     externalRefs?: {
       allow?: string[];
-      /** @default false */
-      suppressWarning?: boolean;
       // TODO: add `deny?: string[]` when users need "allow all except X"
     };
   };
@@ -434,13 +432,6 @@ export interface InputOptions {
        * @default []
        */
       allow?: string[];
-      /**
-       * Suppress the warning block that lists resolved external documents when
-       * `allow` includes `['*']`.
-       *
-       * @default false
-       */
-      suppressWarning?: boolean;
       // TODO: add `deny?: string[]` when users need "allow all except X"
     };
   };

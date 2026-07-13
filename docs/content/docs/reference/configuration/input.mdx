@@ -325,22 +325,6 @@ export default defineConfig({
 });
 ```
 
-#### suppressWarning
-
-**Type:** `boolean`
-**Default:** `false`
-
-Suppress the warning block that lists resolved external documents when `allow` includes `['*']`.
-
-```ts
-parserOptions: {
-  externalRefs: {
-    allow: ['*'],
-    suppressWarning: true,
-  },
-}
-```
-
 <Callout type="warn">
   **Security:** External `$ref` values come from the spec being processed, which may
   be untrusted. Allowing all external refs (`['*']`) means orval will read arbitrary
