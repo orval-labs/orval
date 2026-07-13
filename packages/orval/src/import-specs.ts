@@ -245,7 +245,7 @@ function collectExternalRefs(obj: unknown): string[] {
  */
 function resolveRefTarget(ref: string, origin?: string): string {
   const doc = getRefDocument(ref);
-  if (isUrl(doc)) return doc;
+  if (isUrl(doc)) return new URL(doc).href;
   if (origin && isUrl(origin)) {
     return new URL(doc, origin).href;
   }
@@ -347,14 +347,10 @@ function createSafeUrlLoader(
       if (isWildcard) {
         return base.exec(value);
       }
-      const isAllowed = allowedExternalRefs.some((entry) => {
-        if (!isUrl(entry)) return false;
-        try {
-          return new URL(value).href === new URL(entry).href;
-        } catch {
-          return false;
-        }
-      });
+      const resolved = resolveRefTarget(value);
+      const isAllowed = allowedExternalRefs.some(
+        (entry) => isUrl(entry) && resolveRefTarget(entry) === resolved,
+      );
       if (!isAllowed) {
         throw new Error(
           `Refused to fetch external URL: ${value}\n` +
