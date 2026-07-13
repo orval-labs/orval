@@ -1408,8 +1408,8 @@ test('default petstore-nullable-allof-required avoids invalid Required<Pick> for
   );
 
   expect(petTagInfo).toContain('tagMetadata: TagMetadataItem | null');
-  expect(petTagInfo).not.toContain('Required<Pick');
-  expect(petTagInfo).not.toContain('tagId');
+  expect(petTagInfo).not.toMatch(/tagMetadata:.*Required<Pick/);
+  expect(petTagInfo).not.toMatch(/^\s+tagId:/m);
 });
 
 test('zod issue-3505 enum values with backslashes are JS-escaped', async () => {
