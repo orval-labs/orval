@@ -106,7 +106,7 @@ describe('combineSchemas (allOf required handling)', () => {
       spec: {
         components: {
           schemas: {
-            ...context.spec.components.schemas,
+            ...context.spec.components!.schemas,
             TagMetadataItem: {
               type: 'object',
               required: ['tagId', 'label', 'color'],
