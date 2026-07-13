@@ -191,8 +191,21 @@ function combineValues({
     const pickableRequiredProperties = overrideRequiredProperties.filter(
       (prop) => resolvedData.allProperties.includes(prop),
     );
+    const unresolvedRequiredProperties = overrideRequiredProperties.filter(
+      (prop) => !resolvedData.allProperties.includes(prop),
+    );
+    let result = joined;
     if (pickableRequiredProperties.length > 0) {
-      return `${joined} & Required<Pick<${joined}, '${pickableRequiredProperties.join("' | '")}'>>`;
+      result = `${result} & Required<Pick<${joined}, '${pickableRequiredProperties.join("' | '")}'>>`;
+    }
+    if (unresolvedRequiredProperties.length > 0) {
+      result = `${result} & Required<Pick<${joined}, Extract<keyof (${joined}), '${unresolvedRequiredProperties.join("' | '")}'>>>`;
+    }
+    if (
+      pickableRequiredProperties.length > 0 ||
+      unresolvedRequiredProperties.length > 0
+    ) {
+      return result;
     }
     return joined;
   }

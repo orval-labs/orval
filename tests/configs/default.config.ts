@@ -844,11 +844,11 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
-  'petstore-nullable-allof-required': {
-    input: '../specifications/petstore-nullable-allof-required.yaml',
+  'issue-3722': {
+    input: '../specifications/issue-3722.yaml',
     output: {
-      target: '../generated/default/petstore-nullable-allof-required/endpoints.ts',
-      schemas: '../generated/default/petstore-nullable-allof-required/model',
+      target: '../generated/default/issue-3722/endpoints.ts',
+      schemas: '../generated/default/issue-3722/model',
       clean: true,
       formatter: 'prettier',
     },

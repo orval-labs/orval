@@ -95,7 +95,47 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(result.value).toContain('Required<Pick');
   });
 
-  it('does not emit Required<Pick> for required keys missing from all subschema properties', () => {
+  it('keeps plain Required<Pick> for required keys nested in composed members', () => {
+    const contextWithWrapper = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            Base: {
+              type: 'object',
+              properties: {
+                baseProp: { type: 'string' },
+              },
+            },
+            MidWrapper: {
+              allOf: [{ $ref: '#/components/schemas/Base' }],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['baseProp'],
+      allOf: [{ $ref: '#/components/schemas/MidWrapper' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'WrappedItem',
+      separator: 'allOf',
+      context: contextWithWrapper,
+      nullable: '',
+    });
+
+    expect(result.value).toContain(
+      "Required<Pick<MidWrapper, Extract<keyof (MidWrapper), 'baseProp'>>>",
+    );
+  });
+
+  it('uses Extract guard for required ghost keys missing from all subschema properties', () => {
     const schema: OpenApiSchemaObject = {
       nullable: true,
       allOf: [{ $ref: '#/components/schemas/TagMetadataItem' }],
@@ -129,8 +169,10 @@ describe('combineSchemas (allOf required handling)', () => {
       nullable: ' | null',
     });
 
-    expect(result.value).not.toContain('Required<Pick');
-    expect(result.value).not.toContain('tagId');
+    expect(result.value).toContain("Extract<keyof (TagMetadataItem), 'tagId'>");
+    expect(result.value).not.toMatch(
+      /Required<Pick<TagMetadataItem, 'tagId'>>/,
+    );
   });
 
   // OAS 3.1's `{type: 'null'}` variant inside an anyOf/oneOf is the

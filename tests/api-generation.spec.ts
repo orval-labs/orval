@@ -1396,19 +1396,15 @@ test('default issue-3583 param default values with backslashes are JS-escaped', 
   expect(endpoints).not.toContain('\\/');
 });
 
-test('default petstore-nullable-allof-required avoids invalid Required<Pick> for missing keys', async () => {
+test('default issue-3722 avoids invalid Required<Pick> for ghost keys', async () => {
   const petTagInfo = await readFile(
-    generated(
-      'default',
-      'petstore-nullable-allof-required',
-      'model',
-      'petTagInfo.ts',
-    ),
+    generated('default', 'issue-3722', 'model', 'petTagInfo.ts'),
     'utf8',
   );
 
-  expect(petTagInfo).toContain('tagMetadata: TagMetadataItem | null');
-  expect(petTagInfo).not.toMatch(/tagMetadata:.*Required<Pick/);
+  expect(petTagInfo).toContain('tagMetadata:');
+  expect(petTagInfo).toContain('TagMetadataItem');
+  expect(petTagInfo).not.toMatch(/Required<Pick<TagMetadataItem, 'tagId'>>/);
   expect(petTagInfo).not.toMatch(/^\s+tagId:/m);
 });
 

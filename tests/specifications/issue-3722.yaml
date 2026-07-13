@@ -1,10 +1,9 @@
 openapi: 3.1.0
 info:
-  title: Swagger Petstore - nullable allOf with required property missing from properties
+  title: issue-3722
   description: |-
-    Minimal petstore repro for invalid intersection output when a
-    referenced schema lists a property in `required` but omits it from `properties`.
-    Mirrors real-world specs that use nullable allOf refs.
+    Nullable allOf ref where a required key is missing from properties.
+    Ghost keys must compile via Extract; nested required keys stay enforced.
   version: 1.0.0
 servers:
   - url: http://petstore.swagger.io/v1
