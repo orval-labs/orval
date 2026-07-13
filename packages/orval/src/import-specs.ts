@@ -95,15 +95,16 @@ async function resolveSpec(
     // those refs are resolved too (#3327). External refs resolve relative to
     // the original spec file, so reuse the string target as the bundle origin;
     // an object input has no file base and cannot introduce relative refs.
-    transformedData = hasExternalRef(applied)
-      ? await bundleAndDereferenceExternalRefs(
-          applied,
-          parserOptions,
-          origin,
-          isWildcard,
-          allowedRefs,
-        )
-      : applied;
+    transformedData =
+      collectExternalRefs(applied).length > 0
+        ? await bundleAndDereferenceExternalRefs(
+            applied,
+            parserOptions,
+            origin,
+            isWildcard,
+            allowedRefs,
+          )
+        : applied;
   }
 
   if (unsafeDisableValidation) {
@@ -180,26 +181,6 @@ async function bundleAndDereferenceExternalRefs(
     ...(origin ? { origin } : {}),
   });
   return dereferenceExternalRef(data as Record<string, unknown>);
-}
-
-/**
- * Report whether any `$ref` in the document points to an external document.
- * Per the JSON Reference rules a ref is external when it does not start with
- * `#` (an in-document pointer). Used to decide whether a transformer introduced
- * new external refs that need a second bundle pass (#3327) — when it did not,
- * the already-bundled spec is returned untouched.
- */
-function hasExternalRef(obj: unknown): boolean {
-  if (Array.isArray(obj)) {
-    return obj.some((item) => hasExternalRef(item));
-  }
-  if (isObject(obj)) {
-    if ('$ref' in obj && isString(obj.$ref) && !obj.$ref.startsWith('#')) {
-      return true;
-    }
-    return Object.values(obj).some((value) => hasExternalRef(value));
-  }
-  return false;
 }
 
 // ─── External ref allow-list enforcement (GHSA-cxq5-97v7-87j8) ─────────────
