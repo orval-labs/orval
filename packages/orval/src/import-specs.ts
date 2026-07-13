@@ -25,15 +25,7 @@ import jsYaml from 'js-yaml';
 import { importOpenApi } from './import-open-api';
 
 interface ResolveSpecOptions {
-  parserOptions?: {
-    headers?: {
-      domains: string[];
-      headers: Record<string, string>;
-    }[];
-    externalRefs?: {
-      allow?: string[];
-    };
-  };
+  parserOptions?: NormalizedOptions['input']['parserOptions'];
   transformer?: OverrideInput['transformer'];
   workspace: string;
   unsafeDisableValidation?: boolean;
