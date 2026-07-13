@@ -168,12 +168,12 @@ function filterParams(
       if (filtered.length) {
         filteredParams[key] = filtered;
       }
-    } else if (
-      preserveRequiredNullables &&
-      value === null &&
-      requiredNullableKeys.has(key)
-    ) {
-      filteredParams[key] = null;
+    } else if (value === null && requiredNullableKeys.has(key)) {
+      // With a paramsSerializer (preserveRequiredNullables) the literal null
+      // is passed through for it to consume; without one, emit an empty
+      // string so the required key still reaches the wire as `?key=`
+      // instead of being silently dropped. See #3712.
+      filteredParams[key] = preserveRequiredNullables ? null : '';
     } else if (
       value != null &&
       (typeof value === 'string' ||

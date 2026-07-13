@@ -184,6 +184,42 @@ test('angular http-resource-headers exposes request descriptor extension (#3710)
   expect(content).toMatch(/headers[?]?:\s*Signal<[A-Za-z]+Headers>/);
 });
 
+test('angular issue-3712 sends required nullable params as empty string without a serializer', async () => {
+  // A query param the spec declares required+nullable must still reach the
+  // wire when its runtime value is null, or the request violates the
+  // OpenAPI contract. Without a paramsSerializer, `null` is emitted as an
+  // empty string (`''`) instead of being dropped. See #3712.
+  const file = generated('angular', 'issue-3712', 'endpoints.ts');
+  const content = await readFile(file, 'utf8');
+
+  expect(content).toContain("new Set<string>(['cursor'])");
+  expect(content).toContain(
+    "filteredParams[key] = preserveRequiredNullables ? null : '';",
+  );
+  expect(content).not.toMatch(/new Set<string>\(\['cursor'\]\),\s*true/);
+});
+
+test('angular issue-3712 httpResource has the same empty-string fallback', async () => {
+  const file = generated('angular', 'issue-3712-http-resource', 'endpoints.ts');
+  const content = await readFile(file, 'utf8');
+
+  expect(content).toContain("new Set<string>(['cursor'])");
+  expect(content).toContain(
+    "filteredParams[key] = preserveRequiredNullables ? null : '';",
+  );
+  expect(content).toContain('params: filterParams(params?.() ?? {}');
+});
+
+test('angular issue-3712 still passes literal null to a configured paramsSerializer', async () => {
+  // With a paramsSerializer configured, the literal `null` is preserved for
+  // the serializer to encode instead of being converted to an empty string.
+  const file = generated('angular', 'issue-3712-serializer', 'endpoints.ts');
+  const content = await readFile(file, 'utf8');
+
+  expect(content).toMatch(/new Set<string>\(\['cursor'\]\),\s*true,/);
+  expect(content).toContain('customParamsSerializer(');
+});
+
 test('fetch arrayFormat repeat serializes arrays as repeated keys', async () => {
   const content = await readFile(
     generated('fetch', 'array-format-repeat', 'endpoints.ts'),

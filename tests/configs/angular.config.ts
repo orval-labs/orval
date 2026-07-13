@@ -387,6 +387,53 @@ export default defineConfig({
       target: '../specifications/issue-3705.yaml',
     },
   },
+  issue3712: {
+    output: {
+      target: '../generated/angular/issue-3712/endpoints.ts',
+      schemas: '../generated/angular/issue-3712/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-3712.yaml',
+    },
+  },
+  issue3712HttpResource: {
+    output: {
+      target: '../generated/angular/issue-3712-http-resource/endpoints.ts',
+      schemas: '../generated/angular/issue-3712-http-resource/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        angular: {
+          retrievalClient: 'httpResource',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-3712.yaml',
+    },
+  },
+  issue3712Serializer: {
+    output: {
+      target: '../generated/angular/issue-3712-serializer/endpoints.ts',
+      schemas: '../generated/angular/issue-3712-serializer/model',
+      client: 'angular',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        paramsSerializer: {
+          path: '../mutators/params-serializer.ts',
+          name: 'customParamsSerializer',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/issue-3712.yaml',
+    },
+  },
   urlEncodeParameters: {
     output: {
       target: '../generated/angular/url-encode-parameters/endpoints.ts',

@@ -1,0 +1,37 @@
+openapi: 3.0.3
+info:
+  title: Issue 3712 - Angular required+nullable query params
+  version: 1.0.0
+paths:
+  /things:
+    get:
+      operationId: listThings
+      tags:
+        - things
+      parameters:
+        - name: cursor
+          in: query
+          required: true
+          schema:
+            type: string
+            nullable: true
+        - name: optionalNullable
+          in: query
+          required: false
+          schema:
+            type: string
+            nullable: true
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
