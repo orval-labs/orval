@@ -377,6 +377,7 @@ describe('validation', () => {
           output: { target: '' },
           input: {
             target: specPath,
+            parserOptions: { externalRefs: { allow: ['refs.yaml'] } },
             override: {
               transformer: (input: OpenApiDocument) => {
                 const next = structuredClone(input);
@@ -414,6 +415,142 @@ describe('validation', () => {
       expect(field?.model).toContain('LineString');
       expect(field?.model).not.toContain('refs.yaml');
     } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('externalRefs', () => {
+  async function createExternalRefWorkspace() {
+    const workspace = await mkdtemp(path.join(os.tmpdir(), 'orval-allow-'));
+    const specPath = path.join(workspace, 'spec.yaml');
+    const externalPath = path.join(workspace, 'external.yaml');
+    const external = {
+      openapi: '3.0.2',
+      info: { title: 'ext', version: '1.0' },
+      paths: {},
+      components: { schemas: { Foo: { type: 'string' } } },
+    };
+    const spec = {
+      openapi: '3.0.2',
+      info: { title: 'main', version: '1.0' },
+      paths: {
+        '/x': {
+          get: {
+            operationId: 'getX',
+            responses: {
+              '200': {
+                description: 'ok',
+                content: {
+                  'application/json': {
+                    schema: { $ref: 'external.yaml#/components/schemas/Foo' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    await writeFile(externalPath, JSON.stringify(external), 'utf8');
+    await writeFile(specPath, JSON.stringify(spec), 'utf8');
+    return { workspace, specPath };
+  }
+
+  it('should block external $ref by default and print a config snippet', async () => {
+    const { workspace, specPath } = await createExternalRefWorkspace();
+    try {
+      const normalizedOptions = await normalizeOptions(
+        { output: { target: '' }, input: { target: specPath } },
+        workspace,
+        {},
+      );
+      await expect(importSpecs(workspace, normalizedOptions)).rejects.toThrow(
+        /External \$ref targets are not allowed by default/,
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('should resolve external $ref when explicitly allowed', async () => {
+    const { workspace, specPath } = await createExternalRefWorkspace();
+    try {
+      const normalizedOptions = await normalizeOptions(
+        {
+          output: { target: '' },
+          input: {
+            target: specPath,
+            parserOptions: { externalRefs: { allow: ['external.yaml'] } },
+          },
+        },
+        workspace,
+        {},
+      );
+      const spec = await importSpecs(workspace, normalizedOptions);
+      expect(spec.verbOptions).toHaveProperty('getX');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('should resolve all external $refs with wildcard and emit warnings', async () => {
+    const { workspace, specPath } = await createExternalRefWorkspace();
+    const warnSpy = vi
+      .spyOn(orvalCore, 'logWarning')
+      .mockImplementation(() => {});
+    try {
+      const normalizedOptions = await normalizeOptions(
+        {
+          output: { target: '' },
+          input: {
+            target: specPath,
+            parserOptions: { externalRefs: { allow: ['*'] } },
+          },
+        },
+        workspace,
+        {},
+      );
+      const spec = await importSpecs(workspace, normalizedOptions);
+      expect(spec.verbOptions).toHaveProperty('getX');
+
+      const warnings = warnSpy.mock.calls.map(([msg]) => msg).join('\n');
+      expect(warnings).toContain('External $ref documents being resolved');
+      expect(warnings).toContain('external.yaml');
+    } finally {
+      warnSpy.mockRestore();
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('should suppress warnings when externalRefs.suppressWarning is true', async () => {
+    const { workspace, specPath } = await createExternalRefWorkspace();
+    const warnSpy = vi
+      .spyOn(orvalCore, 'logWarning')
+      .mockImplementation(() => {});
+    try {
+      const normalizedOptions = await normalizeOptions(
+        {
+          output: { target: '' },
+          input: {
+            target: specPath,
+            parserOptions: {
+              externalRefs: { allow: ['*'], suppressWarning: true },
+            },
+          },
+        },
+        workspace,
+        {},
+      );
+      const spec = await importSpecs(workspace, normalizedOptions);
+      expect(spec.verbOptions).toHaveProperty('getX');
+
+      const externalRefWarnings = warnSpy.mock.calls
+        .map(([msg]) => msg)
+        .filter((msg) => msg.includes('External $ref'));
+      expect(externalRefWarnings).toHaveLength(0);
+    } finally {
+      warnSpy.mockRestore();
       await rm(workspace, { recursive: true, force: true });
     }
   });

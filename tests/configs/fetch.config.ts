@@ -36,6 +36,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3327/spec.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
       override: {
         transformer: '../transformers/issue-3327-inject-external-ref.js',
       },
@@ -339,7 +340,10 @@ export default defineConfig({
       clean: true,
       formatter: 'prettier',
     },
-    input: '../specifications/import-from-subdirectory/petstore.yaml',
+    input: {
+      target: '../specifications/import-from-subdirectory/petstore.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
+    },
   },
   defaultOnlyResponse: {
     output: {
@@ -584,6 +588,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3027/issue-3027.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   zodSchemaResponseSuffixSplit: {
@@ -612,6 +617,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3027/issue-3027.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   zodSchemaResponseSuffixTags: {
@@ -638,6 +644,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3027/issue-3027.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   zodSchemaResponseSuffixTagsSplit: {
@@ -665,6 +672,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3027/issue-3027.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   zodSchemaResponseSuffixSingleNoRuntimeValidation: {
@@ -691,6 +699,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3027/issue-3027.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   zodSchemaResponseSuffixSplitNoRuntimeValidation: {
@@ -719,6 +728,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3027/issue-3027.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   zodSchemaResponseSuffixTagsNoRuntimeValidation: {
@@ -746,6 +756,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3027/issue-3027.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   zodSchemaResponseSuffixTagsSplitNoRuntimeValidation: {
@@ -773,6 +784,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3027/issue-3027.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   wildcardResponses: {

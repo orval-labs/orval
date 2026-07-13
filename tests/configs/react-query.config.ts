@@ -94,6 +94,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-2540/issue-2540.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   issue2039: {
@@ -1237,7 +1238,10 @@ export default defineConfig({
       clean: true,
       formatter: 'prettier',
     },
-    input: '../specifications/import-from-subdirectory/petstore.yaml',
+    input: {
+      target: '../specifications/import-from-subdirectory/petstore.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
+    },
   },
   deprecated: {
     output: {

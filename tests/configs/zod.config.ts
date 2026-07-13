@@ -193,7 +193,10 @@ export default defineConfig({
       clean: true,
       formatter: 'prettier',
     },
-    input: '../specifications/import-from-subdirectory/petstore.yaml',
+    input: {
+      target: '../specifications/import-from-subdirectory/petstore.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
+    },
   },
   dateTimeOptions: {
     output: {
@@ -353,7 +356,10 @@ export default defineConfig({
       clean: true,
       formatter: 'prettier',
     },
-    input: '../specifications/issue-3027/issue-3027.yaml',
+    input: {
+      target: '../specifications/issue-3027/issue-3027.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
+    },
   },
   'issue-3171': {
     output: {

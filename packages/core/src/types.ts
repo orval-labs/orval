@@ -230,6 +230,12 @@ export interface NormalizedInputOptions {
       domains: string[];
       headers: Record<string, string>;
     }[];
+    externalRefs?: {
+      allow?: string[];
+      /** @default false */
+      suppressWarning?: boolean;
+      // TODO: add `deny?: string[]` when users need "allow all except X"
+    };
   };
 }
 
@@ -412,6 +418,31 @@ export interface InputOptions {
       domains: string[];
       headers: Record<string, string>;
     }[];
+    /**
+     * Control how external `$ref` targets (local files or remote URLs) are
+     * resolved.
+     *
+     * By default, orval refuses to resolve any external `$ref` and prints a
+     * config snippet you can paste into your `parserOptions`.
+     */
+    externalRefs?: {
+      /**
+       * External `$ref` document targets to allow. Each entry should be the
+       * document part of the `$ref` (without the `#/...` fragment). File paths
+       * are relative to the spec file. Use `['*']` to allow all external refs.
+       *
+       * @default []
+       */
+      allow?: string[];
+      /**
+       * Suppress the warning block that lists resolved external documents when
+       * `allow` includes `['*']`.
+       *
+       * @default false
+       */
+      suppressWarning?: boolean;
+      // TODO: add `deny?: string[]` when users need "allow all except X"
+    };
   };
 }
 
