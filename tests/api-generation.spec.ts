@@ -1396,6 +1396,22 @@ test('default issue-3583 param default values with backslashes are JS-escaped', 
   expect(endpoints).not.toContain('\\/');
 });
 
+test('default petstore-nullable-allof-required avoids invalid Required<Pick> for missing keys', async () => {
+  const petTagInfo = await readFile(
+    generated(
+      'default',
+      'petstore-nullable-allof-required',
+      'model',
+      'petTagInfo.ts',
+    ),
+    'utf8',
+  );
+
+  expect(petTagInfo).toContain('tagMetadata: TagMetadataItem | null');
+  expect(petTagInfo).not.toContain('Required<Pick');
+  expect(petTagInfo).not.toContain('tagId');
+});
+
 test('zod issue-3505 enum values with backslashes are JS-escaped', async () => {
   const content = await readFile(
     generated('zod', 'issue-3505', 'issue-3505.ts'),

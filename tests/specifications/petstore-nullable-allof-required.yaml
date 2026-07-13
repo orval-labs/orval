@@ -1,0 +1,61 @@
+openapi: 3.1.0
+info:
+  title: Swagger Petstore - nullable allOf with required property missing from properties
+  description: |-
+    Minimal petstore repro for invalid Required<Pick<..., 'tagId'>> output when a
+    referenced schema lists a property in `required` but omits it from `properties`.
+    Mirrors real-world specs that use nullable allOf refs.
+  version: 1.0.0
+servers:
+  - url: http://petstore.swagger.io/v1
+paths:
+  /pets/{petId}/tag-info:
+    get:
+      summary: Get optional tag metadata for a pet
+      operationId: getPetTagInfo
+      tags:
+        - pets
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Pet tag info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetTagInfo'
+components:
+  schemas:
+    TagMetadataItem:
+      type: object
+      required:
+        - tagId
+        - label
+        - color
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+        color:
+          type: string
+
+    PetTagInfo:
+      type: object
+      required:
+        - id
+        - name
+        - tagMetadata
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        tagMetadata:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/TagMetadataItem'

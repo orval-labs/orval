@@ -95,6 +95,44 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(result.value).toContain('Required<Pick');
   });
 
+  it('does not emit Required<Pick> for required keys missing from all subschema properties', () => {
+    const schema: OpenApiSchemaObject = {
+      nullable: true,
+      allOf: [{ $ref: '#/components/schemas/TagMetadataItem' }],
+    };
+
+    const contextWithTagMetadata = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components.schemas,
+            TagMetadataItem: {
+              type: 'object',
+              required: ['tagId', 'label', 'color'],
+              properties: {
+                id: { type: 'integer' },
+                label: { type: 'string' },
+                color: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const result = combineSchemas({
+      schema,
+      name: 'TagMetadata',
+      separator: 'allOf',
+      context: contextWithTagMetadata,
+      nullable: ' | null',
+    });
+
+    expect(result.value).not.toContain('Required<Pick');
+    expect(result.value).not.toContain('tagId');
+  });
+
   // OAS 3.1's `{type: 'null'}` variant inside an anyOf/oneOf is the
   // nullable-enum spelling used by code generators like FastAPI. The result
   // should be flagged as an enum so the caller can extract a named type,

@@ -188,8 +188,11 @@ function combineValues({
           return !!(parentProps?.[prop] && parentReq?.includes(prop));
         })(),
     );
-    if (overrideRequiredProperties.length > 0) {
-      return `${joined} & Required<Pick<${joined}, '${overrideRequiredProperties.join("' | '")}'>>`;
+    const pickableRequiredProperties = overrideRequiredProperties.filter(
+      (prop) => resolvedData.allProperties.includes(prop),
+    );
+    if (pickableRequiredProperties.length > 0) {
+      return `${joined} & Required<Pick<${joined}, '${pickableRequiredProperties.join("' | '")}'>>`;
     }
     return joined;
   }
