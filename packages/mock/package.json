@@ -1,6 +1,6 @@
 {
   "name": "@orval/mock",
-  "version": "8.21.0",
+  "version": "8.22.0",
   "homepage": "https://orval.dev/docs/guides/msw",
   "bugs": {
     "url": "https://github.com/orval-labs/orval/issues"
