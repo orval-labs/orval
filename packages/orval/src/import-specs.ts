@@ -2,6 +2,7 @@ import {
   dynamicImport,
   isObject,
   isString,
+  isUrl,
   logWarning,
   type NormalizedOptions,
   type OpenApiDocument,
@@ -16,17 +17,16 @@ import {
   readFiles,
 } from '@scalar/json-magic/bundle/plugins/node';
 import { upgrade, validate as validateSpec } from '@scalar/openapi-parser';
+import { readFile } from 'node:fs/promises';
+import nodePath from 'node:path';
 import { isNullish } from 'remeda';
+import jsYaml from 'js-yaml';
 
 import { importOpenApi } from './import-open-api';
+import { getHeadersForUrl } from './utils/options';
 
 interface ResolveSpecOptions {
-  parserOptions?: {
-    headers?: {
-      domains: string[];
-      headers: Record<string, string>;
-    }[];
-  };
+  parserOptions?: NormalizedOptions['input']['parserOptions'];
   transformer?: OverrideInput['transformer'];
   workspace: string;
   unsafeDisableValidation?: boolean;
@@ -41,9 +41,45 @@ async function resolveSpec(
     unsafeDisableValidation = false,
   }: ResolveSpecOptions,
 ): Promise<OpenApiDocument> {
-  const dereferencedData = await bundleAndDereferenceExternalRefs(
+  const allowedRefs = parserOptions?.externalRefs?.allow ?? [];
+  const isWildcard = allowedRefs.includes('*');
+
+  // Load the top-level spec so we can scan for external $refs before
+  // bundle() resolves them. The top-level target is trusted (user-configured
+  // input.target); only the $ref values inside the spec are untrusted.
+  const { data: specData, origin } = await loadSpec(
     input,
+    parserOptions?.headers,
+  );
+
+  // Enforce the allow-list on refs found in the top-level spec.
+  // Transitive refs (inside external docs) are enforced by the loader wrappers.
+  if (!isWildcard) {
+    const refs = collectExternalRefs(specData);
+    const disallowed = refs.filter(
+      (ref) => !isAllowedRef(ref, allowedRefs, origin),
+    );
+    if (disallowed.length > 0) {
+      throw new Error(formatDisallowedRefsError(disallowed, allowedRefs));
+    }
+  } else {
+    const docs = [
+      ...new Set(collectExternalRefs(specData).map(getRefDocument)),
+    ];
+    if (docs.length > 0) {
+      logWarning(
+        `External $ref documents being resolved:\n` +
+          docs.map((d) => `  - ${d}`).join('\n'),
+      );
+    }
+  }
+
+  const dereferencedData = await bundleAndDereferenceExternalRefs(
+    specData,
     parserOptions,
+    origin,
+    isWildcard,
+    allowedRefs,
   );
 
   // Apply user-provided transformer before validation so users can repair
@@ -63,13 +99,16 @@ async function resolveSpec(
     // those refs are resolved too (#3327). External refs resolve relative to
     // the original spec file, so reuse the string target as the bundle origin;
     // an object input has no file base and cannot introduce relative refs.
-    transformedData = hasExternalRef(applied)
-      ? await bundleAndDereferenceExternalRefs(
-          applied,
-          parserOptions,
-          isString(input) ? input : undefined,
-        )
-      : applied;
+    transformedData =
+      collectExternalRefs(applied).length > 0
+        ? await bundleAndDereferenceExternalRefs(
+            applied,
+            parserOptions,
+            origin,
+            isWildcard,
+            allowedRefs,
+          )
+        : applied;
   }
 
   if (unsafeDisableValidation) {
@@ -128,13 +167,18 @@ async function bundleAndDereferenceExternalRefs(
   input: string | Record<string, unknown>,
   parserOptions: ResolveSpecOptions['parserOptions'],
   origin?: string,
+  isWildcard = false,
+  allowedExternalRefs: string[] = [],
 ): Promise<Record<string, unknown>> {
   const data = await bundle(input, {
     plugins: [
-      readFiles(),
-      fetchUrls({
-        headers: parserOptions?.headers,
-      }),
+      createSafeFileLoader(origin, isWildcard, allowedExternalRefs),
+      createSafeUrlLoader(
+        origin,
+        isWildcard,
+        allowedExternalRefs,
+        parserOptions?.headers,
+      ),
       parseJson(),
       parseYaml(),
     ],
@@ -144,24 +188,196 @@ async function bundleAndDereferenceExternalRefs(
   return dereferenceExternalRef(data as Record<string, unknown>);
 }
 
+// ─── External ref allow-list enforcement (GHSA-cxq5-97v7-87j8) ─────────────
+
 /**
- * Report whether any `$ref` in the document points to an external document.
- * Per the JSON Reference rules a ref is external when it does not start with
- * `#` (an in-document pointer). Used to decide whether a transformer introduced
- * new external refs that need a second bundle pass (#3327) — when it did not,
- * the already-bundled spec is returned untouched.
+ * Load the top-level spec into an inline object so we can scan it for external
+ * `$ref`s before `bundle()` resolves them. The top-level target is trusted
+ * (user-configured `input.target`); only `$ref` values inside the spec are
+ * untrusted.
  */
-function hasExternalRef(obj: unknown): boolean {
-  if (Array.isArray(obj)) {
-    return obj.some((item) => hasExternalRef(item));
+function parseSpec(text: string): Record<string, unknown> {
+  const result = jsYaml.load(text);
+  if (!isObject(result)) {
+    throw new Error('OpenAPI spec must be a valid JSON/YAML object.');
   }
-  if (isObject(obj)) {
-    if ('$ref' in obj && isString(obj.$ref) && !obj.$ref.startsWith('#')) {
-      return true;
+  return result as Record<string, unknown>;
+}
+
+async function loadSpec(
+  input: string | Record<string, unknown>,
+  headers?: NonNullable<ResolveSpecOptions['parserOptions']>['headers'],
+): Promise<{ data: Record<string, unknown>; origin?: string }> {
+  if (!isString(input)) {
+    return { data: input };
+  }
+  if (isUrl(input)) {
+    const response = await fetch(input, {
+      headers: getHeadersForUrl(input, headers),
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch OpenAPI spec from ${input}: ${response.status} ${response.statusText}`,
+      );
     }
-    return Object.values(obj).some((value) => hasExternalRef(value));
+    return { data: parseSpec(await response.text()), origin: input };
   }
-  return false;
+  return { data: parseSpec(await readFile(input, 'utf-8')), origin: input };
+}
+
+/**
+ * Strip the JSON pointer fragment (`#/...`) from a `$ref` value, leaving only
+ * the document target (file path or URL).
+ */
+function getRefDocument(ref: string): string {
+  const hashIndex = ref.indexOf('#');
+  return hashIndex === -1 ? ref : ref.slice(0, hashIndex);
+}
+
+/**
+ * Collect all external `$ref` document targets from a spec object. Returns
+ * deduplicated ref strings in their raw form (before fragment stripping).
+ */
+function collectExternalRefs(obj: unknown): string[] {
+  const refs = new Set<string>();
+  function walk(val: unknown) {
+    if (Array.isArray(val)) {
+      val.forEach(walk);
+      return;
+    }
+    if (isObject(val)) {
+      if ('$ref' in val && isString(val.$ref) && !val.$ref.startsWith('#')) {
+        refs.add(val.$ref);
+      }
+      Object.values(val).forEach(walk);
+    }
+  }
+  walk(obj);
+  return [...refs];
+}
+
+/**
+ * Resolve a ref document target (the part before `#`) to a canonical path or
+ * URL, so it can be compared against allow-list entries that were resolved the
+ * same way.
+ */
+function resolveRefTarget(ref: string, origin?: string): string {
+  const doc = getRefDocument(ref);
+  if (isUrl(doc)) return new URL(doc).href;
+  if (origin && isUrl(origin)) {
+    return new URL(doc, origin).href;
+  }
+  if (origin) {
+    return nodePath.resolve(nodePath.dirname(origin), doc);
+  }
+  return nodePath.resolve(doc);
+}
+
+/**
+ * Check whether a `$ref` is allowed by the user's allow-list. Both the ref and
+ * the allow-list entries are resolved against the spec origin so that
+ * `./schemas/pet.yaml` in the spec matches `./schemas/pet.yaml` in the config.
+ */
+function isAllowedRef(
+  ref: string,
+  allowedExternalRefs: string[],
+  origin?: string,
+): boolean {
+  const resolved = resolveRefTarget(ref, origin);
+  return allowedExternalRefs.some(
+    (entry) => resolveRefTarget(entry, origin) === resolved,
+  );
+}
+
+function formatDisallowedRefsError(
+  disallowed: string[],
+  currentAllowed: string[],
+): string {
+  const docs = [...new Set(disallowed.map(getRefDocument))];
+  const all = [...new Set([...currentAllowed, ...docs])];
+  const configSnippet = JSON.stringify(
+    {
+      input: {
+        parserOptions: { externalRefs: { allow: all } },
+      },
+    },
+    null,
+    2,
+  );
+  return (
+    `External $ref targets are not allowed by default.\n` +
+    `Add them to your config, or use externalRefs.allow: ['*'] to allow all.\n\n` +
+    `Disallowed refs:\n${disallowed.map((r) => `  - ${r}`).join('\n')}\n\n` +
+    `Suggested config:\n${configSnippet}`
+  );
+}
+
+/**
+ * Wrap `readFiles()` so every file read is checked against the allow-list.
+ * The top-level spec file (matching `origin`) is always allowed; subsequent
+ * reads must match an explicit entry or the wildcard.
+ */
+function createSafeFileLoader(
+  origin: string | undefined,
+  isWildcard: boolean,
+  allowedExternalRefs: string[],
+) {
+  const base = readFiles();
+  return {
+    type: 'loader' as const,
+    validate: base.validate,
+    async exec(value: string) {
+      if (isWildcard) {
+        return base.exec(value);
+      }
+      if (origin && nodePath.resolve(value) === nodePath.resolve(origin)) {
+        return base.exec(value);
+      }
+      const isAllowed = isAllowedRef(value, allowedExternalRefs, origin);
+      if (!isAllowed) {
+        throw new Error(
+          `Refused to read external file: ${value}\n` +
+            `Add it to externalRefs.allow or use ['*'] to allow all.`,
+        );
+      }
+      return base.exec(value);
+    },
+  };
+}
+
+/**
+ * Wrap `fetchUrls()` so every URL fetch is checked against the allow-list.
+ * The top-level spec URL (matching `origin`) is always allowed; subsequent
+ * fetches must match an explicit entry or the wildcard.
+ */
+function createSafeUrlLoader(
+  origin: string | undefined,
+  isWildcard: boolean,
+  allowedExternalRefs: string[],
+  headers?: { domains: string[]; headers: Record<string, string> }[],
+) {
+  const base = fetchUrls({ headers });
+  return {
+    type: 'loader' as const,
+    validate: base.validate,
+    async exec(value: string) {
+      if (isWildcard) {
+        return base.exec(value);
+      }
+      const resolved = resolveRefTarget(value, origin);
+      if (origin && resolved === resolveRefTarget(origin)) {
+        return base.exec(value);
+      }
+      const isAllowed = isAllowedRef(value, allowedExternalRefs, origin);
+      if (!isAllowed) {
+        throw new Error(
+          `Refused to fetch external URL: ${value}\n` +
+            `Add it to externalRefs.allow or use ['*'] to allow all.`,
+        );
+      }
+      return base.exec(value);
+    },
+  };
 }
 
 export async function importSpecs(

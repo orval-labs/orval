@@ -925,7 +925,7 @@ async function resolveFirstValidTarget(
   );
 }
 
-function getHeadersForUrl(
+export function getHeadersForUrl(
   url: string,
   headersConfig?: NonNullable<InputOptions['parserOptions']>['headers'],
 ): Record<string, string> {

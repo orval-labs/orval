@@ -631,11 +631,15 @@ export default defineConfig({
       clean: true,
       formatter: 'prettier',
     },
-    input: '../specifications/multi-files-with-same-import-names/api.yaml',
+    input: {
+      target: '../specifications/multi-files-with-same-import-names/api.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
+    },
   },
   'external-ref': {
     input: {
       target: '../specifications/external-ref.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
     output: {
       target: '../generated/default/external-ref/endpoints.ts',
@@ -731,6 +735,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-1107/issue-1107.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   'issue-3380-external-path-ref': {
@@ -741,6 +746,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-3380/issue-3380.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   'issue-1935-double-linked-ref': {
@@ -752,6 +758,7 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/issue-1935/issue-1935.yaml',
+      parserOptions: { externalRefs: { allow: ['*'] } },
     },
   },
   'issue-2206-msw-info-typing': {

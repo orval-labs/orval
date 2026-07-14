@@ -65,7 +65,7 @@ export const getAngularFilteredParamsExpression = (
       value != null &&
       typeof value === 'object' &&
       !Array.isArray(value) &&
-      Object.hasOwn(objectParamStrategies, key)
+      Object.prototype.hasOwnProperty.call(objectParamStrategies, key)
     ) {
       const objectStrategy = objectParamStrategies[key];
       const entries = Object.entries(value as Record<string, unknown>);
@@ -324,7 +324,7 @@ function filterParams(
       value != null &&
       typeof value === 'object' &&
       !Array.isArray(value) &&
-      Object.hasOwn(objectParamStrategies, key)
+      Object.prototype.hasOwnProperty.call(objectParamStrategies, key)
     ) {
       const objectStrategy = objectParamStrategies[key];
       const entries = Object.entries(value as Record<string, unknown>);
