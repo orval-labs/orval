@@ -1,6 +1,6 @@
 {
   "name": "angular-query",
-  "version": "8.21.0",
+  "version": "8.22.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
