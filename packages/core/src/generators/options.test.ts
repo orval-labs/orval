@@ -642,7 +642,9 @@ function filterParams(
       expect(result).toContain(
         `const objectParamStrategies: Readonly<Record<string, 'flatten' | 'comma' | 'deepObject'>> = {"arg0":"flatten"};`,
       );
-      expect(result).toContain('Object.hasOwn(objectParamStrategies, key)');
+      expect(result).toContain(
+        'Object.prototype.hasOwnProperty.call(objectParamStrategies, key)',
+      );
     });
   });
 

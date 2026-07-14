@@ -23,6 +23,7 @@ import { isNullish } from 'remeda';
 import jsYaml from 'js-yaml';
 
 import { importOpenApi } from './import-open-api';
+import { getHeadersForUrl } from './utils/options';
 
 interface ResolveSpecOptions {
   parserOptions?: NormalizedOptions['input']['parserOptions'];
@@ -46,7 +47,10 @@ async function resolveSpec(
   // Load the top-level spec so we can scan for external $refs before
   // bundle() resolves them. The top-level target is trusted (user-configured
   // input.target); only the $ref values inside the spec are untrusted.
-  const { data: specData, origin } = await loadSpec(input);
+  const { data: specData, origin } = await loadSpec(
+    input,
+    parserOptions?.headers,
+  );
 
   // Enforce the allow-list on refs found in the top-level spec.
   // Transitive refs (inside external docs) are enforced by the loader wrappers.
@@ -170,6 +174,7 @@ async function bundleAndDereferenceExternalRefs(
     plugins: [
       createSafeFileLoader(origin, isWildcard, allowedExternalRefs),
       createSafeUrlLoader(
+        origin,
         isWildcard,
         allowedExternalRefs,
         parserOptions?.headers,
@@ -193,12 +198,15 @@ async function bundleAndDereferenceExternalRefs(
  */
 async function loadSpec(
   input: string | Record<string, unknown>,
+  headers?: NonNullable<ResolveSpecOptions['parserOptions']>['headers'],
 ): Promise<{ data: Record<string, unknown>; origin?: string }> {
   if (!isString(input)) {
     return { data: input };
   }
   const text = isUrl(input)
-    ? await (await fetch(input)).text()
+    ? await (
+        await fetch(input, { headers: getHeadersForUrl(input, headers) })
+      ).text()
     : await readFile(input, 'utf-8');
   const result = jsYaml.load(text);
   if (!isObject(result)) {
@@ -335,6 +343,7 @@ function createSafeFileLoader(
  * fetches must match an explicit entry or the wildcard.
  */
 function createSafeUrlLoader(
+  origin: string | undefined,
   isWildcard: boolean,
   allowedExternalRefs: string[],
   headers?: { domains: string[]; headers: Record<string, string> }[],
@@ -347,9 +356,12 @@ function createSafeUrlLoader(
       if (isWildcard) {
         return base.exec(value);
       }
-      const resolved = resolveRefTarget(value);
+      const resolved = resolveRefTarget(value, origin);
+      if (origin && resolved === resolveRefTarget(origin)) {
+        return base.exec(value);
+      }
       const isAllowed = allowedExternalRefs.some(
-        (entry) => isUrl(entry) && resolveRefTarget(entry) === resolved,
+        (entry) => resolveRefTarget(entry, origin) === resolved,
       );
       if (!isAllowed) {
         throw new Error(

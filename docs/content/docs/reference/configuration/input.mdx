@@ -306,23 +306,14 @@ export default defineConfig({
 });
 ```
 
-Use `['*']` to allow all external refs (previous behavior). Orval will emit a warning listing all resolved external documents:
+Use `['*']` to allow all external refs (previous behavior). Orval will emit a warning listing external documents referenced by the top-level spec:
 
-```ts title="orval.config.ts"
-import { defineConfig } from 'orval';
-
-export default defineConfig({
-  petstore: {
-    input: {
-      target: './openapi.yaml',
-      parserOptions: {
-        externalRefs: {
-          allow: ['*'],
-        },
-      },
-    },
+```ts
+parserOptions: {
+  externalRefs: {
+    allow: ['*'],
   },
-});
+}
 ```
 
 <Callout type="warn">
