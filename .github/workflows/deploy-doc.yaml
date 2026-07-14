@@ -10,6 +10,7 @@ permissions:
 jobs:
   deploy-to-cloudflare:
     name: Deploy to Cloudflare
+    if: github.repository == 'orval-labs/orval'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
