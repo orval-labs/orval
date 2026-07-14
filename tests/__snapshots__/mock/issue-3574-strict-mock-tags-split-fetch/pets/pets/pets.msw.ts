@@ -4,14 +4,20 @@
  * Issue 3574 - strict mock tags-split MSW+faker
  * OpenAPI spec version: 1.0.0
  */
-import { faker } from '@faker-js/faker';
-
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
 import type { Pet } from '../../schemas';
 
-import { getPetMock } from '../../schemas/index.faker';
+import {
+  getGetPetByIdResponseMock,
+  getGetPetsResponseMock,
+} from './pets.faker';
+
+export {
+  getGetPetsResponseMock,
+  getGetPetByIdResponseMock,
+} from './pets.faker';
 
 export type KeysWithNull<O> = {
   [K in keyof O]-?: null extends O[K] ? K : never;
@@ -30,24 +36,6 @@ export type PetMock = {
     Required<NonNullable<Pet>>[K]
   >;
 };
-
-export const getGetPetsResponseMock = (): PetMock[] =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() => ({ ...(getPetMock() as PetMock) }));
-
-export const getGetPetByIdResponseMock = <
-  O extends Partial<Extract<Pet, object>> = {},
->(
-  overrideResponse?: O,
-): MockWithNullableOverrides<Pet, O, PetMock> =>
-  ({
-    id: faker.number.int(),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    ...overrideResponse,
-  }) as MockWithNullableOverrides<Pet, O, PetMock>;
 
 export const getGetPetsMockHandler = (
   overrideResponse?:

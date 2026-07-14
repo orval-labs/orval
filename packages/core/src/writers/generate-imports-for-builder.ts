@@ -134,17 +134,26 @@ export function generateImportsForBuilder(
     );
   }
 
-  const otherImports = uniqueBy(
+  const otherImportsMap = new Map<string, GeneratorImport[]>();
+  for (const imp of uniqueBy(
     imports.filter(
       (i): i is GeneratorImport & { importPath: string } => !!i.importPath,
     ),
     (x) => x.name + x.importPath,
-  ).map<GeneratorDependency>((i) => {
-    return {
-      exports: [i],
-      dependency: i.importPath,
-    };
-  });
+  )) {
+    const existing = otherImportsMap.get(imp.importPath);
+    if (existing) {
+      existing.push(imp);
+    } else {
+      otherImportsMap.set(imp.importPath, [imp]);
+    }
+  }
+  const otherImports = [...otherImportsMap.entries()].map<GeneratorDependency>(
+    ([dependency, exports]) => ({
+      exports,
+      dependency,
+    }),
+  );
 
   return [...schemaImports, ...schemaFactoryDeps, ...otherImports];
 }

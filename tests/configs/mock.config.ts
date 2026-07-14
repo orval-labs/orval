@@ -1009,6 +1009,40 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // `operationResponses: false` on the msw generator: handlers only, no
+  // response mock factories. Fallback responses become `undefined`.
+  splitMswHandlersOnly: {
+    output: {
+      target: '../generated/mock/split-msw-handlers-only/endpoints.ts',
+      schemas: '../generated/mock/split-msw-handlers-only/model',
+      mock: {
+        generators: [{ type: 'msw', operationResponses: false }],
+      },
+      mode: 'split',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  tagsSplitMswHandlersOnly: {
+    output: {
+      target: '../generated/mock/tags-split-msw-handlers-only/endpoints.ts',
+      schemas: '../generated/mock/tags-split-msw-handlers-only/model',
+      mock: {
+        generators: [{ type: 'msw', operationResponses: false }],
+      },
+      mode: 'tags-split',
+      client: 'axios',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   tagsSplitMockPath: {
     output: {
       target: '../generated/mock/tags-split-mock-path/endpoints.ts',

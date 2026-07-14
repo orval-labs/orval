@@ -55,8 +55,21 @@ test('mock issue-3574 strict mock types in tags-split MSW+faker output', async (
     expect(content).toMatch(/export type KeysWithNull/);
   }
 
-  expect(mswContent).toMatch(/export const getPetMock|import \{ getPetMock \}/);
-  expect(fakerContent).toMatch(/export const getPetMock|import \{ getPetMock \}/);
+  // The factories live in the faker file, the msw file imports them instead
+  // of re-declaring them and no longer references `getPetMock` itself.
+  expect(fakerContent).toMatch(
+    /export const getPetMock|import \{ getPetMock \}/,
+  );
+  expect(fakerContent).toContain('export const getGetPetsResponseMock');
+  expect(mswContent).toMatch(
+    /import \{[\s\S]*?getGetPetsResponseMock[\s\S]*?\} from '\.\/pets\.faker'/,
+  );
+  expect(mswContent).not.toContain('export const getGetPetsResponseMock');
+  expect(mswContent).not.toContain('getPetMock');
+  // Re-exported so importing the factories from pets.msw still works.
+  expect(mswContent).toMatch(
+    /export \{[\s\S]*?getGetPetsResponseMock[\s\S]*?\} from '\.\/pets\.faker'/,
+  );
 });
 
 test('mock issue-3574 accumulates strict mock types across operations per tag', async () => {

@@ -4,49 +4,24 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { faker } from '@faker-js/faker';
-
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
 import type { Pet, Pets } from '../models';
 
-export const getListPetsResponseMock = (): Pets =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() => ({
-    id: faker.number.int(),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  }));
+import {
+  getCreatePetsResponseMock,
+  getListPetsResponseMock,
+  getShowPetByIdResponseMock,
+  getUpdatePetsResponseMock,
+} from './pets.faker';
 
-export const getCreatePetsResponseMock = (
-  overrideResponse: Partial<Extract<Pet, object>> = {},
-): Pet => ({
-  id: faker.number.int(),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ...overrideResponse,
-});
-
-export const getUpdatePetsResponseMock = (
-  overrideResponse: Partial<Extract<Pet, object>> = {},
-): Pet => ({
-  id: faker.number.int(),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ...overrideResponse,
-});
-
-export const getShowPetByIdResponseMock = (
-  overrideResponse: Partial<Extract<Pet, object>> = {},
-): Pet => ({
-  id: faker.number.int(),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ...overrideResponse,
-});
+export {
+  getListPetsResponseMock,
+  getCreatePetsResponseMock,
+  getUpdatePetsResponseMock,
+  getShowPetByIdResponseMock,
+} from './pets.faker';
 
 export const getListPetsMockHandler = (
   overrideResponse?:

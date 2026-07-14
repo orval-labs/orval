@@ -514,6 +514,10 @@ export interface CommonMockOptions {
 
 export interface MswMockOptions extends CommonMockOptions {
   type: typeof OutputMockType.MSW;
+  // Emit faker responses in MSW handler output, defaults to true. Disable to
+  // generate handlers only which require passing in mock responses, falls back
+  // to `undefined` if no mock response passed to handler.
+  operationResponses?: boolean;
   // Base URL prefix for the generated MSW route matchers
   baseUrl?: string;
   // Response delay before MSW handlers resolve (false disables delay)

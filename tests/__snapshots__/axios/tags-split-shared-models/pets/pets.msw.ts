@@ -4,58 +4,22 @@
  * Tags Split Shared Models
  * OpenAPI spec version: 1.0.0
  */
-import { faker } from '@faker-js/faker';
-
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
 import type { Pet, PetList } from '../model';
 
-export const getListPetsResponseMock = (
-  overrideResponse: Partial<Extract<PetList, object>> = {},
-): PetList => ({
-  items: Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() => ({
-    id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    tag: faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-  })),
-  pagination: {
-    total: faker.number.int(),
-    page: faker.number.int(),
-    hasNext: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]),
-  },
-  ...overrideResponse,
-});
+import {
+  getCreatePetResponseMock,
+  getGetPetByIdResponseMock,
+  getListPetsResponseMock,
+} from './pets.faker';
 
-export const getCreatePetResponseMock = (
-  overrideResponse: Partial<Extract<Pet, object>> = {},
-): Pet => ({
-  id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  tag: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  ...overrideResponse,
-});
-
-export const getGetPetByIdResponseMock = (
-  overrideResponse: Partial<Extract<Pet, object>> = {},
-): Pet => ({
-  id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  tag: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  ...overrideResponse,
-});
+export {
+  getListPetsResponseMock,
+  getCreatePetResponseMock,
+  getGetPetByIdResponseMock,
+} from './pets.faker';
 
 export const getListPetsMockHandler = (
   overrideResponse?:

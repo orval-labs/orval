@@ -199,6 +199,116 @@ describe('generateImportsForBuilder', () => {
     });
   });
 
+  describe('imports with explicit importPath', () => {
+    it('should group imports with the same importPath into a single dependency', () => {
+      const output = createMockOutput({ indexFiles: false });
+      const imports: GeneratorImport[] = [
+        {
+          name: 'getPetResponseMock',
+          values: true,
+          importPath: './pets.faker',
+        },
+        {
+          name: 'getUserResponseMock',
+          values: true,
+          importPath: './pets.faker',
+        },
+      ];
+
+      const result = generateImportsForBuilder(output, imports, '../models');
+
+      expect(result).toEqual([
+        {
+          exports: [
+            {
+              name: 'getPetResponseMock',
+              values: true,
+              importPath: './pets.faker',
+            },
+            {
+              name: 'getUserResponseMock',
+              values: true,
+              importPath: './pets.faker',
+            },
+          ],
+          dependency: './pets.faker',
+        },
+      ]);
+    });
+
+    it('should separate imports with different importPaths into different dependencies', () => {
+      const output = createMockOutput({ indexFiles: false });
+      const imports: GeneratorImport[] = [
+        {
+          name: 'getPetResponseMock',
+          values: true,
+          importPath: './pets.faker',
+        },
+        {
+          name: 'getHealthResponseMock',
+          values: true,
+          importPath: './health.faker',
+        },
+      ];
+
+      const result = generateImportsForBuilder(output, imports, '../models');
+
+      expect(result).toEqual([
+        {
+          exports: [
+            {
+              name: 'getPetResponseMock',
+              values: true,
+              importPath: './pets.faker',
+            },
+          ],
+          dependency: './pets.faker',
+        },
+        {
+          exports: [
+            {
+              name: 'getHealthResponseMock',
+              values: true,
+              importPath: './health.faker',
+            },
+          ],
+          dependency: './health.faker',
+        },
+      ]);
+    });
+
+    it('should deduplicate imports with the same name and importPath', () => {
+      const output = createMockOutput({ indexFiles: false });
+      const imports: GeneratorImport[] = [
+        {
+          name: 'getPetResponseMock',
+          values: true,
+          importPath: './pets.faker',
+        },
+        {
+          name: 'getPetResponseMock',
+          values: true,
+          importPath: './pets.faker',
+        },
+      ];
+
+      const result = generateImportsForBuilder(output, imports, '../models');
+
+      expect(result).toEqual([
+        {
+          exports: [
+            {
+              name: 'getPetResponseMock',
+              values: true,
+              importPath: './pets.faker',
+            },
+          ],
+          dependency: './pets.faker',
+        },
+      ]);
+    });
+  });
+
   describe('with importPath (package import specifier)', () => {
     it('should use package import path with indexFiles', () => {
       const output = createMockOutput({

@@ -1,7 +1,12 @@
 import path from 'node:path';
 
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { OutputClient, OutputMockType, type WriteModeProps } from '../types';
+import {
+  type MswMockOptions,
+  OutputClient,
+  OutputMockType,
+  type WriteModeProps,
+} from '../types';
 import {
   conventionName,
   getFileInfo,
@@ -23,6 +28,12 @@ import {
   collectRecoveredSchemaFactoryImports,
   mergeGeneratorImports,
 } from './mock-imports';
+import {
+  buildCrossFileFakerImports,
+  buildFakerReexportStatement,
+  collapseMswFakerFullOutputs,
+  flattenMockOutput,
+} from './mock-outputs';
 import { getMockDir, resolveMockSchemasPath } from './mock-utils';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
@@ -53,7 +64,7 @@ export async function writeSplitMode({
     const {
       imports,
       implementation,
-      mockOutputs,
+      mockOutputsFull,
       mutators,
       clientMutators,
       formData,
@@ -62,6 +73,15 @@ export async function writeSplitMode({
       paramsFilter,
       fetchReviver,
     } = generateTarget(builder, output);
+
+    const mswGeneratorEntry = output.mock.generators.find(
+      (g): g is MswMockOptions =>
+        !isFunction(g) && g.type === OutputMockType.MSW,
+    );
+    const collapsedFull = collapseMswFakerFullOutputs(mockOutputsFull, {
+      mswOperationResponses: mswGeneratorEntry?.operationResponses,
+    });
+    const mockOutputs = collapsedFull.map((m) => flattenMockOutput(m));
 
     let implementationData = header;
 
@@ -203,6 +223,29 @@ export async function writeSplitMode({
     await writeGeneratedFile(implementationPath, implementationData);
 
     const mockPaths: string[] = [];
+
+    const hasFaker = mockOutputs.some((m) => m.type === OutputMockType.FAKER);
+    // Only import from the faker file when the collapse actually moved the
+    // factories there, importing names that are still declared locally would
+    // clash.
+    const mswFactoriesMoved =
+      hasFaker &&
+      collapsedFull.some(
+        (m) =>
+          m.type === OutputMockType.MSW &&
+          m.implementation.function.trim().length === 0,
+      );
+    const fakerImplementation =
+      mockOutputs.find((m) => m.type === OutputMockType.FAKER)
+        ?.implementation ?? '';
+    const fakerEntry = output.mock.generators.find(
+      (g) => !isFunction(g) && g.type === OutputMockType.FAKER,
+    );
+    const fakerDir = fakerEntry
+      ? (getMockDir(fakerEntry, output.mock) ?? dirname)
+      : dirname;
+    const fakerFilePath = path.join(fakerDir, filename + '.faker' + extension);
+
     const seenMockIndexKeys = new Set<string>();
     const writtenMockEntries: {
       extension: OutputMockType;
@@ -253,12 +296,23 @@ export async function writeSplitMode({
             )
           : [];
 
+      const crossFileFakerImports =
+        mswFactoriesMoved && mockOutput.type === OutputMockType.MSW
+          ? buildCrossFileFakerImports(
+              mockFilePath,
+              fakerFilePath,
+              mockOutput.implementation,
+              fakerImplementation,
+            )
+          : [];
+
       const importsMockForBuilder = generateImportsForBuilder(
         output,
         filterLocalStrictMockTypeImports(
           mergeGeneratorImports(
             mockOutput.imports,
             recoveredSchemaFactoryImports,
+            crossFileFakerImports,
           ),
           finalizeMockOptions.strictSchemaTypeNames,
         ),
@@ -274,6 +328,9 @@ export async function writeSplitMode({
         isAllowSyntheticDefaultImports,
         options: isFunction(rawEntry) ? undefined : rawEntry,
       });
+      // Re-export the factories so importing them from the msw file keeps
+      // working.
+      mockData += buildFakerReexportStatement(crossFileFakerImports);
       mockData += `\n${finalizedMockImplementation}`;
 
       await writeGeneratedFile(mockFilePath, mockData);

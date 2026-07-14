@@ -1,5 +1,4 @@
 import {
-  type GeneratorMockOutput,
   type GeneratorMockOutputFull,
   type GeneratorTarget,
   type GeneratorTargetFull,
@@ -8,6 +7,7 @@ import {
   type WriteSpecBuilder,
 } from '../types';
 import { pascal } from '../utils';
+import { flattenMockOutput } from './mock-outputs';
 import { hasTypeScriptAwaitedType } from './typescript-version';
 
 function emptyMockOutputFull(
@@ -20,20 +20,18 @@ function emptyMockOutputFull(
   };
 }
 
-function flattenMockOutput(full: GeneratorMockOutputFull): GeneratorMockOutput {
-  return {
-    type: full.type,
-    implementation: full.implementation.function + full.implementation.handler,
-    imports: full.imports,
-    strictMockSchemaTypeNames: full.strictMockSchemaTypeNames,
-    strictMockSchemaKinds: full.strictMockSchemaKinds,
-  };
+/**
+ * `mockOutputsFull` keeps `function` and `handler` separate so the split
+ * writers can strip factories from the MSW output before flattening.
+ */
+export interface GeneratorTargetWithFull extends GeneratorTarget {
+  mockOutputsFull: GeneratorMockOutputFull[];
 }
 
 export function generateTarget(
   builder: WriteSpecBuilder,
   options: NormalizedOutputOptions,
-): GeneratorTarget {
+): GeneratorTargetWithFull {
   const operationNames = Object.values(builder.operations).map(
     ({ operationName }) => operationName,
   );
@@ -183,6 +181,7 @@ export function generateTarget(
     imports: target.imports,
     implementation: target.implementation,
     mockOutputs: target.mockOutputs.map((m) => flattenMockOutput(m)),
+    mockOutputsFull: target.mockOutputs,
     mutators: target.mutators,
     clientMutators: target.clientMutators,
     formData: target.formData,

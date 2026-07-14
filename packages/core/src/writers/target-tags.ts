@@ -1,15 +1,15 @@
 import {
   DefaultTag,
-  type GeneratorMockOutput,
   type GeneratorMockOutputFull,
   type GeneratorOperation,
-  type GeneratorTarget,
   type GeneratorTargetFull,
   type NormalizedOutputOptions,
   OutputClient,
   type WriteSpecBuilder,
 } from '../types';
 import { getOperationTagKey, isOperationInTagBucket, pascal } from '../utils';
+import { flattenMockOutput } from './mock-outputs';
+import type { GeneratorTargetWithFull } from './target';
 import { hasTypeScriptAwaitedType } from './typescript-version';
 
 /**
@@ -32,16 +32,6 @@ function emptyMockOutputFull(
     type,
     implementation: { function: '', handler: '', handlerName: '' },
     imports: [],
-  };
-}
-
-function flattenMockOutput(full: GeneratorMockOutputFull): GeneratorMockOutput {
-  return {
-    type: full.type,
-    implementation: full.implementation.function + full.implementation.handler,
-    imports: full.imports,
-    strictMockSchemaTypeNames: full.strictMockSchemaTypeNames,
-    strictMockSchemaKinds: full.strictMockSchemaKinds,
   };
 }
 
@@ -301,11 +291,12 @@ export function generateTargetForTags(
     }
   }
 
-  const result: Record<string, GeneratorTarget> = {};
+  const result: Record<string, GeneratorTargetWithFull> = {};
   for (const [tag, target] of Object.entries(allTargetTags)) {
     result[tag] = {
       ...target,
       mockOutputs: target.mockOutputs.map((m) => flattenMockOutput(m)),
+      mockOutputsFull: target.mockOutputs,
     };
   }
   return result;

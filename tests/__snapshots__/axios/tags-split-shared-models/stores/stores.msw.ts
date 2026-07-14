@@ -4,58 +4,22 @@
  * Tags Split Shared Models
  * OpenAPI spec version: 1.0.0
  */
-import { faker } from '@faker-js/faker';
-
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
 import type { Store, StoreList } from '../model';
 
-export const getListStoresResponseMock = (
-  overrideResponse: Partial<Extract<StoreList, object>> = {},
-): StoreList => ({
-  items: Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() => ({
-    id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    address: faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-  })),
-  pagination: {
-    total: faker.number.int(),
-    page: faker.number.int(),
-    hasNext: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]),
-  },
-  ...overrideResponse,
-});
+import {
+  getCreateStoreResponseMock,
+  getGetStoreByIdResponseMock,
+  getListStoresResponseMock,
+} from './stores.faker';
 
-export const getCreateStoreResponseMock = (
-  overrideResponse: Partial<Extract<Store, object>> = {},
-): Store => ({
-  id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  address: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  ...overrideResponse,
-});
-
-export const getGetStoreByIdResponseMock = (
-  overrideResponse: Partial<Extract<Store, object>> = {},
-): Store => ({
-  id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  address: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  ...overrideResponse,
-});
+export {
+  getListStoresResponseMock,
+  getCreateStoreResponseMock,
+  getGetStoreByIdResponseMock,
+} from './stores.faker';
 
 export const getListStoresMockHandler = (
   overrideResponse?:
