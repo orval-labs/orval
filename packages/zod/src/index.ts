@@ -1023,8 +1023,9 @@ export const generateZodValidationSchemaDefinition = (
         }
 
         // formatType: codec replacement or transform
-        const formatConfig =
-          context.output.override.formatType?.[schema.format ?? ''];
+        const formatConfig = schema.format
+          ? context.output.override.formatType?.[schema.format]
+          : undefined;
         if (formatConfig?.zod?.codec) {
           // Replace entire schema with codec reference. Break (not return) so
           // the function's normal optional/nullable/default logic still runs.

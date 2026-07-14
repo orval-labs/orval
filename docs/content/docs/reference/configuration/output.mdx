@@ -3059,6 +3059,10 @@ Map any OpenAPI string format (e.g. `date`, `date-time`, `time`, `uuid`, `email`
 | `mockImport` | `{ name, importPath, default? }` | No | — | Runtime import for the mock expression |
 
 > `formatType` currently handles **type mapping** — emitting custom TypeScript types, Zod schemas, and mock expressions. Runtime response/request transforms (deserializing date strings in HTTP responses, serializing custom types in request bodies) are planned for a follow-up.
+>
+> **Current limitations:**
+> - `zod.transform` is only applied for `date`, `date-time`, and `time` formats. Other formats (e.g. `uuid`) support type mapping and codec replacement but not `.transform()`.
+> - The Effect client emits `S.String` for non-`Date` formatType values — Effect transform support is not yet implemented.
 
 #### Temporal API example
 
