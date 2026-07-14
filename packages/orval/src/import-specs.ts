@@ -196,6 +196,14 @@ async function bundleAndDereferenceExternalRefs(
  * (user-configured `input.target`); only `$ref` values inside the spec are
  * untrusted.
  */
+function parseSpec(text: string): Record<string, unknown> {
+  const result = jsYaml.load(text);
+  if (!isObject(result)) {
+    throw new Error('OpenAPI spec must be a valid JSON/YAML object.');
+  }
+  return result as Record<string, unknown>;
+}
+
 async function loadSpec(
   input: string | Record<string, unknown>,
   headers?: NonNullable<ResolveSpecOptions['parserOptions']>['headers'],
@@ -203,16 +211,18 @@ async function loadSpec(
   if (!isString(input)) {
     return { data: input };
   }
-  const text = isUrl(input)
-    ? await (
-        await fetch(input, { headers: getHeadersForUrl(input, headers) })
-      ).text()
-    : await readFile(input, 'utf-8');
-  const result = jsYaml.load(text);
-  if (!isObject(result)) {
-    throw new Error('OpenAPI spec must be a valid JSON/YAML object.');
+  if (isUrl(input)) {
+    const response = await fetch(input, {
+      headers: getHeadersForUrl(input, headers),
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch OpenAPI spec from ${input}: ${response.status} ${response.statusText}`,
+      );
+    }
+    return { data: parseSpec(await response.text()), origin: input };
   }
-  return { data: result as Record<string, unknown>, origin: input };
+  return { data: parseSpec(await readFile(input, 'utf-8')), origin: input };
 }
 
 /**
@@ -323,9 +333,7 @@ function createSafeFileLoader(
       if (origin && nodePath.resolve(value) === nodePath.resolve(origin)) {
         return base.exec(value);
       }
-      const isAllowed = allowedExternalRefs.some(
-        (entry) => resolveRefTarget(entry, origin) === nodePath.resolve(value),
-      );
+      const isAllowed = isAllowedRef(value, allowedExternalRefs, origin);
       if (!isAllowed) {
         throw new Error(
           `Refused to read external file: ${value}\n` +
@@ -360,9 +368,7 @@ function createSafeUrlLoader(
       if (origin && resolved === resolveRefTarget(origin)) {
         return base.exec(value);
       }
-      const isAllowed = allowedExternalRefs.some(
-        (entry) => resolveRefTarget(entry, origin) === resolved,
-      );
+      const isAllowed = isAllowedRef(value, allowedExternalRefs, origin);
       if (!isAllowed) {
         throw new Error(
           `Refused to fetch external URL: ${value}\n` +
