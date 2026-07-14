@@ -949,7 +949,7 @@
         "@tanstack/vue-query": "catalog:vue",
         "@types/react": "catalog:react",
         "axios": "catalog:axios",
-        "dayjs": "catalog:",
+        "dayjs": "1.11.21",
         "hono": "catalog:hono",
         "msw": "catalog:tooling",
         "npm-run-all2": "catalog:",
@@ -970,7 +970,6 @@
   "catalog": {
     "@scalar/openapi-types": "0.8.0",
     "@types/node": "22.18.12",
-    "dayjs": "1.11.21",
     "eslint": "10.1.0",
     "globals": "17.4.0",
     "jsdom": "29.1.1",
