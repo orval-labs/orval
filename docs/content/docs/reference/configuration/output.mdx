@@ -3001,6 +3001,8 @@ export default defineConfig({
 
 > **Important:** You must provide an Axios converter to convert serialized date strings to `Date` objects. This option only affects the TypeScript definition.
 
+If you also want runtime conversion, prefer `useDatesTransform` below; the interceptor approach traverses every response and can convert date-looking strings that are not schema dates.
+
 ```ts title="axios-instance.ts"
 import axios from 'axios';
 
@@ -3038,6 +3040,40 @@ export function handleDates(body: any) {
 ```
 
 > If using `fetch` client with `useDates: true`, query parameters of type Date are stringified using `toISOString()`.
+
+### useDatesTransform
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Use this property to also convert dates at runtime. While `useDates` only
+changes the generated TypeScript types, `useDatesTransform` additionally
+generates a small `deserialize<OperationName>Response` function for every
+operation whose response schema declares `format: date` or
+`format: date-time` fields, and chains it onto the generated call:
+
+```ts
+export const getOrderDetails = (orderId: string) => {
+  return customInstance<OrderDetails>({ url: `/orders/${orderId}`, method: 'GET' }).then(
+    deserializeGetOrderDetailsResponse,
+  );
+};
+```
+
+Only schema-declared date fields are converted — no response-wide traversal,
+no pattern matching on strings — and operations without date fields generate
+no extra code. Setting `useDatesTransform: true` implies `useDates: true`.
+This removes the need for the axios interceptor shown under `useDates`.
+
+Current limitations: a `oneOf`/`anyOf` without an OpenAPI
+[`discriminator`](https://spec.openapis.org/oas/v3.1.0#discriminator-object)
+`mapping` is skipped, since there's no static way to tell which variant a
+given payload matched; a discriminated union with an explicit `mapping` is
+converted, emitting a `switch` on the discriminator property with one `case`
+per mapping key. `additionalProperties` maps are not converted, responses
+with multiple success shapes are skipped, and only the axios-based clients
+are wired (`react-query`, `vue-query`, `svelte-query`, and `solid-query`
+with `httpClient: 'axios'`).
 
 ### useBigInt
 
