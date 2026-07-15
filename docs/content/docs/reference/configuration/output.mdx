@@ -632,7 +632,7 @@ export default defineConfig({
 
 The Faker generator emits the same `get<Op>ResponseMock` factories MSW would emit, but without any `msw` dependency or HTTP handler code. Useful for tests or stories that only need fake response data.
 
-In `split` and `tags-split` modes, configuring Faker alongside MSW moves the `get<Op>ResponseMock` factories to the `.faker` file. The `.msw` file only contains the handlers and imports (and re-exports) the factories instead of duplicating them.
+In `split` and `tags-split` modes, configuring Faker alongside MSW moves the `get<Op>ResponseMock` factories to the `.faker` file. The `.msw` file only contains the handlers and imports (and re-exports) the factories instead of duplicating them. If the Faker generator is configured with `operationResponses: false` it emits no factories, so there is nothing to move and the `.msw` file keeps them inline.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|

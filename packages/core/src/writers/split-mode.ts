@@ -245,6 +245,7 @@ export async function writeSplitMode({
       ? (getMockDir(fakerEntry, output.mock) ?? dirname)
       : dirname;
     const fakerFilePath = path.join(fakerDir, filename + '.faker' + extension);
+    const fakerImportExtension = getImportExtension(extension, output.tsconfig);
 
     const seenMockIndexKeys = new Set<string>();
     const writtenMockEntries: {
@@ -303,6 +304,7 @@ export async function writeSplitMode({
               fakerFilePath,
               mockOutput.implementation,
               fakerImplementation,
+              fakerImportExtension,
             )
           : [];
 

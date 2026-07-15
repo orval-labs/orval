@@ -43,8 +43,9 @@ export function flattenMockOutput(
 const RESPONSE_MOCK_CALL_RE = /:\s*(get\w+ResponseMock\w*)\(\)/g;
 
 export interface CollapseMswFakerOptions {
-  // The msw generator's `operationResponses` flag. When false the handlers
-  // fall back to `undefined` instead of calling the response factories.
+  // The msw generator's `operationResponses` flag. When false and no faker
+  // output provides the factories, the handlers fall back to `undefined`
+  // instead of calling the response factories.
   mswOperationResponses?: boolean;
 }
 
@@ -141,6 +142,7 @@ export function buildCrossFileFakerImports(
   fakerFilePath: string,
   mswImplementation: string,
   fakerImplementation: string,
+  importExtension = '',
 ): GeneratorImport[] {
   const referencedNames = extractResponseMockNames(mswImplementation);
   if (referencedNames.length === 0) return [];
@@ -151,10 +153,8 @@ export function buildCrossFileFakerImports(
   );
   if (responseMockNames.length === 0) return [];
 
-  const fakerImportPath = upath.getRelativeImportPath(
-    mswFilePath,
-    fakerFilePath,
-  );
+  const fakerImportPath =
+    upath.getRelativeImportPath(mswFilePath, fakerFilePath) + importExtension;
 
   return responseMockNames.map(
     (name): GeneratorImport => ({

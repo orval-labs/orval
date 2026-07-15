@@ -363,6 +363,17 @@ describe('buildCrossFileFakerImports', () => {
     );
     expect(result[0].importPath).toBe('./pets.faker');
   });
+
+  it('appends the import extension for Node16/NodeNext resolution', () => {
+    const result = buildCrossFileFakerImports(
+      '/src/api/pets/pets.msw.ts',
+      '/src/api/pets/pets.faker.ts',
+      ': getPetResponseMock()',
+      'export const getPetResponseMock = () => ({})',
+      '.js',
+    );
+    expect(result[0].importPath).toBe('./pets.faker.js');
+  });
 });
 
 describe('buildFakerReexportStatement', () => {

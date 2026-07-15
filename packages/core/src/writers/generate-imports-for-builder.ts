@@ -139,7 +139,7 @@ export function generateImportsForBuilder(
     imports.filter(
       (i): i is GeneratorImport & { importPath: string } => !!i.importPath,
     ),
-    (x) => x.name + x.importPath,
+    (x) => `${x.name}|${x.importPath}`,
   )) {
     const existing = otherImportsMap.get(imp.importPath);
     if (existing) {

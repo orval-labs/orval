@@ -337,6 +337,10 @@ export async function writeSplitTagsMode({
           tag,
           tag + '.faker' + extension,
         );
+        const fakerImportExtension = getImportExtension(
+          extension,
+          output.tsconfig,
+        );
 
         for (const mockOutput of mockOutputs) {
           const rawEntry = output.mock.generators.find((g) => {
@@ -391,6 +395,7 @@ export async function writeSplitTagsMode({
                   fakerFilePath,
                   mockOutput.implementation,
                   fakerImplementation,
+                  fakerImportExtension,
                 )
               : [];
 
