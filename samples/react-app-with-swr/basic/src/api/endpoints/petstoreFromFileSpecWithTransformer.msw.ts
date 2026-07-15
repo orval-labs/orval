@@ -4,48 +4,22 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { faker } from '@faker-js/faker';
-
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
 import type { Pet, Pets } from '../model';
 
-export const getListPetsResponseMock = (): Pets =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() => ({
-    '@id': faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-    id: (() => faker.number.int({ min: 1, max: 99999 }))(),
-    name: (() => faker.person.lastName())(),
-    tag: (() => faker.person.lastName())(),
-    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-  }));
+import {
+  getCreatePetsResponseMock,
+  getListPetsResponseMock,
+  getShowPetByIdResponseMock,
+} from './petstoreFromFileSpecWithTransformer.faker';
 
-export const getCreatePetsResponseMock = (
-  overrideResponse: Partial<Extract<Pet, object>> = {},
-): Pet => ({
-  '@id': faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  id: faker.number.int(),
-  name: (() => faker.person.lastName())(),
-  tag: (() => faker.person.lastName())(),
-  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-  ...overrideResponse,
-});
-
-export const getShowPetByIdResponseMock = () =>
-  (() => ({
-    id: faker.number.int({ min: 1, max: 99 }),
-    name: faker.person.firstName(),
-    tag: faker.helpers.arrayElement([faker.word.sample(), undefined]),
-  }))();
+export {
+  getListPetsResponseMock,
+  getCreatePetsResponseMock,
+  getShowPetByIdResponseMock,
+} from './petstoreFromFileSpecWithTransformer.faker';
 
 export const getListPetsMockHandler = (
   overrideResponse?:

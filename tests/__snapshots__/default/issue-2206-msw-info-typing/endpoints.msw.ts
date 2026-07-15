@@ -4,21 +4,14 @@
  * issue-2206
  * OpenAPI spec version: 1.0.0
  */
-import { faker } from '@faker-js/faker';
-
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
+import { getListPetsResponseMock } from './endpoints.faker';
+
 import type { Pet } from './model';
 
-export const getListPetsResponseMock = (): Pet[] =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() => ({
-    id: faker.number.int(),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  }));
+export { getListPetsResponseMock } from './endpoints.faker';
 
 export const getListPetsMockHandler = (
   overrideResponse?:

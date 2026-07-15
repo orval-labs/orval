@@ -4,32 +4,20 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { faker } from '@faker-js/faker';
-
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
+import {
+  getGetPetsResponseMock,
+  getPostPetsResponseMock,
+} from './endpoints.faker';
+
 import type { AnotherSchema, Pet } from './model';
 
-export const getPostPetsResponsePetMock = (
-  overrideResponse: Partial<Pet> = {},
-): Pet => ({
-  ...{
-    id: faker.number.int(),
-    file: faker.helpers.arrayElement([{ id: faker.number.int() }, undefined]),
-  },
-  ...overrideResponse,
-});
-
-export const getPostPetsResponseMock = (): Pet =>
-  faker.helpers.arrayElement([{ ...getPostPetsResponsePetMock() }]);
-
-export const getGetPetsResponseAnotherSchemaMock = (
-  overrideResponse: Partial<AnotherSchema> = {},
-): AnotherSchema => ({ ...{ id: faker.number.int() }, ...overrideResponse });
-
-export const getGetPetsResponseMock = (): AnotherSchema =>
-  faker.helpers.arrayElement([{ ...getGetPetsResponseAnotherSchemaMock() }]);
+export {
+  getPostPetsResponseMock,
+  getGetPetsResponseMock,
+} from './endpoints.faker';
 
 export const getPostPetsMockHandler = (
   overrideResponse?:

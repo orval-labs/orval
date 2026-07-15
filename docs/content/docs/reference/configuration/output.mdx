@@ -619,6 +619,7 @@ export default defineConfig({
 |--------|------|---------|-------------|
 | `type` | `'msw'` | required | Discriminator for MSW handler generation. |
 | `path` | `String` | `undefined` | Output directory for this generator's mock files. Overrides the shared `mock.path` when set. When provided in `single` or `tags` mode, mock code is written to separate files (relative to `path`) instead of being inlined into the implementation file. |
+| `operationResponses` | `Boolean` | `true` | Emit `get<Op>ResponseMock` factories in the MSW output. Set to `false` to generate handlers only, response fallbacks become `undefined`. No effect when a Faker generator also emits the factories, the handlers then import them from the `.faker` file. Honored in `split` and `tags-split` modes. |
 | `delay` | `Number \| Function \| false` | `false` | Response delay in ms. |
 | `delayFunctionLazyExecute` | `Boolean` | `false` | Execute delay function at runtime instead of at build time. |
 | `baseUrl` | `String` | `''` | Base URL for the generated MSW handlers. |
@@ -630,6 +631,8 @@ export default defineConfig({
 ### Faker generator (`type: 'faker'`)
 
 The Faker generator emits the same `get<Op>ResponseMock` factories MSW would emit, but without any `msw` dependency or HTTP handler code. Useful for tests or stories that only need fake response data.
+
+In `split` and `tags-split` modes, configuring Faker alongside MSW moves the `get<Op>ResponseMock` factories to the `.faker` file. The `.msw` file only contains the handlers and imports (and re-exports) the factories instead of duplicating them. If the Faker generator is configured with `operationResponses: false` it emits no factories, so there is nothing to move and the `.msw` file keeps them inline.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|

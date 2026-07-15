@@ -4,14 +4,14 @@
  * Issue 3574 - strict mock tags-split multi-schema
  * OpenAPI spec version: 1.0.0
  */
-import { faker } from '@faker-js/faker';
-
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
 import type { Owner, Pet } from '../../schemas';
 
-import { getPetMock } from '../../schemas/index.faker';
+import { getGetOwnerResponseMock, getGetPetsResponseMock } from './store.faker';
+
+export { getGetPetsResponseMock, getGetOwnerResponseMock } from './store.faker';
 
 export type KeysWithNull<O> = {
   [K in keyof O]-?: null extends O[K] ? K : never;
@@ -36,24 +36,6 @@ export type OwnerMock = {
     Required<NonNullable<Owner>>[K]
   >;
 };
-
-export const getGetPetsResponseMock = (): PetMock[] =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() => ({ ...(getPetMock() as PetMock) }));
-
-export const getGetOwnerResponseMock = <
-  O extends Partial<Extract<Owner, object>> = {},
->(
-  overrideResponse?: O,
-): MockWithNullableOverrides<Owner, O, OwnerMock> =>
-  ({
-    id: faker.number.int(),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    email: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    ...overrideResponse,
-  }) as MockWithNullableOverrides<Owner, O, OwnerMock>;
 
 export const getGetPetsMockHandler = (
   overrideResponse?:

@@ -4,29 +4,20 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { faker } from '@faker-js/faker';
-
 import { HttpResponse, http } from 'msw';
 import type { RequestHandlerOptions } from 'msw';
 
 import type { Pet, Pets } from '../model';
 
-export const getListPetsResponseMock = (): Pets =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() => ({
-    id: (() => faker.number.int({ min: 1, max: 99999 }))(),
-    name: (() => faker.person.lastName())(),
-    tag: (() => faker.person.lastName())(),
-  }));
+import {
+  getListPetsResponseMock,
+  getShowPetByIdResponseMock,
+} from './petstoreFromFileSpecWithTransformer.faker';
 
-export const getShowPetByIdResponseMock = () =>
-  (() => ({
-    id: faker.number.int({ min: 1, max: 99 }),
-    name: faker.person.firstName(),
-    tag: faker.helpers.arrayElement([faker.string.sample(), undefined]),
-  }))();
+export {
+  getListPetsResponseMock,
+  getShowPetByIdResponseMock,
+} from './petstoreFromFileSpecWithTransformer.faker';
 
 export const getListPetsMockHandler = (
   overrideResponse?:
