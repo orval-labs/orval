@@ -706,7 +706,10 @@ export async function normalizeOptions(
               }
             : {}),
         },
-        useDates: outputOptions.override?.useDates ?? false,
+        useDates:
+          (outputOptions.override?.useDates ?? false) ||
+          (outputOptions.override?.useDatesTransform ?? false),
+        useDatesTransform: outputOptions.override?.useDatesTransform ?? false,
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
         enumGenerationType:

@@ -144,6 +144,7 @@ export interface NormalizedOverrideOutput {
 
   requestOptions: Record<string, unknown> | boolean;
   useDates?: boolean;
+  useDatesTransform?: boolean;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
@@ -740,6 +741,12 @@ export interface OverrideOutput {
 
   requestOptions?: Record<string, unknown> | boolean;
   useDates?: boolean;
+  /**
+   * Emit per-operation response deserializers that convert schema-declared
+   * `format: date` / `format: date-time` fields to `Date` at runtime.
+   * Implies `useDates`. @default false
+   */
+  useDatesTransform?: boolean;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
