@@ -1,0 +1,86 @@
+openapi: 3.0.0
+info:
+  title: Dates transform
+  version: 1.0.0
+paths:
+  /orders/{orderId}:
+    get:
+      operationId: getOrderDetails
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDetails'
+  /pets/{petId}:
+    get:
+      operationId: getPetProfile
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Cat'
+                  - $ref: '#/components/schemas/Dog'
+                discriminator:
+                  propertyName: petType
+                  mapping:
+                    cat: '#/components/schemas/Cat'
+                    dog: '#/components/schemas/Dog'
+  /orders:
+    get:
+      operationId: listOrderNumbers
+      responses:
+        '200':
+          description: dates-free — must generate no deserializer
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: string }
+components:
+  schemas:
+    Cat:
+      type: object
+      required: [petType, vaccinatedAt]
+      properties:
+        petType: { type: string, enum: [cat] }
+        vaccinatedAt: { type: string, format: date-time }
+    Dog:
+      type: object
+      required: [petType]
+      properties:
+        petType: { type: string, enum: [dog] }
+        adoptedAt: { type: string, format: date-time, nullable: true }
+    OrderDetails:
+      type: object
+      required: [placedAt, events]
+      properties:
+        placedAt: { type: string, format: date-time }
+        deliveredAt: { type: string, format: date-time, nullable: true }
+        lastViewedAt: { type: string, format: date-time }
+        name: { type: string }
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderEvent'
+    OrderEvent:
+      type: object
+      required: [createdAt]
+      properties:
+        createdAt: { type: string, format: date-time }
+        resolvedAt: { type: string, format: date-time }
+        message: { type: string }
