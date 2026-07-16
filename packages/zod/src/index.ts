@@ -139,6 +139,17 @@ const resolveZodType = (schema: OpenApiSchemaObject): ResolvedZodType => {
     return 'tuple';
   }
 
+  // Infer type from const value when type is not explicitly specified
+  if (!type && 'const' in schema) {
+    const constValue = schema.const;
+    if (isString(constValue)) return 'string';
+    if (isNumber(constValue)) return 'number';
+    if (isBoolean(constValue)) return 'boolean';
+    if (constValue === null) return 'null';
+    if (Array.isArray(constValue)) return 'array';
+    if (isObject(constValue)) return 'object';
+  }
+
   switch (type) {
     case 'integer': {
       return 'number';
@@ -990,22 +1001,26 @@ export const generateZodValidationSchemaDefinition = (
         break;
       }
       case 'array': {
-        functions.push([
-          'array',
-          generateZodValidationSchemaDefinition(
-            schema.items as OpenApiSchemaObject | undefined,
-            context,
-            camel(`${name}-item`),
-            strict,
-            isZodV4,
-            {
-              required: true,
-              constNameRegistry,
-              useReusableSchemas,
-              urlEncoded,
-            },
-          ),
-        ]);
+        if ('const' in schema) {
+          functions.push(['literal', JSON.stringify(schema.const)]);
+        } else {
+          functions.push([
+            'array',
+            generateZodValidationSchemaDefinition(
+              schema.items as OpenApiSchemaObject | undefined,
+              context,
+              camel(`${name}-item`),
+              strict,
+              isZodV4,
+              {
+                required: true,
+                constNameRegistry,
+                useReusableSchemas,
+                urlEncoded,
+              },
+            ),
+          ]);
+        }
         break;
       }
       case 'string': {
@@ -1127,6 +1142,20 @@ export const generateZodValidationSchemaDefinition = (
         break;
       }
       default: {
+        // Handle const for number, boolean, null, and object types
+        if ('const' in schema) {
+          const constValue = schema.const;
+          if (
+            isNumber(constValue) ||
+            isBoolean(constValue) ||
+            constValue === null
+          ) {
+            functions.push(['literal', constValue]);
+          } else if (isObject(constValue)) {
+            functions.push(['literal', JSON.stringify(constValue)]);
+          }
+        }
+
         const hasProperties = !!schema.properties;
         const properties = schema.properties ?? {};
         const hasDefinedProperties = Object.keys(properties).length > 0;
