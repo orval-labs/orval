@@ -11486,6 +11486,33 @@ describe('enum/const value escaping (#3505)', () => {
       'export const testDateDefaultDefault = new Date("2024-01-01T00:00:00Z");',
     ]);
   });
+
+  it.each([
+    ['test', ['literal', '"test"'], 'string'],
+    [42, ['literal', 42], 'number'],
+    [true, ['literal', true], 'boolean'],
+    [null, ['literal', null], 'null'],
+    [['foo', 'bar'], ['literal', '["foo","bar"]'], 'array'],
+    [{ foo: 'bar' }, ['literal', '{"foo":"bar"}'], 'object'],
+  ] as const)(
+    'infers type from const value when type is not specified (%s)',
+    (constValue, expectedFunction, typeName) => {
+      const schema = {
+        const: constValue,
+      } as OpenApiSchemaObject;
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        `testConst${typeName}Inferred`,
+        false,
+        false,
+        { required: true },
+      );
+
+      expect(result.functions).toContainEqual(expectedFunction);
+    },
+  );
 });
 
 // `oneOf`/`anyOf` + `discriminator` should map onto `zod.discriminatedUnion`,
