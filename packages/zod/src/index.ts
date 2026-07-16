@@ -146,8 +146,6 @@ const resolveZodType = (schema: OpenApiSchemaObject): ResolvedZodType => {
     if (isNumber(constValue)) return 'number';
     if (isBoolean(constValue)) return 'boolean';
     if (constValue === null) return 'null';
-    if (Array.isArray(constValue)) return 'array';
-    if (isObject(constValue)) return 'object';
   }
 
   switch (type) {
@@ -1001,26 +999,22 @@ export const generateZodValidationSchemaDefinition = (
         break;
       }
       case 'array': {
-        if ('const' in schema) {
-          functions.push(['literal', JSON.stringify(schema.const)]);
-        } else {
-          functions.push([
-            'array',
-            generateZodValidationSchemaDefinition(
-              schema.items as OpenApiSchemaObject | undefined,
-              context,
-              camel(`${name}-item`),
-              strict,
-              isZodV4,
-              {
-                required: true,
-                constNameRegistry,
-                useReusableSchemas,
-                urlEncoded,
-              },
-            ),
-          ]);
-        }
+        functions.push([
+          'array',
+          generateZodValidationSchemaDefinition(
+            schema.items as OpenApiSchemaObject | undefined,
+            context,
+            camel(`${name}-item`),
+            strict,
+            isZodV4,
+            {
+              required: true,
+              constNameRegistry,
+              useReusableSchemas,
+              urlEncoded,
+            },
+          ),
+        ]);
         break;
       }
       case 'string': {
@@ -1151,8 +1145,7 @@ export const generateZodValidationSchemaDefinition = (
             constValue === null
           ) {
             functions.push(['literal', constValue]);
-          } else if (isObject(constValue)) {
-            functions.push(['literal', JSON.stringify(constValue)]);
+            break;
           }
         }
 

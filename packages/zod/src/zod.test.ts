@@ -11492,8 +11492,6 @@ describe('enum/const value escaping (#3505)', () => {
     [42, ['literal', 42], 'number'],
     [true, ['literal', true], 'boolean'],
     [null, ['literal', null], 'null'],
-    [['foo', 'bar'], ['literal', '["foo","bar"]'], 'array'],
-    [{ foo: 'bar' }, ['literal', '{"foo":"bar"}'], 'object'],
   ] as const)(
     'infers type from const value when type is not specified (%s)',
     (constValue, expectedFunction, typeName) => {
