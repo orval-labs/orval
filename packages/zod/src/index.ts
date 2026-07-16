@@ -139,6 +139,15 @@ const resolveZodType = (schema: OpenApiSchemaObject): ResolvedZodType => {
     return 'tuple';
   }
 
+  // Infer type from const value when type is not explicitly specified
+  if (!type && 'const' in schema) {
+    const constValue = schema.const;
+    if (isString(constValue)) return 'string';
+    if (isNumber(constValue)) return 'number';
+    if (isBoolean(constValue)) return 'boolean';
+    if (constValue === null) return 'null';
+  }
+
   switch (type) {
     case 'integer': {
       return 'number';
@@ -1127,6 +1136,19 @@ export const generateZodValidationSchemaDefinition = (
         break;
       }
       default: {
+        // Handle const for number, boolean, null, and object types
+        if ('const' in schema) {
+          const constValue = schema.const;
+          if (
+            isNumber(constValue) ||
+            isBoolean(constValue) ||
+            constValue === null
+          ) {
+            functions.push(['literal', constValue]);
+            break;
+          }
+        }
+
         const hasProperties = !!schema.properties;
         const properties = schema.properties ?? {};
         const hasDefinedProperties = Object.keys(properties).length > 0;

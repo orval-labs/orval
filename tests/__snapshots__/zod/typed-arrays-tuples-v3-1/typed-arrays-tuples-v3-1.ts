@@ -23,7 +23,7 @@ export const PostApiSampleResponse = zod.object({
       zod.string().uuid(),
     ])
     .optional(),
-  example_const: zod.unknown().optional(),
+  example_const: zod.literal('this_is_a_const').optional(),
   example_string_const: zod.literal('this_is_a_string_const').optional(),
   example_enum: zod.enum(['enum1', 'enum2']).optional(),
 });
