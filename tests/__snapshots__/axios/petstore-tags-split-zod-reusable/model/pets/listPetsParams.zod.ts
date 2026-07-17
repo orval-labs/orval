@@ -8,7 +8,7 @@ import { z as zod } from 'zod';
 import { SortOrder } from '../sortOrder.zod';
 
 export const ListPetsParams = zod.object({
-  limit: zod.number().optional(),
+  limit: zod.int().optional(),
   sort: SortOrder.optional(),
 });
 

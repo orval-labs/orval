@@ -199,7 +199,7 @@ describe('generateReusableSchemaSet', () => {
       `zodParams({"operationId":"","location":"schema","schemaName":"Pet","fieldPath":["name"],"validator":"string"})`,
     );
     expect(entry.zod).toContain(
-      `zodParams({"operationId":"","location":"schema","schemaName":"Pet","fieldPath":["age"],"validator":"number"})`,
+      `zod.number(zodParams({"operationId":"","location":"schema","schemaName":"Pet","fieldPath":["age"],"validator":"number"})).int(zodParams({"operationId":"","location":"schema","schemaName":"Pet","fieldPath":["age"],"validator":"int"}))`,
     );
   });
 

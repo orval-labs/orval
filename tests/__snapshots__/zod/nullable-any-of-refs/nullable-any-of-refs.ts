@@ -57,12 +57,10 @@ export const GetMixedTypesResponseItem = zod.object({
     .union([
       zod.string().nullable(),
       zod.number().nullable(),
-      zod.number().nullable(),
+      zod.int().nullable(),
       zod.boolean().nullable(),
     ])
     .nullish(),
-  mixedTypesNotNull: zod
-    .union([zod.number(), zod.number(), zod.uuid()])
-    .nullish(),
+  mixedTypesNotNull: zod.union([zod.number(), zod.int(), zod.uuid()]).nullish(),
 });
 export const GetMixedTypesResponse = zod.array(GetMixedTypesResponseItem);

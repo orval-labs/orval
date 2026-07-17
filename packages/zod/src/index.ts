@@ -112,8 +112,7 @@ const resolveZodType = (schema: OpenApiSchemaObject): ResolvedZodType => {
     // Filter out 'null' type as it's handled separately via nullable
     const nonNullTypes = schemaTypeValue
       .filter((t): t is string => isString(t))
-      .filter((t) => t !== 'null' && possibleSchemaTypes.has(t))
-      .map((t) => (t === 'integer' ? 'number' : t));
+      .filter((t) => t !== 'null' && possibleSchemaTypes.has(t));
 
     // If multiple types, return a special marker for union handling
     if (nonNullTypes.length > 1) {
@@ -128,7 +127,7 @@ const resolveZodType = (schema: OpenApiSchemaObject): ResolvedZodType => {
       return 'tuple';
     }
 
-    return type;
+    return type === 'integer' ? 'number' : type;
   }
 
   // Handle single type value
@@ -664,6 +663,9 @@ export const generateZodValidationSchemaDefinition = (
     isBoolean(exclusiveMaxRaw) && exclusiveMaxRaw ? max : exclusiveMaxRaw;
 
   const multipleOf = schema.multipleOf;
+  const isIntegerSchema =
+    schema.type === 'integer' ||
+    (Array.isArray(schema.type) && schema.type.includes('integer'));
   const matches = schema.pattern ?? undefined;
   // Enum-based schemas are emitted as `zod.enum(...)` or literal unions, so
   // chaining scalar constraints onto the parent schema would generate invalid
@@ -1244,6 +1246,11 @@ export const generateZodValidationSchemaDefinition = (
           break;
         }
 
+        if (isIntegerSchema) {
+          functions.push(['int', undefined]);
+          break;
+        }
+
         functions.push([type, undefined]);
 
         break;
@@ -1778,6 +1785,18 @@ ${Object.entries(objectArgs)
 
       const combinedArgs = buildCombinedArgs(fn, args, fieldPath);
 
+      if (fn === 'int' && shouldCoerce('number')) {
+        const numberArgs = buildCombinedArgs('number', undefined, fieldPath);
+        current = {
+          expr: zodMiniCall(
+            'pipe',
+            `${zodMiniCoerceCall('number', numberArgs)}, ${zodMiniCall('int', combinedArgs)}`,
+          ),
+          kind: 'number',
+        };
+        continue;
+      }
+
       if (fn === 'optional' || fn === 'nullable' || fn === 'nullish') {
         const value = requireCurrent(fn);
         current = { expr: zodMiniCall(fn, value.expr), kind: value.kind };
@@ -1843,9 +1862,11 @@ ${Object.entries(objectArgs)
       current = {
         expr: zodMiniCall(fn, combinedArgs),
         kind:
-          fn === 'enum' || fn === 'literal' || fn === 'stringFormat'
-            ? 'string'
-            : fn.split('.')[0],
+          fn === 'int'
+            ? 'number'
+            : fn === 'enum' || fn === 'literal' || fn === 'stringFormat'
+              ? 'string'
+              : fn.split('.')[0],
       };
     }
 
@@ -2159,6 +2180,19 @@ ${Object.entries(objectArgs)
         : paramsArg;
     } else {
       combinedArgs = formattedArgs;
+    }
+
+    if (fn === 'int') {
+      const shouldCoerceNumber =
+        coerceTypes &&
+        (Array.isArray(coerceTypes) ? coerceTypes.includes('number') : true);
+      const numberArgs = buildCombinedArgs('number', undefined, fieldPath);
+      if (shouldCoerceNumber) {
+        return `.coerce.number(${numberArgs}).int(${combinedArgs})`;
+      }
+      if (!isZodV4) {
+        return `.number(${numberArgs}).int(${combinedArgs})`;
+      }
     }
 
     if (

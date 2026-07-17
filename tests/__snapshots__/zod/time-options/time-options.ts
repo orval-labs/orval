@@ -14,13 +14,13 @@ export const ShowPetByIdParams = zod.object({
 });
 
 export const ShowPetByIdResponse = zod.object({
-  id: zod.number().optional(),
+  id: zod.int().optional(),
   birthDate: zod.iso.date(),
   createdAt: zod.iso.datetime({ offset: true }),
-  age: zod.number().optional(),
+  age: zod.int().optional(),
   legCount: zod.number().optional(),
   weight: zod.number().optional(),
   height: zod.number().optional(),
-  chipNumbers: zod.array(zod.number()).optional(),
+  chipNumbers: zod.array(zod.int()).optional(),
   feedingTime: zod.iso.time({ precision: -1 }).optional(),
 });

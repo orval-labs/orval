@@ -11,7 +11,7 @@ import { Dog } from './dog.zod.js';
 export const Pet = zod.union([Dog, Cat]).and(
   zod.object({
     '@id': zod.string().optional(),
-    id: zod.number(),
+    id: zod.int(),
     name: zod.string(),
     tag: zod.string().optional(),
     email: zod.email().optional(),

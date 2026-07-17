@@ -14,7 +14,7 @@ export const getGizmoResponseNullableStringDefault = `hello`;
 export const GetGizmoResponse = zod.object({
   booleanFlag: zod.boolean().default(getGizmoResponseBooleanFlagDefault),
   number: zod.number().default(getGizmoResponseNumberDefault),
-  integer: zod.number().default(getGizmoResponseIntegerDefault),
+  integer: zod.int().default(getGizmoResponseIntegerDefault),
   nullableString: zod
     .string()
     .nullish()

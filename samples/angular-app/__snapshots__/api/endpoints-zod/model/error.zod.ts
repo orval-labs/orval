@@ -11,7 +11,7 @@ export const errorCodeMax = 600;
 
 export const Error = zod.object({
   code: zod
-    .number()
+    .int()
     .min(errorCodeMin)
     .max(errorCodeMax)
     .describe('HTTP-like error code'),

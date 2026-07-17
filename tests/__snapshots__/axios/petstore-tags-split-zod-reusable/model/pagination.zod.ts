@@ -7,8 +7,8 @@
 import { z as zod } from 'zod';
 
 export const Pagination = zod.object({
-  total: zod.number(),
-  page: zod.number(),
+  total: zod.int(),
+  page: zod.int(),
   hasNext: zod.boolean().optional(),
 });
 

@@ -18,10 +18,10 @@ export const ListPetsByCountryParams = zod.object({
 export const ListPetsByCountryQueryParams = zod.object({
   q: zod.array(zod.string()).optional().describe('Filter pets by substring'),
   limit: zod
-    .number()
+    .int()
     .optional()
     .describe('How many items to return at one time (max 100)'),
-  offset: zod.number().optional().describe('How many items to skip'),
+  offset: zod.int().optional().describe('How many items to skip'),
   order: zod
     .enum(['asc', 'desc'])
     .optional()
@@ -43,10 +43,10 @@ export const listPetsByCountryResponseCountryCodeDefault = `UY`;
 
 export const ListPetsByCountryResponseItem = zod.object({
   '@id': zod.string().optional(),
-  id: zod.number(),
+  id: zod.int(),
   name: zod.string(),
   tag: zod.string().optional(),
-  age: zod.number().optional(),
+  age: zod.int().optional(),
   countryCode: zod
     .enum(['CN', 'UY'])
     .default(listPetsByCountryResponseCountryCodeDefault),
@@ -58,10 +58,7 @@ export const ListPetsByCountryResponse = zod.array(
 export const listPetsByAgePathAgeDefault = 5;
 
 export const ListPetsByAgeParams = zod.object({
-  age: zod
-    .number()
-    .default(listPetsByAgePathAgeDefault)
-    .describe('Filter by age'),
+  age: zod.int().default(listPetsByAgePathAgeDefault).describe('Filter by age'),
 });
 
 export const ListPetsByAgeQueryParams = zod.object({
@@ -79,10 +76,10 @@ export const listPetsByAgeResponseCountryCodeDefault = `UY`;
 
 export const ListPetsByAgeResponseItem = zod.object({
   '@id': zod.string().optional(),
-  id: zod.number(),
+  id: zod.int(),
   name: zod.string(),
   tag: zod.string().optional(),
-  age: zod.number().optional(),
+  age: zod.int().optional(),
   countryCode: zod
     .enum(['CN', 'UY'])
     .default(listPetsByAgeResponseCountryCodeDefault),
