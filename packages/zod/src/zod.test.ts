@@ -237,6 +237,38 @@ describe('parseZodValidationSchemaDefinition', () => {
     );
   });
 
+  it('renders zod mini coerced integer bounds as checks on the pipe', () => {
+    const parseResult = parseZodValidationSchemaDefinition(
+      {
+        functions: [
+          ['int', undefined],
+          ['min', 'ageMin'],
+          ['max', 'ageMax'],
+          ['multipleOf', 'ageMultipleOf'],
+          ['optional', undefined],
+        ],
+        consts: [],
+      },
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      true,
+      false,
+      true,
+      undefined,
+      undefined,
+      'mini',
+    );
+
+    expect(parseResult.zod).toBe(
+      '/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.pipe(/*#__PURE__*/ zod.coerce.number(), /*#__PURE__*/ zod.int()).check(/*#__PURE__*/ zod.gte(ageMin)).check(/*#__PURE__*/ zod.lte(ageMax)).check(/*#__PURE__*/ zod.multipleOf(ageMultipleOf)))',
+    );
+  });
+
   it('renders zod mini allOf fallback as intersections', () => {
     const parseResult = parseZodValidationSchemaDefinition(
       {
@@ -3725,6 +3757,25 @@ describe('generateZodValidationSchemaDefinition`', () => {
       ).toBe(
         '/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.pipe(/*#__PURE__*/ zod.coerce.number(), /*#__PURE__*/ zod.int()))',
       );
+    });
+    it('coerces integer schemas on the Zod v3 target', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'integer',
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testCoercedInteger',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(
+        parseZodValidationSchemaDefinition(result, context, true, false, false)
+          .zod,
+      ).toBe('zod.coerce.number().int().optional()');
     });
     it('generates an number with min', () => {
       const schema: OpenApiSchemaObject = {

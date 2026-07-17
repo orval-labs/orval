@@ -127,7 +127,7 @@ const resolveZodType = (schema: OpenApiSchemaObject): ResolvedZodType => {
       return 'tuple';
     }
 
-    return type === 'integer' ? 'number' : type;
+    return type;
   }
 
   // Handle single type value
@@ -147,14 +147,7 @@ const resolveZodType = (schema: OpenApiSchemaObject): ResolvedZodType => {
     if (constValue === null) return 'null';
   }
 
-  switch (type) {
-    case 'integer': {
-      return 'number';
-    }
-    default: {
-      return type ?? 'unknown';
-    }
-  }
+  return type ?? 'unknown';
 };
 
 // https://github.com/colinhacks/zod#coercion-for-primitives
@@ -196,7 +189,7 @@ export interface ZodValidationSchemaDefinition {
   consts: string[];
 }
 
-const minAndMaxTypes = new Set(['number', 'string', 'array']);
+const minAndMaxTypes = new Set(['number', 'integer', 'string', 'array']);
 
 const removeReadOnlyProperties = (
   schema: OpenApiSchemaObject,
@@ -663,9 +656,6 @@ export const generateZodValidationSchemaDefinition = (
     isBoolean(exclusiveMaxRaw) && exclusiveMaxRaw ? max : exclusiveMaxRaw;
 
   const multipleOf = schema.multipleOf;
-  const isIntegerSchema =
-    schema.type === 'integer' ||
-    (Array.isArray(schema.type) && schema.type.includes('integer'));
   const matches = schema.pattern ?? undefined;
   // Enum-based schemas are emitted as `zod.enum(...)` or literal unions, so
   // chaining scalar constraints onto the parent schema would generate invalid
@@ -1246,12 +1236,7 @@ export const generateZodValidationSchemaDefinition = (
           break;
         }
 
-        if (isIntegerSchema) {
-          functions.push(['int', undefined]);
-          break;
-        }
-
-        functions.push([type, undefined]);
+        functions.push([type === 'integer' ? 'int' : type, undefined]);
 
         break;
       }
@@ -2183,11 +2168,8 @@ ${Object.entries(objectArgs)
     }
 
     if (fn === 'int') {
-      const shouldCoerceNumber =
-        coerceTypes &&
-        (Array.isArray(coerceTypes) ? coerceTypes.includes('number') : true);
       const numberArgs = buildCombinedArgs('number', undefined, fieldPath);
-      if (shouldCoerceNumber) {
+      if (shouldCoerce('number')) {
         return `.coerce.number(${numberArgs}).int(${combinedArgs})`;
       }
       if (!isZodV4) {
