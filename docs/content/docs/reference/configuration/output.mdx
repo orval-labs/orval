@@ -1601,6 +1601,25 @@ Behavior:
 - **Inheritance (`allOf`).** Branches composed with `allOf` are flattened into a single object so they remain valid discriminated-union options — this is the case that previously forced the feature to be reverted ([#2085](https://github.com/orval-labs/orval/issues/2085)). With [`generateReusableSchemas`](#generatereusableschemas), a branch that references an `allOf` schema stays a plain union (the referenced schema can't be guaranteed to be an object from the reference alone).
 - Works with both Zod v3 (>= 3.20) and v4, and with the [`mini`](#variant) variant.
 
+### exactOptional
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Emit optional object properties with `.exactOptional()` (classic) / `zod.exactOptional()` (mini) instead of `.optional()`, so consumers compiling with [`exactOptionalPropertyTypes`](https://www.typescriptlang.org/tsconfig/#exactOptionalPropertyTypes) infer `{ x?: T }` rather than `{ x?: T | undefined }`.
+
+```ts
+// override: { zod: { exactOptional: true } }
+export const Pet = zod.object({ name: zod.string().exactOptional() });
+```
+
+Behavior:
+
+- **Opt-in.** Left `false`, optional properties emit `.optional()` as before, so existing output is unchanged.
+- **zod v4 only.** zod v3 has no `.exactOptional()`, so the option is a no-op there and `.optional()` is emitted.
+- Applies to optional properties in both the classic and [`mini`](#variant) variants.
+
 ---
 
 ## override.effect
@@ -1655,6 +1674,14 @@ Control which schemas are generated.
 **Default:** `false`
 
 Append `S.brand()` to generated Effect schemas using the schema name as the brand identifier. For array request/response bodies, only the top-level array wrapper schema is branded.
+
+### exactOptional
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Emit optional Struct properties with `S.optionalWith(schema, { exact: true })` instead of `S.optional(schema)`, so consumers compiling with [`exactOptionalPropertyTypes`](https://www.typescriptlang.org/tsconfig/#exactOptionalPropertyTypes) infer `{ x?: T }` rather than `{ x?: T | undefined }`.
 
 ---
 

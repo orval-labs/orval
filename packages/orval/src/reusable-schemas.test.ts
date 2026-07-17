@@ -227,6 +227,41 @@ describe('generateReusableSchemaSet', () => {
     expect(entry.zod).not.toContain('zodParams(');
   });
 
+  it('emits .exactOptional() for optional properties when exactOptional is enabled (zod v4)', () => {
+    const context = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                nickname: { type: 'string' },
+              },
+              required: ['name'],
+            },
+          },
+        },
+      },
+    });
+
+    const [withExact] = generateReusableSchemaSet(
+      ['#/components/schemas/Pet'],
+      context,
+      { strict: false, isZodV4: true, exactOptional: true },
+    );
+    expect(withExact.zod).toContain('"nickname": zod.string().exactOptional()');
+    expect(withExact.zod).not.toContain('.optional()');
+
+    const [withoutExact] = generateReusableSchemaSet(
+      ['#/components/schemas/Pet'],
+      context,
+      { strict: false, isZodV4: true },
+    );
+    expect(withoutExact.zod).toContain('"nickname": zod.string().optional()');
+    expect(withoutExact.zod).not.toContain('.exactOptional()');
+  });
+
   it('expands to the transitive closure of component-schema refs', () => {
     const context = createTestContextSpec({
       spec: {

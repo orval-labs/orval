@@ -87,6 +87,7 @@ interface WriteZodOutputOptions {
       };
       generateReusableSchemas?: boolean;
       generateMeta?: boolean;
+      exactOptional?: boolean;
     };
   };
 }
@@ -660,6 +661,7 @@ export function generateZodSchemasInline(
       undefined,
       undefined,
       output.override.zod.variant,
+      output.override.zod.exactOptional,
     );
 
     schemas.push({
@@ -726,6 +728,7 @@ function generateZodSchemasInlineReusable(
     coerce,
     variant: output.override.zod.variant,
     generateMeta: output.override.zod.generateMeta,
+    exactOptional: output.override.zod.exactOptional,
     paramsMutator,
   });
 
@@ -841,6 +844,7 @@ export async function writeZodSchemas(
       undefined,
       undefined,
       output.override.zod.variant,
+      output.override.zod.exactOptional,
     );
 
     schemasToWrite.push({
@@ -942,6 +946,7 @@ async function writeZodSchemasReusable(
     coerce,
     variant: output.override.zod.variant,
     generateMeta: output.override.zod.generateMeta,
+    exactOptional: output.override.zod.exactOptional,
     paramsMutator,
   });
 
@@ -1319,6 +1324,7 @@ export async function writeZodSchemasFromVerbs(
       undefined,
       undefined,
       output.override.zod.variant,
+      output.override.zod.exactOptional,
     );
 
     // Operation schemas sit at the top of the dependency graph, so any
