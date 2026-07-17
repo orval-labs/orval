@@ -1442,6 +1442,7 @@ export const parseZodValidationSchemaDefinition = (
   preprocess?: GeneratorMutator,
   paramsInjection?: ZodParamsInjection,
   variant: ZodVariantOption = 'classic',
+  exactOptional = false,
 ): { zod: string; consts: string; usedRefs: Set<string> } => {
   if (input.functions.length === 0) {
     return { zod: '', consts: '', usedRefs: new Set() };
@@ -1780,7 +1781,9 @@ ${Object.entries(objectArgs)
 
       if (fn === 'optional' || fn === 'nullable' || fn === 'nullish') {
         const value = requireCurrent(fn);
-        current = { expr: zodMiniCall(fn, value.expr), kind: value.kind };
+        const miniFn =
+          exactOptional && isZodV4 && fn === 'optional' ? 'exactOptional' : fn;
+        current = { expr: zodMiniCall(miniFn, value.expr), kind: value.kind };
         continue;
       }
 
@@ -2166,6 +2169,13 @@ ${Object.entries(objectArgs)
       (fn === 'date' && shouldCoerceType && context.output.override.useDates)
     ) {
       return `.coerce.${fn}(${combinedArgs})`;
+    }
+
+    // `.exactOptional()` (zod v4 only) narrows an optional property to `{ x?: T }`
+    // for `exactOptionalPropertyTypes` consumers. Zod v3 has no such method, so
+    // the flag no-ops there and a plain `.optional()` is emitted.
+    if (exactOptional && isZodV4 && fn === 'optional') {
+      return '.exactOptional()';
     }
 
     return `.${fn}(${combinedArgs})`;
@@ -3050,6 +3060,7 @@ const generateZodRoute = async (
     preprocessParams,
     makeParamsInjection('param', 'Params'),
     zodVariant,
+    override.zod.exactOptional,
   );
 
   const preprocessQueryParams = override.zod.preprocess?.query
@@ -3071,6 +3082,7 @@ const generateZodRoute = async (
     preprocessQueryParams,
     makeParamsInjection('query', 'QueryParams'),
     zodVariant,
+    override.zod.exactOptional,
   );
 
   const preprocessHeader = override.zod.preprocess?.header
@@ -3092,6 +3104,7 @@ const generateZodRoute = async (
     preprocessHeader,
     makeParamsInjection('header', 'Header'),
     zodVariant,
+    override.zod.exactOptional,
   );
 
   const preprocessBody = override.zod.preprocess?.body
@@ -3113,6 +3126,7 @@ const generateZodRoute = async (
     preprocessBody,
     makeParamsInjection('body', 'Body'),
     zodVariant,
+    override.zod.exactOptional,
   );
 
   const preprocessResponse = override.zod.preprocess?.response
@@ -3138,6 +3152,7 @@ const generateZodRoute = async (
         responses[index][0] ? `${responses[index][0]}Response` : 'Response',
       ),
       zodVariant,
+      override.zod.exactOptional,
     ),
   );
 

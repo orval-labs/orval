@@ -147,6 +147,8 @@ export interface GenerateReusableSchemaSetOptions {
   coerce?: boolean | ZodCoerceType[];
   /** Emit `.meta({ id, ... })` on each schema (zod v4). See `ZodOptions.generateMeta`. */
   generateMeta?: boolean;
+  /** Emit `.exactOptional()` for optional properties (zod v4). See `ZodOptions.exactOptional`. */
+  exactOptional?: boolean;
   /**
    * When set, the user's `override.zod.params` mutator is invoked for every
    * leaf validator inside each emitted component schema with a `'schema'`
@@ -232,6 +234,7 @@ export const generateReusableSchemaSet = (
           }
         : undefined,
       options.variant,
+      options.exactOptional,
     );
 
     entries.push({

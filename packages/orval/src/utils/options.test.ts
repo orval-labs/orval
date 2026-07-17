@@ -787,6 +787,45 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('normalizes zod/effect exactOptional (default false, opt-in true)', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const input = {
+        target: {
+          openapi: '3.1.0',
+          info: { title: 'Test', version: '1.0.0' },
+          paths: {},
+        },
+      };
+
+      const defaults = await normalizeOptions(
+        { input, output: { target: './generated.ts' } },
+        workspace,
+      );
+      expect(defaults.output.override.zod.exactOptional).toBe(false);
+      expect(defaults.output.override.effect.exactOptional).toBe(false);
+
+      const enabled = await normalizeOptions(
+        {
+          input,
+          output: {
+            target: './generated.ts',
+            override: {
+              zod: { exactOptional: true },
+              effect: { exactOptional: true },
+            },
+          },
+        },
+        workspace,
+      );
+      expect(enabled.output.override.zod.exactOptional).toBe(true);
+      expect(enabled.output.override.effect.exactOptional).toBe(true);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('defaults schemas.type to typescript when omitted', async () => {
     const workspace = await createTempWorkspace();
 

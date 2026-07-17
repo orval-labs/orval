@@ -757,6 +757,7 @@ export const parseEffectValidationSchemaDefinition = (
   context: ContextSpec,
   strict: boolean,
   brandName?: string,
+  exactOptional = false,
 ): { effect: string; consts: string } => {
   if (input.functions.length === 0) {
     return { effect: '', consts: '' };
@@ -866,7 +867,15 @@ export const parseEffectValidationSchemaDefinition = (
       if (hasDefault) {
         out = `S.optionalWith(${out}, { default: () => ${defaultValue as string} })`;
       } else if (isOptional || isNullish) {
-        out = `S.optional(${out})`;
+        // `{ exact: true }` narrows a plain optional property to `{ x?: T }` for
+        // `exactOptionalPropertyTypes` consumers instead of `{ x?: T | undefined }`.
+        // Only `.optional()` is narrowed (matching the zod generator): a nullish
+        // field intentionally admits `undefined`, which is legal under the flag, so
+        // it keeps `S.optional`.
+        out =
+          exactOptional && isOptional
+            ? `S.optionalWith(${out}, { exact: true })`
+            : `S.optional(${out})`;
       }
     } else {
       if (isNullish) {
@@ -1455,24 +1464,28 @@ const generateEffectRoute = (
     context,
     effectOptions.strict.param,
     brand(`${pascalTypeName}Params`),
+    effectOptions.exactOptional,
   );
   const inputQueryParams = parseEffectValidationSchemaDefinition(
     parsedParameters.queryParams,
     context,
     effectOptions.strict.query,
     brand(`${pascalTypeName}QueryParams`),
+    effectOptions.exactOptional,
   );
   const inputHeaders = parseEffectValidationSchemaDefinition(
     parsedParameters.headers,
     context,
     effectOptions.strict.header,
     brand(`${pascalTypeName}Header`),
+    effectOptions.exactOptional,
   );
   const inputBody = parseEffectValidationSchemaDefinition(
     parsedBody.input,
     context,
     effectOptions.strict.body,
     brand(`${pascalTypeName}Body`),
+    effectOptions.exactOptional,
   );
   const inputResponses = parsedResponses.map((parsedResponse, idx) =>
     parseEffectValidationSchemaDefinition(
@@ -1480,6 +1493,7 @@ const generateEffectRoute = (
       context,
       effectOptions.strict.response,
       brand(pascal(`${typeName}-${responses[idx][0]}-response`)),
+      effectOptions.exactOptional,
     ),
   );
 

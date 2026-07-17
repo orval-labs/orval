@@ -134,6 +134,7 @@ export function createTestContextSpec({
         generateReusableSchemas: false,
         generateMeta: false,
         generateDiscriminatedUnion: false,
+        exactOptional: false,
         dateTimeOptions: {},
         timeOptions: { precision: 3 },
       },
@@ -154,6 +155,7 @@ export function createTestContextSpec({
         },
         generateEachHttpStatus: false,
         useBrandedTypes: false,
+        exactOptional: false,
       },
       fetch: {
         includeHttpResponseReturnType: false,

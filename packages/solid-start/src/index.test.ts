@@ -135,6 +135,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
         generateReusableSchemas: false,
         generateMeta: false,
         generateDiscriminatedUnion: false,
+        exactOptional: false,
         dateTimeOptions: {},
         timeOptions: { precision: 3 },
       },
@@ -155,6 +156,7 @@ function makeOutput(useDates = false): ContextSpec['output'] {
         },
         generateEachHttpStatus: false,
         useBrandedTypes: false,
+        exactOptional: false,
       },
       fetch: {
         includeHttpResponseReturnType: false,
