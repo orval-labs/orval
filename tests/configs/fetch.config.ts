@@ -936,4 +936,15 @@ export default defineConfig({
       target: '../specifications/issue-3695.yaml',
     },
   },
+  'dotted-path-params': {
+    output: {
+      target: '../generated/fetch/dotted-path-params/endpoints.ts',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/dotted-path-params.yaml',
+    },
+  },
 });

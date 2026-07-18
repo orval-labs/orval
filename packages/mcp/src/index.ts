@@ -19,6 +19,8 @@ import {
   jsStringEscape,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
+  getKey,
+  getPropertyAccessor,
   pascal,
   upath,
   type Verbs,
@@ -149,7 +151,7 @@ export const generateMcp: ClientBuilder = (verbOptions) => {
     .map((param, index) => {
       const paramName = originalParamNames[index];
       const paramType = param.implementation.split(': ')[1];
-      return `    ${paramName}: ${paramType}`;
+      return `    ${getKey(paramName)}: ${paramType}`;
     })
     .join(',\n');
   if (pathParamsType) {
@@ -179,7 +181,7 @@ ${handlerArgsTypes.join('\n')}
   const fetchParams = [];
   if (verbOptions.params.length > 0) {
     const pathParamsArgs = originalParamNames
-      .map((paramName) => `args.pathParams.${paramName}`)
+      .map((paramName) => `args.pathParams${getPropertyAccessor(paramName)}`)
       .join(', ');
 
     fetchParams.push(pathParamsArgs);

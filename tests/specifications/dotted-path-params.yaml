@@ -1,0 +1,38 @@
+openapi: 3.0.0
+info:
+  title: Dotted path parameter names
+  version: 1.0.0
+# grpc-gateway emits HTTP bindings that reference nested protobuf request
+# fields as dotted path parameters (e.g. `{scope.id}`). Orval used to drop the
+# opening brace and the function argument, generating a malformed URL such as
+# `/api/v1/resources/scope.id}` from a zero-argument function.
+paths:
+  /api/v1/resources/{scope.id}:
+    get:
+      operationId: getResource
+      parameters:
+        - name: scope.id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/scopes/{scope.id}/items/{item.name}:
+    get:
+      operationId: getItem
+      parameters:
+        - name: scope.id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: item.name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK

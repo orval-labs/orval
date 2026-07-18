@@ -31,61 +31,70 @@ function runtimeExpressionToUrlPrefix(expression: string): string {
   return '${' + t + '}';
 }
 
-const hasParam = (path: string): boolean => /[^{]*{[\w*_-]*}.*/.test(path);
+// Matches a `{name}` path-parameter template and captures the name
+// (`{petId}`, `{user_id}`, `{scope.id}`, `{kebab-case}`, `{path*}`). The
+// (?<!\$) guard is shared policy for every consumer (template-literal,
+// Hono and MSW routes): a `${...}` block in a spec path is never treated
+// as an OpenAPI param — it stays literal text in the emitted route. The name
+// must be non-empty so a malformed `{}` also stays literal instead of
+// emitting an invalid `${}` interpolation.
+const PATH_PARAM_REGEX = /(?<!\$)\{([\w.*-]+)\}/g;
+
+// Spec paths are required to start with `/`, but malformed specs without it
+// are tolerated by normalizing here.
+const ensureLeadingSlash = (path: string): string =>
+  path && !path.startsWith('/') ? `/${path}` : path;
+
+/**
+ * Sanitizes an OpenAPI path-parameter name while preserving the spec's
+ * spelling: keeps word characters, underscores, dashes and dots, strips
+ * everything else, and prefixes ES5 keywords with an underscore. Use this
+ * when the emitted name must match the spec (e.g. Hono routes).
+ */
+export const sanitizePathParamName = (name: string): string =>
+  sanitize(name, { es5keyword: true, underscore: true, dash: true, dot: true });
+
+/**
+ * Derives the generated JS identifier for an OpenAPI path-parameter name
+ * (`scope.id` → `scopeId`, `_id` → `id`, `class` → `_class`). This is the
+ * single source of truth for param variable names: the emitted route
+ * interpolations, the generated function arguments and the spec-parameter
+ * matching must all agree on it.
+ */
+export const camelPathParamName = (name: string): string =>
+  sanitize(camel(name), { es5keyword: true });
+
+/**
+ * Converts every `{param}` in an OpenAPI path to `:param` (Hono/MSW style
+ * routes). `formatParamName` maps the raw OpenAPI parameter name to the
+ * emitted one (`sanitizePathParamName` or `camelPathParamName`).
+ */
+export const toColonRoutePath = (
+  path: string,
+  formatParamName: (rawName: string) => string,
+): string =>
+  ensureLeadingSlash(path).replaceAll(
+    PATH_PARAM_REGEX,
+    (_, name: string) => `:${formatParamName(name)}`,
+  );
 
 const esc = (str: string) => jsesc(str, { quotes: 'backtick', wrap: false });
 
-const getRoutePath = (path: string): string => {
-  // Don't treat ${...} as an OpenAPI path param — the $ makes it literal text,
-  // not a {param} template. Escape the ${...} block and continue processing
-  // any legitimate {param} segments after it.
-  const braceIdx = path.indexOf('{');
-  if (braceIdx > 0 && path[braceIdx - 1] === '$') {
-    const closeIdx = path.indexOf('}', braceIdx);
-    if (closeIdx === -1) return esc(path);
-    const before = esc(path.slice(0, closeIdx + 1));
-    const rest = path.slice(closeIdx + 1);
-    return hasParam(rest)
-      ? `${before}${getRoutePath(rest)}`
-      : `${before}${esc(rest)}`;
-  }
-
-  const matches = /([^{]*){?([\w*_-]*)}?(.*)/.exec(path);
-  if (!matches?.length) return esc(path);
-
-  const prev = matches[1];
-  const rawParam = matches[2];
-  const rest = matches[3];
-  const param = sanitize(camel(rawParam), {
-    es5keyword: true,
-    underscore: true,
-    dash: true,
-    dot: true,
-  });
-  const next = hasParam(rest) ? getRoutePath(rest) : esc(rest);
-
-  return hasParam(path)
-    ? `${esc(prev)}\${${param}}${next}`
-    : `${esc(prev)}${param}${next}`;
-};
-
 /**
  * Converts an OpenAPI path (`{param}`) to a template-literal route (`${param}`),
- * escaping static segments with jsesc for safe embedding in backtick strings.
- * The `route` arg must be a raw OpenAPI path.
+ * escaping static text with jsesc for safe embedding in backtick strings.
+ * The `route` arg must be a raw OpenAPI path; a non-empty route always emits
+ * with a leading `/`.
  */
 export function getRoute(route: string) {
-  const splittedRoute = route.split('/');
-
-  let result = '';
-  for (const [i, path] of splittedRoute.entries()) {
-    if (!path && !i) {
-      continue;
-    }
-
-    result += path.includes('{') ? `/${getRoutePath(path)}` : `/${esc(path)}`;
-  }
-  return result;
+  // Splitting on the capture group leaves param names at odd indices and
+  // literal text at even indices. `${...}` blocks in the spec path fall into
+  // the literal parts (via the lookbehind) so they are escaped, not
+  // interpolated.
+  return ensureLeadingSlash(route)
+    .split(PATH_PARAM_REGEX)
+    .map((part, i) => (i % 2 ? `\${${camelPathParamName(part)}}` : esc(part)))
+    .join('');
 }
 
 /**
