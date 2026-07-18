@@ -112,8 +112,7 @@ const resolveZodType = (schema: OpenApiSchemaObject): ResolvedZodType => {
     // Filter out 'null' type as it's handled separately via nullable
     const nonNullTypes = schemaTypeValue
       .filter((t): t is string => isString(t))
-      .filter((t) => t !== 'null' && possibleSchemaTypes.has(t))
-      .map((t) => (t === 'integer' ? 'number' : t));
+      .filter((t) => t !== 'null' && possibleSchemaTypes.has(t));
 
     // If multiple types, return a special marker for union handling
     if (nonNullTypes.length > 1) {
@@ -148,14 +147,7 @@ const resolveZodType = (schema: OpenApiSchemaObject): ResolvedZodType => {
     if (constValue === null) return 'null';
   }
 
-  switch (type) {
-    case 'integer': {
-      return 'number';
-    }
-    default: {
-      return type ?? 'unknown';
-    }
-  }
+  return type ?? 'unknown';
 };
 
 // https://github.com/colinhacks/zod#coercion-for-primitives
@@ -197,7 +189,7 @@ export interface ZodValidationSchemaDefinition {
   consts: string[];
 }
 
-const minAndMaxTypes = new Set(['number', 'string', 'array']);
+const minAndMaxTypes = new Set(['number', 'integer', 'string', 'array']);
 
 const removeReadOnlyProperties = (
   schema: OpenApiSchemaObject,
@@ -1244,7 +1236,7 @@ export const generateZodValidationSchemaDefinition = (
           break;
         }
 
-        functions.push([type, undefined]);
+        functions.push([type === 'integer' ? 'int' : type, undefined]);
 
         break;
       }
@@ -1779,6 +1771,18 @@ ${Object.entries(objectArgs)
 
       const combinedArgs = buildCombinedArgs(fn, args, fieldPath);
 
+      if (fn === 'int' && shouldCoerce('number')) {
+        const numberArgs = buildCombinedArgs('number', undefined, fieldPath);
+        current = {
+          expr: zodMiniCall(
+            'pipe',
+            `${zodMiniCoerceCall('number', numberArgs)}, ${zodMiniCall('int', combinedArgs)}`,
+          ),
+          kind: 'number',
+        };
+        continue;
+      }
+
       if (fn === 'optional' || fn === 'nullable' || fn === 'nullish') {
         const value = requireCurrent(fn);
         const miniFn =
@@ -1846,9 +1850,11 @@ ${Object.entries(objectArgs)
       current = {
         expr: zodMiniCall(fn, combinedArgs),
         kind:
-          fn === 'enum' || fn === 'literal' || fn === 'stringFormat'
-            ? 'string'
-            : fn.split('.')[0],
+          fn === 'int'
+            ? 'number'
+            : fn === 'enum' || fn === 'literal' || fn === 'stringFormat'
+              ? 'string'
+              : fn.split('.')[0],
       };
     }
 
@@ -2162,6 +2168,16 @@ ${Object.entries(objectArgs)
         : paramsArg;
     } else {
       combinedArgs = formattedArgs;
+    }
+
+    if (fn === 'int') {
+      const numberArgs = buildCombinedArgs('number', undefined, fieldPath);
+      if (shouldCoerce('number')) {
+        return `.coerce.number(${numberArgs}).int(${combinedArgs})`;
+      }
+      if (!isZodV4) {
+        return `.number(${numberArgs}).int(${combinedArgs})`;
+      }
     }
 
     if (

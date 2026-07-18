@@ -10,7 +10,7 @@ import { Labradoodle } from './labradoodle-reusable.zod';
 
 export const Dog = zod.union([Labradoodle, Dachshund]).and(
   zod.object({
-    barksPerMinute: zod.number().optional(),
+    barksPerMinute: zod.number().int().optional(),
     type: zod.enum(['dog']),
   }),
 );

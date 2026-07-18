@@ -9,17 +9,17 @@ import { z as zod } from 'zod';
 export const Dog = zod
   .union([
     zod.object({
-      cuteness: zod.number(),
+      cuteness: zod.int(),
       breed: zod.enum(['Labradoodle']),
     }),
     zod.object({
-      length: zod.number(),
+      length: zod.int(),
       breed: zod.enum(['Dachshund']),
     }),
   ])
   .and(
     zod.object({
-      barksPerMinute: zod.number().optional(),
+      barksPerMinute: zod.int().optional(),
       type: zod.enum(['dog']),
     }),
   );

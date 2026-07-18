@@ -9,7 +9,7 @@ import * as zod from 'zod';
 import { CreatePetBody, Pet, PetList } from '../model';
 
 export const ListPetsQueryParams = zod.object({
-  limit: zod.number().optional(),
+  limit: zod.int().optional(),
   sort: zod.enum(['asc', 'desc']).optional(),
 });
 

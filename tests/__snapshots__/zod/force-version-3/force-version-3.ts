@@ -31,13 +31,13 @@ export const ListPetsResponseItem = zod
       .union([
         zod
           .object({
-            cuteness: zod.number(),
+            cuteness: zod.number().int(),
             breed: zod.enum(['Labradoodle']),
           })
           .strict(),
         zod
           .object({
-            length: zod.number(),
+            length: zod.number().int(),
             breed: zod.enum(['Dachshund']),
           })
           .strict(),
@@ -45,14 +45,14 @@ export const ListPetsResponseItem = zod
       .and(
         zod
           .object({
-            barksPerMinute: zod.number().optional(),
+            barksPerMinute: zod.number().int().optional(),
             type: zod.enum(['dog']),
           })
           .strict(),
       ),
     zod
       .object({
-        petsRequested: zod.number().optional(),
+        petsRequested: zod.number().int().optional(),
         type: zod.enum(['cat']),
       })
       .strict(),
@@ -61,7 +61,7 @@ export const ListPetsResponseItem = zod
     zod
       .object({
         '@id': zod.string().optional(),
-        id: zod.number(),
+        id: zod.number().int(),
         name: zod.string(),
         tag: zod.string().optional(),
         email: zod.string().email().optional(),
@@ -104,13 +104,13 @@ export const CreatePetsResponse = zod
       .union([
         zod
           .object({
-            cuteness: zod.number(),
+            cuteness: zod.number().int(),
             breed: zod.enum(['Labradoodle']),
           })
           .strict(),
         zod
           .object({
-            length: zod.number(),
+            length: zod.number().int(),
             breed: zod.enum(['Dachshund']),
           })
           .strict(),
@@ -118,14 +118,14 @@ export const CreatePetsResponse = zod
       .and(
         zod
           .object({
-            barksPerMinute: zod.number().optional(),
+            barksPerMinute: zod.number().int().optional(),
             type: zod.enum(['dog']),
           })
           .strict(),
       ),
     zod
       .object({
-        petsRequested: zod.number().optional(),
+        petsRequested: zod.number().int().optional(),
         type: zod.enum(['cat']),
       })
       .strict(),
@@ -134,7 +134,7 @@ export const CreatePetsResponse = zod
     zod
       .object({
         '@id': zod.string().optional(),
-        id: zod.number(),
+        id: zod.number().int(),
         name: zod.string(),
         tag: zod.string().optional(),
         email: zod.string().email().optional(),
@@ -157,13 +157,13 @@ export const ShowPetByIdResponse = zod
       .union([
         zod
           .object({
-            cuteness: zod.number(),
+            cuteness: zod.number().int(),
             breed: zod.enum(['Labradoodle']),
           })
           .strict(),
         zod
           .object({
-            length: zod.number(),
+            length: zod.number().int(),
             breed: zod.enum(['Dachshund']),
           })
           .strict(),
@@ -171,14 +171,14 @@ export const ShowPetByIdResponse = zod
       .and(
         zod
           .object({
-            barksPerMinute: zod.number().optional(),
+            barksPerMinute: zod.number().int().optional(),
             type: zod.enum(['dog']),
           })
           .strict(),
       ),
     zod
       .object({
-        petsRequested: zod.number().optional(),
+        petsRequested: zod.number().int().optional(),
         type: zod.enum(['cat']),
       })
       .strict(),
@@ -187,7 +187,7 @@ export const ShowPetByIdResponse = zod
     zod
       .object({
         '@id': zod.string().optional(),
-        id: zod.number(),
+        id: zod.number().int(),
         name: zod.string(),
         tag: zod.string().optional(),
         email: zod.string().email().optional(),
@@ -227,13 +227,13 @@ export const ShowPetWithOwnerResponse = zod
           .union([
             zod
               .object({
-                cuteness: zod.number(),
+                cuteness: zod.number().int(),
                 breed: zod.enum(['Labradoodle']),
               })
               .strict(),
             zod
               .object({
-                length: zod.number(),
+                length: zod.number().int(),
                 breed: zod.enum(['Dachshund']),
               })
               .strict(),
@@ -241,14 +241,14 @@ export const ShowPetWithOwnerResponse = zod
           .and(
             zod
               .object({
-                barksPerMinute: zod.number().optional(),
+                barksPerMinute: zod.number().int().optional(),
                 type: zod.enum(['dog']),
               })
               .strict(),
           ),
         zod
           .object({
-            petsRequested: zod.number().optional(),
+            petsRequested: zod.number().int().optional(),
             type: zod.enum(['cat']),
           })
           .strict(),
@@ -257,7 +257,7 @@ export const ShowPetWithOwnerResponse = zod
         zod
           .object({
             '@id': zod.string().optional(),
-            id: zod.number(),
+            id: zod.number().int(),
             name: zod.string(),
             tag: zod.string().optional(),
             email: zod.string().email().optional(),

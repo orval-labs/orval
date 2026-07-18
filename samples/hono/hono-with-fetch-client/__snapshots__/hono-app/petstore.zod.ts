@@ -14,7 +14,7 @@ export const ListPetsQueryParams = zod.object({
 });
 
 export const ListPetsResponseItem = zod.object({
-  id: zod.number(),
+  id: zod.int(),
   name: zod.string(),
   tag: zod.string(),
 });
@@ -27,19 +27,19 @@ export const CreatePetsBodyItem = zod.object({
 export const CreatePetsBody = zod.array(CreatePetsBodyItem);
 
 export const CreatePetsResponse = zod.object({
-  id: zod.number(),
+  id: zod.int(),
   name: zod.string(),
   tag: zod.string(),
 });
 
 export const UpdatePetsBody = zod.object({
-  id: zod.number(),
+  id: zod.int(),
   name: zod.string(),
   tag: zod.string(),
 });
 
 export const UpdatePetsResponse = zod.object({
-  id: zod.number(),
+  id: zod.int(),
   name: zod.string(),
   tag: zod.string(),
 });
@@ -49,7 +49,7 @@ export const ShowPetByIdParams = zod.object({
 });
 
 export const ShowPetByIdResponse = zod.object({
-  id: zod.number(),
+  id: zod.int(),
   name: zod.string(),
   tag: zod.string(),
 });
