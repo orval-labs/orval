@@ -66,11 +66,11 @@ const getRequestOptionsType = (mutator?: GeneratorMutator) => {
   }
 
   if (mutator.hasSecondArg && !mutator.isHook) {
-    return `options?: SecondParameter<typeof ${mutator.name}>`;
+    return `options?: Parameters<typeof ${mutator.name}>[1]`;
   }
 
   if (mutator.hasSecondArg && mutator.isHook) {
-    return `options?: SecondParameter<ReturnType<typeof ${mutator.name}>>`;
+    return `options?: Parameters<ReturnType<typeof ${mutator.name}>>[1]`;
   }
 
   return '';
