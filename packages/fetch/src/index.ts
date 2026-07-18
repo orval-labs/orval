@@ -9,6 +9,7 @@ import {
   type GeneratorDependency,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  type GeneratorMutator,
   GetterPropType,
   isBinaryContentType,
   isObject,
@@ -58,6 +59,22 @@ export const getFetchDependencies = () => FETCH_DEPENDENCIES;
 
 const isRawRequestBodyContentType = (contentType: string) =>
   contentType === 'text/plain' || isBinaryContentType(contentType);
+
+const getRequestOptionsType = (mutator?: GeneratorMutator) => {
+  if (!mutator) {
+    return 'options?: RequestInit';
+  }
+
+  if (mutator.hasSecondArg && !mutator.isHook) {
+    return `options?: SecondParameter<typeof ${mutator.name}>`;
+  }
+
+  if (mutator.hasSecondArg && mutator.isHook) {
+    return `options?: SecondParameter<ReturnType<typeof ${mutator.name}>>`;
+  }
+
+  return '';
+};
 
 /**
  * Generates the URL helper function and the fetch request function for a single
@@ -444,7 +461,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     useRuntimeFetcher && isRequestOptions && !mutator
       ? ', fetchFn?: typeof globalThis.fetch'
       : '';
-  const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}${fetchFnParam}`;
+  const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? getRequestOptionsType(mutator) : ''}${fetchFnParam}`;
   const returnType =
     override.fetch.forceSuccessResponse && hasSuccess
       ? `Promise<${successName}>`
