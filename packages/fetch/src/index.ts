@@ -61,19 +61,13 @@ const isRawRequestBodyContentType = (contentType: string) =>
   contentType === 'text/plain' || isBinaryContentType(contentType);
 
 const getRequestOptionsType = (mutator?: GeneratorMutator) => {
-  if (!mutator) {
+  if (!mutator || !mutator.hasSecondArg) {
     return 'options?: RequestInit';
   }
 
-  if (mutator.hasSecondArg && !mutator.isHook) {
-    return `options?: Parameters<typeof ${mutator.name}>[1]`;
-  }
-
-  if (mutator.hasSecondArg && mutator.isHook) {
-    return `options?: Parameters<ReturnType<typeof ${mutator.name}>>[1]`;
-  }
-
-  return '';
+  return mutator.isHook
+    ? `options?: Parameters<ReturnType<typeof ${mutator.name}>>[1]`
+    : `options?: Parameters<typeof ${mutator.name}>[1]`;
 };
 
 /**
