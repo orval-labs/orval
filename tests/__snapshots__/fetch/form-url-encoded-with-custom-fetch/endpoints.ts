@@ -90,7 +90,7 @@ export const getCreatePetsUrl = () => {
  */
 export const createPets = async (
   createPetsBody: CreatePetsBody,
-  options?: RequestInit,
+  options?: Parameters<typeof customFetch>[1],
 ): Promise<createPetsResponse> => {
   const formUrlEncoded = new URLSearchParams();
   formUrlEncoded.append(`name`, createPetsBody.name);
@@ -137,7 +137,7 @@ export const getUploadPetContentUrl = () => {
  */
 export const uploadPetContent = async (
   uploadPetContentBody: UploadPetContentBody,
-  options?: RequestInit,
+  options?: Parameters<typeof customFetch>[1],
 ): Promise<uploadPetContentResponse> => {
   const formUrlEncoded = new URLSearchParams();
   formUrlEncoded.append(`name`, uploadPetContentBody.name);
@@ -188,7 +188,7 @@ export const getUploadPetContentRefUrl = () => {
  */
 export const uploadPetContentRef = async (
   uploadPetContentRefBody: UploadPetContentRefBody,
-  options?: RequestInit,
+  options?: Parameters<typeof customFetch>[1],
 ): Promise<uploadPetContentRefResponse> => {
   const formUrlEncoded = new URLSearchParams();
   formUrlEncoded.append(`name`, uploadPetContentRefBody.name);

@@ -108,7 +108,7 @@ export const getListPetsUrl = (
 export const listPets = async (
   params?: ListPetsParams,
   version: number = 1,
-  options?: RequestInit,
+  options?: Parameters<typeof customInstance>[1],
 ): Promise<listPetsResponse> => {
   return customInstance<listPetsResponse>(getListPetsUrl(params, version), {
     ...options,
@@ -229,7 +229,7 @@ export const getCreatePetsUrl = (version: number = 1) => {
 export const createPets = async (
   createPetsBody: CreatePetsBody,
   version: number = 1,
-  options?: RequestInit,
+  options?: Parameters<typeof customInstance>[1],
 ): Promise<createPetsResponse> => {
   return customInstance<createPetsResponse>(getCreatePetsUrl(version), {
     ...options,
@@ -314,7 +314,7 @@ export const getShowPetByIdUrl = (petId: string, version: number = 1) => {
 export const showPetById = async (
   petId: string,
   version: number = 1,
-  options?: RequestInit,
+  options?: Parameters<typeof customInstance>[1],
 ): Promise<showPetByIdResponse> => {
   return customInstance<showPetByIdResponse>(
     getShowPetByIdUrl(petId, version),

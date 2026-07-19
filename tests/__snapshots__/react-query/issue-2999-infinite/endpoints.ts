@@ -53,7 +53,7 @@ export const getMusclesControllerFindAllUrl = () => {
  * @summary Return all muscles
  */
 export const musclesControllerFindAll = async (
-  options?: RequestInit,
+  options?: Parameters<typeof customFetch>[1],
 ): Promise<Muscle[]> => {
   return customFetch<Muscle[]>(getMusclesControllerFindAllUrl(), {
     ...options,
@@ -434,7 +434,7 @@ export const getMusclesControllerCreateUrl = () => {
  */
 export const musclesControllerCreate = async (
   createMuscleDto: CreateMuscleDto,
-  options?: RequestInit,
+  options?: Parameters<typeof customFetch>[1],
 ): Promise<Muscle> => {
   return customFetch<Muscle>(getMusclesControllerCreateUrl(), {
     ...options,
@@ -653,7 +653,7 @@ export const getMusclesControllerFindOneUrl = (id: string) => {
  */
 export const musclesControllerFindOne = async (
   id: string,
-  options?: RequestInit,
+  options?: Parameters<typeof customFetch>[1],
 ): Promise<Muscle> => {
   return customFetch<Muscle>(getMusclesControllerFindOneUrl(id), {
     ...options,
