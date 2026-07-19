@@ -8,6 +8,14 @@ describe('getRoute getter', () => {
     ['/api/test/{id}', '*/api/test/:id'],
     ['/api/test/{path*}', '*/api/test/:path'],
     ['/api/test/{user_id}', '*/api/test/:userId'],
+    ['/api/test/{scope.id}', '*/api/test/:scopeId'],
+    // Matches the identifier generated for the mock function argument
+    // (camelPathParamName), which strips the leading underscore.
+    ['/api/test/{_id}', '*/api/test/:id'],
+    // A malformed spec path without a leading slash is normalized.
+    ['api/test/{id}', '*/api/test/:id'],
+    // A `${...}` block in a spec path is never a param — it stays literal.
+    ['/api/test/${id}/x', '*/api/test/${id}/x'],
     ['/api/test/{locale}.js', '*/api/test/:locale.js'],
     ['/api/test/i18n-{locale}.js', '*/api/test/i18n-:locale.js'],
     ['/api/test/{param1}-{param2}.js', '*/api/test/:param1-:param2.js'],
