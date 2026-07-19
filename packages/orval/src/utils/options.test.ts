@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -19,7 +19,7 @@ vi.mock('@orval/core', async (importOriginal) => {
 import { normalizeOptions } from './options';
 
 const createTempWorkspace = async () => {
-  return mkdtemp(path.join(os.tmpdir(), 'orval-options-'));
+  return realpath(await mkdtemp(path.join(os.tmpdir(), 'orval-options-')));
 };
 
 describe('normalizeOptions', () => {
