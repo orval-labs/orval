@@ -7,6 +7,7 @@ import { styleText } from 'node:util';
 import {
   type ConfigExternal,
   type EffectOptions,
+  type FormatTypeMap,
   FormDataArrayHandling,
   type FakerMockOptions,
   type GlobalMockOptions,
@@ -32,6 +33,7 @@ import {
   NamingConvention,
   type NormalizedEffectOptions,
   type NormalizedFactoryMethodsOptions,
+  type NormalizedFormatTypeMap,
   type NormalizedHonoOptions,
   type NormalizedHookOptions,
   type NormalizedJsDocOptions,
@@ -61,6 +63,46 @@ import { getDefaultMockOptionsForType } from '@orval/mock';
 import pkg from '../../package.json';
 import { loadPackageJson } from './package-json';
 import { loadTsconfig } from './tsconfig';
+
+export function normalizeFormatType(
+  formatTypeConfig: FormatTypeMap | undefined,
+): NormalizedFormatTypeMap | undefined {
+  if (!formatTypeConfig) return undefined;
+
+  const normalizeImport = (
+    imp: { name: string; importPath: string; default?: boolean } | undefined,
+  ) =>
+    imp
+      ? { name: imp.name, importPath: imp.importPath, default: imp.default }
+      : undefined;
+
+  const normalized: NormalizedFormatTypeMap = {};
+  for (const [format, config] of Object.entries(formatTypeConfig)) {
+    if (!config.type) {
+      throw new Error(`override.formatType.${format}.type is required`);
+    }
+    if (config.zod?.codec && config.zod?.transform) {
+      throw new Error(
+        `override.formatType.${format}.zod: codec and transform are mutually exclusive`,
+      );
+    }
+    normalized[format] = {
+      type: config.type,
+      import: normalizeImport(config.import),
+      zod: config.zod
+        ? {
+            transform: config.zod.transform,
+            transformImport: normalizeImport(config.zod.transformImport),
+            codec: config.zod.codec,
+            codecImport: normalizeImport(config.zod.codecImport),
+          }
+        : undefined,
+      mock: config.mock,
+      mockImport: normalizeImport(config.mockImport),
+    };
+  }
+  return normalized;
+}
 
 const INPUT_TARGET_FETCH_TIMEOUT_MS = 10_000;
 /**
@@ -709,6 +751,7 @@ export async function normalizeOptions(
             : {}),
         },
         useDates: outputOptions.override?.useDates ?? false,
+        formatType: normalizeFormatType(outputOptions.override?.formatType),
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
         enumGenerationType:

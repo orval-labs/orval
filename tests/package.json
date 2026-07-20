@@ -44,6 +44,7 @@
     "@tanstack/vue-query": "catalog:vue",
     "@types/react": "catalog:react",
     "axios": "catalog:axios",
+    "dayjs": "1.11.21",
     "hono": "catalog:hono",
     "msw": "catalog:tooling",
     "npm-run-all2": "catalog:",

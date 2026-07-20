@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpec, OpenApiSchemaObject } from '../types';
-import { getScalar, isBinaryScalarSchema } from './scalar';
+import type {
+  ContextSpec,
+  NormalizedOverrideOutput,
+  OpenApiSchemaObject,
+} from '../types';
+import { getScalar, isBinaryScalarSchema, resolveFormatType } from './scalar';
 
 const context = {
   output: {
@@ -294,5 +298,142 @@ describe('getScalar (string const value escaping #3505)', () => {
     const result = getScalar({ item: schema, name: 'timezone', context });
 
     expect(result.value).toBe("'Asia/Tokyo'");
+  });
+});
+
+describe('resolveFormatType', () => {
+  const override = { useDates: false } as NormalizedOverrideOutput;
+
+  it('returns undefined when no format', () => {
+    expect(resolveFormatType(undefined, override)).toBeUndefined();
+  });
+
+  it('returns formatType config when present', () => {
+    const withFormat = {
+      ...override,
+      formatType: {
+        date: { type: 'Temporal.PlainDate' },
+      },
+    } as NormalizedOverrideOutput;
+    expect(resolveFormatType('date', withFormat)).toEqual({
+      type: 'Temporal.PlainDate',
+      import: undefined,
+    });
+  });
+
+  it('returns formatType config with import', () => {
+    const withFormat = {
+      ...override,
+      formatType: {
+        'date-time': {
+          type: 'Dayjs',
+          import: { name: 'Dayjs', importPath: 'dayjs' },
+        },
+      },
+    } as NormalizedOverrideOutput;
+    expect(resolveFormatType('date-time', withFormat)).toEqual({
+      type: 'Dayjs',
+      import: { name: 'Dayjs', importPath: 'dayjs' },
+    });
+  });
+
+  it('falls back to useDates for date format', () => {
+    const withDates = {
+      ...override,
+      useDates: true,
+    } as NormalizedOverrideOutput;
+    expect(resolveFormatType('date', withDates)).toEqual({ type: 'Date' });
+  });
+
+  it('returns undefined when no formatType and useDates is false', () => {
+    expect(resolveFormatType('date', override)).toBeUndefined();
+  });
+
+  it('formatType takes precedence over useDates', () => {
+    const withBoth = {
+      ...override,
+      useDates: true,
+      formatType: {
+        date: { type: 'Temporal.PlainDate' },
+      },
+    } as NormalizedOverrideOutput;
+    expect(resolveFormatType('date', withBoth)).toEqual({
+      type: 'Temporal.PlainDate',
+      import: undefined,
+    });
+  });
+
+  it('returns undefined for non-date formats without formatType', () => {
+    expect(resolveFormatType('email', override)).toBeUndefined();
+  });
+});
+
+describe('getScalar with formatType', () => {
+  it('uses formatType type for date format', () => {
+    const ctx = {
+      output: {
+        override: {
+          formatType: {
+            date: { type: 'Temporal.PlainDate' },
+          },
+        },
+      },
+    } as ContextSpec;
+
+    const result = getScalar({
+      item: { type: 'string', format: 'date' } as OpenApiSchemaObject,
+      context: ctx,
+    });
+
+    expect(result.value).toBe('Temporal.PlainDate');
+  });
+
+  it('uses formatType for non-date formats like uuid', () => {
+    const ctx = {
+      output: {
+        override: {
+          formatType: {
+            uuid: {
+              type: 'UUID',
+              import: { name: 'UUID', importPath: '@company/types' },
+            },
+          },
+        },
+      },
+    } as ContextSpec;
+
+    const result = getScalar({
+      item: { type: 'string', format: 'uuid' } as OpenApiSchemaObject,
+      context: ctx,
+    });
+
+    expect(result.value).toBe('UUID');
+    expect(result.imports).toEqual([
+      { name: 'UUID', importPath: '@company/types' },
+    ]);
+  });
+
+  it('preserves enum when formatType is configured', () => {
+    const ctx = {
+      output: {
+        override: {
+          formatType: {
+            'date-time': { type: 'Dayjs' },
+          },
+        },
+      },
+    } as ContextSpec;
+
+    const result = getScalar({
+      item: {
+        type: 'string',
+        format: 'date-time',
+        enum: ['2024-01-01T00:00:00Z', '2024-12-31T00:00:00Z'],
+      } as OpenApiSchemaObject,
+      context: ctx,
+    });
+
+    expect(result.isEnum).toBe(true);
+    expect(result.value).toContain('2024-01-01');
   });
 });
