@@ -120,7 +120,7 @@ export const getListPetsUrl = (params: ListPetsParams) => {
  */
 export const listPets = async (
   params: ListPetsParams,
-  options?: RequestInit,
+  options?: Parameters<typeof customFetch>[1],
 ): Promise<listPetsResponse> => {
   return customFetch<listPetsResponse>(getListPetsUrl(params), {
     ...options,
@@ -242,7 +242,7 @@ export const getCreatePetsUrl = (params: CreatePetsParams) => {
 export const createPets = async (
   createPetsBody: CreatePetsBody,
   params: CreatePetsParams,
-  options?: RequestInit,
+  options?: Parameters<typeof customFetch>[1],
 ): Promise<createPetsResponse> => {
   return customFetch<createPetsResponse>(getCreatePetsUrl(params), {
     ...options,
@@ -349,7 +349,7 @@ export const getShowPetByIdUrl = (petId: string) => {
  */
 export const showPetById = async (
   petId: string,
-  options?: RequestInit,
+  options?: Parameters<typeof customFetch>[1],
 ): Promise<showPetByIdResponse> => {
   return customFetch<showPetByIdResponse>(getShowPetByIdUrl(petId), {
     ...options,
@@ -461,7 +461,7 @@ export const getDeletePetByIdUrl = (petId: string) => {
  */
 export const deletePetById = async (
   petId: string,
-  options?: RequestInit,
+  options?: Parameters<typeof customFetch>[1],
 ): Promise<deletePetByIdResponse> => {
   return customFetch<deletePetByIdResponse>(getDeletePetByIdUrl(petId), {
     ...options,
@@ -565,7 +565,7 @@ export const getHealthCheckUrl = () => {
  * @summary health check
  */
 export const healthCheck = async (
-  options?: RequestInit,
+  options?: Parameters<typeof customFetch>[1],
 ): Promise<healthCheckResponse> => {
   return customFetch<healthCheckResponse>(getHealthCheckUrl(), {
     ...options,
@@ -670,7 +670,7 @@ export const getShowPetWithOwnerUrl = (petId: string) => {
  */
 export const showPetWithOwner = async (
   petId: string,
-  options?: RequestInit,
+  options?: Parameters<typeof customFetch>[1],
 ): Promise<showPetWithOwnerResponse> => {
   return customFetch<showPetWithOwnerResponse>(getShowPetWithOwnerUrl(petId), {
     ...options,

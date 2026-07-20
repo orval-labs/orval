@@ -67,7 +67,7 @@ export const getGetUsersUserIdOrdersUrl = (
 export const getUsersUserIdOrders = async (
   userId: number,
   params?: GetUsersUserIdOrdersParams,
-  options?: RequestInit,
+  options?: Parameters<typeof customFetch>[1],
 ): Promise<getUsersUserIdOrdersResponse> => {
   return customFetch<getUsersUserIdOrdersResponse>(
     getGetUsersUserIdOrdersUrl(userId, params),
