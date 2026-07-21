@@ -285,6 +285,134 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(result.value).not.toContain("Pick<EnumWrapper, 'id'>>");
   });
 
+  // A `$ref` member can carry union-producing siblings (`nullable: true`,
+  // `type: ['object', 'null']`) that the resolver merges into the emission
+  // (`Wrapper = Base | null`), so the ref-site object must pass the same
+  // union guard as inline nodes before dereferencing.
+  it('keeps Extract guard when a nested $ref member carries a nullable sibling', () => {
+    const contextWithNullableRefSite = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            RefSiteBase: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
+            },
+            RefSiteWrapper: {
+              allOf: [
+                { $ref: '#/components/schemas/RefSiteBase', nullable: true },
+              ],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['id'],
+      allOf: [{ $ref: '#/components/schemas/RefSiteWrapper' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'RefSiteItem',
+      separator: 'allOf',
+      context: contextWithNullableRefSite,
+      nullable: '',
+    });
+
+    expect(result.value).toContain("Extract<keyof (RefSiteWrapper), 'id'>");
+    expect(result.value).not.toContain("Pick<RefSiteWrapper, 'id'>>");
+  });
+
+  // A multi-entry type array unions its branches even without `null`
+  // (`type: ['object', 'string']` emits `{...} | string`), so keys from such
+  // nodes are not guaranteed in `keyof` either.
+  it('keeps Extract guard when the nested composition member has a non-null type array union', () => {
+    const contextWithMixedType = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            MixedBase: {
+              type: ['object', 'string'],
+              properties: {
+                id: { type: 'string' },
+              },
+            },
+            MixedWrapper: {
+              allOf: [{ $ref: '#/components/schemas/MixedBase' }],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['id'],
+      allOf: [{ $ref: '#/components/schemas/MixedWrapper' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'MixedItem',
+      separator: 'allOf',
+      context: contextWithMixedType,
+      nullable: '',
+    });
+
+    expect(result.value).toContain("Extract<keyof (MixedWrapper), 'id'>");
+    expect(result.value).not.toContain("Pick<MixedWrapper, 'id'>>");
+  });
+
+  // Any anyOf/oneOf on a walked node is treated as union emission: deep key
+  // collection is restricted to plain object/intersection shapes.
+  it('keeps Extract guard when the nested composition member carries a oneOf', () => {
+    const contextWithOneOf = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            OneOfBase: {
+              properties: {
+                id: { type: 'string' },
+              },
+              oneOf: [{ type: 'object' }, { type: 'string' }],
+            },
+            OneOfWrapper: {
+              allOf: [{ $ref: '#/components/schemas/OneOfBase' }],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['id'],
+      allOf: [{ $ref: '#/components/schemas/OneOfWrapper' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'OneOfItem',
+      separator: 'allOf',
+      context: contextWithOneOf,
+      nullable: '',
+    });
+
+    expect(result.value).toContain("Extract<keyof (OneOfWrapper), 'id'>");
+    expect(result.value).not.toContain("Pick<OneOfWrapper, 'id'>>");
+  });
+
   it('terminates on cyclic allOf $ref compositions', () => {
     const contextWithCycle = {
       ...context,
