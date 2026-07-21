@@ -860,4 +860,13 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  'issue-3748': {
+    input: '../specifications/issue-3748.yaml',
+    output: {
+      target: '../generated/default/issue-3748/endpoints.ts',
+      schemas: '../generated/default/issue-3748/model',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
 });

@@ -1,4 +1,4 @@
-import { isNullish, unique } from 'remeda';
+import { isNullish, prop, unique } from 'remeda';
 
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import {
@@ -11,10 +11,18 @@ import {
   type ScalarValue,
   SchemaType,
 } from '../types';
-import { dedupeUnionType, getNumberWord, isSchema, pascal } from '../utils';
+import {
+  dedupeUnionType,
+  getNumberWord,
+  isObject,
+  isReference,
+  isSchema,
+  pascal,
+} from '../utils';
 import { getCombinedEnumValue } from './enum';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import type { FormDataContext } from './object';
+import { getRefInfo, isComponentRef } from './ref';
 import { getScalar } from './scalar';
 
 interface CombinedData {
@@ -113,6 +121,111 @@ function normalizeAllOfSchema(
     ...(mergedRequired.size > 0 && { required: [...mergedRequired] }),
     ...(remainingAllOf.length > 0 && { allOf: remainingAllOf }),
   } as OpenApiSchemaObject;
+}
+
+/**
+ * True when the schema's emitted type unions something other than an object
+ * shape — a `null` branch or an enum literal union. Property keys collected
+ * from such a node are not part of `keyof` of the emitted type, so a plain
+ * `Required<Pick<T, 'k'>>` on them would fail with TS2344; callers must leave
+ * those keys to the `Extract` guard instead. Mirrors the nullability rules of
+ * `resolveValue` (resolvers/value.ts).
+ */
+function emitsUnionType(schema: OpenApiSchemaObject): boolean {
+  // Bridge assertions: AnyOtherAttribute infects all schema property access
+  if (schema.enum || (schema.nullable as boolean | undefined) === true) {
+    return true;
+  }
+  const type = schema.type as string | string[] | undefined;
+  if (type === 'null' || (Array.isArray(type) && type.includes('null'))) {
+    return true;
+  }
+  const anyOfItems = schema.anyOf as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+  return !!anyOfItems?.some(
+    (item) =>
+      !isReference(item) &&
+      (item.type === 'null' ||
+        (Array.isArray(item.type) && item.type.includes('null'))),
+  );
+}
+
+/**
+ * Dereference a component `$ref`, following `$ref`-to-`$ref` chains. Returns
+ * `undefined` (rather than throwing like `resolveRef`) for non-component,
+ * cyclic, malformed, or unresolvable refs so callers can fall back to the
+ * `Extract` guard. `seenRefs` records every visited hop and doubles as the
+ * cycle guard across the whole walk.
+ */
+function derefComponentSchema(
+  $ref: string | undefined,
+  context: ContextSpec,
+  seenRefs: Set<string>,
+): OpenApiSchemaObject | undefined {
+  let current = $ref;
+  while (current && !seenRefs.has(current) && isComponentRef(current)) {
+    seenRefs.add(current);
+    let target: unknown;
+    try {
+      const { refPaths } = getRefInfo(current, context);
+      target = Array.isArray(refPaths)
+        ? prop(
+            context.spec,
+            // @ts-expect-error: [ts2556] refPaths are not guaranteed to be valid keys of the spec
+            ...refPaths,
+          )
+        : undefined;
+    } catch {
+      // getRefInfo decodes URI components and may throw on malformed refs
+      return undefined;
+    }
+    if (!isObject(target)) {
+      return undefined;
+    }
+    if (isReference(target)) {
+      current = target.$ref;
+      continue;
+    }
+    return target as OpenApiSchemaObject;
+  }
+  return undefined;
+}
+
+/**
+ * Collect the property keys reachable through a schema's `allOf` composition,
+ * resolving component `$ref` members against the spec. Feeds the
+ * pickable/unresolved split for required-override keys: a key found here is
+ * provably in `keyof` of the emitted intersection, so a plain
+ * `Required<Pick<T, 'k'>>` is safe even when an `additionalProperties` index
+ * signature would collapse the `Extract` guard to `never` (#3748). Unions are
+ * deliberately not walked — anyOf/oneOf members, nullable or enum nodes
+ * contribute keys that are not guaranteed in `keyof`, and skipping them only
+ * degrades to the compile-safe `Extract` guard.
+ */
+function collectDeepPropertyKeys(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+  seenRefs = new Set<string>(),
+): string[] {
+  if (isReference(schema)) {
+    const target = derefComponentSchema(schema.$ref, context, seenRefs);
+    return target ? collectDeepPropertyKeys(target, context, seenRefs) : [];
+  }
+  if (emitsUnionType(schema)) {
+    return [];
+  }
+  // Bridge assertion: properties is infected by AnyOtherAttribute
+  const properties = schema.properties as Record<string, unknown> | undefined;
+  const keys = properties ? Object.keys(properties) : [];
+  const members = (schema.allOf ?? []) as (
+    | OpenApiSchemaObject
+    | OpenApiReferenceObject
+  )[];
+  for (const member of members) {
+    keys.push(...collectDeepPropertyKeys(member, context, seenRefs));
+  }
+  return keys;
 }
 
 interface CombineValuesOptions {
@@ -363,12 +476,25 @@ export function combineSchemas({
       resolvedData.hasReadonlyProps = true;
     }
 
-    // Bridge: originalSchema.properties is infected by AnyOtherAttribute
-    const originalProps = resolvedValue.originalSchema.properties as
-      | Record<string, unknown>
-      | undefined;
-    if (resolvedValue.type === 'object' && originalProps) {
-      resolvedData.allProperties.push(...Object.keys(originalProps));
+    if (resolvedValue.type === 'object') {
+      if (separator === 'allOf' && !isReference(resolvedValue.originalSchema)) {
+        // Walk the member's allOf composition so required keys living behind
+        // a nested `$ref` count as resolvable (#3748). Union separators keep
+        // the shallow collection: their `allProperties` also feeds
+        // unionAddMissingProperties (#935), which must only see each member's
+        // own top-level keys.
+        resolvedData.allProperties.push(
+          ...collectDeepPropertyKeys(resolvedValue.originalSchema, context),
+        );
+      } else {
+        // Bridge: originalSchema.properties is infected by AnyOtherAttribute
+        const originalProps = resolvedValue.originalSchema.properties as
+          | Record<string, unknown>
+          | undefined;
+        if (originalProps) {
+          resolvedData.allProperties.push(...Object.keys(originalProps));
+        }
+      }
     }
   }
 
