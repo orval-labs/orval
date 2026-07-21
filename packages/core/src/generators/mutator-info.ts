@@ -1,8 +1,10 @@
-import { Parser, type Program } from 'acorn';
-import { build, type BuildOptions } from 'esbuild';
-import { isArray } from 'remeda';
+import path from 'node:path';
 
-import type { GeneratorMutatorParsingInfo, Tsconfig } from '../types';
+import { Parser, type Program } from 'acorn';
+import { isArray } from 'remeda';
+import { type ExternalOption, rolldown } from 'rolldown';
+
+import type { GeneratorMutatorParsingInfo } from '../types';
 
 export async function getMutatorInfo(
   filePath: string,
@@ -11,7 +13,6 @@ export async function getMutatorInfo(
     namedExport?: string;
     alias?: Record<string, string>;
     external?: string[];
-    tsconfig?: Tsconfig;
   },
 ): Promise<GeneratorMutatorParsingInfo | undefined> {
   const {
@@ -19,16 +20,9 @@ export async function getMutatorInfo(
     namedExport = 'default',
     alias,
     external,
-    tsconfig,
   } = options ?? {};
 
-  const code = await bundleFile(
-    root,
-    filePath,
-    alias,
-    external,
-    tsconfig?.compilerOptions,
-  );
+  const code = await bundleFile(root, filePath, alias, external);
 
   return parseFile(code, namedExport);
 }
@@ -38,29 +32,86 @@ async function bundleFile(
   fileName: string,
   alias?: Record<string, string>,
   external?: string[],
-  compilerOptions?: Tsconfig['compilerOptions'],
 ): Promise<string> {
-  const result = await build({
-    absWorkingDir: root,
-    entryPoints: [fileName],
-    write: false,
+  const bundle = await rolldown({
+    cwd: root,
+    input: fileName,
     platform: 'node',
-    bundle: true,
-    format: 'esm',
-    metafile: false,
-    target: compilerOptions?.target ?? 'es6',
-    minify: false,
-    minifyIdentifiers: false,
-    minifySyntax: false,
-    minifyWhitespace: false,
-    treeShaking: false,
-    keepNames: false,
-    alias,
-    external: external ?? ['*'],
-  } satisfies BuildOptions);
-  const { text } = result.outputFiles[0];
+    external: getExternalOption(fileName, external, alias),
+    resolve: alias ? { alias } : undefined,
+    treeshake: false,
+    transform: {
+      target: 'esnext',
+    },
+  });
 
-  return text;
+  try {
+    const result = await bundle.generate({
+      format: 'esm',
+      sourcemap: false,
+    });
+    let chunk: { code: string } | undefined;
+    for (const output of result.output) {
+      if (output.type !== 'chunk' || !('code' in output)) {
+        continue;
+      }
+
+      chunk ??= output;
+      if (output.isEntry) {
+        chunk = output;
+        break;
+      }
+    }
+
+    if (!chunk) {
+      throw new Error(`Rolldown did not generate a chunk for ${fileName}`);
+    }
+
+    return chunk.code;
+  } finally {
+    await bundle.close();
+  }
+}
+
+function getExternalOption(
+  entry: string,
+  external?: string[],
+  alias?: Record<string, string>,
+): ExternalOption {
+  if (external) {
+    // External patterns come from developer configuration, not untrusted input.
+    const matchers = external.map((pattern) => {
+      if (isPackagePattern(pattern)) {
+        return (id: string) => id === pattern || id.startsWith(`${pattern}/`);
+      }
+
+      if (!pattern.includes('*')) {
+        return (id: string) => id === pattern;
+      }
+
+      const regex = new RegExp(
+        `^${pattern.replaceAll(/[$()+./?[\\\]^{|}]/g, String.raw`\$&`).replaceAll('*', '.*')}$`,
+      );
+      return (id: string) => regex.test(id);
+    });
+
+    return (id) => matchers.some((match) => match(id));
+  }
+
+  const aliasKeys = Object.keys(alias ?? {});
+
+  return (id, _parentId, isResolved) =>
+    !isResolved &&
+    id !== entry &&
+    !aliasKeys.some((key) => id === key || id.startsWith(`${key}/`));
+}
+
+function isPackagePattern(pattern: string): boolean {
+  return (
+    !pattern.startsWith('.') &&
+    !path.isAbsolute(pattern) &&
+    !pattern.includes('*')
+  );
 }
 
 function parseFile(
@@ -68,11 +119,10 @@ function parseFile(
   name: string,
 ): GeneratorMutatorParsingInfo | undefined {
   try {
-    // `file` is esbuild's bundled output, not the user's source. esbuild may
-    // emit any modern syntax (notably dynamic `import()`, which it preserves
-    // even when targeting es6 in ESM mode), so we parse with the latest
-    // ecmaVersion to avoid spurious SyntaxErrors that would mask the export
-    // we are looking for. See https://github.com/orval-labs/orval/issues/1634.
+    // `file` is bundled output, not the user's source. The bundler may emit
+    // modern syntax, so we parse with the latest ecmaVersion to avoid spurious
+    // SyntaxErrors that would mask the export we are looking for.
+    // See https://github.com/orval-labs/orval/issues/1634.
     const ast = Parser.parse(file, {
       ecmaVersion: 'latest',
       sourceType: 'module',
@@ -152,6 +202,8 @@ function parseFunction(
     ) {
       return childNode;
     }
+
+    return false;
   });
 
   if (!node) {
