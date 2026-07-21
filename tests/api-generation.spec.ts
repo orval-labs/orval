@@ -1457,6 +1457,21 @@ test('default issue-3722 avoids invalid Required<Pick> for ghost keys', async ()
   expect(petTagInfo).not.toMatch(/^\s+tagId:/m);
 });
 
+test('default issue-3748 keeps plain Required<Pick> for keys behind a nested allOf $ref', async () => {
+  const itemDetail = await readFile(
+    generated('default', 'issue-3748', 'model', 'itemDetail.ts'),
+    'utf8',
+  );
+
+  // Keys resolved two $ref hops away (ItemDetail -> ItemBase -> Contents) must
+  // not fall into the Extract guard: the additionalProperties index signature
+  // collapses `Extract<keyof T, ...>` to `never`, silently dropping the
+  // required override.
+  expect(itemDetail).toMatch(/'id' \| 'name'/);
+  expect(itemDetail).toContain('Required<');
+  expect(itemDetail).not.toContain('Extract<');
+});
+
 test('zod issue-3505 enum values with backslashes are JS-escaped', async () => {
   const content = await readFile(
     generated('zod', 'issue-3505', 'issue-3505.ts'),

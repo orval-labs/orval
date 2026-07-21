@@ -130,9 +130,329 @@ describe('combineSchemas (allOf required handling)', () => {
       nullable: '',
     });
 
-    expect(result.value).toContain(
-      "Required<Pick<MidWrapper, Extract<keyof (MidWrapper), 'baseProp'>>>",
-    );
+    expect(result.value).toContain("Required<Pick<MidWrapper, 'baseProp'>>");
+    expect(result.value).not.toContain('Extract<');
+  });
+
+  // #3748: required keys whose properties live two $ref hops away (the
+  // referenced schema is itself an allOf composition) must resolve to a plain
+  // Required<Pick>. The Extract guard is not equivalent here: with
+  // `additionalProperties: true` the index signature collapses
+  // `Extract<keyof T, K>` to `never`, silently dropping the required override.
+  it('resolves required keys defined in a nested allOf $ref composition (#3748)', () => {
+    const contextWithNestedComposition = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            Contents: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' },
+              },
+              additionalProperties: true,
+            },
+            ItemBase: {
+              allOf: [
+                { $ref: '#/components/schemas/Contents' },
+                {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                  },
+                  required: ['status'],
+                  additionalProperties: true,
+                },
+              ],
+              additionalProperties: true,
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schema: OpenApiSchemaObject = {
+      allOf: [
+        { $ref: '#/components/schemas/ItemBase' },
+        {
+          type: 'object',
+          properties: {
+            extra: { type: 'number' },
+          },
+          required: ['id', 'name'],
+          additionalProperties: true,
+        },
+      ],
+      additionalProperties: true,
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'ItemDetail',
+      separator: 'allOf',
+      context: contextWithNestedComposition,
+      nullable: '',
+    });
+
+    expect(result.value).toContain("'id' | 'name'>>");
+    expect(result.value).toContain('Required<Pick<');
+    expect(result.value).not.toContain('Extract<');
+  });
+
+  // Keys reached through a nullable node must stay Extract-guarded: the
+  // emitted type unions `| null`, so `keyof` is `never` and a plain
+  // Required<Pick> would fail with TS2344.
+  it('keeps Extract guard when the nested composition member is nullable', () => {
+    const contextWithNullableBase = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            NullableBase: {
+              type: ['object', 'null'],
+              properties: {
+                id: { type: 'string' },
+              },
+            },
+            NullableWrapper: {
+              allOf: [{ $ref: '#/components/schemas/NullableBase' }],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['id'],
+      allOf: [{ $ref: '#/components/schemas/NullableWrapper' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'NullableItem',
+      separator: 'allOf',
+      context: contextWithNullableBase,
+      nullable: '',
+    });
+
+    expect(result.value).toContain("Extract<keyof (NullableWrapper), 'id'>");
+    expect(result.value).not.toContain("Pick<NullableWrapper, 'id'>>");
+  });
+
+  // Same reasoning for enum-bearing nodes: the emission is a literal union,
+  // so property keys collected from the node are not in `keyof`.
+  it('keeps Extract guard when the nested composition member carries an enum', () => {
+    const contextWithEnumBase = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            EnumBase: {
+              type: 'object',
+              enum: [{ id: 'a' }, { id: 'b' }],
+              properties: {
+                id: { type: 'string' },
+              },
+            },
+            EnumWrapper: {
+              allOf: [{ $ref: '#/components/schemas/EnumBase' }],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['id'],
+      allOf: [{ $ref: '#/components/schemas/EnumWrapper' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'EnumItem',
+      separator: 'allOf',
+      context: contextWithEnumBase,
+      nullable: '',
+    });
+
+    expect(result.value).toContain("Extract<keyof (EnumWrapper), 'id'>");
+    expect(result.value).not.toContain("Pick<EnumWrapper, 'id'>>");
+  });
+
+  // A `$ref` member can carry union-producing siblings (`nullable: true`,
+  // `type: ['object', 'null']`) that the resolver merges into the emission
+  // (`Wrapper = Base | null`), so the ref-site object must pass the same
+  // union guard as inline nodes before dereferencing.
+  it('keeps Extract guard when a nested $ref member carries a nullable sibling', () => {
+    const contextWithNullableRefSite = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            RefSiteBase: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
+            },
+            RefSiteWrapper: {
+              allOf: [
+                { $ref: '#/components/schemas/RefSiteBase', nullable: true },
+              ],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['id'],
+      allOf: [{ $ref: '#/components/schemas/RefSiteWrapper' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'RefSiteItem',
+      separator: 'allOf',
+      context: contextWithNullableRefSite,
+      nullable: '',
+    });
+
+    expect(result.value).toContain("Extract<keyof (RefSiteWrapper), 'id'>");
+    expect(result.value).not.toContain("Pick<RefSiteWrapper, 'id'>>");
+  });
+
+  // A multi-entry type array unions its branches even without `null`
+  // (`type: ['object', 'string']` emits `{...} | string`), so keys from such
+  // nodes are not guaranteed in `keyof` either.
+  it('keeps Extract guard when the nested composition member has a non-null type array union', () => {
+    const contextWithMixedType = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            MixedBase: {
+              type: ['object', 'string'],
+              properties: {
+                id: { type: 'string' },
+              },
+            },
+            MixedWrapper: {
+              allOf: [{ $ref: '#/components/schemas/MixedBase' }],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['id'],
+      allOf: [{ $ref: '#/components/schemas/MixedWrapper' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'MixedItem',
+      separator: 'allOf',
+      context: contextWithMixedType,
+      nullable: '',
+    });
+
+    expect(result.value).toContain("Extract<keyof (MixedWrapper), 'id'>");
+    expect(result.value).not.toContain("Pick<MixedWrapper, 'id'>>");
+  });
+
+  // Any anyOf/oneOf on a walked node is treated as union emission: deep key
+  // collection is restricted to plain object/intersection shapes.
+  it('keeps Extract guard when the nested composition member carries a oneOf', () => {
+    const contextWithOneOf = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            OneOfBase: {
+              properties: {
+                id: { type: 'string' },
+              },
+              oneOf: [{ type: 'object' }, { type: 'string' }],
+            },
+            OneOfWrapper: {
+              allOf: [{ $ref: '#/components/schemas/OneOfBase' }],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['id'],
+      allOf: [{ $ref: '#/components/schemas/OneOfWrapper' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'OneOfItem',
+      separator: 'allOf',
+      context: contextWithOneOf,
+      nullable: '',
+    });
+
+    expect(result.value).toContain("Extract<keyof (OneOfWrapper), 'id'>");
+    expect(result.value).not.toContain("Pick<OneOfWrapper, 'id'>>");
+  });
+
+  it('terminates on cyclic allOf $ref compositions', () => {
+    const contextWithCycle = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            CycleA: {
+              properties: {
+                aProp: { type: 'string' },
+              },
+              allOf: [{ $ref: '#/components/schemas/CycleB' }],
+            },
+            CycleB: {
+              properties: {
+                bProp: { type: 'string' },
+              },
+              allOf: [{ $ref: '#/components/schemas/CycleA' }],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['bProp'],
+      allOf: [{ $ref: '#/components/schemas/CycleA' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'CycleItem',
+      separator: 'allOf',
+      context: contextWithCycle,
+      nullable: '',
+    });
+
+    expect(result.value).toContain("'bProp'>>");
+    expect(result.value).not.toContain('Extract<');
   });
 
   it('uses Extract guard for required ghost keys missing from all subschema properties', () => {
