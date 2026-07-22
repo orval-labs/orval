@@ -681,6 +681,71 @@ describe('combineSchemas (allOf required handling)', () => {
     },
   );
 
+  it('collects top-level properties when a nullable anyOf member is a $ref', () => {
+    const contextWithNullableRefUnion = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            RefNullableBase: {
+              type: 'object',
+              properties: { left: { type: 'string' } },
+            },
+            RefMemberUnionBase: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
+              additionalProperties: true,
+              anyOf: [
+                {
+                  $ref: '#/components/schemas/RefNullableBase',
+                  type: ['object', 'null'],
+                },
+                {
+                  type: 'object',
+                  properties: { right: { type: 'string' } },
+                },
+              ],
+            },
+            RefMemberUnionWrapper: {
+              allOf: [{ $ref: '#/components/schemas/RefMemberUnionBase' }],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['id'],
+      allOf: [{ $ref: '#/components/schemas/RefMemberUnionWrapper' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'RefMemberUnionItem',
+      separator: 'allOf',
+      context: contextWithNullableRefUnion,
+      nullable: '',
+    });
+
+    expect(result.value).toContain("Pick<RefMemberUnionWrapper, 'id'>>");
+    expect(result.value).not.toContain('Extract<');
+
+    const unionBase = combineSchemas({
+      schema: contextWithNullableRefUnion.spec.components!.schemas!
+        .RefMemberUnionBase as OpenApiSchemaObject,
+      name: 'RefMemberUnionBase',
+      separator: 'anyOf',
+      context: contextWithNullableRefUnion,
+      nullable: '',
+    });
+
+    expect(unionBase.value).toContain('(RefNullableBase | null) & {');
+  });
+
   it('does not collect properties declared only inside oneOf members', () => {
     const contextWithOneOf = {
       ...context,

@@ -1,6 +1,7 @@
 import type { DirectScalarUnionItem } from '../generated/default/regressions/model/directScalarUnionItem';
 import type { NestedComposedUnionItem } from '../generated/default/regressions/model/nestedComposedUnionItem';
 import type { NestedUnionItem } from '../generated/default/regressions/model/nestedUnionItem';
+import type { RefMemberUnionItem } from '../generated/default/regressions/model/refMemberUnionItem';
 import type { ScalarItem } from '../generated/default/regressions/model/scalarItem';
 import type { UnionItem } from '../generated/default/regressions/model/unionItem';
 
@@ -33,6 +34,13 @@ const directScalarUnionItem: DirectScalarUnionItem = { id: 'id' };
 // @ts-expect-error - id must not silently become optional.
 const directScalarUnionItemWithoutId: DirectScalarUnionItem = {};
 
+const refMemberUnionItem: RefMemberUnionItem = { id: 'id' };
+
+// Nullability on a referenced anyOf member stays inside its intersection with
+// the parent's properties and is not propagated to the wrapper alias.
+// @ts-expect-error - id must not silently become optional.
+const refMemberUnionItemWithoutId: RefMemberUnionItem = {};
+
 void unionItem;
 void unionItemWithoutId;
 void scalarItem;
@@ -40,3 +48,5 @@ void nestedComposedUnionItem;
 void nestedComposedUnionItemWithoutId;
 void directScalarUnionItem;
 void directScalarUnionItemWithoutId;
+void refMemberUnionItem;
+void refMemberUnionItemWithoutId;

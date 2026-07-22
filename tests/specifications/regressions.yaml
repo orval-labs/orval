@@ -134,6 +134,33 @@ components:
         - id
       allOf:
         - $ref: '#/components/schemas/DirectScalarUnionWrapper'
+    RefNullableBase:
+      type: object
+      properties:
+        left:
+          type: string
+    RefMemberUnionBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      anyOf:
+        - $ref: '#/components/schemas/RefNullableBase'
+          nullable: true
+        - type: object
+          properties:
+            right:
+              type: string
+    RefMemberUnionWrapper:
+      allOf:
+        - $ref: '#/components/schemas/RefMemberUnionBase'
+    RefMemberUnionItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/RefMemberUnionWrapper'
 paths:
   /endpointA:
     get:

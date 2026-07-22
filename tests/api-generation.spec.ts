@@ -1498,6 +1498,10 @@ test('default regressions collect only guaranteed keys through nested allOf refs
     generated('default', 'regressions', 'model', 'directScalarUnionItem.ts'),
     'utf8',
   );
+  const refMemberUnionItem = await readFile(
+    generated('default', 'regressions', 'model', 'refMemberUnionItem.ts'),
+    'utf8',
+  );
 
   expect(unionItem).toContain("'id'");
   expect(unionItem).toContain('Required<');
@@ -1522,6 +1526,11 @@ test('default regressions collect only guaranteed keys through nested allOf refs
     "Pick<DirectScalarUnionWrapper, 'id'>",
   );
   expect(directScalarUnionItem).not.toContain('Extract<');
+
+  expect(refMemberUnionItem).toContain(
+    "Pick<RefMemberUnionWrapper, 'id'>",
+  );
+  expect(refMemberUnionItem).not.toContain('Extract<');
 });
 
 test('zod issue-3505 enum values with backslashes are JS-escaped', async () => {

@@ -159,9 +159,10 @@ function isDirectlyNullable(
  *
  * anyOf/oneOf members otherwise remain safe because `combineSchemas`
  * intersects the node's own properties into every grouped branch. The exception
- * is direct nullability in an anyOf member: `resolveValue` propagates it to the
- * referenced wrapper as a separate `| null`. Non-null scalars, oneOf members,
- * and nested unions stay inside the grouped intersection.
+ * is direct nullability in an inline anyOf member: `resolveValue` propagates it
+ * to the referenced wrapper as a separate `| null`. Reference members,
+ * non-null scalars, oneOf members, and nested unions stay inside the grouped
+ * intersection.
  */
 function cannotGuaranteePropertyKeys(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
@@ -173,7 +174,9 @@ function cannotGuaranteePropertyKeys(
     | OpenApiSchemaObject
     | OpenApiReferenceObject
   )[];
-  return anyOfMembers.some((member) => isDirectlyNullable(member));
+  return anyOfMembers.some(
+    (member) => !isReference(member) && isDirectlyNullable(member),
+  );
 }
 
 /**
