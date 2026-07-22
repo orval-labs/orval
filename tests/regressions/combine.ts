@@ -1,9 +1,11 @@
+import type { CanonicalNullableOneOfItem } from '../generated/default/regressions-oas31/model/canonicalNullableOneOfItem';
 import type { DirectScalarUnionItem } from '../generated/default/regressions/model/directScalarUnionItem';
 import type { EnumUnionItem } from '../generated/default/regressions/model/enumUnionItem';
 import type { NestedComposedUnionItem } from '../generated/default/regressions/model/nestedComposedUnionItem';
 import type { NestedUnionItem } from '../generated/default/regressions/model/nestedUnionItem';
 import type { RefMemberUnionItem } from '../generated/default/regressions/model/refMemberUnionItem';
 import type { ScalarItem } from '../generated/default/regressions/model/scalarItem';
+import type { SiblingEnumItem } from '../generated/default/regressions/model/siblingEnumItem';
 import type { UnionItem } from '../generated/default/regressions/model/unionItem';
 
 const unionItem: UnionItem = { id: 'id' };
@@ -45,6 +47,11 @@ const refMemberUnionItemWithoutId: RefMemberUnionItem = {};
 // All-enum compositions emit the parent's properties as a separate union
 // branch, so required-key handling must stay on the compile-safe Extract path.
 export type EnumUnionItemCompileCheck = EnumUnionItem;
+
+export type SiblingEnumItemCompileCheck = SiblingEnumItem;
+
+export type CanonicalNullableOneOfItemCompileCheck =
+  CanonicalNullableOneOfItem;
 
 void unionItem;
 void unionItemWithoutId;

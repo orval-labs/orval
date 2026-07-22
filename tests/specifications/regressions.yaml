@@ -183,6 +183,33 @@ components:
         - id
       allOf:
         - $ref: '#/components/schemas/EnumUnionWrapper'
+    SiblingEnumBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      allOf:
+        - type: object
+          properties:
+            base:
+              type: string
+      anyOf:
+        - type: string
+          enum:
+            - a
+        - type: string
+          enum:
+            - b
+    SiblingEnumWrapper:
+      allOf:
+        - $ref: '#/components/schemas/SiblingEnumBase'
+    SiblingEnumItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/SiblingEnumWrapper'
 paths:
   /endpointA:
     get:

@@ -163,12 +163,62 @@ function hasAllEnumMembers(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
 ): boolean {
-  const members = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as
+  if (isReference(schema)) {
+    return false;
+  }
+  const compositions = [schema.allOf, schema.oneOf, schema.anyOf] as (
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined
+  )[];
+  return compositions.some(
+    (members) =>
+      !!members?.length &&
+      members.every((member) => isEnumMember(member, context)),
+  );
+}
+
+function usesCanonicalNullableOneOfObject(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+): boolean {
+  if (isReference(schema)) {
+    return false;
+  }
+  const members = schema.oneOf as
     | (OpenApiSchemaObject | OpenApiReferenceObject)[]
     | undefined;
+  if (!members) {
+    return false;
+  }
+  const isNullMember = (
+    member: OpenApiSchemaObject | OpenApiReferenceObject,
+  ): boolean => {
+    if (isReference(member)) {
+      return false;
+    }
+    const type = member.type as string | string[] | undefined;
+    return (
+      type === 'null' ||
+      (Array.isArray(type) && type.length === 1 && type[0] === 'null')
+    );
+  };
+  const nonNullMembers = members.filter((member) => !isNullMember(member));
+  const nonNullMember = nonNullMembers[0];
+  if (
+    !members.some(isNullMember) ||
+    nonNullMembers.length !== 1 ||
+    !nonNullMember ||
+    isReference(nonNullMember)
+  ) {
+    return false;
+  }
+  const type = nonNullMember.type as string | string[] | undefined;
+  const properties = nonNullMember.properties as
+    | Record<string, unknown>
+    | undefined;
   return (
-    !!members?.length &&
-    members.every((member) => isEnumMember(member, context))
+    (type === 'object' || (!type && !!properties)) &&
+    !!properties &&
+    Object.keys(properties).length > 0
   );
 }
 
@@ -183,7 +233,9 @@ function hasAllEnumMembers(
  * to the referenced wrapper as a separate `| null`. Reference members,
  * non-null scalars, oneOf members, and nested unions stay inside the grouped
  * intersection. An all-enum composition is also unsafe because `combineValues`
- * emits the node's properties as a separate union branch instead.
+ * emits the node's properties as a separate union branch instead. Finally, the
+ * canonical nullable-oneOf object shortcut emits only its inline object and
+ * `null`, dropping the node's own properties.
  */
 function cannotGuaranteePropertyKeys(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
@@ -191,7 +243,8 @@ function cannotGuaranteePropertyKeys(
 ): boolean {
   if (
     directlyEmitsNonObjectType(schema) ||
-    hasAllEnumMembers(schema, context)
+    hasAllEnumMembers(schema, context) ||
+    usesCanonicalNullableOneOfObject(schema)
   ) {
     return true;
   }

@@ -1506,6 +1506,19 @@ test('default regressions collect only guaranteed keys through nested allOf refs
     generated('default', 'regressions', 'model', 'enumUnionItem.ts'),
     'utf8',
   );
+  const siblingEnumItem = await readFile(
+    generated('default', 'regressions', 'model', 'siblingEnumItem.ts'),
+    'utf8',
+  );
+  const canonicalNullableOneOfItem = await readFile(
+    generated(
+      'default',
+      'regressions-oas31',
+      'model',
+      'canonicalNullableOneOfItem.ts',
+    ),
+    'utf8',
+  );
 
   expect(unionItem).toContain("'id'");
   expect(unionItem).toContain('Required<');
@@ -1540,6 +1553,18 @@ test('default regressions collect only guaranteed keys through nested allOf refs
     "Extract<keyof EnumUnionWrapper, 'id'>",
   );
   expect(enumUnionItem).not.toContain("Pick<EnumUnionWrapper, 'id'>");
+
+  expect(siblingEnumItem).toContain(
+    "Extract<keyof SiblingEnumWrapper, 'id'>",
+  );
+  expect(siblingEnumItem).not.toContain("Pick<SiblingEnumWrapper, 'id'>");
+
+  expect(canonicalNullableOneOfItem).toContain(
+    "Extract<keyof CanonicalNullableOneOfWrapper, 'id'>",
+  );
+  expect(canonicalNullableOneOfItem).not.toContain(
+    "Pick<CanonicalNullableOneOfWrapper, 'id'>",
+  );
 });
 
 test('zod issue-3505 enum values with backslashes are JS-escaped', async () => {
