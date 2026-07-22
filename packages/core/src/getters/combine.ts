@@ -223,7 +223,30 @@ function usesCanonicalNullableOneOfObject(
 }
 
 /**
- * True when this node's property keys are not guaranteed in `keyof` of the
+ * True when this node can emit a branch that also omits keys contributed by
+ * its `allOf` descendants. Direct non-object output and inline anyOf
+ * nullability escape the full intersection, so neither own nor descendant
+ * keys are guaranteed. Canonical nullable oneOf and all-enum sibling
+ * compositions only make the node's own properties unsafe: `combineSchemas`
+ * still intersects every `allOf` member with their emitted union.
+ */
+function cannotGuaranteeAllOfPropertyKeys(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+): boolean {
+  if (directlyEmitsNonObjectType(schema)) {
+    return true;
+  }
+  const anyOfMembers = (schema.anyOf ?? []) as (
+    | OpenApiSchemaObject
+    | OpenApiReferenceObject
+  )[];
+  return anyOfMembers.some(
+    (member) => !isReference(member) && isDirectlyNullable(member),
+  );
+}
+
+/**
+ * True when this node's own property keys are not guaranteed in `keyof` of the
  * referenced output. Nullable, enum, scalar, array, or mixed-type nodes fail
  * directly; a missing type and OAS 3.1 `type: ['object']` remain object-capable.
  *
@@ -237,23 +260,14 @@ function usesCanonicalNullableOneOfObject(
  * canonical nullable-oneOf object shortcut emits only its inline object and
  * `null`, dropping the node's own properties.
  */
-function cannotGuaranteePropertyKeys(
+function cannotGuaranteeOwnPropertyKeys(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
 ): boolean {
-  if (
-    directlyEmitsNonObjectType(schema) ||
+  return (
+    cannotGuaranteeAllOfPropertyKeys(schema) ||
     hasAllEnumMembers(schema, context) ||
     usesCanonicalNullableOneOfObject(schema)
-  ) {
-    return true;
-  }
-  const anyOfMembers = (schema.anyOf ?? []) as (
-    | OpenApiSchemaObject
-    | OpenApiReferenceObject
-  )[];
-  return anyOfMembers.some(
-    (member) => !isReference(member) && isDirectlyNullable(member),
   );
 }
 
@@ -291,7 +305,7 @@ function derefComponentSchema(
     }
     if (isReference(target)) {
       // Intermediate chain hops can carry non-object-producing siblings too
-      if (cannotGuaranteePropertyKeys(target, context)) {
+      if (cannotGuaranteeAllOfPropertyKeys(target)) {
         return undefined;
       }
       current = target.$ref;
@@ -310,9 +324,11 @@ function derefComponentSchema(
  * `Required<Pick<T, 'k'>>` is safe even when an `additionalProperties` index
  * signature would collapse the `Extract` guard to `never` (#3748). Union
  * members are deliberately not walked, while a node's own top-level properties
- * are collected because the generator intersects them into every anyOf/oneOf
- * branch. Nodes that can emit non-object values are skipped entirely; doing so
- * degrades to the compile-safe `Extract` guard.
+ * are collected when the generator intersects them into every anyOf/oneOf
+ * branch. A node's own unsafe properties are skipped without discarding keys
+ * from sibling `allOf` descendants that remain in the emitted intersection.
+ * Nodes that can emit a branch outside that full intersection are skipped
+ * entirely, degrading to the compile-safe `Extract` guard.
  */
 function collectDeepPropertyKeys(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
@@ -321,7 +337,7 @@ function collectDeepPropertyKeys(
 ): string[] {
   // Checked before dereferencing: `$ref`-site siblings (`nullable: true`,
   // scalar or mixed `type`) can change the emission just like inline nodes.
-  if (cannotGuaranteePropertyKeys(schema, context)) {
+  if (cannotGuaranteeAllOfPropertyKeys(schema)) {
     return [];
   }
   if (isReference(schema)) {
@@ -330,7 +346,10 @@ function collectDeepPropertyKeys(
   }
   // Bridge assertion: properties is infected by AnyOtherAttribute
   const properties = schema.properties as Record<string, unknown> | undefined;
-  const keys = properties ? Object.keys(properties) : [];
+  const keys =
+    properties && !cannotGuaranteeOwnPropertyKeys(schema, context)
+      ? Object.keys(properties)
+      : [];
   const members = (schema.allOf ?? []) as (
     | OpenApiSchemaObject
     | OpenApiReferenceObject

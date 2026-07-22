@@ -7,4 +7,8 @@
 
 export * from './canonicalNullableOneOfBase';
 export * from './canonicalNullableOneOfItem';
+export * from './canonicalNullableOneOfObjectBase';
+export * from './canonicalNullableOneOfSiblingBase';
+export * from './canonicalNullableOneOfSiblingItem';
+export * from './canonicalNullableOneOfSiblingWrapper';
 export * from './canonicalNullableOneOfWrapper';

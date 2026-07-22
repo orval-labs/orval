@@ -934,6 +934,112 @@ describe('combineSchemas (allOf required handling)', () => {
     );
   });
 
+  it('collects allOf properties beside a canonical nullable oneOf object', () => {
+    const contextWithNullableOneOfSibling = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            NullableOneOfObjectBase: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
+              additionalProperties: true,
+            },
+            NullableOneOfSiblingBase: {
+              allOf: [{ $ref: '#/components/schemas/NullableOneOfObjectBase' }],
+              oneOf: [
+                {
+                  type: 'object',
+                  properties: { left: { type: 'string' } },
+                },
+                { type: 'null' },
+              ],
+            },
+            NullableOneOfSiblingWrapper: {
+              allOf: [
+                { $ref: '#/components/schemas/NullableOneOfSiblingBase' },
+              ],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['id'],
+      allOf: [{ $ref: '#/components/schemas/NullableOneOfSiblingWrapper' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'NullableOneOfSiblingItem',
+      separator: 'allOf',
+      context: contextWithNullableOneOfSibling,
+      nullable: '',
+    });
+
+    expect(result.value).toContain("Pick<NullableOneOfSiblingWrapper, 'id'>>");
+    expect(result.value).not.toContain('Extract<');
+  });
+
+  it('collects allOf properties beside an all-enum composition', () => {
+    const contextWithAllEnumSibling = {
+      ...context,
+      output: {
+        ...context.output,
+        override: {
+          ...context.output.override,
+          enumGenerationType: 'union',
+        },
+      },
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            AllEnumObjectBase: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
+              additionalProperties: true,
+            },
+            AllEnumSiblingBase: {
+              allOf: [{ $ref: '#/components/schemas/AllEnumObjectBase' }],
+              anyOf: [
+                { type: 'string', enum: ['a'] },
+                { type: 'string', enum: ['b'] },
+              ],
+            },
+            AllEnumSiblingWrapper: {
+              allOf: [{ $ref: '#/components/schemas/AllEnumSiblingBase' }],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['id'],
+      allOf: [{ $ref: '#/components/schemas/AllEnumSiblingWrapper' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'AllEnumSiblingItem',
+      separator: 'allOf',
+      context: contextWithAllEnumSibling,
+      nullable: '',
+    });
+
+    expect(result.value).toContain("Pick<AllEnumSiblingWrapper, 'id'>>");
+    expect(result.value).not.toContain('Extract<');
+  });
+
   it('does not collect properties declared only inside oneOf members', () => {
     const contextWithOneOf = {
       ...context,

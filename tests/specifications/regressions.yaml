@@ -210,6 +210,31 @@ components:
         - id
       allOf:
         - $ref: '#/components/schemas/SiblingEnumWrapper'
+    AllEnumObjectBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+    AllEnumSiblingBase:
+      allOf:
+        - $ref: '#/components/schemas/AllEnumObjectBase'
+      anyOf:
+        - type: string
+          enum:
+            - a
+        - type: string
+          enum:
+            - b
+    AllEnumSiblingWrapper:
+      allOf:
+        - $ref: '#/components/schemas/AllEnumSiblingBase'
+    AllEnumSiblingItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/AllEnumSiblingWrapper'
 paths:
   /endpointA:
     get:

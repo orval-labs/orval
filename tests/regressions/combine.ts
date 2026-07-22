@@ -1,4 +1,6 @@
 import type { CanonicalNullableOneOfItem } from '../generated/default/regressions-oas31/model/canonicalNullableOneOfItem';
+import type { CanonicalNullableOneOfSiblingItem } from '../generated/default/regressions-oas31/model/canonicalNullableOneOfSiblingItem';
+import type { AllEnumSiblingItem } from '../generated/default/regressions/model/allEnumSiblingItem';
 import type { DirectScalarUnionItem } from '../generated/default/regressions/model/directScalarUnionItem';
 import type { EnumUnionItem } from '../generated/default/regressions/model/enumUnionItem';
 import type { NestedComposedUnionItem } from '../generated/default/regressions/model/nestedComposedUnionItem';
@@ -53,6 +55,19 @@ export type SiblingEnumItemCompileCheck = SiblingEnumItem;
 export type CanonicalNullableOneOfItemCompileCheck =
   CanonicalNullableOneOfItem;
 
+const canonicalNullableOneOfSiblingItem: CanonicalNullableOneOfSiblingItem = {
+  id: 'id',
+  left: 'value',
+};
+
+// The nullable oneOf shortcut drops only the schema's own properties. Keys
+// supplied by a sibling allOf member remain required in the intersection.
+// @ts-expect-error - id must not silently become optional.
+const canonicalNullableOneOfSiblingItemWithoutId: CanonicalNullableOneOfSiblingItem =
+  { left: 'value' };
+
+export type AllEnumSiblingItemCompileCheck = AllEnumSiblingItem;
+
 void unionItem;
 void unionItemWithoutId;
 void scalarItem;
@@ -62,3 +77,5 @@ void directScalarUnionItem;
 void directScalarUnionItemWithoutId;
 void refMemberUnionItem;
 void refMemberUnionItemWithoutId;
+void canonicalNullableOneOfSiblingItem;
+void canonicalNullableOneOfSiblingItemWithoutId;

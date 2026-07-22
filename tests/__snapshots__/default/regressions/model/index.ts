@@ -5,6 +5,10 @@
  * OpenAPI spec version: 0.0.0
  */
 
+export * from './allEnumObjectBase';
+export * from './allEnumSiblingBase';
+export * from './allEnumSiblingItem';
+export * from './allEnumSiblingWrapper';
 export * from './arrayTest';
 export * from './blankSchema';
 export * from './directScalarUnionBase';

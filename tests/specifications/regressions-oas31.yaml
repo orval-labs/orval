@@ -26,3 +26,27 @@ components:
         - id
       allOf:
         - $ref: '#/components/schemas/CanonicalNullableOneOfWrapper'
+    CanonicalNullableOneOfObjectBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+    CanonicalNullableOneOfSiblingBase:
+      allOf:
+        - $ref: '#/components/schemas/CanonicalNullableOneOfObjectBase'
+      oneOf:
+        - type: object
+          properties:
+            left:
+              type: string
+        - type: 'null'
+    CanonicalNullableOneOfSiblingWrapper:
+      allOf:
+        - $ref: '#/components/schemas/CanonicalNullableOneOfSiblingBase'
+    CanonicalNullableOneOfSiblingItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/CanonicalNullableOneOfSiblingWrapper'
