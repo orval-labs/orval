@@ -82,6 +82,15 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  'regressions-oas31': {
+    input: '../specifications/regressions-oas31.yaml',
+    output: {
+      target: '../generated/default/regressions-oas31/endpoints.ts',
+      schemas: '../generated/default/regressions-oas31/model',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
   'null-type': {
     input: '../specifications/null-type.yaml',
     output: {

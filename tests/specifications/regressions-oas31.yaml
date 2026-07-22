@@ -1,0 +1,74 @@
+openapi: 3.1.0
+info:
+  title: Orval OpenAPI 3.1 Regression Tests
+  version: 0.0.0
+paths: {}
+components:
+  schemas:
+    CanonicalNullableOneOfBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      oneOf:
+        - type: object
+          properties:
+            left:
+              type: string
+        - type: 'null'
+    CanonicalNullableOneOfWrapper:
+      allOf:
+        - $ref: '#/components/schemas/CanonicalNullableOneOfBase'
+    CanonicalNullableOneOfItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/CanonicalNullableOneOfWrapper'
+    CanonicalNullableOneOfObjectBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+    CanonicalNullableOneOfSiblingBase:
+      allOf:
+        - $ref: '#/components/schemas/CanonicalNullableOneOfObjectBase'
+      oneOf:
+        - type: object
+          properties:
+            left:
+              type: string
+        - type: 'null'
+    CanonicalNullableOneOfSiblingWrapper:
+      allOf:
+        - $ref: '#/components/schemas/CanonicalNullableOneOfSiblingBase'
+    CanonicalNullableOneOfSiblingItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/CanonicalNullableOneOfSiblingWrapper'
+    InlineNullableAnyOfObjectBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+    InlineNullableAnyOfWrapper:
+      allOf:
+        - allOf:
+            - $ref: '#/components/schemas/InlineNullableAnyOfObjectBase'
+          anyOf:
+            - type: object
+              properties:
+                left:
+                  type: string
+            - type: 'null'
+    InlineNullableAnyOfItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/InlineNullableAnyOfWrapper'
