@@ -1052,6 +1052,66 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(wrapper.value).toContain('InlineNullableAnyOfObjectBase & (');
   });
 
+  it('collects nullable member properties when an object allOf sibling removes null', () => {
+    const contextWithNullableAllOfMember = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            NullableAllOfMemberBase: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
+              additionalProperties: true,
+            },
+            NullableAllOfMemberWrapper: {
+              allOf: [
+                {
+                  $ref: '#/components/schemas/NullableAllOfMemberBase',
+                  nullable: true,
+                },
+                {
+                  type: 'object',
+                  properties: { marker: { type: 'string' } },
+                },
+              ],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['id'],
+      allOf: [{ $ref: '#/components/schemas/NullableAllOfMemberWrapper' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'NullableAllOfMemberItem',
+      separator: 'allOf',
+      context: contextWithNullableAllOfMember,
+      nullable: '',
+    });
+
+    expect(result.value).toContain("Pick<NullableAllOfMemberWrapper, 'id'>>");
+    expect(result.value).not.toContain('Extract<');
+
+    const wrapper = combineSchemas({
+      schema: contextWithNullableAllOfMember.spec.components!.schemas!
+        .NullableAllOfMemberWrapper as OpenApiSchemaObject,
+      name: 'NullableAllOfMemberWrapper',
+      separator: 'allOf',
+      context: contextWithNullableAllOfMember,
+      nullable: '',
+    });
+
+    expect(wrapper.value).toContain('(NullableAllOfMemberBase | null) & {');
+  });
+
   it('collects allOf properties beside an all-enum composition', () => {
     const contextWithAllEnumSibling = {
       ...context,

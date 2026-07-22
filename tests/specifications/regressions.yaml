@@ -235,6 +235,26 @@ components:
         - id
       allOf:
         - $ref: '#/components/schemas/AllEnumSiblingWrapper'
+    NullableAllOfMemberBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+    NullableAllOfMemberWrapper:
+      allOf:
+        - $ref: '#/components/schemas/NullableAllOfMemberBase'
+          nullable: true
+        - type: object
+          properties:
+            marker:
+              type: string
+    NullableAllOfMemberItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/NullableAllOfMemberWrapper'
 paths:
   /endpointA:
     get:

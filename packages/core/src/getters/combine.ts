@@ -152,6 +152,30 @@ function isDirectlyNullable(
   return type === 'null' || (Array.isArray(type) && type.includes('null'));
 }
 
+function directlyEmitsOnlyObjectOrNull(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+): boolean {
+  if (schema.enum) {
+    return false;
+  }
+  const type = schema.type as string | string[] | undefined;
+  const hasObjectType =
+    !type ||
+    type === 'object' ||
+    (Array.isArray(type) && type.includes('object'));
+  const hasOnlyObjectAndNull =
+    !type ||
+    type === 'object' ||
+    (Array.isArray(type) &&
+      type.every((memberType) => ['object', 'null'].includes(memberType)));
+  return (
+    hasObjectType &&
+    hasOnlyObjectAndNull &&
+    ((schema.nullable as boolean | undefined) === true ||
+      (Array.isArray(type) && type.includes('null')))
+  );
+}
+
 function isEnumMember(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
@@ -229,13 +253,19 @@ function usesCanonicalNullableOneOfObject(
  * resolves this node through a component `$ref` and appends `| null` to the
  * imported alias. Canonical nullable oneOf and all-enum sibling compositions
  * only make the node's own properties unsafe: `combineSchemas` still
- * intersects every `allOf` member with their emitted union.
+ * intersects every `allOf` member with their emitted union. A non-null object
+ * sibling also eliminates an object-or-null member's null branch from the
+ * parent intersection, preserving that member's object keys.
  */
 function cannotGuaranteeAllOfPropertyKeys(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   crossesComponentRefBoundary: boolean,
+  nullBranchesEliminated = false,
 ): boolean {
-  if (directlyEmitsNonObjectType(schema)) {
+  if (
+    directlyEmitsNonObjectType(schema) &&
+    !(nullBranchesEliminated && directlyEmitsOnlyObjectOrNull(schema))
+  ) {
     return true;
   }
   const anyOfMembers = (schema.anyOf ?? []) as (
@@ -245,6 +275,7 @@ function cannotGuaranteeAllOfPropertyKeys(
   return anyOfMembers.some(
     (member) =>
       crossesComponentRefBoundary &&
+      !nullBranchesEliminated &&
       !isReference(member) &&
       isDirectlyNullable(member),
   );
@@ -270,9 +301,14 @@ function cannotGuaranteeOwnPropertyKeys(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
   crossesComponentRefBoundary: boolean,
+  nullBranchesEliminated = false,
 ): boolean {
   return (
-    cannotGuaranteeAllOfPropertyKeys(schema, crossesComponentRefBoundary) ||
+    cannotGuaranteeAllOfPropertyKeys(
+      schema,
+      crossesComponentRefBoundary,
+      nullBranchesEliminated,
+    ) ||
     hasAllEnumMembers(schema, context) ||
     usesCanonicalNullableOneOfObject(schema)
   );
@@ -323,6 +359,37 @@ function derefComponentSchema(
   return undefined;
 }
 
+/** A guaranteed own property proves this member cannot emit null. */
+function guaranteesNonNullableObject(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+): boolean {
+  const crossesComponentRefBoundary = isReference(schema);
+  if (
+    cannotGuaranteeOwnPropertyKeys(schema, context, crossesComponentRefBoundary)
+  ) {
+    return false;
+  }
+  const resolvedSchema = isReference(schema)
+    ? derefComponentSchema(schema.$ref, context, new Set<string>())
+    : schema;
+  if (!resolvedSchema) {
+    return false;
+  }
+  const properties = resolvedSchema.properties as
+    | Record<string, unknown>
+    | undefined;
+  return (
+    !!properties &&
+    Object.keys(properties).length > 0 &&
+    !cannotGuaranteeOwnPropertyKeys(
+      resolvedSchema,
+      context,
+      crossesComponentRefBoundary,
+    )
+  );
+}
+
 /**
  * Collect the property keys reachable through a schema's `allOf` composition,
  * resolving component `$ref` members against the spec. Feeds the
@@ -337,40 +404,75 @@ function derefComponentSchema(
  * Nodes that can emit a branch outside that full intersection are skipped
  * entirely, degrading to the compile-safe `Extract` guard. The component-ref
  * boundary flag mirrors the only `resolveValue` path that lifts inline anyOf
- * nullability outside the alias intersection.
+ * nullability outside the alias intersection. Parent allOf traversal also
+ * records a sibling with guaranteed own properties as proof that null cannot
+ * survive the full intersection.
  */
 function collectDeepPropertyKeys(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
   crossesComponentRefBoundary = false,
+  nullBranchesEliminated = false,
   seenRefs = new Set<string>(),
 ): string[] {
   const resolvesComponentRef =
     crossesComponentRefBoundary || isReference(schema);
   // Checked before dereferencing: `$ref`-site siblings (`nullable: true`,
   // scalar or mixed `type`) can change the emission just like inline nodes.
-  if (cannotGuaranteeAllOfPropertyKeys(schema, resolvesComponentRef)) {
+  if (
+    cannotGuaranteeAllOfPropertyKeys(
+      schema,
+      resolvesComponentRef,
+      nullBranchesEliminated,
+    )
+  ) {
     return [];
   }
   if (isReference(schema)) {
     const target = derefComponentSchema(schema.$ref, context, seenRefs);
     return target
-      ? collectDeepPropertyKeys(target, context, true, seenRefs)
+      ? collectDeepPropertyKeys(
+          target,
+          context,
+          true,
+          nullBranchesEliminated,
+          seenRefs,
+        )
       : [];
   }
   // Bridge assertion: properties is infected by AnyOtherAttribute
   const properties = schema.properties as Record<string, unknown> | undefined;
   const keys =
     properties &&
-    !cannotGuaranteeOwnPropertyKeys(schema, context, resolvesComponentRef)
+    !cannotGuaranteeOwnPropertyKeys(
+      schema,
+      context,
+      resolvesComponentRef,
+      nullBranchesEliminated,
+    )
       ? Object.keys(properties)
       : [];
   const members = (schema.allOf ?? []) as (
     | OpenApiSchemaObject
     | OpenApiReferenceObject
   )[];
-  for (const member of members) {
-    keys.push(...collectDeepPropertyKeys(member, context, false, seenRefs));
+  const guaranteedObjectMembers = members.map((member) =>
+    guaranteesNonNullableObject(member, context),
+  );
+  for (const [index, member] of members.entries()) {
+    const hasObjectSibling = guaranteedObjectMembers.some(
+      (isGuaranteedObject, siblingIndex) =>
+        siblingIndex !== index && isGuaranteedObject,
+    );
+    keys.push(
+      ...collectDeepPropertyKeys(
+        member,
+        context,
+        false,
+        nullBranchesEliminated || hasObjectSibling,
+        seenRefs,
+      ),
+    );
   }
   return keys;
 }

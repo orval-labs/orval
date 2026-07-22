@@ -6,6 +6,7 @@ import type { DirectScalarUnionItem } from '../generated/default/regressions/mod
 import type { EnumUnionItem } from '../generated/default/regressions/model/enumUnionItem';
 import type { NestedComposedUnionItem } from '../generated/default/regressions/model/nestedComposedUnionItem';
 import type { NestedUnionItem } from '../generated/default/regressions/model/nestedUnionItem';
+import type { NullableAllOfMemberItem } from '../generated/default/regressions/model/nullableAllOfMemberItem';
 import type { RefMemberUnionItem } from '../generated/default/regressions/model/refMemberUnionItem';
 import type { ScalarItem } from '../generated/default/regressions/model/scalarItem';
 import type { SiblingEnumItem } from '../generated/default/regressions/model/siblingEnumItem';
@@ -81,6 +82,18 @@ const inlineNullableAnyOfItemWithoutId: InlineNullableAnyOfItem = {
   left: 'value',
 };
 
+const nullableAllOfMemberItem: NullableAllOfMemberItem = {
+  id: 'id',
+  marker: 'value',
+};
+
+// The object sibling removes the nullable ref member's null branch from the
+// allOf intersection, so keys from its object branch remain required.
+// @ts-expect-error - id must not silently become optional.
+const nullableAllOfMemberItemWithoutId: NullableAllOfMemberItem = {
+  marker: 'value',
+};
+
 void unionItem;
 void unionItemWithoutId;
 void scalarItem;
@@ -94,3 +107,5 @@ void canonicalNullableOneOfSiblingItem;
 void canonicalNullableOneOfSiblingItemWithoutId;
 void inlineNullableAnyOfItem;
 void inlineNullableAnyOfItemWithoutId;
+void nullableAllOfMemberItem;
+void nullableAllOfMemberItemWithoutId;
