@@ -87,7 +87,7 @@ export const getCreatePetsUrl = (version: number = 1) => {
 export const createPets = async (
   pet?: Pet,
   version: number = 1,
-  options?: RequestInit,
+  options?: Parameters<typeof customFetch>[1],
 ): Promise<createPetsResponse> => {
   const formData = new FormData();
   Object.entries(pet ?? {}).forEach(([key, value]) => {

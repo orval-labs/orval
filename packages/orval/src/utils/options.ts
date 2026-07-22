@@ -260,6 +260,7 @@ function normalizeEffectOptions(
     },
     generateEachHttpStatus: effect?.generateEachHttpStatus ?? false,
     useBrandedTypes: effect?.useBrandedTypes ?? false,
+    exactOptional: effect?.exactOptional ?? false,
   };
 }
 
@@ -659,6 +660,7 @@ export async function normalizeOptions(
           generateMeta: outputOptions.override?.zod?.generateMeta ?? false,
           generateDiscriminatedUnion:
             outputOptions.override?.zod?.generateDiscriminatedUnion ?? false,
+          exactOptional: outputOptions.override?.zod?.exactOptional ?? false,
           dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {
             offset: true,
           },

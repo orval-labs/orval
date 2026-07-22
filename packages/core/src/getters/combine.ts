@@ -1,4 +1,4 @@
-import { isNullish, unique } from 'remeda';
+import { isNullish, prop, unique } from 'remeda';
 
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import {
@@ -11,10 +11,18 @@ import {
   type ScalarValue,
   SchemaType,
 } from '../types';
-import { dedupeUnionType, getNumberWord, isSchema, pascal } from '../utils';
+import {
+  dedupeUnionType,
+  getNumberWord,
+  isObject,
+  isReference,
+  isSchema,
+  pascal,
+} from '../utils';
 import { getCombinedEnumValue } from './enum';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import type { FormDataContext } from './object';
+import { getRefInfo, isComponentRef } from './ref';
 import { getScalar } from './scalar';
 
 interface CombinedData {
@@ -113,6 +121,364 @@ function normalizeAllOfSchema(
     ...(mergedRequired.size > 0 && { required: [...mergedRequired] }),
     ...(remainingAllOf.length > 0 && { allOf: remainingAllOf }),
   } as OpenApiSchemaObject;
+}
+
+/** True when the schema node itself is not a single object shape. */
+function directlyEmitsNonObjectType(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+): boolean {
+  // Bridge assertions: AnyOtherAttribute infects all schema property access
+  if (schema.enum || (schema.nullable as boolean | undefined) === true) {
+    return true;
+  }
+  const type = schema.type as string | string[] | undefined;
+  const isObjectType =
+    !type ||
+    type === 'object' ||
+    (Array.isArray(type) && type.length === 1 && type[0] === 'object');
+  if (!isObjectType) {
+    return true;
+  }
+  return false;
+}
+
+function isDirectlyNullable(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+): boolean {
+  if ((schema.nullable as boolean | undefined) === true) {
+    return true;
+  }
+  const type = schema.type as string | string[] | undefined;
+  return type === 'null' || (Array.isArray(type) && type.includes('null'));
+}
+
+function directlyEmitsOnlyObjectOrNull(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+): boolean {
+  if (schema.enum) {
+    return false;
+  }
+  const type = schema.type as string | string[] | undefined;
+  const hasObjectType =
+    !type ||
+    type === 'object' ||
+    (Array.isArray(type) && type.includes('object'));
+  const hasOnlyObjectAndNull =
+    !type ||
+    type === 'object' ||
+    (Array.isArray(type) &&
+      type.every((memberType) => ['object', 'null'].includes(memberType)));
+  return (
+    hasObjectType &&
+    hasOnlyObjectAndNull &&
+    ((schema.nullable as boolean | undefined) === true ||
+      (Array.isArray(type) && type.includes('null')))
+  );
+}
+
+function isEnumMember(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+): boolean {
+  return resolveObject({ schema, combined: true, context }).isEnum;
+}
+
+function hasAllEnumMembers(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+): boolean {
+  if (isReference(schema)) {
+    return false;
+  }
+  const compositions = [schema.allOf, schema.oneOf, schema.anyOf] as (
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined
+  )[];
+  return compositions.some(
+    (members) =>
+      !!members?.length &&
+      members.every((member) => isEnumMember(member, context)),
+  );
+}
+
+function usesCanonicalNullableOneOfObject(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+): boolean {
+  if (isReference(schema)) {
+    return false;
+  }
+  const members = schema.oneOf as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+  if (!members) {
+    return false;
+  }
+  const isNullMember = (
+    member: OpenApiSchemaObject | OpenApiReferenceObject,
+  ): boolean => {
+    if (isReference(member)) {
+      return false;
+    }
+    const type = member.type as string | string[] | undefined;
+    return (
+      type === 'null' ||
+      (Array.isArray(type) && type.length === 1 && type[0] === 'null')
+    );
+  };
+  const nonNullMembers = members.filter((member) => !isNullMember(member));
+  const nonNullMember = nonNullMembers[0];
+  if (
+    !members.some(isNullMember) ||
+    nonNullMembers.length !== 1 ||
+    !nonNullMember ||
+    isReference(nonNullMember)
+  ) {
+    return false;
+  }
+  const type = nonNullMember.type as string | string[] | undefined;
+  const properties = nonNullMember.properties as
+    | Record<string, unknown>
+    | undefined;
+  return (
+    (type === 'object' || (!type && !!properties)) &&
+    !!properties &&
+    Object.keys(properties).length > 0
+  );
+}
+
+/**
+ * True when this node can emit a branch that also omits keys contributed by
+ * its `allOf` descendants. Direct non-object output escapes the full
+ * intersection. Direct inline anyOf nullability does so only when `resolveValue`
+ * resolves this node through a component `$ref` and appends `| null` to the
+ * imported alias. Canonical nullable oneOf and all-enum sibling compositions
+ * only make the node's own properties unsafe: `combineSchemas` still
+ * intersects every `allOf` member with their emitted union. A non-null object
+ * sibling or guaranteed properties on the parent also eliminate an
+ * object-or-null member's null branch from the parent intersection, preserving
+ * that member's object keys.
+ */
+function cannotGuaranteeAllOfPropertyKeys(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  crossesComponentRefBoundary: boolean,
+  nullBranchesEliminated = false,
+): boolean {
+  if (
+    directlyEmitsNonObjectType(schema) &&
+    !(nullBranchesEliminated && directlyEmitsOnlyObjectOrNull(schema))
+  ) {
+    return true;
+  }
+  const anyOfMembers = (schema.anyOf ?? []) as (
+    | OpenApiSchemaObject
+    | OpenApiReferenceObject
+  )[];
+  return anyOfMembers.some(
+    (member) =>
+      crossesComponentRefBoundary &&
+      !nullBranchesEliminated &&
+      !isReference(member) &&
+      isDirectlyNullable(member),
+  );
+}
+
+/**
+ * True when this node's own property keys are not guaranteed in `keyof` of the
+ * referenced output. Nullable, enum, scalar, array, or mixed-type nodes fail
+ * directly; a missing type and OAS 3.1 `type: ['object']` remain object-capable.
+ *
+ * anyOf/oneOf members otherwise remain safe because `combineSchemas`
+ * intersects the node's own properties into every grouped branch. The exception
+ * is direct nullability in an inline anyOf member on a component `$ref` target:
+ * `resolveValue` propagates it to the referenced wrapper as a separate `| null`.
+ * Inline allOf members, reference members, non-null scalars, oneOf members, and
+ * nested unions stay inside the grouped intersection. An all-enum composition
+ * is also unsafe because `combineValues` emits the node's properties as a
+ * separate union branch instead. Finally, the canonical nullable-oneOf object
+ * shortcut emits only its inline object and `null`, dropping the node's own
+ * properties.
+ */
+function cannotGuaranteeOwnPropertyKeys(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+  crossesComponentRefBoundary: boolean,
+  nullBranchesEliminated = false,
+): boolean {
+  return (
+    cannotGuaranteeAllOfPropertyKeys(
+      schema,
+      crossesComponentRefBoundary,
+      nullBranchesEliminated,
+    ) ||
+    hasAllEnumMembers(schema, context) ||
+    usesCanonicalNullableOneOfObject(schema)
+  );
+}
+
+/**
+ * Dereference a component `$ref`, following `$ref`-to-`$ref` chains. Returns
+ * `undefined` (rather than throwing like `resolveRef`) for non-component,
+ * cyclic, malformed, or unresolvable refs so callers can fall back to the
+ * `Extract` guard. `seenRefs` records every visited hop and doubles as the
+ * cycle guard across the whole walk.
+ */
+function derefComponentSchema(
+  $ref: string | undefined,
+  context: ContextSpec,
+  seenRefs: Set<string>,
+): OpenApiSchemaObject | undefined {
+  let current = $ref;
+  while (current && !seenRefs.has(current) && isComponentRef(current)) {
+    seenRefs.add(current);
+    let target: unknown;
+    try {
+      const { refPaths } = getRefInfo(current, context);
+      target = Array.isArray(refPaths)
+        ? prop(
+            context.spec,
+            // @ts-expect-error: [ts2556] refPaths are not guaranteed to be valid keys of the spec
+            ...refPaths,
+          )
+        : undefined;
+    } catch {
+      // getRefInfo decodes URI components and may throw on malformed refs
+      return undefined;
+    }
+    if (!isObject(target)) {
+      return undefined;
+    }
+    if (isReference(target)) {
+      // Intermediate chain hops can carry non-object-producing siblings too
+      if (cannotGuaranteeAllOfPropertyKeys(target, true)) {
+        return undefined;
+      }
+      current = target.$ref;
+      continue;
+    }
+    return target as OpenApiSchemaObject;
+  }
+  return undefined;
+}
+
+/** A guaranteed own property proves this member cannot emit null. */
+function guaranteesNonNullableObject(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+): boolean {
+  const crossesComponentRefBoundary = isReference(schema);
+  if (
+    cannotGuaranteeOwnPropertyKeys(schema, context, crossesComponentRefBoundary)
+  ) {
+    return false;
+  }
+  const resolvedSchema = isReference(schema)
+    ? derefComponentSchema(schema.$ref, context, new Set<string>())
+    : schema;
+  if (!resolvedSchema) {
+    return false;
+  }
+  const properties = resolvedSchema.properties as
+    | Record<string, unknown>
+    | undefined;
+  return (
+    !!properties &&
+    Object.keys(properties).length > 0 &&
+    !cannotGuaranteeOwnPropertyKeys(
+      resolvedSchema,
+      context,
+      crossesComponentRefBoundary,
+    )
+  );
+}
+
+/**
+ * Collect the property keys reachable through a schema's `allOf` composition,
+ * resolving component `$ref` members against the spec. Feeds the
+ * pickable/unresolved split for required-override keys: a key found here is
+ * provably in `keyof` of the emitted intersection, so a plain
+ * `Required<Pick<T, 'k'>>` is safe even when an `additionalProperties` index
+ * signature would collapse the `Extract` guard to `never` (#3748). Union
+ * members are deliberately not walked, while a node's own top-level properties
+ * are collected when the generator intersects them into every anyOf/oneOf
+ * branch. A node's own unsafe properties are skipped without discarding keys
+ * from sibling `allOf` descendants that remain in the emitted intersection.
+ * Nodes that can emit a branch outside that full intersection are skipped
+ * entirely, degrading to the compile-safe `Extract` guard. The component-ref
+ * boundary flag mirrors the only `resolveValue` path that lifts inline anyOf
+ * nullability outside the alias intersection. Parent allOf traversal also uses
+ * guaranteed properties on the parent or a sibling as proof that null cannot
+ * survive the full intersection.
+ */
+function collectDeepPropertyKeys(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+  crossesComponentRefBoundary = false,
+  nullBranchesEliminated = false,
+  seenRefs = new Set<string>(),
+): string[] {
+  const resolvesComponentRef =
+    crossesComponentRefBoundary || isReference(schema);
+  // Checked before dereferencing: `$ref`-site siblings (`nullable: true`,
+  // scalar or mixed `type`) can change the emission just like inline nodes.
+  if (
+    cannotGuaranteeAllOfPropertyKeys(
+      schema,
+      resolvesComponentRef,
+      nullBranchesEliminated,
+    )
+  ) {
+    return [];
+  }
+  if (isReference(schema)) {
+    const target = derefComponentSchema(schema.$ref, context, seenRefs);
+    return target
+      ? collectDeepPropertyKeys(
+          target,
+          context,
+          true,
+          nullBranchesEliminated,
+          seenRefs,
+        )
+      : [];
+  }
+  // Bridge assertion: properties is infected by AnyOtherAttribute
+  const properties = schema.properties as Record<string, unknown> | undefined;
+  const keys =
+    properties &&
+    !cannotGuaranteeOwnPropertyKeys(
+      schema,
+      context,
+      resolvesComponentRef,
+      nullBranchesEliminated,
+    )
+      ? Object.keys(properties)
+      : [];
+  const parentPropertiesEliminateNull = keys.length > 0;
+  const members = (schema.allOf ?? []) as (
+    | OpenApiSchemaObject
+    | OpenApiReferenceObject
+  )[];
+  const guaranteedObjectMembers = members.map((member) =>
+    guaranteesNonNullableObject(member, context),
+  );
+  for (const [index, member] of members.entries()) {
+    const hasObjectSibling = guaranteedObjectMembers.some(
+      (isGuaranteedObject, siblingIndex) =>
+        siblingIndex !== index && isGuaranteedObject,
+    );
+    keys.push(
+      ...collectDeepPropertyKeys(
+        member,
+        context,
+        false,
+        nullBranchesEliminated ||
+          parentPropertiesEliminateNull ||
+          hasObjectSibling,
+        seenRefs,
+      ),
+    );
+  }
+  return keys;
 }
 
 interface CombineValuesOptions {
@@ -238,9 +604,15 @@ function combineValues({
   }
 
   if (resolvedValue) {
-    return `(${values.join(` & ${resolvedValue.value}) | (`)} & ${
-      resolvedValue.value
-    })`;
+    const resolvedValueStr = resolvedValue.value.includes(' | ')
+      ? `(${resolvedValue.value})`
+      : resolvedValue.value;
+    return values
+      .map((value) => {
+        const valueStr = value.includes(' | ') ? `(${value})` : value;
+        return `(${valueStr} & ${resolvedValueStr})`;
+      })
+      .join(' | ');
   }
 
   return values.join(' | ');
@@ -363,12 +735,29 @@ export function combineSchemas({
       resolvedData.hasReadonlyProps = true;
     }
 
-    // Bridge: originalSchema.properties is infected by AnyOtherAttribute
-    const originalProps = resolvedValue.originalSchema.properties as
-      | Record<string, unknown>
-      | undefined;
-    if (resolvedValue.type === 'object' && originalProps) {
-      resolvedData.allProperties.push(...Object.keys(originalProps));
+    if (resolvedValue.type === 'object') {
+      if (separator === 'allOf' && !isReference(resolvedValue.originalSchema)) {
+        // Walk the member's allOf composition so required keys living behind
+        // a nested `$ref` count as resolvable (#3748). Union separators keep
+        // the shallow collection: their `allProperties` also feeds
+        // unionAddMissingProperties (#935), which must only see each member's
+        // own top-level keys.
+        resolvedData.allProperties.push(
+          ...collectDeepPropertyKeys(
+            resolvedValue.originalSchema,
+            context,
+            isReference(subSchema),
+          ),
+        );
+      } else {
+        // Bridge: originalSchema.properties is infected by AnyOtherAttribute
+        const originalProps = resolvedValue.originalSchema.properties as
+          | Record<string, unknown>
+          | undefined;
+        if (originalProps) {
+          resolvedData.allProperties.push(...Object.keys(originalProps));
+        }
+      }
     }
   }
 

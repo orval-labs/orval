@@ -82,6 +82,15 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  'regressions-oas31': {
+    input: '../specifications/regressions-oas31.yaml',
+    output: {
+      target: '../generated/default/regressions-oas31/endpoints.ts',
+      schemas: '../generated/default/regressions-oas31/model',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
   'null-type': {
     input: '../specifications/null-type.yaml',
     output: {
@@ -856,6 +865,15 @@ export default defineConfig({
     output: {
       target: '../generated/default/issue-3722/endpoints.ts',
       schemas: '../generated/default/issue-3722/model',
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
+  'issue-3748': {
+    input: '../specifications/issue-3748.yaml',
+    output: {
+      target: '../generated/default/issue-3748/endpoints.ts',
+      schemas: '../generated/default/issue-3748/model',
       clean: true,
       formatter: 'prettier',
     },

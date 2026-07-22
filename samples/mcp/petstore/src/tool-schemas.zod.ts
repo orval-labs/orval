@@ -21,11 +21,11 @@ export const FilterPetsByStatusQueryParams = zod.object({
 });
 
 export const FilterPetsByStatusBody = zod.object({
-  id: zod.number().optional(),
+  id: zod.int().optional(),
   name: zod.string(),
   category: zod
     .object({
-      id: zod.number().optional(),
+      id: zod.int().optional(),
       name: zod.string().optional(),
     })
     .optional(),
@@ -33,7 +33,7 @@ export const FilterPetsByStatusBody = zod.object({
   tags: zod
     .array(
       zod.object({
-        id: zod.number().optional(),
+        id: zod.int().optional(),
         name: zod.string().optional(),
       }),
     )
@@ -45,11 +45,11 @@ export const FilterPetsByStatusBody = zod.object({
 });
 
 export const FilterPetsByStatusResponseItem = zod.object({
-  id: zod.number().optional(),
+  id: zod.int().optional(),
   name: zod.string(),
   category: zod
     .object({
-      id: zod.number().optional(),
+      id: zod.int().optional(),
       name: zod.string().optional(),
     })
     .optional(),
@@ -57,7 +57,7 @@ export const FilterPetsByStatusResponseItem = zod.object({
   tags: zod
     .array(
       zod.object({
-        id: zod.number().optional(),
+        id: zod.int().optional(),
         name: zod.string().optional(),
       }),
     )
@@ -79,11 +79,11 @@ export const FindPetsByStatusQueryParams = zod.object({
 });
 
 export const FindPetsByStatusResponseItem = zod.object({
-  id: zod.number().optional(),
+  id: zod.int().optional(),
   name: zod.string(),
   category: zod
     .object({
-      id: zod.number().optional(),
+      id: zod.int().optional(),
       name: zod.string().optional(),
     })
     .optional(),
@@ -91,7 +91,7 @@ export const FindPetsByStatusResponseItem = zod.object({
   tags: zod
     .array(
       zod.object({
-        id: zod.number().optional(),
+        id: zod.int().optional(),
         name: zod.string().optional(),
       }),
     )
@@ -108,11 +108,11 @@ export const FindPetsByTagsQueryParams = zod.object({
 });
 
 export const FindPetsByTagsResponseItem = zod.object({
-  id: zod.number().optional(),
+  id: zod.int().optional(),
   name: zod.string(),
   category: zod
     .object({
-      id: zod.number().optional(),
+      id: zod.int().optional(),
       name: zod.string().optional(),
     })
     .optional(),
@@ -120,7 +120,7 @@ export const FindPetsByTagsResponseItem = zod.object({
   tags: zod
     .array(
       zod.object({
-        id: zod.number().optional(),
+        id: zod.int().optional(),
         name: zod.string().optional(),
       }),
     )
@@ -133,15 +133,15 @@ export const FindPetsByTagsResponseItem = zod.object({
 export const FindPetsByTagsResponse = zod.array(FindPetsByTagsResponseItem);
 
 export const GetPetByIdParams = zod.object({
-  petId: zod.number().describe('ID of pet to return'),
+  petId: zod.int().describe('ID of pet to return'),
 });
 
 export const GetPetByIdResponse = zod.object({
-  id: zod.number().optional(),
+  id: zod.int().optional(),
   name: zod.string(),
   category: zod
     .object({
-      id: zod.number().optional(),
+      id: zod.int().optional(),
       name: zod.string().optional(),
     })
     .optional(),
@@ -149,7 +149,7 @@ export const GetPetByIdResponse = zod.object({
   tags: zod
     .array(
       zod.object({
-        id: zod.number().optional(),
+        id: zod.int().optional(),
         name: zod.string().optional(),
       }),
     )
@@ -161,7 +161,7 @@ export const GetPetByIdResponse = zod.object({
 });
 
 export const UpdatePetWithFormParams = zod.object({
-  petId: zod.number().describe('ID of pet that needs to be updated'),
+  petId: zod.int().describe('ID of pet that needs to be updated'),
 });
 
 export const UpdatePetWithFormQueryParams = zod.object({
@@ -176,11 +176,11 @@ export const UpdatePetWithFormQueryParams = zod.object({
 });
 
 export const UpdatePetWithFormResponse = zod.object({
-  id: zod.number().optional(),
+  id: zod.int().optional(),
   name: zod.string(),
   category: zod
     .object({
-      id: zod.number().optional(),
+      id: zod.int().optional(),
       name: zod.string().optional(),
     })
     .optional(),
@@ -188,7 +188,7 @@ export const UpdatePetWithFormResponse = zod.object({
   tags: zod
     .array(
       zod.object({
-        id: zod.number().optional(),
+        id: zod.int().optional(),
         name: zod.string().optional(),
       }),
     )
@@ -200,7 +200,7 @@ export const UpdatePetWithFormResponse = zod.object({
 });
 
 export const DeletePetParams = zod.object({
-  petId: zod.number().describe('Pet id to delete'),
+  petId: zod.int().describe('Pet id to delete'),
 });
 
 export const DeletePetHeader = zod.object({
@@ -209,16 +209,16 @@ export const DeletePetHeader = zod.object({
 
 export const DeletePetResponse = zod.unknown();
 
-export const GetInventoryResponse = zod.record(zod.string(), zod.number());
+export const GetInventoryResponse = zod.record(zod.string(), zod.int());
 
 export const GetOrderByIdParams = zod.object({
-  orderId: zod.number().describe('ID of order that needs to be fetched'),
+  orderId: zod.int().describe('ID of order that needs to be fetched'),
 });
 
 export const GetOrderByIdResponse = zod.object({
-  id: zod.number().optional(),
-  petId: zod.number().optional(),
-  quantity: zod.number().optional(),
+  id: zod.int().optional(),
+  petId: zod.int().optional(),
+  quantity: zod.int().optional(),
   shipDate: zod.iso.datetime({ offset: true }).optional(),
   status: zod
     .enum(['placed', 'approved', 'delivered'])
@@ -228,7 +228,7 @@ export const GetOrderByIdResponse = zod.object({
 });
 
 export const DeleteOrderParams = zod.object({
-  orderId: zod.number().describe('ID of the order that needs to be deleted'),
+  orderId: zod.int().describe('ID of the order that needs to be deleted'),
 });
 
 export const DeleteOrderResponse = zod.unknown();
@@ -252,14 +252,14 @@ export const GetUserByNameParams = zod.object({
 });
 
 export const GetUserByNameResponse = zod.object({
-  id: zod.number().optional(),
+  id: zod.int().optional(),
   username: zod.string().optional(),
   firstName: zod.string().optional(),
   lastName: zod.string().optional(),
   email: zod.string().optional(),
   password: zod.string().optional(),
   phone: zod.string().optional(),
-  userStatus: zod.number().optional().describe('User Status'),
+  userStatus: zod.int().optional().describe('User Status'),
 });
 
 export const DeleteUserParams = zod.object({

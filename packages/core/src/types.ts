@@ -925,6 +925,15 @@ export interface ZodOptions extends BaseZodOptions {
    * Default `false` (opt-in), so existing output is unchanged.
    */
   generateDiscriminatedUnion?: boolean;
+  /**
+   * When true (zod v4 only), emits optional object properties with
+   * `.exactOptional()` (classic) / `zod.exactOptional()` (mini) instead of
+   * `.optional()`, so consumers with `exactOptionalPropertyTypes` infer
+   * `{ x?: T }` rather than `{ x?: T | undefined }`. On zod v3 (which has no
+   * `.exactOptional()`) this is a no-op and `.optional()` is emitted. Default
+   * `false` (opt-in), so existing output is unchanged.
+   */
+  exactOptional?: boolean;
 }
 
 /**
@@ -940,6 +949,12 @@ export interface EffectOptions {
   generate?: ZodOptions['generate'];
   generateEachHttpStatus?: boolean;
   useBrandedTypes?: boolean;
+  /**
+   * When true, emits optional Struct properties with
+   * `S.optionalWith(schema, { exact: true })` instead of `S.optional(schema)`,
+   * so `exactOptionalPropertyTypes` consumers infer `{ x?: T }`. Default `false`.
+   */
+  exactOptional?: boolean;
 }
 
 export type ZodCoerceType =
@@ -990,6 +1005,7 @@ export interface NormalizedZodOptions {
   generateReusableSchemas: boolean;
   generateMeta: boolean;
   generateDiscriminatedUnion: boolean;
+  exactOptional: boolean;
   dateTimeOptions: ZodDateTimeOptions;
   timeOptions: ZodTimeOptions;
 }
@@ -1004,6 +1020,7 @@ export interface NormalizedEffectOptions {
   generate: NormalizedZodOptions['generate'];
   generateEachHttpStatus: boolean;
   useBrandedTypes: boolean;
+  exactOptional: boolean;
 }
 
 /**

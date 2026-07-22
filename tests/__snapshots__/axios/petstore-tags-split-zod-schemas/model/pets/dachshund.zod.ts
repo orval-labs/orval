@@ -7,7 +7,7 @@
 import { z as zod } from 'zod';
 
 export const Dachshund = zod.object({
-  length: zod.number(),
+  length: zod.int(),
   breed: zod.enum(['Dachshund']),
 });
 

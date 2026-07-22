@@ -103,6 +103,7 @@ const createOutput = (
         generateReusableSchemas: false,
         generateMeta: false,
         generateDiscriminatedUnion: false,
+        exactOptional: false,
         useBrandedTypes: false,
         dateTimeOptions: {},
         timeOptions: {},
@@ -124,6 +125,7 @@ const createOutput = (
         },
         generateEachHttpStatus: false,
         useBrandedTypes: false,
+        exactOptional: false,
       },
       fetch: {
         includeHttpResponseReturnType: true,

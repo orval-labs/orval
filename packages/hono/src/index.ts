@@ -1,7 +1,7 @@
 import nodePath from 'node:path';
 
 import {
-  camel,
+  camelPathParamName,
   type ClientBuilder,
   type ClientExtraFilesBuilder,
   type ClientFooterBuilder,
@@ -24,8 +24,9 @@ import {
   type NormalizedMutator,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
+  getKey,
   pascal,
-  sanitize,
+  sanitizePathParamName,
   getImportExtension,
   type Tsconfig,
   upath,
@@ -730,12 +731,14 @@ const getContext = (verbOption: GeneratorVerbOptions) => {
   if (verbOption.params.length > 0) {
     const params = getParamsInPath(verbOption.pathRoute).map((name) => {
       const param = verbOption.params.find(
-        (p) => p.name === sanitize(camel(name), { es5keyword: true }),
+        (p) => p.name === camelPathParamName(name),
       );
       const definition = param?.definition.split(':')[1];
       const required = param?.required ?? false;
+      // The key must be the same name the emitted route uses (`:name`), which
+      // is the sanitized spec name — that is the key Hono's runtime exposes.
       return {
-        definition: `${name}${required ? '' : '?'}:${definition}`,
+        definition: `${getKey(sanitizePathParamName(name))}${required ? '' : '?'}:${definition}`,
       };
     });
     paramType = `param: {\n ${params

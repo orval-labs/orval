@@ -133,7 +133,7 @@ export const getListPetsUrl = (params?: ListPetsParams) => {
  */
 export const listPets = async (
   params?: ListPetsParams,
-  options?: RequestInit,
+  options?: Parameters<typeof customFetch>[1],
 ): Promise<listPetsResponse> => {
   return customFetch<listPetsResponse>(getListPetsUrl(params), {
     ...options,
@@ -249,7 +249,7 @@ export const getCreatePetsUrl = () => {
  */
 export const createPets = async (
   createPetsBodyItem: CreatePetsBodyItem[],
-  options?: RequestInit,
+  options?: Parameters<typeof customFetch>[1],
 ): Promise<createPetsResponse> => {
   return customFetch<createPetsResponse>(getCreatePetsUrl(), {
     ...options,
@@ -355,7 +355,7 @@ export const getUpdatePetsUrl = () => {
  */
 export const updatePets = async (
   pet: NonReadonly<Pet>,
-  options?: RequestInit,
+  options?: Parameters<typeof customFetch>[1],
 ): Promise<updatePetsResponse> => {
   return customFetch<updatePetsResponse>(getUpdatePetsUrl(), {
     ...options,
@@ -461,7 +461,7 @@ export const getShowPetByIdUrl = (petId: string) => {
  */
 export const showPetById = async (
   petId: string,
-  options?: RequestInit,
+  options?: Parameters<typeof customFetch>[1],
 ): Promise<showPetByIdResponse> => {
   return customFetch<showPetByIdResponse>(getShowPetByIdUrl(petId), {
     ...options,

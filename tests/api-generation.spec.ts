@@ -1457,6 +1457,176 @@ test('default issue-3722 avoids invalid Required<Pick> for ghost keys', async ()
   expect(petTagInfo).not.toMatch(/^\s+tagId:/m);
 });
 
+test('default issue-3748 keeps plain Required<Pick> for keys behind a nested allOf $ref', async () => {
+  const itemDetail = await readFile(
+    generated('default', 'issue-3748', 'model', 'itemDetail.ts'),
+    'utf8',
+  );
+
+  // Keys resolved two $ref hops away (ItemDetail -> ItemBase -> Contents) must
+  // not fall into the Extract guard: the additionalProperties index signature
+  // collapses `Extract<keyof T, ...>` to `never`, silently dropping the
+  // required override.
+  expect(itemDetail).toMatch(/'id' \| 'name'/);
+  expect(itemDetail).toContain('Required<');
+  expect(itemDetail).not.toContain('Extract<');
+});
+
+test('default regressions collect only guaranteed keys through nested allOf refs', async () => {
+  const unionItem = await readFile(
+    generated('default', 'regressions', 'model', 'unionItem.ts'),
+    'utf8',
+  );
+  const scalarItem = await readFile(
+    generated('default', 'regressions', 'model', 'scalarItem.ts'),
+    'utf8',
+  );
+  const nestedUnionItem = await readFile(
+    generated('default', 'regressions', 'model', 'nestedUnionItem.ts'),
+    'utf8',
+  );
+  const nestedComposedUnionItem = await readFile(
+    generated(
+      'default',
+      'regressions',
+      'model',
+      'nestedComposedUnionItem.ts',
+    ),
+    'utf8',
+  );
+  const directScalarUnionItem = await readFile(
+    generated('default', 'regressions', 'model', 'directScalarUnionItem.ts'),
+    'utf8',
+  );
+  const refMemberUnionItem = await readFile(
+    generated('default', 'regressions', 'model', 'refMemberUnionItem.ts'),
+    'utf8',
+  );
+  const enumUnionItem = await readFile(
+    generated('default', 'regressions', 'model', 'enumUnionItem.ts'),
+    'utf8',
+  );
+  const siblingEnumItem = await readFile(
+    generated('default', 'regressions', 'model', 'siblingEnumItem.ts'),
+    'utf8',
+  );
+  const canonicalNullableOneOfItem = await readFile(
+    generated(
+      'default',
+      'regressions-oas31',
+      'model',
+      'canonicalNullableOneOfItem.ts',
+    ),
+    'utf8',
+  );
+  const canonicalNullableOneOfSiblingItem = await readFile(
+    generated(
+      'default',
+      'regressions-oas31',
+      'model',
+      'canonicalNullableOneOfSiblingItem.ts',
+    ),
+    'utf8',
+  );
+  const inlineNullableAnyOfItem = await readFile(
+    generated(
+      'default',
+      'regressions-oas31',
+      'model',
+      'inlineNullableAnyOfItem.ts',
+    ),
+    'utf8',
+  );
+  const allEnumSiblingItem = await readFile(
+    generated('default', 'regressions', 'model', 'allEnumSiblingItem.ts'),
+    'utf8',
+  );
+  const nullableAllOfMemberItem = await readFile(
+    generated(
+      'default',
+      'regressions',
+      'model',
+      'nullableAllOfMemberItem.ts',
+    ),
+    'utf8',
+  );
+  const nullableParentItem = await readFile(
+    generated('default', 'regressions', 'model', 'nullableParentItem.ts'),
+    'utf8',
+  );
+
+  expect(unionItem).toContain("'id'");
+  expect(unionItem).toContain('Required<');
+  expect(unionItem).not.toContain('Extract<');
+
+  expect(scalarItem).toContain("Extract<keyof ScalarWrapper, 'id'>");
+  expect(scalarItem).not.toContain("Pick<ScalarWrapper, 'id'>");
+
+  expect(nestedUnionItem).toContain(
+    "Extract<keyof NestedUnionWrapper, 'id'>",
+  );
+  expect(nestedUnionItem).not.toContain(
+    "Pick<NestedUnionWrapper, 'id'>",
+  );
+
+  expect(nestedComposedUnionItem).toContain(
+    "Pick<NestedComposedUnionWrapper, 'id'>",
+  );
+  expect(nestedComposedUnionItem).not.toContain('Extract<');
+
+  expect(directScalarUnionItem).toContain(
+    "Pick<DirectScalarUnionWrapper, 'id'>",
+  );
+  expect(directScalarUnionItem).not.toContain('Extract<');
+
+  expect(refMemberUnionItem).toContain(
+    "Pick<RefMemberUnionWrapper, 'id'>",
+  );
+  expect(refMemberUnionItem).not.toContain('Extract<');
+
+  expect(enumUnionItem).toContain(
+    "Extract<keyof EnumUnionWrapper, 'id'>",
+  );
+  expect(enumUnionItem).not.toContain("Pick<EnumUnionWrapper, 'id'>");
+
+  expect(siblingEnumItem).toContain(
+    "Extract<keyof SiblingEnumWrapper, 'id'>",
+  );
+  expect(siblingEnumItem).not.toContain("Pick<SiblingEnumWrapper, 'id'>");
+
+  expect(canonicalNullableOneOfItem).toContain(
+    "Extract<keyof CanonicalNullableOneOfWrapper, 'id'>",
+  );
+  expect(canonicalNullableOneOfItem).not.toContain(
+    "Pick<CanonicalNullableOneOfWrapper, 'id'>",
+  );
+
+  expect(canonicalNullableOneOfSiblingItem).toContain(
+    "Pick<CanonicalNullableOneOfSiblingWrapper, 'id'>",
+  );
+  expect(canonicalNullableOneOfSiblingItem).not.toContain('Extract<');
+
+  expect(inlineNullableAnyOfItem).toContain(
+    "Pick<InlineNullableAnyOfWrapper, 'id'>",
+  );
+  expect(inlineNullableAnyOfItem).not.toContain('Extract<');
+
+  expect(allEnumSiblingItem).toContain(
+    "Pick<AllEnumSiblingWrapper, 'id'>",
+  );
+  expect(allEnumSiblingItem).not.toContain('Extract<');
+
+  expect(nullableAllOfMemberItem).toContain(
+    "Pick<NullableAllOfMemberWrapper, 'id'>",
+  );
+  expect(nullableAllOfMemberItem).not.toContain('Extract<');
+
+  expect(nullableParentItem).toContain(
+    "Pick<NullableParentWrapper, 'id'>",
+  );
+  expect(nullableParentItem).not.toContain('Extract<');
+});
+
 test('zod issue-3505 enum values with backslashes are JS-escaped', async () => {
   const content = await readFile(
     generated('zod', 'issue-3505', 'issue-3505.ts'),

@@ -10,7 +10,7 @@ import * as zod from 'zod';
  * @summary Example
  */
 export const GetExampleResponse = zod.object({
-  id: zod.number().optional(),
+  id: zod.int().optional(),
   name: zod.string().optional(),
   child: zod.unknown().optional(),
 });
@@ -19,7 +19,7 @@ export const GetExampleResponse = zod.object({
  * @summary Node with required child
  */
 export const GetNodeWithRequiredChildResponse = zod.object({
-  id: zod.number(),
+  id: zod.int(),
   name: zod.string(),
   child: zod.unknown(),
 });

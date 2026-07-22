@@ -7,14 +7,14 @@
 import * as zod from 'zod';
 
 export const PostPetsResponse = zod.object({
-  id: zod.number(),
+  id: zod.int(),
   file: zod
     .object({
-      id: zod.number(),
+      id: zod.int(),
     })
     .optional(),
 });
 
 export const GetPetsResponse = zod.object({
-  id: zod.number(),
+  id: zod.int(),
 });

@@ -7,7 +7,7 @@
 import { z as zod } from 'zod';
 
 export const Error = zod.object({
-  "code": zod.number(),
+  "code": zod.int(),
   "message": zod.string()
 })
 

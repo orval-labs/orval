@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -19,7 +19,7 @@ vi.mock('@orval/core', async (importOriginal) => {
 import { normalizeOptions } from './options';
 
 const createTempWorkspace = async () => {
-  return mkdtemp(path.join(os.tmpdir(), 'orval-options-'));
+  return realpath(await mkdtemp(path.join(os.tmpdir(), 'orval-options-')));
 };
 
 describe('normalizeOptions', () => {
@@ -782,6 +782,45 @@ describe('normalizeOptions', () => {
         importPath: '@acme/models',
         splitByTags: false,
       });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('normalizes zod/effect exactOptional (default false, opt-in true)', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const input = {
+        target: {
+          openapi: '3.1.0',
+          info: { title: 'Test', version: '1.0.0' },
+          paths: {},
+        },
+      };
+
+      const defaults = await normalizeOptions(
+        { input, output: { target: './generated.ts' } },
+        workspace,
+      );
+      expect(defaults.output.override.zod.exactOptional).toBe(false);
+      expect(defaults.output.override.effect.exactOptional).toBe(false);
+
+      const enabled = await normalizeOptions(
+        {
+          input,
+          output: {
+            target: './generated.ts',
+            override: {
+              zod: { exactOptional: true },
+              effect: { exactOptional: true },
+            },
+          },
+        },
+        workspace,
+      );
+      expect(enabled.output.override.zod.exactOptional).toBe(true);
+      expect(enabled.output.override.effect.exactOptional).toBe(true);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }

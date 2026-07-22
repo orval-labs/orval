@@ -7,7 +7,7 @@
 import { z as zod } from 'zod';
 
 export const Cat = zod.object({
-  petsRequested: zod.number().optional(),
+  petsRequested: zod.number().int().optional(),
   type: zod.enum(['cat']),
 });
 

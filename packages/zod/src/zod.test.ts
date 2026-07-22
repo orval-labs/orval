@@ -205,6 +205,70 @@ describe('parseZodValidationSchemaDefinition', () => {
     );
   });
 
+  it('renders zod mini integer bounds as numeric checks', () => {
+    const parseResult = parseZodValidationSchemaDefinition(
+      {
+        functions: [
+          ['int', undefined],
+          ['min', 'ageMin'],
+          ['max', 'ageMax'],
+          ['multipleOf', 'ageMultipleOf'],
+          ['optional', undefined],
+        ],
+        consts: [],
+      },
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      false,
+      false,
+      true,
+      undefined,
+      undefined,
+      'mini',
+    );
+
+    expect(parseResult.zod).toBe(
+      '/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.int().check(/*#__PURE__*/ zod.gte(ageMin)).check(/*#__PURE__*/ zod.lte(ageMax)).check(/*#__PURE__*/ zod.multipleOf(ageMultipleOf)))',
+    );
+  });
+
+  it('renders zod mini coerced integer bounds as checks on the pipe', () => {
+    const parseResult = parseZodValidationSchemaDefinition(
+      {
+        functions: [
+          ['int', undefined],
+          ['min', 'ageMin'],
+          ['max', 'ageMax'],
+          ['multipleOf', 'ageMultipleOf'],
+          ['optional', undefined],
+        ],
+        consts: [],
+      },
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpec,
+      true,
+      false,
+      true,
+      undefined,
+      undefined,
+      'mini',
+    );
+
+    expect(parseResult.zod).toBe(
+      '/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.pipe(/*#__PURE__*/ zod.coerce.number(), /*#__PURE__*/ zod.int()).check(/*#__PURE__*/ zod.gte(ageMin)).check(/*#__PURE__*/ zod.lte(ageMax)).check(/*#__PURE__*/ zod.multipleOf(ageMultipleOf)))',
+    );
+  });
+
   it('renders zod mini allOf fallback as intersections', () => {
     const parseResult = parseZodValidationSchemaDefinition(
       {
@@ -461,6 +525,80 @@ describe('parseZodValidationSchemaDefinition with params injection', () => {
     );
     expect(zod).toContain(
       '.max(120, zodParams({"operationId":"createUser","location":"body","schemaName":"CreateUserBody","fieldPath":["age"],"validator":"max"}))',
+    );
+  });
+
+  it('injects integer params on the int validator for every target', () => {
+    const input: ZodValidationSchemaDefinition = {
+      functions: [
+        ['int', undefined],
+        ['optional', undefined],
+      ],
+      consts: [],
+    };
+    const params =
+      'zodParams({"operationId":"createUser","location":"body","schemaName":"CreateUserBody","fieldPath":[],"validator":"int"})';
+    const numberParams =
+      'zodParams({"operationId":"createUser","location":"body","schemaName":"CreateUserBody","fieldPath":[],"validator":"number"})';
+
+    expect(
+      parseZodValidationSchemaDefinition(
+        input,
+        ctx,
+        false,
+        false,
+        false,
+        undefined,
+        makeInjection(),
+      ).zod,
+    ).toBe(`zod.number(${numberParams}).int(${params}).optional()`);
+    expect(
+      parseZodValidationSchemaDefinition(
+        input,
+        ctx,
+        true,
+        false,
+        true,
+        undefined,
+        makeInjection(),
+      ).zod,
+    ).toBe(`zod.coerce.number(${numberParams}).int(${params}).optional()`);
+    expect(
+      parseZodValidationSchemaDefinition(
+        input,
+        ctx,
+        false,
+        false,
+        true,
+        undefined,
+        makeInjection(),
+      ).zod,
+    ).toBe(`zod.int(${params}).optional()`);
+    expect(
+      parseZodValidationSchemaDefinition(
+        input,
+        ctx,
+        false,
+        false,
+        true,
+        undefined,
+        makeInjection(),
+        'mini',
+      ).zod,
+    ).toBe(`/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.int(${params}))`);
+    expect(
+      parseZodValidationSchemaDefinition(
+        input,
+        ctx,
+        true,
+        false,
+        true,
+        undefined,
+        makeInjection(),
+        'mini',
+      ).zod,
+    ).toBe(
+      `/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.pipe(/*#__PURE__*/ zod.coerce.number(${numberParams}), /*#__PURE__*/ zod.int(${params})))`,
     );
   });
 
@@ -3532,6 +3670,112 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
       );
       expect(parsed.zod).toBe('zod.number().optional()');
+    });
+    it('generates native integer schemas for each supported Zod target', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'integer',
+      };
+
+      const resultV3 = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testInteger',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(resultV3).toEqual({
+        functions: [
+          ['int', undefined],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+      expect(
+        parseZodValidationSchemaDefinition(
+          resultV3,
+          context,
+          false,
+          false,
+          false,
+        ).zod,
+      ).toBe('zod.number().int().optional()');
+
+      const resultV4 = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testInteger',
+        false,
+        true,
+        { required: false },
+      );
+
+      expect(resultV4).toEqual({
+        functions: [
+          ['int', undefined],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+      expect(
+        parseZodValidationSchemaDefinition(
+          resultV4,
+          context,
+          false,
+          false,
+          true,
+        ).zod,
+      ).toBe('zod.int().optional()');
+      expect(
+        parseZodValidationSchemaDefinition(
+          resultV4,
+          context,
+          false,
+          false,
+          true,
+          undefined,
+          undefined,
+          'mini',
+        ).zod,
+      ).toBe('/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.int())');
+      expect(
+        parseZodValidationSchemaDefinition(resultV4, context, true, false, true)
+          .zod,
+      ).toBe('zod.coerce.number().int().optional()');
+      expect(
+        parseZodValidationSchemaDefinition(
+          resultV4,
+          context,
+          true,
+          false,
+          true,
+          undefined,
+          undefined,
+          'mini',
+        ).zod,
+      ).toBe(
+        '/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.pipe(/*#__PURE__*/ zod.coerce.number(), /*#__PURE__*/ zod.int()))',
+      );
+    });
+    it('coerces integer schemas on the Zod v3 target', () => {
+      const schema: OpenApiSchemaObject = {
+        type: 'integer',
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testCoercedInteger',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(
+        parseZodValidationSchemaDefinition(result, context, true, false, false)
+          .zod,
+      ).toBe('zod.coerce.number().int().optional()');
     });
     it('generates an number with min', () => {
       const schema: OpenApiSchemaObject = {
@@ -6701,7 +6945,7 @@ describe('generateZod required defaults regression (#2987)', () => {
       /"number": zod\.number\(\)\.default\(getGizmoResponseNumberDefault\)/,
     );
     expect(result.implementation).toMatch(
-      /"integer": zod\.number\(\)\.default\(getGizmoResponseIntegerDefault\)/,
+      /"integer": zod\.int\(\)\.default\(getGizmoResponseIntegerDefault\)/,
     );
     expect(result.implementation).toMatch(
       /"nullableString": zod\.string\(\)\.nullish\(\)\.default\(getGizmoResponseNullableStringDefault\)/,
@@ -6854,9 +7098,9 @@ describe('generateZodWithMultiTypeArray', () => {
     );
 
     expect(parsed.zod).toContain('zod.union([');
-    expect(parsed.zod).toContain('zod.number()');
+    expect(parsed.zod).toContain('zod.int()');
     expect(parsed.zod).not.toMatch(
-      /zod\.number\(\)[^,\]]*\.(?:stringFormat|regex)\(/,
+      /zod\.int\(\)[^,\]]*\.(?:stringFormat|regex)\(/,
     );
     expect(parsed.zod.match(/\.stringFormat\(/g) ?? []).toHaveLength(1);
   });
@@ -11486,6 +11730,31 @@ describe('enum/const value escaping (#3505)', () => {
       'export const testDateDefaultDefault = new Date("2024-01-01T00:00:00Z");',
     ]);
   });
+
+  it.each([
+    ['test', ['literal', '"test"'], 'string'],
+    [42, ['literal', 42], 'number'],
+    [true, ['literal', true], 'boolean'],
+    [null, ['literal', null], 'null'],
+  ] as const)(
+    'infers type from const value when type is not specified (%s)',
+    (constValue, expectedFunction, typeName) => {
+      const schema = {
+        const: constValue,
+      } as OpenApiSchemaObject;
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        `testConst${typeName}Inferred`,
+        false,
+        false,
+        { required: true },
+      );
+
+      expect(result.functions).toContainEqual(expectedFunction);
+    },
+  );
 });
 
 // `oneOf`/`anyOf` + `discriminator` should map onto `zod.discriminatedUnion`,
@@ -11797,5 +12066,83 @@ describe('discriminated unions (#1907, #2085)', () => {
       discriminator: { propertyName: "kind'x" },
     } as OpenApiSchemaObject);
     expect(result).toContain("zod.discriminatedUnion('kind\\'x', [");
+  });
+});
+
+// `exactOptional` swaps `.optional()` for zod v4's `.exactOptional()` (classic)
+// / `zod.exactOptional()` (mini) so optional properties infer `{ x?: T }` under
+// `exactOptionalPropertyTypes`. Opt-in and zod v4 only; v3 has no such method.
+describe('exactOptional (opt-in)', () => {
+  const context = {
+    output: { override: { useDates: false } },
+  } as ContextSpec;
+
+  const optionalString: ZodValidationSchemaDefinition = {
+    functions: [
+      ['string', undefined],
+      ['optional', undefined],
+    ],
+    consts: [],
+  };
+
+  const parse = (
+    definition: ZodValidationSchemaDefinition,
+    {
+      isZodV4 = true,
+      variant = 'classic' as 'classic' | 'mini',
+      exactOptional = false,
+    } = {},
+  ) =>
+    parseZodValidationSchemaDefinition(
+      definition,
+      context,
+      false,
+      false,
+      isZodV4,
+      undefined,
+      undefined,
+      variant,
+      exactOptional,
+    ).zod;
+
+  it('emits .exactOptional() on zod v4 classic when enabled', () => {
+    expect(parse(optionalString, { exactOptional: true })).toBe(
+      'zod.string().exactOptional()',
+    );
+  });
+
+  it('emits .optional() on classic by default', () => {
+    expect(parse(optionalString)).toBe('zod.string().optional()');
+  });
+
+  it('emits zod.exactOptional() on zod mini when enabled', () => {
+    expect(
+      parse(optionalString, { variant: 'mini', exactOptional: true }),
+    ).toBe('/*#__PURE__*/ zod.exactOptional(/*#__PURE__*/ zod.string())');
+  });
+
+  it('emits zod.optional() on mini by default', () => {
+    expect(parse(optionalString, { variant: 'mini' })).toBe(
+      '/*#__PURE__*/ zod.optional(/*#__PURE__*/ zod.string())',
+    );
+  });
+
+  it('no-ops on zod v3, emitting .optional()', () => {
+    expect(parse(optionalString, { isZodV4: false, exactOptional: true })).toBe(
+      'zod.string().optional()',
+    );
+  });
+
+  it('narrows only optional, leaving .nullish() untouched', () => {
+    const nullishString: ZodValidationSchemaDefinition = {
+      functions: [
+        ['string', undefined],
+        ['nullish', undefined],
+      ],
+      consts: [],
+    };
+    expect(parse(nullishString, { exactOptional: true })).toBe(
+      'zod.string().nullish()',
+    );
   });
 });

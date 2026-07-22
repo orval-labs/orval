@@ -18,8 +18,20 @@ import {
 describe('getRoute getter', () => {
   for (const [input, expected] of [
     ['/api/test/{id}', '/api/test/${id}'],
+    // A malformed spec path without a leading slash is normalized.
+    ['api/test/{id}', '/api/test/${id}'],
     ['/api/test/{path*}', '/api/test/${path}'],
     ['/api/test/{user_id}', '/api/test/${userId}'],
+    // Matches the identifier generated for the function argument
+    // (camelPathParamName), which strips the leading underscore.
+    ['/api/test/{_id}', '/api/test/${id}'],
+    ['/api/test/{scope.id}', '/api/test/${scopeId}'],
+    // A malformed empty `{}` stays literal instead of emitting `${}`.
+    ['/api/test/{}/x', '/api/test/{}/x'],
+    [
+      '/api/v1/{scope.id}/items/{item.name}',
+      '/api/v1/${scopeId}/items/${itemName}',
+    ],
     ['/api/test/{locale}.js', '/api/test/${locale}.js'],
     ['/api/test/i18n-{locale}.js', '/api/test/i18n-${locale}.js'],
     ['/api/test/{param1}-{param2}.js', '/api/test/${param1}-${param2}.js'],

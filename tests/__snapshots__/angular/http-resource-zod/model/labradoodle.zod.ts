@@ -7,7 +7,7 @@
 import { z as zod } from 'zod';
 
 export const Labradoodle = zod.object({
-  "cuteness": zod.number(),
+  "cuteness": zod.int(),
   "breed": zod.enum(['Labradoodle'])
 })
 

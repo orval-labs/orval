@@ -130,6 +130,7 @@ function createMockContext(): ContextSpec {
           generateReusableSchemas: false,
           generateMeta: false,
           generateDiscriminatedUnion: false,
+          exactOptional: false,
           dateTimeOptions: {},
           timeOptions: { precision: 3 },
         },
@@ -150,6 +151,7 @@ function createMockContext(): ContextSpec {
           },
           generateEachHttpStatus: false,
           useBrandedTypes: false,
+          exactOptional: false,
         },
         fetch: {
           includeHttpResponseReturnType: false,

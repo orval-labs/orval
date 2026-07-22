@@ -25,7 +25,7 @@ export const petsItemPhoneRegExp = new RegExp('^\\+?[1-9]\\d{1,14}$');
 export const Pets = zod
   .array(
     zod.object({
-      id: zod.number().min(1).describe('Unique identifier for the pet'),
+      id: zod.int().min(1).describe('Unique identifier for the pet'),
       name: zod
         .string()
         .min(1)
@@ -43,7 +43,7 @@ export const Pets = zod
         .default(petsItemStatusDefault)
         .describe('Current adoption status'),
       age: zod
-        .number()
+        .int()
         .min(petsItemAgeMin)
         .max(petsItemAgeMax)
         .optional()

@@ -9,7 +9,7 @@ import * as zod from 'zod';
 import { CreateStoreBody, Store, StoreList } from '../model';
 
 export const ListStoresQueryParams = zod.object({
-  limit: zod.number().optional(),
+  limit: zod.int().optional(),
   sort: zod.enum(['asc', 'desc']).optional(),
 });
 
