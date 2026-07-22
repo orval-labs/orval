@@ -113,6 +113,27 @@ components:
         - id
       allOf:
         - $ref: '#/components/schemas/NestedComposedUnionWrapper'
+    DirectScalarUnionBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      anyOf:
+        - type: string
+        - type: object
+          properties:
+            right:
+              type: string
+    DirectScalarUnionWrapper:
+      allOf:
+        - $ref: '#/components/schemas/DirectScalarUnionBase'
+    DirectScalarUnionItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/DirectScalarUnionWrapper'
 paths:
   /endpointA:
     get:

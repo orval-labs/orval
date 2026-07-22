@@ -123,22 +123,7 @@ function normalizeAllOfSchema(
   } as OpenApiSchemaObject;
 }
 
-/**
- * True when a schema node is not guaranteed to emit a single object shape.
- * Property keys collected from nullable, enum, scalar, array, or mixed-type
- * nodes may be absent from `keyof` of the emitted type, so a plain
- * `Required<Pick<T, 'k'>>` could fail with TS2344. A missing type and the OAS
- * 3.1 singleton `type: ['object']` spelling remain object-capable.
- *
- * Plain object anyOf/oneOf members remain safe because `combineSchemas`
- * intersects a node's own properties into every emitted union branch. A direct
- * member that emits a non-object value can propagate it to the referenced
- * wrapper, where the top-level keys are no longer guaranteed in `keyof`.
- * Nested unions are not followed: their values are grouped before intersecting
- * the node's own properties, and their nullability is not propagated to the
- * wrapper. `collectDeepPropertyKeys` never collects properties from union
- * members.
- */
+/** True when the schema node itself is not a single object shape. */
 function directlyEmitsNonObjectType(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
 ): boolean {
@@ -157,23 +142,38 @@ function directlyEmitsNonObjectType(
   return false;
 }
 
-function mayEmitNonObjectType(
+function isDirectlyNullable(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+): boolean {
+  if ((schema.nullable as boolean | undefined) === true) {
+    return true;
+  }
+  const type = schema.type as string | string[] | undefined;
+  return type === 'null' || (Array.isArray(type) && type.includes('null'));
+}
+
+/**
+ * True when this node's property keys are not guaranteed in `keyof` of the
+ * referenced output. Nullable, enum, scalar, array, or mixed-type nodes fail
+ * directly; a missing type and OAS 3.1 `type: ['object']` remain object-capable.
+ *
+ * anyOf/oneOf members otherwise remain safe because `combineSchemas`
+ * intersects the node's own properties into every grouped branch. The exception
+ * is direct nullability in an anyOf member: `resolveValue` propagates it to the
+ * referenced wrapper as a separate `| null`. Non-null scalars, oneOf members,
+ * and nested unions stay inside the grouped intersection.
+ */
+function cannotGuaranteePropertyKeys(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
 ): boolean {
   if (directlyEmitsNonObjectType(schema)) {
     return true;
   }
-  const unionMembers = [
-    ...((schema.anyOf ?? []) as (
-      | OpenApiSchemaObject
-      | OpenApiReferenceObject
-    )[]),
-    ...((schema.oneOf ?? []) as (
-      | OpenApiSchemaObject
-      | OpenApiReferenceObject
-    )[]),
-  ];
-  return unionMembers.some((member) => directlyEmitsNonObjectType(member));
+  const anyOfMembers = (schema.anyOf ?? []) as (
+    | OpenApiSchemaObject
+    | OpenApiReferenceObject
+  )[];
+  return anyOfMembers.some((member) => isDirectlyNullable(member));
 }
 
 /**
@@ -210,7 +210,7 @@ function derefComponentSchema(
     }
     if (isReference(target)) {
       // Intermediate chain hops can carry non-object-producing siblings too
-      if (mayEmitNonObjectType(target)) {
+      if (cannotGuaranteePropertyKeys(target)) {
         return undefined;
       }
       current = target.$ref;
@@ -240,7 +240,7 @@ function collectDeepPropertyKeys(
 ): string[] {
   // Checked before dereferencing: `$ref`-site siblings (`nullable: true`,
   // scalar or mixed `type`) can change the emission just like inline nodes.
-  if (mayEmitNonObjectType(schema)) {
+  if (cannotGuaranteePropertyKeys(schema)) {
     return [];
   }
   if (isReference(schema)) {

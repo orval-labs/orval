@@ -473,9 +473,12 @@ describe('combineSchemas (allOf required handling)', () => {
     },
   );
 
-  it.each(['anyOf', 'oneOf'] as const)(
-    'keeps Extract guard when a %s member emits a nested union',
-    (unionKeyword) => {
+  it.each([
+    ['anyOf', true],
+    ['oneOf', false],
+  ] as const)(
+    'guards only propagated nullability from a direct %s member',
+    (unionKeyword, propagatesNullability) => {
       const contextWithNestedUnion = {
         ...context,
         spec: {
@@ -521,10 +524,15 @@ describe('combineSchemas (allOf required handling)', () => {
         nullable: '',
       });
 
-      expect(result.value).toContain(
-        "Extract<keyof (NestedUnionWrapper), 'id'>",
-      );
-      expect(result.value).not.toContain("Pick<NestedUnionWrapper, 'id'>>");
+      if (propagatesNullability) {
+        expect(result.value).toContain(
+          "Extract<keyof (NestedUnionWrapper), 'id'>",
+        );
+        expect(result.value).not.toContain("Pick<NestedUnionWrapper, 'id'>>");
+      } else {
+        expect(result.value).toContain("Pick<NestedUnionWrapper, 'id'>>");
+        expect(result.value).not.toContain('Extract<');
+      }
 
       const unionBase = combineSchemas({
         schema: contextWithNestedUnion.spec.components!.schemas!
@@ -609,6 +617,67 @@ describe('combineSchemas (allOf required handling)', () => {
 
       expect(unionBase.value).toContain(' | null) & {');
       expect(unionBase.value).not.toContain(' | null & {');
+    },
+  );
+
+  it.each(['anyOf', 'oneOf'] as const)(
+    'collects top-level properties when a %s member is a non-null scalar',
+    (unionKeyword) => {
+      const contextWithDirectScalarUnion = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              ...context.spec.components!.schemas,
+              DirectScalarUnionBase: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                },
+                additionalProperties: true,
+                [unionKeyword]: [
+                  { type: 'string' },
+                  {
+                    type: 'object',
+                    properties: { right: { type: 'string' } },
+                  },
+                ],
+              },
+              DirectScalarUnionWrapper: {
+                allOf: [{ $ref: '#/components/schemas/DirectScalarUnionBase' }],
+              },
+            },
+          },
+        },
+      } as unknown as ContextSpec;
+
+      const schema: OpenApiSchemaObject = {
+        type: 'object',
+        required: ['id'],
+        allOf: [{ $ref: '#/components/schemas/DirectScalarUnionWrapper' }],
+      };
+
+      const result = combineSchemas({
+        schema,
+        name: 'DirectScalarUnionItem',
+        separator: 'allOf',
+        context: contextWithDirectScalarUnion,
+        nullable: '',
+      });
+
+      expect(result.value).toContain("Pick<DirectScalarUnionWrapper, 'id'>>");
+      expect(result.value).not.toContain('Extract<');
+
+      const unionBase = combineSchemas({
+        schema: contextWithDirectScalarUnion.spec.components!.schemas!
+          .DirectScalarUnionBase as OpenApiSchemaObject,
+        name: 'DirectScalarUnionBase',
+        separator: unionKeyword,
+        context: contextWithDirectScalarUnion,
+        nullable: '',
+      });
+
+      expect(unionBase.value).toContain('(string & {');
     },
   );
 

@@ -7,6 +7,9 @@
 
 export * from './arrayTest';
 export * from './blankSchema';
+export * from './directScalarUnionBase';
+export * from './directScalarUnionItem';
+export * from './directScalarUnionWrapper';
 export * from './nestedComposedUnionBase';
 export * from './nestedComposedUnionItem';
 export * from './nestedComposedUnionWrapper';

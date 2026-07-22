@@ -1,3 +1,4 @@
+import type { DirectScalarUnionItem } from '../generated/default/regressions/model/directScalarUnionItem';
 import type { NestedComposedUnionItem } from '../generated/default/regressions/model/nestedComposedUnionItem';
 import type { NestedUnionItem } from '../generated/default/regressions/model/nestedUnionItem';
 import type { ScalarItem } from '../generated/default/regressions/model/scalarItem';
@@ -25,8 +26,17 @@ const nestedComposedUnionItem: NestedComposedUnionItem = { id: 'id' };
 // @ts-expect-error - id must not silently become optional.
 const nestedComposedUnionItemWithoutId: NestedComposedUnionItem = {};
 
+const directScalarUnionItem: DirectScalarUnionItem = { id: 'id' };
+
+// A direct non-null scalar member is intersected with the parent's properties
+// and does not add a separate scalar branch to the referenced wrapper.
+// @ts-expect-error - id must not silently become optional.
+const directScalarUnionItemWithoutId: DirectScalarUnionItem = {};
+
 void unionItem;
 void unionItemWithoutId;
 void scalarItem;
 void nestedComposedUnionItem;
 void nestedComposedUnionItemWithoutId;
+void directScalarUnionItem;
+void directScalarUnionItemWithoutId;
