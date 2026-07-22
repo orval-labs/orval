@@ -1112,6 +1112,64 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(wrapper.value).toContain('(NullableAllOfMemberBase | null) & {');
   });
 
+  it('collects nullable member properties when the parent object removes null', () => {
+    const contextWithObjectParent = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            NullableParentBase: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
+              additionalProperties: true,
+            },
+            NullableParentWrapper: {
+              type: 'object',
+              properties: { marker: { type: 'string' } },
+              allOf: [
+                {
+                  $ref: '#/components/schemas/NullableParentBase',
+                  nullable: true,
+                },
+              ],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['id'],
+      allOf: [{ $ref: '#/components/schemas/NullableParentWrapper' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'NullableParentItem',
+      separator: 'allOf',
+      context: contextWithObjectParent,
+      nullable: '',
+    });
+
+    expect(result.value).toContain("Pick<NullableParentWrapper, 'id'>>");
+    expect(result.value).not.toContain('Extract<');
+
+    const wrapper = combineSchemas({
+      schema: contextWithObjectParent.spec.components!.schemas!
+        .NullableParentWrapper as OpenApiSchemaObject,
+      name: 'NullableParentWrapper',
+      separator: 'allOf',
+      context: contextWithObjectParent,
+      nullable: '',
+    });
+
+    expect(wrapper.value).toContain('(NullableParentBase | null) & {');
+  });
+
   it('collects allOf properties beside an all-enum composition', () => {
     const contextWithAllEnumSibling = {
       ...context,

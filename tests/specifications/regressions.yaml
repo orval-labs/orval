@@ -255,6 +255,26 @@ components:
         - id
       allOf:
         - $ref: '#/components/schemas/NullableAllOfMemberWrapper'
+    NullableParentBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+    NullableParentWrapper:
+      type: object
+      properties:
+        marker:
+          type: string
+      allOf:
+        - $ref: '#/components/schemas/NullableParentBase'
+          nullable: true
+    NullableParentItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/NullableParentWrapper'
 paths:
   /endpointA:
     get:

@@ -7,6 +7,7 @@ import type { EnumUnionItem } from '../generated/default/regressions/model/enumU
 import type { NestedComposedUnionItem } from '../generated/default/regressions/model/nestedComposedUnionItem';
 import type { NestedUnionItem } from '../generated/default/regressions/model/nestedUnionItem';
 import type { NullableAllOfMemberItem } from '../generated/default/regressions/model/nullableAllOfMemberItem';
+import type { NullableParentItem } from '../generated/default/regressions/model/nullableParentItem';
 import type { RefMemberUnionItem } from '../generated/default/regressions/model/refMemberUnionItem';
 import type { ScalarItem } from '../generated/default/regressions/model/scalarItem';
 import type { SiblingEnumItem } from '../generated/default/regressions/model/siblingEnumItem';
@@ -94,6 +95,18 @@ const nullableAllOfMemberItemWithoutId: NullableAllOfMemberItem = {
   marker: 'value',
 };
 
+const nullableParentItem: NullableParentItem = {
+  id: 'id',
+  marker: 'value',
+};
+
+// The parent's own object properties also remove the nullable allOf member's
+// null branch, so keys from its object branch remain required.
+// @ts-expect-error - id must not silently become optional.
+const nullableParentItemWithoutId: NullableParentItem = {
+  marker: 'value',
+};
+
 void unionItem;
 void unionItemWithoutId;
 void scalarItem;
@@ -109,3 +122,5 @@ void inlineNullableAnyOfItem;
 void inlineNullableAnyOfItemWithoutId;
 void nullableAllOfMemberItem;
 void nullableAllOfMemberItemWithoutId;
+void nullableParentItem;
+void nullableParentItemWithoutId;

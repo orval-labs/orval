@@ -254,8 +254,9 @@ function usesCanonicalNullableOneOfObject(
  * imported alias. Canonical nullable oneOf and all-enum sibling compositions
  * only make the node's own properties unsafe: `combineSchemas` still
  * intersects every `allOf` member with their emitted union. A non-null object
- * sibling also eliminates an object-or-null member's null branch from the
- * parent intersection, preserving that member's object keys.
+ * sibling or guaranteed properties on the parent also eliminate an
+ * object-or-null member's null branch from the parent intersection, preserving
+ * that member's object keys.
  */
 function cannotGuaranteeAllOfPropertyKeys(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
@@ -404,8 +405,8 @@ function guaranteesNonNullableObject(
  * Nodes that can emit a branch outside that full intersection are skipped
  * entirely, degrading to the compile-safe `Extract` guard. The component-ref
  * boundary flag mirrors the only `resolveValue` path that lifts inline anyOf
- * nullability outside the alias intersection. Parent allOf traversal also
- * records a sibling with guaranteed own properties as proof that null cannot
+ * nullability outside the alias intersection. Parent allOf traversal also uses
+ * guaranteed properties on the parent or a sibling as proof that null cannot
  * survive the full intersection.
  */
 function collectDeepPropertyKeys(
@@ -452,6 +453,7 @@ function collectDeepPropertyKeys(
     )
       ? Object.keys(properties)
       : [];
+  const parentPropertiesEliminateNull = keys.length > 0;
   const members = (schema.allOf ?? []) as (
     | OpenApiSchemaObject
     | OpenApiReferenceObject
@@ -469,7 +471,9 @@ function collectDeepPropertyKeys(
         member,
         context,
         false,
-        nullBranchesEliminated || hasObjectSibling,
+        nullBranchesEliminated ||
+          parentPropertiesEliminateNull ||
+          hasObjectSibling,
         seenRefs,
       ),
     );
