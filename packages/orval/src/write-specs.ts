@@ -34,6 +34,8 @@ import {
   writeSplitMode,
   writeSplitTagsMode,
   writeTagsMode,
+  writeTagsOperationsMode,
+  writeTagsOperationsSplitMode,
   type NormalizedOutputOptions,
 } from '@orval/core';
 import { generateFakerForSchemas } from '@orval/mock';
@@ -939,6 +941,12 @@ function getWriteMode(mode: OutputMode) {
     }
     case OutputMode.TAGS_SPLIT: {
       return writeSplitTagsMode;
+    }
+    case OutputMode.TAGS_OPERATIONS: {
+      return writeTagsOperationsMode;
+    }
+    case OutputMode.TAGS_OPERATIONS_SPLIT: {
+      return writeTagsOperationsSplitMode;
     }
     default: {
       return writeSingleMode;
