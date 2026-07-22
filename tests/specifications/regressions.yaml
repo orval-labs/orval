@@ -87,6 +87,32 @@ components:
         - id
       allOf:
         - $ref: '#/components/schemas/NestedUnionWrapper'
+    NestedComposedUnionBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      anyOf:
+        - anyOf:
+            - type: object
+              nullable: true
+              properties:
+                left:
+                  type: string
+        - type: object
+          properties:
+            right:
+              type: string
+    NestedComposedUnionWrapper:
+      allOf:
+        - $ref: '#/components/schemas/NestedComposedUnionBase'
+    NestedComposedUnionItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/NestedComposedUnionWrapper'
 paths:
   /endpointA:
     get:

@@ -540,6 +540,78 @@ describe('combineSchemas (allOf required handling)', () => {
     },
   );
 
+  it.each(['anyOf', 'oneOf'] as const)(
+    'collects top-level properties when a %s member contains a nested nullable union',
+    (unionKeyword) => {
+      const contextWithNestedComposedUnion = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              ...context.spec.components!.schemas,
+              NestedComposedUnionBase: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                },
+                additionalProperties: true,
+                [unionKeyword]: [
+                  {
+                    anyOf: [
+                      {
+                        type: 'object',
+                        properties: { left: { type: 'string' } },
+                      },
+                      { type: 'null' },
+                    ],
+                  },
+                  {
+                    type: 'object',
+                    properties: { right: { type: 'string' } },
+                  },
+                ],
+              },
+              NestedComposedUnionWrapper: {
+                allOf: [
+                  { $ref: '#/components/schemas/NestedComposedUnionBase' },
+                ],
+              },
+            },
+          },
+        },
+      } as unknown as ContextSpec;
+
+      const schema: OpenApiSchemaObject = {
+        type: 'object',
+        required: ['id'],
+        allOf: [{ $ref: '#/components/schemas/NestedComposedUnionWrapper' }],
+      };
+
+      const result = combineSchemas({
+        schema,
+        name: 'NestedComposedUnionItem',
+        separator: 'allOf',
+        context: contextWithNestedComposedUnion,
+        nullable: '',
+      });
+
+      expect(result.value).toContain("Pick<NestedComposedUnionWrapper, 'id'>>");
+      expect(result.value).not.toContain('Extract<');
+
+      const unionBase = combineSchemas({
+        schema: contextWithNestedComposedUnion.spec.components!.schemas!
+          .NestedComposedUnionBase as OpenApiSchemaObject,
+        name: 'NestedComposedUnionBase',
+        separator: unionKeyword,
+        context: contextWithNestedComposedUnion,
+        nullable: '',
+      });
+
+      expect(unionBase.value).toContain(' | null) & {');
+      expect(unionBase.value).not.toContain(' | null & {');
+    },
+  );
+
   it('does not collect properties declared only inside oneOf members', () => {
     const contextWithOneOf = {
       ...context,

@@ -1,3 +1,4 @@
+import type { NestedComposedUnionItem } from '../generated/default/regressions/model/nestedComposedUnionItem';
 import type { NestedUnionItem } from '../generated/default/regressions/model/nestedUnionItem';
 import type { ScalarItem } from '../generated/default/regressions/model/scalarItem';
 import type { UnionItem } from '../generated/default/regressions/model/unionItem';
@@ -17,6 +18,15 @@ const scalarItem: ScalarItem = 'value';
 // in `keyof`, so its required override must stay on the compile-safe path.
 export type NestedUnionItemCompileCheck = NestedUnionItem;
 
+const nestedComposedUnionItem: NestedComposedUnionItem = { id: 'id' };
+
+// A nested explicit union is grouped before the parent's properties are
+// intersected, so every surviving branch must still require id.
+// @ts-expect-error - id must not silently become optional.
+const nestedComposedUnionItemWithoutId: NestedComposedUnionItem = {};
+
 void unionItem;
 void unionItemWithoutId;
 void scalarItem;
+void nestedComposedUnionItem;
+void nestedComposedUnionItemWithoutId;

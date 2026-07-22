@@ -131,13 +131,15 @@ function normalizeAllOfSchema(
  * 3.1 singleton `type: ['object']` spelling remain object-capable.
  *
  * Plain object anyOf/oneOf members remain safe because `combineSchemas`
- * intersects a node's own properties into every emitted union branch. Members
- * that can themselves emit a non-object value are checked recursively: the
- * resolver can propagate that value (for example `null`) to the referenced
+ * intersects a node's own properties into every emitted union branch. A direct
+ * member that emits a non-object value can propagate it to the referenced
  * wrapper, where the top-level keys are no longer guaranteed in `keyof`.
- * `collectDeepPropertyKeys` never collects properties from union members.
+ * Nested unions are not followed: their values are grouped before intersecting
+ * the node's own properties, and their nullability is not propagated to the
+ * wrapper. `collectDeepPropertyKeys` never collects properties from union
+ * members.
  */
-function mayEmitNonObjectType(
+function directlyEmitsNonObjectType(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
 ): boolean {
   // Bridge assertions: AnyOtherAttribute infects all schema property access
@@ -152,6 +154,15 @@ function mayEmitNonObjectType(
   if (!isObjectType) {
     return true;
   }
+  return false;
+}
+
+function mayEmitNonObjectType(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+): boolean {
+  if (directlyEmitsNonObjectType(schema)) {
+    return true;
+  }
   const unionMembers = [
     ...((schema.anyOf ?? []) as (
       | OpenApiSchemaObject
@@ -162,7 +173,7 @@ function mayEmitNonObjectType(
       | OpenApiReferenceObject
     )[]),
   ];
-  return unionMembers.some((member) => mayEmitNonObjectType(member));
+  return unionMembers.some((member) => directlyEmitsNonObjectType(member));
 }
 
 /**
