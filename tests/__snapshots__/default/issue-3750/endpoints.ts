@@ -9,7 +9,11 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import type { ItemDetail, NullableItemDetail } from './model';
+import type {
+  ItemDetail,
+  NestedNullableItemDetail,
+  NullableItemDetail,
+} from './model';
 
 export const getItem = (
   options?: AxiosRequestConfig,
@@ -23,5 +27,13 @@ export const getNullableItem = (
   return axios.get(`/nullable-item`, options);
 };
 
+export const getNestedNullableItem = (
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<NestedNullableItemDetail | null>> => {
+  return axios.get(`/nested-nullable-item`, options);
+};
+
 export type GetItemResult = AxiosResponse<ItemDetail>;
 export type GetNullableItemResult = AxiosResponse<NullableItemDetail | null>;
+export type GetNestedNullableItemResult =
+  AxiosResponse<NestedNullableItemDetail | null>;

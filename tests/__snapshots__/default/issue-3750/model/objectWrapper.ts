@@ -7,7 +7,4 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export * from './itemDetail';
-export * from './nestedNullableItemDetail';
-export * from './nullableItemDetail';
-export * from './objectWrapper';
+export type ObjectWrapper = { [key: string]: unknown };

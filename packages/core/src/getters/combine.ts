@@ -246,6 +246,22 @@ function usesCanonicalNullableOneOfObject(
   );
 }
 
+function propagatesNullableAnyOfAcrossRef(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  crossesComponentRefBoundary: boolean,
+): boolean {
+  const anyOfMembers = (schema.anyOf ?? []) as (
+    | OpenApiSchemaObject
+    | OpenApiReferenceObject
+  )[];
+  return anyOfMembers.some(
+    (member) =>
+      crossesComponentRefBoundary &&
+      !isReference(member) &&
+      isDirectlyNullable(member),
+  );
+}
+
 /**
  * True when this node can emit a branch that also omits keys contributed by
  * its `allOf` descendants. Direct non-object output escapes the full
@@ -269,16 +285,9 @@ function cannotGuaranteeAllOfPropertyKeys(
   ) {
     return true;
   }
-  const anyOfMembers = (schema.anyOf ?? []) as (
-    | OpenApiSchemaObject
-    | OpenApiReferenceObject
-  )[];
-  return anyOfMembers.some(
-    (member) =>
-      crossesComponentRefBoundary &&
-      !nullBranchesEliminated &&
-      !isReference(member) &&
-      isDirectlyNullable(member),
+  return (
+    !nullBranchesEliminated &&
+    propagatesNullableAnyOfAcrossRef(schema, crossesComponentRefBoundary)
   );
 }
 
@@ -360,40 +369,66 @@ function derefComponentSchema(
   return undefined;
 }
 
-/** True when this member is guaranteed to emit a non-null object. */
+/**
+ * True when this member is guaranteed to emit a non-null object. Walk the
+ * original `allOf` composition so object constraints hidden behind nested
+ * component refs are not lost when normalization merges an inline member into
+ * its parent. `seenRefs` keeps recursive component compositions cycle-safe.
+ */
 function guaranteesNonNullableObject(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
+  seenRefs = new Set<string>(),
+  crossesComponentRefBoundary = isReference(schema),
 ): boolean {
-  const crossesComponentRefBoundary = isReference(schema);
-  if (
-    cannotGuaranteeOwnPropertyKeys(schema, context, crossesComponentRefBoundary)
-  ) {
+  if (isReference(schema)) {
+    // A nullable/non-object sibling at the ref site can be lifted outside the
+    // referenced intersection, so the target cannot prove this site non-null.
+    if (
+      cannotGuaranteeOwnPropertyKeys(
+        schema,
+        context,
+        crossesComponentRefBoundary,
+      )
+    ) {
+      return false;
+    }
+    const resolvedSchema = derefComponentSchema(schema.$ref, context, seenRefs);
+    return resolvedSchema
+      ? guaranteesNonNullableObject(resolvedSchema, context, seenRefs, true)
+      : false;
+  }
+
+  // resolveValue appends nullability found in a directly referenced anyOf to
+  // the imported alias (`Alias | null`). That branch sits outside this node's
+  // allOf intersection and therefore cannot be removed by a nested object.
+  if (propagatesNullableAnyOfAcrossRef(schema, crossesComponentRefBoundary)) {
     return false;
   }
-  const resolvedSchema = isReference(schema)
-    ? derefComponentSchema(schema.$ref, context, new Set<string>())
-    : schema;
-  if (
-    !resolvedSchema ||
-    cannotGuaranteeOwnPropertyKeys(
-      resolvedSchema,
-      context,
-      crossesComponentRefBoundary,
-    )
-  ) {
-    return false;
-  }
-  const properties = resolvedSchema.properties as
-    | Record<string, unknown>
-    | undefined;
-  const type = resolvedSchema.type as string | string[] | undefined;
+
+  const properties = schema.properties as Record<string, unknown> | undefined;
+  const type = schema.type as string | string[] | undefined;
   const isExplicitlyNonNullableObject =
     type === 'object' ||
     (Array.isArray(type) && type.length === 1 && type[0] === 'object');
-  return (
-    isExplicitlyNonNullableObject ||
-    (!!properties && Object.keys(properties).length > 0)
+  const ownSchemaGuaranteesObject =
+    !cannotGuaranteeOwnPropertyKeys(
+      schema,
+      context,
+      crossesComponentRefBoundary,
+    ) &&
+    (isExplicitlyNonNullableObject ||
+      (!!properties && Object.keys(properties).length > 0));
+  if (ownSchemaGuaranteesObject) {
+    return true;
+  }
+
+  const members = (schema.allOf ?? []) as (
+    | OpenApiSchemaObject
+    | OpenApiReferenceObject
+  )[];
+  return members.some((member) =>
+    guaranteesNonNullableObject(member, context, new Set(seenRefs)),
   );
 }
 
@@ -493,6 +528,7 @@ interface CombineValuesOptions {
   separator: Separator;
   context: ContextSpec;
   parentSchema?: OpenApiSchemaObject;
+  parentNullBranchesEliminated?: boolean;
 }
 
 function combineValues({
@@ -501,6 +537,7 @@ function combineValues({
   separator,
   context,
   parentSchema,
+  parentNullBranchesEliminated = false,
 }: CombineValuesOptions) {
   const isAllEnums = resolvedData.isEnum.every(Boolean);
 
@@ -549,13 +586,6 @@ function combineValues({
     const parentRequiredProperties = parentSchema?.required as
       | string[]
       | undefined;
-    const parentAllOfMembers = (parentSchema?.allOf ?? []) as (
-      | OpenApiSchemaObject
-      | OpenApiReferenceObject
-    )[];
-    const parentNullBranchesEliminated = parentAllOfMembers.some((member) =>
-      guaranteesNonNullableObject(member, context),
-    );
     const overrideRequiredProperties = resolvedData.requiredProperties.filter(
       (prop) =>
         !resolvedData.originalSchema.some((schema) => {
@@ -669,6 +699,16 @@ export function combineSchemas({
   nullable: string;
   formDataContext?: FormDataContext;
 }): ScalarValue {
+  const originalAllOfMembers = (schema.allOf ?? []) as (
+    | OpenApiSchemaObject
+    | OpenApiReferenceObject
+  )[];
+  const parentNullBranchesEliminated =
+    separator === 'allOf' &&
+    originalAllOfMembers.some((member) =>
+      guaranteesNonNullableObject(member, context),
+    );
+
   // Normalize allOf schemas by merging inline objects into parent (fixes #2458)
   // Only applies when: using allOf, not in v7 compat mode, no sibling oneOf/anyOf
   const canMergeInlineAllOf =
@@ -927,6 +967,7 @@ export function combineSchemas({
     resolvedValue,
     context,
     parentSchema: normalizedSchema,
+    parentNullBranchesEliminated,
   });
 
   return {

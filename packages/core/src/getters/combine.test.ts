@@ -196,6 +196,116 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(result.value).not.toContain('Extract<');
   });
 
+  it('keeps plain Required<Pick> when a nested allOf $ref removes the nullable parent branch (#3750)', () => {
+    const contextWithObjectWrapper = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            ObjectWrapper: {
+              allOf: [{ type: 'object' }],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+    const schema: OpenApiSchemaObject = {
+      type: ['object', 'null'],
+      properties: {
+        id: { type: 'string' },
+      },
+      additionalProperties: true,
+      allOf: [
+        { $ref: '#/components/schemas/ObjectWrapper' },
+        { required: ['id'] },
+      ],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'NestedNullableItemDetail',
+      separator: 'allOf',
+      context: contextWithObjectWrapper,
+      nullable: '',
+    });
+
+    expect(result.value).toContain(", 'id'>>");
+    expect(result.value).not.toContain('Extract<');
+  });
+
+  it('keeps Extract guard when a nested object allOf cannot remove ref-propagated null', () => {
+    const contextWithNullableObjectWrapper = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            NullableObjectWrapper: {
+              allOf: [{ type: 'object' }],
+              anyOf: [{ type: 'object' }, { type: 'null' }],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+    const schema: OpenApiSchemaObject = {
+      type: ['object', 'null'],
+      properties: {
+        id: { type: 'string' },
+      },
+      additionalProperties: true,
+      allOf: [
+        { $ref: '#/components/schemas/NullableObjectWrapper' },
+        { required: ['id'] },
+      ],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'RefPropagatedNullableItemDetail',
+      separator: 'allOf',
+      context: contextWithNullableObjectWrapper,
+      nullable: '',
+    });
+
+    expect(result.value).toContain('Extract<keyof (');
+    expect(result.value).not.toMatch(/Required<Pick<.+, 'id'>>$/s);
+  });
+
+  it('preserves the non-null object guarantee when allOf normalization merges its member (#3750)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: ['object', 'null'],
+      properties: {
+        id: { type: 'string' },
+      },
+      additionalProperties: true,
+      allOf: [
+        {
+          type: 'object',
+          properties: {
+            marker: { type: 'string' },
+          },
+        },
+        {
+          required: ['id'],
+          additionalProperties: true,
+        },
+      ],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'NormalizedNullableItemDetail',
+      separator: 'allOf',
+      context,
+      nullable: '',
+    });
+
+    expect(result.value).toContain(", 'id'>>");
+    expect(result.value).not.toContain('Extract<');
+  });
+
   it('keeps Extract guard when parent properties are not emitted by its type', () => {
     const schema: OpenApiSchemaObject = {
       type: 'string',
