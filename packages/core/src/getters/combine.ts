@@ -152,6 +152,26 @@ function isDirectlyNullable(
   return type === 'null' || (Array.isArray(type) && type.includes('null'));
 }
 
+function isEnumMember(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+): boolean {
+  return resolveObject({ schema, combined: true, context }).isEnum;
+}
+
+function hasAllEnumMembers(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+): boolean {
+  const members = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as
+    | (OpenApiSchemaObject | OpenApiReferenceObject)[]
+    | undefined;
+  return (
+    !!members?.length &&
+    members.every((member) => isEnumMember(member, context))
+  );
+}
+
 /**
  * True when this node's property keys are not guaranteed in `keyof` of the
  * referenced output. Nullable, enum, scalar, array, or mixed-type nodes fail
@@ -162,12 +182,17 @@ function isDirectlyNullable(
  * is direct nullability in an inline anyOf member: `resolveValue` propagates it
  * to the referenced wrapper as a separate `| null`. Reference members,
  * non-null scalars, oneOf members, and nested unions stay inside the grouped
- * intersection.
+ * intersection. An all-enum composition is also unsafe because `combineValues`
+ * emits the node's properties as a separate union branch instead.
  */
 function cannotGuaranteePropertyKeys(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
 ): boolean {
-  if (directlyEmitsNonObjectType(schema)) {
+  if (
+    directlyEmitsNonObjectType(schema) ||
+    hasAllEnumMembers(schema, context)
+  ) {
     return true;
   }
   const anyOfMembers = (schema.anyOf ?? []) as (
@@ -213,7 +238,7 @@ function derefComponentSchema(
     }
     if (isReference(target)) {
       // Intermediate chain hops can carry non-object-producing siblings too
-      if (cannotGuaranteePropertyKeys(target)) {
+      if (cannotGuaranteePropertyKeys(target, context)) {
         return undefined;
       }
       current = target.$ref;
@@ -243,7 +268,7 @@ function collectDeepPropertyKeys(
 ): string[] {
   // Checked before dereferencing: `$ref`-site siblings (`nullable: true`,
   // scalar or mixed `type`) can change the emission just like inline nodes.
-  if (cannotGuaranteePropertyKeys(schema)) {
+  if (cannotGuaranteePropertyKeys(schema, context)) {
     return [];
   }
   if (isReference(schema)) {

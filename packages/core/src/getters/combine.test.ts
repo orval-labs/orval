@@ -746,6 +746,68 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(unionBase.value).toContain('(RefNullableBase | null) & {');
   });
 
+  it('keeps Extract guard when all union members are enums', () => {
+    const contextWithEnumUnion = {
+      ...context,
+      output: {
+        ...context.output,
+        override: {
+          ...context.output.override,
+          enumGenerationType: 'union',
+        },
+      },
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            EnumUnionBase: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
+              additionalProperties: true,
+              anyOf: [
+                { type: 'string', enum: ['a'] },
+                { type: 'string', enum: ['b'] },
+              ],
+            },
+            EnumUnionWrapper: {
+              allOf: [{ $ref: '#/components/schemas/EnumUnionBase' }],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['id'],
+      allOf: [{ $ref: '#/components/schemas/EnumUnionWrapper' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'EnumUnionItem',
+      separator: 'allOf',
+      context: contextWithEnumUnion,
+      nullable: '',
+    });
+
+    expect(result.value).toContain("Extract<keyof (EnumUnionWrapper), 'id'>");
+    expect(result.value).not.toContain("Pick<EnumUnionWrapper, 'id'>>");
+
+    const unionBase = combineSchemas({
+      schema: contextWithEnumUnion.spec.components!.schemas!
+        .EnumUnionBase as OpenApiSchemaObject,
+      name: 'EnumUnionBase',
+      separator: 'anyOf',
+      context: contextWithEnumUnion,
+      nullable: '',
+    });
+
+    expect(unionBase.value).toContain("'a' | 'b' | {");
+  });
+
   it('does not collect properties declared only inside oneOf members', () => {
     const contextWithOneOf = {
       ...context,

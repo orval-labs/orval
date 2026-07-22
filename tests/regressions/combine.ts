@@ -1,4 +1,5 @@
 import type { DirectScalarUnionItem } from '../generated/default/regressions/model/directScalarUnionItem';
+import type { EnumUnionItem } from '../generated/default/regressions/model/enumUnionItem';
 import type { NestedComposedUnionItem } from '../generated/default/regressions/model/nestedComposedUnionItem';
 import type { NestedUnionItem } from '../generated/default/regressions/model/nestedUnionItem';
 import type { RefMemberUnionItem } from '../generated/default/regressions/model/refMemberUnionItem';
@@ -40,6 +41,10 @@ const refMemberUnionItem: RefMemberUnionItem = { id: 'id' };
 // the parent's properties and is not propagated to the wrapper alias.
 // @ts-expect-error - id must not silently become optional.
 const refMemberUnionItemWithoutId: RefMemberUnionItem = {};
+
+// All-enum compositions emit the parent's properties as a separate union
+// branch, so required-key handling must stay on the compile-safe Extract path.
+export type EnumUnionItemCompileCheck = EnumUnionItem;
 
 void unionItem;
 void unionItemWithoutId;

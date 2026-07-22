@@ -161,6 +161,28 @@ components:
         - id
       allOf:
         - $ref: '#/components/schemas/RefMemberUnionWrapper'
+    EnumUnionBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      anyOf:
+        - type: string
+          enum:
+            - a
+        - type: string
+          enum:
+            - b
+    EnumUnionWrapper:
+      allOf:
+        - $ref: '#/components/schemas/EnumUnionBase'
+    EnumUnionItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/EnumUnionWrapper'
 paths:
   /endpointA:
     get:
