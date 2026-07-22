@@ -1262,6 +1262,32 @@ describe('generateSpec - schemas.splitByTags validation', () => {
   });
 });
 
+describe('generateSpec - normalizeOptions pathless schemas object', () => {
+  // Regression: a `schemas` object with no `path` (e.g. `schemas: { type: 'zod' }`)
+  // normalized to an undefined path, which `clean: true` then resolved to the
+  // current working directory and wiped.
+  it('rejects a schemas object without a path', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      await expect(
+        normalizeOptions(
+          {
+            input: { target: PETSTORE_SPEC },
+            output: {
+              target: './src/generated/api.ts',
+              schemas: { type: 'zod' } as never,
+            },
+          },
+          workspace,
+        ),
+      ).rejects.toThrow(/schemas\.path` is required/);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('generateSpec - returnTypesToWrite isolation across tags (#3685)', () => {
   it("each tag emits its own *Result type, not the other tag's", async () => {
     const SPEC: OpenApiDocument = {
