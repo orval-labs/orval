@@ -168,6 +168,34 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(result.value).not.toContain('Extract<');
   });
 
+  it('keeps plain Required<Pick> when an allOf object removes the nullable parent branch (#3750)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: ['object', 'null'],
+      properties: {
+        id: { type: 'string' },
+      },
+      additionalProperties: true,
+      allOf: [
+        {
+          type: 'object',
+          required: ['id'],
+          additionalProperties: true,
+        },
+      ],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'NullableItemDetail',
+      separator: 'allOf',
+      context,
+      nullable: '',
+    });
+
+    expect(result.value).toContain(", 'id'>>");
+    expect(result.value).not.toContain('Extract<');
+  });
+
   it('keeps Extract guard when parent properties are not emitted by its type', () => {
     const schema: OpenApiSchemaObject = {
       type: 'string',

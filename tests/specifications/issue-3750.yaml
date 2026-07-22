@@ -1,4 +1,4 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: issue-3750
   description: |-
@@ -16,6 +16,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ItemDetail'
+  /nullable-item:
+    get:
+      operationId: getNullableItem
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NullableItemDetail'
 components:
   schemas:
     ItemDetail:
@@ -31,4 +41,17 @@ components:
           required:
             - id
             - name
+          additionalProperties: true
+    NullableItemDetail:
+      type:
+        - object
+        - 'null'
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      allOf:
+        - type: object
+          required:
+            - id
           additionalProperties: true

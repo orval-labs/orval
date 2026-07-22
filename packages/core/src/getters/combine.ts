@@ -360,7 +360,7 @@ function derefComponentSchema(
   return undefined;
 }
 
-/** A guaranteed own property proves this member cannot emit null. */
+/** True when this member is guaranteed to emit a non-null object. */
 function guaranteesNonNullableObject(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
@@ -374,20 +374,26 @@ function guaranteesNonNullableObject(
   const resolvedSchema = isReference(schema)
     ? derefComponentSchema(schema.$ref, context, new Set<string>())
     : schema;
-  if (!resolvedSchema) {
+  if (
+    !resolvedSchema ||
+    cannotGuaranteeOwnPropertyKeys(
+      resolvedSchema,
+      context,
+      crossesComponentRefBoundary,
+    )
+  ) {
     return false;
   }
   const properties = resolvedSchema.properties as
     | Record<string, unknown>
     | undefined;
+  const type = resolvedSchema.type as string | string[] | undefined;
+  const isExplicitlyNonNullableObject =
+    type === 'object' ||
+    (Array.isArray(type) && type.length === 1 && type[0] === 'object');
   return (
-    !!properties &&
-    Object.keys(properties).length > 0 &&
-    !cannotGuaranteeOwnPropertyKeys(
-      resolvedSchema,
-      context,
-      crossesComponentRefBoundary,
-    )
+    isExplicitlyNonNullableObject ||
+    (!!properties && Object.keys(properties).length > 0)
   );
 }
 
@@ -543,6 +549,13 @@ function combineValues({
     const parentRequiredProperties = parentSchema?.required as
       | string[]
       | undefined;
+    const parentAllOfMembers = (parentSchema?.allOf ?? []) as (
+      | OpenApiSchemaObject
+      | OpenApiReferenceObject
+    )[];
+    const parentNullBranchesEliminated = parentAllOfMembers.some((member) =>
+      guaranteesNonNullableObject(member, context),
+    );
     const overrideRequiredProperties = resolvedData.requiredProperties.filter(
       (prop) =>
         !resolvedData.originalSchema.some((schema) => {
@@ -562,7 +575,12 @@ function combineValues({
     const pickableParentProperties =
       parentSchema &&
       parentProperties &&
-      !cannotGuaranteeOwnPropertyKeys(parentSchema, context, false)
+      !cannotGuaranteeOwnPropertyKeys(
+        parentSchema,
+        context,
+        false,
+        parentNullBranchesEliminated,
+      )
         ? Object.keys(parentProperties)
         : [];
     // Keep the parent keys local to required-key handling: `allProperties`

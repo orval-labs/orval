@@ -1477,12 +1477,22 @@ test('default issue-3750 keeps plain Required<Pick> for parent properties', asyn
     generated('default', 'issue-3750', 'model', 'itemDetail.ts'),
     'utf8',
   );
+  const nullableItemDetail = await readFile(
+    generated('default', 'issue-3750', 'model', 'nullableItemDetail.ts'),
+    'utf8',
+  );
 
   // Parent properties are part of the emitted intersection and are therefore
   // safe Pick keys even when required comes from a constraint-only member.
   expect(itemDetail).toMatch(/'id' \| 'name'/);
   expect(itemDetail).toContain('Required<');
   expect(itemDetail).not.toContain('Extract<');
+
+  // The allOf object removes the nullable parent's null branch, making its own
+  // property safe to Pick without the index-signature-breaking Extract guard.
+  expect(nullableItemDetail).toContain("'id'");
+  expect(nullableItemDetail).toContain('Required<');
+  expect(nullableItemDetail).not.toContain('Extract<');
 });
 
 test('default regressions collect only guaranteed keys through nested allOf refs', async () => {
