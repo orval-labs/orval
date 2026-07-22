@@ -1,3 +1,4 @@
+import type { NestedUnionItem } from '../generated/default/regressions/model/nestedUnionItem';
 import type { ScalarItem } from '../generated/default/regressions/model/scalarItem';
 import type { UnionItem } from '../generated/default/regressions/model/unionItem';
 
@@ -11,6 +12,10 @@ const unionItemWithoutId: UnionItem = {};
 // Properties attached to a scalar schema do not make its emitted type an
 // object. Reaching one through allOf must not produce an invalid Pick key.
 const scalarItem: ScalarItem = 'value';
+
+// A nested nullable union member cannot guarantee the parent's property keys
+// in `keyof`, so its required override must stay on the compile-safe path.
+export type NestedUnionItemCompileCheck = NestedUnionItem;
 
 void unionItem;
 void unionItemWithoutId;

@@ -130,10 +130,12 @@ function normalizeAllOfSchema(
  * `Required<Pick<T, 'k'>>` could fail with TS2344. A missing type and the OAS
  * 3.1 singleton `type: ['object']` spelling remain object-capable.
  *
- * anyOf/oneOf are deliberately not checked here. `combineSchemas` intersects
- * a node's own properties into every emitted union branch, making those
- * top-level keys safe to collect; `collectDeepPropertyKeys` never walks the
- * union members themselves.
+ * Plain object anyOf/oneOf members remain safe because `combineSchemas`
+ * intersects a node's own properties into every emitted union branch. Members
+ * that can themselves emit a non-object value are checked recursively: the
+ * resolver can propagate that value (for example `null`) to the referenced
+ * wrapper, where the top-level keys are no longer guaranteed in `keyof`.
+ * `collectDeepPropertyKeys` never collects properties from union members.
  */
 function mayEmitNonObjectType(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
@@ -143,10 +145,24 @@ function mayEmitNonObjectType(
     return true;
   }
   const type = schema.type as string | string[] | undefined;
-  if (!type || type === 'object') {
-    return false;
+  const isObjectType =
+    !type ||
+    type === 'object' ||
+    (Array.isArray(type) && type.length === 1 && type[0] === 'object');
+  if (!isObjectType) {
+    return true;
   }
-  return !(Array.isArray(type) && type.length === 1 && type[0] === 'object');
+  const unionMembers = [
+    ...((schema.anyOf ?? []) as (
+      | OpenApiSchemaObject
+      | OpenApiReferenceObject
+    )[]),
+    ...((schema.oneOf ?? []) as (
+      | OpenApiSchemaObject
+      | OpenApiReferenceObject
+    )[]),
+  ];
+  return unionMembers.some((member) => mayEmitNonObjectType(member));
 }
 
 /**
@@ -356,9 +372,15 @@ function combineValues({
   }
 
   if (resolvedValue) {
-    return `(${values.join(` & ${resolvedValue.value}) | (`)} & ${
-      resolvedValue.value
-    })`;
+    const resolvedValueStr = resolvedValue.value.includes(' | ')
+      ? `(${resolvedValue.value})`
+      : resolvedValue.value;
+    return values
+      .map((value) => {
+        const valueStr = value.includes(' | ') ? `(${value})` : value;
+        return `(${valueStr} & ${resolvedValueStr})`;
+      })
+      .join(' | ');
   }
 
   return values.join(' | ');

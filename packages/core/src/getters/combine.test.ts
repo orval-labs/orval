@@ -473,6 +473,73 @@ describe('combineSchemas (allOf required handling)', () => {
     },
   );
 
+  it.each(['anyOf', 'oneOf'] as const)(
+    'keeps Extract guard when a %s member emits a nested union',
+    (unionKeyword) => {
+      const contextWithNestedUnion = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              ...context.spec.components!.schemas,
+              NestedUnionBase: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                },
+                additionalProperties: true,
+                [unionKeyword]: [
+                  {
+                    type: ['object', 'null'],
+                    properties: { left: { type: 'string' } },
+                  },
+                  {
+                    type: 'object',
+                    properties: { right: { type: 'string' } },
+                  },
+                ],
+              },
+              NestedUnionWrapper: {
+                allOf: [{ $ref: '#/components/schemas/NestedUnionBase' }],
+              },
+            },
+          },
+        },
+      } as unknown as ContextSpec;
+
+      const schema: OpenApiSchemaObject = {
+        type: 'object',
+        required: ['id'],
+        allOf: [{ $ref: '#/components/schemas/NestedUnionWrapper' }],
+      };
+
+      const result = combineSchemas({
+        schema,
+        name: 'NestedUnionItem',
+        separator: 'allOf',
+        context: contextWithNestedUnion,
+        nullable: '',
+      });
+
+      expect(result.value).toContain(
+        "Extract<keyof (NestedUnionWrapper), 'id'>",
+      );
+      expect(result.value).not.toContain("Pick<NestedUnionWrapper, 'id'>>");
+
+      const unionBase = combineSchemas({
+        schema: contextWithNestedUnion.spec.components!.schemas!
+          .NestedUnionBase as OpenApiSchemaObject,
+        name: 'NestedUnionBase',
+        separator: unionKeyword,
+        context: contextWithNestedUnion,
+        nullable: '',
+      });
+
+      expect(unionBase.value).toContain(' | null) & {');
+      expect(unionBase.value).not.toContain(' | null & {');
+    },
+  );
+
   it('does not collect properties declared only inside oneOf members', () => {
     const contextWithOneOf = {
       ...context,

@@ -62,6 +62,31 @@ components:
         - id
       allOf:
         - $ref: '#/components/schemas/ScalarWrapper'
+    NestedUnionBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      anyOf:
+        - type: object
+          nullable: true
+          properties:
+            left:
+              type: string
+        - type: object
+          properties:
+            right:
+              type: string
+    NestedUnionWrapper:
+      allOf:
+        - $ref: '#/components/schemas/NestedUnionBase'
+    NestedUnionItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/NestedUnionWrapper'
 paths:
   /endpointA:
     get:
