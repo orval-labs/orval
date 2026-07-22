@@ -1472,6 +1472,24 @@ test('default issue-3748 keeps plain Required<Pick> for keys behind a nested all
   expect(itemDetail).not.toContain('Extract<');
 });
 
+test('default regressions collect only guaranteed keys through nested allOf refs', async () => {
+  const unionItem = await readFile(
+    generated('default', 'regressions', 'model', 'unionItem.ts'),
+    'utf8',
+  );
+  const scalarItem = await readFile(
+    generated('default', 'regressions', 'model', 'scalarItem.ts'),
+    'utf8',
+  );
+
+  expect(unionItem).toContain("'id'");
+  expect(unionItem).toContain('Required<');
+  expect(unionItem).not.toContain('Extract<');
+
+  expect(scalarItem).toContain("Extract<keyof ScalarWrapper, 'id'>");
+  expect(scalarItem).not.toContain("Pick<ScalarWrapper, 'id'>");
+});
+
 test('zod issue-3505 enum values with backslashes are JS-escaped', async () => {
   const content = await readFile(
     generated('zod', 'issue-3505', 'issue-3505.ts'),

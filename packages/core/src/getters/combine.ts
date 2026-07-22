@@ -124,32 +124,29 @@ function normalizeAllOfSchema(
 }
 
 /**
- * True when the schema's emitted type may union something other than a single
- * object shape — a `null` branch, an enum literal union, a multi-entry type
- * array (`type: ['object', 'string']` emits `{...} | string`), or any
- * anyOf/oneOf variants. Property keys collected from such a node are not
- * guaranteed in `keyof` of the emitted type, so a plain `Required<Pick<T, 'k'>>`
- * on them could fail with TS2344; callers must leave those keys to the
- * `Extract` guard instead. Also applied to `$ref`-site objects, whose
- * `nullable`/type-array siblings are merged into the emission by the resolver.
+ * True when a schema node is not guaranteed to emit a single object shape.
+ * Property keys collected from nullable, enum, scalar, array, or mixed-type
+ * nodes may be absent from `keyof` of the emitted type, so a plain
+ * `Required<Pick<T, 'k'>>` could fail with TS2344. A missing type and the OAS
+ * 3.1 singleton `type: ['object']` spelling remain object-capable.
+ *
+ * anyOf/oneOf are deliberately not checked here. `combineSchemas` intersects
+ * a node's own properties into every emitted union branch, making those
+ * top-level keys safe to collect; `collectDeepPropertyKeys` never walks the
+ * union members themselves.
  */
-function emitsUnionType(
+function mayEmitNonObjectType(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
 ): boolean {
   // Bridge assertions: AnyOtherAttribute infects all schema property access
-  if (
-    schema.enum ||
-    schema.anyOf ||
-    schema.oneOf ||
-    (schema.nullable as boolean | undefined) === true
-  ) {
+  if (schema.enum || (schema.nullable as boolean | undefined) === true) {
     return true;
   }
   const type = schema.type as string | string[] | undefined;
-  return (
-    type === 'null' ||
-    (Array.isArray(type) && (type.length > 1 || type.includes('null')))
-  );
+  if (!type || type === 'object') {
+    return false;
+  }
+  return !(Array.isArray(type) && type.length === 1 && type[0] === 'object');
 }
 
 /**
@@ -185,8 +182,8 @@ function derefComponentSchema(
       return undefined;
     }
     if (isReference(target)) {
-      // Intermediate chain hops can carry union-producing siblings too
-      if (emitsUnionType(target)) {
+      // Intermediate chain hops can carry non-object-producing siblings too
+      if (mayEmitNonObjectType(target)) {
         return undefined;
       }
       current = target.$ref;
@@ -203,9 +200,10 @@ function derefComponentSchema(
  * pickable/unresolved split for required-override keys: a key found here is
  * provably in `keyof` of the emitted intersection, so a plain
  * `Required<Pick<T, 'k'>>` is safe even when an `additionalProperties` index
- * signature would collapse the `Extract` guard to `never` (#3748). Unions are
- * deliberately not walked — anyOf/oneOf members, nullable or enum nodes
- * contribute keys that are not guaranteed in `keyof`, and skipping them only
+ * signature would collapse the `Extract` guard to `never` (#3748). Union
+ * members are deliberately not walked, while a node's own top-level properties
+ * are collected because the generator intersects them into every anyOf/oneOf
+ * branch. Nodes that can emit non-object values are skipped entirely; doing so
  * degrades to the compile-safe `Extract` guard.
  */
 function collectDeepPropertyKeys(
@@ -214,8 +212,8 @@ function collectDeepPropertyKeys(
   seenRefs = new Set<string>(),
 ): string[] {
   // Checked before dereferencing: `$ref`-site siblings (`nullable: true`,
-  // `type: ['object', 'null']`) union the emission just like inline nodes.
-  if (emitsUnionType(schema)) {
+  // scalar or mixed `type`) can change the emission just like inline nodes.
+  if (mayEmitNonObjectType(schema)) {
     return [];
   }
   if (isReference(schema)) {

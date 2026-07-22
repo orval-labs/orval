@@ -24,6 +24,44 @@ components:
       properties:
         id:
           description: not defined type schema
+    UnionBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+      anyOf:
+        - type: object
+          properties:
+            left:
+              type: string
+        - type: object
+          properties:
+            right:
+              type: string
+    UnionWrapper:
+      allOf:
+        - $ref: '#/components/schemas/UnionBase'
+    UnionItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/UnionWrapper'
+    ScalarBase:
+      type: string
+      properties:
+        id:
+          type: string
+    ScalarWrapper:
+      allOf:
+        - $ref: '#/components/schemas/ScalarBase'
+    ScalarItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/ScalarWrapper'
 paths:
   /endpointA:
     get:

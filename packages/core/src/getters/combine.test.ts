@@ -372,9 +372,108 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(result.value).not.toContain("Pick<MixedWrapper, 'id'>>");
   });
 
-  // Any anyOf/oneOf on a walked node is treated as union emission: deep key
-  // collection is restricted to plain object/intersection shapes.
-  it('keeps Extract guard when the nested composition member carries a oneOf', () => {
+  it.each([
+    { label: "type: 'string'", type: 'string' },
+    { label: "type: ['string']", type: ['string'] },
+  ])(
+    'keeps Extract guard for properties on a deep non-object node ($label)',
+    ({ type }) => {
+      const contextWithScalarBase = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              ...context.spec.components!.schemas,
+              ScalarBase: {
+                type,
+                properties: {
+                  id: { type: 'string' },
+                },
+              },
+              ScalarWrapper: {
+                allOf: [{ $ref: '#/components/schemas/ScalarBase' }],
+              },
+            },
+          },
+        },
+      } as unknown as ContextSpec;
+
+      const schema: OpenApiSchemaObject = {
+        type: 'object',
+        required: ['id'],
+        allOf: [{ $ref: '#/components/schemas/ScalarWrapper' }],
+      };
+
+      const result = combineSchemas({
+        schema,
+        name: 'ScalarItem',
+        separator: 'allOf',
+        context: contextWithScalarBase,
+        nullable: '',
+      });
+
+      expect(result.value).toContain("Extract<keyof (ScalarWrapper), 'id'>");
+      expect(result.value).not.toContain("Pick<ScalarWrapper, 'id'>>");
+    },
+  );
+
+  // Top-level properties on an anyOf/oneOf schema are intersected into every
+  // emitted branch. They therefore remain in `keyof` of the union and must be
+  // collected even though properties declared inside union members are not.
+  it.each(['anyOf', 'oneOf'] as const)(
+    'collects top-level properties shared by emitted %s branches',
+    (unionKeyword) => {
+      const contextWithUnion = {
+        ...context,
+        spec: {
+          components: {
+            schemas: {
+              ...context.spec.components!.schemas,
+              UnionBase: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                },
+                additionalProperties: true,
+                [unionKeyword]: [
+                  {
+                    type: 'object',
+                    properties: { left: { type: 'string' } },
+                  },
+                  {
+                    type: 'object',
+                    properties: { right: { type: 'string' } },
+                  },
+                ],
+              },
+              UnionWrapper: {
+                allOf: [{ $ref: '#/components/schemas/UnionBase' }],
+              },
+            },
+          },
+        },
+      } as unknown as ContextSpec;
+
+      const schema: OpenApiSchemaObject = {
+        type: 'object',
+        required: ['id'],
+        allOf: [{ $ref: '#/components/schemas/UnionWrapper' }],
+      };
+
+      const result = combineSchemas({
+        schema,
+        name: 'UnionItem',
+        separator: 'allOf',
+        context: contextWithUnion,
+        nullable: '',
+      });
+
+      expect(result.value).toContain("Pick<UnionWrapper, 'id'>>");
+      expect(result.value).not.toContain('Extract<');
+    },
+  );
+
+  it('does not collect properties declared only inside oneOf members', () => {
     const contextWithOneOf = {
       ...context,
       spec: {
@@ -382,10 +481,13 @@ describe('combineSchemas (allOf required handling)', () => {
           schemas: {
             ...context.spec.components!.schemas,
             OneOfBase: {
-              properties: {
-                id: { type: 'string' },
-              },
-              oneOf: [{ type: 'object' }, { type: 'string' }],
+              oneOf: [
+                {
+                  type: 'object',
+                  properties: { id: { type: 'string' } },
+                },
+                { type: 'string' },
+              ],
             },
             OneOfWrapper: {
               allOf: [{ $ref: '#/components/schemas/OneOfBase' }],
