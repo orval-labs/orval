@@ -1472,6 +1472,19 @@ test('default issue-3748 keeps plain Required<Pick> for keys behind a nested all
   expect(itemDetail).not.toContain('Extract<');
 });
 
+test('default issue-3750 keeps plain Required<Pick> for parent properties', async () => {
+  const itemDetail = await readFile(
+    generated('default', 'issue-3750', 'model', 'itemDetail.ts'),
+    'utf8',
+  );
+
+  // Parent properties are part of the emitted intersection and are therefore
+  // safe Pick keys even when required comes from a constraint-only member.
+  expect(itemDetail).toMatch(/'id' \| 'name'/);
+  expect(itemDetail).toContain('Required<');
+  expect(itemDetail).not.toContain('Extract<');
+});
+
 test('default regressions collect only guaranteed keys through nested allOf refs', async () => {
   const unionItem = await readFile(
     generated('default', 'regressions', 'model', 'unionItem.ts'),

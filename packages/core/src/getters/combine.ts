@@ -537,6 +537,12 @@ function combineValues({
     // Parent object may have set required properties that only exist in child
     // objects. Make sure the resulting object has these properties as required,
     // but there is no need to override properties that are already required
+    const parentProperties = parentSchema?.properties as
+      | Record<string, unknown>
+      | undefined;
+    const parentRequiredProperties = parentSchema?.required as
+      | string[]
+      | undefined;
     const overrideRequiredProperties = resolvedData.requiredProperties.filter(
       (prop) =>
         !resolvedData.originalSchema.some((schema) => {
@@ -546,19 +552,31 @@ function combineValues({
           const req = schema?.required as string[] | undefined;
           return props?.[prop] && req?.includes(prop);
         }) &&
-        !((): boolean => {
-          const parentProps = parentSchema?.properties as
-            | Record<string, unknown>
-            | undefined;
-          const parentReq = parentSchema?.required as string[] | undefined;
-          return !!(parentProps?.[prop] && parentReq?.includes(prop));
-        })(),
+        !(parentProperties?.[prop] && parentRequiredProperties?.includes(prop)),
     );
+    // `joined` intersects the parent's own object emission with every allOf
+    // member, so guaranteed own keys are just as safe to Pick as keys proven
+    // reachable through the member composition. A scalar/nullable/union parent
+    // may declare properties without emitting them on every branch, so keep
+    // those on the Extract-guarded path.
+    const pickableParentProperties =
+      parentSchema &&
+      parentProperties &&
+      !cannotGuaranteeOwnPropertyKeys(parentSchema, context, false)
+        ? Object.keys(parentProperties)
+        : [];
+    // Keep the parent keys local to required-key handling: `allProperties`
+    // also drives unionAddMissingProperties for other separators and
+    // intentionally contains member keys only.
+    const pickableProperties = new Set([
+      ...resolvedData.allProperties,
+      ...pickableParentProperties,
+    ]);
     const pickableRequiredProperties = overrideRequiredProperties.filter(
-      (prop) => resolvedData.allProperties.includes(prop),
+      (prop) => pickableProperties.has(prop),
     );
     const unresolvedRequiredProperties = overrideRequiredProperties.filter(
-      (prop) => !resolvedData.allProperties.includes(prop),
+      (prop) => !pickableProperties.has(prop),
     );
     let result = joined;
     if (pickableRequiredProperties.length > 0) {

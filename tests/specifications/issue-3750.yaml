@@ -1,0 +1,34 @@
+openapi: 3.0.3
+info:
+  title: issue-3750
+  description: |-
+    Required keys declared on the parent schema's own properties must keep a
+    plain Required<Pick> when a constraint-only allOf member requires them.
+  version: 1.0.0
+paths:
+  /item:
+    get:
+      operationId: getItem
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemDetail'
+components:
+  schemas:
+    ItemDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      additionalProperties: true
+      allOf:
+        - type: object
+          required:
+            - id
+            - name
+          additionalProperties: true

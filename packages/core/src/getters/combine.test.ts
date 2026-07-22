@@ -134,6 +134,67 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(result.value).not.toContain('Extract<');
   });
 
+  // #3750: a constraint-only allOf member can require properties declared on
+  // the parent schema itself. Those properties are part of the emitted
+  // intersection and must therefore use a plain Required<Pick>. With an index
+  // signature, Extract<keyof T, K> collapses to never and loses requiredness.
+  it('keeps plain Required<Pick> for required keys declared on parent properties (#3750)', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' },
+      },
+      additionalProperties: true,
+      allOf: [
+        {
+          type: 'object',
+          required: ['id', 'name'],
+          additionalProperties: true,
+        },
+      ],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'ItemDetail',
+      separator: 'allOf',
+      context,
+      nullable: '',
+    });
+
+    expect(result.value).toContain('Required<Pick<');
+    expect(result.value).toContain(", 'id' | 'name'>>");
+    expect(result.value).not.toContain('Extract<');
+  });
+
+  it('keeps Extract guard when parent properties are not emitted by its type', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'string',
+      properties: {
+        id: { type: 'string' },
+      },
+      allOf: [
+        {
+          type: 'object',
+          required: ['id'],
+          additionalProperties: true,
+        },
+      ],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'InvalidParent',
+      separator: 'allOf',
+      context,
+      nullable: '',
+    });
+
+    expect(result.value).toContain('Extract<keyof (');
+    expect(result.value).not.toMatch(/Required<Pick<.+, 'id'>>$/s);
+  });
+
   // #3748: required keys whose properties live two $ref hops away (the
   // referenced schema is itself an allOf composition) must resolve to a plain
   // Required<Pick>. The Extract guard is not equivalent here: with
