@@ -12,3 +12,6 @@ export * from './canonicalNullableOneOfSiblingBase';
 export * from './canonicalNullableOneOfSiblingItem';
 export * from './canonicalNullableOneOfSiblingWrapper';
 export * from './canonicalNullableOneOfWrapper';
+export * from './inlineNullableAnyOfItem';
+export * from './inlineNullableAnyOfObjectBase';
+export * from './inlineNullableAnyOfWrapper';

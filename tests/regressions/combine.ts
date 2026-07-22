@@ -1,5 +1,6 @@
 import type { CanonicalNullableOneOfItem } from '../generated/default/regressions-oas31/model/canonicalNullableOneOfItem';
 import type { CanonicalNullableOneOfSiblingItem } from '../generated/default/regressions-oas31/model/canonicalNullableOneOfSiblingItem';
+import type { InlineNullableAnyOfItem } from '../generated/default/regressions-oas31/model/inlineNullableAnyOfItem';
 import type { AllEnumSiblingItem } from '../generated/default/regressions/model/allEnumSiblingItem';
 import type { DirectScalarUnionItem } from '../generated/default/regressions/model/directScalarUnionItem';
 import type { EnumUnionItem } from '../generated/default/regressions/model/enumUnionItem';
@@ -68,6 +69,18 @@ const canonicalNullableOneOfSiblingItemWithoutId: CanonicalNullableOneOfSiblingI
 
 export type AllEnumSiblingItemCompileCheck = AllEnumSiblingItem;
 
+const inlineNullableAnyOfItem: InlineNullableAnyOfItem = {
+  id: 'id',
+  left: 'value',
+};
+
+// Direct anyOf nullability stays inside an inline allOf member, where its
+// intersection with the object base keeps id on every surviving branch.
+// @ts-expect-error - id must not silently become optional.
+const inlineNullableAnyOfItemWithoutId: InlineNullableAnyOfItem = {
+  left: 'value',
+};
+
 void unionItem;
 void unionItemWithoutId;
 void scalarItem;
@@ -79,3 +92,5 @@ void refMemberUnionItem;
 void refMemberUnionItemWithoutId;
 void canonicalNullableOneOfSiblingItem;
 void canonicalNullableOneOfSiblingItemWithoutId;
+void inlineNullableAnyOfItem;
+void inlineNullableAnyOfItemWithoutId;

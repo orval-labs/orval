@@ -50,3 +50,25 @@ components:
         - id
       allOf:
         - $ref: '#/components/schemas/CanonicalNullableOneOfSiblingWrapper'
+    InlineNullableAnyOfObjectBase:
+      type: object
+      properties:
+        id:
+          type: string
+      additionalProperties: true
+    InlineNullableAnyOfWrapper:
+      allOf:
+        - allOf:
+            - $ref: '#/components/schemas/InlineNullableAnyOfObjectBase'
+          anyOf:
+            - type: object
+              properties:
+                left:
+                  type: string
+            - type: 'null'
+    InlineNullableAnyOfItem:
+      type: object
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/InlineNullableAnyOfWrapper'

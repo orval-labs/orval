@@ -1528,6 +1528,15 @@ test('default regressions collect only guaranteed keys through nested allOf refs
     ),
     'utf8',
   );
+  const inlineNullableAnyOfItem = await readFile(
+    generated(
+      'default',
+      'regressions-oas31',
+      'model',
+      'inlineNullableAnyOfItem.ts',
+    ),
+    'utf8',
+  );
   const allEnumSiblingItem = await readFile(
     generated('default', 'regressions', 'model', 'allEnumSiblingItem.ts'),
     'utf8',
@@ -1583,6 +1592,11 @@ test('default regressions collect only guaranteed keys through nested allOf refs
     "Pick<CanonicalNullableOneOfSiblingWrapper, 'id'>",
   );
   expect(canonicalNullableOneOfSiblingItem).not.toContain('Extract<');
+
+  expect(inlineNullableAnyOfItem).toContain(
+    "Pick<InlineNullableAnyOfWrapper, 'id'>",
+  );
+  expect(inlineNullableAnyOfItem).not.toContain('Extract<');
 
   expect(allEnumSiblingItem).toContain(
     "Pick<AllEnumSiblingWrapper, 'id'>",

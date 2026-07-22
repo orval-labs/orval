@@ -986,6 +986,72 @@ describe('combineSchemas (allOf required handling)', () => {
     expect(result.value).not.toContain('Extract<');
   });
 
+  it('collects allOf properties beside an inline nullable anyOf member', () => {
+    const contextWithInlineNullableAnyOf = {
+      ...context,
+      spec: {
+        components: {
+          schemas: {
+            ...context.spec.components!.schemas,
+            InlineNullableAnyOfObjectBase: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
+              additionalProperties: true,
+            },
+            InlineNullableAnyOfWrapper: {
+              allOf: [
+                {
+                  allOf: [
+                    {
+                      $ref: '#/components/schemas/InlineNullableAnyOfObjectBase',
+                    },
+                  ],
+                  anyOf: [
+                    {
+                      type: 'object',
+                      properties: { left: { type: 'string' } },
+                    },
+                    { type: 'null' },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+      },
+    } as unknown as ContextSpec;
+
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['id'],
+      allOf: [{ $ref: '#/components/schemas/InlineNullableAnyOfWrapper' }],
+    };
+
+    const result = combineSchemas({
+      schema,
+      name: 'InlineNullableAnyOfItem',
+      separator: 'allOf',
+      context: contextWithInlineNullableAnyOf,
+      nullable: '',
+    });
+
+    expect(result.value).toContain("Pick<InlineNullableAnyOfWrapper, 'id'>>");
+    expect(result.value).not.toContain('Extract<');
+
+    const wrapper = combineSchemas({
+      schema: contextWithInlineNullableAnyOf.spec.components!.schemas!
+        .InlineNullableAnyOfWrapper as OpenApiSchemaObject,
+      name: 'InlineNullableAnyOfWrapper',
+      separator: 'allOf',
+      context: contextWithInlineNullableAnyOf,
+      nullable: '',
+    });
+
+    expect(wrapper.value).toContain('InlineNullableAnyOfObjectBase & (');
+  });
+
   it('collects allOf properties beside an all-enum composition', () => {
     const contextWithAllEnumSibling = {
       ...context,

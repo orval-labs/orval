@@ -224,14 +224,16 @@ function usesCanonicalNullableOneOfObject(
 
 /**
  * True when this node can emit a branch that also omits keys contributed by
- * its `allOf` descendants. Direct non-object output and inline anyOf
- * nullability escape the full intersection, so neither own nor descendant
- * keys are guaranteed. Canonical nullable oneOf and all-enum sibling
- * compositions only make the node's own properties unsafe: `combineSchemas`
- * still intersects every `allOf` member with their emitted union.
+ * its `allOf` descendants. Direct non-object output escapes the full
+ * intersection. Direct inline anyOf nullability does so only when `resolveValue`
+ * resolves this node through a component `$ref` and appends `| null` to the
+ * imported alias. Canonical nullable oneOf and all-enum sibling compositions
+ * only make the node's own properties unsafe: `combineSchemas` still
+ * intersects every `allOf` member with their emitted union.
  */
 function cannotGuaranteeAllOfPropertyKeys(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  crossesComponentRefBoundary: boolean,
 ): boolean {
   if (directlyEmitsNonObjectType(schema)) {
     return true;
@@ -241,7 +243,10 @@ function cannotGuaranteeAllOfPropertyKeys(
     | OpenApiReferenceObject
   )[];
   return anyOfMembers.some(
-    (member) => !isReference(member) && isDirectlyNullable(member),
+    (member) =>
+      crossesComponentRefBoundary &&
+      !isReference(member) &&
+      isDirectlyNullable(member),
   );
 }
 
@@ -252,20 +257,22 @@ function cannotGuaranteeAllOfPropertyKeys(
  *
  * anyOf/oneOf members otherwise remain safe because `combineSchemas`
  * intersects the node's own properties into every grouped branch. The exception
- * is direct nullability in an inline anyOf member: `resolveValue` propagates it
- * to the referenced wrapper as a separate `| null`. Reference members,
- * non-null scalars, oneOf members, and nested unions stay inside the grouped
- * intersection. An all-enum composition is also unsafe because `combineValues`
- * emits the node's properties as a separate union branch instead. Finally, the
- * canonical nullable-oneOf object shortcut emits only its inline object and
- * `null`, dropping the node's own properties.
+ * is direct nullability in an inline anyOf member on a component `$ref` target:
+ * `resolveValue` propagates it to the referenced wrapper as a separate `| null`.
+ * Inline allOf members, reference members, non-null scalars, oneOf members, and
+ * nested unions stay inside the grouped intersection. An all-enum composition
+ * is also unsafe because `combineValues` emits the node's properties as a
+ * separate union branch instead. Finally, the canonical nullable-oneOf object
+ * shortcut emits only its inline object and `null`, dropping the node's own
+ * properties.
  */
 function cannotGuaranteeOwnPropertyKeys(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
+  crossesComponentRefBoundary: boolean,
 ): boolean {
   return (
-    cannotGuaranteeAllOfPropertyKeys(schema) ||
+    cannotGuaranteeAllOfPropertyKeys(schema, crossesComponentRefBoundary) ||
     hasAllEnumMembers(schema, context) ||
     usesCanonicalNullableOneOfObject(schema)
   );
@@ -305,7 +312,7 @@ function derefComponentSchema(
     }
     if (isReference(target)) {
       // Intermediate chain hops can carry non-object-producing siblings too
-      if (cannotGuaranteeAllOfPropertyKeys(target)) {
+      if (cannotGuaranteeAllOfPropertyKeys(target, true)) {
         return undefined;
       }
       current = target.$ref;
@@ -328,26 +335,34 @@ function derefComponentSchema(
  * branch. A node's own unsafe properties are skipped without discarding keys
  * from sibling `allOf` descendants that remain in the emitted intersection.
  * Nodes that can emit a branch outside that full intersection are skipped
- * entirely, degrading to the compile-safe `Extract` guard.
+ * entirely, degrading to the compile-safe `Extract` guard. The component-ref
+ * boundary flag mirrors the only `resolveValue` path that lifts inline anyOf
+ * nullability outside the alias intersection.
  */
 function collectDeepPropertyKeys(
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
+  crossesComponentRefBoundary = false,
   seenRefs = new Set<string>(),
 ): string[] {
+  const resolvesComponentRef =
+    crossesComponentRefBoundary || isReference(schema);
   // Checked before dereferencing: `$ref`-site siblings (`nullable: true`,
   // scalar or mixed `type`) can change the emission just like inline nodes.
-  if (cannotGuaranteeAllOfPropertyKeys(schema)) {
+  if (cannotGuaranteeAllOfPropertyKeys(schema, resolvesComponentRef)) {
     return [];
   }
   if (isReference(schema)) {
     const target = derefComponentSchema(schema.$ref, context, seenRefs);
-    return target ? collectDeepPropertyKeys(target, context, seenRefs) : [];
+    return target
+      ? collectDeepPropertyKeys(target, context, true, seenRefs)
+      : [];
   }
   // Bridge assertion: properties is infected by AnyOtherAttribute
   const properties = schema.properties as Record<string, unknown> | undefined;
   const keys =
-    properties && !cannotGuaranteeOwnPropertyKeys(schema, context)
+    properties &&
+    !cannotGuaranteeOwnPropertyKeys(schema, context, resolvesComponentRef)
       ? Object.keys(properties)
       : [];
   const members = (schema.allOf ?? []) as (
@@ -355,7 +370,7 @@ function collectDeepPropertyKeys(
     | OpenApiReferenceObject
   )[];
   for (const member of members) {
-    keys.push(...collectDeepPropertyKeys(member, context, seenRefs));
+    keys.push(...collectDeepPropertyKeys(member, context, false, seenRefs));
   }
   return keys;
 }
@@ -622,7 +637,11 @@ export function combineSchemas({
         // unionAddMissingProperties (#935), which must only see each member's
         // own top-level keys.
         resolvedData.allProperties.push(
-          ...collectDeepPropertyKeys(resolvedValue.originalSchema, context),
+          ...collectDeepPropertyKeys(
+            resolvedValue.originalSchema,
+            context,
+            isReference(subSchema),
+          ),
         );
       } else {
         // Bridge: originalSchema.properties is infected by AnyOtherAttribute
